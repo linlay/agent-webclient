@@ -16,6 +16,7 @@ import { consumeJsonSseStream } from './lib/sseParser.js';
 import { parseViewportBlocks } from './lib/viewportParser.js';
 
 const PLAN_AUTO_COLLAPSE_MS = 4000;
+const REASONING_AUTO_COLLAPSE_MS = 1500;
 const MAX_EVENTS = 1000;
 const MAX_DEBUG_LINES = 220;
 const TABLET_BREAKPOINT = 768;
@@ -95,12 +96,13 @@ const state = {
   plan: null,
   toolStates: new Map(),
   toolNodeById: new Map(),
+  contentNodeById: new Map(),
   pendingTools: new Map(),
   reasoningNodeById: new Map(),
+  reasoningCollapseTimers: new Map(),
   actionStates: new Map(),
   executedActionIds: new Set(),
   renderedViewportSignatures: new Set(),
-  viewportNodesBySignature: new Map(),
   timelineNodes: new Map(),
   timelineOrder: [],
   timelineNodeByMessageId: new Map(),
@@ -236,6 +238,42 @@ function setPlanExpanded(expanded, options = {}) {
   }
 
   renderPlan();
+}
+
+function clearReasoningCollapseTimer(reasoningKey) {
+  const timerId = state.reasoningCollapseTimers.get(reasoningKey);
+  if (!timerId) {
+    return;
+  }
+
+  window.clearTimeout(timerId);
+  state.reasoningCollapseTimers.delete(reasoningKey);
+}
+
+function clearAllReasoningCollapseTimers() {
+  for (const reasoningKey of state.reasoningCollapseTimers.keys()) {
+    clearReasoningCollapseTimer(reasoningKey);
+  }
+}
+
+function scheduleReasoningAutoCollapse(reasoningKey, nodeId, delayMs = REASONING_AUTO_COLLAPSE_MS) {
+  if (!reasoningKey || !nodeId) {
+    return;
+  }
+
+  clearReasoningCollapseTimer(reasoningKey);
+  const timerId = window.setTimeout(() => {
+    state.reasoningCollapseTimers.delete(reasoningKey);
+    const node = state.timelineNodes.get(nodeId);
+    if (!node || node.kind !== 'thinking') {
+      return;
+    }
+
+    node.expanded = false;
+    renderMessages({ nodeId, stickToBottom: false });
+  }, delayMs);
+
+  state.reasoningCollapseTimers.set(reasoningKey, timerId);
 }
 
 function closeMentionSuggestions() {
@@ -423,13 +461,6 @@ function toToolResultPayload(rawResult) {
   };
 }
 
-function formatTimelineTimestamp(ts) {
-  return new Date(ts ?? Date.now()).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
 function upsertTimelineMessageNode(messageId, role, text, ts) {
   const nodeId = state.timelineNodeByMessageId.get(messageId) || `msg:${messageId}`;
   state.timelineNodeByMessageId.set(messageId, nodeId);
@@ -514,32 +545,47 @@ function ensureToolTimelineNode(toolId, fallback = {}) {
   return node;
 }
 
-function ensureViewportTimelineNode(signature, block, ts) {
-  let nodeId = state.viewportNodesBySignature.get(signature);
+function ensureContentTimelineNode(contentId, fallback = {}) {
+  let nodeId = state.contentNodeById.get(contentId);
   if (!nodeId) {
-    nodeId = `viewport:${nextTimelineNodeId('viewport')}`;
-    state.viewportNodesBySignature.set(signature, nodeId);
+    nodeId = `content:${contentId}:${nextTimelineNodeId('content')}`;
+    state.contentNodeById.set(contentId, nodeId);
   }
 
   const node = ensureTimelineNode(nodeId, {
-    kind: 'viewport',
-    signature,
-    key: block.key || '',
-    payload: block.payload ?? safeJsonParse(block.payloadRaw, {}),
-    payloadRaw: block.payloadRaw || '{}',
-    loading: true,
-    html: '',
-    error: '',
-    loadStarted: false,
-    lastLoadRunId: '',
-    ts: ts ?? Date.now()
+    kind: 'content',
+    contentId,
+    text: '',
+    status: 'running',
+    segments: [],
+    embeddedViewports: {},
+    ts: fallback.ts ?? Date.now()
   });
 
-  node.kind = 'viewport';
-  node.key = block.key || node.key;
-  node.payload = block.payload ?? node.payload;
-  node.payloadRaw = block.payloadRaw || node.payloadRaw || '{}';
-  node.ts = ts ?? node.ts;
+  node.kind = 'content';
+  node.contentId = contentId;
+
+  if (fallback.status) {
+    node.status = fallback.status;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(fallback, 'text')) {
+    node.text = String(fallback.text ?? '');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(fallback, 'appendText')) {
+    node.text = `${node.text || ''}${String(fallback.appendText ?? '')}`;
+  }
+
+  if (!Array.isArray(node.segments)) {
+    node.segments = [];
+  }
+
+  if (!node.embeddedViewports || typeof node.embeddedViewports !== 'object') {
+    node.embeddedViewports = {};
+  }
+
+  node.ts = fallback.ts ?? node.ts;
   return node;
 }
 
@@ -578,6 +624,94 @@ function renderToolResultMarkup(result, status) {
   `;
 }
 
+function renderContentSegments(container, node) {
+  const segments = Array.isArray(node.segments) ? node.segments : [];
+
+  if (segments.length === 0) {
+    const fallbackText = stripViewportBlocksFromText(node.text || '');
+    if (fallbackText) {
+      const textEl = document.createElement('div');
+      textEl.className = 'timeline-text';
+      textEl.textContent = fallbackText;
+      container.append(textEl);
+      return;
+    }
+
+    if (node.status !== 'completed') {
+      const waiting = document.createElement('div');
+      waiting.className = 'status-line';
+      waiting.textContent = 'waiting content...';
+      container.append(waiting);
+    }
+    return;
+  }
+
+  for (const segment of segments) {
+    if (segment.kind === 'text') {
+      const text = String(segment.text || '').trim();
+      if (!text) {
+        continue;
+      }
+
+      const textEl = document.createElement('div');
+      textEl.className = 'timeline-text';
+      textEl.textContent = text;
+      container.append(textEl);
+      continue;
+    }
+
+    if (segment.kind !== 'viewport') {
+      continue;
+    }
+
+    const viewport = node.embeddedViewports?.[segment.signature];
+    if (!viewport) {
+      continue;
+    }
+
+    const viewportCard = document.createElement('section');
+    viewportCard.className = 'timeline-content-viewport';
+
+    const head = document.createElement('div');
+    head.className = 'timeline-content-viewport-head';
+    head.textContent = `viewport: ${viewport.key || '-'}`;
+    viewportCard.append(head);
+
+    const body = document.createElement('div');
+    body.className = 'timeline-content-viewport-body';
+
+    if (viewport.error) {
+      body.innerHTML = `<div class="status-line">${escapeHtml(viewport.error)}</div>`;
+      viewportCard.append(body);
+      container.append(viewportCard);
+      continue;
+    }
+
+    if (viewport.loading || !viewport.html) {
+      body.innerHTML = '<div class="status-line">loading viewport...</div>';
+      viewportCard.append(body);
+      container.append(viewportCard);
+      continue;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'timeline-content-viewport-frame';
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+    iframe.srcdoc = viewport.html;
+    iframe.addEventListener('load', () => {
+      try {
+        const payload = viewport.payload ?? safeJsonParse(viewport.payloadRaw, {});
+        iframe.contentWindow?.postMessage(payload, '*');
+      } catch (error) {
+        appendDebug(`content viewport postMessage failed: ${error.message}`);
+      }
+    });
+    body.append(iframe);
+    viewportCard.append(body);
+    container.append(viewportCard);
+  }
+}
+
 function patchTimelineNode(nodeId) {
   const node = state.timelineNodes.get(nodeId);
   const row = state.timelineDomCache.get(nodeId);
@@ -587,14 +721,12 @@ function patchTimelineNode(nodeId) {
   }
 
   row.classList.remove('hidden');
-  const timestamp = formatTimelineTimestamp(node.ts);
 
   if (node.kind === 'message' && node.role === 'user') {
     row.className = 'timeline-row timeline-row-user';
     row.innerHTML = `
       <div class="timeline-user-bubble">
         <div class="timeline-text">${escapeHtml(node.text || '')}</div>
-        <div class="timeline-time">${escapeHtml(timestamp)}</div>
       </div>
     `;
     return;
@@ -613,7 +745,6 @@ function patchTimelineNode(nodeId) {
       <div class="timeline-marker"><span class="node-icon node-icon-assistant" aria-hidden="true"></span></div>
       <div class="timeline-flow-content">
         <div class="timeline-text">${escapeHtml(visibleText)}</div>
-        <div class="timeline-time">${escapeHtml(timestamp)}</div>
       </div>
     `;
     return;
@@ -646,9 +777,26 @@ function patchTimelineNode(nodeId) {
           <span class="chevron">›</span>
         </button>
         <div class="${detailClass}">${content}</div>
-        <div class="timeline-time">${escapeHtml(timestamp)}</div>
       </div>
     `;
+    return;
+  }
+
+  if (node.kind === 'content') {
+    row.className = 'timeline-row timeline-row-flow';
+    row.innerHTML = `
+      <div class="timeline-marker"><span class="node-icon node-icon-assistant" aria-hidden="true"></span></div>
+      <div class="timeline-flow-content">
+        <div class="timeline-content-stack"></div>
+      </div>
+    `;
+
+    const stack = row.querySelector('.timeline-content-stack');
+    if (!stack) {
+      return;
+    }
+
+    renderContentSegments(stack, node);
     return;
   }
 
@@ -671,53 +819,9 @@ function patchTimelineNode(nodeId) {
           <pre class="tool-code">${escapeHtml(argsText)}</pre>
           ${resultMarkup}
         </section>
-        <div class="timeline-time">${escapeHtml(timestamp)}</div>
       </div>
     `;
     return;
-  }
-
-  if (node.kind === 'viewport') {
-    row.className = 'timeline-row timeline-row-flow';
-    row.innerHTML = `
-      <div class="timeline-marker"><span class="node-icon node-icon-viewport" aria-hidden="true"></span></div>
-      <div class="timeline-flow-content">
-        <div class="timeline-viewport-card">
-          <div class="timeline-viewport-head">viewport: ${escapeHtml(node.key || '-')}</div>
-          <div class="timeline-viewport-body"></div>
-        </div>
-        <div class="timeline-time">${escapeHtml(timestamp)}</div>
-      </div>
-    `;
-
-    const viewportBody = row.querySelector('.timeline-viewport-body');
-    if (!viewportBody) {
-      return;
-    }
-
-    if (node.error) {
-      viewportBody.innerHTML = `<div class="status-line">${escapeHtml(node.error)}</div>`;
-      return;
-    }
-
-    if (node.loading || !node.html) {
-      viewportBody.innerHTML = '<div class="status-line">loading viewport...</div>';
-      return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.className = 'timeline-viewport-frame';
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-    iframe.srcdoc = node.html;
-    iframe.addEventListener('load', () => {
-      try {
-        const payload = node.payload ?? safeJsonParse(node.payloadRaw, {});
-        iframe.contentWindow?.postMessage(payload, '*');
-      } catch (error) {
-        appendDebug(`viewport postMessage failed: ${error.message}`);
-      }
-    });
-    viewportBody.replaceChildren(iframe);
   }
 }
 
@@ -850,6 +954,7 @@ function appendMessageText(id, role, delta, ts) {
 }
 
 function resetConversationState() {
+  clearAllReasoningCollapseTimers();
   state.messagesById.clear();
   state.messageOrder = [];
   state.events = [];
@@ -859,12 +964,13 @@ function resetConversationState() {
   clearPlanAutoCollapseTimer();
   state.toolStates.clear();
   state.toolNodeById.clear();
+  state.contentNodeById.clear();
   state.reasoningNodeById.clear();
+  state.reasoningCollapseTimers.clear();
   state.pendingTools.clear();
   state.actionStates.clear();
   state.executedActionIds.clear();
   state.renderedViewportSignatures.clear();
-  state.viewportNodesBySignature.clear();
   state.timelineNodes.clear();
   state.timelineOrder = [];
   state.timelineNodeByMessageId.clear();
@@ -883,14 +989,16 @@ function resetConversationState() {
 }
 
 function resetRunTransientState() {
+  clearAllReasoningCollapseTimers();
   state.toolStates.clear();
   state.toolNodeById.clear();
+  state.contentNodeById.clear();
   state.reasoningNodeById.clear();
+  state.reasoningCollapseTimers.clear();
   state.activeReasoningKey = '';
   state.pendingTools.clear();
   state.actionStates.clear();
   state.executedActionIds.clear();
-  state.viewportNodesBySignature.clear();
   renderPendingTools();
 }
 
@@ -1226,72 +1334,167 @@ function viewportSignature(contentId, block) {
   return `${contentId || 'content'}::${block.key}::${block.payloadRaw}`;
 }
 
-function createViewportNodeFromBlock(contentId, block, ts) {
-  const signature = viewportSignature(contentId, block);
-  return ensureViewportTimelineNode(signature, block, ts);
+function parseContentSegments(contentId, text) {
+  const raw = String(text ?? '');
+  if (!raw.trim()) {
+    return [];
+  }
+
+  if (!raw.includes('```viewport')) {
+    return [{ kind: 'text', text: raw.trim() }];
+  }
+
+  const segments = [];
+  const regex = /```viewport[\s\S]*?```/gi;
+  let cursor = 0;
+  let match;
+
+  while ((match = regex.exec(raw)) !== null) {
+    const before = raw.slice(cursor, match.index);
+    if (before.trim()) {
+      segments.push({ kind: 'text', text: before.trim() });
+    }
+
+    const parsed = parseViewportBlocks(match[0]).find((block) => block.type === 'html');
+    if (parsed) {
+      segments.push({
+        kind: 'viewport',
+        signature: viewportSignature(contentId, parsed),
+        key: parsed.key,
+        payloadRaw: parsed.payloadRaw || '{}',
+        payload: parsed.payload ?? safeJsonParse(parsed.payloadRaw, {})
+      });
+    } else if (match[0].trim()) {
+      segments.push({ kind: 'text', text: match[0].trim() });
+    }
+
+    cursor = regex.lastIndex;
+  }
+
+  const tail = raw.slice(cursor);
+  if (tail.trim()) {
+    segments.push({ kind: 'text', text: tail.trim() });
+  }
+
+  if (segments.length === 0) {
+    segments.push({ kind: 'text', text: raw.trim() });
+  }
+
+  return segments;
 }
 
-async function loadViewportIntoTimeline(nodeId, block, runId) {
+async function loadViewportIntoContentNode(nodeId, signature, runId) {
   const node = state.timelineNodes.get(nodeId);
-  if (!node || node.loadStarted || node.html) {
+  if (!node || node.kind !== 'content') {
+    return;
+  }
+
+  const viewport = node.embeddedViewports?.[signature];
+  if (!viewport || !viewport.key) {
     return;
   }
 
   const requestRunId = String(runId || '');
-  if (node.lastLoadRunId === requestRunId) {
+  if (viewport.loadStarted) {
     return;
   }
 
-  node.loadStarted = true;
-  node.lastLoadRunId = requestRunId;
-  node.loading = true;
-  node.error = '';
+  if (viewport.html && viewport.lastLoadRunId === requestRunId) {
+    return;
+  }
+
+  viewport.loadStarted = true;
+  viewport.lastLoadRunId = requestRunId;
+  viewport.loading = true;
+  viewport.error = '';
   renderMessages({ nodeId, stickToBottom: false });
 
   try {
-    const response = await getViewport(block.key, state.chatId || undefined, runId || undefined);
+    const response = await getViewport(viewport.key, state.chatId || undefined, runId || undefined);
     const html = response.data?.html;
     if (typeof html !== 'string' || !html.trim()) {
       throw new Error('Viewport response does not contain html');
     }
 
-    node.html = html;
-    node.loading = false;
-    node.error = '';
+    viewport.html = html;
+    viewport.loading = false;
+    viewport.error = '';
   } catch (error) {
-    node.loading = false;
-    node.error = `viewport failed: ${error.message}`;
+    viewport.loading = false;
+    viewport.error = `viewport failed: ${error.message}`;
   } finally {
-    node.loadStarted = false;
+    viewport.loadStarted = false;
     renderMessages({ nodeId, stickToBottom: false });
   }
 }
 
 function processViewportBlocks(contentId, text, runId, ts) {
-  if (typeof text !== 'string' || !text.includes('```viewport')) {
+  const nodeId = state.contentNodeById.get(contentId);
+  if (!nodeId) {
     return;
   }
 
-  const blocks = parseViewportBlocks(text).filter((block) => block.type === 'html');
-  for (const block of blocks) {
-    const signature = viewportSignature(contentId, block);
-    const existingNodeId = state.viewportNodesBySignature.get(signature);
-    if (existingNodeId) {
-      loadViewportIntoTimeline(existingNodeId, block, runId).catch((error) => {
-        appendDebug(`viewport timeline render failed: ${error.message}`);
-      });
+  const node = state.timelineNodes.get(nodeId);
+  if (!node || node.kind !== 'content') {
+    return;
+  }
+
+  const segments = parseContentSegments(contentId, text);
+  node.segments = segments;
+  if (!node.embeddedViewports || typeof node.embeddedViewports !== 'object') {
+    node.embeddedViewports = {};
+  }
+
+  const activeSignatures = new Set();
+  for (const segment of segments) {
+    if (segment.kind !== 'viewport') {
       continue;
     }
 
-    const node = createViewportNodeFromBlock(contentId, block, ts);
-    renderMessages({ nodeId: node.id, stickToBottom: true });
-    loadViewportIntoTimeline(node.id, block, runId).catch((error) => {
-      appendDebug(`viewport timeline render failed: ${error.message}`);
+    const signature = segment.signature;
+    activeSignatures.add(signature);
+
+    const existing = node.embeddedViewports[signature] || {
+      signature,
+      key: segment.key,
+      payload: segment.payload,
+      payloadRaw: segment.payloadRaw,
+      html: '',
+      loading: false,
+      error: '',
+      loadStarted: false,
+      lastLoadRunId: ''
+    };
+
+    existing.key = segment.key;
+    existing.payload = segment.payload;
+    existing.payloadRaw = segment.payloadRaw;
+    existing.ts = ts ?? Date.now();
+    node.embeddedViewports[signature] = existing;
+
+    loadViewportIntoContentNode(nodeId, signature, runId).catch((error) => {
+      appendDebug(`viewport embed load failed: ${error.message}`);
     });
-    renderViewportBlock(block, runId).catch((error) => {
+
+    renderViewportBlock(
+      {
+        key: existing.key,
+        payload: existing.payload,
+        payloadRaw: existing.payloadRaw
+      },
+      runId
+    ).catch((error) => {
       appendDebug(`viewport debug render failed: ${error.message}`);
     });
   }
+
+  for (const signature of Object.keys(node.embeddedViewports)) {
+    if (!activeSignatures.has(signature)) {
+      delete node.embeddedViewports[signature];
+    }
+  }
+
+  node.ts = ts ?? node.ts;
 }
 
 function applyAction(actionId, actionName, args) {
@@ -1331,33 +1534,60 @@ function resolveReasoningKey(event, type) {
   return state.activeReasoningKey;
 }
 
-function handleReasoningEvent(event, type) {
+function handleReasoningEvent(event, type, source = 'live') {
   const key = resolveReasoningKey(event, type);
   const node = ensureReasoningNode(key, event.timestamp || Date.now());
+  const isHistory = source === 'history';
 
   if (type === 'reasoning.start') {
+    clearReasoningCollapseTimer(key);
     if (event.text) {
       node.text = event.text;
     }
     node.status = 'running';
+    node.expanded = true;
   }
 
   if (type === 'reasoning.delta') {
+    clearReasoningCollapseTimer(key);
     node.text = `${node.text || ''}${event.delta || ''}`;
     node.status = 'running';
+    node.expanded = true;
   }
 
   if (type === 'reasoning.snapshot') {
     node.text = event.text || node.text || '';
     node.status = 'completed';
     state.activeReasoningKey = '';
+    if (isHistory) {
+      clearReasoningCollapseTimer(key);
+      node.expanded = false;
+    } else {
+      node.expanded = true;
+      scheduleReasoningAutoCollapse(key, node.id);
+    }
+  }
+
+  if (type === 'reasoning.end') {
+    if (event.text) {
+      node.text = event.text;
+    }
+    node.status = 'completed';
+    state.activeReasoningKey = '';
+    if (isHistory) {
+      clearReasoningCollapseTimer(key);
+      node.expanded = false;
+    } else {
+      node.expanded = true;
+      scheduleReasoningAutoCollapse(key, node.id);
+    }
   }
 
   node.ts = event.timestamp || node.ts;
   return node;
 }
 
-function handleToolStart(event) {
+function handleToolStart(event, source = 'live') {
   const toolId = event.toolId;
   if (!toolId) {
     return;
@@ -1383,7 +1613,7 @@ function handleToolStart(event) {
 
   state.toolStates.set(toolId, toolState);
 
-  ensureToolTimelineNode(toolId, {
+  const node = ensureToolTimelineNode(toolId, {
     toolName: toolState.toolName || toolId,
     toolApi: toolState.toolApi || '',
     description: toolState.description || '',
@@ -1391,8 +1621,9 @@ function handleToolStart(event) {
     status: 'running',
     ts: event.timestamp || Date.now()
   });
+  node.expanded = false;
 
-  if ((event.toolType || '').toLowerCase() === 'frontend') {
+  if (source !== 'history' && (event.toolType || '').toLowerCase() === 'frontend') {
     const key = `${toolState.runId || state.runId}#${toolId}`;
     state.pendingTools.set(key, {
       key,
@@ -1415,7 +1646,7 @@ function handleToolStart(event) {
   }
 }
 
-function handleAgwEvent(event) {
+function handleAgwEvent(event, source = 'live') {
   if (!event || typeof event !== 'object') {
     return;
   }
@@ -1493,40 +1724,69 @@ function handleAgwEvent(event) {
     renderPlan();
   }
 
-  if (type === 'reasoning.start' || type === 'reasoning.delta' || type === 'reasoning.snapshot') {
-    const node = handleReasoningEvent(event, type);
+  if (type === 'reasoning.start' || type === 'reasoning.delta' || type === 'reasoning.end' || type === 'reasoning.snapshot') {
+    const node = handleReasoningEvent(event, type, source);
     renderMessages({ nodeId: node?.id, stickToBottom: true });
   }
 
   if (type === 'content.start' && event.contentId) {
-    const messageId = `assistant:${event.contentId}`;
-    upsertMessage(messageId, 'assistant', '', event.timestamp || Date.now());
-    const nodeId = state.timelineNodeByMessageId.get(messageId);
-    renderMessages({ nodeId, stickToBottom: true });
+    const contentId = String(event.contentId);
+    const node = ensureContentTimelineNode(contentId, {
+      text: typeof event.text === 'string' ? event.text : '',
+      status: 'running',
+      ts: event.timestamp || Date.now()
+    });
+    node.text = typeof event.text === 'string' ? event.text : '';
+    node.status = 'running';
+    node.ts = event.timestamp || node.ts;
+    processViewportBlocks(contentId, node.text, event.runId || state.runId, node.ts);
+    renderMessages({ nodeId: node.id, stickToBottom: true });
   }
 
   if (type === 'content.delta' && event.contentId) {
-    const messageId = `assistant:${event.contentId}`;
-    appendMessageText(messageId, 'assistant', event.delta || '', event.timestamp || Date.now());
-    const nodeId = state.timelineNodeByMessageId.get(messageId);
-    renderMessages({ nodeId, stickToBottom: true });
+    const contentId = String(event.contentId);
+    const node = ensureContentTimelineNode(contentId, {
+      status: 'running',
+      ts: event.timestamp || Date.now()
+    });
+    node.text = `${node.text || ''}${event.delta || ''}`;
+    node.status = 'running';
+    node.ts = event.timestamp || node.ts;
+    processViewportBlocks(contentId, node.text, event.runId || state.runId, node.ts);
+    renderMessages({ nodeId: node.id, stickToBottom: true });
+  }
 
-    const message = state.messagesById.get(messageId);
-    if (message?.text) {
-      processViewportBlocks(event.contentId, message.text, state.runId, event.timestamp || Date.now());
+  if (type === 'content.end' && event.contentId) {
+    const contentId = String(event.contentId);
+    const node = ensureContentTimelineNode(contentId, {
+      status: 'completed',
+      ts: event.timestamp || Date.now()
+    });
+    if (typeof event.text === 'string' && event.text.trim()) {
+      node.text = event.text;
     }
+    node.status = 'completed';
+    node.ts = event.timestamp || node.ts;
+    processViewportBlocks(contentId, node.text, event.runId || state.runId, node.ts);
+    renderMessages({ nodeId: node.id, stickToBottom: true });
   }
 
   if (type === 'content.snapshot' && event.contentId) {
-    const messageId = `assistant:${event.contentId}`;
-    upsertMessage(messageId, 'assistant', event.text || '', event.timestamp || Date.now());
-    const nodeId = state.timelineNodeByMessageId.get(messageId);
-    renderMessages({ nodeId, stickToBottom: true });
-    processViewportBlocks(event.contentId, event.text || '', state.runId, event.timestamp || Date.now());
+    const contentId = String(event.contentId);
+    const node = ensureContentTimelineNode(contentId, {
+      text: event.text || '',
+      status: 'completed',
+      ts: event.timestamp || Date.now()
+    });
+    node.text = event.text || node.text || '';
+    node.status = 'completed';
+    node.ts = event.timestamp || node.ts;
+    processViewportBlocks(contentId, node.text, event.runId || state.runId, node.ts);
+    renderMessages({ nodeId: node.id, stickToBottom: true });
   }
 
   if (type === 'tool.start') {
-    handleToolStart(event);
+    handleToolStart(event, source);
     const nodeId = state.toolNodeById.get(event.toolId);
     renderMessages({ nodeId, stickToBottom: true });
   }
@@ -1586,11 +1846,11 @@ function handleAgwEvent(event) {
       toolApi: current.toolApi,
       description: current.description,
       argsText,
-      status: 'running',
+      status: 'completed',
       ts: event.timestamp || Date.now()
     });
     node.argsText = argsText;
-    node.status = 'running';
+    node.status = 'completed';
     node.ts = event.timestamp || node.ts;
     renderMessages({ nodeId: node.id, stickToBottom: true });
 
@@ -1602,7 +1862,7 @@ function handleAgwEvent(event) {
       2
     );
 
-    if ((event.toolType || '').toLowerCase() === 'frontend') {
+    if (source !== 'history' && (event.toolType || '').toLowerCase() === 'frontend') {
       const key = `${state.runId}#${event.toolId}`;
       state.pendingTools.set(key, {
         key,
@@ -1725,7 +1985,7 @@ async function loadChat(chatId, includeRawMessages = false) {
 
   const events = Array.isArray(response.data?.events) ? response.data.events : [];
   for (const event of events) {
-    handleAgwEvent(event);
+    handleAgwEvent(event, 'history');
   }
 
   const rawMessages = response.data?.rawMessages || response.data?.messages;
@@ -1830,7 +2090,7 @@ async function sendMessage(inputMessage) {
         appendDebug(`sse-comment: ${comments.join('|')}`);
       },
       onJson: (jsonEvent) => {
-        handleAgwEvent(jsonEvent);
+        handleAgwEvent(jsonEvent, 'live');
       },
       onParseError: (_error, rawData) => {
         appendDebug(`sse-json-parse-failed: ${rawData}`);
