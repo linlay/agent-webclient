@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AGW Codex Webclient</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="top-nav">
+        <div class="top-nav-inner">
+          <div class="nav-group nav-left">
+            <button id="open-left-drawer-btn" class="icon-btn" type="button">会话</button>
+            <div class="brand-mark">
+              <span class="brand-logo">A</span>
+              <div class="brand-text">
+                <strong>AGW</strong>
+                <span>Codex Webclient</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="nav-group nav-right">
+            <div id="agent-lock" class="agent-lock">
+              <span class="agent-lock-label">Agent</span>
+              <span id="agent-lock-chip" class="agent-lock-chip hidden"></span>
+              <button id="agent-clear-btn" class="agent-clear-btn hidden" type="button" aria-label="清除固定智能体">×</button>
+            </div>
+            <span id="api-status" class="status-pill">idle</span>
+            <button id="settings-toggle-btn" class="icon-btn" type="button">设置</button>
+            <button id="open-right-drawer-btn" class="icon-btn" type="button">调试</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="conversation-stage">
+        <section id="messages" class="messages-scroll" aria-live="polite"></section>
+      </main>
+
+      <footer class="bottom-dock">
+        <div class="bottom-dock-inner">
+          <section id="plan-panel" class="floating-plan hidden" aria-live="polite">
+            <button id="plan-toggle-btn" class="plan-header" type="button" aria-expanded="false">
+              <span id="plan-summary-status" class="plan-summary-status">0/0</span>
+              <span id="plan-summary-text" class="plan-summary-text">No active plan</span>
+              <span id="plan-id-label" class="plan-id-label"></span>
+            </button>
+            <ul id="plan-list" class="plan-list"></ul>
+          </section>
+
+          <section class="composer-area">
+            <div id="mention-suggest" class="mention-suggest hidden">
+              <div id="mention-suggest-list" class="mention-suggest-list"></div>
+            </div>
+
+            <div class="composer-pill">
+              <textarea id="message-input" placeholder="回复消息...（Enter 发送，Shift+Enter 换行）"></textarea>
+              <button id="send-btn" class="send-btn" type="button" aria-label="发送">↑</button>
+            </div>
+          </section>
+        </div>
+      </footer>
+
+      <aside id="left-sidebar" class="sidebar drawer-panel left-sidebar" aria-label="会话抽屉">
+        <div class="sidebar-head">
+          <h2>Conversations</h2>
+          <button id="left-drawer-close" class="drawer-close" type="button" aria-label="关闭历史会话面板">×</button>
+        </div>
+
+        <div class="left-actions">
+          <button id="new-chat-btn" type="button">新会话</button>
+        </div>
+
+        <label class="field-label" for="chat-search-input">搜索历史</label>
+        <input id="chat-search-input" class="text-input" type="text" placeholder="按 chatId / 名称 / agent 过滤" />
+
+        <div class="chat-meta">
+          <span class="chat-meta-label">Current Chat</span>
+          <span id="chat-id-chip" class="chip">(new chat)</span>
+        </div>
+
+        <div id="chats-list" class="chat-list"></div>
+      </aside>
+
+      <aside id="right-sidebar" class="sidebar drawer-panel right-sidebar" aria-label="调试抽屉">
+        <div class="sidebar-head">
+          <h2>Debug</h2>
+          <button id="right-drawer-close" class="drawer-close" type="button" aria-label="关闭调试面板">×</button>
+        </div>
+
+        <div class="debug-tabs" role="tablist" aria-label="Debug Tabs">
+          <button class="debug-tab active" type="button" data-debug-tab="events">Events</button>
+          <button class="debug-tab" type="button" data-debug-tab="logs">Logs</button>
+          <button class="debug-tab" type="button" data-debug-tab="tools">Tools</button>
+        </div>
+
+        <section id="debug-panel-events" class="debug-panel" role="tabpanel">
+          <div id="events" class="scroll mono"></div>
+        </section>
+
+        <section id="debug-panel-logs" class="debug-panel hidden" role="tabpanel">
+          <pre id="debug-log" class="debug-log"></pre>
+        </section>
+
+        <section id="debug-panel-tools" class="debug-panel hidden" role="tabpanel">
+          <div id="pending-tools" class="list"></div>
+        </section>
+
+        <section class="viewport-section">
+          <button id="viewport-toggle-btn" class="viewport-toggle" type="button" aria-expanded="false">
+            Viewport（按需展开）
+          </button>
+          <div id="viewport-collapse" class="viewport-collapse hidden">
+            <div id="viewport-list" class="viewport-list"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div id="drawer-overlay" class="drawer-overlay hidden"></div>
+
+    <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-card settings-card">
+        <div class="settings-head">
+          <h3 id="settings-title">Settings</h3>
+          <button id="settings-close-btn" type="button">Close</button>
+        </div>
+
+        <div class="field-group">
+          <label for="agent-select">默认 Agent</label>
+          <select id="agent-select"></select>
+        </div>
+
+        <div class="settings-grid">
+          <button id="refresh-agents-btn" type="button">刷新 Agents</button>
+          <button id="refresh-chats-btn" type="button">刷新 Chats</button>
+          <button id="load-raw-btn" type="button">Load Raw Chat</button>
+          <button id="stop-stream-btn" type="button">停止流式</button>
+          <button id="theme-toggle-btn" type="button">切换主题</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="action-modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <h3 id="action-modal-title"></h3>
+        <p id="action-modal-content"></p>
+        <button id="action-modal-close" type="button">Close</button>
+      </div>
+    </div>
+
+    <canvas id="fireworks-canvas"></canvas>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
