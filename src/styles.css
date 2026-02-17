@@ -311,7 +311,8 @@ textarea {
 .timeline-marker {
   position: relative;
   width: 14px;
-  min-height: 16px;
+  min-height: 14px;
+  margin-top: 6px;
 }
 
 .timeline-marker::before {
