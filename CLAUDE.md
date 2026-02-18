@@ -43,10 +43,21 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5174 npm run dev
 
 ### 3. Frontend Tool Submit Contract
 
-- 仅当 `tool.start.toolType === 'frontend'` 时创建 pending submit 条目
+- 仅当工具事件携带 `toolType + toolKey` 时创建 pending submit 条目并覆盖输入框
+- 工具参数解析顺序固定：
+  1. `event.toolParams`
+  2. `event.function.arguments`
+  3. `event.arguments`
+  4. 解析失败回退 `{}`，并保留 debug
 - 提交结构：
-  - `requestId/chatId/runId/toolId/viewId/payload`
-  - `payload` 默认含 `params`
+  - `runId/toolId/params`
+- 提交响应：
+  - `accepted=true|false`
+  - `status=accepted|unmatched`
+- 覆盖输入框时的 iframe 协议：
+  - host -> iframe：`agw_tool_init`
+  - iframe -> host：`agw_frontend_submit`
+- 覆盖态 UI 只保留 iframe，不显示 run/tool 元信息和提示文案
 - 相关代码：`submitPendingTool` in `src/main.js`
 
 ### 4. Action Contract
@@ -106,6 +117,7 @@ npm run build
 - 新增 UI 功能时，优先保持协议调试可视化能力
 - 出错时要保留 debug 信息，不要吞异常
 - 保持无框架依赖（除非明确升级为 React/Vue）
+- composer 输入框保持自动增高（1~6 行），`Enter` 发送、`Shift+Enter` 换行
 
 ## Known Scope Boundaries
 

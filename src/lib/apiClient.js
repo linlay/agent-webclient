@@ -93,21 +93,18 @@ export function getChat(chatId, includeRawMessages = false) {
   return requestJson(`/api/chat?${query}`);
 }
 
-export function getViewport(viewportKey, chatId, runId) {
-  const query = toQueryString({ viewportKey, chatId, runId });
+export function getViewport(viewportKey) {
+  const query = toQueryString({ viewportKey });
   return requestJson(`/api/viewport?${query}`);
 }
 
-export function submitTool({ requestId, chatId, runId, toolId, viewId, payload }) {
+export function submitTool({ runId, toolId, params }) {
   return requestJson('/api/submit', {
     method: 'POST',
     body: JSON.stringify({
-      requestId,
-      chatId,
       runId,
       toolId,
-      viewId,
-      payload
+      params
     })
   });
 }

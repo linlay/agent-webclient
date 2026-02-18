@@ -3,7 +3,6 @@ import './styles.css';
 import {
   ApiError,
   createQueryStream,
-  createRequestId,
   getAgents,
   getChat,
   getChats,
@@ -11,6 +10,7 @@ import {
   submitTool
 } from './lib/apiClient.js';
 import { createActionRuntime, safeJsonParse } from './lib/actionRuntime.js';
+import { parseFrontendToolParams } from './lib/frontendToolParams.js';
 import { parseLeadingAgentMention, parseLeadingMentionDraft } from './lib/mentionParser.js';
 import { consumeJsonSseStream } from './lib/sseParser.js';
 import { parseViewportBlocks } from './lib/viewportParser.js';
@@ -19,10 +19,13 @@ const PLAN_AUTO_COLLAPSE_MS = 4000;
 const REASONING_AUTO_COLLAPSE_MS = 1500;
 const MAX_EVENTS = 1000;
 const MAX_DEBUG_LINES = 220;
+const COMPOSER_MIN_LINES = 1;
+const COMPOSER_MAX_LINES = 6;
 const TABLET_BREAKPOINT = 768;
 const MOBILE_BREAKPOINT = 1080;
 const DESKTOP_FIXED_BREAKPOINT = 1280;
 const DEBUG_TABS = ['events', 'logs', 'tools'];
+const FRONTEND_VIEWPORT_TYPES = new Set(['html', 'qlc']);
 
 const elements = {
   app: document.getElementById('app'),
@@ -50,6 +53,7 @@ const elements = {
   apiStatus: document.getElementById('api-status'),
   chatsList: document.getElementById('chats-list'),
   messages: document.getElementById('messages'),
+  composerArea: document.querySelector('.composer-area'),
   messageInput: document.getElementById('message-input'),
   sendBtn: document.getElementById('send-btn'),
   mentionSuggest: document.getElementById('mention-suggest'),
@@ -72,6 +76,12 @@ const elements = {
   viewportToggleBtn: document.getElementById('viewport-toggle-btn'),
   viewportCollapse: document.getElementById('viewport-collapse'),
   viewportList: document.getElementById('viewport-list'),
+  composerPill: document.getElementById('composer-pill'),
+  frontendToolContainer: document.getElementById('frontend-tool-container'),
+  frontendToolFrame: document.getElementById('frontend-tool-frame'),
+  frontendToolTitle: document.getElementById('frontend-tool-title'),
+  frontendToolMeta: document.getElementById('frontend-tool-meta'),
+  frontendToolStatus: document.getElementById('frontend-tool-status'),
   modalRoot: document.getElementById('action-modal'),
   modalTitle: document.getElementById('action-modal-title'),
   modalContent: document.getElementById('action-modal-content'),
@@ -127,7 +137,8 @@ const state = {
   viewportExpanded: false,
   mentionOpen: false,
   mentionSuggestions: [],
-  mentionActiveIndex: 0
+  mentionActiveIndex: 0,
+  activeFrontendTool: null
 };
 
 const actionRuntime = createActionRuntime({
@@ -178,6 +189,315 @@ function stripViewportBlocksFromText(text) {
     .replace(/```viewport[\s\S]*?```/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function normalizeFrontendToolType(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+function isFrontendToolEvent(event) {
+  if (!event || typeof event !== 'object') {
+    return false;
+  }
+
+  const toolType = normalizeFrontendToolType(event.toolType);
+  return FRONTEND_VIEWPORT_TYPES.has(toolType) && Boolean(event.toolKey);
+}
+
+function frontendPendingKey(runId, toolId) {
+  const rid = String(runId || '').trim();
+  const tid = String(toolId || '').trim();
+  if (!rid || !tid) {
+    return '';
+  }
+  return `${rid}#${tid}`;
+}
+
+function toPendingParamsText(params) {
+  return JSON.stringify(params && typeof params === 'object' ? params : {}, null, 2);
+}
+
+function tryParseJsonObject(raw) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const text = raw.trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function autosizeComposerInput() {
+  const input = elements.messageInput;
+  if (!input) {
+    return;
+  }
+
+  const style = window.getComputedStyle(input);
+  const lineHeight = Number.parseFloat(style.lineHeight) || 22;
+  const borderTop = Number.parseFloat(style.borderTopWidth) || 0;
+  const borderBottom = Number.parseFloat(style.borderBottomWidth) || 0;
+  const minHeight = Math.ceil(lineHeight * COMPOSER_MIN_LINES + borderTop + borderBottom);
+  const maxHeight = Math.ceil(lineHeight * COMPOSER_MAX_LINES + borderTop + borderBottom);
+
+  input.style.height = 'auto';
+  const nextHeight = Math.max(minHeight, Math.min(input.scrollHeight, maxHeight));
+  input.style.height = `${nextHeight}px`;
+  input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
+function resolveToolParams(event, fallbackParams = null) {
+  const parsed = parseFrontendToolParams(event);
+  if (parsed.error) {
+    appendDebug(parsed.error);
+  }
+  if (parsed.found && parsed.params && typeof parsed.params === 'object') {
+    return parsed.params;
+  }
+  return fallbackParams && typeof fallbackParams === 'object' ? fallbackParams : {};
+}
+
+function syncFrontendToolParamsByState(toolState) {
+  const runId = toolState?.runId || state.runId;
+  const toolId = toolState?.toolId;
+  if (!runId || !toolId) {
+    return;
+  }
+  if (!isFrontendToolEvent({ toolType: toolState.toolType, toolKey: toolState.toolKey })) {
+    return;
+  }
+  if (!toolState.toolParams || typeof toolState.toolParams !== 'object') {
+    return;
+  }
+
+  const key = frontendPendingKey(runId, toolId);
+  const pending = state.pendingTools.get(key);
+  if (pending) {
+    pending.payloadText = toPendingParamsText(toolState.toolParams);
+    state.pendingTools.set(key, pending);
+    renderPendingTools();
+  }
+
+  if (state.activeFrontendTool && state.activeFrontendTool.key === key) {
+    state.activeFrontendTool.toolParams = toolState.toolParams;
+    try {
+      postInitMessageToFrontendToolFrame();
+    } catch (error) {
+      appendDebug(`frontend tool init postMessage failed: ${error.message}`);
+    }
+  }
+}
+
+function setComposerFrontendLocked(locked) {
+  const active = Boolean(locked);
+  elements.composerArea.classList.toggle('is-frontend-active', active);
+  elements.messageInput.disabled = active;
+  elements.sendBtn.disabled = active;
+  elements.composerPill.classList.toggle('hidden', active);
+  elements.frontendToolContainer.classList.toggle('hidden', !active);
+  elements.messageInput.setAttribute('aria-disabled', String(active));
+  elements.app.classList.toggle('frontend-tool-active', active);
+  elements.messageInput.placeholder = active
+    ? '前端工具处理中，请在确认面板内提交'
+    : '回复消息...（Enter 发送，Shift+Enter 换行）';
+  elements.messages.setAttribute('aria-busy', String(active));
+
+  if (active) {
+    closeMentionSuggestions();
+    elements.composerPill.blur();
+  }
+
+  autosizeComposerInput();
+}
+
+function setFrontendToolStatus(text, tone = 'normal') {
+  elements.frontendToolStatus.textContent = text;
+  elements.frontendToolStatus.classList.toggle('ok', tone === 'ok');
+  elements.frontendToolStatus.classList.toggle('err', tone === 'error');
+}
+
+function buildFrontendToolInitPayload(tool) {
+  return {
+    runId: tool.runId,
+    toolId: tool.toolId,
+    toolKey: tool.toolKey,
+    toolType: tool.toolType,
+    toolTimeout: tool.toolTimeout,
+    params: tool.toolParams && typeof tool.toolParams === 'object' ? tool.toolParams : {}
+  };
+}
+
+function postInitMessageToFrontendToolFrame() {
+  const active = state.activeFrontendTool;
+  if (!active || !elements.frontendToolFrame.contentWindow) {
+    return;
+  }
+
+  elements.frontendToolFrame.contentWindow.postMessage(
+    {
+      type: 'agw_tool_init',
+      data: buildFrontendToolInitPayload(active)
+    },
+    '*'
+  );
+}
+
+function renderActiveFrontendTool() {
+  const active = state.activeFrontendTool;
+  if (!active) {
+    setComposerFrontendLocked(false);
+    elements.frontendToolTitle.textContent = '';
+    elements.frontendToolMeta.textContent = '';
+    elements.frontendToolFrame.removeAttribute('srcdoc');
+    setFrontendToolStatus('', 'normal');
+    return;
+  }
+
+  setComposerFrontendLocked(true);
+  elements.frontendToolTitle.textContent = '';
+  elements.frontendToolMeta.textContent = '';
+  setFrontendToolStatus('', 'normal');
+
+  if (active.loadError) {
+    setStatus(active.loadError, 'error');
+  }
+
+  if (active.viewportHtml && elements.frontendToolFrame.srcdoc !== active.viewportHtml) {
+    const expectedKey = active.key;
+    elements.frontendToolFrame.onload = () => {
+      if (!state.activeFrontendTool || state.activeFrontendTool.key !== expectedKey) {
+        return;
+      }
+      try {
+        postInitMessageToFrontendToolFrame();
+      } catch (error) {
+        appendDebug(`frontend tool init postMessage failed: ${error.message}`);
+      }
+    };
+    elements.frontendToolFrame.srcdoc = active.viewportHtml;
+  } else if (active.viewportHtml) {
+    try {
+      postInitMessageToFrontendToolFrame();
+    } catch (error) {
+      appendDebug(`frontend tool init postMessage failed: ${error.message}`);
+    }
+  } else {
+    elements.frontendToolFrame.removeAttribute('srcdoc');
+  }
+}
+
+function clearActiveFrontendTool() {
+  state.activeFrontendTool = null;
+  renderActiveFrontendTool();
+}
+
+async function loadActiveFrontendToolViewport(expectedKey) {
+  const active = state.activeFrontendTool;
+  if (!active || active.key !== expectedKey) {
+    return;
+  }
+
+  try {
+    const response = await getViewport(active.toolKey);
+    if (!state.activeFrontendTool || state.activeFrontendTool.key !== expectedKey) {
+      return;
+    }
+
+    const payload = response.data;
+    const html = typeof payload?.html === 'string'
+      ? payload.html
+      : `<html><body><pre>${escapeHtml(JSON.stringify(payload ?? {}, null, 2))}</pre></body></html>`;
+
+    state.activeFrontendTool.viewportHtml = html;
+    state.activeFrontendTool.loading = false;
+    state.activeFrontendTool.loadError = '';
+    renderActiveFrontendTool();
+  } catch (error) {
+    if (!state.activeFrontendTool || state.activeFrontendTool.key !== expectedKey) {
+      return;
+    }
+    state.activeFrontendTool.loading = false;
+    state.activeFrontendTool.loadError = `前端工具加载失败: ${error.message}`;
+    renderActiveFrontendTool();
+  }
+}
+
+function upsertPendingFrontendTool(toolState, statusText = 'pending') {
+  const key = frontendPendingKey(toolState.runId || state.runId, toolState.toolId);
+  if (!key) {
+    return;
+  }
+
+  state.pendingTools.set(key, {
+    key,
+    runId: toolState.runId || state.runId,
+    toolId: toolState.toolId,
+    toolName: toolState.toolName,
+    toolApi: toolState.toolApi,
+    toolKey: toolState.toolKey || '',
+    toolType: normalizeFrontendToolType(toolState.toolType),
+    description: toolState.description,
+    payloadText: toPendingParamsText(toolState.toolParams),
+    status: 'pending',
+    statusText
+  });
+  renderPendingTools();
+}
+
+function activateFrontendTool(toolState) {
+  const runId = toolState.runId || state.runId;
+  const toolId = toolState.toolId;
+  const toolKey = toolState.toolKey;
+  const toolType = normalizeFrontendToolType(toolState.toolType);
+  if (!runId || !toolId || !toolKey || !FRONTEND_VIEWPORT_TYPES.has(toolType)) {
+    return;
+  }
+
+  const key = frontendPendingKey(runId, toolId);
+  const previous = state.activeFrontendTool;
+  const sameTool = Boolean(previous && previous.key === key);
+  const shouldReload = !sameTool || previous.toolKey !== toolKey || !previous.viewportHtml;
+
+  state.activeFrontendTool = {
+    ...(sameTool ? previous : {}),
+    key,
+    runId,
+    toolId,
+    toolKey,
+    toolType,
+    toolName: toolState.toolName || toolKey,
+    description: toolState.description || '',
+    toolTimeout: Number.isFinite(Number(toolState.toolTimeout)) ? Number(toolState.toolTimeout) : null,
+    toolParams: toolState.toolParams && typeof toolState.toolParams === 'object' ? toolState.toolParams : {},
+    loading: shouldReload,
+    loadError: shouldReload ? '' : (previous.loadError || ''),
+    viewportHtml: shouldReload ? '' : (previous.viewportHtml || '')
+  };
+
+  renderActiveFrontendTool();
+
+  if (shouldReload) {
+    loadActiveFrontendToolViewport(key).catch((error) => {
+      appendDebug(`frontend viewport load failed: ${error.message}`);
+    });
+  } else {
+    try {
+      postInitMessageToFrontendToolFrame();
+    } catch (error) {
+      appendDebug(`frontend tool init postMessage failed: ${error.message}`);
+    }
+  }
 }
 
 function inferLayoutMode(width = window.innerWidth) {
@@ -981,6 +1301,7 @@ function resetConversationState() {
   state.renderQueue.stickToBottomRequested = false;
   state.renderQueue.fullSyncNeeded = true;
   state.activeReasoningKey = '';
+  clearActiveFrontendTool();
   elements.viewportList.innerHTML = '';
   renderMessages({ full: true, stickToBottom: false });
   renderEvents();
@@ -999,6 +1320,7 @@ function resetRunTransientState() {
   state.pendingTools.clear();
   state.actionStates.clear();
   state.executedActionIds.clear();
+  clearActiveFrontendTool();
   renderPendingTools();
 }
 
@@ -1201,9 +1523,11 @@ function renderPendingTools() {
           <div><strong>${escapeHtml(tool.toolName || tool.toolId)}</strong></div>
           <div class="mono">runId=${escapeHtml(tool.runId)}<br/>toolId=${escapeHtml(tool.toolId)}</div>
           <div>toolApi: ${escapeHtml(tool.toolApi || '-')}</div>
+          <div>toolType/key: ${escapeHtml(tool.toolType || '-')} / ${escapeHtml(tool.toolKey || '-')}</div>
           <div>${escapeHtml(tool.description || '')}</div>
-          <textarea data-role="pending-payload" data-key="${escapeHtml(tool.key)}">${escapeHtml(tool.payloadText)}</textarea>
-          <button data-action="submit-pending" data-key="${escapeHtml(tool.key)}" type="button">Submit /api/submit</button>
+          <div class="mono">params</div>
+          <textarea data-role="pending-params" data-key="${escapeHtml(tool.key)}">${escapeHtml(tool.payloadText)}</textarea>
+          <button data-action="submit-pending" data-key="${escapeHtml(tool.key)}" type="button">Submit params /api/submit</button>
           <div class="pending-status ${tool.status === 'error' ? 'err' : tool.status === 'ok' ? 'ok' : ''}">${escapeHtml(tool.statusText || 'pending')}</div>
         </article>
       `;
@@ -1276,6 +1600,7 @@ function selectMentionByIndex(index) {
 
   elements.messageInput.value = `@${agent.key} `;
   const caret = elements.messageInput.value.length;
+  autosizeComposerInput();
   elements.messageInput.focus();
   elements.messageInput.setSelectionRange(caret, caret);
   closeMentionSuggestions();
@@ -1303,7 +1628,7 @@ async function renderViewportBlock(block, runId) {
   elements.viewportList.prepend(card);
 
   try {
-    const response = await getViewport(block.key, state.chatId || undefined, runId || undefined);
+    const response = await getViewport(block.key);
     const html = response.data?.html;
 
     if (typeof html !== 'string' || !html.trim()) {
@@ -1410,7 +1735,7 @@ async function loadViewportIntoContentNode(nodeId, signature, runId) {
   renderMessages({ nodeId, stickToBottom: false });
 
   try {
-    const response = await getViewport(viewport.key, state.chatId || undefined, runId || undefined);
+    const response = await getViewport(viewport.key);
     const html = response.data?.html;
     if (typeof html !== 'string' || !html.trim()) {
       throw new Error('Viewport response does not contain html');
@@ -1598,16 +1923,21 @@ function handleToolStart(event, source = 'live') {
     argsBuffer: '',
     toolName: event.toolName || '',
     toolType: event.toolType || '',
+    toolKey: event.toolKey || '',
+    toolTimeout: event.toolTimeout ?? null,
     toolApi: event.toolApi || '',
     toolParams: event.toolParams || null,
     description: event.description || '',
     runId: event.runId || state.runId
   };
+  const resolvedParams = resolveToolParams(event, toolState.toolParams);
 
   toolState.toolName = event.toolName || toolState.toolName;
   toolState.toolType = event.toolType || toolState.toolType;
+  toolState.toolKey = event.toolKey || toolState.toolKey;
+  toolState.toolTimeout = event.toolTimeout ?? toolState.toolTimeout;
   toolState.toolApi = event.toolApi || toolState.toolApi;
-  toolState.toolParams = event.toolParams || toolState.toolParams;
+  toolState.toolParams = resolvedParams;
   toolState.description = event.description || toolState.description;
   toolState.runId = event.runId || toolState.runId;
 
@@ -1623,26 +1953,12 @@ function handleToolStart(event, source = 'live') {
   });
   node.expanded = false;
 
-  if (source !== 'history' && (event.toolType || '').toLowerCase() === 'frontend') {
-    const key = `${toolState.runId || state.runId}#${toolId}`;
-    state.pendingTools.set(key, {
-      key,
-      runId: toolState.runId || state.runId,
-      toolId,
-      toolName: toolState.toolName,
-      toolApi: toolState.toolApi,
-      description: toolState.description,
-      payloadText: JSON.stringify(
-        {
-          params: toolState.toolParams && typeof toolState.toolParams === 'object' ? toolState.toolParams : {}
-        },
-        null,
-        2
-      ),
-      status: 'pending',
-      statusText: 'pending'
-    });
-    renderPendingTools();
+  if (source !== 'history' && isFrontendToolEvent({
+    toolType: toolState.toolType,
+    toolKey: toolState.toolKey
+  })) {
+    upsertPendingFrontendTool(toolState, 'pending');
+    activateFrontendTool(toolState);
   }
 }
 
@@ -1683,11 +1999,13 @@ function handleAgwEvent(event, source = 'live') {
     state.runId = event.runId || state.runId;
     setStatus(`run.complete (${event.finishReason || 'end_turn'})`);
     state.streaming = false;
+    clearActiveFrontendTool();
     refreshChats().catch((error) => appendDebug(`refresh chats failed: ${error.message}`));
   }
 
   if (type === 'run.error') {
     state.streaming = false;
+    clearActiveFrontendTool();
     const id = `sys:error:${Date.now()}`;
     upsertMessage(id, 'system', `run.error: ${JSON.stringify(event.error || {}, null, 2)}`, Date.now());
     const nodeId = state.timelineNodeByMessageId.get(id);
@@ -1697,6 +2015,7 @@ function handleAgwEvent(event, source = 'live') {
 
   if (type === 'run.cancel') {
     state.streaming = false;
+    clearActiveFrontendTool();
     const id = `sys:cancel:${Date.now()}`;
     upsertMessage(id, 'system', 'run.cancel', Date.now());
     const nodeId = state.timelineNodeByMessageId.get(id);
@@ -1804,7 +2123,13 @@ function handleAgwEvent(event, source = 'live') {
     current.toolApi = event.toolApi || current.toolApi || '';
     current.description = event.description || current.description || '';
     current.argsBuffer += event.delta || '';
+
+    const parsedFromArgs = tryParseJsonObject(current.argsBuffer);
+    if (parsedFromArgs) {
+      current.toolParams = parsedFromArgs;
+    }
     state.toolStates.set(event.toolId, current);
+    syncFrontendToolParamsByState(current);
 
     const node = ensureToolTimelineNode(event.toolId, {
       toolName: current.toolName,
@@ -1824,17 +2149,22 @@ function handleAgwEvent(event, source = 'live') {
     const current = state.toolStates.get(event.toolId) || {
       toolId: event.toolId,
       argsBuffer: '',
-      runId: state.runId,
+      runId: event.runId || state.runId,
       toolName: event.toolName || event.toolId,
+      toolType: event.toolType || '',
+      toolKey: event.toolKey || '',
+      toolTimeout: event.toolTimeout ?? null,
       toolApi: event.toolApi || '',
       description: event.description || ''
     };
+    current.runId = event.runId || current.runId || state.runId;
     current.toolName = event.toolName || current.toolName || event.toolId;
+    current.toolType = event.toolType || current.toolType;
+    current.toolKey = event.toolKey || current.toolKey;
+    current.toolTimeout = event.toolTimeout ?? current.toolTimeout;
     current.toolApi = event.toolApi || current.toolApi || '';
     current.description = event.description || current.description || '';
-    current.toolParams = event.toolParams && typeof event.toolParams === 'object'
-      ? event.toolParams
-      : current.toolParams;
+    current.toolParams = resolveToolParams(event, current.toolParams);
     state.toolStates.set(event.toolId, current);
 
     const argsText = current.toolParams
@@ -1854,28 +2184,12 @@ function handleAgwEvent(event, source = 'live') {
     node.ts = event.timestamp || node.ts;
     renderMessages({ nodeId: node.id, stickToBottom: true });
 
-    const payloadText = JSON.stringify(
-      {
-        params: event.toolParams && typeof event.toolParams === 'object' ? event.toolParams : {}
-      },
-      null,
-      2
-    );
-
-    if (source !== 'history' && (event.toolType || '').toLowerCase() === 'frontend') {
-      const key = `${state.runId}#${event.toolId}`;
-      state.pendingTools.set(key, {
-        key,
-        runId: state.runId,
-        toolId: event.toolId,
-        toolName: event.toolName || event.toolId,
-        toolApi: event.toolApi || '',
-        description: event.description || '',
-        payloadText,
-        status: 'pending',
-        statusText: 'pending(snapshot)'
-      });
-      renderPendingTools();
+    if (source !== 'history' && isFrontendToolEvent({
+      toolType: current.toolType,
+      toolKey: current.toolKey
+    })) {
+      upsertPendingFrontendTool(current, 'pending(snapshot)');
+      activateFrontendTool(current);
     }
   }
 
@@ -2019,6 +2333,7 @@ function stopStreaming() {
     state.abortController = null;
   }
   state.streaming = false;
+  clearActiveFrontendTool();
   setStatus('stream stopped');
 }
 
@@ -2051,7 +2366,13 @@ async function sendMessage(inputMessage) {
     return;
   }
 
+  if (state.activeFrontendTool) {
+    setStatus('前端工具等待提交中，请先在确认面板中完成提交', 'error');
+    return;
+  }
+
   elements.messageInput.value = '';
+  autosizeComposerInput();
   closeMentionSuggestions();
 
   resetRunTransientState();
@@ -2121,30 +2442,102 @@ async function submitPendingTool(key) {
   }
 
   try {
-    const payload = JSON.parse(pending.payloadText || '{}');
-
-    if (!state.chatId || !pending.runId || !pending.toolId) {
-      throw new Error('chatId/runId/toolId is missing, cannot submit');
+    const params = JSON.parse(pending.payloadText || '{}');
+    if (!pending.runId || !pending.toolId) {
+      throw new Error('runId/toolId is missing, cannot submit');
     }
 
     const response = await submitTool({
-      requestId: createRequestId('req_submit'),
-      chatId: state.chatId,
       runId: pending.runId,
       toolId: pending.toolId,
-      viewId: `${pending.toolId}_view`,
-      payload
+      params
     });
 
     appendDebug({ type: 'submit.response', data: response.data });
 
-    state.pendingTools.delete(key);
+    const accepted = Boolean(response.data?.accepted);
+    const status = String(response.data?.status || (accepted ? 'accepted' : 'unmatched'));
+    const detail = String(response.data?.detail || status);
+
+    if (accepted) {
+      state.pendingTools.delete(key);
+      if (state.activeFrontendTool && state.activeFrontendTool.key === key) {
+        clearActiveFrontendTool();
+      }
+      setStatus(`submit accepted: ${pending.toolId}`);
+    } else {
+      pending.status = 'error';
+      pending.statusText = detail;
+      state.pendingTools.set(key, pending);
+      setStatus(`submit unmatched: ${pending.toolId}`, 'error');
+    }
+
     renderPendingTools();
-    setStatus(`submit accepted: ${pending.toolId}`);
   } catch (error) {
     pending.status = 'error';
     pending.statusText = error.message;
     renderPendingTools();
+    setStatus(`submit failed: ${error.message}`, 'error');
+  }
+}
+
+async function submitActiveFrontendTool(rawParams) {
+  const active = state.activeFrontendTool;
+  if (!active) {
+    setStatus('当前没有等待提交的前端工具', 'error');
+    return;
+  }
+
+  const params = rawParams && typeof rawParams === 'object' ? rawParams : {};
+  const key = active.key;
+  const pending = state.pendingTools.get(key);
+  if (pending) {
+    pending.payloadText = toPendingParamsText(params);
+    state.pendingTools.set(key, pending);
+  }
+  renderPendingTools();
+  setFrontendToolStatus('提交中...', 'normal');
+
+  try {
+    const response = await submitTool({
+      runId: active.runId,
+      toolId: active.toolId,
+      params
+    });
+
+    appendDebug({ type: 'frontend.submit.response', data: response.data });
+    const accepted = Boolean(response.data?.accepted);
+    const status = String(response.data?.status || (accepted ? 'accepted' : 'unmatched'));
+    const detail = String(response.data?.detail || status);
+
+    if (accepted) {
+      if (pending) {
+        pending.status = 'ok';
+        pending.statusText = detail;
+      }
+      state.pendingTools.delete(key);
+      renderPendingTools();
+      setStatus(`submit accepted: ${active.toolId}`);
+      clearActiveFrontendTool();
+      return;
+    }
+
+    if (pending) {
+      pending.status = 'error';
+      pending.statusText = detail;
+      state.pendingTools.set(key, pending);
+    }
+    renderPendingTools();
+    setFrontendToolStatus(`提交未命中：${detail}`, 'error');
+    setStatus(`submit unmatched: ${active.toolId}`, 'error');
+  } catch (error) {
+    if (pending) {
+      pending.status = 'error';
+      pending.statusText = error.message;
+      state.pendingTools.set(key, pending);
+    }
+    renderPendingTools();
+    setFrontendToolStatus(`提交失败：${error.message}`, 'error');
     setStatus(`submit failed: ${error.message}`, 'error');
   }
 }
@@ -2328,6 +2721,7 @@ function bindDomEvents() {
   });
 
   elements.messageInput.addEventListener('input', () => {
+    autosizeComposerInput();
     updateMentionSuggestions();
   });
 
@@ -2389,7 +2783,7 @@ function bindDomEvents() {
   });
 
   elements.pendingTools.addEventListener('input', (event) => {
-    const textarea = event.target.closest('textarea[data-role="pending-payload"]');
+    const textarea = event.target.closest('textarea[data-role="pending-params"]');
     if (!textarea) {
       return;
     }
@@ -2429,7 +2823,30 @@ function bindDomEvents() {
       return;
     }
 
+    if (data.type === 'agw_frontend_submit') {
+      const active = state.activeFrontendTool;
+      if (!active) {
+        return;
+      }
+
+      if (elements.frontendToolFrame.contentWindow && event.source !== elements.frontendToolFrame.contentWindow) {
+        return;
+      }
+
+      const params = data.params && typeof data.params === 'object' ? data.params : {};
+      submitActiveFrontendTool(params).catch((error) => {
+        setFrontendToolStatus(`提交失败：${error.message}`, 'error');
+        setStatus(`submit failed: ${error.message}`, 'error');
+      });
+      return;
+    }
+
     if (data.type !== 'agw_chat_message') {
+      return;
+    }
+
+    if (state.activeFrontendTool) {
+      setStatus('前端工具等待提交中，请先完成当前确认', 'error');
       return;
     }
 
@@ -2439,6 +2856,7 @@ function bindDomEvents() {
     }
 
     elements.messageInput.value = message;
+    autosizeComposerInput();
     closeMentionSuggestions();
 
     if (state.streaming) {
@@ -2457,6 +2875,7 @@ function bindDomEvents() {
   });
 
   window.addEventListener('resize', () => {
+    autosizeComposerInput();
     updateLayoutMode(window.innerWidth);
   });
 }
@@ -2471,8 +2890,10 @@ async function bootstrap() {
   renderPlan();
   renderChats();
   renderPendingTools();
+  renderActiveFrontendTool();
   renderDebugTabs();
   renderMentionSuggestions();
+  autosizeComposerInput();
   setViewportExpanded(false);
   setSettingsOpen(false);
   syncDrawerState();

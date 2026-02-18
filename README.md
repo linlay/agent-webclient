@@ -5,8 +5,8 @@
 核心目标：
 - 验证 `POST /api/query` 真流式 SSE
 - 验证 `GET /api/chats`、`GET /api/chat` 历史回放
-- 验证 `POST /api/submit` 前端工具提交
-- 验证 `GET /api/viewport` + ```viewport(type=html) 渲染
+- 验证 `POST /api/submit` V2 前端工具提交（`runId + toolId + params`）
+- 验证 `GET /api/viewport` 获取前端工具视图并覆盖输入区
 - 验证 action：`switch_theme`、`launch_fireworks`、`show_modal`
 
 ## 技术栈
@@ -79,8 +79,13 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5174 npm run dev
   - plan.update 面板
 - 右侧（调试区）
   - viewport HTML 渲染
-  - pending frontend tool submit 面板
+  - pending frontend tool submit 面板（可直接编辑 `params`）
   - 原始事件 debug 日志
+- 底部输入区
+  - 默认显示普通输入框
+  - 收到前端工具事件后切换为 iframe 覆盖面板，输入框隐藏并禁用
+  - textarea 自动增高（1~6 行），超过后内部滚动
+  - `Enter` 发送，`Shift+Enter` 换行
 
 ## 协议对接细节
 
@@ -108,22 +113,33 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5174 npm run dev
 
 ### 3) 前端工具提交 (`POST /api/submit`)
 
-- 当收到 `tool.start` 且 `toolType === 'frontend'` 时，进入 pending 列表
-- UI 中可编辑 payload（JSON）并提交
+- 当收到 `tool.start/tool.snapshot` 且事件包含 `toolType + toolKey` 时：
+  - 立即请求 `/api/viewport?viewportKey={toolKey}`
+  - 用 iframe 覆盖输入区（用户无法直接输入消息）
+  - 向 iframe 发送初始化消息：`{ type: 'agw_tool_init', data: {...} }`
+- 前端工具初始化参数解析优先级：
+  1. `event.toolParams`（对象）
+  2. `event.function.arguments`（JSON 字符串或对象）
+  3. `event.arguments`（JSON 字符串或对象）
+  4. 失败回退 `{}`（并写入 debug）
+- iframe 回传：`{ type: 'agw_frontend_submit', params: {...} }`
+- host 调用 `/api/submit`，若 `accepted=true` 则恢复输入区，若 `accepted=false` 显示未命中状态并保持覆盖态
+- 右侧 debug pending 面板可直接编辑 `params` 并手工提交
+- 覆盖态只显示 iframe 本体，不展示 `runId/toolId/timeout` 和顶部提示文案
 - 提交请求结构：
 
 ```json
 {
-  "requestId": "req_submit_xxx",
-  "chatId": "...",
   "runId": "...",
   "toolId": "...",
-  "viewId": "...",
-  "payload": {
-    "params": {}
-  }
+  "params": {}
 }
 ```
+
+- 提交响应关键字段：
+  - `data.accepted=true|false`
+  - `data.status=accepted|unmatched`
+  - `data.detail`
 
 ### 4) Viewport HTML 渲染
 
@@ -132,6 +148,11 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5174 npm run dev
 - 用 `key` 调用 `/api/viewport?viewportKey=...`
 - 取返回 `data.html`，通过 `iframe.srcdoc` 渲染
 - 渲染后向 iframe 发送 payload：`postMessage(payload, '*')`
+
+前端工具覆盖输入框协议：
+
+- host -> iframe：`{ type: 'agw_tool_init', data: { runId, toolId, toolKey, toolType, toolTimeout, params } }`
+- iframe -> host：`{ type: 'agw_frontend_submit', params }`
 
 同时支持 viewport 页面反向发消息：
 
@@ -157,7 +178,7 @@ window.parent.postMessage({ type: 'agw_chat_message', message: '...' }, '*')
 4. 验证：
    - `demoAction`：主题切换、烟花、弹窗
    - `demoViewport`：viewport block 被解析并渲染
-   - 含 frontend tool 的场景：pending submit 可提交并得到 accepted
+   - 含 frontend tool 的场景：输入框被覆盖，提交后 `accepted=true` 主 SSE 继续；`accepted=false` 有明确提示
 
 ## 项目结构
 

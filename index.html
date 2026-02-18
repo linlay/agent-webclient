@@ -55,11 +55,25 @@
           </section>
 
           <section class="composer-area">
+            <div id="frontend-tool-container" class="frontend-tool-container hidden" aria-live="polite">
+              <div class="frontend-tool-header">
+                <strong id="frontend-tool-title"></strong>
+                <span id="frontend-tool-meta" class="frontend-tool-meta"></span>
+              </div>
+              <iframe
+                id="frontend-tool-frame"
+                class="frontend-tool-frame"
+                title="frontend tool viewport"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+              <div id="frontend-tool-status" class="frontend-tool-status"></div>
+            </div>
+
             <div id="mention-suggest" class="mention-suggest hidden">
               <div id="mention-suggest-list" class="mention-suggest-list"></div>
             </div>
 
-            <div class="composer-pill">
+            <div id="composer-pill" class="composer-pill">
               <textarea id="message-input" placeholder="回复消息...（Enter 发送，Shift+Enter 换行）"></textarea>
               <button id="send-btn" class="send-btn" type="button" aria-label="发送">↑</button>
             </div>

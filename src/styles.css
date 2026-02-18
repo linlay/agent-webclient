@@ -530,11 +530,11 @@ textarea {
 }
 
 .timeline-content-viewport {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  /* border: 1px solid var(--border); */
+  /* border-radius: 8px; */
   overflow: hidden;
-  background: var(--bg-card);
-  box-shadow: 0 4px 12px rgba(24, 42, 71, 0.06);
+  /* background: var(--bg-card); */
+  /* box-shadow: 0 4px 12px rgba(24, 42, 71, 0.06); */
 }
 
 .timeline-content-viewport-head {
@@ -544,6 +544,7 @@ textarea {
   font-size: 10px;
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-muted);
+  display: none;
 }
 
 .timeline-content-viewport-body {
@@ -554,7 +555,7 @@ textarea {
   width: 100%;
   height: min(300px, 46vh);
   border: 0;
-  background: #ffffff;
+  /* background: #ffffff; */
 }
 
 .bottom-dock {
@@ -678,26 +679,77 @@ textarea {
   position: relative;
 }
 
+.frontend-tool-container {
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--bg-input));
+  box-shadow: 0 4px 12px rgba(24, 42, 71, 0.07);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.frontend-tool-header {
+  display: none;
+}
+
+.frontend-tool-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.frontend-tool-frame {
+  width: 100%;
+  min-height: 250px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.frontend-tool-status {
+  display: none;
+}
+
+.frontend-tool-status.ok {
+  color: var(--ok);
+}
+
+.frontend-tool-status.err {
+  color: var(--danger);
+}
+
+.composer-area.is-frontend-active .composer-pill {
+  display: none;
+}
+
+.composer-area.is-frontend-active .mention-suggest {
+  display: none;
+}
+
 .composer-pill {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-card));
-  box-shadow: 0 8px 18px rgba(24, 42, 71, 0.08);
-  padding: 9px 9px 9px 14px;
+  gap: 8px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 72%, var(--border));
+  background: color-mix(in srgb, var(--bg-input) 78%, var(--bg-card));
+  box-shadow: 0 6px 14px rgba(24, 42, 71, 0.06);
+  padding: 6px 7px 6px 11px;
 }
 
 #message-input {
   border: 0;
   background: transparent;
-  min-height: 26px;
-  max-height: 170px;
-  padding: 5px 0;
-  line-height: 1.45;
-  font-size: 15px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 132px;
+  padding: 2px 0;
+  line-height: 1.42;
+  font-size: 14px;
   color: var(--text-main);
+  overflow-y: hidden;
 }
 
 #message-input::placeholder {
@@ -708,28 +760,40 @@ textarea {
   outline: none;
 }
 
+#message-input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 .send-btn {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  border-color: color-mix(in srgb, var(--accent) 72%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 64%, var(--border));
   background: linear-gradient(135deg, #2f6df0, #2358cd);
   color: #ffffff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  flex: 0 0 42px;
-  box-shadow: 0 8px 16px rgba(42, 99, 232, 0.3);
+  flex: 0 0 34px;
+  box-shadow: 0 5px 12px rgba(42, 99, 232, 0.26);
 }
 
 .send-btn:hover {
   background: linear-gradient(135deg, #2864e0, #1f50c0);
 }
 
+.send-btn:disabled {
+  background: color-mix(in srgb, var(--text-muted) 72%, var(--bg-input));
+  border-color: var(--border);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .mention-suggest {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: calc(100% + 10px);
+  left: 4px;
+  right: 4px;
+  bottom: calc(100% + 8px);
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-card);
@@ -1330,6 +1394,21 @@ select {
 
   .bottom-dock {
     padding: 8px 8px 10px;
+  }
+
+  .composer-pill {
+    border-radius: 14px;
+    padding: 6px;
+  }
+
+  #message-input {
+    font-size: 16px;
+  }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
   }
 
   .plan-summary-text {
