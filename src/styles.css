@@ -667,6 +667,11 @@ textarea {
   border-color: var(--danger);
 }
 
+.plan-item[data-status='canceled'] .plan-badge {
+  background: color-mix(in srgb, var(--line) 72%, var(--text-muted));
+  border-color: color-mix(in srgb, var(--line) 72%, var(--text-muted));
+}
+
 @keyframes plan-spin {
   to {
     transform: rotate(360deg);

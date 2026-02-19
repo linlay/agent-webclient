@@ -104,6 +104,9 @@ const state = {
   events: [],
   debugLines: [],
   plan: null,
+  planRuntimeByTaskId: new Map(),
+  planCurrentRunningTaskId: '',
+  planLastTouchedTaskId: '',
   toolStates: new Map(),
   toolNodeById: new Map(),
   contentNodeById: new Map(),
@@ -126,6 +129,7 @@ const state = {
   },
   activeReasoningKey: '',
   chatFilter: '',
+  chatLoadSeq: 0,
   settingsOpen: false,
   activeDebugTab: 'events',
   leftDrawerOpen: false,
@@ -1279,6 +1283,9 @@ function resetConversationState() {
   state.messageOrder = [];
   state.events = [];
   state.plan = null;
+  state.planRuntimeByTaskId.clear();
+  state.planCurrentRunningTaskId = '';
+  state.planLastTouchedTaskId = '';
   state.planExpanded = false;
   state.planManualOverride = null;
   clearPlanAutoCollapseTimer();
@@ -1381,32 +1388,157 @@ function normalizePlanStatus(status) {
     return 'completed';
   }
 
-  if (['running', 'in_progress', 'working', 'doing', 'init'].includes(value)) {
+  if (['running', 'in_progress', 'working', 'doing'].includes(value)) {
     return 'running';
   }
 
-  if (['failed', 'error', 'canceled', 'cancelled'].includes(value)) {
+  if (['failed', 'error'].includes(value)) {
     return 'failed';
+  }
+
+  if (['canceled', 'cancelled'].includes(value)) {
+    return 'canceled';
+  }
+
+  if (['init', 'pending', 'todo'].includes(value)) {
+    return 'pending';
   }
 
   return 'pending';
 }
 
+function normalizeTaskEventStatus(type) {
+  if (type === 'task.start') {
+    return 'running';
+  }
+  if (type === 'task.complete') {
+    return 'completed';
+  }
+  if (type === 'task.cancel') {
+    return 'canceled';
+  }
+  if (type === 'task.fail') {
+    return 'failed';
+  }
+  return 'pending';
+}
+
+function syncPlanRuntime(planItems = []) {
+  const nextRuntime = new Map();
+  const normalizedItems = Array.isArray(planItems) ? planItems : [];
+  for (const item of normalizedItems) {
+    const taskId = String(item?.taskId || '').trim();
+    if (!taskId) {
+      continue;
+    }
+    const baseStatus = normalizePlanStatus(item.status);
+    const existing = state.planRuntimeByTaskId.get(taskId);
+    let mergedStatus = baseStatus;
+    if (existing && mergedStatus === 'pending') {
+      mergedStatus = existing.status || mergedStatus;
+    }
+    nextRuntime.set(taskId, {
+      status: mergedStatus,
+      updatedAt: existing?.updatedAt || Date.now(),
+      error: existing?.error || ''
+    });
+  }
+  state.planRuntimeByTaskId = nextRuntime;
+
+  if (state.planCurrentRunningTaskId) {
+    const running = state.planRuntimeByTaskId.get(state.planCurrentRunningTaskId);
+    if (!running || running.status !== 'running') {
+      state.planCurrentRunningTaskId = '';
+    }
+  }
+
+  if (!state.planCurrentRunningTaskId) {
+    const runningEntry = normalizedItems.find((item) => {
+      const taskId = String(item?.taskId || '').trim();
+      if (!taskId) {
+        return false;
+      }
+      return state.planRuntimeByTaskId.get(taskId)?.status === 'running';
+    });
+    state.planCurrentRunningTaskId = runningEntry?.taskId || '';
+  }
+}
+
+function applyTaskLifecycleEvent(event) {
+  const taskId = String(event?.taskId || '').trim();
+  if (!taskId) {
+    return false;
+  }
+  const nextStatus = normalizeTaskEventStatus(event.type);
+  const current = state.planRuntimeByTaskId.get(taskId) || {
+    status: 'pending',
+    updatedAt: Date.now(),
+    error: ''
+  };
+  const next = {
+    status: nextStatus,
+    updatedAt: event.timestamp || Date.now(),
+    error: event.type === 'task.fail'
+      ? (typeof event.error === 'string' ? event.error : JSON.stringify(event.error || {}))
+      : ''
+  };
+  state.planRuntimeByTaskId.set(taskId, next);
+  state.planLastTouchedTaskId = taskId;
+
+  if (event.type === 'task.start') {
+    state.planCurrentRunningTaskId = taskId;
+  } else if (state.planCurrentRunningTaskId === taskId) {
+    state.planCurrentRunningTaskId = '';
+  }
+
+  if (state.plan && Array.isArray(state.plan.plan) && !state.plan.plan.some((item) => String(item?.taskId || '').trim() === taskId)) {
+    state.plan.plan.push({
+      taskId,
+      description: event.description || event.taskName || '',
+      status: next.status
+    });
+  } else if (state.plan && Array.isArray(state.plan.plan)) {
+    state.plan.plan = state.plan.plan.map((item) => {
+      if (String(item?.taskId || '').trim() !== taskId) {
+        return item;
+      }
+      return {
+        ...item,
+        description: item.description || event.description || event.taskName || ''
+      };
+    });
+  }
+
+  return current.status !== next.status || current.error !== next.error;
+}
+
 function summarizePlan(planItems) {
   const normalized = planItems.map((item) => ({
     ...item,
-    normalizedStatus: normalizePlanStatus(item.status)
+    normalizedStatus: (() => {
+      const taskId = String(item?.taskId || '').trim();
+      const runtime = taskId ? state.planRuntimeByTaskId.get(taskId) : null;
+      return normalizePlanStatus(runtime?.status || item.status);
+    })()
   }));
 
   const completed = normalized.filter((item) => item.normalizedStatus === 'completed').length;
-  const running = normalized.find((item) => item.normalizedStatus === 'running');
+  const running = state.planCurrentRunningTaskId
+    ? normalized.find((item) => String(item.taskId || '').trim() === state.planCurrentRunningTaskId)
+    : normalized.find((item) => item.normalizedStatus === 'running');
   const pending = normalized.find((item) => item.normalizedStatus === 'pending');
   const failed = normalized.find((item) => item.normalizedStatus === 'failed');
-  const focus = running || failed || pending || normalized[normalized.length - 1] || null;
+  const canceled = normalized.find((item) => item.normalizedStatus === 'canceled');
+  const lastTouched = state.planLastTouchedTaskId
+    ? normalized.find((item) => String(item.taskId || '').trim() === state.planLastTouchedTaskId)
+    : null;
+  const focus = running || lastTouched || failed || pending || canceled || normalized[normalized.length - 1] || null;
+  const focusIndex = focus ? (normalized.indexOf(focus) + 1) : 0;
 
   return {
     normalized,
     completed,
+    current: focusIndex > 0 ? focusIndex : (normalized.length > 0 ? 1 : 0),
     total: normalized.length,
     summaryText: focus?.description || focus?.taskId || 'Plan updated'
   };
@@ -1431,7 +1563,7 @@ function renderPlan() {
   elements.planPanel.classList.toggle('is-expanded', state.planExpanded);
   elements.planToggleBtn.setAttribute('aria-expanded', String(state.planExpanded));
   elements.planIdLabel.textContent = state.plan.planId ? `#${state.plan.planId}` : '#-';
-  elements.planSummaryStatus.textContent = `${planSummary.completed}/${planSummary.total}`;
+  elements.planSummaryStatus.textContent = `${planSummary.current}/${planSummary.total}`;
   elements.planSummaryText.textContent = planSummary.summaryText;
 
   elements.planList.innerHTML = planSummary.normalized
@@ -2024,10 +2156,19 @@ function handleAgwEvent(event, source = 'live') {
   }
 
   if (type === 'plan.update') {
+    const previousPlanId = state.plan?.planId || '';
+    const nextPlanId = event.planId || '';
+    if (previousPlanId && nextPlanId && previousPlanId !== nextPlanId) {
+      state.planRuntimeByTaskId.clear();
+      state.planCurrentRunningTaskId = '';
+      state.planLastTouchedTaskId = '';
+    }
+
     state.plan = {
       planId: event.planId,
       plan: Array.isArray(event.plan) ? event.plan : []
     };
+    syncPlanRuntime(state.plan.plan);
 
     if (state.planManualOverride === true) {
       state.planExpanded = true;
@@ -2041,6 +2182,12 @@ function handleAgwEvent(event, source = 'live') {
     }
 
     renderPlan();
+  }
+
+  if (type === 'task.start' || type === 'task.complete' || type === 'task.cancel' || type === 'task.fail') {
+    if (applyTaskLifecycleEvent(event)) {
+      renderPlan();
+    }
   }
 
   if (type === 'reasoning.start' || type === 'reasoning.delta' || type === 'reasoning.end' || type === 'reasoning.snapshot') {
@@ -2290,15 +2437,36 @@ async function loadChat(chatId, includeRawMessages = false) {
     return;
   }
 
+  const loadSeq = state.chatLoadSeq + 1;
+  state.chatLoadSeq = loadSeq;
+
+  if (state.streaming) {
+    stopStreaming();
+  }
+
+  state.chatId = chatId;
+  state.runId = '';
+  state.requestId = '';
+  updateChatChip();
+  renderChats();
+  resetConversationState();
+
   setStatus(`loading chat ${chatId}...`);
   const response = await getChat(chatId, includeRawMessages);
-  state.chatId = chatId;
-  updateChatChip();
-
-  resetConversationState();
+  if (loadSeq !== state.chatLoadSeq) {
+    return;
+  }
 
   const events = Array.isArray(response.data?.events) ? response.data.events : [];
   for (const event of events) {
+    if (loadSeq !== state.chatLoadSeq) {
+      return;
+    }
+
+    if (event?.chatId && String(event.chatId) !== String(chatId)) {
+      continue;
+    }
+
     handleAgwEvent(event, 'history');
   }
 
@@ -2313,6 +2481,8 @@ async function loadChat(chatId, includeRawMessages = false) {
 }
 
 function startNewChat() {
+  state.chatLoadSeq += 1;
+
   if (state.streaming) {
     stopStreaming();
   }
