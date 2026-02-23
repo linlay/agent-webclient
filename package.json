@@ -12,5 +12,8 @@
   "devDependencies": {
     "vite": "^5.4.11",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "marked": "^17.0.3"
   }
 }

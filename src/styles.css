@@ -374,6 +374,58 @@ textarea {
   color: var(--text-main);
 }
 
+.timeline-markdown {
+  white-space: normal;
+}
+
+.timeline-markdown > :first-child {
+  margin-top: 0;
+}
+
+.timeline-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.timeline-markdown p,
+.timeline-markdown ul,
+.timeline-markdown ol,
+.timeline-markdown pre,
+.timeline-markdown blockquote {
+  margin: 0 0 8px;
+}
+
+.timeline-markdown ul,
+.timeline-markdown ol {
+  padding-left: 20px;
+}
+
+.timeline-markdown pre {
+  overflow-x: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  line-height: 1.5;
+}
+
+.timeline-markdown code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.timeline-markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.timeline-markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
 .system-alert {
   border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--border));
   background: color-mix(in srgb, var(--danger) 10%, var(--bg-card));

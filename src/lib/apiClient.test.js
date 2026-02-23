@@ -24,7 +24,8 @@ describe('apiClient auth header', () => {
     await getAgents();
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    const [, options] = globalThis.fetch.mock.calls[0];
+    const [url, options] = globalThis.fetch.mock.calls[0];
+    expect(url).toBe('/api/ap/agents');
     expect(options.headers.Authorization).toBe('Bearer token_abc');
   });
 
@@ -48,7 +49,8 @@ describe('apiClient auth header', () => {
       chatId: 'chat-1'
     });
 
-    const [, options] = globalThis.fetch.mock.calls[0];
+    const [url, options] = globalThis.fetch.mock.calls[0];
+    expect(url).toBe('/api/ap/query');
     expect(options.headers.Authorization).toBe('Bearer query_token');
   });
 

@@ -97,25 +97,25 @@ export function createRequestId(prefix = 'req') {
 }
 
 export function getAgents() {
-  return requestJson('/api/agents');
+  return requestJson('/api/ap/agents');
 }
 
 export function getChats() {
-  return requestJson('/api/chats');
+  return requestJson('/api/ap/chats');
 }
 
 export function getChat(chatId, includeRawMessages = false) {
   const query = toQueryString({ chatId, includeRawMessages: includeRawMessages ? 'true' : undefined });
-  return requestJson(`/api/chat?${query}`);
+  return requestJson(`/api/ap/chat?${query}`);
 }
 
 export function getViewport(viewportKey) {
   const query = toQueryString({ viewportKey });
-  return requestJson(`/api/viewport?${query}`);
+  return requestJson(`/api/ap/viewport?${query}`);
 }
 
 export function submitTool({ runId, toolId, params }) {
-  return requestJson('/api/submit', {
+  return requestJson('/api/ap/submit', {
     method: 'POST',
     body: JSON.stringify({
       runId,
@@ -126,7 +126,7 @@ export function submitTool({ runId, toolId, params }) {
 }
 
 export function createQueryStream({ message, agentKey, chatId, role, references, params, scene, stream, signal }) {
-  return fetch('/api/query', {
+  return fetch('/api/ap/query', {
     method: 'POST',
     headers: buildAuthHeaders(),
     body: JSON.stringify({

@@ -3,10 +3,10 @@
 AGW 协议调试前端（Vanilla JS + Vite）。
 
 本项目用于本地联调 AGW Agent 网关，重点验证：
-- `/api/query` 的 SSE 流式事件
-- `/api/chats`、`/api/chat` 的会话与历史回放
-- `/api/submit` 的前端工具回传
-- `/api/viewport` 的可视化视图渲染
+- `/api/ap/query` 的 SSE 流式事件
+- `/api/ap/chats`、`/api/ap/chat` 的会话与历史回放
+- `/api/ap/submit` 的前端工具回传
+- `/api/ap/viewport` 的可视化视图渲染
 
 ## 1. 环境要求
 
@@ -27,7 +27,7 @@ npm install
 npm run dev
 ```
 
-默认地址：`http://localhost:11945`
+默认地址：`http://localhost:11948`
 
 生产构建：
 
@@ -51,10 +51,10 @@ npm test
 
 ## 3. 环境变量
 
-本项目通过 Vite 代理 `/api`。
+本项目通过 Vite 代理 `/api/ap`。
 
 - `AGW_API_TARGET`：后端地址，默认 `http://localhost:11946`
-- `PORT`：开发端口，默认 `11945`
+- `PORT`：开发端口，默认 `11948`
 - `PREVIEW_PORT`：预览端口，默认 `4173`
 
 示例：
@@ -78,7 +78,7 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
 
 行为说明：
 - Token 仅存在页面内存，刷新后失效。
-- 所有 `/api/*` 请求会自动附加 `Authorization: Bearer <token>`。
+- 所有 `/api/ap/*` 请求会自动附加 `Authorization: Bearer <token>`。
 
 ### 4.3 发起会话
 
@@ -108,7 +108,7 @@ AGW_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
 当收到前端工具事件（`toolType` 为 `html/qlc` 且有 `toolKey`）时：
 
 1. 输入区切换为 iframe 工具面板。
-2. 页面自动请求 `/api/viewport?viewportKey=...` 并渲染。
+2. 页面自动请求 `/api/ap/viewport?viewportKey=...` 并渲染。
 3. 可通过两种方式提交：
 - iframe 发 `frontend_submit`
 - 右侧 `Tools` 面板手动编辑参数并提交
@@ -122,6 +122,19 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 - 同时在右侧 Viewport 调试区单独渲染一份
 - 渲染完成后，会把 payload 通过 `postMessage` 发给 iframe
 
+### 4.8 Markdown 正文渲染
+
+`content.delta` / `content.snapshot` 的正文支持常用 Markdown（段落、列表、代码、链接、图片）。
+
+图片 URL 规则：
+- `http://`、`https://`：保持原样
+- 其余路径（包括 `/data/...`、`./...`、`../...`、裸文件名）：重写为
+  `/api/ap/data?file=<url-encoded-path>`
+
+示例：
+- `![示例](/data/sample_photo.jpg)`
+- 会渲染为 `<img src="/api/ap/data?file=%2Fdata%2Fsample_photo.jpg" ...>`
+
 ## 5. 常见排查
 
 ### 5.1 页面启动但接口报错
@@ -134,13 +147,13 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 ### 5.2 SSE 没有持续输出
 
 检查：
-- 后端 `/api/query` 是否返回 `text/event-stream`
+- 后端 `/api/ap/query` 是否返回 `text/event-stream`
 - Events/Logs 面板是否有 `run.start`、`content.delta`、`run.complete`
 - 是否被手动“停止流式”中断
 
 ### 5.3 submit 未命中
 
-`/api/submit` 响应 `accepted=false` 时，右侧会显示 `status/detail`。
+`/api/ap/submit` 响应 `accepted=false` 时，右侧会显示 `status/detail`。
 优先核对：`runId`、`toolId`、`params` 是否匹配当前等待中的工具。
 
 ## 6. 项目结构
@@ -150,9 +163,31 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 ├── index.html
 ├── src
 │   ├── main.js
+│   ├── app
+│   │   ├── bootstrap.js
+│   │   ├── context
+│   │   │   ├── constants.js
+│   │   │   ├── createAppContext.js
+│   │   │   ├── elements.js
+│   │   │   └── state.js
+│   │   ├── actions
+│   │   │   ├── chatActions.js
+│   │   │   └── messageActions.js
+│   │   ├── handlers
+│   │   │   ├── agwEventHandler.js
+│   │   │   └── domEvents.js
+│   │   └── runtime
+│   │       ├── frontendToolRuntime.js
+│   │       ├── planRuntime.js
+│   │       ├── statusDebugRuntime.js
+│   │       ├── timelineRuntime.js
+│   │       ├── uiRuntime.js
+│   │       └── viewportRuntime.js
 │   ├── styles.css
 │   └── lib
 │       ├── apiClient.js
+│       ├── contentSegments.js
+│       ├── markdownRenderer.js
 │       ├── sseParser.js
 │       ├── viewportParser.js
 │       ├── mentionParser.js

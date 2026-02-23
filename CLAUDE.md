@@ -19,8 +19,8 @@
 
 - 技术栈：Vanilla JS（ESM）+ Vite 5 + Vitest
 - Node：18+
-- 开发端口：`11945`（`PORT` 可覆盖）
-- API 代理：`/api -> http://localhost:11946`（`AGW_API_TARGET` 可覆盖）
+- 开发端口：`11948`（`PORT` 可覆盖）
+- API 代理：`/api/ap -> http://localhost:11949`（`API_TARGET` 可覆盖）
 - 预览端口：`4173`（`PREVIEW_PORT` 可覆盖）
 
 ## 3. 模块分层
@@ -41,7 +41,7 @@
 - `src/lib/apiClient.js`
 
 职责：
-- 封装 `/api/*` 请求
+- 封装 `/api/ap/*` 请求
 - 统一 Bearer Token 注入
 - 校验 ApiResponse 包络
 - 统一抛出 `ApiError`
@@ -82,7 +82,7 @@
 
 SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 - `live`：实时流
-- `history`：`/api/chat` 历史回放
+- `history`：`/api/ap/chat` 历史回放
 
 ### 5.1 已消费事件类型
 
@@ -116,7 +116,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 
 若 HTTP 非 2xx、JSON 非法、或 `code != 0`，`apiClient` 会抛 `ApiError`。
 
-### 6.1 `GET /api/agents`
+### 6.1 `GET /api/ap/agents`
 
 用途：拉取 Agent 列表。
 
@@ -124,7 +124,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 - `key`（必需，@mention 和锁定选择使用）
 - `name`（展示）
 
-### 6.2 `GET /api/chats`
+### 6.2 `GET /api/ap/chats`
 
 用途：拉取会话列表。
 
@@ -134,7 +134,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 - `firstAgentKey`
 - `updatedAt`
 
-### 6.3 `GET /api/chat?chatId=...&includeRawMessages=true?`
+### 6.3 `GET /api/ap/chat?chatId=...&includeRawMessages=true?`
 
 用途：加载会话历史并回放事件。
 
@@ -142,7 +142,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 - `events`：事件数组（核心）
 - `rawMessages` 或 `messages`：仅在调试时记录计数
 
-### 6.4 `POST /api/query`
+### 6.4 `POST /api/ap/query`
 
 请求体（`createQueryStream` 支持字段）：
 
@@ -166,7 +166,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 
 响应：`text/event-stream`，每个 `data:` 行是 JSON 事件。
 
-### 6.5 `GET /api/viewport?viewportKey=...`
+### 6.5 `GET /api/ap/viewport?viewportKey=...`
 
 用途：
 - 前端工具覆盖区 iframe 加载
@@ -175,7 +175,7 @@ SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
 前端依赖字段：
 - `data.html`（字符串）
 
-### 6.6 `POST /api/submit`
+### 6.6 `POST /api/ap/submit`
 
 请求体：
 

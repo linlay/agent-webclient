@@ -1,14 +1,14 @@
 import { defineConfig } from 'vite';
 
-const target = process.env.AGW_API_TARGET || 'http://localhost:11946';
-const port = Number(process.env.PORT || 11945);
+const target = process.env.AGW_API_TARGET || 'http://localhost:11949';
+const port = Number(process.env.PORT || 11948);
 
 export default defineConfig({
   server: {
     host: '0.0.0.0',
     port,
     proxy: {
-      '/api': {
+      '/api/ap': {
         target,
         changeOrigin: true
       }
