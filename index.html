@@ -151,6 +151,22 @@
           <select id="agent-select"></select>
         </div>
 
+        <div class="field-group">
+          <label for="access-token-input">Access Token</label>
+          <input
+            id="access-token-input"
+            class="text-input"
+            type="password"
+            placeholder="请输入原始 Access Token（不含 Bearer）"
+            autocomplete="off"
+          />
+          <div class="settings-inline-actions">
+            <button id="access-token-apply" type="button">应用 Token</button>
+            <button id="access-token-clear" type="button">清空 Token</button>
+          </div>
+          <p class="settings-hint">仅保存在当前页面内存中，刷新页面后需要重新输入。</p>
+        </div>
+
         <div class="settings-grid">
           <button id="refresh-agents-btn" type="button">刷新 Agents</button>
           <button id="refresh-chats-btn" type="button">刷新 Chats</button>

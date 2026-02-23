@@ -6,6 +6,7 @@ import {
   getAgents,
   getChat,
   getChats,
+  setAccessToken,
   getViewport,
   submitTool
 } from './lib/apiClient.js';
@@ -43,6 +44,9 @@ const elements = {
   agentClearBtn: document.getElementById('agent-clear-btn'),
   settingsModal: document.getElementById('settings-modal'),
   settingsCloseBtn: document.getElementById('settings-close-btn'),
+  accessTokenInput: document.getElementById('access-token-input'),
+  accessTokenApply: document.getElementById('access-token-apply'),
+  accessTokenClear: document.getElementById('access-token-clear'),
   agentSelect: document.getElementById('agent-select'),
   refreshAgentsBtn: document.getElementById('refresh-agents-btn'),
   refreshChatsBtn: document.getElementById('refresh-chats-btn'),
@@ -142,7 +146,8 @@ const state = {
   mentionOpen: false,
   mentionSuggestions: [],
   mentionActiveIndex: 0,
-  activeFrontendTool: null
+  activeFrontendTool: null,
+  accessToken: ''
 };
 
 const actionRuntime = createActionRuntime({
@@ -158,6 +163,37 @@ const actionRuntime = createActionRuntime({
 function setStatus(text, tone = 'normal') {
   elements.apiStatus.textContent = text;
   elements.apiStatus.style.color = tone === 'error' ? 'var(--danger)' : 'var(--text-main)';
+}
+
+function normalizeRawAccessToken(input) {
+  const value = String(input ?? '').trim();
+  if (!value) {
+    return { ok: false, error: 'Access Token 不能为空' };
+  }
+  if (/^bearer\s+/i.test(value)) {
+    return { ok: false, error: '请仅输入原始 Access Token，不要包含 Bearer 前缀' };
+  }
+  return { ok: true, token: value };
+}
+
+function applyAccessToken() {
+  const normalized = normalizeRawAccessToken(elements.accessTokenInput.value);
+  if (!normalized.ok) {
+    setStatus(normalized.error, 'error');
+    return;
+  }
+
+  state.accessToken = normalized.token;
+  elements.accessTokenInput.value = normalized.token;
+  setAccessToken(normalized.token);
+  setStatus('Access Token 已应用');
+}
+
+function clearAccessToken() {
+  state.accessToken = '';
+  elements.accessTokenInput.value = '';
+  setAccessToken('');
+  setStatus('Access Token 已清空');
 }
 
 function appendDebug(value) {
@@ -350,7 +386,7 @@ function postInitMessageToFrontendToolFrame() {
 
   elements.frontendToolFrame.contentWindow.postMessage(
     {
-      type: 'agw_tool_init',
+      type: 'tool_init',
       data: buildFrontendToolInitPayload(active)
     },
     '*'
@@ -2774,6 +2810,22 @@ function bindDomEvents() {
     setSettingsOpen(false);
   });
 
+  elements.accessTokenApply.addEventListener('click', () => {
+    applyAccessToken();
+  });
+
+  elements.accessTokenClear.addEventListener('click', () => {
+    clearAccessToken();
+  });
+
+  elements.accessTokenInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+    event.preventDefault();
+    applyAccessToken();
+  });
+
   elements.settingsModal.addEventListener('click', (event) => {
     if (event.target === elements.settingsModal) {
       setSettingsOpen(false);
@@ -2993,7 +3045,7 @@ function bindDomEvents() {
       return;
     }
 
-    if (data.type === 'agw_frontend_submit') {
+    if (data.type === 'frontend_submit') {
       const active = state.activeFrontendTool;
       if (!active) {
         return;
@@ -3011,7 +3063,7 @@ function bindDomEvents() {
       return;
     }
 
-    if (data.type !== 'agw_chat_message') {
+    if (data.type !== 'chat_message') {
       return;
     }
 
@@ -3067,6 +3119,7 @@ async function bootstrap() {
   setViewportExpanded(false);
   setSettingsOpen(false);
   syncDrawerState();
+  setAccessToken('');
 
   try {
     await Promise.all([refreshAgents(), refreshChats()]);

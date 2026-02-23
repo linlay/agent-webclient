@@ -8,6 +8,8 @@ export class ApiError extends Error {
   }
 }
 
+let authToken = '';
+
 function toQueryString(params = {}) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -17,6 +19,23 @@ function toQueryString(params = {}) {
     search.set(key, String(value));
   }
   return search.toString();
+}
+
+function buildAuthHeaders(headers = {}) {
+  const merged = {
+    'Content-Type': 'application/json',
+    ...headers
+  };
+  if (authToken) {
+    merged.Authorization = `Bearer ${authToken}`;
+  } else if ('Authorization' in merged) {
+    delete merged.Authorization;
+  }
+  return merged;
+}
+
+export function setAccessToken(token = '') {
+  authToken = String(token || '').trim();
 }
 
 async function readJsonResponse(response) {
@@ -65,12 +84,9 @@ async function readJsonResponse(response) {
 
 async function requestJson(path, options = {}) {
   const response = await fetch(path, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
-    ...options
+    ...options,
+    method: options.method || 'GET',
+    headers: buildAuthHeaders(options.headers || {})
   });
 
   return readJsonResponse(response);
@@ -112,9 +128,7 @@ export function submitTool({ runId, toolId, params }) {
 export function createQueryStream({ message, agentKey, chatId, role, references, params, scene, stream, signal }) {
   return fetch('/api/query', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: buildAuthHeaders(),
     body: JSON.stringify({
       message,
       agentKey,

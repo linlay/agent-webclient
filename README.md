@@ -1,206 +1,171 @@
-# agw-springai-webclient
+# AGW SpringAI Webclient
 
-本项目是一个用于本地验证的 AGW 前端调试页面（Vanilla JS + Vite），用于直接对接 `agw-springai-agent` 的 `/api` 协议。
+AGW 协议调试前端（Vanilla JS + Vite）。
 
-核心目标：
-- 验证 `POST /api/query` 真流式 SSE
-- 验证 `GET /api/chats`、`GET /api/chat` 历史回放
-- 验证 `POST /api/submit` V2 前端工具提交（`runId + toolId + params`）
-- 验证 `GET /api/viewport` 获取前端工具视图并覆盖输入区
-- 验证 action：`switch_theme`、`launch_fireworks`、`show_modal`
+本项目用于本地联调 AGW Agent 网关，重点验证：
+- `/api/query` 的 SSE 流式事件
+- `/api/chats`、`/api/chat` 的会话与历史回放
+- `/api/submit` 的前端工具回传
+- `/api/viewport` 的可视化视图渲染
 
-## 技术栈
-
-- Vanilla JavaScript (ESM)
-- Vite 5
-- Vitest（单测）
-
-## 快速开始
-
-### 1. 前置条件
+## 1. 环境要求
 
 - Node.js 18+
-- `agw-springai-agent` 已在本地启动（默认 `http://localhost:8080`）
+- 可访问 AGW 后端 API（默认代理目标：`http://localhost:11946`）
 
-### 2. 安装依赖
+## 2. 安装与启动
+
+安装依赖：
 
 ```bash
 npm install
 ```
 
-### 3. 本地启动
+开发模式：
 
 ```bash
 npm run dev
 ```
 
-默认打开：`http://localhost:5173`
+默认地址：`http://localhost:11945`
 
-### 4. 构建与预览
+生产构建：
 
 ```bash
 npm run build
+```
+
+本地预览：
+
+```bash
 npm run preview
 ```
 
-### 5. 运行测试
+默认预览地址：`http://localhost:4173`
+
+运行测试：
 
 ```bash
 npm test
 ```
 
-## 环境变量
+## 3. 环境变量
 
-本项目通过 Vite 代理 `/api`，默认代理到 `http://localhost:8080`。
+本项目通过 Vite 代理 `/api`。
 
-可选环境变量：
-
-- `AGW_API_TARGET`：后端目标地址（默认 `http://localhost:8080`）
-- `PORT`：开发端口（默认 `5173`）
-- `PREVIEW_PORT`：`vite preview` 端口（默认 `4173`）
+- `AGW_API_TARGET`：后端地址，默认 `http://localhost:11946`
+- `PORT`：开发端口，默认 `11945`
+- `PREVIEW_PORT`：预览端口，默认 `4173`
 
 示例：
 
 ```bash
-AGW_API_TARGET=http://127.0.0.1:8080 PORT=5174 npm run dev
+AGW_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
 ```
 
-## 页面功能说明
+## 4. 操作手册
 
-页面为三栏布局：
+### 4.1 首次进入
 
-- 左侧（控制区）
-  - Agent 选择
-  - 会话列表刷新与切换
-  - 当前 chatId 与 API 状态
-- 中间（对话与事件）
-  - 消息流（user / assistant / system）
-  - 事件时间线（SSE 事件可视化）
-  - plan.update 面板
-- 右侧（调试区）
-  - viewport HTML 渲染
-  - pending frontend tool submit 面板（可直接编辑 `params`）
-  - 原始事件 debug 日志
-- 底部输入区
-  - 默认显示普通输入框
-  - 收到前端工具事件后切换为 iframe 覆盖面板，输入框隐藏并禁用
-  - textarea 自动增高（1~6 行），超过后内部滚动
-  - `Enter` 发送，`Shift+Enter` 换行
+1. 打开页面后会自动请求 Agents 和 Chats。
+2. 右上角状态栏显示当前状态（`ready` 表示可用）。
 
-## 协议对接细节
+### 4.2 配置 Access Token（可选）
 
-### 1) Query 流式 (`POST /api/query`)
+1. 点击 `设置`。
+2. 在 `Access Token` 输入框填入原始 token（不要带 `Bearer ` 前缀）。
+3. 点击 `应用 Token`。
 
-- 使用 `fetch + ReadableStream` 手动解析 SSE（不是 EventSource）
-- 仅消费 `data:` 帧
-- 心跳注释帧（如 `:heartbeat`）会被忽略
-- 每个 JSON 事件交给统一分发器处理
+行为说明：
+- Token 仅存在页面内存，刷新后失效。
+- 所有 `/api/*` 请求会自动附加 `Authorization: Bearer <token>`。
 
-当前支持的事件类型包含：
+### 4.3 发起会话
 
-- 输入/运行：`request.query`、`chat.start`、`run.start`、`run.complete`、`run.error`、`run.cancel`
-- 计划：`plan.update`
-- 推理与内容：`reasoning.*`、`content.*`
-- 工具与动作：`tool.*`、`action.*`
-- 来源：`source.snapshot`
+1. 可在设置里选择默认 Agent（锁定）。
+2. 在输入框直接发送，或用 `@agentKey` 前缀临时指定 Agent。
+3. `Enter` 发送，`Shift+Enter` 换行。
 
-### 2) 历史回放 (`GET /api/chat`)
+规则：
+- `@mention` 优先级高于“锁定 Agent”。
+- 流式进行中不能再次发送（需先“停止流式”）。
 
-- 默认请求：`/api/chat?chatId=...`
-- 可选：`includeRawMessages=true`
-- 历史事件（如 `*.snapshot`）和流式事件走同一个前端事件处理链
-- 兼容读取 `rawMessages`（并兜底 `messages`）
+### 4.4 会话管理
 
-### 3) 前端工具提交 (`POST /api/submit`)
+- 左侧 `新会话`：清空当前上下文，准备新 chat。
+- 左侧列表点击某条会话：加载历史事件并回放。
+- `Load Raw Chat`：用 `includeRawMessages=true` 重新加载当前 chat。
 
-- 当收到 `tool.start/tool.snapshot` 且事件包含 `toolType + toolKey` 时：
-  - 立即请求 `/api/viewport?viewportKey={toolKey}`
-  - 用 iframe 覆盖输入区（用户无法直接输入消息）
-  - 向 iframe 发送初始化消息：`{ type: 'agw_tool_init', data: {...} }`
-- 前端工具初始化参数解析优先级：
-  1. `event.toolParams`（对象）
-  2. `event.function.arguments`（JSON 字符串或对象）
-  3. `event.arguments`（JSON 字符串或对象）
-  4. 失败回退 `{}`（并写入 debug）
-- iframe 回传：`{ type: 'agw_frontend_submit', params: {...} }`
-- host 调用 `/api/submit`，若 `accepted=true` 则恢复输入区，若 `accepted=false` 显示未命中状态并保持覆盖态
-- 右侧 debug pending 面板可直接编辑 `params` 并手工提交
-- 覆盖态只显示 iframe 本体，不展示 `runId/toolId/timeout` 和顶部提示文案
-- 提交请求结构：
+### 4.5 调试区使用
 
-```json
-{
-  "runId": "...",
-  "toolId": "...",
-  "params": {}
-}
-```
+右侧 `Debug` 有 3 个标签页：
+- `Events`：事件时间线（最近 300 条）
+- `Logs`：原始 debug 日志（最近 220 行）
+- `Tools`：待提交工具参数面板
 
-- 提交响应关键字段：
-  - `data.accepted=true|false`
-  - `data.status=accepted|unmatched`
-  - `data.detail`
+### 4.6 前端工具提交流程
 
-### 4) Viewport HTML 渲染
+当收到前端工具事件（`toolType` 为 `html/qlc` 且有 `toolKey`）时：
 
-- 从 assistant 文本里解析 ```viewport 块
-- 仅处理 `type=html`
-- 用 `key` 调用 `/api/viewport?viewportKey=...`
-- 取返回 `data.html`，通过 `iframe.srcdoc` 渲染
-- 渲染后向 iframe 发送 payload：`postMessage(payload, '*')`
+1. 输入区切换为 iframe 工具面板。
+2. 页面自动请求 `/api/viewport?viewportKey=...` 并渲染。
+3. 可通过两种方式提交：
+- iframe 发 `frontend_submit`
+- 右侧 `Tools` 面板手动编辑参数并提交
 
-前端工具覆盖输入框协议：
+提交成功（`accepted=true`）后恢复普通输入区。
 
-- host -> iframe：`{ type: 'agw_tool_init', data: { runId, toolId, toolKey, toolType, toolTimeout, params } }`
-- iframe -> host：`{ type: 'agw_frontend_submit', params }`
+### 4.7 Viewport 内容渲染
 
-同时支持 viewport 页面反向发消息：
+assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
+- 仅 `type=html` 会在消息区内嵌渲染
+- 同时在右侧 Viewport 调试区单独渲染一份
+- 渲染完成后，会把 payload 通过 `postMessage` 发给 iframe
 
-```js
-window.parent.postMessage({ type: 'agw_chat_message', message: '...' }, '*')
-```
+## 5. 常见排查
 
-宿主收到后会自动触发下一轮 query。
+### 5.1 页面启动但接口报错
 
-### 5) Action 运行时
+检查：
+- 后端是否可达（`AGW_API_TARGET`）
+- 开发端口是否冲突（`PORT`）
+- Token 是否填写了 `Bearer ` 前缀（不允许）
 
-- `switch_theme(theme)`：切换 `html[data-theme]`
-- `launch_fireworks(durationMs?)`：全屏 canvas 粒子动画（1000~30000ms）
-- `show_modal(title, content, closeText?)`：弹窗展示
+### 5.2 SSE 没有持续输出
 
-防重复策略：同一个 `actionId` 只执行一次。
+检查：
+- 后端 `/api/query` 是否返回 `text/event-stream`
+- Events/Logs 面板是否有 `run.start`、`content.delta`、`run.complete`
+- 是否被手动“停止流式”中断
 
-## 常用本地验证流程
+### 5.3 submit 未命中
 
-1. 启动 `agw-springai-agent`（`localhost:8080`）
-2. 启动本项目：`npm run dev`
-3. 在页面里选择 agent 并发送消息
-4. 验证：
-   - `demoAction`：主题切换、烟花、弹窗
-   - `demoViewport`：viewport block 被解析并渲染
-   - 含 frontend tool 的场景：输入框被覆盖，提交后 `accepted=true` 主 SSE 继续；`accepted=false` 有明确提示
+`/api/submit` 响应 `accepted=false` 时，右侧会显示 `status/detail`。
+优先核对：`runId`、`toolId`、`params` 是否匹配当前等待中的工具。
 
-## 项目结构
+## 6. 项目结构
 
 ```text
 .
 ├── index.html
-├── package.json
-├── vite.config.js
 ├── src
 │   ├── main.js
 │   ├── styles.css
 │   └── lib
 │       ├── apiClient.js
-│       ├── actionRuntime.js
 │       ├── sseParser.js
 │       ├── viewportParser.js
-│       ├── *.test.js
-└── dist
+│       ├── mentionParser.js
+│       ├── frontendToolParams.js
+│       ├── actionRuntime.js
+│       └── *.test.js
+├── package.json
+└── vite.config.js
 ```
 
-## 注意事项
+## 7. 脚本列表
 
-- 当前 viewport 只渲染 `type=html`；其它类型不会渲染组件。
-- 本项目用于本地协议验证，不是生产 UI。
-- 若后端地址不是 `localhost:8080`，请设置 `AGW_API_TARGET`。
+- `npm run dev`：启动开发服务
+- `npm run build`：构建产物到 `dist/`
+- `npm run preview`：本地预览构建产物
+- `npm test`：运行 Vitest
