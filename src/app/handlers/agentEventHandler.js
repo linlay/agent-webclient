@@ -1,6 +1,6 @@
 import { MAX_EVENTS } from '../context/constants.js';
 
-export function createAgwEventHandler(ctx) {
+export function createAgentEventHandler(ctx) {
   const { state, actions, ui } = ctx;
 
   function applyAction(actionId, actionName, args) {
@@ -143,7 +143,7 @@ export function createAgwEventHandler(ctx) {
     }
   }
 
-  function handleAgwEvent(event, source = 'live') {
+  function handleAgentEvent(event, source = 'live') {
     if (!event || typeof event !== 'object') {
       return;
     }
@@ -468,7 +468,7 @@ export function createAgwEventHandler(ctx) {
   }
 
   return {
-    handleAgwEvent,
+    handleAgentEvent,
     handleToolStart,
     handleReasoningEvent
   };

@@ -1,5 +1,5 @@
 {
-  "name": "agw-springai-webclient",
+  "name": "agent-webclient",
   "private": true,
   "version": "0.0.1",
   "type": "module",

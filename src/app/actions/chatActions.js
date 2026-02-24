@@ -104,7 +104,7 @@ export function createChatActions(ctx) {
         continue;
       }
 
-      ctx.handlers.handleAgwEvent(event, 'history');
+      ctx.handlers.handleAgentEvent(event, 'history');
     }
 
     const rawMessages = response.data?.rawMessages || response.data?.messages;

@@ -75,7 +75,7 @@ export function createMessageActions(ctx) {
           ctx.ui.appendDebug(`sse-comment: ${comments.join('|')}`);
         },
         onJson: (jsonEvent) => {
-          ctx.handlers.handleAgwEvent(jsonEvent, 'live');
+          ctx.handlers.handleAgentEvent(jsonEvent, 'live');
         },
         onParseError: (_error, rawData) => {
           ctx.ui.appendDebug(`sse-json-parse-failed: ${rawData}`);

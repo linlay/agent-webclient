@@ -23,7 +23,7 @@ import { createFrontendToolRuntime } from './runtime/frontendToolRuntime.js';
 import { createViewportRuntime } from './runtime/viewportRuntime.js';
 import { createChatActions } from './actions/chatActions.js';
 import { createMessageActions } from './actions/messageActions.js';
-import { createAgwEventHandler } from './handlers/agwEventHandler.js';
+import { createAgentEventHandler } from './handlers/agentEventHandler.js';
 import { bindDomEvents } from './handlers/domEvents.js';
 
 export function createBootstrapContext() {
@@ -92,7 +92,7 @@ export function createBootstrapContext() {
 
   ctx.handlers = {
     ...ctx.handlers,
-    ...createAgwEventHandler(ctx)
+    ...createAgentEventHandler(ctx)
   };
 
   return ctx;

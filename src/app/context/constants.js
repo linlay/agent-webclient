@@ -9,4 +9,4 @@ export const MOBILE_BREAKPOINT = 1080;
 export const DESKTOP_FIXED_BREAKPOINT = 1280;
 export const DEBUG_TABS = ['events', 'logs', 'tools'];
 export const FRONTEND_VIEWPORT_TYPES = new Set(['html', 'qlc']);
-export const ACCESS_TOKEN_STORAGE_KEY = 'agw_webclient_access_token';
+export const ACCESS_TOKEN_STORAGE_KEY = 'agent_webclient_access_token';

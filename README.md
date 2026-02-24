@@ -1,8 +1,8 @@
-# AGW SpringAI Webclient
+# AGENT SpringAI Webclient
 
-AGW 协议调试前端（Vanilla JS + Vite）。
+AGENT 协议调试前端（Vanilla JS + Vite）。
 
-本项目用于本地联调 AGW Agent 网关，重点验证：
+本项目用于本地联调 AGENT Agent 网关，重点验证：
 - `/api/ap/query` 的 SSE 流式事件
 - `/api/ap/chats`、`/api/ap/chat` 的会话与历史回放
 - `/api/ap/submit` 的前端工具回传
@@ -11,7 +11,7 @@ AGW 协议调试前端（Vanilla JS + Vite）。
 ## 1. 环境要求
 
 - Node.js 18+
-- 可访问 AGW 后端 API（默认代理目标：`http://localhost:11946`）
+- 可访问 AGENT 后端 API（默认代理目标：`http://localhost:11946`）
 
 ## 2. 安装与启动
 
@@ -53,14 +53,14 @@ npm test
 
 本项目通过 Vite 代理 `/api/ap`。
 
-- `AGW_API_TARGET`：后端地址，默认 `http://localhost:11946`
+- `AGENT_API_TARGET`：后端地址，默认 `http://localhost:11946`
 - `PORT`：开发端口，默认 `11948`
 - `PREVIEW_PORT`：预览端口，默认 `4173`
 
 示例：
 
 ```bash
-AGW_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
+AGENT_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
 ```
 
 ## 4. 操作手册
@@ -140,7 +140,7 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 ### 5.1 页面启动但接口报错
 
 检查：
-- 后端是否可达（`AGW_API_TARGET`）
+- 后端是否可达（`AGENT_API_TARGET`）
 - 开发端口是否冲突（`PORT`）
 - Token 是否填写了 `Bearer ` 前缀（不允许）
 
@@ -174,7 +174,7 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 │   │   │   ├── chatActions.js
 │   │   │   └── messageActions.js
 │   │   ├── handlers
-│   │   │   ├── agwEventHandler.js
+│   │   │   ├── agentEventHandler.js
 │   │   │   └── domEvents.js
 │   │   └── runtime
 │   │       ├── frontendToolRuntime.js

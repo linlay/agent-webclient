@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-const target = process.env.AGW_API_TARGET || 'http://localhost:11949';
+const target = process.env.AGENT_API_TARGET || 'http://localhost:11949';
 const port = Number(process.env.PORT || 11948);
 
 export default defineConfig({

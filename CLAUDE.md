@@ -7,10 +7,10 @@
 
 ## 1. 项目定位
 
-`agw-springai-webclient` 是 AGW 协议调试前端，不是生产业务前端。
+`agent-webclient` 是 AGENT 协议调试前端，不是生产业务前端。
 
 目标：
-- 复现和观察 AGW 流式事件（SSE）
+- 复现和观察 AGENT 流式事件（SSE）
 - 回放 chat 历史事件
 - 验证工具调用、前端工具提交与 viewport 渲染
 - 验证 action 事件在浏览器侧的执行效果
@@ -32,7 +32,7 @@
 职责：
 - DOM 事件绑定
 - 全局状态管理
-- AGW 事件分发（`handleAgwEvent`）
+- AGENT 事件分发（`handleAgentEvent`）
 - Timeline / Plan / Debug 渲染
 - 前端工具 iframe 生命周期
 
@@ -80,7 +80,7 @@
 
 ## 5. 事件驱动实现方案
 
-SSE JSON 事件全部进入 `handleAgwEvent(event, source)`，`source` 为：
+SSE JSON 事件全部进入 `handleAgentEvent(event, source)`，`source` 为：
 - `live`：实时流
 - `history`：`/api/ap/chat` 历史回放
 
