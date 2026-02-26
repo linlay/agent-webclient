@@ -1,8 +1,7 @@
 services:
   webclient:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./frontend
     container_name: agent-webclient
     environment:
       AGENT_API_UPSTREAM: ${AGENT_API_UPSTREAM:-http://host.docker.internal:11949}

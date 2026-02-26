@@ -105,7 +105,6 @@ export async function bootstrapApp() {
   bindDomEvents(ctx);
   ui.updateLayoutMode(window.innerWidth);
   ui.updateChatChip();
-  ui.renderAgentLock();
   ui.renderMessages({ full: true, stickToBottom: false });
   ui.renderEvents();
   ui.renderPlan();
@@ -115,14 +114,19 @@ export async function bootstrapApp() {
   ui.renderDebugTabs();
   ui.renderMentionSuggestions();
   ui.autosizeComposerInput();
-  ui.setViewportExpanded(false);
   ui.setSettingsOpen(false);
   ui.syncDrawerState();
 
-  const restoredToken = ui.readStoredAccessToken();
-  state.accessToken = restoredToken;
-  elements.accessTokenInput.value = restoredToken;
-  services.setAccessToken(restoredToken);
+  state.accessToken = '';
+  elements.accessTokenInput.value = '';
+  services.setAccessToken('');
+  ui.clearAccessTokenError();
+
+  if (!state.accessToken) {
+    ui.setStatus('Access Token 缺失，请先在设置中输入', 'error');
+    ui.promptAccessToken('Access Token 不能为空，请先输入后再请求 API');
+    return ctx;
+  }
 
   try {
     await Promise.all([actions.refreshAgents(), actions.refreshChats()]);

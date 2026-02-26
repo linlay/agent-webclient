@@ -2,8 +2,8 @@ export function createState() {
   return {
     agents: [],
     chats: [],
-    agentKey: '',
-    selectedAgentLocked: '',
+    chatAgentById: new Map(),
+    pendingNewChatAgentKey: '',
     chatId: '',
     runId: '',
     requestId: '',
@@ -25,7 +25,6 @@ export function createState() {
     reasoningCollapseTimers: new Map(),
     actionStates: new Map(),
     executedActionIds: new Set(),
-    renderedViewportSignatures: new Set(),
     timelineNodes: new Map(),
     timelineOrder: [],
     timelineNodeByMessageId: new Map(),
@@ -48,11 +47,12 @@ export function createState() {
     planExpanded: false,
     planManualOverride: null,
     planAutoCollapseTimer: null,
-    viewportExpanded: false,
     mentionOpen: false,
     mentionSuggestions: [],
     mentionActiveIndex: 0,
     activeFrontendTool: null,
-    accessToken: ''
+    accessToken: '',
+    eventPopoverIndex: -1,
+    eventPopoverEventRef: null
   };
 }

@@ -1,10 +1,10 @@
 import {
-  ACCESS_TOKEN_STORAGE_KEY,
   DEBUG_TABS,
   DESKTOP_FIXED_BREAKPOINT,
   TABLET_BREAKPOINT,
   MOBILE_BREAKPOINT
 } from '../context/constants.js';
+import { formatChatTimeLabel, pickChatAgentLabel } from '../../lib/chatListFormatter.js';
 import { parseLeadingMentionDraft } from '../../lib/mentionParser.js';
 
 export function createUiRuntime(ctx) {
@@ -86,32 +86,37 @@ export function createUiRuntime(ctx) {
     elements.settingsModal.classList.toggle('hidden', !state.settingsOpen);
   }
 
+  function setAccessTokenError(message = '') {
+    const hasError = Boolean(String(message || '').trim());
+    elements.accessTokenFieldGroup.classList.toggle('is-error', hasError);
+    elements.accessTokenInput.classList.toggle('is-error', hasError);
+    elements.accessTokenError.textContent = hasError ? message : '';
+    elements.accessTokenError.classList.toggle('hidden', !hasError);
+  }
+
+  function clearAccessTokenError() {
+    setAccessTokenError('');
+  }
+
+  function promptAccessToken(message = '请先输入 Access Token') {
+    setSettingsOpen(true);
+    setAccessTokenError(message);
+    window.requestAnimationFrame(() => {
+      elements.accessTokenInput.focus();
+      elements.accessTokenInput.select();
+    });
+  }
+
   function setDebugTab(tab) {
     if (!DEBUG_TABS.includes(tab)) {
       return;
     }
 
     state.activeDebugTab = tab;
-    renderDebugTabs();
-  }
-
-  function setViewportExpanded(expanded) {
-    state.viewportExpanded = Boolean(expanded);
-    elements.viewportToggleBtn.setAttribute('aria-expanded', String(state.viewportExpanded));
-    elements.viewportCollapse.classList.toggle('hidden', !state.viewportExpanded);
-  }
-
-  function renderAgentLock() {
-    if (!state.selectedAgentLocked) {
-      elements.agentLockChip.classList.add('hidden');
-      elements.agentClearBtn.classList.add('hidden');
-      elements.agentLockChip.textContent = '';
-      return;
+    if (tab !== 'events') {
+      hideEventPopover();
     }
-
-    elements.agentLockChip.classList.remove('hidden');
-    elements.agentClearBtn.classList.remove('hidden');
-    elements.agentLockChip.textContent = `@${state.selectedAgentLocked}`;
+    renderDebugTabs();
   }
 
   function summarizeEvent(event) {
@@ -144,19 +149,103 @@ export function createUiRuntime(ctx) {
     return '';
   }
 
+  function toEventJsonText(event) {
+    try {
+      return JSON.stringify(event, null, 2);
+    } catch (_error) {
+      return String(event);
+    }
+  }
+
+  function hideEventPopover() {
+    state.eventPopoverIndex = -1;
+    state.eventPopoverEventRef = null;
+    elements.eventPopover.classList.add('hidden');
+    elements.eventPopoverTitle.textContent = 'Event';
+    elements.eventPopoverBody.textContent = '';
+  }
+
+  function positionEventPopover(anchorRect) {
+    const margin = 8;
+    const width = Math.min(460, window.innerWidth - margin * 2);
+    const left = Math.max(margin, Math.min(anchorRect.left, window.innerWidth - width - margin));
+
+    elements.eventPopover.style.maxWidth = `${width}px`;
+    elements.eventPopover.style.left = `${left}px`;
+
+    const preferredTop = anchorRect.bottom + 8;
+    const maxTop = window.innerHeight - elements.eventPopover.offsetHeight - margin;
+    const top = Math.max(margin, Math.min(preferredTop, maxTop));
+    elements.eventPopover.style.top = `${top}px`;
+  }
+
+  function openEventPopover(eventIndex, anchorRect) {
+    const event = state.events[eventIndex];
+    if (!event) {
+      hideEventPopover();
+      return;
+    }
+
+    const seq = event.seq ?? '-';
+    const type = event.type || 'unknown';
+    elements.eventPopoverTitle.textContent = `#${seq} ${type}`;
+    elements.eventPopoverBody.textContent = toEventJsonText(event);
+    elements.eventPopover.classList.remove('hidden');
+
+    state.eventPopoverIndex = eventIndex;
+    state.eventPopoverEventRef = event;
+    positionEventPopover(anchorRect);
+  }
+
+  function toggleEventPopover(eventIndex, anchorRect) {
+    if (state.eventPopoverIndex === eventIndex && !elements.eventPopover.classList.contains('hidden')) {
+      hideEventPopover();
+      return;
+    }
+    openEventPopover(eventIndex, anchorRect);
+  }
+
+  function isEventPopoverTarget(target) {
+    return elements.eventPopover.contains(target);
+  }
+
   function renderEvents() {
-    const html = state.events
-      .slice(-300)
-      .map((event) => {
+    const visibleEvents = state.events.slice(-300);
+    const startIndex = state.events.length - visibleEvents.length;
+
+    const html = visibleEvents
+      .map((event, offset) => {
+        const eventIndex = startIndex + offset;
         const seq = event.seq ?? '-';
         const ts = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--';
         const summary = summarizeEvent(event);
-        return `<div class="event-row"><strong>#${ctx.ui.escapeHtml(seq)}</strong> ${ctx.ui.escapeHtml(event.type || 'unknown')} <span>${ctx.ui.escapeHtml(ts)}</span><span>${ctx.ui.escapeHtml(summary)}</span></div>`;
+        const summaryHtml = summary
+          ? `<div class="event-row-summary">${ctx.ui.escapeHtml(summary)}</div>`
+          : '';
+
+        return `
+          <div class="event-row is-clickable" data-event-index="${eventIndex}">
+            <div class="event-row-head">
+              <strong>#${ctx.ui.escapeHtml(seq)} ${ctx.ui.escapeHtml(event.type || 'unknown')}</strong>
+              <span class="event-row-time">${ctx.ui.escapeHtml(ts)}</span>
+            </div>
+            ${summaryHtml}
+          </div>
+        `;
       })
       .join('');
 
     elements.events.innerHTML = html || '<div class="event-row">暂无事件</div>';
     elements.events.scrollTop = elements.events.scrollHeight;
+
+    if (state.eventPopoverEventRef) {
+      const nextIndex = state.events.indexOf(state.eventPopoverEventRef);
+      if (nextIndex === -1) {
+        hideEventPopover();
+      } else {
+        state.eventPopoverIndex = nextIndex;
+      }
+    }
   }
 
   function renderChats() {
@@ -166,18 +255,19 @@ export function createUiRuntime(ctx) {
         return true;
       }
 
-      const haystack = `${chat.chatName || ''} ${chat.chatId || ''} ${chat.firstAgentKey || ''}`.toLowerCase();
+      const haystack = `${chat.chatName || ''} ${chat.chatId || ''} ${chat.firstAgentName || ''} ${chat.firstAgentKey || ''}`.toLowerCase();
       return haystack.includes(keyword);
     });
 
     const html = filtered
       .map((chat) => {
-        const updated = chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : '--';
+        const agentLabel = pickChatAgentLabel(chat);
+        const updated = formatChatTimeLabel(chat.updatedAt);
         const activeClass = chat.chatId === state.chatId ? 'is-active' : '';
         return `
           <button data-chat-id="${ctx.ui.escapeHtml(chat.chatId)}" type="button" class="chat-item ${activeClass}">
             <div class="chat-title">${ctx.ui.escapeHtml(chat.chatName || chat.chatId)}</div>
-            <div class="chat-meta-line">${ctx.ui.escapeHtml(chat.firstAgentKey || 'n/a')} · ${ctx.ui.escapeHtml(updated)}</div>
+            <div class="chat-meta-line">${ctx.ui.escapeHtml(agentLabel)} · ${ctx.ui.escapeHtml(updated)}</div>
           </button>
         `;
       })
@@ -194,24 +284,7 @@ export function createUiRuntime(ctx) {
   }
 
   function renderAgents() {
-    const options = [
-      '<option value="">(不固定)</option>',
-      ...state.agents.map(
-        (item) => `<option value="${ctx.ui.escapeHtml(item.key)}">${ctx.ui.escapeHtml(item.key)} · ${ctx.ui.escapeHtml(item.name || '')}</option>`
-      )
-    ].join('');
-
-    elements.agentSelect.innerHTML = options;
-
-    const hasLocked = state.selectedAgentLocked
-      && state.agents.some((item) => String(item.key) === String(state.selectedAgentLocked));
-
-    if (!hasLocked) {
-      state.selectedAgentLocked = '';
-    }
-
-    elements.agentSelect.value = state.selectedAgentLocked || '';
-    renderAgentLock();
+    // Agents are consumed by mention suggestions; no dedicated Agent selector UI now.
   }
 
   function renderDebugTabs() {
@@ -312,37 +385,6 @@ export function createUiRuntime(ctx) {
     return { ok: true, token: value };
   }
 
-  function readStoredAccessToken() {
-    try {
-      const raw = window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-      if (!raw) {
-        return '';
-      }
-      const normalized = normalizeRawAccessToken(raw);
-      if (!normalized.ok) {
-        window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-        ctx.ui.appendDebug(`stored access token ignored: ${normalized.error}`);
-        return '';
-      }
-      return normalized.token;
-    } catch (error) {
-      ctx.ui.appendDebug(`read access token from localStorage failed: ${error.message}`);
-      return '';
-    }
-  }
-
-  function writeStoredAccessToken(token) {
-    try {
-      if (token) {
-        window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
-      } else {
-        window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-      }
-    } catch (error) {
-      ctx.ui.appendDebug(`write access token to localStorage failed: ${error.message}`);
-    }
-  }
-
   return {
     inferLayoutMode,
     syncDrawerState,
@@ -350,8 +392,6 @@ export function createUiRuntime(ctx) {
     updateLayoutMode,
     setSettingsOpen,
     setDebugTab,
-    setViewportExpanded,
-    renderAgentLock,
     renderEvents,
     renderChats,
     renderAgents,
@@ -360,9 +400,13 @@ export function createUiRuntime(ctx) {
     closeMentionSuggestions,
     updateMentionSuggestions,
     selectMentionByIndex,
+    setAccessTokenError,
+    clearAccessTokenError,
+    promptAccessToken,
     normalizeRawAccessToken,
-    readStoredAccessToken,
-    writeStoredAccessToken,
+    hideEventPopover,
+    toggleEventPopover,
+    isEventPopoverTarget,
     mobileBreakpoint: MOBILE_BREAKPOINT
   };
 }

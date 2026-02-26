@@ -1,54 +1,5 @@
 export function createViewportRuntime(ctx) {
-  const { state, elements, services } = ctx;
-
-  async function renderViewportBlock(block, runId) {
-    const signature = `${block.key}::${block.payloadRaw}`;
-    if (state.renderedViewportSignatures.has(signature)) {
-      return;
-    }
-    state.renderedViewportSignatures.add(signature);
-
-    const card = document.createElement('article');
-    card.className = 'viewport-card';
-
-    const head = document.createElement('div');
-    head.className = 'viewport-head';
-    head.textContent = `key=${block.key}`;
-
-    const body = document.createElement('div');
-    body.className = 'status-line';
-    body.textContent = 'loading viewport...';
-
-    card.append(head, body);
-    elements.viewportList.prepend(card);
-
-    try {
-      const response = await services.getViewport(block.key);
-      const html = response.data?.html;
-
-      if (typeof html !== 'string' || !html.trim()) {
-        throw new Error('Viewport response does not contain html');
-      }
-
-      const iframe = document.createElement('iframe');
-      iframe.className = 'viewport-frame';
-      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-      iframe.srcdoc = html;
-
-      body.replaceWith(iframe);
-
-      iframe.addEventListener('load', () => {
-        try {
-          iframe.contentWindow?.postMessage(block.payload ?? services.safeJsonParse(block.payloadRaw, {}), '*');
-        } catch (error) {
-          ctx.ui.appendDebug(`viewport postMessage failed: ${error.message}`);
-        }
-      });
-    } catch (error) {
-      body.textContent = `viewport failed: ${error.message}`;
-      body.style.color = 'var(--danger)';
-    }
-  }
+  const { state, services } = ctx;
 
   async function loadViewportIntoContentNode(nodeId, signature, runId) {
     const node = state.timelineNodes.get(nodeId);
@@ -142,17 +93,6 @@ export function createViewportRuntime(ctx) {
       loadViewportIntoContentNode(nodeId, signature, runId).catch((error) => {
         ctx.ui.appendDebug(`viewport embed load failed: ${error.message}`);
       });
-
-      renderViewportBlock(
-        {
-          key: existing.key,
-          payload: existing.payload,
-          payloadRaw: existing.payloadRaw
-        },
-        runId
-      ).catch((error) => {
-        ctx.ui.appendDebug(`viewport debug render failed: ${error.message}`);
-      });
     }
 
     for (const signature of Object.keys(node.embeddedViewports)) {
@@ -166,7 +106,6 @@ export function createViewportRuntime(ctx) {
 
   return {
     processViewportBlocks,
-    renderViewportBlock,
     loadViewportIntoContentNode
   };
 }

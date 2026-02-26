@@ -12,6 +12,17 @@ export function createMessageActions(ctx) {
 
   async function sendMessage(inputMessage) {
     const rawMessage = String(inputMessage ?? elements.messageInput.value ?? '');
+    if (!rawMessage.trim()) {
+      ctx.ui.setStatus('消息为空，无法发送', 'error');
+      return;
+    }
+
+    if (!String(state.accessToken || '').trim()) {
+      ctx.ui.setStatus('Access Token 缺失，请先输入后再发送消息', 'error');
+      ctx.ui.promptAccessToken('Access Token 不能为空，请先输入后再发送消息');
+      return;
+    }
+
     const mention = services.parseLeadingAgentMention(rawMessage, state.agents);
 
     if (mention.error) {
@@ -44,11 +55,21 @@ export function createMessageActions(ctx) {
     state.abortController = controller;
     state.streaming = true;
 
-    const requestAgentKey = mention.mentionAgentKey || state.selectedAgentLocked || undefined;
+    const rememberedChatAgentKey = state.chatId ? String(state.chatAgentById.get(state.chatId) || '').trim() : '';
+    const requestAgentKey = mention.mentionAgentKey || rememberedChatAgentKey || undefined;
+
+    if (mention.mentionAgentKey) {
+      if (state.chatId) {
+        state.chatAgentById.set(state.chatId, mention.mentionAgentKey);
+      } else {
+        state.pendingNewChatAgentKey = mention.mentionAgentKey;
+      }
+    }
+
     if (mention.mentionAgentKey) {
       ctx.ui.setStatus(`query streaming via @${mention.mentionAgentKey}...`);
-    } else if (state.selectedAgentLocked) {
-      ctx.ui.setStatus(`query streaming via locked @${state.selectedAgentLocked}...`);
+    } else if (rememberedChatAgentKey) {
+      ctx.ui.setStatus(`query streaming via chat @${rememberedChatAgentKey}...`);
     } else {
       ctx.ui.setStatus('query streaming...');
     }
@@ -210,19 +231,20 @@ export function createMessageActions(ctx) {
     const normalized = ctx.ui.normalizeRawAccessToken(elements.accessTokenInput.value);
     if (!normalized.ok) {
       ctx.ui.setStatus(normalized.error, 'error');
+      ctx.ui.promptAccessToken(normalized.error);
       return;
     }
 
     state.accessToken = normalized.token;
     elements.accessTokenInput.value = normalized.token;
     services.setAccessToken(normalized.token);
-    ctx.ui.writeStoredAccessToken(normalized.token);
+    ctx.ui.clearAccessTokenError();
 
     ctx.ui.setStatus('Access Token 已应用，正在刷新 agents/chats...');
     try {
       await Promise.all([ctx.actions.refreshAgents(), ctx.actions.refreshChats()]);
-      ctx.ui.setStatus('Access Token 已应用，正在刷新页面...');
-      window.location.reload();
+      ctx.ui.setStatus('Access Token 已应用');
+      ctx.ui.setSettingsOpen(false);
     } catch (error) {
       ctx.ui.setStatus(`Access Token 已应用，但刷新失败: ${error.message}`, 'error');
     }
@@ -232,16 +254,13 @@ export function createMessageActions(ctx) {
     state.accessToken = '';
     elements.accessTokenInput.value = '';
     services.setAccessToken('');
-    ctx.ui.writeStoredAccessToken('');
-
-    ctx.ui.setStatus('Access Token 已清空，正在刷新 agents/chats...');
-    try {
-      await Promise.all([ctx.actions.refreshAgents(), ctx.actions.refreshChats()]);
-      ctx.ui.setStatus('Access Token 已清空，正在刷新页面...');
-      window.location.reload();
-    } catch (error) {
-      ctx.ui.setStatus(`Access Token 已清空，但刷新失败: ${error.message}`, 'error');
-    }
+    state.agents = [];
+    state.chats = [];
+    ctx.actions.startNewChat();
+    ctx.ui.renderChats();
+    ctx.ui.renderAgents();
+    ctx.ui.setStatus('Access Token 已清空，请重新输入', 'error');
+    ctx.ui.promptAccessToken('Access Token 已清空，请重新输入');
   }
 
   return {

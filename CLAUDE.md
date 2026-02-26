@@ -1,110 +1,127 @@
 # CLAUDE.md
 
-本文件是本仓库协作规范，面向开发者/智能体。重点是：
-- 架构边界清晰
-- 协议消费行为可预测
-- 改动后可验证
+本文件是 `agent-webclient` 的协作与实现基线，面向开发者/智能体。
+
+核心目标：
+- 架构边界清晰（UI、协议、运行时职责可分离）
+- AGENT 协议消费行为可预测（历史回放与实时流一致）
+- 改动后可验证（具备明确回归路径）
 
 ## 1. 项目定位
 
 `agent-webclient` 是 AGENT 协议调试前端，不是生产业务前端。
 
-目标：
-- 复现和观察 AGENT 流式事件（SSE）
-- 回放 chat 历史事件
-- 验证工具调用、前端工具提交与 viewport 渲染
-- 验证 action 事件在浏览器侧的执行效果
+本仓库用于联调与观察：
+- `/api/ap/query` 的 SSE 事件流
+- `/api/ap/chat` 的历史事件回放
+- tool/action 生命周期在前端的呈现与执行
+- viewport iframe 渲染与前端工具回传
 
-## 2. 技术与运行参数
+## 2. 技术栈与运行参数
 
-- 技术栈：Vanilla JS（ESM）+ Vite 5 + Vitest
+- 前端：Vanilla JS (ESM)
+- 构建：Vite 5
+- 测试：Vitest
 - Node：18+
 - 开发端口：`11948`（`PORT` 可覆盖）
-- API 代理：`/api/ap -> http://localhost:11949`（`API_TARGET` 可覆盖）
 - 预览端口：`4173`（`PREVIEW_PORT` 可覆盖）
+- API 代理前缀：`/api/ap`
+- 上游目标：`AGENT_API_TARGET`（默认值以 `vite.config.js` 为准）
 
-## 3. 模块分层
+## 3. 架构分层
 
-### 3.1 入口层
+### 3.1 入口与装配
 
 - `src/main.js`
+- `src/app/bootstrap.js`
 
 职责：
-- DOM 事件绑定
-- 全局状态管理
-- AGENT 事件分发（`handleAgentEvent`）
-- Timeline / Plan / Debug 渲染
-- 前端工具 iframe 生命周期
+- 组装 services/ui/actions/handlers
+- 绑定 DOM 事件
+- 初始化布局与面板
+- 启动时执行 token 强约束检查
 
-### 3.2 协议访问层
+### 3.2 Context 层
 
-- `src/lib/apiClient.js`
+- `src/app/context/state.js`：全局状态树
+- `src/app/context/elements.js`：DOM 引用
+- `src/app/context/constants.js`：常量
 
-职责：
-- 封装 `/api/ap/*` 请求
-- 统一 Bearer Token 注入
-- 校验 ApiResponse 包络
-- 统一抛出 `ApiError`
+### 3.3 Actions 层
 
-### 3.3 协议解析层
-
-- `src/lib/sseParser.js`：SSE 帧切分与 JSON 事件消费
-- `src/lib/viewportParser.js`：` ```viewport` 块解析
-- `src/lib/mentionParser.js`：输入框前缀 `@agent` 解析
-- `src/lib/frontendToolParams.js`：工具参数多来源归一化
-
-### 3.4 前端动作层
-
-- `src/lib/actionRuntime.js`
+- `src/app/actions/chatActions.js`
+- `src/app/actions/messageActions.js`
 
 职责：
-- `switch_theme`
-- `launch_fireworks`
-- `show_modal`
+- 会话加载/切换/重置
+- 消息发送与 SSE 消费
+- 前端工具 submit 回传
+- Access Token 应用/清空
 
-并提供参数标准化与兜底。
+### 3.4 Handlers 层
 
-## 4. 状态模型（`src/main.js`）
+- `src/app/handlers/agentEventHandler.js`
+- `src/app/handlers/domEvents.js`
 
-关键状态分组：
+职责：
+- 消费 AGENT 事件并驱动状态与 UI
+- 绑定页面交互（发送、抽屉、设置、debug tabs）
+
+### 3.5 Runtime 层
+
+- `statusDebugRuntime.js`：状态条与 debug 日志
+- `timelineRuntime.js`：消息/推理/工具时间线渲染
+- `frontendToolRuntime.js`：前端工具 iframe 与 Tools/Actions 面板
+- `viewportRuntime.js`：内嵌 viewport 渲染
+- `planRuntime.js`：计划面板运行态
+- `uiRuntime.js`：通用 UI（events、chats、mention、token 弹窗）
+
+### 3.6 协议访问与解析层（lib）
+
+- `apiClient.js`：`/api/ap/*` 请求封装 + Bearer 注入 + ApiError
+- `sseParser.js`：SSE 分帧与 JSON 消费
+- `mentionParser.js`：`@agent` 解析
+- `frontendToolParams.js`：tool 参数归一化
+- `viewportParser.js` / `contentSegments.js`：viewport 块解析
+- `actionRuntime.js`：浏览器侧 action 执行
+
+## 4. 状态模型（重点）
+
+关键状态：
 - 会话态：`chatId`、`runId`、`streaming`、`abortController`
 - 数据态：`agents`、`chats`、`events`
-- 计划态：`plan`、`planRuntimeByTaskId`、`planCurrentRunningTaskId`
 - 工具态：`toolStates`、`pendingTools`、`activeFrontendTool`
-- 推理态：`reasoningNodeById`、`activeReasoningKey`
+- 动作态：`actionStates`、`executedActionIds`
 - 渲染态：`timelineNodes`、`timelineOrder`、`renderQueue`
+- UI 态：`settingsOpen`、`activeDebugTab`、`accessToken`
 
 重置策略：
 - `resetConversationState()`：切会话/新会话时清空完整上下文
-- `resetRunTransientState()`：发新消息前清空 run 级瞬态（工具/推理/pending）
+- `resetRunTransientState()`：发送前清空 run 级瞬态（tool/reasoning/pending）
 
-## 5. 事件驱动实现方案
+## 5. 事件驱动实现
 
-SSE JSON 事件全部进入 `handleAgentEvent(event, source)`，`source` 为：
-- `live`：实时流
-- `history`：`/api/ap/chat` 历史回放
+入口：`handleAgentEvent(event, source)`，`source` 为 `live|history`。
 
-### 5.1 已消费事件类型
+### 5.1 已消费事件
 
 - 运行：`request.query`、`run.start`、`run.complete`、`run.error`、`run.cancel`
 - 计划：`plan.update`、`task.start`、`task.complete`、`task.cancel`、`task.fail`
-- 推理：`reasoning.start`、`reasoning.delta`、`reasoning.snapshot`、`reasoning.end`
-- 内容：`content.start`、`content.delta`、`content.snapshot`、`content.end`
-- 工具：`tool.start`、`tool.args`、`tool.snapshot`、`tool.result`、`tool.end`
-- Action：`action.start`、`action.args`、`action.snapshot`、`action.end`
+- 推理：`reasoning.start|delta|snapshot|end`
+- 内容：`content.start|delta|snapshot|end`
+- 工具：`tool.start|args|snapshot|result|end`
+- 动作：`action.start|args|snapshot|end`
 
-### 5.2 行为要点
+### 5.2 关键行为
 
-- `run.complete/run.error/run.cancel` 会结束 streaming 状态并清理前端工具覆盖层。
-- `plan.update` 触发 Plan 面板更新，任务状态由 plan + task lifecycle 合并。
-- `reasoning.*` 在 timeline 中以可折叠节点呈现，并带自动收起定时器。
-- `content.*` 会触发 viewport 代码块解析与加载。
-- `tool.*` 会维护工具参数、结果和 pending submit 状态。
-- `action.*` 会在参数齐备后调用 `actionRuntime.execute()`，同一 `actionId` 仅执行一次。
+- `run.complete/error/cancel` 结束 streaming，并清理前端工具覆盖层。
+- `tool.*`、`action.*` 会同步进入 Debug 的 `Tools/Actions` 只读面板。
+- `action.*` 在参数齐备后调用 `actionRuntime.execute()`，同一 `actionId` 幂等执行一次。
+- `Events` 面板每行点击可弹出单例小浮窗，显示当前 event 完整 JSON。
 
-## 6. API 定义（消费侧）
+## 6. API 消费契约
 
-所有成功响应必须满足包络：
+成功响应统一包络：
 
 ```json
 {
@@ -114,196 +131,73 @@ SSE JSON 事件全部进入 `handleAgentEvent(event, source)`，`source` 为：
 }
 ```
 
-若 HTTP 非 2xx、JSON 非法、或 `code != 0`，`apiClient` 会抛 `ApiError`。
+失败场景（HTTP 非 2xx / JSON 非法 / `code != 0`）统一抛 `ApiError`。
 
 ### 6.1 `GET /api/ap/agents`
 
-用途：拉取 Agent 列表。
-
-前端依赖字段：
-- `key`（必需，@mention 和锁定选择使用）
-- `name`（展示）
+前端依赖：`key`、`name`。
 
 ### 6.2 `GET /api/ap/chats`
 
-用途：拉取会话列表。
-
-前端依赖字段：
-- `chatId`
-- `chatName`
-- `firstAgentKey`
-- `updatedAt`
+前端依赖：`chatId`、`chatName`、`firstAgentName`、`firstAgentKey`、`updatedAt`。
 
 ### 6.3 `GET /api/ap/chat?chatId=...&includeRawMessages=true?`
 
-用途：加载会话历史并回放事件。
-
-前端依赖字段：
-- `events`：事件数组（核心）
-- `rawMessages` 或 `messages`：仅在调试时记录计数
+前端依赖：`events`；调试可选 `rawMessages/messages`。
 
 ### 6.4 `POST /api/ap/query`
 
-请求体（`createQueryStream` 支持字段）：
+当前发送路径必需字段：
+- `message`
 
-```json
-{
-  "message": "...",
-  "agentKey": "optional",
-  "chatId": "optional",
-  "role": "optional",
-  "references": [],
-  "params": {},
-  "scene": "optional",
-  "stream": true
-}
-```
+可选字段：
+- `agentKey`（`@mention` 或 chat 记忆）
+- `chatId`
 
-当前发送路径 `sendMessage()` 实际使用：
-- `message`（必填）
-- `agentKey`（来自 `@mention` 或锁定 Agent，可选）
-- `chatId`（已有会话时可选）
-
-响应：`text/event-stream`，每个 `data:` 行是 JSON 事件。
+响应必须是 `text/event-stream`。
 
 ### 6.5 `GET /api/ap/viewport?viewportKey=...`
 
-用途：
-- 前端工具覆盖区 iframe 加载
-- assistant 内容中的 viewport 内嵌渲染
-
-前端依赖字段：
-- `data.html`（字符串）
+前端依赖：`data.html`。
 
 ### 6.6 `POST /api/ap/submit`
 
-请求体：
+请求体：`runId`、`toolId`、`params`。
 
-```json
-{
-  "runId": "...",
-  "toolId": "...",
-  "params": {}
-}
-```
+## 7. Token 策略（强约束）
 
-前端依赖响应字段：
-- `data.accepted`（布尔）
-- `data.status`（例如 `accepted` / `unmatched`）
-- `data.detail`（文本说明）
+- Token 仅保存在页面内存，不使用本地持久化。
+- 首次进入若 token 为空：
+  - 自动弹出 Settings
+  - 输入框红色高亮
+  - 状态栏报错
+- 发送消息前若 token 为空：
+  - 阻断发送
+  - 再次弹窗并红色高亮
 
-## 7. 前端工具与 iframe 协议
+## 8. Debug 面板规则
 
-### 7.1 工具识别规则
+- `Events`：最近事件列表（点击行打开单例小浮窗看完整 JSON）
+- `Logs`：原始 debug 行
+- `Tools/Actions`：只读展示 `tool.*` 与 `action.*` 全量事件（无编辑/无提交按钮）
 
-判定为“前端工具事件”的条件：
-- `toolType` in `{ html, qlc }`
-- `toolKey` 非空
+## 9. 部署与打包规则
 
-### 7.2 参数解析优先级
+- 根目录 `docker-compose.yml`：可直接 `docker compose up -d --build`
+- `nginx.conf`：代理 `/api/ap/`，并启用 SSE 关键配置（如 `proxy_buffering off`）
+- `package.sh`：构建 `dist` 后生成 `release/`，并写入 release 专用 compose（`./frontend` context）
 
-`parseFrontendToolParams(event)` 顺序固定：
-1. `event.toolParams`（对象）
-2. `event.function.arguments`（对象或 JSON 字符串）
-3. `event.arguments`（对象或 JSON 字符串）
-4. 未命中则 `found=false`
+## 10. 特别关注（改动红线）
 
-解析失败会返回 `error`，主流程写入 debug，但不阻断。
+1. 不改后端协议语义；本仓库是消费方。
+2. 新增事件处理必须保持 live/history 一致行为。
+3. 解析失败必须进 debug，不可静默吞掉。
+4. 涉及 tool/action 消息结构变更时，必须同步文档与测试。
+5. Debug 展示与状态上限保持受控：`events` 由 `MAX_EVENTS` 限制。
 
-### 7.3 消息协议
-
-Host -> iframe（初始化）：
-
-```json
-{
-  "type": "tool_init",
-  "data": {
-    "runId": "...",
-    "toolId": "...",
-    "toolKey": "...",
-    "toolType": "html|qlc",
-    "toolTimeout": 120000,
-    "params": {}
-  }
-}
-```
-
-iframe -> Host（提交）：
-
-```json
-{
-  "type": "frontend_submit",
-  "params": {}
-}
-```
-
-iframe -> Host（代发聊天消息）：
-
-```json
-{
-  "type": "chat_message",
-  "message": "..."
-}
-```
-
-## 8. Viewport 解析与渲染方案
-
-### 8.1 文本协议
-
-支持在 assistant 文本中内嵌：
-
-~~~text
-```viewport
-type=html, key=some_key
-{"a":1}
-```
-~~~
-
-说明：
-- 仅 `type=html` 会进入内容区内嵌渲染。
-- Header 至少要有 `type` 和 `key`。
-- payload JSON 解析失败时，保留 `payloadRaw` 并用 `{}` 兜底。
-
-### 8.2 双渲染通道
-
-同一 viewport 会走两条通道：
-- 消息内容区内嵌 iframe（与内容节点绑定）
-- 右侧 Viewport 调试区（用于观察）
-
-两处都会在 iframe `load` 后投递 payload。
-
-## 9. UI 与交互约束
-
-- 输入框自动高度 1~6 行。
-- `Enter` 发送，`Shift+Enter` 换行。
-- streaming 中禁止再次发送。
-- 存在 `activeFrontendTool` 时禁止普通发送。
-- Access Token 不落盘，仅内存。
-- 布局模式：
-  - `desktop-fixed`（>=1280）左右栏固定
-  - `tablet-mixed`（>=768）左栏固定右栏抽屉
-  - `mobile-drawer`（<768）双抽屉
-
-## 10. 测试与回归要求
-
-现有单元测试覆盖：
-- `apiClient`：Bearer 头注入
-- `sseParser`：分片/多行 data/注释帧
-- `frontendToolParams`：参数来源优先级与错误兜底
-- `mentionParser`：`@mention` 解析
-- `viewportParser`：viewport block 解析
-- `actionRuntime`：参数归一化
-
-建议回归命令：
+## 11. 建议回归
 
 ```bash
 npm test
 npm run build
 ```
-
-## 11. 改动红线
-
-- 不要改动后端协议语义（本仓库是消费方）。
-- 新增事件处理必须保证历史回放与实时流路径一致。
-- 对解析失败/协议异常必须保留 debug，不可静默吞掉。
-- 若修改 `tool_init`/`frontend_submit` 消息结构，必须同步更新文档与测试。

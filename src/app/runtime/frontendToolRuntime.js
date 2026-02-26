@@ -293,31 +293,266 @@ export function createFrontendToolRuntime(ctx) {
     }
   }
 
+  function toEntityKey(prefix, runId, entityId) {
+    const rid = String(runId || '').trim();
+    const eid = String(entityId || '').trim();
+    if (!eid) {
+      return '';
+    }
+    return rid ? `${prefix}:${rid}#${eid}` : `${prefix}:${eid}`;
+  }
+
+  function toPrettyJson(value, fallback = '{}') {
+    if (value === undefined || value === null) {
+      return fallback;
+    }
+
+    if (typeof value === 'string') {
+      const text = value.trim();
+      if (!text) {
+        return fallback;
+      }
+      try {
+        return JSON.stringify(JSON.parse(text), null, 2);
+      } catch (_error) {
+        return value;
+      }
+    }
+
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (_error) {
+      return String(value);
+    }
+  }
+
+  function aggregateToolAndActionRows() {
+    const toolRows = new Map();
+    const actionRows = new Map();
+
+    state.events.forEach((event, index) => {
+      const type = String(event?.type || '');
+      const eventTs = Number(event?.timestamp) || 0;
+
+      if (type.startsWith('tool.')) {
+        const toolId = String(event?.toolId || '').trim();
+        if (!toolId) {
+          return;
+        }
+
+        const rowKey = toEntityKey('tool', event.runId, toolId);
+        if (!rowKey) {
+          return;
+        }
+
+        const row = toolRows.get(rowKey) || {
+          key: rowKey,
+          kind: 'tool',
+          index,
+          updatedAt: eventTs,
+          runId: String(event.runId || '').trim(),
+          toolId,
+          toolName: String(event.toolName || toolId),
+          toolApi: String(event.toolApi || ''),
+          toolType: normalizeFrontendToolType(event.toolType),
+          toolKey: String(event.toolKey || ''),
+          description: String(event.description || ''),
+          status: 'pending',
+          lastEventType: type,
+          argsBuffer: '',
+          toolParams: null,
+          result: null,
+          error: null
+        };
+
+        row.updatedAt = eventTs || row.updatedAt;
+        row.runId = String(event.runId || row.runId || '').trim();
+        row.toolName = String(event.toolName || row.toolName || toolId);
+        row.toolApi = String(event.toolApi || row.toolApi || '');
+        row.toolType = normalizeFrontendToolType(event.toolType || row.toolType);
+        row.toolKey = String(event.toolKey || row.toolKey || '');
+        row.description = String(event.description || row.description || '');
+        row.lastEventType = type;
+
+        if (type === 'tool.start') {
+          row.status = 'running';
+          row.toolParams = resolveToolParams(event, row.toolParams);
+        }
+
+        if (type === 'tool.args') {
+          row.status = 'running';
+          row.argsBuffer += event.delta || '';
+          const parsed = tryParseJsonObject(row.argsBuffer);
+          if (parsed) {
+            row.toolParams = parsed;
+          }
+        }
+
+        if (type === 'tool.snapshot') {
+          row.toolParams = resolveToolParams(event, row.toolParams);
+          row.status = 'completed';
+        }
+
+        if (type === 'tool.result') {
+          const resultValue = Object.prototype.hasOwnProperty.call(event, 'result')
+            ? event.result
+            : (event.output ?? event.text ?? '');
+          row.result = resultValue;
+          row.error = event.error ?? row.error;
+          row.status = event.error ? 'failed' : 'completed';
+        }
+
+        if (type === 'tool.end') {
+          if (event.error) {
+            row.error = event.error;
+            row.status = 'failed';
+          } else if (row.status !== 'failed') {
+            row.status = 'completed';
+          }
+        }
+
+        toolRows.set(rowKey, row);
+        return;
+      }
+
+      if (!type.startsWith('action.')) {
+        return;
+      }
+
+      const actionId = String(event?.actionId || '').trim();
+      if (!actionId) {
+        return;
+      }
+
+      const rowKey = toEntityKey('action', event.runId, actionId);
+      if (!rowKey) {
+        return;
+      }
+
+      const row = actionRows.get(rowKey) || {
+        key: rowKey,
+        kind: 'action',
+        index,
+        updatedAt: eventTs,
+        runId: String(event.runId || '').trim(),
+        actionId,
+        actionName: String(event.actionName || 'unknown'),
+        status: 'pending',
+        lastEventType: type,
+        argsBuffer: '',
+        args: null,
+        error: null
+      };
+
+      row.updatedAt = eventTs || row.updatedAt;
+      row.runId = String(event.runId || row.runId || '').trim();
+      row.actionName = String(event.actionName || row.actionName || 'unknown');
+      row.lastEventType = type;
+
+      if (type === 'action.start') {
+        row.status = 'running';
+      }
+
+      if (type === 'action.args') {
+        row.status = 'running';
+        row.argsBuffer += event.delta || '';
+        const parsed = tryParseJsonObject(row.argsBuffer);
+        if (parsed) {
+          row.args = parsed;
+        }
+      }
+
+      if (type === 'action.snapshot') {
+        row.args = typeof event.arguments === 'string'
+          ? (tryParseJsonObject(event.arguments) || event.arguments)
+          : (event.arguments ?? row.args);
+        row.status = 'completed';
+      }
+
+      if (type === 'action.end') {
+        if (event.error) {
+          row.error = event.error;
+          row.status = 'failed';
+        } else if (row.status !== 'failed') {
+          row.status = 'completed';
+        }
+      }
+
+      actionRows.set(rowKey, row);
+    });
+
+    return [...toolRows.values(), ...actionRows.values()]
+      .sort((a, b) => {
+        if (a.updatedAt && b.updatedAt && a.updatedAt !== b.updatedAt) {
+          return a.updatedAt - b.updatedAt;
+        }
+        return a.index - b.index;
+      });
+  }
+
   function renderPendingTools() {
-    if (state.pendingTools.size === 0) {
-      elements.pendingTools.innerHTML = '<div class="status-line">暂无 pending frontend tool</div>';
+    const rows = aggregateToolAndActionRows();
+
+    if (rows.length === 0) {
+      elements.pendingTools.innerHTML = '<div class="status-line">暂无 tool/action 事件</div>';
       return;
     }
 
-    const html = [...state.pendingTools.values()]
-      .map((tool) => {
+    const html = rows
+      .map((row) => {
+        const ts = row.updatedAt ? new Date(row.updatedAt).toLocaleTimeString() : '--';
+        const ids = row.kind === 'tool'
+          ? `runId=${row.runId || '-'} toolId=${row.toolId}`
+          : `runId=${row.runId || '-'} actionId=${row.actionId}`;
+
+        const payload = row.kind === 'tool'
+          ? {
+            kind: 'tool',
+            runId: row.runId || null,
+            toolId: row.toolId,
+            toolName: row.toolName,
+            status: row.status,
+            lastEventType: row.lastEventType,
+            toolApi: row.toolApi || null,
+            toolType: row.toolType || null,
+            toolKey: row.toolKey || null,
+            description: row.description || null,
+            args: row.toolParams ?? (row.argsBuffer || {}),
+            result: row.result,
+            error: row.error
+          }
+          : {
+            kind: 'action',
+            runId: row.runId || null,
+            actionId: row.actionId,
+            actionName: row.actionName,
+            status: row.status,
+            lastEventType: row.lastEventType,
+            args: row.args ?? (row.argsBuffer || {}),
+            executed: state.executedActionIds.has(row.actionId),
+            error: row.error
+          };
+
+        const prettyPayload = toPrettyJson(payload);
+        const title = row.kind === 'tool'
+          ? `tool: ${row.toolName || row.toolId}`
+          : `action: ${row.actionName || row.actionId}`;
+
         return `
-          <article class="pending-card">
-            <div><strong>${ctx.ui.escapeHtml(tool.toolName || tool.toolId)}</strong></div>
-            <div class="mono">runId=${ctx.ui.escapeHtml(tool.runId)}<br/>toolId=${ctx.ui.escapeHtml(tool.toolId)}</div>
-            <div>toolApi: ${ctx.ui.escapeHtml(tool.toolApi || '-')}</div>
-            <div>toolType/key: ${ctx.ui.escapeHtml(tool.toolType || '-')} / ${ctx.ui.escapeHtml(tool.toolKey || '-')}</div>
-            <div>${ctx.ui.escapeHtml(tool.description || '')}</div>
-            <div class="mono">params</div>
-            <textarea data-role="pending-params" data-key="${ctx.ui.escapeHtml(tool.key)}">${ctx.ui.escapeHtml(tool.payloadText)}</textarea>
-            <button data-action="submit-pending" data-key="${ctx.ui.escapeHtml(tool.key)}" type="button">Submit params /api/ap/submit</button>
-            <div class="pending-status ${tool.status === 'error' ? 'err' : tool.status === 'ok' ? 'ok' : ''}">${ctx.ui.escapeHtml(tool.statusText || 'pending')}</div>
+          <article class="debug-event-card">
+            <div class="debug-event-head">
+              <strong>${ctx.ui.escapeHtml(title)}</strong>
+              <span class="event-row-time">${ctx.ui.escapeHtml(ts)}</span>
+            </div>
+            <div class="mono debug-event-meta">${ctx.ui.escapeHtml(ids)} | status=${ctx.ui.escapeHtml(row.status)}</div>
+            <pre class="debug-event-json">${ctx.ui.escapeHtml(prettyPayload)}</pre>
           </article>
         `;
       })
       .join('');
 
     elements.pendingTools.innerHTML = html;
+    elements.pendingTools.scrollTop = elements.pendingTools.scrollHeight;
   }
 
   return {

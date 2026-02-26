@@ -1,5 +1,5 @@
 export function createChatActions(ctx) {
-  const { state, elements, services } = ctx;
+  const { state, services } = ctx;
 
   function resetConversationState() {
     ctx.ui.clearAllReasoningCollapseTimers();
@@ -21,7 +21,6 @@ export function createChatActions(ctx) {
     state.pendingTools.clear();
     state.actionStates.clear();
     state.executedActionIds.clear();
-    state.renderedViewportSignatures.clear();
     state.timelineNodes.clear();
     state.timelineOrder = [];
     state.timelineNodeByMessageId.clear();
@@ -33,7 +32,6 @@ export function createChatActions(ctx) {
     state.renderQueue.fullSyncNeeded = true;
     state.activeReasoningKey = '';
     ctx.ui.clearActiveFrontendTool();
-    elements.viewportList.innerHTML = '';
     ctx.ui.renderMessages({ full: true, stickToBottom: false });
     ctx.ui.renderEvents();
     ctx.ui.renderPlan();
@@ -82,6 +80,7 @@ export function createChatActions(ctx) {
     }
 
     state.chatId = chatId;
+    state.pendingNewChatAgentKey = '';
     state.runId = '';
     state.requestId = '';
     ctx.ui.updateChatChip();
@@ -125,6 +124,7 @@ export function createChatActions(ctx) {
     }
 
     state.chatId = '';
+    state.pendingNewChatAgentKey = '';
     state.runId = '';
     state.requestId = '';
     ctx.ui.updateChatChip();

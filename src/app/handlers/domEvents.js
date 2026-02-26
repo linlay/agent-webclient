@@ -34,17 +34,6 @@ export function bindDomEvents(ctx) {
     services.actionRuntime.setTheme(next);
   });
 
-  elements.agentSelect.addEventListener('change', (event) => {
-    state.selectedAgentLocked = String(event.target.value || '').trim();
-    ui.renderAgentLock();
-  });
-
-  elements.agentClearBtn.addEventListener('click', () => {
-    state.selectedAgentLocked = '';
-    elements.agentSelect.value = '';
-    ui.renderAgentLock();
-  });
-
   elements.newChatBtn.addEventListener('click', () => {
     actions.startNewChat();
   });
@@ -82,6 +71,10 @@ export function bindDomEvents(ctx) {
     actions.applyAccessToken().catch((error) => {
       ui.setStatus(`apply token failed: ${error.message}`, 'error');
     });
+  });
+
+  elements.accessTokenInput.addEventListener('input', () => {
+    ui.clearAccessTokenError();
   });
 
   elements.settingsModal.addEventListener('click', (event) => {
@@ -174,8 +167,41 @@ export function bindDomEvents(ctx) {
     });
   });
 
-  elements.viewportToggleBtn.addEventListener('click', () => {
-    ui.setViewportExpanded(!state.viewportExpanded);
+  elements.events.addEventListener('click', (event) => {
+    const row = event.target.closest('.event-row[data-event-index]');
+    if (!row) {
+      return;
+    }
+
+    const eventIndex = Number(row.getAttribute('data-event-index'));
+    if (!Number.isInteger(eventIndex)) {
+      return;
+    }
+
+    ui.toggleEventPopover(eventIndex, row.getBoundingClientRect());
+  });
+
+  elements.eventPopoverClose.addEventListener('click', () => {
+    ui.hideEventPopover();
+  });
+
+  document.addEventListener('click', (event) => {
+    const row = event.target.closest('.event-row[data-event-index]');
+    if (row) {
+      return;
+    }
+
+    if (ui.isEventPopoverTarget(event.target)) {
+      return;
+    }
+
+    ui.hideEventPopover();
+  });
+
+  elements.clearLogsBtn.addEventListener('click', () => {
+    state.debugLines.length = 0;
+    elements.debugLog.textContent = '';
+    ui.setStatus('logs cleared');
   });
 
   elements.chatsList.addEventListener('click', (event) => {
@@ -206,6 +232,10 @@ export function bindDomEvents(ctx) {
   });
 
   elements.messageInput.addEventListener('keydown', (event) => {
+    if (event.isComposing || event.keyCode === 229) {
+      return;
+    }
+
     if (state.mentionOpen) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
@@ -260,41 +290,6 @@ export function bindDomEvents(ctx) {
     }
 
     ui.selectMentionByIndex(index);
-  });
-
-  elements.pendingTools.addEventListener('input', (event) => {
-    const textarea = event.target.closest('textarea[data-role="pending-params"]');
-    if (!textarea) {
-      return;
-    }
-
-    const key = textarea.getAttribute('data-key');
-    if (!key) {
-      return;
-    }
-
-    const current = state.pendingTools.get(key);
-    if (!current) {
-      return;
-    }
-
-    current.payloadText = textarea.value;
-  });
-
-  elements.pendingTools.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-action="submit-pending"]');
-    if (!button) {
-      return;
-    }
-
-    const key = button.getAttribute('data-key');
-    if (!key) {
-      return;
-    }
-
-    actions.submitPendingTool(key).catch((error) => {
-      ui.setStatus(`submit failed: ${error.message}`, 'error');
-    });
   });
 
   window.addEventListener('message', (event) => {
@@ -355,6 +350,7 @@ export function bindDomEvents(ctx) {
   });
 
   window.addEventListener('resize', () => {
+    ui.hideEventPopover();
     ui.autosizeComposerInput();
     ui.updateLayoutMode(window.innerWidth);
   });

@@ -3,6 +3,16 @@ import { MAX_EVENTS } from '../context/constants.js';
 export function createAgentEventHandler(ctx) {
   const { state, actions, ui } = ctx;
 
+  function rememberChatAgent(chatId, agentKey) {
+    const normalizedChatId = String(chatId || '').trim();
+    const normalizedAgentKey = String(agentKey || '').trim();
+    if (!normalizedChatId || !normalizedAgentKey) {
+      return;
+    }
+
+    state.chatAgentById.set(normalizedChatId, normalizedAgentKey);
+  }
+
   function applyAction(actionId, actionName, args) {
     if (!actionId || state.executedActionIds.has(actionId)) {
       return;
@@ -159,12 +169,23 @@ export function createAgentEventHandler(ctx) {
 
     if (event.chatId) {
       state.chatId = event.chatId;
+      if (state.pendingNewChatAgentKey) {
+        rememberChatAgent(event.chatId, state.pendingNewChatAgentKey);
+        state.pendingNewChatAgentKey = '';
+      }
       ui.updateChatChip();
       ui.renderChats();
     }
 
+    if (event.agentKey) {
+      rememberChatAgent(event.chatId || state.chatId, event.agentKey);
+    }
+
     if (type === 'request.query') {
       state.requestId = event.requestId || state.requestId;
+      if (event.agentKey) {
+        rememberChatAgent(event.chatId || state.chatId, event.agentKey);
+      }
       const id = `user:${event.requestId || state.events.length}`;
       ui.upsertMessage(id, 'user', event.message || '', event.timestamp || Date.now());
       const nodeId = state.timelineNodeByMessageId.get(id);
@@ -465,6 +486,7 @@ export function createAgentEventHandler(ctx) {
     }
 
     ui.renderEvents();
+    ui.renderPendingTools();
   }
 
   return {

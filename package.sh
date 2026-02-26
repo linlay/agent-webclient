@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RELEASE_DIR="$ROOT_DIR/release"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 NGINX_FILE="$ROOT_DIR/nginx.conf"
 
 log() {
@@ -21,11 +20,6 @@ require_cmd npm
 
 if [ ! -f "$ROOT_DIR/package.json" ]; then
   printf '[package] package.json not found in project root\n' >&2
-  exit 1
-fi
-
-if [ ! -f "$COMPOSE_FILE" ]; then
-  printf '[package] docker-compose.yml not found in project root\n' >&2
   exit 1
 fi
 
@@ -73,7 +67,17 @@ EXPOSE 80
 CMD ["/bin/sh", "-c", "envsubst '$$AGENT_API_UPSTREAM' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
 EOF
 
-cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
+cat >"$RELEASE_DIR/docker-compose.yml" <<'EOF'
+services:
+  webclient:
+    build:
+      context: ./frontend
+    container_name: agent-webclient
+    environment:
+      AGENT_API_UPSTREAM: ${AGENT_API_UPSTREAM:-http://host.docker.internal:11949}
+    ports:
+      - "${AGENT_WEBCLIENT_PORT:-11948}:80"
+EOF
 
 cat >"$RELEASE_DIR/.env.example" <<'EOF'
 # host expose port

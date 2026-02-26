@@ -1,27 +1,27 @@
-# AGENT SpringAI Webclient
+# AGENT Webclient
 
 AGENT 协议调试前端（Vanilla JS + Vite）。
 
-本项目用于本地联调 AGENT Agent 网关，重点验证：
-- `/api/ap/query` 的 SSE 流式事件
-- `/api/ap/chats`、`/api/ap/chat` 的会话与历史回放
-- `/api/ap/submit` 的前端工具回传
-- `/api/ap/viewport` 的可视化视图渲染
+用于联调与观察：
+- `/api/ap/query` SSE 流事件
+- `/api/ap/chats`、`/api/ap/chat` 会话与历史回放
+- `/api/ap/viewport` 视图渲染
+- `/api/ap/submit` 前端工具回传
 
-## 1. 环境要求
+## 1. 快速启动
+
+### 1.1 环境要求
 
 - Node.js 18+
-- 可访问 AGENT 后端 API（默认代理目标：`http://localhost:11946`）
+- 可访问 AGENT 后端 API
 
-## 2. 安装与启动
-
-安装依赖：
+### 1.2 安装依赖
 
 ```bash
 npm install
 ```
 
-开发模式：
+### 1.3 开发模式
 
 ```bash
 npm run dev
@@ -29,33 +29,26 @@ npm run dev
 
 默认地址：`http://localhost:11948`
 
-生产构建：
+### 1.4 生产构建与预览
 
 ```bash
 npm run build
-```
-
-本地预览：
-
-```bash
 npm run preview
 ```
 
-默认预览地址：`http://localhost:4173`
+预览默认地址：`http://localhost:4173`
 
-运行测试：
+### 1.5 运行测试
 
 ```bash
 npm test
 ```
 
-## 3. 环境变量
+## 2. 环境变量
 
-本项目通过 Vite 代理 `/api/ap`。
-
-- `AGENT_API_TARGET`：后端地址，默认 `http://localhost:11946`
-- `PORT`：开发端口，默认 `11948`
-- `PREVIEW_PORT`：预览端口，默认 `4173`
+- `AGENT_API_TARGET`：Vite 代理上游地址（默认值见 `vite.config.js`）
+- `PORT`：开发端口（默认 `11948`）
+- `PREVIEW_PORT`：预览端口（默认 `4173`）
 
 示例：
 
@@ -63,100 +56,130 @@ npm test
 AGENT_API_TARGET=http://127.0.0.1:8080 PORT=5173 npm run dev
 ```
 
-## 4. 操作手册
+## 3. 操作手册
 
-### 4.1 首次进入
+### 3.1 首次进入（Token 必填）
 
-1. 打开页面后会自动请求 Agents 和 Chats。
-2. 右上角状态栏显示当前状态（`ready` 表示可用）。
+首次打开页面且未设置 token 时：
+- 自动弹出 Settings
+- `Access Token` 输入框红色高亮
+- 状态栏显示错误提示
 
-### 4.2 配置 Access Token（可选）
+> Token 仅保存在当前页面内存。刷新页面后必须重新输入。
 
-1. 点击 `设置`。
-2. 在 `Access Token` 输入框填入原始 token（不要带 `Bearer ` 前缀）。
-3. 点击 `应用 Token`。
+### 3.2 配置 Access Token
 
-行为说明：
-- Token 仅存在页面内存，刷新后失效。
-- 所有 `/api/ap/*` 请求会自动附加 `Authorization: Bearer <token>`。
+1. 在 Settings 的 `Access Token` 输入框输入原始 token（不含 `Bearer `）。
+2. 点击 `应用 Token`。
+3. 成功后会自动加载 Agents 和 Chats。
 
-### 4.3 发起会话
+### 3.3 发送消息
 
-1. 可在设置里选择默认 Agent（锁定）。
-2. 在输入框直接发送，或用 `@agentKey` 前缀临时指定 Agent。
-3. `Enter` 发送，`Shift+Enter` 换行。
+- `Enter` 发送，`Shift+Enter` 换行。
+- 可用 `@agentKey` 指定 Agent。
+- 若未输入 token：发送会被阻断，并再次弹窗红色高亮。
+- 流式进行中不可重复发送。
+- 前端工具待提交时不可发送普通消息。
 
-规则：
-- `@mention` 优先级高于“锁定 Agent”。
-- 流式进行中不能再次发送（需先“停止流式”）。
+### 3.4 会话管理
 
-### 4.4 会话管理
+- `新对话`：重置当前会话上下文
+- 点击左侧会话：加载历史事件回放
+- `Load Raw Chat`：附带 `includeRawMessages=true` 拉取会话
 
-- 左侧 `新会话`：清空当前上下文，准备新 chat。
-- 左侧列表点击某条会话：加载历史事件并回放。
-- `Load Raw Chat`：用 `includeRawMessages=true` 重新加载当前 chat。
+### 3.5 Debug 面板
 
-### 4.5 调试区使用
+右侧有 3 个标签页：
 
-右侧 `Debug` 有 3 个标签页：
-- `Events`：事件时间线（最近 300 条）
-- `Logs`：原始 debug 日志（最近 220 行）
-- `Tools`：待提交工具参数面板
+1. `Events`
+- 展示事件流
+- 点击某条事件会弹出单个小浮窗查看完整 event JSON（始终只有一个浮窗）
 
-### 4.6 前端工具提交流程
+2. `Logs`
+- 展示原始 debug 日志
+- 支持清空
 
-当收到前端工具事件（`toolType` 为 `html/qlc` 且有 `toolKey`）时：
+3. `Tools/Actions`
+- 只读展示全部 `tool.*` 与 `action.*` 事件
+- 不提供参数编辑和手动提交按钮
 
-1. 输入区切换为 iframe 工具面板。
-2. 页面自动请求 `/api/ap/viewport?viewportKey=...` 并渲染。
-3. 可通过两种方式提交：
-- iframe 发 `frontend_submit`
-- 右侧 `Tools` 面板手动编辑参数并提交
+### 3.6 前端工具流程
 
-提交成功（`accepted=true`）后恢复普通输入区。
+当收到前端工具事件（`toolType` in `html/qlc` 且有 `toolKey`）：
 
-### 4.7 Viewport 内容渲染
+1. 输入区切换为 iframe 工具视图。
+2. 自动拉取 `/api/ap/viewport?viewportKey=...`。
+3. 由 iframe 通过 `frontend_submit` 回传参数。
 
-assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
-- 仅 `type=html` 会在消息区内嵌渲染
-- 同时在右侧 Viewport 调试区单独渲染一份
-- 渲染完成后，会把 payload 通过 `postMessage` 发给 iframe
+## 4. Docker 运行
 
-### 4.8 Markdown 正文渲染
+### 4.1 仓库根目录直接启动
 
-`content.delta` / `content.snapshot` 的正文支持常用 Markdown（段落、列表、代码、链接、图片）。
+```bash
+docker compose up -d --build
+```
 
-图片 URL 规则：
-- `http://`、`https://`：保持原样
-- 其余路径（包括 `/data/...`、`./...`、`../...`、裸文件名）：重写为
-  `/api/ap/data?file=<url-encoded-path>`
+默认端口映射：`11948:80`。
 
-示例：
-- `![示例](/data/sample_photo.jpg)`
-- 会渲染为 `<img src="/api/ap/data?file=%2Fdata%2Fsample_photo.jpg" ...>`
+可通过 `.env` 覆盖：
 
-## 5. 常见排查
+```dotenv
+AGENT_WEBCLIENT_PORT=11948
+AGENT_API_UPSTREAM=http://host.docker.internal:11949
+```
 
-### 5.1 页面启动但接口报错
+### 4.2 Nginx 代理说明
+
+`nginx.conf` 对 `/api/ap/` 开启了 SSE 相关配置（例如 `proxy_buffering off`），用于保证流式事件实时透传。
+
+## 5. 打包发布（package.sh）
+
+执行：
+
+```bash
+./package.sh
+```
+
+产物目录：`release/`
+
+结构要点：
+- `release/frontend/dist`：前端构建产物
+- `release/frontend/nginx.conf`
+- `release/frontend/Dockerfile`
+- `release/docker-compose.yml`（release 专用，`./frontend` build context）
+- `release/.env.example`
+- `release/DEPLOY.md`
+
+发布侧启动：
+
+```bash
+cd release
+docker compose up -d --build
+```
+
+## 6. 常见排查
+
+### 6.1 页面可打开但接口失败
 
 检查：
-- 后端是否可达（`AGENT_API_TARGET`）
-- 开发端口是否冲突（`PORT`）
-- Token 是否填写了 `Bearer ` 前缀（不允许）
+- token 是否已输入（无 token 会被前端强拦截）
+- `AGENT_API_TARGET`/`AGENT_API_UPSTREAM` 是否正确
+- 后端是否可达
 
-### 5.2 SSE 没有持续输出
+### 6.2 SSE 没有持续输出
 
 检查：
-- 后端 `/api/ap/query` 是否返回 `text/event-stream`
-- Events/Logs 面板是否有 `run.start`、`content.delta`、`run.complete`
-- 是否被手动“停止流式”中断
+- `/api/ap/query` 响应类型是否 `text/event-stream`
+- Events/Logs 是否出现 `run.start`、`content.delta`、`run.complete`
+- 是否被手动停止流式
 
-### 5.3 submit 未命中
+### 6.3 Tools/Actions 无内容
 
-`/api/ap/submit` 响应 `accepted=false` 时，右侧会显示 `status/detail`。
-优先核对：`runId`、`toolId`、`params` 是否匹配当前等待中的工具。
+检查：
+- 当前 run 是否实际产生 `tool.*` 或 `action.*` 事件
+- 是否切换到对应会话后重放了历史事件
 
-## 6. 项目结构
+## 7. 项目结构
 
 ```text
 .
@@ -166,43 +189,14 @@ assistant 文本中的 ` ```viewport ... ``` ` 代码块会被解析：
 │   ├── app
 │   │   ├── bootstrap.js
 │   │   ├── context
-│   │   │   ├── constants.js
-│   │   │   ├── createAppContext.js
-│   │   │   ├── elements.js
-│   │   │   └── state.js
 │   │   ├── actions
-│   │   │   ├── chatActions.js
-│   │   │   └── messageActions.js
 │   │   ├── handlers
-│   │   │   ├── agentEventHandler.js
-│   │   │   └── domEvents.js
 │   │   └── runtime
-│   │       ├── frontendToolRuntime.js
-│   │       ├── planRuntime.js
-│   │       ├── statusDebugRuntime.js
-│   │       ├── timelineRuntime.js
-│   │       ├── uiRuntime.js
-│   │       └── viewportRuntime.js
 │   ├── styles.css
 │   └── lib
-│       ├── apiClient.js
-│       ├── contentSegments.js
-│       ├── markdownRenderer.js
-│       ├── sseParser.js
-│       ├── viewportParser.js
-│       ├── mentionParser.js
-│       ├── frontendToolParams.js
-│       ├── actionRuntime.js
-│       └── *.test.js
-├── package.json
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+├── package.sh
 └── vite.config.js
 ```
-
-## 7. 脚本列表
-
-- `npm run dev`：启动开发服务
-- `npm run build`：构建产物到 `dist/`
-- `npm run preview`：本地预览构建产物
-- `npm test`：运行 Vitest
-# agent-webclient
-# agent-webclient

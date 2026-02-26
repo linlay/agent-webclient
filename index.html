@@ -27,11 +27,6 @@
           </div>
 
           <div class="nav-group nav-right">
-            <div id="agent-lock" class="agent-lock">
-              <span class="agent-lock-label">Agent</span>
-              <span id="agent-lock-chip" class="agent-lock-chip hidden"></span>
-              <button id="agent-clear-btn" class="agent-clear-btn hidden" type="button" aria-label="清除固定智能体">×</button>
-            </div>
             <span id="api-status" class="status-pill">idle</span>
             <button id="settings-toggle-btn" class="icon-btn" type="button">设置</button>
             <button id="open-right-drawer-btn" class="icon-btn" type="button">调试</button>
@@ -111,7 +106,7 @@
         <div class="debug-tabs" role="tablist" aria-label="Debug Tabs">
           <button class="debug-tab active" type="button" data-debug-tab="events">Events</button>
           <button class="debug-tab" type="button" data-debug-tab="logs">Logs</button>
-          <button class="debug-tab" type="button" data-debug-tab="tools">Tools</button>
+          <button class="debug-tab" type="button" data-debug-tab="tools">Tools/Actions</button>
         </div>
 
         <section id="debug-panel-events" class="debug-panel" role="tabpanel">
@@ -119,6 +114,9 @@
         </section>
 
         <section id="debug-panel-logs" class="debug-panel hidden" role="tabpanel">
+          <div class="debug-panel-head">
+            <button id="clear-logs-btn" class="debug-clear-btn" type="button">清空 Logs</button>
+          </div>
           <pre id="debug-log" class="debug-log"></pre>
         </section>
 
@@ -126,14 +124,6 @@
           <div id="pending-tools" class="list"></div>
         </section>
 
-        <section class="viewport-section">
-          <button id="viewport-toggle-btn" class="viewport-toggle" type="button" aria-expanded="false">
-            Viewport（按需展开）
-          </button>
-          <div id="viewport-collapse" class="viewport-collapse hidden">
-            <div id="viewport-list" class="viewport-list"></div>
-          </div>
-        </section>
       </aside>
     </div>
 
@@ -146,12 +136,7 @@
           <button id="settings-close-btn" type="button">Close</button>
         </div>
 
-        <div class="field-group">
-          <label for="agent-select">默认 Agent</label>
-          <select id="agent-select"></select>
-        </div>
-
-        <div class="field-group">
+        <div id="access-token-field-group" class="field-group">
           <label for="access-token-input">Access Token</label>
           <input
             id="access-token-input"
@@ -160,6 +145,7 @@
             placeholder="请输入原始 Access Token（不含 Bearer）"
             autocomplete="off"
           />
+          <p id="access-token-error" class="settings-error hidden"></p>
           <div class="settings-inline-actions">
             <button id="access-token-apply" type="button">应用 Token</button>
             <button id="access-token-clear" type="button">清空 Token</button>
@@ -183,6 +169,14 @@
         <p id="action-modal-content"></p>
         <button id="action-modal-close" type="button">Close</button>
       </div>
+    </div>
+
+    <div id="event-popover" class="event-popover hidden" role="dialog" aria-modal="false" aria-live="polite">
+      <div class="event-popover-head">
+        <strong id="event-popover-title">Event</strong>
+        <button id="event-popover-close" type="button" aria-label="关闭事件详情">×</button>
+      </div>
+      <pre id="event-popover-body" class="event-popover-body"></pre>
     </div>
 
     <canvas id="fireworks-canvas"></canvas>

@@ -11,14 +11,13 @@ export function createElements() {
     newChatBtn: document.getElementById('new-chat-btn'),
     chatSearchInput: document.getElementById('chat-search-input'),
     settingsToggleBtn: document.getElementById('settings-toggle-btn'),
-    agentLockChip: document.getElementById('agent-lock-chip'),
-    agentClearBtn: document.getElementById('agent-clear-btn'),
     settingsModal: document.getElementById('settings-modal'),
     settingsCloseBtn: document.getElementById('settings-close-btn'),
+    accessTokenFieldGroup: document.getElementById('access-token-field-group'),
     accessTokenInput: document.getElementById('access-token-input'),
+    accessTokenError: document.getElementById('access-token-error'),
     accessTokenApply: document.getElementById('access-token-apply'),
     accessTokenClear: document.getElementById('access-token-clear'),
-    agentSelect: document.getElementById('agent-select'),
     refreshAgentsBtn: document.getElementById('refresh-agents-btn'),
     refreshChatsBtn: document.getElementById('refresh-chats-btn'),
     loadRawBtn: document.getElementById('load-raw-btn'),
@@ -41,6 +40,7 @@ export function createElements() {
     planList: document.getElementById('plan-list'),
     events: document.getElementById('events'),
     debugLog: document.getElementById('debug-log'),
+    clearLogsBtn: document.getElementById('clear-logs-btn'),
     pendingTools: document.getElementById('pending-tools'),
     debugTabs: Array.from(document.querySelectorAll('.debug-tab')),
     debugPanels: {
@@ -48,9 +48,6 @@ export function createElements() {
       logs: document.getElementById('debug-panel-logs'),
       tools: document.getElementById('debug-panel-tools')
     },
-    viewportToggleBtn: document.getElementById('viewport-toggle-btn'),
-    viewportCollapse: document.getElementById('viewport-collapse'),
-    viewportList: document.getElementById('viewport-list'),
     composerPill: document.getElementById('composer-pill'),
     frontendToolContainer: document.getElementById('frontend-tool-container'),
     frontendToolFrame: document.getElementById('frontend-tool-frame'),
@@ -61,6 +58,10 @@ export function createElements() {
     modalTitle: document.getElementById('action-modal-title'),
     modalContent: document.getElementById('action-modal-content'),
     modalClose: document.getElementById('action-modal-close'),
+    eventPopover: document.getElementById('event-popover'),
+    eventPopoverTitle: document.getElementById('event-popover-title'),
+    eventPopoverBody: document.getElementById('event-popover-body'),
+    eventPopoverClose: document.getElementById('event-popover-close'),
     fireworksCanvas: document.getElementById('fireworks-canvas')
   };
 }
