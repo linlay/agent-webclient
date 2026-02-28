@@ -1,6 +1,12 @@
 export function bindDomEvents(ctx) {
   const { state, elements, actions, ui, services } = ctx;
 
+  function refreshChatsWithStatus() {
+    actions.refreshChats().catch((error) => {
+      ui.setStatus(`refresh chats failed: ${error.message}`, 'error');
+    });
+  }
+
   elements.refreshAgentsBtn.addEventListener('click', () => {
     actions.refreshAgents().catch((error) => {
       ui.setStatus(`refresh agents failed: ${error.message}`, 'error');
@@ -8,10 +14,14 @@ export function bindDomEvents(ctx) {
   });
 
   elements.refreshChatsBtn.addEventListener('click', () => {
-    actions.refreshChats().catch((error) => {
-      ui.setStatus(`refresh chats failed: ${error.message}`, 'error');
-    });
+    refreshChatsWithStatus();
   });
+
+  if (elements.chatListRefreshBtn) {
+    elements.chatListRefreshBtn.addEventListener('click', () => {
+      refreshChatsWithStatus();
+    });
+  }
 
   elements.loadRawBtn.addEventListener('click', () => {
     if (!state.chatId) {

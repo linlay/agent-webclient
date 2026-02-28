@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-const target = process.env.AGENT_API_TARGET || 'http://47.100.131.144:9904';
+const target = process.env.AGENT_API_TARGET || 'http://127.0.0.1:11949';
 const port = Number(process.env.PORT || 11948);
 
 export default defineConfig({

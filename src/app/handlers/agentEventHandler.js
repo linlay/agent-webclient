@@ -202,7 +202,9 @@ export function createAgentEventHandler(ctx) {
       ui.setStatus(`run.complete (${event.finishReason || 'end_turn'})`);
       state.streaming = false;
       ui.clearActiveFrontendTool();
-      actions.refreshChats().catch((error) => ui.appendDebug(`refresh chats failed: ${error.message}`));
+      if (source !== 'history') {
+        actions.refreshChats().catch((error) => ui.appendDebug(`refresh chats failed: ${error.message}`));
+      }
     }
 
     if (type === 'run.error') {

@@ -9,6 +9,7 @@ export function createElements() {
     leftDrawerCloseBtn: document.getElementById('left-drawer-close'),
     rightDrawerCloseBtn: document.getElementById('right-drawer-close'),
     newChatBtn: document.getElementById('new-chat-btn'),
+    chatListRefreshBtn: document.getElementById('chat-list-refresh-btn'),
     chatSearchInput: document.getElementById('chat-search-input'),
     settingsToggleBtn: document.getElementById('settings-toggle-btn'),
     settingsModal: document.getElementById('settings-modal'),
