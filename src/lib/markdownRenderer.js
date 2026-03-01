@@ -1,4 +1,5 @@
 import { Marked, Renderer } from 'marked';
+import katex from 'katex';
 
 function escapeHtml(input) {
   return String(input ?? '')
@@ -75,11 +76,98 @@ renderer.link = function link(token) {
   return `<a href="${escapeAttribute(href)}"${title}>${body}</a>`;
 };
 
+function renderMathMarkup(formula, { displayMode = false, raw = '' } = {}) {
+  const source = String(formula ?? '').trim();
+  if (!source) {
+    return `<span>${escapeHtml(raw || '')}</span>`;
+  }
+
+  try {
+    return katex.renderToString(source, {
+      displayMode,
+      throwOnError: false,
+      strict: 'ignore'
+    });
+  } catch (_error) {
+    return `<span>${escapeHtml(raw || source)}</span>`;
+  }
+}
+
+const mathBlockExtension = {
+  name: 'mathBlock',
+  level: 'block',
+  start(src) {
+    const index = src.search(/\$\$|\\\[/);
+    return index >= 0 ? index : undefined;
+  },
+  tokenizer(src) {
+    const dollarMatch = /^\$\$([\s\S]+?)\$\$(?:\n{1,}|$)/.exec(src);
+    if (dollarMatch) {
+      return {
+        type: 'mathBlock',
+        raw: dollarMatch[0],
+        text: dollarMatch[1]
+      };
+    }
+
+    const bracketMatch = /^\\\[([\s\S]+?)\\\](?:\n{1,}|$)/.exec(src);
+    if (bracketMatch) {
+      return {
+        type: 'mathBlock',
+        raw: bracketMatch[0],
+        text: bracketMatch[1]
+      };
+    }
+
+    return undefined;
+  },
+  renderer(token) {
+    return `${renderMathMarkup(token?.text, { displayMode: true, raw: token?.raw })}\n`;
+  }
+};
+
+const mathInlineExtension = {
+  name: 'mathInline',
+  level: 'inline',
+  start(src) {
+    const index = src.search(/\$|\\\(/);
+    return index >= 0 ? index : undefined;
+  },
+  tokenizer(src) {
+    const parenMatch = /^\\\(([\s\S]+?)\\\)/.exec(src);
+    if (parenMatch) {
+      return {
+        type: 'mathInline',
+        raw: parenMatch[0],
+        text: parenMatch[1]
+      };
+    }
+
+    const dollarMatch = /^\$(?!\$)((?:\\.|[^\n\\$])+?)\$(?!\$)/.exec(src);
+    if (dollarMatch) {
+      return {
+        type: 'mathInline',
+        raw: dollarMatch[0],
+        text: dollarMatch[1]
+      };
+    }
+
+    return undefined;
+  },
+  renderer(token) {
+    return renderMathMarkup(token?.text, { displayMode: false, raw: token?.raw });
+  }
+};
+
 const markdown = new Marked({
   async: false,
   breaks: true,
   gfm: true,
   renderer
+});
+
+markdown.use({
+  extensions: [mathBlockExtension, mathInlineExtension]
 });
 
 export function renderMarkdown(text) {

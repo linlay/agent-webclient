@@ -16,6 +16,68 @@ export function createTimelineRuntime(ctx) {
       .replaceAll("'", '&#39;');
   }
 
+  function renderTimelineIcon(kind) {
+    if (kind === 'thinking') {
+      return `
+        <span class="node-icon node-icon-thinking" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M8.5 9.5a3.5 3.5 0 1 1 6.12 2.32L13.5 13h-3"></path>
+            <path d="M9.5 16.5h5"></path>
+            <path d="M10 19h4"></path>
+            <path d="M4.2 9.2a8 8 0 1 0 15.6 0"></path>
+          </svg>
+        </span>
+      `;
+    }
+
+    if (kind === 'tool') {
+      return `
+        <span class="node-icon node-icon-tool" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="m14.4 6.7 2.9-2.9 2.9 2.9-2.9 2.9"></path>
+            <path d="M12.7 8.4 5.2 15.9a2.1 2.1 0 1 0 3 3l7.5-7.5"></path>
+            <path d="m13.8 5.6 4.6 4.6"></path>
+          </svg>
+        </span>
+      `;
+    }
+
+    if (kind === 'content') {
+      return `
+        <span class="node-icon node-icon-content" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <rect x="5" y="4.5" width="14" height="15" rx="2.4"></rect>
+            <path d="M9 9.5h6"></path>
+            <path d="M9 12.5h6"></path>
+            <path d="M9 15.5h4"></path>
+          </svg>
+        </span>
+      `;
+    }
+
+    if (kind === 'alert') {
+      return `
+        <span class="node-icon node-icon-alert" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M12 4.5 20 19H4z"></path>
+            <path d="M12 9v4.2"></path>
+            <circle cx="12" cy="16.8" r="0.8"></circle>
+          </svg>
+        </span>
+      `;
+    }
+
+    return `
+      <span class="node-icon node-icon-assistant" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <rect x="6.2" y="6.2" width="11.6" height="11.6" rx="3"></rect>
+          <path d="M9.4 11.3h5.2"></path>
+          <path d="M9.4 13.9h3.6"></path>
+        </svg>
+      </span>
+    `;
+  }
+
   function shouldFetchMarkdownImageWithAuth(src) {
     if (!src) {
       return false;
@@ -349,21 +411,27 @@ export function createTimelineRuntime(ctx) {
     return gap <= 56;
   }
 
-  function renderToolResultMarkup(result, status) {
+  function renderToolSectionMarkup(title, text, options = {}) {
+    const { isCode = false } = options;
+    const bodyClass = isCode ? 'tool-section-body is-code' : 'tool-section-body';
+    return `
+      <section class="tool-section">
+        <div class="tool-section-head">
+          <strong class="tool-section-title">${escapeHtml(title)}</strong>
+        </div>
+        <div class="${bodyClass}">${escapeHtml(text || '')}</div>
+      </section>
+    `;
+  }
+
+  function renderToolResultMarkup(result) {
     if (!result) {
       return '';
     }
 
-    const bodyClass = result.isCode ? 'tool-result-body is-code' : 'tool-result-body';
-    return `
-      <section class="tool-result-card">
-        <div class="tool-result-head">
-          <strong>Tool Result</strong>
-          <span class="tool-result-state">${escapeHtml(status || 'completed')}</span>
-        </div>
-        <div class="${bodyClass}">${escapeHtml(result.text || '')}</div>
-      </section>
-    `;
+    return renderToolSectionMarkup('Tool Result', result.text || '', {
+      isCode: Boolean(result.isCode)
+    });
   }
 
   function renderContentSegments(container, node) {
@@ -407,11 +475,6 @@ export function createTimelineRuntime(ctx) {
 
       const viewportCard = document.createElement('section');
       viewportCard.className = 'timeline-content-viewport';
-
-      const head = document.createElement('div');
-      head.className = 'timeline-content-viewport-head';
-      head.textContent = `viewport: ${viewport.key || '-'}`;
-      viewportCard.append(head);
 
       const body = document.createElement('div');
       body.className = 'timeline-content-viewport-body';
@@ -458,7 +521,22 @@ export function createTimelineRuntime(ctx) {
 
     row.classList.remove('hidden');
 
+    const applyRowMeta = (kind, role = '', status = '') => {
+      row.setAttribute('data-kind', kind);
+      if (role) {
+        row.setAttribute('data-role', role);
+      } else {
+        row.removeAttribute('data-role');
+      }
+      if (status) {
+        row.setAttribute('data-status', status);
+      } else {
+        row.removeAttribute('data-status');
+      }
+    };
+
     if (node.kind === 'message' && node.role === 'user') {
+      applyRowMeta('message', 'user', 'completed');
       row.className = 'timeline-row timeline-row-user';
       row.innerHTML = `
         <div class="timeline-user-bubble">
@@ -471,14 +549,16 @@ export function createTimelineRuntime(ctx) {
     if (node.kind === 'message' && node.role === 'assistant') {
       const visibleText = stripViewportBlocksFromText(node.text || '');
       if (!visibleText) {
+        applyRowMeta('message', 'assistant', 'running');
         row.className = 'timeline-row hidden';
         row.innerHTML = '';
         return;
       }
 
+      applyRowMeta('message', 'assistant', 'completed');
       row.className = 'timeline-row timeline-row-flow';
       row.innerHTML = `
-        <div class="timeline-marker"><span class="node-icon node-icon-assistant" aria-hidden="true"></span></div>
+        <div class="timeline-marker">${renderTimelineIcon('assistant')}</div>
         <div class="timeline-flow-content">
           <div class="timeline-text timeline-markdown"></div>
         </div>
@@ -491,9 +571,10 @@ export function createTimelineRuntime(ctx) {
     }
 
     if (node.kind === 'message' && node.role === 'system') {
+      applyRowMeta('message', 'system', 'error');
       row.className = 'timeline-row timeline-row-flow';
       row.innerHTML = `
-        <div class="timeline-marker"><span class="node-icon node-icon-alert" aria-hidden="true"></span></div>
+        <div class="timeline-marker">${renderTimelineIcon('alert')}</div>
         <div class="timeline-flow-content">
           <div class="system-alert">${escapeHtml(node.text || '')}</div>
         </div>
@@ -505,12 +586,13 @@ export function createTimelineRuntime(ctx) {
       const expanded = Boolean(node.expanded);
       const triggerClass = expanded ? 'thinking-trigger is-open' : 'thinking-trigger';
       const detailClass = expanded ? 'thinking-detail is-open' : 'thinking-detail';
-      const title = expanded ? 'Thinking Details' : 'Thinking process...';
+      const title = 'Thinking';
       const content = node.text && node.text.trim() ? escapeHtml(node.text) : 'Waiting for reasoning...';
 
+      applyRowMeta('thinking', '', node.status || 'running');
       row.className = 'timeline-row timeline-row-flow';
       row.innerHTML = `
-        <div class="timeline-marker"><span class="node-icon node-icon-thinking" aria-hidden="true"></span></div>
+        <div class="timeline-marker">${renderTimelineIcon('thinking')}</div>
         <div class="timeline-flow-content">
           <button type="button" class="${triggerClass}" data-action="toggle-thinking" data-node-id="${escapeHtml(node.id)}">
             <span>${escapeHtml(title)}</span>
@@ -523,9 +605,10 @@ export function createTimelineRuntime(ctx) {
     }
 
     if (node.kind === 'content') {
+      applyRowMeta('content', 'assistant', node.status || 'running');
       row.className = 'timeline-row timeline-row-flow';
       row.innerHTML = `
-        <div class="timeline-marker"><span class="node-icon node-icon-assistant" aria-hidden="true"></span></div>
+        <div class="timeline-marker">${renderTimelineIcon('content')}</div>
         <div class="timeline-flow-content">
           <div class="timeline-content-stack"></div>
         </div>
@@ -544,19 +627,30 @@ export function createTimelineRuntime(ctx) {
       const expanded = Boolean(node.expanded);
       const detailClass = expanded ? 'tool-detail is-open' : 'tool-detail';
       const argsText = node.argsText && node.argsText.trim() ? node.argsText : '{}';
-      const resultMarkup = renderToolResultMarkup(node.result, node.status);
+      const resultMarkup = renderToolResultMarkup(node.result);
+      const inputMarkup = renderToolSectionMarkup('Input Parameters', argsText, { isCode: true });
+      const status = node.status || 'running';
+      const toolLabel = node.toolName || node.toolId || 'tool';
+      const ariaLabel = `tool: ${toolLabel}; status: ${status}`;
 
+      applyRowMeta('tool', '', status);
       row.className = 'timeline-row timeline-row-flow';
       row.innerHTML = `
-        <div class="timeline-marker"><span class="node-icon node-icon-tool" aria-hidden="true"></span></div>
+        <div class="timeline-marker">${renderTimelineIcon('tool')}</div>
         <div class="timeline-flow-content">
-          <button type="button" class="tool-pill" data-action="toggle-tool" data-node-id="${escapeHtml(node.id)}">
-            <span class="bolt">⚡</span>
-            <span>call: ${escapeHtml(node.toolName || node.toolId || 'tool')}</span>
+          <button
+            type="button"
+            class="tool-pill"
+            data-tool-status="${escapeHtml(status)}"
+            data-action="toggle-tool"
+            data-node-id="${escapeHtml(node.id)}"
+            aria-label="${escapeHtml(ariaLabel)}"
+          >
+            <span class="tool-status-dot" aria-hidden="true"></span>
+            <span>${escapeHtml(toolLabel)}</span>
           </button>
           <section class="${detailClass}">
-            <div class="tool-head">INPUT PARAMETERS</div>
-            <pre class="tool-code">${escapeHtml(argsText)}</pre>
+            ${inputMarkup}
             ${resultMarkup}
           </section>
         </div>

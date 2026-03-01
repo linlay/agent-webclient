@@ -37,4 +37,27 @@ describe('markdownRenderer', () => {
     expect(html).toContain('&lt;script&gt;');
     expect(html).not.toContain('<script>');
   });
+
+  it('renders block math with KaTeX', () => {
+    const html = renderMarkdown('$$\nc = \\sqrt{5^2 + 10^2} = \\sqrt{25 + 100} = \\sqrt{125} \\approx 11.18034\n$$');
+    expect(html).toContain('katex');
+    expect(html).toContain('katex-display');
+  });
+
+  it('renders inline math with KaTeX', () => {
+    const html = renderMarkdown('Inline formula: $x^2 + y^2 = z^2$');
+    expect(html).toContain('katex');
+  });
+
+  it('renders \\(...\\) and \\[...\\] math delimiters', () => {
+    const inlineHtml = renderMarkdown('Inline formula: \\(a^2+b^2\\)');
+    const blockHtml = renderMarkdown('\\[a^2+b^2\\]');
+    expect(inlineHtml).toContain('katex');
+    expect(blockHtml).toContain('katex-display');
+  });
+
+  it('does not throw for invalid math expression', () => {
+    const html = renderMarkdown('$$\\sqrt{1+}$$');
+    expect(html).toContain('katex');
+  });
 });

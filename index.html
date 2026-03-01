@@ -7,11 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
+    <div class="atmo-layer atmo-grid" aria-hidden="true"></div>
+    <div class="atmo-layer atmo-glow atmo-glow-a" aria-hidden="true"></div>
+    <div class="atmo-layer atmo-glow atmo-glow-b" aria-hidden="true"></div>
+
     <div id="app" class="app-shell">
       <header class="top-nav">
         <div class="top-nav-inner">
@@ -27,7 +31,7 @@
           </div>
 
           <div class="nav-group nav-right">
-            <span id="api-status" class="status-pill">idle</span>
+            <span id="api-status" class="status-pill is-idle" aria-live="polite">idle</span>
             <button id="settings-toggle-btn" class="icon-btn" type="button">设置</button>
             <button id="open-right-drawer-btn" class="icon-btn" type="button">调试</button>
           </div>
@@ -35,7 +39,7 @@
       </header>
 
       <main class="conversation-stage">
-        <section id="messages" class="messages-scroll" aria-live="polite"></section>
+        <section id="messages" class="messages-scroll" aria-live="polite" aria-label="conversation timeline"></section>
       </main>
 
       <footer class="bottom-dock">
@@ -69,7 +73,11 @@
             </div>
 
             <div id="composer-pill" class="composer-pill">
-              <textarea id="message-input" placeholder="回复消息...（Enter 发送，Shift+Enter 换行）"></textarea>
+              <textarea
+                id="message-input"
+                aria-label="message input"
+                placeholder="回复消息...（Enter 发送，Shift+Enter 换行）"
+              ></textarea>
               <button id="send-btn" class="send-btn" type="button" aria-label="发送">↑</button>
             </div>
           </section>

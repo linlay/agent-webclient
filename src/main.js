@@ -1,4 +1,5 @@
 import './styles.css';
+import 'katex/dist/katex.min.css';
 import { bootstrapApp } from './app/bootstrap.js';
 
 bootstrapApp().catch((error) => {

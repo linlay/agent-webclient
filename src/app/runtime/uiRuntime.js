@@ -119,6 +119,36 @@ export function createUiRuntime(ctx) {
     renderDebugTabs();
   }
 
+  function classifyEventKind(eventType) {
+    const type = String(eventType || '').toLowerCase();
+
+    if (/(\.error|\.fail|\.cancel|\.cancelled)$/.test(type)) {
+      return 'error';
+    }
+
+    if (type === 'request.query' || type.startsWith('run.')) {
+      return 'run';
+    }
+
+    if (type.startsWith('tool.')) {
+      return 'tool';
+    }
+
+    if (type.startsWith('action.')) {
+      return 'action';
+    }
+
+    if (type.startsWith('content.') || type.startsWith('reasoning.')) {
+      return 'content';
+    }
+
+    if (type.startsWith('plan.') || type.startsWith('task.')) {
+      return 'plan';
+    }
+
+    return 'other';
+  }
+
   function summarizeEvent(event) {
     const keys = ['chatId', 'runId', 'contentId', 'reasoningId', 'toolId', 'actionId', 'planId', 'taskId'];
     const kv = keys
@@ -217,6 +247,8 @@ export function createUiRuntime(ctx) {
       .map((event, offset) => {
         const eventIndex = startIndex + offset;
         const seq = event.seq ?? '-';
+        const eventType = String(event.type || 'unknown');
+        const eventKind = classifyEventKind(eventType);
         const ts = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--';
         const summary = summarizeEvent(event);
         const summaryHtml = summary
@@ -224,9 +256,14 @@ export function createUiRuntime(ctx) {
           : '';
 
         return `
-          <div class="event-row is-clickable" data-event-index="${eventIndex}">
+          <div
+            class="event-row is-clickable event-kind-${ctx.ui.escapeHtml(eventKind)}"
+            data-event-index="${eventIndex}"
+            data-event-type="${ctx.ui.escapeHtml(eventType)}"
+            data-event-kind="${ctx.ui.escapeHtml(eventKind)}"
+          >
             <div class="event-row-head">
-              <strong>#${ctx.ui.escapeHtml(seq)} ${ctx.ui.escapeHtml(event.type || 'unknown')}</strong>
+              <strong>#${ctx.ui.escapeHtml(seq)} ${ctx.ui.escapeHtml(eventType)}</strong>
               <span class="event-row-time">${ctx.ui.escapeHtml(ts)}</span>
             </div>
             ${summaryHtml}

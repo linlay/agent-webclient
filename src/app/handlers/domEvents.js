@@ -208,6 +208,56 @@ export function bindDomEvents(ctx) {
     ui.hideEventPopover();
   });
 
+  document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229) {
+      return;
+    }
+
+    const key = String(event.key || '');
+    const keyLower = key.toLowerCase();
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && keyLower === 'k') {
+      event.preventDefault();
+      if (elements.messageInput.disabled) {
+        return;
+      }
+      elements.messageInput.focus();
+      const caret = elements.messageInput.value.length;
+      elements.messageInput.setSelectionRange(caret, caret);
+      return;
+    }
+
+    if (key !== 'Escape') {
+      return;
+    }
+
+    let handled = false;
+
+    if (state.mentionOpen) {
+      ui.closeMentionSuggestions();
+      handled = true;
+    }
+
+    if (state.eventPopoverIndex !== -1) {
+      ui.hideEventPopover();
+      handled = true;
+    }
+
+    if (state.settingsOpen) {
+      ui.setSettingsOpen(false);
+      handled = true;
+    }
+
+    if (state.layoutMode !== 'desktop-fixed' && (state.leftDrawerOpen || state.rightDrawerOpen)) {
+      ui.closeDrawers();
+      handled = true;
+    }
+
+    if (handled) {
+      event.preventDefault();
+    }
+  });
+
   elements.clearLogsBtn.addEventListener('click', () => {
     state.debugLines.length = 0;
     elements.debugLog.textContent = '';
