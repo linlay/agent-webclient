@@ -16,8 +16,7 @@
 4. `.doc/api/modules/*.md`
 5. `.doc/architecture/*.md`
 6. `.doc/frontend/*.md`
-7. `.doc/backend/*.md`
-8. `.doc/changelog/*.md`
+7. `.doc/changelog/*.md`
 
 ## 3. 术语与命名约束
 | 术语 | 代码标识 | 含义 | 禁止别名 |
@@ -51,15 +50,20 @@
 - API 鉴权：`api/AUTH.md`
 - API 模块：`api/modules/*.md`
 - 前端设计：`frontend/*.md` 与 `frontend/pages/*.md`
-- 后端边界：`backend/*.md` 与 `backend/modules/*.md`
 - 变更记录：`changelog/*.md`
 
 ## 7. 覆盖范围
 本 `.doc` 覆盖：
-- AGENT 协议消费契约（REST + SSE）
 - 前端运行态与 UI 行为约束
-- 外部上游依赖边界
+- 上游 AGENT API 消费契约（REST + SSE）
 
 不覆盖：
-- 上游后端内部模块实现细节
-- 业务域模型的服务端内部演化
+- 任何后端内部模块/数据库实现
+
+## 8. AI 编程规则（frontend-only）
+1. 编码前按 `.doc/GUIDE.md -> .doc/api/SPEC.md -> .doc/api/modules/* -> .doc/frontend/*` 阅读。
+2. 契约改动先改 `.doc`，再改代码。
+3. 禁止发明未定义接口、字段、事件名、错误码。
+4. 遇到契约缺口必须标记 `[DOC-GAP]`，并给出“改文档 / 改实现”候选方案与影响。
+5. 文档变更必须新增 `changelog/` 记录。
+6. 本仓库不维护 backend 实现文档，仅维护上游 API 消费边界。

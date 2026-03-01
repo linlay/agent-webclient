@@ -27,3 +27,10 @@
 npm test
 npm run build
 ```
+
+## 5. AI 编程规则（frontend-only）
+1. 编码前按 `.doc/GUIDE.md -> .doc/api/SPEC.md -> .doc/api/modules/* -> .doc/frontend/*` 阅读。
+2. 契约改动先改 `.doc`，再改代码。
+3. 禁止发明未定义接口、字段、事件名、错误码。
+4. 遇到契约缺口先标记 `[DOC-GAP]` 并给候选方案，不直接拍板。
+5. 本仓库不维护 backend 实现文档，仅维护上游 API 消费边界。

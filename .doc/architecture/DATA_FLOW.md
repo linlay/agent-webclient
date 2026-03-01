@@ -58,3 +58,7 @@ sequenceDiagram
 2. JSON 非法或非响应壳 -> `ApiError`。
 3. `code != 0` -> `ApiError` 并进入 UI/debug 错误态。
 4. SSE 解析失败 -> 记录 debug，终止当前流。
+
+## 5. 前端边界声明
+1. 数据流文档仅描述“前端如何消费上游 API/SSE”，不推断后端内部处理步骤。
+2. 若上游行为与当前文档不一致，先记录 `[DOC-GAP]`，再决定“改文档 / 改实现”。

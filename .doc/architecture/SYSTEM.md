@@ -35,3 +35,7 @@ flowchart LR
 2. `run.complete/error/cancel` 必须终止 streaming 并清理前端工具覆盖层。
 3. `actionId` 必须幂等执行（一次 run 内同 id 只执行一次）。
 4. 解析失败必须写入 debug，不可静默吞掉。
+
+## 6. 依赖边界（frontend-only）
+1. 本仓库不维护任何 backend 内部实现文档。
+2. 仅维护前端可观测的 `/api/ap/*` 契约、事件消费语义和 UI 状态约束。
