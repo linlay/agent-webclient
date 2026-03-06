@@ -1,6 +1,10 @@
 import React, { useMemo } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
+import { UiInput } from "../ui/UiInput";
+import { UiTag } from "../ui/UiTag";
+import { UiListItem } from "../ui/UiListItem";
 import {
 	pickChatAgentLabel,
 	formatChatTimeLabel,
@@ -18,15 +22,22 @@ const ChatItem: React.FC<{
 	const title = chat.chatName || chat.chatId || "(无标题)";
 
 	return (
-		<button
+		<UiListItem
 			className={`chat-item ${isActive ? "is-active" : ""}`}
+			selected={isActive}
+			dense
 			onClick={onClick}
 		>
-			<div className="chat-title">{title}</div>
-			<div className="chat-meta-line">
-				{label} · {time}
+			<div className="chat-item-head">
+				<div className="chat-title-wrap">
+					<div className="chat-title">{title}</div>
+				</div>
+				<div className="chat-time">{time}</div>
 			</div>
-		</button>
+			<div className="chat-meta-line">
+				<UiTag tone="muted">{label}</UiTag>
+			</div>
+		</UiListItem>
 	);
 };
 
@@ -38,25 +49,41 @@ const WorkerItem: React.FC<{
 	const time = row.latestUpdatedAt
 		? formatChatTimeLabel(row.latestUpdatedAt)
 		: "--";
-	const preview = row.latestRunContent || (row.hasHistory ? row.latestChatName : "暂无历史会话");
+	const preview =
+		row.latestRunContent ||
+		(row.hasHistory ? row.latestChatName : "暂无历史会话");
 
 	return (
-		<button
+		<UiListItem
 			className={`chat-item worker-item ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
+			selected={isActive}
 			onClick={onClick}
 		>
-			<div className={`chat-title ${row.type === "team" ? "team-row-main" : ""}`}>
-				<MaterialIcon
-					name={row.type === "team" ? "groups" : "person"}
-					className="inline-icon"
-				/>{" "}
-				{row.displayName}
-			</div>
-			<div className="chat-meta-line">
-				{row.type === "team" ? `Team · ${time}` : `${row.role || "--"} · ${time}`}
+			<div className="worker-row-main">
+				<div className="chat-item-head">
+					<div className="chat-title-wrap">
+						<div className="chat-title">
+							<MaterialIcon
+								name={row.type === "team" ? "groups" : "person"}
+								className="inline-icon"
+							/>
+							<span>{row.displayName}</span>
+						</div>
+						{row.type === "team" ? (
+							<span className="team-agent-labels">
+								{row.teamAgentLabels.join(" / ")}
+							</span>
+						) : (
+							<span className="worker-role">
+								{row.role || "--"}
+							</span>
+						)}
+					</div>
+					<div className="chat-time">{time}</div>
+				</div>
 			</div>
 			<div className="chat-meta-line">{preview}</div>
-		</button>
+		</UiListItem>
 	);
 };
 
@@ -97,31 +124,63 @@ export const LeftSidebar: React.FC = () => {
 			id="left-sidebar"
 		>
 			<div className="sidebar-head">
-				<h2>对话列表</h2>
-				<button
+				<div className="w-full flex items-center justify-between">
+					<h2>
+						{state.conversationMode === "worker" ? "员工" : "对话"}
+					</h2>
+					<UiButton
+						className="icon-btn"
+						size="sm"
+						onClick={() => {
+							dispatch({ type: "SET_CHAT_ID", chatId: "" });
+							dispatch({ type: "RESET_CONVERSATION" });
+						}}
+					>
+						<MaterialIcon name="edit_square" />
+						<span>新对话</span>
+					</UiButton>
+				</div>
+
+				<UiButton
 					className="drawer-close"
 					aria-label="关闭对话列表"
+					variant="ghost"
+					size="sm"
+					iconOnly
 					onClick={() =>
 						dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false })
 					}
 				>
 					<MaterialIcon name="close" />
-				</button>
+				</UiButton>
 			</div>
 
-			<div className="left-actions">
-				<button
-					className="icon-btn"
-					onClick={() => {
-						dispatch({ type: "SET_CHAT_ID", chatId: "" });
-						dispatch({ type: "RESET_CONVERSATION" });
-					}}
-				>
-					<MaterialIcon name="edit_square" />
-					<span>新对话</span>
-				</button>
-				<button
-					className="icon-btn"
+			<label className="field-label mt-2" htmlFor="chat-search">
+				搜索
+				{state.conversationMode === "worker" ? "员工或小组" : ""}
+			</label>
+			<div className="flex items-center justify-between gap-2 p-2">
+				<UiInput
+					id="chat-search"
+					inputSize="md"
+					type="text"
+					placeholder={
+						state.conversationMode === "worker"
+							? "按 名称 / key / teamId 过滤..."
+							: "搜索对话..."
+					}
+					value={state.chatFilter}
+					onChange={(e) =>
+						dispatch({
+							type: "SET_CHAT_FILTER",
+							filter: e.target.value,
+						})
+					}
+				/>
+
+				<UiButton
+					className="icon-btn shrink-0"
+					size="sm"
 					onClick={() => {
 						if (state.conversationMode === "worker") {
 							window.dispatchEvent(
@@ -142,38 +201,19 @@ export const LeftSidebar: React.FC = () => {
 				>
 					<MaterialIcon name="refresh" />
 					<span>刷新</span>
-				</button>
+				</UiButton>
 			</div>
-
-			<label className="field-label" htmlFor="chat-search">
-				搜索
-			</label>
-			<input
-				id="chat-search"
-				className="text-input"
-				type="text"
-				placeholder={
-					state.conversationMode === "worker"
-						? "按 名称 / key / teamId 过滤..."
-						: "搜索对话..."
-				}
-				value={state.chatFilter}
-				onChange={(e) =>
-					dispatch({
-						type: "SET_CHAT_FILTER",
-						filter: e.target.value,
-					})
-				}
-			/>
 
 			<div className="chat-meta">
 				<span className="chat-meta-label">
-					{state.conversationMode === "worker" ? "Worker" : "Agent"}
+					{state.conversationMode === "worker"
+						? "员工/小组"
+						: "智能体"}
 				</span>
 				{state.chatId && state.chatAgentById.has(state.chatId) && (
-					<span className="chip">
+					<UiTag className="chip" tone="accent">
 						{state.chatAgentById.get(state.chatId)}
-					</span>
+					</UiTag>
 				)}
 			</div>
 
@@ -212,25 +252,30 @@ export const LeftSidebar: React.FC = () => {
 				)}
 			</div>
 
-			{state.conversationMode === "worker" && state.workerRelatedChats.length > 0 && (
-				<div className="chat-list worker-related-list">
-					<div className="chat-meta">
-						<span className="chat-meta-label">关联会话</span>
+			{/* {state.conversationMode === "worker" &&
+				state.workerRelatedChats.length > 0 && (
+					<div className="chat-list worker-related-list">
+						<div className="chat-meta">
+							<span className="chat-meta-label">关联会话</span>
+						</div>
+						{state.workerRelatedChats.map((chat) => (
+							<UiListItem
+								key={chat.chatId}
+								className={`chat-item ${chat.chatId === state.chatId ? "is-active" : ""}`}
+								selected={chat.chatId === state.chatId}
+								dense
+								onClick={() => handleSelectChat(chat.chatId)}
+							>
+								<div className="chat-title">
+									{chat.chatName || chat.chatId}
+								</div>
+								<div className="chat-meta-line">
+									{formatChatTimeLabel(chat.updatedAt)}
+								</div>
+							</UiListItem>
+						))}
 					</div>
-					{state.workerRelatedChats.map((chat) => (
-						<button
-							key={chat.chatId}
-							className={`chat-item ${chat.chatId === state.chatId ? "is-active" : ""}`}
-							onClick={() => handleSelectChat(chat.chatId)}
-						>
-							<div className="chat-title">{chat.chatName || chat.chatId}</div>
-							<div className="chat-meta-line">
-								{formatChatTimeLabel(chat.updatedAt)}
-							</div>
-						</button>
-					))}
-				</div>
-			)}
+				)} */}
 		</aside>
 	);
 };

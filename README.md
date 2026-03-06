@@ -29,21 +29,70 @@ AGENT 协议调试前端，基于 `React 18 + TypeScript + Webpack 5`。
 npm install
 ```
 
-### 3. 本地开发
+### 3. 使用 `.env.example`
+先复制示例配置，再按本地环境修改：
+```bash
+cp .env.example .env.development
+```
+
+示例（`.env.development`）：
+```bash
+PORT=11948
+BASE_URL='http://127.0.0.1:11949'
+NODE_ENV='development'
+```
+
+说明：
+- `npm start` 会读取 `.env.development`
+- `PORT` 控制前端开发端口
+- `BASE_URL` 用于前端请求后端 API（如需）
+
+### 4. 本地开发
 ```bash
 npm start
 ```
 - 默认地址：`http://localhost:11948`
 - dev server 会代理 `/api/ap/*` 到 `webpack.config.js` 中的 `devServer.proxy.target`
 
-### 4. 生产构建
+### 5. 生产构建
 ```bash
 npm run build
 ```
 
-### 5. 测试
+### 6. 测试
 ```bash
 npm test
+```
+
+### 7. Bash 脚本示例
+
+开发环境一键启动示例：
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+cp -n .env.example .env.development || true
+npm install
+npm start
+```
+
+生成发布包（使用仓库内 `package.sh`）：
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+chmod +x ./package.sh
+./package.sh
+```
+
+发布目录部署示例（`release/`）：
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd release
+cp -n .env.example .env || true
+docker compose up -d --build
 ```
 
 ## 架构总览

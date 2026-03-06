@@ -11,6 +11,68 @@ interface TimelineRowProps {
 	node: TimelineNode;
 }
 
+const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: false,
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: false,
+});
+
+function isSameDay(a: Date, b: Date): boolean {
+	return (
+		a.getFullYear() === b.getFullYear() &&
+		a.getMonth() === b.getMonth() &&
+		a.getDate() === b.getDate()
+	);
+}
+
+function isYesterday(target: Date, now: Date): boolean {
+	const y = new Date(now);
+	y.setHours(0, 0, 0, 0);
+	y.setDate(y.getDate() - 1);
+	return (
+		target.getFullYear() === y.getFullYear() &&
+		target.getMonth() === y.getMonth() &&
+		target.getDate() === y.getDate()
+	);
+}
+
+function formatRowTime(ts?: number): { short: string; full: string } {
+	if (!ts) return { short: "", full: "" };
+	const target = new Date(ts);
+	if (Number.isNaN(target.getTime())) return { short: "", full: "" };
+	const now = new Date();
+	const diffMs = now.getTime() - target.getTime();
+	const dayCrossed = !isSameDay(target, now);
+	const hhmm = timeFormatter.format(target);
+	const full = dateTimeFormatter.format(target);
+
+	if (diffMs > 24 * 60 * 60 * 1000) {
+		return { short: full, full };
+	}
+
+	if (diffMs >= 0 && dayCrossed && isYesterday(target, now)) {
+		return { short: `昨天 ${hhmm}`, full };
+	}
+
+	if (diffMs >= 0 && !dayCrossed) {
+		return { short: `今天 ${hhmm}`, full };
+	}
+
+	return {
+		short: hhmm,
+		full,
+	};
+}
+
 const NodeIcon: React.FC<{ kind: string; role?: string }> = ({
 	kind,
 	role,
@@ -49,6 +111,13 @@ const NodeIcon: React.FC<{ kind: string; role?: string }> = ({
 };
 
 export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
+	const time = formatRowTime(node.ts);
+	const timeNode = time.short ? (
+		<div className="timeline-row-time" title={time.full}>
+			{time.short}
+		</div>
+	) : null;
+
 	/* User messages */
 	if (node.kind === "message" && node.role === "user") {
 		return (
@@ -57,7 +126,10 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 				data-kind="message"
 				data-role="user"
 			>
-				<UserBubble text={node.text || ""} />
+				<div className="timeline-user-stack">
+					<UserBubble text={node.text || ""} />
+					{timeNode}
+				</div>
 			</div>
 		);
 	}
@@ -75,6 +147,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 				</div>
 				<div className="timeline-flow-content">
 					<SystemAlert text={node.text || ""} />
+					{timeNode}
 				</div>
 			</div>
 		);
@@ -92,6 +165,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 				</div>
 				<div className="timeline-flow-content">
 					<ThinkingBlock node={node} />
+					{timeNode}
 				</div>
 			</div>
 		);
@@ -106,6 +180,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 				</div>
 				<div className="timeline-flow-content">
 					<ToolPill node={node} />
+					{timeNode}
 				</div>
 			</div>
 		);
@@ -120,6 +195,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 				</div>
 				<div className="timeline-flow-content">
 					<ContentBlock node={node} />
+					{timeNode}
 				</div>
 			</div>
 		);
@@ -137,6 +213,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({ node }) => {
 			</div>
 			<div className="timeline-flow-content">
 				<ContentBlock node={node} />
+				{timeNode}
 			</div>
 		</div>
 	);

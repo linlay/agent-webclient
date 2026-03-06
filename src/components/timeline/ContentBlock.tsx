@@ -4,6 +4,7 @@ import { useAppDispatch } from "../../context/AppContext";
 import { MarkdownContent } from "../markdown/MarkdownContent";
 import { ViewportEmbed } from "./ViewportEmbed";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -14,10 +15,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const text = node.text || "";
 
 	const segments = node.segments;
-	const hasViewport = segments?.some((s) => s.kind === "viewport");
+	const hasSpecialSegment = segments?.some((s) => s.kind !== "text");
 
-	/* Simple case: no viewport, just markdown */
-	if (!hasViewport) {
+	/* Simple case: no special segments, just markdown */
+	if (!hasSpecialSegment) {
 		return (
 			<div className="timeline-content-stack">
 				<div className="timeline-text timeline-markdown">
@@ -71,18 +72,30 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 							key={signature || idx}
 							className="timeline-tts-voice"
 						>
-							<button
-								type="button"
+							<UiButton
 								className="tts-voice-pill"
+								variant="secondary"
+								size="sm"
 								data-voice-status={status}
 								aria-expanded={expanded}
 								onClick={() => {
 									const blocks = {
 										...(node.ttsVoiceBlocks || {}),
 									};
-									if (!blocks[signature]) return;
+									const nextBlock = blocks[signature] || {
+										signature,
+										text: String(
+											segment.text || "",
+										),
+										closed: Boolean(
+											segment.closed,
+										),
+										expanded: false,
+										status: "ready" as const,
+										error: "",
+									};
 									blocks[signature] = {
-										...blocks[signature],
+										...nextBlock,
 										expanded: !expanded,
 									};
 									dispatch({
@@ -105,7 +118,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 									name="chevron_right"
 									className="chevron"
 								/>
-							</button>
+							</UiButton>
 							<div
 								className={`tts-voice-detail ${expanded ? "is-open" : ""}`}
 							>

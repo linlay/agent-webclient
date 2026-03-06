@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
+import { UiButton } from "../ui/UiButton";
 
 export const MentionSuggest: React.FC = () => {
 	const state = useAppState();
@@ -13,9 +14,11 @@ export const MentionSuggest: React.FC = () => {
 		<div className="mention-suggest" id="mention-suggest">
 			<div className="mention-suggest-list">
 				{state.mentionSuggestions.map((agent, index) => (
-					<button
+					<UiButton
 						key={agent.key}
 						className={`mention-item ${index === state.mentionActiveIndex ? "active" : ""}`}
+						variant="ghost"
+						size="sm"
 						onClick={() => {
 							window.dispatchEvent(
 								new CustomEvent("agent:select-mention", {
@@ -31,7 +34,7 @@ export const MentionSuggest: React.FC = () => {
 						<span className="mention-name">
 							{agent.name || agent.key}
 						</span>
-					</button>
+					</UiButton>
 				))}
 			</div>
 		</div>

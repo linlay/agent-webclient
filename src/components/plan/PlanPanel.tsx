@@ -1,5 +1,7 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
+import { UiButton } from "../ui/UiButton";
+import { UiTag } from "../ui/UiTag";
 
 export const PlanPanel: React.FC = () => {
 	const state = useAppState();
@@ -23,8 +25,10 @@ export const PlanPanel: React.FC = () => {
 			className={`floating-plan ${state.planExpanded ? "is-expanded" : ""}`}
 			id="floating-plan"
 		>
-			<button
+			<UiButton
 				className="plan-header"
+				variant="ghost"
+				size="sm"
 				onClick={() => {
 					dispatch({
 						type: "SET_PLAN_EXPANDED",
@@ -36,10 +40,14 @@ export const PlanPanel: React.FC = () => {
 					});
 				}}
 			>
-				<span className="plan-summary-status">PLAN</span>
+				<UiTag className="plan-summary-status" tone="accent">
+					PLAN
+				</UiTag>
 				<span className="plan-summary-text">{summaryText}</span>
-				<span className="plan-id-label">{state.plan.planId}</span>
-			</button>
+				<UiTag className="plan-id-label" tone="muted">
+					{state.plan.planId}
+				</UiTag>
+			</UiButton>
 
 			<ul className="plan-list">
 				{tasks.map((task) => {

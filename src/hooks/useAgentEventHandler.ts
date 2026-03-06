@@ -43,6 +43,11 @@ function createLocalCache(): LocalCache {
   };
 }
 
+function isTerminalStatus(status?: string): boolean {
+  const value = String(status || '').trim().toLowerCase();
+  return value === 'completed' || value === 'failed' || value === 'canceled' || value === 'cancelled';
+}
+
 /**
  * useAgentEventHandler — processes incoming SSE events and updates state.
  * Uses a local mutable cache to track node IDs between React renders,
@@ -116,8 +121,10 @@ export function useAgentEventHandler() {
       if (type === 'content.start' && event.contentId) {
         const contentId = String(event.contentId);
         const text = typeof event.text === 'string' ? event.text : '';
-        if (!cache.contentNodeById.has(contentId)) {
-          const nodeId = `content_${cache.counter++}`;
+        let nodeId = cache.contentNodeById.get(contentId);
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
+          nodeId = `content_${cache.counter++}`;
           cache.contentNodeById.set(contentId, nodeId);
           cache.nodeText.set(nodeId, text);
           const existingContentNode = state.timelineNodes.get(nodeId);
@@ -142,7 +149,8 @@ export function useAgentEventHandler() {
       if (type === 'content.delta' && event.contentId) {
         const contentId = String(event.contentId);
         let nodeId = cache.contentNodeById.get(contentId);
-        if (!nodeId) {
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
           nodeId = `content_${cache.counter++}`;
           cache.contentNodeById.set(contentId, nodeId);
           cache.nodeText.set(nodeId, '');
@@ -171,7 +179,15 @@ export function useAgentEventHandler() {
       /* content.end */
       if (type === 'content.end' && event.contentId) {
         const contentId = String(event.contentId);
-        const nodeId = cache.contentNodeById.get(contentId);
+        let nodeId = cache.contentNodeById.get(contentId);
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
+          nodeId = `content_${cache.counter++}`;
+          cache.contentNodeById.set(contentId, nodeId);
+          dispatch({ type: 'INCREMENT_TIMELINE_COUNTER' });
+          dispatch({ type: 'SET_CONTENT_NODE_BY_ID', contentId, nodeId });
+          dispatch({ type: 'APPEND_TIMELINE_ORDER', id: nodeId });
+        }
         if (nodeId) {
           const prevText = cache.nodeText.get(nodeId) || '';
           const finalText = typeof event.text === 'string' && event.text.trim() ? event.text : prevText;
@@ -195,7 +211,8 @@ export function useAgentEventHandler() {
       if (type === 'content.snapshot' && event.contentId) {
         const contentId = String(event.contentId);
         let nodeId = cache.contentNodeById.get(contentId);
-        if (!nodeId) {
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
           nodeId = `content_${cache.counter++}`;
           cache.contentNodeById.set(contentId, nodeId);
           dispatch({ type: 'INCREMENT_TIMELINE_COUNTER' });
@@ -234,7 +251,8 @@ export function useAgentEventHandler() {
         const delta = typeof event.delta === 'string' ? event.delta : '';
         const eventText = typeof event.text === 'string' ? event.text : '';
         let nodeId = cache.reasoningNodeById.get(reasoningKey);
-        if (!nodeId) {
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
           nodeId = `thinking_${cache.counter++}`;
           cache.reasoningNodeById.set(reasoningKey, nodeId);
           cache.nodeText.set(nodeId, eventText || delta);
@@ -267,7 +285,8 @@ export function useAgentEventHandler() {
       if (type === 'reasoning.end' || type === 'reasoning.snapshot') {
         const reasoningKey = event.reasoningId ? String(event.reasoningId) : (cache.activeReasoningKey || `implicit_snap_${cache.counter}`);
         let nodeId = cache.reasoningNodeById.get(reasoningKey);
-        if (!nodeId) {
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
           nodeId = `thinking_${cache.counter++}`;
           cache.reasoningNodeById.set(reasoningKey, nodeId);
           dispatch({ type: 'INCREMENT_TIMELINE_COUNTER' });
@@ -294,7 +313,8 @@ export function useAgentEventHandler() {
         if (!toolId) return;
 
         let nodeId = cache.toolNodeById.get(toolId);
-        if (!nodeId) {
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
           nodeId = `tool_${cache.counter++}`;
           cache.toolNodeById.set(toolId, nodeId);
           dispatch({ type: 'INCREMENT_TIMELINE_COUNTER' });
@@ -399,7 +419,15 @@ export function useAgentEventHandler() {
           state: nextToolState,
         });
 
-        const nodeId = cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId);
+        let nodeId = cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId);
+        const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+        if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
+          nodeId = `tool_${cache.counter++}`;
+          cache.toolNodeById.set(toolId, nodeId);
+          dispatch({ type: 'INCREMENT_TIMELINE_COUNTER' });
+          dispatch({ type: 'SET_TOOL_NODE_BY_ID', toolId, nodeId });
+          dispatch({ type: 'APPEND_TIMELINE_ORDER', id: nodeId });
+        }
         if (nodeId) {
           const existingNode = state.timelineNodes.get(nodeId);
           const argsText = parsedToolParams

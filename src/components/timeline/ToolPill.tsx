@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import type { TimelineNode } from "../../context/types";
+import { UiButton } from "../ui/UiButton";
+import { UiSection, UiSectionBody, UiSectionHead } from "../ui/UiSection";
 
 interface ToolPillProps {
 	node: TimelineNode;
@@ -10,56 +12,69 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node }) => {
 
 	const toolName = node.toolName || node.toolId || "tool";
 	const status = node.status || "pending";
+	const statusLabel =
+		status === "running"
+			? "运行中"
+			: status === "completed"
+				? "完成"
+				: status === "failed" || status === "error"
+					? "失败"
+					: status;
 
 	return (
 		<div>
-			<button
+			<UiButton
 				className="tool-pill"
+				variant="secondary"
+				size="sm"
 				data-tool-status={status}
 				onClick={() => setExpanded(!expanded)}
 			>
 				<span className="tool-status-dot" />
-				<span>{toolName}</span>
-			</button>
+				<span className="tool-pill-label" title={toolName}>
+					{toolName}
+				</span>
+				{/* <span className="tool-pill-state">{statusLabel}</span> */}
+			</UiButton>
 
 			<div className={`tool-detail ${expanded ? "is-open" : ""}`}>
 				{node.description && (
-					<div className="tool-section">
-						<div className="tool-section-head">
+					<UiSection className="tool-section">
+						<UiSectionHead className="tool-section-head">
 							<span className="tool-section-title">
 								DESCRIPTION
 							</span>
-						</div>
-						<div className="tool-section-body">
+						</UiSectionHead>
+						<UiSectionBody className="tool-section-body">
 							{node.description}
-						</div>
-					</div>
+						</UiSectionBody>
+					</UiSection>
 				)}
 
 				{node.argsText && (
-					<div className="tool-section">
-						<div className="tool-section-head">
+					<UiSection className="tool-section">
+						<UiSectionHead className="tool-section-head">
 							<span className="tool-section-title">
 								ARGUMENTS
 							</span>
-						</div>
+						</UiSectionHead>
 						<pre className="tool-section-body is-code">
 							{node.argsText}
 						</pre>
-					</div>
+					</UiSection>
 				)}
 
 				{node.result && (
-					<div className="tool-section">
-						<div className="tool-section-head">
+					<UiSection className="tool-section">
+						<UiSectionHead className="tool-section-head">
 							<span className="tool-section-title">RESULT</span>
-						</div>
+						</UiSectionHead>
 						<pre
 							className={`tool-section-body ${node.result.isCode ? "is-code" : ""}`}
 						>
 							{node.result.text}
 						</pre>
-					</div>
+					</UiSection>
 				)}
 			</div>
 		</div>

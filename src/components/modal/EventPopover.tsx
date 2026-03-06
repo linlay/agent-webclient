@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
 
 export const EventPopover: React.FC = () => {
 	const state = useAppState();
@@ -49,6 +50,8 @@ export const EventPopover: React.FC = () => {
 		return null;
 	}
 
+	const seq = event.seq ?? "-";
+
 	return (
 		<div
 			ref={popoverRef}
@@ -61,8 +64,12 @@ export const EventPopover: React.FC = () => {
 			}}
 		>
 			<div className="event-popover-head">
-				<strong>{event.type}</strong>
-				<button
+				<strong>{`#${seq} ${event.type}`}</strong>
+				<UiButton
+					className="event-popover-close"
+					variant="ghost"
+					size="sm"
+					iconOnly
 					aria-label="关闭事件详情"
 					onClick={() =>
 						dispatch({
@@ -74,7 +81,7 @@ export const EventPopover: React.FC = () => {
 					}
 				>
 					<MaterialIcon name="close" />
-				</button>
+				</UiButton>
 			</div>
 			<pre className="event-popover-body">{jsonStr}</pre>
 		</div>

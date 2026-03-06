@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { formatChatTimeLabel } from "../../lib/chatListFormatter";
+import { UiButton } from "../ui/UiButton";
+import { UiListItem } from "../ui/UiListItem";
 
 export const WorkerChatSidebar: React.FC = () => {
 	const state = useAppState();
@@ -10,10 +12,7 @@ export const WorkerChatSidebar: React.FC = () => {
 		return state.workerIndexByKey.get(state.workerSelectionKey) || null;
 	}, [state.workerIndexByKey, state.workerSelectionKey]);
 
-	if (
-		state.conversationMode !== "worker" ||
-		!selectedWorker
-	) {
+	if (state.conversationMode !== "worker" || !selectedWorker) {
 		return null;
 	}
 
@@ -36,9 +35,10 @@ export const WorkerChatSidebar: React.FC = () => {
 			>
 				<div className="worker-chat-head">
 					<h3>{title}</h3>
-					<button
+					<UiButton
 						className="worker-chat-collapse-btn"
-						type="button"
+						variant="ghost"
+						size="sm"
 						aria-label="收起当前员工对话列表"
 						onClick={() =>
 							dispatch({
@@ -48,17 +48,17 @@ export const WorkerChatSidebar: React.FC = () => {
 						}
 					>
 						收起
-					</button>
+					</UiButton>
 				</div>
 				<div className="worker-chat-list">
 					{state.workerRelatedChats.length === 0 ? (
 						<div className="status-line">暂无相关对话</div>
 					) : (
 						state.workerRelatedChats.map((chat) => (
-							<button
+							<UiListItem
 								key={chat.chatId}
-								type="button"
 								className={`worker-chat-item ${chat.chatId === state.chatId ? "is-active" : ""}`}
+								selected={chat.chatId === state.chatId}
 								onClick={() => onLoadChat(chat.chatId)}
 							>
 								<div className="worker-chat-item-head">
@@ -72,16 +72,17 @@ export const WorkerChatSidebar: React.FC = () => {
 								<div className="worker-chat-preview">
 									{chat.lastRunContent || "(无预览)"}
 								</div>
-							</button>
+							</UiListItem>
 						))
 					)}
 				</div>
 			</aside>
 
 			{state.workerChatPanelCollapsed && (
-				<button
-					type="button"
+				<UiButton
 					className="worker-chat-float-btn"
+					variant="secondary"
+					size="sm"
 					aria-label="展开当前员工对话列表"
 					onClick={() =>
 						dispatch({
@@ -90,8 +91,8 @@ export const WorkerChatSidebar: React.FC = () => {
 						})
 					}
 				>
-					员工会话
-				</button>
+					当前会话
+				</UiButton>
 			)}
 		</>
 	);

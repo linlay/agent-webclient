@@ -1,14 +1,76 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type { AgentEvent, ToolState } from "../../context/types";
 import type { DebugTab } from "../../context/constants";
 import { DEBUG_TABS } from "../../context/constants";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
 
 function safeStr(v: unknown): string {
 	if (typeof v === "string") return v;
 	if (v === null || v === undefined) return "";
 	return String(v);
+}
+
+function classifyEventKind(eventType: string): string {
+	const type = String(eventType || "").toLowerCase();
+	if (/(\.error|\.fail|\.cancel|\.cancelled)$/.test(type)) return "error";
+	if (type === "request.query" || type.startsWith("run.")) return "run";
+	if (type.startsWith("tool.")) return "tool";
+	if (type.startsWith("content.") || type.startsWith("reasoning."))
+		return "content";
+	if (type.startsWith("plan.") || type.startsWith("task.")) return "plan";
+	return "";
+}
+
+function summarizeEvent(event: AgentEvent): string {
+	const keys = [
+		"chatId",
+		"runId",
+		"contentId",
+		"reasoningId",
+		"toolId",
+		"actionId",
+		"planId",
+		"taskId",
+	];
+
+	const kv = keys
+		.filter((key) =>
+			Object.prototype.hasOwnProperty.call(event, key),
+		)
+		.map((key) => `${key}=${safeStr(event[key])}`)
+		.join(" ");
+
+	if (event.type === "request.query") {
+		const message = safeStr(event.message).trim();
+		return message || kv;
+	}
+
+	if (kv) return kv;
+
+	if (
+		event.type === "content.delta" ||
+		event.type === "reasoning.delta"
+	) {
+		return safeStr(event.delta).slice(0, 120);
+	}
+
+	if (
+		event.type === "content.snapshot" ||
+		event.type === "reasoning.snapshot"
+	) {
+		return safeStr(event.text).slice(0, 120);
+	}
+
+	if (event.type === "tool.result") {
+		const result = event.result;
+		return typeof result === "string"
+			? result.slice(0, 120)
+			: safeStr(JSON.stringify(result)).slice(0, 120);
+	}
+
+	return "";
 }
 
 const EventRow: React.FC<{
@@ -17,32 +79,23 @@ const EventRow: React.FC<{
 	onClick: (e: React.MouseEvent<HTMLDivElement>) => void;
 }> = ({ event, index, onClick }) => {
 	const type = String(event.type || "");
+	const seq = event.seq ?? "-";
 	const ts = event.timestamp
 		? new Date(event.timestamp).toLocaleTimeString()
 		: "--";
-
-	let kindClass = "";
-	if (type.startsWith("error") || type === "run.error")
-		kindClass = "event-kind-error";
-	else if (type.startsWith("run.")) kindClass = "event-kind-run";
-	else if (type.startsWith("tool.")) kindClass = "event-kind-tool";
-	else if (type.startsWith("content.")) kindClass = "event-kind-content";
-	else if (type.startsWith("reasoning.")) kindClass = "event-kind-content";
-	else if (type.startsWith("plan.")) kindClass = "event-kind-plan";
-
-	const summary = event.delta
-		? safeStr(event.delta).slice(0, 80)
-		: event.message
-			? safeStr(event.message).slice(0, 80)
-			: "";
+	const kindClass = classifyEventKind(type)
+		? `event-kind-${classifyEventKind(type)}`
+		: "";
+	const summary = summarizeEvent(event);
 
 	return (
 		<div
 			className={`event-row is-clickable ${kindClass}`}
+			data-event-index={index}
 			onClick={onClick}
 		>
 			<div className="event-row-head">
-				<strong>{type}</strong>
+				<strong>{`#${seq} ${type}`}</strong>
 				<span className="event-row-time">{ts}</span>
 			</div>
 			{summary && <div className="event-row-summary">{summary}</div>}
@@ -50,26 +103,41 @@ const EventRow: React.FC<{
 	);
 };
 
-/* Tool card for the "Tools" tab */
-const ToolCard: React.FC<{ toolState: ToolState }> = ({ toolState }) => {
-	const status = toolState.toolParams ? "has-params" : "no-params";
-	const paramsText = toolState.toolParams
-		? JSON.stringify(toolState.toolParams, null, 2)
-		: toolState.argsBuffer || "{}";
+function toPrettyJson(value: unknown): string {
+	if (value === undefined || value === null) return "{}";
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		if (!trimmed) return "{}";
+		try {
+			return JSON.stringify(JSON.parse(trimmed), null, 2);
+		} catch {
+			return value;
+		}
+	}
+	try {
+		return JSON.stringify(value, null, 2);
+	} catch {
+		return String(value);
+	}
+}
 
+/* Tool card for the "Tools" tab */
+const ToolCard: React.FC<{
+	toolState: ToolState;
+	status: string;
+	tsLabel: string;
+	payloadText: string;
+}> = ({ toolState, status, tsLabel, payloadText }) => {
 	return (
 		<article className="debug-event-card">
 			<div className="debug-event-head">
-				<strong>tool: {toolState.toolName || toolState.toolId}</strong>
+				<strong>{`tool: ${toolState.toolName || toolState.toolId}`}</strong>
+				<span className="event-row-time">{tsLabel}</span>
 			</div>
 			<div className="mono debug-event-meta">
-				runId={toolState.runId || "-"} toolId={toolState.toolId} | type=
-				{toolState.toolType || "-"} | api={toolState.toolApi || "-"}
+				{`runId=${toolState.runId || "-"} toolId=${toolState.toolId} | status=${status}`}
 			</div>
-			{toolState.description && (
-				<div className="debug-event-meta">{toolState.description}</div>
-			)}
-			<pre className="debug-event-json">{paramsText}</pre>
+			<pre className="debug-event-json">{payloadText}</pre>
 		</article>
 	);
 };
@@ -83,10 +151,55 @@ const tabLabels: Record<DebugTab, string> = {
 export const RightSidebar: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
+	const debugLogRef = useRef<HTMLPreElement | null>(null);
+	const pendingToolsRef = useRef<HTMLDivElement | null>(null);
 
 	const toolEntries = useMemo(() => {
-		return Array.from(state.toolStates.values());
-	}, [state.toolStates]);
+		return Array.from(state.toolStates.values()).map((toolState) => {
+			const nodeId = state.toolNodeById.get(toolState.toolId);
+			const node = nodeId ? state.timelineNodes.get(nodeId) : null;
+			const payload = {
+				kind: "tool",
+				runId: toolState.runId || null,
+				toolId: toolState.toolId,
+				toolName: toolState.toolName || null,
+				toolType: toolState.toolType || null,
+				toolKey: toolState.toolKey || null,
+				toolApi: toolState.toolApi || null,
+				description: toolState.description || null,
+				status: node?.status || "pending",
+				args: toolState.toolParams ?? (toolState.argsBuffer || {}),
+				result: node?.kind === "tool" ? node.result : null,
+				error: node?.status === "failed"
+					? node?.kind === "tool" && node.result
+						? node.result.text
+						: null
+					: null,
+			};
+
+			return {
+				toolState,
+				status: String(node?.status || "pending"),
+				tsLabel: node?.ts
+					? new Date(node.ts).toLocaleTimeString()
+					: "--",
+				payloadText: toPrettyJson(payload),
+				sortTs: Number(node?.ts || 0),
+			};
+		}).sort((a, b) => a.sortTs - b.sortTs);
+	}, [state.toolStates, state.toolNodeById, state.timelineNodes]);
+
+	useEffect(() => {
+		const el = debugLogRef.current;
+		if (!el) return;
+		el.scrollTop = el.scrollHeight;
+	}, [state.debugLines, state.activeDebugTab]);
+
+	useEffect(() => {
+		const el = pendingToolsRef.current;
+		if (!el) return;
+		el.scrollTop = el.scrollHeight;
+	}, [toolEntries, state.activeDebugTab]);
 
 	return (
 		<aside
@@ -103,28 +216,34 @@ export const RightSidebar: React.FC = () => {
 		>
 			<div className="sidebar-head">
 				<h2>调试面板</h2>
-				<button
+				<UiButton
 					className="drawer-close"
 					aria-label="关闭调试面板"
+					variant="ghost"
+					size="sm"
+					iconOnly
 					onClick={() =>
 						dispatch({ type: "SET_RIGHT_DRAWER_OPEN", open: false })
 					}
 				>
 					<MaterialIcon name="close" />
-				</button>
+				</UiButton>
 			</div>
 
 			<div className="debug-tabs">
 				{DEBUG_TABS.map((tab) => (
-					<button
+					<UiButton
 						key={tab}
 						className={`debug-tab ${state.activeDebugTab === tab ? "active" : ""}`}
+						variant="ghost"
+						size="sm"
+						active={state.activeDebugTab === tab}
 						onClick={() =>
 							dispatch({ type: "SET_ACTIVE_DEBUG_TAB", tab })
 						}
 					>
 						{tabLabels[tab]}
-					</button>
+					</UiButton>
 				))}
 			</div>
 
@@ -175,16 +294,21 @@ export const RightSidebar: React.FC = () => {
 				{state.activeDebugTab === "logs" && (
 					<>
 						<div className="debug-panel-head">
-							{/* <button
+							<button
 								className="debug-clear-btn"
+								id="clear-logs-btn"
 								onClick={() =>
 									dispatch({ type: "CLEAR_DEBUG" })
 								}
 							>
 								清空
-							</button> */}
+							</button>
 						</div>
-						<pre className="debug-log" id="debug-log">
+						<pre
+							ref={debugLogRef}
+							className="debug-log"
+							id="debug-log"
+						>
 							{state.debugLines.length === 0
 								? "暂无日志"
 								: state.debugLines.join("\n")}
@@ -194,12 +318,18 @@ export const RightSidebar: React.FC = () => {
 
 				{/* Tools Tab */}
 				{state.activeDebugTab === "tools" && (
-					<div className="list" id="pending-tools">
+					<div ref={pendingToolsRef} className="list" id="pending-tools">
 						{toolEntries.length === 0 ? (
 							<div className="status-line">暂无 tool 事件</div>
 						) : (
-							toolEntries.map((ts) => (
-								<ToolCard key={ts.toolId} toolState={ts} />
+							toolEntries.map((entry) => (
+								<ToolCard
+									key={entry.toolState.toolId}
+									toolState={entry.toolState}
+									status={entry.status}
+									tsLabel={entry.tsLabel}
+									payloadText={entry.payloadText}
+								/>
 							))
 						)}
 					</div>

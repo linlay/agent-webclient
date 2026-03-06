@@ -103,6 +103,16 @@ export function useActionRuntime() {
         return;
       }
       executedActionIdsRef.current.add(actionId);
+
+      // History replay also hydrates state.events; do not re-trigger fireworks there.
+      if (actionName === 'launch_fireworks' && !state.streaming) {
+        dispatch({
+          type: 'APPEND_DEBUG',
+          line: `[ActionRuntime] Skip launch_fireworks during non-streaming phase (likely history replay), actionId=${actionId}`,
+        });
+        return;
+      }
+
       try {
         runtimeRef.current?.execute(actionName || 'unknown', args);
       } catch (error) {

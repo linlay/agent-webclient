@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getAgents, getTeams, getChats, getChat, setAccessToken } from '../lib/apiClient';
-import type { Chat, Agent, AgentEvent, TimelineNode, Plan, PlanRuntime, ToolState, Team, WorkerRow } from '../context/types';
+import type { Chat, Agent, AgentEvent, TimelineNode, Plan, PlanRuntime, ToolState, Team, WorkerRow, TtsVoiceBlock } from '../context/types';
 import { parseContentSegments } from '../lib/contentSegments';
 import { parseFrontendToolParams } from '../lib/frontendToolParams';
 import { buildWorkerRows, createWorkerKeyFromChat } from '../lib/workerListFormatter';
@@ -66,6 +66,37 @@ function createReplayState(): ReplayState {
   };
 }
 
+function isTerminalStatus(status?: string): boolean {
+  const value = String(status || '').trim().toLowerCase();
+  return value === 'completed' || value === 'failed' || value === 'canceled' || value === 'cancelled';
+}
+
+function buildHistoryTtsVoiceBlocks(
+  segments: ReturnType<typeof parseContentSegments>,
+  existing?: Record<string, TtsVoiceBlock>,
+): Record<string, TtsVoiceBlock> | undefined {
+  const next: Record<string, TtsVoiceBlock> = {};
+  let hasVoice = false;
+
+  for (const segment of segments) {
+    if (segment.kind !== 'ttsVoice' || !segment.signature) continue;
+    hasVoice = true;
+    const previous = existing?.[segment.signature];
+    next[segment.signature] = {
+      signature: segment.signature,
+      text: String(segment.text || previous?.text || ''),
+      closed: Boolean(segment.closed),
+      expanded: Boolean(previous?.expanded),
+      status: previous?.status || 'ready',
+      error: String(previous?.error || ''),
+      sampleRate: previous?.sampleRate,
+      channels: previous?.channels,
+    };
+  }
+
+  return hasVoice ? next : undefined;
+}
+
 /**
  * Process a single event into the mutable replay state.
  * This mirrors useAgentEventHandler logic but writes to mutable state.
@@ -116,14 +147,18 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
   /* content.start */
   if (type === 'content.start' && event.contentId) {
     const contentId = String(event.contentId);
-    if (!rs.contentNodeById.has(contentId)) {
-      const nodeId = `content_${rs.timelineCounter}`;
+    let nodeId = rs.contentNodeById.get(contentId);
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
+      nodeId = `content_${rs.timelineCounter}`;
       rs.timelineCounter++;
       const text = typeof event.text === 'string' ? event.text : '';
+      const segments = text ? parseContentSegments(contentId, text) : [];
       rs.contentNodeById.set(contentId, nodeId);
       rs.timelineNodes.set(nodeId, {
         id: nodeId, kind: 'content', contentId, text,
-        segments: text ? parseContentSegments(contentId, text) : [],
+        segments,
+        ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments),
         ts: event.timestamp || Date.now(),
       });
       rs.timelineOrder.push(nodeId);
@@ -135,7 +170,8 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
   if (type === 'content.delta' && event.contentId) {
     const contentId = String(event.contentId);
     let nodeId = rs.contentNodeById.get(contentId);
-    if (!nodeId) {
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
       nodeId = `content_${rs.timelineCounter}`;
       rs.timelineCounter++;
       rs.contentNodeById.set(contentId, nodeId);
@@ -144,9 +180,11 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
     const existing = rs.timelineNodes.get(nodeId);
     const delta = typeof event.delta === 'string' ? event.delta : '';
     const newText = (existing?.text || '') + delta;
+    const segments = parseContentSegments(contentId, newText);
     rs.timelineNodes.set(nodeId, {
       id: nodeId, kind: 'content', contentId, text: newText,
-      segments: parseContentSegments(contentId, newText),
+      segments,
+      ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments, existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined),
       ts: event.timestamp || existing?.ts || Date.now(),
     });
     return;
@@ -155,18 +193,26 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
   /* content.end */
   if (type === 'content.end' && event.contentId) {
     const contentId = String(event.contentId);
-    const nodeId = rs.contentNodeById.get(contentId);
+    let nodeId = rs.contentNodeById.get(contentId);
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
+      nodeId = `content_${rs.timelineCounter}`;
+      rs.timelineCounter++;
+      rs.contentNodeById.set(contentId, nodeId);
+      rs.timelineOrder.push(nodeId);
+    }
     if (nodeId) {
       const existing = rs.timelineNodes.get(nodeId);
-      if (existing) {
-        const finalText = typeof event.text === 'string' && event.text.trim()
-          ? event.text : existing.text || '';
-        rs.timelineNodes.set(nodeId, {
-          ...existing, text: finalText,
-          segments: parseContentSegments(contentId, finalText),
-          status: 'completed',
-        });
-      }
+      const finalText = typeof event.text === 'string' && event.text.trim()
+        ? event.text : existing?.text || '';
+      const segments = parseContentSegments(contentId, finalText);
+      rs.timelineNodes.set(nodeId, {
+        id: nodeId, kind: 'content', contentId, text: finalText,
+        segments,
+        ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments, existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined),
+        status: 'completed',
+        ts: event.timestamp || existing?.ts || Date.now(),
+      });
     }
     return;
   }
@@ -175,16 +221,19 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
   if (type === 'content.snapshot' && event.contentId) {
     const contentId = String(event.contentId);
     let nodeId = rs.contentNodeById.get(contentId);
-    if (!nodeId) {
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
       nodeId = `content_${rs.timelineCounter}`;
       rs.timelineCounter++;
       rs.contentNodeById.set(contentId, nodeId);
       rs.timelineOrder.push(nodeId);
     }
     const text = typeof event.text === 'string' ? event.text : '';
+    const segments = parseContentSegments(contentId, text);
     rs.timelineNodes.set(nodeId, {
       id: nodeId, kind: 'content', contentId, text,
-      segments: parseContentSegments(contentId, text),
+      segments,
+      ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments),
       status: 'completed',
       ts: event.timestamp || Date.now(),
     });
@@ -206,7 +255,8 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
     const delta = typeof event.delta === 'string' ? event.delta : '';
     const eventText = typeof event.text === 'string' ? event.text : '';
     let nodeId = rs.reasoningNodeById.get(reasoningKey);
-    if (!nodeId) {
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
       nodeId = `thinking_${rs.timelineCounter}`;
       rs.timelineCounter++;
       rs.reasoningNodeById.set(reasoningKey, nodeId);
@@ -231,7 +281,8 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
   if (type === 'reasoning.end' || type === 'reasoning.snapshot') {
     const reasoningKey = event.reasoningId ? String(event.reasoningId) : (rs.activeReasoningKey || `implicit_snap_${rs.timelineCounter}`);
     let nodeId = rs.reasoningNodeById.get(reasoningKey);
-    if (!nodeId) {
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
       /* Create node if it doesn't exist — matches original ensureReasoningNode */
       nodeId = `thinking_${rs.timelineCounter}`;
       rs.timelineCounter++;
@@ -253,7 +304,8 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
     const toolId = event.toolId || '';
     if (!toolId) return;
     let nodeId = rs.toolNodeById.get(toolId);
-    if (!nodeId) {
+    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
+    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
       nodeId = `tool_${rs.timelineCounter}`;
       rs.timelineCounter++;
       rs.toolNodeById.set(toolId, nodeId);

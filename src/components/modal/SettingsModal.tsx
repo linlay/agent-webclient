@@ -3,6 +3,8 @@ import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { ACCESS_TOKEN_STORAGE_KEY } from "../../context/constants";
 import { setAccessToken } from "../../lib/apiClient";
 import { getVoiceRuntime } from "../../lib/voiceRuntime";
+import { UiButton } from "../ui/UiButton";
+import { UiInput } from "../ui/UiInput";
 
 export const SettingsModal: React.FC = () => {
 	const state = useAppState();
@@ -17,6 +19,10 @@ export const SettingsModal: React.FC = () => {
 		setAccessToken(token);
 		localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
 		dispatch({ type: "SET_ACCESS_TOKEN", token });
+		getVoiceRuntime()?.resetVoiceRuntime();
+		window.dispatchEvent(new CustomEvent("agent:refresh-agents"));
+		window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+		window.dispatchEvent(new CustomEvent("agent:refresh-teams"));
 		setError("");
 		dispatch({ type: "SET_SETTINGS_OPEN", open: false });
 	};
@@ -63,19 +69,22 @@ export const SettingsModal: React.FC = () => {
 			<div className="modal-card settings-card">
 				<div className="settings-head">
 					<h3>设置</h3>
-					<button
+					<UiButton
+						variant="ghost"
+						size="sm"
 						onClick={() =>
 							dispatch({ type: "SET_SETTINGS_OPEN", open: false })
 						}
 					>
 						关闭
-					</button>
+					</UiButton>
 				</div>
 
 				<div className="field-group">
 					<label htmlFor="settings-token">Access Token</label>
-					<input
+					<UiInput
 						id="settings-token"
+						inputSize="md"
 						type="password"
 						placeholder="输入访问令牌..."
 						value={tokenInput}
@@ -86,11 +95,15 @@ export const SettingsModal: React.FC = () => {
 				</div>
 
 				<div className="settings-inline-actions">
-					<button onClick={handleSave}>保存</button>
+					<UiButton variant="primary" size="sm" onClick={handleSave}>
+						保存
+					</UiButton>
 				</div>
 
 				<div className="settings-grid" style={{ marginTop: "16px" }}>
-					<button
+					<UiButton
+						variant="secondary"
+						size="sm"
 						onClick={() =>
 							window.dispatchEvent(
 								new CustomEvent("agent:refresh-agents"),
@@ -98,8 +111,10 @@ export const SettingsModal: React.FC = () => {
 						}
 					>
 						刷新智能体
-					</button>
-					<button
+					</UiButton>
+					<UiButton
+						variant="secondary"
+						size="sm"
 						onClick={() =>
 							window.dispatchEvent(
 								new CustomEvent("agent:refresh-teams"),
@@ -107,16 +122,24 @@ export const SettingsModal: React.FC = () => {
 						}
 					>
 						刷新 Teams
-					</button>
-					<button onClick={handleThemeToggle}>切换主题</button>
-					<button
+					</UiButton>
+					<UiButton
+						variant="secondary"
+						size="sm"
+						onClick={handleThemeToggle}
+					>
+						切换主题
+					</UiButton>
+					<UiButton
+						variant="danger"
+						size="sm"
 						onClick={() => {
 							dispatch({ type: "CLEAR_DEBUG" });
 							dispatch({ type: "CLEAR_EVENTS" });
 						}}
 					>
 						清空日志
-					</button>
+					</UiButton>
 				</div>
 
 				<div className="field-group" style={{ marginTop: "14px" }}>
@@ -124,13 +147,26 @@ export const SettingsModal: React.FC = () => {
 					<textarea
 						id="tts-debug-input"
 						rows={3}
+						className="p-2"
 						placeholder="输入调试文本，发送并播放..."
 						value={ttsDebugText}
 						onChange={(e) => setTtsDebugText(e.target.value)}
 					/>
 					<div className="settings-inline-actions">
-						<button onClick={handleTtsDebugSend}>发送并播放</button>
-						<button onClick={handleTtsDebugStop}>停止播放</button>
+						<UiButton
+							variant="primary"
+							size="sm"
+							onClick={handleTtsDebugSend}
+						>
+							发送并播放
+						</UiButton>
+						<UiButton
+							variant="danger"
+							size="sm"
+							onClick={handleTtsDebugStop}
+						>
+							停止播放
+						</UiButton>
 					</div>
 					<p className="settings-hint">{ttsDebugStatus}</p>
 				</div>

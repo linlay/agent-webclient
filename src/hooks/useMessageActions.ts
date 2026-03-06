@@ -9,6 +9,7 @@ import {
 import { consumeJsonSseStream } from '../lib/sseParser';
 import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
+import { getVoiceRuntime } from '../lib/voiceRuntime';
 import type { AgentEvent } from '../context/types';
 
 /**
@@ -114,6 +115,8 @@ export function useMessageActions() {
       });
       dispatch({ type: 'APPEND_TIMELINE_ORDER', id: userNodeId });
 
+      getVoiceRuntime()?.resetVoiceRuntime();
+
       /* Start streaming */
       const requestId = createRequestId('req');
       const abortController = new AbortController();
@@ -189,6 +192,7 @@ export function useMessageActions() {
 
   const abortStream = useCallback(() => {
     stateRef.current.abortController?.abort();
+    getVoiceRuntime()?.stopAllVoiceSessions('user_stop', { mode: 'stop' });
     dispatch({ type: 'SET_STREAMING', streaming: false });
     dispatch({ type: 'SET_ABORT_CONTROLLER', controller: null });
   }, [dispatch, stateRef]);

@@ -6,6 +6,8 @@ import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
+import { UiInput } from "../ui/UiInput";
 
 type SpeechRecognitionLike = {
 	lang: string;
@@ -496,9 +498,10 @@ export const ComposerArea: React.FC = () => {
 			{state.mentionOpen && <MentionSuggest />}
 			{state.streaming && !isFrontendActive && (
 				<div className="steer-bar">
-					<input
+					<UiInput
 						type="text"
 						className="steer-input"
+						inputSize="md"
 						placeholder="输入引导内容..."
 						value={state.steerDraft}
 						onChange={(e) =>
@@ -514,14 +517,15 @@ export const ComposerArea: React.FC = () => {
 							}
 						}}
 					/>
-					<button
+					<UiButton
 						className="steer-btn"
-						type="button"
+						variant="primary"
+						size="sm"
 						disabled={!state.steerDraft.trim()}
 						onClick={handleSteer}
 					>
 						引导
-					</button>
+					</UiButton>
 				</div>
 			)}
 			<div
@@ -530,7 +534,7 @@ export const ComposerArea: React.FC = () => {
 				<textarea
 					ref={textareaRef}
 					id="message-input"
-					rows={3}
+					rows={1}
 					placeholder={
 						isFrontendActive
 							? "前端工具处理中，请在确认面板内提交"
@@ -547,15 +551,17 @@ export const ComposerArea: React.FC = () => {
 				/>
 				<div className="flex justify-between w-full">
 					<div className="composer-plus-wrap" ref={plusMenuRef}>
-						<button
-							type="button"
+						<UiButton
 							className="composer-plus-btn"
+							variant="ghost"
+							size="sm"
+							iconOnly
 							aria-expanded={plusMenuOpen}
 							aria-label="更多选项"
 							onClick={() => setPlusMenuOpen((open) => !open)}
 						>
 							<MaterialIcon name="add" />
-						</button>
+						</UiButton>
 						{plusMenuOpen && (
 							<div className="composer-plus-popover">
 								<label
@@ -579,9 +585,11 @@ export const ComposerArea: React.FC = () => {
 						)}
 					</div>
 					<div className="composer-actions">
-						<button
-							type="button"
+						<UiButton
 							className={`voice-btn ${speechListening ? "is-listening" : ""}`}
+							variant="ghost"
+							size="sm"
+							iconOnly
 							disabled={!speechSupported || isFrontendActive}
 							onClick={toggleSpeechInput}
 							title={speechStatus}
@@ -590,33 +598,35 @@ export const ComposerArea: React.FC = () => {
 							<MaterialIcon
 								name={speechListening ? "mic" : "mic_none"}
 							/>
-						</button>
+						</UiButton>
 						{state.streaming ? (
-							<button
+							<UiButton
 								className="interrupt-btn"
 								id="interrupt-btn"
+								variant="danger"
+								size="sm"
 								disabled={isFrontendActive}
 								onClick={handleInterrupt}
 							>
-								中断
-							</button>
+								<MaterialIcon name="stop" />
+							</UiButton>
 						) : (
-							<button
+							<UiButton
 								className="send-btn"
 								id="send-btn"
+								variant="primary"
+								size="sm"
+								iconOnly
 								disabled={isFrontendActive}
 								onClick={handleSend}
 								aria-label="发送"
 							>
 								<MaterialIcon name="arrow_upward" />
-							</button>
+							</UiButton>
 						)}
 					</div>
 				</div>
 			</div>
-			{speechSupported && !isFrontendActive && (
-				<div className="voice-hint">{speechStatus}</div>
-			)}
 		</div>
 	);
 };

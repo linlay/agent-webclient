@@ -9,6 +9,7 @@ module.exports = (env, argv) => {
 
   return {
     entry: './src/index.tsx',
+    mode: process.env.NODE_ENV === 'development' ? 'development' : 'production',
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: isProd ? 'js/[name].[contenthash:8].js' : 'js/[name].js',
@@ -73,8 +74,7 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/api/ap'],
-          // target: 'http://47.100.131.144:9903/',
-          target: 'https://agent-webclient.zenmind.cc/',
+          target: process.env.BASE_URL,
           changeOrigin: true,
           onProxyRes: function (proxyRes, req, res) {
             const header = proxyRes.headers['content-disposition'];

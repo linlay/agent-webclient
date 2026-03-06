@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { UiButton } from "../ui/UiButton";
 
 export const TopNav: React.FC = () => {
 	const state = useAppState();
@@ -18,9 +19,11 @@ export const TopNav: React.FC = () => {
 		<nav className="top-nav">
 			<div className="top-nav-inner">
 				<div className="nav-group">
-					<button
+					<UiButton
 						id="open-left-drawer-btn"
 						className="icon-btn"
+						size="sm"
+						iconOnly
 						aria-label="打开对话列表"
 						onClick={() =>
 							dispatch({
@@ -30,7 +33,7 @@ export const TopNav: React.FC = () => {
 						}
 					>
 						<MaterialIcon name="menu" />
-					</button>
+					</UiButton>
 					<div className="brand-mark">
 						<div className="brand-logo">A</div>
 						<div className="brand-text">
@@ -40,7 +43,7 @@ export const TopNav: React.FC = () => {
 					</div>
 				</div>
 
-				<div className="nav-group">
+				<div className="nav-group nav-center">
 					<div
 						className="mode-switch"
 						role="tablist"
@@ -62,7 +65,7 @@ export const TopNav: React.FC = () => {
 								)
 							}
 						>
-							员工
+							员工模式
 						</button>
 						<button
 							className={`mode-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
@@ -80,40 +83,27 @@ export const TopNav: React.FC = () => {
 								)
 							}
 						>
-							聊天
+							聊天模式
 						</button>
 					</div>
+				</div>
 
+				<div className="nav-group">
 					<span
 						className={`status-pill ${statusClass}`}
 						id="api-status"
 					>
 						{statusText}
 					</span>
-					<button
-						className="icon-btn"
-						id="new-chat-btn"
-						onClick={() => {
-							dispatch({ type: "SET_CHAT_ID", chatId: "" });
-							dispatch({ type: "RESET_CONVERSATION" });
-						}}
-					>
-						<MaterialIcon name="edit_square" />
-						<span>新对话</span>
-					</button>
-					<button
-						className="icon-btn"
-						id="settings-btn"
-						aria-label="打开设置"
-						onClick={() =>
-							dispatch({ type: "SET_SETTINGS_OPEN", open: true })
-						}
-					>
-						<MaterialIcon name="settings" />
-					</button>
-					<button
+					<UiButton
 						id="open-right-drawer-btn"
 						className={`icon-btn ${state.layoutMode === "desktop-fixed" && state.desktopDebugSidebarEnabled ? "is-active" : ""}`}
+						size="sm"
+						iconOnly
+						active={
+							state.layoutMode === "desktop-fixed" &&
+							state.desktopDebugSidebarEnabled
+						}
 						aria-label={
 							state.layoutMode === "desktop-fixed"
 								? state.desktopDebugSidebarEnabled
@@ -143,7 +133,19 @@ export const TopNav: React.FC = () => {
 						}}
 					>
 						<MaterialIcon name="tune" />
-					</button>
+					</UiButton>
+					<UiButton
+						className="icon-btn"
+						id="settings-btn"
+						size="sm"
+						iconOnly
+						aria-label="打开设置"
+						onClick={() =>
+							dispatch({ type: "SET_SETTINGS_OPEN", open: true })
+						}
+					>
+						<MaterialIcon name="settings" />
+					</UiButton>
 				</div>
 			</div>
 		</nav>
