@@ -27,6 +27,7 @@ export interface AgentEvent {
   result?: unknown;
   output?: unknown;
   plan?: PlanItem[];
+  toolLabel?: string;
   toolName?: string;
   toolType?: string;
   toolKey?: string;
@@ -85,6 +86,7 @@ export interface TimelineNode {
   ts: number;
   /* tool-specific */
   toolId?: string;
+  toolLabel?: string;
   toolName?: string;
   toolApi?: string;
   description?: string;
@@ -103,6 +105,7 @@ export interface TimelineNode {
 export interface ToolState {
   toolId: string;
   argsBuffer: string;
+  toolLabel?: string;
   toolName: string;
   toolType: string;
   toolKey: string;
@@ -126,6 +129,7 @@ export interface PendingTool {
   key: string;
   runId: string;
   toolId: string;
+  toolLabel?: string;
   toolName: string;
   toolApi: string;
   toolKey: string;
@@ -166,6 +170,7 @@ export interface ActiveFrontendTool {
   toolId: string;
   toolKey: string;
   toolType: string;
+  toolLabel?: string;
   toolName: string;
   description: string;
   toolTimeout: number | null;

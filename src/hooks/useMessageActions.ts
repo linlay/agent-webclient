@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useAgentEventHandler } from './useAgentEventHandler';
 import {
@@ -19,7 +19,6 @@ import type { AgentEvent } from '../context/types';
 export function useMessageActions() {
   const { state, dispatch, stateRef } = useAppContext();
   const { handleEvent } = useAgentEventHandler();
-  const previousStreamingRef = useRef(false);
 
   /* Apply access token on mount and change */
   useEffect(() => {
@@ -206,30 +205,6 @@ export function useMessageActions() {
     window.addEventListener('agent:send-message', handler);
     return () => window.removeEventListener('agent:send-message', handler);
   }, [sendMessage]);
-
-  /* If stream just ended and steer input still has content, auto-send as next message. */
-  useEffect(() => {
-    const previous = previousStreamingRef.current;
-    const current = state.streaming;
-    previousStreamingRef.current = current;
-
-    if (!previous || current) {
-      return;
-    }
-
-    const nextMessage = String(state.steerDraft || '').trim();
-    if (!nextMessage) {
-      return;
-    }
-
-    dispatch({ type: 'SET_STEER_DRAFT', draft: '' });
-    sendMessage(nextMessage).catch((error) => {
-      dispatch({
-        type: 'APPEND_DEBUG',
-        line: `[steer->query] failed: ${(error as Error).message}`,
-      });
-    });
-  }, [state.streaming, state.steerDraft, sendMessage, dispatch]);
 
   return { sendMessage, abortStream };
 }

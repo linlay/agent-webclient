@@ -5,6 +5,7 @@ import type { DebugTab } from "../../context/constants";
 import { DEBUG_TABS } from "../../context/constants";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
+import { resolveToolLabel } from "../../lib/toolDisplay";
 
 function safeStr(v: unknown): string {
 	if (typeof v === "string") return v;
@@ -128,10 +129,11 @@ const ToolCard: React.FC<{
 	tsLabel: string;
 	payloadText: string;
 }> = ({ toolState, status, tsLabel, payloadText }) => {
+	const toolLabel = resolveToolLabel(toolState);
 	return (
 		<article className="debug-event-card">
 			<div className="debug-event-head">
-				<strong>{`tool: ${toolState.toolName || toolState.toolId}`}</strong>
+				<strong>{`tool: ${toolLabel}`}</strong>
 				<span className="event-row-time">{tsLabel}</span>
 			</div>
 			<div className="mono debug-event-meta">
@@ -162,6 +164,7 @@ export const RightSidebar: React.FC = () => {
 				kind: "tool",
 				runId: toolState.runId || null,
 				toolId: toolState.toolId,
+				toolLabel: toolState.toolLabel || null,
 				toolName: toolState.toolName || null,
 				toolType: toolState.toolType || null,
 				toolKey: toolState.toolKey || null,

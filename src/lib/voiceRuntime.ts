@@ -309,6 +309,7 @@ class VoiceRuntime {
       });
 
       this.socket.addEventListener('error', () => {
+        this.appendDebug('voice ws error event');
         failPendingConnect('voice websocket handshake failed');
       });
 
@@ -321,6 +322,7 @@ class VoiceRuntime {
           const detail = closeReason
             ? `voice websocket closed before open (code=${closeCode}, reason=${closeReason})`
             : `voice websocket closed before open (code=${closeCode})`;
+          this.appendDebug(detail);
           failPendingConnect(detail);
           return;
         }

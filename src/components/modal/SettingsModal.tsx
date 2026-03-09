@@ -91,7 +91,9 @@ export const SettingsModal: React.FC = () => {
 						onChange={(e) => setTokenInput(e.target.value)}
 					/>
 					{error && <p className="settings-error">{error}</p>}
-					<p className="settings-hint">设置访问令牌以连接后端 API</p>
+					<p className="settings-hint">
+						用于 API Bearer 与 Voice WS query access_token；仅保存在当前浏览器本地。
+					</p>
 				</div>
 
 				<div className="settings-inline-actions">

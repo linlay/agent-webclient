@@ -1266,25 +1266,34 @@ textarea {
 .steer-bar {
   margin-bottom: 8px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
 }
 
-.steer-input {
+.steer-preview {
   flex: 1;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
   color: var(--ink-1);
-  padding: 8px 12px;
+  padding: 8px 12px 9px;
   font-size: 12px;
-  outline: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.steer-input:focus {
-  border-color: var(--accent-electric);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 38%, transparent);
+.steer-preview-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}
+
+.steer-preview-text {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .steer-btn {

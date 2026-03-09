@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { getViewport, submitTool } from "../../lib/apiClient";
+import { resolveToolLabel } from "../../lib/toolDisplay";
 
 export const FrontendToolContainer: React.FC = () => {
 	const state = useAppState();
@@ -143,12 +144,13 @@ export const FrontendToolContainer: React.FC = () => {
 	}, [dispatch, state.activeFrontendTool]);
 
 	if (!tool) return null;
+	const toolLabel = resolveToolLabel(tool);
 
 	return (
 		<div className="frontend-tool-container" id="frontend-tool-container">
 			<div className="frontend-tool-header">
 				<strong className="frontend-tool-title">
-					{tool.toolName || tool.toolKey}
+					{toolLabel}
 				</strong>
 				<span className="frontend-tool-meta">
 					{tool.toolType} · {tool.toolId}

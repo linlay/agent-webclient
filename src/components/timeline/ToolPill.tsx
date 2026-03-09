@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { TimelineNode } from "../../context/types";
 import { UiButton } from "../ui/UiButton";
 import { UiSection, UiSectionBody, UiSectionHead } from "../ui/UiSection";
+import { resolveToolLabel } from "../../lib/toolDisplay";
 
 interface ToolPillProps {
 	node: TimelineNode;
@@ -10,7 +11,7 @@ interface ToolPillProps {
 export const ToolPill: React.FC<ToolPillProps> = ({ node }) => {
 	const [expanded, setExpanded] = useState(false);
 
-	const toolName = node.toolName || node.toolId || "tool";
+	const toolLabel = resolveToolLabel(node);
 	const status = node.status || "pending";
 	const statusLabel =
 		status === "running"
@@ -31,8 +32,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node }) => {
 				onClick={() => setExpanded(!expanded)}
 			>
 				<span className="tool-status-dot" />
-				<span className="tool-pill-label" title={toolName}>
-					{toolName}
+				<span className="tool-pill-label" title={toolLabel}>
+					{toolLabel}
 				</span>
 				{/* <span className="tool-pill-state">{statusLabel}</span> */}
 			</UiButton>

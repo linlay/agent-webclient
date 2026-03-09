@@ -7,7 +7,6 @@ import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
-import { UiInput } from "../ui/UiInput";
 
 type SpeechRecognitionLike = {
 	lang: string;
@@ -45,6 +44,7 @@ export const ComposerArea: React.FC = () => {
 	const [speechSupported, setSpeechSupported] = useState(false);
 	const [speechListening, setSpeechListening] = useState(false);
 	const [speechStatus, setSpeechStatus] = useState("点击开始听写");
+	const [steerSubmitting, setSteerSubmitting] = useState(false);
 
 	const isFrontendActive = !!state.activeFrontendTool;
 
@@ -159,13 +159,19 @@ export const ComposerArea: React.FC = () => {
 
 	const handleSend = useCallback(() => {
 		const message = inputValue.trim();
-		if (!message || state.streaming) return;
+		if (!message) return;
+		if (state.streaming) {
+			dispatch({ type: "SET_STEER_DRAFT", draft: message });
+			setInputValue("");
+			closeMention();
+			return;
+		}
 		setInputValue("");
 		/* Dispatch a custom event so hooks can pick up the send action */
 		window.dispatchEvent(
 			new CustomEvent("agent:send-message", { detail: { message } }),
 		);
-	}, [inputValue, state.streaming]);
+	}, [closeMention, dispatch, inputValue, state.streaming]);
 
 	const mergeSpeechText = useCallback((base: string, append: string) => {
 		if (!append) return base;
@@ -413,7 +419,7 @@ export const ComposerArea: React.FC = () => {
 
 	const handleSteer = useCallback(async () => {
 		const message = state.steerDraft.trim();
-		if (!message || !state.streaming) return;
+		if (!message || !state.streaming || steerSubmitting) return;
 
 		const chatId = String(state.chatId || "").trim();
 		const runId = resolveCurrentRunId();
@@ -428,6 +434,7 @@ export const ComposerArea: React.FC = () => {
 			return;
 		}
 
+		setSteerSubmitting(true);
 		try {
 			await steerChat({
 				requestId,
@@ -448,6 +455,8 @@ export const ComposerArea: React.FC = () => {
 				type: "APPEND_DEBUG",
 				line: `[steer] failed: ${(error as Error).message}`,
 			});
+		} finally {
+			setSteerSubmitting(false);
 		}
 	}, [
 		state.steerDraft,
@@ -458,6 +467,7 @@ export const ComposerArea: React.FC = () => {
 		resolveCurrentTeamId,
 		dispatch,
 		state.planningMode,
+		steerSubmitting,
 	]);
 
 	useEffect(() => {
@@ -480,6 +490,21 @@ export const ComposerArea: React.FC = () => {
 	}, [closeMention]);
 
 	useEffect(() => {
+		if (state.streaming || steerSubmitting) return;
+		const draft = String(state.steerDraft || "").trim();
+		if (!draft) return;
+		setInputValue(draft);
+		updateMentionSuggestions(draft);
+		dispatch({ type: "SET_STEER_DRAFT", draft: "" });
+	}, [
+		dispatch,
+		state.steerDraft,
+		state.streaming,
+		steerSubmitting,
+		updateMentionSuggestions,
+	]);
+
+	useEffect(() => {
 		return () => {
 			const recognition = speechRecognitionRef.current;
 			if (!recognition) return;
@@ -496,35 +521,24 @@ export const ComposerArea: React.FC = () => {
 			className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
 		>
 			{state.mentionOpen && <MentionSuggest />}
-			{state.streaming && !isFrontendActive && (
+			{state.streaming && state.steerDraft.trim() && !isFrontendActive && (
 				<div className="steer-bar">
-					<UiInput
-						type="text"
-						className="steer-input"
-						inputSize="md"
-						placeholder="输入引导内容..."
-						value={state.steerDraft}
-						onChange={(e) =>
-							dispatch({
-								type: "SET_STEER_DRAFT",
-								draft: e.target.value,
-							})
-						}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								e.preventDefault();
-								handleSteer();
-							}
-						}}
-					/>
+					<div className="steer-preview" aria-live="polite">
+						<span className="steer-preview-label">
+							引导内容（只读）
+						</span>
+						<span className="steer-preview-text">
+							{state.steerDraft}
+						</span>
+					</div>
 					<UiButton
 						className="steer-btn"
 						variant="primary"
 						size="sm"
-						disabled={!state.steerDraft.trim()}
+						disabled={!state.steerDraft.trim() || steerSubmitting}
 						onClick={handleSteer}
 					>
-						引导
+						{steerSubmitting ? "提交中..." : "引导"}
 					</UiButton>
 				</div>
 			)}

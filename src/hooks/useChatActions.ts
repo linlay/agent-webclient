@@ -319,6 +319,7 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
       : (existing?.argsText || '');
     rs.timelineNodes.set(nodeId, {
       id: nodeId, kind: 'tool', toolId,
+      toolLabel: event.toolLabel || existing?.toolLabel || '',
       toolName: event.toolName || existing?.toolName || toolId,
       toolApi: event.toolApi || existing?.toolApi || '',
       description: event.description || existing?.description || '',
@@ -332,6 +333,7 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
     rs.toolStates.set(toolId, {
       toolId,
       argsBuffer: existingTs?.argsBuffer || '',
+      toolLabel: event.toolLabel || existingTs?.toolLabel || '',
       toolName: event.toolName || existingTs?.toolName || '',
       toolType: event.toolType || existingTs?.toolType || '',
       toolKey: event.toolKey || existingTs?.toolKey || '',
@@ -355,6 +357,7 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
         const resultText = typeof resultValue === 'string' ? resultValue : JSON.stringify(resultValue, null, 2);
         rs.timelineNodes.set(nodeId, {
           ...existing,
+          toolLabel: existing.toolLabel || rs.toolStates.get(toolId)?.toolLabel || '',
           status: event.error ? 'failed' : 'completed',
           result: { text: resultText, isCode: typeof resultValue !== 'string' },
         });
@@ -372,6 +375,7 @@ function replayEvent(rs: ReplayState, event: AgentEvent): void {
       if (existing) {
         rs.timelineNodes.set(nodeId, {
           ...existing,
+          toolLabel: existing.toolLabel || rs.toolStates.get(toolId)?.toolLabel || '',
           status: event.error ? 'failed' : (existing.status === 'failed' ? 'failed' : 'completed'),
         });
       }

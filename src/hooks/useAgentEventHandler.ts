@@ -5,6 +5,7 @@ import { parseContentSegments } from '../lib/contentSegments';
 import { parseFrontendToolParams } from '../lib/frontendToolParams';
 import { FRONTEND_VIEWPORT_TYPES } from '../context/constants';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
+import { resolveToolLabel } from '../lib/toolDisplay';
 
 /**
  * Safely extract a string value from an event field.
@@ -333,6 +334,7 @@ export function useAgentEventHandler() {
           type: 'SET_TIMELINE_NODE', id: nodeId,
           node: {
             id: nodeId, kind: 'tool', toolId,
+            toolLabel: event.toolLabel || existing?.toolLabel || '',
             toolName: event.toolName || existing?.toolName || toolId,
             toolApi: event.toolApi || existing?.toolApi || '',
             description: event.description || existing?.description || '',
@@ -346,6 +348,7 @@ export function useAgentEventHandler() {
           type: 'SET_TOOL_STATE', key: toolId,
           state: {
             toolId, argsBuffer: '',
+            toolLabel: event.toolLabel || '',
             toolName: event.toolName || '',
             toolType: event.toolType || '',
             toolKey: event.toolKey || '',
@@ -368,6 +371,7 @@ export function useAgentEventHandler() {
               toolId,
               toolKey,
               toolType,
+              toolLabel: event.toolLabel || '',
               toolName: event.toolName || toolKey,
               description: event.description || '',
               toolTimeout: event.toolTimeout ?? null,
@@ -400,6 +404,7 @@ export function useAgentEventHandler() {
         const nextToolState: ToolState = {
           toolId,
           argsBuffer: nextArgsBuffer,
+          toolLabel: event.toolLabel || existingToolState?.toolLabel || '',
           toolName: event.toolName || existingToolState?.toolName || '',
           toolType: event.toolType || existingToolState?.toolType || '',
           toolKey: event.toolKey || existingToolState?.toolKey || '',
@@ -441,6 +446,7 @@ export function useAgentEventHandler() {
               id: nodeId,
               kind: 'tool',
               toolId,
+              toolLabel: nextToolState.toolLabel || existingNode?.toolLabel || '',
               toolName: nextToolState.toolName || existingNode?.toolName || toolId,
               toolApi: nextToolState.toolApi || existingNode?.toolApi || '',
               description: nextToolState.description || existingNode?.description || '',
@@ -460,6 +466,13 @@ export function useAgentEventHandler() {
             type: 'SET_ACTIVE_FRONTEND_TOOL',
             tool: {
               ...active,
+              toolLabel: nextToolState.toolLabel || active.toolLabel || '',
+              toolName: nextToolState.toolName || active.toolName || resolveToolLabel({
+                toolLabel: nextToolState.toolLabel,
+                toolName: nextToolState.toolName,
+                toolId,
+                toolKey: nextToolState.toolKey,
+              }),
               toolParams: parsedToolParams,
             },
           });

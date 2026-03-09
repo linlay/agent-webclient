@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { getViewport } from "../../lib/apiClient";
 import { FRONTEND_VIEWPORT_TYPES } from "../../context/constants";
+import { resolveToolLabel } from "../../lib/toolDisplay";
 
 /**
  * FrontendToolOverlay — renders an active frontend tool in a full-overlay iframe.
@@ -71,6 +72,7 @@ export const FrontendToolOverlay: React.FC = () => {
 				iframe.contentWindow?.postMessage(
 					{
 						type: "init",
+						toolLabel: activeTool.toolLabel,
 						toolName: activeTool.toolName,
 						toolKey: activeTool.toolKey,
 						params: activeTool.toolParams || {},
@@ -110,13 +112,14 @@ export const FrontendToolOverlay: React.FC = () => {
 	}, [dispatch]);
 
 	if (!activeTool) return null;
+	const toolLabel = resolveToolLabel(activeTool);
 
 	return (
 		<div className="frontend-tool-overlay" id="frontend-tool-container">
 			<div className="frontend-tool-header">
 				<div className="frontend-tool-info">
 					<strong id="frontend-tool-title">
-						{activeTool.toolName || activeTool.toolKey}
+						{toolLabel}
 					</strong>
 					{activeTool.description && (
 						<span
