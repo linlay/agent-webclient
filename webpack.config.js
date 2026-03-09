@@ -3,9 +3,14 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
+const apiTarget = String(process.env.BASE_URL || '').trim();
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
+
+  if (!isProd && !apiTarget) {
+    throw new Error('BASE_URL is required for development. Copy .env.example to .env and set BASE_URL.');
+  }
 
   return {
     entry: './src/index.tsx',
@@ -74,7 +79,7 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/api/ap'],
-          target: process.env.BASE_URL,
+          target: apiTarget,
           changeOrigin: true,
           onProxyRes: function (proxyRes, req, res) {
             const header = proxyRes.headers['content-disposition'];

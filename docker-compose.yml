@@ -5,6 +5,6 @@ services:
       dockerfile: Dockerfile
     container_name: agent-webclient
     environment:
-      AGENT_API_UPSTREAM: ${AGENT_API_UPSTREAM:-http://host.docker.internal:11949}
+      BASE_URL: ${BASE_URL}
     ports:
-      - "${AGENT_WEBCLIENT_PORT:-11948}:80"
+      - "${PORT:-11948}:80"

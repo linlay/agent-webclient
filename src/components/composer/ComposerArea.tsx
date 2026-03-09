@@ -549,7 +549,7 @@ export const ComposerArea: React.FC = () => {
 					}}
 					onKeyDown={handleKeyDown}
 				/>
-				<div className="flex justify-between w-full">
+				<div className="composer-control-row">
 					<div className="composer-plus-wrap" ref={plusMenuRef}>
 						<UiButton
 							className="composer-plus-btn"

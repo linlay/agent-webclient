@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* ========================================
    CSS Custom Properties — Theme System
    ======================================== */
@@ -1185,6 +1181,14 @@ textarea {
   align-self: flex-end;
 }
 
+.composer-control-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .voice-btn {
   width: 34px;
   height: 34px;
@@ -1564,6 +1568,14 @@ textarea {
   font-weight: 700;
 }
 
+.sidebar-title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .drawer-close {
   display: inline-flex;
   align-items: center;
@@ -1603,6 +1615,22 @@ textarea {
   text-transform: uppercase;
   color: var(--ink-muted);
   margin-bottom: 4px;
+}
+
+.field-label-spaced {
+  margin-top: 8px;
+}
+
+.sidebar-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+}
+
+.icon-btn-fixed {
+  flex-shrink: 0;
 }
 
 .text-input {
@@ -2109,6 +2137,18 @@ textarea {
   width: 100%;
   padding: 8px 10px;
   font-size: 12px;
+}
+
+.field-group textarea,
+.settings-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
+  color: var(--ink-1);
+  resize: vertical;
 }
 
 .field-group.is-error input,

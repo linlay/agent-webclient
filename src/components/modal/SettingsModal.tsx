@@ -147,7 +147,7 @@ export const SettingsModal: React.FC = () => {
 					<textarea
 						id="tts-debug-input"
 						rows={3}
-						className="p-2"
+						className="settings-textarea"
 						placeholder="输入调试文本，发送并播放..."
 						value={ttsDebugText}
 						onChange={(e) => setTtsDebugText(e.target.value)}

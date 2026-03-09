@@ -124,7 +124,7 @@ export const LeftSidebar: React.FC = () => {
 			id="left-sidebar"
 		>
 			<div className="sidebar-head">
-				<div className="w-full flex items-center justify-between">
+				<div className="sidebar-title-row">
 					<h2>
 						{state.conversationMode === "worker" ? "员工" : "对话"}
 					</h2>
@@ -155,11 +155,11 @@ export const LeftSidebar: React.FC = () => {
 				</UiButton>
 			</div>
 
-			<label className="field-label mt-2" htmlFor="chat-search">
+			<label className="field-label field-label-spaced" htmlFor="chat-search">
 				搜索
 				{state.conversationMode === "worker" ? "员工或小组" : ""}
 			</label>
-			<div className="flex items-center justify-between gap-2 p-2">
+			<div className="sidebar-filter-row">
 				<UiInput
 					id="chat-search"
 					inputSize="md"
@@ -179,7 +179,7 @@ export const LeftSidebar: React.FC = () => {
 				/>
 
 				<UiButton
-					className="icon-btn shrink-0"
+					className="icon-btn icon-btn-fixed"
 					size="sm"
 					onClick={() => {
 						if (state.conversationMode === "worker") {

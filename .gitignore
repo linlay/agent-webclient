@@ -30,4 +30,6 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
-AGENTS.md
+
+# Generated release bundle
+release/
