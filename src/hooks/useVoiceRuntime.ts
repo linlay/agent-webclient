@@ -67,6 +67,9 @@ export function useVoiceRuntime() {
       onDebug: (line) => {
         dispatch({ type: 'APPEND_DEBUG', line: `[voice] ${line}` });
       },
+      onDebugStatus: (status) => {
+        dispatch({ type: 'SET_TTS_DEBUG_STATUS', status });
+      },
     });
 
     const stopHandler = (e: Event) => {
@@ -90,4 +93,3 @@ export function useVoiceRuntime() {
     };
   }, [dispatch, stateRef]);
 }
-

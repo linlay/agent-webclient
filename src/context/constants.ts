@@ -1,4 +1,4 @@
-export const PLAN_AUTO_COLLAPSE_MS = 4000;
+export const PLAN_AUTO_COLLAPSE_MS = 2000;
 export const REASONING_AUTO_COLLAPSE_MS = 1500;
 export const MAX_EVENTS = 1000;
 export const MAX_DEBUG_LINES = 220;

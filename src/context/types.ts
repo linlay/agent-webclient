@@ -324,6 +324,7 @@ export interface AppState {
   mentionActiveIndex: number;
   activeFrontendTool: ActiveFrontendTool | null;
   accessToken: string;
+  ttsDebugStatus: string;
   planningMode: boolean;
   steerDraft: string;
   downvotedRunKeys: Set<string>;

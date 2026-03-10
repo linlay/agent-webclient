@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import type { AgentEvent, TimelineNode, ToolState } from '../context/types';
 import { parseContentSegments } from '../lib/contentSegments';
 import { parseFrontendToolParams } from '../lib/frontendToolParams';
-import { FRONTEND_VIEWPORT_TYPES } from '../context/constants';
+import { FRONTEND_VIEWPORT_TYPES, PLAN_AUTO_COLLAPSE_MS } from '../context/constants';
 import { pickToolName, resolveViewportKey } from '../lib/toolEvent';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 
@@ -28,6 +28,7 @@ interface LocalCache {
   contentNodeById: Map<string, string>;
   reasoningNodeById: Map<string, string>;
   toolNodeById: Map<string, string>;
+  toolStateById: Map<string, ToolState>;
   nodeText: Map<string, string>;  // nodeId -> accumulated text
   counter: number;
   activeReasoningKey: string;
@@ -38,6 +39,7 @@ function createLocalCache(): LocalCache {
     contentNodeById: new Map(),
     reasoningNodeById: new Map(),
     toolNodeById: new Map(),
+    toolStateById: new Map(),
     nodeText: new Map(),
     counter: 0,
     activeReasoningKey: '',
@@ -66,6 +68,30 @@ export function useAgentEventHandler() {
   const resetCache = useCallback(() => {
     cacheRef.current = createLocalCache();
   }, []);
+
+  const clearPlanAutoCollapse = useCallback(() => {
+    const timer = stateRef.current.planAutoCollapseTimer;
+    if (timer) {
+      window.clearTimeout(timer);
+      dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
+    }
+  }, [dispatch, stateRef]);
+
+  const schedulePlanAutoCollapse = useCallback(() => {
+    clearPlanAutoCollapse();
+    const timer = window.setTimeout(() => {
+      dispatch({ type: 'SET_PLAN_EXPANDED', expanded: false });
+      dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
+      dispatch({ type: 'SET_PLAN_MANUAL_OVERRIDE', override: null });
+    }, PLAN_AUTO_COLLAPSE_MS) as unknown as ReturnType<typeof setTimeout>;
+    dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer });
+  }, [clearPlanAutoCollapse, dispatch]);
+
+  const expandPlanForUpdate = useCallback(() => {
+    dispatch({ type: 'SET_PLAN_EXPANDED', expanded: true });
+    dispatch({ type: 'SET_PLAN_MANUAL_OVERRIDE', override: null });
+    schedulePlanAutoCollapse();
+  }, [dispatch, schedulePlanAutoCollapse]);
 
   const handleEvent = useCallback(
     (event: AgentEvent) => {
@@ -359,6 +385,18 @@ export function useAgentEventHandler() {
             runId: event.runId || '',
           },
         });
+        cache.toolStateById.set(toolId, {
+          toolId,
+          argsBuffer: '',
+          toolLabel: event.toolLabel || '',
+          toolName: pickToolName(event.toolName),
+          toolType: event.toolType || '',
+          viewportKey,
+          toolTimeout: event.toolTimeout ?? null,
+          toolParams: resolvedParams,
+          description: event.description || '',
+          runId: event.runId || '',
+        });
         /* Activate frontend tool overlay for special tool types (e.g. fireworks) */
         const toolType = String(event.toolType || '').trim().toLowerCase();
         if (type === 'tool.start' && viewportKey && FRONTEND_VIEWPORT_TYPES.has(toolType)) {
@@ -387,7 +425,9 @@ export function useAgentEventHandler() {
       /* tool.result */
       if (type === 'tool.args' && event.toolId) {
         const toolId = event.toolId;
-        const existingToolState = state.toolStates.get(toolId);
+        const existingToolState =
+          cache.toolStateById.get(toolId) ||
+          state.toolStates.get(toolId);
         const nextArgsBuffer = `${existingToolState?.argsBuffer || ''}${String(event.delta || '')}`;
         const viewportKey = resolveViewportKey(event) || existingToolState?.viewportKey || '';
 
@@ -422,6 +462,7 @@ export function useAgentEventHandler() {
           key: toolId,
           state: nextToolState,
         });
+        cache.toolStateById.set(toolId, nextToolState);
 
         let nodeId = cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId);
         const existingMappedNode = nodeId ? state.timelineNodes.get(nodeId) : undefined;
@@ -478,6 +519,9 @@ export function useAgentEventHandler() {
       /* tool.result */
       if (type === 'tool.result') {
         const toolId = event.toolId || '';
+        const existingToolState =
+          cache.toolStateById.get(toolId) ||
+          state.toolStates.get(toolId);
         const nodeId = cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId);
         if (nodeId) {
           const existing = state.timelineNodes.get(nodeId);
@@ -488,6 +532,7 @@ export function useAgentEventHandler() {
               type: 'SET_TIMELINE_NODE', id: nodeId,
               node: {
                 ...existing,
+                toolName: pickToolName(existing.toolName, existingToolState?.toolName, event.toolName),
                 status: event.error ? 'failed' : 'completed',
                 result: { text: resultText, isCode: typeof resultValue !== 'string' },
               },
@@ -500,6 +545,9 @@ export function useAgentEventHandler() {
       /* tool.end */
       if (type === 'tool.end') {
         const toolId = event.toolId || '';
+        const existingToolState =
+          cache.toolStateById.get(toolId) ||
+          state.toolStates.get(toolId);
         const nodeId = cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId);
         if (nodeId) {
           const existing = state.timelineNodes.get(nodeId);
@@ -508,6 +556,7 @@ export function useAgentEventHandler() {
               type: 'SET_TIMELINE_NODE', id: nodeId,
               node: {
                 ...existing,
+                toolName: pickToolName(existing.toolName, existingToolState?.toolName, event.toolName),
                 status: event.error ? 'failed' : (existing.status === 'failed' ? 'failed' : 'completed'),
               },
             });
@@ -525,10 +574,23 @@ export function useAgentEventHandler() {
       /* plan events */
       if (type === 'plan.update' || type === 'plan.snapshot') {
         if (event.plan) {
+          const previousPlanId = String(state.plan?.planId || '');
+          const nextPlanId = String(event.planId || 'plan');
+          if (previousPlanId && previousPlanId !== nextPlanId) {
+            dispatch({
+              type: 'BATCH_UPDATE',
+              updates: {
+                planRuntimeByTaskId: new Map(),
+                planCurrentRunningTaskId: '',
+                planLastTouchedTaskId: '',
+              },
+            });
+          }
           dispatch({
             type: 'SET_PLAN',
-            plan: { planId: event.planId || 'plan', plan: event.plan },
+            plan: { planId: nextPlanId, plan: event.plan },
           });
+          expandPlanForUpdate();
         }
         return;
       }
@@ -542,6 +604,7 @@ export function useAgentEventHandler() {
             type: 'SET_PLAN_RUNTIME', taskId,
             runtime: { status: 'running', updatedAt: Date.now(), error: '' },
           });
+          expandPlanForUpdate();
         }
         return;
       }
@@ -557,14 +620,16 @@ export function useAgentEventHandler() {
               error: event.error ? String(event.error) : '',
             },
           });
-          if (state.planCurrentRunningTaskId === taskId) {
+          if (stateRef.current.planCurrentRunningTaskId === taskId) {
             dispatch({ type: 'SET_PLAN_CURRENT_RUNNING_TASK_ID', taskId: '' });
           }
+          dispatch({ type: 'SET_PLAN_LAST_TOUCHED_TASK_ID', taskId });
+          expandPlanForUpdate();
         }
         return;
       }
     },
-    [dispatch, stateRef]
+    [dispatch, expandPlanForUpdate, stateRef]
   );
 
   return { handleEvent, resetCache };

@@ -426,6 +426,14 @@ export function useChatActions() {
   const loadSeqRef = useRef(0);
   const bootstrappedRef = useRef(false);
 
+  const clearPlanAutoCollapseTimer = useCallback(() => {
+    const timer = stateRef.current.planAutoCollapseTimer;
+    if (timer) {
+      window.clearTimeout(timer);
+      dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
+    }
+  }, [dispatch, stateRef]);
+
   const findDefaultTeamWorkerKey = useCallback((rows: WorkerRow[]): string => {
     const matched = rows.find((row) => {
       if (row.type !== 'team') return false;
@@ -517,6 +525,7 @@ export function useChatActions() {
 
       const seq = ++loadSeqRef.current;
       dispatch({ type: 'SET_CHAT_ID', chatId });
+      clearPlanAutoCollapseTimer();
       dispatch({ type: 'RESET_CONVERSATION' });
       window.dispatchEvent(new CustomEvent('agent:voice-reset'));
 
@@ -585,7 +594,7 @@ export function useChatActions() {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
       }
     },
-    [dispatch]
+    [clearPlanAutoCollapseTimer, dispatch, stateRef]
   );
 
   const selectWorkerConversation = useCallback(async (workerKey: string) => {
@@ -612,13 +621,14 @@ export function useChatActions() {
     }
 
     dispatch({ type: 'SET_CHAT_ID', chatId: '' });
+    clearPlanAutoCollapseTimer();
     dispatch({ type: 'RESET_CONVERSATION' });
     window.dispatchEvent(new CustomEvent('agent:voice-reset'));
     dispatch({
       type: 'APPEND_DEBUG',
-      line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史会话，发送首条消息将创建新会话`,
+      line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
     });
-  }, [dispatch, loadChat, stateRef]);
+  }, [clearPlanAutoCollapseTimer, dispatch, loadChat, stateRef]);
 
   /* Bootstrap: load agents and chats on mount */
   useEffect(() => {
@@ -699,5 +709,11 @@ export function useChatActions() {
     return () => window.removeEventListener('agent:select-worker', handler);
   }, [selectWorkerConversation]);
 
-  return { loadAgents, loadTeams, loadChats, loadChat, selectWorkerConversation };
+  return {
+    loadAgents,
+    loadTeams,
+    loadChats,
+    loadChat,
+    selectWorkerConversation,
+  };
 }

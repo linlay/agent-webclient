@@ -132,7 +132,9 @@ export const ConversationStage: React.FC = () => {
 	return (
 		<div className="conversation-stage">
 			<div className="messages-scroll" ref={scrollRef} id="messages">
-				<div className="timeline-stack">
+				<div
+					className={`timeline-stack ${displayItems.length === 0 ? "is-empty" : ""}`}
+				>
 					{displayItems.length === 0 ? (
 						<div className="timeline-empty">
 							<p>开始新的对话，或从左侧选择已有对话</p>
@@ -143,24 +145,21 @@ export const ConversationStage: React.FC = () => {
 								if (item.kind === "query") {
 									const queryTime = formatTimelineTime(item.node.ts);
 									const queryCopyKey = `${item.key}:copy`;
+									const queryCopyStatus =
+										actionStatus[queryCopyKey] || "复制";
 									return (
 										<TimelineRow
 											key={item.key}
 											node={item.node}
 											metaNode={
 												<div className="timeline-meta-row">
-													{queryTime.short && (
-														<div
-															className="timeline-row-time"
-															title={queryTime.full}
-														>
-															{queryTime.short}
-														</div>
-													)}
 													<UiButton
 														className="timeline-meta-btn"
 														variant="ghost"
 														size="sm"
+														iconOnly
+														title={queryCopyStatus}
+														aria-label={queryCopyStatus}
 														onClick={() =>
 															handleCopy(
 																queryCopyKey,
@@ -169,20 +168,29 @@ export const ConversationStage: React.FC = () => {
 														}
 													>
 														<MaterialIcon name="content_copy" />
-														{actionStatus[queryCopyKey] || "复制"}
 													</UiButton>
 													<UiButton
 														className="timeline-meta-btn"
 														variant="ghost"
 														size="sm"
+														iconOnly
 														disabled={state.streaming}
+														title="重问"
+														aria-label="重问"
 														onClick={() =>
 															handleResend(item.node.text || "")
 														}
 													>
 														<MaterialIcon name="refresh" />
-														重发
 													</UiButton>
+													{queryTime.short && (
+														<div
+															className="timeline-row-time"
+															title={queryTime.full}
+														>
+															{queryTime.short}
+														</div>
+													)}
 												</div>
 											}
 										/>
@@ -190,12 +198,15 @@ export const ConversationStage: React.FC = () => {
 								}
 
 								if (item.kind === "run") {
+									const isCompleted = Boolean(item.completedAt);
 									const time = formatTimelineTime(
 										item.completedAt,
 									);
 									const runCopyKey = `${item.key}:copy`;
 									const isDownvoted =
 										state.downvotedRunKeys.has(item.key);
+									const runCopyStatus =
+										actionStatus[runCopyKey] || "复制";
 									return (
 										<section
 											key={item.key}
@@ -209,48 +220,54 @@ export const ConversationStage: React.FC = () => {
 													/>
 												))}
 											</div>
-											<div className="timeline-run-meta">
-												{time.short && (
-													<div
-														className="timeline-run-time"
-														title={time.full}
+											{isCompleted && (
+												<div className="timeline-run-meta">
+													<UiButton
+														className="timeline-meta-btn"
+														variant="ghost"
+														size="sm"
+														iconOnly
+														title={runCopyStatus}
+														aria-label={runCopyStatus}
+														onClick={() =>
+															handleCopy(
+																runCopyKey,
+																serializeRunTranscript(
+																	item.queryNode,
+																	item.nodes,
+																),
+															)
+														}
 													>
-														{time.short}
-													</div>
-												)}
-												<UiButton
-													className="timeline-meta-btn"
-													variant="ghost"
-													size="sm"
-													onClick={() =>
-														handleCopy(
-															runCopyKey,
-															serializeRunTranscript(
-																item.queryNode,
-																item.nodes,
-															),
-														)
-													}
-												>
-													<MaterialIcon name="content_copy" />
-													{actionStatus[runCopyKey] || "复制"}
-												</UiButton>
-												<UiButton
-													className={`timeline-meta-btn ${isDownvoted ? "is-downvoted" : ""}`}
-													variant="ghost"
-													size="sm"
-													active={isDownvoted}
-													onClick={() =>
-														dispatch({
-															type: "TOGGLE_RUN_DOWNVOTE",
-															runKey: item.key,
-														})
-													}
-												>
-													<MaterialIcon name="thumb_down" />
-													{isDownvoted ? "已点踩" : "点踩"}
-												</UiButton>
-											</div>
+														<MaterialIcon name="content_copy" />
+													</UiButton>
+													<UiButton
+														className={`timeline-meta-btn ${isDownvoted ? "is-downvoted" : ""}`}
+														variant="ghost"
+														size="sm"
+														iconOnly
+														active={isDownvoted}
+														title={isDownvoted ? "取消点踩" : "点踩"}
+														aria-label={isDownvoted ? "取消点踩" : "点踩"}
+														onClick={() =>
+															dispatch({
+																type: "TOGGLE_RUN_DOWNVOTE",
+																runKey: item.key,
+															})
+														}
+													>
+														<MaterialIcon name="thumb_down" />
+													</UiButton>
+													{time.short && (
+														<div
+															className="timeline-run-time"
+															title={time.full}
+														>
+															{time.short}
+														</div>
+													)}
+												</div>
+											)}
 										</section>
 									);
 								}

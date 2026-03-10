@@ -51,7 +51,7 @@ const WorkerItem: React.FC<{
 		: "--";
 	const preview =
 		row.latestRunContent ||
-		(row.hasHistory ? row.latestChatName : "暂无历史会话");
+		(row.hasHistory ? row.latestChatName : "暂无历史对话");
 
 	return (
 		<UiListItem
@@ -118,6 +118,26 @@ export const LeftSidebar: React.FC = () => {
 		}
 	};
 
+	const handleStartNewConversation = () => {
+		if (state.planAutoCollapseTimer) {
+			window.clearTimeout(state.planAutoCollapseTimer);
+			dispatch({ type: "SET_PLAN_AUTO_COLLAPSE_TIMER", timer: null });
+		}
+		state.abortController?.abort();
+		window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+		dispatch({ type: "SET_CHAT_ID", chatId: "" });
+		dispatch({ type: "SET_RUN_ID", runId: "" });
+		dispatch({ type: "SET_REQUEST_ID", requestId: "" });
+		dispatch({ type: "SET_STREAMING", streaming: false });
+		dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+		dispatch({
+			type:
+				state.conversationMode === "worker"
+					? "RESET_ACTIVE_CONVERSATION"
+					: "RESET_CONVERSATION",
+		});
+	};
+
 	return (
 		<aside
 			className={`sidebar left-sidebar ${state.leftDrawerOpen || state.layoutMode !== "mobile-drawer" ? "is-open" : ""}`}
@@ -131,10 +151,7 @@ export const LeftSidebar: React.FC = () => {
 					<UiButton
 						className="icon-btn"
 						size="sm"
-						onClick={() => {
-							dispatch({ type: "SET_CHAT_ID", chatId: "" });
-							dispatch({ type: "RESET_CONVERSATION" });
-						}}
+						onClick={handleStartNewConversation}
 					>
 						<MaterialIcon name="edit_square" />
 						<span>新对话</span>
@@ -205,18 +222,16 @@ export const LeftSidebar: React.FC = () => {
 				</UiButton>
 			</div>
 
-			<div className="chat-meta">
-				<span className="chat-meta-label">
-					{state.conversationMode === "worker"
-						? "员工/小组"
-						: "智能体"}
-				</span>
-				{state.chatId && state.chatAgentById.has(state.chatId) && (
-					<UiTag className="chip" tone="accent">
-						{state.chatAgentById.get(state.chatId)}
-					</UiTag>
-				)}
-			</div>
+			{state.conversationMode !== "worker" && (
+				<div className="chat-meta">
+					<span className="chat-meta-label">智能体</span>
+					{state.chatId && state.chatAgentById.has(state.chatId) && (
+						<UiTag className="chip" tone="accent">
+							{state.chatAgentById.get(state.chatId)}
+						</UiTag>
+					)}
+				</div>
+			)}
 
 			<div className="chat-list" id="chat-list">
 				{state.conversationMode === "worker" ? (

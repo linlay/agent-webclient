@@ -28,15 +28,15 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'new',
     command: '/new',
-    label: '新会话',
-    description: '清空当前会话上下文，保留当前 worker 选择',
+    label: '新对话',
+    description: '清空当前对话上下文，保留当前 worker 选择',
     keywords: ['new', 'chat', 'reset', 'clear'],
   },
   {
     id: 'redo',
     command: '/redo',
     label: '重发最近 query',
-    description: '重新发送当前会话里最近一条 query',
+    description: '重新发送当前对话里最近一条 query',
     keywords: ['redo', 'retry', 'resend', 'again'],
   },
   {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { ACCESS_TOKEN_STORAGE_KEY } from "../../context/constants";
 import { setAccessToken } from "../../lib/apiClient";
@@ -12,7 +12,6 @@ export const SettingsModal: React.FC = () => {
 	const [tokenInput, setTokenInput] = useState(state.accessToken);
 	const [error, setError] = useState("");
 	const [ttsDebugText, setTtsDebugText] = useState("");
-	const [ttsDebugStatus, setTtsDebugStatus] = useState("idle");
 
 	const handleSave = () => {
 		const token = tokenInput.trim();
@@ -30,15 +29,17 @@ export const SettingsModal: React.FC = () => {
 	const handleTtsDebugSend = async () => {
 		const text = ttsDebugText.trim();
 		if (!text) {
-			setTtsDebugStatus("error: empty text");
+			dispatch({ type: "SET_TTS_DEBUG_STATUS", status: "error: empty text" });
 			return;
 		}
 		try {
-			setTtsDebugStatus("sending...");
+			dispatch({ type: "SET_TTS_DEBUG_STATUS", status: "sending..." });
 			await getVoiceRuntime()?.debugSpeakTtsVoice(text);
-			setTtsDebugStatus(`sent (${text.length} chars)`);
 		} catch (err) {
-			setTtsDebugStatus(`error: ${(err as Error).message}`);
+			dispatch({
+				type: "SET_TTS_DEBUG_STATUS",
+				status: `error: ${(err as Error).message}`,
+			});
 		}
 	};
 
@@ -48,7 +49,6 @@ export const SettingsModal: React.FC = () => {
 				detail: { reason: "debug_stop", mode: "stop" },
 			}),
 		);
-		setTtsDebugStatus("stopped");
 	};
 
 	const handleThemeToggle = () => {
@@ -56,6 +56,15 @@ export const SettingsModal: React.FC = () => {
 		const next = current === "dark" ? "light" : "dark";
 		document.documentElement.setAttribute("data-theme", next);
 	};
+
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") return;
+			dispatch({ type: "SET_SETTINGS_OPEN", open: false });
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [dispatch]);
 
 	return (
 		<div
@@ -170,7 +179,7 @@ export const SettingsModal: React.FC = () => {
 							停止播放
 						</UiButton>
 					</div>
-					<p className="settings-hint">{ttsDebugStatus}</p>
+					<p className="settings-hint">{state.ttsDebugStatus}</p>
 				</div>
 			</div>
 		</div>

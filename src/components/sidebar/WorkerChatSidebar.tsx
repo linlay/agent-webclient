@@ -18,8 +18,8 @@ export const WorkerChatSidebar: React.FC = () => {
 
 	const title =
 		selectedWorker.type === "team"
-			? `与小组 ${selectedWorker.displayName} 的会话`
-			: `与员工 ${selectedWorker.displayName} 的会话`;
+			? `与小组 ${selectedWorker.displayName} 的对话`
+			: `与员工 ${selectedWorker.displayName} 的对话`;
 
 	const onLoadChat = (chatId: string) => {
 		window.dispatchEvent(

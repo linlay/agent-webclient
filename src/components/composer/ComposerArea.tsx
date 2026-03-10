@@ -41,7 +41,6 @@ export const ComposerArea: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const composerRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 	const speechBaseValueRef = useRef("");
 	const speechFinalBufferRef = useRef("");
@@ -49,7 +48,6 @@ export const ComposerArea: React.FC = () => {
 	const pendingSendRef = useRef(false);
 	const pendingSentMessageRef = useRef("");
 	const [inputValue, setInputValue] = useState("");
-	const [plusMenuOpen, setPlusMenuOpen] = useState(false);
 	const [slashDismissed, setSlashDismissed] = useState(false);
 	const [activeSlashIndex, setActiveSlashIndex] = useState(0);
 	const [speechSupported, setSpeechSupported] = useState(false);
@@ -119,17 +117,11 @@ export const ComposerArea: React.FC = () => {
 	}, []);
 
 	useEffect(() => {
-		if (!plusMenuOpen && !showSlashPalette) return;
+		if (!showSlashPalette) return;
 
 		const onPointerDown = (event: MouseEvent) => {
 			const target = event.target as Node | null;
 			if (!target) return;
-			if (
-				plusMenuOpen &&
-				!plusMenuRef.current?.contains(target)
-			) {
-				setPlusMenuOpen(false);
-			}
 			if (
 				showSlashPalette &&
 				!composerRef.current?.contains(target)
@@ -140,9 +132,6 @@ export const ComposerArea: React.FC = () => {
 
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
-			if (plusMenuOpen) {
-				setPlusMenuOpen(false);
-			}
 			if (showSlashPalette) {
 				setSlashDismissed(true);
 			}
@@ -154,7 +143,7 @@ export const ComposerArea: React.FC = () => {
 			document.removeEventListener("mousedown", onPointerDown);
 			document.removeEventListener("keydown", onKeyDown);
 		};
-	}, [plusMenuOpen, showSlashPalette]);
+	}, [showSlashPalette]);
 
 	const closeMention = useCallback(() => {
 		dispatch({ type: "SET_MENTION_OPEN", open: false });
@@ -373,6 +362,31 @@ export const ComposerArea: React.FC = () => {
 		return String(selected.sourceId || "").trim();
 	}, [state.chatId, state.workerIndexByKey, state.workerSelectionKey]);
 
+	const resetForNewConversation = useCallback(() => {
+		if (state.planAutoCollapseTimer) {
+			window.clearTimeout(state.planAutoCollapseTimer);
+			dispatch({ type: "SET_PLAN_AUTO_COLLAPSE_TIMER", timer: null });
+		}
+		state.abortController?.abort();
+		window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+		dispatch({ type: "SET_CHAT_ID", chatId: "" });
+		dispatch({ type: "SET_RUN_ID", runId: "" });
+		dispatch({ type: "SET_REQUEST_ID", requestId: "" });
+		dispatch({ type: "SET_STREAMING", streaming: false });
+		dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+		dispatch({
+			type:
+				state.conversationMode === "worker"
+					? "RESET_ACTIVE_CONVERSATION"
+					: "RESET_CONVERSATION",
+		});
+	}, [
+		dispatch,
+		state.abortController,
+		state.conversationMode,
+		state.planAutoCollapseTimer,
+	]);
+
 	const interruptCurrentRun = useCallback(async () => {
 		const chatId = String(state.chatId || "").trim();
 		const runId = resolveCurrentRunId();
@@ -435,18 +449,10 @@ export const ComposerArea: React.FC = () => {
 			setSlashDismissed(true);
 			setInputValue("");
 			closeMention();
-			setPlusMenuOpen(false);
 
 			switch (commandId) {
 				case "new":
-					state.abortController?.abort();
-					window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-					dispatch({ type: "SET_CHAT_ID", chatId: "" });
-					dispatch({ type: "SET_RUN_ID", runId: "" });
-					dispatch({ type: "SET_REQUEST_ID", requestId: "" });
-					dispatch({ type: "SET_STREAMING", streaming: false });
-					dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
-					dispatch({ type: "RESET_CONVERSATION" });
+					resetForNewConversation();
 					return;
 				case "redo":
 					window.dispatchEvent(
@@ -489,6 +495,7 @@ export const ComposerArea: React.FC = () => {
 			dispatch,
 			interruptCurrentRun,
 			latestQueryText,
+			resetForNewConversation,
 			slashAvailability,
 			state.abortController,
 			state.desktopDebugSidebarEnabled,
@@ -779,6 +786,11 @@ export const ComposerArea: React.FC = () => {
 											{command.label}
 										</span>
 									</span>
+									{command.id === "plan" && state.planningMode && (
+										<span className="slash-command-check" aria-hidden="true">
+											<MaterialIcon name="check" />
+										</span>
+									)}
 									<span className="slash-command-description">
 										{command.description}
 									</span>
@@ -847,39 +859,30 @@ export const ComposerArea: React.FC = () => {
 					onKeyDown={handleKeyDown}
 				/>
 				<div className="composer-control-row">
-					<div className="composer-plus-wrap" ref={plusMenuRef}>
+					<div className="composer-plus-wrap">
 						<UiButton
 							className="composer-plus-btn"
 							variant="ghost"
 							size="sm"
 							iconOnly
-							aria-expanded={plusMenuOpen}
 							aria-label="更多选项"
-							onClick={() => setPlusMenuOpen((open) => !open)}
+							title="更多选项"
 						>
 							<MaterialIcon name="add" />
 						</UiButton>
-						{plusMenuOpen && (
-							<div className="composer-plus-popover">
-								<label
-									className="planning-toggle"
-									htmlFor="planning-mode-switch"
-								>
-									<input
-										id="planning-mode-switch"
-										type="checkbox"
-										checked={state.planningMode}
-										onChange={(e) =>
-											dispatch({
-												type: "SET_PLANNING_MODE",
-												enabled: e.target.checked,
-											})
-										}
-									/>
-									<span>计划模式</span>
-								</label>
-							</div>
-						)}
+						<UiButton
+							className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
+							variant="ghost"
+							size="sm"
+							onClick={() =>
+								dispatch({
+									type: "SET_PLANNING_MODE",
+									enabled: !state.planningMode,
+								})
+							}
+						>
+							计划
+						</UiButton>
 					</div>
 					<div className="composer-actions">
 						<UiButton

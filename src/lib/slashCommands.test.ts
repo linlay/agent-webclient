@@ -1,5 +1,6 @@
 import type { TimelineNode } from '../context/types';
 import {
+  SLASH_COMMANDS,
   getFilteredSlashCommands,
   getLatestQueryText,
   isSlashCommandDisabled,
@@ -21,6 +22,13 @@ describe('slashCommands', () => {
   it('filters the command list by slash query', () => {
     expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(7);
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
+  });
+
+  it('uses 对话 wording for the new command', () => {
+    expect(SLASH_COMMANDS.find((item) => item.id === 'new')).toMatchObject({
+      label: '新对话',
+      description: '清空当前对话上下文，保留当前 worker 选择',
+    });
   });
 
   it('disables commands according to current availability', () => {

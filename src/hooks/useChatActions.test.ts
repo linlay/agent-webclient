@@ -35,4 +35,26 @@ describe('replayEvent tool migration', () => {
 
     expect(state.toolStates.get('tool_legacy')?.viewportKey).toBe('legacy_viewport');
   });
+
+  it('preserves toolName when later tool events omit it', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'tool_args_case',
+      toolName: 'email.list_accounts',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_args_case',
+      result: 'ok',
+      timestamp: 110,
+    });
+
+    const nodeId = state.toolNodeById.get('tool_args_case');
+    const node = nodeId ? state.timelineNodes.get(nodeId) : null;
+
+    expect(node?.toolName).toBe('email.list_accounts');
+  });
 });

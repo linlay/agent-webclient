@@ -22,6 +22,7 @@ interface RuntimeOptions {
   onPatchBlock: (contentId: string, signature: string, patch: Partial<TtsVoiceBlock>) => void;
   onRemoveInactiveBlocks: (contentId: string, activeSignatures: Set<string>) => void;
   onDebug?: (line: string) => void;
+  onDebugStatus?: (status: string) => void;
 }
 
 class VoiceRuntime {
@@ -44,6 +45,10 @@ class VoiceRuntime {
 
   private appendDebug(message: string): void {
     this.options.onDebug?.(message);
+  }
+
+  private setDebugStatus(status: string): void {
+    this.options.onDebugStatus?.(String(status || '').trim() || 'idle');
   }
 
   private getAccessToken(): string {
@@ -197,17 +202,24 @@ class VoiceRuntime {
           sampleRate: this.activeSampleRate,
           channels: this.activeChannels,
         });
+        if (requestId.startsWith('debug_')) this.setDebugStatus('playing');
       }
       return;
     }
 
     if (type === 'tts.done') {
-      if (requestId) this.updateBlockByRequestId(requestId, { status: 'done', error: '' });
+      if (requestId) {
+        this.updateBlockByRequestId(requestId, { status: 'done', error: '' });
+        if (requestId.startsWith('debug_')) this.setDebugStatus('done');
+      }
       return;
     }
 
     if (type === 'tts.interrupted') {
-      if (requestId) this.updateBlockByRequestId(requestId, { status: 'stopped' });
+      if (requestId) {
+        this.updateBlockByRequestId(requestId, { status: 'stopped' });
+        if (requestId.startsWith('debug_')) this.setDebugStatus('stopped');
+      }
       return;
     }
 
@@ -215,12 +227,14 @@ class VoiceRuntime {
       const message = String(payload?.message || 'voice websocket error');
       if (requestId) {
         this.updateBlockByRequestId(requestId, { status: 'error', error: message });
+        if (requestId.startsWith('debug_')) this.setDebugStatus(`error: ${message}`);
       } else {
         for (const session of this.sessionsByKey.values()) {
           if (!session.committed) {
             this.updateBlock(session.contentId, session.signature, { status: 'error', error: message });
           }
         }
+        this.setDebugStatus(`error: ${message}`);
       }
       this.appendDebug(`voice ws error: ${message}`);
     }
@@ -257,6 +271,7 @@ class VoiceRuntime {
       const errorMessage = 'voice access_token is required';
       this.outboundQueue.length = 0;
       this.markUncommittedSessionsError(errorMessage);
+      this.setDebugStatus(`error: ${errorMessage}`);
       return Promise.reject(new Error(errorMessage));
     }
 
@@ -328,7 +343,10 @@ class VoiceRuntime {
         }
         this.socketConnectingPromise = null;
         this.socket = null;
-        if (!expected) this.markUncommittedSessionsError('voice websocket closed');
+        if (!expected) {
+          this.markUncommittedSessionsError('voice websocket closed');
+          this.setDebugStatus('error: voice websocket closed');
+        }
       });
     });
 
@@ -344,6 +362,7 @@ class VoiceRuntime {
     this.outboundQueue.push(frame);
     this.ensureSocket().catch((error) => {
       this.appendDebug(`voice socket connect failed: ${(error as Error).message}`);
+      this.setDebugStatus(`error: ${(error as Error).message}`);
     });
   }
 
@@ -499,11 +518,18 @@ class VoiceRuntime {
   }
 
   stopAllVoiceSessions(reason = 'manual', options: { mode?: 'commit' | 'stop' } = {}): void {
-    const mode = options.mode === 'stop' ? 'stop' : 'commit';
+    const mode = options.mode === 'stop'
+      ? 'stop'
+      : String(reason || '').toLowerCase().includes('user_stop')
+        ? 'stop'
+        : 'commit';
     for (const session of this.sessionsByKey.values()) {
       this.finalizeSession(session, reason, mode);
     }
-    if (mode === 'stop') this.resetPlayback();
+    if (mode === 'stop') {
+      this.resetPlayback();
+      this.setDebugStatus('stopped');
+    }
   }
 
   resetVoiceRuntime(): void {
@@ -516,6 +542,7 @@ class VoiceRuntime {
     this.activeChannels = DEFAULT_CHANNELS;
     this.resetPlayback();
     this.closeSocket();
+    this.setDebugStatus('idle');
   }
 
   async debugSpeakTtsVoice(rawText: string): Promise<string> {
@@ -523,6 +550,7 @@ class VoiceRuntime {
     if (!text) throw new Error('debug text is empty');
     await this.ensureSocket();
     const requestId = `debug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    this.setDebugStatus('connecting');
     this.sendJsonFrame({
       type: 'tts.start',
       requestId,

@@ -34,7 +34,7 @@ import type { DebugTab, LayoutMode } from "./constants";
 /* ============================================
    Initial State Factory
    ============================================ */
-function createInitialState(): AppState {
+export function createInitialState(): AppState {
 	const storedToken =
 		typeof localStorage !== "undefined"
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
@@ -102,6 +102,7 @@ function createInitialState(): AppState {
 		mentionActiveIndex: 0,
 		activeFrontendTool: null,
 		accessToken: storedToken,
+		ttsDebugStatus: "idle",
 		planningMode: false,
 		steerDraft: "",
 		downvotedRunKeys: new Set(),
@@ -149,7 +150,9 @@ export type AppAction =
 	| { type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED"; enabled: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
 	| { type: "SET_ACCESS_TOKEN"; token: string }
+	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
 	| { type: "SET_PLANNING_MODE"; enabled: boolean }
+	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: ReturnType<typeof setTimeout> | null }
 	| { type: "SET_STEER_DRAFT"; draft: string }
 	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
 	| { type: "SET_MENTION_OPEN"; open: boolean }
@@ -169,6 +172,7 @@ export type AppAction =
 			anchor?: { x: number; y: number } | null;
 	  }
 	| { type: "RESET_CONVERSATION" }
+	| { type: "RESET_ACTIVE_CONVERSATION" }
 	| { type: "INCREMENT_TIMELINE_COUNTER" }
 	| { type: "SET_MESSAGE"; id: string; message: Message }
 	| { type: "SET_MESSAGE_ORDER"; order: string[] }
@@ -182,7 +186,60 @@ export type AppAction =
 /* ============================================
    Reducer
    ============================================ */
-function appReducer(state: AppState, action: AppAction): AppState {
+function buildConversationResetState(
+	state: AppState,
+	options: { preserveWorkerContext?: boolean } = {},
+): AppState {
+	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
+	return {
+		...state,
+		messagesById: new Map(),
+		messageOrder: [],
+		events: [],
+		rawSseEntries: [],
+		plan: null,
+		planRuntimeByTaskId: new Map(),
+		planCurrentRunningTaskId: "",
+		planLastTouchedTaskId: "",
+		planExpanded: false,
+		planManualOverride: null,
+		planAutoCollapseTimer: null,
+		toolStates: new Map(),
+		toolNodeById: new Map(),
+		contentNodeById: new Map(),
+		pendingTools: new Map(),
+		reasoningNodeById: new Map(),
+		reasoningCollapseTimers: new Map(),
+		actionStates: new Map(),
+		executedActionIds: new Set(),
+		timelineNodes: new Map(),
+		timelineOrder: [],
+		timelineNodeByMessageId: new Map(),
+		timelineDomCache: new Map(),
+		timelineCounter: 0,
+		renderQueue: {
+			dirtyNodeIds: new Set(),
+			scheduled: false,
+			stickToBottomRequested: false,
+			fullSyncNeeded: false,
+		},
+		activeReasoningKey: "",
+		activeFrontendTool: null,
+		workerRelatedChats: preserveWorkerContext
+			? state.workerRelatedChats
+			: [],
+		workerChatPanelCollapsed: preserveWorkerContext
+			? state.workerChatPanelCollapsed
+			: true,
+		steerDraft: "",
+		downvotedRunKeys: new Set(),
+		eventPopoverIndex: -1,
+		eventPopoverEventRef: null,
+		eventPopoverAnchor: null,
+	};
+}
+
+export function appReducer(state: AppState, action: AppAction): AppState {
 	switch (action.type) {
 		case "SET_AGENTS":
 			return { ...state, agents: action.agents };
@@ -299,8 +356,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, pendingNewChatAgentKey: action.agentKey };
 		case "SET_ACCESS_TOKEN":
 			return { ...state, accessToken: action.token };
+		case "SET_TTS_DEBUG_STATUS":
+			return { ...state, ttsDebugStatus: action.status };
 		case "SET_PLANNING_MODE":
 			return { ...state, planningMode: action.enabled };
+		case "SET_PLAN_AUTO_COLLAPSE_TIMER":
+			return { ...state, planAutoCollapseTimer: action.timer };
 		case "SET_STEER_DRAFT":
 			return { ...state, steerDraft: action.draft };
 		case "TOGGLE_RUN_DOWNVOTE": {
@@ -389,47 +450,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
 		case "INCREMENT_TIMELINE_COUNTER":
 			return { ...state, timelineCounter: state.timelineCounter + 1 };
 		case "RESET_CONVERSATION":
-			return {
-				...state,
-				messagesById: new Map(),
-				messageOrder: [],
-				events: [],
-				rawSseEntries: [],
-				plan: null,
-				planRuntimeByTaskId: new Map(),
-				planCurrentRunningTaskId: "",
-				planLastTouchedTaskId: "",
-				planExpanded: false,
-				planManualOverride: null,
-				toolStates: new Map(),
-				toolNodeById: new Map(),
-				contentNodeById: new Map(),
-				pendingTools: new Map(),
-				reasoningNodeById: new Map(),
-				reasoningCollapseTimers: new Map(),
-				actionStates: new Map(),
-				executedActionIds: new Set(),
-				timelineNodes: new Map(),
-				timelineOrder: [],
-				timelineNodeByMessageId: new Map(),
-				timelineDomCache: new Map(),
-				timelineCounter: 0,
-				renderQueue: {
-					dirtyNodeIds: new Set(),
-					scheduled: false,
-					stickToBottomRequested: false,
-					fullSyncNeeded: false,
-				},
-				activeReasoningKey: "",
-				activeFrontendTool: null,
-				workerRelatedChats: [],
-				workerChatPanelCollapsed: true,
-				steerDraft: "",
-				downvotedRunKeys: new Set(),
-				eventPopoverIndex: -1,
-				eventPopoverEventRef: null,
-				eventPopoverAnchor: null,
-			};
+			return buildConversationResetState(state);
+		case "RESET_ACTIVE_CONVERSATION":
+			return buildConversationResetState(state, {
+				preserveWorkerContext: true,
+			});
 		case "BATCH_UPDATE":
 			return { ...state, ...action.updates };
 		default:
