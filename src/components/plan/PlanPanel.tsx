@@ -19,6 +19,7 @@ export const PlanPanel: React.FC = () => {
 
 	if (!state.plan) return null;
 
+	const planListId = `floating-plan-list-${String(state.plan.planId || "plan").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 	const tasks = state.plan.plan || [];
 	const normalizedTasks = useMemo(() => {
 		return tasks.map((task) => {
@@ -59,6 +60,8 @@ export const PlanPanel: React.FC = () => {
 				className="plan-header"
 				variant="ghost"
 				size="sm"
+				aria-expanded={state.planExpanded}
+				aria-controls={planListId}
 				onClick={() => {
 					if (state.planAutoCollapseTimer) {
 						window.clearTimeout(state.planAutoCollapseTimer);
@@ -83,12 +86,12 @@ export const PlanPanel: React.FC = () => {
 				</UiTag>
 				<span className="plan-chevron" aria-hidden="true">
 					<MaterialIcon
-						name={state.planExpanded ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+						name={state.planExpanded ? "keyboard_arrow_down" : "keyboard_arrow_up"}
 					/>
 				</span>
 			</UiButton>
 
-			<ul className="plan-list">
+			<ul className="plan-list" id={planListId}>
 				{normalizedTasks.map((task) => {
 					return (
 						<li key={task.taskId} className="plan-item" data-status={task.status}>

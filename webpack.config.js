@@ -4,6 +4,13 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
+const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
+const allowedHosts = allowedHostsEnv === 'all'
+  ? 'all'
+  : allowedHostsEnv
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
@@ -74,6 +81,7 @@ module.exports = (env, argv) => {
     devServer: {
       host: '0.0.0.0',
       port,
+      allowedHosts,
       hot: true,
       historyApiFallback: true,
       proxy: [

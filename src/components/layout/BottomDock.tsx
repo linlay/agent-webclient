@@ -13,13 +13,21 @@ export const BottomDock: React.FC = () => {
 				className="bottom-dock-inner"
 				style={{ maxWidth: "860px", margin: "0 auto" }}
 			>
-				{state.plan && (
-					<div className="bottom-dock-plan-rail">
-						<PlanPanel />
+				<div className="bottom-dock-stack">
+					{state.plan && (
+						<div className="bottom-dock-plan-rail">
+							<PlanPanel />
+						</div>
+					)}
+					{state.activeFrontendTool && (
+						<div className="bottom-dock-tool-rail">
+							<FrontendToolContainer />
+						</div>
+					)}
+					<div className="bottom-dock-composer-rail">
+						<ComposerArea />
 					</div>
-				)}
-				{state.activeFrontendTool && <FrontendToolContainer />}
-				<ComposerArea />
+				</div>
 			</div>
 		</div>
 	);
