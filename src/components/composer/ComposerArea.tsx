@@ -5,6 +5,7 @@ import { COMPOSER_MAX_LINES } from "../../context/constants";
 import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
+import { isImeEnterConfirming } from "../../lib/ime";
 import {
 	getFilteredSlashCommands,
 	getLatestQueryText,
@@ -45,6 +46,7 @@ export const ComposerArea: React.FC = () => {
 	const speechBaseValueRef = useRef("");
 	const speechFinalBufferRef = useRef("");
 	const speechListeningRef = useRef(false);
+	const isComposingRef = useRef(false);
 	const pendingSendRef = useRef(false);
 	const pendingSentMessageRef = useRef("");
 	const [inputValue, setInputValue] = useState("");
@@ -56,6 +58,10 @@ export const ComposerArea: React.FC = () => {
 	const [steerSubmitting, setSteerSubmitting] = useState(false);
 
 	const isFrontendActive = !!state.activeFrontendTool;
+	const hasPendingSteers = state.pendingSteers.length > 0;
+	const hasSteerDraft = Boolean(state.steerDraft.trim());
+	const shouldShowSteerBar =
+		state.streaming && !isFrontendActive && (hasSteerDraft || hasPendingSteers);
 	const timelineEntries = useMemo(() => {
 		return state.timelineOrder
 			.map((id) => state.timelineNodes.get(id))
@@ -226,6 +232,13 @@ export const ComposerArea: React.FC = () => {
 	const mergeSpeechText = useCallback((base: string, append: string) => {
 		if (!append) return base;
 		return `${base}${append}`;
+	}, []);
+
+	const appendTextBlock = useCallback((base: string, extra: string) => {
+		const nextExtra = String(extra || "");
+		if (!nextExtra.trim()) return base;
+		if (!base.trim()) return nextExtra;
+		return `${base}${base.endsWith("\n") ? "" : "\n"}${nextExtra}`;
 	}, []);
 
 	const stopSpeechInput = useCallback(() => {
@@ -551,6 +564,10 @@ export const ComposerArea: React.FC = () => {
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (isImeEnterConfirming(e, isComposingRef.current)) {
+				return;
+			}
+
 			if (showSlashPalette) {
 				if (e.key === "ArrowDown") {
 					e.preventDefault();
@@ -630,6 +647,7 @@ export const ComposerArea: React.FC = () => {
 			dispatch,
 			executeSlashCommand,
 			handleSend,
+			isComposingRef,
 			selectMentionByIndex,
 			showSlashPalette,
 			slashCommands,
@@ -646,6 +664,10 @@ export const ComposerArea: React.FC = () => {
 		const chatId = String(state.chatId || "").trim();
 		const runId = resolveCurrentRunId();
 		const requestId = createRequestId("req");
+		const steerId =
+			typeof globalThis.crypto?.randomUUID === "function"
+				? globalThis.crypto.randomUUID()
+				: createRequestId("steer");
 		const agentKey = resolveCurrentAgentKey();
 		const teamId = resolveCurrentTeamId();
 		if (!chatId || !runId) {
@@ -662,6 +684,7 @@ export const ComposerArea: React.FC = () => {
 				requestId,
 				chatId,
 				runId,
+				steerId,
 				agentKey: agentKey || undefined,
 				teamId: teamId || undefined,
 				message,
@@ -670,6 +693,16 @@ export const ComposerArea: React.FC = () => {
 			dispatch({
 				type: "APPEND_DEBUG",
 				line: `[steer] submitted for chatId=${chatId}, runId=${runId}, requestId=${requestId}`,
+			});
+			dispatch({
+				type: "ENQUEUE_PENDING_STEER",
+				steer: {
+					steerId,
+					message,
+					requestId,
+					runId,
+					createdAt: Date.now(),
+				},
 			});
 			dispatch({ type: "SET_STEER_DRAFT", draft: "" });
 		} catch (error) {
@@ -729,14 +762,48 @@ export const ComposerArea: React.FC = () => {
 
 	useEffect(() => {
 		if (state.streaming || steerSubmitting) return;
-		const draft = String(state.steerDraft || "").trim();
-		if (!draft) return;
-		setInputValue(draft);
+
+		let nextValue = inputValue;
+		let changed = false;
+
+		const draft = String(state.steerDraft || "");
+		if (draft.trim()) {
+			nextValue = appendTextBlock(nextValue, draft);
+			changed = true;
+		}
+
+		const pendingText = state.pendingSteers
+			.map((steer) => String(steer.message || "").trim())
+			.filter(Boolean)
+			.join("\n");
+		if (pendingText) {
+			nextValue = appendTextBlock(nextValue, pendingText);
+			changed = true;
+		}
+
+		if (!changed) return;
+
+		setInputValue(nextValue);
 		setSlashDismissed(false);
-		updateMentionSuggestions(draft);
-		dispatch({ type: "SET_STEER_DRAFT", draft: "" });
+		updateMentionSuggestions(nextValue);
+		if (draft.trim()) {
+			dispatch({ type: "SET_STEER_DRAFT", draft: "" });
+		}
+		if (state.pendingSteers.length > 0) {
+			dispatch({ type: "CLEAR_PENDING_STEERS" });
+		}
+		window.requestAnimationFrame(() => {
+			const el = textareaRef.current;
+			if (!el) return;
+			el.focus();
+			const caret = nextValue.length;
+			el.setSelectionRange(caret, caret);
+		});
 	}, [
+		appendTextBlock,
 		dispatch,
+		inputValue,
+		state.pendingSteers,
 		state.steerDraft,
 		state.streaming,
 		steerSubmitting,
@@ -801,34 +868,62 @@ export const ComposerArea: React.FC = () => {
 				</div>
 			)}
 			{state.mentionOpen && <MentionSuggest />}
-			{state.streaming && state.steerDraft.trim() && !isFrontendActive && (
+			{shouldShowSteerBar && (
 				<div className="steer-bar">
-					<div className="steer-preview" aria-live="polite">
-						<span className="steer-preview-label">
-							引导内容（只读）
-						</span>
-						<span className="steer-preview-text">
-							{state.steerDraft}
-						</span>
+					<div className="steer-queue" aria-live="polite">
+						{state.pendingSteers.map((steer, index) => (
+							<div
+								key={steer.steerId}
+								className="steer-preview is-pending"
+							>
+								<div className="steer-preview-header">
+									<span className="steer-preview-label">
+										待生效引导 {index + 1}
+									</span>
+									<span className="steer-preview-status">
+										等待 request.steer
+									</span>
+								</div>
+								<span className="steer-preview-text">
+									{steer.message}
+								</span>
+							</div>
+						))}
+						{hasSteerDraft && (
+							<div className="steer-preview">
+								<div className="steer-preview-header">
+									<span className="steer-preview-label">
+										待提交引导
+									</span>
+								</div>
+								<span className="steer-preview-text">
+									{state.steerDraft}
+								</span>
+							</div>
+						)}
 					</div>
-					<UiButton
-						className="steer-btn"
-						variant="primary"
-						size="sm"
-						disabled={!state.steerDraft.trim() || steerSubmitting}
-						onClick={handleSteer}
-					>
-						{steerSubmitting ? "提交中..." : "引导"}
-					</UiButton>
-					<UiButton
-						className="steer-cancel-btn"
-						variant="ghost"
-						size="sm"
-						disabled={steerSubmitting}
-						onClick={handleCancelSteer}
-					>
-						取消
-					</UiButton>
+					{hasSteerDraft && (
+						<div className="steer-preview-actions">
+							<UiButton
+								className="steer-btn"
+								variant="primary"
+								size="sm"
+								disabled={!state.steerDraft.trim() || steerSubmitting}
+								onClick={handleSteer}
+							>
+								{steerSubmitting ? "提交中..." : "引导"}
+							</UiButton>
+							<UiButton
+								className="steer-cancel-btn"
+								variant="ghost"
+								size="sm"
+								disabled={steerSubmitting}
+								onClick={handleCancelSteer}
+							>
+								取消
+							</UiButton>
+						</div>
+					)}
 				</div>
 			)}
 			<div
@@ -857,6 +952,12 @@ export const ComposerArea: React.FC = () => {
 						}
 					}}
 					onKeyDown={handleKeyDown}
+					onCompositionStart={() => {
+						isComposingRef.current = true;
+					}}
+					onCompositionEnd={() => {
+						isComposingRef.current = false;
+					}}
 				/>
 				<div className="composer-control-row">
 					<div className="composer-plus-wrap">

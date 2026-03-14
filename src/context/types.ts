@@ -11,6 +11,7 @@ export interface AgentEvent {
   chatId?: string;
   runId?: string;
   requestId?: string;
+  steerId?: string;
   contentId?: string;
   reasoningId?: string;
   toolId?: string;
@@ -88,6 +89,8 @@ export interface TimelineNode {
   id: string;
   kind: TimelineNodeKind;
   role?: TimelineRole;
+  messageVariant?: 'default' | 'steer';
+  steerId?: string;
   text?: string;
   status?: string;
   expanded?: boolean;
@@ -194,6 +197,14 @@ export interface Message {
   role: string;
   text: string;
   ts: number;
+}
+
+export interface PendingSteer {
+  steerId: string;
+  message: string;
+  requestId: string;
+  runId: string;
+  createdAt: number;
 }
 
 /* ============================================
@@ -334,6 +345,7 @@ export interface AppState {
   ttsDebugStatus: string;
   planningMode: boolean;
   steerDraft: string;
+  pendingSteers: PendingSteer[];
   downvotedRunKeys: Set<string>;
   eventPopoverIndex: number;
   eventPopoverEventRef: AgentEvent | null;

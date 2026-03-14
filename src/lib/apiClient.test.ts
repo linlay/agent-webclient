@@ -59,6 +59,7 @@ describe('apiClient query payloads', () => {
       requestId: 'req_steer',
       chatId: 'chat_1',
       runId: 'run_1',
+      steerId: '550e8400-e29b-41d4-a716-446655440000',
       message: '再试一次',
     });
 
@@ -67,5 +68,6 @@ describe('apiClient query payloads', () => {
 
     expect(interruptPayload.runId).toBe('run_1');
     expect(steerPayload.runId).toBe('run_1');
+    expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
   });
 });

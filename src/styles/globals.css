@@ -688,6 +688,11 @@ textarea {
   color: #f8fcff;
 }
 
+.timeline-user-bubble.is-steer {
+  width: fit-content;
+  max-width: min(100%, 720px);
+}
+
 .timeline-row-flow {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr);
@@ -721,7 +726,22 @@ textarea {
   font-size: 18px;
 }
 
+.node-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .node-icon-assistant {
+  color: var(--accent-electric);
+}
+
+.node-icon-steer {
   color: var(--accent-electric);
 }
 
@@ -1401,12 +1421,18 @@ textarea {
 .steer-bar {
   margin-bottom: 8px;
   display: flex;
+  flex-direction: column;
   align-items: stretch;
   gap: 8px;
 }
 
+.steer-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .steer-preview {
-  flex: 1;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
   border-radius: 12px;
@@ -1419,6 +1445,18 @@ textarea {
   gap: 4px;
 }
 
+.steer-preview.is-pending {
+  border-color: color-mix(in srgb, var(--accent-electric) 22%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-electric) 8%, var(--bg-elev-2));
+}
+
+.steer-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .steer-preview-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
@@ -1426,9 +1464,22 @@ textarea {
   letter-spacing: 0.02em;
 }
 
+.steer-preview-status {
+  color: var(--accent-electric);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .steer-preview-text {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.steer-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .steer-btn {

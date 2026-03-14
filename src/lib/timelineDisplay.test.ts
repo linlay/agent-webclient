@@ -62,4 +62,40 @@ describe('buildTimelineDisplayItems', () => {
 
     expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBe(190);
   });
+
+  it('treats run.cancel as a terminal event', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', ts: 130 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.cancel', timestamp: 160 },
+      ],
+    );
+
+    expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBe(160);
+  });
+
+  it('keeps request.steer-style nodes inside the current run group', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'steer_1', kind: 'message', role: 'user', messageVariant: 'steer', ts: 120 }),
+        createNode({ id: 'content_1', kind: 'content', ts: 130 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'request.steer', timestamp: 120, steerId: 'steer_1' },
+        { type: 'run.complete', timestamp: 160 },
+      ],
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items[1].kind === 'run' ? items[1].nodes.map((node) => node.id) : []).toEqual([
+      'steer_1',
+      'content_1',
+    ]);
+  });
 });

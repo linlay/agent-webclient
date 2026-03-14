@@ -75,4 +75,26 @@ describe('appReducer conversation reset behavior', () => {
       lastRunContent: 'Latest answer',
     });
   });
+
+  it('manages pending steer queue lifecycle', () => {
+    const baseState = createInitialState();
+
+    const queued = appReducer(baseState, {
+      type: 'ENQUEUE_PENDING_STEER',
+      steer: {
+        steerId: 'steer_1',
+        message: '改成北京',
+        requestId: 'req_1',
+        runId: 'run_1',
+        createdAt: 100,
+      },
+    });
+    const removed = appReducer(queued, {
+      type: 'REMOVE_PENDING_STEER',
+      steerId: 'steer_1',
+    });
+
+    expect(queued.pendingSteers).toHaveLength(1);
+    expect(removed.pendingSteers).toEqual([]);
+  });
 });

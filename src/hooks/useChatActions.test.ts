@@ -92,6 +92,26 @@ describe('replayEvent tool migration', () => {
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
     expect(state.planCurrentRunningTaskId).toBe('');
   });
+
+  it('replays request.steer as a user timeline node', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'request.steer',
+      steerId: 'steer_1',
+      message: '请收敛一点',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'run.cancel',
+      runId: 'run_1',
+      timestamp: 120,
+    });
+
+    const node = state.timelineNodes.get('steer_steer_1');
+    expect(node).toMatchObject({ role: 'user', messageVariant: 'steer', text: '请收敛一点' });
+    expect(state.events.at(-1)?.type).toBe('run.cancel');
+  });
 });
 
 describe('refreshWorkerDataWithCoordinator', () => {

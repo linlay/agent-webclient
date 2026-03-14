@@ -112,8 +112,9 @@ function isTerminalStatus(status?: string): boolean {
  * avoiding React 18 batching issues with rapid event processing.
  *
  * NOTE: request.query is NOT handled here — user messages during live
- * streaming are created by useMessageActions.sendMessage(). During history
- * replay, request.query is handled by useChatActions.replayEvent().
+ * streaming are created by useMessageActions.sendMessage(). request.steer
+ * is rendered here because the UI does not create a local optimistic node.
+ * During history replay, both are handled by useChatActions.replayEvent().
  */
 export function useAgentEventHandler() {
   const { dispatch, stateRef } = useAppContext();
@@ -241,12 +242,31 @@ export function useAgentEventHandler() {
       dispatch({ type: 'PUSH_EVENT', event });
       dispatch({ type: 'APPEND_DEBUG', line: `[${new Date().toLocaleTimeString()}] ${type}` });
 
-      /* request.query — SKIP in live mode; user node is already created by sendMessage */
-      if (type === 'request.query') {
-        // During live streaming, sendMessage already created the user node.
-        // During history replay, replayEvent handles this.
-        // So we only need to extract chatId/agentKey here if present.
+      /* request.query / request.steer */
+      if (type === 'request.query' || type === 'request.steer') {
+        const text = toText(event.message);
+        if (type === 'request.steer' && text) {
+          const steerId = toText(event.steerId) || toText(event.requestId) || String(Date.now());
+          dispatch({ type: 'REMOVE_PENDING_STEER', steerId });
+          const nodeId = `steer_${steerId}`;
+          dispatch({
+            type: 'SET_TIMELINE_NODE', id: nodeId,
+            node: {
+              id: nodeId,
+              kind: 'message',
+              role: 'user',
+              messageVariant: 'steer',
+              steerId,
+              text,
+              ts: event.timestamp || Date.now(),
+            },
+          });
+          dispatch({ type: 'APPEND_TIMELINE_ORDER', id: nodeId });
+        }
         if (event.chatId) dispatch({ type: 'SET_CHAT_ID', chatId: event.chatId });
+        if (event.runId && type === 'request.steer') {
+          dispatch({ type: 'SET_RUN_ID', runId: String(event.runId) });
+        }
         if (event.agentKey && event.chatId) {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: event.chatId, agentKey: String(event.agentKey) });
         }
@@ -254,14 +274,16 @@ export function useAgentEventHandler() {
           dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey: `agent:${String(event.agentKey)}` });
         }
         cache.chatId = toText(event.chatId) || toText(state.chatId);
-        cache.runId = '';
+        cache.runId = type === 'request.steer'
+          ? toText(event.runId) || cache.runId
+          : '';
         cache.agentKey = toText(event.agentKey) || toText(state.chatAgentById.get(cache.chatId)) || resolveSelectedWorkerContext(state).agentKey;
         cache.teamId = readEventTeamId(event) || resolveSelectedWorkerContext(state).teamId;
         upsertLiveChatSummary({
           event,
           cache,
           state,
-          lastRunContent: toText(event.message) || undefined,
+          lastRunContent: type === 'request.query' ? text || undefined : undefined,
         });
         return;
       }
@@ -288,15 +310,15 @@ export function useAgentEventHandler() {
         return;
       }
 
-      /* run.end / run.complete / run.error */
-      if (type === 'run.end' || type === 'run.error' || type === 'run.complete') {
+      /* run.end / run.complete / run.error / run.cancel */
+      if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
         upsertLiveChatSummary({
           event,
           cache,
           state,
         });
         dispatch({ type: 'SET_STREAMING', streaming: false });
-        getVoiceRuntime()?.stopAllVoiceSessions(type, { mode: 'commit' });
+        getVoiceRuntime()?.stopAllVoiceSessions(type, { mode: type === 'run.cancel' ? 'stop' : 'commit' });
         if (type === 'run.error' && event.error) {
           const nodeId = `sys_${Date.now()}`;
           dispatch({

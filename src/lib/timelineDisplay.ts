@@ -27,7 +27,7 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
   return events
     .filter((event) => {
       const type = String(event.type || '');
-      return type === 'run.end' || type === 'run.complete' || type === 'run.error';
+      return type === 'run.end' || type === 'run.complete' || type === 'run.error' || type === 'run.cancel';
     })
     .map((event) => ({
       timestamp: typeof event.timestamp === 'number' ? event.timestamp : undefined,
@@ -71,7 +71,9 @@ export function buildTimelineDisplayItems(
   };
 
   for (const node of nodes) {
-    const isUserQuery = node.kind === 'message' && node.role === 'user';
+    const isUserQuery = node.kind === 'message'
+      && node.role === 'user'
+      && node.messageVariant !== 'steer';
     if (isUserQuery) {
       flushRun();
       activeQueryNode = node;

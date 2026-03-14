@@ -203,7 +203,23 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
       const nodeId = `user_${event.requestId || rs.timelineCounter}`;
       rs.timelineCounter++;
       rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'message', role: 'user', text,
+        id: nodeId, kind: 'message', role: 'user', messageVariant: 'default', text,
+        ts: event.timestamp || Date.now(),
+      });
+      rs.timelineOrder.push(nodeId);
+    }
+    return;
+  }
+
+  /* request.steer */
+  if (type === 'request.steer') {
+    const text = safeText(event.message);
+    if (text) {
+      const steerId = String(event.steerId || event.requestId || rs.timelineCounter);
+      const nodeId = `steer_${steerId}`;
+      rs.timelineCounter++;
+      rs.timelineNodes.set(nodeId, {
+        id: nodeId, kind: 'message', role: 'user', messageVariant: 'steer', steerId, text,
         ts: event.timestamp || Date.now(),
       });
       rs.timelineOrder.push(nodeId);
@@ -221,8 +237,8 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
     return;
   }
 
-  /* run.end / run.complete / run.error */
-  if (type === 'run.end' || type === 'run.error' || type === 'run.complete') {
+  /* run.end / run.complete / run.error / run.cancel */
+  if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
     if (type === 'run.error' && event.error) {
       const nodeId = `sys_${rs.timelineCounter}`;
       rs.timelineCounter++;

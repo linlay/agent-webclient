@@ -169,6 +169,7 @@ export interface QueryLikeParams {
   requestId: string;
   chatId?: string;
   runId?: string;
+  steerId?: string;
   agentKey?: string;
   teamId?: string;
   message: string;
@@ -197,6 +198,7 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
       requestId: params.requestId,
       chatId: params.chatId,
       runId: params.runId,
+      steerId: params.steerId,
       agentKey: params.agentKey,
       teamId: params.teamId,
       message: params.message,

@@ -24,6 +24,7 @@ import type {
 	WorkerRow,
 	WorkerConversationRow,
 	UiTimerHandle,
+	PendingSteer,
 } from "./types";
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
@@ -108,6 +109,7 @@ export function createInitialState(): AppState {
 		ttsDebugStatus: "idle",
 		planningMode: false,
 		steerDraft: "",
+		pendingSteers: [],
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
@@ -159,6 +161,9 @@ export type AppAction =
 	| { type: "SET_PLANNING_MODE"; enabled: boolean }
 	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
 	| { type: "SET_STEER_DRAFT"; draft: string }
+	| { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
+	| { type: "REMOVE_PENDING_STEER"; steerId: string }
+	| { type: "CLEAR_PENDING_STEERS" }
 	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
 	| { type: "SET_MENTION_OPEN"; open: boolean }
 	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
@@ -243,6 +248,7 @@ function buildConversationResetState(
 			? state.workerChatPanelCollapsed
 			: true,
 		steerDraft: "",
+		pendingSteers: [],
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
@@ -382,6 +388,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, planAutoCollapseTimer: action.timer };
 		case "SET_STEER_DRAFT":
 			return { ...state, steerDraft: action.draft };
+		case "ENQUEUE_PENDING_STEER":
+			return {
+				...state,
+				pendingSteers: [...state.pendingSteers, action.steer],
+			};
+		case "REMOVE_PENDING_STEER":
+			return {
+				...state,
+				pendingSteers: state.pendingSteers.filter(
+					(steer) => steer.steerId !== action.steerId,
+				),
+			};
+		case "CLEAR_PENDING_STEERS":
+			if (state.pendingSteers.length === 0) {
+				return state;
+			}
+			return { ...state, pendingSteers: [] };
 		case "TOGGLE_RUN_DOWNVOTE": {
 			const downvotedRunKeys = new Set(state.downvotedRunKeys);
 			if (downvotedRunKeys.has(action.runKey)) {

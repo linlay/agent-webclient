@@ -75,10 +75,33 @@ export function formatTimelineTime(ts?: number): { short: string; full: string }
 	};
 }
 
-const NodeIcon: React.FC<{ kind: string; role?: string }> = ({
+const SteerIcon: React.FC = () => {
+	return (
+		<svg viewBox="0 0 16 16" aria-hidden="true">
+			<path d="M3.5 4.5h5.25a3.75 3.75 0 1 1 0 7.5H6.5" />
+			<path d="M7.5 2.75 3 4.5l4.5 1.75" />
+			<path d="M6.5 12h3.25" />
+		</svg>
+	);
+};
+
+const NodeIcon: React.FC<{
+	kind: string;
+	role?: string;
+	messageVariant?: TimelineNode["messageVariant"];
+}> = ({
 	kind,
 	role,
+	messageVariant,
 }) => {
+	if (messageVariant === "steer") {
+		return (
+			<span className="node-icon node-icon-steer">
+				<SteerIcon />
+			</span>
+		);
+	}
+
 	let className = "node-icon";
 	let iconName = "smart_toy";
 
@@ -127,7 +150,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 		) : null);
 
 	/* User messages */
-	if (node.kind === "message" && node.role === "user") {
+	if (
+		node.kind === "message" &&
+		node.role === "user" &&
+		node.messageVariant !== "steer"
+	) {
 		return (
 			<div
 				className="timeline-row timeline-row-user"
@@ -136,6 +163,33 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			>
 				<div className="timeline-user-stack">
 					<UserBubble text={node.text || ""} />
+					{timeNode}
+				</div>
+			</div>
+		);
+	}
+
+	if (
+		node.kind === "message" &&
+		node.role === "user" &&
+		node.messageVariant === "steer"
+	) {
+		return (
+			<div
+				className="timeline-row timeline-row-flow"
+				data-kind="message"
+				data-role="user"
+				data-variant="steer"
+			>
+				<div className="timeline-marker">
+					<NodeIcon
+						kind="message"
+						role="user"
+						messageVariant={node.messageVariant}
+					/>
+				</div>
+				<div className="timeline-flow-content">
+					<UserBubble text={node.text || ""} variant="steer" />
 					{timeNode}
 				</div>
 			</div>
