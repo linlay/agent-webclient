@@ -7,12 +7,17 @@ import { parseFrontendToolParams } from '../lib/frontendToolParams';
 import { pickToolName, resolveViewportKey } from '../lib/toolEvent';
 import { buildWorkerRows, createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';
+import {
+  buildSelectedWorkerConversationRows,
+  mergeFetchedChats,
+} from '../lib/chatSummary';
 
 type WorkerDataSnapshot = {
   agents: Agent[];
   teams: Team[];
   chats: Chat[];
   workerSelectionKey: string;
+  workerPriorityKey: string;
 };
 
 type WorkerRefreshOverrides = Partial<WorkerDataSnapshot>;
@@ -63,9 +68,10 @@ export async function refreshWorkerDataWithCoordinator(
   const nextTeams = settledValueOrFallback(teamsResult, current.teams, (message) => {
     options.appendDebug(`[loadTeams error] ${message}`);
   });
-  const nextChats = settledValueOrFallback(chatsResult, current.chats, (message) => {
+  const fetchedChats = settledValueOrFallback(chatsResult, current.chats, (message) => {
     options.appendDebug(`[loadChats error] ${message}`);
   });
+  const nextChats = mergeFetchedChats(current.chats, fetchedChats);
 
   if (agentsResult.status === 'fulfilled') {
     options.applyAgents(nextAgents);
@@ -87,6 +93,7 @@ export async function refreshWorkerDataWithCoordinator(
       teams: nextTeams,
       chats: nextChats,
       workerSelectionKey: current.workerSelectionKey,
+      workerPriorityKey: current.workerPriorityKey,
     });
   }
 }
@@ -554,6 +561,7 @@ export function useChatActions() {
       agents,
       teams,
       chats,
+      workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
     });
     const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
     if (workerSelectionKey) {
@@ -561,10 +569,11 @@ export function useChatActions() {
     }
     dispatch({ type: 'SET_WORKER_ROWS', rows });
 
-    const selectedWorker = rows.find((row) => row.key === workerSelectionKey) || null;
-    const workerChats = buildWorkerConversationRows({
+    const workerIndexByKey = new Map(rows.map((row) => [row.key, row] as const));
+    const workerChats = buildSelectedWorkerConversationRows({
       chats,
-      worker: selectedWorker,
+      workerSelectionKey,
+      workerIndexByKey,
     });
     dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
   }, [dispatch, ensureWorkerSelection, stateRef]);
@@ -574,6 +583,7 @@ export function useChatActions() {
     teams: stateRef.current.teams,
     chats: stateRef.current.chats,
     workerSelectionKey: stateRef.current.workerSelectionKey,
+    workerPriorityKey: stateRef.current.workerPriorityKey,
   }), [stateRef]);
 
   const loadAgents = useCallback(async () => {
@@ -601,13 +611,13 @@ export function useChatActions() {
   const loadChats = useCallback(async () => {
     try {
       const response = await getChats();
-      const chats = (response.data as Chat[]) || [];
+      const chats = mergeFetchedChats(stateRef.current.chats, (response.data as Chat[]) || []);
       dispatch({ type: 'SET_CHATS', chats });
       rebuildWorkerRowsFromState({ chats });
     } catch (error) {
       dispatch({ type: 'APPEND_DEBUG', line: `[loadChats error] ${(error as Error).message}` });
     }
-  }, [dispatch, rebuildWorkerRowsFromState]);
+  }, [dispatch, rebuildWorkerRowsFromState, stateRef]);
 
   const refreshWorkerData = useCallback(async () => {
     await refreshWorkerDataWithCoordinator({
@@ -808,6 +818,18 @@ export function useChatActions() {
     window.addEventListener('agent:refresh-worker-data', handler);
     return () => window.removeEventListener('agent:refresh-worker-data', handler);
   }, [refreshWorkerData]);
+
+  useEffect(() => {
+    rebuildWorkerRowsFromState({
+      workerPriorityKey: state.workerPriorityKey,
+    });
+  }, [rebuildWorkerRowsFromState, state.workerPriorityKey]);
+
+  useEffect(() => {
+    rebuildWorkerRowsFromState({
+      chats: state.chats,
+    });
+  }, [rebuildWorkerRowsFromState, state.chats]);
 
   /* Switch conversation mode */
   useEffect(() => {

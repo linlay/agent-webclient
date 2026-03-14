@@ -47,6 +47,8 @@ export interface DebugSseEntry {
   parsedEventName?: string;
 }
 
+export type UiTimerHandle = number;
+
 /* ============================================
    Timeline
    ============================================ */
@@ -202,7 +204,11 @@ export interface Chat {
   chatName?: string;
   firstAgentName?: string;
   firstAgentKey?: string;
+  agentKey?: string;
+  teamId?: string;
   updatedAt?: string | number;
+  lastRunId?: string;
+  lastRunContent?: string;
   [key: string]: unknown;
 }
 
@@ -273,6 +279,7 @@ export interface AppState {
   chats: Chat[];
   chatAgentById: Map<string, string>;
   pendingNewChatAgentKey: string;
+  workerPriorityKey: string;
   chatId: string;
   runId: string;
   requestId: string;
@@ -292,7 +299,7 @@ export interface AppState {
   contentNodeById: Map<string, string>;
   pendingTools: Map<string, PendingTool>;
   reasoningNodeById: Map<string, string>;
-  reasoningCollapseTimers: Map<string, ReturnType<typeof setTimeout>>;
+  reasoningCollapseTimers: Map<string, UiTimerHandle>;
   actionStates: Map<string, ActionState>;
   executedActionIds: Set<string>;
   timelineNodes: Map<string, TimelineNode>;
@@ -318,7 +325,7 @@ export interface AppState {
   layoutMode: LayoutMode;
   planExpanded: boolean;
   planManualOverride: boolean | null;
-  planAutoCollapseTimer: ReturnType<typeof setTimeout> | null;
+  planAutoCollapseTimer: UiTimerHandle | null;
   mentionOpen: boolean;
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;

@@ -84,6 +84,11 @@ export function useMessageActions() {
 
       if (!cleanMessage.trim()) return;
 
+      dispatch({
+        type: 'SET_WORKER_PRIORITY_KEY',
+        workerKey: selectedAgentKey ? `agent:${selectedAgentKey}` : '',
+      });
+
       if (mention.mentionAgentKey) {
         if (chatId) {
           dispatch({

@@ -1,9 +1,23 @@
 import { useCallback, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
-import type { AgentEvent, TimelineNode, ToolState } from '../context/types';
+import type {
+  AgentEvent,
+  AppState,
+  TimelineNode,
+  ToolState,
+  UiTimerHandle,
+} from '../context/types';
 import { parseContentSegments } from '../lib/contentSegments';
 import { parseFrontendToolParams } from '../lib/frontendToolParams';
-import { FRONTEND_VIEWPORT_TYPES, PLAN_AUTO_COLLAPSE_MS } from '../context/constants';
+import {
+  FRONTEND_VIEWPORT_TYPES,
+  PLAN_AUTO_COLLAPSE_MS,
+  REASONING_AUTO_COLLAPSE_MS,
+} from '../context/constants';
+import {
+  clearReasoningAutoCollapseTimer,
+  scheduleReasoningAutoCollapseTimer,
+} from '../lib/reasoningAutoCollapse';
 import { pickToolName, resolveViewportKey } from '../lib/toolEvent';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 
@@ -19,6 +33,39 @@ function safeText(value: unknown): string {
   return String(value);
 }
 
+function toText(value: unknown): string {
+  return String(value || '').trim();
+}
+
+function readEventTeamId(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>)?.teamId);
+}
+
+function readEventChatName(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>)?.chatName);
+}
+
+function readEventFirstAgentName(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>)?.firstAgentName);
+}
+
+function resolveSelectedWorkerContext(state: AppState): { agentKey: string; teamId: string } {
+  const selectedWorker = state.workerIndexByKey.get(toText(state.workerSelectionKey)) || null;
+  if (!selectedWorker) {
+    return { agentKey: '', teamId: '' };
+  }
+  if (selectedWorker.type === 'agent') {
+    return {
+      agentKey: toText(selectedWorker.sourceId),
+      teamId: '',
+    };
+  }
+  return {
+    agentKey: '',
+    teamId: toText(selectedWorker.sourceId),
+  };
+}
+
 /**
  * Local mutable cache to track node IDs and text between React renders.
  * This is critical because React 18 batches dispatches, so stateRef
@@ -32,6 +79,10 @@ interface LocalCache {
   nodeText: Map<string, string>;  // nodeId -> accumulated text
   counter: number;
   activeReasoningKey: string;
+  chatId: string;
+  runId: string;
+  agentKey: string;
+  teamId: string;
 }
 
 function createLocalCache(): LocalCache {
@@ -43,6 +94,10 @@ function createLocalCache(): LocalCache {
     nodeText: new Map(),
     counter: 0,
     activeReasoningKey: '',
+    chatId: '',
+    runId: '',
+    agentKey: '',
+    teamId: '',
   };
 }
 
@@ -79,11 +134,11 @@ export function useAgentEventHandler() {
 
   const schedulePlanAutoCollapse = useCallback(() => {
     clearPlanAutoCollapse();
-    const timer = window.setTimeout(() => {
+    const timer: UiTimerHandle = window.setTimeout(() => {
       dispatch({ type: 'SET_PLAN_EXPANDED', expanded: false });
       dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
       dispatch({ type: 'SET_PLAN_MANUAL_OVERRIDE', override: null });
-    }, PLAN_AUTO_COLLAPSE_MS) as unknown as ReturnType<typeof setTimeout>;
+    }, PLAN_AUTO_COLLAPSE_MS);
     dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer });
   }, [clearPlanAutoCollapse, dispatch]);
 
@@ -92,6 +147,79 @@ export function useAgentEventHandler() {
     dispatch({ type: 'SET_PLAN_MANUAL_OVERRIDE', override: null });
     schedulePlanAutoCollapse();
   }, [dispatch, schedulePlanAutoCollapse]);
+
+  const clearReasoningAutoCollapse = useCallback((reasoningKey: string) => {
+    clearReasoningAutoCollapseTimer({
+      reasoningId: reasoningKey,
+      getState: () => stateRef.current,
+      dispatch,
+    });
+  }, [dispatch, stateRef]);
+
+  const scheduleReasoningAutoCollapse = useCallback((reasoningKey: string, nodeId: string) => {
+    scheduleReasoningAutoCollapseTimer({
+      reasoningId: reasoningKey,
+      nodeId,
+      delayMs: REASONING_AUTO_COLLAPSE_MS,
+      getState: () => stateRef.current,
+      dispatch,
+    });
+  }, [dispatch, stateRef]);
+
+  const upsertLiveChatSummary = useCallback((input: {
+    event: AgentEvent;
+    cache: LocalCache;
+    state: AppState;
+    lastRunContent?: string;
+  }) => {
+    const { event, cache, state, lastRunContent } = input;
+    const selectedContext = resolveSelectedWorkerContext(state);
+    const chatId = toText(event.chatId) || cache.chatId || toText(state.chatId);
+    if (!chatId) {
+      return;
+    }
+
+    const runId = toText(event.runId) || cache.runId || toText(state.runId);
+    const existingChat = state.chats.find(
+      (chat) => toText(chat?.chatId) === chatId,
+    );
+    const rememberedAgentKey = toText(state.chatAgentById.get(chatId));
+    const agentKey =
+      toText(event.agentKey) ||
+      cache.agentKey ||
+      rememberedAgentKey ||
+      toText(existingChat?.agentKey || existingChat?.firstAgentKey) ||
+      selectedContext.agentKey;
+    const teamId =
+      readEventTeamId(event) ||
+      cache.teamId ||
+      toText(existingChat?.teamId) ||
+      selectedContext.teamId;
+    const timestamp = event.timestamp || Date.now();
+
+    cache.chatId = chatId;
+    cache.runId = runId;
+    cache.agentKey = agentKey;
+    cache.teamId = teamId;
+
+    dispatch({
+      type: 'UPSERT_CHAT',
+      chat: {
+        chatId,
+        chatName: readEventChatName(event) || undefined,
+        firstAgentName:
+          readEventFirstAgentName(event) ||
+          toText(existingChat?.firstAgentName) ||
+          undefined,
+        firstAgentKey: agentKey || undefined,
+        agentKey: agentKey || undefined,
+        teamId: teamId || undefined,
+        lastRunId: runId || undefined,
+        lastRunContent,
+        updatedAt: timestamp,
+      },
+    });
+  }, [dispatch]);
 
   const handleEvent = useCallback(
     (event: AgentEvent) => {
@@ -102,6 +230,12 @@ export function useAgentEventHandler() {
       // Sync counter from React state if it's ahead
       if (state.timelineCounter > cache.counter) {
         cache.counter = state.timelineCounter;
+      }
+      if (!state.streaming && !state.chatId && !event.chatId) {
+        cache.chatId = '';
+        cache.runId = '';
+        cache.agentKey = '';
+        cache.teamId = '';
       }
 
       dispatch({ type: 'PUSH_EVENT', event });
@@ -116,21 +250,51 @@ export function useAgentEventHandler() {
         if (event.agentKey && event.chatId) {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: event.chatId, agentKey: String(event.agentKey) });
         }
+        if (event.agentKey) {
+          dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey: `agent:${String(event.agentKey)}` });
+        }
+        cache.chatId = toText(event.chatId) || toText(state.chatId);
+        cache.runId = '';
+        cache.agentKey = toText(event.agentKey) || toText(state.chatAgentById.get(cache.chatId)) || resolveSelectedWorkerContext(state).agentKey;
+        cache.teamId = readEventTeamId(event) || resolveSelectedWorkerContext(state).teamId;
+        upsertLiveChatSummary({
+          event,
+          cache,
+          state,
+          lastRunContent: toText(event.message) || undefined,
+        });
         return;
       }
 
       /* run.start */
       if (type === 'run.start') {
+        cache.chatId = toText(event.chatId) || cache.chatId || toText(state.chatId);
+        cache.runId = toText(event.runId) || cache.runId;
+        cache.agentKey = toText(event.agentKey) || cache.agentKey || resolveSelectedWorkerContext(state).agentKey;
+        cache.teamId = readEventTeamId(event) || cache.teamId || resolveSelectedWorkerContext(state).teamId;
         if (event.runId) dispatch({ type: 'SET_RUN_ID', runId: event.runId });
         if (event.chatId) dispatch({ type: 'SET_CHAT_ID', chatId: event.chatId });
         if (event.agentKey && (event.chatId || state.chatId)) {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: event.chatId || state.chatId, agentKey: String(event.agentKey) });
         }
+        if (event.agentKey) {
+          dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey: `agent:${String(event.agentKey)}` });
+        }
+        upsertLiveChatSummary({
+          event,
+          cache,
+          state,
+        });
         return;
       }
 
       /* run.end / run.complete / run.error */
       if (type === 'run.end' || type === 'run.error' || type === 'run.complete') {
+        upsertLiveChatSummary({
+          event,
+          cache,
+          state,
+        });
         dispatch({ type: 'SET_STREAMING', streaming: false });
         getVoiceRuntime()?.stopAllVoiceSessions(type, { mode: 'commit' });
         if (type === 'run.error' && event.error) {
@@ -230,6 +394,12 @@ export function useAgentEventHandler() {
             },
           });
           getVoiceRuntime()?.processTtsVoiceBlocks(contentId, finalText, 'completed', 'live');
+          upsertLiveChatSummary({
+            event,
+            cache,
+            state,
+            lastRunContent: finalText || undefined,
+          });
         }
         return;
       }
@@ -259,6 +429,12 @@ export function useAgentEventHandler() {
           },
         });
         getVoiceRuntime()?.processTtsVoiceBlocks(contentId, text, 'completed', 'live');
+        upsertLiveChatSummary({
+          event,
+          cache,
+          state,
+          lastRunContent: text || undefined,
+        });
         return;
       }
 
@@ -274,6 +450,7 @@ export function useAgentEventHandler() {
         }
         cache.activeReasoningKey = reasoningKey;
         dispatch({ type: 'SET_ACTIVE_REASONING_KEY', key: reasoningKey });
+        clearReasoningAutoCollapse(reasoningKey);
 
         const delta = typeof event.delta === 'string' ? event.delta : '';
         const eventText = typeof event.text === 'string' ? event.text : '';
@@ -325,10 +502,11 @@ export function useAgentEventHandler() {
         dispatch({
           type: 'SET_TIMELINE_NODE', id: nodeId,
           node: {
-            id: nodeId, kind: 'thinking', text, status: 'completed', expanded: false,
+            id: nodeId, kind: 'thinking', text, status: 'completed', expanded: true,
             ts: event.timestamp || Date.now(),
           },
         });
+        scheduleReasoningAutoCollapse(reasoningKey, nodeId);
         cache.activeReasoningKey = '';
         dispatch({ type: 'SET_ACTIVE_REASONING_KEY', key: '' });
         return;
@@ -629,7 +807,14 @@ export function useAgentEventHandler() {
         return;
       }
     },
-    [dispatch, expandPlanForUpdate, stateRef]
+    [
+      clearReasoningAutoCollapse,
+      dispatch,
+      expandPlanForUpdate,
+      scheduleReasoningAutoCollapse,
+      stateRef,
+      upsertLiveChatSummary,
+    ]
   );
 
   return { handleEvent, resetCache };

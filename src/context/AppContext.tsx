@@ -23,6 +23,7 @@ import type {
 	Team,
 	WorkerRow,
 	WorkerConversationRow,
+	UiTimerHandle,
 } from "./types";
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
@@ -30,6 +31,7 @@ import {
 	MAX_EVENTS,
 } from "./constants";
 import type { DebugTab, LayoutMode } from "./constants";
+import { upsertChatSummary } from "../lib/chatSummary";
 
 /* ============================================
    Initial State Factory
@@ -46,6 +48,7 @@ export function createInitialState(): AppState {
 		chats: [],
 		chatAgentById: new Map(),
 		pendingNewChatAgentKey: "",
+		workerPriorityKey: "",
 		chatId: "",
 		runId: "",
 		requestId: "",
@@ -119,6 +122,7 @@ export type AppAction =
 	| { type: "SET_AGENTS"; agents: Agent[] }
 	| { type: "SET_TEAMS"; teams: Team[] }
 	| { type: "SET_CHATS"; chats: Chat[] }
+	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }
 	| { type: "SET_REQUEST_ID"; requestId: string }
@@ -149,10 +153,11 @@ export type AppAction =
 	| { type: "SET_WORKER_CHAT_PANEL_COLLAPSED"; collapsed: boolean }
 	| { type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED"; enabled: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
+	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
 	| { type: "SET_ACCESS_TOKEN"; token: string }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
 	| { type: "SET_PLANNING_MODE"; enabled: boolean }
-	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: ReturnType<typeof setTimeout> | null }
+	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
 	| { type: "SET_STEER_DRAFT"; draft: string }
 	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
 	| { type: "SET_MENTION_OPEN"; open: boolean }
@@ -178,6 +183,12 @@ export type AppAction =
 	| { type: "SET_MESSAGE_ORDER"; order: string[] }
 	| { type: "SET_CONTENT_NODE_BY_ID"; contentId: string; nodeId: string }
 	| { type: "SET_REASONING_NODE_BY_ID"; reasoningId: string; nodeId: string }
+	| {
+			type: "SET_REASONING_COLLAPSE_TIMER";
+			reasoningId: string;
+			timer: UiTimerHandle;
+	  }
+	| { type: "CLEAR_REASONING_COLLAPSE_TIMER"; reasoningId: string }
 	| { type: "SET_TOOL_NODE_BY_ID"; toolId: string; nodeId: string }
 	| { type: "SET_ACTIVE_REASONING_KEY"; key: string }
 	| { type: "SET_CHAT_AGENT_BY_ID"; chatId: string; agentKey: string }
@@ -247,6 +258,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return { ...state, chats: action.chats };
+		case "UPSERT_CHAT":
+			return {
+				...state,
+				chats: upsertChatSummary(state.chats, action.chat),
+			};
 		case "SET_CHAT_ID":
 			return { ...state, chatId: action.chatId };
 		case "SET_RUN_ID":
@@ -354,6 +370,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, desktopDebugSidebarEnabled: action.enabled };
 		case "SET_PENDING_NEW_CHAT_AGENT_KEY":
 			return { ...state, pendingNewChatAgentKey: action.agentKey };
+		case "SET_WORKER_PRIORITY_KEY":
+			return { ...state, workerPriorityKey: action.workerKey };
 		case "SET_ACCESS_TOKEN":
 			return { ...state, accessToken: action.token };
 		case "SET_TTS_DEBUG_STATUS":
@@ -435,6 +453,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			reasoningNodeById.set(action.reasoningId, action.nodeId);
 			return { ...state, reasoningNodeById };
 		}
+		case "SET_REASONING_COLLAPSE_TIMER": {
+			const reasoningCollapseTimers = new Map(
+				state.reasoningCollapseTimers,
+			);
+			reasoningCollapseTimers.set(action.reasoningId, action.timer);
+			return { ...state, reasoningCollapseTimers };
+		}
+		case "CLEAR_REASONING_COLLAPSE_TIMER": {
+			if (!state.reasoningCollapseTimers.has(action.reasoningId)) {
+				return state;
+			}
+			const reasoningCollapseTimers = new Map(
+				state.reasoningCollapseTimers,
+			);
+			reasoningCollapseTimers.delete(action.reasoningId);
+			return { ...state, reasoningCollapseTimers };
+		}
 		case "SET_TOOL_NODE_BY_ID": {
 			const toolNodeById = new Map(state.toolNodeById);
 			toolNodeById.set(action.toolId, action.nodeId);
@@ -476,13 +511,25 @@ const AppContext = createContext<AppContextValue | null>(null);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
-	const [state, dispatch] = useReducer(
+	const [state, baseDispatch] = useReducer(
 		appReducer,
 		undefined,
 		createInitialState,
 	);
 	const stateRef = useRef(state);
 	stateRef.current = state;
+
+	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
+		if (
+			action.type === "RESET_CONVERSATION" ||
+			action.type === "RESET_ACTIVE_CONVERSATION"
+		) {
+			for (const timer of stateRef.current.reasoningCollapseTimers.values()) {
+				clearTimeout(timer);
+			}
+		}
+		baseDispatch(action);
+	}, []);
 
 	const value = useMemo<AppContextValue>(
 		() => ({ state, dispatch, stateRef }),

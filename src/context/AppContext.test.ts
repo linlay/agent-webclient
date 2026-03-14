@@ -40,4 +40,39 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.workerChatPanelCollapsed).toBe(false);
     expect(next.timelineOrder).toEqual([]);
   });
+
+  it('upserts chat summaries without dropping existing metadata', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chats: [
+        {
+          chatId: 'chat_1',
+          chatName: 'Original chat',
+          firstAgentName: 'Alice',
+          firstAgentKey: 'agent-alice',
+          agentKey: 'agent-alice',
+        },
+      ],
+    };
+
+    const next = appReducer(state, {
+      type: 'UPSERT_CHAT',
+      chat: {
+        chatId: 'chat_1',
+        lastRunId: 'run_2',
+        lastRunContent: 'Latest answer',
+      },
+    });
+
+    expect(next.chats[0]).toMatchObject({
+      chatId: 'chat_1',
+      chatName: 'Original chat',
+      firstAgentName: 'Alice',
+      firstAgentKey: 'agent-alice',
+      agentKey: 'agent-alice',
+      lastRunId: 'run_2',
+      lastRunContent: 'Latest answer',
+    });
+  });
 });

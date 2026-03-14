@@ -123,6 +123,7 @@ describe('refreshWorkerDataWithCoordinator', () => {
         teams: currentTeams,
         chats: currentChats,
         workerSelectionKey: 'team:team-old',
+        workerPriorityKey: 'agent:agent-old',
       }),
       applyAgents: jest.fn((agents: Agent[]) => {
         steps.push(`apply:agents:${agents[0]?.key || ''}`);
@@ -177,6 +178,7 @@ describe('refreshWorkerDataWithCoordinator', () => {
         teams: currentTeams,
         chats: currentChats,
         workerSelectionKey: 'team:team-old',
+        workerPriorityKey: 'agent:agent-old',
       }),
       applyAgents,
       applyTeams,
@@ -188,13 +190,20 @@ describe('refreshWorkerDataWithCoordinator', () => {
     expect(appendDebug).toHaveBeenCalledWith('[loadAgents error] agents unavailable');
     expect(applyAgents).not.toHaveBeenCalled();
     expect(applyTeams).toHaveBeenCalledWith([{ teamId: 'team-new', name: 'New Team' }]);
-    expect(applyChats).toHaveBeenCalledWith([{ chatId: 'chat-new', chatName: 'New Chat' }]);
+    expect(applyChats).toHaveBeenCalledWith([
+      { chatId: 'chat-new', chatName: 'New Chat' },
+      { chatId: 'chat-old', chatName: 'Old Chat' },
+    ]);
     expect(rebuildWorkerRows).toHaveBeenCalledTimes(1);
     expect(rebuildWorkerRows).toHaveBeenCalledWith({
       agents: currentAgents,
       teams: [{ teamId: 'team-new', name: 'New Team' }],
-      chats: [{ chatId: 'chat-new', chatName: 'New Chat' }],
+      chats: [
+        { chatId: 'chat-new', chatName: 'New Chat' },
+        { chatId: 'chat-old', chatName: 'Old Chat' },
+      ],
       workerSelectionKey: 'team:team-old',
+      workerPriorityKey: 'agent:agent-old',
     });
   });
 });

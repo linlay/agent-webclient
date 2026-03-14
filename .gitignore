@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 .vite/
+.package-lock.json
 
 # Test & coverage
 coverage/
