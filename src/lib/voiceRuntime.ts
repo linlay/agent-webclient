@@ -1,7 +1,7 @@
 import type { AppState, TtsVoiceBlock } from '../context/types';
 import { parseContentSegments } from './contentSegments';
 
-const VOICE_WS_PATH = '/api/ap/ws/voice';
+const VOICE_WS_PATH = '/api/ws/voice';
 const DEFAULT_SAMPLE_RATE = 24000;
 const DEFAULT_CHANNELS = 1;
 const VOICE_WS_CONNECT_TIMEOUT_MS = 8000;

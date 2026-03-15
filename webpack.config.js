@@ -4,6 +4,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
+const voiceTarget = String(process.env.VOICE_BASE_URL || '').trim();
 const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
 const allowedHosts = allowedHostsEnv === 'all'
   ? 'all'
@@ -17,6 +18,9 @@ module.exports = (env, argv) => {
 
   if (!isProd && !apiTarget) {
     throw new Error('BASE_URL is required for development. Copy .env.example to .env and set BASE_URL.');
+  }
+  if (!isProd && !voiceTarget) {
+    throw new Error('VOICE_BASE_URL is required for development. Copy .env.example to .env and set VOICE_BASE_URL.');
   }
 
   return {
@@ -86,13 +90,13 @@ module.exports = (env, argv) => {
       historyApiFallback: true,
       proxy: [
         {
-          context: ['/api/ap/ws/voice'],
-          target: apiTarget,
+          context: ['/api/ws/voice'],
+          target: voiceTarget,
           changeOrigin: true,
           ws: true,
         },
         {
-          context: ['/api/ap'],
+          context: ['/api'],
           target: apiTarget,
           changeOrigin: true,
           ws: false,
@@ -103,7 +107,7 @@ module.exports = (env, argv) => {
             const accept = String(req.headers.accept || '');
             const reqUrl = String(req.url || '');
             const isSseRequest = accept.includes('text/event-stream')
-              || reqUrl.startsWith('/api/ap/query');
+              || reqUrl.startsWith('/api/query');
             if (isSseRequest) {
               res.writeHead(res.statusCode, {
                 'Content-Type': 'text/event-stream',

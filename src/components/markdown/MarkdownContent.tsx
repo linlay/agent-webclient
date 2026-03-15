@@ -37,7 +37,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
 			(match, alt, src) => {
 				if (src.startsWith("data:") || src.startsWith("blob:"))
 					return match;
-				const proxiedSrc = `/api/ap/data?file=${encodeURIComponent(src)}`;
+				const proxiedSrc = `/api/data?file=${encodeURIComponent(src)}`;
 				return `![${alt}](${proxiedSrc})`;
 			},
 		);

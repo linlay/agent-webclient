@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## 1. 项目概览
-`agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/ap/*` 接口并展示会话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
+`agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*` 接口并展示会话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
 ## 2. 技术栈
 - 语言：TypeScript
@@ -18,10 +18,10 @@
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
-- `useMessageActions` 发起 `/api/ap/query` SSE 请求
+- `useMessageActions` 发起 `/api/query` SSE 请求
 - `sseParser` 和 `useAgentEventHandler` 将流式事件归并为时间线节点
 - Timeline、Sidebar、Plan Panel、Frontend Tool 容器根据状态树渲染
-- `voiceRuntime` 与 `/api/ap/ws/voice` 负责 TTS 音频播放链路
+- `voiceRuntime` 与 `/api/ws/voice` 负责 TTS 音频播放链路
 
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
@@ -46,29 +46,29 @@
 
 ## 6. API 定义
 接口消费封装位于 [`src/lib/apiClient.ts`](./src/lib/apiClient.ts)，当前使用的主要接口包括：
-- `GET /api/ap/agents`
-- `GET /api/ap/teams`
-- `GET /api/ap/agent`
-- `GET /api/ap/skills`
-- `GET /api/ap/skill`
-- `GET /api/ap/tools`
-- `GET /api/ap/tool`
-- `GET /api/ap/chats`
-- `GET /api/ap/chat`
-- `GET /api/ap/viewport`
-- `POST /api/ap/query`：SSE 对话流
-- `POST /api/ap/submit`
-- `POST /api/ap/interrupt`
-- `POST /api/ap/steer`
-- `GET /api/ap/data`
-- `GET /api/ap/ws/voice`：TTS WebSocket
+- `GET /api/agents`
+- `GET /api/teams`
+- `GET /api/agent`（已下线，不再使用）
+- `GET /api/skills`
+- `GET /api/skill`（已下线，不再使用）
+- `GET /api/tools`
+- `GET /api/tool`
+- `GET /api/chats`
+- `GET /api/chat`
+- `GET /api/viewport`
+- `POST /api/query`：SSE 对话流
+- `POST /api/submit`
+- `POST /api/interrupt`
+- `POST /api/steer`
+- `GET /api/data`
+- `GET /api/ws/voice`：TTS WebSocket
 
 接口统一按 `ApiResponse` 结构读取，错误会被包装为 `ApiError`。
 
 ## 7. 开发要点
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
-- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，代理目标由 `BASE_URL` 控制。
-- 生产容器通过根目录 `nginx.conf` 模板反向代理 `/api/ap/*`，启动时注入 `BASE_URL`。
+- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 代理目标由 `BASE_URL` 控制，语音 WebSocket 代理目标由 `VOICE_BASE_URL` 控制。
+- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 到 `BASE_URL`，并将 `/api/ws/voice` 单独反向代理到 `VOICE_BASE_URL`。
 - SSE 请求需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition` 与后端 WebSocket 能力，浏览器兼容性需单独验证。
 - `package-lock.json` 已移除，Docker 与本地安装统一走非锁定依赖解析。
@@ -82,7 +82,7 @@
 5. `make build`
 
 容器联调流程：
-1. 在 `.env` 中设置可访问的 `BASE_URL`
+1. 在 `.env` 中设置可访问的 `BASE_URL` 与 `VOICE_BASE_URL`
 2. 执行 `make docker-up`
 3. 通过 `docker compose logs -f webclient` 检查容器与代理状态
 4. 需要重建镜像时执行 `make docker-build`

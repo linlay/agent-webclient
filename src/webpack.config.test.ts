@@ -11,6 +11,7 @@ describe('webpack devServer proxy', () => {
       ...originalEnv,
       NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -18,7 +19,7 @@ describe('webpack devServer proxy', () => {
     const config = configFactory({}, { mode: 'development' });
     const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
     const voiceRule = proxyRules.find((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/api/ap/ws/voice'));
+      Array.isArray(rule.context) && rule.context.includes('/api/ws/voice'));
 
     expect(voiceRule).toBeTruthy();
     expect(voiceRule.ws).toBe(true);

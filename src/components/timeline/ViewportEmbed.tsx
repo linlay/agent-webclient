@@ -10,7 +10,7 @@ interface ViewportEmbedProps {
 
 /**
  * ViewportEmbed — renders a single embedded viewport.
- * Calls /api/ap/viewport?viewportKey=<key> to fetch HTML,
+ * Calls /api/viewport?viewportKey=<key> to fetch HTML,
  * renders it in an iframe, then postMessage(payload) to the iframe
  * so the viewport HTML can populate its data.
  */

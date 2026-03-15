@@ -108,54 +108,46 @@ export function createRequestId(prefix = 'req'): string {
 }
 
 export function getAgents(): Promise<ApiResponse> {
-  return requestJson('/api/ap/agents');
+  return requestJson('/api/agents');
 }
 
 export function getTeams(): Promise<ApiResponse> {
-  return requestJson('/api/ap/teams');
+  return requestJson('/api/teams');
 }
 
-export function getAgent(agentKey: string): Promise<ApiResponse> {
-  const query = toQueryString({ agentKey });
-  return requestJson(query ? `/api/ap/agent?${query}` : '/api/ap/agent');
-}
 
 export function getSkills(tag?: string): Promise<ApiResponse> {
   const query = toQueryString({ tag });
-  return requestJson(query ? `/api/ap/skills?${query}` : '/api/ap/skills');
+  return requestJson(query ? `/api/skills?${query}` : '/api/skills');
 }
 
-export function getSkill(skillId: string): Promise<ApiResponse> {
-  const query = toQueryString({ skillId });
-  return requestJson(query ? `/api/ap/skill?${query}` : '/api/ap/skill');
-}
 
 export function getTools(options: { tag?: string; kind?: string } = {}): Promise<ApiResponse> {
   const query = toQueryString({ tag: options.tag, kind: options.kind });
-  return requestJson(query ? `/api/ap/tools?${query}` : '/api/ap/tools');
+  return requestJson(query ? `/api/tools?${query}` : '/api/tools');
 }
 
 export function getTool(toolName: string): Promise<ApiResponse> {
   const query = toQueryString({ toolName });
-  return requestJson(query ? `/api/ap/tool?${query}` : '/api/ap/tool');
+  return requestJson(query ? `/api/tool?${query}` : '/api/tool');
 }
 
 export function getChats(): Promise<ApiResponse> {
-  return requestJson('/api/ap/chats');
+  return requestJson('/api/chats');
 }
 
 export function getChat(chatId: string, includeRawMessages = false): Promise<ApiResponse> {
   const query = toQueryString({ chatId, includeRawMessages: includeRawMessages ? 'true' : undefined });
-  return requestJson(`/api/ap/chat?${query}`);
+  return requestJson(`/api/chat?${query}`);
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
   const query = toQueryString({ viewportKey });
-  return requestJson(`/api/ap/viewport?${query}`);
+  return requestJson(`/api/viewport?${query}`);
 }
 
 export function submitTool(params: { runId: string; toolId: string; params: Record<string, unknown> }): Promise<ApiResponse> {
-  return requestJson('/api/ap/submit', {
+  return requestJson('/api/submit', {
     method: 'POST',
     body: JSON.stringify({
       runId: params.runId,
@@ -177,7 +169,7 @@ export interface QueryLikeParams {
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson('/api/ap/interrupt', {
+  return requestJson('/api/interrupt', {
     method: 'POST',
     body: JSON.stringify({
       requestId: params.requestId,
@@ -192,7 +184,7 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson('/api/ap/steer', {
+  return requestJson('/api/steer', {
     method: 'POST',
     body: JSON.stringify({
       requestId: params.requestId,
@@ -238,7 +230,7 @@ export function createQueryStream(options: QueryStreamParams): Promise<Response>
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
 
-  return fetch('/api/ap/query', {
+  return fetch('/api/query', {
     method: 'POST',
     headers: buildAuthHeaders({
       Accept: 'text/event-stream',

@@ -19,7 +19,8 @@ describe('apiClient query payloads', () => {
       message: '显示广州的天气',
     });
 
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_1',
       planningMode: false,
@@ -38,7 +39,8 @@ describe('apiClient query payloads', () => {
       agentKey: 'demoViewport',
     });
 
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_2',
       planningMode: true,
@@ -62,6 +64,9 @@ describe('apiClient query payloads', () => {
       steerId: '550e8400-e29b-41d4-a716-446655440000',
       message: '再试一次',
     });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/interrupt');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/steer');
 
     const interruptPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
     const steerPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
