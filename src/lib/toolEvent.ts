@@ -1,7 +1,7 @@
 import type { AgentEvent } from '../context/types';
 
-export function resolveViewportKey(event: Pick<AgentEvent, 'viewportKey' | 'toolKey'>): string {
-  return String(event.viewportKey || event.toolKey || '').trim();
+export function resolveViewportKey(event: Pick<AgentEvent, 'viewportKey'>): string {
+  return String(event.viewportKey || '').trim();
 }
 
 export function pickToolName(...candidates: Array<unknown>): string {

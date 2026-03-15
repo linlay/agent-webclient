@@ -60,7 +60,7 @@ export function summarizeEvent(event: AgentEvent): string {
     const label = resolveToolLabel({
       toolLabel: safeStr(event.toolLabel),
       toolName: safeStr(event.toolName),
-      viewportKey: safeStr(event.viewportKey || event.toolKey),
+      viewportKey: safeStr(event.viewportKey),
       toolId: safeStr(event.toolId),
     }, '');
     return [label, kv].filter(Boolean).join(' ').trim();

@@ -32,13 +32,11 @@ export interface AgentEvent {
   toolName?: string;
   toolType?: string;
   viewportKey?: string;
-  toolKey?: string;
   toolTimeout?: number | null;
   toolParams?: Record<string, unknown>;
+  actionParams?: Record<string, unknown>;
   description?: string;
   actionName?: string;
-  arguments?: string;
-  function?: { arguments?: unknown };
   [key: string]: unknown;
 }
 
@@ -215,6 +213,7 @@ export interface CommandModalState {
   open: boolean;
   type: CommandModalType;
   searchText: string;
+  historySearch: string;
   activeIndex: number;
   scope: CommandModalScope;
   focusArea: CommandModalFocusArea;

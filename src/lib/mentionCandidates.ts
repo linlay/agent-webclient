@@ -1,8 +1,6 @@
 import type { Agent, AppState, Team } from '../context/types';
-
-function toText(value: unknown): string {
-  return String(value || '').trim();
-}
+import { toText } from './eventUtils';
+import { readTeamAgentKeys } from './teamUtils';
 
 function normalizeAgents(agents: Agent[]): Array<{ key: string; name: string; role: string }> {
   if (!Array.isArray(agents)) return [];
@@ -13,49 +11,6 @@ function normalizeAgents(agents: Agent[]): Array<{ key: string; name: string; ro
       role: toText(item?.role),
     }))
     .filter((item) => item.key);
-}
-
-function pushTeamAgentKeys(raw: unknown, keys: string[], seen: Set<string>): void {
-  const normalized = toText(raw);
-  if (!normalized) return;
-  const parts = normalized
-    .split(/[,\uFF0C]/)
-    .map((part) => toText(part))
-    .filter(Boolean);
-  for (const key of parts) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    keys.push(key);
-  }
-}
-
-function readTeamAgentKeys(team: Team): string[] {
-  const keys: string[] = [];
-  const seen = new Set<string>();
-  const candidates: unknown[] = [];
-  candidates.push(team?.agentKey);
-  if (Array.isArray(team?.agentKeys)) candidates.push(...team.agentKeys);
-
-  for (const item of Array.isArray(team?.agents) ? team.agents : []) {
-    if (typeof item === 'string') {
-      candidates.push(item);
-    } else {
-      candidates.push(item?.agentKey, item?.key);
-    }
-  }
-
-  for (const item of Array.isArray(team?.members) ? team.members : []) {
-    if (typeof item === 'string') {
-      candidates.push(item);
-    } else {
-      candidates.push(item?.agentKey, item?.key);
-    }
-  }
-
-  for (const candidate of candidates) {
-    pushTeamAgentKeys(candidate, keys, seen);
-  }
-  return keys;
 }
 
 function resolveTeamById(teams: Team[], teamId: string): Team | null {
@@ -89,4 +44,3 @@ export function resolveMentionCandidatesFromState(state: AppState): Agent[] {
   const agentsByKey = new Map(allAgents.map((item) => [item.key, item]));
   return teamAgentKeys.map((key) => agentsByKey.get(key) || { key, name: key, role: '--' }) as Agent[];
 }
-

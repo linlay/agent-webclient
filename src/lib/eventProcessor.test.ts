@@ -1,0 +1,237 @@
+import type {
+  AgentEvent,
+  Plan,
+  PlanRuntime,
+  TimelineNode,
+  ToolState,
+} from '../context/types';
+import type { EventCommand, EventProcessorState } from './eventProcessor';
+import { processEvent } from './eventProcessor';
+
+type TestState = {
+  timelineNodes: Map<string, TimelineNode>;
+  timelineOrder: string[];
+  contentNodeById: Map<string, string>;
+  reasoningNodeById: Map<string, string>;
+  toolNodeById: Map<string, string>;
+  toolStates: Map<string, ToolState>;
+  timelineCounter: number;
+  activeReasoningKey: string;
+  chatId: string;
+  runId: string;
+  plan: Plan | null;
+  planRuntimeByTaskId: Map<string, PlanRuntime>;
+  planCurrentRunningTaskId: string;
+  planLastTouchedTaskId: string;
+};
+
+function createState(): TestState {
+  return {
+    timelineNodes: new Map(),
+    timelineOrder: [],
+    contentNodeById: new Map(),
+    reasoningNodeById: new Map(),
+    toolNodeById: new Map(),
+    toolStates: new Map(),
+    timelineCounter: 0,
+    activeReasoningKey: '',
+    chatId: '',
+    runId: '',
+    plan: null,
+    planRuntimeByTaskId: new Map(),
+    planCurrentRunningTaskId: '',
+    planLastTouchedTaskId: '',
+  };
+}
+
+function buildProcessorState(state: TestState): EventProcessorState {
+  return {
+    getContentNodeId: (contentId) => state.contentNodeById.get(contentId),
+    getReasoningNodeId: (reasoningId) => state.reasoningNodeById.get(reasoningId),
+    getToolNodeId: (toolId) => state.toolNodeById.get(toolId),
+    getToolState: (toolId) => state.toolStates.get(toolId),
+    getTimelineNode: (nodeId) => state.timelineNodes.get(nodeId),
+    getNodeText: (nodeId) => state.timelineNodes.get(nodeId)?.text || '',
+    nextCounter: () => state.timelineCounter++,
+    peekCounter: () => state.timelineCounter,
+    activeReasoningKey: state.activeReasoningKey,
+    chatId: state.chatId,
+    runId: state.runId,
+    currentRunningPlanTaskId: state.planCurrentRunningTaskId,
+    getPlanId: () => state.plan?.planId,
+  };
+}
+
+function applyCommands(state: TestState, commands: EventCommand[]): void {
+  for (const command of commands) {
+    switch (command.cmd) {
+      case 'SET_CHAT_ID':
+        state.chatId = command.chatId;
+        break;
+      case 'SET_RUN_ID':
+        state.runId = command.runId;
+        break;
+      case 'SET_CHAT_AGENT':
+        break;
+      case 'SET_CONTENT_NODE_ID':
+        state.contentNodeById.set(command.contentId, command.nodeId);
+        break;
+      case 'SET_REASONING_NODE_ID':
+        state.reasoningNodeById.set(command.reasoningId, command.nodeId);
+        break;
+      case 'SET_TOOL_NODE_ID':
+        state.toolNodeById.set(command.toolId, command.nodeId);
+        break;
+      case 'APPEND_TIMELINE_ORDER':
+        state.timelineOrder.push(command.nodeId);
+        break;
+      case 'SET_TIMELINE_NODE':
+        state.timelineNodes.set(command.id, command.node);
+        break;
+      case 'SET_TOOL_STATE':
+        state.toolStates.set(command.toolId, command.state);
+        break;
+      case 'SET_ACTIVE_REASONING_KEY':
+        state.activeReasoningKey = command.key;
+        break;
+      case 'SET_PLAN':
+        state.plan = command.plan;
+        if (command.resetRuntime) {
+          state.planRuntimeByTaskId = new Map();
+          state.planCurrentRunningTaskId = '';
+          state.planLastTouchedTaskId = '';
+        }
+        break;
+      case 'SET_PLAN_RUNTIME':
+        state.planRuntimeByTaskId.set(command.taskId, command.runtime);
+        break;
+      case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
+        state.planCurrentRunningTaskId = command.taskId;
+        break;
+      case 'SET_PLAN_LAST_TOUCHED_TASK_ID':
+        state.planLastTouchedTaskId = command.taskId;
+        break;
+      case 'USER_MESSAGE':
+        state.timelineNodes.set(command.nodeId, {
+          id: command.nodeId,
+          kind: 'message',
+          role: 'user',
+          messageVariant: command.variant,
+          steerId: command.steerId,
+          text: command.text,
+          ts: command.ts,
+        });
+        state.timelineOrder.push(command.nodeId);
+        break;
+      case 'SYSTEM_ERROR':
+        state.timelineNodes.set(command.nodeId, {
+          id: command.nodeId,
+          kind: 'message',
+          role: 'system',
+          text: command.text,
+          ts: command.ts,
+        });
+        state.timelineOrder.push(command.nodeId);
+        break;
+    }
+  }
+}
+
+function processAndApply(state: TestState, event: AgentEvent, mode: 'live' | 'replay', reasoningExpandedDefault: boolean): EventCommand[] {
+  const commands = processEvent(event, buildProcessorState(state), { mode, reasoningExpandedDefault });
+  applyCommands(state, commands);
+  return commands;
+}
+
+describe('processEvent', () => {
+  it('creates request.query user nodes only during replay', () => {
+    const replayState = createState();
+    const liveState = createState();
+
+    const replayCommands = processEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(replayState), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+    const liveCommands = processEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(liveState), {
+      mode: 'live',
+      reasoningExpandedDefault: true,
+    });
+
+    expect(replayCommands).toEqual([
+      {
+        cmd: 'USER_MESSAGE',
+        nodeId: 'user_req_1',
+        text: 'hello',
+        ts: expect.any(Number),
+        variant: 'default',
+      },
+    ]);
+    expect(liveCommands).toEqual([]);
+  });
+
+  it('reuses content nodes until terminal state then creates a new one', () => {
+    const state = createState();
+
+    processAndApply(state, { type: 'content.delta', contentId: 'c1', delta: 'hello' }, 'replay', false);
+    const firstNodeId = state.contentNodeById.get('c1');
+    processAndApply(state, { type: 'content.end', contentId: 'c1', text: 'hello' }, 'replay', false);
+    processAndApply(state, { type: 'content.delta', contentId: 'c1', delta: 'again' }, 'replay', false);
+
+    expect(firstNodeId).toBe('content_0');
+    expect(state.contentNodeById.get('c1')).toBe('content_1');
+    expect(state.timelineNodes.get('content_1')?.text).toBe('again');
+  });
+
+  it('creates implicit reasoning nodes and respects expanded default', () => {
+    const state = createState();
+
+    processAndApply(state, { type: 'reasoning.start', text: 'thinking' }, 'replay', false);
+
+    const node = state.timelineNodes.get('thinking_0');
+    expect(state.reasoningNodeById.get('implicit_reasoning_0')).toBe('thinking_0');
+    expect(node?.expanded).toBe(false);
+    expect(node?.status).toBe('running');
+  });
+
+  it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_1',
+      toolName: 'demo.run',
+      toolType: 'fireworks',
+      viewportKey: 'viewport_demo',
+    }, 'replay', false);
+    processAndApply(state, { type: 'tool.args', toolId: 'tool_1', delta: '{\"foo\"' }, 'replay', false);
+    processAndApply(state, { type: 'tool.args', toolId: 'tool_1', delta: ':\"bar\"}' }, 'replay', false);
+
+    expect(state.toolStates.get('tool_1')?.toolParams).toEqual({ foo: 'bar' });
+    expect(state.timelineNodes.get('tool_0')?.argsText).toBe('{\n  "foo": "bar"\n}');
+  });
+
+  it('resets plan runtime when planId changes and clears current running task on end', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'a' }],
+    }, 'live', true);
+    processAndApply(state, { type: 'plan.task.start', taskId: 'task_1' }, 'live', true);
+    expect(state.planCurrentRunningTaskId).toBe('task_1');
+
+    processAndApply(state, {
+      type: 'plan.update',
+      planId: 'plan_2',
+      plan: [{ taskId: 'task_2', description: 'b' }],
+    }, 'live', true);
+    expect(state.planRuntimeByTaskId.size).toBe(0);
+    expect(state.planCurrentRunningTaskId).toBe('');
+
+    processAndApply(state, { type: 'plan.task.start', taskId: 'task_2' }, 'live', true);
+    processAndApply(state, { type: 'plan.task.end', taskId: 'task_2' }, 'live', true);
+    expect(state.planRuntimeByTaskId.get('task_2')?.status).toBe('completed');
+    expect(state.planCurrentRunningTaskId).toBe('');
+  });
+});

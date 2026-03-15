@@ -1,7 +1,9 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MentionSuggest } from "./MentionSuggest";
+import { SlashPalette } from "./SlashPalette";
+import { SteerBar } from "./SteerBar";
+import { useSpeechInput } from "./useSpeechInput";
 import { COMPOSER_MAX_LINES } from "../../context/constants";
 import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
@@ -12,33 +14,10 @@ import { computeSlashPopoverPlacement } from "../../lib/slashPopoverPlacement";
 import {
 	getFilteredSlashCommands,
 	getLatestQueryText,
-	isSlashCommandDisabled,
-	type SlashCommandId,
 } from "../../lib/slashCommands";
+import { useSlashCommandExecution } from "../../hooks/useSlashCommandExecution";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
-
-type SpeechRecognitionLike = {
-	lang: string;
-	continuous: boolean;
-	interimResults: boolean;
-	onstart: (() => void) | null;
-	onend: (() => void) | null;
-	onerror: ((event: { error?: string }) => void) | null;
-	onresult:
-		| ((event: {
-				resultIndex: number;
-				results: ArrayLike<{
-					isFinal: boolean;
-					0: { transcript: string };
-				}>;
-		  }) => void)
-		| null;
-	start: () => void;
-	stop: () => void;
-};
-
-type SpeechConstructor = new () => SpeechRecognitionLike;
 
 export const ComposerArea: React.FC = () => {
 	const state = useAppState();
@@ -47,19 +26,12 @@ export const ComposerArea: React.FC = () => {
 	const composerPillRef = useRef<HTMLDivElement>(null);
 	const slashPaletteRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
-	const speechBaseValueRef = useRef("");
-	const speechFinalBufferRef = useRef("");
-	const speechListeningRef = useRef(false);
 	const isComposingRef = useRef(false);
 	const pendingSendRef = useRef(false);
 	const pendingSentMessageRef = useRef("");
 	const [inputValue, setInputValue] = useState("");
 	const [slashDismissed, setSlashDismissed] = useState(false);
 	const [activeSlashIndex, setActiveSlashIndex] = useState(0);
-	const [speechSupported, setSpeechSupported] = useState(false);
-	const [speechListening, setSpeechListening] = useState(false);
-	const [speechStatus, setSpeechStatus] = useState("点击开始听写");
 	const [steerSubmitting, setSteerSubmitting] = useState(false);
 	const [slashPopoverStyle, setSlashPopoverStyle] = useState<{
 		left: number;
@@ -93,27 +65,6 @@ export const ComposerArea: React.FC = () => {
 		&& !state.commandModal.open
 		&& !slashDismissed
 		&& slashCommands.length > 0;
-	const slashAvailability = useMemo(
-		() => ({
-			streaming: state.streaming,
-			hasLatestQuery: Boolean(latestQueryText),
-			speechSupported,
-			isFrontendActive,
-			hasCurrentWorker: Boolean(currentWorker),
-			workerHistoryCount: currentWorker?.relatedChats.length || 0,
-			workerCount: state.workerRows.length,
-			commandModalOpen: state.commandModal.open,
-		}),
-		[
-			currentWorker,
-			state.streaming,
-			state.commandModal.open,
-			state.workerRows.length,
-			latestQueryText,
-			speechSupported,
-			isFrontendActive,
-		],
-	);
 
 	const autoresize = useCallback(() => {
 		const el = textareaRef.current;
@@ -128,22 +79,6 @@ export const ComposerArea: React.FC = () => {
 	useEffect(() => {
 		autoresize();
 	}, [inputValue, autoresize]);
-
-	useEffect(() => {
-		const ctor =
-			(
-				window as Window & {
-					SpeechRecognition?: SpeechConstructor;
-					webkitSpeechRecognition?: SpeechConstructor;
-				}
-			).SpeechRecognition ||
-			(
-				window as Window & {
-					webkitSpeechRecognition?: SpeechConstructor;
-				}
-			).webkitSpeechRecognition;
-		setSpeechSupported(Boolean(ctor));
-	}, []);
 
 	useEffect(() => {
 		if (!showSlashPalette) return;
@@ -245,6 +180,39 @@ export const ComposerArea: React.FC = () => {
 		[closeMention, dispatch, state],
 	);
 
+	const {
+		speechSupported,
+		speechListening,
+		speechStatus,
+		toggleSpeechInput,
+	} = useSpeechInput({
+		inputValue,
+		setInputValue,
+		setSlashDismissed,
+		updateMentionSuggestions,
+	});
+	const slashAvailability = useMemo(
+		() => ({
+			streaming: state.streaming,
+			hasLatestQuery: Boolean(latestQueryText),
+			speechSupported,
+			isFrontendActive,
+			hasCurrentWorker: Boolean(currentWorker),
+			workerHistoryCount: currentWorker?.relatedChats.length || 0,
+			workerCount: state.workerRows.length,
+			commandModalOpen: state.commandModal.open,
+		}),
+		[
+			currentWorker,
+			state.streaming,
+			state.commandModal.open,
+			state.workerRows.length,
+			latestQueryText,
+			speechSupported,
+			isFrontendActive,
+		],
+	);
+
 	const selectMentionByIndex = useCallback(
 		(index: number) => {
 			const target = state.mentionSuggestions[index];
@@ -287,117 +255,12 @@ export const ComposerArea: React.FC = () => {
 		}
 	}, [inputValue]);
 
-	const mergeSpeechText = useCallback((base: string, append: string) => {
-		if (!append) return base;
-		return `${base}${append}`;
-	}, []);
-
 	const appendTextBlock = useCallback((base: string, extra: string) => {
 		const nextExtra = String(extra || "");
 		if (!nextExtra.trim()) return base;
 		if (!base.trim()) return nextExtra;
 		return `${base}${base.endsWith("\n") ? "" : "\n"}${nextExtra}`;
 	}, []);
-
-	const stopSpeechInput = useCallback(() => {
-		speechListeningRef.current = false;
-		setSpeechListening(false);
-		setSpeechStatus("点击开始听写");
-		const recognition = speechRecognitionRef.current;
-		if (!recognition) return;
-		try {
-			recognition.stop();
-		} catch {
-			/* no-op */
-		}
-	}, []);
-
-	const startSpeechInput = useCallback(() => {
-		const ctor =
-			(
-				window as Window & {
-					SpeechRecognition?: SpeechConstructor;
-					webkitSpeechRecognition?: SpeechConstructor;
-				}
-			).SpeechRecognition ||
-			(
-				window as Window & {
-					webkitSpeechRecognition?: SpeechConstructor;
-				}
-			).webkitSpeechRecognition;
-
-		if (!ctor) {
-			setSpeechStatus("当前浏览器不支持语音输入");
-			return;
-		}
-
-		if (!speechRecognitionRef.current) {
-			const recognition = new ctor();
-			recognition.lang = "zh-CN";
-			recognition.continuous = true;
-			recognition.interimResults = true;
-			recognition.onstart = () => {
-				speechListeningRef.current = true;
-				setSpeechListening(true);
-				setSpeechStatus("正在听写...");
-			};
-			recognition.onend = () => {
-				speechListeningRef.current = false;
-				setSpeechListening(false);
-				setSpeechStatus("点击开始听写");
-			};
-			recognition.onerror = (event) => {
-				const msg = String(event?.error || "识别失败");
-				speechListeningRef.current = false;
-				setSpeechListening(false);
-				setSpeechStatus(`语音识别错误: ${msg}`);
-			};
-			recognition.onresult = (event) => {
-				let finalDelta = "";
-				let interimDelta = "";
-				for (
-					let i = event.resultIndex;
-					i < event.results.length;
-					i += 1
-				) {
-					const chunk = event.results[i]?.[0]?.transcript || "";
-					if (!chunk) continue;
-					if (event.results[i].isFinal) {
-						finalDelta += chunk;
-					} else {
-						interimDelta += chunk;
-					}
-				}
-				if (finalDelta) {
-					speechFinalBufferRef.current += finalDelta;
-				}
-				const next = mergeSpeechText(
-					speechBaseValueRef.current,
-					`${speechFinalBufferRef.current}${interimDelta}`,
-				);
-				setInputValue(next);
-				setSlashDismissed(false);
-				updateMentionSuggestions(next);
-			};
-			speechRecognitionRef.current = recognition;
-		}
-
-		speechBaseValueRef.current = inputValue;
-		speechFinalBufferRef.current = "";
-		try {
-			speechRecognitionRef.current.start();
-		} catch {
-			setSpeechStatus("语音识别未启动，请重试");
-		}
-	}, [inputValue, mergeSpeechText, updateMentionSuggestions]);
-
-	const toggleSpeechInput = useCallback(() => {
-		if (speechListeningRef.current) {
-			stopSpeechInput();
-		} else {
-			startSpeechInput();
-		}
-	}, [startSpeechInput, stopSpeechInput]);
 
 	const resolveCurrentRunId = useCallback(() => {
 		const fromState = String(state.runId || "").trim();
@@ -511,94 +374,23 @@ export const ComposerArea: React.FC = () => {
 		state.planningMode,
 	]);
 
-	const executeSlashCommand = useCallback(
-		async (commandId: SlashCommandId) => {
-			if (isSlashCommandDisabled(commandId, slashAvailability)) {
-				return;
-			}
-
-			setSlashDismissed(true);
-			setInputValue("");
-			closeMention();
-
-			switch (commandId) {
-				case "schedule":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "schedule" },
-					});
-					return;
-				case "detail":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "detail" },
-					});
-					return;
-				case "history":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "history" },
-					});
-					return;
-				case "switch":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "switch" },
-					});
-					return;
-				case "new":
-					resetForNewConversation();
-					return;
-				case "redo":
-					window.dispatchEvent(
-						new CustomEvent("agent:send-message", {
-							detail: { message: latestQueryText },
-						}),
-					);
-					return;
-				case "debug":
-					if (state.layoutMode === "desktop-fixed") {
-						dispatch({
-							type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-							enabled: !state.desktopDebugSidebarEnabled,
-						});
-					} else {
-						dispatch({
-							type: "SET_RIGHT_DRAWER_OPEN",
-							open: !state.rightDrawerOpen,
-						});
-					}
-					return;
-				case "voice":
-					toggleSpeechInput();
-					return;
-				case "settings":
-					dispatch({ type: "SET_SETTINGS_OPEN", open: true });
-					return;
-				case "plan":
-					dispatch({
-						type: "SET_PLANNING_MODE",
-						enabled: !state.planningMode,
-					});
-					return;
-				case "stop":
-					await interruptCurrentRun();
-			}
+	const executeSlashCommand = useSlashCommandExecution({
+		slashAvailability,
+		closeMention,
+		latestQueryText,
+		resetForNewConversation,
+		dispatch,
+		toggleSpeechInput,
+		interruptCurrentRun,
+		setInputValue,
+		setSlashDismissed,
+		state: {
+			desktopDebugSidebarEnabled: state.desktopDebugSidebarEnabled,
+			layoutMode: state.layoutMode,
+			planningMode: state.planningMode,
+			rightDrawerOpen: state.rightDrawerOpen,
 		},
-		[
-			closeMention,
-			dispatch,
-			interruptCurrentRun,
-			latestQueryText,
-			resetForNewConversation,
-			slashAvailability,
-			state.desktopDebugSidebarEnabled,
-			state.layoutMode,
-			state.planningMode,
-			state.rightDrawerOpen,
-			toggleSpeechInput,
-		],
-	);
+	});
 
 	const handleSend = useCallback(() => {
 		if (showSlashPalette) {
@@ -933,139 +725,30 @@ export const ComposerArea: React.FC = () => {
 		updateMentionSuggestions,
 	]);
 
-	useEffect(() => {
-		return () => {
-			const recognition = speechRecognitionRef.current;
-			if (!recognition) return;
-			try {
-				recognition.stop();
-			} catch {
-				/* no-op */
-			}
-		};
-	}, []);
-
-	const renderSlashPalette = (className = "", style?: React.CSSProperties) => (
-		<div
-			ref={slashPaletteRef}
-			className={`slash-command-popover ${className}`.trim()}
-			style={style}
-		>
-			<div className="slash-command-list">
-				{slashCommands.map((command, index) => {
-					const disabled = isSlashCommandDisabled(
-						command.id,
-						slashAvailability,
-					);
-					return (
-						<UiButton
-							key={command.id}
-							className={`slash-command-item ${index === activeSlashIndex ? "active" : ""}`}
-							variant="ghost"
-							size="sm"
-							disabled={disabled}
-							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => void executeSlashCommand(command.id)}
-						>
-							<span className="slash-command-main">
-								<span className="slash-command-name">
-									{command.command}
-								</span>
-								<span className="slash-command-label">
-									{command.label}
-								</span>
-							</span>
-							{command.id === "plan" && state.planningMode && (
-								<span className="slash-command-check" aria-hidden="true">
-									<MaterialIcon name="check" />
-								</span>
-							)}
-							<span className="slash-command-description">
-								{command.description}
-							</span>
-						</UiButton>
-					);
-				})}
-			</div>
-		</div>
-	);
-
 	return (
 		<div
 			ref={composerRef}
 			className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
 		>
-			{showSlashPalette && slashPopoverStyle && typeof document !== "undefined"
-				? createPortal(
-					renderSlashPalette("is-portal", {
-						left: slashPopoverStyle.left,
-						top: slashPopoverStyle.top,
-						width: slashPopoverStyle.width,
-						maxHeight: slashPopoverStyle.maxHeight,
-					}),
-					document.body,
-				)
-				: showSlashPalette
-					? renderSlashPalette("is-inline-fallback")
-					: null}
+			<SlashPalette
+				open={showSlashPalette}
+				slashPaletteRef={slashPaletteRef}
+				slashCommands={slashCommands}
+				activeSlashIndex={activeSlashIndex}
+				slashAvailability={slashAvailability}
+				planningMode={state.planningMode}
+				slashPopoverStyle={slashPopoverStyle}
+				onSelect={(commandId) => void executeSlashCommand(commandId)}
+			/>
 			{state.mentionOpen && <MentionSuggest />}
 			{shouldShowSteerBar && (
-				<div className="steer-bar">
-					<div className="steer-queue" aria-live="polite">
-						{state.pendingSteers.map((steer, index) => (
-							<div
-								key={steer.steerId}
-								className="steer-preview is-pending"
-							>
-								<div className="steer-preview-header">
-									<span className="steer-preview-label">
-										待生效引导 {index + 1}
-									</span>
-									<span className="steer-preview-status">
-										等待 request.steer
-									</span>
-								</div>
-								<span className="steer-preview-text">
-									{steer.message}
-								</span>
-							</div>
-						))}
-						{hasSteerDraft && (
-							<div className="steer-preview">
-								<div className="steer-preview-header">
-									<span className="steer-preview-label">
-										待提交引导
-									</span>
-								</div>
-								<span className="steer-preview-text">
-									{state.steerDraft}
-								</span>
-							</div>
-						)}
-					</div>
-					{hasSteerDraft && (
-						<div className="steer-preview-actions">
-							<UiButton
-								className="steer-btn"
-								variant="primary"
-								size="sm"
-								disabled={!state.steerDraft.trim() || steerSubmitting}
-								onClick={handleSteer}
-							>
-								{steerSubmitting ? "提交中..." : "引导"}
-							</UiButton>
-							<UiButton
-								className="steer-cancel-btn"
-								variant="ghost"
-								size="sm"
-								disabled={steerSubmitting}
-								onClick={handleCancelSteer}
-							>
-								取消
-							</UiButton>
-						</div>
-					)}
-				</div>
+				<SteerBar
+					pendingSteers={state.pendingSteers}
+					steerDraft={state.steerDraft}
+					steerSubmitting={steerSubmitting}
+					onSubmit={() => void handleSteer()}
+					onCancel={handleCancelSteer}
+				/>
 			)}
 			<div
 				ref={composerPillRef}

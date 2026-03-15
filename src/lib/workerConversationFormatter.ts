@@ -1,8 +1,5 @@
 import type { Chat, WorkerConversationRow, WorkerRow } from '../context/types';
-
-function toText(value: unknown): string {
-  return String(value || '').trim();
-}
+import { toText } from './eventUtils';
 
 function toRunSortValue(lastRunId: unknown): number {
   const normalized = toText(lastRunId).toLowerCase();
@@ -61,4 +58,3 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
     }))
     .filter((row) => row.chatId);
 }
-

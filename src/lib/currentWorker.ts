@@ -7,10 +7,7 @@ import type {
   WorkerRow,
 } from '../context/types';
 import { buildWorkerConversationRows } from './workerConversationFormatter';
-
-function toText(value: unknown): string {
-  return String(value || '').trim();
-}
+import { toText } from './eventUtils';
 
 function toDisplayName(primary: unknown, fallback: unknown): string {
   return toText(primary) || toText(fallback) || '--';

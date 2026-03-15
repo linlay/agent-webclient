@@ -1,114 +1,13 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { getAgents, getTeams, getChats, getChat, setAccessToken } from '../lib/apiClient';
-import type { Chat, Agent, AgentEvent, TimelineNode, Plan, PlanRuntime, ToolState, Team, WorkerRow, TtsVoiceBlock } from '../context/types';
+import { getChat } from '../lib/apiClient';
+import type { Chat, AgentEvent, TimelineNode, Plan, PlanRuntime, ToolState, WorkerRow, TtsVoiceBlock } from '../context/types';
 import { parseContentSegments } from '../lib/contentSegments';
-import { parseFrontendToolParams } from '../lib/frontendToolParams';
-import { pickToolName, resolveViewportKey } from '../lib/toolEvent';
-import { buildWorkerRows, createWorkerKeyFromChat } from '../lib/workerListFormatter';
+import type { EventCommand, EventProcessorState } from '../lib/eventProcessor';
+import { processEvent } from '../lib/eventProcessor';
+import { createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';
-import {
-  buildSelectedWorkerConversationRows,
-  mergeFetchedChats,
-} from '../lib/chatSummary';
-
-type WorkerDataSnapshot = {
-  agents: Agent[];
-  teams: Team[];
-  chats: Chat[];
-  workerSelectionKey: string;
-  workerPriorityKey: string;
-};
-
-type WorkerRefreshOverrides = Partial<WorkerDataSnapshot>;
-
-interface WorkerRefreshCoordinatorOptions {
-  fetchAgents: () => Promise<Agent[]>;
-  fetchTeams: () => Promise<Team[]>;
-  fetchChats: () => Promise<Chat[]>;
-  getSnapshot: () => WorkerDataSnapshot;
-  applyAgents: (agents: Agent[]) => void;
-  applyTeams: (teams: Team[]) => void;
-  applyChats: (chats: Chat[]) => void;
-  rebuildWorkerRows: (overrides: WorkerRefreshOverrides) => void;
-  appendDebug: (line: string) => void;
-}
-
-type SettledListResult<T> = PromiseSettledResult<T[]>;
-
-function settledValueOrFallback<T>(
-  result: SettledListResult<T>,
-  fallback: T[],
-  onRejected: (message: string) => void,
-): T[] {
-  if (result.status === 'fulfilled') {
-    return Array.isArray(result.value) ? result.value : [];
-  }
-  onRejected(result.reason instanceof Error ? result.reason.message : String(result.reason || 'unknown error'));
-  return fallback;
-}
-
-export async function refreshWorkerDataWithCoordinator(
-  options: WorkerRefreshCoordinatorOptions,
-): Promise<void> {
-  const agentsPromise = options.fetchAgents();
-  const teamsPromise = options.fetchTeams();
-  const chatsPromise = options.fetchChats();
-
-  const [agentsResult, teamsResult, chatsResult] = await Promise.allSettled([
-    agentsPromise,
-    teamsPromise,
-    chatsPromise,
-  ]) as [SettledListResult<Agent>, SettledListResult<Team>, SettledListResult<Chat>];
-
-  const current = options.getSnapshot();
-  const nextAgents = settledValueOrFallback(agentsResult, current.agents, (message) => {
-    options.appendDebug(`[loadAgents error] ${message}`);
-  });
-  const nextTeams = settledValueOrFallback(teamsResult, current.teams, (message) => {
-    options.appendDebug(`[loadTeams error] ${message}`);
-  });
-  const fetchedChats = settledValueOrFallback(chatsResult, current.chats, (message) => {
-    options.appendDebug(`[loadChats error] ${message}`);
-  });
-  const nextChats = mergeFetchedChats(current.chats, fetchedChats);
-
-  if (agentsResult.status === 'fulfilled') {
-    options.applyAgents(nextAgents);
-  }
-  if (teamsResult.status === 'fulfilled') {
-    options.applyTeams(nextTeams);
-  }
-  if (chatsResult.status === 'fulfilled') {
-    options.applyChats(nextChats);
-  }
-
-  if (
-    agentsResult.status === 'fulfilled'
-    || teamsResult.status === 'fulfilled'
-    || chatsResult.status === 'fulfilled'
-  ) {
-    options.rebuildWorkerRows({
-      agents: nextAgents,
-      teams: nextTeams,
-      chats: nextChats,
-      workerSelectionKey: current.workerSelectionKey,
-      workerPriorityKey: current.workerPriorityKey,
-    });
-  }
-}
-
-/**
- * Safely extract a string value from an event field.
- */
-function safeText(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') {
-    try { return JSON.stringify(value); } catch { return ''; }
-  }
-  return String(value);
-}
+import { useWorkerData } from './useWorkerData';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -157,9 +56,26 @@ export function createReplayState(): ReplayState {
   };
 }
 
-function isTerminalStatus(status?: string): boolean {
-  const value = String(status || '').trim().toLowerCase();
-  return value === 'completed' || value === 'failed' || value === 'canceled' || value === 'cancelled';
+function createReplayProcessorState(rs: ReplayState): EventProcessorState {
+  return {
+    getContentNodeId: (contentId) => rs.contentNodeById.get(contentId),
+    getReasoningNodeId: (reasoningKey) => rs.reasoningNodeById.get(reasoningKey),
+    getToolNodeId: (toolId) => rs.toolNodeById.get(toolId),
+    getToolState: (toolId) => rs.toolStates.get(toolId),
+    getTimelineNode: (nodeId) => rs.timelineNodes.get(nodeId),
+    getNodeText: (nodeId) => rs.timelineNodes.get(nodeId)?.text || '',
+    nextCounter: () => {
+      const next = rs.timelineCounter;
+      rs.timelineCounter += 1;
+      return next;
+    },
+    peekCounter: () => rs.timelineCounter,
+    activeReasoningKey: rs.activeReasoningKey,
+    chatId: rs.chatId,
+    runId: rs.runId,
+    currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
+    getPlanId: () => rs.plan?.planId,
+  };
 }
 
 function buildHistoryTtsVoiceBlocks(
@@ -188,339 +104,104 @@ function buildHistoryTtsVoiceBlocks(
   return hasVoice ? next : undefined;
 }
 
+function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
+  switch (command.cmd) {
+    case 'SET_CHAT_ID':
+      rs.chatId = command.chatId;
+      return;
+    case 'SET_RUN_ID':
+      rs.runId = command.runId;
+      return;
+    case 'SET_CHAT_AGENT':
+      rs.chatAgentById.set(command.chatId, command.agentKey);
+      return;
+    case 'SET_CONTENT_NODE_ID':
+      rs.contentNodeById.set(command.contentId, command.nodeId);
+      return;
+    case 'SET_REASONING_NODE_ID':
+      rs.reasoningNodeById.set(command.reasoningId, command.nodeId);
+      return;
+    case 'SET_TOOL_NODE_ID':
+      rs.toolNodeById.set(command.toolId, command.nodeId);
+      return;
+    case 'APPEND_TIMELINE_ORDER':
+      rs.timelineOrder.push(command.nodeId);
+      return;
+    case 'SET_TIMELINE_NODE': {
+      const existing = rs.timelineNodes.get(command.id);
+      if (command.node.kind === 'content') {
+        rs.timelineNodes.set(command.id, {
+          ...command.node,
+          ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(
+            command.node.segments || [],
+            existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined,
+          ),
+        });
+        return;
+      }
+      rs.timelineNodes.set(command.id, command.node);
+      return;
+    }
+    case 'SET_TOOL_STATE':
+      rs.toolStates.set(command.toolId, command.state);
+      return;
+    case 'SET_ACTIVE_REASONING_KEY':
+      rs.activeReasoningKey = command.key;
+      return;
+    case 'SET_PLAN':
+      rs.plan = command.plan;
+      if (command.resetRuntime) {
+        rs.planRuntimeByTaskId = new Map();
+        rs.planCurrentRunningTaskId = '';
+        rs.planLastTouchedTaskId = '';
+      }
+      return;
+    case 'SET_PLAN_RUNTIME':
+      rs.planRuntimeByTaskId.set(command.taskId, command.runtime);
+      return;
+    case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
+      rs.planCurrentRunningTaskId = command.taskId;
+      return;
+    case 'SET_PLAN_LAST_TOUCHED_TASK_ID':
+      rs.planLastTouchedTaskId = command.taskId;
+      return;
+    case 'USER_MESSAGE':
+      rs.timelineNodes.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'user',
+        messageVariant: command.variant,
+        steerId: command.steerId,
+        text: command.text,
+        ts: command.ts,
+      });
+      rs.timelineOrder.push(command.nodeId);
+      return;
+    case 'SYSTEM_ERROR':
+      rs.timelineNodes.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'system',
+        text: command.text,
+        ts: command.ts,
+      });
+      rs.timelineOrder.push(command.nodeId);
+      return;
+  }
+}
+
 /**
  * Process a single event into the mutable replay state.
  * This mirrors useAgentEventHandler logic but writes to mutable state.
  */
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
-  const type = String(event.type || '');
   rs.events.push(event);
-
-  /* request.query */
-  if (type === 'request.query') {
-    const text = safeText(event.message);
-    if (text) {
-      const nodeId = `user_${event.requestId || rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'message', role: 'user', messageVariant: 'default', text,
-        ts: event.timestamp || Date.now(),
-      });
-      rs.timelineOrder.push(nodeId);
-    }
-    return;
-  }
-
-  /* request.steer */
-  if (type === 'request.steer') {
-    const text = safeText(event.message);
-    if (text) {
-      const steerId = String(event.steerId || event.requestId || rs.timelineCounter);
-      const nodeId = `steer_${steerId}`;
-      rs.timelineCounter++;
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'message', role: 'user', messageVariant: 'steer', steerId, text,
-        ts: event.timestamp || Date.now(),
-      });
-      rs.timelineOrder.push(nodeId);
-    }
-    return;
-  }
-
-  /* run.start */
-  if (type === 'run.start') {
-    if (event.runId) rs.runId = event.runId;
-    if (event.chatId) rs.chatId = event.chatId;
-    if (event.agentKey && (event.chatId || rs.chatId)) {
-      rs.chatAgentById.set(event.chatId || rs.chatId, String(event.agentKey));
-    }
-    return;
-  }
-
-  /* run.end / run.complete / run.error / run.cancel */
-  if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
-    if (type === 'run.error' && event.error) {
-      const nodeId = `sys_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'message', role: 'system',
-        text: safeText(event.error), ts: Date.now(),
-      });
-      rs.timelineOrder.push(nodeId);
-    }
-    return;
-  }
-
-  /* content.start */
-  if (type === 'content.start' && event.contentId) {
-    const contentId = String(event.contentId);
-    let nodeId = rs.contentNodeById.get(contentId);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `content_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      const text = typeof event.text === 'string' ? event.text : '';
-      const segments = text ? parseContentSegments(contentId, text) : [];
-      rs.contentNodeById.set(contentId, nodeId);
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'content', contentId, text,
-        segments,
-        ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments),
-        ts: event.timestamp || Date.now(),
-      });
-      rs.timelineOrder.push(nodeId);
-    }
-    return;
-  }
-
-  /* content.delta */
-  if (type === 'content.delta' && event.contentId) {
-    const contentId = String(event.contentId);
-    let nodeId = rs.contentNodeById.get(contentId);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `content_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.contentNodeById.set(contentId, nodeId);
-      rs.timelineOrder.push(nodeId);
-    }
-    const existing = rs.timelineNodes.get(nodeId);
-    const delta = typeof event.delta === 'string' ? event.delta : '';
-    const newText = (existing?.text || '') + delta;
-    const segments = parseContentSegments(contentId, newText);
-    rs.timelineNodes.set(nodeId, {
-      id: nodeId, kind: 'content', contentId, text: newText,
-      segments,
-      ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments, existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined),
-      ts: event.timestamp || existing?.ts || Date.now(),
-    });
-    return;
-  }
-
-  /* content.end */
-  if (type === 'content.end' && event.contentId) {
-    const contentId = String(event.contentId);
-    let nodeId = rs.contentNodeById.get(contentId);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `content_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.contentNodeById.set(contentId, nodeId);
-      rs.timelineOrder.push(nodeId);
-    }
-    if (nodeId) {
-      const existing = rs.timelineNodes.get(nodeId);
-      const finalText = typeof event.text === 'string' && event.text.trim()
-        ? event.text : existing?.text || '';
-      const segments = parseContentSegments(contentId, finalText);
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'content', contentId, text: finalText,
-        segments,
-        ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments, existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined),
-        status: 'completed',
-        ts: event.timestamp || existing?.ts || Date.now(),
-      });
-    }
-    return;
-  }
-
-  /* content.snapshot */
-  if (type === 'content.snapshot' && event.contentId) {
-    const contentId = String(event.contentId);
-    let nodeId = rs.contentNodeById.get(contentId);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `content_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.contentNodeById.set(contentId, nodeId);
-      rs.timelineOrder.push(nodeId);
-    }
-    const text = typeof event.text === 'string' ? event.text : '';
-    const segments = parseContentSegments(contentId, text);
-    rs.timelineNodes.set(nodeId, {
-      id: nodeId, kind: 'content', contentId, text,
-      segments,
-      ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(segments),
-      status: 'completed',
-      ts: event.timestamp || Date.now(),
-    });
-    return;
-  }
-
-  /* reasoning */
-  if (type === 'reasoning.start' || type === 'reasoning.delta') {
-    let reasoningKey = event.reasoningId ? String(event.reasoningId) : '';
-    if (!reasoningKey) {
-      if (type === 'reasoning.start' || !rs.activeReasoningKey) {
-        reasoningKey = `implicit_reasoning_${rs.timelineCounter}`;
-      } else {
-        reasoningKey = rs.activeReasoningKey;
-      }
-    }
-    rs.activeReasoningKey = reasoningKey;
-
-    const delta = typeof event.delta === 'string' ? event.delta : '';
-    const eventText = typeof event.text === 'string' ? event.text : '';
-    let nodeId = rs.reasoningNodeById.get(reasoningKey);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `thinking_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.reasoningNodeById.set(reasoningKey, nodeId);
-      rs.timelineOrder.push(nodeId);
-      rs.timelineNodes.set(nodeId, {
-        id: nodeId, kind: 'thinking', text: eventText || delta,
-        status: 'running', expanded: false,
-        ts: event.timestamp || Date.now(),
-      });
-    } else {
-      const existing = rs.timelineNodes.get(nodeId);
-      if (existing) {
-        rs.timelineNodes.set(nodeId, {
-          ...existing, text: (existing.text || '') + delta,
-          status: 'running',
-        });
-      }
-    }
-    return;
-  }
-
-  if (type === 'reasoning.end' || type === 'reasoning.snapshot') {
-    const reasoningKey = event.reasoningId ? String(event.reasoningId) : (rs.activeReasoningKey || `implicit_snap_${rs.timelineCounter}`);
-    let nodeId = rs.reasoningNodeById.get(reasoningKey);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      /* Create node if it doesn't exist — matches original ensureReasoningNode */
-      nodeId = `thinking_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.reasoningNodeById.set(reasoningKey, nodeId);
-      rs.timelineOrder.push(nodeId);
-    }
-    const existing = rs.timelineNodes.get(nodeId);
-    const text = typeof event.text === 'string' ? event.text : (existing?.text || '');
-    rs.timelineNodes.set(nodeId, {
-      id: nodeId, kind: 'thinking', text, status: 'completed', expanded: false,
-      ts: event.timestamp || existing?.ts || Date.now(),
-    });
-    rs.activeReasoningKey = '';
-    return;
-  }
-
-  /* tool.start / tool.snapshot */
-  if (type === 'tool.start' || type === 'tool.snapshot') {
-    const toolId = event.toolId || '';
-    if (!toolId) return;
-    const viewportKey = resolveViewportKey(event);
-    let nodeId = rs.toolNodeById.get(toolId);
-    const existingMappedNode = nodeId ? rs.timelineNodes.get(nodeId) : undefined;
-    if (!nodeId || isTerminalStatus(existingMappedNode?.status)) {
-      nodeId = `tool_${rs.timelineCounter}`;
-      rs.timelineCounter++;
-      rs.toolNodeById.set(toolId, nodeId);
-      rs.timelineOrder.push(nodeId);
-    }
-    const existing = rs.timelineNodes.get(nodeId);
-    const params = parseFrontendToolParams(event);
-    const resolvedParams = params.found && params.params ? params.params : null;
-    const argsText = resolvedParams
-      ? JSON.stringify(resolvedParams, null, 2)
-      : (existing?.argsText || '');
-    rs.timelineNodes.set(nodeId, {
-      id: nodeId, kind: 'tool', toolId,
-      toolLabel: event.toolLabel || existing?.toolLabel || '',
-      toolName: pickToolName(existing?.toolName, event.toolName),
-      viewportKey: viewportKey || existing?.viewportKey || '',
-      description: event.description || existing?.description || '',
-      argsText,
-      status: type === 'tool.snapshot' ? 'completed' : 'running',
-      result: existing?.result || null,
-      ts: event.timestamp || existing?.ts || Date.now(),
-    });
-    /* Also update toolStates for the Tools debug tab */
-    const existingTs = rs.toolStates.get(toolId);
-    rs.toolStates.set(toolId, {
-      toolId,
-      argsBuffer: existingTs?.argsBuffer || '',
-      toolLabel: event.toolLabel || existingTs?.toolLabel || '',
-      toolName: pickToolName(existingTs?.toolName, event.toolName),
-      toolType: event.toolType || existingTs?.toolType || '',
-      viewportKey: viewportKey || existingTs?.viewportKey || '',
-      toolTimeout: event.toolTimeout ?? existingTs?.toolTimeout ?? null,
-      toolParams: resolvedParams || existingTs?.toolParams || null,
-      description: event.description || existingTs?.description || '',
-      runId: event.runId || existingTs?.runId || rs.runId,
-    });
-    return;
-  }
-
-  /* tool.result */
-  if (type === 'tool.result') {
-    const toolId = event.toolId || '';
-    const nodeId = rs.toolNodeById.get(toolId);
-    if (nodeId) {
-      const existing = rs.timelineNodes.get(nodeId);
-      if (existing) {
-        const resultValue = event.result ?? event.output ?? event.text ?? '';
-        const resultText = typeof resultValue === 'string' ? resultValue : JSON.stringify(resultValue, null, 2);
-        rs.timelineNodes.set(nodeId, {
-          ...existing,
-          toolLabel: existing.toolLabel || rs.toolStates.get(toolId)?.toolLabel || '',
-          status: event.error ? 'failed' : 'completed',
-          result: { text: resultText, isCode: typeof resultValue !== 'string' },
-        });
-      }
-    }
-    return;
-  }
-
-  /* tool.end */
-  if (type === 'tool.end') {
-    const toolId = event.toolId || '';
-    const nodeId = rs.toolNodeById.get(toolId);
-    if (nodeId) {
-      const existing = rs.timelineNodes.get(nodeId);
-      if (existing) {
-        rs.timelineNodes.set(nodeId, {
-          ...existing,
-          toolLabel: existing.toolLabel || rs.toolStates.get(toolId)?.toolLabel || '',
-          status: event.error ? 'failed' : (existing.status === 'failed' ? 'failed' : 'completed'),
-        });
-      }
-    }
-    return;
-  }
-
-  /* plan events */
-  if (type === 'plan.update' || type === 'plan.snapshot') {
-    if (event.plan) {
-      rs.plan = { planId: event.planId || 'plan', plan: event.plan };
-    }
-    return;
-  }
-
-  if (type === 'plan.task.start') {
-    const taskId = event.taskId || '';
-    if (taskId) {
-      rs.planCurrentRunningTaskId = taskId;
-      rs.planLastTouchedTaskId = taskId;
-      rs.planRuntimeByTaskId.set(taskId, { status: 'running', updatedAt: Date.now(), error: '' });
-    }
-    return;
-  }
-
-  if (type === 'plan.task.end' || type === 'plan.task.complete') {
-    const taskId = event.taskId || '';
-    if (taskId) {
-      rs.planRuntimeByTaskId.set(taskId, {
-        status: event.error ? 'failed' : 'completed',
-        updatedAt: Date.now(),
-        error: event.error ? String(event.error) : '',
-      });
-      if (rs.planCurrentRunningTaskId === taskId) {
-        rs.planCurrentRunningTaskId = '';
-      }
-    }
-    return;
+  const commands = processEvent(event, createReplayProcessorState(rs), {
+    mode: 'replay',
+    reasoningExpandedDefault: false,
+  });
+  for (const command of commands) {
+    applyReplayEventCommand(rs, command);
   }
 }
 
@@ -528,9 +209,8 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
  * useChatActions — handles loading agents, chats, and switching chat context.
  */
 export function useChatActions() {
-  const { state, dispatch, stateRef } = useAppContext();
+  const { dispatch, stateRef } = useAppContext();
   const loadSeqRef = useRef(0);
-  const bootstrappedRef = useRef(false);
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
     const timer = stateRef.current.planAutoCollapseTimer;
@@ -545,132 +225,6 @@ export function useChatActions() {
       window.dispatchEvent(new CustomEvent('agent:focus-composer'));
     });
   }, []);
-
-  const findDefaultTeamWorkerKey = useCallback((rows: WorkerRow[]): string => {
-    const matched = rows.find((row) => {
-      if (row.type !== 'team') return false;
-      const name = String(row.displayName || '').trim().toLowerCase();
-      const sourceId = String(row.sourceId || '').trim().toLowerCase();
-      return name === 'default team'
-        || name === 'default_team'
-        || name === '默认小组'
-        || sourceId === 'default_team'
-        || sourceId === 'default';
-    });
-    return matched?.key || '';
-  }, []);
-
-  const ensureWorkerSelection = useCallback((rows: WorkerRow[], preferredWorkerKey = ''): string => {
-    const preferred = String(preferredWorkerKey || '').trim();
-    if (preferred && rows.some((row) => row.key === preferred)) {
-      return preferred;
-    }
-    const current = String(stateRef.current.workerSelectionKey || '').trim();
-    if (current && rows.some((row) => row.key === current)) {
-      return current;
-    }
-    const defaultTeamKey = findDefaultTeamWorkerKey(rows);
-    if (defaultTeamKey) return defaultTeamKey;
-    return rows[0]?.key || '';
-  }, [findDefaultTeamWorkerKey, stateRef]);
-
-  const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides = {}) => {
-    const current = stateRef.current;
-    const agents = overrides.agents ?? current.agents;
-    const teams = overrides.teams ?? current.teams;
-    const chats = overrides.chats ?? current.chats;
-    const rows = buildWorkerRows({
-      agents,
-      teams,
-      chats,
-      workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
-    });
-    const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
-    if (workerSelectionKey) {
-      dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey: workerSelectionKey });
-    }
-    dispatch({ type: 'SET_WORKER_ROWS', rows });
-
-    const workerIndexByKey = new Map(rows.map((row) => [row.key, row] as const));
-    const workerChats = buildSelectedWorkerConversationRows({
-      chats,
-      workerSelectionKey,
-      workerIndexByKey,
-    });
-    dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
-  }, [dispatch, ensureWorkerSelection, stateRef]);
-
-  const getWorkerDataSnapshot = useCallback((): WorkerDataSnapshot => ({
-    agents: stateRef.current.agents,
-    teams: stateRef.current.teams,
-    chats: stateRef.current.chats,
-    workerSelectionKey: stateRef.current.workerSelectionKey,
-    workerPriorityKey: stateRef.current.workerPriorityKey,
-  }), [stateRef]);
-
-  const loadAgents = useCallback(async () => {
-    try {
-      const response = await getAgents();
-      const agents = (response.data as Agent[]) || [];
-      dispatch({ type: 'SET_AGENTS', agents });
-      rebuildWorkerRowsFromState({ agents });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
-    }
-  }, [dispatch, rebuildWorkerRowsFromState]);
-
-  const loadTeams = useCallback(async () => {
-    try {
-      const response = await getTeams();
-      const teams = (response.data as Team[]) || [];
-      dispatch({ type: 'SET_TEAMS', teams });
-      rebuildWorkerRowsFromState({ teams });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadTeams error] ${(error as Error).message}` });
-    }
-  }, [dispatch, rebuildWorkerRowsFromState]);
-
-  const loadChats = useCallback(async () => {
-    try {
-      const response = await getChats();
-      const chats = mergeFetchedChats(stateRef.current.chats, (response.data as Chat[]) || []);
-      dispatch({ type: 'SET_CHATS', chats });
-      rebuildWorkerRowsFromState({ chats });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadChats error] ${(error as Error).message}` });
-    }
-  }, [dispatch, rebuildWorkerRowsFromState, stateRef]);
-
-  const refreshWorkerData = useCallback(async () => {
-    await refreshWorkerDataWithCoordinator({
-      fetchAgents: async () => {
-        const response = await getAgents();
-        return (response.data as Agent[]) || [];
-      },
-      fetchTeams: async () => {
-        const response = await getTeams();
-        return (response.data as Team[]) || [];
-      },
-      fetchChats: async () => {
-        const response = await getChats();
-        return (response.data as Chat[]) || [];
-      },
-      getSnapshot: getWorkerDataSnapshot,
-      applyAgents: (agents) => {
-        dispatch({ type: 'SET_AGENTS', agents });
-      },
-      applyTeams: (teams) => {
-        dispatch({ type: 'SET_TEAMS', teams });
-      },
-      applyChats: (chats) => {
-        dispatch({ type: 'SET_CHATS', chats });
-      },
-      rebuildWorkerRows: rebuildWorkerRowsFromState,
-      appendDebug: (line) => {
-        dispatch({ type: 'APPEND_DEBUG', line });
-      },
-    });
-  }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState]);
 
   const loadChat = useCallback(
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
@@ -796,112 +350,10 @@ export function useChatActions() {
       focusComposerSoon();
     }
   }, [clearPlanAutoCollapseTimer, dispatch, focusComposerSoon, loadChat, stateRef]);
-
-  /* Bootstrap: load worker data on mount */
-  useEffect(() => {
-    if (bootstrappedRef.current) {
-      return;
-    }
-    bootstrappedRef.current = true;
-
-    setAccessToken(stateRef.current.accessToken);
-    refreshWorkerData().catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* Load chat when sidebar triggers */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const chatId = (e as CustomEvent).detail?.chatId;
-      const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
-      if (chatId) loadChat(chatId, { focusComposerOnComplete });
-    };
-    window.addEventListener('agent:load-chat', handler);
-    return () => window.removeEventListener('agent:load-chat', handler);
-  }, [loadChat]);
-
-  /* Refresh agents list on-demand */
-  useEffect(() => {
-    const handler = () => {
-      loadAgents().catch(() => undefined);
-    };
-    window.addEventListener('agent:refresh-agents', handler);
-    return () => window.removeEventListener('agent:refresh-agents', handler);
-  }, [loadAgents]);
-
-  /* Refresh teams list on-demand */
-  useEffect(() => {
-    const handler = () => {
-      loadTeams().catch(() => undefined);
-    };
-    window.addEventListener('agent:refresh-teams', handler);
-    return () => window.removeEventListener('agent:refresh-teams', handler);
-  }, [loadTeams]);
-
-  /* Refresh chats list on-demand */
-  useEffect(() => {
-    const handler = () => {
-      loadChats().catch(() => undefined);
-    };
-    window.addEventListener('agent:refresh-chats', handler);
-    return () => window.removeEventListener('agent:refresh-chats', handler);
-  }, [loadChats]);
-
-  /* Refresh worker data with coordinated state application */
-  useEffect(() => {
-    const handler = () => {
-      refreshWorkerData().catch(() => undefined);
-    };
-    window.addEventListener('agent:refresh-worker-data', handler);
-    return () => window.removeEventListener('agent:refresh-worker-data', handler);
-  }, [refreshWorkerData]);
-
-  useEffect(() => {
-    rebuildWorkerRowsFromState({
-      workerPriorityKey: state.workerPriorityKey,
-    });
-  }, [rebuildWorkerRowsFromState, state.workerPriorityKey]);
-
-  useEffect(() => {
-    rebuildWorkerRowsFromState({
-      chats: state.chats,
-    });
-  }, [rebuildWorkerRowsFromState, state.chats]);
-
-  /* Switch conversation mode */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const mode = (e as CustomEvent).detail?.mode === 'worker' ? 'worker' : 'chat';
-      dispatch({ type: 'SET_CONVERSATION_MODE', mode });
-      if (mode === 'worker') {
-        rebuildWorkerRowsFromState();
-        dispatch({ type: 'SET_WORKER_CHAT_PANEL_COLLAPSED', collapsed: true });
-      } else {
-        dispatch({ type: 'SET_WORKER_CHAT_PANEL_COLLAPSED', collapsed: true });
-      }
-    };
-    window.addEventListener('agent:set-conversation-mode', handler);
-    return () => window.removeEventListener('agent:set-conversation-mode', handler);
-  }, [dispatch, rebuildWorkerRowsFromState]);
-
-  /* Select worker/team row */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const workerKey = (e as CustomEvent).detail?.workerKey;
-      const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
-      if (workerKey) {
-        selectWorkerConversation(workerKey, { focusComposerOnComplete }).catch(() => undefined);
-      }
-    };
-    window.addEventListener('agent:select-worker', handler);
-    return () => window.removeEventListener('agent:select-worker', handler);
-  }, [selectWorkerConversation]);
+  const workerData = useWorkerData({ loadChat, selectWorkerConversation });
 
   return {
-    loadAgents,
-    loadTeams,
-    loadChats,
-    refreshWorkerData,
+    ...workerData,
     loadChat,
     selectWorkerConversation,
   };

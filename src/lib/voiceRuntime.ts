@@ -1,10 +1,26 @@
 import type { AppState, TtsVoiceBlock } from '../context/types';
 import { parseContentSegments } from './contentSegments';
+import {
+  DEFAULT_CHANNELS,
+  DEFAULT_SAMPLE_RATE,
+  ensureAudioContext,
+  handleSocketBinary,
+  isArrayBufferView,
+  playPcm,
+  prepareAudioPlayback,
+  resetPlayback,
+  type VoiceAudioPlayerContext,
+} from './voiceAudioPlayer';
+import {
+  closeSocket,
+  ensureSocket,
+  flushOutboundQueue,
+  handleSocketText,
+  sendJsonFrame,
+  type VoiceSocketContext,
+} from './voiceSocket';
 
 const VOICE_WS_PATH = '/api/ws/voice';
-const DEFAULT_SAMPLE_RATE = 24000;
-const DEFAULT_CHANNELS = 1;
-const VOICE_WS_CONNECT_TIMEOUT_MS = 8000;
 export const DEFAULT_TTS_DEBUG_TEXT = '这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。';
 
 interface VoiceSession {
@@ -109,119 +125,24 @@ class VoiceRuntime {
     return forceFlush ? length : 0;
   }
 
-  private isArrayBufferView(value: unknown): value is ArrayBufferView {
-    return Boolean(value && typeof value === 'object' && ArrayBuffer.isView(value as ArrayBufferView));
-  }
-
   private ensureAudioContext(): AudioContext | null {
-    if (this.audioContext) return this.audioContext;
-    const Ctor = globalThis.window?.AudioContext || (globalThis.window as unknown as { webkitAudioContext?: typeof AudioContext })?.webkitAudioContext;
-    if (!Ctor) return null;
-    try {
-      this.audioContext = new Ctor();
-      this.playbackCursor = 0;
-      return this.audioContext;
-    } catch (error) {
-      this.appendDebug(`voice audio context create failed: ${(error as Error).message}`);
-      return null;
-    }
+    return ensureAudioContext(this as unknown as VoiceAudioPlayerContext);
   }
 
   private async prepareAudioPlayback(): Promise<AudioContext> {
-    const context = this.ensureAudioContext();
-    if (!context) {
-      throw new Error('browser audio context unavailable');
-    }
-    if (context.state === 'suspended' && typeof context.resume === 'function') {
-      try {
-        await context.resume();
-      } catch (error) {
-        throw new Error(`audio resume failed: ${(error as Error).message}`);
-      }
-    }
-    if (context.state === 'suspended') {
-      throw new Error('audio context is still suspended');
-    }
-    return context;
+    return prepareAudioPlayback(this as unknown as VoiceAudioPlayerContext);
   }
 
   private resetPlayback(): void {
-    this.playbackCursor = 0;
-    if (!this.audioContext) return;
-    try {
-      const closePromise = this.audioContext.close?.();
-      if (closePromise && typeof closePromise.catch === 'function') closePromise.catch(() => undefined);
-    } catch {
-      // no-op
-    } finally {
-      this.audioContext = null;
-    }
+    resetPlayback(this as unknown as VoiceAudioPlayerContext);
   }
 
   private playPcm(bufferLike: ArrayBuffer | ArrayBufferView): boolean {
-    const context = this.ensureAudioContext();
-    if (!context) {
-      this.setDebugStatus('error: browser audio context unavailable');
-      return false;
-    }
-    if (context.state === 'suspended') {
-      this.setDebugStatus('error: audio context is suspended');
-      return false;
-    }
-    const bytes = this.isArrayBufferView(bufferLike)
-      ? new Uint8Array(bufferLike.buffer, bufferLike.byteOffset, bufferLike.byteLength)
-      : new Uint8Array(bufferLike);
-    const sampleRate = Math.max(8000, Number(this.activeSampleRate) || DEFAULT_SAMPLE_RATE);
-    const channels = Math.max(1, Number(this.activeChannels) || DEFAULT_CHANNELS);
-    if (bytes.length < 2) return false;
-
-    const sampleCount = Math.floor(bytes.length / 2);
-    const frameCount = Math.floor(sampleCount / channels);
-    if (frameCount <= 0) return false;
-
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    const audioBuffer = context.createBuffer(channels, frameCount, sampleRate);
-    for (let channel = 0; channel < channels; channel += 1) {
-      const output = audioBuffer.getChannelData(channel);
-      for (let i = 0; i < frameCount; i += 1) {
-        const sampleIndex = (i * channels + channel) * 2;
-        const sample = view.getInt16(sampleIndex, true) / 32768;
-        output[i] = Math.max(-1, Math.min(1, sample));
-      }
-    }
-
-    const source = context.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(context.destination);
-    const now = context.currentTime + 0.01;
-    const startAt = Math.max(now, this.playbackCursor || 0);
-    source.start(startAt);
-    this.playbackCursor = startAt + audioBuffer.duration;
-
-    if (this.activeAudioRequestId) {
-      this.updateBlockByRequestId(this.activeAudioRequestId, { status: 'playing', error: '' });
-    }
-    if (this.debugTtsRequest?.requestId === this.activeAudioRequestId) {
-      this.setDebugStatusWithStats('playing');
-    }
-    return true;
+    return playPcm(this as unknown as VoiceAudioPlayerContext, bufferLike);
   }
 
   private handleSocketBinary(data: unknown): void {
-    if (typeof Blob !== 'undefined' && data instanceof Blob) {
-      data.arrayBuffer()
-        .then((buffer) => {
-          this.handleAudioBytes(buffer.byteLength);
-          this.playPcm(buffer);
-        })
-        .catch((error) => this.appendDebug(`voice blob decode failed: ${(error as Error).message}`));
-      return;
-    }
-    if (data instanceof ArrayBuffer || this.isArrayBufferView(data)) {
-      const byteLength = data instanceof ArrayBuffer ? data.byteLength : data.byteLength;
-      this.handleAudioBytes(byteLength);
-      this.playPcm(data);
-    }
+    handleSocketBinary(this as unknown as VoiceAudioPlayerContext, data);
   }
 
   private handleAudioBytes(byteLength: number): void {
@@ -246,83 +167,11 @@ class VoiceRuntime {
   }
 
   private handleSocketText(rawText: string): void {
-    let payload: Record<string, unknown>;
-    try {
-      payload = JSON.parse(rawText);
-    } catch (error) {
-      this.appendDebug(`voice ws text parse failed: ${(error as Error).message}`);
-      return;
-    }
-
-    const type = String(payload?.type || '').trim();
-    const requestId = String(payload?.requestId || '').trim();
-
-    if (type === 'tts.started') {
-      if (requestId) {
-        this.activeAudioRequestId = requestId;
-        this.activeSampleRate = Number(payload.sampleRate) || DEFAULT_SAMPLE_RATE;
-        this.activeChannels = Number(payload.channels) || DEFAULT_CHANNELS;
-        if (this.debugTtsRequest?.requestId === requestId) {
-          this.debugTtsRequest.started = true;
-          this.setDebugStatusWithStats('tts started');
-        }
-        this.updateBlockByRequestId(requestId, {
-          status: 'playing',
-          error: '',
-          sampleRate: this.activeSampleRate,
-          channels: this.activeChannels,
-        });
-      }
-      return;
-    }
-
-    if (type === 'tts.done') {
-      if (requestId) {
-        this.updateBlockByRequestId(requestId, { status: 'done', error: '' });
-        if (this.debugTtsRequest?.requestId === requestId) {
-          if (this.debugTtsRequest.audioFrames > 0) {
-            this.setDebugStatusWithStats('done');
-          } else if (this.debugTtsRequest.started) {
-            this.setDebugStatus('connected but no audio frames');
-          } else {
-            this.setDebugStatus('done');
-          }
-        }
-      }
-      return;
-    }
-
-    if (type === 'tts.interrupted') {
-      if (requestId) {
-        this.updateBlockByRequestId(requestId, { status: 'stopped' });
-        if (this.debugTtsRequest?.requestId === requestId) this.setDebugStatus('stopped');
-      }
-      return;
-    }
-
-    if (type === 'error') {
-      const message = String(payload?.message || 'voice websocket error');
-      if (requestId) {
-        this.updateBlockByRequestId(requestId, { status: 'error', error: message });
-        if (this.debugTtsRequest?.requestId === requestId) this.setDebugStatus(`error: ${message}`);
-      } else {
-        for (const session of this.sessionsByKey.values()) {
-          if (!session.committed) {
-            this.updateBlock(session.contentId, session.signature, { status: 'error', error: message });
-          }
-        }
-        this.setDebugStatus(`error: ${message}`);
-      }
-      this.appendDebug(`voice ws error: ${message}`);
-    }
+    handleSocketText(this as unknown as VoiceSocketContext, rawText);
   }
 
   private flushOutboundQueue(): void {
-    if (!this.socket || this.socket.readyState !== this.socket.OPEN) return;
-    while (this.outboundQueue.length > 0) {
-      const frame = this.outboundQueue.shift();
-      if (frame) this.socket.send(frame);
-    }
+    flushOutboundQueue(this as unknown as VoiceSocketContext);
   }
 
   private markUncommittedSessionsError(message: string): void {
@@ -338,131 +187,11 @@ class VoiceRuntime {
   }
 
   private ensureSocket(): Promise<WebSocket> {
-    if (this.socket && this.socket.readyState === this.socket.OPEN) {
-      return Promise.resolve(this.socket);
-    }
-    if (this.socketConnectingPromise) return this.socketConnectingPromise;
-
-    const accessToken = this.getAccessToken();
-    if (!accessToken) {
-      const errorMessage = 'voice access_token is required';
-      this.outboundQueue.length = 0;
-      this.markUncommittedSessionsError(errorMessage);
-      this.setDebugStatus(`error: ${errorMessage}`);
-      return Promise.reject(new Error(errorMessage));
-    }
-
-    const WsCtor = globalThis.window?.WebSocket || globalThis.WebSocket;
-    if (!WsCtor) return Promise.reject(new Error('WebSocket is not available'));
-
-    this.socketClosingExpected = false;
-    this.socketConnectingPromise = new Promise((resolve, reject) => {
-      let connected = false;
-      let settled = false;
-      const targetSummary = this.describeVoiceWsTarget(accessToken);
-      const connectTimeout = globalThis.window?.setTimeout
-        ? globalThis.window.setTimeout(() => {
-          this.appendDebug(`voice ws connect timeout: ${targetSummary}`);
-          failPendingConnect('voice websocket connect timeout');
-        }, VOICE_WS_CONNECT_TIMEOUT_MS)
-        : null;
-
-      const clearConnectTimeout = (): void => {
-        if (connectTimeout !== null && globalThis.window?.clearTimeout) {
-          globalThis.window.clearTimeout(connectTimeout);
-        }
-      };
-
-      const failPendingConnect = (message: string): void => {
-        if (settled) return;
-        settled = true;
-        clearConnectTimeout();
-        this.socketConnectingPromise = null;
-        const failedSocket = this.socket;
-        this.socket = null;
-        this.markUncommittedSessionsError(message);
-        this.setDebugStatus(`error: ${message}`);
-        reject(new Error(message));
-        if (failedSocket && failedSocket.readyState === failedSocket.CONNECTING) {
-          this.socketClosingExpected = true;
-          try { failedSocket.close(1000, 'voice connect failed'); } catch { /* no-op */ }
-        }
-      };
-
-      try {
-        this.appendDebug(`voice ws connect -> ${targetSummary}`);
-        this.socket = new WsCtor(this.getVoiceWsUrl(accessToken));
-      } catch (error) {
-        clearConnectTimeout();
-        this.socketConnectingPromise = null;
-        reject(error as Error);
-        return;
-      }
-
-      this.socket.binaryType = 'arraybuffer';
-      this.socket.addEventListener('open', () => {
-        if (settled) return;
-        settled = true;
-        connected = true;
-        clearConnectTimeout();
-        this.socketConnectingPromise = null;
-        if (this.debugTtsRequest?.requestId) {
-          this.setDebugStatus('socket open');
-        }
-        this.flushOutboundQueue();
-        resolve(this.socket as WebSocket);
-      });
-
-      this.socket.addEventListener('message', (event: MessageEvent) => {
-        if (typeof event.data === 'string') {
-          this.handleSocketText(event.data);
-          return;
-        }
-        this.handleSocketBinary(event.data);
-      });
-
-      this.socket.addEventListener('error', () => {
-        this.appendDebug('voice ws error event');
-        failPendingConnect('voice websocket handshake failed');
-      });
-
-      this.socket.addEventListener('close', (event: CloseEvent) => {
-        const expected = this.socketClosingExpected;
-        this.socketClosingExpected = false;
-        const closeCode = typeof event?.code === 'number' ? event.code : 1006;
-        const closeReason = String(event?.reason || '').trim();
-        if (!connected && !expected) {
-          const detail = closeReason
-            ? `voice websocket closed before open (code=${closeCode}, reason=${closeReason})`
-            : `voice websocket closed before open (code=${closeCode})`;
-          this.appendDebug(detail);
-          failPendingConnect(detail);
-          return;
-        }
-        this.socketConnectingPromise = null;
-        this.socket = null;
-        clearConnectTimeout();
-        if (!expected) {
-          this.markUncommittedSessionsError('voice websocket closed');
-          this.setDebugStatus('error: voice websocket closed');
-        }
-      });
-    });
-
-    return this.socketConnectingPromise;
+    return ensureSocket(this as unknown as VoiceSocketContext);
   }
 
   private sendJsonFrame(payload: Record<string, unknown>): void {
-    const frame = JSON.stringify(payload);
-    if (this.socket && this.socket.readyState === this.socket.OPEN) {
-      this.socket.send(frame);
-      return;
-    }
-    this.outboundQueue.push(frame);
-    this.ensureSocket().catch((error) => {
-      this.appendDebug(`voice socket connect failed: ${(error as Error).message}`);
-      this.setDebugStatus(`error: ${(error as Error).message}`);
-    });
+    sendJsonFrame(this as unknown as VoiceSocketContext, payload);
   }
 
   private ensureSession(contentId: string, signature: string): VoiceSession {
@@ -687,20 +416,7 @@ class VoiceRuntime {
   }
 
   private closeSocket(): void {
-    if (!this.socket) {
-      this.socketConnectingPromise = null;
-      return;
-    }
-    this.socketClosingExpected = true;
-    try {
-      if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
-        this.socket.close(1000, 'voice reset');
-      }
-    } catch {
-      // no-op
-    }
-    this.socket = null;
-    this.socketConnectingPromise = null;
+    closeSocket(this as unknown as VoiceSocketContext);
   }
 }
 

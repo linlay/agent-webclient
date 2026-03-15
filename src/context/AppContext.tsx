@@ -118,6 +118,7 @@ export function createInitialState(): AppState {
 			open: false,
 			type: null,
 			searchText: "",
+			historySearch: "",
 			activeIndex: 0,
 			scope: "all",
 			focusArea: "search",
@@ -184,6 +185,7 @@ export type AppAction =
 			modal: {
 				type: "history" | "switch" | "detail" | "schedule";
 				searchText?: string;
+				historySearch?: string;
 				activeIndex?: number;
 				scope?: "all" | "agent" | "team";
 				focusArea?: "search" | "list";
@@ -281,6 +283,7 @@ function buildConversationResetState(
 			open: false,
 			type: null,
 			searchText: "",
+			historySearch: "",
 			activeIndex: 0,
 			scope: "all",
 			focusArea: "search",
@@ -463,6 +466,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 					open: true,
 					type: action.modal.type,
 					searchText: action.modal.searchText ?? "",
+					historySearch: action.modal.historySearch ?? "",
 					activeIndex: action.modal.activeIndex ?? 0,
 					scope: action.modal.scope ?? "all",
 					focusArea: action.modal.focusArea ?? "search",
@@ -488,6 +492,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 					open: false,
 					type: null,
 					searchText: "",
+					historySearch: "",
 					activeIndex: 0,
 					scope: "all",
 					focusArea: "search",

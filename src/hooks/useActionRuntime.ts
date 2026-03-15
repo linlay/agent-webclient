@@ -14,19 +14,6 @@ function resolveActionArgsFromEvent(event: AgentEvent): Record<string, unknown> 
     return candidate as Record<string, unknown>;
   }
 
-  const fnArgs = event.function?.arguments;
-  if (fnArgs && typeof fnArgs === 'object' && !Array.isArray(fnArgs)) {
-    return fnArgs as Record<string, unknown>;
-  }
-
-  if (typeof fnArgs === 'string' && fnArgs.trim()) {
-    return safeJsonParse(fnArgs, {});
-  }
-
-  if (typeof event.arguments === 'string' && event.arguments.trim()) {
-    return safeJsonParse(event.arguments, {});
-  }
-
   return null;
 }
 
