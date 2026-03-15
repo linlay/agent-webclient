@@ -7,7 +7,11 @@ export type SlashCommandId =
   | 'voice'
   | 'settings'
   | 'plan'
-  | 'stop';
+  | 'stop'
+  | 'schedule'
+  | 'detail'
+  | 'history'
+  | 'switch';
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
@@ -22,9 +26,41 @@ export interface SlashCommandAvailability {
   hasLatestQuery: boolean;
   speechSupported: boolean;
   isFrontendActive: boolean;
+  hasCurrentWorker: boolean;
+  workerHistoryCount: number;
+  workerCount: number;
+  commandModalOpen: boolean;
 }
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
+  {
+    id: 'schedule',
+    command: '/schedule',
+    label: '计划任务',
+    description: '为当前员工或小组预填计划任务草稿',
+    keywords: ['schedule', 'task', 'plan', 'cron'],
+  },
+  {
+    id: 'detail',
+    command: '/detail',
+    label: '当前详情',
+    description: '查看当前员工或小组的模型、技能、工具等信息',
+    keywords: ['detail', 'profile', 'info', 'agent'],
+  },
+  {
+    id: 'history',
+    command: '/history',
+    label: '历史对话',
+    description: '查看当前员工或小组的历史会话',
+    keywords: ['history', 'chat', 'conversation', 'recent'],
+  },
+  {
+    id: 'switch',
+    command: '/switch',
+    label: '切换员工',
+    description: '搜索并切换当前员工或小组',
+    keywords: ['switch', 'worker', 'agent', 'team'],
+  },
   {
     id: 'new',
     command: '/new',
@@ -50,7 +86,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     id: 'voice',
     command: '/voice',
     label: '语音输入',
-    description: '开始或停止语音听写',
+    description: '开始或停止浏览器语音听写',
     keywords: ['voice', 'speech', 'mic'],
   },
   {
@@ -110,6 +146,15 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'stop') {
     return !availability.streaming;
+  }
+  if (commandId === 'schedule' || commandId === 'detail') {
+    return !availability.hasCurrentWorker || availability.commandModalOpen;
+  }
+  if (commandId === 'history') {
+    return !availability.hasCurrentWorker || availability.commandModalOpen;
+  }
+  if (commandId === 'switch') {
+    return availability.workerCount === 0 || availability.commandModalOpen;
   }
   return false;
 }

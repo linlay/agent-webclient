@@ -16,6 +16,7 @@ import { ConversationStage } from "../timeline/ConversationStage";
 import { SettingsModal } from "../modal/SettingsModal";
 import { ActionModal } from "../modal/ActionModal";
 import { EventPopover } from "../modal/EventPopover";
+import { CommandModal } from "../modal/CommandModal";
 import { FireworksCanvas } from "../effects/FireworksCanvas";
 import { useChatActions } from "../../hooks/useChatActions";
 import { useMessageActions } from "../../hooks/useMessageActions";
@@ -78,6 +79,7 @@ export const AppShell: React.FC = () => {
 			<BottomDock />
 			{showOverlay && <DrawerOverlay />}
 			{state.settingsOpen && <SettingsModal />}
+			<CommandModal />
 			<ActionModal />
 			<EventPopover />
 			<FireworksCanvas />

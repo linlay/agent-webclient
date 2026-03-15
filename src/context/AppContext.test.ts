@@ -97,4 +97,51 @@ describe('appReducer conversation reset behavior', () => {
     expect(queued.pendingSteers).toHaveLength(1);
     expect(removed.pendingSteers).toEqual([]);
   });
+
+  it('opens, updates, and closes the command modal state', () => {
+    const baseState = createInitialState();
+
+    const opened = appReducer(baseState, {
+      type: 'OPEN_COMMAND_MODAL',
+      modal: {
+        type: 'switch',
+        searchText: 'alice',
+      },
+    });
+    const patched = appReducer(opened, {
+      type: 'PATCH_COMMAND_MODAL',
+      modal: {
+        activeIndex: 2,
+        scope: 'team',
+      },
+    });
+    const closed = appReducer(patched, {
+      type: 'CLOSE_COMMAND_MODAL',
+    });
+
+    expect(opened.commandModal).toMatchObject({
+      open: true,
+      type: 'switch',
+      searchText: 'alice',
+      activeIndex: 0,
+      scope: 'all',
+      focusArea: 'search',
+    });
+    expect(patched.commandModal).toMatchObject({
+      open: true,
+      type: 'switch',
+      searchText: 'alice',
+      activeIndex: 2,
+      scope: 'team',
+      focusArea: 'search',
+    });
+    expect(closed.commandModal).toMatchObject({
+      open: false,
+      type: null,
+      searchText: '',
+      activeIndex: 0,
+      scope: 'all',
+      focusArea: 'search',
+    });
+  });
 });

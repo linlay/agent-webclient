@@ -1,11 +1,14 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MentionSuggest } from "./MentionSuggest";
 import { COMPOSER_MAX_LINES } from "../../context/constants";
 import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
+import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { isImeEnterConfirming } from "../../lib/ime";
+import { computeSlashPopoverPlacement } from "../../lib/slashPopoverPlacement";
 import {
 	getFilteredSlashCommands,
 	getLatestQueryText,
@@ -41,6 +44,8 @@ export const ComposerArea: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
 	const composerRef = useRef<HTMLDivElement>(null);
+	const composerPillRef = useRef<HTMLDivElement>(null);
+	const slashPaletteRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 	const speechBaseValueRef = useRef("");
@@ -56,6 +61,13 @@ export const ComposerArea: React.FC = () => {
 	const [speechListening, setSpeechListening] = useState(false);
 	const [speechStatus, setSpeechStatus] = useState("点击开始听写");
 	const [steerSubmitting, setSteerSubmitting] = useState(false);
+	const [slashPopoverStyle, setSlashPopoverStyle] = useState<{
+		left: number;
+		top: number;
+		width: number;
+		maxHeight: number;
+		placement: "above" | "below";
+	} | null>(null);
 
 	const isFrontendActive = !!state.activeFrontendTool;
 	const hasPendingSteers = state.pendingSteers.length > 0;
@@ -75,17 +87,28 @@ export const ComposerArea: React.FC = () => {
 		() => getFilteredSlashCommands(inputValue),
 		[inputValue],
 	);
+	const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 	const showSlashPalette =
-		!isFrontendActive && !slashDismissed && slashCommands.length > 0;
+		!isFrontendActive
+		&& !state.commandModal.open
+		&& !slashDismissed
+		&& slashCommands.length > 0;
 	const slashAvailability = useMemo(
 		() => ({
 			streaming: state.streaming,
 			hasLatestQuery: Boolean(latestQueryText),
 			speechSupported,
 			isFrontendActive,
+			hasCurrentWorker: Boolean(currentWorker),
+			workerHistoryCount: currentWorker?.relatedChats.length || 0,
+			workerCount: state.workerRows.length,
+			commandModalOpen: state.commandModal.open,
 		}),
 		[
+			currentWorker,
 			state.streaming,
+			state.commandModal.open,
+			state.workerRows.length,
 			latestQueryText,
 			speechSupported,
 			isFrontendActive,
@@ -125,12 +148,38 @@ export const ComposerArea: React.FC = () => {
 	useEffect(() => {
 		if (!showSlashPalette) return;
 
+		const updateSlashPopoverPosition = () => {
+			const anchor = composerPillRef.current || textareaRef.current;
+			if (!anchor) return;
+			const rect = anchor.getBoundingClientRect();
+			if (rect.width <= 0) {
+				setSlashPopoverStyle(null);
+				return;
+			}
+			setSlashPopoverStyle(
+				computeSlashPopoverPlacement({
+					anchorRect: {
+						top: rect.top,
+						bottom: rect.bottom,
+						left: rect.left,
+						width: rect.width,
+					},
+					viewport: {
+						width: window.innerWidth,
+						height: window.innerHeight,
+					},
+				}),
+			);
+		};
+		updateSlashPopoverPosition();
+
 		const onPointerDown = (event: MouseEvent) => {
 			const target = event.target as Node | null;
 			if (!target) return;
 			if (
 				showSlashPalette &&
-				!composerRef.current?.contains(target)
+				!composerRef.current?.contains(target) &&
+				!slashPaletteRef.current?.contains(target)
 			) {
 				setSlashDismissed(true);
 			}
@@ -145,10 +194,19 @@ export const ComposerArea: React.FC = () => {
 
 		document.addEventListener("mousedown", onPointerDown);
 		document.addEventListener("keydown", onKeyDown);
+		window.addEventListener("resize", updateSlashPopoverPosition);
+		window.addEventListener("scroll", updateSlashPopoverPosition, true);
 		return () => {
 			document.removeEventListener("mousedown", onPointerDown);
 			document.removeEventListener("keydown", onKeyDown);
+			window.removeEventListener("resize", updateSlashPopoverPosition);
+			window.removeEventListener("scroll", updateSlashPopoverPosition, true);
 		};
+	}, [inputValue, showSlashPalette]);
+
+	useEffect(() => {
+		if (showSlashPalette) return;
+		setSlashPopoverStyle(null);
 	}, [showSlashPalette]);
 
 	const closeMention = useCallback(() => {
@@ -464,6 +522,30 @@ export const ComposerArea: React.FC = () => {
 			closeMention();
 
 			switch (commandId) {
+				case "schedule":
+					dispatch({
+						type: "OPEN_COMMAND_MODAL",
+						modal: { type: "schedule" },
+					});
+					return;
+				case "detail":
+					dispatch({
+						type: "OPEN_COMMAND_MODAL",
+						modal: { type: "detail" },
+					});
+					return;
+				case "history":
+					dispatch({
+						type: "OPEN_COMMAND_MODAL",
+						modal: { type: "history" },
+					});
+					return;
+				case "switch":
+					dispatch({
+						type: "OPEN_COMMAND_MODAL",
+						modal: { type: "switch" },
+					});
+					return;
 				case "new":
 					resetForNewConversation();
 					return;
@@ -510,7 +592,6 @@ export const ComposerArea: React.FC = () => {
 			latestQueryText,
 			resetForNewConversation,
 			slashAvailability,
-			state.abortController,
 			state.desktopDebugSidebarEnabled,
 			state.layoutMode,
 			state.planningMode,
@@ -741,6 +822,48 @@ export const ComposerArea: React.FC = () => {
 	}, [dispatch, state.steerDraft, updateMentionSuggestions]);
 
 	useEffect(() => {
+		const onFocusComposer = () => {
+			window.requestAnimationFrame(() => {
+				const el = textareaRef.current;
+				if (!el) return;
+				el.focus();
+				const caret = el.value.length;
+				el.setSelectionRange(caret, caret);
+			});
+		};
+
+		window.addEventListener("agent:focus-composer", onFocusComposer);
+		return () =>
+			window.removeEventListener("agent:focus-composer", onFocusComposer);
+	}, []);
+
+	useEffect(() => {
+		const onSetDraft = (event: Event) => {
+			const draft = String(
+				(event as CustomEvent).detail?.draft || "",
+			);
+			setInputValue(draft);
+			setSlashDismissed(false);
+			if (draft.startsWith("/")) {
+				closeMention();
+			} else {
+				updateMentionSuggestions(draft);
+			}
+			window.requestAnimationFrame(() => {
+				const el = textareaRef.current;
+				if (!el) return;
+				el.focus();
+				const caret = draft.length;
+				el.setSelectionRange(caret, caret);
+			});
+		};
+
+		window.addEventListener("agent:set-composer-draft", onSetDraft);
+		return () =>
+			window.removeEventListener("agent:set-composer-draft", onSetDraft);
+	}, [closeMention, updateMentionSuggestions]);
+
+	useEffect(() => {
 		const onSelectMention = (event: Event) => {
 			const agentKey = String(
 				(event as CustomEvent).detail?.agentKey || "",
@@ -822,51 +945,69 @@ export const ComposerArea: React.FC = () => {
 		};
 	}, []);
 
+	const renderSlashPalette = (className = "", style?: React.CSSProperties) => (
+		<div
+			ref={slashPaletteRef}
+			className={`slash-command-popover ${className}`.trim()}
+			style={style}
+		>
+			<div className="slash-command-list">
+				{slashCommands.map((command, index) => {
+					const disabled = isSlashCommandDisabled(
+						command.id,
+						slashAvailability,
+					);
+					return (
+						<UiButton
+							key={command.id}
+							className={`slash-command-item ${index === activeSlashIndex ? "active" : ""}`}
+							variant="ghost"
+							size="sm"
+							disabled={disabled}
+							onMouseDown={(e) => e.preventDefault()}
+							onClick={() => void executeSlashCommand(command.id)}
+						>
+							<span className="slash-command-main">
+								<span className="slash-command-name">
+									{command.command}
+								</span>
+								<span className="slash-command-label">
+									{command.label}
+								</span>
+							</span>
+							{command.id === "plan" && state.planningMode && (
+								<span className="slash-command-check" aria-hidden="true">
+									<MaterialIcon name="check" />
+								</span>
+							)}
+							<span className="slash-command-description">
+								{command.description}
+							</span>
+						</UiButton>
+					);
+				})}
+			</div>
+		</div>
+	);
+
 	return (
 		<div
 			ref={composerRef}
 			className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
 		>
-			{showSlashPalette && (
-				<div className="slash-command-popover">
-					<div className="slash-command-list">
-						{slashCommands.map((command, index) => {
-							const disabled = isSlashCommandDisabled(
-								command.id,
-								slashAvailability,
-							);
-							return (
-								<UiButton
-									key={command.id}
-									className={`slash-command-item ${index === activeSlashIndex ? "active" : ""}`}
-									variant="ghost"
-									size="sm"
-									disabled={disabled}
-									onMouseDown={(e) => e.preventDefault()}
-									onClick={() => void executeSlashCommand(command.id)}
-								>
-									<span className="slash-command-main">
-										<span className="slash-command-name">
-											{command.command}
-										</span>
-										<span className="slash-command-label">
-											{command.label}
-										</span>
-									</span>
-									{command.id === "plan" && state.planningMode && (
-										<span className="slash-command-check" aria-hidden="true">
-											<MaterialIcon name="check" />
-										</span>
-									)}
-									<span className="slash-command-description">
-										{command.description}
-									</span>
-								</UiButton>
-							);
-						})}
-					</div>
-				</div>
-			)}
+			{showSlashPalette && slashPopoverStyle && typeof document !== "undefined"
+				? createPortal(
+					renderSlashPalette("is-portal", {
+						left: slashPopoverStyle.left,
+						top: slashPopoverStyle.top,
+						width: slashPopoverStyle.width,
+						maxHeight: slashPopoverStyle.maxHeight,
+					}),
+					document.body,
+				)
+				: showSlashPalette
+					? renderSlashPalette("is-inline-fallback")
+					: null}
 			{state.mentionOpen && <MentionSuggest />}
 			{shouldShowSteerBar && (
 				<div className="steer-bar">
@@ -927,6 +1068,7 @@ export const ComposerArea: React.FC = () => {
 				</div>
 			)}
 			<div
+				ref={composerPillRef}
 				className={`composer-pill ${isFrontendActive ? "hidden" : ""}`}
 			>
 				<textarea

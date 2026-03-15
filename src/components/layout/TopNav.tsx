@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
+import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 
@@ -14,6 +15,8 @@ export const TopNav: React.FC = () => {
 			: "is-idle";
 
 	const statusText = state.streaming ? "运行中..." : "就绪";
+	const currentWorker = resolveCurrentWorkerSummary(state);
+	const currentWorkerRole = String(currentWorker?.role || "").trim() || "--";
 
 	return (
 		<nav className="top-nav">
@@ -34,57 +37,67 @@ export const TopNav: React.FC = () => {
 					>
 						<MaterialIcon name="menu" />
 					</UiButton>
-					<div className="brand-mark">
-						<div className="brand-logo">A</div>
-						<div className="brand-text">
-							<strong>AGENT</strong>
-							<span>Webclient</span>
+					<div className="brand-cluster">
+						<div className="brand-mark">
+							<div className="brand-logo">A</div>
+							<div className="brand-text">
+								<strong>AGENT</strong>
+								<span>Webclient</span>
+							</div>
+						</div>
+						<div
+							className="mode-switch"
+							role="tablist"
+							aria-label="对话模式"
+						>
+							<button
+								className={`mode-btn ${state.conversationMode === "worker" ? "is-active" : ""}`}
+								type="button"
+								role="tab"
+								aria-selected={state.conversationMode === "worker"}
+								onClick={() =>
+									window.dispatchEvent(
+										new CustomEvent(
+											"agent:set-conversation-mode",
+											{
+												detail: { mode: "worker" },
+											},
+										),
+									)
+								}
+							>
+								员工模式
+							</button>
+							<button
+								className={`mode-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
+								type="button"
+								role="tab"
+								aria-selected={state.conversationMode === "chat"}
+								onClick={() =>
+									window.dispatchEvent(
+										new CustomEvent(
+											"agent:set-conversation-mode",
+											{
+												detail: { mode: "chat" },
+											},
+										),
+									)
+								}
+							>
+								聊天模式
+							</button>
 						</div>
 					</div>
 				</div>
 
 				<div className="nav-group nav-center">
-					<div
-						className="mode-switch"
-						role="tablist"
-						aria-label="对话模式"
-					>
-						<button
-							className={`mode-btn ${state.conversationMode === "worker" ? "is-active" : ""}`}
-							type="button"
-							role="tab"
-							aria-selected={state.conversationMode === "worker"}
-							onClick={() =>
-								window.dispatchEvent(
-									new CustomEvent(
-										"agent:set-conversation-mode",
-										{
-											detail: { mode: "worker" },
-										},
-									),
-								)
-							}
-						>
-							员工模式
-						</button>
-						<button
-							className={`mode-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
-							type="button"
-							role="tab"
-							aria-selected={state.conversationMode === "chat"}
-							onClick={() =>
-								window.dispatchEvent(
-									new CustomEvent(
-										"agent:set-conversation-mode",
-										{
-											detail: { mode: "chat" },
-										},
-									),
-								)
-							}
-						>
-							聊天模式
-						</button>
+					<div className="current-worker-card" aria-live="polite">
+						<strong className="current-worker-name">
+							{currentWorker?.displayName || "未选择员工"}
+						</strong>
+						<span className="current-worker-role">
+							{currentWorkerRole}
+						</span>
 					</div>
 				</div>
 

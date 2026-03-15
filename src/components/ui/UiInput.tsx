@@ -7,13 +7,13 @@ export interface UiInputProps
 	inputSize?: UiInputSize;
 }
 
-export const UiInput: React.FC<UiInputProps> = ({
-	inputSize = "md",
-	className = "",
-	...rest
-}) => {
-	const classes = ["ui-input", `ui-input-${inputSize}`, className]
-		.filter(Boolean)
-		.join(" ");
-	return <input className={classes} {...rest} />;
-};
+export const UiInput = React.forwardRef<HTMLInputElement, UiInputProps>(
+	({ inputSize = "md", className = "", ...rest }, ref) => {
+		const classes = ["ui-input", `ui-input-${inputSize}`, className]
+			.filter(Boolean)
+			.join(" ");
+		return <input ref={ref} className={classes} {...rest} />;
+	},
+);
+
+UiInput.displayName = "UiInput";

@@ -6,27 +6,33 @@ export interface UiListItemProps
 	dense?: boolean;
 }
 
-export const UiListItem: React.FC<UiListItemProps> = ({
-	selected = false,
-	dense = false,
-	className = "",
-	type = "button",
-	children,
-	...rest
-}) => {
-	const classes = [
-		"ui-list-item",
-		selected ? "is-selected" : "",
-		dense ? "is-dense" : "",
-		className,
-	]
-		.filter(Boolean)
-		.join(" ");
+export const UiListItem = React.forwardRef<HTMLButtonElement, UiListItemProps>(
+	(
+		{
+			selected = false,
+			dense = false,
+			className = "",
+			type = "button",
+			children,
+			...rest
+		},
+		ref,
+	) => {
+		const classes = [
+			"ui-list-item",
+			selected ? "is-selected" : "",
+			dense ? "is-dense" : "",
+			className,
+		]
+			.filter(Boolean)
+			.join(" ");
 
-	return (
-		<button type={type} className={classes} {...rest}>
-			{children}
-		</button>
-	);
-};
+		return (
+			<button ref={ref} type={type} className={classes} {...rest}>
+				{children}
+			</button>
+		);
+	},
+);
 
+UiListItem.displayName = "UiListItem";

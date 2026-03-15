@@ -207,6 +207,21 @@ export interface PendingSteer {
   createdAt: number;
 }
 
+export type CommandModalType = 'history' | 'switch' | 'detail' | 'schedule' | null;
+export type CommandModalScope = 'all' | 'agent' | 'team';
+export type CommandModalFocusArea = 'search' | 'list';
+
+export interface CommandModalState {
+  open: boolean;
+  type: CommandModalType;
+  searchText: string;
+  activeIndex: number;
+  scope: CommandModalScope;
+  focusArea: CommandModalFocusArea;
+  scheduleTask: string;
+  scheduleRule: string;
+}
+
 /* ============================================
    Chat
    ============================================ */
@@ -350,6 +365,7 @@ export interface AppState {
   eventPopoverIndex: number;
   eventPopoverEventRef: AgentEvent | null;
   eventPopoverAnchor: { x: number; y: number } | null;
+  commandModal: CommandModalState;
 }
 
 /* ============================================

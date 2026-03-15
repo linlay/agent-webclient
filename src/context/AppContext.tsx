@@ -114,6 +114,16 @@ export function createInitialState(): AppState {
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
 		eventPopoverAnchor: null,
+		commandModal: {
+			open: false,
+			type: null,
+			searchText: "",
+			activeIndex: 0,
+			scope: "all",
+			focusArea: "search",
+			scheduleTask: "",
+			scheduleRule: "",
+		},
 	};
 }
 
@@ -169,6 +179,20 @@ export type AppAction =
 	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
+	| {
+			type: "OPEN_COMMAND_MODAL";
+			modal: {
+				type: "history" | "switch" | "detail" | "schedule";
+				searchText?: string;
+				activeIndex?: number;
+				scope?: "all" | "agent" | "team";
+				focusArea?: "search" | "list";
+				scheduleTask?: string;
+				scheduleRule?: string;
+			};
+	  }
+	| { type: "PATCH_COMMAND_MODAL"; modal: Partial<AppState["commandModal"]> }
+	| { type: "CLOSE_COMMAND_MODAL" }
 	| { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
 	| { type: "APPEND_TIMELINE_ORDER"; id: string }
 	| { type: "SET_TOOL_STATE"; key: string; state: ToolState }
@@ -253,6 +277,16 @@ function buildConversationResetState(
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
 		eventPopoverAnchor: null,
+		commandModal: {
+			open: false,
+			type: null,
+			searchText: "",
+			activeIndex: 0,
+			scope: "all",
+			focusArea: "search",
+			scheduleTask: "",
+			scheduleRule: "",
+		},
 	};
 }
 
@@ -422,6 +456,45 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, mentionActiveIndex: action.index };
 		case "SET_ACTIVE_FRONTEND_TOOL":
 			return { ...state, activeFrontendTool: action.tool };
+		case "OPEN_COMMAND_MODAL":
+			return {
+				...state,
+				commandModal: {
+					open: true,
+					type: action.modal.type,
+					searchText: action.modal.searchText ?? "",
+					activeIndex: action.modal.activeIndex ?? 0,
+					scope: action.modal.scope ?? "all",
+					focusArea: action.modal.focusArea ?? "search",
+					scheduleTask: action.modal.scheduleTask ?? "",
+					scheduleRule: action.modal.scheduleRule ?? "",
+				},
+			};
+		case "PATCH_COMMAND_MODAL":
+			return {
+				...state,
+				commandModal: {
+					...state.commandModal,
+					...action.modal,
+				},
+			};
+		case "CLOSE_COMMAND_MODAL":
+			if (!state.commandModal.open && !state.commandModal.type) {
+				return state;
+			}
+			return {
+				...state,
+				commandModal: {
+					open: false,
+					type: null,
+					searchText: "",
+					activeIndex: 0,
+					scope: "all",
+					focusArea: "search",
+					scheduleTask: "",
+					scheduleRule: "",
+				},
+			};
 		case "SET_TIMELINE_NODE": {
 			const timelineNodes = new Map(state.timelineNodes);
 			timelineNodes.set(action.id, action.node);

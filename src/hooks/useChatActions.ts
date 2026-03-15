@@ -540,6 +540,12 @@ export function useChatActions() {
     }
   }, [dispatch, stateRef]);
 
+  const focusComposerSoon = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('agent:focus-composer'));
+    });
+  }, []);
+
   const findDefaultTeamWorkerKey = useCallback((rows: WorkerRow[]): string => {
     const matched = rows.find((row) => {
       if (row.type !== 'team') return false;
@@ -667,8 +673,9 @@ export function useChatActions() {
   }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState]);
 
   const loadChat = useCallback(
-    async (chatId: string) => {
+    async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
       if (!chatId) return;
+      const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
       const seq = ++loadSeqRef.current;
       dispatch({ type: 'SET_CHAT_ID', chatId });
@@ -737,16 +744,26 @@ export function useChatActions() {
         rs.chatAgentById.forEach((agentKey, cid) => {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
         });
+        if (focusComposerOnComplete) {
+          focusComposerSoon();
+        }
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
+        if (focusComposerOnComplete) {
+          focusComposerSoon();
+        }
       }
     },
-    [clearPlanAutoCollapseTimer, dispatch, stateRef]
+    [clearPlanAutoCollapseTimer, dispatch, focusComposerSoon, stateRef]
   );
 
-  const selectWorkerConversation = useCallback(async (workerKey: string) => {
+  const selectWorkerConversation = useCallback(async (
+    workerKey: string,
+    options: { focusComposerOnComplete?: boolean } = {},
+  ) => {
     const normalized = String(workerKey || '').trim();
     if (!normalized) return;
+    const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
     const row = stateRef.current.workerIndexByKey.get(normalized) as WorkerRow | undefined;
     if (!row) return;
@@ -763,7 +780,7 @@ export function useChatActions() {
     });
 
     if (row.hasHistory && row.latestChatId) {
-      await loadChat(row.latestChatId);
+      await loadChat(row.latestChatId, { focusComposerOnComplete });
       return;
     }
 
@@ -775,7 +792,10 @@ export function useChatActions() {
       type: 'APPEND_DEBUG',
       line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
     });
-  }, [clearPlanAutoCollapseTimer, dispatch, loadChat, stateRef]);
+    if (focusComposerOnComplete) {
+      focusComposerSoon();
+    }
+  }, [clearPlanAutoCollapseTimer, dispatch, focusComposerSoon, loadChat, stateRef]);
 
   /* Bootstrap: load worker data on mount */
   useEffect(() => {
@@ -793,7 +813,8 @@ export function useChatActions() {
   useEffect(() => {
     const handler = (e: Event) => {
       const chatId = (e as CustomEvent).detail?.chatId;
-      if (chatId) loadChat(chatId);
+      const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
+      if (chatId) loadChat(chatId, { focusComposerOnComplete });
     };
     window.addEventListener('agent:load-chat', handler);
     return () => window.removeEventListener('agent:load-chat', handler);
@@ -867,8 +888,9 @@ export function useChatActions() {
   useEffect(() => {
     const handler = (e: Event) => {
       const workerKey = (e as CustomEvent).detail?.workerKey;
+      const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
       if (workerKey) {
-        selectWorkerConversation(workerKey).catch(() => undefined);
+        selectWorkerConversation(workerKey, { focusComposerOnComplete }).catch(() => undefined);
       }
     };
     window.addEventListener('agent:select-worker', handler);
