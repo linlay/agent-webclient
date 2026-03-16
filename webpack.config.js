@@ -90,10 +90,16 @@ module.exports = (env, argv) => {
       historyApiFallback: true,
       proxy: [
         {
-          context: ['/api/ws/voice'],
+          context: ['/api/voice/ws'],
           target: voiceTarget,
           changeOrigin: true,
           ws: true,
+        },
+        {
+          context: ['/api/voice'],
+          target: voiceTarget,
+          changeOrigin: true,
+          ws: false,
         },
         {
           context: ['/api'],

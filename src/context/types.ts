@@ -205,6 +205,64 @@ export interface PendingSteer {
   createdAt: number;
 }
 
+export type InputMode = 'text' | 'voice';
+export type VoiceChatStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
+export type VoiceChatWsStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+
+export interface VoiceCapabilities {
+  websocketPath?: string;
+  asr?: {
+    configured?: boolean;
+    defaults?: {
+      sampleRate?: number;
+      language?: string;
+      turnDetection?: {
+        type?: string;
+        threshold?: number;
+        silenceDurationMs?: number;
+      };
+    };
+  };
+  tts?: {
+    modes?: string[];
+    defaultMode?: 'local' | 'llm';
+    runnerConfigured?: boolean;
+    speechRateDefault?: number;
+    audioFormat?: {
+      sampleRate?: number;
+      channels?: number;
+      responseFormat?: string;
+    };
+    voicesEndpoint?: string;
+  };
+}
+
+export interface VoiceOption {
+  id: string;
+  displayName: string;
+  provider: string;
+  default: boolean;
+}
+
+export interface VoiceChatState {
+  status: VoiceChatStatus;
+  sessionActive: boolean;
+  partialUserText: string;
+  partialAssistantText: string;
+  error: string;
+  wsStatus: VoiceChatWsStatus;
+  capabilities: VoiceCapabilities | null;
+  capabilitiesLoaded: boolean;
+  capabilitiesError: string;
+  voices: VoiceOption[];
+  voicesLoaded: boolean;
+  voicesError: string;
+  selectedVoice: string;
+  speechRate: number;
+  currentAgentKey: string;
+  currentAgentName: string;
+}
+
 export type CommandModalType = 'history' | 'switch' | 'detail' | 'schedule' | null;
 export type CommandModalScope = 'all' | 'agent' | 'team';
 export type CommandModalFocusArea = 'search' | 'list';
@@ -358,6 +416,8 @@ export interface AppState {
   accessToken: string;
   ttsDebugStatus: string;
   planningMode: boolean;
+  inputMode: InputMode;
+  voiceChat: VoiceChatState;
   steerDraft: string;
   pendingSteers: PendingSteer[];
   downvotedRunKeys: Set<string>;

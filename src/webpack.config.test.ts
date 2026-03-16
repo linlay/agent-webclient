@@ -19,9 +19,13 @@ describe('webpack devServer proxy', () => {
     const config = configFactory({}, { mode: 'development' });
     const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
     const voiceRule = proxyRules.find((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/api/ws/voice'));
+      Array.isArray(rule.context) && rule.context.includes('/api/voice/ws'));
+    const voiceApiRule = proxyRules.find((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/api/voice'));
 
     expect(voiceRule).toBeTruthy();
     expect(voiceRule.ws).toBe(true);
+    expect(voiceApiRule).toBeTruthy();
+    expect(voiceApiRule.ws).toBe(false);
   });
 });

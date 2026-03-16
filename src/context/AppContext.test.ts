@@ -98,6 +98,35 @@ describe('appReducer conversation reset behavior', () => {
     expect(removed.pendingSteers).toEqual([]);
   });
 
+  it('resets voice chat runtime state and input mode during conversation reset', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      inputMode: 'voice' as const,
+      voiceChat: {
+        ...baseState.voiceChat,
+        status: 'speaking' as const,
+        sessionActive: true,
+        partialUserText: '你好',
+        partialAssistantText: '你好，我在。',
+        currentAgentKey: 'agent-alice',
+        currentAgentName: 'Alice',
+      },
+    };
+
+    const next = appReducer(state, { type: 'RESET_CONVERSATION' });
+
+    expect(next.inputMode).toBe('text');
+    expect(next.voiceChat).toMatchObject({
+      status: 'idle',
+      sessionActive: false,
+      partialUserText: '',
+      partialAssistantText: '',
+      currentAgentKey: '',
+      currentAgentName: '',
+    });
+  });
+
   it('opens, updates, and closes the command modal state', () => {
     const baseState = createInitialState();
 

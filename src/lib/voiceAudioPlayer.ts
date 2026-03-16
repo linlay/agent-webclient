@@ -6,14 +6,14 @@ export const DEFAULT_CHANNELS = 1;
 export interface VoiceAudioPlayerContext {
 	audioContext: AudioContext | null;
 	playbackCursor: number;
-	activeAudioRequestId: string;
+	activeAudioTaskId: string;
 	activeSampleRate: number;
 	activeChannels: number;
-	debugTtsRequest: { requestId: string } | null;
+	debugTtsRequest: { taskId: string } | null;
 	appendDebug: (message: string) => void;
 	setDebugStatus: (status: string) => void;
 	setDebugStatusWithStats: (status: string) => void;
-	updateBlockByRequestId: (requestId: string, patch: Partial<TtsVoiceBlock>) => void;
+	updateBlockByTaskId: (taskId: string, patch: Partial<TtsVoiceBlock>) => void;
 	handleAudioBytes: (byteLength: number) => void;
 }
 
@@ -107,10 +107,10 @@ export function playPcm(context: VoiceAudioPlayerContext, bufferLike: ArrayBuffe
 	source.start(startAt);
 	context.playbackCursor = startAt + audioBuffer.duration;
 
-	if (context.activeAudioRequestId) {
-		context.updateBlockByRequestId(context.activeAudioRequestId, { status: "playing", error: "" });
+	if (context.activeAudioTaskId) {
+		context.updateBlockByTaskId(context.activeAudioTaskId, { status: "playing", error: "" });
 	}
-	if (context.debugTtsRequest?.requestId === context.activeAudioRequestId) {
+	if (context.debugTtsRequest?.taskId === context.activeAudioTaskId) {
 		context.setDebugStatusWithStats("playing");
 	}
 	return true;

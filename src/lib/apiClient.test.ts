@@ -1,4 +1,10 @@
-import { createQueryStream, interruptChat, steerChat } from './apiClient';
+import {
+  createQueryStream,
+  getVoiceCapabilities,
+  getVoiceVoices,
+  interruptChat,
+  steerChat,
+} from './apiClient';
 
 describe('apiClient query payloads', () => {
   const fetchMock = jest.fn();
@@ -74,5 +80,13 @@ describe('apiClient query payloads', () => {
     expect(interruptPayload.runId).toBe('run_1');
     expect(steerPayload.runId).toBe('run_1');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('requests voice capabilities and voices from the voice api namespace', async () => {
+    await getVoiceCapabilities();
+    await getVoiceVoices();
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/voice/capabilities');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/voice/tts/voices');
   });
 });

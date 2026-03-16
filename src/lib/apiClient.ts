@@ -146,6 +146,14 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
   return requestJson(`/api/viewport?${query}`);
 }
 
+export function getVoiceCapabilities(): Promise<ApiResponse> {
+  return requestJson('/api/voice/capabilities');
+}
+
+export function getVoiceVoices(): Promise<ApiResponse> {
+  return requestJson('/api/voice/tts/voices');
+}
+
 export function submitTool(params: { runId: string; toolId: string; params: Record<string, unknown> }): Promise<ApiResponse> {
   return requestJson('/api/submit', {
     method: 'POST',

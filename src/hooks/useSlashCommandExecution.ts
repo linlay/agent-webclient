@@ -9,7 +9,7 @@ export function useSlashCommandExecution(input: {
 	latestQueryText: string;
 	resetForNewConversation: () => void;
 	dispatch: (action: AppAction) => void;
-	toggleSpeechInput: () => void;
+	toggleVoiceMode: () => void;
 	interruptCurrentRun: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
@@ -21,7 +21,7 @@ export function useSlashCommandExecution(input: {
 		latestQueryText,
 		resetForNewConversation,
 		dispatch,
-		toggleSpeechInput,
+		toggleVoiceMode,
 		interruptCurrentRun,
 		setInputValue,
 		setSlashDismissed,
@@ -87,7 +87,7 @@ export function useSlashCommandExecution(input: {
 					}
 					return;
 				case "voice":
-					toggleSpeechInput();
+					toggleVoiceMode();
 					return;
 				case "settings":
 					dispatch({ type: "SET_SETTINGS_OPEN", open: true });
@@ -112,7 +112,7 @@ export function useSlashCommandExecution(input: {
 			setSlashDismissed,
 			slashAvailability,
 			state,
-			toggleSpeechInput,
+			toggleVoiceMode,
 		],
 	);
 }

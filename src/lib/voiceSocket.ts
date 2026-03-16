@@ -1,6 +1,3 @@
-import type { TtsVoiceBlock } from "../context/types";
-import { DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE } from "./voiceAudioPlayer";
-
 export const VOICE_WS_CONNECT_TIMEOUT_MS = 8000;
 
 export interface VoiceSocketContext {
@@ -8,98 +5,90 @@ export interface VoiceSocketContext {
 	socketConnectingPromise: Promise<WebSocket> | null;
 	socketClosingExpected: boolean;
 	outboundQueue: string[];
-	debugTtsRequest: { requestId: string; started: boolean; audioFrames: number; audioBytes: number } | null;
-	activeAudioRequestId: string;
-	activeSampleRate: number;
-	activeChannels: number;
 	appendDebug: (message: string) => void;
 	setDebugStatus: (status: string) => void;
-	setDebugStatusWithStats: (status: string) => void;
-	handleSocketBinary: (data: unknown) => void;
-	updateBlockByRequestId: (requestId: string, patch: Partial<TtsVoiceBlock>) => void;
 	markUncommittedSessionsError: (message: string) => void;
 	getAccessToken: () => string;
 	getVoiceWsUrl: (accessToken: string) => string;
 	describeVoiceWsTarget: (accessToken: string) => string;
+	handleSocketBinary: (data: unknown) => void;
+	handleTaskStarted: (taskId: string, payload: Record<string, unknown>) => void;
+	handleTaskAudioFormat: (taskId: string, payload: Record<string, unknown>) => void;
+	handleTaskAudioChunk: (taskId: string, payload: Record<string, unknown>) => void;
+	handleTaskDone: (taskId: string, payload: Record<string, unknown>) => void;
+	handleTaskStopped: (taskId: string, payload: Record<string, unknown>) => void;
+	handleTaskError: (
+		taskId: string,
+		message: string,
+		code: string,
+		payload: Record<string, unknown>,
+	) => void;
 }
 
-export function handleSocketText(context: VoiceSocketContext, rawText: string): void {
+export function handleSocketText(
+	context: VoiceSocketContext,
+	rawText: string,
+): void {
 	let payload: Record<string, unknown>;
 	try {
 		payload = JSON.parse(rawText);
 	} catch (error) {
-		context.appendDebug(`voice ws text parse failed: ${(error as Error).message}`);
+		context.appendDebug(
+			`voice ws text parse failed: ${(error as Error).message}`,
+		);
 		return;
 	}
 
 	const type = String(payload?.type || "").trim();
-	const requestId = String(payload?.requestId || "").trim();
+	const taskId = String(payload?.taskId || "").trim();
 
-	if (type === "tts.started") {
-		if (requestId) {
-			context.activeAudioRequestId = requestId;
-			context.activeSampleRate = Number(payload.sampleRate) || DEFAULT_SAMPLE_RATE;
-			context.activeChannels = Number(payload.channels) || DEFAULT_CHANNELS;
-			if (context.debugTtsRequest?.requestId === requestId) {
-				context.debugTtsRequest.started = true;
-				context.setDebugStatusWithStats("tts started");
-			}
-			context.updateBlockByRequestId(requestId, {
-				status: "playing",
-				error: "",
-				sampleRate: context.activeSampleRate,
-				channels: context.activeChannels,
-			});
+	switch (type) {
+		case "connection.ready":
+			return;
+		case "task.started":
+			if (taskId) context.handleTaskStarted(taskId, payload);
+			return;
+		case "tts.audio.format":
+			if (taskId) context.handleTaskAudioFormat(taskId, payload);
+			return;
+		case "tts.audio.chunk":
+			if (taskId) context.handleTaskAudioChunk(taskId, payload);
+			return;
+		case "tts.done":
+			if (taskId) context.handleTaskDone(taskId, payload);
+			return;
+		case "task.stopped":
+			if (taskId) context.handleTaskStopped(taskId, payload);
+			return;
+		case "error": {
+			const message = String(payload?.message || "voice websocket error");
+			const code = String(payload?.code || "").trim();
+			context.handleTaskError(taskId, message, code, payload);
+			context.appendDebug(
+				code
+					? `voice ws error (${code}): ${message}`
+					: `voice ws error: ${message}`,
+			);
+			return;
 		}
-		return;
-	}
-
-	if (type === "tts.done") {
-		if (requestId) {
-			context.updateBlockByRequestId(requestId, { status: "done", error: "" });
-			if (context.debugTtsRequest?.requestId === requestId) {
-				if (context.debugTtsRequest.audioFrames > 0) {
-					context.setDebugStatusWithStats("done");
-				} else if (context.debugTtsRequest.started) {
-					context.setDebugStatus("connected but no audio frames");
-				} else {
-					context.setDebugStatus("done");
-				}
-			}
-		}
-		return;
-	}
-
-	if (type === "tts.interrupted") {
-		if (requestId) {
-			context.updateBlockByRequestId(requestId, { status: "stopped" });
-			if (context.debugTtsRequest?.requestId === requestId) context.setDebugStatus("stopped");
-		}
-		return;
-	}
-
-	if (type === "error") {
-		const message = String(payload?.message || "voice websocket error");
-		if (requestId) {
-			context.updateBlockByRequestId(requestId, { status: "error", error: message });
-			if (context.debugTtsRequest?.requestId === requestId) context.setDebugStatus(`error: ${message}`);
-		} else {
-			context.markUncommittedSessionsError(message);
-			context.setDebugStatus(`error: ${message}`);
-		}
-		context.appendDebug(`voice ws error: ${message}`);
+		default:
+			return;
 	}
 }
 
 export function flushOutboundQueue(context: VoiceSocketContext): void {
-	if (!context.socket || context.socket.readyState !== context.socket.OPEN) return;
+	if (!context.socket || context.socket.readyState !== context.socket.OPEN) {
+		return;
+	}
 	while (context.outboundQueue.length > 0) {
 		const frame = context.outboundQueue.shift();
 		if (frame) context.socket.send(frame);
 	}
 }
 
-export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
+export function ensureSocket(
+	context: VoiceSocketContext,
+): Promise<WebSocket> {
 	if (context.socket && context.socket.readyState === context.socket.OPEN) {
 		return Promise.resolve(context.socket);
 	}
@@ -124,9 +113,9 @@ export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
 		const targetSummary = context.describeVoiceWsTarget(accessToken);
 		const connectTimeout = globalThis.window?.setTimeout
 			? globalThis.window.setTimeout(() => {
-				context.appendDebug(`voice ws connect timeout: ${targetSummary}`);
-				failPendingConnect("voice websocket connect timeout");
-			}, VOICE_WS_CONNECT_TIMEOUT_MS)
+					context.appendDebug(`voice ws connect timeout: ${targetSummary}`);
+					failPendingConnect("voice websocket connect timeout");
+			  }, VOICE_WS_CONNECT_TIMEOUT_MS)
 			: null;
 
 		const clearConnectTimeout = (): void => {
@@ -145,9 +134,16 @@ export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
 			context.markUncommittedSessionsError(message);
 			context.setDebugStatus(`error: ${message}`);
 			reject(new Error(message));
-			if (failedSocket && failedSocket.readyState === failedSocket.CONNECTING) {
+			if (
+				failedSocket &&
+				failedSocket.readyState === failedSocket.CONNECTING
+			) {
 				context.socketClosingExpected = true;
-				try { failedSocket.close(1000, "voice connect failed"); } catch { /* no-op */ }
+				try {
+					failedSocket.close(1000, "voice connect failed");
+				} catch {
+					/* no-op */
+				}
 			}
 		};
 
@@ -168,9 +164,6 @@ export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
 			connected = true;
 			clearConnectTimeout();
 			context.socketConnectingPromise = null;
-			if (context.debugTtsRequest?.requestId) {
-				context.setDebugStatus("socket open");
-			}
 			flushOutboundQueue(context);
 			resolve(context.socket as WebSocket);
 		});
@@ -191,7 +184,8 @@ export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
 		context.socket.addEventListener("close", (event: CloseEvent) => {
 			const expected = context.socketClosingExpected;
 			context.socketClosingExpected = false;
-			const closeCode = typeof event?.code === "number" ? event.code : 1006;
+			const closeCode =
+				typeof event?.code === "number" ? event.code : 1006;
 			const closeReason = String(event?.reason || "").trim();
 			if (!connected && !expected) {
 				const detail = closeReason
@@ -214,7 +208,10 @@ export function ensureSocket(context: VoiceSocketContext): Promise<WebSocket> {
 	return context.socketConnectingPromise;
 }
 
-export function sendJsonFrame(context: VoiceSocketContext, payload: Record<string, unknown>): void {
+export function sendJsonFrame(
+	context: VoiceSocketContext,
+	payload: Record<string, unknown>,
+): void {
 	const frame = JSON.stringify(payload);
 	if (context.socket && context.socket.readyState === context.socket.OPEN) {
 		context.socket.send(frame);
@@ -222,7 +219,9 @@ export function sendJsonFrame(context: VoiceSocketContext, payload: Record<strin
 	}
 	context.outboundQueue.push(frame);
 	ensureSocket(context).catch((error) => {
-		context.appendDebug(`voice socket connect failed: ${(error as Error).message}`);
+		context.appendDebug(
+			`voice socket connect failed: ${(error as Error).message}`,
+		);
 		context.setDebugStatus(`error: ${(error as Error).message}`);
 	});
 }
@@ -234,7 +233,10 @@ export function closeSocket(context: VoiceSocketContext): void {
 	}
 	context.socketClosingExpected = true;
 	try {
-		if (context.socket.readyState === context.socket.OPEN || context.socket.readyState === context.socket.CONNECTING) {
+		if (
+			context.socket.readyState === context.socket.OPEN ||
+			context.socket.readyState === context.socket.CONNECTING
+		) {
 			context.socket.close(1000, "voice reset");
 		}
 	} catch {

@@ -25,6 +25,7 @@ import type {
 	WorkerConversationRow,
 	UiTimerHandle,
 	PendingSteer,
+	VoiceChatState,
 } from "./types";
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
@@ -42,6 +43,25 @@ export function createInitialState(): AppState {
 		typeof localStorage !== "undefined"
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
+
+	const initialVoiceChat: VoiceChatState = {
+		status: "idle",
+		sessionActive: false,
+		partialUserText: "",
+		partialAssistantText: "",
+		error: "",
+		wsStatus: "idle",
+		capabilities: null,
+		capabilitiesLoaded: false,
+		capabilitiesError: "",
+		voices: [],
+		voicesLoaded: false,
+		voicesError: "",
+		selectedVoice: "",
+		speechRate: 1.2,
+		currentAgentKey: "",
+		currentAgentName: "",
+	};
 
 	return {
 		agents: [],
@@ -108,6 +128,8 @@ export function createInitialState(): AppState {
 		accessToken: storedToken,
 		ttsDebugStatus: "idle",
 		planningMode: false,
+		inputMode: "text",
+		voiceChat: initialVoiceChat,
 		steerDraft: "",
 		pendingSteers: [],
 		downvotedRunKeys: new Set(),
@@ -170,6 +192,8 @@ export type AppAction =
 	| { type: "SET_ACCESS_TOKEN"; token: string }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
 	| { type: "SET_PLANNING_MODE"; enabled: boolean }
+	| { type: "SET_INPUT_MODE"; mode: AppState["inputMode"] }
+	| { type: "PATCH_VOICE_CHAT"; patch: Partial<VoiceChatState> }
 	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
 	| { type: "SET_STEER_DRAFT"; draft: string }
 	| { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
@@ -267,6 +291,18 @@ function buildConversationResetState(
 		},
 		activeReasoningKey: "",
 		activeFrontendTool: null,
+		inputMode: "text",
+		voiceChat: {
+			...state.voiceChat,
+			status: "idle",
+			sessionActive: false,
+			partialUserText: "",
+			partialAssistantText: "",
+			error: "",
+			wsStatus: "idle",
+			currentAgentKey: "",
+			currentAgentName: "",
+		},
 		workerRelatedChats: preserveWorkerContext
 			? state.workerRelatedChats
 			: [],
@@ -421,6 +457,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, ttsDebugStatus: action.status };
 		case "SET_PLANNING_MODE":
 			return { ...state, planningMode: action.enabled };
+		case "SET_INPUT_MODE":
+			return { ...state, inputMode: action.mode };
+		case "PATCH_VOICE_CHAT":
+			return {
+				...state,
+				voiceChat: {
+					...state.voiceChat,
+					...action.patch,
+				},
+			};
 		case "SET_PLAN_AUTO_COLLAPSE_TIMER":
 			return { ...state, planAutoCollapseTimer: action.timer };
 		case "SET_STEER_DRAFT":

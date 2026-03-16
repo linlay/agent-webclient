@@ -31,7 +31,7 @@ describe('slashCommands', () => {
       description: '清空当前对话上下文，保留当前 worker 选择',
     });
     expect(SLASH_COMMANDS.find((item) => item.id === 'voice')).toMatchObject({
-      description: '开始或停止浏览器语音听写',
+      description: '在文字输入与一问一答语聊模式之间切换',
     });
   });
 
@@ -39,8 +39,8 @@ describe('slashCommands', () => {
     const availability = {
       streaming: true,
       hasLatestQuery: false,
-      speechSupported: false,
       isFrontendActive: true,
+      canUseVoiceMode: false,
       hasCurrentWorker: false,
       workerHistoryCount: 0,
       workerCount: 0,

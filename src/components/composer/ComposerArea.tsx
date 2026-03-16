@@ -3,7 +3,6 @@ import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MentionSuggest } from "./MentionSuggest";
 import { SlashPalette } from "./SlashPalette";
 import { SteerBar } from "./SteerBar";
-import { useSpeechInput } from "./useSpeechInput";
 import { COMPOSER_MAX_LINES } from "../../context/constants";
 import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
@@ -18,6 +17,42 @@ import {
 import { useSlashCommandExecution } from "../../hooks/useSlashCommandExecution";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
+
+const PhoneDialIcon: React.FC<{ active?: boolean }> = ({ active = false }) => (
+	<svg
+		viewBox="0 0 64 64"
+		aria-hidden="true"
+		className={`voice-mode-icon ${active ? "is-active" : ""}`}
+	>
+		<defs>
+			<linearGradient id="voiceModeDial" x1="0%" x2="100%" y1="0%" y2="100%">
+				<stop offset="0%" stopColor="#ffb86c" />
+				<stop offset="100%" stopColor="#ff7a18" />
+			</linearGradient>
+		</defs>
+		<circle cx="32" cy="32" r="23" fill="rgba(255,255,255,0.08)" />
+		<path
+			d="M18 23c0-2.2 1.8-4 4-4h4.8c1.4 0 2.7.8 3.4 2l2.2 4.1c.7 1.2.6 2.8-.3 3.9l-2.2 2.9c3 5.6 7.5 10.1 13.1 13.1l2.9-2.2c1.1-.9 2.7-1 3.9-.3l4.1 2.2c1.2.7 2 2 2 3.4V53c0 2.2-1.8 4-4 4h-1.5C33.8 57 7 30.2 7 7.5V6c0-2.2 1.8-4 4-4h4.9c1.4 0 2.7.8 3.4 2l2.2 4.1c.7 1.2.6 2.8-.3 3.9l-2.1 2.8c.1 2.8.5 5.6 1.2 8.2-.1 0-.2 0-.3 0z"
+			fill="url(#voiceModeDial)"
+			transform="translate(6 6) scale(0.82)"
+		/>
+		<circle cx="47" cy="19" r="3.5" fill={active ? "#ff5a5f" : "#fff2e2"} />
+		<path
+			d="M42 16.5a7 7 0 0 1 8 8"
+			fill="none"
+			stroke={active ? "#ff5a5f" : "#ffd2ad"}
+			strokeWidth="2.5"
+			strokeLinecap="round"
+		/>
+		<path
+			d="M39.5 13.5A11 11 0 0 1 52.5 27"
+			fill="none"
+			stroke={active ? "#ff8a8e" : "#ffe0c2"}
+			strokeWidth="2.5"
+			strokeLinecap="round"
+		/>
+	</svg>
+);
 
 export const ComposerArea: React.FC = () => {
 	const state = useAppState();
@@ -60,7 +95,22 @@ export const ComposerArea: React.FC = () => {
 		[inputValue],
 	);
 	const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
+	const voiceModeAvailable = currentWorker?.type === "agent";
+	const isVoiceMode = state.inputMode === "voice";
+	const voiceStatusText = useMemo(() => {
+		const status = state.voiceChat.status;
+		if (status === "connecting") return "正在连接语聊...";
+		if (status === "listening") return "正在听你说话";
+		if (status === "thinking") return "正在思考回复";
+		if (status === "speaking") return "正在语音回答";
+		if (status === "error") {
+			return state.voiceChat.error || "语聊链路异常";
+		}
+		return "切换到语聊模式";
+	}, [state.voiceChat.error, state.voiceChat.status]);
 	const showSlashPalette =
+		!isVoiceMode
+		&&
 		!isFrontendActive
 		&& !state.commandModal.open
 		&& !slashDismissed
@@ -150,6 +200,12 @@ export const ComposerArea: React.FC = () => {
 		dispatch({ type: "SET_MENTION_ACTIVE_INDEX", index: 0 });
 	}, [dispatch]);
 
+	useEffect(() => {
+		if (!isVoiceMode) return;
+		closeMention();
+		setSlashDismissed(true);
+	}, [closeMention, isVoiceMode]);
+
 	const updateMentionSuggestions = useCallback(
 		(value: string) => {
 			const draft = parseLeadingMentionDraft(value);
@@ -180,23 +236,27 @@ export const ComposerArea: React.FC = () => {
 		[closeMention, dispatch, state],
 	);
 
-	const {
-		speechSupported,
-		speechListening,
-		speechStatus,
-		toggleSpeechInput,
-	} = useSpeechInput({
-		inputValue,
-		setInputValue,
-		setSlashDismissed,
-		updateMentionSuggestions,
-	});
+	const toggleVoiceMode = useCallback(() => {
+		if (!voiceModeAvailable || state.streaming || isFrontendActive) {
+			return;
+		}
+		dispatch({
+			type: "SET_INPUT_MODE",
+			mode: isVoiceMode ? "text" : "voice",
+		});
+	}, [
+		dispatch,
+		isFrontendActive,
+		isVoiceMode,
+		state.streaming,
+		voiceModeAvailable,
+	]);
 	const slashAvailability = useMemo(
 		() => ({
 			streaming: state.streaming,
 			hasLatestQuery: Boolean(latestQueryText),
-			speechSupported,
 			isFrontendActive,
+			canUseVoiceMode: Boolean(voiceModeAvailable),
 			hasCurrentWorker: Boolean(currentWorker),
 			workerHistoryCount: currentWorker?.relatedChats.length || 0,
 			workerCount: state.workerRows.length,
@@ -208,8 +268,8 @@ export const ComposerArea: React.FC = () => {
 			state.commandModal.open,
 			state.workerRows.length,
 			latestQueryText,
-			speechSupported,
 			isFrontendActive,
+			voiceModeAvailable,
 		],
 	);
 
@@ -380,7 +440,7 @@ export const ComposerArea: React.FC = () => {
 		latestQueryText,
 		resetForNewConversation,
 		dispatch,
-		toggleSpeechInput,
+		toggleVoiceMode,
 		interruptCurrentRun,
 		setInputValue,
 		setSlashDismissed,
@@ -393,6 +453,7 @@ export const ComposerArea: React.FC = () => {
 	});
 
 	const handleSend = useCallback(() => {
+		if (isVoiceMode) return;
 		if (showSlashPalette) {
 			const selected = slashCommands[activeSlashIndex] || slashCommands[0];
 			if (selected) {
@@ -430,6 +491,7 @@ export const ComposerArea: React.FC = () => {
 		dispatch,
 		executeSlashCommand,
 		inputValue,
+		isVoiceMode,
 		showSlashPalette,
 		slashCommands,
 		state.streaming,
@@ -437,6 +499,10 @@ export const ComposerArea: React.FC = () => {
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (isVoiceMode) {
+				e.preventDefault();
+				return;
+			}
 			if (isImeEnterConfirming(e, isComposingRef.current)) {
 				return;
 			}
@@ -520,6 +586,7 @@ export const ComposerArea: React.FC = () => {
 			dispatch,
 			executeSlashCommand,
 			handleSend,
+			isVoiceMode,
 			isComposingRef,
 			selectMentionByIndex,
 			showSlashPalette,
@@ -750,108 +817,169 @@ export const ComposerArea: React.FC = () => {
 					onCancel={handleCancelSteer}
 				/>
 			)}
-			<div
-				ref={composerPillRef}
-				className={`composer-pill ${isFrontendActive ? "hidden" : ""}`}
-			>
-				<textarea
-					ref={textareaRef}
-					id="message-input"
-					rows={1}
-					placeholder={
-						isFrontendActive
-							? "前端工具处理中，请在确认面板内提交"
-							: "回复消息...（Enter 发送，Shift+Enter 换行）"
-					}
-					disabled={isFrontendActive}
-					value={inputValue}
-					onChange={(e) => {
-						const next = e.target.value;
-						setInputValue(next);
-						setSlashDismissed(false);
-						if (slashCommands.length > 0 || next.startsWith("/")) {
-							closeMention();
-						}
-						if (!next.startsWith("/")) {
-							updateMentionSuggestions(next);
-						}
-					}}
-					onKeyDown={handleKeyDown}
-					onCompositionStart={() => {
-						isComposingRef.current = true;
-					}}
-					onCompositionEnd={() => {
-						isComposingRef.current = false;
-					}}
-				/>
-				<div className="composer-control-row">
-					<div className="composer-plus-wrap">
-						<UiButton
-							className="composer-plus-btn"
-							variant="ghost"
-							size="sm"
-							iconOnly
-							aria-label="更多选项"
-							title="更多选项"
-						>
-							<MaterialIcon name="add" />
-						</UiButton>
-						<UiButton
-							className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
-							variant="ghost"
-							size="sm"
-							onClick={() =>
-								dispatch({
-									type: "SET_PLANNING_MODE",
-									enabled: !state.planningMode,
-								})
-							}
-						>
-							计划
-						</UiButton>
+			<div className={`composer-layout ${isFrontendActive ? "is-frontend-active" : ""}`}>
+				<div
+					ref={composerPillRef}
+					className={`composer-pill ${isFrontendActive ? "hidden" : ""}`}
+				>
+					<div className="composer-mode-shell">
+						<div className="composer-mode-main">
+							{isVoiceMode ? (
+								<div className="voice-chat-panel" aria-live="polite">
+									<div className="voice-chat-panel-header">
+										<div className="voice-chat-panel-title">
+											语聊中
+										</div>
+										<div
+											className={`voice-chat-status is-${state.voiceChat.status}`}
+										>
+											{voiceStatusText}
+										</div>
+									</div>
+									<div className="voice-chat-worker">
+										当前员工：
+										<strong>
+											{state.voiceChat.currentAgentName ||
+												currentWorker?.displayName ||
+												"--"}
+										</strong>
+									</div>
+									<div className="voice-chat-snippet">
+										<div className="voice-chat-snippet-label">
+											你刚刚说
+										</div>
+										<div className="voice-chat-snippet-text">
+											{state.voiceChat.partialUserText || "等待你开口..."}
+										</div>
+									</div>
+									<div className="voice-chat-snippet">
+										<div className="voice-chat-snippet-label">
+											助手回复
+										</div>
+										<div className="voice-chat-snippet-text">
+											{state.voiceChat.partialAssistantText ||
+												(state.voiceChat.status === "thinking"
+													? "正在组织回答..."
+													: "等待回答...")}
+										</div>
+									</div>
+									{state.voiceChat.error && (
+										<div className="voice-chat-error">
+											{state.voiceChat.error}
+										</div>
+									)}
+								</div>
+							) : (
+								<textarea
+									ref={textareaRef}
+									id="message-input"
+									rows={1}
+									placeholder={
+										isFrontendActive
+											? "前端工具处理中，请在确认面板内提交"
+											: "回复消息...（Enter 发送，Shift+Enter 换行）"
+									}
+									disabled={isFrontendActive}
+									value={inputValue}
+									onChange={(e) => {
+										const next = e.target.value;
+										setInputValue(next);
+										setSlashDismissed(false);
+										if (
+											slashCommands.length > 0 ||
+											next.startsWith("/")
+										) {
+											closeMention();
+										}
+										if (!next.startsWith("/")) {
+											updateMentionSuggestions(next);
+										}
+									}}
+									onKeyDown={handleKeyDown}
+									onCompositionStart={() => {
+										isComposingRef.current = true;
+									}}
+									onCompositionEnd={() => {
+										isComposingRef.current = false;
+									}}
+								/>
+							)}
+						</div>
 					</div>
-					<div className="composer-actions">
-						<UiButton
-							className={`voice-btn ${speechListening ? "is-listening" : ""}`}
-							variant="ghost"
-							size="sm"
-							iconOnly
-							disabled={!speechSupported || isFrontendActive}
-							onClick={toggleSpeechInput}
-							title={speechStatus}
-							aria-label={speechStatus}
-						>
-							<MaterialIcon
-								name={speechListening ? "mic" : "mic_none"}
-							/>
-						</UiButton>
-						{state.streaming ? (
+					<div className="composer-control-row">
+						<div className="composer-plus-wrap">
 							<UiButton
-								className="interrupt-btn"
-								id="interrupt-btn"
-								variant="danger"
-								size="sm"
-								disabled={isFrontendActive}
-								onClick={() => void interruptCurrentRun()}
-							>
-								<MaterialIcon name="stop" />
-							</UiButton>
-						) : (
-							<UiButton
-								className="send-btn"
-								id="send-btn"
-								variant="primary"
+								className="composer-plus-btn"
+								variant="ghost"
 								size="sm"
 								iconOnly
-								disabled={isFrontendActive}
-								onClick={handleSend}
-								aria-label="发送"
+								aria-label="更多选项"
+								title="更多选项"
 							>
-								<MaterialIcon name="arrow_upward" />
+								<MaterialIcon name="add" />
 							</UiButton>
-						)}
+							<UiButton
+								className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
+								variant="ghost"
+								size="sm"
+								onClick={() =>
+									dispatch({
+										type: "SET_PLANNING_MODE",
+										enabled: !state.planningMode,
+									})
+								}
+							>
+								计划
+							</UiButton>
+						</div>
+						<div className="composer-actions">
+							{state.streaming ? (
+								<UiButton
+									className="interrupt-btn"
+									id="interrupt-btn"
+									variant="danger"
+									size="sm"
+									disabled={isFrontendActive}
+									onClick={() => void interruptCurrentRun()}
+								>
+									<MaterialIcon name="stop" />
+								</UiButton>
+							) : !isVoiceMode ? (
+								<UiButton
+									className="send-btn"
+									id="send-btn"
+									variant="primary"
+									size="sm"
+									iconOnly
+									disabled={isFrontendActive}
+									onClick={handleSend}
+									aria-label="发送"
+								>
+									<MaterialIcon name="arrow_upward" />
+								</UiButton>
+							) : (
+								<div className="voice-mode-hint">{voiceStatusText}</div>
+							)}
+						</div>
 					</div>
 				</div>
+				{voiceModeAvailable && (
+					<div className="composer-voice-sidecar">
+						<button
+							type="button"
+							className={`voice-mode-toggle ${isVoiceMode ? "is-active" : ""}`}
+							disabled={isFrontendActive || state.streaming}
+							onClick={toggleVoiceMode}
+							title={isVoiceMode ? "返回文字输入" : "进入语聊模式"}
+							aria-label={isVoiceMode ? "返回文字输入" : "进入语聊模式"}
+						>
+							<PhoneDialIcon active={isVoiceMode} />
+							<span className="voice-mode-toggle-text">
+								{isVoiceMode ? "返回文字" : "进入语聊"}
+							</span>
+						</button>
+					</div>
+				)}
 			</div>
 		</div>
 	);

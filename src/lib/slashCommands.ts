@@ -24,8 +24,8 @@ export interface SlashCommandDefinition {
 export interface SlashCommandAvailability {
   streaming: boolean;
   hasLatestQuery: boolean;
-  speechSupported: boolean;
   isFrontendActive: boolean;
+  canUseVoiceMode: boolean;
   hasCurrentWorker: boolean;
   workerHistoryCount: number;
   workerCount: number;
@@ -85,9 +85,9 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'voice',
     command: '/voice',
-    label: '语音输入',
-    description: '开始或停止浏览器语音听写',
-    keywords: ['voice', 'speech', 'mic'],
+    label: '语聊模式',
+    description: '在文字输入与一问一答语聊模式之间切换',
+    keywords: ['voice', 'speech', 'call', 'mic'],
   },
   {
     id: 'settings',
@@ -142,7 +142,7 @@ export function isSlashCommandDisabled(
     return availability.streaming || !availability.hasLatestQuery;
   }
   if (commandId === 'voice') {
-    return !availability.speechSupported || availability.isFrontendActive;
+    return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
   }
   if (commandId === 'stop') {
     return !availability.streaming;
