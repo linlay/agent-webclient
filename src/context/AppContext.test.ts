@@ -109,6 +109,10 @@ describe('appReducer conversation reset behavior', () => {
         sessionActive: true,
         partialUserText: '你好',
         partialAssistantText: '你好，我在。',
+        activeAssistantContentId: 'content_voice_1',
+        activeRequestId: 'req_voice_1',
+        activeTtsTaskId: 'tts_voice_1',
+        ttsCommitted: true,
         clientGateCustomized: true,
         clientGate: {
           enabled: false,
@@ -130,6 +134,10 @@ describe('appReducer conversation reset behavior', () => {
       sessionActive: false,
       partialUserText: '',
       partialAssistantText: '',
+      activeAssistantContentId: '',
+      activeRequestId: '',
+      activeTtsTaskId: '',
+      ttsCommitted: false,
       clientGateCustomized: true,
       clientGate: {
         enabled: false,

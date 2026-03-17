@@ -2,22 +2,20 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "../context/AppContext";
 import type {
 	AppState,
-	TimelineNode,
 	VoiceCapabilities,
 	VoiceOption,
 } from "../context/types";
 import {
+	createRequestId,
 	getVoiceCapabilitiesFlexible,
 	getVoiceVoicesFlexible,
 } from "../lib/apiClient";
-import { parseContentSegments } from "../lib/contentSegments";
 import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
 import {
 	bytesToBase64,
 	DEFAULT_VOICE_CHAT_SEND_PAUSE_MS,
 	mergeVoiceChatUtterance,
 	normalizeVoiceChatUtteranceForLength,
-	PcmQueuePlayer,
 	ReadyCuePlayer,
 	describeVoiceChatWsTarget,
 	resolveVoiceChatWsUrl,
@@ -35,9 +33,11 @@ import {
 	resolveVoiceAsrRuntimeConfig,
 } from "../lib/voiceAsrProtocol";
 import { runVoiceChatListeningReady } from "../lib/voiceChatListeningReady";
+import { executeQueryStream } from "../lib/queryStreamRuntime";
+import { getVoiceRuntime } from "../lib/voiceRuntime";
+import { useAgentEventHandler } from "./useAgentEventHandler";
 
 const QA_ASR_TASK_ID = "qa-asr";
-const QA_TTS_TASK_ID = "qa-tts";
 const MAX_VOICE_WS_RECONNECT_ATTEMPTS = 4;
 const VOICE_WS_RECONNECT_BASE_DELAY_MS = 600;
 
@@ -107,23 +107,16 @@ export function useVoiceChatRuntime() {
 		() => resolveCurrentWorkerSummary(state),
 		[state],
 	);
+	const { handleEvent } = useAgentEventHandler();
 
 	const socketRef = useRef<WebSocket | null>(null);
 	const socketPromiseRef = useRef<Promise<WebSocket> | null>(null);
 	const expectedCloseRef = useRef(false);
 	const startedAgentKeyRef = useRef("");
-	const pendingBinaryRef = useRef<
-		Array<{ taskId: string; seq: number }>
-	>([]);
 	const pendingUtteranceRef = useRef("");
 	const flushTimerRef = useRef<number | null>(null);
-	const assistantNodeIdRef = useRef("");
-	const assistantContentIdRef = useRef("");
-	const ttsSampleRateRef = useRef(24000);
-	const ttsChannelsRef = useRef(1);
 	const capturePausedRef = useRef(false);
 	const turnCounterRef = useRef(0);
-	const playerRef = useRef(new PcmQueuePlayer());
 	const readyCuePlayerRef = useRef(new ReadyCuePlayer());
 	const audioCaptureStateRef = useRef<VoiceAudioCaptureState>(
 		createVoiceAudioCaptureState(),
@@ -167,11 +160,6 @@ export function useVoiceChatRuntime() {
 		}
 	}, []);
 
-	const resetAssistantRefs = useCallback(() => {
-		assistantNodeIdRef.current = "";
-		assistantContentIdRef.current = "";
-	}, []);
-
 	const cancelListeningTransition = useCallback(() => {
 		listeningTransitionRef.current += 1;
 	}, []);
@@ -199,8 +187,7 @@ export function useVoiceChatRuntime() {
 		return (
 			stateRef.current.inputMode === "voice" &&
 			worker?.type === "agent" &&
-			!stateRef.current.activeFrontendTool &&
-			!stateRef.current.streaming
+			!stateRef.current.activeFrontendTool
 		);
 	}, [stateRef]);
 
@@ -213,7 +200,6 @@ export function useVoiceChatRuntime() {
 			clearFlushTimer();
 			clearReconnectTimer();
 			cancelListeningTransition();
-			pendingBinaryRef.current = [];
 			pendingUtteranceRef.current = "";
 			startedAgentKeyRef.current = "";
 			capturePausedRef.current = false;
@@ -223,8 +209,12 @@ export function useVoiceChatRuntime() {
 			asrStartInFlightRef.current = false;
 			asrRestartPendingRef.current = false;
 			ttsTaskActiveRef.current = false;
-			resetAssistantRefs();
-			playerRef.current.stopAll();
+			const activeAssistantContentId = String(
+				stateRef.current.voiceChat.activeAssistantContentId || "",
+			).trim();
+			if (activeAssistantContentId) {
+				getVoiceRuntime()?.stopVoiceChatSession(activeAssistantContentId);
+			}
 			readyCuePlayerRef.current.stop();
 			cleanupVoiceAudioCapture(audioCaptureStateRef.current);
 			stopSocket();
@@ -234,6 +224,10 @@ export function useVoiceChatRuntime() {
 				sessionActive: false,
 				partialUserText: "",
 				partialAssistantText: "",
+				activeAssistantContentId: "",
+				activeRequestId: "",
+				activeTtsTaskId: "",
+				ttsCommitted: false,
 				error: "",
 				wsStatus: "idle",
 				currentAgentKey: "",
@@ -277,71 +271,15 @@ export function useVoiceChatRuntime() {
 			cancelListeningTransition,
 			dispatch,
 			patchVoiceChat,
-			resetAssistantRefs,
 			stateRef,
 			stopSocket,
 		],
-	);
-
-	const upsertChatSummary = useCallback(
-		(content: string) => {
-			const chatId = String(stateRef.current.chatId || "").trim();
-			const agentKey = String(
-				stateRef.current.voiceChat.currentAgentKey || "",
-			).trim();
-			if (!chatId || !agentKey) return;
-			dispatch({
-				type: "SET_CHAT_AGENT_BY_ID",
-				chatId,
-				agentKey,
-			});
-			dispatch({
-				type: "UPSERT_CHAT",
-				chat: {
-					chatId,
-					chatName:
-						stateRef.current.voiceChat.currentAgentName ||
-						stateRef.current.chats.find(
-							(chat) => chat.chatId === chatId,
-						)?.chatName,
-					firstAgentKey: agentKey,
-					firstAgentName:
-						stateRef.current.voiceChat.currentAgentName || agentKey,
-					agentKey,
-					lastRunContent: content,
-					updatedAt: Date.now(),
-				},
-			});
-		},
-		[dispatch, stateRef],
-	);
-
-	const updateAssistantNode = useCallback(
-		(text: string, status: TimelineNode["status"] = "running") => {
-			const nodeId = assistantNodeIdRef.current;
-			const contentId = assistantContentIdRef.current;
-			if (!nodeId || !contentId) return;
-			const current = stateRef.current.timelineNodes.get(nodeId);
-			const nextNode: TimelineNode = {
-				id: nodeId,
-				kind: "content",
-				contentId,
-				text,
-				segments: parseContentSegments(contentId, text),
-				status,
-				ts: current?.ts || Date.now(),
-			};
-			dispatch({ type: "SET_TIMELINE_NODE", id: nodeId, node: nextNode });
-		},
-		[dispatch, stateRef],
 	);
 
 	const createTurnNodes = useCallback(
 		(userText: string) => {
 			const suffix = `${Date.now()}_${turnCounterRef.current++}`;
 			const userNodeId = `voice_user_${suffix}`;
-			const contentId = `voice_content_${suffix}`;
-			const assistantNodeId = `voice_node_${suffix}`;
 			const now = Date.now();
 
 			dispatch({
@@ -356,29 +294,6 @@ export function useVoiceChatRuntime() {
 				},
 			});
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });
-
-			dispatch({
-				type: "SET_TIMELINE_NODE",
-				id: assistantNodeId,
-				node: {
-					id: assistantNodeId,
-					kind: "content",
-					contentId,
-					text: "",
-					segments: [],
-					status: "running",
-					ts: now,
-				},
-			});
-			dispatch({ type: "APPEND_TIMELINE_ORDER", id: assistantNodeId });
-			dispatch({
-				type: "SET_CONTENT_NODE_BY_ID",
-				contentId,
-				nodeId: assistantNodeId,
-			});
-
-			assistantNodeIdRef.current = assistantNodeId;
-			assistantContentIdRef.current = contentId;
 		},
 		[dispatch],
 	);
@@ -399,8 +314,17 @@ export function useVoiceChatRuntime() {
 				error: message,
 				sessionActive: false,
 				wsStatus: socketRef.current ? stateRef.current.voiceChat.wsStatus : "error",
+				activeAssistantContentId: "",
+				activeRequestId: "",
+				activeTtsTaskId: "",
+				ttsCommitted: false,
 			});
-			playerRef.current.stopAll();
+			const activeAssistantContentId = String(
+				stateRef.current.voiceChat.activeAssistantContentId || "",
+			).trim();
+			if (activeAssistantContentId) {
+				getVoiceRuntime()?.stopVoiceChatSession(activeAssistantContentId);
+			}
 			cleanupVoiceAudioCapture(audioCaptureStateRef.current);
 			stopSocket();
 			startedAgentKeyRef.current = "";
@@ -506,7 +430,6 @@ export function useVoiceChatRuntime() {
 		if (!capturePausedRef.current) {
 			return audioCaptureStateRef.current.captureStarted;
 		}
-		await playerRef.current.waitForIdle();
 		capturePausedRef.current = false;
 		return ensureAudioCapture();
 	}, [ensureAudioCapture]);
@@ -523,7 +446,7 @@ export function useVoiceChatRuntime() {
 					id === listeningTransitionRef.current &&
 					stateRef.current.inputMode === "voice" &&
 					!Boolean(stateRef.current.voiceChat.error),
-				waitForIdle: () => playerRef.current.waitForIdle(),
+				waitForIdle: async () => undefined,
 				playReadyCue: async () => {
 					try {
 						await readyCuePlayerRef.current.playReadyCue();
@@ -552,6 +475,156 @@ export function useVoiceChatRuntime() {
 			ensureAudioCapture,
 			patchVoiceChat,
 			resumeAudioCapture,
+			stateRef,
+		],
+	);
+
+	const resumeListeningAfterResponse = useCallback(
+		async (reason: string) => {
+			if (
+				stateRef.current.inputMode !== "voice" ||
+				Boolean(stateRef.current.voiceChat.error)
+			) {
+				return;
+			}
+			if (
+				asrRestartPendingRef.current ||
+				asrStartInFlightRef.current ||
+				!asrTaskActiveRef.current
+			) {
+				const restarted = startAsrTask(reason);
+				if (!restarted && !asrStartInFlightRef.current) {
+					scheduleVoiceReconnectRef.current(
+						"voice response completed without active asr",
+					);
+				}
+				return;
+			}
+			await enterListeningReady({
+				resumeCapture: true,
+			});
+		},
+		[enterListeningReady, startAsrTask, stateRef],
+	);
+
+	const submitVoiceChatQuery = useCallback(
+		async (finalText: string) => {
+			const text = String(finalText || "").trim();
+			if (!text) return;
+
+			const chatId = String(stateRef.current.chatId || "").trim();
+			let agentKey = chatId
+				? String(stateRef.current.chatAgentById.get(chatId) || "").trim()
+				: "";
+			if (!agentKey) {
+				agentKey = String(
+					stateRef.current.voiceChat.currentAgentKey ||
+						currentWorker?.sourceId ||
+						stateRef.current.pendingNewChatAgentKey ||
+						"",
+				).trim();
+			}
+
+			if (agentKey) {
+				dispatch({
+					type: "SET_WORKER_PRIORITY_KEY",
+					workerKey: `agent:${agentKey}`,
+				});
+			}
+			if (!chatId && agentKey) {
+				dispatch({
+					type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+					agentKey,
+				});
+			}
+
+			const requestId = createRequestId("req");
+			createTurnNodes(text);
+			cancelListeningTransition();
+			pauseAudioCapture();
+			ttsTaskActiveRef.current = true;
+			patchVoiceChat({
+				status: "thinking",
+				sessionActive: true,
+				partialUserText: text,
+				partialAssistantText: "",
+				activeAssistantContentId: "",
+				activeRequestId: requestId,
+				activeTtsTaskId: "",
+				ttsCommitted: false,
+				error: "",
+			});
+
+			try {
+				await executeQueryStream({
+					params: {
+						requestId,
+						message: text,
+						agentKey: agentKey || undefined,
+						chatId: chatId || undefined,
+						planningMode: Boolean(stateRef.current.planningMode),
+					},
+					dispatch,
+					handleEvent,
+				});
+
+				const activeAssistantContentId = String(
+					stateRef.current.voiceChat.activeAssistantContentId || "",
+				).trim();
+				if (activeAssistantContentId) {
+					patchVoiceChat({
+						ttsCommitted: true,
+					});
+					await getVoiceRuntime()?.commitVoiceChatSession(
+						activeAssistantContentId,
+					);
+				}
+				patchVoiceChat({
+					activeAssistantContentId: "",
+					activeRequestId: "",
+					activeTtsTaskId: "",
+					ttsCommitted: false,
+					error: "",
+				});
+				await resumeListeningAfterResponse("resume after voice query");
+			} catch (error) {
+				const activeAssistantContentId = String(
+					stateRef.current.voiceChat.activeAssistantContentId || "",
+				).trim();
+				if (activeAssistantContentId) {
+					getVoiceRuntime()?.stopVoiceChatSession(activeAssistantContentId);
+				}
+				patchVoiceChat({
+					activeAssistantContentId: "",
+					activeRequestId: "",
+					activeTtsTaskId: "",
+					ttsCommitted: false,
+				});
+				if (error instanceof Error && error.name === "AbortError") {
+					patchVoiceChat({
+						status: "connecting",
+						error: "",
+					});
+					await resumeListeningAfterResponse("resume after voice abort");
+					return;
+				}
+				handleFatalError(
+					error instanceof Error ? error.message : String(error),
+				);
+			} finally {
+				ttsTaskActiveRef.current = false;
+			}
+		},
+		[
+			cancelListeningTransition,
+			createTurnNodes,
+			currentWorker,
+			dispatch,
+			handleEvent,
+			handleFatalError,
+			patchVoiceChat,
+			pauseAudioCapture,
+			resumeListeningAfterResponse,
 			stateRef,
 		],
 	);
@@ -720,34 +793,13 @@ export function useVoiceChatRuntime() {
 											patchVoiceChat({ status: "listening" });
 											return;
 										}
-										createTurnNodes(finalText);
-										patchVoiceChat({
-											status: "thinking",
-											partialUserText: finalText,
-											partialAssistantText: "",
-											error: "",
-										});
-										const sent = sendJson({
-											type: "tts.start",
-											taskId: QA_TTS_TASK_ID,
-											mode: "llm",
-											text: finalText,
-											voice:
-												stateRef.current.voiceChat.selectedVoice ||
-												stateRef.current.voiceChat.voices[0]?.id,
-											speechRate:
-												stateRef.current.voiceChat.speechRate || 1.2,
-											chatId:
-												String(stateRef.current.chatId || "").trim() ||
-												undefined,
-											agentKey:
-												String(
-													stateRef.current.voiceChat.currentAgentKey || "",
-												).trim() || undefined,
-										});
-										if (!sent) {
-											handleFatalError("语音 WebSocket 尚未连接");
-										}
+										void submitVoiceChatQuery(finalText).catch((error) =>
+											handleFatalError(
+												error instanceof Error
+													? error.message
+													: String(error),
+											),
+										);
 									}, DEFAULT_VOICE_CHAT_SEND_PAUSE_MS);
 									return;
 								}
@@ -787,110 +839,6 @@ export function useVoiceChatRuntime() {
 									return;
 								}
 							}
-
-							if (message.taskId === QA_TTS_TASK_ID) {
-								if (message.type === "task.started") {
-									ttsTaskActiveRef.current = true;
-									cancelListeningTransition();
-									pendingBinaryRef.current = [];
-									playerRef.current.resetQueue();
-									pauseAudioCapture();
-									patchVoiceChat({
-										status: "speaking",
-										sessionActive: true,
-										error: "",
-									});
-									return;
-								}
-								if (message.type === "tts.audio.format") {
-									ttsSampleRateRef.current =
-										Number(message.sampleRate) || 24000;
-									ttsChannelsRef.current =
-										Number(message.channels) || 1;
-									return;
-								}
-								if (message.type === "tts.audio.chunk") {
-									pendingBinaryRef.current.push({
-										taskId: QA_TTS_TASK_ID,
-										seq: Number(message.seq) || 0,
-									});
-									return;
-								}
-								if (message.type === "tts.text.delta" && message.text) {
-									const nextText = `${String(
-										stateRef.current.voiceChat.partialAssistantText || "",
-									)}${message.text}`;
-									patchVoiceChat({
-										partialAssistantText: nextText,
-										status: "speaking",
-									});
-									updateAssistantNode(nextText, "running");
-									return;
-								}
-								if (message.type === "tts.chat.updated" && message.chatId) {
-									const chatId = String(message.chatId).trim();
-									dispatch({ type: "SET_CHAT_ID", chatId });
-									dispatch({
-										type: "SET_CHAT_AGENT_BY_ID",
-										chatId,
-										agentKey:
-											stateRef.current.voiceChat.currentAgentKey,
-									});
-									dispatch({
-										type: "UPSERT_CHAT",
-										chat: {
-											chatId,
-											chatName:
-												stateRef.current.voiceChat.currentAgentName,
-											firstAgentKey:
-												stateRef.current.voiceChat.currentAgentKey,
-											firstAgentName:
-												stateRef.current.voiceChat.currentAgentName,
-											agentKey:
-												stateRef.current.voiceChat.currentAgentKey,
-											updatedAt: Date.now(),
-										},
-									});
-									return;
-								}
-								if (message.type === "error") {
-									ttsTaskActiveRef.current = false;
-									handleFatalError(
-										`${message.code || "ERROR"}: ${message.message || "TTS 失败"}`,
-									);
-									return;
-								}
-								if (message.type === "task.stopped") {
-									ttsTaskActiveRef.current = false;
-									updateAssistantNode(
-										stateRef.current.voiceChat.partialAssistantText,
-										"completed",
-									);
-									upsertChatSummary(
-										stateRef.current.voiceChat.partialAssistantText,
-									);
-									if (
-										asrRestartPendingRef.current ||
-										asrStartInFlightRef.current ||
-										!asrTaskActiveRef.current
-									) {
-										const restarted = startAsrTask(
-											asrRestartPendingRef.current
-												? "resume after tts"
-												: "recover missing asr after tts",
-										);
-										if (!restarted && !asrStartInFlightRef.current) {
-											scheduleVoiceReconnectRef.current(
-												"tts completed without active asr",
-											);
-										}
-										return;
-									}
-									void enterListeningReady({
-										resumeCapture: true,
-									}).catch(() => undefined);
-								}
-							}
 						} catch (error) {
 							appendDebug(
 								`message parse failed: ${
@@ -900,18 +848,6 @@ export function useVoiceChatRuntime() {
 						}
 						return;
 					}
-
-					const pending = pendingBinaryRef.current.shift();
-					if (!pending || pending.taskId !== QA_TTS_TASK_ID) return;
-					const buffer =
-						event.data instanceof ArrayBuffer
-							? event.data
-							: await (event.data as Blob).arrayBuffer();
-					await playerRef.current.enqueue(
-						buffer,
-						ttsSampleRateRef.current,
-						ttsChannelsRef.current,
-					);
 				};
 
 				socket.onerror = () => {
@@ -974,22 +910,14 @@ export function useVoiceChatRuntime() {
 		return socketPromiseRef.current;
 	}, [
 		appendDebug,
-		cancelListeningTransition,
 		clearFlushTimer,
-		createTurnNodes,
-		dispatch,
 		enterListeningReady,
-		ensureAudioCapture,
 		handleFatalError,
 		isVoiceRecoveryEligible,
 		patchVoiceChat,
-		pauseAudioCapture,
-		resumeAudioCapture,
-		sendJson,
 		startAsrTask,
 		stateRef,
-		updateAssistantNode,
-		upsertChatSummary,
+		submitVoiceChatQuery,
 	]);
 
 	const scheduleVoiceReconnect = useCallback(
@@ -1094,6 +1022,10 @@ export function useVoiceChatRuntime() {
 			error: "",
 			partialUserText: "",
 			partialAssistantText: "",
+			activeAssistantContentId: "",
+			activeRequestId: "",
+			activeTtsTaskId: "",
+			ttsCommitted: false,
 			currentAgentKey: currentWorker.sourceId,
 			currentAgentName: currentWorker.displayName,
 		});
@@ -1106,8 +1038,8 @@ export function useVoiceChatRuntime() {
 			if (setup.capabilities?.asr?.configured === false) {
 				throw new Error("当前语音后端未配置 ASR，语聊模式不可用");
 			}
-			if (setup.capabilities?.tts?.runnerConfigured === false) {
-				throw new Error("当前语音后端未配置 runner，语聊模式不可用");
+			if (setup.capabilities?.tts?.streamInput === false) {
+				throw new Error("当前语音后端未开启流式 TTS 输入，语聊模式不可用");
 			}
 			if (!setup.selectedVoice) {
 				throw new Error("当前语音后端未返回可用音色");
@@ -1150,13 +1082,17 @@ export function useVoiceChatRuntime() {
 		clearFlushTimer();
 		cancelListeningTransition();
 		pendingUtteranceRef.current = "";
+		const activeAssistantContentId = String(
+			stateRef.current.voiceChat.activeAssistantContentId || "",
+		).trim();
+		if (activeAssistantContentId) {
+			getVoiceRuntime()?.stopVoiceChatSession(activeAssistantContentId);
+		}
+		stateRef.current.abortController?.abort();
 		if (
 			socketRef.current != null &&
 			socketRef.current.readyState === WebSocket.OPEN
 		) {
-			if (assistantNodeIdRef.current) {
-				sendJson({ type: "tts.stop", taskId: QA_TTS_TASK_ID });
-			}
 			flushVoiceAudioCaptureRemainder(
 				audioCaptureStateRef.current,
 				(chunk) => {
@@ -1184,7 +1120,7 @@ export function useVoiceChatRuntime() {
 			}
 		}
 		resetVoiceSession();
-	}, [appendDebug, cancelListeningTransition, clearFlushTimer, resetVoiceSession, sendJson]);
+	}, [appendDebug, cancelListeningTransition, clearFlushTimer, resetVoiceSession, sendJson, stateRef]);
 
 	useEffect(() => {
 		const resetHandler = () => {
@@ -1198,7 +1134,6 @@ export function useVoiceChatRuntime() {
 	}, [resetVoiceSession]);
 
 	useEffect(() => {
-		playerRef.current.setMuted(state.audioMuted);
 		readyCuePlayerRef.current.setMuted(state.audioMuted);
 	}, [state.audioMuted]);
 
@@ -1206,8 +1141,7 @@ export function useVoiceChatRuntime() {
 		const voiceEligible =
 			Boolean(currentWorker) &&
 			currentWorker?.type === "agent" &&
-			!state.activeFrontendTool &&
-			!state.streaming;
+			!state.activeFrontendTool;
 
 		if (state.inputMode !== "voice") {
 			if (startedAgentKeyRef.current) {
@@ -1233,7 +1167,6 @@ export function useVoiceChatRuntime() {
 		startVoiceChatForWorker,
 		state.activeFrontendTool,
 		state.inputMode,
-		state.streaming,
 		stopVoiceChatForModeExit,
 	]);
 }

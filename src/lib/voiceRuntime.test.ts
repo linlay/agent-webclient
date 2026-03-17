@@ -445,6 +445,138 @@ describe("voiceRuntime v2 protocol", () => {
 		});
 	});
 
+	it("streams voice chat content through a single appendable tts task", async () => {
+		installBrowser(MockWebSocket as unknown as typeof WebSocket);
+
+		const runtime = initVoiceRuntime({
+			getState: () =>
+				({
+					accessToken: "token_abc",
+					chatId: "chat_1",
+					voiceChat: { capabilities: null },
+				}) as AppState,
+			onPatchBlock: () => undefined,
+			onRemoveInactiveBlocks: () => undefined,
+		});
+
+		await expect(
+			runtime.syncVoiceChatSession("voice_content_1", "你好", {
+				voice: "alloy",
+				speechRate: 1.15,
+			}),
+		).resolves.toMatchObject({
+			started: true,
+			appended: true,
+		});
+		await flushMicrotasks();
+		expect(MockWebSocket.instances).toHaveLength(1);
+
+		const socket = MockWebSocket.instances[0];
+		expect(parseFrame(socket.sentFrames[0])).toMatchObject({
+			type: "tts.start",
+			mode: "local",
+			inputMode: "stream",
+			voice: "alloy",
+			speechRate: 1.15,
+			chatId: "chat_1",
+		});
+		const taskId = String(parseFrame(socket.sentFrames[0]).taskId || "");
+		expect(parseFrame(socket.sentFrames[1])).toMatchObject({
+			type: "tts.append",
+			taskId,
+			text: "你好",
+		});
+
+		await expect(
+			runtime.syncVoiceChatSession("voice_content_1", "你好世界朋友", {
+				voice: "alloy",
+				speechRate: 1.15,
+			}),
+		).resolves.toMatchObject({
+			started: false,
+			appended: true,
+			taskId,
+		});
+		expect(parseFrame(socket.sentFrames[2])).toMatchObject({
+			type: "tts.append",
+			taskId,
+			text: "世界朋友",
+		});
+
+		await expect(
+			runtime.syncVoiceChatSession("voice_content_1", "你好世界朋友们欢迎呀", {
+				voice: "alloy",
+				speechRate: 1.15,
+			}),
+		).resolves.toMatchObject({
+			started: false,
+			appended: true,
+			taskId,
+		});
+		expect(parseFrame(socket.sentFrames[3])).toMatchObject({
+			type: "tts.append",
+			taskId,
+			text: "们欢迎呀",
+		});
+	});
+
+	it("commits the active voice chat tts task after the query stream ends", async () => {
+		installBrowser(MockWebSocket as unknown as typeof WebSocket);
+
+		const runtime = initVoiceRuntime({
+			getState: () =>
+				({
+					accessToken: "token_abc",
+					chatId: "chat_1",
+					voiceChat: { capabilities: null },
+				}) as AppState,
+			onPatchBlock: () => undefined,
+			onRemoveInactiveBlocks: () => undefined,
+		});
+
+		const syncResult = await runtime.syncVoiceChatSession("voice_content_tail", "你好", {
+			voice: "alloy",
+		});
+		expect(syncResult).toMatchObject({
+			started: true,
+			appended: true,
+		});
+		const commitPromise = runtime.commitVoiceChatSession("voice_content_tail");
+		await flushMicrotasks();
+		await flushMicrotasks();
+		await flushMicrotasks();
+
+		const socket = MockWebSocket.instances[0];
+		const firstFrame = parseFrame(socket.sentFrames[0]);
+		const taskId = String(firstFrame.taskId || "");
+		expect(firstFrame).toMatchObject({
+			type: "tts.start",
+			inputMode: "stream",
+			voice: "alloy",
+			chatId: "chat_1",
+		});
+		expect(parseFrame(socket.sentFrames[1])).toMatchObject({
+			type: "tts.append",
+			taskId,
+			text: "你好",
+		});
+		expect(parseFrame(socket.sentFrames[2])).toMatchObject({
+			type: "tts.commit",
+			taskId,
+		});
+
+		socket.emit("message", {
+			data: JSON.stringify({
+				type: "task.stopped",
+				taskId,
+				taskType: "tts",
+				reason: "completed",
+			}),
+		});
+
+		await expect(commitPromise).resolves.toBeUndefined();
+	});
+
 	it("times out pending websocket handshakes instead of waiting forever", async () => {
 		jest.useFakeTimers();
 

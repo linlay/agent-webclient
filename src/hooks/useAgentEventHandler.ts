@@ -22,6 +22,7 @@ import {
   scheduleReasoningAutoCollapseTimer,
 } from '../lib/reasoningAutoCollapse';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
+import { stripSpecialBlocksFromText } from '../lib/contentSegments';
 
 function readEventTeamId(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.teamId);
@@ -393,7 +394,13 @@ export function useAgentEventHandler() {
       if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
         upsertLiveChatSummary({ event, cache, state });
         dispatch({ type: 'SET_STREAMING', streaming: false });
-        getVoiceRuntime()?.stopAllVoiceSessions(type, { mode: type === 'run.cancel' ? 'stop' : 'commit' });
+        const isActiveVoiceRequest =
+          state.inputMode === 'voice'
+          && Boolean(state.voiceChat.activeRequestId)
+          && state.voiceChat.activeRequestId === state.requestId;
+        if (!isActiveVoiceRequest) {
+          getVoiceRuntime()?.stopAllVoiceSessions(type, { mode: type === 'run.cancel' ? 'stop' : 'commit' });
+        }
         return;
       }
 
@@ -405,7 +412,63 @@ export function useAgentEventHandler() {
         const nodeId = cache.contentNodeById.get(contentId) || state.contentNodeById.get(contentId) || '';
         const text = nodeId ? cache.nodeText.get(nodeId) || '' : '';
         const voiceStatus = type === 'content.end' || type === 'content.snapshot' ? 'completed' : 'running';
-        getVoiceRuntime()?.processTtsVoiceBlocks(contentId, text, voiceStatus, 'live');
+        const activeVoiceRequestId = String(state.voiceChat.activeRequestId || '').trim();
+        const activeVoiceContentId = String(state.voiceChat.activeAssistantContentId || '').trim();
+        const isVoiceRequestActive =
+          state.inputMode === 'voice'
+          && Boolean(activeVoiceRequestId)
+          && activeVoiceRequestId === state.requestId;
+        const shouldAttachVoiceContent =
+          isVoiceRequestActive
+          && (!activeVoiceContentId || activeVoiceContentId === contentId);
+        if (shouldAttachVoiceContent && !activeVoiceContentId) {
+          dispatch({
+            type: 'PATCH_VOICE_CHAT',
+            patch: { activeAssistantContentId: contentId },
+          });
+        }
+
+        if (shouldAttachVoiceContent) {
+          const spokenText = stripSpecialBlocksFromText(text || '');
+          dispatch({
+            type: 'PATCH_VOICE_CHAT',
+            patch: {
+              activeAssistantContentId: contentId,
+              partialAssistantText: spokenText,
+            },
+          });
+          if (spokenText) {
+            void getVoiceRuntime()
+              ?.syncVoiceChatSession(contentId, spokenText, {
+                voice: state.voiceChat.selectedVoice,
+                speechRate: state.voiceChat.speechRate,
+              })
+              .then((result) => {
+                if (!result.appended) return;
+                dispatch({
+                  type: 'PATCH_VOICE_CHAT',
+                  patch: {
+                    status: 'speaking',
+                    error: '',
+                    activeTtsTaskId: result.taskId || state.voiceChat.activeTtsTaskId,
+                    ttsCommitted: false,
+                  },
+                });
+              })
+              .catch((error) => {
+                dispatch({
+                  type: 'PATCH_VOICE_CHAT',
+                  patch: {
+                    status: 'error',
+                    error: (error as Error).message,
+                    sessionActive: false,
+                  },
+                });
+              });
+          }
+        } else {
+          getVoiceRuntime()?.processTtsVoiceBlocks(contentId, text, voiceStatus, 'live');
+        }
 
         if (voiceStatus === 'completed') {
           upsertLiveChatSummary({

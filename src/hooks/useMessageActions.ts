@@ -3,14 +3,12 @@ import { useAppContext } from '../context/AppContext';
 import { useAgentEventHandler } from './useAgentEventHandler';
 import {
   createRequestId,
-  createQueryStream,
   setAccessToken,
 } from '../lib/apiClient';
-import { consumeJsonSseStream } from '../lib/sseParser';
 import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
-import type { AgentEvent } from '../context/types';
+import { executeQueryStream } from '../lib/queryStreamRuntime';
 
 /**
  * useMessageActions — handles sending messages and processing SSE stream.
@@ -124,55 +122,20 @@ export function useMessageActions() {
       /* Start streaming */
       const requestId = createRequestId('req');
       const abortController = new AbortController();
-      dispatch({ type: 'SET_REQUEST_ID', requestId });
-      dispatch({ type: 'SET_STREAMING', streaming: true });
-      dispatch({ type: 'SET_ABORT_CONTROLLER', controller: abortController });
-      dispatch({ type: 'CLEAR_RAW_SSE_ENTRIES' });
 
       try {
-        const response = await createQueryStream({
-          requestId,
-          message: cleanMessage,
-          agentKey: selectedAgentKey || undefined,
-          teamId: selectedTeamId || undefined,
-          chatId: chatId || undefined,
-          planningMode: Boolean(stateRef.current.planningMode),
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          let errMsg: string;
-          try {
-            const json = JSON.parse(text);
-            errMsg = json?.msg ? `${json.msg} (HTTP ${response.status})` : `HTTP ${response.status}: ${text}`;
-          } catch {
-            errMsg = `HTTP ${response.status}: ${text}`;
-          }
-          throw new Error(errMsg);
-        }
-
-        await consumeJsonSseStream(response, {
-          signal: abortController.signal,
-          onFrame: (frame) => {
-            dispatch({
-              type: 'APPEND_RAW_SSE_ENTRY',
-              entry: {
-                receivedAt: frame.receivedAt,
-                rawFrame: frame.rawFrame,
-                parsedEventName: frame.event,
-              },
-            });
+        await executeQueryStream({
+          params: {
+            requestId,
+            message: cleanMessage,
+            agentKey: selectedAgentKey || undefined,
+            teamId: selectedTeamId || undefined,
+            chatId: chatId || undefined,
+            planningMode: Boolean(stateRef.current.planningMode),
+            signal: abortController.signal,
           },
-          onJson: (json) => {
-            handleEvent(json as AgentEvent);
-          },
-          onParseError: (error, rawData) => {
-            dispatch({
-              type: 'APPEND_DEBUG',
-              line: `[SSE parse error] ${error.message}: ${rawData.slice(0, 200)}`,
-            });
-          },
+          dispatch,
+          handleEvent,
         });
       } catch (error) {
         const err = error as Error;
@@ -195,9 +158,6 @@ export function useMessageActions() {
           });
           dispatch({ type: 'APPEND_TIMELINE_ORDER', id: errNodeId });
         }
-      } finally {
-        dispatch({ type: 'SET_STREAMING', streaming: false });
-        dispatch({ type: 'SET_ABORT_CONTROLLER', controller: null });
       }
     },
     [dispatch, stateRef, handleEvent]

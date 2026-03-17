@@ -13,6 +13,7 @@ import {
 	describeVoiceChatWsTarget,
 	resolveVoiceChatWsUrl,
 } from "./voiceChatAudio";
+import { computeVoiceChatTextDelta } from "./voiceChatTts";
 import {
 	closeSocket,
 	ensureSocket,
@@ -25,7 +26,14 @@ const DEFAULT_VOICE_WS_PATH = "/api/voice/ws";
 export const DEFAULT_TTS_DEBUG_TEXT =
 	"这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。";
 
+interface VoiceTaskStartOptions {
+	voice?: string;
+	speechRate?: number;
+	inputMode?: "single" | "stream";
+}
+
 interface VoiceSession {
+	kind: "block";
 	key: string;
 	contentId: string;
 	signature: string;
@@ -35,6 +43,18 @@ interface VoiceSession {
 	completed: boolean;
 	sampleRate?: number;
 	channels?: number;
+}
+
+interface VoiceChatSession {
+	kind: "voiceChat";
+	sessionId: string;
+	sourceText: string;
+	taskId: string;
+	committed: boolean;
+	voice?: string;
+	speechRate?: number;
+	resolveIdleWaiters: Array<() => void>;
+	resolvingIdle: boolean;
 }
 
 interface RuntimeOptions {
@@ -50,6 +70,7 @@ interface RuntimeOptions {
 	) => void;
 	onDebug?: (line: string) => void;
 	onDebugStatus?: (status: string) => void;
+	onVoiceChatError?: (message: string) => void;
 }
 
 interface DebugTtsRequestState {
@@ -68,6 +89,8 @@ interface PendingAudioChunk {
 class VoiceRuntime {
 	private sessionsByKey = new Map<string, VoiceSession>();
 	private sessionKeyByTaskId = new Map<string, string>();
+	private voiceChatSessions = new Map<string, VoiceChatSession>();
+	private voiceChatSessionIdByTaskId = new Map<string, string>();
 	private outboundQueue: string[] = [];
 	private pendingAudioChunks: PendingAudioChunk[] = [];
 	private taskAudioFormatById = new Map<
@@ -152,6 +175,24 @@ class VoiceRuntime {
 		return playPcm(this as unknown as VoiceAudioPlayerContext, bufferLike);
 	}
 
+	private waitForPlaybackIdle(): Promise<void> {
+		const context = this.audioContext;
+		if (!context || this.playbackCursor <= 0) {
+			return Promise.resolve();
+		}
+		const remainingMs = Math.max(
+			0,
+			(this.playbackCursor - context.currentTime) * 1000,
+		);
+		if (remainingMs <= 0) {
+			return Promise.resolve();
+		}
+		return new Promise((resolve) => {
+			const timerApi = globalThis.window?.setTimeout || setTimeout;
+			timerApi(resolve, remainingMs);
+		});
+	}
+
 	private updateBlock(
 		contentId: string,
 		signature: string,
@@ -181,13 +222,23 @@ class VoiceRuntime {
 		return session;
 	}
 
+	private getVoiceChatSessionByTaskId(taskId: string): VoiceChatSession | null {
+		const sessionId = this.voiceChatSessionIdByTaskId.get(
+			String(taskId || "").trim(),
+		);
+		if (!sessionId) return null;
+		return this.voiceChatSessions.get(sessionId) || null;
+	}
+
 	private isCurrentDebugTask(taskId: string): boolean {
 		return this.debugTtsRequest?.taskId === String(taskId || "").trim();
 	}
 
 	private isPlayableTask(taskId: string): boolean {
 		return Boolean(
-			this.getCurrentSessionByTaskId(taskId) || this.isCurrentDebugTask(taskId),
+			this.getCurrentSessionByTaskId(taskId) ||
+				this.getVoiceChatSessionByTaskId(taskId) ||
+				this.isCurrentDebugTask(taskId),
 		);
 	}
 
@@ -337,6 +388,34 @@ class VoiceRuntime {
 		}
 	}
 
+	private maybeResolveVoiceChatSession(session: VoiceChatSession): void {
+		if (!session.committed || session.taskId || session.resolvingIdle) {
+			return;
+		}
+		session.resolvingIdle = true;
+		void this.waitForPlaybackIdle().then(() => {
+			session.resolvingIdle = false;
+			if (!session.committed || session.taskId) {
+				return;
+			}
+			const waiters = session.resolveIdleWaiters.splice(0);
+			for (const resolve of waiters) {
+				resolve();
+			}
+		});
+	}
+
+	private clearVoiceChatTask(taskId: string): void {
+		const session = this.getVoiceChatSessionByTaskId(taskId);
+		if (!session) return;
+		this.voiceChatSessionIdByTaskId.delete(taskId);
+		this.taskAudioFormatById.delete(taskId);
+		if (session.taskId === taskId) {
+			session.taskId = "";
+		}
+		this.maybeResolveVoiceChatSession(session);
+	}
+
 	private handleTaskStopped(
 		taskId: string,
 		payload: Record<string, unknown>,
@@ -363,6 +442,7 @@ class VoiceRuntime {
 				});
 			}
 		}
+		this.clearVoiceChatTask(taskId);
 		if (this.isCurrentDebugTask(taskId) && this.debugTtsRequest) {
 			const shouldStayDone =
 				this.debugTtsRequest.completed &&
@@ -387,6 +467,10 @@ class VoiceRuntime {
 				error: message,
 			});
 		}
+		if (this.getVoiceChatSessionByTaskId(taskId)) {
+			this.clearVoiceChatTask(taskId);
+			this.options.onVoiceChatError?.(message);
+		}
 		if (this.isCurrentDebugTask(taskId)) {
 			this.setDebugStatus(`error: ${message}`);
 			return;
@@ -405,6 +489,17 @@ class VoiceRuntime {
 				status: "error",
 				error: errorMessage,
 			});
+		}
+		for (const session of this.voiceChatSessions.values()) {
+			if (session.taskId) {
+				this.voiceChatSessionIdByTaskId.delete(session.taskId);
+				this.taskAudioFormatById.delete(session.taskId);
+				session.taskId = "";
+			}
+			this.maybeResolveVoiceChatSession(session);
+		}
+		if (this.voiceChatSessions.size > 0) {
+			this.options.onVoiceChatError?.(errorMessage);
 		}
 		if (this.debugTtsRequest?.taskId) {
 			this.setDebugStatus(`error: ${errorMessage}`);
@@ -425,6 +520,7 @@ class VoiceRuntime {
 		if (existing) return existing;
 
 		const created: VoiceSession = {
+			kind: "block",
 			key,
 			contentId,
 			signature,
@@ -437,13 +533,65 @@ class VoiceRuntime {
 		return created;
 	}
 
-	private startTask(taskId: string, text: string): void {
+	private ensureVoiceChatSession(
+		sessionId: string,
+		options: VoiceTaskStartOptions = {},
+	): VoiceChatSession {
+		const normalizedSessionId = String(sessionId || "").trim();
+		const existing = this.voiceChatSessions.get(normalizedSessionId);
+		if (existing) {
+			if (options.voice) existing.voice = options.voice;
+			if (options.speechRate != null) existing.speechRate = options.speechRate;
+			return existing;
+		}
+
+		const created: VoiceChatSession = {
+			kind: "voiceChat",
+			sessionId: normalizedSessionId,
+			sourceText: "",
+			taskId: "",
+			committed: false,
+			voice: options.voice,
+			speechRate: options.speechRate,
+			resolveIdleWaiters: [],
+			resolvingIdle: false,
+		};
+		this.voiceChatSessions.set(normalizedSessionId, created);
+		return created;
+	}
+
+	private startTask(
+		taskId: string,
+		text: string | undefined,
+		options: VoiceTaskStartOptions = {},
+	): void {
 		this.sendJsonFrame({
 			type: "tts.start",
 			taskId,
 			mode: "local",
-			text,
+			text: text || undefined,
+			inputMode: options.inputMode || "single",
 			chatId: this.options.getState().chatId || undefined,
+			voice: options.voice || undefined,
+			speechRate:
+				options.speechRate != null ? Number(options.speechRate) : undefined,
+		});
+	}
+
+	private appendTask(taskId: string, text: string): void {
+		if (!taskId || !text) return;
+		this.sendJsonFrame({
+			type: "tts.append",
+			taskId,
+			text,
+		});
+	}
+
+	private commitTask(taskId: string): void {
+		if (!taskId) return;
+		this.sendJsonFrame({
+			type: "tts.commit",
+			taskId,
 		});
 	}
 
@@ -476,6 +624,31 @@ class VoiceRuntime {
 			status: "connecting",
 			error: "",
 		});
+	}
+
+	private async ensureVoiceChatTask(
+		session: VoiceChatSession,
+	): Promise<{ taskId: string; started: boolean }> {
+		if (session.taskId) {
+			return {
+				taskId: session.taskId,
+				started: false,
+			};
+		}
+		await this.prepareAudioPlayback();
+		await this.ensureSocket();
+		const taskId = this.createTaskId("voice_chat");
+		session.taskId = taskId;
+		this.voiceChatSessionIdByTaskId.set(taskId, session.sessionId);
+		this.startTask(taskId, undefined, {
+			voice: session.voice,
+			speechRate: session.speechRate,
+			inputMode: "stream",
+		});
+		return {
+			taskId,
+			started: true,
+		};
 	}
 
 	async replayTtsVoiceBlock(
@@ -573,6 +746,80 @@ class VoiceRuntime {
 		this.options.onRemoveInactiveBlocks(contentId, active);
 	}
 
+	async syncVoiceChatSession(
+		sessionId: string,
+		fullText: string,
+		options: VoiceTaskStartOptions = {},
+	): Promise<{ started: boolean; appended: boolean; taskId: string }> {
+		const normalizedSessionId = String(sessionId || "").trim();
+		if (!normalizedSessionId) {
+			return { started: false, appended: false, taskId: "" };
+		}
+
+		const session = this.ensureVoiceChatSession(normalizedSessionId, options);
+		const nextText = String(fullText || "");
+		const delta = computeVoiceChatTextDelta(session.sourceText, nextText);
+		session.sourceText = nextText;
+		session.committed = false;
+		if (!delta) {
+			return {
+				started: false,
+				appended: false,
+				taskId: session.taskId,
+			};
+		}
+
+		const { taskId, started } = await this.ensureVoiceChatTask(session);
+		this.appendTask(taskId, delta);
+		return {
+			started,
+			appended: true,
+			taskId,
+		};
+	}
+
+	async commitVoiceChatSession(sessionId: string): Promise<void> {
+		const normalizedSessionId = String(sessionId || "").trim();
+		if (!normalizedSessionId) return;
+
+		const session = this.voiceChatSessions.get(normalizedSessionId);
+		if (!session) return;
+
+		session.committed = true;
+		if (!session.taskId) {
+			await this.waitForPlaybackIdle();
+			this.voiceChatSessions.delete(normalizedSessionId);
+			return;
+		}
+
+		this.commitTask(session.taskId);
+
+		await new Promise<void>((resolve) => {
+			session.resolveIdleWaiters.push(resolve);
+			this.maybeResolveVoiceChatSession(session);
+		});
+		this.voiceChatSessions.delete(normalizedSessionId);
+	}
+
+	stopVoiceChatSession(sessionId: string): void {
+		const normalizedSessionId = String(sessionId || "").trim();
+		if (!normalizedSessionId) return;
+		const session = this.voiceChatSessions.get(normalizedSessionId);
+		if (!session) return;
+
+		if (session.taskId) {
+			this.stopTask(session.taskId);
+			this.voiceChatSessionIdByTaskId.delete(session.taskId);
+			this.taskAudioFormatById.delete(session.taskId);
+			session.taskId = "";
+		}
+		const waiters = session.resolveIdleWaiters.splice(0);
+		for (const resolve of waiters) {
+			resolve();
+		}
+		this.voiceChatSessions.delete(normalizedSessionId);
+	}
+
 	stopAllVoiceSessions(
 		reason = "manual",
 		options: { mode?: "commit" | "stop" } = {},
@@ -599,6 +846,9 @@ class VoiceRuntime {
 		}
 
 		if (shouldStop) {
+			for (const sessionId of Array.from(this.voiceChatSessions.keys())) {
+				this.stopVoiceChatSession(sessionId);
+			}
 			this.stopDebugTask();
 			this.resetPlayback();
 			this.pendingAudioChunks.length = 0;
@@ -611,6 +861,8 @@ class VoiceRuntime {
 		this.stopAllVoiceSessions("reset", { mode: "stop" });
 		this.sessionsByKey.clear();
 		this.sessionKeyByTaskId.clear();
+		this.voiceChatSessions.clear();
+		this.voiceChatSessionIdByTaskId.clear();
 		this.taskAudioFormatById.clear();
 		this.outboundQueue.length = 0;
 		this.pendingAudioChunks.length = 0;

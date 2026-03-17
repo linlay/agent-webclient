@@ -242,7 +242,9 @@ export interface VoiceCapabilities {
   };
   tts?: {
     modes?: string[];
+    deprecatedModes?: string[];
     defaultMode?: 'local' | 'llm';
+    streamInput?: boolean;
     runnerConfigured?: boolean;
     speechRateDefault?: number;
     audioFormat?: {
@@ -266,6 +268,10 @@ export interface VoiceChatState {
   sessionActive: boolean;
   partialUserText: string;
   partialAssistantText: string;
+  activeAssistantContentId: string;
+  activeRequestId: string;
+  activeTtsTaskId: string;
+  ttsCommitted: boolean;
   error: string;
   wsStatus: VoiceChatWsStatus;
   capabilities: VoiceCapabilities | null;

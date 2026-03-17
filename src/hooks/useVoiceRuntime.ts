@@ -37,6 +37,21 @@ export function useVoiceRuntime() {
       onDebugStatus: (status) => {
         dispatch({ type: 'SET_TTS_DEBUG_STATUS', status });
       },
+      onVoiceChatError: (message) => {
+        if (stateRef.current.inputMode !== 'voice') return;
+        dispatch({
+          type: 'PATCH_VOICE_CHAT',
+          patch: {
+            status: 'error',
+            error: message,
+            sessionActive: false,
+            activeAssistantContentId: '',
+            activeRequestId: '',
+            activeTtsTaskId: '',
+            ttsCommitted: false,
+          },
+        });
+      },
     });
     runtime.setMuted(stateRef.current.audioMuted);
 
