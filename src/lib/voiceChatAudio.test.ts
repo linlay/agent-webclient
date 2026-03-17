@@ -1,4 +1,5 @@
 import {
+	describeVoiceChatWsTarget,
 	mergeVoiceChatUtterance,
 	normalizeVoiceChatUtteranceForLength,
 	resolveVoiceChatWsUrl,
@@ -27,6 +28,12 @@ describe("voiceChatAudio helpers", () => {
 		});
 
 		expect(resolveVoiceChatWsUrl("/api/voice/ws")).toBe(
+			"wss://voice.example.com/api/voice/ws",
+		);
+		expect(resolveVoiceChatWsUrl("/api/voice/ws", "token_123")).toBe(
+			"wss://voice.example.com/api/voice/ws?access_token=token_123",
+		);
+		expect(describeVoiceChatWsTarget("/api/voice/ws")).toBe(
 			"wss://voice.example.com/api/voice/ws",
 		);
 	});

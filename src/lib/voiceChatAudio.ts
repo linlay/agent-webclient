@@ -100,11 +100,28 @@ export function normalizeVoiceChatUtteranceForLength(text: string): string {
 		);
 }
 
-export function resolveVoiceChatWsUrl(rawPath: string): string {
+export function resolveVoiceChatWsUrl(
+	rawPath: string,
+	accessToken = "",
+): string {
 	const normalizedPath = String(rawPath || "").trim() || "/api/voice/ws";
 	const base =
 		window.location.protocol === "https:" ? "wss:" : "ws:";
-	return `${base}//${window.location.host}${normalizedPath}`;
+	const url = new URL(`${base}//${window.location.host}${normalizedPath}`);
+	const token = String(accessToken || "").trim();
+	if (token) {
+		url.searchParams.set("access_token", token);
+	}
+	return url.toString();
+}
+
+export function describeVoiceChatWsTarget(rawPath: string): string {
+	const normalizedPath = String(rawPath || "").trim() || "/api/voice/ws";
+	const base =
+		window.location.protocol === "https:" ? "wss:" : "ws:";
+	const url = new URL(`${base}//${window.location.host}${normalizedPath}`);
+	url.search = "";
+	return url.toString();
 }
 
 export class PcmQueuePlayer {

@@ -7,23 +7,33 @@ import type {
 	VoiceOption,
 } from "../context/types";
 import {
-	getVoiceCapabilities,
-	getVoiceVoices,
-	type ApiResponse,
+	getVoiceCapabilitiesFlexible,
+	getVoiceVoicesFlexible,
 } from "../lib/apiClient";
 import { parseContentSegments } from "../lib/contentSegments";
 import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
 import {
 	bytesToBase64,
 	DEFAULT_VOICE_CHAT_SEND_PAUSE_MS,
-	encodePcm16,
 	mergeVoiceChatUtterance,
 	normalizeVoiceChatUtteranceForLength,
 	PcmQueuePlayer,
 	ReadyCuePlayer,
+	describeVoiceChatWsTarget,
 	resolveVoiceChatWsUrl,
-	VOICE_CHAT_FRAME_BYTES,
 } from "../lib/voiceChatAudio";
+import {
+	cleanupVoiceAudioCapture,
+	createVoiceAudioCaptureState,
+	flushVoiceAudioCaptureRemainder,
+	initializeVoiceAudioCapture,
+	type VoiceAudioCaptureState,
+} from "../lib/voiceAudioCapture";
+import {
+	buildVoiceAsrStartPayload,
+	buildVoiceAsrStopFrames,
+} from "../lib/voiceAsrProtocol";
+import { runVoiceChatListeningReady } from "../lib/voiceChatListeningReady";
 
 const QA_ASR_TASK_ID = "qa-asr";
 const QA_TTS_TASK_ID = "qa-tts";
@@ -41,15 +51,6 @@ type VoiceTaskEvent = {
 	seq?: number;
 	byteLength?: number;
 	websocketPath?: string;
-};
-
-type AudioCaptureRefs = {
-	streamRef: React.MutableRefObject<MediaStream | null>;
-	audioContextRef: React.MutableRefObject<AudioContext | null>;
-	sourceRef: React.MutableRefObject<MediaStreamAudioSourceNode | null>;
-	processorRef: React.MutableRefObject<ScriptProcessorNode | null>;
-	captureStartedRef: React.MutableRefObject<boolean>;
-	remainRef: React.MutableRefObject<Uint8Array>;
 };
 
 function ensureVoiceOptions(data: unknown): VoiceOption[] {
@@ -84,101 +85,6 @@ function resolveDefaultVoice(
 	return voices.find((item) => item.default)?.id || voices[0]?.id || "";
 }
 
-function cleanupAudioCapture(refs: AudioCaptureRefs) {
-	refs.captureStartedRef.current = false;
-	if (refs.processorRef.current) {
-		refs.processorRef.current.disconnect();
-		refs.processorRef.current.onaudioprocess = null;
-		refs.processorRef.current = null;
-	}
-	if (refs.sourceRef.current) {
-		refs.sourceRef.current.disconnect();
-		refs.sourceRef.current = null;
-	}
-	if (refs.audioContextRef.current) {
-		void refs.audioContextRef.current.close();
-		refs.audioContextRef.current = null;
-	}
-	if (refs.streamRef.current) {
-		refs.streamRef.current.getTracks().forEach((track) => track.stop());
-		refs.streamRef.current = null;
-	}
-	refs.remainRef.current = new Uint8Array(0);
-}
-
-function emitChunkedAudio(
-	bytes: Uint8Array,
-	remainRef: React.MutableRefObject<Uint8Array>,
-	onChunk: (chunk: Uint8Array) => void,
-) {
-	const merged = new Uint8Array(remainRef.current.length + bytes.length);
-	merged.set(remainRef.current, 0);
-	merged.set(bytes, remainRef.current.length);
-
-	let offset = 0;
-	while (offset + VOICE_CHAT_FRAME_BYTES <= merged.length) {
-		onChunk(merged.slice(offset, offset + VOICE_CHAT_FRAME_BYTES));
-		offset += VOICE_CHAT_FRAME_BYTES;
-	}
-	remainRef.current = merged.slice(offset);
-}
-
-async function initializeAudioCapture(
-	refs: AudioCaptureRefs,
-	onChunk: (chunk: Uint8Array) => void,
-	onError: (message: string) => void,
-) {
-	if (refs.captureStartedRef.current) return true;
-	refs.captureStartedRef.current = true;
-
-	try {
-		const mediaStream = await navigator.mediaDevices.getUserMedia({
-			audio: true,
-		});
-		refs.streamRef.current = mediaStream;
-
-		const AudioContextCtor =
-			window.AudioContext ||
-			(
-				window as typeof window & {
-					webkitAudioContext?: typeof AudioContext;
-				}
-			).webkitAudioContext;
-		if (AudioContextCtor == null) {
-			throw new Error("当前浏览器不支持 AudioContext");
-		}
-
-		const audioContext = new AudioContextCtor();
-		refs.audioContextRef.current = audioContext;
-
-		const source = audioContext.createMediaStreamSource(mediaStream);
-		refs.sourceRef.current = source;
-
-		const processor = audioContext.createScriptProcessor(4096, 1, 1);
-		refs.processorRef.current = processor;
-		processor.onaudioprocess = (event) => {
-			if (!refs.captureStartedRef.current) return;
-			const input = event.inputBuffer.getChannelData(0);
-			const pcm16 = encodePcm16(input, audioContext.sampleRate, 16000);
-			emitChunkedAudio(
-				new Uint8Array(pcm16.buffer),
-				refs.remainRef,
-				onChunk,
-			);
-		};
-
-		source.connect(processor);
-		processor.connect(audioContext.destination);
-		return true;
-	} catch (error) {
-		cleanupAudioCapture(refs);
-		onError(
-			`麦克风初始化失败: ${error instanceof Error ? error.message : String(error)}`,
-		);
-		return false;
-	}
-}
-
 export function useVoiceChatRuntime() {
 	const { state, dispatch, stateRef } = useAppContext();
 	const currentWorker = useMemo(
@@ -203,24 +109,11 @@ export function useVoiceChatRuntime() {
 	const turnCounterRef = useRef(0);
 	const playerRef = useRef(new PcmQueuePlayer());
 	const readyCuePlayerRef = useRef(new ReadyCuePlayer());
-	const streamRef = useRef<MediaStream | null>(null);
-	const audioContextRef = useRef<AudioContext | null>(null);
-	const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-	const processorRef = useRef<ScriptProcessorNode | null>(null);
-	const captureStartedRef = useRef(false);
-	const remainRef = useRef(new Uint8Array(0));
-
-	const audioCaptureRefs = useMemo<AudioCaptureRefs>(
-		() => ({
-			streamRef,
-			audioContextRef,
-			sourceRef,
-			processorRef,
-			captureStartedRef,
-			remainRef,
-		}),
-		[],
+	const audioCaptureStateRef = useRef<VoiceAudioCaptureState>(
+		createVoiceAudioCaptureState(),
 	);
+	const asrChunkCounterRef = useRef(0);
+	const listeningTransitionRef = useRef(0);
 
 	const appendDebug = useCallback(
 		(line: string) => {
@@ -248,6 +141,10 @@ export function useVoiceChatRuntime() {
 		assistantContentIdRef.current = "";
 	}, []);
 
+	const cancelListeningTransition = useCallback(() => {
+		listeningTransitionRef.current += 1;
+	}, []);
+
 	const stopSocket = useCallback(() => {
 		socketPromiseRef.current = null;
 		const socket = socketRef.current;
@@ -273,6 +170,7 @@ export function useVoiceChatRuntime() {
 			forceTextMode?: boolean;
 		} = {}) => {
 			clearFlushTimer();
+			cancelListeningTransition();
 			pendingBinaryRef.current = [];
 			pendingUtteranceRef.current = "";
 			startedAgentKeyRef.current = "";
@@ -280,8 +178,9 @@ export function useVoiceChatRuntime() {
 			resetAssistantRefs();
 			playerRef.current.stopAll();
 			readyCuePlayerRef.current.stop();
-			cleanupAudioCapture(audioCaptureRefs);
+			cleanupVoiceAudioCapture(audioCaptureStateRef.current);
 			stopSocket();
+			asrChunkCounterRef.current = 0;
 			patchVoiceChat({
 				status: "idle",
 				sessionActive: false,
@@ -325,8 +224,8 @@ export function useVoiceChatRuntime() {
 			}
 		},
 		[
-			audioCaptureRefs,
 			clearFlushTimer,
+			cancelListeningTransition,
 			dispatch,
 			patchVoiceChat,
 			resetAssistantRefs,
@@ -438,6 +337,7 @@ export function useVoiceChatRuntime() {
 	const handleFatalError = useCallback(
 		(message: string) => {
 			appendDebug(message);
+			cancelListeningTransition();
 			patchVoiceChat({
 				status: "error",
 				error: message,
@@ -445,13 +345,14 @@ export function useVoiceChatRuntime() {
 				wsStatus: socketRef.current ? stateRef.current.voiceChat.wsStatus : "error",
 			});
 			playerRef.current.stopAll();
-			cleanupAudioCapture(audioCaptureRefs);
+			cleanupVoiceAudioCapture(audioCaptureStateRef.current);
 			stopSocket();
 			startedAgentKeyRef.current = "";
+			asrChunkCounterRef.current = 0;
 		},
 		[
 			appendDebug,
-			audioCaptureRefs,
+			cancelListeningTransition,
 			patchVoiceChat,
 			stateRef,
 			stopSocket,
@@ -469,35 +370,92 @@ export function useVoiceChatRuntime() {
 
 	const ensureAudioCapture = useCallback(async () => {
 		if (capturePausedRef.current) return false;
-		return initializeAudioCapture(
-			audioCaptureRefs,
+		return initializeVoiceAudioCapture(
+			audioCaptureStateRef.current,
 			(chunk) => {
-				sendJson({
+				const sent = sendJson({
 					type: "asr.audio.append",
 					taskId: QA_ASR_TASK_ID,
 					audio: bytesToBase64(chunk),
 				});
+				if (!sent) return;
+				asrChunkCounterRef.current += 1;
+				if (
+					asrChunkCounterRef.current === 1 ||
+					asrChunkCounterRef.current % 25 === 0
+				) {
+					appendDebug(
+						`sent asr.audio.append (${asrChunkCounterRef.current})`,
+					);
+				}
 			},
 			(message) => {
 				handleFatalError(message);
 			},
 		);
-	}, [audioCaptureRefs, handleFatalError, sendJson]);
+	}, [appendDebug, handleFatalError, sendJson]);
 
 	const pauseAudioCapture = useCallback(() => {
-		if (!captureStartedRef.current || capturePausedRef.current) return;
+		if (!audioCaptureStateRef.current.captureStarted || capturePausedRef.current) {
+			return;
+		}
 		capturePausedRef.current = true;
-		cleanupAudioCapture(audioCaptureRefs);
-	}, [audioCaptureRefs]);
+		cleanupVoiceAudioCapture(audioCaptureStateRef.current);
+	}, []);
 
 	const resumeAudioCapture = useCallback(async () => {
 		if (!capturePausedRef.current) {
-			return captureStartedRef.current;
+			return audioCaptureStateRef.current.captureStarted;
 		}
 		await playerRef.current.waitForIdle();
 		capturePausedRef.current = false;
 		return ensureAudioCapture();
 	}, [ensureAudioCapture]);
+
+	const enterListeningReady = useCallback(
+		async (options: { resumeCapture: boolean }) => {
+			const transitionId = listeningTransitionRef.current + 1;
+			listeningTransitionRef.current = transitionId;
+
+			await runVoiceChatListeningReady({
+				transitionId,
+				resumeCapture: options.resumeCapture,
+				isCurrent: (id) =>
+					id === listeningTransitionRef.current &&
+					stateRef.current.inputMode === "voice" &&
+					!Boolean(stateRef.current.voiceChat.error),
+				waitForIdle: () => playerRef.current.waitForIdle(),
+				playReadyCue: async () => {
+					try {
+						await readyCuePlayerRef.current.playReadyCue();
+					} catch (error) {
+						appendDebug(
+							`ready cue failed: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						);
+					}
+				},
+				ensureAudioCapture,
+				resumeAudioCapture,
+				onListeningReady: () => {
+					patchVoiceChat({
+						status: "listening",
+						sessionActive: true,
+						error: "",
+						wsStatus: "open",
+					});
+				},
+			});
+		},
+		[
+			appendDebug,
+			ensureAudioCapture,
+			patchVoiceChat,
+			resumeAudioCapture,
+			stateRef,
+		],
+	);
 
 	const ensureVoiceSetup = useCallback(async () => {
 		let capabilities = stateRef.current.voiceChat.capabilities;
@@ -506,8 +464,7 @@ export function useVoiceChatRuntime() {
 
 		if (!stateRef.current.voiceChat.capabilitiesLoaded) {
 			try {
-				const response = (await getVoiceCapabilities()) as ApiResponse<VoiceCapabilities>;
-				capabilities = (response.data || null) as VoiceCapabilities | null;
+				capabilities = await getVoiceCapabilitiesFlexible();
 				patchVoiceChat({
 					capabilities,
 					capabilitiesLoaded: true,
@@ -528,12 +485,15 @@ export function useVoiceChatRuntime() {
 
 		if (!stateRef.current.voiceChat.voicesLoaded) {
 			try {
-				const response = await getVoiceVoices();
-				voices = ensureVoiceOptions(response.data);
+				const voicesPath =
+					String(capabilities?.tts?.voicesEndpoint || "").trim() ||
+					"/api/voice/tts/voices";
+				const response = await getVoiceVoicesFlexible(voicesPath);
+				voices = ensureVoiceOptions(response);
 				selectedVoice = resolveDefaultVoice(
 					voices,
 					stateRef.current.voiceChat.selectedVoice,
-					(response.data as { defaultVoice?: unknown })?.defaultVoice,
+					response?.defaultVoice,
 				);
 				patchVoiceChat({
 					voices,
@@ -542,7 +502,12 @@ export function useVoiceChatRuntime() {
 					selectedVoice,
 				});
 			} catch (error) {
-				const message = (error as Error).message;
+				const rawMessage = (error as Error).message;
+				const message =
+					rawMessage === "Response is not ApiResponse shape" ||
+					rawMessage === "voice voices response is invalid"
+						? "语音后端音色列表返回格式异常"
+						: rawMessage;
 				patchVoiceChat({
 					voicesLoaded: false,
 					voicesError: message,
@@ -570,8 +535,12 @@ export function useVoiceChatRuntime() {
 		const wsPath =
 			stateRef.current.voiceChat.capabilities?.websocketPath ||
 			"/api/voice/ws";
-		const url = resolveVoiceChatWsUrl(wsPath);
-		appendDebug(`connect ${url}`);
+		const accessToken = String(stateRef.current.accessToken || "").trim();
+		if (!accessToken) {
+			throw new Error("voice access_token is required");
+		}
+		const url = resolveVoiceChatWsUrl(wsPath, accessToken);
+		appendDebug(`connect ${describeVoiceChatWsTarget(wsPath)}`);
 		patchVoiceChat({ wsStatus: "connecting" });
 
 		socketPromiseRef.current = new Promise<WebSocket>((resolve, reject) => {
@@ -586,6 +555,7 @@ export function useVoiceChatRuntime() {
 					settled = true;
 					socketPromiseRef.current = null;
 					patchVoiceChat({ wsStatus: "open" });
+					appendDebug("socket open");
 					resolve(socket);
 				};
 
@@ -595,16 +565,10 @@ export function useVoiceChatRuntime() {
 							const message = JSON.parse(event.data) as VoiceTaskEvent;
 							if (message.taskId === QA_ASR_TASK_ID) {
 								if (message.type === "task.started") {
-									patchVoiceChat({
-										status: "listening",
-										sessionActive: true,
-										error: "",
-										wsStatus: "open",
-									});
-									void readyCuePlayerRef.current
-										.playReadyCue()
-										.catch(() => undefined);
-									void ensureAudioCapture();
+									appendDebug("received task.started for asr");
+									void enterListeningReady({
+										resumeCapture: false,
+									}).catch(() => undefined);
 									return;
 								}
 								if (message.type === "asr.text.final" && message.text) {
@@ -679,6 +643,7 @@ export function useVoiceChatRuntime() {
 
 							if (message.taskId === QA_TTS_TASK_ID) {
 								if (message.type === "task.started") {
+									cancelListeningTransition();
 									pendingBinaryRef.current = [];
 									playerRef.current.resetQueue();
 									pauseAudioCapture();
@@ -754,14 +719,9 @@ export function useVoiceChatRuntime() {
 									upsertChatSummary(
 										stateRef.current.voiceChat.partialAssistantText,
 									);
-									patchVoiceChat({
-										status: "listening",
-										sessionActive: true,
-									});
-									void readyCuePlayerRef.current
-										.playReadyCue()
-										.catch(() => undefined);
-									void resumeAudioCapture();
+									void enterListeningReady({
+										resumeCapture: true,
+									}).catch(() => undefined);
 								}
 							}
 						} catch (error) {
@@ -819,9 +779,11 @@ export function useVoiceChatRuntime() {
 		return socketPromiseRef.current;
 	}, [
 		appendDebug,
+		cancelListeningTransition,
 		clearFlushTimer,
 		createTurnNodes,
 		dispatch,
+		enterListeningReady,
 		ensureAudioCapture,
 		handleFatalError,
 		patchVoiceChat,
@@ -858,7 +820,13 @@ export function useVoiceChatRuntime() {
 		});
 
 		try {
+			if (!String(stateRef.current.accessToken || "").trim()) {
+				throw new Error("voice access_token is required");
+			}
 			const setup = await ensureVoiceSetup();
+			if (setup.capabilities?.asr?.configured === false) {
+				throw new Error("当前语音后端未配置 ASR，语聊模式不可用");
+			}
 			if (setup.capabilities?.tts?.runnerConfigured === false) {
 				throw new Error("当前语音后端未配置 runner，语聊模式不可用");
 			}
@@ -867,33 +835,17 @@ export function useVoiceChatRuntime() {
 			}
 			await readyCuePlayerRef.current.prime().catch(() => undefined);
 			await connectSocket();
-			const sent = sendJson({
-				type: "asr.start",
-				taskId: QA_ASR_TASK_ID,
-				sampleRate:
-					Number(setup.capabilities?.asr?.defaults?.sampleRate) || 16000,
-				language:
-					String(setup.capabilities?.asr?.defaults?.language || "zh"),
-				turnDetection: {
-					type:
-						String(
-							setup.capabilities?.asr?.defaults?.turnDetection?.type ||
-								"server_vad",
-						),
-					threshold:
-						Number(
-							setup.capabilities?.asr?.defaults?.turnDetection?.threshold,
-						) || 0,
-					silenceDurationMs:
-						Number(
-							setup.capabilities?.asr?.defaults?.turnDetection
-								?.silenceDurationMs,
-						) || 400,
-				},
-			});
+			asrChunkCounterRef.current = 0;
+			const sent = sendJson(
+				buildVoiceAsrStartPayload(
+					QA_ASR_TASK_ID,
+					setup.capabilities?.asr?.defaults,
+				),
+			);
 			if (!sent) {
 				throw new Error("语音 WebSocket 尚未连接");
 			}
+			appendDebug("sent asr.start");
 		} catch (error) {
 			startedAgentKeyRef.current = "";
 			handleFatalError(
@@ -912,6 +864,7 @@ export function useVoiceChatRuntime() {
 
 	const stopVoiceChatForModeExit = useCallback(() => {
 		clearFlushTimer();
+		cancelListeningTransition();
 		pendingUtteranceRef.current = "";
 		if (
 			socketRef.current != null &&
@@ -920,18 +873,34 @@ export function useVoiceChatRuntime() {
 			if (assistantNodeIdRef.current) {
 				sendJson({ type: "tts.stop", taskId: QA_TTS_TASK_ID });
 			}
-			if (captureStartedRef.current && remainRef.current.length > 0) {
-				sendJson({
-					type: "asr.audio.append",
-					taskId: QA_ASR_TASK_ID,
-					audio: bytesToBase64(remainRef.current),
-				});
+			flushVoiceAudioCaptureRemainder(
+				audioCaptureStateRef.current,
+				(chunk) => {
+					const sent = sendJson({
+						type: "asr.audio.append",
+						taskId: QA_ASR_TASK_ID,
+						audio: bytesToBase64(chunk),
+					});
+					if (sent) {
+						asrChunkCounterRef.current += 1;
+						appendDebug(
+							`sent asr.audio.append (${asrChunkCounterRef.current})`,
+						);
+					}
+				},
+			);
+			for (const frame of buildVoiceAsrStopFrames(
+				QA_ASR_TASK_ID,
+				new Uint8Array(0),
+			)) {
+				sendJson(frame);
+				if (frame.type === "asr.audio.commit" || frame.type === "asr.stop") {
+					appendDebug(`sent ${String(frame.type)}`);
+				}
 			}
-			sendJson({ type: "asr.audio.commit", taskId: QA_ASR_TASK_ID });
-			sendJson({ type: "asr.stop", taskId: QA_ASR_TASK_ID });
 		}
 		resetVoiceSession();
-	}, [clearFlushTimer, resetVoiceSession, sendJson]);
+	}, [appendDebug, cancelListeningTransition, clearFlushTimer, resetVoiceSession, sendJson]);
 
 	useEffect(() => {
 		const resetHandler = () => {

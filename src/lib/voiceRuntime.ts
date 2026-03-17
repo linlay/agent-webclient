@@ -10,6 +10,10 @@ import {
 	type VoiceAudioPlayerContext,
 } from "./voiceAudioPlayer";
 import {
+	describeVoiceChatWsTarget,
+	resolveVoiceChatWsUrl,
+} from "./voiceChatAudio";
+import {
 	closeSocket,
 	ensureSocket,
 	sendJsonFrame,
@@ -118,20 +122,12 @@ class VoiceRuntime {
 	}
 
 	private getVoiceWsUrl(accessToken: string): string {
-		const location = globalThis.window?.location;
-		const base =
-			!location || !location.host
-				? "ws://localhost"
-				: `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
-		const url = new URL(this.getVoiceWsPath(), base);
-		url.searchParams.set("access_token", accessToken);
-		return url.toString();
+		return resolveVoiceChatWsUrl(this.getVoiceWsPath(), accessToken);
 	}
 
 	private describeVoiceWsTarget(accessToken: string): string {
-		const url = new URL(this.getVoiceWsUrl(accessToken));
-		url.search = "";
-		return `${url.origin}${url.pathname}`;
+		void accessToken;
+		return describeVoiceChatWsTarget(this.getVoiceWsPath());
 	}
 
 	private sessionKeyOf(contentId: string, signature: string): string {

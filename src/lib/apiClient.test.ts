@@ -1,7 +1,10 @@
 import {
   createQueryStream,
+  getAgents,
   getVoiceCapabilities,
+  getVoiceCapabilitiesFlexible,
   getVoiceVoices,
+  getVoiceVoicesFlexible,
   interruptChat,
   steerChat,
 } from './apiClient';
@@ -88,5 +91,109 @@ describe('apiClient query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/voice/capabilities');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/voice/tts/voices');
+  });
+
+  it('parses voice capabilities from standard ApiResponse payloads', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            websocketPath: '/api/voice/ws',
+            asr: { configured: true },
+          },
+        }),
+    });
+
+    await expect(getVoiceCapabilitiesFlexible()).resolves.toEqual({
+      websocketPath: '/api/voice/ws',
+      asr: { configured: true },
+    });
+  });
+
+  it('parses voice capabilities from bare json payloads', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          websocketPath: '/api/voice/ws',
+          asr: {
+            defaults: {
+              sampleRate: 16000,
+            },
+          },
+        }),
+    });
+
+    await expect(getVoiceCapabilitiesFlexible()).resolves.toEqual({
+      websocketPath: '/api/voice/ws',
+      asr: {
+        defaults: {
+          sampleRate: 16000,
+        },
+      },
+    });
+  });
+
+  it('parses voice voices from standard ApiResponse payloads', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            defaultVoice: 'jarvis',
+            voices: [
+              { id: 'jarvis', displayName: 'Jarvis' },
+            ],
+          },
+        }),
+    });
+
+    await expect(getVoiceVoicesFlexible()).resolves.toEqual({
+      defaultVoice: 'jarvis',
+      voices: [
+        { id: 'jarvis', displayName: 'Jarvis' },
+      ],
+    });
+  });
+
+  it('parses voice voices from bare json payloads', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          defaultVoice: 'jarvis',
+          voices: [
+            { id: 'jarvis', displayName: 'Jarvis' },
+          ],
+        }),
+    });
+
+    await expect(getVoiceVoicesFlexible()).resolves.toEqual({
+      defaultVoice: 'jarvis',
+      voices: [
+        { id: 'jarvis', displayName: 'Jarvis' },
+      ],
+    });
+  });
+
+  it('keeps regular endpoints on strict ApiResponse parsing', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ agents: [] }),
+    });
+
+    await expect(getAgents()).rejects.toThrow(
+      'Response is not ApiResponse shape',
+    );
   });
 });

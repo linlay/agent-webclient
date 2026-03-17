@@ -2978,6 +2978,11 @@ textarea {
   resize: vertical;
 }
 
+.settings-readonly-textarea {
+  min-height: 72px;
+  background: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
+}
+
 .field-group.is-error input,
 .field-group input.is-error {
   border-color: var(--accent-danger);
