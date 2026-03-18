@@ -48,6 +48,14 @@ export function resetVoiceClientGateRuntime(
 	runtime.preRollBytes = 0;
 }
 
+export function reapplyVoiceClientGateConfig(
+	state: VoiceAudioCaptureState,
+	config: VoiceClientGateConfig,
+): void {
+	state.remain = new Uint8Array(0);
+	resetVoiceClientGateRuntime(state.clientGate, config);
+}
+
 export function calculateVoiceClientGateRms(samples: Float32Array): number {
 	if (samples.length === 0) {
 		return 0;
@@ -225,7 +233,7 @@ export async function initializeVoiceAudioCapture(
 ): Promise<boolean> {
 	if (state.captureStarted) return true;
 	state.captureStarted = true;
-	resetVoiceClientGateRuntime(state.clientGate, clientGateConfig);
+	reapplyVoiceClientGateConfig(state, clientGateConfig);
 
 	try {
 		const mediaStream = await navigator.mediaDevices.getUserMedia({

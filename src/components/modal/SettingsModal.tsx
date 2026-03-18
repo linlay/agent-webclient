@@ -634,7 +634,7 @@ export const SettingsModal: React.FC = () => {
 						控制开闭稳定性；preRoll 用于避免吞掉开头音节。
 					</p>
 					<p className="settings-hint">
-						当前配置仅保留在本页会话内，ASR Debug 与下一次语聊启动都会使用它。
+						当前配置仅保留在本页会话内，ASR Debug 会立即使用；进行中的语聊会立即更新本地门限；下次 ASR 启动也会继续沿用该配置。
 					</p>
 				</div>
 

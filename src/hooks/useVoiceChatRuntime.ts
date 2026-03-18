@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import type {
 	AppState,
 	VoiceCapabilities,
+	VoiceClientGateConfig,
 	VoiceOption,
 } from "../context/types";
 import {
@@ -25,6 +26,7 @@ import {
 	createVoiceAudioCaptureState,
 	flushVoiceAudioCaptureRemainder,
 	initializeVoiceAudioCapture,
+	reapplyVoiceClientGateConfig,
 	type VoiceAudioCaptureState,
 } from "../lib/voiceAudioCapture";
 import {
@@ -55,6 +57,19 @@ type VoiceTaskEvent = {
 	byteLength?: number;
 	websocketPath?: string;
 };
+
+function areVoiceClientGateConfigsEqual(
+	left: VoiceClientGateConfig,
+	right: VoiceClientGateConfig,
+): boolean {
+	return (
+		left.enabled === right.enabled &&
+		left.rmsThreshold === right.rmsThreshold &&
+		left.openHoldMs === right.openHoldMs &&
+		left.closeHoldMs === right.closeHoldMs &&
+		left.preRollMs === right.preRollMs
+	);
+}
 
 function formatVoiceSocketClose(event: CloseEvent | Event | undefined): string {
 	if (!event || typeof event !== "object" || !("code" in event)) {
@@ -130,6 +145,7 @@ export function useVoiceChatRuntime() {
 	const asrStartInFlightRef = useRef(false);
 	const asrRestartPendingRef = useRef(false);
 	const ttsTaskActiveRef = useRef(false);
+	const clientGateConfigRef = useRef(state.voiceChat.clientGate);
 	const scheduleVoiceReconnectRef = useRef<(reason: string) => void>(() => undefined);
 
 	const appendDebug = useCallback(
@@ -1132,6 +1148,24 @@ export function useVoiceChatRuntime() {
 			resetVoiceSession();
 		};
 	}, [resetVoiceSession]);
+
+	useEffect(() => {
+		const nextConfig = state.voiceChat.clientGate;
+		const previousConfig = clientGateConfigRef.current;
+		if (areVoiceClientGateConfigsEqual(previousConfig, nextConfig)) {
+			return;
+		}
+
+		clientGateConfigRef.current = nextConfig;
+		if (state.inputMode !== "voice") {
+			return;
+		}
+
+		reapplyVoiceClientGateConfig(audioCaptureStateRef.current, nextConfig);
+		appendDebug(
+			`client gate reapplied: enabled=${nextConfig.enabled}, rms=${nextConfig.rmsThreshold}, openHoldMs=${nextConfig.openHoldMs}, closeHoldMs=${nextConfig.closeHoldMs}, preRollMs=${nextConfig.preRollMs}`,
+		);
+	}, [appendDebug, state.inputMode, state.voiceChat.clientGate]);
 
 	useEffect(() => {
 		readyCuePlayerRef.current.setMuted(state.audioMuted);
