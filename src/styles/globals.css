@@ -1371,18 +1371,22 @@ textarea {
 }
 
 .composer-pill {
+  --composer-main-min-height: 84px;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
-  padding: 8px 8px 8px 14px;
-  box-shadow: var(--shadow-soft);
+  border-radius: 15px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-elev-2) 97%, white),
+      color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-input)));
+  padding: 6px 6px 6px 12px;
+  box-shadow: 0 10px 24px rgba(17, 39, 76, 0.05);
   backdrop-filter: blur(6px);
   transition: box-shadow 0.22s ease, border-color 0.22s ease;
 }
@@ -1394,9 +1398,10 @@ textarea {
 
 .composer-pill textarea {
   flex: 1;
+  min-height: var(--composer-main-min-height);
   border: 0;
   background: transparent;
-  padding: 8px 0;
+  padding: 6px 0;
   font-size: 13px;
   line-height: 1.45;
   outline: none;
@@ -1408,19 +1413,19 @@ textarea {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
-  align-self: flex-end;
+  align-self: center;
 }
 
 .plan-toggle-btn {
-  min-height: 34px !important;
-  padding: 0 10px !important;
+  min-height: 32px !important;
+  padding: 0 9px !important;
   border-radius: 999px !important;
   color: var(--accent-electric-strong);
   border: 1px solid color-mix(in srgb, var(--accent-electric) 24%, var(--line-soft));
   background: color-mix(in srgb, var(--accent-soft) 14%, var(--bg-elev-2));
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1437,8 +1442,8 @@ textarea {
 }
 
 .composer-plus-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
   background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
@@ -1449,7 +1454,7 @@ textarea {
 }
 
 .composer-plus-btn .material-symbols-rounded {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .composer-plus-popover {
@@ -1466,8 +1471,8 @@ textarea {
 }
 
 .send-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 0;
   display: grid;
@@ -1476,26 +1481,26 @@ textarea {
   font-weight: 700;
   color: #fff;
   background: var(--accent-electric);
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.26);
+  box-shadow: 0 4px 10px rgba(22, 119, 255, 0.24);
   flex: 0 0 auto;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
-  align-self: flex-end;
+  align-self: center;
 }
 
 .send-btn .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .send-btn:hover {
   transform: scale(1.03);
-  box-shadow: 0 6px 14px rgba(22, 119, 255, 0.3);
+  box-shadow: 0 6px 12px rgba(22, 119, 255, 0.28);
 }
 
 .composer-actions {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  align-self: flex-end;
+  gap: 6px;
+  align-self: center;
 }
 
 .composer-mode-shell {
@@ -1505,25 +1510,32 @@ textarea {
 .composer-mode-main {
   min-width: 0;
   flex: 1 1 auto;
+  min-height: var(--composer-main-min-height);
+  display: flex;
+  align-items: stretch;
 }
 
 .composer-pill.is-voice-mode {
-  padding: 12px 12px 10px 16px;
+  padding: 6px 6px 6px 12px;
   border-color: color-mix(in srgb, var(--accent-electric) 16%, var(--line-soft));
   background:
     radial-gradient(circle at 0% 0%, rgba(94, 165, 255, 0.1), transparent 32%),
     radial-gradient(circle at 100% 100%, rgba(13, 191, 143, 0.08), transparent 36%),
     color-mix(in srgb, var(--bg-elev-2) 97%, transparent);
-  box-shadow: var(--shadow-medium);
+  box-shadow: var(--shadow-soft);
 }
 
 .voice-chat-panel {
   --voice-accent: var(--accent-electric);
   --voice-assistant-accent: #e1a05d;
   position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: var(--composer-main-min-height);
+  height: 100%;
   overflow: hidden;
   border: 1px solid rgba(226, 233, 242, 0.82);
-  border-radius: 20px;
+  border-radius: 16px;
   background:
     radial-gradient(circle at 6% 10%, rgba(255, 227, 193, 0.14), transparent 24%),
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--voice-accent) 4%, transparent), transparent 28%),
@@ -1535,10 +1547,11 @@ textarea {
     0 18px 38px rgba(17, 39, 76, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(18px) saturate(112%);
-  padding: 15px 15px 13px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 8px;
+  justify-content: flex-start;
 }
 
 .voice-chat-panel::before {
@@ -1555,9 +1568,9 @@ textarea {
 .voice-chat-panel::after {
   content: "";
   position: absolute;
-  inset: auto -28px -40px auto;
-  width: 170px;
-  height: 122px;
+  inset: auto -24px -30px auto;
+  width: 132px;
+  height: 92px;
   border-radius: 50%;
   background: radial-gradient(circle, color-mix(in srgb, var(--voice-accent) 5%, transparent), transparent 72%);
   pointer-events: none;
@@ -1580,7 +1593,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .voice-chat-panel-identity {
@@ -1593,33 +1606,33 @@ textarea {
 .voice-chat-orb {
   position: relative;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 4px;
-  padding: 0 9px 8px;
+  gap: 3px;
+  padding: 0 8px 7px;
   color: color-mix(in srgb, var(--voice-accent) 86%, #25425f);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--voice-accent) 6%, #f7fbff));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.94),
-    0 8px 18px rgba(17, 39, 76, 0.05);
+    0 6px 14px rgba(17, 39, 76, 0.04);
 }
 
 .voice-chat-orb::after {
   content: "";
   position: absolute;
   inset: -6px;
-  border-radius: 18px;
+  border-radius: 15px;
   border: 1px solid color-mix(in srgb, var(--voice-accent) 11%, transparent);
   opacity: 0;
 }
 
 .voice-chat-orb span {
-  width: 4px;
+  width: 3px;
   border-radius: 999px;
   background: currentColor;
   transform-origin: center bottom;
@@ -1627,17 +1640,17 @@ textarea {
 }
 
 .voice-chat-orb span:nth-child(1) {
-  height: 10px;
+  height: 9px;
   animation-delay: -0.15s;
 }
 
 .voice-chat-orb span:nth-child(2) {
-  height: 18px;
+  height: 15px;
   animation-delay: -0.35s;
 }
 
 .voice-chat-orb span:nth-child(3) {
-  height: 13px;
+  height: 11px;
   animation-delay: -0.55s;
 }
 
@@ -1687,11 +1700,11 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 4px 8px;
 }
 
 .voice-chat-panel-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink-1);
   letter-spacing: -0.03em;
@@ -1702,26 +1715,28 @@ textarea {
   align-items: center;
   justify-content: flex-start;
   gap: 6px;
-  max-width: min(100%, 210px);
+  max-width: min(100%, 190px);
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 10px;
+  padding: 4px 8px;
+  font-size: 9px;
   font-weight: 800;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--voice-accent) 5%, rgba(247, 250, 255, 0.96)));
   border: 1px solid rgba(229, 235, 243, 0.86);
   color: color-mix(in srgb, var(--voice-accent) 78%, #29435f);
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 4px 10px rgba(17, 39, 76, 0.03);
+    0 4px 10px rgba(17, 39, 76, 0.025);
 }
 
 .voice-chat-status-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 14%, transparent);
 }
 
 .voice-chat-status.is-listening {
@@ -1749,12 +1764,12 @@ textarea {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
-  min-height: 24px;
-  padding: 0 9px;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
   border: 1px solid rgba(231, 237, 244, 0.82);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 254, 0.84));
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--ink-2);
   white-space: nowrap;
@@ -1775,22 +1790,23 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   align-items: start;
-  border-radius: 18px;
+  min-height: 50px;
+  border-radius: 14px;
   border: 1px solid rgba(229, 235, 243, 0.82);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 252, 255, 0.72));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 8px 20px rgba(17, 39, 76, 0.025);
+    0 6px 14px rgba(17, 39, 76, 0.02);
 }
 
 .voice-chat-snippet {
   position: relative;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  min-height: 78px;
-  padding: 13px 16px 14px;
+  min-height: 50px;
+  padding: 9px 12px 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
 }
 
@@ -1811,8 +1827,8 @@ textarea {
 .voice-chat-snippet-label {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 10px;
+  gap: 6px;
+  font-size: 9px;
   font-weight: 800;
   color: color-mix(in srgb, var(--ink-muted) 94%, var(--voice-accent) 6%);
   letter-spacing: 0.03em;
@@ -1820,8 +1836,8 @@ textarea {
 
 .voice-chat-snippet-label::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--line-strong) 44%, transparent);
 }
@@ -1835,14 +1851,14 @@ textarea {
 }
 
 .voice-chat-snippet-text {
-  min-height: 24px;
-  font-size: 14px;
-  line-height: 1.55;
+  min-height: auto;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--ink-1);
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   word-break: break-word;
   letter-spacing: -0.01em;
 }
@@ -1852,11 +1868,11 @@ textarea {
 }
 
 .voice-chat-error {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(255, 249, 250, 0.92), rgba(255, 241, 244, 0.94));
   border: 1px solid rgba(246, 221, 227, 0.92);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--accent-danger);
   white-space: normal;
@@ -1866,21 +1882,20 @@ textarea {
 .voice-chat-panel-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 2px;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
 .voice-chat-connection {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 24px;
-  padding: 0 9px;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 254, 0.82));
   border: 1px solid rgba(229, 235, 243, 0.84);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--ink-2);
   box-shadow:
@@ -1889,8 +1904,8 @@ textarea {
 }
 
 .voice-chat-connection-dot {
-  width: 7px;
-  height: 7px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: currentColor;
 }
@@ -2012,14 +2027,14 @@ textarea {
 .composer-control-row {
   width: 100%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .voice-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
   background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
@@ -2029,7 +2044,7 @@ textarea {
 }
 
 .voice-btn .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .voice-btn.is-listening {
@@ -2043,15 +2058,20 @@ textarea {
 }
 
 .voice-hint {
-  margin-top: 6px;
+  margin-top: 4px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-muted);
 }
 
 @media (max-width: 760px) {
   .composer-layout {
     flex-direction: column;
+  }
+
+  .composer-pill {
+    --composer-main-min-height: 78px;
+    padding: 6px 6px 6px 10px;
   }
 
   .voice-chat-panel {
@@ -2117,21 +2137,21 @@ textarea {
 }
 
 .interrupt-btn {
-  height: 34px;
+  height: 32px;
   border-radius: 999px;
   border: 0;
-  padding: 0 14px;
-  font-size: 12px;
+  padding: 0 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #fff !important;
   background: var(--accent-danger);
-  box-shadow: 0 4px 12px rgba(211, 59, 88, 0.28);
+  box-shadow: 0 4px 10px rgba(211, 59, 88, 0.24);
   flex: 0 0 auto;
-  align-self: flex-end;
+  align-self: center;
 }
 
 .interrupt-btn:hover {
-  box-shadow: 0 6px 14px rgba(211, 59, 88, 0.34);
+  box-shadow: 0 6px 12px rgba(211, 59, 88, 0.3);
 }
 
 .interrupt-btn:disabled {

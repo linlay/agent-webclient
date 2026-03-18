@@ -20,6 +20,18 @@ export const TopNav: React.FC = () => {
 	const showCompactNewChatButton = state.layoutMode !== "desktop-fixed";
 	const voiceModeAvailable = currentWorker?.type === "agent";
 	const showMuteControl = voiceModeAvailable || state.audioMuted;
+	const isMacPlatform = React.useMemo(
+		() =>
+			typeof navigator !== "undefined" &&
+			/Mac|iPhone|iPad|iPod/.test(navigator.platform),
+		[],
+	);
+	const voiceOpenShortcutLabel = isMacPlatform
+		? "⌘⇧Space"
+		: "Ctrl+Shift+Space";
+	const voiceOpenAriaShortcut = isMacPlatform
+		? "Meta+Shift+Space"
+		: "Control+Shift+Space";
 	const voiceToggleDisabled =
 		!voiceModeAvailable ||
 		state.streaming ||
@@ -59,6 +71,62 @@ export const TopNav: React.FC = () => {
 			muted: !state.audioMuted,
 		});
 	};
+
+	const handleStartVoiceMode = React.useCallback(() => {
+		if (voiceToggleDisabled || state.inputMode === "voice") return;
+		dispatch({
+			type: "SET_INPUT_MODE",
+			mode: "voice",
+		});
+	}, [dispatch, state.inputMode, voiceToggleDisabled]);
+
+	const handleHangupVoiceMode = React.useCallback(() => {
+		if (state.inputMode !== "voice") return;
+		dispatch({
+			type: "SET_INPUT_MODE",
+			mode: "text",
+		});
+	}, [dispatch, state.inputMode]);
+
+	React.useEffect(() => {
+		if (state.settingsOpen || state.commandModal.open) return;
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.defaultPrevented || event.repeat) return;
+			const target = event.target;
+			if (target instanceof HTMLElement && target.closest(".modal")) {
+				return;
+			}
+
+			const isVoiceOpenShortcut =
+				event.code === "Space" &&
+				event.shiftKey &&
+				!event.altKey &&
+				(isMacPlatform
+					? event.metaKey && !event.ctrlKey
+					: event.ctrlKey && !event.metaKey);
+
+			if (isVoiceOpenShortcut) {
+				event.preventDefault();
+				handleStartVoiceMode();
+				return;
+			}
+
+			if (event.key !== "Escape") return;
+			if (event.altKey || event.ctrlKey || event.metaKey) return;
+			event.preventDefault();
+			handleHangupVoiceMode();
+		};
+
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [
+		handleStartVoiceMode,
+		handleHangupVoiceMode,
+		isMacPlatform,
+		state.commandModal.open,
+		state.settingsOpen,
+	]);
 
 	return (
 		<nav className="top-nav">
@@ -115,10 +183,15 @@ export const TopNav: React.FC = () => {
 													? "挂断语聊"
 													: "打开语聊"
 											}
+											aria-keyshortcuts={
+												state.inputMode === "voice"
+													? "Escape"
+													: voiceOpenAriaShortcut
+											}
 											title={
 												state.inputMode === "voice"
-													? "挂断语聊"
-													: "打开语聊"
+													? "挂断语聊 (Esc)"
+													: `打开语聊 (${voiceOpenShortcutLabel})`
 											}
 											onClick={handleToggleVoiceMode}
 										>

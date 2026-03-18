@@ -99,6 +99,11 @@ export const ComposerArea: React.FC = () => {
 		if (wsStatus === "error") return "语音链路异常";
 		return "等待建立语音链路";
 	}, [state.voiceChat.error, state.voiceChat.wsStatus]);
+	const showVoiceConnectionBadge =
+		Boolean(state.voiceChat.error) ||
+		state.voiceChat.wsStatus === "connecting" ||
+		state.voiceChat.wsStatus === "closed" ||
+		state.voiceChat.wsStatus === "error";
 	const hasVoiceUserPreview = Boolean(state.voiceChat.partialUserText.trim());
 	const hasVoiceAssistantPreview = Boolean(
 		state.voiceChat.partialAssistantText.trim(),
@@ -261,6 +266,11 @@ export const ComposerArea: React.FC = () => {
 		setSlashDismissed,
 		updateMentionSuggestions,
 	});
+	const showSpeechHint =
+		!isVoiceMode &&
+		(!speechSupported ||
+			speechStatus.startsWith("语音识别错误") ||
+			speechStatus === "语音识别未启动，请重试");
 	const slashAvailability = useMemo(
 		() => ({
 			streaming: state.streaming,
@@ -908,14 +918,6 @@ export const ComposerArea: React.FC = () => {
 											</div>
 										</div>
 									</div>
-									<div className="voice-chat-panel-footer">
-										<div
-											className={`voice-chat-connection is-${state.voiceChat.wsStatus}`}
-										>
-											<span className="voice-chat-connection-dot" />
-											{voiceConnectionText}
-										</div>
-									</div>
 									{state.voiceChat.error && (
 										<div className="voice-chat-error">
 											{state.voiceChat.error}
@@ -1006,16 +1008,20 @@ export const ComposerArea: React.FC = () => {
 										variant="secondary"
 										size="sm"
 										iconOnly
-										disabled={
-											isFrontendActive || !speechSupported
-										}
+										disabled={isFrontendActive}
 										onClick={toggleSpeechInput}
 										aria-label={
-											speechListening
-												? "停止语音输入"
-												: "语音输入"
+											!speechSupported
+												? "语音输入不可用"
+												: speechListening
+													? "停止语音输入"
+													: "语音输入"
 										}
-										title={speechStatus}
+										title={
+											isFrontendActive
+												? "前端工具处理中，暂时不能语音输入"
+												: speechStatus
+										}
 									>
 										<MaterialIcon name="mic" />
 									</UiButton>
@@ -1037,6 +1043,9 @@ export const ComposerArea: React.FC = () => {
 							)}
 						</div>
 					</div>
+					{showSpeechHint && (
+						<div className="voice-hint">{speechStatus}</div>
+					)}
 				</div>
 			</div>
 		</div>

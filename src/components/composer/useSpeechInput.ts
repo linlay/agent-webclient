@@ -58,7 +58,13 @@ export function useSpeechInput(input: {
 	}, []);
 
 	useEffect(() => {
-		setSpeechSupported(Boolean(getSpeechConstructor()));
+		const supported = Boolean(getSpeechConstructor());
+		setSpeechSupported(supported);
+		setSpeechStatus(
+			supported
+				? "点击开始听写"
+				: "当前浏览器不支持语音输入",
+		);
 	}, []);
 
 	const stopSpeechInput = useCallback(() => {
