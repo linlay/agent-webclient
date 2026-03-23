@@ -94,6 +94,66 @@ function parseToolArgsBuffer(
   return existingToolParams;
 }
 
+function pickEventText(...candidates: Array<unknown>): string {
+  for (const candidate of candidates) {
+    const text = safeText(candidate);
+    if (text.trim()) {
+      return text;
+    }
+  }
+  return '';
+}
+
+function readToolDescription(event: AgentEvent): string {
+  const raw = event as Record<string, unknown>;
+  return pickEventText(raw.toolDescription, event.description);
+}
+
+function readToolArgumentsText(event: AgentEvent): string {
+  const raw = (event as Record<string, unknown>).arguments;
+  if (raw === null || raw === undefined) {
+    return '';
+  }
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  try {
+    return JSON.stringify(raw, null, 2);
+  } catch {
+    return safeText(raw);
+  }
+}
+
+function buildToolTimelineNode(input: {
+  nodeId: string;
+  event: AgentEvent;
+  existing?: TimelineNode;
+  existingToolState?: ToolState;
+  argsText: string;
+  status: string;
+  result: TimelineNode['result'];
+  ts: number;
+}): TimelineNode {
+  const { nodeId, event, existing, existingToolState, argsText, result, status, ts } = input;
+  return {
+    id: nodeId,
+    kind: 'tool',
+    toolId: toText(event.toolId) || existing?.toolId || existingToolState?.toolId || '',
+    toolLabel: toText(event.toolLabel) || existing?.toolLabel || existingToolState?.toolLabel || '',
+    toolName: pickToolName(existing?.toolName, existingToolState?.toolName, event.toolName),
+    viewportKey: resolveViewportKey(event) || existing?.viewportKey || existingToolState?.viewportKey || '',
+    description: pickEventText(
+      readToolDescription(event),
+      existing?.description,
+      existingToolState?.description,
+    ),
+    argsText,
+    status,
+    result,
+    ts,
+  };
+}
+
 export function processEvent(
   event: AgentEvent,
   state: EventProcessorState,
@@ -355,41 +415,46 @@ export function processEvent(
     const existing = state.getTimelineNode(nodeId);
     const params = parseFrontendToolParams(event);
     const resolvedParams = params.found && params.params ? params.params : null;
-    const viewportKey = resolveViewportKey(event) || existing?.viewportKey || existingToolState?.viewportKey || '';
+    const rawArgsText = readToolArgumentsText(event);
+    const prettyArgsText = resolvedParams ? JSON.stringify(resolvedParams, null, 2) : '';
     const argsText = resolvedParams
-      ? JSON.stringify(resolvedParams, null, 2)
-      : existing?.argsText || existingToolState?.argsBuffer || '';
+      ? prettyArgsText
+      : rawArgsText || existing?.argsText || existingToolState?.argsBuffer || '';
+    const description = pickEventText(
+      readToolDescription(event),
+      existing?.description,
+      existingToolState?.description,
+    );
+    const viewportKey = resolveViewportKey(event) || existing?.viewportKey || existingToolState?.viewportKey || '';
+    const argsBuffer = rawArgsText || prettyArgsText || existingToolState?.argsBuffer || '';
 
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
-      node: {
-        id: nodeId,
-        kind: 'tool',
-        toolId,
-        toolLabel: event.toolLabel || existing?.toolLabel || existingToolState?.toolLabel || '',
-        toolName: pickToolName(existing?.toolName, existingToolState?.toolName, event.toolName),
-        viewportKey,
-        description: event.description || existing?.description || existingToolState?.description || '',
+      node: buildToolTimelineNode({
+        nodeId,
+        event,
+        existing,
+        existingToolState,
         argsText,
         status: type === 'tool.snapshot' ? 'completed' : 'running',
         result: existing?.result || null,
         ts: event.timestamp || existing?.ts || Date.now(),
-      },
+      }),
     });
     commands.push({
       cmd: 'SET_TOOL_STATE',
       toolId,
       state: {
         toolId,
-        argsBuffer: existingToolState?.argsBuffer || '',
+        argsBuffer,
         toolLabel: event.toolLabel || existingToolState?.toolLabel || '',
         toolName: pickToolName(existingToolState?.toolName, event.toolName),
         toolType: event.toolType || existingToolState?.toolType || '',
         viewportKey,
         toolTimeout: event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
         toolParams: resolvedParams || existingToolState?.toolParams || null,
-        description: event.description || existingToolState?.description || '',
+        description,
         runId: event.runId || existingToolState?.runId || state.runId,
       },
     });
@@ -402,6 +467,10 @@ export function processEvent(
     const nextArgsBuffer = `${existingToolState?.argsBuffer || ''}${String(event.delta || '')}`;
     const parsedToolParams = parseToolArgsBuffer(nextArgsBuffer, existingToolState?.toolParams || null);
     const viewportKey = resolveViewportKey(event) || existingToolState?.viewportKey || '';
+    const description = pickEventText(
+      readToolDescription(event),
+      existingToolState?.description,
+    );
     const nextToolState: ToolState = {
       toolId,
       argsBuffer: nextArgsBuffer,
@@ -411,7 +480,7 @@ export function processEvent(
       viewportKey,
       toolTimeout: event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
       toolParams: parsedToolParams,
-      description: event.description || existingToolState?.description || '',
+      description,
       runId: event.runId || existingToolState?.runId || state.runId,
     };
     commands.push({ cmd: 'SET_TOOL_STATE', toolId, state: nextToolState });
@@ -447,41 +516,60 @@ export function processEvent(
 
   if (type === 'tool.result') {
     const toolId = event.toolId || '';
-    const nodeId = state.getToolNodeId(toolId);
-    if (!nodeId) return commands;
+    if (!toolId) return commands;
+    let nodeId = state.getToolNodeId(toolId);
+    if (!nodeId) {
+      nodeId = `tool_${state.nextCounter()}`;
+      commands.push({ cmd: 'SET_TOOL_NODE_ID', toolId, nodeId });
+      commands.push({ cmd: 'APPEND_TIMELINE_ORDER', nodeId });
+    }
     const existing = state.getTimelineNode(nodeId);
-    if (!existing) return commands;
     const existingToolState = state.getToolState(toolId);
     const resultValue = event.result ?? event.output ?? event.text ?? '';
     const resultText = typeof resultValue === 'string' ? resultValue : JSON.stringify(resultValue, null, 2);
+    const argsText = existing?.argsText || existingToolState?.argsBuffer || readToolArgumentsText(event);
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
-      node: {
-        ...existing,
-        toolName: pickToolName(existing.toolName, existingToolState?.toolName, event.toolName),
+      node: buildToolTimelineNode({
+        nodeId,
+        event,
+        existing,
+        existingToolState,
+        argsText,
         status: event.error ? 'failed' : 'completed',
         result: { text: resultText, isCode: typeof resultValue !== 'string' },
-      },
+        ts: existing?.ts || event.timestamp || Date.now(),
+      }),
     });
     return commands;
   }
 
   if (type === 'tool.end') {
     const toolId = event.toolId || '';
-    const nodeId = state.getToolNodeId(toolId);
-    if (!nodeId) return commands;
+    if (!toolId) return commands;
+    let nodeId = state.getToolNodeId(toolId);
+    if (!nodeId) {
+      nodeId = `tool_${state.nextCounter()}`;
+      commands.push({ cmd: 'SET_TOOL_NODE_ID', toolId, nodeId });
+      commands.push({ cmd: 'APPEND_TIMELINE_ORDER', nodeId });
+    }
     const existing = state.getTimelineNode(nodeId);
-    if (!existing) return commands;
     const existingToolState = state.getToolState(toolId);
+    const argsText = existing?.argsText || existingToolState?.argsBuffer || readToolArgumentsText(event);
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
-      node: {
-        ...existing,
-        toolName: pickToolName(existing.toolName, existingToolState?.toolName, event.toolName),
-        status: event.error ? 'failed' : (existing.status === 'failed' ? 'failed' : 'completed'),
-      },
+      node: buildToolTimelineNode({
+        nodeId,
+        event,
+        existing,
+        existingToolState,
+        argsText,
+        status: event.error ? 'failed' : (existing?.status === 'failed' ? 'failed' : 'completed'),
+        result: existing?.result || null,
+        ts: existing?.ts || event.timestamp || Date.now(),
+      }),
     });
     return commands;
   }

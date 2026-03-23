@@ -210,6 +210,76 @@ describe('processEvent', () => {
     expect(state.timelineNodes.get('tool_0')?.argsText).toBe('{\n  "foo": "bar"\n}');
   });
 
+  it('hydrates tool.snapshot from snapshot payload and links a later tool.result', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.snapshot',
+      toolId: 'call_1',
+      toolName: 'datetime',
+      toolLabel: '日期时间',
+      arguments: '{"offset":"+2D"}',
+      toolDescription: '获取当前或偏移后的日期时间',
+      timestamp: 100,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'call_1',
+      result: '{"date":"2026-03-22"}',
+      timestamp: 110,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      toolId: 'call_1',
+      toolName: 'datetime',
+      toolLabel: '日期时间',
+      description: '获取当前或偏移后的日期时间',
+      argsText: '{\n  "offset": "+2D"\n}',
+      status: 'completed',
+      result: {
+        text: '{"date":"2026-03-22"}',
+        isCode: false,
+      },
+    });
+  });
+
+  it('materializes tool.result even when the mapped tool node is not in state yet', () => {
+    const state = createState();
+    state.toolNodeById.set('call_2', 'tool_0');
+    state.toolStates.set('call_2', {
+      toolId: 'call_2',
+      argsBuffer: '{\n  "offset": "+2D"\n}',
+      toolLabel: '日期时间',
+      toolName: 'datetime',
+      toolType: '',
+      viewportKey: '',
+      toolTimeout: null,
+      toolParams: { offset: '+2D' },
+      description: '获取当前时间',
+      runId: 'run_1',
+    });
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'call_2',
+      result: '{"date":"2026-03-22"}',
+      timestamp: 120,
+    }, 'live', true);
+
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      toolId: 'call_2',
+      toolName: 'datetime',
+      toolLabel: '日期时间',
+      description: '获取当前时间',
+      argsText: '{\n  "offset": "+2D"\n}',
+      status: 'completed',
+      result: {
+        text: '{"date":"2026-03-22"}',
+        isCode: false,
+      },
+    });
+  });
+
   it('resets plan runtime when planId changes and clears current running task on end', () => {
     const state = createState();
 

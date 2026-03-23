@@ -28,12 +28,14 @@ export interface AgentEvent {
   result?: unknown;
   output?: unknown;
   plan?: PlanItem[];
+  arguments?: unknown;
   toolLabel?: string;
   toolName?: string;
   toolType?: string;
   viewportKey?: string;
   toolTimeout?: number | null;
   toolParams?: Record<string, unknown>;
+  toolDescription?: string;
   actionParams?: Record<string, unknown>;
   description?: string;
   actionName?: string;

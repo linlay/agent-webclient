@@ -1,7 +1,7 @@
 import { parseFrontendToolParams } from './frontendToolParams';
 
 describe('parseFrontendToolParams', () => {
-  it('reads params only from toolParams', () => {
+  it('reads params from toolParams', () => {
     expect(parseFrontendToolParams({
       toolId: 'tool_1',
       toolParams: { foo: 'bar' },
@@ -12,12 +12,24 @@ describe('parseFrontendToolParams', () => {
     });
   });
 
-  it('does not fallback to removed legacy argument fields', () => {
+  it('reads params from JSON arguments snapshots', () => {
     expect(parseFrontendToolParams({
       toolId: 'tool_legacy',
-    } as { toolId: string })).toEqual({
+      arguments: '{"offset":"+2D"}',
+    })).toEqual({
+      found: true,
+      source: 'arguments',
+      params: { offset: '+2D' },
+    });
+  });
+
+  it('keeps invalid arguments payloads out of frontend params parsing', () => {
+    expect(parseFrontendToolParams({
+      toolId: 'tool_invalid',
+      arguments: '{invalid json}',
+    })).toMatchObject({
       found: false,
-      source: '',
+      source: 'arguments',
       params: null,
     });
   });
