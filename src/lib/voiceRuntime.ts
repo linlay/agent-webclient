@@ -55,6 +55,7 @@ interface VoiceChatSession {
 	speechRate?: number;
 	resolveIdleWaiters: Array<() => void>;
 	resolvingIdle: boolean;
+	pendingTaskPromise?: Promise<{ taskId: string; started: boolean }>;
 }
 
 interface RuntimeOptions {
@@ -635,20 +636,28 @@ class VoiceRuntime {
 				started: false,
 			};
 		}
-		await this.prepareAudioPlayback();
-		await this.ensureSocket();
-		const taskId = this.createTaskId("voice_chat");
-		session.taskId = taskId;
-		this.voiceChatSessionIdByTaskId.set(taskId, session.sessionId);
-		this.startTask(taskId, undefined, {
-			voice: session.voice,
-			speechRate: session.speechRate,
-			inputMode: "stream",
-		});
-		return {
-			taskId,
-			started: true,
-		};
+		if (session.pendingTaskPromise) {
+			return session.pendingTaskPromise;
+		}
+		const promise = (async () => {
+			await this.prepareAudioPlayback();
+			await this.ensureSocket();
+			const taskId = this.createTaskId("voice_chat");
+			session.taskId = taskId;
+			session.pendingTaskPromise = undefined;
+			this.voiceChatSessionIdByTaskId.set(taskId, session.sessionId);
+			this.startTask(taskId, undefined, {
+				voice: session.voice,
+				speechRate: session.speechRate,
+				inputMode: "stream",
+			});
+			return {
+				taskId,
+				started: true,
+			};
+		})();
+		session.pendingTaskPromise = promise;
+		return promise;
 	}
 
 	async replayTtsVoiceBlock(

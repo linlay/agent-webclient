@@ -145,6 +145,7 @@ export function useVoiceChatRuntime() {
 	const asrStartInFlightRef = useRef(false);
 	const asrRestartPendingRef = useRef(false);
 	const ttsTaskActiveRef = useRef(false);
+	const bargeInProgressRef = useRef(false);
 	const clientGateConfigRef = useRef(state.voiceChat.clientGate);
 	const scheduleVoiceReconnectRef = useRef<(reason: string) => void>(() => undefined);
 
@@ -225,6 +226,7 @@ export function useVoiceChatRuntime() {
 			asrStartInFlightRef.current = false;
 			asrRestartPendingRef.current = false;
 			ttsTaskActiveRef.current = false;
+			bargeInProgressRef.current = false;
 			const activeAssistantContentId = String(
 				stateRef.current.voiceChat.activeAssistantContentId || "",
 			).trim();
@@ -557,7 +559,6 @@ export function useVoiceChatRuntime() {
 			const requestId = createRequestId("req");
 			createTurnNodes(text);
 			cancelListeningTransition();
-			pauseAudioCapture();
 			ttsTaskActiveRef.current = true;
 			patchVoiceChat({
 				status: "thinking",
@@ -604,6 +605,11 @@ export function useVoiceChatRuntime() {
 				});
 				await resumeListeningAfterResponse("resume after voice query");
 			} catch (error) {
+				// If barge-in already handled cleanup, skip redundant teardown
+				if (bargeInProgressRef.current) {
+					bargeInProgressRef.current = false;
+					return;
+				}
 				const activeAssistantContentId = String(
 					stateRef.current.voiceChat.activeAssistantContentId || "",
 				).trim();
@@ -628,7 +634,9 @@ export function useVoiceChatRuntime() {
 					error instanceof Error ? error.message : String(error),
 				);
 			} finally {
-				ttsTaskActiveRef.current = false;
+				if (!bargeInProgressRef.current) {
+					ttsTaskActiveRef.current = false;
+				}
 			}
 		},
 		[
@@ -639,7 +647,6 @@ export function useVoiceChatRuntime() {
 			handleEvent,
 			handleFatalError,
 			patchVoiceChat,
-			pauseAudioCapture,
 			resumeListeningAfterResponse,
 			stateRef,
 		],
@@ -787,6 +794,43 @@ export function useVoiceChatRuntime() {
 									return;
 								}
 								if (message.type === "asr.text.final" && message.text) {
+									// Barge-in: user spoke while TTS is playing
+									if (ttsTaskActiveRef.current) {
+										const bargeText = message.text.trim();
+										if (
+											bargeText &&
+											normalizeVoiceChatUtteranceForLength(bargeText).length > 2
+										) {
+											appendDebug(`barge-in triggered: "${bargeText}"`);
+											bargeInProgressRef.current = true;
+											// Stop TTS playback and flush buffered audio
+											getVoiceRuntime()?.stopAllVoiceSessions("barge_in", { mode: "stop" });
+											// Abort the running query stream
+											stateRef.current.abortController?.abort();
+											// Clear voice chat state
+											clearFlushTimer();
+											pendingUtteranceRef.current = "";
+											ttsTaskActiveRef.current = false;
+											patchVoiceChat({
+												activeAssistantContentId: "",
+												activeRequestId: "",
+												activeTtsTaskId: "",
+												ttsCommitted: false,
+												partialUserText: bargeText,
+												partialAssistantText: "",
+												error: "",
+											});
+											// Submit the barge-in text as a new query
+											void submitVoiceChatQuery(bargeText).catch((error) =>
+												handleFatalError(
+													error instanceof Error
+														? error.message
+														: String(error),
+												),
+											);
+										}
+										return;
+									}
 									const merged = mergeVoiceChatUtterance(
 										pendingUtteranceRef.current,
 										message.text,

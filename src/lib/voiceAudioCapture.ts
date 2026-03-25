@@ -237,7 +237,11 @@ export async function initializeVoiceAudioCapture(
 
 	try {
 		const mediaStream = await navigator.mediaDevices.getUserMedia({
-			audio: true,
+			audio: {
+				echoCancellation: true,
+				noiseSuppression: true,
+				autoGainControl: true,
+			},
 		});
 		state.stream = mediaStream;
 
