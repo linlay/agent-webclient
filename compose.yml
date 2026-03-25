@@ -4,7 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: agent-webclient
+    env_file:
+      - .env
     environment:
       BASE_URL: ${BASE_URL}
+      VOICE_BASE_URL: ${VOICE_BASE_URL}
     ports:
       - "${PORT:-11948}:80"

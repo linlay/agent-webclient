@@ -21,7 +21,7 @@
 - `useMessageActions` 发起 `/api/query` SSE 请求
 - `sseParser` 和 `useAgentEventHandler` 将流式事件归并为时间线节点
 - Timeline、Sidebar、Plan Panel、Frontend Tool 容器根据状态树渲染
-- `voiceRuntime` 与 `/api/ws/voice` 负责 TTS 音频播放链路
+- `voiceRuntime` 与 `/api/voice/ws` 负责 TTS 音频播放链路
 
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
@@ -61,17 +61,17 @@
 - `POST /api/interrupt`
 - `POST /api/steer`
 - `GET /api/data`
-- `GET /api/ws/voice`：TTS WebSocket
+- `GET /api/voice/ws`：TTS WebSocket
 
 接口统一按 `ApiResponse` 结构读取，错误会被包装为 `ApiError`。
 
 ## 7. 开发要点
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 代理目标由 `BASE_URL` 控制，语音 WebSocket 代理目标由 `VOICE_BASE_URL` 控制。
-- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 到 `BASE_URL`，并将 `/api/ws/voice` 单独反向代理到 `VOICE_BASE_URL`。
+- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 到 `BASE_URL`，并将 `/api/voice/ws` 单独反向代理到 `VOICE_BASE_URL`。
 - SSE 请求需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition` 与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- `package-lock.json` 已移除，Docker 与本地安装统一走非锁定依赖解析。
+- 当前仓库保留 `package-lock.json`；发布脚本在存在锁文件时优先使用 `npm ci`，否则回退到 `npm install`。
 
 ## 8. 开发流程
 本地开发流程：
@@ -84,7 +84,7 @@
 容器联调流程：
 1. 在 `.env` 中设置可访问的 `BASE_URL` 与 `VOICE_BASE_URL`
 2. 执行 `make docker-up`
-3. 通过 `docker compose logs -f webclient` 检查容器与代理状态
+3. 通过 `docker compose -f compose.yml logs -f webclient` 检查容器与代理状态
 4. 需要重建镜像时执行 `make docker-build`
 
 ## 9. 已知约束与注意事项
