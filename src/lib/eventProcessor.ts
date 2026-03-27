@@ -8,6 +8,7 @@ import type {
 import { parseContentSegments } from './contentSegments';
 import { isTerminalStatus, safeText, toText } from './eventUtils';
 import { parseFrontendToolParams } from './frontendToolParams';
+import { normalizeTimelineAttachments } from './timelineAttachments';
 import { pickToolName, resolveViewportKey } from './toolEvent';
 
 export interface EventProcessorState {
@@ -46,7 +47,15 @@ export type EventCommand =
   | { cmd: 'SET_PLAN_RUNTIME'; taskId: string; runtime: PlanRuntime }
   | { cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID'; taskId: string }
   | { cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID'; taskId: string }
-  | { cmd: 'USER_MESSAGE'; nodeId: string; text: string; ts: number; variant: 'default' | 'steer'; steerId?: string }
+  | {
+    cmd: 'USER_MESSAGE';
+    nodeId: string;
+    text: string;
+    ts: number;
+    variant: 'default' | 'steer';
+    attachments?: TimelineNode['attachments'];
+    steerId?: string;
+  }
   | { cmd: 'SYSTEM_ERROR'; nodeId: string; text: string; ts: number };
 
 function ensureMappedNode(params: {
@@ -165,7 +174,8 @@ export function processEvent(
   if (type === 'request.query') {
     if (config.mode !== 'replay') return commands;
     const text = safeText(event.message);
-    if (!text) return commands;
+    const attachments = normalizeTimelineAttachments((event as Record<string, unknown>).references);
+    if (!text && attachments.length === 0) return commands;
     const counter = state.nextCounter();
     const suffix = toText(event.requestId) || String(counter);
     commands.push({
@@ -174,6 +184,7 @@ export function processEvent(
       text,
       ts: event.timestamp || Date.now(),
       variant: 'default',
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
     return commands;
   }

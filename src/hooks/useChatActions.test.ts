@@ -112,4 +112,34 @@ describe('replayEvent tool migration', () => {
     expect(node).toMatchObject({ role: 'user', messageVariant: 'steer', text: '请收敛一点' });
     expect(state.events.at(-1)?.type).toBe('run.cancel');
   });
+
+  it('replays request.query references into user attachments for history chats', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'request.query',
+      requestId: 'req_history_1',
+      message: '解析该文件',
+      references: [
+        {
+          id: 'i1',
+          type: 'image',
+          name: 'drmjl-nfjxc-001.ico',
+          sizeBytes: 67646,
+        },
+      ],
+      timestamp: 100,
+    });
+
+    expect(state.timelineNodes.get('user_req_history_1')).toMatchObject({
+      role: 'user',
+      text: '解析该文件',
+      attachments: [
+        {
+          name: 'drmjl-nfjxc-001.ico',
+          size: 67646,
+        },
+      ],
+    });
+  });
 });

@@ -148,7 +148,18 @@ describe('processEvent', () => {
     const replayState = createState();
     const liveState = createState();
 
-    const replayCommands = processEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(replayState), {
+    const replayCommands = processEvent({
+      type: 'request.query',
+      requestId: 'req_1',
+      message: 'hello',
+      references: [
+        {
+          id: 'i1',
+          name: 'demo.png',
+          sizeBytes: 2048,
+        },
+      ],
+    }, buildProcessorState(replayState), {
       mode: 'replay',
       reasoningExpandedDefault: false,
     });
@@ -164,9 +175,49 @@ describe('processEvent', () => {
         text: 'hello',
         ts: expect.any(Number),
         variant: 'default',
+        attachments: [
+          {
+            name: 'demo.png',
+            size: 2048,
+          },
+        ],
       },
     ]);
     expect(liveCommands).toEqual([]);
+  });
+
+  it('creates replay user nodes for attachment-only request.query events', () => {
+    const replayCommands = processEvent({
+      type: 'request.query',
+      requestId: 'req_attachments_only',
+      message: '',
+      references: [
+        {
+          id: 'f1',
+          name: 'report.pdf',
+          sizeBytes: 4096,
+        },
+      ],
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+
+    expect(replayCommands).toEqual([
+      {
+        cmd: 'USER_MESSAGE',
+        nodeId: 'user_req_attachments_only',
+        text: '',
+        ts: expect.any(Number),
+        variant: 'default',
+        attachments: [
+          {
+            name: 'report.pdf',
+            size: 4096,
+          },
+        ],
+      },
+    ]);
   });
 
   it('reuses content nodes until terminal state then creates a new one', () => {

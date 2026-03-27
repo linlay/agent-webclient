@@ -173,6 +173,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         messageVariant: command.variant,
         steerId: command.steerId,
         text: command.text,
+        attachments: command.attachments,
         ts: command.ts,
       });
       rs.timelineOrder.push(command.nodeId);

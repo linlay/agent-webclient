@@ -191,6 +191,7 @@ function applyLiveEventCommand(input: {
           messageVariant: command.variant,
           steerId: command.steerId,
           text: command.text,
+          attachments: command.attachments,
           ts: command.ts,
         },
       });

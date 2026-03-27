@@ -10,37 +10,13 @@ import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 import { executeQueryStream } from '../lib/queryStreamRuntime';
-
-interface SendMessageAttachmentDetail {
-  name?: unknown;
-  size?: unknown;
-}
+import { normalizeTimelineAttachments } from '../lib/timelineAttachments';
 
 interface SendMessageEventDetail {
   message?: unknown;
   references?: unknown;
   attachments?: unknown;
   chatId?: unknown;
-}
-
-function normalizeTimelineAttachments(attachments: unknown): TimelineAttachment[] {
-  if (!Array.isArray(attachments)) {
-    return [];
-  }
-
-  return attachments.reduce<TimelineAttachment[]>((acc, attachment) => {
-    const name = String((attachment as SendMessageAttachmentDetail | null)?.name || '').trim();
-    if (!name) {
-      return acc;
-    }
-
-    const rawSize = Number((attachment as SendMessageAttachmentDetail | null)?.size);
-    acc.push({
-      name,
-      size: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : undefined,
-    });
-    return acc;
-  }, []);
 }
 
 /**
