@@ -223,36 +223,29 @@ describe('apiClient query payloads', () => {
     );
   });
 
-  it('reserves an upload slot and then uploads the binary payload', async () => {
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        text: async () =>
-          JSON.stringify({
-            code: 0,
-            msg: 'ok',
-            data: {
-              requestId: 'upload_req_1',
-              chatId: 'chat_1',
-              reference: {
-                id: 'f1',
-                type: 'file',
-                name: 'demo.txt',
-              },
-              upload: {
-                url: '/api/upload/chat_1/f1',
-                method: 'PUT',
-                headers: {},
-              },
+  it('uploads files with a single multipart request', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            requestId: 'upload_req_1',
+            chatId: 'chat_1',
+            upload: {
+              id: 'r01',
+              type: 'file',
+              name: 'demo.txt',
+              mimeType: 'text/plain',
+              sizeBytes: 4,
+              url: '/api/resource?file=chat_1%2Fdemo.txt',
+              sha256: 'abc123',
             },
-          }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 204,
-        text: async () => '',
-      });
+          },
+        }),
+    });
 
     const blob = new Blob(['demo'], { type: 'text/plain' });
 
@@ -263,57 +256,48 @@ describe('apiClient query payloads', () => {
       chatId: 'chat_1',
     });
 
-    const [reserveUrl, reserveOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    expect(reserveUrl).toBe('/api/upload');
-    expect(reserveOptions.method).toBe('POST');
-    expect(reserveOptions.headers).toEqual({ 'Content-Type': 'application/json' });
-    expect(JSON.parse(String(reserveOptions.body))).toEqual({
-      requestId: 'upload_req_1',
-      chatId: 'chat_1',
-      type: 'file',
-      name: 'demo.txt',
-      sizeBytes: 4,
-      mimeType: 'text/plain',
-    });
+    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(uploadUrl).toBe('/api/upload');
+    expect(uploadOptions.method).toBe('POST');
+    expect(uploadOptions.headers).toEqual({});
+    expect(uploadOptions.body).toBeInstanceOf(FormData);
 
-    expect(uploadUrl).toBe('/api/upload/chat_1/f1');
-    expect(uploadOptions.method).toBe('PUT');
-    expect(uploadOptions.headers).toEqual({ 'Content-Type': 'text/plain' });
-    expect(uploadOptions.body).toBe(blob);
+    const formData = uploadOptions.body as FormData;
+    expect(formData.get('requestId')).toBe('upload_req_1');
+    expect(formData.get('chatId')).toBe('chat_1');
+    expect(formData.get('sha256')).toBeNull();
+    const file = formData.get('file');
+    expect(file).toBeInstanceOf(File);
+    expect((file as File).name).toBe('demo.txt');
+    expect((file as File).type).toBe('text/plain');
+    await expect((file as File).text()).resolves.toBe('demo');
   });
 
-  it('infers image uploads and exposes the reserved chat id', async () => {
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        text: async () =>
-          JSON.stringify({
-            code: 0,
-            msg: 'ok',
-            data: {
-              requestId: 'upload_req_2',
-              chatId: 'chat_generated',
-              reference: {
-                id: 'i1',
-                type: 'image',
-                name: 'photo.png',
-              },
-              upload: {
-                url: '/api/upload/chat_generated/i1',
-                method: 'PUT',
-                headers: {},
-              },
+  it('exposes the uploaded chat id from the new upload response', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            requestId: 'upload_req_2',
+            chatId: 'chat_generated',
+            upload: {
+              id: 'r01',
+              type: 'image',
+              name: 'photo.png',
+              mimeType: 'image/png',
+              sizeBytes: 3,
+              url: '/api/resource?file=chat_generated%2Fphoto.png',
+              sha256: 'def456',
             },
-          }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 204,
-        text: async () => '',
-      });
+          },
+        }),
+    });
 
     const blob = new Blob(['img'], { type: 'image/png' });
     const response = await uploadFile({
@@ -323,17 +307,10 @@ describe('apiClient query payloads', () => {
     });
 
     expect(extractUploadChatId(response.data)).toBe('chat_generated');
-    const [, reserveOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(reserveOptions.body))).toEqual({
-      requestId: 'upload_req_2',
-      type: 'image',
-      name: 'photo.png',
-      sizeBytes: 3,
-      mimeType: 'image/png',
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('extracts upload references from common response shapes', () => {
+  it('extracts upload references from the new upload response', () => {
     expect(
       extractUploadReferences({
         references: [{ id: 'ref_1' }],
@@ -342,13 +319,29 @@ describe('apiClient query payloads', () => {
 
     expect(
       extractUploadReferences({
-        reference: { id: 'ref_2' },
+        upload: {
+          id: 'r02',
+          type: 'image',
+          name: 'photo.png',
+          mimeType: 'image/png',
+          sizeBytes: 3,
+          url: '/api/resource?file=chat_generated%2Fphoto.png',
+          sha256: 'def456',
+        },
       }),
-    ).toEqual([{ id: 'ref_2' }]);
-
-    expect(extractUploadReferences({ id: 'ref_3' })).toEqual([
-      { id: 'ref_3' },
+    ).toEqual([
+      {
+        id: 'r02',
+        type: 'image',
+        name: 'photo.png',
+        mimeType: 'image/png',
+        sizeBytes: 3,
+        url: '/api/resource?file=chat_generated%2Fphoto.png',
+        sha256: 'def456',
+      },
     ]);
+
+    expect(extractUploadReferences({ reference: { id: 'legacy' } })).toEqual([]);
     expect(extractUploadReferences(null)).toEqual([]);
   });
 });
