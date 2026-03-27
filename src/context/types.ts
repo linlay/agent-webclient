@@ -61,6 +61,11 @@ export interface ToolResultPayload {
   isCode: boolean;
 }
 
+export interface TimelineAttachment {
+  name: string;
+  size?: number;
+}
+
 export interface EmbeddedViewport {
   signature: string;
   key: string;
@@ -92,6 +97,7 @@ export interface TimelineNode {
   messageVariant?: 'default' | 'steer';
   steerId?: string;
   text?: string;
+  attachments?: TimelineAttachment[];
   status?: string;
   expanded?: boolean;
   ts: number;

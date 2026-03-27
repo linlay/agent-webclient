@@ -812,6 +812,64 @@ textarea {
   gap: 8px;
 }
 
+.timeline-user-attachments {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.timeline-user-attachment {
+  min-width: 0;
+  max-width: min(100%, 420px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 9px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, #2a7df8 20%, rgba(255, 255, 255, 0.82));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 90%, #2a7df8 10%),
+    color-mix(in srgb, white 84%, #2a7df8 16%)
+  );
+  color: color-mix(in srgb, var(--ink-1) 84%, #1a66d9 16%);
+  box-shadow: 0 8px 18px rgba(35, 95, 192, 0.08);
+}
+
+.timeline-user-attachment-icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, white 78%, #2a7df8 22%);
+  color: #1f69dd;
+}
+
+.timeline-user-attachment-icon .material-symbols-rounded {
+  font-size: 15px;
+}
+
+.timeline-user-attachment-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.timeline-user-attachment-size {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ink-muted) 86%, #1a66d9 14%);
+}
+
 .timeline-user-bubble {
   border-radius: 18px;
   border-top-right-radius: 10px;
@@ -1407,6 +1465,105 @@ textarea {
   outline: none;
   resize: none;
   overflow-y: hidden;
+}
+
+.composer-attachments {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px 2px 0;
+}
+
+.composer-attachment-chip {
+  min-width: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-input) 82%, var(--bg-elev-2));
+}
+
+.composer-attachment-chip.is-ready {
+  border-color: color-mix(in srgb, var(--accent-lime) 34%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-lime) 10%, var(--bg-elev-2));
+}
+
+.composer-attachment-chip.is-uploading {
+  border-color: color-mix(in srgb, var(--accent-electric) 28%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-soft) 18%, var(--bg-elev-2));
+}
+
+.composer-attachment-chip.is-error {
+  border-color: color-mix(in srgb, var(--accent-danger) 36%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-danger) 10%, var(--bg-elev-2));
+}
+
+.composer-attachment-icon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
+  color: var(--ink-2);
+}
+
+.composer-attachment-icon .material-symbols-rounded {
+  font-size: 16px;
+}
+
+.composer-attachment-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.composer-attachment-name,
+.composer-attachment-meta {
+  max-width: min(56vw, 260px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composer-attachment-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.composer-attachment-meta {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.composer-attachment-remove {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  color: var(--ink-muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+.composer-attachment-remove:hover {
+  color: var(--ink-1);
+  background: color-mix(in srgb, var(--bg-hover) 80%, transparent);
+}
+
+.composer-attachment-remove .material-symbols-rounded {
+  font-size: 16px;
 }
 
 .composer-plus-wrap {
@@ -2185,6 +2342,10 @@ textarea {
   gap: 4px;
 }
 
+.steer-preview-draft {
+  gap: 8px;
+}
+
 .steer-preview.is-pending {
   border-color: color-mix(in srgb, var(--accent-electric) 22%, var(--line-soft));
   background: color-mix(in srgb, var(--accent-electric) 8%, var(--bg-elev-2));
@@ -2219,7 +2380,10 @@ textarea {
 .steer-preview-actions {
   display: flex;
   justify-content: flex-end;
+  align-self: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+  padding-top: 4px;
 }
 
 .steer-btn {

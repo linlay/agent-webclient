@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
+import { buildResourceUrl } from "../../lib/apiClient";
 
 interface MarkdownContentProps {
 	content: string;
@@ -37,7 +38,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
 			(match, alt, src) => {
 				if (src.startsWith("data:") || src.startsWith("blob:"))
 					return match;
-				const proxiedSrc = `/api/data?file=${encodeURIComponent(src)}`;
+				const proxiedSrc = buildResourceUrl(src);
 				return `![${alt}](${proxiedSrc})`;
 			},
 		);

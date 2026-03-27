@@ -10,7 +10,14 @@ import { MentionSuggest } from "./MentionSuggest";
 import { SlashPalette } from "./SlashPalette";
 import { SteerBar } from "./SteerBar";
 import { COMPOSER_MAX_LINES } from "../../context/constants";
-import { createRequestId, interruptChat, steerChat } from "../../lib/apiClient";
+import {
+	createRequestId,
+	extractUploadChatId,
+	extractUploadReferences,
+	interruptChat,
+	steerChat,
+	uploadFile,
+} from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
@@ -25,17 +32,46 @@ import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 import { useSpeechInput } from "./useSpeechInput";
 
+interface ComposerAttachment {
+	id: string;
+	name: string;
+	size: number;
+	status: "uploading" | "ready" | "error";
+	error: string;
+	references: unknown[];
+}
+
+function formatAttachmentSize(size: number): string {
+	if (!Number.isFinite(size) || size <= 0) {
+		return "0 B";
+	}
+
+	const units = ["B", "KB", "MB", "GB"];
+	let value = size;
+	let unitIndex = 0;
+	while (value >= 1024 && unitIndex < units.length - 1) {
+		value /= 1024;
+		unitIndex += 1;
+	}
+
+	const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
+	return `${value.toFixed(precision)} ${units[unitIndex]}`;
+}
+
 export const ComposerArea: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
 	const composerRef = useRef<HTMLDivElement>(null);
 	const composerPillRef = useRef<HTMLDivElement>(null);
 	const slashPaletteRef = useRef<HTMLDivElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const isComposingRef = useRef(false);
 	const pendingSendRef = useRef(false);
 	const pendingSentMessageRef = useRef("");
 	const [inputValue, setInputValue] = useState("");
+	const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
+	const [attachmentChatId, setAttachmentChatId] = useState("");
 	const [slashDismissed, setSlashDismissed] = useState(false);
 	const [activeSlashIndex, setActiveSlashIndex] = useState(0);
 	const [steerSubmitting, setSteerSubmitting] = useState(false);
@@ -104,6 +140,28 @@ export const ComposerArea: React.FC = () => {
 		state.voiceChat.wsStatus === "connecting" ||
 		state.voiceChat.wsStatus === "closed" ||
 		state.voiceChat.wsStatus === "error";
+	const readyAttachments = useMemo(
+		() => attachments.filter((attachment) => attachment.status === "ready"),
+		[attachments],
+	);
+	const hasUploadingAttachments = useMemo(
+		() =>
+			attachments.some((attachment) => attachment.status === "uploading"),
+		[attachments],
+	);
+	const sendReferences = useMemo(
+		() =>
+			readyAttachments.flatMap((attachment) => attachment.references),
+		[readyAttachments],
+	);
+	const sendAttachmentMeta = useMemo(
+		() =>
+			readyAttachments.map((attachment) => ({
+				name: attachment.name,
+				size: attachment.size,
+			})),
+		[readyAttachments],
+	);
 	const hasVoiceUserPreview = Boolean(state.voiceChat.partialUserText.trim());
 	const hasVoiceAssistantPreview = Boolean(
 		state.voiceChat.partialAssistantText.trim(),
@@ -114,6 +172,10 @@ export const ComposerArea: React.FC = () => {
 		!state.commandModal.open &&
 		!slashDismissed &&
 		slashCommands.length > 0;
+	const sendDisabled =
+		isFrontendActive ||
+		hasUploadingAttachments ||
+		(!inputValue.trim() && sendReferences.length === 0);
 
 	const autoresize = useCallback(() => {
 		const el = textareaRef.current;
@@ -128,6 +190,12 @@ export const ComposerArea: React.FC = () => {
 	useEffect(() => {
 		autoresize();
 	}, [inputValue, autoresize]);
+
+	useEffect(() => {
+		if (String(state.chatId || "").trim()) {
+			setAttachmentChatId("");
+		}
+	}, [state.chatId]);
 
 	useEffect(() => {
 		if (!showSlashPalette) return;
@@ -266,6 +334,107 @@ export const ComposerArea: React.FC = () => {
 		setSlashDismissed,
 		updateMentionSuggestions,
 	});
+	const openFilePicker = useCallback(() => {
+		if (state.streaming || isFrontendActive || isVoiceMode) {
+			return;
+		}
+		fileInputRef.current?.click();
+	}, [isFrontendActive, isVoiceMode, state.streaming]);
+
+	const handleRemoveAttachment = useCallback(
+		(attachmentId: string) => {
+			setAttachments((current) => {
+				const next = current.filter(
+					(attachment) => attachment.id !== attachmentId,
+				);
+				if (
+					next.length === 0 &&
+					!String(state.chatId || "").trim()
+				) {
+					setAttachmentChatId("");
+				}
+				return next;
+			});
+		},
+		[state.chatId],
+	);
+
+	const handleFileSelection = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			const files = Array.from(event.target.files || []);
+			event.target.value = "";
+			if (files.length === 0) {
+				return;
+			}
+
+			const nextAttachments = files.map((file) => ({
+				id: createRequestId("upload"),
+				name: file.name,
+				size: file.size,
+				status: "uploading" as const,
+				error: "",
+				references: [],
+			}));
+
+			setAttachments((current) => [...current, ...nextAttachments]);
+
+			void (async () => {
+				let nextChatId = String(
+					state.chatId || attachmentChatId || "",
+				).trim();
+				for (const [index, attachment] of nextAttachments.entries()) {
+					const file = files[index];
+					try {
+						const response = await uploadFile({
+							file,
+							filename: file.name,
+							requestId: attachment.id,
+							chatId: nextChatId || undefined,
+						});
+						const responseChatId = extractUploadChatId(response.data);
+						if (responseChatId) {
+							nextChatId = responseChatId;
+							setAttachmentChatId(responseChatId);
+						}
+						const references = extractUploadReferences(response.data);
+						if (references.length === 0) {
+							throw new Error(
+								"上传成功，但接口未返回可用的文件引用",
+							);
+						}
+						setAttachments((current) =>
+							current.map((item) =>
+								item.id === attachment.id
+									? {
+											...item,
+											status: "ready",
+											error: "",
+											references,
+										}
+									: item,
+							),
+						);
+					} catch (error) {
+						setAttachments((current) =>
+							current.map((item) =>
+								item.id === attachment.id
+									? {
+											...item,
+											status: "error",
+											error:
+												(error as Error).message ||
+												"上传失败",
+											references: [],
+										}
+									: item,
+							),
+						);
+					}
+				}
+			})();
+		},
+		[attachmentChatId, state.chatId],
+	);
 	const showSpeechHint =
 		!isVoiceMode &&
 		(!speechSupported ||
@@ -487,7 +656,8 @@ export const ComposerArea: React.FC = () => {
 		}
 
 		const message = inputValue.trim();
-		if (!message) return;
+		if (!message && sendReferences.length === 0) return;
+		if (hasUploadingAttachments) return;
 		if (
 			pendingSendRef.current &&
 			pendingSentMessageRef.current === message
@@ -495,6 +665,13 @@ export const ComposerArea: React.FC = () => {
 			return;
 		}
 		if (state.streaming) {
+			if (sendReferences.length > 0) {
+				dispatch({
+					type: "APPEND_DEBUG",
+					line: "[upload] 当前运行中，暂不支持在 steer 中附带文件",
+				});
+				return;
+			}
 			dispatch({ type: "SET_STEER_DRAFT", draft: message });
 			setInputValue("");
 			setSlashDismissed(false);
@@ -503,19 +680,35 @@ export const ComposerArea: React.FC = () => {
 		}
 		pendingSendRef.current = true;
 		pendingSentMessageRef.current = message;
+		const pendingChatId = String(
+			state.chatId || attachmentChatId || "",
+		).trim();
 		setInputValue("");
+		setAttachments([]);
+		setAttachmentChatId("");
 		setSlashDismissed(false);
 		closeMention();
 		window.dispatchEvent(
-			new CustomEvent("agent:send-message", { detail: { message } }),
+			new CustomEvent("agent:send-message", {
+				detail: {
+					message,
+					chatId: pendingChatId || undefined,
+					references: sendReferences,
+					attachments: sendAttachmentMeta,
+				},
+			}),
 		);
 	}, [
 		activeSlashIndex,
 		closeMention,
 		dispatch,
 		executeSlashCommand,
+		hasUploadingAttachments,
 		inputValue,
 		isVoiceMode,
+		attachmentChatId,
+		sendAttachmentMeta,
+		sendReferences,
 		showSlashPalette,
 		slashCommands,
 		speechListening,
@@ -826,6 +1019,15 @@ export const ComposerArea: React.FC = () => {
 			ref={composerRef}
 			className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
 		>
+			<input
+				ref={fileInputRef}
+				className="composer-file-input"
+				type="file"
+				multiple
+				tabIndex={-1}
+				hidden
+				onChange={handleFileSelection}
+			/>
 			<SlashPalette
 				open={showSlashPalette}
 				slashPaletteRef={slashPaletteRef}
@@ -961,6 +1163,59 @@ export const ComposerArea: React.FC = () => {
 							)}
 						</div>
 					</div>
+					{attachments.length > 0 && (
+						<div className="composer-attachments" aria-live="polite">
+							{attachments.map((attachment) => (
+								<div
+									key={attachment.id}
+									className={`composer-attachment-chip is-${attachment.status}`}
+								>
+									<div className="composer-attachment-icon">
+										<MaterialIcon
+											name={
+												attachment.status === "error"
+													? "error"
+													: attachment.status === "uploading"
+														? "progress_activity"
+														: "draft"
+											}
+										/>
+									</div>
+									<div className="composer-attachment-copy">
+										<div
+											className="composer-attachment-name"
+											title={attachment.name}
+										>
+											{attachment.name}
+										</div>
+										<div
+											className="composer-attachment-meta"
+											title={attachment.error || undefined}
+										>
+											{attachment.status === "error"
+												? attachment.error || "上传失败"
+												: attachment.status === "uploading"
+													? "上传中..."
+													: `已就绪 · ${formatAttachmentSize(
+															attachment.size,
+														)}`}
+										</div>
+									</div>
+									<button
+										type="button"
+										className="composer-attachment-remove"
+										onClick={() =>
+											handleRemoveAttachment(attachment.id)
+										}
+										aria-label={`移除文件 ${attachment.name}`}
+										title="移除文件"
+									>
+										<MaterialIcon name="close" />
+									</button>
+								</div>
+							))}
+						</div>
+					)}
 					<div className="composer-control-row">
 						<div className="composer-plus-wrap">
 							<UiButton
@@ -968,8 +1223,23 @@ export const ComposerArea: React.FC = () => {
 								variant="ghost"
 								size="sm"
 								iconOnly
-								aria-label="更多选项"
-								title="更多选项"
+								loading={hasUploadingAttachments}
+								disabled={
+									isFrontendActive ||
+									isVoiceMode ||
+									state.streaming
+								}
+								onClick={openFilePicker}
+								aria-label="上传文件"
+								title={
+									isFrontendActive
+										? "前端工具处理中，暂时不能上传文件"
+										: isVoiceMode
+											? "请先切回文字输入再上传文件"
+											: state.streaming
+												? "当前运行中，暂不支持追加文件"
+												: "上传文件"
+								}
 							>
 								<MaterialIcon name="add" />
 							</UiButton>
@@ -1031,7 +1301,7 @@ export const ComposerArea: React.FC = () => {
 										variant="primary"
 										size="sm"
 										iconOnly
-										disabled={isFrontendActive}
+										disabled={sendDisabled}
 										onClick={handleSend}
 										aria-label="发送"
 									>

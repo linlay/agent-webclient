@@ -12,6 +12,7 @@ export type TimelineDisplayItem =
     queryNode: TimelineNode;
     nodes: TimelineNode[];
     completedAt?: number;
+    responseDurationMs?: number;
   }
   | {
     kind: 'standalone';
@@ -55,6 +56,10 @@ export function buildTimelineDisplayItems(
     const completedAt = terminal
       ? terminal.timestamp || lastNode?.ts || undefined
       : undefined;
+    const responseDurationMs =
+      typeof completedAt === 'number' && typeof activeQueryNode.ts === 'number'
+        ? Math.max(0, completedAt - activeQueryNode.ts)
+        : undefined;
 
     if (terminal) {
       runTerminalCursor += 1;
@@ -66,6 +71,7 @@ export function buildTimelineDisplayItems(
       queryNode: activeQueryNode,
       nodes: pendingRunNodes,
       completedAt,
+      responseDurationMs,
     });
     pendingRunNodes = [];
   };

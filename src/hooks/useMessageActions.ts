@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import type { TimelineAttachment } from '../context/types';
 import { useAgentEventHandler } from './useAgentEventHandler';
 import {
   createRequestId,
@@ -9,6 +10,38 @@ import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 import { executeQueryStream } from '../lib/queryStreamRuntime';
+
+interface SendMessageAttachmentDetail {
+  name?: unknown;
+  size?: unknown;
+}
+
+interface SendMessageEventDetail {
+  message?: unknown;
+  references?: unknown;
+  attachments?: unknown;
+  chatId?: unknown;
+}
+
+function normalizeTimelineAttachments(attachments: unknown): TimelineAttachment[] {
+  if (!Array.isArray(attachments)) {
+    return [];
+  }
+
+  return attachments.reduce<TimelineAttachment[]>((acc, attachment) => {
+    const name = String((attachment as SendMessageAttachmentDetail | null)?.name || '').trim();
+    if (!name) {
+      return acc;
+    }
+
+    const rawSize = Number((attachment as SendMessageAttachmentDetail | null)?.size);
+    acc.push({
+      name,
+      size: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : undefined,
+    });
+    return acc;
+  }, []);
+}
 
 /**
  * useMessageActions — handles sending messages and processing SSE stream.
@@ -24,9 +57,17 @@ export function useMessageActions() {
   }, [state.accessToken]);
 
   const sendMessage = useCallback(
-    async (inputMessage: string) => {
+    async (
+      inputMessage: string,
+      references: unknown[] = [],
+      attachments: TimelineAttachment[] = [],
+      preferredChatId = '',
+    ) => {
       const rawMessage = String(inputMessage ?? '').trim();
-      if (!rawMessage) return;
+      const normalizedReferences = Array.isArray(references)
+        ? references.filter((reference) => reference != null)
+        : [];
+      if (!rawMessage && normalizedReferences.length === 0) return;
       if (stateRef.current.streaming) return;
 
       /* Parse @mention */
@@ -49,7 +90,7 @@ export function useMessageActions() {
         return;
       }
 
-      const chatId = String(stateRef.current.chatId || '').trim();
+      const chatId = String(preferredChatId || stateRef.current.chatId || '').trim();
       const rememberedChatAgentKey = chatId
         ? String(stateRef.current.chatAgentById.get(chatId) || '').trim()
         : '';
@@ -80,7 +121,7 @@ export function useMessageActions() {
 
       const cleanMessage = mention.cleanMessage || rawMessage;
 
-      if (!cleanMessage.trim()) return;
+      if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
 
       dispatch({
         type: 'SET_WORKER_PRIORITY_KEY',
@@ -112,6 +153,7 @@ export function useMessageActions() {
           kind: 'message',
           role: 'user',
           text: cleanMessage,
+          attachments: attachments.length > 0 ? attachments : undefined,
           ts: Date.now(),
         },
       });
@@ -131,6 +173,7 @@ export function useMessageActions() {
             agentKey: selectedAgentKey || undefined,
             teamId: selectedTeamId || undefined,
             chatId: chatId || undefined,
+            references: normalizedReferences.length > 0 ? normalizedReferences : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
             signal: abortController.signal,
           },
@@ -173,8 +216,16 @@ export function useMessageActions() {
   /* Listen for custom send-message events from ComposerArea */
   useEffect(() => {
     const handler = (e: Event) => {
-      const message = (e as CustomEvent).detail?.message;
-      if (message) sendMessage(message);
+      const detail = ((e as CustomEvent).detail || {}) as SendMessageEventDetail;
+      const message = String(detail.message || '');
+      const references = Array.isArray(detail.references)
+        ? detail.references
+        : [];
+      const attachments = normalizeTimelineAttachments(detail.attachments);
+      const chatId = String(detail.chatId || '').trim();
+      if (message || references.length > 0) {
+        void sendMessage(message, references, attachments, chatId);
+      }
     };
     window.addEventListener('agent:send-message', handler);
     return () => window.removeEventListener('agent:send-message', handler);

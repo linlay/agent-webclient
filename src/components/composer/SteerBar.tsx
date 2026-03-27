@@ -30,7 +30,7 @@ export const SteerBar: React.FC<{
 					</div>
 				))}
 				{hasSteerDraft && (
-					<div className="steer-preview">
+					<div className="steer-preview steer-preview-draft">
 						<div className="steer-preview-header">
 							<span className="steer-preview-label">
 								待提交引导
@@ -39,31 +39,29 @@ export const SteerBar: React.FC<{
 						<span className="steer-preview-text">
 							{steerDraft}
 						</span>
+						<div className="steer-preview-actions">
+							<UiButton
+								className="steer-btn"
+								variant="primary"
+								size="sm"
+								disabled={!steerDraft.trim() || steerSubmitting}
+								onClick={onSubmit}
+							>
+								{steerSubmitting ? "提交中..." : "引导"}
+							</UiButton>
+							<UiButton
+								className="steer-cancel-btn"
+								variant="ghost"
+								size="sm"
+								disabled={steerSubmitting}
+								onClick={onCancel}
+							>
+								取消
+							</UiButton>
+						</div>
 					</div>
 				)}
 			</div>
-			{hasSteerDraft && (
-				<div className="steer-preview-actions">
-					<UiButton
-						className="steer-btn"
-						variant="primary"
-						size="sm"
-						disabled={!steerDraft.trim() || steerSubmitting}
-						onClick={onSubmit}
-					>
-						{steerSubmitting ? "提交中..." : "引导"}
-					</UiButton>
-					<UiButton
-						className="steer-cancel-btn"
-						variant="ghost"
-						size="sm"
-						disabled={steerSubmitting}
-						onClick={onCancel}
-					>
-						取消
-					</UiButton>
-				</div>
-			)}
 		</div>
 	);
 };

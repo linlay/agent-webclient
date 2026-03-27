@@ -47,6 +47,24 @@ function isYesterday(target: Date, now: Date): boolean {
 	);
 }
 
+function formatAttachmentSize(size?: number): string {
+	if (!Number.isFinite(size) || Number(size) <= 0) {
+		return "";
+	}
+
+	const units = ["B", "KB", "MB", "GB"];
+	let value = Number(size);
+	let unitIndex = 0;
+
+	while (value >= 1024 && unitIndex < units.length - 1) {
+		value /= 1024;
+		unitIndex += 1;
+	}
+
+	const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
+	return `${value.toFixed(precision)} ${units[unitIndex]}`;
+}
+
 export function formatTimelineTime(ts?: number): { short: string; full: string } {
 	if (!ts) return { short: "", full: "" };
 	const target = new Date(ts);
@@ -155,6 +173,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 		node.role === "user" &&
 		node.messageVariant !== "steer"
 	) {
+		const attachmentItems = Array.isArray(node.attachments)
+			? node.attachments.filter((attachment) =>
+					Boolean(String(attachment?.name || "").trim()),
+				)
+			: [];
+		const hasText = Boolean(String(node.text || "").trim());
+
 		return (
 			<div
 				className="timeline-row timeline-row-user"
@@ -162,7 +187,37 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				data-role="user"
 			>
 				<div className="timeline-user-stack">
-					<UserBubble text={node.text || ""} />
+					{hasText && <UserBubble text={node.text || ""} />}
+					{attachmentItems.length > 0 && (
+						<div className="timeline-user-attachments">
+							{attachmentItems.map((attachment, index) => {
+								const attachmentSize = formatAttachmentSize(
+									attachment.size,
+								);
+								return (
+									<div
+										key={`${attachment.name}_${index}`}
+										className="timeline-user-attachment"
+									>
+										<span className="timeline-user-attachment-icon">
+											<MaterialIcon name="attach_file" />
+										</span>
+										<span
+											className="timeline-user-attachment-name"
+											title={attachment.name}
+										>
+											{attachment.name}
+										</span>
+										{attachmentSize && (
+											<span className="timeline-user-attachment-size">
+												{attachmentSize}
+											</span>
+										)}
+									</div>
+								);
+							})}
+						</div>
+					)}
 					{timeNode}
 				</div>
 			</div>

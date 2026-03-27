@@ -27,6 +27,7 @@ describe('buildTimelineDisplayItems', () => {
     expect(items[1]).toMatchObject({
       kind: 'run',
       completedAt: 150,
+      responseDurationMs: 50,
     });
     expect(items[1].kind === 'run' ? items[1].nodes.map((node) => node.id) : []).toEqual([
       'thinking_1',
@@ -46,6 +47,7 @@ describe('buildTimelineDisplayItems', () => {
 
     expect(items[1]).toMatchObject({ kind: 'run' });
     expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBeUndefined();
+    expect(items[1].kind === 'run' ? items[1].responseDurationMs : 'bad').toBeUndefined();
   });
 
   it('falls back to the last node time when terminal run event lacks timestamp', () => {
@@ -61,6 +63,7 @@ describe('buildTimelineDisplayItems', () => {
     );
 
     expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBe(190);
+    expect(items[1].kind === 'run' ? items[1].responseDurationMs : 'bad').toBe(90);
   });
 
   it('treats run.cancel as a terminal event', () => {
@@ -76,6 +79,7 @@ describe('buildTimelineDisplayItems', () => {
     );
 
     expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBe(160);
+    expect(items[1].kind === 'run' ? items[1].responseDurationMs : 'bad').toBe(60);
   });
 
   it('keeps request.steer-style nodes inside the current run group', () => {

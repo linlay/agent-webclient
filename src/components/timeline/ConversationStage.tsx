@@ -26,6 +26,31 @@ async function copyText(text: string): Promise<void> {
 	}
 }
 
+function formatResponseDuration(durationMs?: number): string {
+	if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
+		return "";
+	}
+
+	const value = Number(durationMs);
+	if (value < 1000) {
+		return `${Math.round(value)}毫秒`;
+	}
+	if (value < 60_000) {
+		return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}秒`;
+	}
+
+	const totalSeconds = Math.round(value / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	if (minutes < 60) {
+		return `${minutes}分${seconds}秒`;
+	}
+
+	const hours = Math.floor(minutes / 60);
+	const remainMinutes = minutes % 60;
+	return `${hours}小时${remainMinutes}分`;
+}
+
 export const ConversationStage: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
@@ -204,6 +229,9 @@ export const ConversationStage: React.FC = () => {
 									const time = formatTimelineTime(
 										item.completedAt,
 									);
+									const responseDuration = formatResponseDuration(
+										item.responseDurationMs,
+									);
 									const runCopyKey = `${item.key}:copy`;
 									const isDownvoted =
 										state.downvotedRunKeys.has(item.key);
@@ -265,9 +293,16 @@ export const ConversationStage: React.FC = () => {
 													{time.short && (
 														<div
 															className="timeline-run-time"
-															title={time.full}
+															title={
+																responseDuration
+																	? `${time.full} · 响应耗时 ${responseDuration}`
+																	: time.full
+															}
 														>
 															{time.short}
+															{responseDuration
+																? ` · ${responseDuration}`
+																: ""}
 														</div>
 													)}
 												</div>

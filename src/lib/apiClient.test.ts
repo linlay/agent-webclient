@@ -1,5 +1,8 @@
 import {
+  buildResourceUrl,
   createQueryStream,
+  extractUploadChatId,
+  extractUploadReferences,
   getAgents,
   getVoiceCapabilities,
   getVoiceCapabilitiesFlexible,
@@ -7,6 +10,7 @@ import {
   getVoiceVoicesFlexible,
   interruptChat,
   steerChat,
+  uploadFile,
 } from './apiClient';
 
 describe('apiClient query payloads', () => {
@@ -56,6 +60,22 @@ describe('apiClient query payloads', () => {
       message: '继续',
       chatId: 'chat_1',
       agentKey: 'demoViewport',
+    });
+  });
+
+  it('keeps uploaded references in query streams when present', async () => {
+    await createQueryStream({
+      requestId: 'req_3',
+      message: '',
+      references: [{ id: 'upload_1', name: 'spec.md' }],
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_3',
+      planningMode: false,
+      message: '',
+      references: [{ id: 'upload_1', name: 'spec.md' }],
     });
   });
 
@@ -195,5 +215,140 @@ describe('apiClient query payloads', () => {
     await expect(getAgents()).rejects.toThrow(
       'Response is not ApiResponse shape',
     );
+  });
+
+  it('builds resource urls from the new resource endpoint', () => {
+    expect(buildResourceUrl('reports/demo image.png')).toBe(
+      '/api/resource?file=reports%2Fdemo%20image.png',
+    );
+  });
+
+  it('reserves an upload slot and then uploads the binary payload', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            msg: 'ok',
+            data: {
+              requestId: 'upload_req_1',
+              chatId: 'chat_1',
+              reference: {
+                id: 'f1',
+                type: 'file',
+                name: 'demo.txt',
+              },
+              upload: {
+                url: '/api/upload/chat_1/f1',
+                method: 'PUT',
+                headers: {},
+              },
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        text: async () => '',
+      });
+
+    const blob = new Blob(['demo'], { type: 'text/plain' });
+
+    await uploadFile({
+      file: blob,
+      filename: 'demo.txt',
+      requestId: 'upload_req_1',
+      chatId: 'chat_1',
+    });
+
+    const [reserveUrl, reserveOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+
+    expect(reserveUrl).toBe('/api/upload');
+    expect(reserveOptions.method).toBe('POST');
+    expect(reserveOptions.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(JSON.parse(String(reserveOptions.body))).toEqual({
+      requestId: 'upload_req_1',
+      chatId: 'chat_1',
+      type: 'file',
+      name: 'demo.txt',
+      sizeBytes: 4,
+      mimeType: 'text/plain',
+    });
+
+    expect(uploadUrl).toBe('/api/upload/chat_1/f1');
+    expect(uploadOptions.method).toBe('PUT');
+    expect(uploadOptions.headers).toEqual({ 'Content-Type': 'text/plain' });
+    expect(uploadOptions.body).toBe(blob);
+  });
+
+  it('infers image uploads and exposes the reserved chat id', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            msg: 'ok',
+            data: {
+              requestId: 'upload_req_2',
+              chatId: 'chat_generated',
+              reference: {
+                id: 'i1',
+                type: 'image',
+                name: 'photo.png',
+              },
+              upload: {
+                url: '/api/upload/chat_generated/i1',
+                method: 'PUT',
+                headers: {},
+              },
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        text: async () => '',
+      });
+
+    const blob = new Blob(['img'], { type: 'image/png' });
+    const response = await uploadFile({
+      file: blob,
+      filename: 'photo.png',
+      requestId: 'upload_req_2',
+    });
+
+    expect(extractUploadChatId(response.data)).toBe('chat_generated');
+    const [, reserveOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(reserveOptions.body))).toEqual({
+      requestId: 'upload_req_2',
+      type: 'image',
+      name: 'photo.png',
+      sizeBytes: 3,
+      mimeType: 'image/png',
+    });
+  });
+
+  it('extracts upload references from common response shapes', () => {
+    expect(
+      extractUploadReferences({
+        references: [{ id: 'ref_1' }],
+      }),
+    ).toEqual([{ id: 'ref_1' }]);
+
+    expect(
+      extractUploadReferences({
+        reference: { id: 'ref_2' },
+      }),
+    ).toEqual([{ id: 'ref_2' }]);
+
+    expect(extractUploadReferences({ id: 'ref_3' })).toEqual([
+      { id: 'ref_3' },
+    ]);
+    expect(extractUploadReferences(null)).toEqual([]);
   });
 });

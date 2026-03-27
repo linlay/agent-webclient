@@ -27,6 +27,11 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';
 }
 
+function hasHeader(headers: Record<string, string>, name: string): boolean {
+  const normalizedName = name.toLowerCase();
+  return Object.keys(headers).some((key) => key.toLowerCase() === normalizedName);
+}
+
 function isApiResponseShape(value: unknown): value is Record<string, unknown> {
   return isObjectRecord(value) && 'code' in value;
 }
@@ -53,11 +58,17 @@ function toQueryString(params: Record<string, string | number | boolean | undefi
   return search.toString();
 }
 
-function buildAuthHeaders(headers: Record<string, string> = {}): Record<string, string> {
+function buildAuthHeaders(
+  headers: Record<string, string> = {},
+  options: { includeJsonContentType?: boolean } = {},
+): Record<string, string> {
+  const includeJsonContentType = options.includeJsonContentType ?? true;
   const merged: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...headers,
   };
+  if (includeJsonContentType && !hasHeader(merged, 'Content-Type')) {
+    merged['Content-Type'] = 'application/json';
+  }
   if (authToken) {
     merged.Authorization = `Bearer ${authToken}`;
   } else if ('Authorization' in merged) {
@@ -226,18 +237,86 @@ async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: u
   return json;
 }
 
-async function requestJson(path: string, options: RequestInit & { headers?: Record<string, string> } = {}): Promise<ApiResponse> {
+async function requestJson(
+  path: string,
+  options: RequestInit & { headers?: Record<string, string>; jsonContentType?: boolean } = {},
+): Promise<ApiResponse> {
+  const { jsonContentType = true, ...requestOptions } = options;
   const response = await fetch(path, {
-    ...options,
-    method: options.method || 'GET',
-    headers: buildAuthHeaders(options.headers || {}),
+    ...requestOptions,
+    method: requestOptions.method || 'GET',
+    headers: buildAuthHeaders(requestOptions.headers || {}, {
+      includeJsonContentType: jsonContentType,
+    }),
   });
 
   return readJsonResponse(response);
 }
 
+async function requestOk(
+  path: string,
+  options: RequestInit & { headers?: Record<string, string>; jsonContentType?: boolean } = {},
+): Promise<Response> {
+  const { jsonContentType = false, ...requestOptions } = options;
+  const response = await fetch(path, {
+    ...requestOptions,
+    method: requestOptions.method || 'GET',
+    headers: buildAuthHeaders(requestOptions.headers || {}, {
+      includeJsonContentType: jsonContentType,
+    }),
+  });
+
+  if (response.ok) {
+    return response;
+  }
+
+  const rawText = await response.text();
+  let json: unknown = null;
+
+  try {
+    json = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    json = rawText;
+  }
+
+  const apiJson = isObjectRecord(json) ? json : null;
+  throw new ApiError((apiJson?.msg as string) || `HTTP ${response.status}`, {
+    status: response.status,
+    code: apiJson?.code as number | undefined,
+    data: apiJson?.data ?? json,
+  });
+}
+
 export function createRequestId(prefix = 'req'): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function buildResourceUrl(file: string): string {
+  return `/api/resource?file=${encodeURIComponent(file)}`;
+}
+
+export function extractUploadReferences(data: unknown): unknown[] {
+  if (Array.isArray(data)) {
+    return data.filter((item) => item != null);
+  }
+
+  if (isObjectRecord(data) && Array.isArray(data.references)) {
+    return data.references.filter((item) => item != null);
+  }
+
+  if (isObjectRecord(data) && Array.isArray(data.items)) {
+    return data.items.filter((item) => item != null);
+  }
+
+  if (isObjectRecord(data) && data.reference != null) {
+    return [data.reference];
+  }
+
+  if (data == null) {
+    return [];
+  }
+
+  return [data];
 }
 
 export function getAgents(): Promise<ApiResponse> {
@@ -312,6 +391,142 @@ export function submitTool(params: { runId: string; toolId: string; params: Reco
       params: params.params,
     }),
   });
+}
+
+export interface UploadFileParams {
+  file: Blob;
+  filename?: string;
+  requestId?: string;
+  chatId?: string;
+  fieldName?: string;
+  signal?: AbortSignal;
+  extraFields?: Record<string, string | number | boolean | null | undefined>;
+}
+
+interface UploadTarget {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+}
+
+function getUploadFilename(params: UploadFileParams): string {
+  const inferredFileName =
+    typeof File !== 'undefined' &&
+    params.file instanceof File &&
+    typeof params.file.name === 'string' &&
+    params.file.name.trim()
+      ? params.file.name.trim()
+      : '';
+
+  return params.filename || inferredFileName || 'upload.bin';
+}
+
+function getUploadMimeType(file: Blob): string {
+  return String(file.type || '').trim() || 'application/octet-stream';
+}
+
+function inferUploadType(filename: string, mimeType: string): 'file' | 'image' {
+  if (mimeType.toLowerCase().startsWith('image/')) {
+    return 'image';
+  }
+
+  const lowerName = filename.toLowerCase();
+  if (
+    lowerName.endsWith('.png') ||
+    lowerName.endsWith('.jpg') ||
+    lowerName.endsWith('.jpeg') ||
+    lowerName.endsWith('.gif') ||
+    lowerName.endsWith('.webp') ||
+    lowerName.endsWith('.svg') ||
+    lowerName.endsWith('.bmp') ||
+    lowerName.endsWith('.ico') ||
+    lowerName.endsWith('.avif')
+  ) {
+    return 'image';
+  }
+
+  return 'file';
+}
+
+function normalizeUploadTargetHeaders(value: unknown): Record<string, string> {
+  if (!isObjectRecord(value)) {
+    return {};
+  }
+
+  return Object.entries(value).reduce<Record<string, string>>((acc, [key, headerValue]) => {
+    if (typeof headerValue === 'string' && headerValue.trim()) {
+      acc[key] = headerValue;
+    }
+    return acc;
+  }, {});
+}
+
+function extractUploadTarget(data: unknown): UploadTarget | null {
+  if (!isObjectRecord(data) || !isObjectRecord(data.upload)) {
+    return null;
+  }
+
+  const rawUrl = typeof data.upload.url === 'string' ? data.upload.url.trim() : '';
+  if (!rawUrl) {
+    return null;
+  }
+
+  const rawMethod = typeof data.upload.method === 'string' ? data.upload.method.trim().toUpperCase() : '';
+  return {
+    url: rawUrl,
+    method: rawMethod || 'PUT',
+    headers: normalizeUploadTargetHeaders(data.upload.headers),
+  };
+}
+
+export function extractUploadChatId(data: unknown): string {
+  return isObjectRecord(data) && typeof data.chatId === 'string'
+    ? data.chatId.trim()
+    : '';
+}
+
+export async function uploadFile(params: UploadFileParams): Promise<ApiResponse> {
+  const filename = getUploadFilename(params);
+  const mimeType = getUploadMimeType(params.file);
+  const requestId = String(params.requestId || createRequestId('upload')).trim();
+  const chatId = String(params.chatId || '').trim();
+  const reserveResponse = await requestJson('/api/upload', {
+    method: 'POST',
+    body: JSON.stringify({
+      requestId,
+      chatId: chatId || undefined,
+      type: inferUploadType(filename, mimeType),
+      name: filename,
+      sizeBytes: params.file.size,
+      mimeType,
+    }),
+    signal: params.signal,
+  });
+  const uploadTarget = extractUploadTarget(reserveResponse.data);
+
+  if (!uploadTarget) {
+    throw new ApiError('Upload response is missing upload target', {
+      status: reserveResponse.status,
+      data: reserveResponse.data,
+    });
+  }
+
+  const headers: Record<string, string> = {
+    ...uploadTarget.headers,
+  };
+  if (!hasHeader(headers, 'Content-Type')) {
+    headers['Content-Type'] = mimeType;
+  }
+
+  await requestOk(uploadTarget.url, {
+    method: uploadTarget.method,
+    headers,
+    body: params.file,
+    signal: params.signal,
+    jsonContentType: false,
+  });
+
+  return reserveResponse;
 }
 
 export interface QueryLikeParams {
