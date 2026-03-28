@@ -1,5 +1,20 @@
 import type { AgentEvent, TimelineNode } from '../context/types';
 
+export type TimelineRenderEntry =
+  | {
+    kind: 'node';
+    key: string;
+    node: TimelineNode;
+  }
+  | {
+    kind: 'tool-group';
+    key: string;
+    toolName: string;
+    toolLabel: string;
+    count: number;
+    nodes: TimelineNode[];
+  };
+
 export type TimelineDisplayItem =
   | {
     kind: 'query';
@@ -11,6 +26,7 @@ export type TimelineDisplayItem =
     key: string;
     queryNode: TimelineNode;
     nodes: TimelineNode[];
+    renderEntries: TimelineRenderEntry[];
     completedAt?: number;
     responseDurationMs?: number;
   }
@@ -22,6 +38,74 @@ export type TimelineDisplayItem =
 
 interface RunTerminalInfo {
   timestamp?: number;
+}
+
+function normalizeToolGroupValue(value: unknown): string {
+  return String(value || '').trim();
+}
+
+function buildRunRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
+  const entries: TimelineRenderEntry[] = [];
+  let pendingToolNodes: TimelineNode[] = [];
+  let pendingToolName = '';
+  let pendingToolLabel = '';
+
+  const flushPendingTools = (): void => {
+    if (pendingToolNodes.length === 0) return;
+
+    if (pendingToolNodes.length === 1) {
+      const node = pendingToolNodes[0];
+      entries.push({
+        kind: 'node',
+        key: `node_${node.id}`,
+        node,
+      });
+    } else {
+      const firstNode = pendingToolNodes[0];
+      entries.push({
+        kind: 'tool-group',
+        key: `tool_group_${firstNode.id}`,
+        toolName: firstNode.toolName || '',
+        toolLabel: firstNode.toolLabel || '',
+        count: pendingToolNodes.length,
+        nodes: pendingToolNodes,
+      });
+    }
+
+    pendingToolNodes = [];
+    pendingToolName = '';
+    pendingToolLabel = '';
+  };
+
+  for (const node of nodes) {
+    if (node.kind !== 'tool') {
+      flushPendingTools();
+      entries.push({
+        kind: 'node',
+        key: `node_${node.id}`,
+        node,
+      });
+      continue;
+    }
+
+    const nextToolName = normalizeToolGroupValue(node.toolName);
+    const nextToolLabel = normalizeToolGroupValue(node.toolLabel);
+    const shouldMerge = pendingToolNodes.length > 0
+      && pendingToolName === nextToolName
+      && pendingToolLabel === nextToolLabel;
+
+    if (!shouldMerge) {
+      flushPendingTools();
+      pendingToolName = nextToolName;
+      pendingToolLabel = nextToolLabel;
+    }
+
+    pendingToolNodes.push(node);
+  }
+
+  flushPendingTools();
+
+  return entries;
 }
 
 function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
@@ -70,6 +154,7 @@ export function buildTimelineDisplayItems(
       key: `run_${activeQueryNode.id}`,
       queryNode: activeQueryNode,
       nodes: pendingRunNodes,
+      renderEntries: buildRunRenderEntries(pendingRunNodes),
       completedAt,
       responseDurationMs,
     });

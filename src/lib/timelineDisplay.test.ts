@@ -34,6 +34,11 @@ describe('buildTimelineDisplayItems', () => {
       'tool_1',
       'content_1',
     ]);
+    expect(items[1].kind === 'run' ? items[1].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'node_thinking_1',
+      'node_tool_1',
+      'node_content_1',
+    ]);
   });
 
   it('keeps run time hidden while streaming without terminal run event', () => {
@@ -101,5 +106,75 @@ describe('buildTimelineDisplayItems', () => {
       'steer_1',
       'content_1',
     ]);
+  });
+
+  it('merges consecutive tools with the same toolName and toolLabel into one render entry', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 110 }),
+        createNode({ id: 'tool_2', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 120 }),
+        createNode({ id: 'tool_3', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 130 }),
+      ],
+      [{ type: 'request.query', timestamp: 100 }],
+    );
+
+    expect(items[1].kind === 'run' ? items[1].nodes.map((node) => node.id) : []).toEqual([
+      'tool_1',
+      'tool_2',
+      'tool_3',
+    ]);
+    expect(items[1].kind === 'run' ? items[1].renderEntries : []).toEqual([
+      {
+        kind: 'tool-group',
+        key: 'tool_group_tool_1',
+        toolName: '_sandbox_bash_',
+        toolLabel: '执行命令',
+        count: 3,
+        nodes: [
+          expect.objectContaining({ id: 'tool_1' }),
+          expect.objectContaining({ id: 'tool_2' }),
+          expect.objectContaining({ id: 'tool_3' }),
+        ],
+      },
+    ]);
+  });
+
+  it('does not merge tools when toolName or toolLabel changes, or when other nodes interrupt them', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 110 }),
+        createNode({ id: 'tool_2', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令 2', ts: 120 }),
+        createNode({ id: 'tool_3', kind: 'tool', toolName: '_sandbox_bash_v2_', toolLabel: '执行命令', ts: 130 }),
+        createNode({ id: 'thinking_1', kind: 'thinking', ts: 140 }),
+        createNode({ id: 'tool_4', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 150 }),
+        createNode({ id: 'tool_5', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', ts: 160 }),
+      ],
+      [{ type: 'request.query', timestamp: 100 }],
+    );
+
+    expect(items[1].kind === 'run' ? items[1].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'node_tool_1',
+      'node_tool_2',
+      'node_tool_3',
+      'node_thinking_1',
+      'tool_group_tool_4',
+    ]);
+    expect(
+      items[1].kind === 'run'
+        ? items[1].renderEntries[4]
+        : null,
+    ).toEqual({
+      kind: 'tool-group',
+      key: 'tool_group_tool_4',
+      toolName: '_sandbox_bash_',
+      toolLabel: '执行命令',
+      count: 2,
+      nodes: [
+        expect.objectContaining({ id: 'tool_4' }),
+        expect.objectContaining({ id: 'tool_5' }),
+      ],
+    });
   });
 });

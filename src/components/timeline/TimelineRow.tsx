@@ -1,5 +1,6 @@
 import React from "react";
 import type { TimelineNode } from "../../context/types";
+import type { TimelineRenderEntry } from "../../lib/timelineDisplay";
 import { UserBubble } from "./UserBubble";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolPill } from "./ToolPill";
@@ -7,8 +8,11 @@ import { ContentBlock } from "./ContentBlock";
 import { SystemAlert } from "./SystemAlert";
 import { MaterialIcon } from "../common/MaterialIcon";
 
+type ToolGroupRenderEntry = Extract<TimelineRenderEntry, { kind: "tool-group" }>;
+
 interface TimelineRowProps {
-	node: TimelineNode;
+	node?: TimelineNode;
+	toolGroup?: ToolGroupRenderEntry;
 	showTime?: boolean;
 	metaNode?: React.ReactNode;
 }
@@ -171,10 +175,14 @@ const NodeIcon: React.FC<{
 
 export const TimelineRow: React.FC<TimelineRowProps> = ({
 	node,
+	toolGroup,
 	showTime = false,
 	metaNode,
 }) => {
-	const time = formatTimelineTime(node.ts);
+	const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
+	if (!timeTarget) return null;
+
+	const time = formatTimelineTime(timeTarget.ts);
 	const timeNode =
 		metaNode ||
 		(showTime && time.short ? (
@@ -185,6 +193,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
 	/* User messages */
 	if (
+		node &&
 		node.kind === "message" &&
 		node.role === "user" &&
 		!isCommandMessageVariant(node.messageVariant)
@@ -241,6 +250,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	}
 
 	if (
+		node &&
 		node.kind === "message" &&
 		node.role === "user" &&
 		isCommandMessageVariant(node.messageVariant)
@@ -274,7 +284,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	}
 
 	/* System alerts */
-	if (node.kind === "message" && node.role === "system") {
+	if (node && node.kind === "message" && node.role === "system") {
 		return (
 			<div
 				className="timeline-row timeline-row-flow"
@@ -293,7 +303,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	}
 
 	/* Thinking */
-	if (node.kind === "thinking") {
+	if (node && node.kind === "thinking") {
 		return (
 			<div
 				className="timeline-row timeline-row-flow"
@@ -311,14 +321,14 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	}
 
 	/* Tool */
-	if (node.kind === "tool") {
+	if (toolGroup || (node && node.kind === "tool")) {
 		return (
 			<div className="timeline-row timeline-row-flow" data-kind="tool">
 				<div className="timeline-marker">
 					<NodeIcon kind="tool" />
 				</div>
 				<div className="timeline-flow-content">
-					<ToolPill node={node} />
+					<ToolPill node={node} toolGroup={toolGroup} />
 					{timeNode}
 				</div>
 			</div>
@@ -326,7 +336,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	}
 
 	/* Content */
-	if (node.kind === "content") {
+	if (node && node.kind === "content") {
 		return (
 			<div className="timeline-row timeline-row-flow" data-kind="content">
 				<div className="timeline-marker">
@@ -344,14 +354,14 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	return (
 		<div
 			className="timeline-row timeline-row-flow"
-			data-kind={node.kind}
-			data-role={node.role}
+			data-kind={node?.kind}
+			data-role={node?.role}
 		>
 			<div className="timeline-marker">
-				<NodeIcon kind={node.kind} role={node.role} />
+				<NodeIcon kind={node?.kind || "message"} role={node?.role} />
 			</div>
 			<div className="timeline-flow-content">
-				<ContentBlock node={node} />
+				{node && <ContentBlock node={node} />}
 				{timeNode}
 			</div>
 		</div>

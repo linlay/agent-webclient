@@ -243,12 +243,19 @@ export const ConversationStage: React.FC = () => {
 											className="timeline-run-group"
 										>
 											<div className="timeline-run-items">
-												{item.nodes.map((node) => (
-													<TimelineRow
-														key={node.id}
-														node={node}
-													/>
-												))}
+												{item.renderEntries.map((entry) =>
+													entry.kind === "node" ? (
+														<TimelineRow
+															key={entry.key}
+															node={entry.node}
+														/>
+													) : (
+														<TimelineRow
+															key={entry.key}
+															toolGroup={entry}
+														/>
+													),
+												)}
 											</div>
 											{isCompleted && (
 												<div className="timeline-run-meta">
