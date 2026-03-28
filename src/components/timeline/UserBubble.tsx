@@ -2,7 +2,7 @@ import React from "react";
 
 interface UserBubbleProps {
 	text: string;
-	variant?: "default" | "steer";
+	variant?: "default" | "steer" | "remember" | "learn";
 }
 
 export const UserBubble: React.FC<UserBubbleProps> = ({
@@ -11,7 +11,7 @@ export const UserBubble: React.FC<UserBubbleProps> = ({
 }) => {
 	return (
 		<div
-			className={`timeline-user-bubble ${variant === "steer" ? "is-steer" : ""}`.trim()}
+			className={`timeline-user-bubble ${variant !== "default" ? "is-command" : ""}`.trim()}
 		>
 			<div className="timeline-text">{text}</div>
 		</div>

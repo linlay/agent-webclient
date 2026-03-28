@@ -94,7 +94,7 @@ export interface TimelineNode {
   id: string;
   kind: TimelineNodeKind;
   role?: TimelineRole;
-  messageVariant?: 'default' | 'steer';
+  messageVariant?: 'default' | 'steer' | 'remember' | 'learn';
   steerId?: string;
   text?: string;
   attachments?: TimelineAttachment[];
@@ -296,6 +296,17 @@ export interface VoiceChatState {
   currentAgentName: string;
 }
 
+export type CommandStatusOverlayCommandType = 'remember' | 'learn' | null;
+export type CommandStatusOverlayPhase = 'pending' | 'success' | 'error';
+
+export interface CommandStatusOverlayState {
+  visible: boolean;
+  commandType: CommandStatusOverlayCommandType;
+  phase: CommandStatusOverlayPhase;
+  text: string;
+  timer: UiTimerHandle | null;
+}
+
 export type CommandModalType = 'history' | 'switch' | 'detail' | 'schedule' | null;
 export type CommandModalScope = 'all' | 'agent' | 'team';
 export type CommandModalFocusArea = 'search' | 'list';
@@ -458,6 +469,7 @@ export interface AppState {
   eventPopoverIndex: number;
   eventPopoverEventRef: AgentEvent | null;
   eventPopoverAnchor: { x: number; y: number } | null;
+  commandStatusOverlay: CommandStatusOverlayState;
   commandModal: CommandModalState;
 }
 

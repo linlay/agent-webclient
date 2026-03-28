@@ -884,9 +884,17 @@ textarea {
   color: #f8fcff;
 }
 
-.timeline-user-bubble.is-steer {
+.timeline-user-bubble.is-command {
   width: fit-content;
   max-width: min(100%, 720px);
+}
+
+.timeline-command-label {
+  margin-bottom: 6px;
+  font: 700 11px/1 "IBM Plex Mono", monospace;
+  color: var(--accent-electric-strong);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .timeline-row-flow {
@@ -3883,6 +3891,100 @@ textarea {
   pointer-events: none;
 }
 
+.command-status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  padding: 24px;
+}
+
+.command-status-card {
+  min-width: min(320px, calc(100vw - 48px));
+  max-width: min(420px, calc(100vw - 48px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px 24px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--accent-electric) 26%, var(--line-soft));
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-soft) 74%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bg-elev-2) 92%, rgba(9, 16, 33, 0.14));
+  box-shadow: 0 20px 60px rgba(14, 32, 72, 0.22);
+  backdrop-filter: blur(16px);
+  animation: command-status-in 0.28s ease both;
+}
+
+.command-status-card.is-pending {
+  border-color: color-mix(in srgb, var(--accent-electric) 34%, var(--line-soft));
+}
+
+.command-status-card.is-success {
+  border-color: color-mix(in srgb, var(--accent-electric) 28%, var(--line-soft));
+}
+
+.command-status-card.is-error {
+  border-color: color-mix(in srgb, var(--accent-danger) 42%, var(--line-soft));
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-danger) 22%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bg-elev-2) 94%, rgba(78, 16, 16, 0.14));
+  animation: command-status-in 0.22s ease both, command-status-error 0.36s ease;
+}
+
+.command-status-orb {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.command-status-orb span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-electric) 48%, transparent);
+  animation: command-status-pulse 1.35s ease-in-out infinite;
+}
+
+.command-status-orb span:nth-child(2) {
+  inset: 4px;
+  animation-delay: -0.24s;
+}
+
+.command-status-orb span:nth-child(3) {
+  inset: 9px;
+  background: color-mix(in srgb, var(--accent-electric) 88%, white 12%);
+  border-color: transparent;
+  animation: command-status-core 1.2s ease-in-out infinite;
+}
+
+.command-status-card.is-error .command-status-orb span {
+  border-color: color-mix(in srgb, var(--accent-danger) 54%, transparent);
+}
+
+.command-status-card.is-error .command-status-orb span:nth-child(3) {
+  background: color-mix(in srgb, var(--accent-danger) 88%, white 12%);
+}
+
+.command-status-card.is-success .command-status-orb span {
+  animation-play-state: paused;
+}
+
+.command-status-text {
+  font: 700 18px/1.25 "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  letter-spacing: 0.01em;
+  color: var(--ink-1);
+  text-align: center;
+}
+
 /* ========================================
    Animations
    ======================================== */
@@ -3927,6 +4029,54 @@ textarea {
 @keyframes ui-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes command-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes command-status-pulse {
+  0%, 100% {
+    opacity: 0.24;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 0.68;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes command-status-core {
+  0%, 100% {
+    transform: scale(0.9);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes command-status-error {
+  0%, 100% {
+    transform: translateX(0);
+  }
+
+  35% {
+    transform: translateX(-4px);
+  }
+
+  70% {
+    transform: translateX(4px);
   }
 }
 

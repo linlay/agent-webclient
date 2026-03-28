@@ -103,6 +103,22 @@ const SteerIcon: React.FC = () => {
 	);
 };
 
+function isCommandMessageVariant(
+	variant?: TimelineNode["messageVariant"],
+): variant is "steer" | "remember" | "learn" {
+	return (
+		variant === "steer" || variant === "remember" || variant === "learn"
+	);
+}
+
+function getCommandMessageLabel(
+	variant?: TimelineNode["messageVariant"],
+): string {
+	if (variant === "remember") return "/remember";
+	if (variant === "learn") return "/learn";
+	return "/steer";
+}
+
 const NodeIcon: React.FC<{
 	kind: string;
 	role?: string;
@@ -112,7 +128,7 @@ const NodeIcon: React.FC<{
 	role,
 	messageVariant,
 }) => {
-	if (messageVariant === "steer") {
+	if (isCommandMessageVariant(messageVariant)) {
 		return (
 			<span className="node-icon node-icon-steer">
 				<SteerIcon />
@@ -171,7 +187,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	if (
 		node.kind === "message" &&
 		node.role === "user" &&
-		node.messageVariant !== "steer"
+		!isCommandMessageVariant(node.messageVariant)
 	) {
 		const attachmentItems = Array.isArray(node.attachments)
 			? node.attachments.filter((attachment) =>
@@ -227,7 +243,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	if (
 		node.kind === "message" &&
 		node.role === "user" &&
-		node.messageVariant === "steer"
+		isCommandMessageVariant(node.messageVariant)
 	) {
 		return (
 			<div
@@ -244,7 +260,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 					/>
 				</div>
 				<div className="timeline-flow-content">
-					<UserBubble text={node.text || ""} variant="steer" />
+					<div className="timeline-command-label">
+						{getCommandMessageLabel(node.messageVariant)}
+					</div>
+					<UserBubble
+						text={node.text || ""}
+						variant={node.messageVariant}
+					/>
 					{timeNode}
 				</div>
 			</div>

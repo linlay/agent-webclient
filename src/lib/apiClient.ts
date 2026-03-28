@@ -452,6 +452,36 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
   });
 }
 
+export function rememberChat(params: QueryLikeParams): Promise<ApiResponse> {
+  return requestJson('/api/remember', {
+    method: 'POST',
+    body: JSON.stringify({
+      requestId: params.requestId,
+      chatId: params.chatId,
+      runId: params.runId,
+      agentKey: params.agentKey,
+      teamId: params.teamId,
+      message: params.message,
+      planningMode: params.planningMode ?? false,
+    }),
+  });
+}
+
+export function learnChat(params: QueryLikeParams): Promise<ApiResponse> {
+  return requestJson('/api/learn', {
+    method: 'POST',
+    body: JSON.stringify({
+      requestId: params.requestId,
+      chatId: params.chatId,
+      runId: params.runId,
+      agentKey: params.agentKey,
+      teamId: params.teamId,
+      message: params.message,
+      planningMode: params.planningMode ?? false,
+    }),
+  });
+}
+
 export interface QueryStreamParams {
   requestId: string;
   message: string;

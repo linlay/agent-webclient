@@ -79,7 +79,9 @@ export function buildTimelineDisplayItems(
   for (const node of nodes) {
     const isUserQuery = node.kind === 'message'
       && node.role === 'user'
-      && node.messageVariant !== 'steer';
+      && node.messageVariant !== 'steer'
+      && node.messageVariant !== 'remember'
+      && node.messageVariant !== 'learn';
     if (isUserQuery) {
       flushRun();
       activeQueryNode = node;

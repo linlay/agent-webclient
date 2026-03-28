@@ -15,6 +15,8 @@ import {
 	extractUploadChatId,
 	extractUploadReferences,
 	interruptChat,
+	learnChat,
+	rememberChat,
 	steerChat,
 	uploadFile,
 } from "../../lib/apiClient";
@@ -446,6 +448,7 @@ export const ComposerArea: React.FC = () => {
 			hasLatestQuery: Boolean(latestQueryText),
 			isFrontendActive,
 			canUseVoiceMode: Boolean(voiceModeAvailable),
+			hasActiveChat: Boolean(String(state.chatId || "").trim()),
 			hasCurrentWorker: Boolean(currentWorker),
 			workerHistoryCount: currentWorker?.relatedChats.length || 0,
 			workerCount: state.workerRows.length,
@@ -454,6 +457,7 @@ export const ComposerArea: React.FC = () => {
 		[
 			currentWorker,
 			state.streaming,
+			state.chatId,
 			state.commandModal.open,
 			state.workerRows.length,
 			latestQueryText,
@@ -623,6 +627,91 @@ export const ComposerArea: React.FC = () => {
 		state.planningMode,
 	]);
 
+	const scheduleCommandStatusOverlayHide = useCallback(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "HIDE_COMMAND_STATUS_OVERLAY" });
+		}, 2000);
+		dispatch({
+			type: "SET_COMMAND_STATUS_OVERLAY_TIMER",
+			timer,
+		});
+	}, [dispatch]);
+
+	const triggerCommandStatusOverlay = useCallback(
+		(
+			commandType: "remember" | "learn",
+			phase: "pending" | "success" | "error",
+			text: string,
+		) => {
+			dispatch({
+				type: "SHOW_COMMAND_STATUS_OVERLAY",
+				commandType,
+				phase,
+				text,
+			});
+		},
+		[dispatch],
+	);
+
+	const submitBackgroundCommand = useCallback(
+		async (commandType: "remember" | "learn") => {
+			const chatId = String(state.chatId || "").trim();
+			if (!chatId) {
+				return;
+			}
+
+			const requestId = createRequestId(commandType);
+			const runId = resolveCurrentRunId();
+			const agentKey = resolveCurrentAgentKey();
+			const teamId = resolveCurrentTeamId();
+			const pendingText =
+				commandType === "remember"
+					? "正在记忆中..."
+					: "正在学习中...";
+			const errorText =
+				commandType === "remember" ? "记忆失败" : "学习失败";
+
+			triggerCommandStatusOverlay(commandType, "pending", pendingText);
+
+			try {
+				const request =
+					commandType === "remember" ? rememberChat : learnChat;
+				await request({
+					requestId,
+					chatId,
+					runId: runId || undefined,
+					agentKey: agentKey || undefined,
+					teamId: teamId || undefined,
+					message: "",
+					planningMode: Boolean(state.planningMode),
+				});
+				dispatch({
+					type: "APPEND_DEBUG",
+					line: `[${commandType}] submitted for chatId=${chatId}, runId=${runId || "-"}, requestId=${requestId}`,
+				});
+				triggerCommandStatusOverlay(commandType, "success", pendingText);
+			} catch (error) {
+				dispatch({
+					type: "APPEND_DEBUG",
+					line: `[${commandType}] failed: ${(error as Error).message}`,
+				});
+				triggerCommandStatusOverlay(commandType, "error", errorText);
+			} finally {
+				scheduleCommandStatusOverlayHide();
+			}
+		},
+		[
+			dispatch,
+			resolveCurrentAgentKey,
+			resolveCurrentRunId,
+			resolveCurrentTeamId,
+			scheduleCommandStatusOverlayHide,
+			state.chatId,
+			state.planningMode,
+			triggerCommandStatusOverlay,
+		],
+	);
+
 	const executeSlashCommand = useSlashCommandExecution({
 		slashAvailability,
 		closeMention,
@@ -631,6 +720,8 @@ export const ComposerArea: React.FC = () => {
 		dispatch,
 		toggleVoiceMode,
 		interruptCurrentRun,
+		submitRememberCommand: () => submitBackgroundCommand("remember"),
+		submitLearnCommand: () => submitBackgroundCommand("learn"),
 		setInputValue,
 		setSlashDismissed,
 		state: {

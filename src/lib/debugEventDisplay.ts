@@ -19,7 +19,13 @@ function safeStr(v: unknown): string {
 
 export function classifyEventGroup(eventType: string): DebugEventGroup {
   const type = String(eventType || '').toLowerCase();
-  if (type === 'request.query' || type === 'request.steer' || type.startsWith('chat.')) return 'chat';
+  if (
+    type === 'request.query'
+    || type === 'request.steer'
+    || type === 'request.remember'
+    || type === 'request.learn'
+    || type.startsWith('chat.')
+  ) return 'chat';
   if (type.startsWith('run.')) return 'run';
   if (type.startsWith('content.')) return 'content';
   if (type.startsWith('reasoning.')) return 'reasoning';
@@ -51,7 +57,12 @@ export function summarizeEvent(event: AgentEvent): string {
     .map((key) => `${key}=${safeStr(event[key])}`)
     .join(' ');
 
-  if (event.type === 'request.query' || event.type === 'request.steer') {
+  if (
+    event.type === 'request.query'
+    || event.type === 'request.steer'
+    || event.type === 'request.remember'
+    || event.type === 'request.learn'
+  ) {
     const message = safeStr(event.message).trim();
     return message || kv;
   }

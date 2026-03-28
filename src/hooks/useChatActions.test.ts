@@ -113,6 +113,23 @@ describe('replayEvent tool migration', () => {
     expect(state.events.at(-1)?.type).toBe('run.cancel');
   });
 
+  it('replays request.remember as a command-style user timeline node', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'request.remember',
+      requestId: 'req_remember_1',
+      message: '记住我喜欢先给结论',
+      timestamp: 100,
+    });
+
+    expect(state.timelineNodes.get('remember_req_remember_1')).toMatchObject({
+      role: 'user',
+      messageVariant: 'remember',
+      text: '记住我喜欢先给结论',
+    });
+  });
+
   it('replays request.query references into user attachments for history chats', () => {
     const state = createReplayState();
 

@@ -220,6 +220,48 @@ describe('processEvent', () => {
     ]);
   });
 
+  it('creates command-style user nodes for remember and learn events', () => {
+    const rememberCommands = processEvent({
+      type: 'request.remember',
+      requestId: 'req_remember_1',
+      message: '记住我偏好中文回复',
+      timestamp: 100,
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+    const learnCommands = processEvent({
+      type: 'request.learn',
+      requestId: 'req_learn_1',
+      message: '总结这次修复经验',
+      timestamp: 120,
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+
+    expect(rememberCommands).toEqual([
+      {
+        cmd: 'USER_MESSAGE',
+        nodeId: 'remember_req_remember_1',
+        text: '记住我偏好中文回复',
+        ts: 100,
+        variant: 'remember',
+        steerId: undefined,
+      },
+    ]);
+    expect(learnCommands).toEqual([
+      {
+        cmd: 'USER_MESSAGE',
+        nodeId: 'learn_req_learn_1',
+        text: '总结这次修复经验',
+        ts: 120,
+        variant: 'learn',
+        steerId: undefined,
+      },
+    ]);
+  });
+
   it('reuses content nodes until terminal state then creates a new one', () => {
     const state = createState();
 

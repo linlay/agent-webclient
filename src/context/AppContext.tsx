@@ -145,6 +145,13 @@ export function createInitialState(): AppState {
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
 		eventPopoverAnchor: null,
+		commandStatusOverlay: {
+			visible: false,
+			commandType: null,
+			phase: "success",
+			text: "",
+			timer: null,
+		},
 		commandModal: {
 			open: false,
 			type: null,
@@ -214,6 +221,14 @@ export type AppAction =
 	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
+	| {
+			type: "SHOW_COMMAND_STATUS_OVERLAY";
+			commandType: NonNullable<AppState["commandStatusOverlay"]["commandType"]>;
+			phase: AppState["commandStatusOverlay"]["phase"];
+			text: string;
+	  }
+	| { type: "SET_COMMAND_STATUS_OVERLAY_TIMER"; timer: UiTimerHandle | null }
+	| { type: "HIDE_COMMAND_STATUS_OVERLAY" }
 	| {
 			type: "OPEN_COMMAND_MODAL";
 			modal: {
@@ -340,6 +355,13 @@ function buildConversationResetState(
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,
 		eventPopoverAnchor: null,
+		commandStatusOverlay: {
+			visible: false,
+			commandType: null,
+			phase: "success",
+			text: "",
+			timer: null,
+		},
 		commandModal: {
 			open: false,
 			type: null,
@@ -532,6 +554,39 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, mentionActiveIndex: action.index };
 		case "SET_ACTIVE_FRONTEND_TOOL":
 			return { ...state, activeFrontendTool: action.tool };
+		case "SHOW_COMMAND_STATUS_OVERLAY":
+			return {
+				...state,
+				commandStatusOverlay: {
+					visible: true,
+					commandType: action.commandType,
+					phase: action.phase,
+					text: action.text,
+					timer: null,
+				},
+			};
+		case "SET_COMMAND_STATUS_OVERLAY_TIMER":
+			return {
+				...state,
+				commandStatusOverlay: {
+					...state.commandStatusOverlay,
+					timer: action.timer,
+				},
+			};
+		case "HIDE_COMMAND_STATUS_OVERLAY":
+			if (!state.commandStatusOverlay.visible && !state.commandStatusOverlay.timer) {
+				return state;
+			}
+			return {
+				...state,
+				commandStatusOverlay: {
+					visible: false,
+					commandType: null,
+					phase: "success",
+					text: "",
+					timer: null,
+				},
+			};
 		case "OPEN_COMMAND_MODAL":
 			return {
 				...state,
@@ -747,6 +802,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	stateRef.current = state;
 
 	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
+		if (
+			action.type === "SHOW_COMMAND_STATUS_OVERLAY" ||
+			action.type === "HIDE_COMMAND_STATUS_OVERLAY" ||
+			action.type === "RESET_CONVERSATION" ||
+			action.type === "RESET_ACTIVE_CONVERSATION"
+		) {
+			const overlayTimer = stateRef.current.commandStatusOverlay.timer;
+			if (overlayTimer) {
+				clearTimeout(overlayTimer);
+			}
+		}
 		if (
 			action.type === "RESET_CONVERSATION" ||
 			action.type === "RESET_ACTIVE_CONVERSATION"

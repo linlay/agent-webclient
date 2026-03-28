@@ -52,7 +52,7 @@ export type EventCommand =
     nodeId: string;
     text: string;
     ts: number;
-    variant: 'default' | 'steer';
+    variant: 'default' | 'steer' | 'remember' | 'learn';
     attachments?: TimelineNode['attachments'];
     steerId?: string;
   }
@@ -189,20 +189,26 @@ export function processEvent(
     return commands;
   }
 
-  if (type === 'request.steer') {
+  if (type === 'request.steer' || type === 'request.remember' || type === 'request.learn') {
     const text = safeText(event.message);
     if (!text) return commands;
     const counter = config.mode === 'replay' ? state.nextCounter() : null;
+    const variant = type === 'request.steer'
+      ? 'steer'
+      : type === 'request.remember'
+        ? 'remember'
+        : 'learn';
+    const prefix = variant === 'steer' ? 'steer' : variant;
     const suffix = toText(event.steerId) || toText(event.requestId) || String(counter ?? Date.now());
     if (event.chatId) commands.push({ cmd: 'SET_CHAT_ID', chatId: event.chatId });
     if (event.runId) commands.push({ cmd: 'SET_RUN_ID', runId: String(event.runId) });
     commands.push({
       cmd: 'USER_MESSAGE',
-      nodeId: `steer_${suffix}`,
+      nodeId: `${prefix}_${suffix}`,
       text,
       ts: event.timestamp || Date.now(),
-      variant: 'steer',
-      steerId: toText(event.steerId) || suffix,
+      variant,
+      steerId: variant === 'steer' ? toText(event.steerId) || suffix : undefined,
     });
     return commands;
   }

@@ -1,6 +1,8 @@
 import type { TimelineNode } from '../context/types';
 
 export type SlashCommandId =
+  | 'remember'
+  | 'learn'
   | 'new'
   | 'redo'
   | 'debug'
@@ -26,6 +28,7 @@ export interface SlashCommandAvailability {
   hasLatestQuery: boolean;
   isFrontendActive: boolean;
   canUseVoiceMode: boolean;
+  hasActiveChat: boolean;
   hasCurrentWorker: boolean;
   workerHistoryCount: number;
   workerCount: number;
@@ -33,6 +36,20 @@ export interface SlashCommandAvailability {
 }
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
+  {
+    id: 'remember',
+    command: '/remember',
+    label: '记录记忆',
+    description: '记录长期偏好、事实或约束，并提交给后端记忆接口',
+    keywords: ['remember', 'memory', 'preference', 'fact'],
+  },
+  {
+    id: 'learn',
+    command: '/learn',
+    label: '沉淀学习',
+    description: '提炼当前会话经验、规则与做法，并提交给后端学习接口',
+    keywords: ['learn', 'lesson', 'rule', 'practice'],
+  },
   {
     id: 'schedule',
     command: '/schedule',
@@ -141,6 +158,9 @@ export function isSlashCommandDisabled(
   if (commandId === 'redo') {
     return availability.streaming || !availability.hasLatestQuery;
   }
+  if (commandId === 'remember' || commandId === 'learn') {
+    return availability.streaming || !availability.hasActiveChat || availability.commandModalOpen;
+  }
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
   }
@@ -162,7 +182,13 @@ export function isSlashCommandDisabled(
 export function getLatestQueryText(nodes: TimelineNode[]): string {
   for (let i = nodes.length - 1; i >= 0; i -= 1) {
     const node = nodes[i];
-    if (node.kind === 'message' && node.role === 'user') {
+    if (
+      node.kind === 'message'
+      && node.role === 'user'
+      && node.messageVariant !== 'steer'
+      && node.messageVariant !== 'remember'
+      && node.messageVariant !== 'learn'
+    ) {
       return String(node.text || '').trim();
     }
   }

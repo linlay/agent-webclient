@@ -11,6 +11,8 @@ export function useSlashCommandExecution(input: {
 	dispatch: (action: AppAction) => void;
 	toggleVoiceMode: () => void;
 	interruptCurrentRun: () => Promise<void>;
+	submitRememberCommand: () => Promise<void>;
+	submitLearnCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
 	state: Pick<AppState, "desktopDebugSidebarEnabled" | "layoutMode" | "planningMode" | "rightDrawerOpen">;
@@ -23,6 +25,8 @@ export function useSlashCommandExecution(input: {
 		dispatch,
 		toggleVoiceMode,
 		interruptCurrentRun,
+		submitRememberCommand,
+		submitLearnCommand,
 		setInputValue,
 		setSlashDismissed,
 		state,
@@ -39,6 +43,12 @@ export function useSlashCommandExecution(input: {
 			closeMention();
 
 			switch (commandId) {
+				case "remember":
+					await submitRememberCommand();
+					return;
+				case "learn":
+					await submitLearnCommand();
+					return;
 				case "schedule":
 					dispatch({
 						type: "OPEN_COMMAND_MODAL",
@@ -112,6 +122,8 @@ export function useSlashCommandExecution(input: {
 			setSlashDismissed,
 			slashAvailability,
 			state,
+			submitLearnCommand,
+			submitRememberCommand,
 			toggleVoiceMode,
 		],
 	);

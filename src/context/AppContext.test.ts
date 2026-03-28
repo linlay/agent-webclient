@@ -255,4 +255,60 @@ describe('appReducer conversation reset behavior', () => {
       focusArea: 'search',
     });
   });
+
+  it('shows, tracks timer, and hides command status overlay', () => {
+    const baseState = createInitialState();
+
+    const shown = appReducer(baseState, {
+      type: 'SHOW_COMMAND_STATUS_OVERLAY',
+      commandType: 'remember',
+      phase: 'pending',
+      text: '正在记忆中...',
+    });
+    const timed = appReducer(shown, {
+      type: 'SET_COMMAND_STATUS_OVERLAY_TIMER',
+      timer: 321,
+    });
+    const hidden = appReducer(timed, {
+      type: 'HIDE_COMMAND_STATUS_OVERLAY',
+    });
+
+    expect(shown.commandStatusOverlay).toMatchObject({
+      visible: true,
+      commandType: 'remember',
+      phase: 'pending',
+      text: '正在记忆中...',
+      timer: null,
+    });
+    expect(timed.commandStatusOverlay.timer).toBe(321);
+    expect(hidden.commandStatusOverlay).toMatchObject({
+      visible: false,
+      commandType: null,
+      text: '',
+      timer: null,
+    });
+  });
+
+  it('clears command status overlay during conversation reset', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      commandStatusOverlay: {
+        visible: true,
+        commandType: 'learn' as const,
+        phase: 'error' as const,
+        text: '学习失败',
+        timer: 456,
+      },
+    };
+
+    const next = appReducer(state, { type: 'RESET_CONVERSATION' });
+
+    expect(next.commandStatusOverlay).toMatchObject({
+      visible: false,
+      commandType: null,
+      text: '',
+      timer: null,
+    });
+  });
 });

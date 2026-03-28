@@ -6,6 +6,7 @@ import {
 } from "../../context/constants";
 import type { LayoutMode } from "../../context/constants";
 import { AtmosphereLayer } from "./AtmosphereLayer";
+import { CommandStatusOverlay } from "./CommandStatusOverlay";
 import { TopNav } from "./TopNav";
 import { BottomDock } from "./BottomDock";
 import { LeftSidebar } from "../sidebar/LeftSidebar";
@@ -79,6 +80,7 @@ export const AppShell: React.FC = () => {
 			<WorkerChatSidebar />
 			<RightSidebar />
 			<BottomDock />
+			<CommandStatusOverlay />
 			{showOverlay && <DrawerOverlay />}
 			{state.settingsOpen && <SettingsModal />}
 			<CommandModal />

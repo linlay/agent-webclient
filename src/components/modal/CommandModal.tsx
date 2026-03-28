@@ -149,7 +149,6 @@ export const CommandModal: React.FC = () => {
 	const subtitle = currentWorker
 		? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
 		: "当前未选中员工";
-
 	return (
 		<div
 			className="modal"
@@ -312,7 +311,9 @@ export const CommandModal: React.FC = () => {
 					) {
 						event.preventDefault();
 						confirmSchedule();
+						return;
 					}
+
 				}}
 			>
 				<CommandModalHeader

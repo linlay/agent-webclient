@@ -9,6 +9,8 @@ import {
   getVoiceVoices,
   getVoiceVoicesFlexible,
   interruptChat,
+  learnChat,
+  rememberChat,
   steerChat,
   uploadFile,
 } from './apiClient';
@@ -103,6 +105,40 @@ describe('apiClient query payloads', () => {
     expect(interruptPayload.runId).toBe('run_1');
     expect(steerPayload.runId).toBe('run_1');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('posts remember and learn commands to their dedicated endpoints', async () => {
+    await rememberChat({
+      requestId: 'req_remember',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      agentKey: 'agent_1',
+      message: '',
+      planningMode: true,
+    });
+    await learnChat({
+      requestId: 'req_learn',
+      chatId: 'chat_1',
+      message: '',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/remember');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/learn');
+
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
+      requestId: 'req_remember',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      agentKey: 'agent_1',
+      message: '',
+      planningMode: true,
+    });
+    expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
+      requestId: 'req_learn',
+      chatId: 'chat_1',
+      message: '',
+      planningMode: false,
+    });
   });
 
   it('requests voice capabilities and voices from the voice api namespace', async () => {
