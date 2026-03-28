@@ -421,6 +421,11 @@ export interface QueryLikeParams {
   planningMode?: boolean;
 }
 
+export interface BackgroundCommandParams {
+  requestId: string;
+  chatId: string;
+}
+
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
   return requestJson('/api/interrupt', {
     method: 'POST',
@@ -452,32 +457,22 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
   });
 }
 
-export function rememberChat(params: QueryLikeParams): Promise<ApiResponse> {
+export function rememberChat(params: BackgroundCommandParams): Promise<ApiResponse> {
   return requestJson('/api/remember', {
     method: 'POST',
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
-      runId: params.runId,
-      agentKey: params.agentKey,
-      teamId: params.teamId,
-      message: params.message,
-      planningMode: params.planningMode ?? false,
     }),
   });
 }
 
-export function learnChat(params: QueryLikeParams): Promise<ApiResponse> {
+export function learnChat(params: BackgroundCommandParams): Promise<ApiResponse> {
   return requestJson('/api/learn', {
     method: 'POST',
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
-      runId: params.runId,
-      agentKey: params.agentKey,
-      teamId: params.teamId,
-      message: params.message,
-      planningMode: params.planningMode ?? false,
     }),
   });
 }

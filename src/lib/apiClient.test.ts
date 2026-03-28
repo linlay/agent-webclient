@@ -111,34 +111,37 @@ describe('apiClient query payloads', () => {
     await rememberChat({
       requestId: 'req_remember',
       chatId: 'chat_1',
-      runId: 'run_1',
-      agentKey: 'agent_1',
-      message: 'remember prompt',
-      planningMode: true,
     });
     await learnChat({
       requestId: 'req_learn',
       chatId: 'chat_1',
-      message: 'learn prompt',
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/remember');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/learn');
 
-    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
+    const rememberPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const learnPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+
+    expect(rememberPayload).toEqual({
       requestId: 'req_remember',
       chatId: 'chat_1',
-      runId: 'run_1',
-      agentKey: 'agent_1',
-      message: 'remember prompt',
-      planningMode: true,
     });
-    expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
+    expect(learnPayload).toEqual({
       requestId: 'req_learn',
       chatId: 'chat_1',
-      message: 'learn prompt',
-      planningMode: false,
     });
+
+    expect(rememberPayload).not.toHaveProperty('message');
+    expect(rememberPayload).not.toHaveProperty('planningMode');
+    expect(rememberPayload).not.toHaveProperty('runId');
+    expect(rememberPayload).not.toHaveProperty('agentKey');
+    expect(rememberPayload).not.toHaveProperty('teamId');
+    expect(learnPayload).not.toHaveProperty('message');
+    expect(learnPayload).not.toHaveProperty('planningMode');
+    expect(learnPayload).not.toHaveProperty('runId');
+    expect(learnPayload).not.toHaveProperty('agentKey');
+    expect(learnPayload).not.toHaveProperty('teamId');
   });
 
   it('requests voice capabilities and voices from the voice api namespace', async () => {

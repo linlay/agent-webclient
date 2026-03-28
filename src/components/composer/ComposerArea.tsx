@@ -22,7 +22,6 @@ import {
 } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
-import { getBackgroundCommandPrompt } from "../../lib/backgroundCommandPrompts";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { isImeEnterConfirming } from "../../lib/ime";
 import { computeSlashPopoverPlacement } from "../../lib/slashPopoverPlacement";
@@ -662,16 +661,12 @@ export const ComposerArea: React.FC = () => {
 			}
 
 			const requestId = createRequestId(commandType);
-			const runId = resolveCurrentRunId();
-			const agentKey = resolveCurrentAgentKey();
-			const teamId = resolveCurrentTeamId();
 			const pendingText =
 				commandType === "remember"
 					? "正在记忆中..."
 					: "正在学习中...";
 			const errorText =
 				commandType === "remember" ? "记忆失败" : "学习失败";
-			const prompt = getBackgroundCommandPrompt(commandType);
 
 			triggerCommandStatusOverlay(commandType, "pending", pendingText);
 
@@ -681,15 +676,10 @@ export const ComposerArea: React.FC = () => {
 				await request({
 					requestId,
 					chatId,
-					runId: runId || undefined,
-					agentKey: agentKey || undefined,
-					teamId: teamId || undefined,
-					message: prompt,
-					planningMode: Boolean(state.planningMode),
 				});
 				dispatch({
 					type: "APPEND_DEBUG",
-					line: `[${commandType}] submitted for chatId=${chatId}, runId=${runId || "-"}, requestId=${requestId}`,
+					line: `[${commandType}] submitted for chatId=${chatId}, requestId=${requestId}`,
 				});
 				triggerCommandStatusOverlay(commandType, "success", pendingText);
 			} catch (error) {
@@ -704,12 +694,8 @@ export const ComposerArea: React.FC = () => {
 		},
 		[
 			dispatch,
-			resolveCurrentAgentKey,
-			resolveCurrentRunId,
-			resolveCurrentTeamId,
 			scheduleCommandStatusOverlayHide,
 			state.chatId,
-			state.planningMode,
 			triggerCommandStatusOverlay,
 		],
 	);
