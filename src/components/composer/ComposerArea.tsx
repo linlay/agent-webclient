@@ -22,6 +22,7 @@ import {
 } from "../../lib/apiClient";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
+import { getBackgroundCommandPrompt } from "../../lib/backgroundCommandPrompts";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { isImeEnterConfirming } from "../../lib/ime";
 import { computeSlashPopoverPlacement } from "../../lib/slashPopoverPlacement";
@@ -670,6 +671,7 @@ export const ComposerArea: React.FC = () => {
 					: "正在学习中...";
 			const errorText =
 				commandType === "remember" ? "记忆失败" : "学习失败";
+			const prompt = getBackgroundCommandPrompt(commandType);
 
 			triggerCommandStatusOverlay(commandType, "pending", pendingText);
 
@@ -682,7 +684,7 @@ export const ComposerArea: React.FC = () => {
 					runId: runId || undefined,
 					agentKey: agentKey || undefined,
 					teamId: teamId || undefined,
-					message: "",
+					message: prompt,
 					planningMode: Boolean(state.planningMode),
 				});
 				dispatch({

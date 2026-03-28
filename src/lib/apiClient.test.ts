@@ -113,13 +113,13 @@ describe('apiClient query payloads', () => {
       chatId: 'chat_1',
       runId: 'run_1',
       agentKey: 'agent_1',
-      message: '',
+      message: 'remember prompt',
       planningMode: true,
     });
     await learnChat({
       requestId: 'req_learn',
       chatId: 'chat_1',
-      message: '',
+      message: 'learn prompt',
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/remember');
@@ -130,13 +130,13 @@ describe('apiClient query payloads', () => {
       chatId: 'chat_1',
       runId: 'run_1',
       agentKey: 'agent_1',
-      message: '',
+      message: 'remember prompt',
       planningMode: true,
     });
     expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
       requestId: 'req_learn',
       chatId: 'chat_1',
-      message: '',
+      message: 'learn prompt',
       planningMode: false,
     });
   });
