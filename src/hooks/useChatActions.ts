@@ -1,216 +1,38 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
 import { getChat } from '../lib/apiClient';
-import type { Chat, AgentEvent, TimelineNode, Plan, PlanRuntime, ToolState, WorkerRow, TtsVoiceBlock } from '../context/types';
-import { parseContentSegments } from '../lib/contentSegments';
-import type { EventCommand, EventProcessorState } from '../lib/eventProcessor';
-import { processEvent } from '../lib/eventProcessor';
+import type { Chat, AgentEvent, WorkerRow } from '../context/types';
 import { createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';
 import { useWorkerData } from './useWorkerData';
+import {
+  applyPendingSessionUpdates,
+  buildConversationStateUpdates,
+  markSessionSnapshotApplied,
+  snapshotConversationState,
+} from '../lib/conversationSession';
+import { createReplayState, replayEvent, type ReplayState } from '../lib/conversationReplay';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
  * Avoids React batching issues by building up the full timeline locally,
  * then dispatching the complete result via BATCH_UPDATE.
  */
-export interface ReplayState {
-  timelineNodes: Map<string, TimelineNode>;
-  timelineOrder: string[];
-  contentNodeById: Map<string, string>;
-  reasoningNodeById: Map<string, string>;
-  toolNodeById: Map<string, string>;
-  toolStates: Map<string, ToolState>;
-  chatAgentById: Map<string, string>;
-  timelineCounter: number;
-  activeReasoningKey: string;
-  chatId: string;
-  runId: string;
-  events: AgentEvent[];
-  debugLines: string[];
-  plan: Plan | null;
-  planRuntimeByTaskId: Map<string, PlanRuntime>;
-  planCurrentRunningTaskId: string;
-  planLastTouchedTaskId: string;
-}
-
-export function createReplayState(): ReplayState {
-  return {
-    timelineNodes: new Map(),
-    timelineOrder: [],
-    contentNodeById: new Map(),
-    reasoningNodeById: new Map(),
-    toolNodeById: new Map(),
-    toolStates: new Map(),
-    chatAgentById: new Map(),
-    timelineCounter: 0,
-    activeReasoningKey: '',
-    chatId: '',
-    runId: '',
-    events: [],
-    debugLines: [],
-    plan: null,
-    planRuntimeByTaskId: new Map(),
-    planCurrentRunningTaskId: '',
-    planLastTouchedTaskId: '',
-  };
-}
-
-function createReplayProcessorState(rs: ReplayState): EventProcessorState {
-  return {
-    getContentNodeId: (contentId) => rs.contentNodeById.get(contentId),
-    getReasoningNodeId: (reasoningKey) => rs.reasoningNodeById.get(reasoningKey),
-    getToolNodeId: (toolId) => rs.toolNodeById.get(toolId),
-    getToolState: (toolId) => rs.toolStates.get(toolId),
-    getTimelineNode: (nodeId) => rs.timelineNodes.get(nodeId),
-    getNodeText: (nodeId) => rs.timelineNodes.get(nodeId)?.text || '',
-    nextCounter: () => {
-      const next = rs.timelineCounter;
-      rs.timelineCounter += 1;
-      return next;
-    },
-    peekCounter: () => rs.timelineCounter,
-    activeReasoningKey: rs.activeReasoningKey,
-    chatId: rs.chatId,
-    runId: rs.runId,
-    currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
-    getPlanId: () => rs.plan?.planId,
-  };
-}
-
-function buildHistoryTtsVoiceBlocks(
-  segments: ReturnType<typeof parseContentSegments>,
-  existing?: Record<string, TtsVoiceBlock>,
-): Record<string, TtsVoiceBlock> | undefined {
-  const next: Record<string, TtsVoiceBlock> = {};
-  let hasVoice = false;
-
-  for (const segment of segments) {
-    if (segment.kind !== 'ttsVoice' || !segment.signature) continue;
-    hasVoice = true;
-    const previous = existing?.[segment.signature];
-    next[segment.signature] = {
-      signature: segment.signature,
-      text: String(segment.text || previous?.text || ''),
-      closed: Boolean(segment.closed),
-      expanded: Boolean(previous?.expanded),
-      status: previous?.status || 'ready',
-      error: String(previous?.error || ''),
-      sampleRate: previous?.sampleRate,
-      channels: previous?.channels,
-    };
-  }
-
-  return hasVoice ? next : undefined;
-}
-
-function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
-  switch (command.cmd) {
-    case 'SET_CHAT_ID':
-      rs.chatId = command.chatId;
-      return;
-    case 'SET_RUN_ID':
-      rs.runId = command.runId;
-      return;
-    case 'SET_CHAT_AGENT':
-      rs.chatAgentById.set(command.chatId, command.agentKey);
-      return;
-    case 'SET_CONTENT_NODE_ID':
-      rs.contentNodeById.set(command.contentId, command.nodeId);
-      return;
-    case 'SET_REASONING_NODE_ID':
-      rs.reasoningNodeById.set(command.reasoningId, command.nodeId);
-      return;
-    case 'SET_TOOL_NODE_ID':
-      rs.toolNodeById.set(command.toolId, command.nodeId);
-      return;
-    case 'APPEND_TIMELINE_ORDER':
-      rs.timelineOrder.push(command.nodeId);
-      return;
-    case 'SET_TIMELINE_NODE': {
-      const existing = rs.timelineNodes.get(command.id);
-      if (command.node.kind === 'content') {
-        rs.timelineNodes.set(command.id, {
-          ...command.node,
-          ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(
-            command.node.segments || [],
-            existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined,
-          ),
-        });
-        return;
-      }
-      rs.timelineNodes.set(command.id, command.node);
-      return;
-    }
-    case 'SET_TOOL_STATE':
-      rs.toolStates.set(command.toolId, command.state);
-      return;
-    case 'SET_ACTIVE_REASONING_KEY':
-      rs.activeReasoningKey = command.key;
-      return;
-    case 'SET_PLAN':
-      rs.plan = command.plan;
-      if (command.resetRuntime) {
-        rs.planRuntimeByTaskId = new Map();
-        rs.planCurrentRunningTaskId = '';
-        rs.planLastTouchedTaskId = '';
-      }
-      return;
-    case 'SET_PLAN_RUNTIME':
-      rs.planRuntimeByTaskId.set(command.taskId, command.runtime);
-      return;
-    case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
-      rs.planCurrentRunningTaskId = command.taskId;
-      return;
-    case 'SET_PLAN_LAST_TOUCHED_TASK_ID':
-      rs.planLastTouchedTaskId = command.taskId;
-      return;
-    case 'USER_MESSAGE':
-      rs.timelineNodes.set(command.nodeId, {
-        id: command.nodeId,
-        kind: 'message',
-        role: 'user',
-        messageVariant: command.variant,
-        steerId: command.steerId,
-        text: command.text,
-        attachments: command.attachments,
-        ts: command.ts,
-      });
-      rs.timelineOrder.push(command.nodeId);
-      return;
-    case 'SYSTEM_ERROR':
-      rs.timelineNodes.set(command.nodeId, {
-        id: command.nodeId,
-        kind: 'message',
-        role: 'system',
-        text: command.text,
-        ts: command.ts,
-      });
-      rs.timelineOrder.push(command.nodeId);
-      return;
-  }
-}
-
-/**
- * Process a single event into the mutable replay state.
- * This mirrors useAgentEventHandler logic but writes to mutable state.
- */
-export function replayEvent(rs: ReplayState, event: AgentEvent): void {
-  rs.events.push(event);
-  const commands = processEvent(event, createReplayProcessorState(rs), {
-    mode: 'replay',
-    reasoningExpandedDefault: false,
-  });
-  for (const command of commands) {
-    applyReplayEventCommand(rs, command);
-  }
-}
+export type { ReplayState } from '../lib/conversationReplay';
+export { createReplayState, replayEvent } from '../lib/conversationReplay';
 
 /**
  * useChatActions — handles loading agents, chats, and switching chat context.
  */
 export function useChatActions() {
-  const { dispatch, stateRef } = useAppContext();
+  const {
+    dispatch,
+    stateRef,
+    querySessionsRef,
+    chatQuerySessionIndexRef,
+    activeQuerySessionRequestIdRef,
+  } = useAppContext();
   const loadSeqRef = useRef(0);
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
@@ -227,15 +49,104 @@ export function useChatActions() {
     });
   }, []);
 
+  const detachActiveConversationSession = useCallback(() => {
+    const state = stateRef.current;
+    const activeRequestId = String(activeQuerySessionRequestIdRef.current || '').trim();
+    if (!activeRequestId) {
+      return null;
+    }
+
+    const hasActiveVoiceQuery =
+      state.inputMode === 'voice'
+      || state.voiceChat.sessionActive
+      || Boolean(String(state.voiceChat.activeRequestId || '').trim());
+    if (hasActiveVoiceQuery) {
+      state.abortController?.abort();
+      activeQuerySessionRequestIdRef.current = '';
+      return null;
+    }
+
+    const session = querySessionsRef.current.get(activeRequestId) || null;
+    if (!session) {
+      activeQuerySessionRequestIdRef.current = '';
+      return null;
+    }
+
+    session.snapshot = snapshotConversationState(state);
+    session.chatId = session.chatId || String(state.chatId || '').trim();
+    session.runId = session.runId || String(state.runId || '').trim();
+    session.streaming = Boolean(state.streaming);
+    session.abortController = state.abortController;
+    markSessionSnapshotApplied(session);
+
+    activeQuerySessionRequestIdRef.current = '';
+    return session;
+  }, [activeQuerySessionRequestIdRef, querySessionsRef, stateRef]);
+
+  const activateBlankConversation = useCallback((options: {
+    preserveWorkerContext?: boolean;
+    focusComposerOnComplete?: boolean;
+  } = {}) => {
+    const preserveWorkerContext = Boolean(options.preserveWorkerContext);
+    const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
+
+    detachActiveConversationSession();
+    clearPlanAutoCollapseTimer();
+    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
+    window.dispatchEvent(new CustomEvent('agent:clear-composer-attachments'));
+    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
+    dispatch({ type: 'SET_CHAT_ID', chatId: '' });
+    dispatch({ type: 'SET_RUN_ID', runId: '' });
+    dispatch({ type: 'SET_REQUEST_ID', requestId: '' });
+    dispatch({ type: 'SET_STREAMING', streaming: false });
+    dispatch({ type: 'SET_ABORT_CONTROLLER', controller: null });
+    dispatch({
+      type: preserveWorkerContext ? 'RESET_ACTIVE_CONVERSATION' : 'RESET_CONVERSATION',
+    });
+    if (focusComposerOnComplete) {
+      focusComposerSoon();
+    }
+  }, [clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, focusComposerSoon]);
+
+  const restoreSessionConversation = useCallback((chatId: string): boolean => {
+    const requestId = String(chatQuerySessionIndexRef.current.get(chatId) || '').trim();
+    if (!requestId) {
+      return false;
+    }
+
+    const session = querySessionsRef.current.get(requestId) || null;
+    if (!session?.snapshot) {
+      return false;
+    }
+
+    const restored = applyPendingSessionUpdates(session.snapshot, session);
+    session.snapshot = restored;
+    session.streaming = restored.streaming;
+    session.abortController = restored.abortController;
+    markSessionSnapshotApplied(session);
+
+    flushSync(() => {
+      dispatch({
+        type: 'BATCH_UPDATE',
+        updates: buildConversationStateUpdates(restored),
+      });
+    });
+    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
+    activeQuerySessionRequestIdRef.current = session.requestId;
+    return true;
+  }, [activeQuerySessionRequestIdRef, chatQuerySessionIndexRef, dispatch, querySessionsRef]);
+
   const loadChat = useCallback(
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
       if (!chatId) return;
       const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
       const seq = ++loadSeqRef.current;
+      detachActiveConversationSession();
       dispatch({ type: 'SET_CHAT_ID', chatId });
       clearPlanAutoCollapseTimer();
       dispatch({ type: 'RESET_CONVERSATION' });
+      window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
       window.dispatchEvent(new CustomEvent('agent:voice-reset'));
 
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
@@ -248,6 +159,13 @@ export function useChatActions() {
           worker: worker || null,
         });
         dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
+      }
+
+      if (restoreSessionConversation(chatId)) {
+        if (focusComposerOnComplete) {
+          focusComposerSoon();
+        }
+        return;
       }
 
       try {
@@ -309,7 +227,14 @@ export function useChatActions() {
         }
       }
     },
-    [clearPlanAutoCollapseTimer, dispatch, focusComposerSoon, stateRef]
+    [
+      clearPlanAutoCollapseTimer,
+      detachActiveConversationSession,
+      dispatch,
+      focusComposerSoon,
+      restoreSessionConversation,
+      stateRef,
+    ]
   );
 
   const selectWorkerConversation = useCallback(async (
@@ -339,22 +264,33 @@ export function useChatActions() {
       return;
     }
 
-    dispatch({ type: 'SET_CHAT_ID', chatId: '' });
-    clearPlanAutoCollapseTimer();
-    dispatch({ type: 'RESET_CONVERSATION' });
-    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
+    activateBlankConversation({
+      preserveWorkerContext: true,
+      focusComposerOnComplete,
+    });
     dispatch({
       type: 'APPEND_DEBUG',
       line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
     });
-    if (focusComposerOnComplete) {
-      focusComposerSoon();
-    }
-  }, [clearPlanAutoCollapseTimer, dispatch, focusComposerSoon, loadChat, stateRef]);
+  }, [activateBlankConversation, dispatch, loadChat, stateRef]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const focusComposerOnComplete = Boolean((event as CustomEvent).detail?.focusComposerOnComplete);
+      activateBlankConversation({
+        preserveWorkerContext: stateRef.current.conversationMode === 'worker',
+        focusComposerOnComplete,
+      });
+    };
+    window.addEventListener('agent:start-new-conversation', handler);
+    return () => window.removeEventListener('agent:start-new-conversation', handler);
+  }, [activateBlankConversation, stateRef]);
+
   const workerData = useWorkerData({ loadChat, selectWorkerConversation });
 
   return {
     ...workerData,
+    activateBlankConversation,
     loadChat,
     selectWorkerConversation,
   };

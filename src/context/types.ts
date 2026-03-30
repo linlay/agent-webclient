@@ -64,6 +64,9 @@ export interface ToolResultPayload {
 export interface TimelineAttachment {
   name: string;
   size?: number;
+  type?: string;
+  mimeType?: string;
+  url?: string;
 }
 
 export interface EmbeddedViewport {

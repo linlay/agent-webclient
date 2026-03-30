@@ -1,5 +1,5 @@
 import { createInitialState } from '../context/AppContext';
-import { findMatchingPendingSteer } from './useAgentEventHandler';
+import { findMatchingPendingSteer, shouldSyncLiveCache } from './useAgentEventHandler';
 
 describe('findMatchingPendingSteer', () => {
   beforeEach(() => {
@@ -57,5 +57,54 @@ describe('findMatchingPendingSteer', () => {
     });
 
     expect(matched).toBeNull();
+  });
+});
+
+describe('shouldSyncLiveCache', () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => '',
+      },
+    });
+  });
+
+  it('requests cache rebuild when restored state text is ahead of cached node text', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      timelineCounter: 1,
+      timelineNodes: new Map([
+        ['content_0', {
+          id: 'content_0',
+          kind: 'content' as const,
+          contentId: 'content_1',
+          text: 'Hello world',
+          segments: [],
+          ts: 100,
+        }],
+      ]),
+      timelineOrder: ['content_0'],
+      contentNodeById: new Map([['content_1', 'content_0']]),
+    };
+
+    const cache = {
+      contentNodeById: new Map([['content_1', 'content_0']]),
+      reasoningNodeById: new Map(),
+      toolNodeById: new Map(),
+      toolStateById: new Map(),
+      nodeText: new Map([['content_0', 'Hello']]),
+      counter: 1,
+      activeReasoningKey: '',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      agentKey: '',
+      teamId: '',
+    };
+
+    expect(shouldSyncLiveCache(cache as never, state)).toBe(true);
   });
 });

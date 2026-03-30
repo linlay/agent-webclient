@@ -119,23 +119,9 @@ export const LeftSidebar: React.FC = () => {
 	};
 
 	const handleStartNewConversation = () => {
-		if (state.planAutoCollapseTimer) {
-			window.clearTimeout(state.planAutoCollapseTimer);
-			dispatch({ type: "SET_PLAN_AUTO_COLLAPSE_TIMER", timer: null });
-		}
-		state.abortController?.abort();
-		window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-		dispatch({ type: "SET_CHAT_ID", chatId: "" });
-		dispatch({ type: "SET_RUN_ID", runId: "" });
-		dispatch({ type: "SET_REQUEST_ID", requestId: "" });
-		dispatch({ type: "SET_STREAMING", streaming: false });
-		dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
-		dispatch({
-			type:
-				state.conversationMode === "worker"
-					? "RESET_ACTIVE_CONVERSATION"
-					: "RESET_CONVERSATION",
-		});
+		window.dispatchEvent(
+			new CustomEvent("agent:start-new-conversation"),
+		);
 	};
 
 	return (

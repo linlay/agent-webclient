@@ -20,6 +20,11 @@ import {
 	steerChat,
 	uploadFile,
 } from "../../lib/apiClient";
+import {
+	formatAttachmentSize,
+	getAttachmentKind,
+	getAttachmentKindLabel,
+} from "../../lib/attachmentUtils";
 import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
@@ -29,7 +34,9 @@ import {
 	getFilteredSlashCommands,
 	getLatestQueryText,
 } from "../../lib/slashCommands";
+import { normalizeTimelineAttachments } from "../../lib/timelineAttachments";
 import { useSlashCommandExecution } from "../../hooks/useSlashCommandExecution";
+import { AttachmentCard } from "../common/AttachmentCard";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 import { useSpeechInput } from "./useSpeechInput";
@@ -38,26 +45,73 @@ interface ComposerAttachment {
 	id: string;
 	name: string;
 	size: number;
+	type?: string;
+	mimeType?: string;
+	resourceUrl?: string;
+	previewUrl?: string;
 	status: "uploading" | "ready" | "error";
 	error: string;
 	references: unknown[];
 }
 
-function formatAttachmentSize(size: number): string {
-	if (!Number.isFinite(size) || size <= 0) {
-		return "0 B";
+function createAttachmentPreviewUrl(file: File): string {
+	if (getAttachmentKind({ name: file.name, mimeType: file.type }) !== "image") {
+		return "";
 	}
 
-	const units = ["B", "KB", "MB", "GB"];
-	let value = size;
-	let unitIndex = 0;
-	while (value >= 1024 && unitIndex < units.length - 1) {
-		value /= 1024;
-		unitIndex += 1;
+	if (
+		typeof URL === "undefined" ||
+		typeof URL.createObjectURL !== "function"
+	) {
+		return "";
 	}
 
-	const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
-	return `${value.toFixed(precision)} ${units[unitIndex]}`;
+	try {
+		return URL.createObjectURL(file);
+	} catch {
+		return "";
+	}
+}
+
+function revokeAttachmentPreviewUrl(previewUrl?: string): void {
+	if (
+		!previewUrl ||
+		!previewUrl.startsWith("blob:") ||
+		typeof URL === "undefined" ||
+		typeof URL.revokeObjectURL !== "function"
+	) {
+		return;
+	}
+
+	URL.revokeObjectURL(previewUrl);
+}
+
+function getComposerAttachmentSubtitle(
+	attachment: ComposerAttachment,
+	showReadyMeta = false,
+): string {
+	if (attachment.status === "error") {
+		return attachment.error || "上传失败";
+	}
+
+	if (attachment.status === "uploading") {
+		return `${getAttachmentKindLabel(attachment)}上传中...`;
+	}
+
+	const sizeText = formatAttachmentSize(attachment.size);
+	if (showReadyMeta) {
+		return sizeText
+			? `${getAttachmentKindLabel(attachment)} · ${sizeText}`
+			: getAttachmentKindLabel(attachment);
+	}
+
+	if (getAttachmentKind(attachment) === "image") {
+		return "";
+	}
+
+	return sizeText
+		? `${getAttachmentKindLabel(attachment)} · ${sizeText}`
+		: getAttachmentKindLabel(attachment);
 }
 
 export const ComposerArea: React.FC = () => {
@@ -68,9 +122,11 @@ export const ComposerArea: React.FC = () => {
 	const slashPaletteRef = useRef<HTMLDivElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const attachmentViewportRef = useRef<HTMLDivElement>(null);
 	const isComposingRef = useRef(false);
 	const pendingSendRef = useRef(false);
 	const pendingSentMessageRef = useRef("");
+	const attachmentsRef = useRef<ComposerAttachment[]>([]);
 	const [inputValue, setInputValue] = useState("");
 	const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
 	const [attachmentChatId, setAttachmentChatId] = useState("");
@@ -84,6 +140,10 @@ export const ComposerArea: React.FC = () => {
 		maxHeight: number;
 		placement: "above" | "below";
 	} | null>(null);
+	const [attachmentScrollState, setAttachmentScrollState] = useState({
+		canScrollLeft: false,
+		canScrollRight: false,
+	});
 
 	const isFrontendActive = !!state.activeFrontendTool;
 	const hasPendingSteers = state.pendingSteers.length > 0;
@@ -151,6 +211,10 @@ export const ComposerArea: React.FC = () => {
 			attachments.some((attachment) => attachment.status === "uploading"),
 		[attachments],
 	);
+	const useUnifiedComposerAttachmentRow = attachments.length > 1;
+	const hasComposerAttachmentOverflow =
+		attachmentScrollState.canScrollLeft ||
+		attachmentScrollState.canScrollRight;
 	const sendReferences = useMemo(
 		() =>
 			readyAttachments.flatMap((attachment) => attachment.references),
@@ -161,6 +225,9 @@ export const ComposerArea: React.FC = () => {
 			readyAttachments.map((attachment) => ({
 				name: attachment.name,
 				size: attachment.size,
+				type: attachment.type,
+				mimeType: attachment.mimeType,
+				url: attachment.resourceUrl,
 			})),
 		[readyAttachments],
 	);
@@ -178,6 +245,53 @@ export const ComposerArea: React.FC = () => {
 		isFrontendActive ||
 		hasUploadingAttachments ||
 		(!inputValue.trim() && sendReferences.length === 0);
+	const updateComposerAttachmentScrollState = useCallback(() => {
+		const viewport = attachmentViewportRef.current;
+		if (!viewport) {
+			setAttachmentScrollState({
+				canScrollLeft: false,
+				canScrollRight: false,
+			});
+			return;
+		}
+
+		const maxScrollLeft = Math.max(
+			viewport.scrollWidth - viewport.clientWidth,
+			0,
+		);
+		setAttachmentScrollState({
+			canScrollLeft: viewport.scrollLeft > 4,
+			canScrollRight:
+				maxScrollLeft > 4 &&
+				viewport.scrollLeft < maxScrollLeft - 4,
+		});
+	}, []);
+	const scrollComposerAttachments = useCallback(
+		(direction: "left" | "right") => {
+			const viewport = attachmentViewportRef.current;
+			if (!viewport) {
+				return;
+			}
+
+			const distance = Math.max(viewport.clientWidth * 0.72, 220);
+			viewport.scrollBy({
+				left: direction === "left" ? -distance : distance,
+				behavior: "smooth",
+			});
+		},
+		[],
+	);
+	const clearComposerAttachments = useCallback(() => {
+		attachmentsRef.current.forEach((attachment) => {
+			revokeAttachmentPreviewUrl(attachment.previewUrl);
+		});
+		setAttachments([]);
+		setAttachmentChatId("");
+		setAttachmentScrollState({
+			canScrollLeft: false,
+			canScrollRight: false,
+		});
+	}, []);
 
 	const autoresize = useCallback(() => {
 		const el = textareaRef.current;
@@ -192,6 +306,75 @@ export const ComposerArea: React.FC = () => {
 	useEffect(() => {
 		autoresize();
 	}, [inputValue, autoresize]);
+
+	useEffect(() => {
+		attachmentsRef.current = attachments;
+	}, [attachments]);
+
+	useEffect(() => {
+		updateComposerAttachmentScrollState();
+	}, [attachments, updateComposerAttachmentScrollState]);
+
+	useEffect(() => {
+		const viewport = attachmentViewportRef.current;
+		if (!viewport) {
+			return;
+		}
+
+		const handleScroll = () => {
+			updateComposerAttachmentScrollState();
+		};
+
+		handleScroll();
+		viewport.addEventListener("scroll", handleScroll, {
+			passive: true,
+		});
+		window.addEventListener("resize", handleScroll);
+
+		let resizeObserver: ResizeObserver | null = null;
+		if (typeof ResizeObserver !== "undefined") {
+			resizeObserver = new ResizeObserver(() => {
+				updateComposerAttachmentScrollState();
+			});
+			resizeObserver.observe(viewport);
+			const content = viewport.firstElementChild;
+			if (content instanceof Element) {
+				resizeObserver.observe(content);
+			}
+		}
+
+		return () => {
+			viewport.removeEventListener("scroll", handleScroll);
+			window.removeEventListener("resize", handleScroll);
+			resizeObserver?.disconnect();
+		};
+	}, [attachments.length, updateComposerAttachmentScrollState]);
+
+	useEffect(
+		() => () => {
+			attachmentsRef.current.forEach((attachment) => {
+				revokeAttachmentPreviewUrl(attachment.previewUrl);
+			});
+		},
+		[],
+	);
+
+	useEffect(() => {
+		const handleClearComposerAttachments = () => {
+			clearComposerAttachments();
+		};
+
+		window.addEventListener(
+			"agent:clear-composer-attachments",
+			handleClearComposerAttachments,
+		);
+		return () => {
+			window.removeEventListener(
+				"agent:clear-composer-attachments",
+				handleClearComposerAttachments,
+			);
+		};
+	}, [clearComposerAttachments]);
 
 	useEffect(() => {
 		if (String(state.chatId || "").trim()) {
@@ -346,6 +529,12 @@ export const ComposerArea: React.FC = () => {
 	const handleRemoveAttachment = useCallback(
 		(attachmentId: string) => {
 			setAttachments((current) => {
+				const removedAttachment = current.find(
+					(attachment) => attachment.id === attachmentId,
+				);
+				if (removedAttachment) {
+					revokeAttachmentPreviewUrl(removedAttachment.previewUrl);
+				}
 				const next = current.filter(
 					(attachment) => attachment.id !== attachmentId,
 				);
@@ -373,6 +562,13 @@ export const ComposerArea: React.FC = () => {
 				id: createRequestId("upload"),
 				name: file.name,
 				size: file.size,
+				type: getAttachmentKind({
+					name: file.name,
+					mimeType: file.type,
+				}),
+				mimeType: file.type || undefined,
+				resourceUrl: "",
+				previewUrl: createAttachmentPreviewUrl(file),
 				status: "uploading" as const,
 				error: "",
 				references: [],
@@ -404,11 +600,25 @@ export const ComposerArea: React.FC = () => {
 								"上传成功，但接口未返回可用的文件引用",
 							);
 						}
+						const [normalizedAttachment] =
+							normalizeTimelineAttachments(references);
 						setAttachments((current) =>
 							current.map((item) =>
 								item.id === attachment.id
 									? {
 											...item,
+											size:
+												normalizedAttachment?.size ??
+												item.size,
+											type:
+												normalizedAttachment?.type ||
+												item.type,
+											mimeType:
+												normalizedAttachment?.mimeType ||
+												item.mimeType,
+											resourceUrl:
+												normalizedAttachment?.url ||
+												item.resourceUrl,
 											status: "ready",
 											error: "",
 											references,
@@ -550,28 +760,14 @@ export const ComposerArea: React.FC = () => {
 	}, [state.chatId, state.workerIndexByKey, state.workerSelectionKey]);
 
 	const resetForNewConversation = useCallback(() => {
-		if (state.planAutoCollapseTimer) {
-			window.clearTimeout(state.planAutoCollapseTimer);
-			dispatch({ type: "SET_PLAN_AUTO_COLLAPSE_TIMER", timer: null });
-		}
-		state.abortController?.abort();
-		window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-		dispatch({ type: "SET_CHAT_ID", chatId: "" });
-		dispatch({ type: "SET_RUN_ID", runId: "" });
-		dispatch({ type: "SET_REQUEST_ID", requestId: "" });
-		dispatch({ type: "SET_STREAMING", streaming: false });
-		dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
-		dispatch({
-			type:
-				state.conversationMode === "worker"
-					? "RESET_ACTIVE_CONVERSATION"
-					: "RESET_CONVERSATION",
-		});
+		clearComposerAttachments();
+		window.dispatchEvent(
+			new CustomEvent("agent:start-new-conversation", {
+				detail: { focusComposerOnComplete: true },
+			}),
+		);
 	}, [
-		dispatch,
-		state.abortController,
-		state.conversationMode,
-		state.planAutoCollapseTimer,
+		clearComposerAttachments,
 	]);
 
 	const interruptCurrentRun = useCallback(async () => {
@@ -763,6 +959,9 @@ export const ComposerArea: React.FC = () => {
 			state.chatId || attachmentChatId || "",
 		).trim();
 		setInputValue("");
+		attachments.forEach((attachment) => {
+			revokeAttachmentPreviewUrl(attachment.previewUrl);
+		});
 		setAttachments([]);
 		setAttachmentChatId("");
 		setSlashDismissed(false);
@@ -779,6 +978,7 @@ export const ComposerArea: React.FC = () => {
 		);
 	}, [
 		activeSlashIndex,
+		attachments,
 		closeMention,
 		dispatch,
 		executeSlashCommand,
@@ -1243,56 +1443,82 @@ export const ComposerArea: React.FC = () => {
 						</div>
 					</div>
 					{attachments.length > 0 && (
-						<div className="composer-attachments" aria-live="polite">
-							{attachments.map((attachment) => (
-								<div
-									key={attachment.id}
-									className={`composer-attachment-chip is-${attachment.status}`}
+						<div
+							className={`composer-attachments-shell ${hasComposerAttachmentOverflow ? "is-scrollable" : ""}`.trim()}
+						>
+							{hasComposerAttachmentOverflow && (
+								<button
+									type="button"
+									className="composer-attachments-nav is-left"
+									onClick={() =>
+										scrollComposerAttachments("left")
+									}
+									disabled={!attachmentScrollState.canScrollLeft}
+									aria-label="查看左侧附件"
+									title="查看左侧附件"
 								>
-									<div className="composer-attachment-icon">
-										<MaterialIcon
-											name={
-												attachment.status === "error"
-													? "error"
-													: attachment.status === "uploading"
-														? "progress_activity"
-														: "draft"
+									<MaterialIcon name="chevron_left" />
+								</button>
+							)}
+							<div
+								ref={attachmentViewportRef}
+								className="composer-attachments-viewport"
+								aria-live="polite"
+							>
+								<div className="composer-attachments">
+									{attachments.map((attachment) => (
+										<AttachmentCard
+											key={attachment.id}
+											attachment={{
+												name: attachment.name,
+												size: attachment.size,
+												type: attachment.type,
+												mimeType: attachment.mimeType,
+												url: attachment.resourceUrl,
+												previewUrl: attachment.previewUrl,
+											}}
+											variant="composer"
+											status={attachment.status}
+											displayMode={
+												useUnifiedComposerAttachmentRow
+													? "file"
+													: "auto"
 											}
+											thumbnailMode={
+												useUnifiedComposerAttachmentRow
+													? "inline"
+													: "auto"
+											}
+											subtitle={getComposerAttachmentSubtitle(
+												attachment,
+												useUnifiedComposerAttachmentRow,
+											)}
+											onRemove={() =>
+												handleRemoveAttachment(
+													attachment.id,
+												)
+											}
+											removeLabel={`移除文件 ${attachment.name}`}
 										/>
-									</div>
-									<div className="composer-attachment-copy">
-										<div
-											className="composer-attachment-name"
-											title={attachment.name}
-										>
-											{attachment.name}
-										</div>
-										<div
-											className="composer-attachment-meta"
-											title={attachment.error || undefined}
-										>
-											{attachment.status === "error"
-												? attachment.error || "上传失败"
-												: attachment.status === "uploading"
-													? "上传中..."
-													: `已就绪 · ${formatAttachmentSize(
-															attachment.size,
-														)}`}
-										</div>
-									</div>
-									<button
-										type="button"
-										className="composer-attachment-remove"
-										onClick={() =>
-											handleRemoveAttachment(attachment.id)
-										}
-										aria-label={`移除文件 ${attachment.name}`}
-										title="移除文件"
-									>
-										<MaterialIcon name="close" />
-									</button>
+									))}
 								</div>
-							))}
+							</div>
+							{hasComposerAttachmentOverflow && (
+								<button
+									type="button"
+									className="composer-attachments-nav is-right"
+									onClick={() =>
+										scrollComposerAttachments("right")
+									}
+									disabled={
+										!attachmentScrollState.canScrollRight
+									}
+									aria-label="查看右侧附件"
+									title="查看右侧附件"
+								>
+									<MaterialIcon name="chevron_right" />
+								</button>
+							)}
 						</div>
 					)}
 					<div className="composer-control-row">

@@ -20,9 +20,24 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
     }
 
     const rawSize = Number(item.size ?? item.sizeBytes);
+    const type =
+      typeof item.type === 'string' && item.type.trim()
+        ? item.type.trim()
+        : undefined;
+    const mimeType =
+      typeof item.mimeType === 'string' && item.mimeType.trim()
+        ? item.mimeType.trim()
+        : undefined;
+    const url =
+      typeof item.url === 'string' && item.url.trim()
+        ? item.url.trim()
+        : undefined;
     acc.push({
       name,
       size: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : undefined,
+      type,
+      mimeType,
+      url,
     });
     return acc;
   }, []);

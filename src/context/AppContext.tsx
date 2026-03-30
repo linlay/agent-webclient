@@ -28,6 +28,7 @@ import type {
 	VoiceChatState,
 	TtsVoiceBlock,
 } from "./types";
+import type { LiveQuerySession } from "../lib/conversationSession";
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
 	MAX_DEBUG_LINES,
@@ -295,6 +296,10 @@ function buildConversationResetState(
 	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
 	return {
 		...state,
+		runId: "",
+		requestId: "",
+		streaming: false,
+		abortController: null,
 		messagesById: new Map(),
 		messageOrder: [],
 		events: [],
@@ -786,6 +791,9 @@ export interface AppContextValue {
 	state: AppState;
 	dispatch: React.Dispatch<AppAction>;
 	stateRef: React.MutableRefObject<AppState>;
+	querySessionsRef: React.MutableRefObject<Map<string, LiveQuerySession>>;
+	chatQuerySessionIndexRef: React.MutableRefObject<Map<string, string>>;
+	activeQuerySessionRequestIdRef: React.MutableRefObject<string>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -799,6 +807,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		createInitialState,
 	);
 	const stateRef = useRef(state);
+	const querySessionsRef = useRef(new Map<string, LiveQuerySession>());
+	const chatQuerySessionIndexRef = useRef(new Map<string, string>());
+	const activeQuerySessionRequestIdRef = useRef("");
 	stateRef.current = state;
 
 	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
@@ -825,7 +836,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, []);
 
 	const value = useMemo<AppContextValue>(
-		() => ({ state, dispatch, stateRef }),
+		() => ({
+			state,
+			dispatch,
+			stateRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+		}),
 		[state, dispatch],
 	);
 

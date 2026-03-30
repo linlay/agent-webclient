@@ -3,8 +3,7 @@ import React from "react";
 type UiButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type UiButtonSize = "sm" | "md";
 
-export interface UiButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface UiButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: UiButtonVariant;
 	size?: UiButtonSize;
 	iconOnly?: boolean;
@@ -48,7 +47,6 @@ export const UiButton = React.forwardRef<HTMLButtonElement, UiButtonProps>(
 				disabled={disabled || loading}
 				{...rest}
 			>
-				{loading ? <span className="ui-btn-spinner" aria-hidden="true" /> : null}
 				<span className="ui-btn-label">{children}</span>
 			</button>
 		);

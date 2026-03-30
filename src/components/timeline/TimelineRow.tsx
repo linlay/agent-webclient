@@ -1,6 +1,12 @@
 import React from "react";
 import type { TimelineNode } from "../../context/types";
 import type { TimelineRenderEntry } from "../../lib/timelineDisplay";
+import {
+	formatAttachmentSize,
+	getAttachmentKind,
+	getAttachmentKindLabel,
+} from "../../lib/attachmentUtils";
+import { AttachmentCard } from "../common/AttachmentCard";
 import { UserBubble } from "./UserBubble";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolPill } from "./ToolPill";
@@ -49,24 +55,6 @@ function isYesterday(target: Date, now: Date): boolean {
 		target.getMonth() === y.getMonth() &&
 		target.getDate() === y.getDate()
 	);
-}
-
-function formatAttachmentSize(size?: number): string {
-	if (!Number.isFinite(size) || Number(size) <= 0) {
-		return "";
-	}
-
-	const units = ["B", "KB", "MB", "GB"];
-	let value = Number(size);
-	let unitIndex = 0;
-
-	while (value >= 1024 && unitIndex < units.length - 1) {
-		value /= 1024;
-		unitIndex += 1;
-	}
-
-	const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
-	return `${value.toFixed(precision)} ${units[unitIndex]}`;
 }
 
 export function formatTimelineTime(ts?: number): { short: string; full: string } {
@@ -122,6 +110,141 @@ function getCommandMessageLabel(
 	if (variant === "learn") return "/learn";
 	return "/steer";
 }
+
+function getTimelineAttachmentSubtitle(
+	attachment: NonNullable<TimelineNode["attachments"]>[number],
+	compact = false,
+): string {
+	if (compact) {
+		return getAttachmentKindLabel(attachment);
+	}
+
+	const attachmentSize = formatAttachmentSize(attachment.size);
+	if (
+		getAttachmentKind(attachment) === "image" &&
+		String(attachment.url || "").trim()
+	) {
+		return "";
+	}
+
+	return [getAttachmentKindLabel(attachment), attachmentSize]
+		.filter(Boolean)
+		.join(" · ");
+}
+
+interface TimelineAttachmentGroupProps {
+	attachments: NonNullable<TimelineNode["attachments"]>;
+}
+
+const TimelineAttachmentGroup: React.FC<TimelineAttachmentGroupProps> = ({
+	attachments,
+}) => {
+	const groupRef = React.useRef<HTMLDivElement>(null);
+	const popoverId = React.useId();
+	const [expanded, setExpanded] = React.useState(false);
+	const leadAttachment = attachments[0];
+	const remainingAttachments = attachments.slice(1);
+
+	React.useEffect(() => {
+		if (!expanded) {
+			return;
+		}
+
+		const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+			const target = event.target;
+			if (
+				groupRef.current &&
+				target instanceof Node &&
+				!groupRef.current.contains(target)
+			) {
+				setExpanded(false);
+			}
+		};
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setExpanded(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handlePointerDown);
+		document.addEventListener("touchstart", handlePointerDown);
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handlePointerDown);
+			document.removeEventListener("touchstart", handlePointerDown);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [expanded]);
+
+	if (!leadAttachment) {
+		return null;
+	}
+
+	return (
+		<div className="timeline-user-attachment-group" ref={groupRef}>
+			<div className="timeline-user-attachment-group-top">
+				<AttachmentCard
+					attachment={leadAttachment}
+					variant="timeline"
+					density="compact"
+					displayMode="file"
+					subtitle={getTimelineAttachmentSubtitle(
+						leadAttachment,
+						true,
+					)}
+					trailingNode={
+						remainingAttachments.length > 0 ? (
+							<span
+								className={`timeline-user-attachment-hint ${expanded ? "is-open" : ""}`.trim()}
+								aria-hidden="true"
+							>
+								<MaterialIcon name="subdirectory_arrow_right" />
+							</span>
+						) : null
+					}
+				/>
+				{remainingAttachments.length > 0 ? (
+					<button
+						type="button"
+						className={`timeline-user-attachment-more ${expanded ? "is-open" : ""}`.trim()}
+						aria-expanded={expanded}
+						aria-controls={popoverId}
+						aria-label={`查看剩余 ${remainingAttachments.length} 个附件`}
+						title={`查看剩余 ${remainingAttachments.length} 个附件`}
+						onClick={() => setExpanded((current) => !current)}
+					>
+						+{remainingAttachments.length}
+					</button>
+				) : null}
+			</div>
+			{expanded && remainingAttachments.length > 0 ? (
+				<div
+					className="timeline-user-attachment-popover"
+					id={popoverId}
+					role="dialog"
+					aria-label="剩余附件"
+				>
+					<div className="timeline-user-attachment-popover-list">
+						{remainingAttachments.map((attachment, index) => (
+							<AttachmentCard
+								key={`${attachment.name}_${index + 1}`}
+								attachment={attachment}
+								variant="timeline"
+								density="compact"
+								displayMode="file"
+								subtitle={getTimelineAttachmentSubtitle(
+									attachment,
+									true,
+								)}
+							/>
+						))}
+					</div>
+				</div>
+			) : null}
+		</div>
+	);
+};
 
 const NodeIcon: React.FC<{
 	kind: string;
@@ -204,6 +327,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				)
 			: [];
 		const hasText = Boolean(String(node.text || "").trim());
+		const hasMultipleAttachments = attachmentItems.length > 1;
 
 		return (
 			<div
@@ -212,37 +336,29 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				data-role="user"
 			>
 				<div className="timeline-user-stack">
-					{hasText && <UserBubble text={node.text || ""} />}
 					{attachmentItems.length > 0 && (
-						<div className="timeline-user-attachments">
-							{attachmentItems.map((attachment, index) => {
-								const attachmentSize = formatAttachmentSize(
-									attachment.size,
-								);
-								return (
-									<div
+						<div
+							className={`timeline-user-attachments ${hasMultipleAttachments ? "is-multi" : ""}`.trim()}
+						>
+							{hasMultipleAttachments ? (
+								<TimelineAttachmentGroup
+									attachments={attachmentItems}
+								/>
+							) : (
+								attachmentItems.map((attachment, index) => (
+									<AttachmentCard
 										key={`${attachment.name}_${index}`}
-										className="timeline-user-attachment"
-									>
-										<span className="timeline-user-attachment-icon">
-											<MaterialIcon name="attach_file" />
-										</span>
-										<span
-											className="timeline-user-attachment-name"
-											title={attachment.name}
-										>
-											{attachment.name}
-										</span>
-										{attachmentSize && (
-											<span className="timeline-user-attachment-size">
-												{attachmentSize}
-											</span>
+										attachment={attachment}
+										variant="timeline"
+										subtitle={getTimelineAttachmentSubtitle(
+											attachment,
 										)}
-									</div>
-								);
-							})}
+									/>
+								))
+							)}
 						</div>
 					)}
+					{hasText && <UserBubble text={node.text || ""} />}
 					{timeNode}
 				</div>
 			</div>

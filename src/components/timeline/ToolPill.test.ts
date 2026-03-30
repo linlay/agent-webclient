@@ -2,6 +2,7 @@ import type { TimelineNode } from "../../context/types";
 import {
 	buildToolPillRecords,
 	canExpandToolPill,
+	formatToolArgumentsInline,
 	formatToolPillTitle,
 	getExpandableToolPillRecords,
 } from "./ToolPill";
@@ -30,10 +31,11 @@ describe("ToolPill helpers", () => {
 				key: "tool_1",
 				title: "第 1 次",
 				status: "pending",
-				statusLabel: "pending",
+				statusLabel: "等待中",
 				hasDetails: false,
 				description: "",
 				argsText: "",
+				argsInlineText: "",
 				result: null,
 			},
 		]);
@@ -82,6 +84,7 @@ describe("ToolPill helpers", () => {
 				hasDetails: true,
 				description: "",
 				argsText: "echo 1",
+				argsInlineText: "echo 1",
 				result: { text: "1", isCode: false },
 			},
 			{
@@ -92,6 +95,7 @@ describe("ToolPill helpers", () => {
 				hasDetails: true,
 				description: "在沙箱容器中执行命令。",
 				argsText: "exit 1",
+				argsInlineText: "exit 1",
 				result: { text: "boom", isCode: false },
 			},
 		]);
@@ -113,10 +117,11 @@ describe("ToolPill helpers", () => {
 				key: "tool_1",
 				title: "第 1 次",
 				status: "pending",
-				statusLabel: "pending",
+				statusLabel: "等待中",
 				hasDetails: false,
 				description: "",
 				argsText: "",
+				argsInlineText: "",
 				result: null,
 			},
 		]);
@@ -147,6 +152,7 @@ describe("ToolPill helpers", () => {
 			hasDetails: true,
 			description: "在沙箱容器中执行命令。",
 			argsText: "echo 1",
+			argsInlineText: "echo 1",
 		});
 		expect(buildToolPillRecords(resultNode)[0]).toMatchObject({
 			hasDetails: true,
@@ -231,5 +237,12 @@ describe("ToolPill helpers", () => {
 			}),
 		]);
 		expect(canExpandToolPill(group)).toBe(true);
+	});
+
+	it("compacts arguments into a single line for display when possible", () => {
+		expect(formatToolArgumentsInline('{\n  "cmd": "echo 1",\n  "timeout": 3\n}')).toBe(
+			'{"cmd":"echo 1","timeout":3}',
+		);
+		expect(formatToolArgumentsInline("line 1\n  line 2")).toBe("line 1 line 2");
 	});
 });

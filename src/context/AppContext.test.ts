@@ -27,6 +27,10 @@ describe('appReducer conversation reset behavior', () => {
       ...baseState,
       chatId: 'chat_worker_1',
       workerSelectionKey: 'agent:worker_a',
+      runId: 'run_live_1',
+      requestId: 'req_live_1',
+      streaming: true,
+      abortController: new AbortController(),
       workerRelatedChats: workerChats,
       workerChatPanelCollapsed: false,
       timelineOrder: ['user_1'],
@@ -36,6 +40,10 @@ describe('appReducer conversation reset behavior', () => {
 
     expect(next.chatId).toBe('chat_worker_1');
     expect(next.workerSelectionKey).toBe('agent:worker_a');
+    expect(next.runId).toBe('');
+    expect(next.requestId).toBe('');
+    expect(next.streaming).toBe(false);
+    expect(next.abortController).toBeNull();
     expect(next.workerRelatedChats).toEqual(workerChats);
     expect(next.workerChatPanelCollapsed).toBe(false);
     expect(next.timelineOrder).toEqual([]);

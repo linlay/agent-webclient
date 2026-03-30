@@ -1,15 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { TimelineNode } from "../../context/types";
 import type { TimelineRenderEntry } from "../../lib/timelineDisplay";
+import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
-import { UiSection, UiSectionBody, UiSectionHead } from "../ui/UiSection";
 import { resolveToolLabel } from "../../lib/toolDisplay";
 
-type ToolGroupRenderEntry = Extract<TimelineRenderEntry, { kind: "tool-group" }>;
+type ToolGroupRenderEntry = Extract<
+	TimelineRenderEntry,
+	{ kind: "tool-group" }
+>;
 
 interface ToolPillProps {
 	node?: TimelineNode;
 	toolGroup?: ToolGroupRenderEntry;
+}
+
+async function copyText(text: string): Promise<void> {
+	if (navigator.clipboard?.writeText) {
+		await navigator.clipboard.writeText(text);
+		return;
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "true");
+	textarea.style.position = "absolute";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
+	const copied = document.execCommand("copy");
+	document.body.removeChild(textarea);
+	if (!copied) {
+		throw new Error("copy failed");
+	}
 }
 
 export interface ToolPillRecord {
@@ -20,6 +43,7 @@ export interface ToolPillRecord {
 	hasDetails: boolean;
 	description: string;
 	argsText: string;
+	argsInlineText: string;
 	result: TimelineNode["result"];
 }
 
@@ -27,11 +51,34 @@ function resolveStatusLabel(status?: string): string {
 	const value = status || "pending";
 	return value === "running"
 		? "运行中"
-		: value === "completed"
-			? "完成"
-			: value === "failed" || value === "error"
-				? "失败"
-				: value;
+		: value === "streaming"
+			? "运行中"
+			: value === "completed"
+				? "完成"
+				: value === "failed" || value === "error"
+					? "失败"
+					: value === "canceled"
+						? "已取消"
+						: value === "pending"
+							? "等待中"
+							: value;
+}
+
+export function formatToolArgumentsInline(argsText: string): string {
+	const trimmed = argsText.trim();
+	if (!trimmed) return "";
+
+	try {
+		return JSON.stringify(JSON.parse(trimmed));
+	} catch {
+		return trimmed.replace(/\s+/g, " ");
+	}
+}
+
+function formatToolResultText(result: TimelineNode["result"]): string {
+	if (!result) return "";
+	const text = result.text || "";
+	return text.trim() ? text : "(no output)";
 }
 
 export function formatToolPillTitle(
@@ -69,23 +116,37 @@ export function buildToolPillRecords(
 			hasDetails,
 			description: hasDetails ? node.description || "" : "",
 			argsText,
+			argsInlineText: formatToolArgumentsInline(argsText),
 			result,
 		};
 	});
 }
 
-export function getExpandableToolPillRecords(records: ToolPillRecord[]): ToolPillRecord[] {
+export function getExpandableToolPillRecords(
+	records: ToolPillRecord[],
+): ToolPillRecord[] {
 	return records.filter((record) => record.hasDetails);
 }
 
 export function canExpandToolPill(
 	source: TimelineNode | ToolGroupRenderEntry,
 ): boolean {
-	return getExpandableToolPillRecords(buildToolPillRecords(source)).length > 0;
+	return (
+		getExpandableToolPillRecords(buildToolPillRecords(source)).length > 0
+	);
 }
 
 export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 	const [expanded, setExpanded] = useState(false);
+	const [copyStatus, setCopyStatus] = useState<Record<string, string>>({});
+	const copyTimerRef = useRef<Map<string, number>>(new Map());
+
+	useEffect(() => {
+		return () => {
+			copyTimerRef.current.forEach((timer) => window.clearTimeout(timer));
+			copyTimerRef.current.clear();
+		};
+	}, []);
 
 	const source = toolGroup || node;
 	if (!source) return null;
@@ -97,12 +158,39 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 	const isGrouped = Boolean(toolGroup && toolGroup.count > 1);
 	const latestRecord = records[records.length - 1];
 	const status = latestRecord?.status || "pending";
+	const statusLabel = latestRecord?.statusLabel || resolveStatusLabel(status);
+
+	const flashCopyStatus = (key: string, text: string) => {
+		const existing = copyTimerRef.current.get(key);
+		if (existing) {
+			window.clearTimeout(existing);
+		}
+		setCopyStatus((current) => ({ ...current, [key]: text }));
+		const timer = window.setTimeout(() => {
+			setCopyStatus((current) => {
+				const next = { ...current };
+				delete next[key];
+				return next;
+			});
+			copyTimerRef.current.delete(key);
+		}, 1600);
+		copyTimerRef.current.set(key, timer);
+	};
+
+	const handleCopyResult = async (key: string, text: string) => {
+		try {
+			await copyText(text);
+			flashCopyStatus(key, "已复制");
+		} catch {
+			flashCopyStatus(key, "复制失败");
+		}
+	};
 
 	return (
-		<div>
+		<div className="tool-call">
 			<UiButton
-				className="tool-pill"
-				variant="secondary"
+				className={`tool-trigger ${canExpand && expanded ? "is-open" : ""}`}
+				variant="ghost"
 				size="sm"
 				data-tool-status={status}
 				data-expandable={canExpand ? "true" : "false"}
@@ -116,65 +204,99 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 				<span className="tool-pill-label" title={toolLabel}>
 					{toolLabel}
 				</span>
-				{/* <span className="tool-pill-state">{statusLabel}</span> */}
+				<span className="tool-trigger-status">{statusLabel}</span>
+				{canExpand && (
+					<MaterialIcon name="chevron_right" className="chevron" />
+				)}
 			</UiButton>
 
-			<div className={`tool-detail ${canExpand && expanded ? "is-open" : ""}`}>
-				{expandableRecords.map((record) => (
-					<div key={record.key}>
-						{isGrouped && (
-							<UiSection className="tool-section">
-								<UiSectionHead className="tool-section-head">
-									<span className="tool-section-title">
+			<div
+				className={`tool-detail ${canExpand && expanded ? "is-open" : ""}`}
+			>
+				{expandableRecords.map((record) => {
+					const resultText = formatToolResultText(record.result);
+					const resultCopyKey = `${record.key}:result`;
+					const resultCopyLabel = copyStatus[resultCopyKey] || "复制";
+					const resultCopyState =
+						copyStatus[resultCopyKey] === "已复制"
+							? "copied"
+							: copyStatus[resultCopyKey] === "复制失败"
+								? "error"
+								: "idle";
+
+					return (
+						<div
+							key={record.key}
+							className="tool-call-card"
+							data-tool-status={record.status}
+						>
+							{isGrouped && (
+								<div className="tool-call-head">
+									<span className="tool-call-title">
 										{record.title}
 									</span>
-									<span className="tool-section-title">
+									<span className="tool-call-title">
 										{record.statusLabel}
 									</span>
-								</UiSectionHead>
-							</UiSection>
-						)}
+								</div>
+							)}
 
-						{record.description && (
-							<UiSection className="tool-section">
-								<UiSectionHead className="tool-section-head">
-									<span className="tool-section-title">
-										DESCRIPTION
-									</span>
-								</UiSectionHead>
-								<UiSectionBody className="tool-section-body">
-									{record.description}
-								</UiSectionBody>
-							</UiSection>
-						)}
+							<div className="tool-call-body">
+								<div className="tool-call-io">
+									{record.argsInlineText && (
+										<div className="tool-call-field">
+											<span className="tool-call-label">
+												arguments
+											</span>
+											<code
+												className="tool-call-inline"
+												title={record.argsText}
+											>
+												{record.argsInlineText}
+											</code>
+										</div>
+									)}
 
-						{record.argsText && (
-							<UiSection className="tool-section">
-								<UiSectionHead className="tool-section-head">
-									<span className="tool-section-title">
-										ARGUMENTS
-									</span>
-								</UiSectionHead>
-								<pre className="tool-section-body is-code">
-									{record.argsText}
-								</pre>
-							</UiSection>
-						)}
-
-						{record.result && (
-							<UiSection className="tool-section">
-								<UiSectionHead className="tool-section-head">
-									<span className="tool-section-title">RESULT</span>
-								</UiSectionHead>
-								<pre
-									className={`tool-section-body ${record.result.isCode ? "is-code" : ""}`}
-								>
-									{record.result.text}
-								</pre>
-							</UiSection>
-						)}
-					</div>
-				))}
+									{record.result && (
+										<div className="tool-call-field">
+											<div className="tool-call-field-head">
+												<span className="tool-call-label">
+													result
+												</span>
+												<UiButton
+													className="tool-call-copy"
+													variant="ghost"
+													size="sm"
+													data-copy-state={resultCopyState}
+													onClick={() => {
+														void handleCopyResult(
+															resultCopyKey,
+															record.result?.text || "",
+														);
+													}}
+												>
+													<MaterialIcon
+														name={
+															resultCopyState === "copied"
+																? "check"
+																: "content_copy"
+														}
+													/>
+													{resultCopyLabel}
+												</UiButton>
+											</div>
+											<pre
+												className={`tool-call-result ${record.result.isCode ? "is-code" : ""}`}
+											>
+												{resultText}
+											</pre>
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

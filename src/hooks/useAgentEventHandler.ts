@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { AppAction } from '../context/AppContext';
 import type {
@@ -78,6 +78,74 @@ function createLocalCache(): LocalCache {
     agentKey: '',
     teamId: '',
   };
+}
+
+function createLocalCacheFromState(state: AppState): LocalCache {
+  const chatId = toText(state.chatId);
+  const nodeText = new Map<string, string>();
+  state.timelineNodes.forEach((node, nodeId) => {
+    nodeText.set(nodeId, node.text || '');
+  });
+  return {
+    contentNodeById: new Map(state.contentNodeById),
+    reasoningNodeById: new Map(state.reasoningNodeById),
+    toolNodeById: new Map(state.toolNodeById),
+    toolStateById: new Map(state.toolStates),
+    nodeText,
+    counter: state.timelineCounter,
+    activeReasoningKey: toText(state.activeReasoningKey),
+    chatId,
+    runId: toText(state.runId),
+    agentKey: chatId ? toText(state.chatAgentById.get(chatId)) : '',
+    teamId: '',
+  };
+}
+
+function hasLiveCacheNodeTextMismatch(cache: LocalCache, state: AppState): boolean {
+  for (const [nodeId, node] of state.timelineNodes.entries()) {
+    if (node.kind !== 'content' && node.kind !== 'thinking' && node.kind !== 'tool') {
+      continue;
+    }
+    const stateText = node.text || '';
+    const cacheText = cache.nodeText.get(nodeId);
+    if (cacheText !== stateText) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean {
+  const visibleChatId = toText(state.chatId);
+  const visibleRunId = toText(state.runId);
+  const hasVisibleConversation =
+    state.timelineOrder.length > 0
+    || Boolean(visibleChatId)
+    || Boolean(visibleRunId)
+    || state.streaming;
+
+  if (!hasVisibleConversation) {
+    return false;
+  }
+
+  return (
+    cache.chatId !== visibleChatId
+    || cache.runId !== visibleRunId
+    || cache.counter < state.timelineCounter
+    || (
+      state.contentNodeById.size > 0
+      && cache.contentNodeById.size === 0
+    )
+    || (
+      state.reasoningNodeById.size > 0
+      && cache.reasoningNodeById.size === 0
+    )
+    || (
+      state.toolNodeById.size > 0
+      && cache.toolNodeById.size === 0
+    )
+    || hasLiveCacheNodeTextMismatch(cache, state)
+  );
 }
 
 function createLiveProcessorState(cache: LocalCache, state: AppState): EventProcessorState {
@@ -250,6 +318,14 @@ export function useAgentEventHandler() {
     }
   }, [dispatch, stateRef]);
 
+  useEffect(() => {
+    const handler = () => {
+      resetCache();
+    };
+    window.addEventListener('agent:reset-event-cache', handler);
+    return () => window.removeEventListener('agent:reset-event-cache', handler);
+  }, [resetCache]);
+
   const schedulePlanAutoCollapse = useCallback(() => {
     clearPlanAutoCollapse();
     const timer: UiTimerHandle = window.setTimeout(() => {
@@ -317,8 +393,12 @@ export function useAgentEventHandler() {
   const handleEvent = useCallback(
     (event: AgentEvent) => {
       const state = stateRef.current;
-      const cache = cacheRef.current;
+      let cache = cacheRef.current;
       const type = toText(event.type);
+      if (shouldSyncLiveCache(cache, state)) {
+        cache = createLocalCacheFromState(state);
+        cacheRef.current = cache;
+      }
 
       // Sync counter from React state if it's ahead
       if (state.timelineCounter > cache.counter) {
