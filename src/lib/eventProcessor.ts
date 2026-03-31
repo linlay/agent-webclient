@@ -58,6 +58,8 @@ export type EventCommand =
   }
   | { cmd: 'SYSTEM_ERROR'; nodeId: string; text: string; ts: number };
 
+const INCOMPLETE_TOOL_ARGS_NOTE = '[incomplete tool args]';
+
 function ensureMappedNode(params: {
   currentNodeId: string | undefined;
   getNode: (nodeId: string) => TimelineNode | undefined;
@@ -101,6 +103,43 @@ function parseToolArgsBuffer(
     // Partial JSON chunks are expected while streaming tool args.
   }
   return existingToolParams;
+}
+
+function parseToolArgsObject(nextArgsBuffer: string): Record<string, unknown> | null {
+  return parseToolArgsBuffer(nextArgsBuffer, null);
+}
+
+function appendIncompleteToolArgsNote(argsText: string): string {
+  const trimmed = argsText.trim();
+  if (!trimmed) {
+    return INCOMPLETE_TOOL_ARGS_NOTE;
+  }
+  if (trimmed.endsWith(INCOMPLETE_TOOL_ARGS_NOTE)) {
+    return argsText;
+  }
+  return `${argsText}\n\n${INCOMPLETE_TOOL_ARGS_NOTE}`;
+}
+
+function resolveFinalToolArgsText(
+  existingArgsText: string,
+  argsBuffer: string,
+  eventArgsText: string,
+): string {
+  const parsedBuffer = parseToolArgsObject(argsBuffer);
+  if (parsedBuffer) {
+    return JSON.stringify(parsedBuffer, null, 2);
+  }
+
+  const parsedEventArgs = parseToolArgsObject(eventArgsText);
+  if (parsedEventArgs) {
+    return JSON.stringify(parsedEventArgs, null, 2);
+  }
+
+  const chosen = existingArgsText || argsBuffer || eventArgsText;
+  if (!argsBuffer.trim()) {
+    return chosen;
+  }
+  return appendIncompleteToolArgsNote(chosen || argsBuffer);
 }
 
 function pickEventText(...candidates: Array<unknown>): string {
@@ -544,7 +583,11 @@ export function processEvent(
     const existingToolState = state.getToolState(toolId);
     const resultValue = event.result ?? event.output ?? event.text ?? '';
     const resultText = typeof resultValue === 'string' ? resultValue : JSON.stringify(resultValue, null, 2);
-    const argsText = existing?.argsText || existingToolState?.argsBuffer || readToolArgumentsText(event);
+    const argsText = resolveFinalToolArgsText(
+      existing?.argsText || '',
+      existingToolState?.argsBuffer || '',
+      readToolArgumentsText(event),
+    );
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
@@ -573,7 +616,11 @@ export function processEvent(
     }
     const existing = state.getTimelineNode(nodeId);
     const existingToolState = state.getToolState(toolId);
-    const argsText = existing?.argsText || existingToolState?.argsBuffer || readToolArgumentsText(event);
+    const argsText = resolveFinalToolArgsText(
+      existing?.argsText || '',
+      existingToolState?.argsBuffer || '',
+      readToolArgumentsText(event),
+    );
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,

@@ -303,6 +303,29 @@ describe('processEvent', () => {
     expect(state.timelineNodes.get('tool_0')?.argsText).toBe('{\n  "foo": "bar"\n}');
   });
 
+  it('marks incomplete tool args when the run ends before buffered args form valid JSON', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_2',
+      toolName: 'sandbox.exec',
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'tool.args',
+      toolId: 'tool_2',
+      delta: '{"command":"cat << \'PYTHON_SCRIPT\' > /workspace/create.py',
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_2',
+      result: 'exitCode: -1',
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.argsText).toContain('[incomplete tool args]');
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('completed');
+  });
+
   it('hydrates tool.snapshot from snapshot payload and links a later tool.result', () => {
     const state = createState();
 
