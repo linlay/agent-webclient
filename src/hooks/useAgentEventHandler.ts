@@ -55,6 +55,7 @@ interface LocalCache {
   reasoningNodeById: Map<string, string>;
   toolNodeById: Map<string, string>;
   toolStateById: Map<string, ToolState>;
+  nodeById: Map<string, TimelineNode>;
   nodeText: Map<string, string>;  // nodeId -> accumulated text
   counter: number;
   activeReasoningKey: string;
@@ -70,6 +71,7 @@ function createLocalCache(): LocalCache {
     reasoningNodeById: new Map(),
     toolNodeById: new Map(),
     toolStateById: new Map(),
+    nodeById: new Map(),
     nodeText: new Map(),
     counter: 0,
     activeReasoningKey: '',
@@ -80,7 +82,7 @@ function createLocalCache(): LocalCache {
   };
 }
 
-function createLocalCacheFromState(state: AppState): LocalCache {
+export function createLocalCacheFromState(state: AppState): LocalCache {
   const chatId = toText(state.chatId);
   const nodeText = new Map<string, string>();
   state.timelineNodes.forEach((node, nodeId) => {
@@ -91,6 +93,7 @@ function createLocalCacheFromState(state: AppState): LocalCache {
     reasoningNodeById: new Map(state.reasoningNodeById),
     toolNodeById: new Map(state.toolNodeById),
     toolStateById: new Map(state.toolStates),
+    nodeById: new Map(state.timelineNodes),
     nodeText,
     counter: state.timelineCounter,
     activeReasoningKey: toText(state.activeReasoningKey),
@@ -101,14 +104,69 @@ function createLocalCacheFromState(state: AppState): LocalCache {
   };
 }
 
-function hasLiveCacheNodeTextMismatch(cache: LocalCache, state: AppState): boolean {
+function getCachedNode(cache: LocalCache, state: AppState, nodeId: string): TimelineNode | undefined {
+  const cachedNode = cache.nodeById.get(nodeId);
+  if (cachedNode !== undefined) {
+    return cachedNode;
+  }
+  return state.timelineNodes.get(nodeId);
+}
+
+function getCachedNodeText(cache: LocalCache, state: AppState, nodeId: string): string {
+  const cachedText = cache.nodeText.get(nodeId);
+  if (cachedText !== undefined) {
+    return cachedText;
+  }
+  const cachedNode = cache.nodeById.get(nodeId);
+  if (cachedNode?.text !== undefined) {
+    return cachedNode.text;
+  }
+  return state.timelineNodes.get(nodeId)?.text || '';
+}
+
+function hasStateAheadNodeMap(
+  cacheMap: Map<string, string>,
+  stateMap: Map<string, string>,
+): boolean {
+  if (stateMap.size > cacheMap.size) {
+    return true;
+  }
+  for (const key of stateMap.keys()) {
+    if (!cacheMap.has(key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function shouldSyncNodeTextFromState(
+  cacheText: string | undefined,
+  stateText: string,
+  streaming: boolean,
+): boolean {
+  if (cacheText === undefined) {
+    return true;
+  }
+  if (cacheText === stateText) {
+    return false;
+  }
+  if (stateText.startsWith(cacheText)) {
+    return true;
+  }
+  if (cacheText.startsWith(stateText)) {
+    return false;
+  }
+  return !streaming;
+}
+
+function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
   for (const [nodeId, node] of state.timelineNodes.entries()) {
     if (node.kind !== 'content' && node.kind !== 'thinking' && node.kind !== 'tool') {
       continue;
     }
     const stateText = node.text || '';
     const cacheText = cache.nodeText.get(nodeId);
-    if (cacheText !== stateText) {
+    if (shouldSyncNodeTextFromState(cacheText, stateText, state.streaming)) {
       return true;
     }
   }
@@ -132,30 +190,21 @@ export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean
     cache.chatId !== visibleChatId
     || cache.runId !== visibleRunId
     || cache.counter < state.timelineCounter
-    || (
-      state.contentNodeById.size > 0
-      && cache.contentNodeById.size === 0
-    )
-    || (
-      state.reasoningNodeById.size > 0
-      && cache.reasoningNodeById.size === 0
-    )
-    || (
-      state.toolNodeById.size > 0
-      && cache.toolNodeById.size === 0
-    )
-    || hasLiveCacheNodeTextMismatch(cache, state)
+    || hasStateAheadNodeMap(cache.contentNodeById, state.contentNodeById)
+    || hasStateAheadNodeMap(cache.reasoningNodeById, state.reasoningNodeById)
+    || hasStateAheadNodeMap(cache.toolNodeById, state.toolNodeById)
+    || hasStateAheadNodeText(cache, state)
   );
 }
 
-function createLiveProcessorState(cache: LocalCache, state: AppState): EventProcessorState {
+export function createLiveProcessorState(cache: LocalCache, state: AppState): EventProcessorState {
   return {
-    getContentNodeId: (contentId) => cache.contentNodeById.get(contentId) || state.contentNodeById.get(contentId),
-    getReasoningNodeId: (reasoningKey) => cache.reasoningNodeById.get(reasoningKey) || state.reasoningNodeById.get(reasoningKey),
-    getToolNodeId: (toolId) => cache.toolNodeById.get(toolId) || state.toolNodeById.get(toolId),
-    getToolState: (toolId) => cache.toolStateById.get(toolId) || state.toolStates.get(toolId),
-    getTimelineNode: (nodeId) => state.timelineNodes.get(nodeId),
-    getNodeText: (nodeId) => cache.nodeText.get(nodeId) || state.timelineNodes.get(nodeId)?.text || '',
+    getContentNodeId: (contentId) => cache.contentNodeById.get(contentId) ?? state.contentNodeById.get(contentId),
+    getReasoningNodeId: (reasoningKey) => cache.reasoningNodeById.get(reasoningKey) ?? state.reasoningNodeById.get(reasoningKey),
+    getToolNodeId: (toolId) => cache.toolNodeById.get(toolId) ?? state.toolNodeById.get(toolId),
+    getToolState: (toolId) => cache.toolStateById.get(toolId) ?? state.toolStates.get(toolId),
+    getTimelineNode: (nodeId) => getCachedNode(cache, state, nodeId),
+    getNodeText: (nodeId) => getCachedNodeText(cache, state, nodeId),
     nextCounter: () => cache.counter++,
     peekCounter: () => cache.counter,
     activeReasoningKey: cache.activeReasoningKey || state.activeReasoningKey,
@@ -206,13 +255,14 @@ function applyLiveEventCommand(input: {
       dispatch({ type: 'APPEND_TIMELINE_ORDER', id: command.nodeId });
       return;
     case 'SET_TIMELINE_NODE': {
-      const existingNode = state.timelineNodes.get(command.id);
+      const existingNode = getCachedNode(cache, state, command.id);
       const nextNode: TimelineNode = command.node.kind === 'content'
         ? {
             ...command.node,
             ttsVoiceBlocks: existingNode?.kind === 'content' ? (existingNode.ttsVoiceBlocks || {}) : {},
           }
         : command.node;
+      cache.nodeById.set(command.id, nextNode);
       cache.nodeText.set(command.id, nextNode.text || '');
       dispatch({ type: 'SET_TIMELINE_NODE', id: command.id, node: nextNode });
       return;
@@ -248,6 +298,16 @@ function applyLiveEventCommand(input: {
       dispatch({ type: 'SET_PLAN_LAST_TOUCHED_TASK_ID', taskId: command.taskId });
       return;
     case 'USER_MESSAGE':
+      cache.nodeById.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'user',
+        messageVariant: command.variant,
+        steerId: command.steerId,
+        text: command.text,
+        attachments: command.attachments,
+        ts: command.ts,
+      });
       cache.nodeText.set(command.nodeId, command.text);
       dispatch({
         type: 'SET_TIMELINE_NODE',
@@ -266,6 +326,13 @@ function applyLiveEventCommand(input: {
       dispatch({ type: 'APPEND_TIMELINE_ORDER', id: command.nodeId });
       return;
     case 'SYSTEM_ERROR':
+      cache.nodeById.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'system',
+        text: command.text,
+        ts: command.ts,
+      });
       cache.nodeText.set(command.nodeId, command.text);
       dispatch({
         type: 'SET_TIMELINE_NODE',
@@ -490,8 +557,8 @@ export function useAgentEventHandler() {
         && event.contentId
       ) {
         const contentId = String(event.contentId);
-        const nodeId = cache.contentNodeById.get(contentId) || state.contentNodeById.get(contentId) || '';
-        const text = nodeId ? cache.nodeText.get(nodeId) || '' : '';
+        const nodeId = cache.contentNodeById.get(contentId) ?? state.contentNodeById.get(contentId) ?? '';
+        const text = nodeId ? getCachedNodeText(cache, state, nodeId) : '';
         const voiceStatus = type === 'content.end' || type === 'content.snapshot' ? 'completed' : 'running';
         const activeVoiceRequestId = String(state.voiceChat.activeRequestId || '').trim();
         const activeVoiceContentId = String(state.voiceChat.activeAssistantContentId || '').trim();
@@ -571,7 +638,9 @@ export function useAgentEventHandler() {
 
       if (type === 'reasoning.end' || type === 'reasoning.snapshot') {
         const reasoningKey = toText(event.reasoningId) || previousActiveReasoningKey;
-        const nodeId = reasoningKey ? (cache.reasoningNodeById.get(reasoningKey) || state.reasoningNodeById.get(reasoningKey) || '') : '';
+        const nodeId = reasoningKey
+          ? (cache.reasoningNodeById.get(reasoningKey) ?? state.reasoningNodeById.get(reasoningKey) ?? '')
+          : '';
         if (reasoningKey && nodeId) {
           scheduleReasoningAutoCollapse(reasoningKey, nodeId);
         }
@@ -580,7 +649,7 @@ export function useAgentEventHandler() {
 
       if ((type === 'tool.start' || type === 'tool.snapshot' || type === 'tool.args') && event.toolId) {
         const toolId = String(event.toolId);
-        const nextToolState = cache.toolStateById.get(toolId) || state.toolStates.get(toolId);
+        const nextToolState = cache.toolStateById.get(toolId) ?? state.toolStates.get(toolId);
         if (type === 'tool.start' && nextToolState) {
           const toolType = String(nextToolState.toolType || '').trim().toLowerCase();
           if (nextToolState.viewportKey && FRONTEND_VIEWPORT_TYPES.has(toolType)) {
