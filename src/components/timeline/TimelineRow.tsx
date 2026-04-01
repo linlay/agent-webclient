@@ -108,7 +108,7 @@ function getCommandMessageLabel(
 ): string {
 	if (variant === "remember") return "/remember";
 	if (variant === "learn") return "/learn";
-	return "引导";
+	return "";
 }
 
 function getTimelineAttachmentSubtitle(
