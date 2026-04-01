@@ -1621,6 +1621,8 @@ textarea {
 }
 
 .tool-detail {
+  border: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
+  border-radius: 10px;
   max-height: 0;
   opacity: 0;
   overflow: hidden;
@@ -1638,15 +1640,23 @@ textarea {
 }
 
 .tool-call-card {
-  border: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
-  border-radius: 10px;
   overflow: hidden;
   background: color-mix(in srgb, var(--bg-elev-2) 95%, var(--bg-input));
   box-shadow: 0 4px 10px rgba(14, 54, 116, 0.06);
 }
 
+.tool-call-card.is-grouped {
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+}
+
 .tool-call-card+.tool-call-card {
   margin-top: 8px;
+}
+
+.tool-call-card.is-grouped+.tool-call-card.is-grouped {
+  margin-top: 6px;
 }
 
 .tool-call-card[data-tool-status='failed'],
@@ -1665,6 +1675,14 @@ textarea {
   background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
 }
 
+.tool-call-head.is-grouped {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 12px 0;
+  border-bottom: none;
+  background: transparent;
+}
+
 .tool-call-title,
 .tool-call-label {
   font-size: 10px;
@@ -1675,11 +1693,51 @@ textarea {
   color: var(--ink-muted);
 }
 
+.tool-call-meta {
+  letter-spacing: 0.04em;
+}
+
+.tool-call-meta-status {
+  position: relative;
+  padding-left: 8px;
+}
+
+.tool-call-meta-status::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+  transform: translateY(-50%);
+}
+
+.tool-call-card.is-grouped[data-tool-status='running'] .tool-call-meta-status {
+  color: color-mix(in srgb, var(--accent-electric) 78%, var(--ink-muted));
+}
+
+.tool-call-card.is-grouped[data-tool-status='completed'] .tool-call-meta-status {
+  color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-muted));
+}
+
+.tool-call-card.is-grouped[data-tool-status='failed'] .tool-call-meta-status,
+.tool-call-card.is-grouped[data-tool-status='error'] .tool-call-meta-status,
+.tool-call-card.is-grouped[data-tool-status='canceled'] .tool-call-meta-status {
+  color: color-mix(in srgb, var(--accent-danger) 80%, var(--ink-muted));
+}
+
 .tool-call-body {
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.tool-call-card.is-grouped .tool-call-body {
+  padding-top: 6px;
 }
 
 .tool-call-note {

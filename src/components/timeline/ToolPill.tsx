@@ -204,7 +204,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 				<span className="tool-pill-label" title={toolLabel}>
 					{toolLabel}
 				</span>
-				<span className="tool-trigger-status">{statusLabel}</span>
+				{status !== 'completed' && (
+					<span className="tool-trigger-status">{statusLabel}</span>
+				)}
 				{canExpand && (
 					<MaterialIcon name="chevron_right" className="chevron" />
 				)}
@@ -227,15 +229,15 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 					return (
 						<div
 							key={record.key}
-							className="tool-call-card"
+							className={`tool-call-card ${isGrouped ? "is-grouped" : ""}`}
 							data-tool-status={record.status}
 						>
 							{isGrouped && (
-								<div className="tool-call-head">
-									<span className="tool-call-title">
+								<div className="tool-call-head is-grouped">
+									<span className="tool-call-title tool-call-meta">
 										{record.title}
 									</span>
-									<span className="tool-call-title">
+									<span className="tool-call-title tool-call-meta tool-call-meta-status">
 										{record.statusLabel}
 									</span>
 								</div>
