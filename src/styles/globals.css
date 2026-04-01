@@ -83,7 +83,6 @@ body {
 body {
   font-family: 'Manrope', sans-serif;
   color: var(--ink-1);
-  background: linear-gradient(180deg, var(--bg-base), var(--bg-elev-1));
   overflow-x: hidden;
 }
 
@@ -360,38 +359,6 @@ textarea {
 
 .hidden {
   display: none !important;
-}
-
-/* ========================================
-   Atmosphere Layers
-   ======================================== */
-.atmo-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.atmo-grid {
-  opacity: 0.14;
-  background-image:
-    linear-gradient(to right, rgba(39, 102, 195, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(39, 102, 195, 0.06) 1px, transparent 1px);
-  background-size: 34px 34px;
-  mask-image: radial-gradient(circle at 50% 44%, black 28%, transparent 82%);
-}
-
-.atmo-glow {
-  filter: blur(54px);
-  opacity: 0.35;
-}
-
-.atmo-glow-a {
-  background: radial-gradient(circle at 20% 30%, rgba(19, 119, 255, 0.2), transparent 46%);
-}
-
-.atmo-glow-b {
-  background: radial-gradient(circle at 82% 74%, rgba(17, 191, 149, 0.2), transparent 50%);
 }
 
 /* ========================================
@@ -1220,7 +1187,7 @@ textarea {
 .timeline-row-flow {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr);
-  gap: 8px;
+  gap: 10px;
   align-items: start;
 }
 
@@ -1477,8 +1444,8 @@ textarea {
    ======================================== */
 .thinking-trigger {
   border: 0;
-  background: transparent;
-  padding: 2px 0;
+  background: transparent !important;
+  padding: 0 !important;
   color: var(--ink-muted);
   font-size: 12px;
   letter-spacing: 0.01em;
@@ -1539,8 +1506,8 @@ textarea {
 
 .tool-trigger {
   border: 0;
-  background: transparent;
-  padding: 2px 0;
+  background: transparent !important;
+  padding: 0 !important;
   color: var(--ink-muted);
   font-size: 12px;
   letter-spacing: 0.01em;
@@ -1856,7 +1823,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 6px 0 0 12px;
+  margin-top: 6px;
 }
 
 .timeline-content-viewport {
@@ -1892,8 +1859,6 @@ textarea {
   bottom: 0;
   z-index: 20;
   padding: 10px 14px 14px;
-  background: linear-gradient(to top, color-mix(in srgb, var(--bg-base) 94%, transparent), transparent 70%);
-  animation: fade-slide-in 0.52s 0.14s ease both;
 }
 
 .bottom-dock-inner {

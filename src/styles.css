@@ -96,34 +96,6 @@ body {
   overflow-x: hidden;
 }
 
-.atmo-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.atmo-grid {
-  opacity: 0.34;
-  background-image:
-    linear-gradient(to right, rgba(39, 102, 195, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(39, 102, 195, 0.06) 1px, transparent 1px);
-  background-size: 34px 34px;
-  mask-image: radial-gradient(circle at 50% 44%, black 28%, transparent 82%);
-}
-
-.atmo-glow {
-  filter: blur(40px);
-}
-
-.atmo-glow-a {
-  background: radial-gradient(circle at 20% 30%, rgba(19, 119, 255, 0.2), transparent 46%);
-}
-
-.atmo-glow-b {
-  background: radial-gradient(circle at 82% 74%, rgba(17, 191, 149, 0.2), transparent 50%);
-}
-
 button,
 input,
 select,

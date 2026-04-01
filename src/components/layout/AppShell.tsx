@@ -1,11 +1,10 @@
-import React, { useRef, useCallback, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import {
 	DESKTOP_FIXED_BREAKPOINT,
 	MOBILE_BREAKPOINT,
 } from "../../context/constants";
 import type { LayoutMode } from "../../context/constants";
-import { AtmosphereLayer } from "./AtmosphereLayer";
 import { CommandStatusOverlay } from "./CommandStatusOverlay";
 import { TopNav } from "./TopNav";
 import { BottomDock } from "./BottomDock";
@@ -73,7 +72,6 @@ export const AppShell: React.FC = () => {
 			className={`app-shell ${layoutClass} ${state.desktopDebugSidebarEnabled ? "desktop-debug-enabled" : "desktop-debug-disabled"}`.trim()}
 			id="app"
 		>
-			<AtmosphereLayer />
 			<TopNav />
 			<LeftSidebar />
 			<ConversationStage />
