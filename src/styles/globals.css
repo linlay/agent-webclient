@@ -1915,7 +1915,6 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
@@ -1937,7 +1936,6 @@ textarea {
 
 .composer-pill textarea {
   flex: 1;
-  min-height: var(--composer-main-min-height);
   border: 0;
   background: transparent;
   padding: 6px 0;
@@ -2146,8 +2144,6 @@ textarea {
 
 .composer-mode-main {
   min-width: 0;
-  flex: 1 1 auto;
-  min-height: var(--composer-main-min-height);
   display: flex;
   align-items: stretch;
 }
