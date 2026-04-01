@@ -9,7 +9,6 @@ import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { MentionSuggest } from "./MentionSuggest";
 import { SlashPalette } from "./SlashPalette";
 import { SteerBar } from "./SteerBar";
-import { COMPOSER_MAX_LINES } from "../../context/constants";
 import {
 	createRequestId,
 	extractUploadChatId,
@@ -40,6 +39,8 @@ import { AttachmentCard } from "../common/AttachmentCard";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 import { useSpeechInput } from "./useSpeechInput";
+import { Input } from "antd";
+import { TextAreaRef } from "antd/es/input/TextArea";
 
 interface ComposerAttachment {
 	id: string;
@@ -121,7 +122,7 @@ export const ComposerArea: React.FC = () => {
 	const composerPillRef = useRef<HTMLDivElement>(null);
 	const slashPaletteRef = useRef<HTMLDivElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const textareaRef = useRef<TextAreaRef>(null);
 	const attachmentViewportRef = useRef<HTMLDivElement>(null);
 	const isComposingRef = useRef(false);
 	const pendingSendRef = useRef(false);
@@ -293,20 +294,6 @@ export const ComposerArea: React.FC = () => {
 		});
 	}, []);
 
-	const autoresize = useCallback(() => {
-		const el = textareaRef.current;
-		if (!el) return;
-		el.style.height = "auto";
-		const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
-		const maxHeight = lineHeight * COMPOSER_MAX_LINES;
-		el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
-		el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
-	}, []);
-
-	useEffect(() => {
-		autoresize();
-	}, [inputValue, autoresize]);
-
 	useEffect(() => {
 		attachmentsRef.current = attachments;
 	}, [attachments]);
@@ -386,7 +373,7 @@ export const ComposerArea: React.FC = () => {
 		if (!showSlashPalette) return;
 
 		const updateSlashPopoverPosition = () => {
-			const anchor = composerPillRef.current || textareaRef.current;
+			const anchor = composerPillRef.current || textareaRef.current?.resizableTextArea?.textArea;
 			if (!anchor) return;
 			const rect = anchor.getBoundingClientRect();
 			if (rect.width <= 0) {
@@ -686,7 +673,7 @@ export const ComposerArea: React.FC = () => {
 			setSlashDismissed(false);
 			closeMention();
 			window.requestAnimationFrame(() => {
-				const el = textareaRef.current;
+				const el = textareaRef.current?.resizableTextArea?.textArea;
 				if (!el) return;
 				el.focus();
 				const caret = next.length;
@@ -1170,7 +1157,7 @@ export const ComposerArea: React.FC = () => {
 		setSlashDismissed(false);
 		updateMentionSuggestions(draft);
 		window.requestAnimationFrame(() => {
-			const el = textareaRef.current;
+			const el = textareaRef.current?.resizableTextArea?.textArea;
 			if (!el) return;
 			el.focus();
 			const caret = draft.length;
@@ -1181,7 +1168,7 @@ export const ComposerArea: React.FC = () => {
 	useEffect(() => {
 		const onFocusComposer = () => {
 			window.requestAnimationFrame(() => {
-				const el = textareaRef.current;
+				const el = textareaRef.current?.resizableTextArea?.textArea;
 				if (!el) return;
 				el.focus();
 				const caret = el.value.length;
@@ -1205,7 +1192,7 @@ export const ComposerArea: React.FC = () => {
 				updateMentionSuggestions(draft);
 			}
 			window.requestAnimationFrame(() => {
-				const el = textareaRef.current;
+				const el = textareaRef.current?.resizableTextArea?.textArea;
 				if (!el) return;
 				el.focus();
 				const caret = draft.length;
@@ -1276,7 +1263,7 @@ export const ComposerArea: React.FC = () => {
 			dispatch({ type: "CLEAR_PENDING_STEERS" });
 		}
 		window.requestAnimationFrame(() => {
-			const el = textareaRef.current;
+			const el = textareaRef.current?.resizableTextArea?.textArea;
 			if (!el) return;
 			el.focus();
 			const caret = nextValue.length;
@@ -1406,15 +1393,16 @@ export const ComposerArea: React.FC = () => {
 									)}
 								</div>
 							) : (
-								<textarea
+								<Input.TextArea
 									ref={textareaRef}
 									id="message-input"
-									rows={1}
+									variant="borderless"
 									placeholder={
 										isFrontendActive
 											? "前端工具处理中，请在确认面板内提交"
 											: "回复消息...（Enter 发送，Shift+Enter 换行）"
 									}
+									autoSize
 									disabled={isFrontendActive}
 									value={inputValue}
 									onChange={(e) => {

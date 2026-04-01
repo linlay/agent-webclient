@@ -85,7 +85,7 @@ export function formatTimelineTime(ts?: number): { short: string; full: string }
 	};
 }
 
-const SteerIcon: React.FC = () => {
+export const SteerIcon: React.FC = () => {
 	return (
 		<svg viewBox="0 0 16 16" aria-hidden="true">
 			<path d="M3.5 4.5h5.25a3.75 3.75 0 1 1 0 7.5H6.5" />
@@ -108,7 +108,7 @@ function getCommandMessageLabel(
 ): string {
 	if (variant === "remember") return "/remember";
 	if (variant === "learn") return "/learn";
-	return "/steer";
+	return "引导";
 }
 
 function getTimelineAttachmentSubtitle(

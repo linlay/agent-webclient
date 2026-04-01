@@ -1206,7 +1206,7 @@ textarea {
 }
 
 .timeline-command-label {
-  margin-bottom: 6px;
+  margin-top: 9px;
   font: 700 11px/1 "IBM Plex Mono", monospace;
   color: var(--accent-electric-strong);
   letter-spacing: 0.06em;
@@ -1837,6 +1837,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 6px;
 }
 
 .timeline-content-viewport {
@@ -2846,11 +2847,11 @@ textarea {
 }
 
 .steer-bar {
-  margin-bottom: 8px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+  margin: 0 20px;
 }
 
 .steer-queue {
@@ -2862,14 +2863,17 @@ textarea {
 .steer-preview {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  border-radius: 12px;
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
   background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
   color: var(--ink-1);
   padding: 8px 12px 9px;
   font-size: 12px;
   display: flex;
-  flex-direction: column;
   gap: 4px;
+}
+.steer-preview-icon, .steer-preview-text {
+  margin-top: 6px;
 }
 
 .steer-preview-draft {
@@ -2903,17 +2907,14 @@ textarea {
 }
 
 .steer-preview-text {
+  flex: 1;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .steer-preview-actions {
   display: flex;
-  justify-content: flex-end;
-  align-self: flex-end;
-  flex-wrap: wrap;
   gap: 8px;
-  padding-top: 4px;
 }
 
 .steer-btn {
