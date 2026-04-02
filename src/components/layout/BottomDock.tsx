@@ -11,7 +11,7 @@ export const BottomDock: React.FC = () => {
 		<div className="bottom-dock">
 			<div
 				className="bottom-dock-inner"
-				style={{ maxWidth: "860px", margin: "0 auto" }}
+				style={{ maxWidth: "1000px", margin: "0 auto" }}
 			>
 				<div className="bottom-dock-stack">
 					{state.plan && (

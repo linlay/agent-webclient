@@ -743,6 +743,8 @@ textarea {
 .timeline-stack {
   position: relative;
   min-height: 100%;
+  max-width: 1000px;
+  margin: auto;
 }
 
 .timeline-stack.is-empty {
@@ -1195,7 +1197,7 @@ textarea {
   position: relative;
   width: 16px;
   min-height: 16px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .timeline-marker::before {
@@ -1280,7 +1282,7 @@ textarea {
 .timeline-run-items {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .timeline-run-time {
@@ -1443,6 +1445,7 @@ textarea {
    Thinking Block
    ======================================== */
 .thinking-trigger {
+  min-height: 26px !important;
   border: 0;
   background: transparent !important;
   padding: 0 !important;
@@ -1457,15 +1460,20 @@ textarea {
 .thinking-trigger:hover {
   color: var(--ink-2);
   box-shadow: none;
+  .chevron{
+    opacity: 1;
+  }
 }
 
 .thinking-trigger .chevron {
   display: inline-flex;
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  opacity: 0;
 }
 
 .thinking-trigger.is-open .chevron {
   transform: rotate(90deg);
+  opacity: 1;
 }
 
 .thinking-detail {
@@ -1500,11 +1508,19 @@ textarea {
   background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
 }
 
-.tool-call {
-  max-width: min(100%, 720px);
+@keyframes flash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0;
+  }
 }
 
+
+
 .tool-trigger {
+  min-height: 26px !important;
   border: 0;
   background: transparent !important;
   padding: 0 !important;
@@ -1527,6 +1543,9 @@ textarea {
 .tool-trigger:hover {
   color: var(--ink-2);
   box-shadow: none;
+  .chevron{
+    opacity: 1;
+  }
 }
 
 .tool-trigger[data-expandable='false'] {
@@ -1535,11 +1554,13 @@ textarea {
 
 .tool-trigger .chevron {
   display: inline-flex;
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  opacity: 0;
 }
 
 .tool-trigger.is-open .chevron {
   transform: rotate(90deg);
+  opacity: 1;
 }
 
 .tool-pill-label {
@@ -1562,32 +1583,21 @@ textarea {
   white-space: nowrap;
 }
 
-.tool-trigger[data-tool-status='running'] .tool-status-dot {
+.tool-status-dot[data-tool-status='running'] {
+  animation-name: flash;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
   background: var(--accent-electric);
 }
 
-.tool-status-dot[data-tool-status='running'] {
-  background: var(--accent-electric) !important;
-}
-
-.tool-trigger[data-tool-status='completed'] .tool-status-dot {
-  background: var(--accent-lime);
-}
-
 .tool-status-dot[data-tool-status='completed'] {
-  background: var(--accent-lime) !important;
-}
-
-.tool-trigger[data-tool-status='failed'] .tool-status-dot,
-.tool-trigger[data-tool-status='error'] .tool-status-dot,
-.tool-trigger[data-tool-status='canceled'] .tool-status-dot {
-  background: var(--accent-danger);
+  background: var(--accent-lime);
 }
 
 .tool-status-dot[data-tool-status='failed'],
 .tool-status-dot[data-tool-status='error'],
 .tool-status-dot[data-tool-status='canceled'] {
-  background: var(--accent-danger) !important;
+  background: var(--accent-danger);
 }
 
 
@@ -1609,42 +1619,19 @@ textarea {
 }
 
 .tool-detail {
-  border: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
-  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: 0;
   opacity: 0;
-  overflow: hidden;
-  margin-top: 0;
   pointer-events: none;
-  transition: max-height 0.3s ease, opacity 0.26s ease, margin-top 0.26s ease;
+  transition: max-height 0.3s ease, opacity 0.26s ease;
 }
 
 .tool-detail.is-open {
   max-height: 1280px;
   opacity: 1;
-  margin-top: 6px;
   pointer-events: auto;
-  overflow: auto;
-}
-
-.tool-call-card {
-  overflow: hidden;
-  background: color-mix(in srgb, var(--bg-elev-2) 95%, var(--bg-input));
-  box-shadow: 0 4px 10px rgba(14, 54, 116, 0.06);
-}
-
-.tool-call-card.is-grouped {
-  border-radius: 8px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.tool-call-card+.tool-call-card {
-  margin-top: 8px;
-}
-
-.tool-call-card.is-grouped+.tool-call-card.is-grouped {
-  margin-top: 6px;
 }
 
 .tool-call-card[data-tool-status='failed'],
@@ -1656,23 +1643,11 @@ textarea {
 .tool-call-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 7px 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
-  background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
-}
-
-.tool-call-head.is-grouped {
-  justify-content: flex-start;
   gap: 8px;
-  padding: 8px 12px 0;
-  border-bottom: none;
-  background: transparent;
+  padding: 8px 12px;
 }
 
-.tool-call-title,
-.tool-call-label {
+.tool-call-title {
   font-size: 10px;
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 600;
@@ -1718,14 +1693,10 @@ textarea {
 }
 
 .tool-call-body {
-  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.tool-call-card.is-grouped .tool-call-body {
-  padding-top: 6px;
+  position: relative;
 }
 
 .tool-call-note {
@@ -1733,25 +1704,6 @@ textarea {
   line-height: 1.5;
   color: var(--ink-muted);
   white-space: pre-wrap;
-}
-
-.tool-call-io {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tool-call-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tool-call-field-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .tool-call-inline,
@@ -1763,7 +1715,10 @@ textarea {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   line-height: 1.5;
-  color: var(--ink-2);
+  color: var(--text-muted);
+  .input{
+    color: var(--text-main);
+  }
 }
 
 .tool-call-inline {
@@ -1777,6 +1732,9 @@ textarea {
   min-height: 22px !important;
   padding: 0 6px !important;
   color: var(--ink-muted);
+  position: absolute;
+  top: -22px;
+  right: 0;
 }
 
 .tool-call-copy .ui-btn-label {
@@ -1807,13 +1765,8 @@ textarea {
   overflow-x: auto;
   overflow-y: auto;
   max-height: calc(8 * 1.5em + 20px);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.tool-call-result.is-code {
   white-space: pre;
-  word-break: normal;
+  word-break: break-word;
 }
 
 /* ========================================
@@ -1823,7 +1776,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .timeline-content-viewport {
@@ -1858,7 +1811,7 @@ textarea {
   position: sticky;
   bottom: 0;
   z-index: 20;
-  padding: 10px 14px 14px;
+  padding-bottom: 14px;
 }
 
 .bottom-dock-inner {

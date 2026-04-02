@@ -154,7 +154,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const isGrouped = Boolean(toolGroup && toolGroup.count > 1);
   const latestRecord = records[records.length - 1];
   const status = latestRecord?.status || "pending";
-  const statusLabel = latestRecord?.statusLabel || resolveStatusLabel(status);
 
   const flashCopyStatus = (key: string, text: string) => {
     const existing = copyTimerRef.current.get(key);
@@ -201,13 +200,10 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         </span>
         {isGrouped ? (
           expandableRecords.map((record) => (
-            <span key={record.key} className="tool-status-dot" data-tool-status={record.status} />
+            <span key={record.key} className="tool-status-dot" />
           ))
         ) : (
-          <span className="tool-status-dot" />
-        )}
-        {status !== "completed" && (
-          <span className="tool-trigger-status">{statusLabel}</span>
+          <span className="tool-status-dot" data-tool-status={status} />
         )}
         {canExpand && <MaterialIcon name="chevron_right" className="chevron" />}
       </UiButton>
@@ -231,7 +227,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               data-tool-status={record.status}
             >
               {isGrouped && (
-                <div className="tool-call-head is-grouped">
+                <div className="tool-call-head">
                   <span className="tool-call-title tool-call-meta">
                     {record.title}
                   </span>
@@ -242,53 +238,33 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               )}
 
               <div className="tool-call-body">
-                <div className="tool-call-io">
-                  {record.argsInlineText && (
-                    <div className="tool-call-field">
-                      <span className="tool-call-label">arguments</span>
-                      <code
-                        className="tool-call-inline"
-                        title={record.argsText}
-                      >
-                        {record.argsInlineText}
-                      </code>
-                    </div>
-                  )}
-
-                  {record.result && (
-                    <div className="tool-call-field">
-                      <div className="tool-call-field-head">
-                        <span className="tool-call-label">result</span>
-                        <UiButton
-                          className="tool-call-copy"
-                          variant="ghost"
-                          size="sm"
-                          data-copy-state={resultCopyState}
-                          onClick={() => {
-                            void handleCopyResult(
-                              resultCopyKey,
-                              record.result?.text || "",
-                            );
-                          }}
-                        >
-                          <MaterialIcon
-                            name={
-                              resultCopyState === "copied"
-                                ? "check"
-                                : "content_copy"
-                            }
-                          />
-                          {resultCopyLabel}
-                        </UiButton>
-                      </div>
-                      <pre
-                        className={`tool-call-result ${record.result.isCode ? "is-code" : ""}`}
-                      >
-                        {resultText}
-                      </pre>
-                    </div>
-                  )}
-                </div>
+                <UiButton
+                  className="tool-call-copy"
+                  variant="ghost"
+                  size="sm"
+                  data-copy-state={resultCopyState}
+                  onClick={() => {
+                    void handleCopyResult(
+                      resultCopyKey,
+                      record.argsInlineText + "\n\n" + resultText,
+                    );
+                  }}
+                >
+                  <MaterialIcon
+                    name={
+                      resultCopyState === "copied" ? "check" : "content_copy"
+                    }
+                  />
+                  {resultCopyLabel}
+                </UiButton>
+                <code
+                  className="tool-call-result"
+                  title={record.argsInlineText + "\n\n" + resultText}
+                >
+                  <span className="input">{record.argsInlineText}</span>
+                  {"\n\n"}
+                  {resultText}
+                </code>
               </div>
             </div>
           );
