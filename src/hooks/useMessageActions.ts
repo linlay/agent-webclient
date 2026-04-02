@@ -9,6 +9,10 @@ import {
 } from '../lib/apiClient';
 import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
+import {
+  resolvePreferredAgentKey,
+  resolvePreferredTeamId,
+} from '../lib/queryRouting';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 import { executeQueryStream } from '../lib/queryStreamRuntime';
 import { normalizeTimelineAttachments } from '../lib/timelineAttachments';
@@ -26,6 +30,8 @@ interface SendMessageEventDetail {
   references?: unknown;
   attachments?: unknown;
   chatId?: unknown;
+  agentKey?: unknown;
+  teamId?: unknown;
   params?: unknown;
 }
 
@@ -60,6 +66,8 @@ export function useMessageActions() {
       attachments: TimelineAttachment[] = [],
       params: Record<string, unknown> = {},
       preferredChatId = '',
+      preferredAgentKey = '',
+      preferredTeamId = '',
     ) => {
       const rawMessage = String(inputMessage ?? '').trim();
       const normalizedReferences = Array.isArray(references)
@@ -117,21 +125,15 @@ export function useMessageActions() {
       }
 
       const chatId = String(preferredChatId || stateRef.current.chatId || '').trim();
-      const rememberedChatAgentKey = chatId
-        ? String(stateRef.current.chatAgentById.get(chatId) || '').trim()
-        : '';
       const selectedWorker = stateRef.current.workerIndexByKey.get(String(stateRef.current.workerSelectionKey || '').trim()) || null;
-      let selectedAgentKey = rememberedChatAgentKey || '';
-      let selectedTeamId = '';
-
-      if (!chatId && selectedWorker) {
-        if (selectedWorker.type === 'agent') {
-          selectedAgentKey = String(selectedWorker.sourceId || '').trim();
-        } else if (selectedWorker.type === 'team') {
-          selectedAgentKey = '';
-          selectedTeamId = String(selectedWorker.sourceId || '').trim();
-        }
-      }
+      let selectedAgentKey = resolvePreferredAgentKey(stateRef.current, {
+        chatId,
+        explicitAgentKey: preferredAgentKey,
+      });
+      let selectedTeamId = resolvePreferredTeamId(stateRef.current, {
+        chatId,
+        explicitTeamId: preferredTeamId,
+      });
 
       if (mention.mentionAgentKey) {
         selectedAgentKey = mention.mentionAgentKey;
@@ -139,10 +141,6 @@ export function useMessageActions() {
         if (!keepSelectedTeamScope) {
           selectedTeamId = '';
         }
-      }
-
-      if (!selectedAgentKey) {
-        selectedAgentKey = stateRef.current.pendingNewChatAgentKey || '';
       }
 
       const cleanMessage = mention.cleanMessage || rawMessage;
@@ -190,6 +188,13 @@ export function useMessageActions() {
       /* Start streaming */
       const requestId = createRequestId('req');
       const abortController = new AbortController();
+      if (chatId && selectedAgentKey) {
+        dispatch({
+          type: 'SET_CHAT_AGENT_BY_ID',
+          chatId,
+          agentKey: selectedAgentKey,
+        });
+      }
       const session = createLiveQuerySession({
         requestId,
         chatId,
@@ -420,8 +425,10 @@ export function useMessageActions() {
           ? (detail.params as Record<string, unknown>)
           : {};
       const chatId = String(detail.chatId || '').trim();
+      const agentKey = String(detail.agentKey || '').trim();
+      const teamId = String(detail.teamId || '').trim();
       if (message || references.length > 0) {
-        void sendMessage(message, references, attachments, params, chatId);
+        void sendMessage(message, references, attachments, params, chatId, agentKey, teamId);
       }
     };
     window.addEventListener('agent:send-message', handler);

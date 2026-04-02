@@ -31,6 +31,10 @@ import {
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { isImeEnterConfirming } from "../../lib/ime";
+import {
+  resolvePreferredAgentKey,
+  resolvePreferredTeamId,
+} from "../../lib/queryRouting";
 import { computeSlashPopoverPlacement } from "../../lib/slashPopoverPlacement";
 import {
   getFilteredSlashCommands,
@@ -568,6 +572,26 @@ export const ComposerArea: React.FC = () => {
             if (responseChatId) {
               nextChatId = responseChatId;
               setAttachmentChatId(responseChatId);
+              if (!String(state.chatId || "").trim()) {
+                const currentAgentKey = resolvePreferredAgentKey({
+                  chatId: state.chatId,
+                  chatAgentById: state.chatAgentById,
+                  pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+                  workerSelectionKey: state.workerSelectionKey,
+                  workerIndexByKey: state.workerIndexByKey,
+                });
+                if (currentAgentKey) {
+                  dispatch({
+                    type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+                    agentKey: currentAgentKey,
+                  });
+                  dispatch({
+                    type: "SET_CHAT_AGENT_BY_ID",
+                    chatId: responseChatId,
+                    agentKey: currentAgentKey,
+                  });
+                }
+              }
             }
             const references = extractUploadReferences(response.data);
             if (references.length === 0) {
@@ -609,7 +633,15 @@ export const ComposerArea: React.FC = () => {
         }
       })();
     },
-    [attachmentChatId, state.chatId],
+    [
+      attachmentChatId,
+      dispatch,
+      state.chatId,
+      state.chatAgentById,
+      state.pendingNewChatAgentKey,
+      state.workerSelectionKey,
+      state.workerIndexByKey,
+    ],
   );
   const showSpeechHint =
     !isVoiceMode &&
@@ -702,22 +734,36 @@ export const ComposerArea: React.FC = () => {
   }, [state.runId, state.events]);
 
   const resolveCurrentAgentKey = useCallback(() => {
-    const chatId = String(state.chatId || "").trim();
-    if (chatId) {
-      const remembered = String(state.chatAgentById.get(chatId) || "").trim();
-      if (remembered) return remembered;
-    }
-    return String(state.pendingNewChatAgentKey || "").trim();
-  }, [state.chatId, state.chatAgentById, state.pendingNewChatAgentKey]);
+    return resolvePreferredAgentKey({
+      chatId: state.chatId,
+      chatAgentById: state.chatAgentById,
+      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+      workerSelectionKey: state.workerSelectionKey,
+      workerIndexByKey: state.workerIndexByKey,
+    });
+  }, [
+    state.chatId,
+    state.chatAgentById,
+    state.pendingNewChatAgentKey,
+    state.workerSelectionKey,
+    state.workerIndexByKey,
+  ]);
 
   const resolveCurrentTeamId = useCallback(() => {
-    if (String(state.chatId || "").trim()) return "";
-    const selected = state.workerIndexByKey.get(
-      String(state.workerSelectionKey || "").trim(),
-    );
-    if (!selected || selected.type !== "team") return "";
-    return String(selected.sourceId || "").trim();
-  }, [state.chatId, state.workerIndexByKey, state.workerSelectionKey]);
+    return resolvePreferredTeamId({
+      chatId: state.chatId,
+      chatAgentById: state.chatAgentById,
+      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+      workerSelectionKey: state.workerSelectionKey,
+      workerIndexByKey: state.workerIndexByKey,
+    });
+  }, [
+    state.chatId,
+    state.chatAgentById,
+    state.pendingNewChatAgentKey,
+    state.workerSelectionKey,
+    state.workerIndexByKey,
+  ]);
 
   const resetForNewConversation = useCallback(() => {
     clearComposerAttachments();
@@ -906,6 +952,29 @@ export const ComposerArea: React.FC = () => {
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
     const pendingChatId = String(state.chatId || attachmentChatId || "").trim();
+    const agentKey = resolvePreferredAgentKey({
+      chatId: pendingChatId,
+      chatAgentById: state.chatAgentById,
+      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+      workerSelectionKey: state.workerSelectionKey,
+      workerIndexByKey: state.workerIndexByKey,
+    });
+    const teamId = resolvePreferredTeamId({
+      chatId: pendingChatId,
+      chatAgentById: state.chatAgentById,
+      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+      workerSelectionKey: state.workerSelectionKey,
+      workerIndexByKey: state.workerIndexByKey,
+    });
+    if (pendingChatId && !String(state.chatId || "").trim() && !agentKey) {
+      pendingSendRef.current = false;
+      pendingSentMessageRef.current = "";
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[send] skipped: missing agentKey for pending uploaded chat (chatId=${pendingChatId})`,
+      });
+      return;
+    }
     setInputValue("");
     attachments.forEach((attachment) => {
       revokeAttachmentPreviewUrl(attachment.previewUrl);
@@ -919,6 +988,8 @@ export const ComposerArea: React.FC = () => {
         detail: {
           message,
           chatId: pendingChatId || undefined,
+          agentKey: agentKey || undefined,
+          teamId: teamId || undefined,
           references: sendReferences,
           attachments: sendAttachmentMeta,
           params: controlParams,
@@ -936,6 +1007,11 @@ export const ComposerArea: React.FC = () => {
     isVoiceMode,
     attachmentChatId,
     controlParams,
+    state.chatId,
+    state.chatAgentById,
+    state.pendingNewChatAgentKey,
+    state.workerSelectionKey,
+    state.workerIndexByKey,
     sendAttachmentMeta,
     sendReferences,
     showSlashPalette,
