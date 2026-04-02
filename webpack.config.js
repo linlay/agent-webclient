@@ -121,18 +121,15 @@ module.exports = (env, argv) => {
           onProxyRes: function (proxyRes, req, res) {
             const header = proxyRes.headers['content-disposition'];
             header && res.setHeader('Content-Disposition', header);
-            // 禁用SSE请求缓存/缓冲
-            const accept = String(req.headers.accept || '');
-            const reqUrl = String(req.url || '');
-            const isSseRequest = accept.includes('text/event-stream')
-              || reqUrl.startsWith('/api/query');
-            if (isSseRequest) {
-              res.writeHead(res.statusCode, {
-                'Content-Type': 'text/event-stream',
-                Connection: 'keep-alive',
-                'Cache-Control': 'no-cache, no-transform',
-                'X-Accel-Buffering': 'no'
-              });
+            const statusCode = typeof proxyRes.statusCode === 'number' ? proxyRes.statusCode : 200;
+            const contentType = String(proxyRes.headers['content-type'] || '').toLowerCase();
+            const isSuccessfulSseResponse = statusCode >= 200
+              && statusCode < 300
+              && contentType.startsWith('text/event-stream');
+            if (isSuccessfulSseResponse) {
+              res.setHeader('Connection', 'keep-alive');
+              res.setHeader('Cache-Control', 'no-cache, no-transform');
+              res.setHeader('X-Accel-Buffering', 'no');
             }
           }
         },
