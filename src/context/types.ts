@@ -349,7 +349,22 @@ export interface Agent {
   key: string;
   name: string;
   role?: string;
+  controls?: AgentControl[];
   [key: string]: unknown;
+}
+
+export interface AgentControl {
+  type: 'switch' | 'select' | 'string' | 'number' | 'date';
+  icon: any;
+  key: string;
+  label: string;
+  options?: AgentControlOption[];
+  defaultValue?: any;
+}
+export interface AgentControlOption {
+  value: any;
+  label: any;
+  type?: 'text' | 'img';
 }
 
 export interface Team {

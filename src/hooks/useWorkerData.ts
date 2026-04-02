@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAgents, getChats, getTeams, setAccessToken } from '../lib/apiClient';
+import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '../lib/apiClient';
 import type { Agent, Chat, Team, WorkerRow } from '../context/types';
 import {
   refreshWorkerDataWithCoordinator,
@@ -12,6 +13,7 @@ import {
   buildSelectedWorkerConversationRows,
   mergeFetchedChats,
 } from '../lib/chatSummary';
+import { upsertAgentSummary } from '../lib/agentSummary';
 
 export function useWorkerData(input: {
   loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
@@ -20,6 +22,15 @@ export function useWorkerData(input: {
   const { loadChat, selectWorkerConversation } = input;
   const { state, dispatch, stateRef } = useAppContext();
   const bootstrappedRef = useRef(false);
+
+  const extractAgentWorkerKey = useCallback((detail: { workerKey?: unknown; agentKey?: unknown }): string => {
+    const explicitAgentKey = String(detail.agentKey || '').trim();
+    if (explicitAgentKey) {
+      return `agent:${explicitAgentKey}`;
+    }
+    const workerKey = String(detail.workerKey || '').trim();
+    return workerKey.startsWith('agent:') ? workerKey : '';
+  }, []);
 
   const findDefaultTeamWorkerKey = useCallback((rows: WorkerRow[]): string => {
     const matched = rows.find((row) => {
@@ -147,6 +158,48 @@ export function useWorkerData(input: {
     });
   }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState]);
 
+  const ensureAgentLoadedForWorkerSelection = useCallback(async (
+    detail: { workerKey?: unknown; agentKey?: unknown },
+  ): Promise<string> => {
+    const agentWorkerKey = extractAgentWorkerKey(detail);
+    if (!agentWorkerKey) {
+      return String(detail.workerKey || '').trim();
+    }
+
+    const requestedAgentKey = agentWorkerKey.slice('agent:'.length).trim();
+    if (!requestedAgentKey) {
+      return String(detail.workerKey || '').trim();
+    }
+
+    try {
+      const response = await getAgent(requestedAgentKey);
+      const payload = (response.data || {}) as Partial<Agent>;
+      const resolvedAgentKey = String(payload.key || requestedAgentKey).trim() || requestedAgentKey;
+      const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
+        ...payload,
+        key: resolvedAgentKey,
+        name: String(payload.name || resolvedAgentKey).trim() || resolvedAgentKey,
+      });
+
+      flushSync(() => {
+        dispatch({ type: 'SET_AGENTS', agents: mergedAgents });
+        rebuildWorkerRowsFromState({
+          agents: mergedAgents,
+          workerPriorityKey: `agent:${resolvedAgentKey}`,
+          workerSelectionKey: `agent:${resolvedAgentKey}`,
+        });
+      });
+
+      return `agent:${resolvedAgentKey}`;
+    } catch (error) {
+      dispatch({
+        type: 'APPEND_DEBUG',
+        line: `[loadAgent error] ${(error as Error).message}`,
+      });
+      return agentWorkerKey;
+    }
+  }, [dispatch, extractAgentWorkerKey, rebuildWorkerRowsFromState, stateRef]);
+
   useEffect(() => {
     if (bootstrappedRef.current) {
       return;
@@ -226,15 +279,26 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const workerKey = (e as CustomEvent).detail?.workerKey;
+      const detail = ((e as CustomEvent).detail || {}) as {
+        workerKey?: string;
+        agentKey?: string;
+        focusComposerOnComplete?: boolean;
+      };
       const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
-      if (workerKey) {
-        selectWorkerConversation(workerKey, { focusComposerOnComplete }).catch(() => undefined);
-      }
+      const requestedWorkerKey = String(detail.workerKey || '').trim();
+      const fallbackWorkerKey = extractAgentWorkerKey(detail);
+      const nextWorkerKey = requestedWorkerKey || fallbackWorkerKey;
+      if (!nextWorkerKey) return;
+
+      ensureAgentLoadedForWorkerSelection(detail)
+        .then((resolvedWorkerKey) => (
+          selectWorkerConversation(resolvedWorkerKey || nextWorkerKey, { focusComposerOnComplete })
+        ))
+        .catch(() => undefined);
     };
     window.addEventListener('agent:select-worker', handler);
     return () => window.removeEventListener('agent:select-worker', handler);
-  }, [selectWorkerConversation]);
+  }, [ensureAgentLoadedForWorkerSelection, extractAgentWorkerKey, selectWorkerConversation]);
 
   return {
     loadAgents,

@@ -1965,6 +1965,66 @@ textarea {
   padding: 2px 4px 4px;
 }
 
+.composer-control-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  &:not(:last-child)::after{
+    content: '';
+    display: block;
+    width: 1px;
+    height: 50%;
+    background-color: var(--line-soft);
+  }
+}
+
+.composer-control-field.is-string,
+.composer-control-field.is-number,
+.composer-control-field.is-date,
+.composer-control-field.is-select {
+  max-width: 140px;
+}
+
+.composer-control-label {
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.composer-control-label .material-symbols-rounded {
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+
+.composer-control-input {
+  min-width: 0;
+  width: min(180px, 100%);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 5px 8px;
+  color: var(--ink-1);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.composer-control-input:focus {
+  outline: none;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 24%, transparent);
+}
+
+.composer-control-input:disabled {
+  background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
+  color: var(--ink-muted);
+}
+
+.composer-control-toggle {
+  accent-color: var(--accent-electric);
+}
+
 .composer-attachments-nav {
   position: absolute;
   top: 50%;
@@ -2036,8 +2096,10 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 1;
+  overflow: auto;
   align-self: center;
+  white-space: nowrap;
 }
 
 .plan-toggle-btn {
@@ -2700,6 +2762,17 @@ textarea {
 
   .composer-attachments {
     gap: 8px;
+  }
+
+  .composer-control-field.is-string,
+  .composer-control-field.is-number,
+  .composer-control-field.is-date,
+  .composer-control-field.is-select {
+    flex-basis: 100%;
+  }
+
+  .composer-control-input {
+    width: min(156px, 100%);
   }
 
   .composer-attachments-nav {

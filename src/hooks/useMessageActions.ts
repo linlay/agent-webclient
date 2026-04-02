@@ -26,6 +26,7 @@ interface SendMessageEventDetail {
   references?: unknown;
   attachments?: unknown;
   chatId?: unknown;
+  params?: unknown;
 }
 
 function readEventTeamId(event: AgentEvent): string {
@@ -57,6 +58,7 @@ export function useMessageActions() {
       inputMessage: string,
       references: unknown[] = [],
       attachments: TimelineAttachment[] = [],
+      params: Record<string, unknown> = {},
       preferredChatId = '',
     ) => {
       const rawMessage = String(inputMessage ?? '').trim();
@@ -343,6 +345,7 @@ export function useMessageActions() {
             teamId: selectedTeamId || undefined,
             chatId: chatId || undefined,
             references: normalizedReferences.length > 0 ? normalizedReferences : undefined,
+            params: Object.keys(params).length > 0 ? params : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
             signal: abortController.signal,
           },
@@ -412,9 +415,13 @@ export function useMessageActions() {
         ? detail.references
         : [];
       const attachments = normalizeTimelineAttachments(detail.attachments);
+      const params =
+        detail.params && typeof detail.params === 'object' && !Array.isArray(detail.params)
+          ? (detail.params as Record<string, unknown>)
+          : {};
       const chatId = String(detail.chatId || '').trim();
       if (message || references.length > 0) {
-        void sendMessage(message, references, attachments, chatId);
+        void sendMessage(message, references, attachments, params, chatId);
       }
     };
     window.addEventListener('agent:send-message', handler);

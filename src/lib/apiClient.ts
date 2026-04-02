@@ -291,6 +291,11 @@ export function getAgents(): Promise<ApiResponse> {
   return requestJson('/api/agents');
 }
 
+export function getAgent(agentKey: string): Promise<ApiResponse> {
+  const query = toQueryString({ agentKey });
+  return requestJson(query ? `/api/agent?${query}` : '/api/agent');
+}
+
 export function getTeams(): Promise<ApiResponse> {
   return requestJson('/api/teams');
 }

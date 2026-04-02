@@ -1,8 +1,10 @@
+import { Blob } from 'buffer';
 import {
   buildResourceUrl,
   createQueryStream,
   extractUploadChatId,
   extractUploadReferences,
+  getAgent,
   getAgents,
   getVoiceCapabilities,
   getVoiceCapabilitiesFlexible,
@@ -15,10 +17,42 @@ import {
   uploadFile,
 } from './apiClient';
 
+class MockFormData {
+  private readonly values = new Map<string, unknown[]>();
+
+  append(name: string, value: unknown, filename?: string): void {
+    const current = this.values.get(name) || [];
+    if (filename && value instanceof Blob) {
+      current.push(new MockFile([value], filename, { type: value.type }));
+    } else {
+      current.push(value);
+    }
+    this.values.set(name, current);
+  }
+
+  get(name: string): unknown {
+    return this.values.get(name)?.[0] ?? null;
+  }
+}
+
+class MockFile extends Blob {
+  name: string;
+  lastModified: number;
+
+  constructor(bits: BlobPart[], name: string, options: FilePropertyBag = {}) {
+    super(bits, options);
+    this.name = name;
+    this.lastModified = options.lastModified ?? Date.now();
+  }
+}
+
 describe('apiClient query payloads', () => {
   const fetchMock = jest.fn();
 
   beforeEach(() => {
+    global.Blob = Blob as unknown as typeof global.Blob;
+    global.File = MockFile as unknown as typeof global.File;
+    global.FormData = MockFormData as unknown as typeof global.FormData;
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({
       ok: true,
@@ -150,6 +184,12 @@ describe('apiClient query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/voice/capabilities');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/voice/tts/voices');
+  });
+
+  it('requests a single agent by agentKey query param', async () => {
+    await getAgent('demo-agent');
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
   });
 
   it('parses voice capabilities from standard ApiResponse payloads', async () => {
