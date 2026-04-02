@@ -200,7 +200,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         </span>
         {isGrouped ? (
           expandableRecords.map((record) => (
-            <span key={record.key} className="tool-status-dot" />
+            <span key={record.key} className="tool-status-dot" data-tool-status={record.status} />
           ))
         ) : (
           <span className="tool-status-dot" data-tool-status={status} />

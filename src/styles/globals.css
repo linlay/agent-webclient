@@ -1504,7 +1504,6 @@ textarea {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  flex: 0 0 7px;
   background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
 }
 
@@ -1811,7 +1810,7 @@ textarea {
   position: sticky;
   bottom: 0;
   z-index: 20;
-  padding-bottom: 14px;
+  padding: 0 14px 14px;
 }
 
 .bottom-dock-inner {
