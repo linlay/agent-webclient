@@ -48,7 +48,7 @@
 接口消费封装位于 [`src/lib/apiClient.ts`](./src/lib/apiClient.ts)，当前使用的主要接口包括：
 - `GET /api/agents`
 - `GET /api/teams`
-- `GET /api/agent`（已下线，不再使用）
+- `GET /api/agent`
 - `GET /api/skills`
 - `GET /api/skill`（已下线，不再使用）
 - `GET /api/tools`

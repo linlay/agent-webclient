@@ -4,12 +4,12 @@ import type {
   AgentControl,
   AgentControlOption,
 } from "../../context/types";
-import { MaterialIcon } from "../common/MaterialIcon";
+import { useAppState } from "@/context/AppContext";
+import { resolveCurrentWorkerSummary } from "@/lib/currentWorker";
 
 type ControlFieldValue = string | boolean;
 
 interface ControlsFormProps {
-  agent: Agent | null;
   disabled?: boolean;
   onChange?: (params: Record<string, unknown>) => void;
 }
@@ -69,14 +69,6 @@ function serializeOptionValue(value: unknown): string {
 
 function resolveOptionLabel(option: AgentControlOption): string {
   return readText(option.label, readText(option.value, "未命名选项"));
-}
-
-function resolveControlLabel(control: AgentControl): string {
-  return readText(control.label, String(control.key || "").trim());
-}
-
-function resolveControlIcon(control: AgentControl): string {
-  return readText(control.icon);
 }
 
 function buildInitialFieldValues(
@@ -231,10 +223,16 @@ function renderFieldInput(
 }
 
 export const ControlsForm: React.FC<ControlsFormProps> = ({
-  agent,
   disabled = false,
   onChange,
 }) => {
+    const state = useAppState();
+    const currentWorker = resolveCurrentWorkerSummary(state);
+    const agent = useMemo(() => {
+      if(currentWorker?.type === 'team') return null;
+      return currentWorker?.raw as Agent;
+    }, [currentWorker]);
+  
   const controls = useMemo<AgentControl[]>(
     () =>
       Array.isArray(agent?.controls)

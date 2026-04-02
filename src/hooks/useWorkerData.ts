@@ -178,7 +178,6 @@ export function useWorkerData(input: {
       const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
         ...payload,
         key: resolvedAgentKey,
-        name: String(payload.name || resolvedAgentKey).trim() || resolvedAgentKey,
       });
 
       flushSync(() => {

@@ -26,7 +26,6 @@ import {
   getAttachmentKindLabel,
 } from "../../lib/attachmentUtils";
 import {
-  parseLeadingAgentMention,
   parseLeadingMentionDraft,
 } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
@@ -710,22 +709,6 @@ export const ComposerArea: React.FC = () => {
     }
     return String(state.pendingNewChatAgentKey || "").trim();
   }, [state.chatId, state.chatAgentById, state.pendingNewChatAgentKey]);
-  const composerAgentKey = useMemo(() => {
-    const mention = parseLeadingAgentMention(
-      inputValue,
-      resolveMentionCandidatesFromState(state),
-    );
-    return (
-      String(mention.mentionAgentKey || "").trim() || resolveCurrentAgentKey()
-    );
-  }, [inputValue, resolveCurrentAgentKey, state]);
-  const composerAgent = useMemo(
-    () =>
-      state.agents.find(
-        (agent) => String(agent.key || "").trim() === composerAgentKey,
-      ) || null,
-    [composerAgentKey, state.agents],
-  );
 
   const resolveCurrentTeamId = useCallback(() => {
     if (String(state.chatId || "").trim()) return "";
@@ -1497,7 +1480,6 @@ export const ComposerArea: React.FC = () => {
                 计划
               </UiButton>
               <ControlsForm
-                agent={composerAgent}
                 disabled={isFrontendActive || state.streaming}
                 onChange={setControlParams}
               />
