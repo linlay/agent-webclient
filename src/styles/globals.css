@@ -1315,6 +1315,7 @@ textarea {
 .timeline-meta-btn {
   min-height: 22px !important;
   min-width: 22px !important;
+  width: 22px !important;
   padding: 0 6px !important;
   border-radius: 999px !important;
   color: var(--ink-muted);

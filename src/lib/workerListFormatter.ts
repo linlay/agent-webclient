@@ -47,10 +47,6 @@ export function createWorkerKeyFromChat(chat: Chat): string {
 }
 
 function compareChatFreshness(a: Chat, b: Chat): number {
-  const runA = toRunSortValue(a?.lastRunId);
-  const runB = toRunSortValue(b?.lastRunId);
-  if (runA !== runB) return runB - runA;
-
   const updatedA = normalizeUpdatedAt(a?.updatedAt);
   const updatedB = normalizeUpdatedAt(b?.updatedAt);
   if (updatedA !== updatedB) return updatedB - updatedA;
@@ -143,23 +139,16 @@ function toWorkerRow(base: Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'lat
   return row;
 }
 
-function compareWorkerRows(a: WorkerRow, b: WorkerRow, workerPriorityKey = ''): number {
-  const priorityKey = toText(workerPriorityKey);
-  const aIsPriority = Boolean(priorityKey) && a.key === priorityKey;
-  const bIsPriority = Boolean(priorityKey) && b.key === priorityKey;
-  if (aIsPriority !== bIsPriority) return aIsPriority ? -1 : 1;
-  if (a.hasHistory !== b.hasHistory) return a.hasHistory ? -1 : 1;
-  if (!a.hasHistory && !b.hasHistory) return a.displayName.localeCompare(b.displayName);
-  if (a.latestRunSortValue !== b.latestRunSortValue) return b.latestRunSortValue - a.latestRunSortValue;
+function compareWorkerRows(a: WorkerRow, b: WorkerRow): number {
   if (a.latestUpdatedAt !== b.latestUpdatedAt) return b.latestUpdatedAt - a.latestUpdatedAt;
-  return a.displayName.localeCompare(b.displayName);
+  const displayNameComparison = a.displayName.localeCompare(b.displayName);
+  if (displayNameComparison !== 0) return displayNameComparison;
+  return a.key.localeCompare(b.key);
 }
 
 export function buildWorkerRows(input: { agents: Agent[]; teams: Team[]; chats: Chat[]; workerPriorityKey?: string }): WorkerRow[] {
   const latestByWorker = toLatestChatMap(input.chats);
   const workersByKey = createBaseWorkerMap(input.agents, input.teams);
-  const workerPriorityKey = toText(input.workerPriorityKey);
-  const agentNameByKey = createAgentNameMap(input.agents);
 
   for (const [workerKey, chat] of latestByWorker.entries()) {
     if (workersByKey.has(workerKey)) continue;
@@ -190,23 +179,11 @@ export function buildWorkerRows(input: { agents: Agent[]; teams: Team[]; chats: 
     }
   }
 
-  if (workerPriorityKey.startsWith('agent:') && !workersByKey.has(workerPriorityKey)) {
-    const agentKey = workerPriorityKey.slice('agent:'.length);
-    workersByKey.set(workerPriorityKey, {
-      key: workerPriorityKey,
-      type: 'agent',
-      sourceId: agentKey,
-      displayName: toText(agentNameByKey.get(agentKey)) || agentKey,
-      role: '--',
-      teamAgentLabels: [],
-    });
-  }
-
   const rows: WorkerRow[] = [];
   for (const [key, base] of workersByKey.entries()) {
     rows.push(toWorkerRow(base, latestByWorker.get(key)));
   }
 
-  rows.sort((a, b) => compareWorkerRows(a, b, workerPriorityKey));
+  rows.sort(compareWorkerRows);
   return rows;
 }
