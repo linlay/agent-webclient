@@ -24,25 +24,6 @@ function formatBytes(sizeBytes: number): string {
   return `${value.toFixed(digits)} ${units[unitIndex]}`;
 }
 
-function formatMimeLabel(mimeType: string): string {
-  const value = String(mimeType || "").trim();
-  if (!value) return "FILE";
-  const slashIndex = value.indexOf("/");
-  if (slashIndex <= 0) return value.toUpperCase();
-  return value
-    .slice(slashIndex + 1)
-    .replace(/[-_.]+/g, " ")
-    .toUpperCase();
-}
-
-function formatArtifactTimestamp(timestamp: number): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export interface ArtifactSummaryView {
   artifacts: PublishedArtifact[];
   latestArtifact: PublishedArtifact | null;
@@ -181,14 +162,6 @@ export const ArtifactPanel: React.FC = () => {
       <ul className="artifact-list" id={artifactListId} ref={listRef}>
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
-          const subtitle = [
-            formatMimeLabel(artifact.mimeType),
-            formatBytes(artifact.sizeBytes),
-            formatArtifactTimestamp(item.timestamp),
-          ]
-            .filter(Boolean)
-            .join(" · ");
-
           return (
             <li key={item.artifactId} className="artifact-item">
               <a
@@ -203,7 +176,7 @@ export const ArtifactPanel: React.FC = () => {
                   variant="composer"
                   displayMode="file"
                   density="compact"
-                  subtitle={subtitle}
+                  subtitle={formatBytes(artifact.sizeBytes)}
                 />
               </a>
             </li>

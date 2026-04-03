@@ -25,9 +25,7 @@ import {
   getAttachmentKind,
   getAttachmentKindLabel,
 } from "../../lib/attachmentUtils";
-import {
-  parseLeadingMentionDraft,
-} from "../../lib/mentionParser";
+import { parseLeadingMentionDraft } from "../../lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "../../lib/mentionCandidates";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { isImeEnterConfirming } from "../../lib/ime";
@@ -1355,6 +1353,41 @@ export const ComposerArea: React.FC = () => {
           ref={composerPillRef}
           className={`composer-pill ${isFrontendActive ? "hidden" : ""} ${isVoiceMode ? "is-voice-mode" : ""}`}
         >
+          <div
+            ref={attachmentViewportRef}
+            className="composer-attachments-viewport"
+            aria-live="polite"
+          >
+            <div className="composer-attachments">
+              {attachments.map((attachment) => (
+                <AttachmentCard
+                  key={attachment.id}
+                  attachment={{
+                    name: attachment.name,
+                    size: attachment.size,
+                    type: attachment.type,
+                    mimeType: attachment.mimeType,
+                    url: attachment.resourceUrl,
+                    previewUrl: attachment.previewUrl,
+                  }}
+                  variant="composer"
+                  status={attachment.status}
+                  displayMode={
+                    useUnifiedComposerAttachmentRow ? "file" : "auto"
+                  }
+                  thumbnailMode={
+                    useUnifiedComposerAttachmentRow ? "inline" : "auto"
+                  }
+                  subtitle={getComposerAttachmentSubtitle(
+                    attachment,
+                    useUnifiedComposerAttachmentRow,
+                  )}
+                  onRemove={() => handleRemoveAttachment(attachment.id)}
+                  removeLabel={`移除文件 ${attachment.name}`}
+                />
+              ))}
+            </div>
+          </div>
           <div className="composer-mode-shell">
             <div className="composer-mode-main">
               {isVoiceMode ? (
@@ -1470,41 +1503,6 @@ export const ComposerArea: React.FC = () => {
                   <MaterialIcon name="chevron_left" />
                 </button>
               )}
-              <div
-                ref={attachmentViewportRef}
-                className="composer-attachments-viewport"
-                aria-live="polite"
-              >
-                <div className="composer-attachments">
-                  {attachments.map((attachment) => (
-                    <AttachmentCard
-                      key={attachment.id}
-                      attachment={{
-                        name: attachment.name,
-                        size: attachment.size,
-                        type: attachment.type,
-                        mimeType: attachment.mimeType,
-                        url: attachment.resourceUrl,
-                        previewUrl: attachment.previewUrl,
-                      }}
-                      variant="composer"
-                      status={attachment.status}
-                      displayMode={
-                        useUnifiedComposerAttachmentRow ? "file" : "auto"
-                      }
-                      thumbnailMode={
-                        useUnifiedComposerAttachmentRow ? "inline" : "auto"
-                      }
-                      subtitle={getComposerAttachmentSubtitle(
-                        attachment,
-                        useUnifiedComposerAttachmentRow,
-                      )}
-                      onRemove={() => handleRemoveAttachment(attachment.id)}
-                      removeLabel={`移除文件 ${attachment.name}`}
-                    />
-                  ))}
-                </div>
-              </div>
               {hasComposerAttachmentOverflow && (
                 <button
                   type="button"

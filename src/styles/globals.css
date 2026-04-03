@@ -931,7 +931,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 10px 13px 10px 11px;
+  padding: 9px 20px 9px 10px;
   border-radius: 18px;
   border: 1px solid rgba(214, 220, 229, 0.92);
   background: linear-gradient(180deg,
@@ -941,8 +941,8 @@ textarea {
 
 .attachment-card-file-icon {
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 12px;
@@ -1458,7 +1458,8 @@ textarea {
 .thinking-trigger:hover {
   color: var(--ink-2);
   box-shadow: none;
-  .chevron{
+
+  .chevron {
     opacity: 1;
   }
 }
@@ -1506,10 +1507,15 @@ textarea {
 }
 
 @keyframes flash {
-  0%, 50%, 100% {
+
+  0%,
+  50%,
+  100% {
     opacity: 1;
   }
-  25%, 75% {
+
+  25%,
+  75% {
     opacity: 0;
   }
 }
@@ -1540,7 +1546,8 @@ textarea {
 .tool-trigger:hover {
   color: var(--ink-2);
   box-shadow: none;
-  .chevron{
+
+  .chevron {
     opacity: 1;
   }
 }
@@ -1713,7 +1720,8 @@ textarea {
   font-size: 11px;
   line-height: 1.5;
   color: var(--text-muted);
-  .input{
+
+  .input {
     color: var(--text-main);
   }
 }
@@ -1890,8 +1898,6 @@ textarea {
 
 .composer-attachments-shell {
   position: relative;
-  width: 100%;
-  max-width: min(100%, 920px);
 }
 
 .composer-attachments-shell.is-scrollable {
@@ -1917,7 +1923,6 @@ textarea {
   flex-wrap: nowrap;
   align-items: stretch;
   gap: 10px;
-  padding: 2px 4px 4px;
 }
 
 .composer-control-field {
@@ -1926,7 +1931,8 @@ textarea {
   gap: 10px;
   white-space: nowrap;
   flex-shrink: 0;
-  &:not(:last-child)::after{
+
+  &:not(:last-child)::after {
     content: '';
     display: block;
     width: 1px;
@@ -2028,14 +2034,6 @@ textarea {
   width: 88px;
   aspect-ratio: 1 / 1;
   border-radius: 16px;
-}
-
-.attachment-card-composer.is-file {
-  width: clamp(196px, 20vw, 248px);
-}
-
-.attachment-card-composer .attachment-card-file-shell {
-  min-height: 60px;
 }
 
 .attachment-card-composer .attachment-card-title {
@@ -3153,7 +3151,7 @@ textarea {
 }
 
 .artifact-item {
-  flex: 1;
+  flex: 0 0 220px;
   min-width: 220px;
   list-style: none;
 }
@@ -3289,9 +3287,8 @@ textarea {
   overflow: hidden;
   border: 0 solid transparent;
   border-top-width: 0;
-  border-radius: 0 0 14px 14px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
-  box-shadow: none;
   opacity: 1;
   transform: none;
   pointer-events: none;
@@ -3304,7 +3301,6 @@ textarea {
   padding: 8px;
   margin-top: 6px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  box-shadow: var(--shadow-medium);
   pointer-events: auto;
 }
 
