@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
 import { getChat } from '../lib/apiClient';
-import type { Chat, AgentEvent, WorkerRow } from '../context/types';
+import type { Chat, AgentEvent, Plan, WorkerRow } from '../context/types';
 import { createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';
 import { useWorkerData } from './useWorkerData';
@@ -12,7 +12,7 @@ import {
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '../lib/conversationSession';
-import { createReplayState, replayEvent, type ReplayState } from '../lib/conversationReplay';
+import { createReplayState, replayEvent, setReplayPlan, type ReplayState } from '../lib/conversationReplay';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -20,7 +20,33 @@ import { createReplayState, replayEvent, type ReplayState } from '../lib/convers
  * then dispatching the complete result via BATCH_UPDATE.
  */
 export type { ReplayState } from '../lib/conversationReplay';
-export { createReplayState, replayEvent } from '../lib/conversationReplay';
+export { createReplayState, replayEvent, setReplayPlan } from '../lib/conversationReplay';
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object';
+}
+
+function normalizeChatPlan(value: unknown): Plan | null | undefined {
+  if (value === undefined) return undefined;
+  if (value == null) return null;
+  if (!isObjectRecord(value)) return undefined;
+
+  const planId = String(value.planId || '').trim();
+  if (!planId || !Array.isArray(value.tasks)) {
+    return undefined;
+  }
+  const plan = value.tasks
+    .filter((item): item is Record<string, unknown> => isObjectRecord(item) && typeof item.taskId === 'string')
+    .map((item) => ({
+      ...item,
+      taskId: String(item.taskId),
+    }));
+
+  return {
+    planId,
+    plan,
+  };
+}
 
 /**
  * useChatActions — handles loading agents, chats, and switching chat context.
@@ -173,6 +199,8 @@ export function useChatActions() {
         if (seq !== loadSeqRef.current) return;
 
         const chatData = response.data as Record<string, unknown>;
+        const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
+        const chatPlan = normalizeChatPlan(chatData.plan);
 
         /* Replay events into a LOCAL MUTABLE state to avoid React batching issues */
         const events = Array.isArray(chatData?.events) ? chatData.events : [];
@@ -184,6 +212,13 @@ export function useChatActions() {
           const evt = event as AgentEvent;
           if (evt?.chatId && String(evt.chatId) !== String(chatId)) continue;
           replayEvent(rs, evt);
+        }
+
+        if (hasPlanSnapshot && chatPlan !== undefined) {
+          setReplayPlan(rs, chatPlan, {
+            resetRuntime: !chatPlan
+              || Boolean(rs.plan?.planId && chatPlan.planId && rs.plan.planId !== chatPlan.planId),
+          });
         }
 
         /* Dispatch the complete replay result as a single batch update */

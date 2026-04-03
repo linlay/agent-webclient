@@ -52,6 +52,28 @@ export function createReplayState(): ReplayState {
   };
 }
 
+function clonePlan(plan: Plan | null): Plan | null {
+  return plan
+    ? {
+        ...plan,
+        plan: Array.isArray(plan.plan) ? plan.plan.map((item) => ({ ...item })) : [],
+      }
+    : null;
+}
+
+export function setReplayPlan(
+  rs: ReplayState,
+  plan: Plan | null,
+  options: { resetRuntime?: boolean } = {},
+): void {
+  rs.plan = clonePlan(plan);
+  if (options.resetRuntime) {
+    rs.planRuntimeByTaskId = new Map();
+    rs.planCurrentRunningTaskId = '';
+    rs.planLastTouchedTaskId = '';
+  }
+}
+
 function createReplayProcessorState(rs: ReplayState): EventProcessorState {
   return {
     getContentNodeId: (contentId) => rs.contentNodeById.get(contentId),
@@ -145,12 +167,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       rs.activeReasoningKey = command.key;
       return;
     case 'SET_PLAN':
-      rs.plan = command.plan;
-      if (command.resetRuntime) {
-        rs.planRuntimeByTaskId = new Map();
-        rs.planCurrentRunningTaskId = '';
-        rs.planLastTouchedTaskId = '';
-      }
+      setReplayPlan(rs, command.plan, { resetRuntime: command.resetRuntime });
       return;
     case 'SET_PLAN_RUNTIME':
       rs.planRuntimeByTaskId.set(command.taskId, command.runtime);

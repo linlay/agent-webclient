@@ -1,5 +1,5 @@
 import type { Agent, Chat, Team } from '../context/types';
-import { createReplayState, replayEvent } from './useChatActions';
+import { createReplayState, replayEvent, setReplayPlan } from './useChatActions';
 
 describe('replayEvent tool migration', () => {
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
@@ -91,6 +91,67 @@ describe('replayEvent tool migration', () => {
 
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
     expect(state.planCurrentRunningTaskId).toBe('');
+  });
+
+  it('applies getChat plan snapshots without clearing matching runtime state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'old step' }],
+    });
+    replayEvent(state, {
+      type: 'plan.task.start',
+      taskId: 'task_1',
+    });
+
+    setReplayPlan(
+      state,
+      {
+        planId: 'plan_1',
+        plan: [{ taskId: 'task_1', description: 'new step' }],
+      },
+      { resetRuntime: false },
+    );
+
+    expect(state.plan).toEqual({
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'new step' }],
+    });
+    expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('running');
+    expect(state.planCurrentRunningTaskId).toBe('task_1');
+  });
+
+  it('clears plan runtime when getChat plan snapshot replaces a different plan', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'step 1' }],
+    });
+    replayEvent(state, {
+      type: 'plan.task.start',
+      taskId: 'task_1',
+    });
+
+    setReplayPlan(
+      state,
+      {
+        planId: 'plan_2',
+        plan: [{ taskId: 'task_2', description: 'step 2' }],
+      },
+      { resetRuntime: true },
+    );
+
+    expect(state.plan).toEqual({
+      planId: 'plan_2',
+      plan: [{ taskId: 'task_2', description: 'step 2' }],
+    });
+    expect(state.planRuntimeByTaskId.size).toBe(0);
+    expect(state.planCurrentRunningTaskId).toBe('');
+    expect(state.planLastTouchedTaskId).toBe('');
   });
 
   it('replays request.steer as a user timeline node', () => {
