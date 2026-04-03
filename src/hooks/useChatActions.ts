@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
 import { getChat } from '../lib/apiClient';
-import type { Chat, AgentEvent, Plan, WorkerRow } from '../context/types';
+import type { ArtifactFile, Chat, AgentEvent, Plan, PublishedArtifact, WorkerRow } from '../context/types';
 import { createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';
 import { useWorkerData } from './useWorkerData';
@@ -12,7 +12,7 @@ import {
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '../lib/conversationSession';
-import { createReplayState, replayEvent, setReplayPlan, type ReplayState } from '../lib/conversationReplay';
+import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan, type ReplayState } from '../lib/conversationReplay';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -20,7 +20,7 @@ import { createReplayState, replayEvent, setReplayPlan, type ReplayState } from 
  * then dispatching the complete result via BATCH_UPDATE.
  */
 export type { ReplayState } from '../lib/conversationReplay';
-export { createReplayState, replayEvent, setReplayPlan } from '../lib/conversationReplay';
+export { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '../lib/conversationReplay';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';
@@ -48,6 +48,45 @@ function normalizeChatPlan(value: unknown): Plan | null | undefined {
   };
 }
 
+function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
+  if (!isObjectRecord(value)) return null;
+
+  const url = String(value.url || '').trim();
+  const artifactId = String(value.artifactId || value.sha256 || value.url || value.name || '').trim();
+  if (!url || !artifactId) {
+    return null;
+  }
+
+  const sizeBytes = Number(value.sizeBytes ?? value.size);
+  const timestamp = Number(value.timestamp ?? value.createdAt ?? value.updatedAt);
+
+  return {
+    artifactId,
+    artifact: {
+      type: 'file',
+      name: String(value.name || artifactId).trim() || artifactId,
+      mimeType: String(value.mimeType || 'application/octet-stream').trim() || 'application/octet-stream',
+      sha256: String(value.sha256 || '').trim(),
+      sizeBytes: Number.isFinite(sizeBytes) && sizeBytes >= 0 ? sizeBytes : 0,
+      url,
+    },
+    timestamp: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0,
+  };
+}
+
+export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] | undefined {
+  if (value === undefined) return undefined;
+  if (value == null) return [];
+  if (!isObjectRecord(value)) return undefined;
+  if (!Object.prototype.hasOwnProperty.call(value, 'items')) return undefined;
+  if (value.items == null) return [];
+  if (!Array.isArray(value.items)) return undefined;
+
+  return value.items
+    .map((item) => normalizeArtifactFile(item as ArtifactFile))
+    .filter((item): item is PublishedArtifact => Boolean(item));
+}
+
 /**
  * useChatActions — handles loading agents, chats, and switching chat context.
  */
@@ -66,6 +105,14 @@ export function useChatActions() {
     if (timer) {
       window.clearTimeout(timer);
       dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
+    }
+  }, [dispatch, stateRef]);
+
+  const clearArtifactAutoCollapseTimer = useCallback(() => {
+    const timer = stateRef.current.artifactAutoCollapseTimer;
+    if (timer) {
+      window.clearTimeout(timer);
+      dispatch({ type: 'SET_ARTIFACT_AUTO_COLLAPSE_TIMER', timer: null });
     }
   }, [dispatch, stateRef]);
 
@@ -117,6 +164,7 @@ export function useChatActions() {
     const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
     detachActiveConversationSession();
+    clearArtifactAutoCollapseTimer();
     clearPlanAutoCollapseTimer();
     window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
     window.dispatchEvent(new CustomEvent('agent:clear-composer-attachments'));
@@ -132,7 +180,7 @@ export function useChatActions() {
     if (focusComposerOnComplete) {
       focusComposerSoon();
     }
-  }, [clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, focusComposerSoon]);
+  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, focusComposerSoon]);
 
   const restoreSessionConversation = useCallback((chatId: string): boolean => {
     const requestId = String(chatQuerySessionIndexRef.current.get(chatId) || '').trim();
@@ -170,6 +218,7 @@ export function useChatActions() {
       const seq = ++loadSeqRef.current;
       detachActiveConversationSession();
       dispatch({ type: 'SET_CHAT_ID', chatId });
+      clearArtifactAutoCollapseTimer();
       clearPlanAutoCollapseTimer();
       dispatch({ type: 'RESET_CONVERSATION' });
       window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
@@ -199,6 +248,7 @@ export function useChatActions() {
         if (seq !== loadSeqRef.current) return;
 
         const chatData = response.data as Record<string, unknown>;
+        const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
 
@@ -212,6 +262,10 @@ export function useChatActions() {
           const evt = event as AgentEvent;
           if (evt?.chatId && String(evt.chatId) !== String(chatId)) continue;
           replayEvent(rs, evt);
+        }
+
+        if (chatArtifacts !== undefined) {
+          setReplayArtifacts(rs, chatArtifacts);
         }
 
         if (hasPlanSnapshot && chatPlan !== undefined) {
@@ -236,6 +290,7 @@ export function useChatActions() {
             timelineCounter: rs.timelineCounter,
             activeReasoningKey: rs.activeReasoningKey,
             events: rs.events,
+            artifacts: rs.artifacts,
             plan: rs.plan,
             planRuntimeByTaskId: rs.planRuntimeByTaskId,
             planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
@@ -263,6 +318,7 @@ export function useChatActions() {
       }
     },
     [
+      clearArtifactAutoCollapseTimer,
       clearPlanAutoCollapseTimer,
       detachActiveConversationSession,
       dispatch,

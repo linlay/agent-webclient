@@ -13,6 +13,7 @@ import type { EventCommand, EventProcessorState } from '../lib/eventProcessor';
 import { processEvent } from '../lib/eventProcessor';
 import { toText } from '../lib/eventUtils';
 import {
+  ARTIFACT_AUTO_COLLAPSE_MS,
   FRONTEND_VIEWPORT_TYPES,
   PLAN_AUTO_COLLAPSE_MS,
   REASONING_AUTO_COLLAPSE_MS,
@@ -275,6 +276,9 @@ function applyLiveEventCommand(input: {
       cache.activeReasoningKey = command.key;
       dispatch({ type: 'SET_ACTIVE_REASONING_KEY', key: command.key });
       return;
+    case 'UPSERT_ARTIFACT':
+      dispatch({ type: 'UPSERT_ARTIFACT', artifact: command.artifact });
+      return;
     case 'SET_PLAN':
       if (command.resetRuntime) {
         dispatch({
@@ -385,6 +389,14 @@ export function useAgentEventHandler() {
     }
   }, [dispatch, stateRef]);
 
+  const clearArtifactAutoCollapse = useCallback(() => {
+    const timer = stateRef.current.artifactAutoCollapseTimer;
+    if (timer) {
+      window.clearTimeout(timer);
+      dispatch({ type: 'SET_ARTIFACT_AUTO_COLLAPSE_TIMER', timer: null });
+    }
+  }, [dispatch, stateRef]);
+
   useEffect(() => {
     const handler = () => {
       resetCache();
@@ -403,11 +415,27 @@ export function useAgentEventHandler() {
     dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer });
   }, [clearPlanAutoCollapse, dispatch]);
 
+  const scheduleArtifactAutoCollapse = useCallback(() => {
+    clearArtifactAutoCollapse();
+    const timer: UiTimerHandle = window.setTimeout(() => {
+      dispatch({ type: 'SET_ARTIFACT_EXPANDED', expanded: false });
+      dispatch({ type: 'SET_ARTIFACT_AUTO_COLLAPSE_TIMER', timer: null });
+      dispatch({ type: 'SET_ARTIFACT_MANUAL_OVERRIDE', override: null });
+    }, ARTIFACT_AUTO_COLLAPSE_MS);
+    dispatch({ type: 'SET_ARTIFACT_AUTO_COLLAPSE_TIMER', timer });
+  }, [clearArtifactAutoCollapse, dispatch]);
+
   const expandPlanForUpdate = useCallback(() => {
     dispatch({ type: 'SET_PLAN_EXPANDED', expanded: true });
     dispatch({ type: 'SET_PLAN_MANUAL_OVERRIDE', override: null });
     schedulePlanAutoCollapse();
   }, [dispatch, schedulePlanAutoCollapse]);
+
+  const expandArtifactForUpdate = useCallback(() => {
+    dispatch({ type: 'SET_ARTIFACT_EXPANDED', expanded: true });
+    dispatch({ type: 'SET_ARTIFACT_MANUAL_OVERRIDE', override: null });
+    scheduleArtifactAutoCollapse();
+  }, [dispatch, scheduleArtifactAutoCollapse]);
 
   const clearReasoningAutoCollapse = useCallback((reasoningKey: string) => {
     clearReasoningAutoCollapseTimer({
@@ -692,6 +720,13 @@ export function useAgentEventHandler() {
         return;
       }
 
+      if (type === 'artifact.publish') {
+        if (commands.length > 0) {
+          expandArtifactForUpdate();
+        }
+        return;
+      }
+
       if (type === 'plan.update' || type === 'plan.snapshot' || type === 'plan.task.start' || type === 'plan.task.end') {
         if (commands.length > 0) {
           expandPlanForUpdate();
@@ -702,6 +737,7 @@ export function useAgentEventHandler() {
     [
       clearReasoningAutoCollapse,
       dispatch,
+      expandArtifactForUpdate,
       expandPlanForUpdate,
       scheduleReasoningAutoCollapse,
       stateRef,

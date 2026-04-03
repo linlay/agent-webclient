@@ -16,6 +16,7 @@ import type {
 	ToolState,
 	PendingTool,
 	DebugSseEntry,
+	PublishedArtifact,
 	PlanRuntime,
 	Plan,
 	ActiveFrontendTool,
@@ -89,6 +90,7 @@ export function createInitialState(): AppState {
 		events: [],
 		debugLines: [],
 		rawSseEntries: [],
+		artifacts: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		planCurrentRunningTaskId: "",
@@ -127,6 +129,9 @@ export function createInitialState(): AppState {
 		rightDrawerOpen: false,
 		desktopDebugSidebarEnabled: false,
 		layoutMode: "mobile-drawer",
+		artifactExpanded: false,
+		artifactManualOverride: null,
+		artifactAutoCollapseTimer: null,
 		planExpanded: false,
 		planManualOverride: null,
 		planAutoCollapseTimer: null,
@@ -186,6 +191,10 @@ export type AppAction =
 	| { type: "CLEAR_DEBUG" }
 	| { type: "APPEND_RAW_SSE_ENTRY"; entry: DebugSseEntry }
 	| { type: "CLEAR_RAW_SSE_ENTRIES" }
+	| { type: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
+	| { type: "SET_ARTIFACT_EXPANDED"; expanded: boolean }
+	| { type: "SET_ARTIFACT_MANUAL_OVERRIDE"; override: boolean | null }
+	| { type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
 	| { type: "SET_PLAN"; plan: Plan | null }
 	| { type: "SET_PLAN_EXPANDED"; expanded: boolean }
 	| { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
@@ -304,10 +313,14 @@ function buildConversationResetState(
 		messageOrder: [],
 		events: [],
 		rawSseEntries: [],
+		artifacts: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		planCurrentRunningTaskId: "",
 		planLastTouchedTaskId: "",
+		artifactExpanded: false,
+		artifactManualOverride: null,
+		artifactAutoCollapseTimer: null,
 		planExpanded: false,
 		planManualOverride: null,
 		planAutoCollapseTimer: null,
@@ -381,6 +394,21 @@ function buildConversationResetState(
 	};
 }
 
+function upsertArtifact(
+	artifacts: PublishedArtifact[],
+	artifact: PublishedArtifact,
+): PublishedArtifact[] {
+	const index = artifacts.findIndex(
+		(item) => item.artifactId === artifact.artifactId,
+	);
+	if (index < 0) {
+		return [...artifacts, artifact];
+	}
+	const next = artifacts.slice();
+	next[index] = artifact;
+	return next;
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
 	switch (action.type) {
 		case "SET_AGENTS":
@@ -446,6 +474,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 		}
 		case "CLEAR_RAW_SSE_ENTRIES":
 			return { ...state, rawSseEntries: [] };
+		case "UPSERT_ARTIFACT":
+			return {
+				...state,
+				artifacts: upsertArtifact(state.artifacts, action.artifact),
+			};
+		case "SET_ARTIFACT_EXPANDED":
+			return { ...state, artifactExpanded: action.expanded };
+		case "SET_ARTIFACT_MANUAL_OVERRIDE":
+			return { ...state, artifactManualOverride: action.override };
+		case "SET_ARTIFACT_AUTO_COLLAPSE_TIMER":
+			return { ...state, artifactAutoCollapseTimer: action.timer };
 		case "SET_PLAN":
 			return { ...state, plan: action.plan };
 		case "SET_PLAN_EXPANDED":
@@ -828,6 +867,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			action.type === "RESET_CONVERSATION" ||
 			action.type === "RESET_ACTIVE_CONVERSATION"
 		) {
+			const artifactTimer = stateRef.current.artifactAutoCollapseTimer;
+			if (artifactTimer) {
+				clearTimeout(artifactTimer);
+			}
+			const planTimer = stateRef.current.planAutoCollapseTimer;
+			if (planTimer) {
+				clearTimeout(planTimer);
+			}
 			for (const timer of stateRef.current.reasoningCollapseTimers.values()) {
 				clearTimeout(timer);
 			}

@@ -1,3 +1,4 @@
+export const ARTIFACT_AUTO_COLLAPSE_MS = 3000;
 export const PLAN_AUTO_COLLAPSE_MS = 2000;
 export const REASONING_AUTO_COLLAPSE_MS = 1500;
 export const MAX_EVENTS = 1000;

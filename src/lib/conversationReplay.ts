@@ -1,5 +1,6 @@
 import type {
   AgentEvent,
+  PublishedArtifact,
   TimelineNode,
   Plan,
   PlanRuntime,
@@ -24,6 +25,7 @@ export interface ReplayState {
   runId: string;
   events: AgentEvent[];
   debugLines: string[];
+  artifacts: PublishedArtifact[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   planCurrentRunningTaskId: string;
@@ -45,6 +47,7 @@ export function createReplayState(): ReplayState {
     runId: '',
     events: [],
     debugLines: [],
+    artifacts: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
     planCurrentRunningTaskId: '',
@@ -61,6 +64,28 @@ function clonePlan(plan: Plan | null): Plan | null {
     : null;
 }
 
+function upsertReplayArtifact(
+  artifacts: PublishedArtifact[],
+  nextArtifact: PublishedArtifact,
+): PublishedArtifact[] {
+  const index = artifacts.findIndex((item) => item.artifactId === nextArtifact.artifactId);
+  if (index < 0) {
+    return [...artifacts, nextArtifact];
+  }
+  const next = artifacts.slice();
+  next[index] = nextArtifact;
+  return next;
+}
+
+function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
+  return artifacts.map((item) => ({
+    ...item,
+    artifact: {
+      ...item.artifact,
+    },
+  }));
+}
+
 export function setReplayPlan(
   rs: ReplayState,
   plan: Plan | null,
@@ -72,6 +97,13 @@ export function setReplayPlan(
     rs.planCurrentRunningTaskId = '';
     rs.planLastTouchedTaskId = '';
   }
+}
+
+export function setReplayArtifacts(
+  rs: ReplayState,
+  artifacts: PublishedArtifact[],
+): void {
+  rs.artifacts = cloneArtifacts(artifacts);
 }
 
 function createReplayProcessorState(rs: ReplayState): EventProcessorState {
@@ -165,6 +197,9 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'SET_ACTIVE_REASONING_KEY':
       rs.activeReasoningKey = command.key;
+      return;
+    case 'UPSERT_ARTIFACT':
+      rs.artifacts = upsertReplayArtifact(rs.artifacts, command.artifact);
       return;
     case 'SET_PLAN':
       setReplayPlan(rs, command.plan, { resetRuntime: command.resetRuntime });

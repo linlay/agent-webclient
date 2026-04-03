@@ -1,5 +1,6 @@
 import type {
   AgentEvent,
+  PublishedArtifact,
   Plan,
   PlanRuntime,
   TimelineNode,
@@ -43,6 +44,7 @@ export type EventCommand =
   | { cmd: 'SET_TIMELINE_NODE'; id: string; node: TimelineNode }
   | { cmd: 'SET_TOOL_STATE'; toolId: string; state: ToolState }
   | { cmd: 'SET_ACTIVE_REASONING_KEY'; key: string }
+  | { cmd: 'UPSERT_ARTIFACT'; artifact: PublishedArtifact }
   | { cmd: 'SET_PLAN'; plan: Plan | null; resetRuntime: boolean }
   | { cmd: 'SET_PLAN_RUNTIME'; taskId: string; runtime: PlanRuntime }
   | { cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID'; taskId: string }
@@ -118,6 +120,37 @@ function appendIncompleteToolArgsNote(argsText: string): string {
     return argsText;
   }
   return `${argsText}\n\n${INCOMPLETE_TOOL_ARGS_NOTE}`;
+}
+
+function normalizePublishedArtifact(event: AgentEvent): PublishedArtifact | null {
+  const rawArtifact = event.artifact;
+  if (!rawArtifact || typeof rawArtifact !== 'object' || Array.isArray(rawArtifact)) {
+    return null;
+  }
+
+  const record = rawArtifact as Record<string, any>;
+  const url = safeText(record.url).trim();
+  const fallbackId = toText(event.artifactId).trim()
+    || safeText(record.sha256).trim()
+    || url
+    || safeText(record.name).trim();
+  if (!url || !fallbackId) {
+    return null;
+  }
+
+  const rawSize = Number(record.sizeBytes ?? record.size);
+  return {
+    artifactId: fallbackId,
+    artifact: {
+      mimeType: safeText(record.mimeType).trim() || 'application/octet-stream',
+      name: safeText(record.name).trim() || fallbackId,
+      sha256: safeText(record.sha256).trim(),
+      sizeBytes: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : 0,
+      type: 'file',
+      url,
+    },
+    timestamp: Number(event.timestamp) || Date.now(),
+  };
 }
 
 function resolveFinalToolArgsText(
@@ -639,6 +672,15 @@ export function processEvent(
   }
 
   if (type.startsWith('action.')) {
+    return commands;
+  }
+
+  if (type === 'artifact.publish') {
+    const artifact = normalizePublishedArtifact(event);
+    if (!artifact) {
+      return commands;
+    }
+    commands.push({ cmd: 'UPSERT_ARTIFACT', artifact });
     return commands;
   }
 

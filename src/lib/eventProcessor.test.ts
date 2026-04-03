@@ -19,6 +19,18 @@ type TestState = {
   activeReasoningKey: string;
   chatId: string;
   runId: string;
+  artifacts: Array<{
+    artifactId: string;
+    artifact: {
+      mimeType: string;
+      name: string;
+      sha256: string;
+      sizeBytes: number;
+      type: 'file';
+      url: string;
+    };
+    timestamp: number;
+  }>;
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   planCurrentRunningTaskId: string;
@@ -37,6 +49,7 @@ function createState(): TestState {
     activeReasoningKey: '',
     chatId: '',
     runId: '',
+    artifacts: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
     planCurrentRunningTaskId: '',
@@ -94,6 +107,15 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
       case 'SET_ACTIVE_REASONING_KEY':
         state.activeReasoningKey = command.key;
         break;
+      case 'UPSERT_ARTIFACT': {
+        const index = state.artifacts.findIndex((item) => item.artifactId === command.artifact.artifactId);
+        if (index < 0) {
+          state.artifacts.push(command.artifact);
+        } else {
+          state.artifacts[index] = command.artifact;
+        }
+        break;
+      }
       case 'SET_PLAN':
         state.plan = command.plan;
         if (command.resetRuntime) {
@@ -216,6 +238,39 @@ describe('processEvent', () => {
             size: 4096,
           },
         ],
+      },
+    ]);
+  });
+
+  it('collects published artifacts for dock rendering', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'artifact.publish',
+      artifactId: 'artifact_1',
+      timestamp: 200,
+      artifact: {
+        type: 'file',
+        name: 'report.pdf',
+        mimeType: 'application/pdf',
+        sha256: 'abc123',
+        sizeBytes: 2048,
+        url: 'https://example.com/report.pdf',
+      },
+    }, 'live', true);
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: 200,
+        artifact: {
+          type: 'file',
+          name: 'report.pdf',
+          mimeType: 'application/pdf',
+          sha256: 'abc123',
+          sizeBytes: 2048,
+          url: 'https://example.com/report.pdf',
+        },
       },
     ]);
   });

@@ -1,11 +1,12 @@
-import type { DebugTab, LayoutMode } from './constants';
-import type { ContentSegment } from '../lib/contentSegments';
-import type { ActionRuntime } from '../lib/actionRuntime';
+import type { DebugTab, LayoutMode } from "./constants";
+import type { ContentSegment } from "../lib/contentSegments";
+import type { ActionRuntime } from "../lib/actionRuntime";
 
 /* ============================================
    Agent Event
    ============================================ */
-export interface AgentEvent {
+export type AgentEvent = BaseEvent & ArtifactEvent;
+export interface BaseEvent {
   type: string;
   seq?: number;
   chatId?: string;
@@ -42,6 +43,30 @@ export interface AgentEvent {
   [key: string]: unknown;
 }
 
+export interface ResourceFile {
+  mimeType: string;
+  name: string;
+  sha256: string;
+  sizeBytes: number;
+  type: "file";
+  url: string;
+}
+export interface ArtifactFile extends ResourceFile {
+  artifactId?: string;
+}
+
+// type: "artifact.publish"
+export interface ArtifactEvent {
+  artifactId?: string;
+  artifact?: ResourceFile;
+}
+
+export interface PublishedArtifact {
+  artifactId: string;
+  artifact: ResourceFile;
+  timestamp: number;
+}
+
 export interface DebugSseEntry {
   receivedAt: number;
   rawFrame: string;
@@ -53,8 +78,8 @@ export type UiTimerHandle = number;
 /* ============================================
    Timeline
    ============================================ */
-export type TimelineNodeKind = 'message' | 'thinking' | 'tool' | 'content';
-export type TimelineRole = 'user' | 'assistant' | 'system' | '';
+export type TimelineNodeKind = "message" | "thinking" | "tool" | "content";
+export type TimelineRole = "user" | "assistant" | "system" | "";
 
 export interface ToolResultPayload {
   text: string;
@@ -87,7 +112,7 @@ export interface TtsVoiceBlock {
   text: string;
   closed: boolean;
   expanded: boolean;
-  status: 'ready' | 'connecting' | 'playing' | 'done' | 'error' | 'stopped';
+  status: "ready" | "connecting" | "playing" | "done" | "error" | "stopped";
   error: string;
   sampleRate?: number;
   channels?: number;
@@ -97,7 +122,7 @@ export interface TimelineNode {
   id: string;
   kind: TimelineNodeKind;
   role?: TimelineRole;
-  messageVariant?: 'default' | 'steer' | 'remember' | 'learn';
+  messageVariant?: "default" | "steer" | "remember" | "learn";
   steerId?: string;
   text?: string;
   attachments?: TimelineAttachment[];
@@ -216,9 +241,20 @@ export interface PendingSteer {
   createdAt: number;
 }
 
-export type InputMode = 'text' | 'voice';
-export type VoiceChatStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
-export type VoiceChatWsStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+export type InputMode = "text" | "voice";
+export type VoiceChatStatus =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "error";
+export type VoiceChatWsStatus =
+  | "idle"
+  | "connecting"
+  | "open"
+  | "closed"
+  | "error";
 
 export interface VoiceClientGateSettings {
   enabled?: boolean;
@@ -254,7 +290,7 @@ export interface VoiceCapabilities {
   tts?: {
     modes?: string[];
     deprecatedModes?: string[];
-    defaultMode?: 'local' | 'llm';
+    defaultMode?: "local" | "llm";
     streamInput?: boolean;
     runnerConfigured?: boolean;
     speechRateDefault?: number;
@@ -299,8 +335,8 @@ export interface VoiceChatState {
   currentAgentName: string;
 }
 
-export type CommandStatusOverlayCommandType = 'remember' | 'learn' | null;
-export type CommandStatusOverlayPhase = 'pending' | 'success' | 'error';
+export type CommandStatusOverlayCommandType = "remember" | "learn" | null;
+export type CommandStatusOverlayPhase = "pending" | "success" | "error";
 
 export interface CommandStatusOverlayState {
   visible: boolean;
@@ -310,9 +346,14 @@ export interface CommandStatusOverlayState {
   timer: UiTimerHandle | null;
 }
 
-export type CommandModalType = 'history' | 'switch' | 'detail' | 'schedule' | null;
-export type CommandModalScope = 'all' | 'agent' | 'team';
-export type CommandModalFocusArea = 'search' | 'list';
+export type CommandModalType =
+  | "history"
+  | "switch"
+  | "detail"
+  | "schedule"
+  | null;
+export type CommandModalScope = "all" | "agent" | "team";
+export type CommandModalFocusArea = "search" | "list";
 
 export interface CommandModalState {
   open: boolean;
@@ -354,7 +395,7 @@ export interface Agent {
 }
 
 export interface AgentControl {
-  type: 'switch' | 'select' | 'string' | 'number' | 'date';
+  type: "switch" | "select" | "string" | "number" | "date";
   icon: any;
   key: string;
   label: string;
@@ -364,7 +405,7 @@ export interface AgentControl {
 export interface AgentControlOption {
   value: any;
   label: any;
-  type?: 'text' | 'img';
+  type?: "text" | "img";
 }
 
 export interface Team {
@@ -378,11 +419,11 @@ export interface Team {
   [key: string]: unknown;
 }
 
-export type ConversationMode = 'chat' | 'worker';
+export type ConversationMode = "chat" | "worker";
 
 export interface WorkerRow {
   key: string;
-  type: 'agent' | 'team';
+  type: "agent" | "team";
   sourceId: string;
   displayName: string;
   role: string;
@@ -435,6 +476,7 @@ export interface AppState {
   events: AgentEvent[];
   debugLines: string[];
   rawSseEntries: DebugSseEntry[];
+  artifacts: PublishedArtifact[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   planCurrentRunningTaskId: string;
@@ -468,6 +510,9 @@ export interface AppState {
   rightDrawerOpen: boolean;
   desktopDebugSidebarEnabled: boolean;
   layoutMode: LayoutMode;
+  artifactExpanded: boolean;
+  artifactManualOverride: boolean | null;
+  artifactAutoCollapseTimer: UiTimerHandle | null;
   planExpanded: boolean;
   planManualOverride: boolean | null;
   planAutoCollapseTimer: UiTimerHandle | null;

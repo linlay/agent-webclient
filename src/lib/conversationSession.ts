@@ -7,6 +7,7 @@ import type {
   Message,
   PendingSteer,
   PendingTool,
+  PublishedArtifact,
   Plan,
   PlanRuntime,
   TimelineNode,
@@ -26,6 +27,7 @@ export interface ConversationSnapshot {
   events: AgentEvent[];
   debugLines: string[];
   rawSseEntries: DebugSseEntry[];
+  artifacts: PublishedArtifact[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   planCurrentRunningTaskId: string;
@@ -89,6 +91,15 @@ function cloneMap<K, V>(input: Map<K, V>): Map<K, V> {
 
 function cloneSet<T>(input: Set<T>): Set<T> {
   return new Set(input);
+}
+
+function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
+  return artifacts.map((item) => ({
+    ...item,
+    artifact: {
+      ...item.artifact,
+    },
+  }));
 }
 
 function cloneTimelineNode(node: TimelineNode): TimelineNode {
@@ -161,6 +172,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     events: state.events.slice(),
     debugLines: state.debugLines.slice(),
     rawSseEntries: state.rawSseEntries.slice(),
+    artifacts: cloneArtifacts(state.artifacts),
     plan: state.plan
       ? {
           ...state.plan,
@@ -199,6 +211,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     events: snapshot.events.slice(),
     debugLines: snapshot.debugLines.slice(),
     rawSseEntries: snapshot.rawSseEntries.slice(),
+    artifacts: cloneArtifacts(snapshot.artifacts),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,
@@ -238,6 +251,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.runId = snapshot.runId;
   rs.events = snapshot.events.slice();
   rs.debugLines = snapshot.debugLines.slice();
+  rs.artifacts = cloneArtifacts(snapshot.artifacts);
   rs.plan = snapshot.plan
     ? {
         ...snapshot.plan,
@@ -266,6 +280,7 @@ function applyReplayStateToSnapshot(
   next.timelineCounter = rs.timelineCounter;
   next.activeReasoningKey = rs.activeReasoningKey;
   next.events = rs.events;
+  next.artifacts = rs.artifacts;
   next.plan = rs.plan;
   next.planRuntimeByTaskId = rs.planRuntimeByTaskId;
   next.planCurrentRunningTaskId = rs.planCurrentRunningTaskId;
@@ -328,6 +343,7 @@ export function buildConversationStateUpdates(
     events: snapshot.events.slice(),
     debugLines: snapshot.debugLines.slice(),
     rawSseEntries: snapshot.rawSseEntries.slice(),
+    artifacts: cloneArtifacts(snapshot.artifacts),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,
@@ -357,6 +373,9 @@ export function buildConversationStateUpdates(
     },
     activeReasoningKey: snapshot.activeReasoningKey,
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
+    artifactExpanded: false,
+    artifactManualOverride: null,
+    artifactAutoCollapseTimer: null,
     steerDraft: snapshot.steerDraft,
     pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),

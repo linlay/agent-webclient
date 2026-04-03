@@ -1,5 +1,5 @@
 import type { Agent, Chat, Team } from '../context/types';
-import { createReplayState, replayEvent, setReplayPlan } from './useChatActions';
+import { createReplayState, normalizeChatArtifactItems, replayEvent, setReplayArtifacts, setReplayPlan } from './useChatActions';
 
 describe('replayEvent tool migration', () => {
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
@@ -91,6 +91,118 @@ describe('replayEvent tool migration', () => {
 
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
     expect(state.planCurrentRunningTaskId).toBe('');
+  });
+
+  it('replays artifact.publish into persistent artifact state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'artifact.publish',
+      artifactId: 'artifact_1',
+      timestamp: 120,
+      artifact: {
+        type: 'file',
+        name: 'run.log',
+        mimeType: 'text/plain',
+        sha256: 'sha-log',
+        sizeBytes: 512,
+        url: 'https://example.com/run.log',
+      },
+    });
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: 120,
+        artifact: {
+          type: 'file',
+          name: 'run.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-log',
+          sizeBytes: 512,
+          url: 'https://example.com/run.log',
+        },
+      },
+    ]);
+  });
+
+  it('applies getChat artifact.items snapshots over replayed artifacts', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'artifact.publish',
+      artifactId: 'artifact_old',
+      timestamp: 120,
+      artifact: {
+        type: 'file',
+        name: 'old.log',
+        mimeType: 'text/plain',
+        sha256: 'sha-old',
+        sizeBytes: 128,
+        url: 'https://example.com/old.log',
+      },
+    });
+
+    setReplayArtifacts(state, [
+      {
+        artifactId: 'artifact_new',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'new.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-new',
+          sizeBytes: 256,
+          url: 'https://example.com/new.log',
+        },
+      },
+    ]);
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_new',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'new.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-new',
+          sizeBytes: 256,
+          url: 'https://example.com/new.log',
+        },
+      },
+    ]);
+  });
+
+  it('normalizes getChat artifact.items payloads into published artifacts', () => {
+    expect(
+      normalizeChatArtifactItems({
+        items: [
+          {
+            artifactId: 'artifact_1',
+            type: 'file',
+            name: 'report.pdf',
+            mimeType: 'application/pdf',
+            sha256: 'sha-report',
+            sizeBytes: 1024,
+            url: 'https://example.com/report.pdf',
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'report.pdf',
+          mimeType: 'application/pdf',
+          sha256: 'sha-report',
+          sizeBytes: 1024,
+          url: 'https://example.com/report.pdf',
+        },
+      },
+    ]);
   });
 
   it('applies getChat plan snapshots without clearing matching runtime state', () => {
