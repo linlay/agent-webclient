@@ -12,3 +12,5 @@ services:
       VOICE_BASE_URL: ${VOICE_BASE_URL}
     ports:
       - "${HOST_PORT:-11948}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

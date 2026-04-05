@@ -90,8 +90,11 @@ ARCH=arm64 make release
 发布规则：
 - `make release` 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
 - 打包过程会在宿主机构建前端静态资源，再用 `docker buildx` 生成单架构运行镜像。
+- 如果根目录 `.env` 缺失，release 构建会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
 - 最终 bundle 输出到 `dist/release/`，命名格式为 `agent-webclient-vX.Y.Z-linux-<arch>.tar.gz`。
 - bundle 内包含 `images/agent-webclient.tar`、`compose.release.yml`、`.env.example`、`start.sh`、`stop.sh`、`README.txt`，目标机无需源码即可部署。
+- release bundle 保持独立前端入口，不做 gateway 子路径集成；默认入口仍是 `http://127.0.0.1:11948`。
+- desktop-core 只需要向 bundle 目录下的 `.env` 注入 `BASE_URL`、`VOICE_BASE_URL`，可按需覆盖 `HOST_PORT`；无需新增专属 profile 字段。
 
 ### 离线 bundle 部署
 ```bash
@@ -104,7 +107,8 @@ cp .env.example .env
 部署端需要至少确认：
 - `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
 - `.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
-- `.env` 中的 `HOST_PORT` 未与宿主机其他服务冲突。
+- `.env` 中的 `HOST_PORT` 未与宿主机其他服务冲突，默认值为 `11948`。
+- Linux Docker 环境下，bundle 自带的 `compose.release.yml` 已补齐 `host.docker.internal:host-gateway` 映射，适配 desktop-core 注入的上游地址。
 
 ## 5. 运维
 ### 查看容器状态

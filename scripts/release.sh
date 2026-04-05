@@ -7,6 +7,38 @@ RELEASE_ASSETS_DIR="$SCRIPT_DIR/release-assets"
 
 die() { echo "[release] $*" >&2; exit 1; }
 
+load_build_env() {
+  local env_file="$1"
+  [[ -f "$env_file" ]] || return 0
+  set -a
+  # shellcheck disable=SC1090
+  . "$env_file"
+  set +a
+}
+
+ensure_host_dependencies() {
+  if [[ -x "$REPO_ROOT/node_modules/.bin/webpack" ]]; then
+    echo "[release] reusing existing host dependencies"
+    return 0
+  fi
+
+  echo "[release] installing dependencies on host..."
+  (
+    cd "$REPO_ROOT"
+    if [[ -f package-lock.json ]]; then
+      npm ci
+      if [[ ! -x "$REPO_ROOT/node_modules/.bin/webpack" ]]; then
+        echo "[release] npm ci did not produce a usable webpack binary; retrying with npm install"
+        npm install
+      fi
+    else
+      npm install
+    fi
+  )
+
+  [[ -x "$REPO_ROOT/node_modules/.bin/webpack" ]] || die "webpack binary not found after dependency install"
+}
+
 VERSION="${VERSION:-$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")}"
 [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "VERSION must match vX.Y.Z (got: $VERSION)"
 
@@ -33,22 +65,23 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 IMAGES_DIR="$TMP_DIR/images"
 BUILD_CONTEXT_DIR="$TMP_DIR/build-context"
+BUILD_ENV_FILE="$REPO_ROOT/.env"
 mkdir -p "$IMAGES_DIR" "$BUILD_CONTEXT_DIR"
 
-echo "[release] installing dependencies on host..."
-(
-  cd "$REPO_ROOT"
-  if [[ -f package-lock.json ]]; then
-    npm ci
-  else
-    npm install
-  fi
-)
+if [[ ! -f "$BUILD_ENV_FILE" ]]; then
+  BUILD_ENV_FILE="$TMP_DIR/build.env"
+  cp "$REPO_ROOT/.env.example" "$BUILD_ENV_FILE"
+  echo "[release] root .env not found; using .env.example defaults for production build"
+fi
+
+ensure_host_dependencies
 
 echo "[release] building frontend on host..."
 (
   cd "$REPO_ROOT"
-  npm run build
+  load_build_env "$BUILD_ENV_FILE"
+  export NODE_ENV=production
+  ./node_modules/.bin/webpack --mode production
 )
 
 [[ -f "$REPO_ROOT/dist/index.html" ]] || die "dist/index.html not found after build"
