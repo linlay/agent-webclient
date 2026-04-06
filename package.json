@@ -2,24 +2,38 @@
   "name": "agent-webclient",
   "private": true,
   "version": "0.0.1",
+  "description": "AGENT protocol debugging web client with Electron desktop packaging",
+  "author": "Zenmind",
+  "main": "dist-electron/main.js",
   "scripts": {
-    "start": "dotenv -e .env webpack serve --mode development",
-    "build": "dotenv -e .env webpack --mode production",
-    "test": "jest --passWithNoTests --watchman=false"
+    "start": "npm run start:web",
+    "start:web": "dotenv -e .env -- webpack serve --mode development",
+    "build": "npm run build:web",
+    "build:web": "dotenv -e .env -- webpack --mode production",
+    "build:web:desktop": "node scripts/build-desktop-renderer.js",
+    "build:electron": "node ./node_modules/typescript/bin/tsc -p tsconfig.electron.json",
+    "check:electron-install": "node scripts/check-electron-install.js",
+    "start:electron": "dotenv -e .env -- node scripts/start-electron-dev.js",
+    "dist:mac": "npm run build:web:desktop && npm run build:electron && node ./node_modules/electron-builder/cli.js --mac dmg zip --publish never",
+    "dist:win": "npm run build:web:desktop && npm run build:electron && node ./node_modules/electron-builder/cli.js --win nsis --publish never",
+    "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false"
   },
   "dependencies": {
     "@ant-design/x": "^1.0.0",
     "@ant-design/x-markdown": "^2.3.0",
     "antd": "^5.0.0",
+    "http-proxy": "^1.18.1",
     "katex": "^0.16.22",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
+    "@types/node": "^24.5.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
     "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.3",
     "jest": "^29.7.0",
@@ -33,6 +47,42 @@
     "webpack": "^5.97.1",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0",
-    "dotenv-cli": "6.0.0"
+    "dotenv-cli": "6.0.0",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.zenmind.agent-webclient",
+    "productName": "AGENT Webclient",
+    "directories": {
+      "output": "dist/desktop"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "!dist/**/*.map",
+      "!dist-electron/**/*.map"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/main.js"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

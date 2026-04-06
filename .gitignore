@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-electron/
 .vite/
 package-lock.json
 pnpm-lock.yaml
@@ -19,8 +20,8 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Environment files
-.env
 .env.*
+!.env
 !.env.example
 
 # IDE & editor
