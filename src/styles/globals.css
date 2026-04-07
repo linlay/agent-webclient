@@ -4056,6 +4056,11 @@ textarea {
 
 .command-modal-section {
   min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .command-modal-list {
@@ -4140,7 +4145,6 @@ textarea {
 .command-switch-toolbar {
   display: grid;
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .command-scope-group {
