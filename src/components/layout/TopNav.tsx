@@ -259,6 +259,22 @@ export const TopNav: React.FC = () => {
 								: "打开调试面板"
 						}
 						onClick={() => {
+							if (state.attachmentPreview) {
+								dispatch({ type: "CLOSE_ATTACHMENT_PREVIEW" });
+								if (state.layoutMode === "desktop-fixed") {
+									dispatch({
+										type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
+										enabled: true,
+									});
+								} else {
+									dispatch({
+										type: "SET_RIGHT_DRAWER_OPEN",
+										open: true,
+									});
+								}
+								return;
+							}
+
 							if (state.layoutMode === "desktop-fixed") {
 								dispatch({
 									type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",

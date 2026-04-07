@@ -164,21 +164,13 @@ export const ArtifactPanel: React.FC = () => {
           const artifact = item.artifact;
           return (
             <li key={item.artifactId} className="artifact-item">
-              <a
-                className="artifact-link"
-                href={artifact.url}
-                target="_blank"
-                rel="noreferrer"
-                title={artifact.name}
-              >
-                <AttachmentCard
-                  attachment={artifact}
-                  variant="composer"
-                  displayMode="file"
-                  density="compact"
-                  subtitle={formatBytes(artifact.sizeBytes)}
-                />
-              </a>
+              <AttachmentCard
+                attachment={artifact}
+                variant="composer"
+                displayMode="file"
+                density="compact"
+                subtitle={formatBytes(artifact.sizeBytes)}
+              />
             </li>
           );
         })}

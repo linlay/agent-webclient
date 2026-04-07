@@ -65,11 +65,13 @@ export const AppShell: React.FC = () => {
 	const showOverlay =
 		(state.leftDrawerOpen || state.rightDrawerOpen) &&
 		state.layoutMode === "mobile-drawer";
+	const desktopRightSidebarVisible =
+		state.desktopDebugSidebarEnabled || Boolean(state.attachmentPreview);
 
 	return (
 		<div
 			ref={appRef}
-			className={`app-shell ${layoutClass} ${state.desktopDebugSidebarEnabled ? "desktop-debug-enabled" : "desktop-debug-disabled"}`.trim()}
+			className={`app-shell ${layoutClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"}`.trim()}
 			id="app"
 		>
 			<TopNav />

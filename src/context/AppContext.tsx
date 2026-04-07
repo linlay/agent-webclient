@@ -30,6 +30,7 @@ import type {
 	TtsVoiceBlock,
 } from "./types";
 import type { LiveQuerySession } from "../lib/conversationSession";
+import type { AttachmentPreviewState } from "../lib/attachmentPreview";
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
 	MAX_DEBUG_LINES,
@@ -128,6 +129,7 @@ export function createInitialState(): AppState {
 		leftDrawerOpen: false,
 		rightDrawerOpen: false,
 		desktopDebugSidebarEnabled: false,
+		attachmentPreview: null,
 		layoutMode: "mobile-drawer",
 		artifactExpanded: false,
 		artifactManualOverride: null,
@@ -206,6 +208,8 @@ export type AppAction =
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_RIGHT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_LAYOUT_MODE"; mode: LayoutMode }
+	| { type: "OPEN_ATTACHMENT_PREVIEW"; preview: AttachmentPreviewState }
+	| { type: "CLOSE_ATTACHMENT_PREVIEW" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
 	| { type: "SET_CONVERSATION_MODE"; mode: "chat" | "worker" }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }
@@ -345,6 +349,7 @@ function buildConversationResetState(
 		},
 		activeReasoningKey: "",
 		activeFrontendTool: null,
+		attachmentPreview: null,
 		inputMode: "text",
 		voiceChat: {
 			...state.voiceChat,
@@ -510,6 +515,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, rightDrawerOpen: action.open };
 		case "SET_LAYOUT_MODE":
 			return { ...state, layoutMode: action.mode };
+		case "OPEN_ATTACHMENT_PREVIEW":
+			return { ...state, attachmentPreview: action.preview };
+		case "CLOSE_ATTACHMENT_PREVIEW":
+			if (!state.attachmentPreview) {
+				return state;
+			}
+			return { ...state, attachmentPreview: null };
 		case "SET_CHAT_FILTER":
 			return { ...state, chatFilter: action.filter };
 		case "SET_CONVERSATION_MODE":

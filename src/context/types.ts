@@ -1,6 +1,7 @@
 import type { DebugTab, LayoutMode } from "./constants";
 import type { ContentSegment } from "../lib/contentSegments";
 import type { ActionRuntime } from "../lib/actionRuntime";
+import type { AttachmentPreviewState } from "../lib/attachmentPreview";
 
 /* ============================================
    Agent Event
@@ -92,6 +93,7 @@ export interface TimelineAttachment {
   type?: string;
   mimeType?: string;
   url?: string;
+  previewUrl?: string;
 }
 
 export interface EmbeddedViewport {
@@ -509,6 +511,7 @@ export interface AppState {
   leftDrawerOpen: boolean;
   rightDrawerOpen: boolean;
   desktopDebugSidebarEnabled: boolean;
+  attachmentPreview: AttachmentPreviewState | null;
   layoutMode: LayoutMode;
   artifactExpanded: boolean;
   artifactManualOverride: boolean | null;
