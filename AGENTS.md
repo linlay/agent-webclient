@@ -71,7 +71,7 @@
 - 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 到 `BASE_URL`，并将 `/api/voice/ws` 单独反向代理到 `VOICE_BASE_URL`。
 - SSE 请求需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition` 与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- 当前仓库保留 `package-lock.json`；发布脚本在存在锁文件时优先使用 `npm ci`，否则回退到 `npm install`。
+- 当前仓库未固定锁文件；发布脚本会在存在 `package-lock.json` 时优先使用 `npm ci`，否则回退到 `npm install`。
 
 ## 8. 开发流程
 本地开发流程：

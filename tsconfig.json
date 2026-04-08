@@ -29,8 +29,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "electron/**/*.test.ts"
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
