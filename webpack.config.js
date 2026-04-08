@@ -18,6 +18,11 @@ function defineEnvLiteral(value) {
   return JSON.stringify(value == null ? '' : String(value));
 }
 
+function isSseQueryRequest(req) {
+  const url = String(req?.url || '');
+  return url === '/api/query' || url.startsWith('/api/query?');
+}
+
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
 
@@ -98,6 +103,7 @@ module.exports = (env, argv) => {
       host: '0.0.0.0',
       port,
       allowedHosts,
+      compress: false,
       hot: true,
       historyApiFallback: true,
       proxy: [
@@ -118,6 +124,13 @@ module.exports = (env, argv) => {
           target: apiTarget,
           changeOrigin: true,
           ws: false,
+          onProxyReq: function (proxyReq, req) {
+            if (!isSseQueryRequest(req)) {
+              return;
+            }
+            proxyReq.removeHeader('accept-encoding');
+            proxyReq.setHeader('Accept-Encoding', '');
+          },
           onProxyRes: function (proxyRes, req, res) {
             const header = proxyRes.headers['content-disposition'];
             header && res.setHeader('Content-Disposition', header);

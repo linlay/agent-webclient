@@ -17,8 +17,9 @@ describe('webpack devServer proxy', () => {
       Array.isArray(rule.context) && rule.context.includes('/api'));
 
     expect(apiRule).toBeTruthy();
+    expect(typeof apiRule.onProxyReq).toBe('function');
     expect(typeof apiRule.onProxyRes).toBe('function');
-    return apiRule;
+    return { apiRule, config };
   }
 
   afterEach(() => {
@@ -50,7 +51,7 @@ describe('webpack devServer proxy', () => {
   });
 
   it('does not rewrite query errors into SSE success responses', () => {
-    const apiRule = loadApiProxyRule();
+    const { apiRule } = loadApiProxyRule();
     const req = {
       headers: { accept: 'text/event-stream' },
       url: '/api/query',
@@ -76,7 +77,7 @@ describe('webpack devServer proxy', () => {
   });
 
   it('keeps SSE buffering headers for successful event streams without rewriting status', () => {
-    const apiRule = loadApiProxyRule();
+    const { apiRule } = loadApiProxyRule();
     const req = {
       headers: { accept: 'text/event-stream' },
       url: '/api/query',
@@ -98,5 +99,43 @@ describe('webpack devServer proxy', () => {
     expect(res.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache, no-transform');
     expect(res.setHeader).toHaveBeenCalledWith('X-Accel-Buffering', 'no');
+  });
+
+  it('disables dev-server compression so SSE is not gzipped locally', () => {
+    const { config } = loadApiProxyRule();
+
+    expect(config.devServer?.compress).toBe(false);
+  });
+
+  it('removes accept-encoding when proxying query SSE requests', () => {
+    const { apiRule } = loadApiProxyRule();
+    const proxyReq = {
+      removeHeader: jest.fn(),
+      setHeader: jest.fn(),
+    };
+    const req = {
+      url: '/api/query',
+    };
+
+    apiRule.onProxyReq(proxyReq, req);
+
+    expect(proxyReq.removeHeader).toHaveBeenCalledWith('accept-encoding');
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('Accept-Encoding', '');
+  });
+
+  it('leaves non-SSE api requests unchanged', () => {
+    const { apiRule } = loadApiProxyRule();
+    const proxyReq = {
+      removeHeader: jest.fn(),
+      setHeader: jest.fn(),
+    };
+    const req = {
+      url: '/api/chats',
+    };
+
+    apiRule.onProxyReq(proxyReq, req);
+
+    expect(proxyReq.removeHeader).not.toHaveBeenCalled();
+    expect(proxyReq.setHeader).not.toHaveBeenCalled();
   });
 });
