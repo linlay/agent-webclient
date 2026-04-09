@@ -1,17 +1,22 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Avatar, Collapse, CollapseProps, Flex, Modal, Typography } from "antd";
 import { useAppContext } from "../../context/AppContext";
 import { MaterialIcon } from "../common/MaterialIcon";
+import { HistoryModal } from "../modal/HistoryModal";
 import { UiButton } from "../ui/UiButton";
 import { UiInput } from "../ui/UiInput";
-import { UiTag } from "../ui/UiTag";
 import { UiListItem } from "../ui/UiListItem";
+import { UiTag } from "../ui/UiTag";
 import {
-  pickChatAgentLabel,
   formatChatTimeLabel,
+  pickChatAgentLabel,
 } from "../../lib/chatListFormatter";
-import { createWorkerKeyFromChat } from "../../lib/workerListFormatter";
-import type { Chat, WorkerRow } from "../../context/types";
-import type { LiveQuerySession } from "../../lib/conversationSession";
+import { buildWorkerConversationRows } from "../../lib/workerConversationFormatter";
+import type {
+  Chat,
+  WorkerConversationRow,
+  WorkerRow,
+} from "../../context/types";
 
 const ChatItem: React.FC<{
   chat: Chat;
@@ -43,67 +48,69 @@ const ChatItem: React.FC<{
   );
 };
 
-const WorkerItem: React.FC<{
+const WorkerChatPreviewItem: React.FC<{
+  chat: WorkerConversationRow;
+  isActive: boolean;
+  loading: boolean;
+  onClick: () => void;
+}> = ({ chat, isActive, loading, onClick }) => {
+  return (
+    <UiListItem
+      className={`worker-chat-item ${isActive ? "is-active" : ""}`}
+      selected={isActive}
+      loading={loading}
+      onClick={onClick}
+    >
+      <div className="worker-chat-item-head">
+        <span className="worker-chat-name">
+          {chat.lastRunContent || chat.chatName || "(无预览)"}
+        </span>
+        <span className="worker-chat-time">
+          {formatChatTimeLabel(chat.updatedAt)}
+        </span>
+      </div>
+    </UiListItem>
+  );
+};
+
+const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
   isActive: boolean;
-  onClick: () => void;
-}> = ({ row, isActive, onClick }) => {
-  const { state, querySessionsRef } = useAppContext();
-  const loading = useMemo(() => {
-		if(!state.streaming) return false;
-		for (const _session of querySessionsRef.current.values()) {
-			if (_session.streaming) {
-				const chat = state?.chats?.find((c) => c.chatId === _session.chatId);
-        if (chat && createWorkerKeyFromChat(chat) === row.key) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }, [state.streaming, row.key]);
-
-  const time = row.latestUpdatedAt
-    ? formatChatTimeLabel(row.latestUpdatedAt)
-    : "--";
+}> = ({ row, isActive }) => {
   const preview =
     row.latestRunContent ||
     (row.hasHistory ? row.latestChatName : "暂无历史对话");
 
   return (
-    <UiListItem
-      className={`chat-item worker-item ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
-      selected={isActive}
-      loading={loading}
-      onClick={onClick}
+    <div
+      className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <div className="worker-row-main">
-        <div className="chat-item-head">
-          <div className="chat-title-wrap">
-            <div className="chat-title">
-              <MaterialIcon
-                name={row.type === "team" ? "groups" : "person"}
-                className="inline-icon"
-              />
-              <span>{row.displayName}</span>
-            </div>
-            {row.type === "team" ? (
-              <span className="team-agent-labels">
-                {row.teamAgentLabels.join(" / ")}
-              </span>
-            ) : (
-              <span className="worker-role">{row.role || "--"}</span>
-            )}
-          </div>
-          <div className="chat-time">{time}</div>
-        </div>
-      </div>
-      <div className="chat-meta-line">{preview}</div>
-    </UiListItem>
+      <MaterialIcon
+        name={row.type === "team" ? "groups" : "person"}
+        className="inline-icon"
+      />
+      <Flex className="worker-panel-header-body" vertical>
+        <Typography.Text ellipsis style={{ flex: 1 }}>
+          {row.displayName}
+          <span className="worker-panel-role">{row.role || "--"}</span>
+        </Typography.Text>
+        <Typography.Text ellipsis className="worker-panel-preview">
+          {preview}
+        </Typography.Text>
+      </Flex>
+    </div>
   );
 };
 
 export const LeftSidebar: React.FC = () => {
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, querySessionsRef } = useAppContext();
+  const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
+  const [historyWorkerKey, setHistoryWorkerKey] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const historyInputRef = useRef<HTMLInputElement>(null);
+  const historyListRef = useRef<HTMLDivElement>(null);
+  const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const filteredChats = useMemo(() => {
     const filter = state.chatFilter.toLowerCase().trim();
@@ -123,6 +130,59 @@ export const LeftSidebar: React.FC = () => {
     );
   }, [state.workerRows, state.chatFilter]);
 
+  const workerChatsByKey = useMemo(() => {
+    const chatsByKey = new Map<string, WorkerConversationRow[]>();
+    for (const row of state.workerRows) {
+      chatsByKey.set(
+        row.key,
+        buildWorkerConversationRows({
+          chats: state.chats,
+          worker: row,
+        }),
+      );
+    }
+    return chatsByKey;
+  }, [state.chats, state.workerRows]);
+
+  const historyWorker =
+    state.workerIndexByKey.get(historyWorkerKey) ||
+    state.workerRows.find((row) => row.key === historyWorkerKey) ||
+    null;
+
+  const historyRows = useMemo(
+    () => workerChatsByKey.get(historyWorkerKey) || [],
+    [historyWorkerKey, workerChatsByKey],
+  );
+
+  const filteredHistoryRows = useMemo(() => {
+    const search = historySearch.trim().toLowerCase();
+    if (!search) return historyRows;
+    return historyRows.filter((row) => {
+      const haystack = [row.chatName, row.chatId, row.lastRunContent]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(search);
+    });
+  }, [historyRows, historySearch]);
+
+  useEffect(() => {
+    if (state.conversationMode !== "worker") {
+      setExpandedWorkerKey("");
+      return;
+    }
+    setExpandedWorkerKey(state.workerSelectionKey);
+  }, [state.conversationMode, state.workerSelectionKey]);
+
+  useEffect(() => {
+    if (!historyWorkerKey) return;
+    historyInputRef.current?.focus();
+    historyInputRef.current?.select();
+  }, [historyWorkerKey]);
+
+  useEffect(() => {
+    historyItemRefs.current[historyIndex]?.scrollIntoView({ block: "nearest" });
+  }, [historyIndex]);
+
   const handleSelectChat = (chatId: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", { detail: { chatId } }),
@@ -136,150 +196,248 @@ export const LeftSidebar: React.FC = () => {
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
   };
 
+  const handleSelectWorker = (workerKey: string) => {
+    window.dispatchEvent(
+      new CustomEvent("agent:select-worker", {
+        detail: { workerKey },
+      }),
+    );
+  };
+
+  const handleWorkerCollapseChange = (key: string | string[]) => {
+    const nextKey = Array.isArray(key)
+      ? String(key[0] || "")
+      : String(key || "");
+    setExpandedWorkerKey(nextKey);
+    if (nextKey) {
+      handleSelectWorker(nextKey);
+    }
+  };
+
+  const handleOpenHistory = (
+    event: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => {
+    event.stopPropagation();
+    console.log(event.target);
+    setHistoryWorkerKey(workerKey);
+    setHistorySearch("");
+    setHistoryIndex(0);
+  };
+
+  const handleCloseHistory = () => {
+    setHistoryWorkerKey("");
+    setHistorySearch("");
+    setHistoryIndex(0);
+  };
+
+  const getWorkerChatLoading = (chatId: string) => {
+    if (!state.streaming) return false;
+    for (const session of querySessionsRef.current.values()) {
+      if (session.streaming && session.chatId === chatId) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
+    (row) => {
+      const recentChats = (workerChatsByKey.get(row.key) || []).slice(0, 5);
+      return {
+        key: row.key,
+        className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
+        showArrow: false,
+        label: (
+          <WorkerPanelHeader
+            row={row}
+            isActive={row.key === state.workerSelectionKey}
+          />
+        ),
+        extra: (
+          <MaterialIcon
+            name="history"
+            className="inline-icon worker-collapse-history"
+            onClick={(event) => handleOpenHistory(event, row.key)}
+          />
+        ),
+        children: (
+          <div className="worker-panel-body">
+            {recentChats.length === 0 ? (
+              <div className="status-line">暂无相关对话</div>
+            ) : (
+              <>
+                {recentChats.map((chat) => (
+                  <WorkerChatPreviewItem
+                    key={chat.chatId}
+                    chat={chat}
+                    isActive={chat.chatId === state.chatId}
+                    loading={getWorkerChatLoading(chat.chatId)}
+                    onClick={() => handleSelectChat(chat.chatId)}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        ),
+      };
+    },
+  );
+
   return (
-    <aside
-      className={`sidebar left-sidebar ${state.leftDrawerOpen || state.layoutMode !== "mobile-drawer" ? "is-open" : ""}`}
-      id="left-sidebar"
-    >
-      <div className="sidebar-head">
-        <div className="sidebar-title-row">
-          <h2>{state.conversationMode === "worker" ? "员工" : "对话"}</h2>
+    <>
+      <aside
+        className={`sidebar left-sidebar ${state.leftDrawerOpen || state.layoutMode !== "mobile-drawer" ? "is-open" : ""}`}
+        id="left-sidebar"
+      >
+        <div className="sidebar-head">
+          <div className="sidebar-title-row">
+            <h2>{state.conversationMode === "worker" ? "员工" : "对话"}</h2>
+            <UiButton
+              className="icon-btn"
+              size="sm"
+              onClick={handleStartNewConversation}
+            >
+              <MaterialIcon name="edit_square" />
+              <span>新对话</span>
+            </UiButton>
+          </div>
+
           <UiButton
-            className="icon-btn"
+            className="drawer-close"
+            aria-label="关闭对话列表"
+            variant="ghost"
             size="sm"
-            onClick={handleStartNewConversation}
+            iconOnly
+            onClick={() =>
+              dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false })
+            }
           >
-            <MaterialIcon name="edit_square" />
-            <span>新对话</span>
+            <MaterialIcon name="close" />
           </UiButton>
         </div>
 
-        <UiButton
-          className="drawer-close"
-          aria-label="关闭对话列表"
-          variant="ghost"
-          size="sm"
-          iconOnly
-          onClick={() =>
-            dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false })
-          }
-        >
-          <MaterialIcon name="close" />
-        </UiButton>
-      </div>
-
-      {state.conversationMode !== "worker" && (
-        <label className="field-label field-label-spaced" htmlFor="chat-search">
-          搜索
-        </label>
-      )}
-      <div className="sidebar-filter-row">
-        <UiInput
-          id="chat-search"
-          inputSize="md"
-          type="text"
-          placeholder={
-            state.conversationMode === "worker"
-              ? "按 名称 / key / teamId 过滤..."
-              : "搜索对话..."
-          }
-          value={state.chatFilter}
-          onChange={(e) =>
-            dispatch({
-              type: "SET_CHAT_FILTER",
-              filter: e.target.value,
-            })
-          }
-        />
-
-        <UiButton
-          className="icon-btn icon-btn-fixed"
-          size="sm"
-          onClick={() => {
-            if (state.conversationMode === "worker") {
-              window.dispatchEvent(
-                new CustomEvent("agent:refresh-worker-data"),
-              );
-            } else {
-              window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+        {state.conversationMode !== "worker" && (
+          <label
+            className="field-label field-label-spaced"
+            htmlFor="chat-search"
+          >
+            搜索
+          </label>
+        )}
+        <div className="sidebar-filter-row">
+          <UiInput
+            id="chat-search"
+            inputSize="md"
+            type="text"
+            placeholder={
+              state.conversationMode === "worker"
+                ? "按 名称 / key / teamId 过滤..."
+                : "搜索对话..."
             }
-          }}
-        >
-          <MaterialIcon name="refresh" />
-          <span>刷新</span>
-        </UiButton>
-      </div>
+            value={state.chatFilter}
+            onChange={(e) =>
+              dispatch({
+                type: "SET_CHAT_FILTER",
+                filter: e.target.value,
+              })
+            }
+          />
 
-      {state.conversationMode !== "worker" && (
-        <div className="chat-meta">
-          <span className="chat-meta-label">智能体</span>
-          {state.chatId && state.chatAgentById.has(state.chatId) && (
-            <UiTag className="chip" tone="accent">
-              {state.chatAgentById.get(state.chatId)}
-            </UiTag>
-          )}
+          <UiButton
+            className="icon-btn icon-btn-fixed"
+            size="sm"
+            onClick={() => {
+              if (state.conversationMode === "worker") {
+                window.dispatchEvent(
+                  new CustomEvent("agent:refresh-worker-data"),
+                );
+              } else {
+                window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+              }
+            }}
+          >
+            <MaterialIcon name="refresh" />
+            <span>刷新</span>
+          </UiButton>
         </div>
-      )}
 
-      <div className="chat-list" id="chat-list">
-        {state.conversationMode === "worker" ? (
-          filteredWorkerRows.length === 0 ? (
-            <div className="status-line">暂无员工/小组</div>
+        {state.conversationMode !== "worker" && (
+          <div className="chat-meta">
+            <span className="chat-meta-label">智能体</span>
+            {state.chatId && state.chatAgentById.has(state.chatId) && (
+              <UiTag className="chip" tone="accent">
+                {state.chatAgentById.get(state.chatId)}
+              </UiTag>
+            )}
+          </div>
+        )}
+
+        <div className="chat-list" id="chat-list">
+          {state.conversationMode === "worker" ? (
+            filteredWorkerRows.length === 0 ? (
+              <div className="status-line">暂无员工/小组</div>
+            ) : (
+              <Collapse
+                accordion
+                ghost
+                className="worker-collapse"
+                activeKey={expandedWorkerKey || undefined}
+                items={workerCollapseItems}
+                onChange={handleWorkerCollapseChange}
+              />
+            )
+          ) : filteredChats.length === 0 ? (
+            <div className="status-line">暂无对话</div>
           ) : (
-            filteredWorkerRows.map((row) => (
-              <WorkerItem
-                key={row.key}
-                row={row}
-                isActive={row.key === state.workerSelectionKey}
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("agent:select-worker", {
-                      detail: { workerKey: row.key },
-                    }),
-                  )
-                }
+            filteredChats.map((chat) => (
+              <ChatItem
+                key={chat.chatId}
+                chat={chat}
+                agents={state.agents}
+                isActive={chat.chatId === state.chatId}
+                onClick={() => handleSelectChat(chat.chatId)}
               />
             ))
-          )
-        ) : filteredChats.length === 0 ? (
-          <div className="status-line">暂无对话</div>
-        ) : (
-          filteredChats.map((chat) => (
-            <ChatItem
-              key={chat.chatId}
-              chat={chat}
-              agents={state.agents}
-              isActive={chat.chatId === state.chatId}
-              onClick={() => handleSelectChat(chat.chatId)}
-            />
-          ))
-        )}
-      </div>
+          )}
+        </div>
+      </aside>
 
-      {/* {state.conversationMode === "worker" &&
-				state.workerRelatedChats.length > 0 && (
-					<div className="chat-list worker-related-list">
-						<div className="chat-meta">
-							<span className="chat-meta-label">关联会话</span>
-						</div>
-						{state.workerRelatedChats.map((chat) => (
-							<UiListItem
-								key={chat.chatId}
-								className={`chat-item ${chat.chatId === state.chatId ? "is-active" : ""}`}
-								selected={chat.chatId === state.chatId}
-								dense
-								onClick={() => handleSelectChat(chat.chatId)}
-							>
-								<div className="chat-title">
-									{chat.chatName || chat.chatId}
-								</div>
-								<div className="chat-meta-line">
-									{formatChatTimeLabel(chat.updatedAt)}
-								</div>
-							</UiListItem>
-						))}
-					</div>
-				)} */}
-    </aside>
+      <Modal
+        open={Boolean(historyWorkerKey)}
+        onCancel={handleCloseHistory}
+        footer={null}
+        destroyOnClose
+        className="worker-history-modal"
+        title={
+          historyWorker
+            ? `${historyWorker.type === "team" ? "小组" : "员工"}历史对话 · ${historyWorker.displayName}`
+            : "历史对话"
+        }
+      >
+        <HistoryModal
+          historyRows={filteredHistoryRows}
+          historyIndex={Math.min(
+            historyIndex,
+            Math.max(filteredHistoryRows.length - 1, 0),
+          )}
+          historySearch={historySearch}
+          historyInputRef={historyInputRef}
+          historyListRef={historyListRef}
+          historyItemRefs={historyItemRefs}
+          onHistorySearchChange={(value) => {
+            setHistorySearch(value);
+            setHistoryIndex(0);
+          }}
+          onActivateIndex={setHistoryIndex}
+          onSelect={(index) => {
+            const target = filteredHistoryRows[index];
+            if (!target) return;
+            handleCloseHistory();
+            handleSelectChat(target.chatId);
+          }}
+        />
+      </Modal>
+    </>
   );
 };

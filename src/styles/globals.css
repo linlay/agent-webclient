@@ -4873,6 +4873,117 @@ textarea {
   color: var(--ink-2);
 }
 
+.worker-collapse {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.worker-collapse .ant-collapse-item {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px !important;
+  background: rgba(15, 23, 42, 0.02);
+  overflow: hidden;
+}
+
+.worker-collapse .ant-collapse-item.ant-collapse-item-active {
+  border-color: rgba(59, 130, 246, 0.24);
+  background: rgba(59, 130, 246, 0.05);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.worker-collapse .ant-collapse-header {
+  align-items: flex-start !important;
+  padding: 10px !important;
+}
+.worker-collapse .worker-collapse-history{
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--text-muted);
+}
+
+.worker-collapse .ant-collapse-expand-icon {
+  padding-top: 10px;
+}
+
+.worker-collapse .ant-collapse-header-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.worker-collapse .ant-collapse-extra {
+  margin-inline-start: 12px;
+  padding-top: 2px;
+}
+
+.worker-collapse .ant-collapse-content {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  background: transparent;
+}
+
+.worker-collapse .ant-collapse-content-box {
+  padding: 0 !important;
+}
+
+.worker-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.worker-panel-header-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.worker-panel-avatar {
+  flex: 0 0 auto;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
+.worker-panel-avatar-team {
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+}
+
+.worker-panel-role {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-left: 4px;
+}
+.ant-collapse-item-active .worker-panel-preview {
+  height: 0;
+  overflow: hidden;
+}
+.worker-panel-preview {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition: height 0.3s;
+  height: 20px;
+}
+
+.worker-panel-body {
+  padding: 0 10px 10px;
+}
+
+.worker-panel-extra-btn {
+  min-width: 0;
+}
+
+.worker-history-modal .ant-modal-body {
+  padding-top: 8px;
+}
+
 .worker-related-list {
   margin-top: 12px;
   border-top: 1px solid rgba(148, 163, 184, 0.22);
@@ -4945,13 +5056,6 @@ textarea {
   font-size: 11px;
 }
 
-.worker-chat-list {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 10px;
-}
-
 .worker-chat-item {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
@@ -4992,15 +5096,6 @@ textarea {
   font-size: 10px;
   color: var(--ink-muted);
   font-family: 'IBM Plex Mono', monospace;
-}
-
-.worker-chat-preview {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--ink-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .worker-chat-float-btn {
