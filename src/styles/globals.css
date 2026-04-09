@@ -1731,9 +1731,16 @@ textarea {
   line-height: 1.5;
   color: var(--text-muted);
 
-  .input {
-    color: var(--text-main);
-  }
+}
+
+.tool-call-result .input {
+  color: var(--text-main);
+}
+
+.tool-call-result .input td:first-child {
+  color: color-mix(in srgb, var(--accent-lime) 30%, var(--ink-muted));
+  vertical-align: baseline;
+  padding-right: 10px;
 }
 
 .tool-call-inline {
@@ -4878,9 +4885,11 @@ textarea {
   flex-direction: column;
   gap: 10px;
 }
+
 .worker-collapse .status-line {
   border: 0;
 }
+
 .worker-collapse .ant-collapse-item {
   border-radius: 8px;
   overflow: hidden;
@@ -4896,7 +4905,8 @@ textarea {
   padding: 6px 10px !important;
   background-color: var(--bg-card);
 }
-.worker-collapse .worker-collapse-history{
+
+.worker-collapse .worker-collapse-history {
   color: var(--text-muted);
 }
 
@@ -4947,18 +4957,22 @@ textarea {
   color: var(--text-muted);
   margin-left: 8px;
 }
-.ant-collapse-item-active .worker-panel-time{
+
+.ant-collapse-item-active .worker-panel-time {
   opacity: 0;
 }
-.worker-panel-time{
+
+.worker-panel-time {
   font-size: 11px;
   color: var(--text-muted);
   margin-left: 4px;
 }
+
 .ant-collapse-item-active .worker-panel-preview {
   height: 0;
   overflow: hidden;
 }
+
 .worker-panel-preview {
   margin-top: 4px;
   font-size: 12px;
@@ -5059,7 +5073,8 @@ textarea {
   background-color: transparent;
   box-shadow: none !important;
 }
-.worker-chat-more{
+
+.worker-chat-more {
   padding: 0 9px 9px;
   font-size: 12px;
   color: var(--text-muted);

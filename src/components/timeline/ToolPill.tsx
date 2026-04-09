@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "../../context/types";
 import type { TimelineRenderEntry } from "../../lib/timelineDisplay";
 import { MaterialIcon } from "../common/MaterialIcon";
@@ -261,7 +261,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   className="tool-call-result"
                   title={record.argsInlineText + "\n\n" + resultText}
                 >
-                  <span className="input">{record.argsInlineText}</span>
+                  <JsonToTable className="input" text={record.argsInlineText} />
                   {"\n\n"}
                   {resultText}
                 </code>
@@ -271,5 +271,36 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         })}
       </div>
     </div>
+  );
+};
+
+const JsonToTable: React.FC<{ text: any; className?: string }> = ({ text, className }) => {
+  const json = useMemo<Record<string, any>>(() => {
+    if (typeof text === 'object') return text;
+    try {
+      const obj = JSON.parse(text);
+      return Object.keys(obj)?.length > 0 ? obj : null;
+    } catch (error) {}
+    return null;
+  }, [text]);
+  return json ? (
+    <table className={className}>
+      <tbody>
+        {Object.entries(json).map(([key, value]) => (
+          <tr key={key}>
+            <td>{key}</td>
+            <td>
+              {Array.isArray(value) ? (
+                value.map((v, i) => <JsonToTable key={i} text={v} />)
+              ) : (
+                <JsonToTable text={value} />
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <span className={className}>{text || '空'}</span>
   );
 };
