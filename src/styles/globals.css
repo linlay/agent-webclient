@@ -3253,6 +3253,14 @@ textarea {
   text-transform: uppercase;
 }
 
+.plan-header-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .plan-summary-status {
   font: 700 11px/1 'IBM Plex Mono', monospace;
   color: var(--accent-electric-strong);
@@ -3314,7 +3322,7 @@ textarea {
 
 .plan-item {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   gap: 8px;
   padding: 7px 10px;
   font-size: 11px;
@@ -3326,21 +3334,8 @@ textarea {
   margin-top: 2px;
 }
 
-.plan-item[data-status='completed'] {
-  opacity: 0.65;
-}
-
 .plan-item[data-status='running'] {
   background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
-}
-
-.plan-badge {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex: 0 0 7px;
-  margin-top: 4px;
-  background: var(--ink-muted);
 }
 
 .plan-item-text {
@@ -3348,22 +3343,6 @@ textarea {
   line-height: 1.45;
 }
 
-.plan-item[data-status='running'] .plan-badge {
-  background: var(--accent-electric);
-  animation: status-pulse 1.35s ease-in-out infinite;
-}
-
-.plan-item[data-status='completed'] .plan-badge {
-  background: var(--accent-lime);
-}
-
-.plan-item[data-status='failed'] .plan-badge {
-  background: var(--accent-danger);
-}
-
-.plan-item[data-status='canceled'] .plan-badge {
-  background: var(--accent-warn);
-}
 
 /* ========================================
    Frontend Tool Container
