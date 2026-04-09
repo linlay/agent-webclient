@@ -62,6 +62,7 @@ const WorkerChatPreviewItem: React.FC<{
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
+        <div className="worker-chat-item-badge"></div>
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || "(无预览)"}
         </span>
@@ -86,14 +87,17 @@ const WorkerPanelHeader: React.FC<{
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
       <Avatar
+        size={32}
         style={{
-          background: "var(--bg-base)",
+          background: "#eee",
           color: "var(--text-main)",
+          transition: ".3s",
         }}
       >
         <MaterialIcon
           name={row.type === "team" ? "groups" : "person"}
           className="inline-icon"
+          style={{fontSize: 24}}
         />
       </Avatar>
       <Flex className="worker-panel-header-body" vertical>
@@ -270,7 +274,8 @@ export const LeftSidebar: React.FC = () => {
           />
         ),
         children: (
-          <div className="worker-panel-body">
+          <div>
+            <div className="worker-chat-divider"></div>
             {recentChats.length === 0 ? (
               <div className="status-line">暂无相关对话</div>
             ) : (
@@ -286,7 +291,14 @@ export const LeftSidebar: React.FC = () => {
                 ))}
               </>
             )}
-            {rawChats.length > 5 && <div className="worker-chat-more" onClick={e => handleOpenHistory(e, row.key)}>查看更多</div>}
+            {rawChats.length > 5 && (
+              <div
+                className="worker-chat-more"
+                onClick={(e) => handleOpenHistory(e, row.key)}
+              >
+                查看更多
+              </div>
+            )}
           </div>
         ),
       };

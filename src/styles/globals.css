@@ -1735,6 +1735,7 @@ textarea {
 
 .tool-call-result .input {
   color: var(--text-main);
+  margin-bottom: 8px;
 }
 
 .tool-call-result .input td:first-child {
@@ -1854,7 +1855,6 @@ textarea {
 
 .bottom-dock-plan-rail {
   position: relative;
-  z-index: 4;
 }
 
 .bottom-dock-tool-rail,
@@ -4875,14 +4875,17 @@ textarea {
 }
 
 .worker-collapse .ant-collapse-item.ant-collapse-item-active {
-  background: var(--bg-base);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.worker-collapse .ant-collapse-item.ant-collapse-item-active .ant-avatar{
+  transform: scale(.7);
 }
 
 .worker-collapse .ant-collapse-header {
   align-items: flex-start !important;
   padding: 6px 10px !important;
-  background-color: var(--bg-card);
 }
 
 .worker-collapse .worker-collapse-history {
@@ -5051,8 +5054,27 @@ textarea {
   border-radius: 0;
   background-color: transparent;
   box-shadow: none !important;
+  color: var(--text-muted);
 }
-
+.worker-chat-item:hover{
+  background-color: transparent;
+  color: var(--text-main);
+}
+.worker-chat-item.is-active .worker-chat-item-badge{
+  opacity: 1;
+}
+.worker-chat-item-badge{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-electric);
+  opacity: 0;
+}
+.worker-chat-divider{
+  height: 1px;
+  background-color: var(--border);
+  margin: 0 20px;
+}
 .worker-chat-more {
   padding: 0 9px 9px;
   font-size: 12px;
@@ -5060,13 +5082,18 @@ textarea {
   text-align: center;
   cursor: pointer;
 }
+.worker-chat-more:hover {
+  color: var(--text-main);
+}
 
 .worker-chat-item+.worker-chat-item {
   margin-top: 0;
 }
 
 .worker-chat-item.is-active {
-  background-color: var(--accent-soft);
+  color: var(--text-main);
+  background-color: transparent;
+  font-weight: bold;
 }
 
 .worker-chat-item-head {

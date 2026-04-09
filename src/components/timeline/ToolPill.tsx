@@ -200,7 +200,11 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         </span>
         {isGrouped ? (
           expandableRecords.map((record) => (
-            <span key={record.key} className="tool-status-dot" data-tool-status={record.status} />
+            <span
+              key={record.key}
+              className="tool-status-dot"
+              data-tool-status={record.status}
+            />
           ))
         ) : (
           <span className="tool-status-dot" data-tool-status={status} />
@@ -262,8 +266,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   title={record.argsInlineText + "\n\n" + resultText}
                 >
                   <JsonToTable className="input" text={record.argsInlineText} />
-                  {"\n\n"}
-                  {resultText}
+                  <span>{resultText}</span>
                 </code>
               </div>
             </div>
@@ -274,9 +277,12 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   );
 };
 
-const JsonToTable: React.FC<{ text: any; className?: string }> = ({ text, className }) => {
+const JsonToTable: React.FC<{ text: any; className?: string }> = ({
+  text,
+  className,
+}) => {
   const json = useMemo<Record<string, any>>(() => {
-    if (typeof text === 'object') return text;
+    if (typeof text === "object") return text;
     try {
       const obj = JSON.parse(text);
       return Object.keys(obj)?.length > 0 ? obj : null;
@@ -301,6 +307,6 @@ const JsonToTable: React.FC<{ text: any; className?: string }> = ({ text, classN
       </tbody>
     </table>
   ) : (
-    <span className={className}>{text || '空'}</span>
+    <span className={className}>{text || "空"}</span>
   );
 };
