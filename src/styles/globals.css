@@ -2984,27 +2984,18 @@ textarea {
   border-radius: var(--radius-md);
   background: var(--bg-elev-2);
   box-shadow: var(--shadow-medium);
-}
-
-.slash-command-popover.is-portal {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: auto;
-  right: auto;
-  margin: 0;
-  z-index: 1200;
   max-height: min(320px, calc(100vh - 120px));
   overflow: auto;
 }
 
-.slash-command-popover.is-inline-fallback {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  margin-bottom: 6px;
-  z-index: 30;
+.slash-command-popover-overlay .ant-popover-inner {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.slash-command-popover-overlay .ant-popover-inner-content {
+  padding: 0;
 }
 
 .slash-command-list {

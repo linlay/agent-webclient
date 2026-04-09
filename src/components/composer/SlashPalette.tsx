@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
+import { Popover } from "antd";
 import type {
   SlashCommandAvailability,
   SlashCommandDefinition,
@@ -8,26 +8,21 @@ import { isSlashCommandDisabled } from "../../lib/slashCommands";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 
-function renderPalette(input: {
-  className: string;
-  style?: React.CSSProperties;
+const SlashPaletteContent: React.FC<{
   slashPaletteRef: React.RefObject<HTMLDivElement>;
   slashCommands: SlashCommandDefinition[];
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
   onSelect: (commandId: SlashCommandDefinition["id"]) => void;
-}) {
-  const {
-    className,
-    style,
-    slashPaletteRef,
-    slashCommands,
-    activeSlashIndex,
-    slashAvailability,
-    planningMode,
-    onSelect,
-  } = input;
+}> = ({
+  slashPaletteRef,
+  slashCommands,
+  activeSlashIndex,
+  slashAvailability,
+  planningMode,
+  onSelect,
+}) => {
   const itemsRef = React.useRef<HTMLElement[]>([]);
 
   useEffect(() => {
@@ -35,11 +30,7 @@ function renderPalette(input: {
   }, [activeSlashIndex, itemsRef]);
 
   return (
-    <div
-      ref={slashPaletteRef}
-      className={`slash-command-popover ${className}`.trim()}
-      style={style}
-    >
+    <div ref={slashPaletteRef} className="slash-command-popover">
       <div className="slash-command-list" role="listbox" aria-label="斜杠命令">
         {slashCommands.map((command, index) => {
           const disabled = isSlashCommandDisabled(
@@ -77,7 +68,7 @@ function renderPalette(input: {
       </div>
     </div>
   );
-}
+};
 
 export const SlashPalette: React.FC<{
   open: boolean;
@@ -86,14 +77,10 @@ export const SlashPalette: React.FC<{
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
-  slashPopoverStyle: {
-    left: number;
-    top: number;
-    width: number;
-    maxHeight: number;
-    placement: "above" | "below";
-  } | null;
+  slashPopoverWidth?: number;
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   onSelect: (commandId: SlashCommandDefinition["id"]) => void;
+  children: React.ReactElement;
 }> = ({
   open,
   slashPaletteRef,
@@ -101,41 +88,41 @@ export const SlashPalette: React.FC<{
   activeSlashIndex,
   slashAvailability,
   planningMode,
-  slashPopoverStyle,
+  slashPopoverWidth,
+  getPopupContainer,
   onSelect,
+  children,
 }) => {
-  if (!open) {
-    return null;
-  }
+  return (
+    <Popover
+      open={open}
+      placement="topLeft"
+      arrow={false}
+      autoAdjustOverflow
+      classNames={{
+        root: "slash-command-popover-overlay",
+      }}
+      styles={{
+        root: {
+          width: slashPopoverWidth,
 
-  if (slashPopoverStyle && typeof document !== "undefined") {
-    return createPortal(
-      renderPalette({
-        className: "is-portal",
-        style: {
-          left: slashPopoverStyle.left,
-          top: slashPopoverStyle.top,
-          width: slashPopoverStyle.width,
-          maxHeight: slashPopoverStyle.maxHeight,
+          maxWidth: "calc(100vw - 24px)",
+          zIndex: 1200,
         },
-        slashPaletteRef,
-        slashCommands,
-        activeSlashIndex,
-        slashAvailability,
-        planningMode,
-        onSelect,
-      }),
-      document.body,
-    );
-  }
-
-  return renderPalette({
-    className: "is-inline-fallback",
-    slashPaletteRef,
-    slashCommands,
-    activeSlashIndex,
-    slashAvailability,
-    planningMode,
-    onSelect,
-  });
+      }}
+      getPopupContainer={getPopupContainer}
+      content={
+        <SlashPaletteContent
+          slashPaletteRef={slashPaletteRef}
+          slashCommands={slashCommands}
+          activeSlashIndex={activeSlashIndex}
+          slashAvailability={slashAvailability}
+          planningMode={planningMode}
+          onSelect={onSelect}
+        />
+      }
+    >
+      {children}
+    </Popover>
+  );
 };
