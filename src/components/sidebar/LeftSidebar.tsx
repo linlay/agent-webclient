@@ -85,15 +85,29 @@ const WorkerPanelHeader: React.FC<{
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <MaterialIcon
-        name={row.type === "team" ? "groups" : "person"}
-        className="inline-icon"
-      />
+      <Avatar
+        style={{
+          background: "var(--bg-base)",
+          color: "var(--text-main)",
+        }}
+      >
+        <MaterialIcon
+          name={row.type === "team" ? "groups" : "person"}
+          className="inline-icon"
+        />
+      </Avatar>
       <Flex className="worker-panel-header-body" vertical>
-        <Typography.Text ellipsis style={{ flex: 1 }}>
-          {row.displayName}
-          <span className="worker-panel-role">{row.role || "--"}</span>
-        </Typography.Text>
+        <Flex>
+          <Typography.Text ellipsis style={{ flex: 1 }}>
+            {row.displayName}
+            <span className="worker-panel-role">{row.role || "--"}</span>
+          </Typography.Text>
+          {!!row.latestUpdatedAt && (
+            <div className="worker-panel-time">
+              {formatChatTimeLabel(row.latestUpdatedAt)}
+            </div>
+          )}
+        </Flex>
         <Typography.Text ellipsis className="worker-panel-preview">
           {preview}
         </Typography.Text>
@@ -215,7 +229,7 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleOpenHistory = (
-    event: React.MouseEvent<HTMLElement>,
+    event: React.MouseEvent<Element>,
     workerKey: string,
   ) => {
     event.stopPropagation();
@@ -243,7 +257,8 @@ export const LeftSidebar: React.FC = () => {
 
   const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
     (row) => {
-      const recentChats = (workerChatsByKey.get(row.key) || []).slice(0, 5);
+      const rawChats = workerChatsByKey.get(row.key) || [];
+      const recentChats = rawChats.slice(0, 5);
       return {
         key: row.key,
         className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
@@ -252,13 +267,6 @@ export const LeftSidebar: React.FC = () => {
           <WorkerPanelHeader
             row={row}
             isActive={row.key === state.workerSelectionKey}
-          />
-        ),
-        extra: (
-          <MaterialIcon
-            name="history"
-            className="inline-icon worker-collapse-history"
-            onClick={(event) => handleOpenHistory(event, row.key)}
           />
         ),
         children: (
@@ -278,6 +286,7 @@ export const LeftSidebar: React.FC = () => {
                 ))}
               </>
             )}
+            {rawChats.length > 5 && <div className="worker-chat-more" onClick={e => handleOpenHistory(e, row.key)}>查看更多</div>}
           </div>
         ),
       };

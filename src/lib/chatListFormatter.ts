@@ -6,12 +6,16 @@ function pad2(value: number): string {
   return String(value).padStart(2, '0');
 }
 
-function formatLocalDate(date: Date): string {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+function formatLocalTime(date: Date): string {
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
-function formatLocalTime(date: Date): string {
-  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+function formatMonthDay(date: Date): string {
+  return `${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function formatYearMonth(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 }
 
 export interface ChatInfo {
@@ -65,10 +69,19 @@ export function formatChatTimeLabel(updatedAt: string | number | Date | undefine
 
   const now = nowDate instanceof Date ? nowDate : new Date(nowDate);
   if (Number.isNaN(now.getTime())) {
-    return formatLocalDate(updatedDate);
+    return formatYearMonth(updatedDate);
   }
 
-  return toLocalDateKey(updatedDate) === toLocalDateKey(now)
-    ? formatLocalTime(updatedDate)
-    : formatLocalDate(updatedDate);
+  // 今天：显示 HH:mm
+  if (toLocalDateKey(updatedDate) === toLocalDateKey(now)) {
+    return formatLocalTime(updatedDate);
+  }
+
+  // 今年但不是今天：显示 MM-dd
+  if (updatedDate.getFullYear() === now.getFullYear()) {
+    return formatMonthDay(updatedDate);
+  }
+
+  // 跨年：显示 YYYY-MM
+  return formatYearMonth(updatedDate);
 }

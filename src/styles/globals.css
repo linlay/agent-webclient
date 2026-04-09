@@ -4878,28 +4878,25 @@ textarea {
   flex-direction: column;
   gap: 10px;
 }
-
+.worker-collapse .status-line {
+  border: 0;
+}
 .worker-collapse .ant-collapse-item {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 16px !important;
-  background: rgba(15, 23, 42, 0.02);
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .worker-collapse .ant-collapse-item.ant-collapse-item-active {
-  border-color: rgba(59, 130, 246, 0.24);
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--bg-base);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
 }
 
 .worker-collapse .ant-collapse-header {
   align-items: flex-start !important;
-  padding: 10px !important;
+  padding: 6px 10px !important;
+  background-color: var(--bg-card);
 }
 .worker-collapse .worker-collapse-history{
-  position: absolute;
-  top: 8px;
-  right: 8px;
   color: var(--text-muted);
 }
 
@@ -4910,11 +4907,6 @@ textarea {
 .worker-collapse .ant-collapse-header-text {
   min-width: 0;
   flex: 1;
-}
-
-.worker-collapse .ant-collapse-extra {
-  margin-inline-start: 12px;
-  padding-top: 2px;
 }
 
 .worker-collapse .ant-collapse-content {
@@ -4928,7 +4920,7 @@ textarea {
 
 .worker-panel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   min-width: 0;
 }
@@ -4952,7 +4944,15 @@ textarea {
 
 .worker-panel-role {
   font-size: 11px;
-  color: var(--ink-2);
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+.ant-collapse-item-active .worker-panel-time{
+  opacity: 0;
+}
+.worker-panel-time{
+  font-size: 11px;
+  color: var(--text-muted);
   margin-left: 4px;
 }
 .ant-collapse-item-active .worker-panel-preview {
@@ -4970,10 +4970,6 @@ textarea {
   -webkit-line-clamp: 2;
   transition: height 0.3s;
   height: 20px;
-}
-
-.worker-panel-body {
-  padding: 0 10px 10px;
 }
 
 .worker-panel-extra-btn {
@@ -5057,22 +5053,26 @@ textarea {
 }
 
 .worker-chat-item {
-  width: 100%;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-input) 82%, var(--bg-elev-2));
   padding: 9px;
-  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none !important;
+}
+.worker-chat-more{
+  padding: 0 9px 9px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  cursor: pointer;
 }
 
 .worker-chat-item+.worker-chat-item {
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .worker-chat-item.is-active {
-  border-color: color-mix(in srgb, var(--accent-electric) 58%, var(--line-soft));
   background-color: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 92%, transparent);
 }
 
 .worker-chat-item-head {
@@ -5083,8 +5083,6 @@ textarea {
 
 .worker-chat-name {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-1);
   flex: 1;
   min-width: 0;
   white-space: nowrap;
