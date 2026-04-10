@@ -354,6 +354,7 @@ export const ComposerArea: React.FC = () => {
   }, [clearComposerAttachments]);
 
   useEffect(() => {
+    textareaRef.current?.focus();
     if (String(state.chatId || "").trim()) {
       setAttachmentChatId("");
     }

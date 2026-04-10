@@ -37,6 +37,20 @@ export interface SlashCommandAvailability {
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
+    id: 'new',
+    command: '/new',
+    label: '新对话',
+    description: '清空当前对话上下文，保留当前 worker 选择',
+    keywords: ['new', 'chat', 'reset', 'clear'],
+  },
+  {
+    id: 'history',
+    command: '/history',
+    label: '历史对话',
+    description: '查看当前员工或小组的历史会话',
+    keywords: ['history', 'chat', 'conversation', 'recent'],
+  },
+  {
     id: 'remember',
     command: '/remember',
     label: '记录记忆',
@@ -65,25 +79,11 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     keywords: ['detail', 'profile', 'info', 'agent'],
   },
   {
-    id: 'history',
-    command: '/history',
-    label: '历史对话',
-    description: '查看当前员工或小组的历史会话',
-    keywords: ['history', 'chat', 'conversation', 'recent'],
-  },
-  {
     id: 'switch',
     command: '/switch',
     label: '切换员工',
     description: '搜索并切换当前员工或小组',
     keywords: ['switch', 'worker', 'agent', 'team'],
-  },
-  {
-    id: 'new',
-    command: '/new',
-    label: '新对话',
-    description: '清空当前对话上下文，保留当前 worker 选择',
-    keywords: ['new', 'chat', 'reset', 'clear'],
   },
   {
     id: 'redo',
