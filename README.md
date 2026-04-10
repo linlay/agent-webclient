@@ -3,14 +3,17 @@
 ## 1. 项目简介
 `agent-webclient` 是一个 AGENT 协议调试前端，用于连接 `/api/*` 接口，支持流式对话、历史回放、Team/Agent 切换、前端工具展示、语音输入与 TTS 播放等调试能力。
 
-当前仓库只提供 Web 客户端，不再包含 Electron 桌面壳层、桌面端配置文件或桌面打包命令。
+当前仓库只提供 Web 客户端。发布链路分为两类：
+
+- Program Bundle：纯前端宿主机部署包，包含静态资源和宿主机元数据
+- Image Bundle：包含离线 Docker 镜像、compose 和运行脚本的镜像部署包
 
 ## 2. 快速开始
 ### 前置要求
 - Node.js 18+
 - npm 9+
 - GNU Make
-- Docker Desktop 或 Docker Engine + Compose v2（容器部署 / release 打包）
+- Docker Desktop 或 Docker Engine + Compose v2（仅容器部署 / `make release-image` 需要）
 - 可访问的 AGENT API 服务
 
 ### 初始化环境变量
@@ -46,6 +49,27 @@ make test
 make build
 ```
 
+### Program Bundle
+```bash
+make release
+```
+
+也可以显式执行：
+```bash
+make release-program
+```
+
+该命令会先生成生产环境 `dist/`，再输出纯前端版本化压缩包：
+
+- 压缩包：`dist/release/agent-webclient-vX.Y.Z.tar.gz`
+- 解压目录：`agent-webclient/`
+
+Program Bundle 约束：
+
+- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`
+- 不包含 `server/`、`node_modules/`、`start.sh`、`stop.sh`、`compose.release.yml`、`nginx.conf`
+- 版本号来自根目录 [`VERSION`](./VERSION)，格式固定为 `vX.Y.Z`
+
 ## 3. 配置说明
 - 环境变量契约以 [`.env.example`](./.env.example) 为准，本地通过 `cp .env.example .env` 初始化。
 - `.env` 为本地真实配置，不提交版本库；仓库只追踪 `.env.example`。
@@ -78,29 +102,55 @@ make docker-up
 make docker-down
 ```
 
-### 版本化离线发布
+### Program Bundle 发布
 ```bash
 make release
 ```
 
-也可以按目标架构显式执行：
+等价入口：
 ```bash
-ARCH=amd64 make release
-ARCH=arm64 make release
+make release-program
 ```
 
 发布规则：
-- `make release` 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
-- 打包过程会在宿主机构建前端静态资源，再用 `docker buildx` 生成单架构运行镜像。
-- release 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
-- 最终 bundle 输出到 `dist/release/`，命名格式为 `agent-webclient-vX.Y.Z-linux-<arch>.tar.gz`。
-- bundle 内包含 `images/agent-webclient.tar`、`compose.release.yml`、`.env.example`、`start.sh`、`stop.sh`、`README.txt`，目标机无需源码即可部署。
-- release bundle 保持独立前端入口，不做 gateway 子路径集成；默认入口仍是 `http://127.0.0.1:11948`。
-- desktop-core 只需要向 bundle 目录下的 `.env` 注入 `BASE_URL`、`VOICE_BASE_URL`，可按需覆盖 `HOST_PORT`；无需新增专属 profile 字段。
+- `make release` 与 `make release-program` 行为一致。
+- 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
+- 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
+- 最终产物输出到 `dist/release/agent-webclient-vX.Y.Z.tar.gz`。
+- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`。
+- 打包完成后，工作区只保留 `dist/release/` 下的最终压缩包，不保留展开的 `dist/js`、`dist/css`、`dist/fonts`。
 
-### 离线 bundle 部署
+### Program Bundle 使用
 ```bash
-tar -xzf dist/release/agent-webclient-vX.Y.Z-linux-amd64.tar.gz
+tar -xzf dist/release/agent-webclient-vX.Y.Z.tar.gz
+cd agent-webclient
+./deploy.sh
+```
+
+该产物不包含应用进程、`start.sh` 或 `stop.sh`。`deploy.sh` 只做校验和生成 `.env`，然后提示宿主机如何托管 `dist/`。
+
+### Image Bundle 发布
+```bash
+make release-image
+```
+
+也可以显式指定目标架构：
+```bash
+ARCH=amd64 make release-image
+ARCH=arm64 make release-image
+```
+
+发布规则：
+- 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
+- 打包过程会在宿主机构建前端静态资源，再用 `docker buildx` 生成单架构运行镜像。
+- release-image 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
+- 最终 bundle 输出到 `dist/release/agent-webclient-image-vX.Y.Z-linux-<arch>.tar.gz`。
+- bundle 内包含 `images/agent-webclient.tar`、`compose.release.yml`、`.env.example`、`start.sh`、`stop.sh`、`README.txt`。
+- 打包完成后，工作区同样只保留 `dist/release/` 下的最终压缩包。
+
+### Image Bundle 部署
+```bash
+tar -xzf dist/release/agent-webclient-image-vX.Y.Z-linux-amd64.tar.gz
 cd agent-webclient
 cp .env.example .env
 ./start.sh
@@ -110,7 +160,22 @@ cp .env.example .env
 - `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
 - `.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
 - `.env` 中的 `HOST_PORT` 未与宿主机其他服务冲突，默认值为 `11948`。
-- Linux Docker 环境下，bundle 自带的 `compose.release.yml` 已补齐 `host.docker.internal:host-gateway` 映射，适配 desktop-core 注入的上游地址。
+- Linux Docker 环境下，bundle 自带的 `compose.release.yml` 已补齐 `host.docker.internal:host-gateway` 映射。
+
+### 发布验证
+建议按以下顺序验证：
+
+1. `make release`
+确认生成 `dist/release/agent-webclient-vX.Y.Z.tar.gz`，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`。
+
+2. `make release-program`
+确认行为与 `make release` 一致。
+
+3. `make release-image`
+确认生成 `dist/release/agent-webclient-image-vX.Y.Z-linux-<arch>.tar.gz`，包内包含镜像 tar、`compose.release.yml`、image bundle 专用 `.env.example`、`start.sh`、`stop.sh`。
+
+4. `make test`
+确认前端测试通过。
 
 ## 5. 运维
 ### 查看容器状态

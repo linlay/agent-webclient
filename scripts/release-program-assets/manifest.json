@@ -1,0 +1,14 @@
+{
+  "id": "agent-webclient",
+  "name": "agent-webclient",
+  "version": "__APP_VERSION__",
+  "frontend": {
+    "mode": "static",
+    "entry": "dist/index.html",
+    "hostManaged": true,
+    "directAccess": false
+  },
+  "scripts": {
+    "deploy": "deploy.sh"
+  }
+}
