@@ -1,4 +1,10 @@
 import type { VoiceCapabilities } from '../context/types';
+import {
+  getAppAccessToken,
+  refreshAppAccessToken,
+  type AppAccessTokenRefreshReason,
+} from './appAuth';
+import { isAppMode } from './routing';
 
 export class ApiError extends Error {
   name = 'ApiError';
@@ -79,6 +85,31 @@ function buildAuthHeaders(
 
 export function setAccessToken(token = ''): void {
   authToken = String(token || '').trim();
+}
+
+export function getCurrentAccessToken(): string {
+  if (!isAppMode()) {
+    return authToken;
+  }
+
+  authToken = String(getAppAccessToken() || '').trim();
+  return authToken;
+}
+
+export async function ensureAccessToken(
+  reason: AppAccessTokenRefreshReason = 'missing',
+): Promise<string> {
+  if (!isAppMode()) {
+    return getCurrentAccessToken();
+  }
+
+  const token =
+    reason === 'unauthorized'
+      ? await refreshAppAccessToken('unauthorized')
+      : getAppAccessToken() ?? await refreshAppAccessToken('missing');
+
+  setAccessToken(token || '');
+  return getCurrentAccessToken();
 }
 
 async function readJsonResponse(response: Response): Promise<ApiResponse> {
@@ -241,8 +272,29 @@ async function requestJson(
   path: string,
   options: RequestInit & { headers?: Record<string, string>; jsonContentType?: boolean } = {},
 ): Promise<ApiResponse> {
-  const { jsonContentType = true, ...requestOptions } = options;
-  const response = await fetch(path, {
+  const response = await requestWithAuth(path, options);
+  return readJsonResponse(response);
+}
+
+async function requestWithAuth(
+  path: string,
+  options: RequestInit & {
+    headers?: Record<string, string>;
+    jsonContentType?: boolean;
+    retryUnauthorized?: boolean;
+  } = {},
+): Promise<Response> {
+  const {
+    jsonContentType = true,
+    retryUnauthorized = true,
+    ...requestOptions
+  } = options;
+
+  if (isAppMode()) {
+    await ensureAccessToken('missing');
+  }
+
+  const buildRequestOptions = (): RequestInit => ({
     ...requestOptions,
     method: requestOptions.method || 'GET',
     headers: buildAuthHeaders(requestOptions.headers || {}, {
@@ -250,7 +302,16 @@ async function requestJson(
     }),
   });
 
-  return readJsonResponse(response);
+  let response = await fetch(path, buildRequestOptions());
+
+  if (retryUnauthorized && isAppMode() && response.status === 401) {
+    const refreshedToken = await ensureAccessToken('unauthorized');
+    if (refreshedToken) {
+      response = await fetch(path, buildRequestOptions());
+    }
+  }
+
+  return response;
 }
 
 export function createRequestId(prefix = 'req'): string {
@@ -336,10 +397,7 @@ export function getVoiceCapabilities(): Promise<ApiResponse> {
 }
 
 export async function getVoiceCapabilitiesFlexible(): Promise<VoiceCapabilities | null> {
-  const response = await fetch('/api/voice/capabilities', {
-    method: 'GET',
-    headers: buildAuthHeaders(),
-  });
+  const response = await requestWithAuth('/api/voice/capabilities');
   return readVoiceCapabilitiesResponse(response);
 }
 
@@ -348,10 +406,7 @@ export function getVoiceVoices(): Promise<ApiResponse> {
 }
 
 export async function getVoiceVoicesFlexible(path = '/api/voice/tts/voices'): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
-  const response = await fetch(path, {
-    method: 'GET',
-    headers: buildAuthHeaders(),
-  });
+  const response = await requestWithAuth(path);
   return readVoiceVoicesResponse(response);
 }
 
@@ -513,12 +568,12 @@ export function createQueryStream(options: QueryStreamParams): Promise<Response>
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
 
-  return fetch('/api/query', {
+  return requestWithAuth('/api/query', {
     method: 'POST',
-    headers: buildAuthHeaders({
+    headers: {
       Accept: 'text/event-stream',
       'Cache-Control': 'no-cache',
-    }),
+    },
     body: JSON.stringify(body),
     signal: options.signal,
   });

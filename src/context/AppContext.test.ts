@@ -2,6 +2,8 @@ import type { WorkerConversationRow } from './types';
 import { appReducer, createInitialState } from './AppContext';
 
 describe('appReducer conversation reset behavior', () => {
+  const originalWindow = globalThis.window;
+
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -9,6 +11,52 @@ describe('appReducer conversation reset behavior', () => {
         getItem: () => '',
       },
     });
+    if (originalWindow) {
+      (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+        {
+          ...originalWindow,
+          location: {
+            ...originalWindow.location,
+            pathname: '/',
+          },
+        };
+    } else {
+      delete (globalThis as Record<string, unknown>).window;
+    }
+  });
+
+  afterEach(() => {
+    if (originalWindow) {
+      (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+        originalWindow;
+    } else {
+      delete (globalThis as Record<string, unknown>).window;
+    }
+  });
+
+  it('uses the app bridge token as the initial access token in app mode', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => 'web-token',
+      },
+    });
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/appagent',
+        },
+        sessionStorage: {
+          getItem: (key: string) =>
+            key === 'agent-webclient.appAccessToken' ? 'app-token' : null,
+          setItem: () => undefined,
+          removeItem: () => undefined,
+        },
+      } as Window & typeof globalThis;
+
+    const state = createInitialState();
+
+    expect(state.accessToken).toBe('app-token');
   });
 
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {

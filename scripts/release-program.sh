@@ -3,96 +3,117 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_NAME="agent-webclient"
-RELEASE_PROGRAM_ASSETS_DIR="$SCRIPT_DIR/release-program-assets"
+PROGRAM_RELEASE_ASSETS_DIR="$SCRIPT_DIR/release-assets/program"
 
-die() { echo "[release-program] $*" >&2; exit 1; }
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/release-common.sh"
 
-load_build_env() {
-  local env_file="$1"
-  [[ -f "$env_file" ]] || return 0
-  set -a
-  # shellcheck disable=SC1090
-  . "$env_file"
-  set +a
+require_release_tools
+resolve_release_context
+
+require_dir "$PROGRAM_RELEASE_ASSETS_DIR"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/README.txt"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/deploy.sh"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/start.sh"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/stop.sh"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/program-common.sh"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/deploy.ps1"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/start.ps1"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/stop.ps1"
+require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/program-common.ps1"
+require_file "$REPO_ROOT/.env.example"
+require_file "$REPO_ROOT/package.json"
+require_file "$REPO_ROOT/package-lock.json"
+require_file "$REPO_ROOT/backend/go.mod"
+
+cd "$REPO_ROOT"
+
+build_frontend_dist() {
+  echo "[release] building frontend dist..."
+  npm ci
+  npm run build
+  require_file "$REPO_ROOT/dist/index.html"
 }
 
-ensure_host_dependencies() {
-  if [[ -x "$REPO_ROOT/node_modules/.bin/webpack" ]]; then
-    echo "[release-program] reusing existing host dependencies"
-    return 0
-  fi
+build_program_bundle() {
+  local target_os="$1"
+  local target_arch="$2"
+  local binary_name
+  local archive_format
+  local bundle_archive
+  local tmp_dir
+  local stage_root
+  local bundle_root
+  local backend_dir
+  local frontend_dir
+  local scripts_dir
+  local backend_path
+  local backend_entry
 
-  echo "[release-program] installing dependencies on host..."
+  binary_name="$(binary_name_for_os "$target_os")"
+  archive_format="$(archive_format_for_os "$target_os")"
+  bundle_archive="$RELEASE_DIR/$(program_bundle_filename "$VERSION" "$target_os" "$target_arch" "$archive_format")"
+
+  echo "[release] program VERSION=$VERSION TARGET_OS=$target_os ARCH=$target_arch"
+
+  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/agent-webclient-program-release.XXXXXX")"
+  trap 'rm -rf "$tmp_dir"' RETURN
+
+  stage_root="$tmp_dir/stage"
+  bundle_root="$stage_root/$APP_NAME"
+  backend_dir="$bundle_root/backend"
+  frontend_dir="$bundle_root/frontend"
+  scripts_dir="$bundle_root/scripts"
+  backend_path="$backend_dir/$binary_name"
+  backend_entry="backend/$binary_name"
+
+  mkdir -p "$backend_dir" "$frontend_dir/dist" "$scripts_dir"
+
+  echo "[release] building backend binary for $target_os..."
   (
-    cd "$REPO_ROOT"
-    if [[ -f package-lock.json ]]; then
-      npm ci
-      if [[ ! -x "$REPO_ROOT/node_modules/.bin/webpack" ]]; then
-        echo "[release-program] npm ci did not produce a usable webpack binary; retrying with npm install"
-        npm install
-      fi
-    else
-      npm install
-    fi
+    cd "$REPO_ROOT/backend"
+    CGO_ENABLED=0 GOOS="$target_os" GOARCH="$target_arch" \
+      go build \
+      -trimpath \
+      -o "$backend_path" \
+      ./cmd/agent-webclient
   )
 
-  [[ -x "$REPO_ROOT/node_modules/.bin/webpack" ]] || die "webpack binary not found after dependency install"
+  echo "[release] assembling program bundle for $target_os..."
+  cp -R "$REPO_ROOT/dist/." "$frontend_dir/dist/"
+  cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
+  cp "$PROGRAM_RELEASE_ASSETS_DIR/README.txt" "$bundle_root/README.txt"
+  write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$backend_entry" "$(basename "$bundle_archive")"
+
+  if [[ "$target_os" == "windows" ]]; then
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/windows/deploy.ps1" "$bundle_root/deploy.ps1"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/windows/start.ps1" "$bundle_root/start.ps1"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/windows/stop.ps1" "$bundle_root/stop.ps1"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/windows/program-common.ps1" "$scripts_dir/program-common.ps1"
+  else
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/deploy.sh" "$bundle_root/deploy.sh"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/start.sh" "$bundle_root/start.sh"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/stop.sh" "$bundle_root/stop.sh"
+    cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/program-common.sh" "$scripts_dir/program-common.sh"
+    chmod +x \
+      "$backend_path" \
+      "$bundle_root/deploy.sh" \
+      "$bundle_root/start.sh" \
+      "$bundle_root/stop.sh" \
+      "$scripts_dir/program-common.sh"
+  fi
+
+  mkdir -p "$RELEASE_DIR"
+  archive_bundle_dir "$stage_root" "$APP_NAME" "$bundle_archive" "$archive_format"
+
+  echo "[release] done: $bundle_archive"
 }
 
-VERSION="${VERSION:-$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")}"
-[[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "VERSION must match vX.Y.Z (got: $VERSION)"
+build_frontend_dist
 
-command -v npm >/dev/null 2>&1 || die "npm is required"
-command -v tar >/dev/null 2>&1 || die "tar is required"
-
-TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${APP_NAME}-release-program.XXXXXX")"
-trap 'rm -rf "$TMP_DIR"' EXIT
-
-BUILD_ENV_FILE="$REPO_ROOT/.env"
-BUNDLE_NAME="${APP_NAME}-${VERSION}"
-BUNDLE_TAR_TMP="$TMP_DIR/${BUNDLE_NAME}.tar.gz"
-BUNDLE_TAR="$REPO_ROOT/dist/release/${BUNDLE_NAME}.tar.gz"
-WORK_ROOT="$TMP_DIR/$APP_NAME"
-MANIFEST_FILE="$WORK_ROOT/manifest.json"
-PROGRAM_ENV_FILE="$WORK_ROOT/.env.example"
-
-if [[ ! -f "$BUILD_ENV_FILE" ]]; then
-  BUILD_ENV_FILE="$TMP_DIR/build.env"
-  cp "$REPO_ROOT/.env.example" "$BUILD_ENV_FILE"
-  echo "[release-program] root .env not found; using .env.example defaults for production build"
-fi
-
-ensure_host_dependencies
-
-echo "[release-program] building frontend on host..."
-(
-  cd "$REPO_ROOT"
-  load_build_env "$BUILD_ENV_FILE"
-  export NODE_ENV=production
-  ./node_modules/.bin/webpack --mode production
-)
-
-[[ -f "$REPO_ROOT/dist/index.html" ]] || die "dist/index.html not found after build"
-
-mkdir -p "$WORK_ROOT"
-cp -R "$REPO_ROOT/dist" "$WORK_ROOT/dist"
-rm -rf "$WORK_ROOT/dist/bundle"
-rm -rf "$WORK_ROOT/dist/release"
-cp "$RELEASE_PROGRAM_ASSETS_DIR/.env.example" "$PROGRAM_ENV_FILE"
-cp "$RELEASE_PROGRAM_ASSETS_DIR/README.txt" "$WORK_ROOT/README.txt"
-cp "$RELEASE_PROGRAM_ASSETS_DIR/deploy.sh" "$WORK_ROOT/deploy.sh"
-cp "$RELEASE_PROGRAM_ASSETS_DIR/manifest.json" "$MANIFEST_FILE"
-
-sed -i.bak "s/__APP_VERSION__/$VERSION/" "$MANIFEST_FILE"
-rm -f "$MANIFEST_FILE.bak"
-
-chmod +x "$WORK_ROOT/deploy.sh"
-
-tar -czf "$BUNDLE_TAR_TMP" -C "$TMP_DIR" "$APP_NAME"
-
-rm -rf "$REPO_ROOT/dist"
-mkdir -p "$(dirname "$BUNDLE_TAR")"
-mv "$BUNDLE_TAR_TMP" "$BUNDLE_TAR"
-
-echo "[release-program] done: $BUNDLE_TAR"
+while read -r target_os target_arch; do
+  [[ -n "$target_os" ]] || continue
+  [[ -n "$target_arch" ]] || die "missing ARCH for program target $target_os"
+  require_archive_tool_for_os "$target_os"
+  build_program_bundle "$target_os" "$target_arch"
+done < <(parse_program_target_matrix)

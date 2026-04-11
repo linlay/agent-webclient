@@ -8,10 +8,12 @@ import type {
 } from "../context/types";
 import {
 	createRequestId,
+	ensureAccessToken,
 	getVoiceCapabilitiesFlexible,
 	getVoiceVoicesFlexible,
 } from "../lib/apiClient";
 import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
+import { isAppMode } from "../lib/routing";
 import {
 	bytesToBase64,
 	DEFAULT_VOICE_CHAT_SEND_PAUSE_MS,
@@ -723,6 +725,16 @@ export function useVoiceChatRuntime() {
 		};
 	}, [patchVoiceChat, resolveCurrentAsrRuntime, stateRef]);
 
+	const ensureVoiceAccessToken = useCallback(async () => {
+		const token = isAppMode()
+			? await ensureAccessToken("missing")
+			: String(stateRef.current.accessToken || "").trim();
+		if (token !== String(stateRef.current.accessToken || "").trim()) {
+			dispatch({ type: "SET_ACCESS_TOKEN", token });
+		}
+		return token;
+	}, [dispatch, stateRef]);
+
 	const connectSocket = useCallback(async () => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {
 			return socketRef.current;
@@ -734,7 +746,7 @@ export function useVoiceChatRuntime() {
 		const wsPath =
 			stateRef.current.voiceChat.capabilities?.websocketPath ||
 			"/api/voice/ws";
-		const accessToken = String(stateRef.current.accessToken || "").trim();
+		const accessToken = await ensureVoiceAccessToken();
 		if (!accessToken) {
 			throw new Error("voice access_token is required");
 		}
@@ -978,6 +990,7 @@ export function useVoiceChatRuntime() {
 		startAsrTask,
 		stateRef,
 		submitVoiceChatQuery,
+		ensureVoiceAccessToken,
 	]);
 
 	const scheduleVoiceReconnect = useCallback(
@@ -1091,7 +1104,8 @@ export function useVoiceChatRuntime() {
 		});
 
 		try {
-			if (!String(stateRef.current.accessToken || "").trim()) {
+			const accessToken = await ensureVoiceAccessToken();
+			if (!accessToken) {
 				throw new Error("voice access_token is required");
 			}
 			const setup = await ensureVoiceSetup();
@@ -1130,6 +1144,7 @@ export function useVoiceChatRuntime() {
 		connectSocket,
 		currentWorker,
 		dispatch,
+		ensureVoiceAccessToken,
 		ensureVoiceSetup,
 		handleFatalError,
 		isVoiceRecoveryEligible,

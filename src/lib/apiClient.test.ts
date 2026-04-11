@@ -1,4 +1,5 @@
 import { Blob } from 'buffer';
+import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from './appAuth';
 import {
   buildResourceUrl,
   createQueryStream,
@@ -13,6 +14,7 @@ import {
   interruptChat,
   learnChat,
   rememberChat,
+  setAccessToken,
   steerChat,
   uploadFile,
 } from './apiClient';
@@ -46,8 +48,71 @@ class MockFile extends Blob {
   }
 }
 
+type MockStorage = {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+};
+
+function createMockStorage(initial: Record<string, string> = {}): MockStorage {
+  const values = new Map(Object.entries(initial));
+  return {
+    getItem: (key) => (values.has(key) ? values.get(key) || null : null),
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+    removeItem: (key) => {
+      values.delete(key);
+    },
+  };
+}
+
+function installWindow(options: {
+  pathname?: string;
+  storedToken?: string;
+} = {}) {
+  const listeners = new Set<(event: MessageEvent) => void>();
+  const sessionStorage = createMockStorage(
+    options.storedToken
+      ? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
+      : {},
+  );
+  const parent = {
+    postMessage: jest.fn(),
+  };
+  const mockWindow = {
+    location: { pathname: options.pathname ?? '/appagent' },
+    parent,
+    sessionStorage,
+    addEventListener: jest.fn((type: string, listener: EventListener) => {
+      if (type === 'message') {
+        listeners.add(listener as unknown as (event: MessageEvent) => void);
+      }
+    }),
+    removeEventListener: jest.fn((type: string, listener: EventListener) => {
+      if (type === 'message') {
+        listeners.delete(listener as unknown as (event: MessageEvent) => void);
+      }
+    }),
+    setTimeout,
+    clearTimeout,
+  };
+
+  (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
+
+  return {
+    parent,
+    dispatchMessage: (event: MessageEvent) => {
+      for (const listener of listeners) {
+        listener(event);
+      }
+    },
+  };
+}
+
 describe('apiClient query payloads', () => {
   const fetchMock = jest.fn();
+  const originalWindow = globalThis.window;
 
   beforeEach(() => {
     global.Blob = Blob as unknown as typeof global.Blob;
@@ -60,6 +125,16 @@ describe('apiClient query payloads', () => {
       text: async () => JSON.stringify({ code: 0, msg: 'ok', data: null }),
     });
     global.fetch = fetchMock as unknown as typeof fetch;
+    setAccessToken('');
+  });
+
+  afterEach(() => {
+    if (originalWindow) {
+      (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+        originalWindow;
+    } else {
+      delete (globalThis as Record<string, unknown>).window;
+    }
   });
 
   it('sends only required fields for basic query streams', async () => {
@@ -190,6 +265,109 @@ describe('apiClient query payloads', () => {
     await getAgent('demo-agent');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
+  });
+
+  it('injects a bridge token into app mode api requests', async () => {
+    installWindow({ storedToken: 'bridge-token-1' });
+
+    await getAgents();
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer bridge-token-1',
+    });
+  });
+
+  it('requests a bridge token when app mode starts without one', async () => {
+    const { parent, dispatchMessage } = installWindow();
+
+    parent.postMessage.mockImplementation((payload: { requestId: string }) => {
+      queueMicrotask(() => {
+        dispatchMessage({
+          source: parent,
+          data: {
+            type: 'zenmind:agent-app-auth:response',
+            requestId: payload.requestId,
+            token: 'bridge-token-2',
+          },
+        } as MessageEvent);
+      });
+    });
+
+    await getAgents();
+
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'getAccessToken',
+        reason: 'missing',
+      }),
+      '*',
+    );
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer bridge-token-2',
+    });
+  });
+
+  it('refreshes the bridge token once after a 401 response', async () => {
+    const { parent, dispatchMessage } = installWindow({ storedToken: 'stale-token' });
+
+    parent.postMessage.mockImplementation((payload: { requestId: string }) => {
+      queueMicrotask(() => {
+        dispatchMessage({
+          source: parent,
+          data: {
+            type: 'zenmind:agent-app-auth:response',
+            requestId: payload.requestId,
+            token: 'fresh-token',
+          },
+        } as MessageEvent);
+      });
+    });
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: async () => JSON.stringify({ code: 401, msg: 'expired', data: null }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ code: 0, msg: 'ok', data: [] }),
+      });
+
+    await expect(getAgents()).resolves.toMatchObject({
+      status: 200,
+      data: [],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer stale-token',
+    });
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer fresh-token',
+    });
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'refreshAccessToken',
+        reason: 'unauthorized',
+      }),
+      '*',
+    );
+  });
+
+  it('injects the bridge token into query streams in app mode', async () => {
+    installWindow({ storedToken: 'bridge-token-sse' });
+
+    await createQueryStream({
+      requestId: 'req_sse',
+      message: '继续',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer bridge-token-sse',
+      Accept: 'text/event-stream',
+    });
   });
 
   it('parses voice capabilities from standard ApiResponse payloads', async () => {

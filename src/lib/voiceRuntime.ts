@@ -1,4 +1,5 @@
 import type { AppState, TtsVoiceBlock } from "../context/types";
+import { getCurrentAccessToken } from "./apiClient";
 import { parseContentSegments } from "./contentSegments";
 import {
 	DEFAULT_CHANNELS,
@@ -137,6 +138,10 @@ class VoiceRuntime {
 	}
 
 	private getAccessToken(): string {
+		const token = getCurrentAccessToken();
+		if (token) {
+			return token;
+		}
 		return String(this.options.getState().accessToken || "").trim();
 	}
 

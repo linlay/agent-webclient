@@ -1,4 +1,6 @@
+import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from "./appAuth";
 import type { AppState, TtsVoiceBlock } from "../context/types";
+import { setAccessToken } from "./apiClient";
 import { initVoiceRuntime } from "./voiceRuntime";
 
 class MockWebSocket {
@@ -129,13 +131,42 @@ class MockAudioContext {
 	}
 }
 
+type InstallBrowserOptions = {
+	pathname?: string;
+	storedToken?: string;
+};
+
+function createMockStorage(initial: Record<string, string> = {}) {
+	const values = new Map(Object.entries(initial));
+	return {
+		getItem: (key: string) => (values.has(key) ? values.get(key) || null : null),
+		setItem: (key: string, value: string) => {
+			values.set(key, value);
+		},
+		removeItem: (key: string) => {
+			values.delete(key);
+		},
+	};
+}
+
 function installBrowser(
 	WebSocketCtor: typeof WebSocket,
+	options: InstallBrowserOptions = {},
 ): void {
+	const sessionStorage = createMockStorage(
+		options.storedToken
+			? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
+			: {},
+	);
 	(globalThis as unknown as { window?: Window & typeof globalThis }).window = {
-		location: { protocol: "http:", host: "localhost:3000" },
+		location: {
+			protocol: "http:",
+			host: "localhost:3000",
+			pathname: options.pathname ?? "/",
+		},
 		WebSocket: WebSocketCtor,
 		AudioContext: MockAudioContext as unknown as typeof AudioContext,
+		sessionStorage,
 		setTimeout,
 		clearTimeout,
 	} as Window & typeof globalThis;
@@ -159,6 +190,7 @@ describe("voiceRuntime v2 protocol", () => {
 		MockWebSocket.instances = [];
 		HangingWebSocket.instances = [];
 		jest.useRealTimers();
+		setAccessToken("");
 		if (originalWindow) {
 			(globalThis as unknown as { window?: Window & typeof globalThis }).window =
 				originalWindow;
@@ -287,6 +319,31 @@ describe("voiceRuntime v2 protocol", () => {
 
 		runtime.stopAllVoiceSessions("debug_stop", { mode: "stop" });
 		expect(statuses[statuses.length - 1]).toBe("stopped");
+	});
+
+	it("uses the app bridge token for voice websocket requests in app mode", async () => {
+		installBrowser(MockWebSocket as unknown as typeof WebSocket, {
+			pathname: "/appagent",
+			storedToken: "bridge-token",
+		});
+
+		const runtime = initVoiceRuntime({
+			getState: () =>
+				({
+					accessToken: "",
+					chatId: "chat_1",
+					voiceChat: { capabilities: null },
+				}) as AppState,
+			onPatchBlock: () => undefined,
+			onRemoveInactiveBlocks: () => undefined,
+			onDebugStatus: () => undefined,
+		});
+
+		await runtime.debugSpeakTtsVoice("hello bridge");
+
+		expect(MockWebSocket.instances[0].url).toBe(
+			"ws://localhost:3000/api/voice/ws?access_token=bridge-token",
+		);
 	});
 
 	it("marks debug sessions with no audio payload as connected but no audio frames", async () => {

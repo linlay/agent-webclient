@@ -4,6 +4,7 @@ import React, {
 	useReducer,
 	useCallback,
 	useMemo,
+	useEffect,
 	useRef,
 } from "react";
 import type {
@@ -38,14 +39,18 @@ import {
 } from "./constants";
 import type { DebugTab, LayoutMode } from "./constants";
 import { upsertChatSummary } from "../lib/chatSummary";
+import { getAppAccessToken, refreshAppAccessToken } from "../lib/appAuth";
+import { setAccessToken } from "../lib/apiClient";
+import { isAppMode } from "../lib/routing";
 import { resolveDefaultVoiceAsrDefaults } from "../lib/voiceAsrProtocol";
 
 /* ============================================
    Initial State Factory
    ============================================ */
 export function createInitialState(): AppState {
-	const storedToken =
-		typeof localStorage !== "undefined"
+	const storedToken = isAppMode()
+		? getAppAccessToken() || ""
+		: typeof localStorage !== "undefined"
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
 
@@ -905,6 +910,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		}),
 		[state, dispatch],
 	);
+
+	useEffect(() => {
+		if (!isAppMode()) {
+			return;
+		}
+
+		let cancelled = false;
+		const currentToken = getAppAccessToken() || "";
+		if (currentToken) {
+			setAccessToken(currentToken);
+			if (currentToken !== stateRef.current.accessToken) {
+				dispatch({ type: "SET_ACCESS_TOKEN", token: currentToken });
+			}
+			return;
+		}
+
+		refreshAppAccessToken("missing")
+			.then((token) => {
+				if (cancelled || !token) {
+					return;
+				}
+				setAccessToken(token);
+				if (token !== stateRef.current.accessToken) {
+					dispatch({ type: "SET_ACCESS_TOKEN", token });
+				}
+			})
+			.catch(() => undefined);
+
+		return () => {
+			cancelled = true;
+		};
+	}, [dispatch]);
 
 	return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

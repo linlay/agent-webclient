@@ -7,9 +7,12 @@ import type {
 	VoiceClientGateConfig,
 } from "../../context/types";
 import {
+	ensureAccessToken,
+	getCurrentAccessToken,
 	getVoiceCapabilitiesFlexible,
 	setAccessToken,
 } from "../../lib/apiClient";
+import { isAppMode } from "../../lib/routing";
 import { AsrDebugSession } from "../../lib/asrDebugSession";
 import {
 	DEFAULT_VOICE_WS_PATH,
@@ -30,7 +33,10 @@ import {
 export const SettingsModal: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
-	const [tokenInput, setTokenInput] = useState(state.accessToken);
+	const appMode = isAppMode();
+	const [tokenInput, setTokenInput] = useState(
+		appMode ? getCurrentAccessToken() || state.accessToken : state.accessToken,
+	);
 	const [error, setError] = useState("");
 	const [ttsDebugText, setTtsDebugText] = useState("");
 	const [asrDebugStatus, setAsrDebugStatus] = useState("idle");
@@ -49,7 +55,9 @@ export const SettingsModal: React.FC = () => {
 	const chatIdRef = useRef(state.chatId);
 	const activeClientGateFieldRef = useRef<ClientGateDraftField | null>(null);
 
-	accessTokenRef.current = state.accessToken;
+	accessTokenRef.current = appMode
+		? getCurrentAccessToken() || state.accessToken
+		: state.accessToken;
 
 	const patchClientGate = useCallback(
 		(patch: Partial<VoiceClientGateConfig>) => {
@@ -68,6 +76,10 @@ export const SettingsModal: React.FC = () => {
 	);
 
 	const handleSave = () => {
+		if (appMode) {
+			dispatch({ type: "SET_SETTINGS_OPEN", open: false });
+			return;
+		}
 		const token = tokenInput.trim();
 		setAccessToken(token);
 		localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
@@ -218,6 +230,16 @@ export const SettingsModal: React.FC = () => {
 		try {
 			setAsrFallbackNotice("");
 			setAsrDebugStatus("正在准备 ASR 调试...");
+			const accessToken = appMode
+				? await ensureAccessToken("missing")
+				: String(accessTokenRef.current || "").trim();
+			accessTokenRef.current = accessToken;
+			if (accessToken && accessToken !== String(state.accessToken || "").trim()) {
+				dispatch({ type: "SET_ACCESS_TOKEN", token: accessToken });
+			}
+			if (!accessToken) {
+				throw new Error("voice access_token is required");
+			}
 			let capabilities = capabilitiesRef.current;
 			if (!capabilities) {
 				try {
@@ -263,9 +285,12 @@ export const SettingsModal: React.FC = () => {
 			setAsrDebugRecording(false);
 		}
 	}, [
+		appMode,
 		createAsrSession,
 		dispatch,
+		ensureAccessToken,
 		ensureVoiceCapabilitiesLoaded,
+		state.accessToken,
 		state.voiceChat.clientGate,
 		state.voiceChat.clientGateCustomized,
 	]);
@@ -347,6 +372,12 @@ export const SettingsModal: React.FC = () => {
 		);
 		setClientGateDrafts(formatClientGateDraftState(state.voiceChat.clientGate));
 	}, [state.settingsOpen]);
+
+	useEffect(() => {
+		setTokenInput(
+			appMode ? getCurrentAccessToken() || state.accessToken : state.accessToken,
+		);
+	}, [appMode, state.accessToken]);
 
 	useEffect(() => {
 		sessionRef.current = createAsrSession();
@@ -444,21 +475,28 @@ export const SettingsModal: React.FC = () => {
 						id="settings-token"
 						inputSize="md"
 						type="password"
-						placeholder="输入访问令牌..."
+						placeholder={
+							appMode ? "Token 由宿主应用自动管理" : "输入访问令牌..."
+						}
 						value={tokenInput}
+						readOnly={appMode}
 						onChange={(e) => setTokenInput(e.target.value)}
 					/>
 					{error && <p className="settings-error">{error}</p>}
 					<p className="settings-hint">
-						用于 API Bearer 与 Voice WS query access_token；仅保存在当前浏览器本地。
+						{appMode
+							? "App 模式下由宿主应用通过 Bridge 自动管理，用于 API Bearer 与 Voice WS query access_token。"
+							: "用于 API Bearer 与 Voice WS query access_token；仅保存在当前浏览器本地。"}
 					</p>
 				</div>
 
-				<div className="settings-inline-actions">
-					<UiButton variant="primary" size="sm" onClick={handleSave}>
-						保存
-					</UiButton>
-				</div>
+				{!appMode && (
+					<div className="settings-inline-actions">
+						<UiButton variant="primary" size="sm" onClick={handleSave}>
+							保存
+						</UiButton>
+					</div>
+				)}
 
 				<div className="settings-grid" style={{ marginTop: "16px" }}>
 					<UiButton
