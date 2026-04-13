@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Collapse, CollapseProps, Flex, Modal, Typography } from "antd";
+import {
+  Avatar,
+  Button,
+  Collapse,
+  CollapseProps,
+  Flex,
+  Modal,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useAppContext } from "../../context/AppContext";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { HistoryModal } from "../modal/HistoryModal";
@@ -82,6 +91,13 @@ const WorkerPanelHeader: React.FC<{
     row.latestRunContent ||
     (row.hasHistory ? row.latestChatName : "暂无历史对话");
 
+  const handleStartNewConversation = (
+    e: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  };
+
   return (
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
@@ -89,7 +105,8 @@ const WorkerPanelHeader: React.FC<{
       <Avatar
         size={32}
         style={{
-          background: "#eee",
+          background:
+            "color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-base))",
           color: "var(--text-main)",
           transition: ".3s",
         }}
@@ -97,11 +114,11 @@ const WorkerPanelHeader: React.FC<{
         <MaterialIcon
           name={row.type === "team" ? "groups" : "person"}
           className="inline-icon"
-          style={{fontSize: 24}}
+          style={{ fontSize: 24 }}
         />
       </Avatar>
       <Flex className="worker-panel-header-body" vertical>
-        <Flex>
+        <Flex align="center">
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
             <span className="worker-panel-role">{row.role || "--"}</span>
@@ -111,6 +128,14 @@ const WorkerPanelHeader: React.FC<{
               {formatChatTimeLabel(row.latestUpdatedAt)}
             </div>
           )}
+          <Tooltip title="新建对话">
+            <Button
+              className="worker-panel-new"
+              type="text"
+              icon={<MaterialIcon name="add" />}
+              onClick={handleStartNewConversation}
+            />
+          </Tooltip>
         </Flex>
         <Typography.Text ellipsis className="worker-panel-preview">
           {preview}
@@ -210,10 +235,6 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const handleStartNewConversation = () => {
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
-  };
-
   const handleSelectWorker = (workerKey: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:select-worker", {
@@ -311,33 +332,6 @@ export const LeftSidebar: React.FC = () => {
         className={`sidebar left-sidebar ${state.leftDrawerOpen || state.layoutMode !== "mobile-drawer" ? "is-open" : ""}`}
         id="left-sidebar"
       >
-        <div className="sidebar-head">
-          <div className="sidebar-title-row">
-            <h2>{state.conversationMode === "worker" ? "员工" : "对话"}</h2>
-            <UiButton
-              className="icon-btn"
-              size="sm"
-              onClick={handleStartNewConversation}
-            >
-              <MaterialIcon name="edit_square" />
-              <span>新对话</span>
-            </UiButton>
-          </div>
-
-          <UiButton
-            className="drawer-close"
-            aria-label="关闭对话列表"
-            variant="ghost"
-            size="sm"
-            iconOnly
-            onClick={() =>
-              dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false })
-            }
-          >
-            <MaterialIcon name="close" />
-          </UiButton>
-        </div>
-
         {state.conversationMode !== "worker" && (
           <label
             className="field-label field-label-spaced"
@@ -357,6 +351,9 @@ export const LeftSidebar: React.FC = () => {
                 : "搜索对话..."
             }
             value={state.chatFilter}
+            style={{
+              border: 0,
+            }}
             onChange={(e) =>
               dispatch({
                 type: "SET_CHAT_FILTER",
@@ -368,6 +365,7 @@ export const LeftSidebar: React.FC = () => {
           <UiButton
             className="icon-btn icon-btn-fixed"
             size="sm"
+            variant="ghost"
             onClick={() => {
               if (state.conversationMode === "worker") {
                 window.dispatchEvent(
