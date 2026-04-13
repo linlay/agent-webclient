@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type { AgentEvent, DebugSseEntry, ToolState } from "../../context/types";
+import { downloadResource, getResourceText } from "../../lib/apiClient";
 import { formatAttachmentSize } from "../../lib/attachmentUtils";
 import type { DebugTab } from "../../context/constants";
 import { DEBUG_TABS } from "../../context/constants";
@@ -99,10 +100,17 @@ const AttachmentPreviewPanel: React.FC = () => {
   const [textLoading, setTextLoading] = React.useState(false);
   const [textError, setTextError] = React.useState("");
   const [mediaError, setMediaError] = React.useState("");
+  const [downloadError, setDownloadError] = React.useState("");
+  const [downloading, setDownloading] = React.useState(false);
 
   React.useEffect(() => {
     setMediaError("");
   }, [preview?.url, preview?.kind]);
+
+  React.useEffect(() => {
+    setDownloadError("");
+    setDownloading(false);
+  }, [preview?.downloadUrl, preview?.name]);
 
   React.useEffect(() => {
     if (!preview || preview.kind !== "text") {
@@ -117,13 +125,7 @@ const AttachmentPreviewPanel: React.FC = () => {
     setTextError("");
     setTextContent("");
 
-    void fetch(preview.url, { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`预览加载失败 (${response.status})`);
-        }
-        return response.text();
-      })
+    void getResourceText(preview.url, { signal: controller.signal })
       .then((content) => {
         setTextContent(content);
       })
@@ -143,18 +145,22 @@ const AttachmentPreviewPanel: React.FC = () => {
   }, [preview]);
 
   const handleDownload = React.useCallback(() => {
-    if (!preview || typeof document === "undefined") {
+    if (!preview || downloading) {
       return;
     }
 
-    const anchor = document.createElement("a");
-    anchor.href = preview.url;
-    anchor.download = preview.name;
-    anchor.rel = "noopener";
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-  }, [preview]);
+    setDownloadError("");
+    setDownloading(true);
+    void downloadResource(preview.downloadUrl, { filename: preview.name })
+      .catch((error: unknown) => {
+        setDownloadError(
+          error instanceof Error ? error.message : "附件下载失败",
+        );
+      })
+      .finally(() => {
+        setDownloading(false);
+      });
+  }, [downloading, preview]);
 
   if (!preview) {
     return null;
@@ -177,7 +183,12 @@ const AttachmentPreviewPanel: React.FC = () => {
             </span>
           ) : null}
         </div>
-        <UiButton variant="secondary" size="sm" onClick={handleDownload}>
+        <UiButton
+          variant="secondary"
+          size="sm"
+          onClick={handleDownload}
+          loading={downloading}
+        >
           下载
         </UiButton>
         <UiButton
@@ -242,6 +253,9 @@ const AttachmentPreviewPanel: React.FC = () => {
         ) : null}
 
         {mediaError ? <div className="status-line">{mediaError}</div> : null}
+        {downloadError ? (
+          <div className="status-line">{downloadError}</div>
+        ) : null}
       </div>
 
       {textPreviewKinds.has(preview.kind) ? (

@@ -1737,10 +1737,13 @@ textarea {
   color: var(--text-main);
   margin-bottom: 8px;
 }
+.tool-call-result .input td{
+  padding: 0;
+  vertical-align: baseline;
+}
 
 .tool-call-result .input td:first-child {
   color: color-mix(in srgb, var(--accent-lime) 30%, var(--ink-muted));
-  vertical-align: baseline;
   padding-right: 10px;
 }
 

@@ -7,12 +7,19 @@ import {
 import { isAppMode } from './routing';
 
 export class ApiError extends Error {
-  name = 'ApiError';
+  name = "ApiError";
   status: number | null;
   code: number | string | null;
   data: unknown;
 
-  constructor(message: string, details: { status?: number | null; code?: number | string | null; data?: unknown } = {}) {
+  constructor(
+    message: string,
+    details: {
+      status?: number | null;
+      code?: number | string | null;
+      data?: unknown;
+    } = {},
+  ) {
     super(message);
     this.status = details.status ?? null;
     this.code = details.code ?? null;
@@ -27,36 +34,44 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
-let authToken = '';
+let authToken = "";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object';
+  return value != null && typeof value === "object";
 }
 
 function hasHeader(headers: Record<string, string>, name: string): boolean {
   const normalizedName = name.toLowerCase();
-  return Object.keys(headers).some((key) => key.toLowerCase() === normalizedName);
+  return Object.keys(headers).some(
+    (key) => key.toLowerCase() === normalizedName,
+  );
 }
 
 function isApiResponseShape(value: unknown): value is Record<string, unknown> {
-  return isObjectRecord(value) && 'code' in value;
+  return isObjectRecord(value) && "code" in value;
 }
 
 function isVoiceCapabilitiesShape(value: unknown): value is VoiceCapabilities {
   return (
     isObjectRecord(value) &&
-    ('websocketPath' in value || 'asr' in value || 'tts' in value)
+    ("websocketPath" in value || "asr" in value || "tts" in value)
   );
 }
 
-function isVoiceVoicesPayloadShape(value: unknown): value is { voices?: unknown[]; defaultVoice?: unknown } {
-  return isObjectRecord(value) && ('voices' in value || 'defaultVoice' in value);
+function isVoiceVoicesPayloadShape(
+  value: unknown,
+): value is { voices?: unknown[]; defaultVoice?: unknown } {
+  return (
+    isObjectRecord(value) && ("voices" in value || "defaultVoice" in value)
+  );
 }
 
-function toQueryString(params: Record<string, string | number | boolean | undefined | null> = {}): string {
+function toQueryString(
+  params: Record<string, string | number | boolean | undefined | null> = {},
+): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null || value === '') {
+    if (value === undefined || value === null || value === "") {
       continue;
     }
     search.set(key, String(value));
@@ -72,19 +87,19 @@ function buildAuthHeaders(
   const merged: Record<string, string> = {
     ...headers,
   };
-  if (includeJsonContentType && !hasHeader(merged, 'Content-Type')) {
-    merged['Content-Type'] = 'application/json';
+  if (includeJsonContentType && !hasHeader(merged, "Content-Type")) {
+    merged["Content-Type"] = "application/json";
   }
   if (authToken) {
     merged.Authorization = `Bearer ${authToken}`;
-  } else if ('Authorization' in merged) {
+  } else if ("Authorization" in merged) {
     delete merged.Authorization;
   }
   return merged;
 }
 
-export function setAccessToken(token = ''): void {
-  authToken = String(token || '').trim();
+export function setAccessToken(token = ""): void {
+  authToken = String(token || "").trim();
 }
 
 export function getCurrentAccessToken(): string {
@@ -134,14 +149,14 @@ async function readJsonResponse(response: Response): Promise<ApiResponse> {
   }
 
   if (!isApiResponseShape(json)) {
-    throw new ApiError('Response is not ApiResponse shape', {
+    throw new ApiError("Response is not ApiResponse shape", {
       status: response.status,
       data: json,
     });
   }
 
   if (json.code !== 0) {
-    throw new ApiError((json.msg as string) || 'API returned non-zero code', {
+    throw new ApiError((json.msg as string) || "API returned non-zero code", {
       status: response.status,
       code: json.code as number,
       data: json.data,
@@ -156,7 +171,9 @@ async function readJsonResponse(response: Response): Promise<ApiResponse> {
   };
 }
 
-async function readVoiceCapabilitiesResponse(response: Response): Promise<VoiceCapabilities | null> {
+async function readVoiceCapabilitiesResponse(
+  response: Response,
+): Promise<VoiceCapabilities | null> {
   const rawText = await response.text();
   let json: unknown;
 
@@ -180,7 +197,7 @@ async function readVoiceCapabilitiesResponse(response: Response): Promise<VoiceC
 
   if (isApiResponseShape(json)) {
     if (json.code !== 0) {
-      throw new ApiError((json.msg as string) || 'API returned non-zero code', {
+      throw new ApiError((json.msg as string) || "API returned non-zero code", {
         status: response.status,
         code: json.code as number,
         data: json.data,
@@ -190,7 +207,7 @@ async function readVoiceCapabilitiesResponse(response: Response): Promise<VoiceC
       return null;
     }
     if (!isVoiceCapabilitiesShape(json.data)) {
-      throw new ApiError('Response is not VoiceCapabilities shape', {
+      throw new ApiError("Response is not VoiceCapabilities shape", {
         status: response.status,
         data: json.data,
       });
@@ -203,7 +220,7 @@ async function readVoiceCapabilitiesResponse(response: Response): Promise<VoiceC
   }
 
   if (!isVoiceCapabilitiesShape(json)) {
-    throw new ApiError('Response is not VoiceCapabilities shape', {
+    throw new ApiError("Response is not VoiceCapabilities shape", {
       status: response.status,
       data: json,
     });
@@ -212,7 +229,9 @@ async function readVoiceCapabilitiesResponse(response: Response): Promise<VoiceC
   return json;
 }
 
-async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
+async function readVoiceVoicesResponse(
+  response: Response,
+): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
   const rawText = await response.text();
   let json: unknown;
 
@@ -236,7 +255,7 @@ async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: u
 
   if (isApiResponseShape(json)) {
     if (json.code !== 0) {
-      throw new ApiError((json.msg as string) || 'API returned non-zero code', {
+      throw new ApiError((json.msg as string) || "API returned non-zero code", {
         status: response.status,
         code: json.code as number,
         data: json.data,
@@ -246,7 +265,7 @@ async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: u
       return null;
     }
     if (!isVoiceVoicesPayloadShape(json.data)) {
-      throw new ApiError('voice voices response is invalid', {
+      throw new ApiError("voice voices response is invalid", {
         status: response.status,
         data: json.data,
       });
@@ -259,7 +278,7 @@ async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: u
   }
 
   if (!isVoiceVoicesPayloadShape(json)) {
-    throw new ApiError('voice voices response is invalid', {
+    throw new ApiError("voice voices response is invalid", {
       status: response.status,
       data: json,
     });
@@ -270,7 +289,10 @@ async function readVoiceVoicesResponse(response: Response): Promise<{ voices?: u
 
 async function requestJson(
   path: string,
-  options: RequestInit & { headers?: Record<string, string>; jsonContentType?: boolean } = {},
+  options: RequestInit & {
+    headers?: Record<string, string>;
+    jsonContentType?: boolean;
+  } = {},
 ): Promise<ApiResponse> {
   const response = await requestWithAuth(path, options);
   return readJsonResponse(response);
@@ -296,7 +318,7 @@ async function requestWithAuth(
 
   const buildRequestOptions = (): RequestInit => ({
     ...requestOptions,
-    method: requestOptions.method || 'GET',
+    method: requestOptions.method || "GET",
     headers: buildAuthHeaders(requestOptions.headers || {}, {
       includeJsonContentType: jsonContentType,
     }),
@@ -314,12 +336,122 @@ async function requestWithAuth(
   return response;
 }
 
-export function createRequestId(prefix = 'req'): string {
+export function createRequestId(prefix = "req"): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function buildResourceUrl(file: string): string {
   return `/api/resource?file=${encodeURIComponent(file)}`;
+}
+
+function getErrorMessageFromText(
+  rawText: string,
+  fallbackMessage: string,
+): {
+  message: string;
+  code?: number | string | null;
+  data?: unknown;
+} {
+  const trimmed = rawText.trim();
+  if (!trimmed) {
+    return { message: fallbackMessage, data: rawText };
+  }
+
+  try {
+    const json = JSON.parse(trimmed) as unknown;
+    if (isObjectRecord(json)) {
+      const message =
+        typeof json.msg === "string" && json.msg.trim()
+          ? json.msg.trim()
+          : fallbackMessage;
+      return {
+        message,
+        code:
+          typeof json.code === "number" || typeof json.code === "string"
+            ? json.code
+            : null,
+        data: "data" in json ? json.data : json,
+      };
+    }
+  } catch {
+    return { message: trimmed, data: rawText };
+  }
+
+  return { message: fallbackMessage, data: rawText };
+}
+
+function triggerBrowserDownload(blob: Blob, filename: string): void {
+  if (
+    typeof document === "undefined" ||
+    typeof URL === "undefined" ||
+    typeof URL.createObjectURL !== "function" ||
+    typeof URL.revokeObjectURL !== "function"
+  ) {
+    throw new Error("当前环境不支持文件下载");
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+  }, 0);
+}
+
+export async function downloadResource(
+  path: string,
+  options: { filename?: string; signal?: AbortSignal } = {},
+): Promise<void> {
+  const response = await fetch(path, {
+    method: "GET",
+    signal: options.signal,
+    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+  });
+
+  if (!response.ok) {
+    const fallbackMessage = `下载失败 (${response.status})`;
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+    });
+  }
+
+  const blob = await response.blob();
+  const filename = String(options.filename || "").trim() || "download";
+  triggerBrowserDownload(blob, filename);
+}
+
+export async function getResourceText(
+  path: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<string> {
+  const response = await fetch(path, {
+    method: "GET",
+    signal: options.signal,
+    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+  });
+
+  if (!response.ok) {
+    const fallbackMessage = `加载资源文本失败 (${response.status})`;
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+    });
+  }
+  return response.text();
 }
 
 export function extractUploadReferences(data: unknown): unknown[] {
@@ -334,13 +466,15 @@ export function extractUploadReferences(data: unknown): unknown[] {
   if (isObjectRecord(data) && isObjectRecord(data.upload)) {
     const upload = data.upload;
     const reference = {
-      id: typeof upload.id === 'string' ? upload.id : undefined,
-      type: typeof upload.type === 'string' ? upload.type : undefined,
-      name: typeof upload.name === 'string' ? upload.name : undefined,
-      mimeType: typeof upload.mimeType === 'string' ? upload.mimeType : undefined,
-      sizeBytes: typeof upload.sizeBytes === 'number' ? upload.sizeBytes : undefined,
-      url: typeof upload.url === 'string' ? upload.url : undefined,
-      sha256: typeof upload.sha256 === 'string' ? upload.sha256 : undefined,
+      id: typeof upload.id === "string" ? upload.id : undefined,
+      type: typeof upload.type === "string" ? upload.type : undefined,
+      name: typeof upload.name === "string" ? upload.name : undefined,
+      mimeType:
+        typeof upload.mimeType === "string" ? upload.mimeType : undefined,
+      sizeBytes:
+        typeof upload.sizeBytes === "number" ? upload.sizeBytes : undefined,
+      url: typeof upload.url === "string" ? upload.url : undefined,
+      sha256: typeof upload.sha256 === "string" ? upload.sha256 : undefined,
     };
     return [reference];
   }
@@ -349,41 +483,47 @@ export function extractUploadReferences(data: unknown): unknown[] {
 }
 
 export function getAgents(): Promise<ApiResponse> {
-  return requestJson('/api/agents');
+  return requestJson("/api/agents");
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
   const query = toQueryString({ agentKey });
-  return requestJson(query ? `/api/agent?${query}` : '/api/agent');
+  return requestJson(query ? `/api/agent?${query}` : "/api/agent");
 }
 
 export function getTeams(): Promise<ApiResponse> {
-  return requestJson('/api/teams');
+  return requestJson("/api/teams");
 }
-
 
 export function getSkills(tag?: string): Promise<ApiResponse> {
   const query = toQueryString({ tag });
-  return requestJson(query ? `/api/skills?${query}` : '/api/skills');
+  return requestJson(query ? `/api/skills?${query}` : "/api/skills");
 }
 
-
-export function getTools(options: { tag?: string; kind?: string } = {}): Promise<ApiResponse> {
+export function getTools(
+  options: { tag?: string; kind?: string } = {},
+): Promise<ApiResponse> {
   const query = toQueryString({ tag: options.tag, kind: options.kind });
-  return requestJson(query ? `/api/tools?${query}` : '/api/tools');
+  return requestJson(query ? `/api/tools?${query}` : "/api/tools");
 }
 
 export function getTool(toolName: string): Promise<ApiResponse> {
   const query = toQueryString({ toolName });
-  return requestJson(query ? `/api/tool?${query}` : '/api/tool');
+  return requestJson(query ? `/api/tool?${query}` : "/api/tool");
 }
 
 export function getChats(): Promise<ApiResponse> {
-  return requestJson('/api/chats');
+  return requestJson("/api/chats");
 }
 
-export function getChat(chatId: string, includeRawMessages = false): Promise<ApiResponse> {
-  const query = toQueryString({ chatId, includeRawMessages: includeRawMessages ? 'true' : undefined });
+export function getChat(
+  chatId: string,
+  includeRawMessages = false,
+): Promise<ApiResponse> {
+  const query = toQueryString({
+    chatId,
+    includeRawMessages: includeRawMessages ? "true" : undefined,
+  });
   return requestJson(`/api/chat?${query}`);
 }
 
@@ -393,7 +533,7 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 }
 
 export function getVoiceCapabilities(): Promise<ApiResponse> {
-  return requestJson('/api/voice/capabilities');
+  return requestJson("/api/voice/capabilities");
 }
 
 export async function getVoiceCapabilitiesFlexible(): Promise<VoiceCapabilities | null> {
@@ -402,7 +542,7 @@ export async function getVoiceCapabilitiesFlexible(): Promise<VoiceCapabilities 
 }
 
 export function getVoiceVoices(): Promise<ApiResponse> {
-  return requestJson('/api/voice/tts/voices');
+  return requestJson("/api/voice/tts/voices");
 }
 
 export async function getVoiceVoicesFlexible(path = '/api/voice/tts/voices'): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
@@ -410,9 +550,13 @@ export async function getVoiceVoicesFlexible(path = '/api/voice/tts/voices'): Pr
   return readVoiceVoicesResponse(response);
 }
 
-export function submitTool(params: { runId: string; toolId: string; params: Record<string, unknown> }): Promise<ApiResponse> {
-  return requestJson('/api/submit', {
-    method: 'POST',
+export function submitTool(params: {
+  runId: string;
+  toolId: string;
+  params: Record<string, unknown>;
+}): Promise<ApiResponse> {
+  return requestJson("/api/submit", {
+    method: "POST",
     body: JSON.stringify({
       runId: params.runId,
       toolId: params.toolId,
@@ -432,38 +576,42 @@ export interface UploadFileParams {
 
 function getUploadFilename(params: UploadFileParams): string {
   const inferredFileName =
-    typeof File !== 'undefined' &&
+    typeof File !== "undefined" &&
     params.file instanceof File &&
-    typeof params.file.name === 'string' &&
+    typeof params.file.name === "string" &&
     params.file.name.trim()
       ? params.file.name.trim()
-      : '';
+      : "";
 
-  return params.filename || inferredFileName || 'upload.bin';
+  return params.filename || inferredFileName || "upload.bin";
 }
 
 export function extractUploadChatId(data: unknown): string {
-  return isObjectRecord(data) && typeof data.chatId === 'string'
+  return isObjectRecord(data) && typeof data.chatId === "string"
     ? data.chatId.trim()
-    : '';
+    : "";
 }
 
-export async function uploadFile(params: UploadFileParams): Promise<ApiResponse> {
+export async function uploadFile(
+  params: UploadFileParams,
+): Promise<ApiResponse> {
   const filename = getUploadFilename(params);
-  const requestId = String(params.requestId || createRequestId('upload')).trim();
-  const chatId = String(params.chatId || '').trim();
+  const requestId = String(
+    params.requestId || createRequestId("upload"),
+  ).trim();
+  const chatId = String(params.chatId || "").trim();
   const formData = new FormData();
-  formData.append('requestId', requestId);
+  formData.append("requestId", requestId);
   if (chatId) {
-    formData.append('chatId', chatId);
+    formData.append("chatId", chatId);
   }
-  if (typeof params.sha256 === 'string' && params.sha256.trim()) {
-    formData.append('sha256', params.sha256.trim());
+  if (typeof params.sha256 === "string" && params.sha256.trim()) {
+    formData.append("sha256", params.sha256.trim());
   }
-  formData.append('file', params.file, filename);
+  formData.append("file", params.file, filename);
 
-  return requestJson('/api/upload', {
-    method: 'POST',
+  return requestJson("/api/upload", {
+    method: "POST",
     body: formData,
     signal: params.signal,
     jsonContentType: false,
@@ -487,8 +635,8 @@ export interface BackgroundCommandParams {
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson('/api/interrupt', {
-    method: 'POST',
+  return requestJson("/api/interrupt", {
+    method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
@@ -502,8 +650,8 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson('/api/steer', {
-    method: 'POST',
+  return requestJson("/api/steer", {
+    method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
@@ -517,9 +665,11 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
   });
 }
 
-export function rememberChat(params: BackgroundCommandParams): Promise<ApiResponse> {
-  return requestJson('/api/remember', {
-    method: 'POST',
+export function rememberChat(
+  params: BackgroundCommandParams,
+): Promise<ApiResponse> {
+  return requestJson("/api/remember", {
+    method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
@@ -527,9 +677,11 @@ export function rememberChat(params: BackgroundCommandParams): Promise<ApiRespon
   });
 }
 
-export function learnChat(params: BackgroundCommandParams): Promise<ApiResponse> {
-  return requestJson('/api/learn', {
-    method: 'POST',
+export function learnChat(
+  params: BackgroundCommandParams,
+): Promise<ApiResponse> {
+  return requestJson("/api/learn", {
+    method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
@@ -552,7 +704,9 @@ export interface QueryStreamParams {
   signal?: AbortSignal;
 }
 
-export function createQueryStream(options: QueryStreamParams): Promise<Response> {
+export function createQueryStream(
+  options: QueryStreamParams,
+): Promise<Response> {
   const body: Record<string, unknown> = {
     requestId: options.requestId,
     planningMode: options.planningMode ?? false,

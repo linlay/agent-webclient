@@ -149,3 +149,12 @@ export function getAttachmentUrl(attachment: AttachmentLike): string {
 
   return normalizeText(attachment.url);
 }
+
+export function getAttachmentDownloadUrl(attachment: AttachmentLike): string {
+  const resourceUrl = normalizeText(attachment.url);
+  if (resourceUrl) {
+    return resourceUrl;
+  }
+
+  return getAttachmentUrl(attachment);
+}

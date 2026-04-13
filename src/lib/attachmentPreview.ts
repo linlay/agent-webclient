@@ -1,5 +1,6 @@
 import type { AttachmentLike } from "./attachmentUtils";
 import {
+	getAttachmentDownloadUrl,
 	getAttachmentExtension,
 	getAttachmentKind,
 	getAttachmentUrl,
@@ -16,6 +17,7 @@ export type AttachmentPreviewKind =
 export interface AttachmentPreviewState {
 	name: string;
 	url: string;
+	downloadUrl: string;
 	size?: number;
 	type?: string;
 	mimeType?: string;
@@ -132,10 +134,10 @@ export function buildAttachmentPreviewState(
 	return {
 		name: String(attachment.name || "").trim() || "未命名资源",
 		url,
+		downloadUrl: getAttachmentDownloadUrl(attachment),
 		size: attachment.size,
 		type: attachment.type,
 		mimeType: attachment.mimeType,
 		kind,
 	};
 }
-

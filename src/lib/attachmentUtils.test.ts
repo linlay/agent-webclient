@@ -1,5 +1,6 @@
 import {
   formatAttachmentSize,
+  getAttachmentDownloadUrl,
   getAttachmentIconName,
   getAttachmentKind,
   getAttachmentKindLabel,
@@ -38,6 +39,18 @@ describe('attachmentUtils', () => {
     ).toBe('blob:demo');
     expect(getAttachmentUrl({ url: '/api/resource?file=chat_1%2Fdemo.png' })).toBe(
       '/api/resource?file=chat_1%2Fdemo.png',
+    );
+  });
+
+  it('prefers the original resource url for downloads when available', () => {
+    expect(
+      getAttachmentDownloadUrl({
+        previewUrl: 'blob:demo',
+        url: '/api/resource?file=chat_1%2Fdemo.png',
+      }),
+    ).toBe('/api/resource?file=chat_1%2Fdemo.png');
+    expect(getAttachmentDownloadUrl({ previewUrl: 'blob:demo' })).toBe(
+      'blob:demo',
     );
   });
 });

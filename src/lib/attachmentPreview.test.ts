@@ -69,6 +69,7 @@ describe("attachmentPreview", () => {
 		).toEqual({
 			name: "draft.txt",
 			url: "blob:draft-preview",
+			downloadUrl: "/resource/draft.txt",
 			mimeType: "text/plain",
 			size: 128,
 			type: undefined,
@@ -76,4 +77,3 @@ describe("attachmentPreview", () => {
 		});
 	});
 });
-

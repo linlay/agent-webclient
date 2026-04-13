@@ -3,6 +3,7 @@ import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from './appAuth';
 import {
   buildResourceUrl,
   createQueryStream,
+  downloadResource,
   extractUploadChatId,
   extractUploadReferences,
   getAgent,
@@ -13,6 +14,7 @@ import {
   getVoiceVoicesFlexible,
   interruptChat,
   learnChat,
+  setAccessToken,
   rememberChat,
   setAccessToken,
   steerChat,
@@ -118,6 +120,7 @@ describe('apiClient query payloads', () => {
     global.Blob = Blob as unknown as typeof global.Blob;
     global.File = MockFile as unknown as typeof global.File;
     global.FormData = MockFormData as unknown as typeof global.FormData;
+    setAccessToken('');
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({
       ok: true,
@@ -478,6 +481,75 @@ describe('apiClient query payloads', () => {
     expect(buildResourceUrl('reports/demo image.png')).toBe(
       '/api/resource?file=reports%2Fdemo%20image.png',
     );
+  });
+
+  it('downloads resources with auth headers and a browser blob download', async () => {
+    const createObjectURL = jest.fn(() => 'blob:download');
+    const revokeObjectURL = jest.fn();
+    const click = jest.fn();
+    const appendChild = jest.fn();
+    const removeChild = jest.fn();
+    const createElement = jest.fn(() => ({
+      click,
+      href: '',
+      download: '',
+      rel: '',
+    }));
+
+    global.document = {
+      body: {
+        appendChild,
+        removeChild,
+      },
+      createElement,
+    } as unknown as Document;
+    global.URL = {
+      createObjectURL,
+      revokeObjectURL,
+    } as unknown as typeof global.URL;
+    setAccessToken('demo-token');
+
+    const blob = new Blob(['demo']);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      blob: async () => blob,
+    });
+
+    await downloadResource('/api/resource?file=chat_1%2Fdemo.txt', {
+      filename: 'demo.txt',
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/resource?file=chat_1%2Fdemo.txt');
+    expect(options.method).toBe('GET');
+    expect(options.headers).toEqual({
+      Authorization: 'Bearer demo-token',
+    });
+    expect(createElement).toHaveBeenCalledWith('a');
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(appendChild).toHaveBeenCalledTimes(1);
+    expect(removeChild).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces api error messages when resource downloads fail', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      text: async () =>
+        JSON.stringify({
+          code: 40301,
+          msg: 'token expired',
+          data: null,
+        }),
+    });
+
+    await expect(downloadResource('/api/resource?file=private.txt')).rejects.toMatchObject({
+      message: 'token expired',
+      status: 403,
+      code: 40301,
+    });
   });
 
   it('uploads files with a single multipart request', async () => {

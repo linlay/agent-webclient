@@ -1,11 +1,13 @@
 import React from "react";
 import { useAppDispatch } from "../../context/AppContext";
+import { downloadResource } from "../../lib/apiClient";
 import {
 	buildAttachmentPreviewState,
 	canPreviewAttachment,
 } from "../../lib/attachmentPreview";
 import {
 	type AttachmentLike,
+	getAttachmentDownloadUrl,
 	getAttachmentIconName,
 	getAttachmentKind,
 	getAttachmentUrl,
@@ -44,11 +46,13 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 	const dispatch = useAppDispatch();
 	const attachmentKind = getAttachmentKind(attachment);
 	const sourceUrl = getAttachmentUrl(attachment);
+	const downloadUrl = getAttachmentDownloadUrl(attachment);
 	const preview = React.useMemo(
 		() => buildAttachmentPreviewState(attachment),
 		[attachment],
 	);
 	const [imageFailed, setImageFailed] = React.useState(false);
+	const [downloading, setDownloading] = React.useState(false);
 
 	React.useEffect(() => {
 		setImageFailed(false);
@@ -65,7 +69,10 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 		Boolean(sourceUrl) &&
 		!imageFailed;
 	const canActivate =
-		Boolean(sourceUrl) && status !== "uploading" && status !== "error";
+		Boolean(sourceUrl) &&
+		status !== "uploading" &&
+		status !== "error" &&
+		!downloading;
 	const classes = [
 		"attachment-card",
 		`attachment-card-${variant}`,
@@ -78,18 +85,19 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 		.join(" ");
 
 	const triggerDownload = React.useCallback(() => {
-		if (!sourceUrl || typeof document === "undefined") {
+		if (!downloadUrl || downloading) {
 			return;
 		}
 
-		const anchor = document.createElement("a");
-		anchor.href = sourceUrl;
-		anchor.download = attachment.name;
-		anchor.rel = "noopener";
-		document.body.appendChild(anchor);
-		anchor.click();
-		document.body.removeChild(anchor);
-	}, [attachment.name, sourceUrl]);
+		setDownloading(true);
+		void downloadResource(downloadUrl, { filename: attachment.name })
+			.catch((error: unknown) => {
+				console.error("Attachment download failed", error);
+			})
+			.finally(() => {
+				setDownloading(false);
+			});
+	}, [attachment.name, downloadUrl, downloading]);
 
 	const handleActivate = React.useCallback(() => {
 		if (!canActivate) {
