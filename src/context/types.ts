@@ -469,6 +469,10 @@ export interface Agent {
   name: string;
   role?: string;
   controls?: AgentControl[];
+  icon?: {
+    color?: string;
+    name?: string;
+  }
   [key: string]: unknown;
 }
 
@@ -494,6 +498,10 @@ export interface Team {
   agentKeys?: string[];
   agents?: Array<string | { key?: string; agentKey?: string }>;
   members?: Array<string | { key?: string; agentKey?: string }>;
+  icon?: {
+    color?: string;
+    name?: string;
+  }
   [key: string]: unknown;
 }
 

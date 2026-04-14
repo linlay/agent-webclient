@@ -26,6 +26,12 @@ import type {
   WorkerConversationRow,
   WorkerRow,
 } from "../../context/types";
+import { AgentIcon } from "@/icons/agent";
+
+type AgentIconConfig = {
+  color?: string;
+  name?: string;
+};
 
 const ChatItem: React.FC<{
   chat: Chat;
@@ -86,7 +92,8 @@ const WorkerChatPreviewItem: React.FC<{
 const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
   isActive: boolean;
-}> = ({ row, isActive }) => {
+  icon?: AgentIconConfig;
+}> = ({ row, isActive, icon }) => {
   const preview =
     row.latestRunContent ||
     (row.hasHistory ? row.latestChatName : "暂无历史对话");
@@ -102,21 +109,7 @@ const WorkerPanelHeader: React.FC<{
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <Avatar
-        size={32}
-        style={{
-          background:
-            "color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-base))",
-          color: "var(--text-main)",
-          transition: ".3s",
-        }}
-      >
-        <MaterialIcon
-          name={row.type === "team" ? "groups" : "person"}
-          className="inline-icon"
-          style={{ fontSize: 24 }}
-        />
-      </Avatar>
+      <AgentIcon icon={icon} type={row.type} />
       <Flex className="worker-panel-header-body" vertical>
         <Flex align="center">
           <Typography.Text ellipsis style={{ flex: 1 }}>
@@ -172,6 +165,19 @@ export const LeftSidebar: React.FC = () => {
       String(row.searchText || "").includes(filter),
     );
   }, [state.workerRows, state.chatFilter]);
+
+  const workerIconsByKey = useMemo(() => {
+    const icons = new Map<string, AgentIconConfig>();
+    for (const agent of state.agents) {
+      if (!agent?.key || !agent.icon) continue;
+      icons.set(`agent:${agent.key}`, agent.icon);
+    }
+    for (const team of state.teams) {
+      if (!team?.teamId || !team.icon) continue;
+      icons.set(`team:${team.teamId}`, team.icon);
+    }
+    return icons;
+  }, [state.agents, state.teams]);
 
   const workerChatsByKey = useMemo(() => {
     const chatsByKey = new Map<string, WorkerConversationRow[]>();
@@ -292,6 +298,7 @@ export const LeftSidebar: React.FC = () => {
           <WorkerPanelHeader
             row={row}
             isActive={row.key === state.workerSelectionKey}
+            icon={workerIconsByKey.get(row.key)}
           />
         ),
         children: (
