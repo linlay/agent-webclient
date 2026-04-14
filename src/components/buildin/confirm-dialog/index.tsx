@@ -180,7 +180,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       </Form.List>
       {!questions?.length && (
         <Spin tip="问题生成中...">
-          <div style={{padding: 50}}></div>
+          <div style={{ padding: 50 }}></div>
         </Spin>
       )}
       <Flex gap={10} justify="flex-end" align="center">
@@ -234,10 +234,37 @@ const Question: React.FC<{
       checkboxsRef.current[i]?.input?.click();
       onEnter();
     },
+    onKeyDown: (e) => {
+      if (!/^[1-9]$/.test(e.key)) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const i = Number(e.key) - 1;
+      const ref = checkboxsRef.current[i];
+      if (ref) {
+        ref?.input?.click();
+        onEnter();
+      }
+    },
   });
   useEffect(() => {
-    (hostRef.current?.querySelector('[tabIndex="0"]') as HTMLElement)?.focus();
-  }, []);
+    const answer = value?.answer?.[0];
+    let i = 0;
+    const refs =
+      hostRef.current?.querySelectorAll<HTMLElement>('[tabIndex="0"]');
+    if (answer) {
+      i = Math.max(
+        0,
+        options.findIndex(
+          (option) => option.value === answer || option.label === answer,
+        ),
+      );
+    }
+    if (refs) {
+      refs.item(i)?.focus();
+    }
+  }, [value]);
   return options?.length > 0 ? (
     <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
       <div className={Style.Question}>{data.question}</div>
@@ -250,6 +277,7 @@ const Question: React.FC<{
             question: data.question,
             answer: answer ? [answer] : [],
           });
+          onEnter();
         }}
       >
         {options.map((option, i) => (
