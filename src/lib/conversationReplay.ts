@@ -1,4 +1,5 @@
 import type {
+  ActiveAwaiting,
   AgentEvent,
   PublishedArtifact,
   TimelineNode,
@@ -7,6 +8,7 @@ import type {
   ToolState,
   TtsVoiceBlock,
 } from '../context/types';
+import { cloneActiveAwaiting, reduceActiveAwaiting } from './awaitingRuntime';
 import { parseContentSegments } from './contentSegments';
 import type { EventCommand, EventProcessorState } from './eventProcessor';
 import { processEvent } from './eventProcessor';
@@ -23,6 +25,7 @@ export interface ReplayState {
   activeReasoningKey: string;
   chatId: string;
   runId: string;
+  activeAwaiting: ActiveAwaiting | null;
   events: AgentEvent[];
   debugLines: string[];
   artifacts: PublishedArtifact[];
@@ -45,6 +48,7 @@ export function createReplayState(): ReplayState {
     activeReasoningKey: '',
     chatId: '',
     runId: '',
+    activeAwaiting: null,
     events: [],
     debugLines: [],
     artifacts: [],
@@ -241,6 +245,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
 
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   rs.events.push(event);
+  rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',
     reasoningExpandedDefault: false,
@@ -248,4 +253,5 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   for (const command of commands) {
     applyReplayEventCommand(rs, command);
   }
+  rs.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
 }

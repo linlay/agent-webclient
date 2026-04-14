@@ -1,5 +1,6 @@
 import type {
   ActionState,
+  ActiveAwaiting,
   ActiveFrontendTool,
   AgentEvent,
   AppState,
@@ -13,6 +14,7 @@ import type {
   TimelineNode,
   ToolState,
 } from '../context/types';
+import { cloneActiveAwaiting, reduceActiveAwaiting } from './awaitingRuntime';
 import { createReplayState, replayEvent, type ReplayState } from './conversationReplay';
 import { toText } from './eventUtils';
 
@@ -45,6 +47,7 @@ export interface ConversationSnapshot {
   timelineCounter: number;
   activeReasoningKey: string;
   activeFrontendTool: ActiveFrontendTool | null;
+  activeAwaiting: ActiveAwaiting | null;
   steerDraft: string;
   pendingSteers: PendingSteer[];
   downvotedRunKeys: Set<string>;
@@ -197,6 +200,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     timelineCounter: state.timelineCounter,
     activeReasoningKey: String(state.activeReasoningKey || '').trim(),
     activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
+    activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
     steerDraft: String(state.steerDraft || ''),
     pendingSteers: state.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(state.downvotedRunKeys),
@@ -232,6 +236,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     timelineOrder: snapshot.timelineOrder.slice(),
     timelineNodeByMessageId: cloneMap(snapshot.timelineNodeByMessageId),
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
+    activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
     pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };
@@ -249,6 +254,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.activeReasoningKey = snapshot.activeReasoningKey;
   rs.chatId = snapshot.chatId;
   rs.runId = snapshot.runId;
+  rs.activeAwaiting = cloneActiveAwaiting(snapshot.activeAwaiting);
   rs.events = snapshot.events.slice();
   rs.debugLines = snapshot.debugLines.slice();
   rs.artifacts = cloneArtifacts(snapshot.artifacts);
@@ -279,6 +285,7 @@ function applyReplayStateToSnapshot(
   next.toolStates = rs.toolStates;
   next.timelineCounter = rs.timelineCounter;
   next.activeReasoningKey = rs.activeReasoningKey;
+  next.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
   next.events = rs.events;
   next.artifacts = rs.artifacts;
   next.plan = rs.plan;
@@ -298,6 +305,7 @@ export function applyPendingSessionUpdates(
   for (const event of pendingEvents) {
     if (toText(event.type) === 'request.query') {
       rs.events.push(event);
+      rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
       if (event.chatId) {
         rs.chatId = String(event.chatId);
       }
@@ -373,6 +381,7 @@ export function buildConversationStateUpdates(
     },
     activeReasoningKey: snapshot.activeReasoningKey,
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
+    activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
     artifactExpanded: false,
     artifactManualOverride: null,
     artifactAutoCollapseTimer: null,

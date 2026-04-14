@@ -6,7 +6,10 @@ import type { AttachmentPreviewState } from "../lib/attachmentPreview";
 /* ============================================
    Agent Event
    ============================================ */
-export type AgentEvent = BaseEvent & ArtifactEvent;
+export type AgentEvent = BaseEvent &
+  ArtifactEvent &
+  AIAwaitAskEvent &
+  AIAwaitPayloadEvent;
 export interface BaseEvent {
   type: string;
   seq?: number;
@@ -66,6 +69,66 @@ export interface PublishedArtifact {
   artifactId: string;
   artifact: ResourceFile;
   timestamp: number;
+}
+
+export enum AIAwaitEventTypeEnum {
+  Ask = "awaiting.ask",
+  Payload = "awaiting.payload",
+}
+export enum ViewportTypeEnum {
+  Builtin = "builtin",
+}
+
+/**
+ * AIAwaitAskEvent: 等待确认事件
+ * type: awaiting.ask
+ * 当接收到 awaiting.ask 事件时，需要判断 viewportType 是否为 builtin，如果是 builtin 且 viewportKey 为 confirm_dialog，则打开 questions 确认框选择框（直接替换用户的Textare输入框）
+ * 如果有 questions 参数，那么可以直接处理
+ * 如果不存在 questions 参数，那么 questions 数据将会在接下来的 awaiting.payload 事件中提供
+ * */
+export interface AIAwaitAskEvent {
+  awaitingId?: string;
+  runId?: string;
+  timeout?: number;
+  viewportKey?: string;
+  viewportType?: ViewportTypeEnum;
+  questions?: AIAwaitQuestion[];
+}
+/**
+ * AIAwaitPayloadEvent: 等待事件的载荷事件 
+ * type: awaiting.payload
+ * 当接收到 awaiting.payload 事件时，需要将事件中的 questions 参数提供给 questions 确认框选择框进行处理。
+ * 最后用户通过 /api/submit 接口提交选择结果，结果的数据结构为 IAwaitSubmitPayloadData。
+ * */
+export interface AIAwaitPayloadEvent {
+  awaitingId?: string;
+  questions?: AIAwaitQuestion[];
+}
+export interface AIAwaitQuestion {
+  type: AIAwaitQuestionType;
+  question: string;
+  options: AIAwaitQuestionOption[];
+  multiSelect?: boolean;
+  allowFreeText?: boolean;
+  freeTextPlaceholder?: string;
+}
+export enum AIAwaitQuestionType {
+  Select = "select",
+}
+export interface AIAwaitQuestionOption {
+  label: string;
+  description: string;
+  value?: string;
+}
+export interface AIAwaitSubmitParamData {
+  question: string;
+  answer?: string[];
+  freeText?: string;
+}
+export interface AIAwaitSubmitPayloadData {
+  params: AIAwaitSubmitParamData[];
+  runId: string;
+  awaitingId: string;
 }
 
 export interface DebugSseEntry {
@@ -223,6 +286,19 @@ export interface ActiveFrontendTool {
   loading: boolean;
   loadError: string;
   viewportHtml: string;
+}
+
+/* ============================================
+   Active Awaiting
+   ============================================ */
+export interface ActiveAwaiting {
+  key: string;
+  awaitingId: string;
+  runId: string;
+  timeout: number | null;
+  viewportKey: string;
+  viewportType: ViewportTypeEnum;
+  questions: AIAwaitQuestion[];
 }
 
 /* ============================================
@@ -523,6 +599,7 @@ export interface AppState {
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;
   activeFrontendTool: ActiveFrontendTool | null;
+  activeAwaiting: ActiveAwaiting | null;
   accessToken: string;
   audioMuted: boolean;
   ttsDebugStatus: string;

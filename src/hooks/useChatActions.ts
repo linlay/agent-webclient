@@ -289,6 +289,7 @@ export function useChatActions() {
             toolStates: rs.toolStates,
             timelineCounter: rs.timelineCounter,
             activeReasoningKey: rs.activeReasoningKey,
+            activeAwaiting: rs.activeAwaiting,
             events: rs.events,
             artifacts: rs.artifacts,
             plan: rs.plan,

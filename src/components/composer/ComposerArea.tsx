@@ -6,6 +6,10 @@ import React, {
   useMemo,
 } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
+import type {
+  AIAwaitQuestion,
+  AIAwaitSubmitPayloadData,
+} from "../../context/types";
 import { MentionSuggest } from "./MentionSuggest";
 import { SlashPalette } from "./SlashPalette";
 import { SteerBar } from "./SteerBar";
@@ -18,6 +22,7 @@ import {
   learnChat,
   rememberChat,
   steerChat,
+  submitAwaiting,
   uploadFile,
 } from "../../lib/apiClient";
 import {
@@ -45,6 +50,7 @@ import { UiButton } from "../ui/UiButton";
 import { useSpeechInput } from "./useSpeechInput";
 import { Input } from "antd";
 import { TextAreaRef } from "antd/es/input/TextArea";
+import { Buildin } from "../buildin";
 
 interface ComposerAttachment {
   id: string;
@@ -116,6 +122,20 @@ function getComposerAttachmentSubtitle(
     : getAttachmentKindLabel(attachment);
 }
 
+interface AwaitingAnswerDraft {
+  answer: string[];
+  freeText: string;
+}
+
+function createAwaitingAnswerDrafts(
+  questions: AIAwaitQuestion[],
+): AwaitingAnswerDraft[] {
+  return questions.map(() => ({
+    answer: [],
+    freeText: "",
+  }));
+}
+
 export const ComposerArea: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -138,6 +158,9 @@ export const ComposerArea: React.FC = () => {
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
+  const [awaitingAnswers, setAwaitingAnswers] = useState<AwaitingAnswerDraft[]>(
+    [],
+  );
   const [slashPopoverWidth, setSlashPopoverWidth] = useState<number>();
   const [attachmentScrollState, setAttachmentScrollState] = useState({
     canScrollLeft: false,
@@ -145,10 +168,15 @@ export const ComposerArea: React.FC = () => {
   });
 
   const isFrontendActive = !!state.activeFrontendTool;
+  const activeAwaiting = state.activeAwaiting;
+  const isAwaitingActive = !!activeAwaiting;
   const hasPendingSteers = state.pendingSteers.length > 0;
   const hasSteerDraft = Boolean(state.steerDraft.trim());
   const shouldShowSteerBar =
-    state.streaming && !isFrontendActive && (hasSteerDraft || hasPendingSteers);
+    state.streaming &&
+    !isFrontendActive &&
+    !isAwaitingActive &&
+    (hasSteerDraft || hasPendingSteers);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -183,20 +211,6 @@ export const ComposerArea: React.FC = () => {
     }
     return "切换到语聊模式";
   }, [state.voiceChat.error, state.voiceChat.status]);
-  const voiceConnectionText = useMemo(() => {
-    if (state.voiceChat.error) return "语音链路异常";
-    const wsStatus = state.voiceChat.wsStatus;
-    if (wsStatus === "open") return "语音链路已连接";
-    if (wsStatus === "connecting") return "语音链路连接中";
-    if (wsStatus === "closed") return "语音链路已断开";
-    if (wsStatus === "error") return "语音链路异常";
-    return "等待建立语音链路";
-  }, [state.voiceChat.error, state.voiceChat.wsStatus]);
-  const showVoiceConnectionBadge =
-    Boolean(state.voiceChat.error) ||
-    state.voiceChat.wsStatus === "connecting" ||
-    state.voiceChat.wsStatus === "closed" ||
-    state.voiceChat.wsStatus === "error";
   const readyAttachments = useMemo(
     () => attachments.filter((attachment) => attachment.status === "ready"),
     [attachments],
@@ -230,13 +244,24 @@ export const ComposerArea: React.FC = () => {
   const showSlashPalette =
     !isVoiceMode &&
     !isFrontendActive &&
+    !isAwaitingActive &&
     !state.commandModal.open &&
     !slashDismissed &&
     slashCommands.length > 0;
   const sendDisabled =
     isFrontendActive ||
+    isAwaitingActive ||
     hasUploadingAttachments ||
     (!inputValue.trim() && sendReferences.length === 0);
+
+  useEffect(() => {
+    if (!activeAwaiting) {
+      setAwaitingAnswers([]);
+      return;
+    }
+    setAwaitingAnswers(createAwaitingAnswerDrafts(activeAwaiting.questions));
+  }, [activeAwaiting]);
+
   const updateComposerAttachmentScrollState = useCallback(() => {
     const viewport = attachmentViewportRef.current;
     if (!viewport) {
@@ -895,7 +920,39 @@ export const ComposerArea: React.FC = () => {
     },
   });
 
+  const handleAwaitingSubmit = useCallback(
+    async (payload: AIAwaitSubmitPayloadData) => {
+      if (!activeAwaiting) return;
+      try {
+        const response = await submitAwaiting({
+          runId: payload.runId,
+          awaitingId: payload.awaitingId,
+          params: payload.params,
+        });
+        const responseData = response.data as Record<string, unknown> | null;
+        const accepted = Boolean(responseData?.accepted ?? true);
+        const detail = String(
+          responseData?.detail || (accepted ? "accepted" : "unmatched"),
+        );
+
+        if (!accepted) {
+          throw(`提交未命中：${detail}`);
+        }
+
+        dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,
+        });
+      } catch (error) {
+        return error;
+      }
+    },
+    [activeAwaiting, awaitingAnswers, dispatch],
+  );
+
   const handleSend = useCallback(() => {
+    if (isAwaitingActive) return;
     if (isVoiceMode) return;
     if (speechListening) {
       stopSpeechInput();
@@ -983,6 +1040,7 @@ export const ComposerArea: React.FC = () => {
     executeSlashCommand,
     hasUploadingAttachments,
     inputValue,
+    isAwaitingActive,
     isVoiceMode,
     attachmentChatId,
     controlParams,
@@ -1293,7 +1351,12 @@ export const ComposerArea: React.FC = () => {
     updateMentionSuggestions,
   ]);
 
-  return (
+  return isAwaitingActive && activeAwaiting ? (
+    <Buildin.ConfirmDialog
+      data={activeAwaiting}
+      onSubmit={handleAwaitingSubmit}
+    />
+  ) : (
     <div
       ref={composerRef}
       className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
@@ -1513,11 +1576,11 @@ export const ComposerArea: React.FC = () => {
                   title={
                     isFrontendActive
                       ? "前端工具处理中，暂时不能上传文件"
-                      : isVoiceMode
-                        ? "请先切回文字输入再上传文件"
-                        : state.streaming
-                          ? "当前运行中，暂不支持追加文件"
-                          : "上传文件"
+                        : isVoiceMode
+                          ? "请先切回文字输入再上传文件"
+                          : state.streaming
+                            ? "当前运行中，暂不支持追加文件"
+                            : "上传文件"
                   }
                 >
                   <MaterialIcon name="add" />

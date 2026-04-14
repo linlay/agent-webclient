@@ -159,6 +159,15 @@ describe('appReducer conversation reset behavior', () => {
     const state = {
       ...baseState,
       inputMode: 'voice' as const,
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 30,
+        viewportKey: 'confirm_dialog',
+        viewportType: 'builtin' as const,
+        questions: [],
+      },
       voiceChat: {
         ...baseState.voiceChat,
         status: 'speaking' as const,
@@ -185,6 +194,7 @@ describe('appReducer conversation reset behavior', () => {
     const next = appReducer(state, { type: 'RESET_CONVERSATION' });
 
     expect(next.inputMode).toBe('text');
+    expect(next.activeAwaiting).toBeNull();
     expect(next.voiceChat).toMatchObject({
       status: 'idle',
       sessionActive: false,

@@ -29,6 +29,7 @@ import type {
 	PendingSteer,
 	VoiceChatState,
 	TtsVoiceBlock,
+	ActiveAwaiting,
 } from "./types";
 import type { LiveQuerySession } from "../lib/conversationSession";
 import type { AttachmentPreviewState } from "../lib/attachmentPreview";
@@ -146,6 +147,7 @@ export function createInitialState(): AppState {
 		mentionSuggestions: [],
 		mentionActiveIndex: 0,
 		activeFrontendTool: null,
+		activeAwaiting: null,
 		accessToken: storedToken,
 		audioMuted: false,
 		ttsDebugStatus: "idle",
@@ -240,6 +242,8 @@ export type AppAction =
 	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
+	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
+	| { type: "CLEAR_ACTIVE_AWAITING" }
 	| {
 			type: "SHOW_COMMAND_STATUS_OVERLAY";
 			commandType: NonNullable<AppState["commandStatusOverlay"]["commandType"]>;
@@ -354,6 +358,7 @@ function buildConversationResetState(
 		},
 		activeReasoningKey: "",
 		activeFrontendTool: null,
+		activeAwaiting: null,
 		attachmentPreview: null,
 		inputMode: "text",
 		voiceChat: {
@@ -615,6 +620,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, mentionActiveIndex: action.index };
 		case "SET_ACTIVE_FRONTEND_TOOL":
 			return { ...state, activeFrontendTool: action.tool };
+		case "SET_ACTIVE_AWAITING":
+			return { ...state, activeAwaiting: action.awaiting };
+		case "CLEAR_ACTIVE_AWAITING":
+			if (!state.activeAwaiting) {
+				return state;
+			}
+			return { ...state, activeAwaiting: null };
 		case "SHOW_COMMAND_STATUS_OVERLAY":
 			return {
 				...state,

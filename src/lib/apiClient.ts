@@ -1,4 +1,7 @@
-import type { VoiceCapabilities } from '../context/types';
+import type {
+  AIAwaitSubmitParamData,
+  VoiceCapabilities,
+} from '../context/types';
 import {
   getAppAccessToken,
   refreshAppAccessToken,
@@ -560,6 +563,21 @@ export function submitTool(params: {
     body: JSON.stringify({
       runId: params.runId,
       toolId: params.toolId,
+      params: params.params,
+    }),
+  });
+}
+
+export function submitAwaiting(params: {
+  runId: string;
+  awaitingId: string;
+  params: AIAwaitSubmitParamData[];
+}): Promise<ApiResponse> {
+  return requestJson("/api/submit", {
+    method: "POST",
+    body: JSON.stringify({
+      runId: params.runId,
+      awaitingId: params.awaitingId,
       params: params.params,
     }),
   });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { AppAction } from '../context/AppContext';
 import type {
+  ActiveAwaiting,
   AgentEvent,
   AppState,
   TimelineNode,
@@ -24,6 +25,7 @@ import {
 } from '../lib/reasoningAutoCollapse';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 import { stripSpecialBlocksFromText } from '../lib/contentSegments';
+import { reduceActiveAwaiting } from '../lib/awaitingRuntime';
 
 function readEventTeamId(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.teamId);
@@ -60,6 +62,7 @@ interface LocalCache {
   nodeText: Map<string, string>;  // nodeId -> accumulated text
   counter: number;
   activeReasoningKey: string;
+  activeAwaiting: ActiveAwaiting | null;
   chatId: string;
   runId: string;
   agentKey: string;
@@ -76,6 +79,7 @@ function createLocalCache(): LocalCache {
     nodeText: new Map(),
     counter: 0,
     activeReasoningKey: '',
+    activeAwaiting: null,
     chatId: '',
     runId: '',
     agentKey: '',
@@ -98,6 +102,7 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
     nodeText,
     counter: state.timelineCounter,
     activeReasoningKey: toText(state.activeReasoningKey),
+    activeAwaiting: state.activeAwaiting,
     chatId,
     runId: toText(state.runId),
     agentKey: chatId ? toText(state.chatAgentById.get(chatId)) : '',
@@ -190,6 +195,7 @@ export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean
   return (
     cache.chatId !== visibleChatId
     || cache.runId !== visibleRunId
+    || cache.activeAwaiting !== state.activeAwaiting
     || cache.counter < state.timelineCounter
     || hasStateAheadNodeMap(cache.contentNodeById, state.contentNodeById)
     || hasStateAheadNodeMap(cache.reasoningNodeById, state.reasoningNodeById)
@@ -508,6 +514,12 @@ export function useAgentEventHandler() {
 
       dispatch({ type: 'PUSH_EVENT', event });
       dispatch({ type: 'APPEND_DEBUG', line: `[${new Date().toLocaleTimeString()}] ${type}` });
+
+      const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event);
+      if (nextAwaiting !== cache.activeAwaiting) {
+        cache.activeAwaiting = nextAwaiting;
+        dispatch({ type: 'SET_ACTIVE_AWAITING', awaiting: nextAwaiting });
+      }
 
       if (type === 'request.query') {
         const text = toText(event.message);
