@@ -59,6 +59,28 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.accessToken).toBe('app-token');
   });
 
+  it('hydrates the initial theme from the html attribute when no stored value exists', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => '',
+      },
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: {
+        documentElement: {
+          getAttribute: (key: string) =>
+            key === 'data-theme' ? 'dark' : null,
+        },
+      },
+    });
+
+    const state = createInitialState();
+
+    expect(state.themeMode).toBe('dark');
+  });
+
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {
     const baseState = createInitialState();
     const workerChats: WorkerConversationRow[] = [
@@ -152,6 +174,17 @@ describe('appReducer conversation reset behavior', () => {
 
     expect(queued.pendingSteers).toHaveLength(1);
     expect(removed.pendingSteers).toEqual([]);
+  });
+
+  it('normalizes theme updates through the reducer', () => {
+    const baseState = createInitialState();
+
+    const next = appReducer(baseState, {
+      type: 'SET_THEME_MODE',
+      themeMode: 'dark',
+    });
+
+    expect(next.themeMode).toBe('dark');
   });
 
   it('resets voice chat runtime state and input mode during conversation reset', () => {

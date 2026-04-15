@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from "../../context/AppContext";
 import { ACCESS_TOKEN_STORAGE_KEY } from "../../context/constants";
 import type {
 	ConversationMode,
+	ThemeMode,
 	VoiceCapabilities,
 	VoiceClientGateConfig,
 } from "../../context/types";
@@ -115,11 +116,12 @@ export const SettingsModal: React.FC = () => {
 		);
 	};
 
-	const handleThemeToggle = () => {
-		const current = document.documentElement.getAttribute("data-theme");
-		const next = current === "dark" ? "light" : "dark";
-		document.documentElement.setAttribute("data-theme", next);
-	};
+	const handleThemeChange = useCallback(
+		(themeMode: ThemeMode) => {
+			dispatch({ type: "SET_THEME_MODE", themeMode });
+		},
+		[dispatch],
+	);
 
 	const handleConversationModeChange = useCallback(
 		(mode: ConversationMode) => {
@@ -470,6 +472,41 @@ export const SettingsModal: React.FC = () => {
 				</div>
 
 				<div className="field-group">
+					<label>界面主题</label>
+					<div
+						className="settings-segmented"
+						role="tablist"
+						aria-label="界面主题"
+					>
+						<UiButton
+							variant="ghost"
+							size="sm"
+							className={`settings-segmented-btn ${state.themeMode === "light" ? "is-active" : ""}`}
+							role="tab"
+							aria-selected={state.themeMode === "light"}
+							active={state.themeMode === "light"}
+							onClick={() => handleThemeChange("light")}
+						>
+							浅色
+						</UiButton>
+						<UiButton
+							variant="ghost"
+							size="sm"
+							className={`settings-segmented-btn ${state.themeMode === "dark" ? "is-active" : ""}`}
+							role="tab"
+							aria-selected={state.themeMode === "dark"}
+							active={state.themeMode === "dark"}
+							onClick={() => handleThemeChange("dark")}
+						>
+							深色
+						</UiButton>
+					</div>
+					<p className="settings-hint">
+						同步切换自定义界面样式和 Ant Design 组件主题，并记住当前选择。
+					</p>
+				</div>
+
+				<div className="field-group">
 					<label htmlFor="settings-token">Access Token</label>
 					<UiInput
 						id="settings-token"
@@ -520,13 +557,6 @@ export const SettingsModal: React.FC = () => {
 						}
 					>
 						刷新 Teams
-					</UiButton>
-					<UiButton
-						variant="secondary"
-						size="sm"
-						onClick={handleThemeToggle}
-					>
-						切换主题
 					</UiButton>
 					<UiButton
 						variant="danger"

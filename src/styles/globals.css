@@ -943,10 +943,8 @@ textarea {
   gap: 11px;
   padding: 9px 20px 9px 10px;
   border-radius: 18px;
-  border: 1px solid rgba(214, 220, 229, 0.92);
-  background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(250, 251, 254, 0.96));
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
 }
 
 .attachment-card-file-icon {
@@ -5513,8 +5511,4 @@ textarea {
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-#root .ant-typography {
-  color: inherit;
 }

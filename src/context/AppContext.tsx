@@ -44,6 +44,12 @@ import { getAppAccessToken, refreshAppAccessToken } from "../lib/appAuth";
 import { setAccessToken } from "../lib/apiClient";
 import { isAppMode } from "../lib/routing";
 import { resolveDefaultVoiceAsrDefaults } from "../lib/voiceAsrProtocol";
+import {
+	applyThemeModeToDocument,
+	normalizeThemeMode,
+	resolveInitialThemeMode,
+	writeStoredThemeMode,
+} from "../lib/theme";
 
 /* ============================================
    Initial State Factory
@@ -54,6 +60,7 @@ export function createInitialState(): AppState {
 		: typeof localStorage !== "undefined"
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
+	const themeMode = resolveInitialThemeMode();
 
 	const initialVoiceChat: VoiceChatState = {
 		status: "idle",
@@ -148,6 +155,7 @@ export function createInitialState(): AppState {
 		mentionActiveIndex: 0,
 		activeFrontendTool: null,
 		activeAwaiting: null,
+		themeMode,
 		accessToken: storedToken,
 		audioMuted: false,
 		ttsDebugStatus: "idle",
@@ -226,6 +234,7 @@ export type AppAction =
 	| { type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED"; enabled: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
 	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
+	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
 	| { type: "SET_ACCESS_TOKEN"; token: string }
 	| { type: "SET_AUDIO_MUTED"; muted: boolean }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
@@ -564,6 +573,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, pendingNewChatAgentKey: action.agentKey };
 		case "SET_WORKER_PRIORITY_KEY":
 			return { ...state, workerPriorityKey: action.workerKey };
+		case "SET_THEME_MODE":
+			return {
+				...state,
+				themeMode: normalizeThemeMode(action.themeMode),
+			};
 		case "SET_ACCESS_TOKEN":
 			return { ...state, accessToken: action.token };
 		case "SET_AUDIO_MUTED":
@@ -922,6 +936,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		}),
 		[state, dispatch],
 	);
+
+	useEffect(() => {
+		applyThemeModeToDocument(state.themeMode);
+		writeStoredThemeMode(state.themeMode);
+	}, [state.themeMode]);
 
 	useEffect(() => {
 		if (!isAppMode()) {

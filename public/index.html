@@ -10,6 +10,18 @@
 			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&family=Material+Symbols+Rounded:FILL@0..1&display=swap"
 			rel="stylesheet"
 		/>
+		<script>
+			(() => {
+				try {
+					const storedTheme = localStorage.getItem("agent-webclient.themeMode");
+					if (storedTheme === "dark" || storedTheme === "light") {
+						document.documentElement.setAttribute("data-theme", storedTheme);
+					}
+				} catch (_error) {
+					// Ignore storage access errors during boot.
+				}
+			})();
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

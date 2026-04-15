@@ -59,17 +59,15 @@ export function useActionRuntime() {
         modalTitle,
         modalContent,
         modalClose,
+        onThemeChange: (theme) => {
+          dispatch({ type: 'SET_THEME_MODE', themeMode: theme });
+        },
         onStatus: (text) => {
           dispatch({ type: 'APPEND_DEBUG', line: `[ActionRuntime] ${text}` });
         },
       });
 
       runtimeRef.current = runtime;
-
-      // Also set the theme if it's stored or dictated
-      if (document.documentElement.getAttribute('data-theme') === 'dark') {
-        runtime.setTheme('dark');
-      }
     }, 100);
 
     return () => clearTimeout(initTimer);

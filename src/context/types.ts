@@ -2,6 +2,8 @@ import type { DebugTab, LayoutMode } from "./constants";
 import type { ContentSegment } from "../lib/contentSegments";
 import type { ActionRuntime } from "../lib/actionRuntime";
 import type { AttachmentPreviewState } from "../lib/attachmentPreview";
+import type { ThemeMode } from "../lib/theme";
+export type { ThemeMode } from "../lib/theme";
 
 /* ============================================
    Agent Event
@@ -608,6 +610,7 @@ export interface AppState {
   mentionActiveIndex: number;
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
+  themeMode: ThemeMode;
   accessToken: string;
   audioMuted: boolean;
   ttsDebugStatus: string;

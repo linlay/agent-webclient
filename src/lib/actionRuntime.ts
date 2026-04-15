@@ -1,3 +1,5 @@
+import type { ThemeMode } from './theme';
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -196,6 +198,7 @@ export interface ActionRuntimeOptions {
   modalTitle: HTMLElement;
   modalContent: HTMLElement;
   modalClose: HTMLElement;
+  onThemeChange?: (theme: ThemeMode) => void;
   onStatus?: (text: string) => void;
 }
 
@@ -205,7 +208,7 @@ export interface ActionRuntime {
 }
 
 export function createActionRuntime(options: ActionRuntimeOptions): ActionRuntime {
-  const { root, canvas, modalRoot, modalTitle, modalContent, modalClose, onStatus } = options;
+  const { root, canvas, modalRoot, modalTitle, modalContent, modalClose, onThemeChange, onStatus } = options;
 
   const fireworks = createFireworksRuntime(canvas);
   const modal = createModalRuntime(modalRoot, modalTitle, modalContent, modalClose);
@@ -215,8 +218,13 @@ export function createActionRuntime(options: ActionRuntimeOptions): ActionRuntim
       const args = normalizeActionArgs(actionName, rawArgs);
 
       if (actionName === 'switch_theme') {
-        root.setAttribute('data-theme', args.theme as string);
-        onStatus?.(`Action switch_theme -> ${args.theme}`);
+        const theme = args.theme as ThemeMode;
+        if (onThemeChange) {
+          onThemeChange(theme);
+        } else {
+          root.setAttribute('data-theme', theme);
+        }
+        onStatus?.(`Action switch_theme -> ${theme}`);
         return args;
       }
 
