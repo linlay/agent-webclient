@@ -4053,7 +4053,6 @@ textarea {
   border-radius: var(--radius-md);
   background: var(--bg-elev-2);
   box-shadow: var(--shadow-strong);
-  max-height: 420px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4063,12 +4062,28 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 
+.event-popover-head-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .event-popover-head strong {
   font-size: 12px;
+}
+
+.event-popover-meta {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-popover-head button {
@@ -4088,9 +4103,41 @@ textarea {
   box-shadow: none;
 }
 
+.event-popover-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  overflow: auto;
+}
+
+.event-popover-switch-btn.ui-btn {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--bg-input) 72%, var(--bg-elev-2));
+  box-shadow: none;
+}
+
+.event-popover-switch-btn.ui-btn:hover:not(:disabled) {
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--bg-elev-2) 86%, transparent);
+  box-shadow: none;
+}
+
+.event-popover-switch-btn.ui-btn.is-active {
+  border-color: color-mix(in srgb, var(--accent-electric) 52%, var(--line-soft));
+  color: var(--accent-electric-strong);
+  background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+}
+
 .event-popover-body {
   flex: 1;
   overflow: auto;
+  max-height: 50vh;
   padding: 10px 12px;
   margin: 0;
   font: 400 10px/1.48 'IBM Plex Mono', monospace;
