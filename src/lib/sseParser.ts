@@ -172,8 +172,11 @@ export async function consumeJsonSseStream(response: Response, options: ConsumeJ
         return;
       }
       try {
-        const json = JSON.parse(event.data);
-        onJson?.(json, event);
+        const json = JSON.parse(event.data) as Record<string, unknown>;
+        const normalized = String(json.type || '').trim()
+          ? json
+          : { ...json, type: event.event };
+        onJson?.(normalized, event);
       } catch (error) {
         onParseError?.(error as Error, event.data, event);
       }
