@@ -1,4 +1,4 @@
-import type { DebugTab, LayoutMode } from "./constants";
+import type { LayoutMode } from "./constants";
 import type { ContentSegment } from "../lib/contentSegments";
 import type { ActionRuntime } from "../lib/actionRuntime";
 import type { AttachmentPreviewState } from "../lib/attachmentPreview";
@@ -594,7 +594,6 @@ export interface AppState {
   workerChatPanelCollapsed: boolean;
   chatLoadSeq: number;
   settingsOpen: boolean;
-  activeDebugTab: DebugTab;
   leftDrawerOpen: boolean;
   rightDrawerOpen: boolean;
   desktopDebugSidebarEnabled: boolean;

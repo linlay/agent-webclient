@@ -38,7 +38,7 @@ import {
 	MAX_DEBUG_LINES,
 	MAX_EVENTS,
 } from "./constants";
-import type { DebugTab, LayoutMode } from "./constants";
+import type { LayoutMode } from "./constants";
 import { upsertChatSummary } from "../lib/chatSummary";
 import { getAppAccessToken, refreshAppAccessToken } from "../lib/appAuth";
 import { setAccessToken } from "../lib/apiClient";
@@ -138,7 +138,6 @@ export function createInitialState(): AppState {
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
 		settingsOpen: false,
-		activeDebugTab: "events",
 		leftDrawerOpen: false,
 		rightDrawerOpen: false,
 		desktopDebugSidebarEnabled: false,
@@ -219,7 +218,6 @@ export type AppAction =
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { type: "SET_SETTINGS_OPEN"; open: boolean }
-	| { type: "SET_ACTIVE_DEBUG_TAB"; tab: DebugTab }
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_RIGHT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_LAYOUT_MODE"; mode: LayoutMode }
@@ -526,8 +524,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 		}
 		case "SET_SETTINGS_OPEN":
 			return { ...state, settingsOpen: action.open };
-		case "SET_ACTIVE_DEBUG_TAB":
-			return { ...state, activeDebugTab: action.tab };
 		case "SET_LEFT_DRAWER_OPEN":
 			return { ...state, leftDrawerOpen: action.open };
 		case "SET_RIGHT_DRAWER_OPEN":

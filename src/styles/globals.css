@@ -3792,33 +3792,6 @@ textarea {
 /* ========================================
    Debug Panel (Right Sidebar)
    ======================================== */
-.debug-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.debug-tab {
-  flex: 1;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  padding: 6px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-
-.debug-tab.active {
-  background: var(--accent-soft);
-  color: var(--accent-electric-strong);
-}
-
-.debug-tab:hover {
-  background: var(--bg-hover);
-  box-shadow: none;
-}
 
 .debug-panel {
   flex: 1;
@@ -3939,33 +3912,6 @@ textarea {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
-}
-
-.debug-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.debug-clear-btn {
-  border: 0;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-danger);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.debug-clear-btn:hover {
-  background: color-mix(in srgb, var(--accent-danger) 12%, var(--bg-elev-2));
-  box-shadow: none;
-}
-
-.debug-log-list {
-  background: color-mix(in srgb, #08162f 92%, var(--bg-elev-2));
 }
 
 .mono {
@@ -4201,23 +4147,6 @@ textarea {
   white-space: pre-wrap;
   word-break: break-all;
   padding: 8px;
-}
-
-.debug-log-card {
-  background: color-mix(in srgb, #0b1b38 94%, var(--bg-elev-2));
-  border-color: color-mix(in srgb, #2d5ea3 34%, var(--line-soft));
-}
-
-.debug-log-card .debug-event-head strong {
-  color: #b8d4ff;
-}
-
-.debug-log-card .debug-event-json {
-  background: color-mix(in srgb, #071427 96%, #10294e);
-  border-color: color-mix(in srgb, #275184 42%, transparent);
-  color: #d5e7ff;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 /* ========================================

@@ -8,9 +8,7 @@ export const COMPOSER_MAX_LINES = 2;
 export const TABLET_BREAKPOINT = 768;
 export const MOBILE_BREAKPOINT = 1080;
 export const DESKTOP_FIXED_BREAKPOINT = 1280;
-export const DEBUG_TABS = ['events', 'logs', 'tools'] as const;
 export const FRONTEND_VIEWPORT_TYPES = new Set(['html', 'qlc']);
 export const ACCESS_TOKEN_STORAGE_KEY = 'agent-webclient.accessToken';
 
-export type DebugTab = (typeof DEBUG_TABS)[number];
 export type LayoutMode = 'desktop-fixed' | 'tablet-mixed' | 'mobile-drawer';
