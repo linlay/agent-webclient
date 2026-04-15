@@ -15,27 +15,32 @@ const Ledger: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
           <stop offset="0%" stopColor="#60A5FA"></stop>
           <stop offset="100%" stopColor="#2563EB"></stop>
         </linearGradient>
-        <linearGradient id="g1b" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#93C5FD"></stop>
-          <stop offset="100%" stopColor="#3B82F6"></stop>
-        </linearGradient>
       </defs>
 
-      <path
-        d="M24 6L40 14L24 22L8 14L24 6Z"
+      <rect
+        x="12"
+        y="12"
+        width="24"
+        height="24"
+        transform="rotate(45 24 24)"
         fill="url(#g1)"
-        opacity="0.9"
-      ></path>
-      <path
-        d="M8 22L24 30L40 22L24 14L8 22Z"
-        fill="url(#g1b)"
-        opacity="0.6"
-      ></path>
-      <path
-        d="M8 30L24 38L40 30L24 22L8 30Z"
-        fill="url(#g1)"
-        opacity="0.3"
-      ></path>
+        opacity="0.8"
+      ></rect>
+      <rect
+        x="6"
+        y="6"
+        width="36"
+        height="36"
+        transform="rotate(45 24 24)"
+        stroke="url(#g1)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.4"
+      ></rect>
+      <circle cx="24" cy="7" r="3" fill="url(#g1)"></circle>
+      <circle cx="24" cy="41" r="3" fill="url(#g1)"></circle>
+      <circle cx="7" cy="24" r="3" fill="url(#g1)"></circle>
+      <circle cx="41" cy="24" r="3" fill="url(#g1)"></circle>
     </svg>
   );
 };
@@ -55,14 +60,23 @@ const Equity: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M24 4L42 18L24 44L6 18L24 4Z"
+        d="M24 4 A 20 20 0 0 1 44 24 L 24 24 Z"
         fill="url(#g2)"
-        opacity="0.8"
+        opacity="0.9"
       ></path>
       <path
-        d="M24 4L32 18L24 44L16 18L24 4Z"
-        fill="#FFFFFF"
-        opacity="0.3"
+        d="M44 24 A 20 20 0 1 1 24 4 L 24 24 Z"
+        stroke="url(#g2)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.4"
+      ></path>
+      <path
+        d="M30 18 L 40 8"
+        stroke="url(#g2)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        opacity="0.8"
       ></path>
     </svg>
   );
@@ -82,16 +96,19 @@ const Vault: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path
-        d="M24 4L40 10V22C40 32 24 44 24 44C24 44 8 32 8 22V10L24 4Z"
-        fill="url(#g3)"
+      <polygon
+        points="24,4 41.3,14 41.3,34 24,44 6.7,34 6.7,14"
+        stroke="url(#g3)"
+        strokeWidth="2"
+        fill="none"
         opacity="0.4"
-      ></path>
-      <path
-        d="M24 12L34 16V24C34 31 24 38 24 38C24 38 14 31 14 24V16L24 12Z"
+      ></polygon>
+      <polygon
+        points="24,12 34.4,18 34.4,30 24,36 13.6,30 13.6,18"
         fill="url(#g3)"
-        opacity="0.9"
-      ></path>
+        opacity="0.8"
+      ></polygon>
+      <circle cx="24" cy="24" r="4" fill="#ffffff" opacity="0.9"></circle>
     </svg>
   );
 };
@@ -111,19 +128,22 @@ const Pulse: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M4 24C12 24 16 12 24 12C32 12 36 24 44 24"
+        d="M4 24 Q 14 4 24 24 T 44 24"
         stroke="url(#g4)"
-        strokeWidth="6"
+        strokeWidth="3"
+        fill="none"
         strokeLinecap="round"
         opacity="0.4"
       ></path>
       <path
-        d="M4 32C12 32 16 20 24 20C32 20 36 32 44 32"
+        d="M4 32 Q 14 12 24 32 T 44 32"
         stroke="url(#g4)"
-        strokeWidth="6"
+        strokeWidth="4"
+        fill="none"
         strokeLinecap="round"
         opacity="0.9"
       ></path>
+      <circle cx="24" cy="32" r="4" fill="url(#g4)"></circle>
     </svg>
   );
 };
@@ -142,28 +162,29 @@ const Nexus: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <circle
+      <ellipse
         cx="24"
         cy="24"
-        r="16"
+        rx="20"
+        ry="6"
+        transform="rotate(45 24 24)"
         stroke="url(#g5)"
-        strokeWidth="4"
-        opacity="0.3"
-      ></circle>
-      <path
-        d="M24 8C32.8366 8 40 15.1634 40 24"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.5"
+      ></ellipse>
+      <ellipse
+        cx="24"
+        cy="24"
+        rx="20"
+        ry="6"
+        transform="rotate(-45 24 24)"
         stroke="url(#g5)"
-        strokeWidth="6"
-        strokeLinecap="round"
-      ></path>
-      <path
-        d="M8 24C8 15.1634 15.1634 8 24 8"
-        stroke="url(#g5)"
-        strokeWidth="6"
-        strokeLinecap="round"
-        opacity="0.6"
-      ></path>
-      <circle cx="24" cy="24" r="6" fill="url(#g5)"></circle>
+        strokeWidth="2"
+        fill="none"
+        opacity="0.5"
+      ></ellipse>
+      <circle cx="24" cy="24" r="10" fill="url(#g5)" opacity="0.9"></circle>
     </svg>
   );
 };
@@ -183,18 +204,60 @@ const Quantum: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path
-        d="M24 4L42 14V34L24 44L6 34V14L24 4Z"
+      <rect
+        x="8"
+        y="8"
+        width="32"
+        height="32"
         stroke="url(#g6)"
-        strokeWidth="4"
+        strokeWidth="2"
+        fill="none"
         opacity="0.3"
-      ></path>
-      <path
-        d="M24 12L36 19V29L24 36L12 29V19L24 12Z"
+      ></rect>
+      <rect
+        x="16"
+        y="16"
+        width="16"
+        height="16"
         fill="url(#g6)"
         opacity="0.8"
-      ></path>
-      <circle cx="24" cy="24" r="4" fill="#FFFFFF"></circle>
+      ></rect>
+      <line
+        x1="8"
+        y1="8"
+        x2="16"
+        y2="16"
+        stroke="url(#g6)"
+        strokeWidth="2"
+        opacity="0.6"
+      ></line>
+      <line
+        x1="40"
+        y1="8"
+        x2="32"
+        y2="16"
+        stroke="url(#g6)"
+        strokeWidth="2"
+        opacity="0.6"
+      ></line>
+      <line
+        x1="8"
+        y1="40"
+        x2="16"
+        y2="32"
+        stroke="url(#g6)"
+        strokeWidth="2"
+        opacity="0.6"
+      ></line>
+      <line
+        x1="40"
+        y1="40"
+        x2="32"
+        y2="32"
+        stroke="url(#g6)"
+        strokeWidth="2"
+        opacity="0.6"
+      ></line>
     </svg>
   );
 };
@@ -213,33 +276,23 @@ const Yield: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <rect
-        x="6"
-        y="28"
-        width="10"
-        height="14"
-        rx="2"
-        fill="url(#g7)"
+      <path
+        d="M10 38 L 24 24 L 38 38"
+        stroke="url(#g7)"
+        strokeWidth="4"
+        fill="none"
+        strokeLinecap="round"
         opacity="0.3"
-      ></rect>
-      <rect
-        x="19"
-        y="18"
-        width="10"
-        height="24"
-        rx="2"
-        fill="url(#g7)"
+      ></path>
+      <path
+        d="M10 28 L 24 14 L 38 28"
+        stroke="url(#g7)"
+        strokeWidth="4"
+        fill="none"
+        strokeLinecap="round"
         opacity="0.6"
-      ></rect>
-      <rect
-        x="32"
-        y="6"
-        width="10"
-        height="36"
-        rx="2"
-        fill="url(#g7)"
-        opacity="0.9"
-      ></rect>
+      ></path>
+      <path d="M10 18 L 24 4 L 38 18" fill="url(#g7)" opacity="0.9"></path>
     </svg>
   );
 };
@@ -259,12 +312,14 @@ const Oracle: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M24 10C12 10 4 24 4 24C4 24 12 38 24 38C36 38 44 24 44 24C44 24 36 10 24 10Z"
-        fill="url(#g8)"
-        opacity="0.2"
+        d="M4 24 C 14 8 34 8 44 24 C 34 40 14 40 4 24 Z"
+        stroke="url(#g8)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.4"
       ></path>
-      <circle cx="24" cy="24" r="10" fill="url(#g8)" opacity="0.6"></circle>
-      <circle cx="24" cy="24" r="5" fill="url(#g8)"></circle>
+      <circle cx="24" cy="24" r="10" fill="url(#g8)" opacity="0.8"></circle>
+      <circle cx="26" cy="22" r="3" fill="#ffffff" opacity="0.9"></circle>
     </svg>
   );
 };
@@ -283,9 +338,28 @@ const Vertex: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path d="M24 4L44 40H4L24 4Z" fill="url(#g9)" opacity="0.3"></path>
-      <path d="M24 16L36 40H12L24 16Z" fill="url(#g9)" opacity="0.6"></path>
-      <path d="M24 28L28 40H20L24 28Z" fill="url(#g9)" opacity="0.9"></path>
+      <polygon
+        points="24,4 44,40 24,32 4,40"
+        fill="url(#g9)"
+        opacity="0.8"
+      ></polygon>
+      <polygon
+        points="24,4 44,40 24,32 4,40"
+        stroke="url(#g9)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.5"
+        transform="scale(1.1) translate(-2, -2)"
+      ></polygon>
+      <line
+        x1="24"
+        y1="4"
+        x2="24"
+        y2="32"
+        stroke="#ffffff"
+        strokeWidth="2"
+        opacity="0.4"
+      ></line>
     </svg>
   );
 };
@@ -304,87 +378,22 @@ const Matrix: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <rect
-        x="6"
-        y="6"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.2"
-      ></rect>
-      <rect
-        x="19"
-        y="6"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
+      <path
+        d="M8 36 L 16 12 L 40 12 L 32 36 Z"
+        stroke="url(#g10)"
+        strokeWidth="2"
+        fill="none"
         opacity="0.4"
-      ></rect>
-      <rect
-        x="32"
-        y="6"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.6"
-      ></rect>
-      <rect
-        x="6"
-        y="19"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
+      ></path>
+      <path
+        d="M16 24 L 36 24 M 22 12 L 18 36 M 34 12 L 30 36"
+        stroke="url(#g10)"
+        strokeWidth="2"
         opacity="0.4"
-      ></rect>
-      <rect
-        x="19"
-        y="19"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.6"
-      ></rect>
-      <rect
-        x="32"
-        y="19"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.8"
-      ></rect>
-      <rect
-        x="6"
-        y="32"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.6"
-      ></rect>
-      <rect
-        x="19"
-        y="32"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="0.8"
-      ></rect>
-      <rect
-        x="32"
-        y="32"
-        width="10"
-        height="10"
-        rx="2"
-        fill="url(#g10)"
-        opacity="1.0"
-      ></rect>
+      ></path>
+      <circle cx="26" cy="24" r="6" fill="url(#g10)" opacity="0.9"></circle>
+      <circle cx="34" cy="12" r="4" fill="url(#g10)" opacity="0.6"></circle>
+      <circle cx="18" cy="36" r="4" fill="url(#g10)" opacity="0.6"></circle>
     </svg>
   );
 };
@@ -404,17 +413,22 @@ const Flux: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M8 24C8 15 16 15 24 24C32 33 40 33 40 24C40 15 32 15 24 24C16 33 8 33 8 24Z"
-        fill="url(#g11)"
-        opacity="0.4"
-      ></path>
-      <path
-        d="M12 24C12 18 18 18 24 24C30 30 36 30 36 24C36 18 30 18 24 24C18 30 12 30 12 24Z"
+        d="M8 36 C 8 12 40 12 40 36"
         stroke="url(#g11)"
         strokeWidth="4"
         fill="none"
+        strokeLinecap="round"
+        opacity="0.4"
+      ></path>
+      <path
+        d="M40 12 C 40 36 8 36 8 12"
+        stroke="url(#g11)"
+        strokeWidth="4"
+        fill="none"
+        strokeLinecap="round"
         opacity="0.9"
       ></path>
+      <circle cx="24" cy="24" r="5" fill="url(#g11)"></circle>
     </svg>
   );
 };
@@ -434,20 +448,20 @@ const Apex: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M24 4L44 20L38 26L24 14L10 26L4 20L24 4Z"
+        d="M4 40 L 20 16 L 30 26 L 44 6 L 44 40 Z"
         fill="url(#g12)"
+        opacity="0.3"
+      ></path>
+      <path
+        d="M4 40 L 20 16 L 30 26 L 44 6"
+        stroke="url(#g12)"
+        strokeWidth="4"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         opacity="0.9"
       ></path>
-      <path
-        d="M24 16L44 32L38 38L24 26L10 38L4 32L24 16Z"
-        fill="url(#g12)"
-        opacity="0.5"
-      ></path>
-      <path
-        d="M24 28L44 44L38 48L24 38L10 48L4 44L24 28Z"
-        fill="url(#g12)"
-        opacity="0.2"
-      ></path>
+      <circle cx="44" cy="6" r="4" fill="url(#g12)"></circle>
     </svg>
   );
 };
@@ -466,37 +480,35 @@ const Cipher: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <rect
-        x="8"
-        y="8"
-        width="32"
-        height="32"
-        transform="rotate(45 24 24)"
+      <circle
+        cx="24"
+        cy="24"
+        r="20"
         stroke="url(#g13)"
-        strokeWidth="4"
+        strokeWidth="2"
+        strokeDasharray="10 6"
         fill="none"
-        opacity="0.3"
-      ></rect>
-      <rect
-        x="14"
-        y="14"
-        width="20"
-        height="20"
-        transform="rotate(45 24 24)"
+        opacity="0.4"
+      ></circle>
+      <circle
+        cx="24"
+        cy="24"
+        r="14"
         stroke="url(#g13)"
-        strokeWidth="4"
+        strokeWidth="2"
+        strokeDasharray="20 8"
         fill="none"
         opacity="0.6"
-      ></rect>
-      <rect
-        x="20"
-        y="20"
-        width="8"
-        height="8"
-        transform="rotate(45 24 24)"
-        fill="url(#g13)"
+      ></circle>
+      <path
+        d="M24 16 A 8 8 0 1 1 16 24"
+        stroke="url(#g13)"
+        strokeWidth="4"
+        fill="none"
+        strokeLinecap="round"
         opacity="0.9"
-      ></rect>
+      ></path>
+      <circle cx="24" cy="24" r="4" fill="url(#g13)"></circle>
     </svg>
   );
 };
@@ -515,31 +527,27 @@ const Prism: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path
-        d="M24 4L44 38H4L24 4Z"
+      <polygon
+        points="24,4 40,12 40,36 24,44 8,36 8,12"
         stroke="url(#g14)"
-        strokeWidth="3"
+        strokeWidth="2"
         fill="none"
         opacity="0.4"
-      ></path>
-      <path
-        d="M4 16L24 28L44 16"
-        stroke="url(#g14)"
-        strokeWidth="3"
-        fill="none"
-        opacity="0.6"
-      ></path>
-      <path
-        d="M24 28V44"
-        stroke="url(#g14)"
-        strokeWidth="3"
-        fill="none"
-        opacity="0.6"
-      ></path>
+      ></polygon>
       <polygon
-        points="24,12 32,24 24,36 16,24"
+        points="24,4 40,12 24,24 8,12"
         fill="url(#g14)"
-        opacity="0.8"
+        opacity="0.6"
+      ></polygon>
+      <polygon
+        points="8,12 24,24 24,44 8,36"
+        fill="url(#g14)"
+        opacity="0.3"
+      ></polygon>
+      <polygon
+        points="40,12 24,24 24,44 40,36"
+        fill="url(#g14)"
+        opacity="0.9"
       ></polygon>
     </svg>
   );
@@ -560,32 +568,31 @@ const Horizon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <path
-        d="M4 36H44"
+        d="M4 32 Q 24 20 44 32"
+        stroke="url(#g15)"
+        strokeWidth="3"
+        fill="none"
+        opacity="0.5"
+      ></path>
+      <path
+        d="M4 40 Q 24 28 44 40"
         stroke="url(#g15)"
         strokeWidth="4"
-        strokeLinecap="round"
+        fill="none"
         opacity="0.9"
       ></path>
-      <path
-        d="M8 36 A 16 16 0 0 1 40 36"
-        stroke="url(#g15)"
-        strokeWidth="4"
-        fill="none"
-        opacity="0.6"
-      ></path>
-      <path
-        d="M16 36 A 8 8 0 0 1 32 36"
-        stroke="url(#g15)"
-        strokeWidth="4"
-        fill="none"
-        opacity="0.3"
-      ></path>
+      <circle cx="24" cy="16" r="8" fill="url(#g15)" opacity="0.8"></circle>
     </svg>
   );
 };
 const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
   return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <defs>
         <linearGradient id="g16" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FDE047"></stop>
@@ -594,25 +601,38 @@ const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
       </defs>
 
       <circle
+        cx="18"
+        cy="18"
+        r="12"
+        fill="url(#g16)"
+        opacity="0.5"
+        style={{ mixBlendMode: "multiply" }}
+      ></circle>
+      <circle
+        cx="30"
+        cy="18"
+        r="12"
+        fill="url(#g16)"
+        opacity="0.7"
+        style={{ mixBlendMode: "multiply" }}
+      ></circle>
+      <circle
         cx="24"
-        cy="24"
-        r="20"
-        stroke="url(#g16)"
-        strokeWidth="2"
-        stroke-dasharray="4 4"
-        fill="none"
-        opacity="0.4"
+        cy="30"
+        r="12"
+        fill="url(#g16)"
+        opacity="0.9"
+        style={{ mixBlendMode: "multiply" }}
       ></circle>
       <circle
         cx="24"
         cy="24"
-        r="14"
+        r="22"
         stroke="url(#g16)"
-        strokeWidth="3"
+        strokeWidth="1"
         fill="none"
-        opacity="0.6"
+        opacity="0.3"
       ></circle>
-      <circle cx="24" cy="24" r="8" fill="url(#g16)" opacity="0.9"></circle>
     </svg>
   );
 };
@@ -631,41 +651,17 @@ const Node: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <polygon
-        points="24,4 42,14 42,34 24,44 6,34 6,14"
+      <path
+        d="M24 24 L 24 8 M 24 24 L 38 32 M 24 24 L 10 32"
         stroke="url(#g17)"
         strokeWidth="3"
-        fill="none"
-        opacity="0.4"
-      ></polygon>
-      <line
-        x1="6"
-        y1="14"
-        x2="42"
-        y2="34"
-        stroke="url(#g17)"
-        strokeWidth="2"
+        strokeLinecap="round"
         opacity="0.5"
-      ></line>
-      <line
-        x1="6"
-        y1="34"
-        x2="42"
-        y2="14"
-        stroke="url(#g17)"
-        strokeWidth="2"
-        opacity="0.5"
-      ></line>
-      <line
-        x1="24"
-        y1="4"
-        x2="24"
-        y2="44"
-        stroke="url(#g17)"
-        strokeWidth="2"
-        opacity="0.5"
-      ></line>
-      <circle cx="24" cy="24" r="6" fill="url(#g17)" opacity="0.9"></circle>
+      ></path>
+      <circle cx="24" cy="24" r="8" fill="url(#g17)" opacity="0.9"></circle>
+      <circle cx="24" cy="8" r="4" fill="url(#g17)" opacity="0.6"></circle>
+      <circle cx="38" cy="32" r="4" fill="url(#g17)" opacity="0.6"></circle>
+      <circle cx="10" cy="32" r="4" fill="url(#g17)" opacity="0.6"></circle>
     </svg>
   );
 };
@@ -684,37 +680,25 @@ const Echo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <rect
-        x="4"
-        y="4"
-        width="24"
-        height="24"
-        rx="4"
+      <circle cx="16" cy="24" r="12" fill="url(#g18)" opacity="0.8"></circle>
+      <circle
+        cx="24"
+        cy="24"
+        r="16"
         stroke="url(#g18)"
-        strokeWidth="3"
-        fill="none"
-        opacity="0.2"
-      ></rect>
-      <rect
-        x="12"
-        y="12"
-        width="24"
-        height="24"
-        rx="4"
-        stroke="url(#g18)"
-        strokeWidth="3"
+        strokeWidth="2"
         fill="none"
         opacity="0.5"
-      ></rect>
-      <rect
-        x="20"
-        y="20"
-        width="24"
-        height="24"
-        rx="4"
-        fill="url(#g18)"
-        opacity="0.8"
-      ></rect>
+      ></circle>
+      <circle
+        cx="32"
+        cy="24"
+        r="20"
+        stroke="url(#g18)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.2"
+      ></circle>
     </svg>
   );
 };
@@ -733,16 +717,19 @@ const Nova: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path
-        d="M24 2L28 20L46 24L28 28L24 46L20 28L2 24L20 20Z"
+      <polygon
+        points="24,2 28,18 44,24 28,30 24,46 20,30 4,24 20,18"
         fill="url(#g19)"
-        opacity="0.4"
-      ></path>
-      <path
-        d="M24 10L26 22L38 24L26 26L24 38L22 26L10 24L22 22Z"
-        fill="url(#g19)"
-        opacity="0.9"
-      ></path>
+        opacity="0.8"
+      ></polygon>
+      <polygon
+        points="24,10 26,22 38,24 26,26 24,38 22,26 10,24 22,22"
+        stroke="#ffffff"
+        strokeWidth="1"
+        fill="none"
+        opacity="0.6"
+      ></polygon>
+      <circle cx="24" cy="24" r="3" fill="#ffffff"></circle>
     </svg>
   );
 };
@@ -761,15 +748,29 @@ const Zenith: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         </linearGradient>
       </defs>
 
-      <path d="M24 4L36 20L24 36L12 20Z" fill="url(#g20)" opacity="0.9"></path>
-      <path d="M24 4L36 20L24 36Z" fill="#FFFFFF" opacity="0.3"></path>
+      <rect
+        x="18"
+        y="8"
+        width="12"
+        height="28"
+        rx="2"
+        fill="url(#g20)"
+        opacity="0.9"
+      ></rect>
       <path
-        d="M8 42 Q 24 34 40 42"
+        d="M10 40 Q 24 32 38 40"
         stroke="url(#g20)"
-        strokeWidth="4"
+        strokeWidth="3"
         fill="none"
         strokeLinecap="round"
         opacity="0.5"
+      ></path>
+      <path
+        d="M14 16 L 34 16 M 14 24 L 34 24"
+        stroke="url(#g20)"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.4"
       ></path>
     </svg>
   );
