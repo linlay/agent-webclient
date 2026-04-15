@@ -10,7 +10,7 @@ export const TopNav: React.FC = () => {
 
 	const statusClass = state.streaming
 		? "is-running"
-		: state.events.some((e) => e.type === "error")
+		: state.events.some((e) => e.type === "run.error")
 			? "is-error"
 			: "is-idle";
 

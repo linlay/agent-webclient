@@ -22,8 +22,6 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
   if (
     type === 'request.query'
     || type === 'request.steer'
-    || type === 'request.remember'
-    || type === 'request.learn'
     || type.startsWith('chat.')
   ) return 'chat';
   if (type.startsWith('run.')) return 'run';
@@ -60,8 +58,6 @@ export function summarizeEvent(event: AgentEvent): string {
   if (
     event.type === 'request.query'
     || event.type === 'request.steer'
-    || event.type === 'request.remember'
-    || event.type === 'request.learn'
   ) {
     const message = safeStr(event.message).trim();
     return message || kv;

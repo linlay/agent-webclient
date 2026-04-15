@@ -7,6 +7,7 @@ import {
   createRequestId,
   setAccessToken,
 } from '../lib/apiClient';
+import { AIRunEventTypeEnum } from '../context/eventTypes';
 import { parseLeadingAgentMention } from '../lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '../lib/mentionCandidates';
 import {
@@ -332,7 +333,7 @@ export function useMessageActions() {
           upsertBackgroundChatSummary(event, toText(event.message) || undefined);
           return;
         }
-        if (type === 'run.start' || type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
+        if (type === 'run.start' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
           upsertBackgroundChatSummary(event);
           return;
         }
@@ -380,7 +381,7 @@ export function useMessageActions() {
             dispatch({ type: 'APPEND_TIMELINE_ORDER', id: errNodeId });
           } else {
             const syntheticErrorEvent: AgentEvent = {
-              type: 'run.error',
+              type: AIRunEventTypeEnum.Error,
               chatId: session.chatId || undefined,
               runId: session.runId || undefined,
               requestId: session.requestId,

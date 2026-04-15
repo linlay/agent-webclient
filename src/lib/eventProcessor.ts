@@ -1,5 +1,6 @@
 import type {
   AgentEvent,
+  PlanItem,
   PublishedArtifact,
   Plan,
   PlanRuntime,
@@ -261,16 +262,12 @@ export function processEvent(
     return commands;
   }
 
-  if (type === 'request.steer' || type === 'request.remember' || type === 'request.learn') {
+  if (type === 'request.steer') {
     const text = safeText(event.message);
     if (!text) return commands;
     const counter = config.mode === 'replay' ? state.nextCounter() : null;
-    const variant = type === 'request.steer'
-      ? 'steer'
-      : type === 'request.remember'
-        ? 'remember'
-        : 'learn';
-    const prefix = variant === 'steer' ? 'steer' : variant;
+    const variant = 'steer';
+    const prefix = 'steer';
     const suffix = toText(event.steerId) || toText(event.requestId) || String(counter ?? Date.now());
     if (event.chatId) commands.push({ cmd: 'SET_CHAT_ID', chatId: event.chatId });
     if (event.runId) commands.push({ cmd: 'SET_RUN_ID', runId: String(event.runId) });
@@ -298,7 +295,7 @@ export function processEvent(
     return commands;
   }
 
-  if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
+  if (type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
     if (type === 'run.error' && event.error) {
       commands.push({
         cmd: 'SYSTEM_ERROR',
@@ -684,17 +681,17 @@ export function processEvent(
     return commands;
   }
 
-  if ((type === 'plan.update' || type === 'plan.snapshot') && event.plan) {
+  if ((type === 'plan.create' || type === 'plan.update') && event.plan) {
     const nextPlanId = String(event.planId || 'plan');
     commands.push({
       cmd: 'SET_PLAN',
-      plan: { planId: nextPlanId, plan: event.plan },
+      plan: { planId: nextPlanId, plan: event.plan.map((item) => ({ ...item })) as PlanItem[] },
       resetRuntime: Boolean(state.getPlanId?.() && state.getPlanId?.() !== nextPlanId),
     });
     return commands;
   }
 
-  if (type === 'plan.task.start') {
+  if (type === 'task.start') {
     const taskId = event.taskId || '';
     if (!taskId) return commands;
     commands.push({ cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID', taskId });
@@ -707,16 +704,22 @@ export function processEvent(
     return commands;
   }
 
-  if (type === 'plan.task.end') {
+  if (type === 'task.complete' || type === 'task.fail' || type === 'task.cancel') {
     const taskId = event.taskId || '';
     if (!taskId) return commands;
+    const status =
+      type === 'task.complete'
+        ? 'completed'
+        : type === 'task.cancel'
+          ? 'canceled'
+          : 'failed';
     commands.push({
       cmd: 'SET_PLAN_RUNTIME',
       taskId,
       runtime: {
-        status: event.error ? 'failed' : 'completed',
+        status,
         updatedAt: Date.now(),
-        error: event.error ? String(event.error) : '',
+        error: type === 'task.fail' && event.error ? String(event.error) : '',
       },
     });
     commands.push({ cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID', taskId });

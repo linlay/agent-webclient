@@ -63,7 +63,7 @@ describe('buildTimelineDisplayItems', () => {
       ],
       [
         { type: 'request.query', timestamp: 100 },
-        { type: 'run.end' },
+        { type: 'run.complete' },
       ],
     );
 

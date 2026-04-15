@@ -9,9 +9,20 @@ interface ActionBufferState {
 }
 
 function resolveActionArgsFromEvent(event: AgentEvent): Record<string, unknown> | null {
-  const candidate = event.actionParams;
+  const record = event as Record<string, unknown>;
+  const candidate = record.arguments ?? record.actionParams;
   if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
     return candidate as Record<string, unknown>;
+  }
+  if (typeof candidate === 'string') {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return null;
+    }
   }
 
   return null;

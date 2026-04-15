@@ -69,7 +69,7 @@ describe('replayEvent tool migration', () => {
     expect(node?.toolName).toBe('email.list_accounts');
   });
 
-  it('marks plan tasks completed for plan.task.end', () => {
+  it('marks plan tasks completed for task.complete', () => {
     const state = createReplayState();
 
     replayEvent(state, {
@@ -81,11 +81,11 @@ describe('replayEvent tool migration', () => {
       ],
     });
     replayEvent(state, {
-      type: 'plan.task.start',
+      type: 'task.start',
       taskId: 'task_1',
     });
     replayEvent(state, {
-      type: 'plan.task.end',
+      type: 'task.complete',
       taskId: 'task_1',
     });
 
@@ -214,7 +214,7 @@ describe('replayEvent tool migration', () => {
       plan: [{ taskId: 'task_1', description: 'old step' }],
     });
     replayEvent(state, {
-      type: 'plan.task.start',
+      type: 'task.start',
       taskId: 'task_1',
     });
 
@@ -244,7 +244,7 @@ describe('replayEvent tool migration', () => {
       plan: [{ taskId: 'task_1', description: 'step 1' }],
     });
     replayEvent(state, {
-      type: 'plan.task.start',
+      type: 'task.start',
       taskId: 'task_1',
     });
 
@@ -284,23 +284,6 @@ describe('replayEvent tool migration', () => {
     const node = state.timelineNodes.get('steer_steer_1');
     expect(node).toMatchObject({ role: 'user', messageVariant: 'steer', text: '请收敛一点' });
     expect(state.events.at(-1)?.type).toBe('run.cancel');
-  });
-
-  it('replays request.remember as a command-style user timeline node', () => {
-    const state = createReplayState();
-
-    replayEvent(state, {
-      type: 'request.remember',
-      requestId: 'req_remember_1',
-      message: '记住我喜欢先给结论',
-      timestamp: 100,
-    });
-
-    expect(state.timelineNodes.get('remember_req_remember_1')).toMatchObject({
-      role: 'user',
-      messageVariant: 'remember',
-      text: '记住我喜欢先给结论',
-    });
   });
 
   it('replays request.query references into user attachments for history chats', () => {

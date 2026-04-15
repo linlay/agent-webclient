@@ -112,7 +112,7 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
   return events
     .filter((event) => {
       const type = String(event.type || '');
-      return type === 'run.end' || type === 'run.complete' || type === 'run.error' || type === 'run.cancel';
+      return type === 'run.complete' || type === 'run.error' || type === 'run.cancel';
     })
     .map((event) => ({
       timestamp: typeof event.timestamp === 'number' ? event.timestamp : undefined,

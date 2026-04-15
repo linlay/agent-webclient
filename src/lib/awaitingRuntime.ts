@@ -67,7 +67,6 @@ export function reduceActiveAwaiting(
   if (
     type === 'request.query'
     || type === 'run.start'
-    || type === 'run.end'
     || type === 'run.error'
     || type === 'run.complete'
     || type === 'run.cancel'

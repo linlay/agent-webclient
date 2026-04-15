@@ -3,51 +3,28 @@ import type { ContentSegment } from "../lib/contentSegments";
 import type { ActionRuntime } from "../lib/actionRuntime";
 import type { AttachmentPreviewState } from "../lib/attachmentPreview";
 import type { ThemeMode } from "../lib/theme";
+import type {
+  AIEvent,
+  AIAwaitQuestion,
+} from "./eventTypes";
+import { ViewportTypeEnum } from "./eventTypes";
 export type { ThemeMode } from "../lib/theme";
+export type {
+  AIAwaitQuestion,
+  AIAwaitQuestionOption,
+  AIAwaitSubmitParamData,
+  AIAwaitSubmitPayloadData,
+} from "./eventTypes";
+export {
+  AIAwaitEventTypeEnum,
+  AIAwaitQuestionType,
+  ViewportTypeEnum,
+} from "./eventTypes";
 
 /* ============================================
    Agent Event
    ============================================ */
-export type AgentEvent = BaseEvent &
-  ArtifactEvent &
-  AIAwaitAskEvent &
-  AIAwaitPayloadEvent;
-export interface BaseEvent {
-  type: string;
-  seq?: number;
-  chatId?: string;
-  runId?: string;
-  requestId?: string;
-  steerId?: string;
-  contentId?: string;
-  reasoningId?: string;
-  toolId?: string;
-  actionId?: string;
-  planId?: string;
-  taskId?: string;
-  agentKey?: string;
-  message?: string;
-  text?: string;
-  delta?: string;
-  timestamp?: number;
-  finishReason?: string;
-  error?: unknown;
-  result?: unknown;
-  output?: unknown;
-  plan?: PlanItem[];
-  arguments?: unknown;
-  toolLabel?: string;
-  toolName?: string;
-  toolType?: string;
-  viewportKey?: string;
-  toolTimeout?: number | null;
-  toolParams?: Record<string, unknown>;
-  toolDescription?: string;
-  actionParams?: Record<string, unknown>;
-  description?: string;
-  actionName?: string;
-  [key: string]: unknown;
-}
+export type AgentEvent = AIEvent;
 
 export interface ResourceFile {
   mimeType: string;
@@ -61,77 +38,10 @@ export interface ArtifactFile extends ResourceFile {
   artifactId?: string;
 }
 
-// type: "artifact.publish"
-export interface ArtifactEvent {
-  artifactId?: string;
-  artifact?: ResourceFile;
-}
-
 export interface PublishedArtifact {
   artifactId: string;
   artifact: ResourceFile;
   timestamp: number;
-}
-
-export enum AIAwaitEventTypeEnum {
-  Ask = "awaiting.ask",
-  Payload = "awaiting.payload",
-}
-export enum ViewportTypeEnum {
-  Builtin = "builtin",
-}
-
-/**
- * AIAwaitAskEvent: 等待确认事件
- * type: awaiting.ask
- * 当接收到 awaiting.ask 事件时，需要判断 viewportType 是否为 builtin，如果是 builtin 且 viewportKey 为 confirm_dialog，则打开 questions 确认框选择框（直接替换用户的Textare输入框）
- * 如果有 questions 参数，那么可以直接处理
- * 如果不存在 questions 参数，那么 questions 数据将会在接下来的 awaiting.payload 事件中提供
- * */
-export interface AIAwaitAskEvent {
-  awaitingId?: string;
-  runId?: string;
-  timeout?: number;
-  viewportKey?: string;
-  viewportType?: ViewportTypeEnum;
-  questions?: AIAwaitQuestion[];
-}
-/**
- * AIAwaitPayloadEvent: 等待事件的载荷事件 
- * type: awaiting.payload
- * 当接收到 awaiting.payload 事件时，需要将事件中的 questions 参数提供给 questions 确认框选择框进行处理。
- * 最后用户通过 /api/submit 接口提交选择结果，结果的数据结构为 IAwaitSubmitPayloadData。
- * */
-export interface AIAwaitPayloadEvent {
-  awaitingId?: string;
-  questions?: AIAwaitQuestion[];
-}
-export interface AIAwaitQuestion {
-  type: AIAwaitQuestionType;
-  question: string;
-  options: AIAwaitQuestionOption[];
-  multiSelect?: boolean;
-  allowFreeText?: boolean;
-  freeTextPlaceholder?: string;
-}
-export enum AIAwaitQuestionType {
-  Select = "select",
-}
-export interface AIAwaitQuestionOption {
-  label: string;
-  description: string;
-  value?: string;
-}
-export interface AIAwaitSubmitParamData {
-  question: string;
-  answer?: string;
-  answers?: string[];
-  freeText?: string;
-}
-export interface AIAwaitSubmitPayloadData {
-  params: AIAwaitSubmitParamData[];
-  runId: string;
-  awaitingId: string;
 }
 
 export interface DebugSseEntry {

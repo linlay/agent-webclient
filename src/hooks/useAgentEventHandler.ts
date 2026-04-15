@@ -579,7 +579,7 @@ export function useAgentEventHandler() {
         return;
       }
 
-      if (type === 'run.end' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
+      if (type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
         upsertLiveChatSummary({ event, cache, state });
         dispatch({ type: 'SET_STREAMING', streaming: false });
         const isActiveVoiceRequest =
@@ -739,7 +739,7 @@ export function useAgentEventHandler() {
         return;
       }
 
-      if (type === 'plan.update' || type === 'plan.snapshot' || type === 'plan.task.start' || type === 'plan.task.end') {
+      if (type === 'plan.create' || type === 'plan.update' || type === 'task.start' || type === 'task.complete' || type === 'task.fail' || type === 'task.cancel') {
         if (commands.length > 0) {
           expandPlanForUpdate();
         }
