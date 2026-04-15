@@ -137,7 +137,7 @@ export const TopNav: React.FC = () => {
 						<div className="brand-mark">
 							<div className="brand-logo">A</div>
 							<div className="brand-text">
-								<strong>AGENT</strong>
+								<strong>AGENT 测试文案</strong>
 								<span>Webclient</span>
 							</div>
 						</div>

@@ -1,5 +1,4 @@
 .ConfirmDialog {
-  position: relative;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
   border-radius: 20px;
@@ -7,11 +6,6 @@
   padding: 10px;
 
   .Pagination {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 10;
-    gap: 10px;
     font-size: 12px;
   }
 
@@ -30,10 +24,6 @@
   .FormItem {
     margin-bottom: 0;
   }
-
-  .FormItem :global(.ant-form-item-explain-error) {
-    padding: 0 10px;
-  }
 }
 
 
@@ -43,19 +33,48 @@
   .Question {
     font-weight: bold;
     padding: 10px;
+
+    :first-child {
+      flex: 1;
+    }
   }
 
   .CheckboxGroup {
     flex-direction: column;
     gap: 4px;
 
+    :global {
+      .Selected {
+        color: var(--colorTextSecondary);
+        background-color: var(--colorBgTextHover, rgba(0, 0, 0, 0.06));
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        display: none;
+      }
+
+      .ant-checkbox {
+        display: none;
+      }
+
+      .ant-checkbox-wrapper>:last-child {
+        flex: 1;
+      }
+
+      .ant-checkbox-wrapper-checked {
+        .Selected {
+          display: block;
+        }
+      }
+    }
+
     .Option {
       padding: 10px;
       border-radius: 10px;
       color: var(--text-muted);
 
-      &:hover,
-      &:focus-within {
+      &:hover:not(&.FreeText),
+      &:focus-within:not(&.FreeText) {
         background-color: var(--bg-hover);
       }
 
@@ -81,5 +100,9 @@
 
   .CheckboxGroup :global(.ant-checkbox-wrapper-checked .Selected) {
     display: block;
+  }
+
+  .CheckboxGroup :global(.ant-checkbox-wrapper>:last-child) {
+    flex: 1;
   }
 }
