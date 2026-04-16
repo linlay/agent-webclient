@@ -16,6 +16,7 @@ import {
 } from '../lib/queryRouting';
 import { getVoiceRuntime } from '../lib/voiceRuntime';
 import { executeQueryStream } from '../lib/queryStreamRuntime';
+import { executeQueryStreamWs } from '../lib/queryStreamRuntime.ws';
 import { normalizeTimelineAttachments } from '../lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '../lib/chatSummaryLive';
 import {
@@ -343,7 +344,11 @@ export function useMessageActions() {
       };
 
       try {
-        await executeQueryStream({
+        const executeStream = stateRef.current.transportMode === 'ws'
+          ? executeQueryStreamWs
+          : executeQueryStream;
+
+        await executeStream({
           params: {
             requestId,
             message: cleanMessage,

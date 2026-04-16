@@ -50,6 +50,10 @@ import {
 	resolveInitialThemeMode,
 	writeStoredThemeMode,
 } from "../lib/theme";
+import {
+	readStoredTransportMode,
+	writeStoredTransportMode,
+} from "../lib/transportMode";
 
 /* ============================================
    Initial State Factory
@@ -61,6 +65,7 @@ export function createInitialState(): AppState {
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
 	const themeMode = resolveInitialThemeMode();
+	const transportMode = readStoredTransportMode() || "sse";
 
 	const initialVoiceChat: VoiceChatState = {
 		status: "idle",
@@ -156,6 +161,9 @@ export function createInitialState(): AppState {
 		activeFrontendTool: null,
 		activeAwaiting: null,
 		themeMode,
+		transportMode,
+		wsStatus: "disconnected",
+		wsErrorMessage: "",
 		accessToken: storedToken,
 		audioMuted: false,
 		ttsDebugStatus: "idle",
@@ -236,6 +244,9 @@ export type AppAction =
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
 	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
 	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
+	| { type: "SET_TRANSPORT_MODE"; mode: AppState["transportMode"] }
+	| { type: "SET_WS_STATUS"; status: AppState["wsStatus"] }
+	| { type: "SET_WS_ERROR_MESSAGE"; message: AppState["wsErrorMessage"] }
 	| { type: "SET_ACCESS_TOKEN"; token: string }
 	| { type: "SET_AUDIO_MUTED"; muted: boolean }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
@@ -590,8 +601,31 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				...state,
 				themeMode: normalizeThemeMode(action.themeMode),
 			};
+		case "SET_TRANSPORT_MODE":
+			return {
+				...state,
+				transportMode: action.mode === "ws" ? "ws" : "sse",
+				wsStatus:
+					action.mode === "ws" ? state.wsStatus : "disconnected",
+				wsErrorMessage: "",
+			};
+		case "SET_WS_STATUS":
+			return {
+				...state,
+				wsStatus: action.status,
+				wsErrorMessage:
+					action.status === "connected" || action.status === "connecting"
+						? ""
+						: state.wsErrorMessage,
+			};
+		case "SET_WS_ERROR_MESSAGE":
+			return { ...state, wsErrorMessage: String(action.message || "") };
 		case "SET_ACCESS_TOKEN":
-			return { ...state, accessToken: action.token };
+			return {
+				...state,
+				accessToken: action.token,
+				wsErrorMessage: "",
+			};
 		case "SET_AUDIO_MUTED":
 			return { ...state, audioMuted: action.muted };
 		case "SET_TTS_DEBUG_STATUS":
@@ -953,6 +987,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		applyThemeModeToDocument(state.themeMode);
 		writeStoredThemeMode(state.themeMode);
 	}, [state.themeMode]);
+
+	useEffect(() => {
+		writeStoredTransportMode(state.transportMode);
+	}, [state.transportMode]);
 
 	useEffect(() => {
 		if (!isAppMode()) {

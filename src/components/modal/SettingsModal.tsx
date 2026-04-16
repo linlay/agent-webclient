@@ -4,8 +4,10 @@ import { ACCESS_TOKEN_STORAGE_KEY } from "../../context/constants";
 import type {
   ConversationMode,
   ThemeMode,
+  TransportMode,
   VoiceCapabilities,
   VoiceClientGateConfig,
+  WsConnectionStatus,
 } from "../../context/types";
 import {
   ensureAccessToken,
@@ -33,6 +35,23 @@ import {
   syncClientGateDraftState,
   type ClientGateDraftField,
 } from "./settingsClientGateDrafts";
+
+export function formatWsStatusText(
+  status: WsConnectionStatus,
+  errorMessage = "",
+): string {
+  const detail = String(errorMessage || "").trim();
+  if (status === "connected") {
+    return "WebSocket 已连接";
+  }
+  if (status === "connecting") {
+    return "WebSocket 连接中...";
+  }
+  if (status === "error" || detail) {
+    return detail ? `WebSocket 连接异常：${detail}` : "WebSocket 连接异常";
+  }
+  return "WebSocket 未连接";
+}
 
 export const SettingsModal: React.FC = () => {
   const state = useAppState();
@@ -125,6 +144,13 @@ export const SettingsModal: React.FC = () => {
   const handleThemeChange = useCallback(
     (themeMode: ThemeMode) => {
       dispatch({ type: "SET_THEME_MODE", themeMode });
+    },
+    [dispatch],
+  );
+
+  const handleTransportModeChange = useCallback(
+    (mode: TransportMode) => {
+      dispatch({ type: "SET_TRANSPORT_MODE", mode });
     },
     [dispatch],
   );
@@ -430,6 +456,11 @@ export const SettingsModal: React.FC = () => {
     }
   }, [resetAsrSession, state.chatId]);
 
+  const wsStatusText = formatWsStatusText(
+    state.wsStatus,
+    state.wsErrorMessage,
+  );
+
   return (
     <div className="modal" id="settings-modal">
       <div className="modal-card settings-card">
@@ -515,6 +546,47 @@ export const SettingsModal: React.FC = () => {
             </p>
           </div>
         )}
+
+        <div className="field-group">
+          <label>传输模式</label>
+          <div
+            className="settings-segmented"
+            role="tablist"
+            aria-label="传输模式"
+          >
+            <UiButton
+              variant="ghost"
+              size="sm"
+              className={`settings-segmented-btn ${state.transportMode === "sse" ? "is-active" : ""}`}
+              role="tab"
+              aria-selected={state.transportMode === "sse"}
+              active={state.transportMode === "sse"}
+              disabled={state.streaming}
+              onClick={() => handleTransportModeChange("sse")}
+            >
+              SSE
+            </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              className={`settings-segmented-btn ${state.transportMode === "ws" ? "is-active" : ""}`}
+              role="tab"
+              aria-selected={state.transportMode === "ws"}
+              active={state.transportMode === "ws"}
+              disabled={state.streaming}
+              onClick={() => handleTransportModeChange("ws")}
+            >
+              WebSocket
+            </UiButton>
+          </div>
+          <p className="settings-hint">
+            {state.streaming
+              ? "当前流式响应中，结束后可切换传输模式。"
+              : state.transportMode === "ws"
+                ? `当前使用 WebSocket 传输。${wsStatusText}。`
+                : "当前使用 SSE 传输。"}
+          </p>
+        </div>
 
         <div className="field-group">
           <label htmlFor="settings-token">Access Token</label>

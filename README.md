@@ -37,7 +37,7 @@ make install
 make dev
 ```
 
-默认访问地址为 [http://localhost:11948](http://localhost:11948)。开发模式下，Webpack Dev Server 会将普通 `/api/*` 代理到 `BASE_URL`，并将 `/api/voice/ws` 单独代理到 `VOICE_BASE_URL`。
+默认访问地址为 [http://localhost:11948](http://localhost:11948)。开发模式下，Webpack Dev Server 会将普通 `/api/*` 代理到 `BASE_URL`，其中查询 WebSocket 使用 `/ws` 转发到 `BASE_URL`，语音 WebSocket 使用 `/api/voice/ws` 单独代理到 `VOICE_BASE_URL`。Webpack 自身的热更新 WebSocket 会使用内部路径 `/__webpack_hmr`，避免与查询链路冲突。
 
 ### 测试
 ```bash
@@ -190,6 +190,7 @@ docker compose -f compose.yml logs -f webclient
 
 ### 常见排查
 - 页面可打开但接口失败：检查 `.env` 中的 `BASE_URL` 是否可从当前运行环境访问。
+- 查询 WebSocket 未同步实时事件：确认上游 `BASE_URL` 实际提供 `/ws`，并检查浏览器连接的是 `/ws`；开发模式下如果看到 `/__webpack_hmr`，那是 Webpack 自身的热更新通道。
 - 语音链路连接失败：检查 `.env` 中的 `VOICE_BASE_URL` 是否可访问，并确认上游服务实际提供 `/api/voice/ws`。
 - `npm start` 启动即报代理配置错误：通常是 `.env` 缺失，或 `BASE_URL` / `VOICE_BASE_URL` 为空。
 - SSE 长连接异常：确认上游接口 `/api/query` 可用，并检查反向代理是否关闭缓冲。

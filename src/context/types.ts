@@ -3,12 +3,14 @@ import type { ContentSegment } from "../lib/contentSegments";
 import type { ActionRuntime } from "../lib/actionRuntime";
 import type { AttachmentPreviewState } from "../lib/attachmentPreview";
 import type { ThemeMode } from "../lib/theme";
+import type { TransportMode } from "../lib/transportMode";
 import type {
   AIEvent,
   AIAwaitQuestion,
 } from "./eventTypes";
 import { ViewportTypeEnum } from "./eventTypes";
 export type { ThemeMode } from "../lib/theme";
+export type { TransportMode } from "../lib/transportMode";
 export type {
   AIAwaitQuestion,
   AIAwaitQuestionOption,
@@ -253,6 +255,11 @@ export type VoiceChatWsStatus =
   | "connecting"
   | "open"
   | "closed"
+  | "error";
+export type WsConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
   | "error";
 
 export interface VoiceClientGateSettings {
@@ -530,6 +537,9 @@ export interface AppState {
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
   themeMode: ThemeMode;
+  transportMode: TransportMode;
+  wsStatus: WsConnectionStatus;
+  wsErrorMessage: string;
   accessToken: string;
   audioMuted: boolean;
   ttsDebugStatus: string;

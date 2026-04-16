@@ -23,6 +23,7 @@ import { useMessageActions } from "../../hooks/useMessageActions";
 import { useActionRuntime } from "../../hooks/useActionRuntime";
 import { useVoiceRuntime } from "../../hooks/useVoiceRuntime";
 import { useVoiceChatRuntime } from "../../hooks/useVoiceChatRuntime";
+import { useWsTransport } from "../../hooks/useWsTransport";
 // import { useLiveEvents } from "../../hooks/useLiveEvents";
 
 function inferLayoutMode(width: number): LayoutMode {
@@ -37,6 +38,7 @@ export const AppShell: React.FC = () => {
 	const appRef = useRef<HTMLDivElement>(null);
 
 	/* Initialize business logic hooks */
+	useWsTransport();
 	useChatActions();
 	useMessageActions();
 	useActionRuntime();

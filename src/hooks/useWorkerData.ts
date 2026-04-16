@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '../lib/apiClient';
+import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '../lib/apiClientProxy';
 import type { Agent, Chat, Team, WorkerRow } from '../context/types';
 import {
   refreshWorkerDataWithCoordinator,

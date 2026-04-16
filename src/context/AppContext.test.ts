@@ -1,5 +1,6 @@
 import type { WorkerConversationRow } from './types';
 import { appReducer, createInitialState } from './AppContext';
+import { TRANSPORT_MODE_STORAGE_KEY } from '../lib/transportMode';
 
 describe('appReducer conversation reset behavior', () => {
   const originalWindow = globalThis.window;
@@ -116,6 +117,21 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.themeMode).toBe('dark');
   });
 
+  it('hydrates the initial transport mode from localStorage', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => (key === TRANSPORT_MODE_STORAGE_KEY ? 'ws' : ''),
+      },
+    });
+
+    const state = createInitialState();
+
+    expect(state.transportMode).toBe('ws');
+    expect(state.wsStatus).toBe('disconnected');
+    expect(state.wsErrorMessage).toBe('');
+  });
+
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {
     const baseState = createInitialState();
     const workerChats: WorkerConversationRow[] = [
@@ -220,6 +236,65 @@ describe('appReducer conversation reset behavior', () => {
     });
 
     expect(next.themeMode).toBe('dark');
+  });
+
+  it('updates transport mode and ws status through the reducer', () => {
+    const baseState = createInitialState();
+
+    const nextMode = appReducer(baseState, {
+      type: 'SET_TRANSPORT_MODE',
+      mode: 'ws',
+    });
+    const nextStatus = appReducer(nextMode, {
+      type: 'SET_WS_STATUS',
+      status: 'connected',
+    });
+
+    expect(nextMode.transportMode).toBe('ws');
+    expect(nextStatus.wsStatus).toBe('connected');
+    expect(nextStatus.wsErrorMessage).toBe('');
+  });
+
+  it('stores and clears websocket error details through the reducer', () => {
+    const baseState = createInitialState();
+
+    const errored = appReducer(baseState, {
+      type: 'SET_WS_ERROR_MESSAGE',
+      message: 'WebSocket 握手失败，请检查 Access Token 是否有效。',
+    });
+    const connected = appReducer(
+      {
+        ...errored,
+        wsStatus: 'error',
+      },
+      {
+        type: 'SET_WS_STATUS',
+        status: 'connected',
+      },
+    );
+    const resetByToken = appReducer(errored, {
+      type: 'SET_ACCESS_TOKEN',
+      token: 'token_1',
+    });
+    const resetByMode = appReducer(
+      {
+        ...errored,
+        transportMode: 'ws',
+        wsStatus: 'error',
+      },
+      {
+        type: 'SET_TRANSPORT_MODE',
+        mode: 'sse',
+      },
+    );
+
+    expect(errored.wsErrorMessage).toBe(
+      'WebSocket 握手失败，请检查 Access Token 是否有效。',
+    );
+    expect(connected.wsErrorMessage).toBe('');
+    expect(resetByToken.wsErrorMessage).toBe('');
+    expect(resetByMode.wsErrorMessage).toBe('');
+    expect(resetByMode.wsStatus).toBe('disconnected');
   });
 
   it('resets voice chat runtime state and input mode during conversation reset', () => {

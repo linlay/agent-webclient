@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
-import { getViewport, submitTool } from "../../lib/apiClient";
+import { getViewport, submitTool } from "../../lib/apiClientProxy";
 import { resolveToolLabel } from "../../lib/toolDisplay";
 
 export const FrontendToolContainer: React.FC = () => {

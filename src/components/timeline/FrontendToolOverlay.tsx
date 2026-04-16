@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
-import { getViewport } from "../../lib/apiClient";
+import { getViewport } from "../../lib/apiClientProxy";
 import { FRONTEND_VIEWPORT_TYPES } from "../../context/constants";
 import { resolveToolLabel } from "../../lib/toolDisplay";
 

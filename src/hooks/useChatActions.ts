@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '../context/AppContext';
-import { getChat } from '../lib/apiClient';
+import { getChat } from '../lib/apiClientProxy';
 import type { ArtifactFile, Chat, AgentEvent, Plan, PublishedArtifact, WorkerRow } from '../context/types';
 import { createWorkerKeyFromChat } from '../lib/workerListFormatter';
 import { buildWorkerConversationRows } from '../lib/workerConversationFormatter';

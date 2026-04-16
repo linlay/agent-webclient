@@ -18,13 +18,15 @@ import {
   createRequestId,
   extractUploadChatId,
   extractUploadReferences,
+  uploadFile,
+} from "../../lib/apiClient";
+import {
   interruptChat,
   learnChat,
   rememberChat,
   steerChat,
   submitAwaiting,
-  uploadFile,
-} from "../../lib/apiClient";
+} from "../../lib/apiClientProxy";
 import {
   formatAttachmentSize,
   getAttachmentKind,

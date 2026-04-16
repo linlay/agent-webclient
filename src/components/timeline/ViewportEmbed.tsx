@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { getViewport } from "../../lib/apiClient";
+import { getViewport } from "../../lib/apiClientProxy";
 
 interface ViewportEmbedProps {
 	viewportKey: string;

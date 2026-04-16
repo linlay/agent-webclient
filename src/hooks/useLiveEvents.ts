@@ -12,12 +12,16 @@ import type { AgentEvent } from '../context/types';
  * only receives events for messages sent FROM the webclient.
  */
 export function useLiveEvents() {
-  const { dispatch, stateRef } = useAppContext();
+  const { dispatch, state, stateRef } = useAppContext();
   const { handleEvent } = useAgentEventHandler();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (state.transportMode !== 'sse') {
+      return;
+    }
+
     let disposed = false;
 
     function connect() {
@@ -108,5 +112,5 @@ export function useLiveEvents() {
         eventSourceRef.current = null;
       }
     };
-  }, [dispatch, handleEvent, stateRef]);
+  }, [dispatch, handleEvent, state.transportMode, stateRef]);
 }

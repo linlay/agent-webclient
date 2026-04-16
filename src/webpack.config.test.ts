@@ -50,6 +50,42 @@ describe('webpack devServer proxy', () => {
     expect(voiceApiRule.ws).toBe(false);
   });
 
+  it('enables websocket proxying for query websocket endpoint', () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'development',
+      BASE_URL: 'http://backend.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'development' });
+    const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
+    const queryWsRule = proxyRules.find((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/ws'));
+
+    expect(queryWsRule).toBeTruthy();
+    expect(queryWsRule.target).toBe('http://backend.example.com');
+    expect(queryWsRule.ws).toBe(true);
+  });
+
+  it('moves webpack hmr websocket off /ws', () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'development',
+      BASE_URL: 'http://backend.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'development' });
+
+    expect(config.devServer?.client?.webSocketURL?.pathname).toBe('/__webpack_hmr');
+    expect(config.devServer?.webSocketServer?.options?.path).toBe('/__webpack_hmr');
+  });
+
   it('does not rewrite query errors into SSE success responses', () => {
     const { apiRule } = loadApiProxyRule();
     const req = {

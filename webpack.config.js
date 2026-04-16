@@ -125,8 +125,25 @@ module.exports = (env, argv) => {
       allowedHosts,
       compress: false,
       hot: true,
+      client: {
+        webSocketURL: {
+          pathname: '/__webpack_hmr',
+        },
+      },
       historyApiFallback: true,
+      webSocketServer: {
+        type: 'ws',
+        options: {
+          path: '/__webpack_hmr',
+        },
+      },
       proxy: [
+        {
+          context: ['/ws'],
+          target: apiTarget,
+          changeOrigin: true,
+          ws: true,
+        },
         {
           context: ['/api/voice/ws'],
           target: voiceTarget,
