@@ -105,7 +105,7 @@ function Start-ProgramBackend {
       New-Item -ItemType File -Path $Script:ErrorLogFile -Force | Out-Null
     }
 
-    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
+    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -WindowStyle Hidden -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
     $proc.Id | Set-Content -LiteralPath $Script:PidFile
     Start-Sleep -Seconds 1
     if ($proc.HasExited) {
