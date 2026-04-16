@@ -23,6 +23,7 @@ import { useMessageActions } from "../../hooks/useMessageActions";
 import { useActionRuntime } from "../../hooks/useActionRuntime";
 import { useVoiceRuntime } from "../../hooks/useVoiceRuntime";
 import { useVoiceChatRuntime } from "../../hooks/useVoiceChatRuntime";
+import { useLiveEvents } from "../../hooks/useLiveEvents";
 
 function inferLayoutMode(width: number): LayoutMode {
 	if (width >= DESKTOP_FIXED_BREAKPOINT) return "desktop-fixed";
@@ -41,6 +42,7 @@ export const AppShell: React.FC = () => {
 	useActionRuntime();
 	useVoiceRuntime();
 	useVoiceChatRuntime();
+	useLiveEvents();
 
 	const layoutClass =
 		state.layoutMode === "desktop-fixed"

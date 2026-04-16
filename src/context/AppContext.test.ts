@@ -66,12 +66,47 @@ describe('appReducer conversation reset behavior', () => {
         getItem: () => '',
       },
     });
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/',
+          search: '',
+        },
+      } as Window & typeof globalThis;
     Object.defineProperty(globalThis, 'document', {
       configurable: true,
       value: {
         documentElement: {
           getAttribute: (key: string) =>
             key === 'data-theme' ? 'dark' : null,
+        },
+      },
+    });
+
+    const state = createInitialState();
+
+    expect(state.themeMode).toBe('dark');
+  });
+
+  it('hydrates the initial theme from hostTheme when embedded in desktop', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => 'light',
+      },
+    });
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/appagent',
+          search: '?desktopApp=1&hostTheme=dark',
+        },
+      } as Window & typeof globalThis;
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: {
+        documentElement: {
+          getAttribute: () => 'light',
         },
       },
     });

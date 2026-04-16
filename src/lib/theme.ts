@@ -6,6 +6,27 @@ export function normalizeThemeMode(value: unknown): ThemeMode {
 	return value === "dark" ? "dark" : "light";
 }
 
+export function readHostThemeMode(): ThemeMode | null {
+	if (typeof window === "undefined") {
+		return null;
+	}
+
+	try {
+		const search = window.location?.search || "";
+		if (!search) {
+			return null;
+		}
+		const params = new URLSearchParams(search);
+		const hostTheme = params.get("hostTheme");
+		if (!hostTheme) {
+			return null;
+		}
+		return normalizeThemeMode(hostTheme);
+	} catch (_error) {
+		return null;
+	}
+}
+
 export function readStoredThemeMode(): ThemeMode | null {
 	if (typeof localStorage === "undefined") {
 		return null;
@@ -40,6 +61,11 @@ export function applyThemeModeToDocument(themeMode: ThemeMode): void {
 }
 
 export function resolveInitialThemeMode(): ThemeMode {
+	const hostThemeMode = readHostThemeMode();
+	if (hostThemeMode) {
+		return hostThemeMode;
+	}
+
 	const storedThemeMode = readStoredThemeMode();
 	if (storedThemeMode) {
 		return storedThemeMode;

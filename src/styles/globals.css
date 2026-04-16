@@ -2,33 +2,36 @@
    CSS Custom Properties — Theme System
    ======================================== */
 :root {
-  --bg-base: #f5f7fb;
-  --bg-elev-1: #f8fafc;
+  --bg-base: #f2f3f5;
+  --bg-elev-1: #f7f8fa;
   --bg-elev-2: #ffffff;
-  --bg-input: #f3f6fb;
-  --bg-hover: #edf2f8;
-  --ink-1: #0f1f35;
-  --ink-2: #2f445f;
-  --ink-muted: #6b7f99;
-  --line-soft: rgba(22, 53, 93, 0.14);
-  --line-strong: rgba(22, 53, 93, 0.28);
-  --accent-electric: #1677ff;
-  --accent-electric-strong: #0053cb;
-  --accent-lime: #0dbf8f;
-  --accent-warn: #d88b22;
-  --accent-danger: #d33b58;
-  --accent-soft: rgba(22, 119, 255, 0.11);
-  --glass: rgba(255, 255, 255, 0.86);
-  --shadow-soft: 0 4px 14px rgba(19, 37, 63, 0.08);
-  --shadow-medium: 0 10px 28px rgba(17, 34, 58, 0.12);
-  --shadow-strong: 0 18px 42px rgba(12, 29, 53, 0.16);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
+  --bg-input: #f7f8fa;
+  --bg-hover: #eff3fa;
+  --ink-1: #1d2129;
+  --ink-2: #4e5969;
+  --ink-muted: #86909c;
+  --line-soft: #e5e6eb;
+  --line-strong: #c9cdd4;
+  --accent-electric: #2663eb;
+  --accent-electric-strong: #1d4ed8;
+  --accent-lime: #00b42a;
+  --accent-warn: #ff7d00;
+  --accent-danger: #f53f3f;
+  --accent-soft: #e8f0ff;
+  --glass: rgba(255, 255, 255, 0.9);
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-strong: 0 16px 40px rgba(0, 0, 0, 0.16);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --tool-pill-scale: 0.86;
   --colorFill: rgba(0, 0, 0, 0.15);
   --colorFillSecondary: rgba(0, 0, 0, 0.06);
+  --left-sidebar-width: 240px;
+  --right-sidebar-width: 320px;
+  --top-nav-height: 56px;
 
   --bg-page: var(--bg-base);
   --bg-card: var(--bg-elev-2);
@@ -45,26 +48,26 @@
 }
 
 html[data-theme='dark'] {
-  --bg-base: #0b1422;
-  --bg-elev-1: #101d31;
-  --bg-elev-2: #16263d;
-  --bg-input: #1a2d49;
-  --bg-hover: #1f3556;
-  --ink-1: #eaf3ff;
-  --ink-2: #c3d5ef;
-  --ink-muted: #89a5cc;
-  --line-soft: rgba(128, 170, 230, 0.2);
-  --line-strong: rgba(128, 170, 230, 0.34);
-  --accent-electric: #4f9cff;
-  --accent-electric-strong: #8dc0ff;
-  --accent-lime: #2cd2a0;
-  --accent-warn: #f2b34a;
-  --accent-danger: #ff6e87;
-  --accent-soft: rgba(79, 156, 255, 0.14);
-  --glass: rgba(14, 29, 49, 0.82);
-  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.28);
-  --shadow-medium: 0 12px 30px rgba(0, 0, 0, 0.36);
-  --shadow-strong: 0 22px 48px rgba(0, 0, 0, 0.46);
+  --bg-base: #0d0e10;
+  --bg-elev-1: #111214;
+  --bg-elev-2: #161719;
+  --bg-input: #111214;
+  --bg-hover: #1a1c20;
+  --ink-1: #f2f3f5;
+  --ink-2: #c9cdd4;
+  --ink-muted: #86909c;
+  --line-soft: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --accent-electric: #4f88ff;
+  --accent-electric-strong: #75a5ff;
+  --accent-lime: #27c346;
+  --accent-warn: #ff9a2e;
+  --accent-danger: #f76560;
+  --accent-soft: rgba(79, 136, 255, 0.16);
+  --glass: rgba(22, 23, 25, 0.88);
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.24);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-strong: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
 /* ========================================
@@ -81,13 +84,18 @@ body {
 }
 
 body {
-  font-family: 'Manrope', sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
   color: var(--ink-1);
+  background: var(--bg-base);
   overflow-x: hidden;
 }
 
 html[data-theme='dark'] body {
-  background: linear-gradient(180deg, var(--bg-base), var(--bg-elev-1));
+  background: var(--bg-base);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 button,
@@ -124,12 +132,12 @@ button {
   border-radius: var(--radius-md);
   background: var(--bg-elev-2);
   cursor: pointer;
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 button:hover {
-  border-color: var(--line-strong);
-  box-shadow: 0 8px 20px rgba(18, 82, 180, 0.14);
+  border-color: color-mix(in srgb, var(--accent-electric) 18%, var(--line-strong));
+  box-shadow: var(--shadow-soft);
 }
 
 button:active {
@@ -147,6 +155,7 @@ button:active {
   gap: 6px;
   position: relative;
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+  box-shadow: none;
 }
 
 .ui-btn.ui-btn-sm {
@@ -185,7 +194,7 @@ button:active {
 }
 
 .ui-btn.ui-btn-primary {
-  border-color: color-mix(in srgb, var(--accent-electric) 48%, var(--line-soft));
+  border-color: color-mix(in srgb, var(--accent-electric) 64%, var(--line-soft));
   background: var(--accent-electric);
   color: #fff;
 }
@@ -204,18 +213,18 @@ button:active {
 }
 
 .ui-btn.ui-btn-secondary {
-  background: color-mix(in srgb, var(--bg-elev-2) 95%, var(--bg-input));
+  background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--bg-input));
 }
 
 .ui-btn.is-active {
-  border-color: color-mix(in srgb, var(--accent-electric) 42%, var(--line-soft));
-  background: color-mix(in srgb, var(--accent-soft) 48%, var(--bg-elev-2));
+  border-color: color-mix(in srgb, var(--accent-electric) 46%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
   color: var(--accent-electric-strong);
 }
 
 .ui-btn:hover {
-  border-color: var(--line-strong);
-  box-shadow: 0 6px 14px rgba(18, 82, 180, 0.12);
+  border-color: color-mix(in srgb, var(--accent-electric) 22%, var(--line-strong));
+  box-shadow: var(--shadow-soft);
 }
 
 .ui-btn.ui-btn-ghost:hover {
@@ -253,9 +262,9 @@ button:active {
 
 .ui-input {
   width: 100%;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
+  background: color-mix(in srgb, var(--bg-input) 94%, var(--bg-elev-2));
   color: var(--ink-1);
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
@@ -274,14 +283,16 @@ button:active {
 }
 
 .ui-input:focus {
-  border-color: color-mix(in srgb, var(--accent-electric) 56%, var(--line-soft));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 34%, transparent);
+  border-color: color-mix(in srgb, var(--accent-electric) 60%, var(--line-soft));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 64%, transparent);
+  background: var(--bg-elev-2);
 }
 
 .ui-card {
-  border: 1px solid color-mix(in srgb, var(--line-soft) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: var(--radius-md);
   background: var(--bg-elev-2);
+  box-shadow: var(--shadow-soft);
 }
 
 .ui-card.ui-card-subtle {
@@ -295,7 +306,7 @@ button:active {
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
   padding: 2px 8px;
-  font: 600 10px/1.35 'IBM Plex Mono', monospace;
+  font: 600 11px/1.35 "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
   color: var(--ink-2);
   background: color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-input));
 }
@@ -372,6 +383,9 @@ textarea {
   flex-direction: column;
   position: relative;
   isolation: isolate;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 58%, transparent), transparent 28%),
+    var(--bg-base);
 }
 
 /* ========================================
@@ -381,17 +395,17 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--glass) 88%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 86%, transparent);
-  backdrop-filter: blur(14px) saturate(120%);
-  box-shadow: 0 12px 22px rgba(18, 42, 90, 0.08);
+  background: color-mix(in srgb, var(--glass) 96%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
+  backdrop-filter: blur(16px) saturate(115%);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   animation: fade-slide-in 0.45s ease both;
 }
 
 .top-nav-inner {
-  min-height: 58px;
+  min-height: var(--top-nav-height);
   width: 100%;
-  padding: 0 16px;
+  padding: 0 16px 0 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -423,15 +437,15 @@ textarea {
 }
 
 .brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  font: 800 14px/1 'Syne', sans-serif;
+  font: 700 13px/1 "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   color: #fff;
-  background: linear-gradient(140deg, #1677ff, #00a6e6 54%, #00bf86);
-  box-shadow: 0 10px 18px rgba(18, 110, 224, 0.3);
+  background: linear-gradient(145deg, #2663eb, #4f88ff 72%);
+  box-shadow: 0 8px 18px rgba(38, 99, 235, 0.24);
 }
 
 .brand-text {
@@ -441,15 +455,15 @@ textarea {
 }
 
 .brand-text strong {
-  font-family: 'Syne', sans-serif;
   font-size: 13px;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .brand-text span {
   font-size: 11px;
   color: var(--ink-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 
 .icon-btn {
@@ -457,27 +471,27 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 999px;
-  padding: 7px 14px;
-  background: color-mix(in srgb, var(--bg-elev-2) 86%, transparent);
+  border-radius: 10px;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
   color: var(--ink-2);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .icon-btn:hover {
   color: var(--accent-electric-strong);
-  background: color-mix(in srgb, var(--accent-soft) 55%, var(--bg-elev-2));
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--bg-elev-2));
 }
 
 .top-nav .icon-btn.ui-btn.is-icon-only,
 .top-nav .current-worker-tool.ui-btn {
-  width: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 .top-nav .icon-btn .material-symbols-rounded,
@@ -486,21 +500,19 @@ textarea {
 }
 
 .top-nav-new-chat-btn {
-  border-color: color-mix(in srgb, var(--accent-electric) 22%, var(--line-soft));
-  background: linear-gradient(180deg,
-      color-mix(in srgb, var(--accent-soft) 44%, var(--bg-elev-2)),
-      color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-input)));
+  border-color: color-mix(in srgb, var(--accent-electric) 36%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-soft) 90%, var(--bg-elev-2));
 }
 
 .current-worker-card {
   position: relative;
   min-width: min(360px, 100%);
   max-width: 100%;
-  padding: 8px 14px;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-elev-2) 90%, transparent);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
+  box-shadow: var(--shadow-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -532,7 +544,8 @@ textarea {
 .current-worker-name {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.2;
   color: var(--ink-1);
   white-space: nowrap;
@@ -543,7 +556,7 @@ textarea {
 .current-worker-role {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.3;
   color: var(--ink-muted);
   white-space: nowrap;
@@ -558,8 +571,8 @@ textarea {
 }
 
 .current-worker-tool.ui-btn {
-  border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
-  background: color-mix(in srgb, var(--bg-elev-2) 94%, #f7fbff);
+  border-color: color-mix(in srgb, var(--line-soft) 96%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, #f7fbff);
   box-shadow: none;
 }
 
@@ -611,18 +624,18 @@ textarea {
    ======================================== */
 .status-pill {
   position: relative;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: 999px;
   padding: 6px 11px 6px 24px;
   font: 600 11px/1.25 'IBM Plex Mono', monospace;
   letter-spacing: 0.02em;
   color: var(--ink-2);
-  background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
   max-width: 320px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+  box-shadow: none;
 }
 
 .status-pill::before {
@@ -649,7 +662,7 @@ textarea {
 .status-pill.is-running {
   border-color: color-mix(in srgb, var(--accent-electric) 42%, var(--line-soft));
   color: var(--accent-electric-strong);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 80%, transparent), 0 0 0 4px color-mix(in srgb, var(--accent-soft) 26%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 80%, transparent);
 }
 
 .status-pill.is-running::before {
@@ -683,14 +696,15 @@ textarea {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-base));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-elev-1) 68%, var(--bg-base)), var(--bg-base));
   animation: fade-slide-in 0.5s 0.08s ease both;
 }
 
 .messages-scroll {
   height: 100%;
   overflow-y: auto;
-  padding: 18px 18px 26px;
+  padding: 20px 20px 26px;
   background: transparent;
   scroll-behavior: smooth;
 }
@@ -731,13 +745,14 @@ textarea {
 .timeline-empty {
   width: min(420px, 100%);
   margin: auto;
-  border: 1px dashed color-mix(in srgb, var(--line-strong) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--bg-elev-1));
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-elev-1));
   color: var(--ink-muted);
   font-size: 14px;
   text-align: center;
   padding: 26px;
+  box-shadow: var(--shadow-soft);
 }
 
 .timeline-stack {
@@ -768,7 +783,7 @@ textarea {
   bottom: 0;
   width: 1px;
   transform: translateX(-0.5px);
-  background: color-mix(in srgb, var(--line-soft) 80%, transparent);
+  background: color-mix(in srgb, var(--line-soft) 100%, transparent);
 }
 
 .timeline-row {
@@ -916,9 +931,9 @@ textarea {
 }
 
 .attachment-card.is-image {
-  border: 1px solid color-mix(in srgb, rgba(13, 45, 94, 0.16) 78%, rgba(255, 255, 255, 0.92));
-  background: color-mix(in srgb, white 94%, var(--bg-input));
-  box-shadow: 0 14px 32px rgba(17, 39, 76, 0.08);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
+  background: color-mix(in srgb, white 96%, var(--bg-input));
+  box-shadow: var(--shadow-soft);
 }
 
 .attachment-card-image-badge {
@@ -941,10 +956,10 @@ textarea {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 20px 9px 10px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: var(--accent-soft);
+  padding: 9px 16px 9px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 94%, var(--accent-soft));
 }
 
 .attachment-card-file-icon {
@@ -1161,12 +1176,12 @@ textarea {
 }
 
 .timeline-user-bubble {
-  border-radius: 18px;
-  border-top-right-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-electric) 42%, transparent);
-  background: linear-gradient(140deg, #2a7df8, #1a66d9);
+  border-radius: 14px;
+  border-top-right-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-electric) 58%, transparent);
+  background: linear-gradient(140deg, #2663eb, #1d4ed8);
   color: #f8fcff;
-  box-shadow: 0 6px 14px rgba(13, 71, 173, 0.22);
+  box-shadow: 0 6px 16px rgba(38, 99, 235, 0.18);
   padding: 10px 14px;
 }
 
@@ -1439,6 +1454,173 @@ textarea {
 .timeline-markdown .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+html[data-theme='dark'] .app-shell {
+  background: var(--bg-base);
+}
+
+html[data-theme='dark'] .top-nav {
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .icon-btn,
+html[data-theme='dark'] .current-worker-card,
+html[data-theme='dark'] .status-pill {
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .icon-btn,
+html[data-theme='dark'] .current-worker-tool.ui-btn,
+html[data-theme='dark'] .current-worker-card,
+html[data-theme='dark'] .status-pill,
+html[data-theme='dark'] .ui-list-item,
+html[data-theme='dark'] .chat-item,
+html[data-theme='dark'] .composer-pill,
+html[data-theme='dark'] .mention-suggest,
+html[data-theme='dark'] .slash-command-popover,
+html[data-theme='dark'] .frontend-tool-container,
+html[data-theme='dark'] .worker-chat-sidebar,
+html[data-theme='dark'] .worker-chat-float-btn,
+html[data-theme='dark'] .timeline-empty,
+html[data-theme='dark'] .attachment-card-file-shell,
+html[data-theme='dark'] .attachment-card.is-image,
+html[data-theme='dark'] .plan-header,
+html[data-theme='dark'] .floating-plan.is-expanded .plan-list {
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+}
+
+html[data-theme='dark'] .conversation-stage {
+  background: linear-gradient(180deg, var(--bg-elev-1), var(--bg-base));
+}
+
+html[data-theme='dark'] .timeline-empty {
+  color: var(--ink-muted);
+}
+
+html[data-theme='dark'] .ui-list-item:hover,
+html[data-theme='dark'] .chat-item:hover {
+  background: color-mix(in srgb, var(--accent-soft) 28%, var(--bg-elev-2));
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .ui-list-item.is-selected,
+html[data-theme='dark'] .chat-item.is-active {
+  background: color-mix(in srgb, var(--accent-soft) 52%, var(--bg-elev-2));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 36%, transparent);
+}
+
+html[data-theme='dark'] .timeline-lane::before {
+  background: color-mix(in srgb, var(--line-strong) 68%, transparent);
+}
+
+html[data-theme='dark'] .timeline-user-bubble {
+  border-color: color-mix(in srgb, var(--accent-electric) 60%, transparent);
+  background: linear-gradient(140deg, #2558cf, #1d4ed8);
+  box-shadow: 0 6px 18px rgba(8, 24, 56, 0.28);
+}
+
+html[data-theme='dark'] .tool-trigger-status,
+html[data-theme='dark'] .tool-call-inline,
+html[data-theme='dark'] .tool-call-result,
+html[data-theme='dark'] .status-line,
+html[data-theme='dark'] .event-row,
+html[data-theme='dark'] .attachment-preview-text,
+html[data-theme='dark'] .attachment-preview-media-shell,
+html[data-theme='dark'] .attachment-preview-frame {
+  background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme='dark'] .composer-pill {
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-elev-1));
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .composer-pill:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 80%, transparent);
+}
+
+html[data-theme='dark'] .composer-control-input,
+html[data-theme='dark'] .ui-input,
+html[data-theme='dark'] .awaiting-free-text,
+html[data-theme='dark'] .settings-textarea,
+html[data-theme='dark'] .field-group textarea {
+  background: color-mix(in srgb, var(--bg-elev-1) 96%, var(--bg-elev-2)) !important;
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent) !important;
+}
+
+html[data-theme='dark'] .send-btn {
+  box-shadow: 0 6px 16px rgba(10, 24, 56, 0.34);
+}
+
+html[data-theme='dark'] .voice-chat-panel {
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--voice-accent) 8%, transparent), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-elev-2) 98%, transparent), color-mix(in srgb, var(--bg-elev-1) 96%, transparent));
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .voice-chat-panel::before,
+html[data-theme='dark'] .voice-chat-panel::after {
+  opacity: 0.6;
+}
+
+html[data-theme='dark'] .voice-chat-orb,
+html[data-theme='dark'] .voice-chat-status,
+html[data-theme='dark'] .voice-chat-worker,
+html[data-theme='dark'] .voice-chat-summary-grid,
+html[data-theme='dark'] .voice-chat-connection {
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .voice-chat-snippet-user,
+html[data-theme='dark'] .voice-chat-snippet-assistant,
+html[data-theme='dark'] .voice-chat-snippet {
+  background: transparent;
+}
+
+html[data-theme='dark'] .timeline-markdown table,
+html[data-theme='dark'] .timeline-markdown pre,
+html[data-theme='dark'] .timeline-markdown blockquote {
+  background: color-mix(in srgb, var(--bg-elev-1) 94%, var(--bg-elev-2));
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme='dark'] .timeline-markdown th,
+html[data-theme='dark'] .timeline-markdown td,
+html[data-theme='dark'] .timeline-markdown img {
+  border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme='dark'] .timeline-markdown thead th {
+  background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+}
+
+html[data-theme='dark'] .timeline-markdown code:not(pre code) {
+  padding: 0.15em 0.42em;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+  color: var(--ink);
+}
+
+html[data-theme='dark'] .timeline-markdown a {
+  color: var(--accent-strong);
+}
+
+html[data-theme='dark'] .sidebar,
+html[data-theme='dark'] .right-sidebar {
+  background: color-mix(in srgb, var(--bg-elev-2) 100%, var(--bg-elev-1));
+}
+
+html[data-theme='dark'] .worker-chat-float-btn:hover {
+  box-shadow: none !important;
 }
 
 .system-alert {
@@ -1840,7 +2022,7 @@ textarea {
   position: sticky;
   bottom: 0;
   z-index: 20;
-  padding: 0 14px 14px;
+  padding: 0 16px 16px;
 }
 
 .bottom-dock-inner {
@@ -1890,21 +2072,18 @@ textarea {
   align-items: flex-start;
   flex: 1 1 auto;
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  border-radius: 15px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bg-elev-2) 97%, white),
-      color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-input)));
+  border: 1px solid color-mix(in srgb, var(--line-soft) 98%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
   padding: 6px 6px 6px 12px;
-  box-shadow: 0 10px 24px rgba(17, 39, 76, 0.05);
-  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
   transition: box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .composer-pill:focus-within {
   border-color: var(--accent-electric);
-  box-shadow: var(--shadow-soft), 0 0 0 3px color-mix(in srgb, var(--accent-soft) 34%, transparent);
+  box-shadow: var(--shadow-soft), 0 0 0 3px color-mix(in srgb, var(--accent-soft) 78%, transparent);
 }
 
 .composer-pill textarea {
@@ -1987,7 +2166,7 @@ textarea {
   width: min(180px, 100%);
   border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--bg-input) 88%, var(--bg-elev-2));
   padding: 5px 8px;
   color: var(--ink-1);
   font-size: 12px;
@@ -2018,7 +2197,7 @@ textarea {
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 0;
   color: var(--ink-muted);
   background: color-mix(in srgb, rgba(255, 255, 255, 0.96) 96%, var(--bg-elev-2));
@@ -2081,7 +2260,7 @@ textarea {
 .plan-toggle-btn {
   min-height: 32px !important;
   padding: 0 9px !important;
-  border-radius: 999px !important;
+  border-radius: 8px !important;
   color: var(--accent-electric-strong);
   border: 1px solid color-mix(in srgb, var(--accent-electric) 24%, var(--line-soft));
   background: color-mix(in srgb, var(--accent-soft) 14%, var(--bg-elev-2));
@@ -2104,7 +2283,7 @@ textarea {
 .composer-plus-btn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
   background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
   color: var(--ink-2);
@@ -2123,7 +2302,7 @@ textarea {
   left: 0;
   min-width: 170px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
-  border-radius: 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
   box-shadow: var(--shadow-medium);
   padding: 8px 10px;
@@ -2133,7 +2312,7 @@ textarea {
 .send-btn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   border: 0;
   display: grid;
   place-items: center;
@@ -2141,7 +2320,7 @@ textarea {
   font-weight: 700;
   color: #fff;
   background: var(--accent-electric);
-  box-shadow: 0 4px 10px rgba(22, 119, 255, 0.24);
+  box-shadow: 0 6px 16px rgba(38, 99, 235, 0.22);
   flex: 0 0 auto;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   align-self: center;
@@ -2996,7 +3175,7 @@ textarea {
 
 .interrupt-btn {
   height: 32px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 0;
   padding: 0 12px;
   font-size: 11px;
@@ -3032,10 +3211,10 @@ textarea {
 
 .steer-preview {
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-bottom: 0;
-  border-radius: 20px 20px 0 0;
-  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+  border-radius: 12px 12px 0 0;
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
   color: var(--ink-1);
   padding: 8px 12px 9px;
   font-size: 12px;
@@ -3091,7 +3270,7 @@ textarea {
 
 .steer-btn {
   height: 34px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 0;
   padding: 0 14px;
   font-size: 12px;
@@ -3120,9 +3299,9 @@ textarea {
   left: 0;
   right: 0;
   margin-bottom: 6px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: var(--radius-md);
-  background: var(--bg-elev-2);
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
   box-shadow: var(--shadow-medium);
   max-height: 260px;
   overflow-y: auto;
@@ -3548,9 +3727,9 @@ textarea {
   top: 0;
   bottom: 0;
   z-index: 40;
-  width: 300px;
-  background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
-  border-right: 1px solid var(--line-soft);
+  width: var(--left-sidebar-width);
+  background: color-mix(in srgb, var(--bg-elev-1) 96%, var(--bg-elev-2));
+  border-right: 1px solid color-mix(in srgb, var(--line-soft) 100%, transparent);
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
@@ -3559,10 +3738,11 @@ textarea {
 }
 
 .right-sidebar {
+  width: var(--right-sidebar-width);
   right: 0;
   left: auto;
   border-right: 0;
-  border-left: 1px solid var(--line-soft);
+  border-left: 1px solid color-mix(in srgb, var(--line-soft) 100%, transparent);
   transform: translateX(100%);
 }
 
@@ -3574,8 +3754,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line-soft);
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
 }
 
 .sidebar-head h2 {
@@ -3642,7 +3822,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 12px;
 }
 
 .icon-btn-fixed {
@@ -3683,16 +3863,16 @@ textarea {
 .chat-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 10px 10px;
+  padding: 6px 12px 12px;
 }
 
 .ui-list-item,
 .chat-item {
   width: 100%;
   text-align: left;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 94%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
+  border: 1px solid color-mix(in srgb, var(--line-soft) 98%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
   padding: 10px;
   display: block;
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -3710,16 +3890,16 @@ textarea {
 
 .ui-list-item:hover,
 .chat-item:hover {
-  background: color-mix(in srgb, var(--bg-hover) 82%, var(--bg-elev-2));
-  box-shadow: none;
-  border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
+  background: color-mix(in srgb, var(--accent-soft) 44%, var(--bg-elev-2));
+  box-shadow: var(--shadow-soft);
+  border-color: color-mix(in srgb, var(--accent-electric) 18%, var(--line-soft));
 }
 
 .ui-list-item.is-selected,
 .chat-item.is-active {
-  background-color: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent-electric) 60%, var(--line-soft));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 92%, transparent);
+  background-color: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+  border-color: color-mix(in srgb, var(--accent-electric) 48%, var(--line-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 72%, transparent);
 }
 
 .ui-list-item.is-loading,
@@ -4625,7 +4805,7 @@ textarea {
 
 .layout-desktop-fixed {
   display: grid;
-  grid-template-columns: 300px 1fr 300px;
+  grid-template-columns: var(--left-sidebar-width) 1fr var(--right-sidebar-width);
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   height: 100dvh;
@@ -4655,7 +4835,7 @@ textarea {
 }
 
 .layout-desktop-fixed.desktop-debug-disabled {
-  grid-template-columns: 300px 1fr 0;
+  grid-template-columns: var(--left-sidebar-width) 1fr 0;
 }
 
 .layout-desktop-fixed.desktop-debug-disabled .right-sidebar {
@@ -4667,12 +4847,12 @@ textarea {
 }
 
 .layout-desktop-fixed.desktop-debug-enabled {
-  grid-template-columns: 300px 1fr 300px;
+  grid-template-columns: var(--left-sidebar-width) 1fr var(--right-sidebar-width);
 }
 
 .layout-tablet-mixed {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: var(--left-sidebar-width) 1fr;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   height: 100dvh;
@@ -4686,7 +4866,7 @@ textarea {
 .layout-tablet-mixed .left-sidebar {
   transform: translateX(0);
   position: relative;
-  width: 260px;
+  width: var(--left-sidebar-width);
   grid-column: 1;
   grid-row: 2 / -1;
   border-right: 1px solid var(--line-soft);
@@ -5102,13 +5282,13 @@ textarea {
 
 .worker-chat-sidebar {
   position: fixed;
-  top: 72px;
-  right: 308px;
+  top: calc(var(--top-nav-height) + 16px);
+  right: calc(var(--right-sidebar-width) + 16px);
   bottom: 88px;
   width: 280px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
   box-shadow: var(--shadow-medium);
   display: flex;
   flex-direction: column;
@@ -5236,7 +5416,7 @@ textarea {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 8px 16px rgba(10, 38, 87, 0.16) !important;
+  box-shadow: var(--shadow-medium) !important;
 }
 
 .worker-chat-float-btn:hover {
@@ -5254,7 +5434,7 @@ textarea {
 }
 
 .layout-desktop-fixed.desktop-debug-enabled .worker-chat-float-btn {
-  right: 300px;
+  right: var(--right-sidebar-width);
 }
 
 @media (max-width: 1279px) {
