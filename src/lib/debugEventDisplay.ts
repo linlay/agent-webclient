@@ -42,57 +42,24 @@ export function isErrorEventType(eventType: string): boolean {
   return /(\.error|\.fail|\.cancel|\.cancelled)$/.test(type);
 }
 
-export function summarizeEvent(event: AgentEvent): string {
+export function getEventId(event: AgentEvent): string {
   const keys = [
+    'requestId',
     'chatId',
     'runId',
+    'awaitingId',
     'contentId',
     'reasoningId',
     'toolId',
     'actionId',
     'planId',
     'taskId',
+    'artifactId',
   ];
-
-  const kv = keys
-    .filter((key) => Object.prototype.hasOwnProperty.call(event, key))
-    .map((key) => `${key}=${safeStr(event[key])}`)
-    .join(' ');
-
-  if (
-    event.type === 'request.query'
-    || event.type === 'request.steer'
-  ) {
-    const message = safeStr(event.message).trim();
-    return message || kv;
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(event, key)) {
+      return safeStr(event[key]);
+    }
   }
-
-  if (String(event.type || '').startsWith('tool.')) {
-    const label = resolveToolLabel({
-      toolLabel: safeStr(event.toolLabel),
-      toolName: safeStr(event.toolName),
-      viewportKey: safeStr(event.viewportKey),
-      toolId: safeStr(event.toolId),
-    }, '');
-    return [label, kv].filter(Boolean).join(' ').trim();
-  }
-
-  if (kv) return kv;
-
-  if (event.type === 'content.delta' || event.type === 'reasoning.delta') {
-    return safeStr(event.delta).slice(0, 120);
-  }
-
-  if (event.type === 'content.snapshot' || event.type === 'reasoning.snapshot') {
-    return safeStr(event.text).slice(0, 120);
-  }
-
-  if (event.type === 'tool.result') {
-    const result = event.result;
-    return typeof result === 'string'
-      ? result.slice(0, 120)
-      : safeStr(JSON.stringify(result)).slice(0, 120);
-  }
-
-  return '';
+  return ''
 }

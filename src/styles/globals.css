@@ -3950,7 +3950,6 @@ textarea {
 }
 
 .event-row>strong {
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -3981,7 +3980,6 @@ textarea {
   white-space: nowrap;
   line-height: 1.35;
   opacity: 0.9;
-  padding-left: 8px;
 }
 
 .event-row-summary {

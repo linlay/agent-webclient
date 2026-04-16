@@ -9,15 +9,15 @@ import {
   classifyEventGroup,
   isErrorEventType,
   type DebugEventGroup,
+  getEventId,
 } from "../../lib/debugEventDisplay";
 import { Flex, Tabs, Tag } from "antd";
 
 const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  month: "2-digit",
-  day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
   second: "2-digit",
+  fractionalSecondDigits: 3,
   hour12: false,
 });
 
@@ -38,6 +38,7 @@ const EventRow: React.FC<{
   const group = classifyEventGroup(type);
   const kindClass = group ? `event-group-${group}` : "";
   const errorClass = isErrorEventType(type) ? "is-error-type" : "";
+  const id = getEventId(event);
 
   return (
     <Flex
@@ -48,8 +49,13 @@ const EventRow: React.FC<{
       onClick={onClick}
     >
       <div className="event-row-mark"></div>
-      <strong>{type}</strong>
-      <span className="event-row-time">{ts}</span>
+      <Flex vertical style={{ flex: 1 }}>
+        <Flex justify="space-between">
+          <strong>{type}</strong>
+          <span className="event-row-time">{ts}</span>
+        </Flex>
+        <span className="event-row-time">{id}</span>
+      </Flex>
     </Flex>
   );
 };
