@@ -94,69 +94,86 @@ export function useWorkerData(input: {
     workerPriorityKey: stateRef.current.workerPriorityKey,
   }), [stateRef]);
 
-  const loadAgents = useCallback(async () => {
+  const runWithSidebarLoading = useCallback(async <T,>(task: () => Promise<T>): Promise<T> => {
+    dispatch({ type: 'START_SIDEBAR_REQUEST' });
     try {
-      const response = await getAgents();
-      const agents = (response.data as Agent[]) || [];
-      dispatch({ type: 'SET_AGENTS', agents });
-      rebuildWorkerRowsFromState({ agents });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
+      return await task();
+    } finally {
+      dispatch({ type: 'FINISH_SIDEBAR_REQUEST' });
     }
-  }, [dispatch, rebuildWorkerRowsFromState]);
+  }, [dispatch]);
+
+  const loadAgents = useCallback(async () => {
+    await runWithSidebarLoading(async () => {
+      try {
+        const response = await getAgents();
+        const agents = (response.data as Agent[]) || [];
+        dispatch({ type: 'SET_AGENTS', agents });
+        rebuildWorkerRowsFromState({ agents });
+      } catch (error) {
+        dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
+      }
+    });
+  }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const loadTeams = useCallback(async () => {
-    try {
-      const response = await getTeams();
-      const teams = (response.data as Team[]) || [];
-      dispatch({ type: 'SET_TEAMS', teams });
-      rebuildWorkerRowsFromState({ teams });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadTeams error] ${(error as Error).message}` });
-    }
-  }, [dispatch, rebuildWorkerRowsFromState]);
+    await runWithSidebarLoading(async () => {
+      try {
+        const response = await getTeams();
+        const teams = (response.data as Team[]) || [];
+        dispatch({ type: 'SET_TEAMS', teams });
+        rebuildWorkerRowsFromState({ teams });
+      } catch (error) {
+        dispatch({ type: 'APPEND_DEBUG', line: `[loadTeams error] ${(error as Error).message}` });
+      }
+    });
+  }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const loadChats = useCallback(async () => {
-    try {
-      const response = await getChats();
-      const chats = mergeFetchedChats(stateRef.current.chats, (response.data as Chat[]) || []);
-      dispatch({ type: 'SET_CHATS', chats });
-      rebuildWorkerRowsFromState({ chats });
-    } catch (error) {
-      dispatch({ type: 'APPEND_DEBUG', line: `[loadChats error] ${(error as Error).message}` });
-    }
-  }, [dispatch, rebuildWorkerRowsFromState, stateRef]);
+    await runWithSidebarLoading(async () => {
+      try {
+        const response = await getChats();
+        const chats = mergeFetchedChats(stateRef.current.chats, (response.data as Chat[]) || []);
+        dispatch({ type: 'SET_CHATS', chats });
+        rebuildWorkerRowsFromState({ chats });
+      } catch (error) {
+        dispatch({ type: 'APPEND_DEBUG', line: `[loadChats error] ${(error as Error).message}` });
+      }
+    });
+  }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
 
   const refreshWorkerData = useCallback(async () => {
-    await refreshWorkerDataWithCoordinator({
-      fetchAgents: async () => {
-        const response = await getAgents();
-        return (response.data as Agent[]) || [];
-      },
-      fetchTeams: async () => {
-        const response = await getTeams();
-        return (response.data as Team[]) || [];
-      },
-      fetchChats: async () => {
-        const response = await getChats();
-        return (response.data as Chat[]) || [];
-      },
-      getSnapshot: getWorkerDataSnapshot,
-      applyAgents: (agents) => {
-        dispatch({ type: 'SET_AGENTS', agents });
-      },
-      applyTeams: (teams) => {
-        dispatch({ type: 'SET_TEAMS', teams });
-      },
-      applyChats: (chats) => {
-        dispatch({ type: 'SET_CHATS', chats });
-      },
-      rebuildWorkerRows: rebuildWorkerRowsFromState,
-      appendDebug: (line) => {
-        dispatch({ type: 'APPEND_DEBUG', line });
-      },
+    await runWithSidebarLoading(async () => {
+      await refreshWorkerDataWithCoordinator({
+        fetchAgents: async () => {
+          const response = await getAgents();
+          return (response.data as Agent[]) || [];
+        },
+        fetchTeams: async () => {
+          const response = await getTeams();
+          return (response.data as Team[]) || [];
+        },
+        fetchChats: async () => {
+          const response = await getChats();
+          return (response.data as Chat[]) || [];
+        },
+        getSnapshot: getWorkerDataSnapshot,
+        applyAgents: (agents) => {
+          dispatch({ type: 'SET_AGENTS', agents });
+        },
+        applyTeams: (teams) => {
+          dispatch({ type: 'SET_TEAMS', teams });
+        },
+        applyChats: (chats) => {
+          dispatch({ type: 'SET_CHATS', chats });
+        },
+        rebuildWorkerRows: rebuildWorkerRowsFromState,
+        appendDebug: (line) => {
+          dispatch({ type: 'APPEND_DEBUG', line });
+        },
+      });
     });
-  }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState]);
+  }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const ensureAgentLoadedForWorkerSelection = useCallback(async (
     detail: { workerKey?: unknown; agentKey?: unknown },

@@ -91,6 +91,7 @@ export function createInitialState(): AppState {
 		agents: [],
 		teams: [],
 		chats: [],
+		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
 		pendingNewChatAgentKey: "",
 		workerPriorityKey: "",
@@ -195,6 +196,8 @@ export type AppAction =
 	| { type: "SET_AGENTS"; agents: Agent[] }
 	| { type: "SET_TEAMS"; teams: Team[] }
 	| { type: "SET_CHATS"; chats: Chat[] }
+	| { type: "START_SIDEBAR_REQUEST" }
+	| { type: "FINISH_SIDEBAR_REQUEST" }
 	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }
@@ -439,6 +442,19 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return { ...state, chats: action.chats };
+		case "START_SIDEBAR_REQUEST":
+			return {
+				...state,
+				sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1,
+			};
+		case "FINISH_SIDEBAR_REQUEST":
+			return {
+				...state,
+				sidebarPendingRequestCount: Math.max(
+					0,
+					state.sidebarPendingRequestCount - 1,
+				),
+			};
 		case "UPSERT_CHAT":
 			return {
 				...state,

@@ -470,6 +470,7 @@ export interface AppState {
   agents: Agent[];
   teams: Team[];
   chats: Chat[];
+  sidebarPendingRequestCount: number;
   chatAgentById: Map<string, string>;
   pendingNewChatAgentKey: string;
   workerPriorityKey: string;

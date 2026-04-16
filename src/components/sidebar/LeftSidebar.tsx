@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Avatar,
   Button,
   Collapse,
   CollapseProps,
   Flex,
   Modal,
+  Spin,
   Tooltip,
   Typography,
 } from "antd";
@@ -140,6 +140,7 @@ const WorkerPanelHeader: React.FC<{
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
+  const isSidebarLoading = state.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
@@ -373,6 +374,7 @@ export const LeftSidebar: React.FC = () => {
             className="icon-btn icon-btn-fixed"
             size="sm"
             variant="ghost"
+            loading={isSidebarLoading}
             onClick={() => {
               if (state.conversationMode === "worker") {
                 window.dispatchEvent(
@@ -400,32 +402,34 @@ export const LeftSidebar: React.FC = () => {
         )}
 
         <div className="chat-list" id="chat-list">
-          {state.conversationMode === "worker" ? (
-            filteredWorkerRows.length === 0 ? (
-              <div className="status-line">暂无员工/小组</div>
+          <Spin spinning={isSidebarLoading} tip="加载中...">
+            {state.conversationMode === "worker" ? (
+              filteredWorkerRows.length === 0 ? (
+                <div className="status-line">暂无员工/小组</div>
+              ) : (
+                <Collapse
+                  accordion
+                  ghost
+                  className="worker-collapse"
+                  activeKey={expandedWorkerKey || undefined}
+                  items={workerCollapseItems}
+                  onChange={handleWorkerCollapseChange}
+                />
+              )
+            ) : filteredChats.length === 0 ? (
+              <div className="status-line">暂无对话</div>
             ) : (
-              <Collapse
-                accordion
-                ghost
-                className="worker-collapse"
-                activeKey={expandedWorkerKey || undefined}
-                items={workerCollapseItems}
-                onChange={handleWorkerCollapseChange}
-              />
-            )
-          ) : filteredChats.length === 0 ? (
-            <div className="status-line">暂无对话</div>
-          ) : (
-            filteredChats.map((chat) => (
-              <ChatItem
-                key={chat.chatId}
-                chat={chat}
-                agents={state.agents}
-                isActive={chat.chatId === state.chatId}
-                onClick={() => handleSelectChat(chat.chatId)}
-              />
-            ))
-          )}
+              filteredChats.map((chat) => (
+                <ChatItem
+                  key={chat.chatId}
+                  chat={chat}
+                  agents={state.agents}
+                  isActive={chat.chatId === state.chatId}
+                  onClick={() => handleSelectChat(chat.chatId)}
+                />
+              ))
+            )}
+          </Spin>
         </div>
       </aside>
 
