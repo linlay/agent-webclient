@@ -188,13 +188,13 @@ export const EventPopover: React.FC = () => {
             onClick={() => {
               setJsonStr(
                 JSON.stringify(
-                  relatedEvents.reduce((pre, cur: any) => {
+                  relatedEvents.reduce((pre: any, cur: any) => {
                     const curEvent = cur.event;
-                    return Object.assign(pre, curEvent, {
-                      text: (pre.text || '') + (curEvent?.delta || ''),
-                      arguments: (pre.arguments || '') + (curEvent.delta || ''),
+                    return Object.assign({}, pre, curEvent, {
+                      text: (pre.text || "") + (curEvent?.delta || ""),
+                      arguments: (pre.arguments || "") + (curEvent.delta || ""),
                     });
-                  }, {} as any),
+                  }, relatedEvents?.[0]?.event || {}),
                   null,
                   2,
                 ),
