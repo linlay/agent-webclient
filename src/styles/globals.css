@@ -4645,6 +4645,16 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   margin-bottom: 16px;
 }
 
+.settings-preferences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.settings-preferences-grid .field-group {
+  margin-bottom: 0;
+}
+
 .field-group label {
   display: block;
   font-size: 11px;
@@ -4710,7 +4720,9 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
 .settings-segmented {
   display: inline-flex;
   align-items: center;
+  justify-content: stretch;
   gap: 8px;
+  width: 100%;
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
   border-radius: 999px;
@@ -4719,6 +4731,7 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
 }
 
 .settings-segmented-btn.ui-btn {
+  flex: 1 1 0;
   min-width: 96px;
   border: 0;
   border-radius: 999px;
@@ -4789,6 +4802,7 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
     width: min(100vw - 24px, 100vw - 24px);
   }
 
+  .settings-preferences-grid,
   .settings-grid,
   .settings-numeric-grid {
     grid-template-columns: 1fr;

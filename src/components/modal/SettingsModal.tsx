@@ -475,117 +475,119 @@ export const SettingsModal: React.FC = () => {
           </UiButton>
         </div>
 
-        <div className="field-group">
-          <label>对话模式</label>
-          <div
-            className="settings-segmented"
-            role="tablist"
-            aria-label="对话模式"
-          >
-            <UiButton
-              variant="ghost"
-              size="sm"
-              className={`settings-segmented-btn ${state.conversationMode === "worker" ? "is-active" : ""}`}
-              role="tab"
-              aria-selected={state.conversationMode === "worker"}
-              active={state.conversationMode === "worker"}
-              onClick={() => handleConversationModeChange("worker")}
-            >
-              员工模式
-            </UiButton>
-            <UiButton
-              variant="ghost"
-              size="sm"
-              className={`settings-segmented-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
-              role="tab"
-              aria-selected={state.conversationMode === "chat"}
-              active={state.conversationMode === "chat"}
-              onClick={() => handleConversationModeChange("chat")}
-            >
-              聊天模式
-            </UiButton>
-          </div>
-          <p className="settings-hint">
-            控制侧边栏优先以员工会话还是普通聊天视角展示，默认使用员工模式。
-          </p>
-        </div>
-
-        {!isDesktopApp && (
+        <div className="settings-preferences-grid">
           <div className="field-group">
-            <label>界面主题</label>
+            <label>对话模式</label>
             <div
               className="settings-segmented"
               role="tablist"
-              aria-label="界面主题"
+              aria-label="对话模式"
             >
               <UiButton
                 variant="ghost"
                 size="sm"
-                className={`settings-segmented-btn ${state.themeMode === "light" ? "is-active" : ""}`}
+                className={`settings-segmented-btn ${state.conversationMode === "worker" ? "is-active" : ""}`}
                 role="tab"
-                aria-selected={state.themeMode === "light"}
-                active={state.themeMode === "light"}
-                onClick={() => handleThemeChange("light")}
+                aria-selected={state.conversationMode === "worker"}
+                active={state.conversationMode === "worker"}
+                onClick={() => handleConversationModeChange("worker")}
               >
-                浅色
+                员工模式
               </UiButton>
               <UiButton
                 variant="ghost"
                 size="sm"
-                className={`settings-segmented-btn ${state.themeMode === "dark" ? "is-active" : ""}`}
+                className={`settings-segmented-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
                 role="tab"
-                aria-selected={state.themeMode === "dark"}
-                active={state.themeMode === "dark"}
-                onClick={() => handleThemeChange("dark")}
+                aria-selected={state.conversationMode === "chat"}
+                active={state.conversationMode === "chat"}
+                onClick={() => handleConversationModeChange("chat")}
               >
-                深色
+                聊天模式
               </UiButton>
             </div>
             <p className="settings-hint">
-              同步切换自定义界面样式和 Ant Design 组件主题，并记住当前选择。
+              控制侧边栏优先以员工会话还是普通聊天视角展示，默认使用员工模式。
             </p>
           </div>
-        )}
 
-        <div className="field-group">
-          <label>传输模式</label>
-          <div
-            className="settings-segmented"
-            role="tablist"
-            aria-label="传输模式"
-          >
-            <UiButton
-              variant="ghost"
-              size="sm"
-              className={`settings-segmented-btn ${state.transportMode === "sse" ? "is-active" : ""}`}
-              role="tab"
-              aria-selected={state.transportMode === "sse"}
-              active={state.transportMode === "sse"}
-              disabled={state.streaming}
-              onClick={() => handleTransportModeChange("sse")}
+          {!isDesktopApp && (
+            <div className="field-group">
+              <label>界面主题</label>
+              <div
+                className="settings-segmented"
+                role="tablist"
+                aria-label="界面主题"
+              >
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  className={`settings-segmented-btn ${state.themeMode === "light" ? "is-active" : ""}`}
+                  role="tab"
+                  aria-selected={state.themeMode === "light"}
+                  active={state.themeMode === "light"}
+                  onClick={() => handleThemeChange("light")}
+                >
+                  浅色
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  className={`settings-segmented-btn ${state.themeMode === "dark" ? "is-active" : ""}`}
+                  role="tab"
+                  aria-selected={state.themeMode === "dark"}
+                  active={state.themeMode === "dark"}
+                  onClick={() => handleThemeChange("dark")}
+                >
+                  深色
+                </UiButton>
+              </div>
+              <p className="settings-hint">
+                同步切换自定义界面样式和 Ant Design 组件主题，并记住当前选择。
+              </p>
+            </div>
+          )}
+
+          <div className="field-group">
+            <label>传输模式</label>
+            <div
+              className="settings-segmented"
+              role="tablist"
+              aria-label="传输模式"
             >
-              SSE
-            </UiButton>
-            <UiButton
-              variant="ghost"
-              size="sm"
-              className={`settings-segmented-btn ${state.transportMode === "ws" ? "is-active" : ""}`}
-              role="tab"
-              aria-selected={state.transportMode === "ws"}
-              active={state.transportMode === "ws"}
-              disabled={state.streaming}
-              onClick={() => handleTransportModeChange("ws")}
-            >
-              WebSocket
-            </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${state.transportMode === "sse" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={state.transportMode === "sse"}
+                active={state.transportMode === "sse"}
+                disabled={state.streaming}
+                onClick={() => handleTransportModeChange("sse")}
+              >
+                SSE
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${state.transportMode === "ws" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={state.transportMode === "ws"}
+                active={state.transportMode === "ws"}
+                disabled={state.streaming}
+                onClick={() => handleTransportModeChange("ws")}
+              >
+                WebSocket
+              </UiButton>
+            </div>
+            <p className="settings-hint">
+              {state.streaming
+                ? "当前流式响应中，结束后可切换传输模式。"
+                : state.transportMode === "ws"
+                  ? `当前使用 WebSocket 传输。${wsStatusText}。`
+                  : "当前使用 SSE 传输。"}
+            </p>
           </div>
-          <p className="settings-hint">
-            {state.streaming
-              ? "当前流式响应中，结束后可切换传输模式。"
-              : state.transportMode === "ws"
-                ? `当前使用 WebSocket 传输。${wsStatusText}。`
-                : "当前使用 SSE 传输。"}
-          </p>
         </div>
 
         <div className="field-group">
