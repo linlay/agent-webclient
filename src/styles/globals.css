@@ -4043,8 +4043,8 @@ textarea {
 }
 
 .event-group-artifact {
-  color: #D5A774;
-  background: color-mix(in srgb, #D5A774 8%, var(--bg-elev-2));
+  color: #C090A8;
+  background: color-mix(in srgb, #C090A8 8%, var(--bg-elev-2));
 }
 
 .event-row.is-error-type {
@@ -4067,14 +4067,13 @@ textarea {
 .event-popover-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 
 .event-popover-head-main {
-  min-width: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -4107,37 +4106,6 @@ textarea {
   color: var(--ink-1);
   background: var(--bg-hover);
   box-shadow: none;
-}
-
-.event-popover-switcher {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line-soft);
-  overflow: auto;
-}
-
-.event-popover-switch-btn.ui-btn {
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-  border-radius: 999px;
-  padding: 4px 10px;
-  color: var(--ink-muted);
-  background: color-mix(in srgb, var(--bg-input) 72%, var(--bg-elev-2));
-  box-shadow: none;
-}
-
-.event-popover-switch-btn.ui-btn:hover:not(:disabled) {
-  color: var(--ink-2);
-  background: color-mix(in srgb, var(--bg-elev-2) 86%, transparent);
-  box-shadow: none;
-}
-
-.event-popover-switch-btn.ui-btn.is-active {
-  border-color: color-mix(in srgb, var(--accent-electric) 52%, var(--line-soft));
-  color: var(--accent-electric-strong);
-  background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
 }
 
 .event-popover-body {

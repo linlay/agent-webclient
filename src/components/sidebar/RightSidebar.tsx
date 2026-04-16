@@ -72,7 +72,7 @@ const DEBUG_EVENT_TABS: Array<{
   { key: "action", label: "action", color: "#CA9168" },
   { key: "plan", label: "plan", color: "#8E82C4" },
   { key: "task", label: "task", color: "#A094D0" },
-  { key: "artifact", label: "artifact", color: "#D5A774" },
+  { key: "artifact", label: "artifact", color: "#C090A8" },
 ];
 
 const AttachmentPreviewPanel: React.FC = () => {
@@ -383,7 +383,7 @@ export const RightSidebar: React.FC = () => {
                       {tabItems.map((item) => (
                         <Tag
                           key={item.key}
-                          style={{ cursor: "pointer" }}
+                          style={{ cursor: "pointer", borderRadius: 12 }}
                           color={
                             props.activeKey === item.key
                               ? item.color

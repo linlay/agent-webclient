@@ -1,4 +1,10 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type { AgentEvent } from "../../context/types";
 import { MaterialIcon } from "../common/MaterialIcon";
@@ -42,11 +48,15 @@ function readEventIdValue(event: AgentEvent, idKey: EventGroupIdKey): string {
   return "";
 }
 
-function resolveEventGroupMeta(event: AgentEvent | null): EventGroupMeta | null {
+function resolveEventGroupMeta(
+  event: AgentEvent | null,
+): EventGroupMeta | null {
   if (!event) return null;
 
   const type = String(event.type || "").toLowerCase();
-  const config = EVENT_GROUP_CONFIG.find((item) => type.startsWith(item.prefix));
+  const config = EVENT_GROUP_CONFIG.find((item) =>
+    type.startsWith(item.prefix),
+  );
   if (!config) return null;
 
   const idValue = readEventIdValue(event, config.idKey);
@@ -63,6 +73,7 @@ export const EventPopover: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [jsonStr, setJsonStr] = useState("");
   const [position, setPosition] = useState({ top: 80, right: 320 });
   const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
   const event = state.eventPopoverEventRef;
@@ -105,10 +116,9 @@ export const EventPopover: React.FC = () => {
     () => relatedEvents.map((entry) => entry.index).join(","),
     [relatedEvents],
   );
-  const jsonStr = useMemo(
-    () => (event ? JSON.stringify(event, null, 2) : ""),
-    [event],
-  );
+  useEffect(() => {
+    setJsonStr(event ? JSON.stringify(event, null, 2) : "");
+  }, [event]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -171,6 +181,29 @@ export const EventPopover: React.FC = () => {
               : groupSummary}
           </span>
         </div>
+        {showSwitcher && (
+          <UiButton
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setJsonStr(
+                JSON.stringify(
+                  relatedEvents.reduce((pre, cur: any) => {
+                    const curEvent = cur.event;
+                    return Object.assign(pre, curEvent, {
+                      text: (pre.text || '') + (curEvent?.delta || ''),
+                      arguments: (pre.arguments || '') + (curEvent.delta || ''),
+                    });
+                  }, {} as any),
+                  null,
+                  2,
+                ),
+              );
+            }}
+          >
+            收集
+          </UiButton>
+        )}
         <UiButton
           className="event-popover-close"
           variant="ghost"
@@ -189,33 +222,6 @@ export const EventPopover: React.FC = () => {
           <MaterialIcon name="close" />
         </UiButton>
       </div>
-      {showSwitcher ? (
-        <div className="event-popover-switcher" aria-label="同组事件切换">
-          {relatedEvents.map((entry) => {
-            const entrySeq = entry.event.seq ?? "-";
-            const active = entry.index === state.eventPopoverIndex;
-            return (
-              <UiButton
-                key={`${entry.index}-${entry.event.type}-${entrySeq}`}
-                className={`event-popover-switch-btn ${active ? "is-active" : ""}`}
-                variant="ghost"
-                size="sm"
-                active={active}
-                onClick={() =>
-                  dispatch({
-                    type: "SET_EVENT_POPOVER",
-                    index: entry.index,
-                    event: entry.event,
-                    anchor: state.eventPopoverAnchor,
-                  })
-                }
-              >
-                {`#${entrySeq} ${entry.event.type}`}
-              </UiButton>
-            );
-          })}
-        </div>
-      ) : null}
       <pre className="event-popover-body">{jsonStr}</pre>
     </div>
   );
