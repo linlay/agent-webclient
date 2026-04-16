@@ -210,6 +210,7 @@ export interface AIContentEvent extends AIBaseTaskEvent {
 
 export interface AIReasoningEvent extends AIBaseTaskEvent {
   type: AIReasoningEventTypeEnum;
+  reasoningLabel?: string;
 }
 
 export interface AIPlanEvent extends AIBaseEvent {

@@ -471,6 +471,9 @@ export function processEvent(
     const existing = state.getTimelineNode(nodeId);
     const delta = typeof event.delta === 'string' ? event.delta : '';
     const eventText = typeof event.text === 'string' ? event.text : '';
+    const reasoningLabel = typeof event.reasoningLabel === 'string'
+      ? event.reasoningLabel
+      : existing?.reasoningLabel;
     const text = existing
       ? `${state.getNodeText(nodeId)}${delta}`
       : eventText || delta;
@@ -481,6 +484,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'thinking',
+        reasoningLabel,
         text,
         status: 'running',
         expanded: config.reasoningExpandedDefault,
@@ -510,6 +514,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'thinking',
+        reasoningLabel: existing?.reasoningLabel,
         text,
         status: 'completed',
         expanded: config.reasoningExpandedDefault,

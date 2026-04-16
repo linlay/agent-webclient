@@ -21,6 +21,9 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
 
 	const text = node.text || "";
 	const isLoading = node.status === "running" || node.status === "streaming";
+	const triggerLabel = isLoading
+		? node.reasoningLabel || "思考中..."
+		: "思考";
 
 	return (
 		<div>
@@ -50,7 +53,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
 					});
 				}}
 			>
-				{isLoading ? "思考中..." : "思考过程"}
+				{triggerLabel}
 				<MaterialIcon name="chevron_right" className="chevron" />
 			</UiButton>
 			<div className={`thinking-detail ${expanded ? "is-open" : ""}`}>

@@ -291,12 +291,17 @@ describe('processEvent', () => {
   it('creates implicit reasoning nodes and respects expanded default', () => {
     const state = createState();
 
-    processAndApply(state, { type: 'reasoning.start', text: 'thinking' }, 'replay', false);
+    processAndApply(state, {
+      type: 'reasoning.start',
+      text: 'thinking',
+      reasoningLabel: '分析问题',
+    }, 'replay', false);
 
     const node = state.timelineNodes.get('thinking_0');
     expect(state.reasoningNodeById.get('implicit_reasoning_0')).toBe('thinking_0');
     expect(node?.expanded).toBe(false);
     expect(node?.status).toBe('running');
+    expect(node?.reasoningLabel).toBe('分析问题');
   });
 
   it('creates awaiting answer nodes for timeline display', () => {

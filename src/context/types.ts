@@ -108,6 +108,7 @@ export interface TimelineNode {
   messageVariant?: "default" | "steer" | "remember" | "learn";
   steerId?: string;
   awaitingId?: string;
+  reasoningLabel?: string;
   title?: string;
   text?: string;
   attachments?: TimelineAttachment[];

@@ -936,7 +936,7 @@ export const ComposerArea: React.FC = () => {
         );
 
         if (!accepted) {
-          throw(`提交未命中：${detail}`);
+          throw `提交未命中：${detail}`;
         }
 
         dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
@@ -1576,11 +1576,11 @@ export const ComposerArea: React.FC = () => {
                   title={
                     isFrontendActive
                       ? "前端工具处理中，暂时不能上传文件"
-                        : isVoiceMode
-                          ? "请先切回文字输入再上传文件"
-                          : state.streaming
-                            ? "当前运行中，暂不支持追加文件"
-                            : "上传文件"
+                      : isVoiceMode
+                        ? "请先切回文字输入再上传文件"
+                        : state.streaming
+                          ? "当前运行中，暂不支持追加文件"
+                          : "上传文件"
                   }
                 >
                   <MaterialIcon name="add" />
@@ -1614,9 +1614,7 @@ export const ComposerArea: React.FC = () => {
                     size="sm"
                     disabled={isFrontendActive}
                     onClick={() => void interruptCurrentRun()}
-                  >
-                    <MaterialIcon name="stop" />
-                  </UiButton>
+                  ></UiButton>
                 ) : !isVoiceMode ? (
                   <>
                     <UiButton

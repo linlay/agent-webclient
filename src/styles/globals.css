@@ -3187,6 +3187,13 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   align-self: center;
 }
 
+.interrupt-btn span {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 2px;
+}
+
 .interrupt-btn:hover {
   box-shadow: 0 6px 12px rgba(211, 59, 88, 0.3);
 }
