@@ -89,7 +89,7 @@ export function formatToolPillTitle(
       toolLabel: source.toolLabel,
       toolName: source.toolName,
     });
-    return source.count > 1 ? `${baseLabel} x${source.count}` : baseLabel;
+    return baseLabel;
   }
 
   return resolveToolLabel(source);
@@ -261,10 +261,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   />
                   {resultCopyLabel}
                 </UiButton>
-                <code
-                  className="tool-call-result"
-                  title={record.argsInlineText + "\n\n" + resultText}
-                >
+                <code className="tool-call-result">
                   <JsonToTable className="input" text={record.argsInlineText} />
                   <span>{resultText}</span>
                 </code>
