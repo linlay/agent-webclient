@@ -10,6 +10,7 @@ import {
   isErrorEventType,
   summarizeEvent,
 } from "../../lib/debugEventDisplay";
+import { Flex } from "antd";
 
 const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
@@ -41,17 +42,17 @@ const EventRow: React.FC<{
   const errorClass = isErrorEventType(type) ? "is-error-type" : "";
 
   return (
-    <div
+    <Flex
       className={`event-row is-clickable ${kindClass} ${errorClass}`.trim()}
       data-event-index={index}
+      align="center"
+      gap={10}
       onClick={onClick}
     >
-      <div className="event-row-head">
-        <strong>{`#${seq} ${type}`}</strong>
-        <span className="event-row-time">{ts}</span>
-      </div>
-      {summary && <div className="event-row-summary">{summary}</div>}
-    </div>
+      <div className="event-row-mark"></div>
+      <strong>{type}</strong>
+      <span className="event-row-time">{ts}</span>
+    </Flex>
   );
 };
 

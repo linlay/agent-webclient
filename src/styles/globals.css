@@ -3923,12 +3923,15 @@ textarea {
   position: relative;
   padding: 8px 10px 8px 12px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-  border-left: 3px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--bg-input));
-  font-size: 11px;
-  color: var(--ink-2);
+  border-radius: 20px;
+  font-size: 12px;
   transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.event-row>strong {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-row.is-clickable {
@@ -3936,28 +3939,19 @@ textarea {
 }
 
 .event-row.is-clickable:hover {
-  background: color-mix(in srgb, var(--bg-hover) 84%, var(--bg-elev-2));
-  border-color: color-mix(in srgb, var(--line-strong) 70%, transparent);
-  transform: translateY(-1px);
-  box-shadow: none;
+  border-color: inherit;
+  transform: scale(1.02)
 }
 
 .event-row+.event-row {
   margin-top: 6px;
 }
 
-.event-row-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.event-row-head strong {
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
+.event-row-mark {
+  border: 4px solid;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
 }
 
 .event-row-time {
@@ -3978,67 +3972,59 @@ textarea {
   word-break: break-word;
 }
 
-.event-group-chat .event-row-head strong {
-  color: #8d5cf6;
-}
-
-.event-group-run .event-row-head strong {
-  color: var(--accent-electric-strong);
-}
-
-.event-group-content .event-row-head strong {
-  color: var(--accent-lime);
-}
-
-.event-group-reasoning .event-row-head strong {
-  color: #c48318;
-}
-
-.event-group-tool .event-row-head strong {
-  color: #1696b7;
-}
-
-.event-group-action .event-row-head strong {
-  color: #d04a7f;
-}
-
-.event-group-plan .event-row-head strong {
-  color: var(--accent-warn);
+.event-group-request {
+  color: #5A86C8;
+  background: color-mix(in srgb, #5A86C8 8%, var(--bg-elev-2));
 }
 
 .event-group-chat {
-  border-left-color: color-mix(in srgb, #8d5cf6 80%, transparent);
-  background: color-mix(in srgb, #8d5cf6 8%, var(--bg-elev-2));
+  color: #6B92BF;
+  background: color-mix(in srgb, #6B92BF 8%, var(--bg-elev-2));
 }
 
 .event-group-run {
-  border-left-color: color-mix(in srgb, var(--accent-electric-strong) 82%, transparent);
-  background: color-mix(in srgb, var(--accent-electric) 8%, var(--bg-elev-2));
+  color: #4476AD;
+  background: color-mix(in srgb, #4476AD 8%, var(--bg-elev-2));
+}
+
+.event-group-awaiting {
+  color: #BE8E73;
+  background: color-mix(in srgb, #BE8E73 8%, var(--bg-elev-2));
 }
 
 .event-group-content {
-  border-left-color: color-mix(in srgb, var(--accent-lime) 78%, transparent);
-  background: color-mix(in srgb, var(--accent-lime) 7%, var(--bg-elev-2));
+  color: #7AB9A8;
+  background: color-mix(in srgb, #7AB9A8 7%, var(--bg-elev-2));
 }
 
 .event-group-reasoning {
-  border-left-color: color-mix(in srgb, #c48318 82%, transparent);
-  background: color-mix(in srgb, #c48318 8%, var(--bg-elev-2));
+  color: #5AA79D;
+  background: color-mix(in srgb, #5AA79D 8%, var(--bg-elev-2));
 }
 
 .event-group-tool {
-  border-left-color: color-mix(in srgb, #1696b7 78%, transparent);
-  background: color-mix(in srgb, #1696b7 7%, var(--bg-elev-2));
+  color: #D6A05E;
+  background: color-mix(in srgb, #D6A05E 7%, var(--bg-elev-2));
 }
 
 .event-group-action {
-  border-left-color: color-mix(in srgb, #d04a7f 78%, transparent);
-  background: color-mix(in srgb, #d04a7f 8%, var(--bg-elev-2));
+  color: #CA9168;
+  background: color-mix(in srgb, #CA9168 8%, var(--bg-elev-2));
 }
 
 .event-group-plan {
-  border-left-color: color-mix(in srgb, var(--accent-warn) 78%, transparent);
-  background: color-mix(in srgb, var(--accent-warn) 8%, var(--bg-elev-2));
+  color: #8E82C4;
+  background: color-mix(in srgb, #8E82C4 8%, var(--bg-elev-2));
+}
+
+.event-group-task {
+  color: #A094D0;
+  background: color-mix(in srgb, #A094D0 8%, var(--bg-elev-2));
+}
+
+.event-group-artifact {
+  color: #D5A774;
+  background: color-mix(in srgb, #D5A774 8%, var(--bg-elev-2));
 }
 
 .event-row.is-error-type {
@@ -5049,15 +5035,18 @@ textarea {
 .ant-collapse-item-active .worker-panel-time {
   opacity: 0;
 }
+
 .ant-collapse-item-active .worker-panel-new {
   display: unset;
 }
-.worker-panel-new{
+
+.worker-panel-new {
   display: none;
   width: 20px !important;
   height: 20px !important;
   color: var(--text-muted);
 }
+
 .worker-panel-time {
   font-size: 11px;
   color: var(--text-muted);

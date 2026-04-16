@@ -2,13 +2,17 @@ import type { AgentEvent } from '../context/types';
 import { resolveToolLabel } from './toolDisplay';
 
 export type DebugEventGroup =
+  | 'request'
   | 'chat'
   | 'run'
+  | 'awaiting'
   | 'content'
   | 'reasoning'
   | 'tool'
   | 'action'
   | 'plan'
+  | 'task'
+  | 'artifact'
   | '';
 
 function safeStr(v: unknown): string {
@@ -19,17 +23,17 @@ function safeStr(v: unknown): string {
 
 export function classifyEventGroup(eventType: string): DebugEventGroup {
   const type = String(eventType || '').toLowerCase();
-  if (
-    type === 'request.query'
-    || type === 'request.steer'
-    || type.startsWith('chat.')
-  ) return 'chat';
+  if (type.startsWith('request.')) return 'request';
+  if (type.startsWith('chat.')) return 'chat';
   if (type.startsWith('run.')) return 'run';
+  if (type.startsWith('awaiting.')) return 'awaiting';
   if (type.startsWith('content.')) return 'content';
   if (type.startsWith('reasoning.')) return 'reasoning';
   if (type.startsWith('tool.')) return 'tool';
   if (type.startsWith('action.')) return 'action';
-  if (type.startsWith('plan.') || type.startsWith('task.')) return 'plan';
+  if (type.startsWith('plan.')) return 'plan';
+  if (type.startsWith('task.')) return 'task';
+  if (type.startsWith('artifact.')) return 'artifact';
   return '';
 }
 
