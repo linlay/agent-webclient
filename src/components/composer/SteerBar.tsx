@@ -1,7 +1,6 @@
 import React from "react";
 import type { PendingSteer } from "../../context/types";
-import { UiButton } from "../ui/UiButton";
-import { Button, Flex } from "antd";
+import { Button } from "antd";
 import { SteerIcon } from "../timeline/TimelineRow";
 
 export const SteerBar: React.FC<{
@@ -16,15 +15,30 @@ export const SteerBar: React.FC<{
   return (
     <div className="steer-bar">
       <div className="steer-queue" aria-live="polite">
-        {pendingSteers.map((steer, index) => (
-          <div key={steer.steerId} className="steer-preview is-pending">
-            <div className="steer-preview-header">
-              <span className="steer-preview-label">
-                待生效引导 {index + 1}
-              </span>
-              <span className="steer-preview-status">等待 request.steer</span>
+        {pendingSteers.map((steer) => (
+          <div
+            key={steer.steerId}
+            className="steer-preview steer-preview-draft"
+            aria-busy="true"
+          >
+            <div className="node-icon steer-preview-icon">
+              <SteerIcon />
             </div>
             <span className="steer-preview-text">{steer.message}</span>
+            <div className="steer-preview-actions">
+              <Button
+                size="small"
+                type="primary"
+                shape="round"
+                loading
+                disabled
+              >
+                引导
+              </Button>
+              <Button size="small" type="text" shape="round" disabled>
+                取消
+              </Button>
+            </div>
           </div>
         ))}
         {hasSteerDraft && (
@@ -36,17 +50,18 @@ export const SteerBar: React.FC<{
             <div className="steer-preview-actions">
               <Button
                 size="small"
-								type="primary"
-								shape="round"
+                type="primary"
+                shape="round"
+                loading={steerSubmitting}
                 disabled={!steerDraft.trim() || steerSubmitting}
                 onClick={onSubmit}
               >
-                {steerSubmitting ? "提交中..." : "引导"}
+                引导
               </Button>
               <Button
                 size="small"
                 type="text"
-								shape="round"
+                shape="round"
                 disabled={steerSubmitting}
                 onClick={onCancel}
               >
