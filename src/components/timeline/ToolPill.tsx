@@ -89,7 +89,7 @@ export function formatToolPillTitle(
       toolLabel: source.toolLabel,
       toolName: source.toolName,
     });
-    return baseLabel;
+    return source.count > 1 ? `${baseLabel} x${source.count}` : baseLabel;
   }
 
   return resolveToolLabel(source);
