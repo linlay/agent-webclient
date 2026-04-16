@@ -1247,6 +1247,10 @@ textarea {
   color: var(--accent-warn);
 }
 
+.node-icon-awaiting-answer {
+  color: var(--accent-warn);
+}
+
 .node-icon-tool {
   color: var(--accent-electric-strong);
 }

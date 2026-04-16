@@ -206,6 +206,39 @@ function readToolArgumentsText(event: AgentEvent): string {
   }
 }
 
+function formatStructuredEventText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return '';
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      return typeof parsed === 'string'
+        ? parsed
+        : JSON.stringify(parsed, null, 2);
+    } catch {
+      return value;
+    }
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return safeText(value);
+  }
+}
+
+function readAwaitingAnswerText(event: AgentEvent): string {
+  return pickEventText(
+    formatStructuredEventText((event as Record<string, unknown>).answers),
+    event.text,
+    event.message,
+  );
+}
+
 function buildToolTimelineNode(input: {
   nodeId: string;
   event: AgentEvent;
@@ -484,6 +517,33 @@ export function processEvent(
       },
     });
     commands.push({ cmd: 'SET_ACTIVE_REASONING_KEY', key: '' });
+    return commands;
+  }
+
+  if (type === 'awaiting.answer') {
+    const runId = toText(event.runId);
+    const awaitingId = toText(event.awaitingId);
+    const nodeId = awaitingId
+      ? `awaiting_answer_${runId || 'run'}_${awaitingId}`
+      : `awaiting_answer_${state.nextCounter()}`;
+    const existing = state.getTimelineNode(nodeId);
+    if (!existing) {
+      commands.push({ cmd: 'APPEND_TIMELINE_ORDER', nodeId });
+    }
+    commands.push({
+      cmd: 'SET_TIMELINE_NODE',
+      id: nodeId,
+      node: {
+        id: nodeId,
+        kind: 'awaiting-answer',
+        awaitingId,
+        title: '已提交回答',
+        text: readAwaitingAnswerText(event) || '（无回答内容）',
+        status: 'completed',
+        expanded: existing?.expanded ?? false,
+        ts: event.timestamp || existing?.ts || Date.now(),
+      },
+    });
     return commands;
   }
 

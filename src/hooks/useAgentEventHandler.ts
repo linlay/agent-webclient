@@ -167,7 +167,12 @@ function shouldSyncNodeTextFromState(
 
 function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
   for (const [nodeId, node] of state.timelineNodes.entries()) {
-    if (node.kind !== 'content' && node.kind !== 'thinking' && node.kind !== 'tool') {
+    if (
+      node.kind !== 'content'
+      && node.kind !== 'thinking'
+      && node.kind !== 'awaiting-answer'
+      && node.kind !== 'tool'
+    ) {
       continue;
     }
     const stateText = node.text || '';

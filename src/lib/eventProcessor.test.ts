@@ -299,6 +299,30 @@ describe('processEvent', () => {
     expect(node?.status).toBe('running');
   });
 
+  it('creates awaiting answer nodes for timeline display', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      answers: '{"approved":true,"comment":"继续"}',
+      timestamp: 220,
+    }, 'replay', false);
+
+    expect(state.timelineOrder).toEqual(['awaiting_answer_run_1_await_1']);
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toEqual({
+      id: 'awaiting_answer_run_1_await_1',
+      kind: 'awaiting-answer',
+      awaitingId: 'await_1',
+      title: '已提交回答',
+      text: '{\n  "approved": true,\n  "comment": "继续"\n}',
+      status: 'completed',
+      expanded: false,
+      ts: 220,
+    });
+  });
+
   it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {
     const state = createState();
 

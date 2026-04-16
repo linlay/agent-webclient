@@ -55,7 +55,12 @@ export type UiTimerHandle = number;
 /* ============================================
    Timeline
    ============================================ */
-export type TimelineNodeKind = "message" | "thinking" | "tool" | "content";
+export type TimelineNodeKind =
+  | "message"
+  | "thinking"
+  | "awaiting-answer"
+  | "tool"
+  | "content";
 export type TimelineRole = "user" | "assistant" | "system" | "";
 
 export interface ToolResultPayload {
@@ -102,6 +107,8 @@ export interface TimelineNode {
   role?: TimelineRole;
   messageVariant?: "default" | "steer" | "remember" | "learn";
   steerId?: string;
+  awaitingId?: string;
+  title?: string;
   text?: string;
   attachments?: TimelineAttachment[];
   status?: string;

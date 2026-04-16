@@ -64,6 +64,7 @@ export enum AIArtifactEventTypeEnum {
 export enum AIAwaitEventTypeEnum {
   Ask = 'awaiting.ask',
   Payload = 'awaiting.payload',
+  Answer = 'awaiting.answer',
 }
 
 export enum AIPlanStatusEnum {
@@ -173,6 +174,7 @@ export interface AIEventCommonFields {
   timeout?: number;
   viewportType?: ViewportTypeEnum;
   questions?: AIAwaitQuestion[];
+  answers?: unknown;
   artifactId?: string;
   artifact?: ResourceData;
   rawEvent?: unknown;
@@ -239,8 +241,12 @@ export interface AIAwaitAskEvent extends AIBaseEvent {
 export interface AIAwaitPayloadEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Payload;
 }
+export interface AIAwaitAnswerEvent extends AIBaseEvent {
+  type: AIAwaitEventTypeEnum.Answer;
+  answers?: AIAwaitSubmitParamData[];
+}
 
-export type AIAwaitEvent = AIAwaitAskEvent | AIAwaitPayloadEvent;
+export type AIAwaitEvent = AIAwaitAskEvent | AIAwaitPayloadEvent | AIAwaitAnswerEvent;
 
 export type AIEvent =
   | AIChatEvent

@@ -9,6 +9,7 @@ import {
 import { AttachmentCard } from "../common/AttachmentCard";
 import { UserBubble } from "./UserBubble";
 import { ThinkingBlock } from "./ThinkingBlock";
+import { AwaitingAnswerBlock } from "./AwaitingAnswerBlock";
 import { ToolPill } from "./ToolPill";
 import { ContentBlock } from "./ContentBlock";
 import { SystemAlert } from "./SystemAlert";
@@ -271,6 +272,10 @@ const NodeIcon: React.FC<{
 			className += " node-icon-thinking";
 			iconName = "psychology";
 			break;
+		case "awaiting-answer":
+			className += " node-icon-awaiting-answer";
+			iconName = "question_answer";
+			break;
 		case "tool":
 			className += " node-icon-tool";
 			iconName = "build";
@@ -430,6 +435,24 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				</div>
 				<div className="timeline-flow-content">
 					<ThinkingBlock node={node} />
+					{timeNode}
+				</div>
+			</div>
+		);
+	}
+
+	/* Awaiting answer */
+	if (node && node.kind === "awaiting-answer") {
+		return (
+			<div
+				className="timeline-row timeline-row-flow"
+				data-kind="awaiting-answer"
+			>
+				<div className="timeline-marker">
+					<NodeIcon kind="awaiting-answer" />
+				</div>
+				<div className="timeline-flow-content">
+					<AwaitingAnswerBlock node={node} />
 					{timeNode}
 				</div>
 			</div>
