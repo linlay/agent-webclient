@@ -3800,6 +3800,21 @@ textarea {
   flex-direction: column;
 }
 
+.debug-panel .ant-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.debug-panel .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+}
+
+.debug-panel .ant-tabs-tabpane {
+  height: 100%;
+}
+
 .attachment-preview-panel {
   flex: 1;
   min-height: 0;
@@ -3914,6 +3929,12 @@ textarea {
   padding: 8px;
 }
 
+.debug-events-tab {
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
 .mono {
   font-family: 'IBM Plex Mono', monospace;
 }
@@ -3940,10 +3961,9 @@ textarea {
 
 .event-row.is-clickable:hover {
   border-color: inherit;
-  transform: scale(1.02)
 }
 
-.event-row+.event-row {
+.event-row.event-row {
   margin-top: 6px;
 }
 

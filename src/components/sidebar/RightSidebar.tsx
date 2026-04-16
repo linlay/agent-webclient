@@ -8,9 +8,9 @@ import { UiButton } from "../ui/UiButton";
 import {
   classifyEventGroup,
   isErrorEventType,
-  summarizeEvent,
+  type DebugEventGroup,
 } from "../../lib/debugEventDisplay";
-import { Flex } from "antd";
+import { Flex, Tabs, Tag } from "antd";
 
 const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
@@ -34,11 +34,9 @@ const EventRow: React.FC<{
   onClick: (e: React.MouseEvent<HTMLDivElement>) => void;
 }> = ({ event, index, onClick }) => {
   const type = String(event.type || "");
-  const seq = event.seq ?? "-";
   const ts = formatDebugTime(event.timestamp);
   const group = classifyEventGroup(type);
   const kindClass = group ? `event-group-${group}` : "";
-  const summary = summarizeEvent(event);
   const errorClass = isErrorEventType(type) ? "is-error-type" : "";
 
   return (
@@ -57,6 +55,25 @@ const EventRow: React.FC<{
 };
 
 const textPreviewKinds = new Set(["text", "pdf"]);
+
+const DEBUG_EVENT_TABS: Array<{
+  key: "all" | Exclude<DebugEventGroup, "">;
+  label: string;
+  color: string;
+}> = [
+  { key: "all", label: "全部", color: "blue" },
+  { key: "request", label: "request", color: "#5A86C8" },
+  { key: "chat", label: "chat", color: "#6B92BF" },
+  { key: "run", label: "run", color: "#4476AD" },
+  { key: "awaiting", label: "awaiting", color: "#BE8E73" },
+  { key: "reasoning", label: "reasoning", color: "#5AA79D" },
+  { key: "content", label: "content", color: "#7AB9A8" },
+  { key: "tool", label: "tool", color: "#D6A05E" },
+  { key: "action", label: "action", color: "#CA9168" },
+  { key: "plan", label: "plan", color: "#8E82C4" },
+  { key: "task", label: "task", color: "#A094D0" },
+  { key: "artifact", label: "artifact", color: "#D5A774" },
+];
 
 const AttachmentPreviewPanel: React.FC = () => {
   const state = useAppState();
@@ -241,6 +258,73 @@ export const RightSidebar: React.FC = () => {
     state.desktopDebugSidebarEnabled || Boolean(preview);
   const showHeader = state.layoutMode !== "desktop-fixed" || Boolean(preview);
 
+  const openEventPopover = React.useCallback(
+    (event: AgentEvent, idx: number, target: HTMLDivElement) => {
+      const rect = target.getBoundingClientRect();
+      dispatch({
+        type: "SET_EVENT_POPOVER",
+        index: idx,
+        event,
+        anchor: {
+          x: rect.left,
+          y: rect.bottom,
+        },
+      });
+    },
+    [dispatch],
+  );
+
+  const eventsByTab = React.useMemo(() => {
+    const grouped = new Map<
+      (typeof DEBUG_EVENT_TABS)[number]["key"],
+      Array<{ event: AgentEvent; index: number }>
+    >();
+
+    DEBUG_EVENT_TABS.forEach((tab) => grouped.set(tab.key, []));
+
+    state.events.forEach((event, index) => {
+      grouped.get("all")?.push({ event, index });
+      const group = classifyEventGroup(String(event.type || ""));
+      if (group && group !== "request") {
+        grouped.get(group)?.push({ event, index });
+      }
+    });
+
+    return grouped;
+  }, [state.events]);
+
+  const tabItems = React.useMemo(
+    () =>
+      DEBUG_EVENT_TABS.flatMap((tab) => {
+        const entries = eventsByTab.get(tab.key) || [];
+        if (tab.key !== "all" && entries.length === 0) {
+          return [];
+        }
+        return [
+          {
+            key: tab.key,
+            label: `${tab.label} (${entries.length})`,
+            color: tab.color,
+            children: (
+              <div className="debug-events-tab">
+                {entries.map(({ event, index }) => (
+                  <EventRow
+                    key={`${index}-${String(event.type || "")}`}
+                    event={event}
+                    index={index}
+                    onClick={(e) =>
+                      openEventPopover(event, index, e.currentTarget)
+                    }
+                  />
+                ))}
+              </div>
+            ),
+          },
+        ];
+      }),
+    [eventsByTab, openEventPopover],
+  );
+
   const handleClose = () => {
     if (preview) {
       dispatch({ type: "CLOSE_ATTACHMENT_PREVIEW" });
@@ -290,25 +374,31 @@ export const RightSidebar: React.FC = () => {
             {state.events.length === 0 ? (
               <div className="status-line">暂无事件</div>
             ) : (
-              state.events.map((event, idx) => (
-                <EventRow
-                  key={idx}
-                  event={event}
-                  index={idx}
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    dispatch({
-                      type: "SET_EVENT_POPOVER",
-                      index: idx,
-                      event,
-                      anchor: {
-                        x: rect.left,
-                        y: rect.bottom,
-                      },
-                    });
-                  }}
-                />
-              ))
+              <Tabs
+                size="small"
+                renderTabBar={(props) => {
+                  console.log(props);
+                  return (
+                    <Flex wrap gap={6}>
+                      {tabItems.map((item) => (
+                        <Tag
+                          key={item.key}
+                          style={{ cursor: "pointer" }}
+                          color={
+                            props.activeKey === item.key
+                              ? item.color
+                              : undefined
+                          }
+                          onClick={(e) => props.onTabClick(item.key, e)}
+                        >
+                          {item.label}
+                        </Tag>
+                      ))}
+                    </Flex>
+                  );
+                }}
+                items={tabItems}
+              />
             )}
           </div>
         </div>
