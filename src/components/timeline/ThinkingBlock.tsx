@@ -23,7 +23,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
 	const isLoading = node.status === "running" || node.status === "streaming";
 	const triggerLabel = isLoading
 		? node.reasoningLabel || "思考中..."
-		: "思考";
+		: "思考过程";
 
 	return (
 		<div>

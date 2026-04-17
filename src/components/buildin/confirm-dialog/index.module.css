@@ -87,29 +87,25 @@
         }
       }
     }
+  }
+  .Option {
+    padding: 10px;
+    border-radius: 10px;
+    color: var(--text-muted);
 
-    .Option {
-      padding: 10px;
-      border-radius: 10px;
-      color: var(--text-muted);
-
-      &:hover:not(&.FreeText),
-      &:focus-within:not(&.FreeText) {
-        background-color: var(--bg-hover);
-      }
-
-      .Info {
-        color: var(--text-main);
-        font-weight: bold;
-      }
+    &:hover:not(&.FreeText),
+    &:focus-within:not(&.FreeText) {
+      background-color: var(--bg-hover);
     }
 
-    .FreeText {
-      margin: 4px 10px 10px;
-      border: 1px solid var(--border);
-      align-items: center;
+    .Info {
       color: var(--text-main);
+      font-weight: bold;
     }
+  }
+
+  .FreeText {
+    padding: 10px 18px;
   }
 
   .CheckboxGroup :global(.Selected) {

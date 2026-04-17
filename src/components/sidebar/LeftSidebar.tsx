@@ -21,6 +21,7 @@ import {
   pickChatAgentLabel,
 } from "../../lib/chatListFormatter";
 import { buildWorkerConversationRows } from "../../lib/workerConversationFormatter";
+import { createWorkerKeyFromChat } from "../../lib/workerListFormatter";
 import type {
   Chat,
   WorkerConversationRow,
@@ -93,17 +94,17 @@ const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
   isActive: boolean;
   icon?: AgentIconConfig;
-}> = ({ row, isActive, icon }) => {
-  const preview =
-    row.latestRunContent ||
-    (row.hasHistory ? row.latestChatName : "暂无历史对话");
-
+  lastChat?: WorkerConversationRow;
+}> = ({ row, isActive, icon, lastChat }) => {
   const handleStartNewConversation = (
     e: React.MouseEvent<HTMLButtonElement>,
   ) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
   };
+  const preview = lastChat
+    ? lastChat?.lastRunContent || lastChat?.chatName || "最新对话无答复"
+    : "暂无历史对话";
 
   return (
     <div
@@ -116,9 +117,9 @@ const WorkerPanelHeader: React.FC<{
             {row.displayName}
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
-          {!!row.latestUpdatedAt && (
+          {!!lastChat?.updatedAt && (
             <div className="worker-panel-time">
-              {formatChatTimeLabel(row.latestUpdatedAt)}
+              {formatChatTimeLabel(lastChat?.updatedAt)}
             </div>
           )}
           <Tooltip title="新建对话">
@@ -159,13 +160,63 @@ export const LeftSidebar: React.FC = () => {
     });
   }, [state.chats, state.chatFilter]);
 
+  const workerBaseOrderByKey = useMemo(
+    () => new Map(state.workerRows.map((row, index) => [row.key, index])),
+    [state.workerRows],
+  );
+
+  const workerChatOrderByKey = useMemo(() => {
+    const sortedChats = state.chats.slice().sort((a, b) => {
+      const updatedA = Number(a?.updatedAt);
+      const updatedB = Number(b?.updatedAt);
+      const normalizedA = Number.isFinite(updatedA) ? updatedA : 0;
+      const normalizedB = Number.isFinite(updatedB) ? updatedB : 0;
+
+      if (normalizedA !== normalizedB) return normalizedB - normalizedA;
+
+      const chatIdA = String(a?.chatId || "");
+      const chatIdB = String(b?.chatId || "");
+      return chatIdA.localeCompare(chatIdB);
+    });
+
+    const orderByKey = new Map<string, number>();
+    sortedChats.forEach((chat) => {
+      const workerKey = createWorkerKeyFromChat(chat);
+      if (!workerKey || orderByKey.has(workerKey)) return;
+      orderByKey.set(workerKey, orderByKey.size);
+    });
+
+    return orderByKey;
+  }, [state.chats]);
+
   const filteredWorkerRows = useMemo(() => {
     const filter = state.chatFilter.toLowerCase().trim();
-    if (!filter) return state.workerRows;
-    return state.workerRows.filter((row) =>
-      String(row.searchText || "").includes(filter),
-    );
-  }, [state.workerRows, state.chatFilter]);
+    const rows = !filter
+      ? state.workerRows
+      : state.workerRows.filter((row) =>
+          String(row.searchText || "").includes(filter),
+        );
+
+    return rows.slice().sort((a, b) => {
+      const chatOrderA = workerChatOrderByKey.get(a.key);
+      const chatOrderB = workerChatOrderByKey.get(b.key);
+      const hasChatsA = chatOrderA !== undefined;
+      const hasChatsB = chatOrderB !== undefined;
+
+      if (hasChatsA && hasChatsB) return chatOrderA - chatOrderB;
+      if (hasChatsA !== hasChatsB) return hasChatsA ? -1 : 1;
+
+      return (
+        (workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+        (workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+  }, [
+    state.workerRows,
+    state.chatFilter,
+    workerBaseOrderByKey,
+    workerChatOrderByKey,
+  ]);
 
   const workerIconsByKey = useMemo(() => {
     const icons = new Map<string, AgentIconConfig>();
@@ -265,7 +316,6 @@ export const LeftSidebar: React.FC = () => {
     workerKey: string,
   ) => {
     event.stopPropagation();
-    console.log(event.target);
     setHistoryWorkerKey(workerKey);
     setHistorySearch("");
     setHistoryIndex(0);
@@ -287,51 +337,60 @@ export const LeftSidebar: React.FC = () => {
     return false;
   };
 
-  const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
-    (row) => {
-      const rawChats = workerChatsByKey.get(row.key) || [];
-      const recentChats = rawChats.slice(0, 5);
-      return {
-        key: row.key,
-        className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
-        showArrow: false,
-        label: (
-          <WorkerPanelHeader
-            row={row}
-            isActive={row.key === state.workerSelectionKey}
-            icon={workerIconsByKey.get(row.key)}
-          />
-        ),
-        children: (
-          <div>
-            <div className="worker-chat-divider"></div>
-            {recentChats.length === 0 ? (
-              <div className="status-line">暂无相关对话</div>
-            ) : (
-              <>
-                {recentChats.map((chat) => (
-                  <WorkerChatPreviewItem
-                    key={chat.chatId}
-                    chat={chat}
-                    isActive={chat.chatId === state.chatId}
-                    loading={getWorkerChatLoading(chat.chatId)}
-                    onClick={() => handleSelectChat(chat.chatId)}
-                  />
-                ))}
-              </>
-            )}
-            {rawChats.length > 5 && (
-              <div
-                className="worker-chat-more"
-                onClick={(e) => handleOpenHistory(e, row.key)}
-              >
-                查看更多
-              </div>
-            )}
-          </div>
-        ),
-      };
-    },
+  const workerCollapseItems = useMemo<CollapseProps["items"]>(
+    () =>
+      filteredWorkerRows.map((row) => {
+        const rawChats = workerChatsByKey.get(row.key) || [];
+        const recentChats = rawChats.slice(0, 5);
+        return {
+          key: row.key,
+          className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
+          showArrow: false,
+          label: (
+            <WorkerPanelHeader
+              row={row}
+              isActive={row.key === state.workerSelectionKey}
+              icon={workerIconsByKey.get(row.key)}
+              lastChat={rawChats[0]}
+            />
+          ),
+          children: (
+            <div>
+              <div className="worker-chat-divider"></div>
+              {recentChats.length === 0 ? (
+                <div className="status-line">暂无相关对话</div>
+              ) : (
+                <>
+                  {recentChats.map((chat) => (
+                    <WorkerChatPreviewItem
+                      key={chat.chatId}
+                      chat={chat}
+                      isActive={chat.chatId === state.chatId}
+                      loading={getWorkerChatLoading(chat.chatId)}
+                      onClick={() => handleSelectChat(chat.chatId)}
+                    />
+                  ))}
+                </>
+              )}
+              {rawChats.length > 5 && (
+                <div
+                  className="worker-chat-more"
+                  onClick={(e) => handleOpenHistory(e, row.key)}
+                >
+                  查看更多
+                </div>
+              )}
+            </div>
+          ),
+        };
+      }),
+    [
+      filteredWorkerRows,
+      workerChatsByKey,
+      state.chatId,
+      state.workerSelectionKey,
+      workerIconsByKey,
+    ],
   );
 
   return (
@@ -437,7 +496,8 @@ export const LeftSidebar: React.FC = () => {
         open={Boolean(historyWorkerKey)}
         onCancel={handleCloseHistory}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
+        width="min(780px, calc(100vw - 32px))"
         className="worker-history-modal"
         title={
           historyWorker

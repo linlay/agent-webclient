@@ -383,7 +383,6 @@ export const RightSidebar: React.FC = () => {
               <Tabs
                 size="small"
                 renderTabBar={(props) => {
-                  console.log(props);
                   return (
                     <Flex wrap gap={6}>
                       {tabItems.map((item) => (
