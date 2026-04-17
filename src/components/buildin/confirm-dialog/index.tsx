@@ -9,8 +9,10 @@ import {
   Tooltip,
 } from "antd/es";
 import React, {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -43,11 +45,32 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
+  const questionsRef = useRef<QuestionRef[]>([]);
   const total = useRef(0);
   const [loading, setLoading] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const questions = useMemo(() => data?.questions || [], [data]);
   const prepared = useMemo(() => Array.isArray(data?.questions), [data]);
+
+  useKeyboard({
+    getAllHost: () => {
+      return questionsRef.current[curIndex]?.getElements();
+    },
+    onEnter: (element) => {
+      const i = Number(element.dataset.index);
+      const questionRef = questionsRef.current[curIndex];
+      questionRef.check(i);
+    },
+    onKeyDown: (e) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (!/^[1-9]$/.test(e.key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const i = Number(e.key) - 1;
+      const questionRef = questionsRef.current[curIndex];
+      questionRef.check(i);
+    },
+  });
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -127,10 +150,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               items={fields.map((field) => ({
                 key: field.key.toString(),
                 label: field.name,
-                destroyInactiveTabPane: true,
                 children: (
                   <Form.Item {...field} className={Style.FormItem}>
                     <Question
+                      ref={(ref) =>
+                        ref && (questionsRef.current[field.name] = ref)
+                      }
                       data={questions?.[field.name]}
                       onEnter={onEnter}
                       pagnation={
@@ -215,37 +240,40 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   );
 };
 
-const Question: React.FC<{
-  data: AIAwaitQuestion;
-  onEnter: () => void;
-  pagnation: React.ReactNode;
-  value?: AIAwaitSubmitParamData;
-  onChange?: (value: AIAwaitSubmitParamData) => void;
-}> = ({ data, value, onChange, onEnter, pagnation }) => {
+interface QuestionRef {
+  check: (i: number) => void;
+  getElements: () => NodeListOf<HTMLElement> | undefined;
+}
+const Question = forwardRef<
+  QuestionRef,
+  {
+    data: AIAwaitQuestion;
+    onEnter: () => void;
+    pagnation: React.ReactNode;
+    value?: AIAwaitSubmitParamData;
+    onChange?: (value: AIAwaitSubmitParamData) => void;
+  }
+>(({ data, value, onChange, onEnter, pagnation }, ref) => {
   const { options, allowFreeText, multiSelect, freeTextPlaceholder } = data;
   const hostRef = useRef<HTMLElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
 
-  useKeyboard({
-    getAllHost: () => hostRef.current?.querySelectorAll('[tabIndex="0"]'),
-    onEnter: (element) => {
-      const i = Number(element.dataset.index);
-      checkboxsRef.current[i]?.input?.click();
-      !multiSelect && onEnter();
-    },
-    onKeyDown: (e) => {
-      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (!/^[1-9]$/.test(e.key)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const i = Number(e.key) - 1;
-      const ref = checkboxsRef.current[i];
-      if (ref) {
-        ref?.input?.click();
-        !multiSelect && onEnter();
-      }
-    },
-  });
+  useImperativeHandle(
+    ref,
+    () => ({
+      getElements: () => {
+        return hostRef.current?.querySelectorAll('[tabIndex="0"]');
+      },
+      check: (i: number) => {
+        const ref = checkboxsRef.current[i];
+        if (ref) {
+          ref?.input?.click();
+          !multiSelect && onEnter();
+        }
+      },
+    }),
+    [],
+  );
 
   return (
     <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
@@ -302,7 +330,6 @@ const Question: React.FC<{
               <Input
                 variant="borderless"
                 placeholder={freeTextPlaceholder}
-                value={value?.freeText}
                 tabIndex={0}
                 data-index={options?.length}
                 onChange={(e) => {
@@ -310,11 +337,10 @@ const Question: React.FC<{
                   if (multiSelect) {
                     onChange?.({
                       question: data.question,
-                      freeText,
-                      answers: value?.answers,
+                      answers: [...(value?.answers || []), freeText],
                     });
                   } else {
-                    onChange?.({ question: data.question, freeText });
+                    onChange?.({ question: data.question, answer: freeText });
                   }
                 }}
                 onPressEnter={onEnter}
@@ -326,4 +352,4 @@ const Question: React.FC<{
       </Checkbox.Group>
     </Flex>
   );
-};
+});

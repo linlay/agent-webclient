@@ -14,11 +14,11 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const expanded = Boolean(node.expanded);
-  const answers = useMemo<AIAwaitSubmitParamData[]>(() => {
+  const questions = useMemo<AIAwaitSubmitParamData[]>(() => {
     try {
       return JSON.parse(node.text || "[]");
     } catch (error) {
-      console.error("Error parsing answers:", error);
+      console.error("Error parsing questions:", error);
     }
     return [];
   }, [node.text]);
@@ -43,7 +43,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
         <span>
           已询问{" "}
           <span style={{ color: "var(--text-main)" }}>
-            {answers?.length || 0}
+            {questions?.length || 0}
           </span>{" "}
           个问题
         </span>
@@ -51,10 +51,10 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       </UiButton>
       <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>
         <Flex vertical gap={10}>
-          {answers?.map((item) => (
+          {questions?.map((item) => (
             <Flex vertical key={item.question}>
               <div>{item.question}</div>
-              <div style={{ opacity: 0.5 }}>{item.answer}</div>
+              <div style={{ opacity: 0.5 }}>{item.answer ? item.answer : item?.answers?.join(', ')}</div>
             </Flex>
           ))}
         </Flex>

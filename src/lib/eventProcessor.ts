@@ -233,7 +233,7 @@ function formatStructuredEventText(value: unknown): string {
 
 function readAwaitingAnswerText(event: AgentEvent): string {
   return pickEventText(
-    formatStructuredEventText((event as Record<string, unknown>).answers),
+    formatStructuredEventText((event as Record<string, unknown>).questions),
     event.text,
     event.message,
   );

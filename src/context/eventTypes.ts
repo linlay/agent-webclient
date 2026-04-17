@@ -125,7 +125,6 @@ export interface AIAwaitSubmitParamData {
   question: string;
   answer?: string;
   answers?: string[];
-  freeText?: string;
 }
 
 export interface AIAwaitSubmitPayloadData {
