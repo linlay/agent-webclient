@@ -151,10 +151,49 @@ function createDeferred<T>() {
 describe("connectWsTransport", () => {
 	const handleEvent = jest.fn<void, [AgentEvent]>();
 	const dispatch = jest.fn<void, [AppAction]>();
+	const originalWindow = (globalThis as { window?: unknown }).window;
+	const originalCustomEvent = (globalThis as { CustomEvent?: unknown }).CustomEvent;
+
+	function createConnectedWsClient(
+		initWsClientImpl = jest.fn(),
+	): {
+		initWsClientImpl: jest.Mock;
+		connect: jest.Mock<Promise<void>, []>;
+		getOnPush: () => ((frame: Record<string, unknown>) => void) | undefined;
+	} {
+		const connect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+		initWsClientImpl.mockImplementation((options) => ({ connect, options }) as any);
+		return {
+			initWsClientImpl,
+			connect,
+			getOnPush: () => initWsClientImpl.mock.calls[0]?.[0]?.onPush,
+		};
+	}
 
 	beforeEach(() => {
 		dispatch.mockReset();
 		handleEvent.mockReset();
+	});
+
+	afterEach(() => {
+		if (originalWindow === undefined) {
+			delete (globalThis as { window?: unknown }).window;
+		} else {
+			Object.defineProperty(globalThis, "window", {
+				value: originalWindow,
+				configurable: true,
+				writable: true,
+			});
+		}
+		if (originalCustomEvent === undefined) {
+			delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
+			return;
+		}
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: originalCustomEvent,
+			configurable: true,
+			writable: true,
+		});
 	});
 
 	it("waits for app-mode token hydration before creating the ws client", async () => {
@@ -315,5 +354,282 @@ describe("connectWsTransport", () => {
 			line: "[live] Query WebSocket connect failed, retrying after token refresh",
 		});
 		expect(secondConnect).toHaveBeenCalledTimes(1);
+	});
+
+	it("upserts chat.created for a different chat via websocket push", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.created",
+			payload: {
+				chatId: "chat_new",
+				chatName: "New Chat",
+				agentKey: "agent_alpha",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_new",
+				chatName: "New Chat",
+				agentKey: "agent_alpha",
+				firstAgentKey: "agent_alpha",
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("upserts chat.created when the backend sends nested data instead of payload", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.created",
+			data: {
+				chatId: "chat_from_data",
+				chatName: "Chat From Data",
+				agentKey: "agent_data",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_from_data",
+				chatName: "Chat From Data",
+				agentKey: "agent_data",
+				firstAgentKey: "agent_data",
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("upserts run.started for another chat without dropping it on the current-chat filter", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.started",
+			payload: {
+				chatId: "chat_remote",
+				runId: "run_remote",
+				agentKey: "agent_remote",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_remote",
+				lastRunId: "run_remote",
+				agentKey: "agent_remote",
+				firstAgentKey: "agent_remote",
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("normalizes run.started to run.start and forwards it for the active chat", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.started",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_active",
+			},
+		});
+
+		expect(handleEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "run.start",
+				chatId: "chat_active",
+				runId: "run_active",
+			}),
+		);
+	});
+
+	it("upserts run.finished for any chat and reloads the active chat when idle", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: { chatId: string };
+
+			constructor(type: string, init?: { detail?: { chatId: string } }) {
+				this.type = type;
+				this.detail = init?.detail || { chatId: "" };
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.finished",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_done",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_done",
+			}),
+		});
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "agent:load-chat",
+				detail: { chatId: "chat_active" },
+			}),
+		);
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("prefers top-level push fields over payload fields when both are present", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.started",
+			chatId: "chat_top",
+			runId: "run_top",
+			payload: {
+				chatId: "chat_payload",
+				runId: "run_payload",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_top",
+				lastRunId: "run_top",
+			}),
+		});
+	});
+
+	it("prefers top-level push fields over nested data fields when both are present", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.created",
+			chatId: "chat_top_data",
+			chatName: "Top Level Name",
+			data: {
+				chatId: "chat_nested_data",
+				chatName: "Nested Name",
+				agentKey: "agent_nested",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_top_data",
+				chatName: "Top Level Name",
+				agentKey: "agent_nested",
+				firstAgentKey: "agent_nested",
+			}),
+		});
 	});
 });

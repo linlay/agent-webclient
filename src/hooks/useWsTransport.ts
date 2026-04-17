@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "../context/AppContext";
 import { useAppContext } from "../context/AppContext";
-import type { AgentEvent, AppState } from "../context/types";
+import type { AgentEvent, AppState, Chat } from "../context/types";
 import { ensureAccessToken } from "../lib/apiClient";
 import { readStoredTransportMode } from "../lib/transportMode";
 import { setTransportModeProvider } from "../lib/apiClientProxy";
@@ -19,16 +19,111 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
 }
 
+function normalizePushType(type: string): string {
+	if (type === "run.started") {
+		return "run.start";
+	}
+	if (type === "run.finished") {
+		return "run.complete";
+	}
+	return type;
+}
+
 function toPushEvent(frame: {
 	type?: string;
 	payload?: unknown;
+	data?: unknown;
 	[key: string]: unknown;
 }): AgentEvent {
-	const payloadRecord = isObjectRecord(frame.payload) ? frame.payload : {};
+	const nestedRecord = isObjectRecord(frame.payload)
+		? frame.payload
+		: isObjectRecord(frame.data)
+			? frame.data
+			: {};
+	const { frame: _frame, payload: _payload, data: _data, ...topLevel } = frame;
+	const normalizedType = normalizePushType(
+		String(frame.type || nestedRecord.type || ""),
+	);
 	return {
-		...payloadRecord,
-		type: String(frame.type || payloadRecord.type || ""),
+		...nestedRecord,
+		...topLevel,
+		type: normalizedType,
 	} as AgentEvent;
+}
+
+function resolveChatUpdatedAt(event: AgentEvent): string | number {
+	const raw = event as Record<string, unknown>;
+	if (typeof raw.updatedAt === "string") {
+		return raw.updatedAt;
+	}
+	if (
+		typeof raw.updatedAt === "number"
+		&& Number.isFinite(raw.updatedAt)
+	) {
+		return raw.updatedAt;
+	}
+	if (
+		typeof event.timestamp === "number"
+		&& Number.isFinite(event.timestamp)
+		&& event.timestamp > 0
+	) {
+		return event.timestamp;
+	}
+	return Date.now();
+}
+
+function toChatPatchFromPushEvent(
+	event: AgentEvent,
+): (Partial<Chat> & Pick<Chat, "chatId">) | null {
+	const chatId = String(event.chatId || "").trim();
+	if (!chatId) {
+		return null;
+	}
+
+	const raw = event as Record<string, unknown>;
+	const chatPatch: Partial<Chat> & Pick<Chat, "chatId"> = {
+		chatId,
+		updatedAt: resolveChatUpdatedAt(event),
+	};
+
+	const chatName = String(raw.chatName || "").trim();
+	if (chatName) {
+		chatPatch.chatName = chatName;
+	}
+
+	const firstAgentName = String(raw.firstAgentName || "").trim();
+	if (firstAgentName) {
+		chatPatch.firstAgentName = firstAgentName;
+	}
+
+	const agentKey = String(event.agentKey || raw.firstAgentKey || "").trim();
+	if (agentKey) {
+		chatPatch.agentKey = agentKey;
+		chatPatch.firstAgentKey = agentKey;
+	}
+
+	const teamId = String(raw.teamId || "").trim();
+	if (teamId) {
+		chatPatch.teamId = teamId;
+	}
+
+	const runId = String(event.runId || "").trim();
+	if (runId) {
+		chatPatch.lastRunId = runId;
+	}
+
+	const lastRunContent = typeof raw.lastRunContent === "string"
+		? raw.lastRunContent
+		: typeof event.text === "string"
+			? event.text
+			: typeof event.message === "string"
+				? event.message
+				: "";
+	if (lastRunContent.trim()) {
+		chatPatch.lastRunContent = lastRunContent;
+	}
+
+	return chatPatch;
 }
 
 type WsTransportDispatch = Dispatch<AppAction>;
@@ -62,6 +157,32 @@ function setWsError(
 	return error;
 }
 
+function upsertPushChatSummary(
+	dispatch: WsTransportDispatch,
+	event: AgentEvent,
+): void {
+	const chatPatch = toChatPatchFromPushEvent(event);
+	if (!chatPatch) {
+		return;
+	}
+	dispatch({ type: "UPSERT_CHAT", chat: chatPatch });
+}
+
+function dispatchLoadChatEvent(chatId: string): void {
+	if (
+		typeof window === "undefined"
+		|| typeof window.dispatchEvent !== "function"
+		|| typeof CustomEvent !== "function"
+	) {
+		return;
+	}
+	window.dispatchEvent(
+		new CustomEvent("agent:load-chat", {
+			detail: { chatId },
+		}),
+	);
+}
+
 function buildWsClient(
 	options: ConnectWsTransportOptions,
 	accessToken: string,
@@ -75,6 +196,11 @@ function buildWsClient(
 		onPush: (frame) => {
 			const liveEvent = toPushEvent(frame);
 			const type = String(liveEvent.type || "");
+			const currentChatId = String(options.stateRef.current.chatId || "").trim();
+			const eventChatId = String(liveEvent.chatId || "").trim();
+			const isActiveChat = Boolean(
+				currentChatId && eventChatId && eventChatId === currentChatId,
+			);
 
 			if (type === "heartbeat") {
 				return;
@@ -88,12 +214,37 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.created") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				return;
+			}
+
+			if (type === "run.start") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				if (options.stateRef.current.streaming) {
+					return;
+				}
+				if (isActiveChat) {
+					options.handleEvent(liveEvent);
+				}
+				return;
+			}
+
+			if (type === "run.complete") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				if (options.stateRef.current.streaming) {
+					return;
+				}
+				if (isActiveChat) {
+					dispatchLoadChatEvent(eventChatId);
+				}
+				return;
+			}
+
 			if (options.stateRef.current.streaming) {
 				return;
 			}
 
-			const currentChatId = String(options.stateRef.current.chatId || "").trim();
-			const eventChatId = String(liveEvent.chatId || "").trim();
 			if (currentChatId && eventChatId && eventChatId !== currentChatId) {
 				return;
 			}

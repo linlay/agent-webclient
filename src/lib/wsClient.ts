@@ -41,6 +41,7 @@ interface WsPushFrame {
 	frame: "push";
 	type?: string;
 	payload?: unknown;
+	data?: unknown;
 	[key: string]: unknown;
 }
 
