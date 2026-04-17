@@ -739,7 +739,12 @@ export class WsClient {
 		this.reconnectAttempt += 1;
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
-			this.connect();
+			void this.connect().catch((error) => {
+				if (isWsConnectionFailure(error)) {
+					return;
+				}
+				console.warn("[WsClient] Reconnect attempt failed:", error);
+			});
 		}, delay);
 	}
 

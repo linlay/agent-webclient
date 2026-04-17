@@ -1,20 +1,69 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
+import type { AppState } from "../../context/types";
 import { resolveCurrentWorkerSummary } from "../../lib/currentWorker";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 
+interface TopNavStatusDisplay {
+	statusClass: "is-idle" | "is-running" | "is-error";
+	statusText: string;
+	statusTitle?: string;
+}
+
+export function resolveTopNavStatus(
+	state: Pick<
+		AppState,
+		"streaming" | "events" | "transportMode" | "wsStatus" | "wsErrorMessage"
+	>,
+): TopNavStatusDisplay {
+	const wsErrorMessage = String(state.wsErrorMessage || "").trim();
+	const hasRunError = state.events.some((event) => event.type === "run.error");
+
+	if (state.streaming) {
+		return {
+			statusClass: "is-running",
+			statusText: "运行中...",
+		};
+	}
+
+	if (state.transportMode === "ws") {
+		if (state.wsStatus === "connecting") {
+			return {
+				statusClass: "is-running",
+				statusText: "WebSocket 连接中...",
+			};
+		}
+
+		if (
+			state.wsStatus === "error" ||
+			(state.wsStatus === "disconnected" && wsErrorMessage)
+		) {
+			return {
+				statusClass: "is-error",
+				statusText: "WebSocket 连接异常",
+				statusTitle: wsErrorMessage || "WebSocket 连接异常",
+			};
+		}
+	}
+
+	if (hasRunError) {
+		return {
+			statusClass: "is-error",
+			statusText: "运行异常",
+		};
+	}
+
+	return {
+		statusClass: "is-idle",
+		statusText: "就绪",
+	};
+}
+
 export const TopNav: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
-
-	const statusClass = state.streaming
-		? "is-running"
-		: state.events.some((e) => e.type === "run.error")
-			? "is-error"
-			: "is-idle";
-
-	const statusText = state.streaming ? "运行中..." : "就绪";
+	const { statusClass, statusText, statusTitle } = resolveTopNavStatus(state);
 	const currentWorker = resolveCurrentWorkerSummary(state);
 	const currentWorkerRole = String(currentWorker?.role || "").trim() || "--";
 	const showCompactNewChatButton = state.layoutMode !== "desktop-fixed";
@@ -226,6 +275,7 @@ export const TopNav: React.FC = () => {
 					<span
 						className={`status-pill ${statusClass}`}
 						id="api-status"
+						title={statusTitle}
 					>
 						{statusText}
 					</span>

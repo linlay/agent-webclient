@@ -356,4 +356,43 @@ describe("WsClient", () => {
 		const secondSocket = MockWebSocket.instances[1];
 		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
 	});
+
+	it("swallows reconnect handshake failures while preserving error state", async () => {
+		jest.useFakeTimers();
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		const statuses: WsConnectionStatus[] = [];
+		const client = new WsClient({
+			accessToken: "token_a",
+			onStatusChange: (status) => statuses.push(status),
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+		});
+
+		try {
+			const firstConnect = client.connect();
+			const firstSocket = MockWebSocket.instances[0];
+			firstSocket.open();
+			await expect(firstConnect).resolves.toBeUndefined();
+
+			firstSocket.close(1006, "server disconnected");
+			expect(client.getStatus()).toBe("error");
+
+			jest.advanceTimersByTime(1_000);
+			expect(MockWebSocket.instances).toHaveLength(2);
+
+			const secondSocket = MockWebSocket.instances[1];
+			secondSocket.error();
+			await flushMicrotasks();
+
+			expect(client.getStatus()).toBe("error");
+			expect(warnSpy).not.toHaveBeenCalled();
+
+			jest.advanceTimersByTime(1_000);
+			expect(MockWebSocket.instances).toHaveLength(3);
+			expect(statuses).toContain("error");
+		} finally {
+			client.disconnect();
+			warnSpy.mockRestore();
+		}
+	});
 });
