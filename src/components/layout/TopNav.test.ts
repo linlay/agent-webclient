@@ -110,6 +110,12 @@ describe("TopNav", () => {
 	});
 
 	it("renders idle status for non-websocket transport", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			transportMode: "sse",
+		});
+
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">就绪<");

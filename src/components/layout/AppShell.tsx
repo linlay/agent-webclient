@@ -44,7 +44,8 @@ export const AppShell: React.FC = () => {
 	useActionRuntime();
 	useVoiceRuntime();
 	useVoiceChatRuntime();
-	// Disabled for now because `/api/live` keeps reconnecting in the background.
+	// Legacy SSE live sync remains available as a compatibility path only.
+	// Default real-time updates now come from `/ws` push frames via useWsTransport().
 	// useLiveEvents();
 
 	const layoutClass =

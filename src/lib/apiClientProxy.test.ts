@@ -1,4 +1,6 @@
 const mockGetWsClient = jest.fn();
+const mockGetWsClientAccessToken = jest.fn();
+const mockInitWsClient = jest.fn();
 
 jest.mock("./apiClient", () => {
 	class MockApiError extends Error {
@@ -51,6 +53,8 @@ jest.mock("./apiClient", () => {
 });
 jest.mock("./wsClientSingleton", () => ({
 	getWsClient: () => mockGetWsClient(),
+	getWsClientAccessToken: () => mockGetWsClientAccessToken(),
+	initWsClient: (options: unknown) => mockInitWsClient(options),
 }));
 
 let mockApiClient: {
@@ -89,6 +93,8 @@ describe("apiClientProxy", () => {
 	beforeEach(() => {
 		jest.resetModules();
 		mockGetWsClient.mockReset();
+		mockGetWsClientAccessToken.mockReset();
+		mockInitWsClient.mockReset();
 		mockApiClient = jest.requireMock("./apiClient") as typeof mockApiClient;
 		({
 			WsClientDisconnectedError,
@@ -99,12 +105,15 @@ describe("apiClientProxy", () => {
 				(value as jest.Mock).mockClear();
 			}
 		});
+		mockApiClient.getCurrentAccessToken.mockReturnValue("");
+		mockApiClient.ensureAccessToken.mockResolvedValue("");
 	});
 
 	it("routes request/response calls over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
+		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
 			status: 200,
 			code: 0,
@@ -112,12 +121,15 @@ describe("apiClientProxy", () => {
 			data: [],
 		});
 		mockGetWsClient.mockReturnValue({
-			getStatus: () => "connected",
+			connect,
+			updateOptions: jest.fn(),
 			request,
 		});
+		mockGetWsClientAccessToken.mockReturnValue("");
 
 		await proxy.getAgents();
 
+		expect(connect).toHaveBeenCalledTimes(1);
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/agents",
 			payload: undefined,
@@ -125,62 +137,80 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
-	it("falls back to http when ws mode is selected but disconnected", async () => {
+	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
-		mockGetWsClient.mockReturnValue({
-			getStatus: () => "disconnected",
-		});
-		mockApiClient.getAgents.mockResolvedValue({
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
 			status: 200,
 			code: 0,
 			msg: "ok",
-			data: ["http"],
+			data: ["ws"],
+		});
+		mockGetWsClient.mockReturnValue(null);
+		mockApiClient.getCurrentAccessToken.mockReturnValue("token_1");
+		mockInitWsClient.mockReturnValue({
+			connect,
+			request,
 		});
 
 		await expect(proxy.getAgents()).resolves.toMatchObject({
-			data: ["http"],
+			data: ["ws"],
 		});
-		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
+
+		expect(mockInitWsClient).toHaveBeenCalledWith({ accessToken: "token_1" });
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/agents",
+			payload: undefined,
+		});
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
-	it("falls back to http for read-only requests when ws transport fails", async () => {
-		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+	it("waits for a disconnected ws client instead of falling back to http", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
 
-		try {
-			const proxy = await import("./apiClientProxy");
-			proxy.setTransportModeProvider(() => "ws");
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["ws-after-connect"],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
 
-			const request = jest
-				.fn()
-				.mockRejectedValue(
-					new WsClientRequestTimeoutError(
-						"WebSocket request timeout: /api/agents",
-					),
-				);
-			mockGetWsClient.mockReturnValue({
-				getStatus: () => "connected",
-				request,
-			});
-			mockApiClient.getAgents.mockResolvedValue({
-				status: 200,
-				code: 0,
-				msg: "ok",
-				data: ["http-fallback"],
-			});
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["ws-after-connect"],
+		});
 
-			await expect(proxy.getAgents()).resolves.toMatchObject({
-				data: ["http-fallback"],
-			});
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
 
-			expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
-			expect(warnSpy).toHaveBeenCalledWith(
-				"[apiClientProxy] WS request failed for /api/agents, falling back to HTTP:",
-				expect.any(WsClientRequestTimeoutError),
-			);
-		} finally {
-			warnSpy.mockRestore();
-		}
+	it("does not fall back to http when ws request times out", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const error = new WsClientRequestTimeoutError(
+			"WebSocket request timeout: /api/agents",
+		);
+		const request = jest.fn().mockRejectedValue(error);
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getAgents()).rejects.toBe(error);
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
 	it("does not fall back for read-only requests when ws returns an ApiError", async () => {
@@ -193,9 +223,11 @@ describe("apiClientProxy", () => {
 		});
 		const request = jest.fn().mockRejectedValue(error);
 		mockGetWsClient.mockReturnValue({
-			getStatus: () => "connected",
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
 			request,
 		});
+		mockGetWsClientAccessToken.mockReturnValue("");
 
 		await expect(proxy.getAgents()).rejects.toBe(error);
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
@@ -208,9 +240,11 @@ describe("apiClientProxy", () => {
 		const error = new WsClientDisconnectedError();
 		const request = jest.fn().mockRejectedValue(error);
 		mockGetWsClient.mockReturnValue({
-			getStatus: () => "connected",
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
 			request,
 		});
+		mockGetWsClientAccessToken.mockReturnValue("");
 
 		await expect(
 			proxy.interruptChat({
@@ -220,6 +254,24 @@ describe("apiClientProxy", () => {
 			}),
 		).rejects.toBe(error);
 		expect(mockApiClient.interruptChat).not.toHaveBeenCalled();
+	});
+
+	it("still uses http when the user explicitly switches back to sse mode", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getAgents.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["http"],
+		});
+
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["http"],
+		});
+
+		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
+		expect(mockInitWsClient).not.toHaveBeenCalled();
 	});
 
 	it("keeps upload/download/resource helpers on the original http exports", async () => {

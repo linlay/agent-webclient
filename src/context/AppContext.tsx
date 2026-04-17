@@ -65,7 +65,7 @@ export function createInitialState(): AppState {
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
 	const themeMode = resolveInitialThemeMode();
-	const transportMode = readStoredTransportMode() || "sse";
+	const transportMode = readStoredTransportMode() || "ws";
 
 	const initialVoiceChat: VoiceChatState = {
 		status: "idle",

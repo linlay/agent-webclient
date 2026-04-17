@@ -24,6 +24,10 @@ export function getWsClient(): WsClient | null {
 	return wsClient;
 }
 
+export function getWsClientAccessToken(): string {
+	return wsClientAccessToken;
+}
+
 export function destroyWsClient(): void {
 	if (wsClient) {
 		wsClient.disconnect();

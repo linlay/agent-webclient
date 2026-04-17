@@ -4,12 +4,10 @@ import { useAgentEventHandler } from './useAgentEventHandler';
 import type { AgentEvent } from '../context/types';
 
 /**
- * useLiveEvents — subscribes to relay's /api/live SSE endpoint
- * to receive real-time CLI events even when messages are initiated
- * by other clients (e.g. Claude Island, H5 mobile).
+ * useLiveEvents — legacy SSE compatibility hook for `/api/live`.
  *
- * This complements the per-query SSE stream (createQueryStream) which
- * only receives events for messages sent FROM the webclient.
+ * Default real-time sync now comes from `/ws` push frames handled by
+ * `useWsTransport`. Keep this hook only for manual SSE compatibility mode.
  */
 export function useLiveEvents() {
   const { dispatch, state, stateRef } = useAppContext();

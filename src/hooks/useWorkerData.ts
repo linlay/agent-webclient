@@ -15,13 +15,29 @@ import {
 } from '../lib/chatSummary';
 import { upsertAgentSummary } from '../lib/agentSummary';
 
+export function shouldStartInitialWorkerRefresh(input: {
+  transportMode: 'sse' | 'ws';
+  wsStatus: string;
+  hasStarted: boolean;
+}): boolean {
+  if (input.hasStarted) {
+    return false;
+  }
+
+  if (input.transportMode !== 'ws') {
+    return true;
+  }
+
+  return input.wsStatus === 'connected';
+}
+
 export function useWorkerData(input: {
   loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
   selectWorkerConversation: (workerKey: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
 }) {
   const { loadChat, selectWorkerConversation } = input;
   const { state, dispatch, stateRef } = useAppContext();
-  const bootstrappedRef = useRef(false);
+  const initialRefreshStartedRef = useRef(false);
 
   const extractAgentWorkerKey = useCallback((detail: { workerKey?: unknown; agentKey?: unknown }): string => {
     const explicitAgentKey = String(detail.agentKey || '').trim();
@@ -217,14 +233,22 @@ export function useWorkerData(input: {
   }, [dispatch, extractAgentWorkerKey, rebuildWorkerRowsFromState, stateRef]);
 
   useEffect(() => {
-    if (bootstrappedRef.current) {
+    setAccessToken(state.accessToken);
+  }, [state.accessToken]);
+
+  useEffect(() => {
+    if (!shouldStartInitialWorkerRefresh({
+      transportMode: state.transportMode,
+      wsStatus: state.wsStatus,
+      hasStarted: initialRefreshStartedRef.current,
+    })) {
       return;
     }
-    bootstrappedRef.current = true;
 
+    initialRefreshStartedRef.current = true;
     setAccessToken(stateRef.current.accessToken);
     refreshWorkerData().catch(() => undefined);
-  }, [refreshWorkerData, stateRef]);
+  }, [refreshWorkerData, state.transportMode, state.wsStatus, stateRef]);
 
   useEffect(() => {
     const handler = (e: Event) => {

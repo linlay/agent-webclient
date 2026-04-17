@@ -132,6 +132,19 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.wsErrorMessage).toBe('');
   });
 
+  it('defaults the initial transport mode to ws when nothing is stored', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => '',
+      },
+    });
+
+    const state = createInitialState();
+
+    expect(state.transportMode).toBe('ws');
+  });
+
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {
     const baseState = createInitialState();
     const workerChats: WorkerConversationRow[] = [

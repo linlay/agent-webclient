@@ -584,8 +584,8 @@ export const SettingsModal: React.FC = () => {
               {state.streaming
                 ? "当前流式响应中，结束后可切换传输模式。"
                 : state.transportMode === "ws"
-                  ? `当前使用 WebSocket 传输。${wsStatusText}。`
-                  : "当前使用 SSE 传输。"}
+                  ? `当前默认使用 WebSocket 传输。${wsStatusText}。`
+                  : "当前使用 SSE 兼容模式。"}
             </p>
           </div>
         </div>
