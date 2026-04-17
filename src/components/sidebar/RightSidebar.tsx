@@ -45,10 +45,8 @@ const EventRow: React.FC<{
       className={`event-row is-clickable ${kindClass} ${errorClass}`.trim()}
       data-event-index={index}
       align="center"
-      gap={10}
       onClick={onClick}
     >
-      <div className="event-row-mark"></div>
       <Flex vertical style={{ flex: 1 }}>
         <Flex justify="space-between">
           <strong>{type}</strong>
@@ -71,14 +69,14 @@ const DEBUG_EVENT_TABS: Array<{
   { key: "request", label: "request", color: "#5A86C8" },
   { key: "chat", label: "chat", color: "#6B92BF" },
   { key: "run", label: "run", color: "#4476AD" },
-  { key: "awaiting", label: "awaiting", color: "#BE8E73" },
-  { key: "reasoning", label: "reasoning", color: "#5AA79D" },
-  { key: "content", label: "content", color: "#7AB9A8" },
+  { key: "awaiting", label: "awaiting", color: "#D2B395" },
+  { key: "reasoning", label: "reasoning", color: "#7AB9A8" },
+  { key: "content", label: "content", color: "#5AA79D" },
   { key: "tool", label: "tool", color: "#D6A05E" },
   { key: "action", label: "action", color: "#CA9168" },
   { key: "plan", label: "plan", color: "#8E82C4" },
   { key: "task", label: "task", color: "#A094D0" },
-  { key: "artifact", label: "artifact", color: "#C090A8" },
+  { key: "artifact", label: "artifact", color: "#D98A42" },
 ];
 
 const AttachmentPreviewPanel: React.FC = () => {

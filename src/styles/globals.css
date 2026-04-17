@@ -3997,6 +3997,10 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   flex-direction: column;
 }
 
+.debug-panel .ant-tag {
+  margin-inline-end: 0;
+}
+
 .debug-panel .ant-tabs-content-holder {
   flex: 1;
   min-height: 0;
@@ -4135,7 +4139,7 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   position: relative;
   padding: 8px 10px 8px 12px;
   border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-  border-radius: 20px;
+  border-radius: 10px;
   font-size: 12px;
   transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
 }
@@ -4155,13 +4159,6 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
 
 .event-row.event-row {
   margin-top: 6px;
-}
-
-.event-row-mark {
-  border: 4px solid;
-  border-radius: 50%;
-  width: 8px;
-  height: 8px;
 }
 
 .event-row-time {
@@ -4197,18 +4194,18 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
 }
 
 .event-group-awaiting {
-  color: #BE8E73;
-  background: color-mix(in srgb, #BE8E73 8%, var(--bg-elev-2));
+  color: #D2B395;
+  background: color-mix(in srgb, #D2B395 8%, var(--bg-elev-2));
 }
 
 .event-group-content {
-  color: #7AB9A8;
-  background: color-mix(in srgb, #7AB9A8 7%, var(--bg-elev-2));
+  color: #5AA79D;
+  background: color-mix(in srgb, #5AA79D 8%, var(--bg-elev-2));
 }
 
 .event-group-reasoning {
-  color: #5AA79D;
-  background: color-mix(in srgb, #5AA79D 8%, var(--bg-elev-2));
+  color: #7AB9A8;
+  background: color-mix(in srgb, #7AB9A8 7%, var(--bg-elev-2));
 }
 
 .event-group-tool {
@@ -4232,8 +4229,8 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
 }
 
 .event-group-artifact {
-  color: #C090A8;
-  background: color-mix(in srgb, #C090A8 8%, var(--bg-elev-2));
+  color: #D98A42;
+  background: color-mix(in srgb, #D98A42 8%, var(--bg-elev-2));
 }
 
 .event-row.is-error-type {
