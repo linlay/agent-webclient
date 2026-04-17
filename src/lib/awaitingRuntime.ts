@@ -58,6 +58,18 @@ function isBuiltinConfirmDialogAsk(event: AgentEvent): boolean {
   );
 }
 
+function readAwaitingTimeout(event: AgentEvent): number | null {
+  const timeout = Number(event.timeout);
+  if (Number.isFinite(timeout)) {
+    return timeout;
+  }
+
+  const fallbackTimeout = Number(
+    (event as Record<string, unknown>).toolTimeout,
+  );
+  return Number.isFinite(fallbackTimeout) ? fallbackTimeout : null;
+}
+
 export function reduceActiveAwaiting(
   current: ActiveAwaiting | null,
   event: AgentEvent,
@@ -86,7 +98,7 @@ export function reduceActiveAwaiting(
       key,
       awaitingId,
       runId,
-      timeout: Number.isFinite(Number(event.timeout)) ? Number(event.timeout) : null,
+      timeout: readAwaitingTimeout(event),
       viewportKey: BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY,
       viewportType: ViewportTypeEnum.Builtin,
       questions:

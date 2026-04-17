@@ -184,6 +184,47 @@ function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
   return false;
 }
 
+function normalizeAwaitingQuestionsSignature(
+  awaiting: ActiveAwaiting | null,
+): string {
+  if (!awaiting || awaiting.questions.length === 0) {
+    return '';
+  }
+  return JSON.stringify(awaiting.questions);
+}
+
+function shouldSyncActiveAwaitingFromState(
+  cache: LocalCache,
+  state: AppState,
+): boolean {
+  const stateAwaiting = state.activeAwaiting;
+  const cacheAwaiting = cache.activeAwaiting;
+
+  if (!stateAwaiting) {
+    return false;
+  }
+
+  if (!cacheAwaiting) {
+    return true;
+  }
+
+  if (stateAwaiting.key !== cacheAwaiting.key) {
+    return false;
+  }
+
+  if (
+    stateAwaiting.timeout !== cacheAwaiting.timeout
+    && stateAwaiting.timeout !== null
+  ) {
+    return true;
+  }
+
+  return (
+    normalizeAwaitingQuestionsSignature(stateAwaiting)
+    !== normalizeAwaitingQuestionsSignature(cacheAwaiting)
+  );
+}
+
 export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean {
   const visibleChatId = toText(state.chatId);
   const visibleRunId = toText(state.runId);
@@ -200,7 +241,7 @@ export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean
   return (
     cache.chatId !== visibleChatId
     || cache.runId !== visibleRunId
-    || cache.activeAwaiting !== state.activeAwaiting
+    || shouldSyncActiveAwaitingFromState(cache, state)
     || cache.counter < state.timelineCounter
     || hasStateAheadNodeMap(cache.contentNodeById, state.contentNodeById)
     || hasStateAheadNodeMap(cache.reasoningNodeById, state.reasoningNodeById)

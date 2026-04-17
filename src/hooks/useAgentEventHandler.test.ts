@@ -1,6 +1,7 @@
 import { createInitialState } from '../context/AppContext';
 import type { AgentEvent, TimelineNode } from '../context/types';
 import type { EventCommand } from '../lib/eventProcessor';
+import { reduceActiveAwaiting } from '../lib/awaitingRuntime';
 import { processEvent } from '../lib/eventProcessor';
 import {
   createLiveProcessorState,
@@ -173,6 +174,96 @@ describe('shouldSyncLiveCache', () => {
     cache.nodeById.set('content_0', { ...contentNode, text: 'Hello world' });
 
     expect(shouldSyncLiveCache(cache, state)).toBe(false);
+  });
+
+  it('keeps live awaiting state authoritative until React state catches up', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: null,
+    };
+
+    const cache = createLocalCacheFromState(state);
+    cache.activeAwaiting = reduceActiveAwaiting(cache.activeAwaiting, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      viewportType: 'builtin',
+      viewportKey: 'confirm_dialog',
+    });
+
+    expect(cache.activeAwaiting).toMatchObject({
+      awaitingId: 'await_1',
+      questions: [],
+    });
+    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+
+    const hydrated = reduceActiveAwaiting(cache.activeAwaiting, {
+      type: 'awaiting.payload',
+      awaitingId: 'await_1',
+      questions: [
+        {
+          type: 'select',
+          question: '继续执行吗？',
+          options: [
+            {
+              label: '继续',
+              description: '允许继续执行',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(hydrated?.questions).toHaveLength(1);
+    expect(hydrated?.questions[0]).toMatchObject({
+      question: '继续执行吗？',
+    });
+  });
+
+  it('rebuilds when React state has hydrated questions for the same awaiting session', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 60,
+        viewportKey: 'confirm_dialog',
+        viewportType: 'builtin' as const,
+        questions: [
+          {
+            type: 'select' as const,
+            question: '继续执行吗？',
+            options: [
+              {
+                label: '继续',
+                description: '允许继续执行',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const cache = createLocalCacheFromState({
+      ...state,
+      activeAwaiting: {
+        ...state.activeAwaiting,
+        questions: [],
+      },
+    });
+
+    expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
 });
 

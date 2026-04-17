@@ -82,6 +82,33 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
+  it('falls back to toolTimeout when awaiting.ask omits timeout', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      viewportType: ViewportTypeEnum.Builtin,
+      viewportKey: 'confirm_dialog',
+      toolTimeout: 120000,
+    });
+
+    expect(asked?.timeout).toBe(120000);
+  });
+
+  it('prefers timeout over toolTimeout when both are present', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      viewportType: ViewportTypeEnum.Builtin,
+      viewportKey: 'confirm_dialog',
+      timeout: 60,
+      toolTimeout: 120000,
+    });
+
+    expect(asked?.timeout).toBe(60);
+  });
+
   it('ignores payloads that do not match the active awaiting id', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',

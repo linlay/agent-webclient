@@ -32,6 +32,11 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 import Style from "./index.module.css";
+import {
+  clampAwaitingIndex,
+  createAwaitingParamPlaceholders,
+  hasAwaitingQuestions,
+} from "./state";
 
 interface ConfirmDialogProps extends CallbackData {
   data: ActiveAwaiting;
@@ -50,7 +55,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const questions = useMemo(() => data?.questions || [], [data]);
-  const prepared = useMemo(() => Array.isArray(data?.questions), [data]);
+  const ready = useMemo(() => hasAwaitingQuestions(questions), [questions]);
 
   useKeyboard({
     getAllHost: () => {
@@ -59,7 +64,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     onEnter: (element) => {
       const i = Number(element.dataset.index);
       const questionRef = questionsRef.current[curIndex];
-      questionRef.check(i);
+      questionRef?.check(i);
     },
     onKeyDown: (e) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
@@ -68,7 +73,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       e.stopPropagation();
       const i = Number(e.key) - 1;
       const questionRef = questionsRef.current[curIndex];
-      questionRef.check(i);
+      questionRef?.check(i);
     },
   });
 
@@ -88,12 +93,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     form.setFieldsValue({
       runId: data?.runId || "",
       awaitingId: data?.awaitingId || "",
-      params: Array.from(
-        { length: data?.questions?.length },
-        () => ({}),
-      ) as any,
+      params: createAwaitingParamPlaceholders(questions) as any,
     });
-  }, [data]);
+    setCurIndex((prev) => clampAwaitingIndex(prev, questions.length));
+  }, [data?.awaitingId, data?.runId, form, questions]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "ArrowRight") {
@@ -112,6 +115,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   }, []);
 
   const onEnter = () => {
+    if (questions.length === 0) {
+      return;
+    }
     if (curIndex >= questions.length - 1) {
       form.submit();
     } else {
@@ -120,7 +126,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   };
   const doSubmit = (payload: AIAwaitSubmitPayloadData) => {
     setLoading(true);
-    callbackRef.current?.onSubmit?.(payload).finally(() => setLoading(false));
+    const pending = callbackRef.current?.onSubmit?.(payload);
+    pending?.finally(() => setLoading(false));
   };
   const doIgnore = () => {
     callbackRef.current?.onSubmit?.({
@@ -131,7 +138,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       })),
     });
   };
-  return prepared ? (
+  return ready ? (
     <Form
       form={form}
       className={Style.ConfirmDialog}
