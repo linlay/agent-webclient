@@ -9,6 +9,16 @@ interface AwaitingAnswerBlockProps {
   node: TimelineNode;
 }
 
+function formatAwaitingAnswerValue(item: AIAwaitSubmitParamData): string {
+  if (item.answer !== undefined && item.answer !== null) {
+    return String(item.answer);
+  }
+  if (Array.isArray(item.answers)) {
+    return item.answers.join(", ");
+  }
+  return "（无回答内容）";
+}
+
 export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
 }) => {
@@ -16,7 +26,8 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   const expanded = Boolean(node.expanded);
   const questions = useMemo<AIAwaitSubmitParamData[]>(() => {
     try {
-      return JSON.parse(node.text || "[]");
+      const parsed = JSON.parse(node.text || "[]");
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error("Error parsing questions:", error);
     }
@@ -52,9 +63,9 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>
         <Flex vertical gap={10}>
           {questions?.map((item) => (
-            <Flex vertical key={item.question}>
-              <div>{item.question}</div>
-              <div style={{ opacity: 0.5 }}>{item.answer ? item.answer : item?.answers?.join(', ')}</div>
+            <Flex vertical key={`${item.question}:${item.header || ""}`}>
+              <div>{item.header || item.question}</div>
+              <div style={{ opacity: 0.5 }}>{formatAwaitingAnswerValue(item)}</div>
             </Flex>
           ))}
         </Flex>

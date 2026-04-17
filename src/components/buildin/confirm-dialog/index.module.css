@@ -31,15 +31,35 @@
 .QuestionWrapper {
 
   .Question {
-    font-weight: bold;
     padding: 10px;
+    gap: 16px;
 
     :first-child {
       flex: 1;
     }
   }
 
+  .QuestionText {
+    min-width: 0;
+  }
+
+  .QuestionHeading {
+    color: var(--text-main);
+    font-weight: bold;
+  }
+
+  .QuestionPrompt {
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .InputField {
+    margin: 0 10px 10px;
+    width: auto;
+  }
+
   .CheckboxGroup {
+    display: flex;
     flex-direction: column;
     gap: 4px;
 
@@ -82,6 +102,13 @@
         color: var(--text-main);
         font-weight: bold;
       }
+    }
+
+    .FreeText {
+      margin: 4px 10px 10px;
+      border: 1px solid var(--border);
+      align-items: center;
+      color: var(--text-main);
     }
   }
 

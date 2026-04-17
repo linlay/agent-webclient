@@ -40,10 +40,20 @@ export const useKeyboard = (props: UseKeyboardProps) => {
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const key = e.key.toLocaleLowerCase();
+    const activeElement = document.activeElement as HTMLElement | null;
+    const activeTagName = activeElement?.tagName;
+    const activeElementIsEditable =
+      activeTagName === "INPUT"
+      || activeTagName === "TEXTAREA"
+      || Boolean(activeElement?.isContentEditable);
+
+    if (activeElementIsEditable && key !== "escape") {
+      callbackRef.current?.onKeyDown?.(e);
+      return;
+    }
 
     if (key === "enter") {
       e.preventDefault();
-      const activeElement = document.activeElement as HTMLElement;
       if (activeElement && activeElement?.tabIndex === 0) {
         callbackRef.current?.onEnter
           ? callbackRef.current?.onEnter(activeElement)

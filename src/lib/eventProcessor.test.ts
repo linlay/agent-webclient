@@ -7,6 +7,10 @@ import type {
 } from '../context/types';
 import type { EventCommand, EventProcessorState } from './eventProcessor';
 import { processEvent } from './eventProcessor';
+import {
+  clearAllAwaitingQuestionMeta,
+  registerAwaitingQuestionMeta,
+} from './awaitingQuestionMeta';
 
 type TestState = {
   timelineNodes: Map<string, TimelineNode>;
@@ -166,6 +170,10 @@ function processAndApply(state: TestState, event: AgentEvent, mode: 'live' | 're
 }
 
 describe('processEvent', () => {
+  beforeEach(() => {
+    clearAllAwaitingQuestionMeta();
+  });
+
   it('creates request.query user nodes only during replay', () => {
     const replayState = createState();
     const liveState = createState();
@@ -326,6 +334,46 @@ describe('processEvent', () => {
       expanded: false,
       ts: 220,
     });
+  });
+
+  it('masks password answers in awaiting answer timeline nodes', () => {
+    const state = createState();
+
+    registerAwaitingQuestionMeta('run_1', 'await_1', [
+      {
+        type: 'password',
+        header: '数据库密码',
+        question: '请输入数据库密码',
+      },
+    ]);
+
+    processAndApply(state, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      questions: [
+        {
+          header: '数据库密码',
+          question: '请输入数据库密码',
+          answer: 'super-secret',
+        },
+      ],
+      timestamp: 221,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text).toBe(
+      JSON.stringify(
+        [
+          {
+            header: '数据库密码',
+            question: '请输入数据库密码',
+            answer: '••••••',
+          },
+        ],
+        null,
+        2,
+      ),
+    );
   });
 
   it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {

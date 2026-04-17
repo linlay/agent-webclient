@@ -5,9 +5,14 @@ import type {
 } from '../context/types';
 import {
   AIAwaitEventTypeEnum,
+  AIAwaitQuestionType,
   ViewportTypeEnum,
 } from '../context/types';
 import { toText } from './eventUtils';
+import {
+  clearAwaitingQuestionMeta,
+  registerAwaitingQuestionMeta,
+} from './awaitingQuestionMeta';
 
 export const BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY = 'confirm_dialog';
 
@@ -16,7 +21,7 @@ function cloneQuestions(questions: AIAwaitQuestion[]): AIAwaitQuestion[] {
     ...question,
     options: Array.isArray(question.options)
       ? question.options.map((option) => ({ ...option }))
-      : [],
+      : undefined,
   }));
 }
 
@@ -40,14 +45,41 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
       (item): item is AIAwaitQuestion =>
         Boolean(item) && typeof item === 'object' && !Array.isArray(item),
     )
-    .map((question) => ({
-      ...question,
-      options: Array.isArray(question.options)
-        ? question.options
-            .filter((option) => Boolean(option) && typeof option === 'object' && !Array.isArray(option))
-            .map((option) => ({ ...option }))
-        : [],
-    }));
+    .map((question) => {
+      const type = toText(question.type) as AIAwaitQuestion['type'];
+      const normalized: AIAwaitQuestion = {
+        type,
+        question: toText(question.question),
+        header: toText(question.header) || undefined,
+        placeholder: toText(question.placeholder) || undefined,
+      };
+
+      if (type === AIAwaitQuestionType.Select) {
+        normalized.options = Array.isArray(question.options)
+          ? question.options
+              .filter(
+                (option) =>
+                  Boolean(option)
+                  && typeof option === 'object'
+                  && !Array.isArray(option),
+              )
+              .map((option) => ({ ...option }))
+          : [];
+        normalized.multiSelect =
+          typeof question.multiSelect === 'boolean'
+            ? question.multiSelect
+            : undefined;
+        normalized.allowFreeText =
+          typeof question.allowFreeText === 'boolean'
+            ? question.allowFreeText
+            : undefined;
+        normalized.freeTextPlaceholder =
+          toText(question.freeTextPlaceholder) || undefined;
+      }
+
+      return normalized;
+    })
+    .filter((question) => Boolean(question.question));
 }
 
 function isBuiltinConfirmDialogAsk(event: AgentEvent): boolean {
@@ -83,6 +115,9 @@ export function reduceActiveAwaiting(
     || type === 'run.complete'
     || type === 'run.cancel'
   ) {
+    if (current) {
+      clearAwaitingQuestionMeta(current.runId, current.awaitingId);
+    }
     return null;
   }
 
@@ -94,6 +129,9 @@ export function reduceActiveAwaiting(
     }
     const key = `${runId}#${awaitingId}`;
     const nextQuestions = normalizeQuestions(event.questions);
+    if (nextQuestions.length > 0) {
+      registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
+    }
     return {
       key,
       awaitingId,
@@ -115,9 +153,13 @@ export function reduceActiveAwaiting(
     if (!current || !awaitingId || current.awaitingId !== awaitingId) {
       return current;
     }
+    const nextQuestions = normalizeQuestions(event.questions);
+    if (nextQuestions.length > 0) {
+      registerAwaitingQuestionMeta(current.runId, awaitingId, nextQuestions);
+    }
     return {
       ...current,
-      questions: normalizeQuestions(event.questions),
+      questions: nextQuestions,
     };
   }
 

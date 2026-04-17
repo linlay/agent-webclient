@@ -82,8 +82,10 @@ export enum ViewportTypeEnum {
 }
 
 export enum AIAwaitQuestionType {
+  Text = 'text',
+  Number = 'number',
   Select = 'select',
-  Input = 'input',
+  Password = 'password',
 }
 
 export interface ResourceData {
@@ -108,22 +110,25 @@ export interface AIPlan {
 
 export interface AIAwaitQuestionOption {
   label: string;
-  description: string;
+  description?: string;
   value?: string;
 }
 
 export interface AIAwaitQuestion {
   type: AIAwaitQuestionType;
+  header?: string;
   question: string;
-  options: AIAwaitQuestionOption[];
+  placeholder?: string;
+  options?: AIAwaitQuestionOption[];
   multiSelect?: boolean;
   allowFreeText?: boolean;
   freeTextPlaceholder?: string;
 }
 
 export interface AIAwaitSubmitParamData {
+  header?: string;
   question: string;
-  answer?: string;
+  answer?: string | number;
   answers?: string[];
 }
 

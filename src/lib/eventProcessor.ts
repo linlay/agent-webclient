@@ -12,6 +12,7 @@ import { isTerminalStatus, safeText, toText } from './eventUtils';
 import { parseFrontendToolParams } from './frontendToolParams';
 import { normalizeTimelineAttachments } from './timelineAttachments';
 import { pickToolName, resolveViewportKey } from './toolEvent';
+import { maskAwaitingAnswerParams } from './awaitingQuestionMeta';
 
 export interface EventProcessorState {
   getContentNodeId(contentId: string): string | undefined;
@@ -231,10 +232,29 @@ function formatStructuredEventText(value: unknown): string {
   }
 }
 
+function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
+  const runId = toText(event.runId);
+  const awaitingId = toText(event.awaitingId);
+  if (!runId || !awaitingId) {
+    return (event as Record<string, unknown>).questions
+      ?? (event as Record<string, unknown>).answers;
+  }
+
+  const raw =
+    (event as Record<string, unknown>).questions
+    ?? (event as Record<string, unknown>).answers;
+  if (!Array.isArray(raw)) {
+    return raw;
+  }
+
+  return maskAwaitingAnswerParams(runId, awaitingId, raw as any);
+}
+
 function readAwaitingAnswerText(event: AgentEvent): string {
   return pickEventText(
-    formatStructuredEventText((event as Record<string, unknown>).questions),
+    formatStructuredEventText(maskStructuredAwaitingAnswers(event)),
     event.text,
+    (event as Record<string, unknown>).answers,
     event.message,
   );
 }

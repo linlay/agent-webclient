@@ -1,7 +1,15 @@
 import { ViewportTypeEnum } from '../context/types';
 import { reduceActiveAwaiting } from './awaitingRuntime';
+import {
+  clearAllAwaitingQuestionMeta,
+  getAwaitingQuestionMeta,
+} from './awaitingQuestionMeta';
 
 describe('reduceActiveAwaiting', () => {
+  beforeEach(() => {
+    clearAllAwaitingQuestionMeta();
+  });
+
   it('hydrates builtin confirm dialogs directly from awaiting.ask questions when provided', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
@@ -82,6 +90,79 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
+  it('keeps text, number and password question fields without requiring options', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_2',
+      awaitingId: 'await_2',
+      viewportType: ViewportTypeEnum.Builtin,
+      viewportKey: 'confirm_dialog',
+      questions: [
+        {
+          type: 'text',
+          header: '仓库地址',
+          question: '请输入仓库地址',
+          placeholder: 'https://...',
+          options: [{ label: 'should be stripped' }],
+        },
+        {
+          type: 'number',
+          question: '请输入端口',
+          placeholder: '8080',
+        },
+        {
+          type: 'password',
+          question: '请输入令牌',
+          placeholder: 'sk-...',
+        },
+      ],
+    });
+
+    expect(asked?.questions).toEqual([
+      {
+        type: 'text',
+        header: '仓库地址',
+        question: '请输入仓库地址',
+        placeholder: 'https://...',
+      },
+      {
+        type: 'number',
+        question: '请输入端口',
+        placeholder: '8080',
+      },
+      {
+        type: 'password',
+        question: '请输入令牌',
+        placeholder: 'sk-...',
+      },
+    ]);
+  });
+
+  it('registers question metadata for later answer masking', () => {
+    reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_3',
+      awaitingId: 'await_3',
+      viewportType: ViewportTypeEnum.Builtin,
+      viewportKey: 'confirm_dialog',
+      questions: [
+        {
+          type: 'password',
+          header: '数据库密码',
+          question: '请输入数据库密码',
+          placeholder: '******',
+        },
+      ],
+    });
+
+    expect(
+      getAwaitingQuestionMeta('run_3', 'await_3', '请输入数据库密码'),
+    ).toMatchObject({
+      type: 'password',
+      header: '数据库密码',
+    });
+  });
+
   it('falls back to toolTimeout when awaiting.ask omits timeout', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
@@ -148,5 +229,8 @@ describe('reduceActiveAwaiting', () => {
     });
 
     expect(next).toBeNull();
+    expect(
+      getAwaitingQuestionMeta('run_1', 'await_1', '继续执行吗？'),
+    ).toBeNull();
   });
 });

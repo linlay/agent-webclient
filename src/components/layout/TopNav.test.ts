@@ -82,6 +82,20 @@ describe("TopNav", () => {
 		expect(html).toContain("status-pill is-running");
 	});
 
+	it("renders websocket idle status distinctly when transport mode is ws", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			transportMode: "ws",
+			wsStatus: "connected",
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain(">ws已就绪<");
+		expect(html).toContain("status-pill is-idle");
+	});
+
 	it("renders run errors when websocket transport is not in an error state", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
@@ -95,7 +109,7 @@ describe("TopNav", () => {
 		expect(html).toContain("status-pill is-error");
 	});
 
-	it("renders idle status when there is no active or failed state", () => {
+	it("renders idle status for non-websocket transport", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">就绪<");

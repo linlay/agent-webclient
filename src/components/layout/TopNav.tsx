@@ -54,6 +54,13 @@ export function resolveTopNavStatus(
 		};
 	}
 
+	if (state.transportMode === "ws") {
+		return {
+			statusClass: "is-idle",
+			statusText: "ws已就绪",
+		};
+	}
+
 	return {
 		statusClass: "is-idle",
 		statusText: "就绪",
