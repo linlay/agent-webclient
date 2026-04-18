@@ -47,6 +47,7 @@ function toPushEvent(frame: {
 	return {
 		...nestedRecord,
 		...topLevel,
+		transportFrame: "push",
 		type: normalizedType,
 	} as AgentEvent;
 }

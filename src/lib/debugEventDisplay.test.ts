@@ -1,4 +1,7 @@
-import { classifyEventGroup } from './debugEventDisplay';
+import {
+  classifyEventGroup,
+  shouldDisplayDebugEvent,
+} from './debugEventDisplay';
 
 describe('classifyEventGroup', () => {
   it('maps event types into dedicated debug color groups', () => {
@@ -14,5 +17,33 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('plan.update')).toBe('plan');
     expect(classifyEventGroup('task.start')).toBe('task');
     expect(classifyEventGroup('artifact.publish')).toBe('artifact');
+  });
+});
+
+describe('shouldDisplayDebugEvent', () => {
+  it('hides websocket push events from the debug panel', () => {
+    expect(
+      shouldDisplayDebugEvent({
+        type: 'chat.updated',
+        transportFrame: 'push',
+      }),
+    ).toBe(false);
+  });
+
+  it('keeps websocket stream events visible in the debug panel', () => {
+    expect(
+      shouldDisplayDebugEvent({
+        type: 'request.query',
+        transportFrame: 'stream',
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps replayed events without transport metadata visible', () => {
+    expect(
+      shouldDisplayDebugEvent({
+        type: 'run.complete',
+      }),
+    ).toBe(true);
   });
 });

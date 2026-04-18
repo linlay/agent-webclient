@@ -10,6 +10,7 @@ import {
   isErrorEventType,
   type DebugEventGroup,
   getEventId,
+  shouldDisplayDebugEvent,
 } from "../../lib/debugEventDisplay";
 import { Flex, Tabs, Tag } from "antd";
 
@@ -287,6 +288,9 @@ export const RightSidebar: React.FC = () => {
     DEBUG_EVENT_TABS.forEach((tab) => grouped.set(tab.key, []));
 
     state.events.forEach((event, index) => {
+      if (!shouldDisplayDebugEvent(event)) {
+        return;
+      }
       grouped.get("all")?.push({ event, index });
       const group = classifyEventGroup(String(event.type || ""));
       if (group && group !== "request") {

@@ -140,6 +140,7 @@ export interface AIAwaitSubmitPayloadData {
 
 export interface AIEventCommonFields {
   seq?: number;
+  transportFrame?: 'stream' | 'push';
   chatId?: string;
   runId?: string;
   requestId?: string;

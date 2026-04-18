@@ -494,8 +494,43 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "run.start",
+				transportFrame: "push",
 				chatId: "chat_active",
 				runId: "run_active",
+			}),
+		);
+	});
+
+	it("forwards chat.updated with push-frame metadata for the active chat", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.updated",
+			payload: {
+				chatId: "chat_active",
+				lastRunContent: "updated elsewhere",
+			},
+		});
+
+		expect(handleEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "chat.updated",
+				transportFrame: "push",
+				chatId: "chat_active",
+				lastRunContent: "updated elsewhere",
 			}),
 		);
 	});

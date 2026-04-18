@@ -42,6 +42,10 @@ export function isErrorEventType(eventType: string): boolean {
   return /(\.error|\.fail|\.cancel|\.cancelled)$/.test(type);
 }
 
+export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
+  return event.transportFrame !== 'push';
+}
+
 export function getEventId(event: AgentEvent): string {
   const keys = [
     'requestId',
