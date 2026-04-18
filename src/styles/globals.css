@@ -659,6 +659,10 @@ textarea {
   background: color-mix(in srgb, var(--ink-muted) 90%, white);
 }
 
+.status-pill.is-ws-ready::before {
+  background: var(--accent-lime);
+}
+
 .status-pill.is-running {
   border-color: color-mix(in srgb, var(--accent-electric) 42%, var(--line-soft));
   color: var(--accent-electric-strong);

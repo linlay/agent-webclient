@@ -93,7 +93,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">ws已就绪<");
-		expect(html).toContain("status-pill is-idle");
+		expect(html).toContain("status-pill is-idle is-ws-ready");
 	});
 
 	it("renders run errors when websocket transport is not in an error state", () => {
@@ -120,5 +120,6 @@ describe("TopNav", () => {
 
 		expect(html).toContain(">就绪<");
 		expect(html).toContain("status-pill is-idle");
+		expect(html).not.toContain("is-ws-ready");
 	});
 });

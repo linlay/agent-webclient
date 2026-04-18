@@ -7,6 +7,7 @@ import { UiButton } from "../ui/UiButton";
 
 interface TopNavStatusDisplay {
 	statusClass: "is-idle" | "is-running" | "is-error";
+	statusModifierClass?: "is-ws-ready";
 	statusText: string;
 	statusTitle?: string;
 }
@@ -57,6 +58,7 @@ export function resolveTopNavStatus(
 	if (state.transportMode === "ws") {
 		return {
 			statusClass: "is-idle",
+			statusModifierClass: "is-ws-ready",
 			statusText: "ws已就绪",
 		};
 	}
@@ -70,7 +72,8 @@ export function resolveTopNavStatus(
 export const TopNav: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
-	const { statusClass, statusText, statusTitle } = resolveTopNavStatus(state);
+	const { statusClass, statusModifierClass, statusText, statusTitle } =
+		resolveTopNavStatus(state);
 	const currentWorker = resolveCurrentWorkerSummary(state);
 	const currentWorkerRole = String(currentWorker?.role || "").trim() || "--";
 	const showCompactNewChatButton = state.layoutMode !== "desktop-fixed";
@@ -280,7 +283,7 @@ export const TopNav: React.FC = () => {
 
 				<div className="nav-group">
 					<span
-						className={`status-pill ${statusClass}`}
+						className={`status-pill ${statusClass}${statusModifierClass ? ` ${statusModifierClass}` : ""}`}
 						id="api-status"
 						title={statusTitle}
 					>
