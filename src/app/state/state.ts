@@ -1,0 +1,147 @@
+import type { AppState, VoiceChatState } from "@/app/state/types";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
+import { getAppAccessToken } from "@/shared/api/appAuth";
+import { isAppMode } from "@/shared/utils/routing";
+import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
+import { resolveInitialThemeMode } from "@/shared/styles/theme";
+import { readStoredTransportMode } from "@/features/transport/lib/transportMode";
+
+function createInitialVoiceChatState(): VoiceChatState {
+	return {
+		status: "idle",
+		sessionActive: false,
+		partialUserText: "",
+		partialAssistantText: "",
+		activeAssistantContentId: "",
+		activeRequestId: "",
+		activeTtsTaskId: "",
+		ttsCommitted: false,
+		error: "",
+		wsStatus: "idle",
+		capabilities: null,
+		capabilitiesLoaded: false,
+		capabilitiesError: "",
+		voices: [],
+		voicesLoaded: false,
+		voicesError: "",
+		selectedVoice: "",
+		speechRate: 1.2,
+		clientGate: resolveDefaultVoiceAsrDefaults().clientGate,
+		clientGateCustomized: false,
+		currentAgentKey: "",
+		currentAgentName: "",
+	};
+}
+
+export function createInitialState(): AppState {
+	const storedToken = isAppMode()
+		? getAppAccessToken() || ""
+		: typeof localStorage !== "undefined"
+			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
+			: "";
+	const themeMode = resolveInitialThemeMode();
+	const transportMode = readStoredTransportMode() || "ws";
+
+	return {
+		agents: [],
+		teams: [],
+		chats: [],
+		sidebarPendingRequestCount: 0,
+		chatAgentById: new Map(),
+		pendingNewChatAgentKey: "",
+		workerPriorityKey: "",
+		chatId: "",
+		runId: "",
+		requestId: "",
+		streaming: false,
+		abortController: null,
+		messagesById: new Map(),
+		messageOrder: [],
+		events: [],
+		debugLines: [],
+		artifacts: [],
+		plan: null,
+		planRuntimeByTaskId: new Map(),
+		planCurrentRunningTaskId: "",
+		planLastTouchedTaskId: "",
+		toolStates: new Map(),
+		toolNodeById: new Map(),
+		contentNodeById: new Map(),
+		pendingTools: new Map(),
+		reasoningNodeById: new Map(),
+		reasoningCollapseTimers: new Map(),
+		actionStates: new Map(),
+		executedActionIds: new Set(),
+		timelineNodes: new Map(),
+		timelineOrder: [],
+		timelineNodeByMessageId: new Map(),
+		timelineDomCache: new Map(),
+		timelineCounter: 0,
+		renderQueue: {
+			dirtyNodeIds: new Set(),
+			scheduled: false,
+			stickToBottomRequested: false,
+			fullSyncNeeded: false,
+		},
+		activeReasoningKey: "",
+		chatFilter: "",
+		conversationMode: "worker",
+		workerSelectionKey: "",
+		workerRows: [],
+		workerIndexByKey: new Map(),
+		workerRelatedChats: [],
+		workerChatPanelCollapsed: true,
+		chatLoadSeq: 0,
+		settingsOpen: false,
+		leftDrawerOpen: false,
+		rightDrawerOpen: false,
+		desktopDebugSidebarEnabled: false,
+		attachmentPreview: null,
+		layoutMode: "mobile-drawer",
+		artifactExpanded: false,
+		artifactManualOverride: null,
+		artifactAutoCollapseTimer: null,
+		planExpanded: false,
+		planManualOverride: null,
+		planAutoCollapseTimer: null,
+		mentionOpen: false,
+		mentionSuggestions: [],
+		mentionActiveIndex: 0,
+		activeFrontendTool: null,
+		activeAwaiting: null,
+		themeMode,
+		transportMode,
+		wsStatus: "disconnected",
+		wsErrorMessage: "",
+		accessToken: storedToken,
+		audioMuted: false,
+		ttsDebugStatus: "idle",
+		planningMode: false,
+		inputMode: "text",
+		voiceChat: createInitialVoiceChatState(),
+		steerDraft: "",
+		pendingSteers: [],
+		downvotedRunKeys: new Set(),
+		eventPopoverIndex: -1,
+		eventPopoverEventRef: null,
+		eventPopoverAnchor: null,
+		commandStatusOverlay: {
+			visible: false,
+			commandType: null,
+			phase: "success",
+			text: "",
+			timer: null,
+		},
+		commandModal: {
+			open: false,
+			type: null,
+			searchText: "",
+			historySearch: "",
+			activeIndex: 0,
+			scope: "all",
+			focusArea: "search",
+			scheduleTask: "",
+			scheduleRule: "",
+		},
+	};
+}

@@ -34,7 +34,7 @@ module.exports = (env, argv) => {
   }
 
   return {
-    entry: './src/index.tsx',
+    entry: './src/app/index.tsx',
     mode: process.env.NODE_ENV === 'development' ? 'development' : 'production',
     output: {
       path: path.resolve(__dirname, 'dist'),
