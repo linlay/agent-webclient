@@ -203,6 +203,8 @@ function normalizeAwaitingRuntimeSignature(
   return JSON.stringify({
     viewportType: awaiting.viewportType,
     viewportKey: awaiting.viewportKey,
+    mode: awaiting.mode,
+    payload: awaiting.payload ?? null,
     loading: awaiting.loading,
     loadError: awaiting.loadError,
     viewportHtml: awaiting.viewportHtml,

@@ -1,6 +1,7 @@
 import { ViewportTypeEnum } from '@/app/state/types';
 import type { ActiveAwaiting } from '@/app/state/types';
 import {
+  buildAwaitingCollectMessage,
   buildAwaitingInitMessage,
   buildAwaitingUpdateMessage,
   getAwaitingRenderMode,
@@ -19,6 +20,8 @@ function createActiveAwaiting(
     timeout: 60,
     viewportKey: 'confirm_dialog',
     viewportType: ViewportTypeEnum.Builtin,
+    mode: undefined,
+    payload: null,
     questions: [],
     loading: false,
     loadError: '',
@@ -43,6 +46,10 @@ describe('awaiting protocol helpers', () => {
     const awaiting = createActiveAwaiting({
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'leave_form',
+      mode: 'approval',
+      payload: {
+        employee_id: 'E1001',
+      },
       questions: [
         {
           type: 'text',
@@ -58,6 +65,10 @@ describe('awaiting protocol helpers', () => {
         awaitingId: 'await_1',
         viewportKey: 'leave_form',
         viewportType: ViewportTypeEnum.Html,
+        mode: 'approval',
+        payload: {
+          employee_id: 'E1001',
+        },
         timeout: 60,
         questions: [
           {
@@ -68,6 +79,22 @@ describe('awaiting protocol helpers', () => {
       },
     });
     expect(buildAwaitingUpdateMessage(awaiting).type).toBe('awaiting_update');
+  });
+
+  it('builds collect messages with run id, awaiting id and decision', () => {
+    const awaiting = createActiveAwaiting({
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+    });
+
+    expect(buildAwaitingCollectMessage(awaiting, 'approve')).toEqual({
+      type: 'awaiting_collect',
+      data: {
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        decision: 'approve',
+      },
+    });
   });
 
   it('normalizes iframe submit params and preserves string/number answers', () => {

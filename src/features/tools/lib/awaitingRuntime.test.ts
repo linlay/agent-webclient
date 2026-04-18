@@ -176,6 +176,10 @@ describe('reduceActiveAwaiting', () => {
       awaitingId: 'await_4',
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'leave_form',
+      mode: 'approval',
+      payload: {
+        employee_id: 'E1001',
+      },
       timeout: 120,
       questions: [
         {
@@ -192,6 +196,10 @@ describe('reduceActiveAwaiting', () => {
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'leave_form',
       timeout: 120,
+      mode: 'approval',
+      payload: {
+        employee_id: 'E1001',
+      },
       loading: false,
       loadError: '',
       viewportHtml: '',
@@ -199,13 +207,17 @@ describe('reduceActiveAwaiting', () => {
     expect(asked?.questions).toHaveLength(1);
   });
 
-  it('preserves html viewport runtime state for repeated asks on the same awaiting key', () => {
+  it('preserves html viewport runtime state and mode/payload for repeated asks on the same awaiting key', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_5',
       awaitingId: 'await_5',
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'expense_form',
+      mode: 'approval',
+      payload: {
+        amount: 800,
+      },
     });
 
     const hydrated = {
@@ -226,6 +238,51 @@ describe('reduceActiveAwaiting', () => {
     expect(next?.viewportHtml).toBe('<html><body>ok</body></html>');
     expect(next?.loading).toBe(false);
     expect(next?.loadError).toBe('');
+    expect(next?.mode).toBe('approval');
+    expect(next?.payload).toEqual({ amount: 800 });
+  });
+
+  it('accepts updated html mode and normalizes explicit non-object payloads to null', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_6',
+      awaitingId: 'await_6',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+      mode: 'question',
+      payload: {
+        employee_id: 'E1001',
+      },
+    });
+
+    const next = reduceActiveAwaiting(current, {
+      type: 'awaiting.ask',
+      runId: 'run_6',
+      awaitingId: 'await_6',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+      mode: 'approval',
+      payload: 'bad-payload' as unknown as Record<string, unknown>,
+    });
+
+    expect(next?.mode).toBe('approval');
+    expect(next?.payload).toBeNull();
+  });
+
+  it('keeps html awaiting compatible with legacy events that omit mode and payload', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_7',
+      awaitingId: 'await_7',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+    });
+
+    expect(asked).toMatchObject({
+      key: 'run_7#await_7',
+      mode: undefined,
+      payload: null,
+    });
   });
 
   it('falls back to toolTimeout when awaiting.ask omits timeout', () => {

@@ -339,6 +339,44 @@ describe('shouldSyncLiveCache', () => {
 
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
+
+  it('rebuilds cache when html awaiting mode or payload changes in React state', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 60,
+        viewportKey: 'leave_form',
+        viewportType: 'html' as const,
+        mode: 'approval' as const,
+        payload: {
+          employee_id: 'E1001',
+        },
+        questions: [],
+        loading: false,
+        loadError: '',
+        viewportHtml: '<html><body>form</body></html>',
+      },
+    };
+
+    const cache = createLocalCacheFromState({
+      ...state,
+      activeAwaiting: {
+        ...state.activeAwaiting,
+        mode: 'question' as const,
+        payload: null,
+      },
+    });
+
+    expect(shouldSyncLiveCache(cache, state)).toBe(true);
+  });
 });
 
 describe('createLiveProcessorState', () => {

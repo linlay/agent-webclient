@@ -2495,6 +2495,36 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   border: 1px solid rgba(246, 222, 227, 0.95);
 }
 
+.awaiting-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.awaiting-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.awaiting-panel .status-line,
+.awaiting-panel .system-alert {
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .awaiting-panel-footer,
+  .awaiting-panel-actions {
+    justify-content: stretch;
+  }
+
+  .awaiting-panel-actions > * {
+    flex: 1 1 140px;
+  }
+}
+
 .composer-pill.is-voice-mode {
   padding: 6px 6px 6px 12px;
   border-color: color-mix(in srgb, var(--accent-electric) 16%, var(--line-soft));

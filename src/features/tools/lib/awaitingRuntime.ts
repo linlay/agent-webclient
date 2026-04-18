@@ -25,12 +25,19 @@ function cloneQuestions(questions: AIAwaitQuestion[]): AIAwaitQuestion[] {
   }));
 }
 
+function clonePayload(
+  payload: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  return payload ? { ...payload } : null;
+}
+
 export function cloneActiveAwaiting(
   awaiting: ActiveAwaiting | null,
 ): ActiveAwaiting | null {
   return awaiting
     ? {
         ...awaiting,
+        payload: clonePayload(awaiting.payload),
         questions: cloneQuestions(awaiting.questions),
       }
     : null;
@@ -39,12 +46,17 @@ export function cloneActiveAwaiting(
 function createAwaitingRuntimeState(
   current: ActiveAwaiting | null,
   key: string,
-): Pick<ActiveAwaiting, 'loading' | 'loadError' | 'viewportHtml'> {
+): Pick<
+  ActiveAwaiting,
+  'loading' | 'loadError' | 'viewportHtml' | 'mode' | 'payload'
+> {
   if (current?.key === key) {
     return {
       loading: current.loading,
       loadError: current.loadError,
       viewportHtml: current.viewportHtml,
+      mode: current.mode,
+      payload: clonePayload(current.payload),
     };
   }
 
@@ -52,7 +64,41 @@ function createAwaitingRuntimeState(
     loading: false,
     loadError: '',
     viewportHtml: '',
+    mode: undefined,
+    payload: null,
   };
+}
+
+function hasOwnField(
+  value: unknown,
+  key: string,
+): value is Record<string, unknown> {
+  return Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function readAwaitingMode(
+  event: AgentEvent,
+): ActiveAwaiting['mode'] | undefined {
+  if (!hasOwnField(event, 'mode')) {
+    return undefined;
+  }
+
+  const mode = toText(event.mode);
+  return mode === 'approval' || mode === 'question' ? mode : undefined;
+}
+
+function readAwaitingPayload(event: AgentEvent): Record<string, unknown> | null | undefined {
+  if (!hasOwnField(event, 'payload')) {
+    return undefined;
+  }
+
+  const { payload } = event;
+  return payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? { ...payload }
+    : null;
 }
 
 function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
@@ -185,6 +231,8 @@ export function reduceActiveAwaiting(
       return current;
     }
     const key = `${runId}#${awaitingId}`;
+    const mode = readAwaitingMode(event);
+    const payload = readAwaitingPayload(event);
     const nextQuestions = normalizeQuestions(event.questions);
     if (nextQuestions.length > 0) {
       registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
@@ -198,6 +246,8 @@ export function reduceActiveAwaiting(
       viewportKey,
       viewportType: ViewportTypeEnum.Html,
       ...runtime,
+      mode: mode ?? runtime.mode,
+      payload: payload === undefined ? runtime.payload : payload,
       questions:
         nextQuestions.length > 0
           ? nextQuestions

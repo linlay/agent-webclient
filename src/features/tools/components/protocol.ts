@@ -6,12 +6,15 @@ import type {
 import { ViewportTypeEnum } from '@/app/state/types';
 
 export type AwaitingRenderMode = 'none' | 'builtin' | 'html';
+export type AwaitingCollectDecision = 'approve' | 'reject';
 
 export interface AwaitingViewportData {
   runId: string;
   awaitingId: string;
   viewportKey: string;
   viewportType: ActiveAwaiting['viewportType'];
+  mode: ActiveAwaiting['mode'];
+  payload: ActiveAwaiting['payload'];
   timeout: number | null;
   questions: ActiveAwaiting['questions'];
 }
@@ -19,6 +22,15 @@ export interface AwaitingViewportData {
 export interface AwaitingViewportMessage {
   type: 'awaiting_init' | 'awaiting_update';
   data: AwaitingViewportData;
+}
+
+export interface AwaitingCollectMessage {
+  type: 'awaiting_collect';
+  data: {
+    runId: string;
+    awaitingId: string;
+    decision: AwaitingCollectDecision;
+  };
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -54,6 +66,8 @@ export function buildAwaitingViewportData(
     awaitingId: awaiting.awaitingId,
     viewportKey: awaiting.viewportKey,
     viewportType: awaiting.viewportType,
+    mode: awaiting.mode,
+    payload: awaiting.payload ? { ...awaiting.payload } : null,
     timeout: awaiting.timeout,
     questions: awaiting.questions,
   };
@@ -80,6 +94,20 @@ export function buildAwaitingUpdateMessage(
   return {
     type: 'awaiting_update',
     data: buildAwaitingViewportData(awaiting),
+  };
+}
+
+export function buildAwaitingCollectMessage(
+  awaiting: ActiveAwaiting,
+  decision: AwaitingCollectDecision,
+): AwaitingCollectMessage {
+  return {
+    type: 'awaiting_collect',
+    data: {
+      runId: awaiting.runId,
+      awaitingId: awaiting.awaitingId,
+      decision,
+    },
   };
 }
 

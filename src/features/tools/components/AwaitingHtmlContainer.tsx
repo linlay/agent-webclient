@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { message } from 'antd';
+import { Button, message } from 'antd';
 import type {
   ActiveAwaiting,
   AIAwaitSubmitPayloadData,
 } from '@/app/state/types';
+import { ViewportTypeEnum } from '@/app/state/types';
 import { getViewport } from '@/features/transport/lib/apiClientProxy';
 import {
+  type AwaitingCollectDecision,
+  buildAwaitingCollectMessage,
   buildAwaitingInitMessage,
   buildAwaitingUpdateMessage,
   buildAwaitingViewportSignature,
@@ -31,6 +34,69 @@ function getSubmitErrorText(result: unknown): string {
   return '';
 }
 
+export const AWAITING_COLLECT_TIMEOUT_MS = 5_000;
+export const AWAITING_COLLECT_TIMEOUT_ERROR = '业务表单未响应采集请求';
+
+interface AwaitingCollectLifecycleHandlers {
+  onCollectingChange: (decision: AwaitingCollectDecision | null) => void;
+  onStatusChange: (status: string) => void;
+  onErrorChange: (error: string) => void;
+}
+
+export function shouldRenderAwaitingApprovalActions(
+  awaiting: Pick<ActiveAwaiting, 'viewportType' | 'mode'>,
+): boolean {
+  return (
+    awaiting.viewportType === ViewportTypeEnum.Html
+    && awaiting.mode === 'approval'
+  );
+}
+
+export function beginAwaitingCollectRequest(
+  input: {
+    awaiting: ActiveAwaiting;
+    decision: AwaitingCollectDecision;
+    postMessage: (message: unknown, targetOrigin: string) => void;
+    scheduleTimeout: (
+      callback: () => void,
+      delay: number,
+    ) => ReturnType<typeof setTimeout>;
+  } & AwaitingCollectLifecycleHandlers,
+): ReturnType<typeof setTimeout> {
+  const {
+    awaiting,
+    decision,
+    postMessage,
+    scheduleTimeout,
+    onCollectingChange,
+    onStatusChange,
+    onErrorChange,
+  } = input;
+
+  postMessage(buildAwaitingCollectMessage(awaiting, decision), '*');
+  onCollectingChange(decision);
+  onStatusChange('采集中...');
+  onErrorChange('');
+
+  return scheduleTimeout(() => {
+    onCollectingChange(null);
+    onStatusChange('');
+    onErrorChange(AWAITING_COLLECT_TIMEOUT_ERROR);
+  }, AWAITING_COLLECT_TIMEOUT_MS);
+}
+
+export function clearAwaitingCollectRequest(
+  clearTimeoutFn: (timeout: ReturnType<typeof setTimeout>) => void,
+  timeout: ReturnType<typeof setTimeout> | null,
+  handlers?: Partial<AwaitingCollectLifecycleHandlers>,
+): void {
+  if (timeout) {
+    clearTimeoutFn(timeout);
+  }
+  handlers?.onCollectingChange?.(null);
+  handlers?.onStatusChange?.('');
+}
+
 export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   data,
   onPatch,
@@ -44,13 +110,25 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const currentFrameKeyRef = useRef('');
   const lastPostedSignatureRef = useRef('');
   const resolvedByOtherHandledRef = useRef(false);
+  const collectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [submitStatus, setSubmitStatus] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [collectingDecision, setCollectingDecision] =
+    useState<AwaitingCollectDecision | null>(null);
+  const isApprovalMode = shouldRenderAwaitingApprovalActions(data);
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data),
     [data],
   );
+
+  const clearCollectTimeout = useCallback(() => {
+    if (!collectTimeoutRef.current) {
+      return;
+    }
+    clearTimeout(collectTimeoutRef.current);
+    collectTimeoutRef.current = null;
+  }, []);
 
   const postToFrame = useCallback((kind: 'init' | 'update') => {
     const frame = iframeRef.current;
@@ -67,17 +145,39 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     lastPostedSignatureRef.current = viewportSignature;
   }, [data, viewportSignature]);
 
+  const requestCollectFromFrame = useCallback((decision: AwaitingCollectDecision) => {
+    const frame = iframeRef.current;
+    if (!frame?.contentWindow) {
+      return;
+    }
+
+    clearCollectTimeout();
+    collectTimeoutRef.current = beginAwaitingCollectRequest({
+      awaiting: data,
+      decision,
+      postMessage: (messageValue, targetOrigin) => {
+        frame.contentWindow?.postMessage(messageValue, targetOrigin);
+      },
+      scheduleTimeout: (callback, delay) => setTimeout(callback, delay),
+      onCollectingChange: setCollectingDecision,
+      onStatusChange: setSubmitStatus,
+      onErrorChange: setSubmitError,
+    });
+  }, [clearCollectTimeout, data]);
+
   useEffect(() => {
     activeKeyRef.current = data.key;
   }, [data.key]);
 
   useEffect(() => {
+    clearCollectTimeout();
     requestedKeyRef.current = '';
     currentFrameKeyRef.current = '';
     lastPostedSignatureRef.current = '';
+    setCollectingDecision(null);
     setSubmitStatus('');
     setSubmitError('');
-  }, [data.key]);
+  }, [clearCollectTimeout, data.key]);
 
   useEffect(() => {
     if (!data.resolvedByOther) {
@@ -87,10 +187,18 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     if (resolvedByOtherHandledRef.current) {
       return;
     }
+    clearCollectTimeout();
     resolvedByOtherHandledRef.current = true;
+    setCollectingDecision(null);
+    setSubmitStatus('');
+    setSubmitError('');
     void message.info('已被其他终端提交');
     onResolvedByOther?.();
-  }, [data.resolvedByOther, onResolvedByOther]);
+  }, [clearCollectTimeout, data.resolvedByOther, onResolvedByOther]);
+
+  useEffect(() => () => {
+    clearCollectTimeout();
+  }, [clearCollectTimeout]);
 
   useEffect(() => {
     if (!data.viewportKey || data.viewportHtml || data.loading) {
@@ -199,7 +307,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       if (!payload) {
         return;
       }
+      clearCollectTimeout();
+      clearAwaitingCollectRequest(clearTimeout, null, {
+        onCollectingChange: setCollectingDecision,
+      });
       if (!onSubmit) {
+        setSubmitStatus('');
         setSubmitError('提交失败：缺少提交流程处理器');
         return;
       }
@@ -219,7 +332,18 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
     window.addEventListener('message', onWindowMessage);
     return () => window.removeEventListener('message', onWindowMessage);
-  }, [data, onClose, onSubmit]);
+  }, [clearCollectTimeout, data, onClose, onSubmit]);
+
+  const approvalActionDisabled = useMemo(
+    () => (
+      data.loading
+      || !data.viewportHtml
+      || !onSubmit
+      || Boolean(collectingDecision)
+      || submitStatus === '提交中...'
+    ),
+    [collectingDecision, data.loading, data.viewportHtml, onSubmit, submitStatus],
+  );
 
   return (
     <div className="awaiting-panel" id="awaiting-html-panel">
@@ -244,6 +368,26 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           sandbox="allow-scripts allow-popups allow-same-origin"
           title={`awaiting-${data.viewportKey}`}
         />
+      )}
+
+      {isApprovalMode && (
+        <div className="awaiting-panel-footer">
+          <div className="awaiting-panel-actions">
+            <Button
+              disabled={approvalActionDisabled}
+              type="primary"
+              onClick={() => requestCollectFromFrame('approve')}
+            >
+              批准
+            </Button>
+            <Button
+              disabled={approvalActionDisabled}
+              onClick={() => requestCollectFromFrame('reject')}
+            >
+              取消
+            </Button>
+          </div>
+        </div>
       )}
 
       {submitStatus && <div className="status-line">{submitStatus}</div>}

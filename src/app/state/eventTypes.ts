@@ -177,6 +177,8 @@ export interface AIEventCommonFields {
   awaitingId?: string;
   timeout?: number;
   viewportType?: ViewportTypeEnum;
+  mode?: 'question' | 'approval';
+  payload?: Record<string, unknown>;
   questions?: AIAwaitQuestion[];
   answers?: unknown;
   artifactId?: string;

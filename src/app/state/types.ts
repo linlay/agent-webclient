@@ -215,6 +215,8 @@ export interface ActiveAwaiting {
   timeout: number | null;
   viewportKey: string;
   viewportType: ViewportTypeEnum;
+  mode?: 'question' | 'approval';
+  payload?: Record<string, unknown> | null;
   questions: AIAwaitQuestion[];
   loading: boolean;
   loadError: string;
