@@ -10,6 +10,31 @@ import type { AgentEvent } from "../../context/types";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 
+const COLLECTIBLE_EVENT_TYPES = new Set([
+  "reasoning.start",
+  "reasoning.delta",
+  "reasoning.end",
+  "content.start",
+  "content.delta",
+  "content.end",
+  "tool.start",
+  "tool.args",
+  "tool.end",
+  "action.start",
+  "action.args",
+  "action.end",
+] as const);
+
+const COLLECTIBLE_GROUP_EVENT_TYPES: Record<
+  "reasoning" | "content" | "tool" | "action",
+  Set<string>
+> = {
+  reasoning: new Set(["reasoning.start", "reasoning.delta", "reasoning.end"]),
+  content: new Set(["content.start", "content.delta", "content.end"]),
+  tool: new Set(["tool.start", "tool.args", "tool.end"]),
+  action: new Set(["action.start", "action.args", "action.end"]),
+};
+
 const EVENT_GROUP_CONFIG = [
   { prefix: "chat.", idKey: "chatId", family: "chat" },
   { prefix: "request.", idKey: "requestId", family: "request" },
@@ -36,6 +61,16 @@ interface RelatedEventEntry {
   event: AgentEvent;
   index: number;
 }
+
+type CollectibleFamily = keyof typeof COLLECTIBLE_GROUP_EVENT_TYPES;
+
+const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  fractionalSecondDigits: 3,
+  hour12: false,
+});
 
 function readEventIdValue(event: AgentEvent, idKey: EventGroupIdKey): string {
   const value = event[idKey];
@@ -69,11 +104,185 @@ function resolveEventGroupMeta(
   };
 }
 
+function canCollectEvent(type: string): boolean {
+  return COLLECTIBLE_EVENT_TYPES.has(String(type || "").toLowerCase() as never);
+}
+
+function isCollectibleFamily(family: EventGroupMeta["family"]): family is CollectibleFamily {
+  return (
+    family === "reasoning" ||
+    family === "content" ||
+    family === "tool" ||
+    family === "action"
+  );
+}
+
+function mapCollectedSnapshotType(type: string): string {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.startsWith("reasoning.")) return "reasoning.snapshot";
+  if (normalized.startsWith("content.")) return "content.snapshot";
+  if (normalized.startsWith("tool.")) return "tool.snapshot";
+  if (normalized.startsWith("action.")) return "action.snapshot";
+  return normalized;
+}
+
+function formatReadableTimestamp(timestamp?: number): string {
+  if (!timestamp) return "--";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "--";
+  return logTimeFormatter.format(date);
+}
+
+function stringifyPopoverPayload(payload: unknown): string {
+  return payload ? JSON.stringify(payload, null, 2) : "";
+}
+
+function readObjectValue(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+async function copyText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "absolute";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  if (!copied) {
+    throw new Error("copy failed");
+  }
+}
+
+function getCollectibleRelatedEvents(
+  event: AgentEvent | null,
+  groupMeta: EventGroupMeta | null,
+  relatedEvents: RelatedEventEntry[],
+): RelatedEventEntry[] {
+  if (!event || !groupMeta || !isCollectibleFamily(groupMeta.family)) {
+    return [];
+  }
+  if (!canCollectEvent(String(event.type || ""))) {
+    return [];
+  }
+
+  const allowedTypes = COLLECTIBLE_GROUP_EVENT_TYPES[groupMeta.family];
+  return relatedEvents.filter((entry) =>
+    allowedTypes.has(String(entry.event.type || "").toLowerCase()),
+  );
+}
+
+function readStringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function buildCollectedSnapshot(
+  event: AgentEvent,
+  relatedEvents: RelatedEventEntry[],
+): Record<string, unknown> {
+  const mergedEvent = relatedEvents.reduce<Record<string, unknown>>(
+    (acc, entry) => ({
+      ...acc,
+      ...entry.event,
+    }),
+    { ...event },
+  );
+  const lastEvent = relatedEvents[relatedEvents.length - 1]?.event || event;
+  const snapshotType = mapCollectedSnapshotType(String(event.type || ""));
+  const textFromDelta = relatedEvents
+    .map((entry) => readStringValue(entry.event.delta))
+    .join("");
+  const fallbackText = [...relatedEvents]
+    .reverse()
+    .map((entry) => readStringValue(entry.event.text))
+    .find(Boolean);
+  const collectedArguments = (
+    snapshotType === "tool.snapshot" || snapshotType === "action.snapshot"
+  )
+      ? relatedEvents
+          .map((entry) => readStringValue(entry.event.delta))
+          .join("")
+      : "";
+  const rawArgumentsFallback =
+    snapshotType === "action.snapshot"
+      ? readStringValue(mergedEvent.arguments) ||
+        (() => {
+          const actionParams = readObjectValue(mergedEvent.actionParams);
+          return actionParams ? JSON.stringify(actionParams, null, 2) : "";
+        })()
+      : "";
+  const textValue =
+    snapshotType === "action.snapshot"
+      ? readStringValue(lastEvent.text) || fallbackText
+      : textFromDelta || fallbackText || readStringValue(lastEvent.text);
+
+  const nextSnapshot: Record<string, unknown> = {
+    ...mergedEvent,
+    type: snapshotType,
+    seq: lastEvent.seq ?? mergedEvent.seq,
+    timestamp: lastEvent.timestamp ?? mergedEvent.timestamp,
+  };
+
+  if (textValue) {
+    nextSnapshot.text = textValue;
+  } else {
+    delete nextSnapshot.text;
+  }
+
+  if (
+    (snapshotType === "tool.snapshot" || snapshotType === "action.snapshot") &&
+    (collectedArguments || rawArgumentsFallback)
+  ) {
+    nextSnapshot.arguments = collectedArguments || rawArgumentsFallback;
+  }
+
+  if (snapshotType === "action.snapshot") {
+    delete nextSnapshot.result;
+  }
+
+  return nextSnapshot;
+}
+
+function resolveDisplayPayloadTimestamp(payload: unknown): number | undefined {
+  const record = readObjectValue(payload);
+  return typeof record?.timestamp === "number" ? record.timestamp : undefined;
+}
+
+function resolveInitialPopoverState(event: AgentEvent | null): {
+  payload: Record<string, unknown> | AgentEvent | null;
+  rawJsonStr: string;
+  displayJsonStr: string;
+} {
+  const payload = event || null;
+  const rawJsonStr = stringifyPopoverPayload(payload);
+  return {
+    payload,
+    rawJsonStr,
+    displayJsonStr: rawJsonStr,
+  };
+}
+
 export const EventPopover: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [jsonStr, setJsonStr] = useState("");
+  const copyTimerRef = useRef<number | null>(null);
+  const [popoverState, setPopoverState] = useState(() =>
+    resolveInitialPopoverState(state.eventPopoverEventRef),
+  );
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
   const [position, setPosition] = useState({ top: 80, right: 320 });
   const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
   const event = state.eventPopoverEventRef;
@@ -116,9 +325,22 @@ export const EventPopover: React.FC = () => {
     () => relatedEvents.map((entry) => entry.index).join(","),
     [relatedEvents],
   );
+  const collectibleRelatedEvents = useMemo(
+    () => getCollectibleRelatedEvents(event, groupMeta, relatedEvents),
+    [event, groupMeta, relatedEvents],
+  );
   useEffect(() => {
-    setJsonStr(event ? JSON.stringify(event, null, 2) : "");
+    setPopoverState(resolveInitialPopoverState(event));
+    setCopyStatus("idle");
   }, [event]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -149,7 +371,7 @@ export const EventPopover: React.FC = () => {
     updatePosition();
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
-  }, [isOpen, jsonStr, state.eventPopoverAnchor, switcherSignature]);
+  }, [isOpen, popoverState.displayJsonStr, state.eventPopoverAnchor, switcherSignature]);
 
   if (!isOpen || !event) {
     return null;
@@ -160,6 +382,11 @@ export const EventPopover: React.FC = () => {
     ? `${groupMeta.idKey}: ${groupMeta.idValue}`
     : "未识别分组";
   const showSwitcher = relatedEvents.length > 1;
+  const showCollect = collectibleRelatedEvents.length > 1;
+  const copyIcon = copyStatus === "copied" ? "check" : "content_copy";
+  const readableTimestamp = formatReadableTimestamp(
+    resolveDisplayPayloadTimestamp(popoverState.payload),
+  );
 
   return (
     <div
@@ -180,30 +407,67 @@ export const EventPopover: React.FC = () => {
               ? `${groupSummary} · ${activeRelatedIndex + 1}/${relatedEvents.length}`
               : groupSummary}
           </span>
+          <span className="event-popover-meta">{`时间: ${readableTimestamp}`}</span>
         </div>
-        {showSwitcher && (
+        {showCollect && (
           <UiButton
             variant="ghost"
             size="sm"
             onClick={() => {
-              setJsonStr(
-                JSON.stringify(
-                  relatedEvents.reduce((pre: any, cur: any) => {
-                    const curEvent = cur.event;
-                    return Object.assign({}, pre, curEvent, {
-                      text: (pre.text || "") + (curEvent?.delta || ""),
-                      arguments: (pre.arguments || "") + (curEvent.delta || ""),
-                    });
-                  }, relatedEvents?.[0]?.event || {}),
-                  null,
-                  2,
-                ),
-              );
+              const payload = buildCollectedSnapshot(event, collectibleRelatedEvents);
+              const rawJsonStr = stringifyPopoverPayload(payload);
+              setPopoverState({
+                payload,
+                rawJsonStr,
+                displayJsonStr: rawJsonStr,
+              });
             }}
           >
             收集
           </UiButton>
         )}
+        <UiButton
+          variant="ghost"
+          size="sm"
+          iconOnly
+          disabled={!popoverState.rawJsonStr}
+          aria-label="复制事件 JSON"
+          title={
+            copyStatus === "copied"
+              ? "已复制"
+              : copyStatus === "error"
+                ? "复制失败"
+                : "复制事件 JSON"
+          }
+          onClick={() => {
+            if (!popoverState.rawJsonStr) {
+              return;
+            }
+            void copyText(popoverState.rawJsonStr)
+              .then(() => {
+                if (copyTimerRef.current) {
+                  window.clearTimeout(copyTimerRef.current);
+                }
+                setCopyStatus("copied");
+                copyTimerRef.current = window.setTimeout(() => {
+                  setCopyStatus("idle");
+                  copyTimerRef.current = null;
+                }, 1600);
+              })
+              .catch(() => {
+                if (copyTimerRef.current) {
+                  window.clearTimeout(copyTimerRef.current);
+                }
+                setCopyStatus("error");
+                copyTimerRef.current = window.setTimeout(() => {
+                  setCopyStatus("idle");
+                  copyTimerRef.current = null;
+                }, 1600);
+              });
+          }}
+        >
+          <MaterialIcon name={copyIcon} />
+        </UiButton>
         <UiButton
           className="event-popover-close"
           variant="ghost"
@@ -222,7 +486,19 @@ export const EventPopover: React.FC = () => {
           <MaterialIcon name="close" />
         </UiButton>
       </div>
-      <pre className="event-popover-body">{jsonStr}</pre>
+      <pre className="event-popover-body">{popoverState.displayJsonStr}</pre>
     </div>
   );
+};
+
+export const __TEST_ONLY__ = {
+  canCollectEvent,
+  copyText,
+  formatReadableTimestamp,
+  getCollectibleRelatedEvents,
+  buildCollectedSnapshot,
+  mapCollectedSnapshotType,
+  resolveEventGroupMeta,
+  resolveInitialPopoverState,
+  stringifyPopoverPayload,
 };
