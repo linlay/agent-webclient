@@ -1,7 +1,9 @@
 import { Blob } from 'buffer';
 import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from './appAuth';
+import { resetCompactIdStateForTests } from './compactId';
 import {
   buildResourceUrl,
+  createRequestId,
   createQueryStream,
   downloadResource,
   extractUploadChatId,
@@ -14,7 +16,6 @@ import {
   getVoiceVoicesFlexible,
   interruptChat,
   learnChat,
-  setAccessToken,
   rememberChat,
   setAccessToken,
   steerChat,
@@ -117,6 +118,8 @@ describe('apiClient query payloads', () => {
   const originalWindow = globalThis.window;
 
   beforeEach(() => {
+    resetCompactIdStateForTests();
+    jest.restoreAllMocks();
     global.Blob = Blob as unknown as typeof global.Blob;
     global.File = MockFile as unknown as typeof global.File;
     global.FormData = MockFormData as unknown as typeof global.FormData;
@@ -138,6 +141,23 @@ describe('apiClient query payloads', () => {
     } else {
       delete (globalThis as Record<string, unknown>).window;
     }
+  });
+
+  it('creates compact request ids from second-plus-counter', () => {
+    const second = 1_776_474_697;
+    const baseMs = second * 1000;
+    jest.spyOn(Date, 'now').mockReturnValue(baseMs + 581);
+
+    expect(createRequestId('req')).toBe(`req_${(second * 1000).toString(36)}`);
+    expect(createRequestId('upload')).toBe(
+      `upload_${(second * 1000 + 1).toString(36)}`,
+    );
+  });
+
+  it('normalizes request id prefixes before generation', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(2_500);
+
+    expect(createRequestId(' req__ ')).toBe(`req_${(2_000).toString(36)}`);
   });
 
   it('sends only required fields for basic query streams', async () => {

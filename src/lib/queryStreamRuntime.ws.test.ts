@@ -32,18 +32,21 @@ describe("executeQueryStreamWs", () => {
 	it("dispatches the expected lifecycle actions and records raw frames", async () => {
 		const dispatch = jest.fn();
 		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: {
+			type: string;
+			payload: { requestId: string; message: string };
+			onEvent: (event: unknown) => void;
+			onFrame?: (raw: string) => void;
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onFrame?.('{"frame":"stream"}');
+			options.onEvent({ type: "content.delta", text: "hi" });
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
 
 		getWsClientMock.mockReturnValue({
-			stream: jest.fn((options: {
-				onEvent: (event: unknown) => void;
-				onFrame?: (raw: string) => void;
-				onDone?: (reason: string, lastSeq: number) => void;
-			}) => {
-				options.onFrame?.('{"frame":"stream"}');
-				options.onEvent({ type: "content.delta", text: "hi" });
-				options.onDone?.("done", 1);
-				return { abort: jest.fn() };
-			}),
+			stream: streamMock,
 		} as never);
 
 		await executeQueryStreamWs({
@@ -68,6 +71,15 @@ describe("executeQueryStreamWs", () => {
 			type: "content.delta",
 			text: "hi",
 		});
+		expect(streamMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "/api/query",
+				payload: expect.objectContaining({
+					requestId: "req_1",
+					message: "hello",
+				}),
+			}),
+		);
 	});
 
 	it("aborts the underlying stream when the external signal is cancelled", async () => {

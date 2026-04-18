@@ -1,6 +1,6 @@
+import { resetCompactIdStateForTests } from "./compactId";
 import {
 	createWsFrameId,
-	resetWsFrameIdStateForTests,
 	WsClient,
 	WsClientRequestTimeoutError,
 	type WsConnectionStatus,
@@ -88,7 +88,7 @@ describe("WsClient", () => {
 
 	beforeEach(() => {
 		MockWebSocket.instances = [];
-		resetWsFrameIdStateForTests();
+		resetCompactIdStateForTests();
 		(globalThis as Record<string, unknown>).window = {
 			location: {
 				protocol: "http:",

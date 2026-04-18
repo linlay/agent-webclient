@@ -7,6 +7,7 @@ import {
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
 } from './appAuth';
+import { createCompactId } from './compactId';
 import { isAppMode } from './routing';
 
 export class ApiError extends Error {
@@ -340,7 +341,7 @@ async function requestWithAuth(
 }
 
 export function createRequestId(prefix = "req"): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return createCompactId(prefix);
 }
 
 export function buildResourceUrl(file: string): string {

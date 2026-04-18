@@ -1,5 +1,6 @@
 import type { AgentEvent } from "../context/types";
 import { ApiError, type ApiResponse } from "./apiClient";
+import { createCompactId } from "./compactId";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -122,12 +123,6 @@ export interface WsConnectionErrorOptions {
 
 type WsFrameIdKind = "wsreq" | "wsstream";
 
-const WS_FRAME_ID_MAX_PER_SECOND = 1000;
-const WS_FRAME_ID_MULTIPLIER = 1000;
-
-let wsFrameIdSecond = -1;
-let wsFrameIdCounter = 0;
-
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
 }
@@ -140,24 +135,10 @@ export function createWsFrameId(
 	kind: WsFrameIdKind,
 	nowMs = Date.now(),
 ): string {
-	const second = Math.floor(nowMs / 1000);
-	if (second !== wsFrameIdSecond) {
-		wsFrameIdSecond = second;
-		wsFrameIdCounter = 0;
-	}
-
-	if (wsFrameIdCounter >= WS_FRAME_ID_MAX_PER_SECOND) {
-		throw new Error("WebSocket request id overflow in the same second");
-	}
-
-	const combined = second * WS_FRAME_ID_MULTIPLIER + wsFrameIdCounter;
-	wsFrameIdCounter += 1;
-	return `${normalizeWsFrameIdPrefix(kind)}_${combined.toString(36)}`;
-}
-
-export function resetWsFrameIdStateForTests(): void {
-	wsFrameIdSecond = -1;
-	wsFrameIdCounter = 0;
+	return createCompactId(normalizeWsFrameIdPrefix(kind), {
+		nowMs,
+		overflowMessage: "WebSocket request id overflow in the same second",
+	});
 }
 
 function hasHelpfulWsMessage(message: string): boolean {
