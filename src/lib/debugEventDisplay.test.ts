@@ -1,5 +1,6 @@
 import {
   classifyEventGroup,
+  getEventRowGroupClass,
   shouldDisplayDebugEvent,
 } from './debugEventDisplay';
 
@@ -17,6 +18,22 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('plan.update')).toBe('plan');
     expect(classifyEventGroup('task.start')).toBe('task');
     expect(classifyEventGroup('artifact.publish')).toBe('artifact');
+  });
+
+  it('keeps debug.postCall as an unrecognized group', () => {
+    expect(classifyEventGroup('debug.postCall')).toBe('');
+  });
+});
+
+describe('getEventRowGroupClass', () => {
+  it('maps unrecognized event types to the neutral row class', () => {
+    expect(getEventRowGroupClass('debug.postCall')).toBe(
+      'event-group-unrecognized',
+    );
+  });
+
+  it('keeps recognized event types on their existing group class', () => {
+    expect(getEventRowGroupClass('request.query')).toBe('event-group-request');
   });
 });
 

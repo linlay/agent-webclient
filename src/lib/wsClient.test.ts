@@ -1,4 +1,6 @@
 import {
+	createWsFrameId,
+	resetWsFrameIdStateForTests,
 	WsClient,
 	WsClientRequestTimeoutError,
 	type WsConnectionStatus,
@@ -86,6 +88,7 @@ describe("WsClient", () => {
 
 	beforeEach(() => {
 		MockWebSocket.instances = [];
+		resetWsFrameIdStateForTests();
 		(globalThis as Record<string, unknown>).window = {
 			location: {
 				protocol: "http:",
@@ -97,6 +100,7 @@ describe("WsClient", () => {
 	});
 
 	afterEach(() => {
+		jest.restoreAllMocks();
 		jest.useRealTimers();
 		if (originalWindow) {
 			(globalThis as Record<string, unknown>).window = originalWindow;
@@ -110,7 +114,40 @@ describe("WsClient", () => {
 		}
 	});
 
+	it("creates compact websocket frame ids from second-plus-counter", () => {
+		const second = 1776474697;
+		const baseMs = second * 1000;
+
+		expect(createWsFrameId("wsreq", baseMs + 581)).toBe(
+			`wsr_${(second * 1000).toString(36)}`,
+		);
+		expect(createWsFrameId("wsstream", baseMs + 999)).toBe(
+			`wss_${(second * 1000 + 1).toString(36)}`,
+		);
+		expect(createWsFrameId("wsreq", baseMs + 999)).toBe(
+			`wsr_${(second * 1000 + 2).toString(36)}`,
+		);
+	});
+
+	it("resets the websocket frame id counter when the second changes", () => {
+		expect(createWsFrameId("wsreq", 2_500)).toBe(`wsr_${(2_000).toString(36)}`);
+		expect(createWsFrameId("wsstream", 2_999)).toBe(`wss_${(2_001).toString(36)}`);
+		expect(createWsFrameId("wsreq", 3_000)).toBe(`wsr_${(3_000).toString(36)}`);
+	});
+
+	it("throws when more than 1000 websocket frame ids are requested in the same second", () => {
+		const secondMs = 10_000;
+		for (let index = 0; index < 1000; index += 1) {
+			createWsFrameId(index % 2 === 0 ? "wsreq" : "wsstream", secondMs);
+		}
+
+		expect(() => createWsFrameId("wsreq", secondMs + 999)).toThrow(
+			"WebSocket request id overflow in the same second",
+		);
+	});
+
 	it("routes request/response frames by id", async () => {
+		jest.spyOn(Date, "now").mockReturnValue(1_776_475_494_719);
 		const client = new WsClient({ accessToken: "token_1" });
 		const promise = client.request<{ items: string[] }>({
 			type: "/api/agents",
@@ -130,6 +167,7 @@ describe("WsClient", () => {
 		expect(sentFrame).toMatchObject({
 			frame: "request",
 			type: "/api/agents",
+			id: `wsr_${(1_776_475_494 * 1000).toString(36)}`,
 		});
 
 		socket.message(
@@ -149,6 +187,7 @@ describe("WsClient", () => {
 	});
 
 	it("routes stream frames and completes on done", async () => {
+		jest.spyOn(Date, "now").mockReturnValue(1_776_474_697_581);
 		const onEvent = jest.fn();
 		const onDone = jest.fn();
 		const client = new WsClient();
@@ -165,6 +204,7 @@ describe("WsClient", () => {
 		await flushMicrotasks();
 
 		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
+		expect(sentFrame.id).toBe(`wss_${(1_776_474_697 * 1000).toString(36)}`);
 		socket.message(
 			JSON.stringify({
 				frame: "stream",

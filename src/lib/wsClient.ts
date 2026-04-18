@@ -1,5 +1,5 @@
 import type { AgentEvent } from "../context/types";
-import { ApiError, createRequestId, type ApiResponse } from "./apiClient";
+import { ApiError, type ApiResponse } from "./apiClient";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -119,8 +119,44 @@ export interface WsConnectionErrorOptions {
 	hasAccessToken?: boolean;
 }
 
+type WsFrameIdKind = "wsreq" | "wsstream";
+
+const WS_FRAME_ID_MAX_PER_SECOND = 1000;
+const WS_FRAME_ID_MULTIPLIER = 1000;
+
+let wsFrameIdSecond = -1;
+let wsFrameIdCounter = 0;
+
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
+}
+
+function normalizeWsFrameIdPrefix(kind: WsFrameIdKind): "wsr" | "wss" {
+	return kind === "wsreq" ? "wsr" : "wss";
+}
+
+export function createWsFrameId(
+	kind: WsFrameIdKind,
+	nowMs = Date.now(),
+): string {
+	const second = Math.floor(nowMs / 1000);
+	if (second !== wsFrameIdSecond) {
+		wsFrameIdSecond = second;
+		wsFrameIdCounter = 0;
+	}
+
+	if (wsFrameIdCounter >= WS_FRAME_ID_MAX_PER_SECOND) {
+		throw new Error("WebSocket request id overflow in the same second");
+	}
+
+	const combined = second * WS_FRAME_ID_MULTIPLIER + wsFrameIdCounter;
+	wsFrameIdCounter += 1;
+	return `${normalizeWsFrameIdPrefix(kind)}_${combined.toString(36)}`;
+}
+
+export function resetWsFrameIdStateForTests(): void {
+	wsFrameIdSecond = -1;
+	wsFrameIdCounter = 0;
 }
 
 function hasHelpfulWsMessage(message: string): boolean {
@@ -357,7 +393,7 @@ export class WsClient {
 		signal?: AbortSignal;
 	}): Promise<ApiResponse<T>> {
 		await this.ensureConnected(opts.signal);
-		const id = createRequestId("wsreq");
+		const id = createWsFrameId("wsreq");
 
 		return new Promise<ApiResponse<T>>((resolve, reject) => {
 			const cleanup = () => {
@@ -428,7 +464,7 @@ export class WsClient {
 		onError?: (err: Error) => void;
 		onDone?: () => void;
 	}): { abort: () => void } {
-		const id = createRequestId("wsstream");
+		const id = createWsFrameId("wsstream");
 		let aborted = false;
 
 		const abort = () => {

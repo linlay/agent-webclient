@@ -4233,6 +4233,11 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   background: color-mix(in srgb, #D98A42 8%, var(--bg-elev-2));
 }
 
+.event-group-unrecognized {
+  color: color-mix(in srgb, var(--ink-muted) 88%, var(--ink-2));
+  background: color-mix(in srgb, var(--ink-muted) 5%, var(--bg-elev-2));
+}
+
 .event-row.is-error-type {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-danger) 38%, transparent);
 }

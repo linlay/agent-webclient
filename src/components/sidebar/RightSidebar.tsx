@@ -6,10 +6,11 @@ import { formatAttachmentSize } from "../../lib/attachmentUtils";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 import {
-  classifyEventGroup,
   isErrorEventType,
   type DebugEventGroup,
   getEventId,
+  getEventRowGroupClass,
+  classifyEventGroup,
   shouldDisplayDebugEvent,
 } from "../../lib/debugEventDisplay";
 import { Flex, Tabs, Tag } from "antd";
@@ -36,8 +37,7 @@ const EventRow: React.FC<{
 }> = ({ event, index, onClick }) => {
   const type = String(event.type || "");
   const ts = formatDebugTime(event.timestamp);
-  const group = classifyEventGroup(type);
-  const kindClass = group ? `event-group-${group}` : "";
+  const kindClass = getEventRowGroupClass(type);
   const errorClass = isErrorEventType(type) ? "is-error-type" : "";
   const id = getEventId(event);
 

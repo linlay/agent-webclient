@@ -46,6 +46,11 @@ export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
   return event.transportFrame !== 'push';
 }
 
+export function getEventRowGroupClass(eventType: string): string {
+  const group = classifyEventGroup(eventType);
+  return group ? `event-group-${group}` : 'event-group-unrecognized';
+}
+
 export function getEventId(event: AgentEvent): string {
   const keys = [
     'requestId',
