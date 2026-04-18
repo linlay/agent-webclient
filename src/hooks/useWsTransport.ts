@@ -6,6 +6,7 @@ import type { AgentEvent, AppState, Chat } from "../context/types";
 import { ensureAccessToken } from "../lib/apiClient";
 import { readStoredTransportMode } from "../lib/transportMode";
 import { setTransportModeProvider } from "../lib/apiClientProxy";
+import { markDebugEventHidden } from "../lib/debugEventDisplay";
 import { isAppMode } from "../lib/routing";
 import { destroyWsClient, getWsClient, initWsClient } from "../lib/wsClientSingleton";
 import { useAgentEventHandler } from "./useAgentEventHandler";
@@ -47,7 +48,6 @@ function toPushEvent(frame: {
 	return {
 		...nestedRecord,
 		...topLevel,
-		transportFrame: "push",
 		type: normalizedType,
 	} as AgentEvent;
 }
@@ -301,6 +301,7 @@ function buildWsClient(
 		},
 		onPush: (frame) => {
 			const liveEvent = toPushEvent(frame);
+			markDebugEventHidden(liveEvent);
 			const type = String(liveEvent.type || "");
 			const currentChatId = String(options.stateRef.current.chatId || "").trim();
 			const eventChatId = String(liveEvent.chatId || "").trim();

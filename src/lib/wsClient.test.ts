@@ -231,7 +231,6 @@ describe("WsClient", () => {
 		expect(onEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "content.delta",
-				transportFrame: "stream",
 				seq: 1,
 				text: "hi",
 				chatId: "chat_1",

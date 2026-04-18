@@ -1,6 +1,7 @@
 import {
   classifyEventGroup,
   getEventRowGroupClass,
+  markDebugEventHidden,
   shouldDisplayDebugEvent,
 } from './debugEventDisplay';
 
@@ -38,20 +39,18 @@ describe('getEventRowGroupClass', () => {
 });
 
 describe('shouldDisplayDebugEvent', () => {
-  it('hides websocket push events from the debug panel', () => {
-    expect(
-      shouldDisplayDebugEvent({
-        type: 'chat.updated',
-        transportFrame: 'push',
-      }),
-    ).toBe(false);
+  it('hides events explicitly marked as hidden from the debug panel', () => {
+    const event = {
+      type: 'chat.updated',
+    };
+    markDebugEventHidden(event);
+    expect(shouldDisplayDebugEvent(event)).toBe(false);
   });
 
-  it('keeps websocket stream events visible in the debug panel', () => {
+  it('keeps unmarked websocket stream events visible in the debug panel', () => {
     expect(
       shouldDisplayDebugEvent({
         type: 'request.query',
-        transportFrame: 'stream',
       }),
     ).toBe(true);
   });

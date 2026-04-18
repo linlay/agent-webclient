@@ -297,7 +297,6 @@ function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent {
 	return {
 		...payloadRecord,
 		...rest,
-		transportFrame: "stream",
 		type: String(frameEvent.type || payloadRecord.type || ""),
 		seq:
 			typeof frameEvent.seq === "number"

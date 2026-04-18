@@ -733,7 +733,6 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "chat.updated",
-				transportFrame: "push",
 				chatId: "chat_active",
 				lastRunContent: "updated elsewhere",
 			}),

@@ -1,6 +1,8 @@
 import type { AgentEvent } from '../context/types';
 import { resolveToolLabel } from './toolDisplay';
 
+const hiddenDebugEvents = new WeakSet<AgentEvent>();
+
 export type DebugEventGroup =
   | 'request'
   | 'chat'
@@ -42,8 +44,12 @@ export function isErrorEventType(eventType: string): boolean {
   return /(\.error|\.fail|\.cancel|\.cancelled)$/.test(type);
 }
 
+export function markDebugEventHidden(event: AgentEvent): void {
+  hiddenDebugEvents.add(event);
+}
+
 export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
-  return event.transportFrame !== 'push';
+  return !hiddenDebugEvents.has(event);
 }
 
 export function getEventRowGroupClass(eventType: string): string {
