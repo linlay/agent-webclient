@@ -265,6 +265,41 @@ describe('shouldSyncLiveCache', () => {
 
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
+
+  it('marks awaiting as resolvedByOther when awaiting.answer matches the active dialog', () => {
+    const current = {
+      key: 'run_1#await_1',
+      awaitingId: 'await_1',
+      runId: 'run_1',
+      timeout: 60,
+      viewportKey: 'confirm_dialog',
+      viewportType: 'builtin' as const,
+      questions: [
+        {
+          type: 'select' as const,
+          question: '继续执行吗？',
+          options: [
+            {
+              label: '继续',
+              description: '允许继续执行',
+            },
+          ],
+        },
+      ],
+    };
+
+    const next = reduceActiveAwaiting(current, {
+      type: 'awaiting.answer',
+      awaitingId: 'await_1',
+      runId: 'run_1',
+    });
+
+    expect(next).toMatchObject({
+      awaitingId: 'await_1',
+      resolvedByOther: true,
+    });
+    expect(next?.questions).toHaveLength(1);
+  });
 });
 
 describe('createLiveProcessorState', () => {

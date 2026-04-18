@@ -96,7 +96,7 @@ export async function executeQueryStreamWs(
 					}
 					settle(() => reject(error));
 				},
-				onDone: () => {
+				onDone: (_reason, _lastSeq) => {
 					settle(() => resolve());
 				},
 			});

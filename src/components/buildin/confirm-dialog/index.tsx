@@ -9,6 +9,7 @@ import {
   Tabs,
   Tooltip,
 } from "antd/es";
+import { message } from "antd";
 import React, {
   forwardRef,
   useCallback,
@@ -54,6 +55,7 @@ const FREE_TEXT_OPTION_VALUE = "freeText";
 
 interface ConfirmDialogProps extends CallbackData {
   data: ActiveAwaiting;
+  onResolvedByOther?: () => void;
 }
 
 interface CallbackData {
@@ -63,10 +65,12 @@ interface CallbackData {
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   data,
   onSubmit,
+  onResolvedByOther,
 }) => {
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
   const questionsRef = useRef<QuestionRef[]>([]);
+  const resolvedByOtherHandledRef = useRef(false);
   const total = useRef(0);
   const [loading, setLoading] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
@@ -135,6 +139,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onSubmit,
     };
   }, [onSubmit]);
+
+  useEffect(() => {
+    if (!data?.resolvedByOther) {
+      resolvedByOtherHandledRef.current = false;
+      return;
+    }
+    if (resolvedByOtherHandledRef.current) {
+      return;
+    }
+    resolvedByOtherHandledRef.current = true;
+    void message.info("已被其他终端提交");
+    onResolvedByOther?.();
+  }, [data?.resolvedByOther, onResolvedByOther]);
 
   useEffect(() => {
     total.current = questions.length;

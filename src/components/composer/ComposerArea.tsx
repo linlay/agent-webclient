@@ -53,6 +53,7 @@ import { useSpeechInput } from "./useSpeechInput";
 import { Input } from "antd";
 import { TextAreaRef } from "antd/es/input/TextArea";
 import { Buildin } from "../buildin";
+import { message } from "antd";
 
 interface ComposerAttachment {
   id: string;
@@ -933,11 +934,17 @@ export const ComposerArea: React.FC = () => {
         });
         const responseData = response.data as Record<string, unknown> | null;
         const accepted = Boolean(responseData?.accepted ?? true);
+        const status = String(responseData?.status || "");
         const detail = String(
           responseData?.detail || (accepted ? "accepted" : "unmatched"),
         );
 
         if (!accepted) {
+          if (status === "already_resolved") {
+            void message.info("已被其他终端提交");
+            dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
+            return response;
+          }
           throw `提交未命中：${detail}`;
         }
 
@@ -1357,6 +1364,7 @@ export const ComposerArea: React.FC = () => {
     <Buildin.ConfirmDialog
       data={activeAwaiting}
       onSubmit={handleAwaitingSubmit}
+      onResolvedByOther={() => dispatch({ type: "CLEAR_ACTIVE_AWAITING" })}
     />
   ) : (
     <div

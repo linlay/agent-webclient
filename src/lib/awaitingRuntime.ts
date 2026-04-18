@@ -163,5 +163,16 @@ export function reduceActiveAwaiting(
     };
   }
 
+  if (type === AIAwaitEventTypeEnum.Answer) {
+    const awaitingId = toText(event.awaitingId);
+    if (!current || !awaitingId || current.awaitingId !== awaitingId) {
+      return current;
+    }
+    return {
+      ...current,
+      resolvedByOther: true,
+    };
+  }
+
   return current;
 }

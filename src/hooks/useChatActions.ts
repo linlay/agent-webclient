@@ -74,6 +74,21 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   };
 }
 
+function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): void {
+  if (
+    typeof window === 'undefined'
+    || typeof window.dispatchEvent !== 'function'
+    || typeof CustomEvent !== 'function'
+  ) {
+    return;
+  }
+  window.dispatchEvent(
+    new CustomEvent('agent:attach-run', {
+      detail: { chatId, runId, lastSeq },
+    }),
+  );
+}
+
 export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] | undefined {
   if (value === undefined) return undefined;
   if (value == null) return [];
@@ -308,6 +323,13 @@ export function useChatActions() {
         rs.chatAgentById.forEach((agentKey, cid) => {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
         });
+        const activeRun = isObjectRecord(chatData.activeRun)
+          ? chatData.activeRun
+          : null;
+        const activeRunId = String(activeRun?.runId || '').trim();
+        if (stateRef.current.transportMode === 'ws' && activeRunId) {
+          dispatchAttachRunEvent(chatId, activeRunId, 0);
+        }
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }

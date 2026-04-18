@@ -35,6 +35,7 @@ interface WsStreamFrame {
 	id?: string;
 	event?: WsStreamEventFrame;
 	reason?: string;
+	lastSeq?: number;
 }
 
 interface WsPushFrame {
@@ -68,7 +69,7 @@ type ActiveStream = {
 	onEvent: (event: AgentEvent) => void;
 	onFrame?: (raw: string) => void;
 	onError?: (err: Error) => void;
-	onDone?: () => void;
+	onDone?: (reason: string, lastSeq: number) => void;
 	reject: (reason?: unknown) => void;
 	abortHandler?: () => void;
 	signal?: AbortSignal;
@@ -462,9 +463,10 @@ export class WsClient {
 		onEvent: (event: AgentEvent) => void;
 		onFrame?: (raw: string) => void;
 		onError?: (err: Error) => void;
-		onDone?: () => void;
+		onDone?: (reason: string, lastSeq: number) => void;
+		requestId?: string;
 	}): { abort: () => void } {
-		const id = createWsFrameId("wsstream");
+		const id = opts.requestId || createWsFrameId("wsstream");
 		let aborted = false;
 
 		const abort = () => {
@@ -526,6 +528,34 @@ export class WsClient {
 			});
 
 		return { abort };
+	}
+
+	attachRun(
+		runId: string,
+		lastSeq: number,
+		onEvent: (event: AgentEvent) => void,
+		onDone?: (reason: string, lastSeq: number) => void,
+		signal?: AbortSignal,
+	): { requestId: string; abort: () => void } {
+		const requestId = createWsFrameId("wsstream");
+		const stream = this.stream({
+			type: "/api/attach",
+			payload: {
+				runId,
+				lastSeq,
+			},
+			signal,
+			onEvent,
+			onDone,
+			onError: (error) => {
+				onDone?.(error.name === "AbortError" ? "detached" : "error", 0);
+			},
+			requestId,
+		});
+		return {
+			requestId,
+			abort: stream.abort,
+		};
 	}
 
 	private async ensureConnected(signal?: AbortSignal): Promise<void> {
@@ -675,8 +705,11 @@ export class WsClient {
 			if (frame.event) {
 				stream.onEvent(toAgentEvent(frame.event));
 			}
-			if (frame.reason === "done") {
-				stream.onDone?.();
+			if (frame.reason) {
+				stream.onDone?.(
+					frame.reason,
+					typeof frame.lastSeq === "number" ? frame.lastSeq : 0,
+				);
 				this.cleanupStream(frame.id);
 			}
 			return;

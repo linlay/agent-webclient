@@ -224,6 +224,7 @@ describe("WsClient", () => {
 				frame: "stream",
 				id: sentFrame.id,
 				reason: "done",
+				lastSeq: 9,
 			}),
 		);
 
@@ -236,7 +237,72 @@ describe("WsClient", () => {
 				chatId: "chat_1",
 			}),
 		);
-		expect(onDone).toHaveBeenCalledTimes(1);
+		expect(onDone).toHaveBeenCalledWith("done", 9);
+	});
+
+	it("invokes onDone for non-done stream terminal reasons", async () => {
+		const onDone = jest.fn();
+		const client = new WsClient();
+
+		client.stream({
+			type: "/api/query",
+			payload: { message: "hello" },
+			onEvent: jest.fn(),
+			onDone,
+		});
+
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await flushMicrotasks();
+
+		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
+		socket.message(
+			JSON.stringify({
+				frame: "stream",
+				id: sentFrame.id,
+				reason: "cancelled",
+				lastSeq: 3,
+			}),
+		);
+
+		expect(onDone).toHaveBeenCalledWith("cancelled", 3);
+	});
+
+	it("attachRun sends /api/attach and surfaces detached on abort", async () => {
+		jest.spyOn(Date, "now").mockReturnValue(1_776_474_697_581);
+		const onDone = jest.fn();
+		const client = new WsClient();
+		const controller = new AbortController();
+
+		const attach = client.attachRun(
+			"run_attach",
+			0,
+			jest.fn(),
+			onDone,
+			controller.signal,
+		);
+
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await flushMicrotasks();
+
+		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as {
+			id: string;
+			type: string;
+			payload: { runId: string; lastSeq: number };
+		};
+		expect(attach.requestId).toBe(sentFrame.id);
+		expect(sentFrame).toMatchObject({
+			type: "/api/attach",
+			payload: {
+				runId: "run_attach",
+				lastSeq: 0,
+			},
+		});
+
+		controller.abort();
+
+		expect(onDone).toHaveBeenCalledWith("detached", 0);
 	});
 
 	it("rejects the matching request/stream on error frames", async () => {

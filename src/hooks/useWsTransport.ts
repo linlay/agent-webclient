@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "../context/AppContext";
 import { useAppContext } from "../context/AppContext";
@@ -7,7 +7,7 @@ import { ensureAccessToken } from "../lib/apiClient";
 import { readStoredTransportMode } from "../lib/transportMode";
 import { setTransportModeProvider } from "../lib/apiClientProxy";
 import { isAppMode } from "../lib/routing";
-import { destroyWsClient, initWsClient } from "../lib/wsClientSingleton";
+import { destroyWsClient, getWsClient, initWsClient } from "../lib/wsClientSingleton";
 import { useAgentEventHandler } from "./useAgentEventHandler";
 import {
 	describeWsConnectionFailure,
@@ -184,6 +184,111 @@ function dispatchLoadChatEvent(chatId: string): void {
 	);
 }
 
+function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): void {
+	if (
+		typeof window === "undefined"
+		|| typeof window.dispatchEvent !== "function"
+		|| typeof CustomEvent !== "function"
+	) {
+		return;
+	}
+	window.dispatchEvent(
+		new CustomEvent("agent:attach-run", {
+			detail: { chatId, runId, lastSeq },
+		}),
+	);
+}
+
+type ActiveAttachState = {
+	requestId: string;
+	runId: string;
+	chatId: string;
+	controller: AbortController;
+	abort: () => void;
+};
+
+interface RegisterAttachRunListenerOptions {
+	dispatch: WsTransportDispatch;
+	stateRef: { current: AppState };
+	handleEvent: (event: AgentEvent) => void;
+	activeAttachRef: { current: ActiveAttachState | null };
+	getWsClientImpl?: typeof getWsClient;
+}
+
+export function registerAttachRunListener(
+	options: RegisterAttachRunListenerOptions,
+): () => void {
+	const getWsClientImpl = options.getWsClientImpl ?? getWsClient;
+
+	const cleanupActiveAttach = (requestId: string) => {
+		if (options.activeAttachRef.current?.requestId !== requestId) {
+			return;
+		}
+		options.activeAttachRef.current = null;
+		options.dispatch({ type: "SET_STREAMING", streaming: false });
+		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+	};
+
+	const handler = (event: Event) => {
+		const detail = (event as CustomEvent).detail as Record<string, unknown> | undefined;
+		const runId = String(detail?.runId || "").trim();
+		const chatId = String(detail?.chatId || "").trim();
+		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
+		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
+		if (!runId || !chatId) {
+			return;
+		}
+		if (options.stateRef.current.transportMode !== "ws") {
+			return;
+		}
+
+		const current = options.activeAttachRef.current;
+		if (current && current.runId === runId && current.chatId === chatId) {
+			return;
+		}
+
+		current?.abort();
+
+		const wsClient = getWsClientImpl();
+		if (!wsClient) {
+			return;
+		}
+
+		const controller = new AbortController();
+		const stream = wsClient.attachRun(
+			runId,
+			lastSeq,
+			options.handleEvent,
+			(_reason, _lastSeq) => {
+				cleanupActiveAttach(stream.requestId);
+			},
+			controller.signal,
+		);
+		options.activeAttachRef.current = {
+			requestId: stream.requestId,
+			runId,
+			chatId,
+			controller,
+			abort: stream.abort,
+		};
+		options.dispatch({ type: "SET_RUN_ID", runId });
+		options.dispatch({ type: "SET_STREAMING", streaming: true });
+		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
+	};
+
+	if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+		window.addEventListener("agent:attach-run", handler);
+	}
+
+	return () => {
+		if (typeof window !== "undefined" && typeof window.removeEventListener === "function") {
+			window.removeEventListener("agent:attach-run", handler);
+		}
+		options.activeAttachRef.current?.abort();
+		options.activeAttachRef.current = null;
+	};
+}
+
 function buildWsClient(
 	options: ConnectWsTransportOptions,
 	accessToken: string,
@@ -226,7 +331,10 @@ function buildWsClient(
 					return;
 				}
 				if (isActiveChat) {
-					options.handleEvent(liveEvent);
+					const runId = String(liveEvent.runId || "").trim();
+					if (runId) {
+						dispatchAttachRunEvent(eventChatId, runId, 0);
+					}
 				}
 				return;
 			}
@@ -365,6 +473,7 @@ export async function connectWsTransport(
 export function useWsTransport() {
 	const { dispatch, state, stateRef } = useAppContext();
 	const { handleEvent } = useAgentEventHandler();
+	const activeAttachRef = useRef<ActiveAttachState | null>(null);
 
 	useEffect(() => {
 		setTransportModeProvider(() => stateRef.current.transportMode);
@@ -373,8 +482,17 @@ export function useWsTransport() {
 		};
 	}, [stateRef]);
 
+	useEffect(() => registerAttachRunListener({
+		dispatch,
+		stateRef,
+		handleEvent,
+		activeAttachRef,
+	}), [dispatch, handleEvent, stateRef]);
+
 	useEffect(() => {
 		if (state.transportMode !== "ws") {
+			activeAttachRef.current?.abort();
+			activeAttachRef.current = null;
 			destroyWsClient();
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
@@ -408,6 +526,8 @@ export function useWsTransport() {
 
 		return () => {
 			cancelled = true;
+			activeAttachRef.current?.abort();
+			activeAttachRef.current = null;
 			destroyWsClient();
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });

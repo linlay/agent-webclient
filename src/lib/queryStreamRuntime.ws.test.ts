@@ -37,11 +37,11 @@ describe("executeQueryStreamWs", () => {
 			stream: jest.fn((options: {
 				onEvent: (event: unknown) => void;
 				onFrame?: (raw: string) => void;
-				onDone?: () => void;
+				onDone?: (reason: string, lastSeq: number) => void;
 			}) => {
 				options.onFrame?.('{"frame":"stream"}');
 				options.onEvent({ type: "content.delta", text: "hi" });
-				options.onDone?.();
+				options.onDone?.("done", 1);
 				return { abort: jest.fn() };
 			}),
 		} as never);
@@ -129,7 +129,7 @@ describe("executeQueryStreamWs", () => {
 			stream: jest.fn(
 				(options: {
 					signal?: AbortSignal;
-					onDone?: () => void;
+					onDone?: (reason: string, lastSeq: number) => void;
 					onError?: (error: Error) => void;
 				}) => {
 					options.signal?.addEventListener(
@@ -139,7 +139,7 @@ describe("executeQueryStreamWs", () => {
 							options.onError?.(
 								new DOMException("The operation was aborted.", "AbortError"),
 							);
-							options.onDone?.();
+							options.onDone?.("detached", 0);
 						},
 						{ once: true },
 					);
