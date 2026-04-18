@@ -193,6 +193,23 @@ function normalizeAwaitingQuestionsSignature(
   return JSON.stringify(awaiting.questions);
 }
 
+function normalizeAwaitingRuntimeSignature(
+  awaiting: ActiveAwaiting | null,
+): string {
+  if (!awaiting) {
+    return '';
+  }
+
+  return JSON.stringify({
+    viewportType: awaiting.viewportType,
+    viewportKey: awaiting.viewportKey,
+    loading: awaiting.loading,
+    loadError: awaiting.loadError,
+    viewportHtml: awaiting.viewportHtml,
+    resolvedByOther: Boolean(awaiting.resolvedByOther),
+  });
+}
+
 function shouldSyncActiveAwaitingFromState(
   cache: LocalCache,
   state: AppState,
@@ -222,6 +239,8 @@ function shouldSyncActiveAwaitingFromState(
   return (
     normalizeAwaitingQuestionsSignature(stateAwaiting)
     !== normalizeAwaitingQuestionsSignature(cacheAwaiting)
+    || normalizeAwaitingRuntimeSignature(stateAwaiting)
+    !== normalizeAwaitingRuntimeSignature(cacheAwaiting)
   );
 }
 

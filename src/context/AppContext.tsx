@@ -264,6 +264,7 @@ export type AppAction =
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
 	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
+	| { type: "PATCH_ACTIVE_AWAITING"; patch: Partial<ActiveAwaiting> }
 	| { type: "CLEAR_ACTIVE_AWAITING" }
 	| {
 			type: "SHOW_COMMAND_STATUS_OVERLAY";
@@ -682,6 +683,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, activeFrontendTool: action.tool };
 		case "SET_ACTIVE_AWAITING":
 			return { ...state, activeAwaiting: action.awaiting };
+		case "PATCH_ACTIVE_AWAITING":
+			if (!state.activeAwaiting) {
+				return state;
+			}
+			return {
+				...state,
+				activeAwaiting: {
+					...state.activeAwaiting,
+					...action.patch,
+				},
+			};
 		case "CLEAR_ACTIVE_AWAITING":
 			if (!state.activeAwaiting) {
 				return state;

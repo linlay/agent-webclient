@@ -222,6 +222,9 @@ export interface ActiveAwaiting {
   viewportKey: string;
   viewportType: ViewportTypeEnum;
   questions: AIAwaitQuestion[];
+  loading: boolean;
+  loadError: string;
+  viewportHtml: string;
   resolvedByOther?: boolean;
 }
 

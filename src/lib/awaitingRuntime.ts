@@ -36,6 +36,25 @@ export function cloneActiveAwaiting(
     : null;
 }
 
+function createAwaitingRuntimeState(
+  current: ActiveAwaiting | null,
+  key: string,
+): Pick<ActiveAwaiting, 'loading' | 'loadError' | 'viewportHtml'> {
+  if (current?.key === key) {
+    return {
+      loading: current.loading,
+      loadError: current.loadError,
+      viewportHtml: current.viewportHtml,
+    };
+  }
+
+  return {
+    loading: false,
+    loadError: '',
+    viewportHtml: '',
+  };
+}
+
 function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
   if (!Array.isArray(value)) {
     return [];
@@ -90,6 +109,14 @@ function isBuiltinConfirmDialogAsk(event: AgentEvent): boolean {
   );
 }
 
+function isHtmlViewportAsk(event: AgentEvent): boolean {
+  return (
+    toText(event.type) === AIAwaitEventTypeEnum.Ask
+    && toText(event.viewportType) === ViewportTypeEnum.Html
+    && Boolean(toText(event.viewportKey))
+  );
+}
+
 function readAwaitingTimeout(event: AgentEvent): number | null {
   const timeout = Number(event.timeout);
   if (Number.isFinite(timeout)) {
@@ -132,6 +159,7 @@ export function reduceActiveAwaiting(
     if (nextQuestions.length > 0) {
       registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
     }
+    const runtime = createAwaitingRuntimeState(current, key);
     return {
       key,
       awaitingId,
@@ -139,6 +167,37 @@ export function reduceActiveAwaiting(
       timeout: readAwaitingTimeout(event),
       viewportKey: BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY,
       viewportType: ViewportTypeEnum.Builtin,
+      ...runtime,
+      questions:
+        nextQuestions.length > 0
+          ? nextQuestions
+          : current?.key === key
+          ? cloneQuestions(current.questions)
+          : [],
+    };
+  }
+
+  if (isHtmlViewportAsk(event)) {
+    const awaitingId = toText(event.awaitingId);
+    const runId = toText(event.runId);
+    const viewportKey = toText(event.viewportKey);
+    if (!awaitingId || !runId || !viewportKey) {
+      return current;
+    }
+    const key = `${runId}#${awaitingId}`;
+    const nextQuestions = normalizeQuestions(event.questions);
+    if (nextQuestions.length > 0) {
+      registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
+    }
+    const runtime = createAwaitingRuntimeState(current, key);
+    return {
+      key,
+      awaitingId,
+      runId,
+      timeout: readAwaitingTimeout(event),
+      viewportKey,
+      viewportType: ViewportTypeEnum.Html,
+      ...runtime,
       questions:
         nextQuestions.length > 0
           ? nextQuestions

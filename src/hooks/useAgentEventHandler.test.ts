@@ -252,6 +252,9 @@ describe('shouldSyncLiveCache', () => {
             ],
           },
         ],
+        loading: false,
+        loadError: '',
+        viewportHtml: '',
       },
     };
 
@@ -286,6 +289,9 @@ describe('shouldSyncLiveCache', () => {
           ],
         },
       ],
+      loading: false,
+      loadError: '',
+      viewportHtml: '',
     };
 
     const next = reduceActiveAwaiting(current, {
@@ -299,6 +305,39 @@ describe('shouldSyncLiveCache', () => {
       resolvedByOther: true,
     });
     expect(next?.questions).toHaveLength(1);
+  });
+
+  it('rebuilds cache when html awaiting runtime state is patched in React state', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 60,
+        viewportKey: 'leave_form',
+        viewportType: 'html' as const,
+        questions: [],
+        loading: false,
+        loadError: '',
+        viewportHtml: '<html><body>form</body></html>',
+      },
+    };
+
+    const cache = createLocalCacheFromState({
+      ...state,
+      activeAwaiting: {
+        ...state.activeAwaiting,
+        viewportHtml: '',
+      },
+    });
+
+    expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
 });
 

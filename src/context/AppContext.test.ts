@@ -323,6 +323,9 @@ describe('appReducer conversation reset behavior', () => {
         viewportKey: 'confirm_dialog',
         viewportType: 'builtin' as const,
         questions: [],
+        loading: false,
+        loadError: '',
+        viewportHtml: '',
       },
       voiceChat: {
         ...baseState.voiceChat,
@@ -428,6 +431,40 @@ describe('appReducer conversation reset behavior', () => {
           status: 'connecting',
         }),
       },
+    });
+  });
+
+  it('patches active awaiting runtime state without replacing the session', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 30,
+        viewportKey: 'leave_form',
+        viewportType: 'html' as const,
+        questions: [],
+        loading: true,
+        loadError: '',
+        viewportHtml: '',
+      },
+    };
+
+    const next = appReducer(state, {
+      type: 'PATCH_ACTIVE_AWAITING',
+      patch: {
+        loading: false,
+        viewportHtml: '<html><body>ready</body></html>',
+      },
+    });
+
+    expect(next.activeAwaiting).toMatchObject({
+      key: 'run_1#await_1',
+      viewportKey: 'leave_form',
+      loading: false,
+      viewportHtml: '<html><body>ready</body></html>',
     });
   });
 

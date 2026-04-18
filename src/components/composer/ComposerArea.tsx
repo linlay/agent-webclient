@@ -8,6 +8,7 @@ import React, {
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type {
   AIAwaitQuestion,
+  ActiveAwaiting,
   AIAwaitSubmitPayloadData,
 } from "../../context/types";
 import { MentionSuggest } from "./MentionSuggest";
@@ -54,6 +55,8 @@ import { Input } from "antd";
 import { TextAreaRef } from "antd/es/input/TextArea";
 import { Buildin } from "../buildin";
 import { message } from "antd";
+import { AwaitingHtmlContainer } from "../awaiting/AwaitingHtmlContainer";
+import { getAwaitingRenderMode } from "../awaiting/protocol";
 
 interface ComposerAttachment {
   id: string;
@@ -923,6 +926,15 @@ export const ComposerArea: React.FC = () => {
     },
   });
 
+  const resetEventCache = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+  }, []);
+
+  const clearActiveAwaiting = useCallback(() => {
+    dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
+    resetEventCache();
+  }, [dispatch, resetEventCache]);
+
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
       if (!activeAwaiting) return;
@@ -942,13 +954,13 @@ export const ComposerArea: React.FC = () => {
         if (!accepted) {
           if (status === "already_resolved") {
             void message.info("已被其他终端提交");
-            dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
+            clearActiveAwaiting();
             return response;
           }
           throw `提交未命中：${detail}`;
         }
 
-        dispatch({ type: "CLEAR_ACTIVE_AWAITING" });
+        clearActiveAwaiting();
         dispatch({
           type: "APPEND_DEBUG",
           line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,
@@ -957,7 +969,14 @@ export const ComposerArea: React.FC = () => {
         return error;
       }
     },
-    [activeAwaiting, awaitingAnswers, dispatch],
+    [activeAwaiting, awaitingAnswers, clearActiveAwaiting, dispatch],
+  );
+
+  const handlePatchActiveAwaiting = useCallback(
+    (patch: Partial<ActiveAwaiting>) => {
+      dispatch({ type: "PATCH_ACTIVE_AWAITING", patch });
+    },
+    [dispatch],
   );
 
   const handleSend = useCallback(() => {
@@ -1360,12 +1379,24 @@ export const ComposerArea: React.FC = () => {
     updateMentionSuggestions,
   ]);
 
+  const awaitingRenderMode = getAwaitingRenderMode(activeAwaiting);
+
   return isAwaitingActive && activeAwaiting ? (
-    <Buildin.ConfirmDialog
-      data={activeAwaiting}
-      onSubmit={handleAwaitingSubmit}
-      onResolvedByOther={() => dispatch({ type: "CLEAR_ACTIVE_AWAITING" })}
-    />
+    awaitingRenderMode === "html" ? (
+      <AwaitingHtmlContainer
+        data={activeAwaiting}
+        onPatch={handlePatchActiveAwaiting}
+        onSubmit={handleAwaitingSubmit}
+        onClose={clearActiveAwaiting}
+        onResolvedByOther={clearActiveAwaiting}
+      />
+    ) : (
+      <Buildin.ConfirmDialog
+        data={activeAwaiting}
+        onSubmit={handleAwaitingSubmit}
+        onResolvedByOther={clearActiveAwaiting}
+      />
+    )
   ) : (
     <div
       ref={composerRef}
