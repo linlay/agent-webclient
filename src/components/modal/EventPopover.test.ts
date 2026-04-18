@@ -129,8 +129,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
+    expect(html).toContain('aria-label="收集事件快照"');
     expect(html).toContain('aria-label="复制事件 JSON"');
-    expect(html).toContain("收集");
+    expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).toContain(
       `时间: ${formatReadableTimestamp(1776518171300)}`,
     );
@@ -153,7 +154,8 @@ describe("EventPopover collect controls", () => {
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
     expect(html).toContain('aria-label="复制事件 JSON"');
-    expect(html).not.toContain("收集");
+    expect(html).toContain('aria-label="关闭事件详情"');
+    expect(html).not.toContain('aria-label="收集事件快照"');
   });
 });
 
@@ -390,7 +392,7 @@ describe("EventPopover collected snapshot shape", () => {
 describe("EventPopover display and copy helpers", () => {
   it("formats readable timestamps and falls back to --", () => {
     expect(formatReadableTimestamp(1776518171300)).toMatch(
-      /^\d{2}:\d{2}:\d{2}\.\d{3}$/,
+      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/,
     );
     expect(formatReadableTimestamp(undefined)).toBe("--");
   });
@@ -403,7 +405,9 @@ describe("EventPopover display and copy helpers", () => {
     });
 
     expect(state.rawJsonStr).toContain('"timestamp": 1776518171300');
-    expect(state.rawJsonStr).not.toContain("09:42:51.300");
+    expect(state.rawJsonStr).not.toContain(
+      formatReadableTimestamp(1776518171300),
+    );
     expect(state.displayJsonStr).toBe(state.rawJsonStr);
   });
 

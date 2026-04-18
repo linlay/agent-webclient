@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type { AgentEvent } from "../../context/types";
 import { downloadResource, getResourceText } from "../../lib/apiClient";
 import { formatAttachmentSize } from "../../lib/attachmentUtils";
+import { formatDebugTimestamp } from "../../lib/debugTime";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 import {
@@ -15,19 +16,8 @@ import {
 } from "../../lib/debugEventDisplay";
 import { Flex, Tabs, Tag } from "antd";
 
-const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  fractionalSecondDigits: 3,
-  hour12: false,
-});
-
 function formatDebugTime(timestamp?: number): string {
-  if (!timestamp) return "--";
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "--";
-  return logTimeFormatter.format(date);
+  return formatDebugTimestamp(timestamp);
 }
 
 const EventRow: React.FC<{

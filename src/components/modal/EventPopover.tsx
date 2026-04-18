@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useAppState, useAppDispatch } from "../../context/AppContext";
 import type { AgentEvent } from "../../context/types";
+import { formatDebugTimestamp } from "../../lib/debugTime";
 import { MaterialIcon } from "../common/MaterialIcon";
 import { UiButton } from "../ui/UiButton";
 
@@ -64,14 +65,6 @@ interface RelatedEventEntry {
 
 type CollectibleFamily = keyof typeof COLLECTIBLE_GROUP_EVENT_TYPES;
 
-const logTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  fractionalSecondDigits: 3,
-  hour12: false,
-});
-
 function readEventIdValue(event: AgentEvent, idKey: EventGroupIdKey): string {
   const value = event[idKey];
   if (typeof value === "string") {
@@ -127,10 +120,7 @@ function mapCollectedSnapshotType(type: string): string {
 }
 
 function formatReadableTimestamp(timestamp?: number): string {
-  if (!timestamp) return "--";
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "--";
-  return logTimeFormatter.format(date);
+  return formatDebugTimestamp(timestamp);
 }
 
 function stringifyPopoverPayload(payload: unknown): string {
@@ -409,82 +399,90 @@ export const EventPopover: React.FC = () => {
           </span>
           <span className="event-popover-meta">{`时间: ${readableTimestamp}`}</span>
         </div>
-        {showCollect && (
+        <div className="event-popover-actions">
+          {showCollect && (
+            <UiButton
+              className="event-popover-action-btn"
+              variant="ghost"
+              size="sm"
+              iconOnly
+              aria-label="收集事件快照"
+              title="收集事件快照"
+              onClick={() => {
+                const payload = buildCollectedSnapshot(event, collectibleRelatedEvents);
+                const rawJsonStr = stringifyPopoverPayload(payload);
+                setPopoverState({
+                  payload,
+                  rawJsonStr,
+                  displayJsonStr: rawJsonStr,
+                });
+              }}
+            >
+              <MaterialIcon name="inventory_2" />
+            </UiButton>
+          )}
           <UiButton
+            className="event-popover-action-btn"
             variant="ghost"
             size="sm"
+            iconOnly
+            disabled={!popoverState.rawJsonStr}
+            aria-label="复制事件 JSON"
+            title={
+              copyStatus === "copied"
+                ? "已复制"
+                : copyStatus === "error"
+                  ? "复制失败"
+                  : "复制事件 JSON"
+            }
             onClick={() => {
-              const payload = buildCollectedSnapshot(event, collectibleRelatedEvents);
-              const rawJsonStr = stringifyPopoverPayload(payload);
-              setPopoverState({
-                payload,
-                rawJsonStr,
-                displayJsonStr: rawJsonStr,
-              });
+              if (!popoverState.rawJsonStr) {
+                return;
+              }
+              void copyText(popoverState.rawJsonStr)
+                .then(() => {
+                  if (copyTimerRef.current) {
+                    window.clearTimeout(copyTimerRef.current);
+                  }
+                  setCopyStatus("copied");
+                  copyTimerRef.current = window.setTimeout(() => {
+                    setCopyStatus("idle");
+                    copyTimerRef.current = null;
+                  }, 1600);
+                })
+                .catch(() => {
+                  if (copyTimerRef.current) {
+                    window.clearTimeout(copyTimerRef.current);
+                  }
+                  setCopyStatus("error");
+                  copyTimerRef.current = window.setTimeout(() => {
+                    setCopyStatus("idle");
+                    copyTimerRef.current = null;
+                  }, 1600);
+                });
             }}
           >
-            收集
+            <MaterialIcon name={copyIcon} />
           </UiButton>
-        )}
-        <UiButton
-          variant="ghost"
-          size="sm"
-          iconOnly
-          disabled={!popoverState.rawJsonStr}
-          aria-label="复制事件 JSON"
-          title={
-            copyStatus === "copied"
-              ? "已复制"
-              : copyStatus === "error"
-                ? "复制失败"
-                : "复制事件 JSON"
-          }
-          onClick={() => {
-            if (!popoverState.rawJsonStr) {
-              return;
-            }
-            void copyText(popoverState.rawJsonStr)
-              .then(() => {
-                if (copyTimerRef.current) {
-                  window.clearTimeout(copyTimerRef.current);
-                }
-                setCopyStatus("copied");
-                copyTimerRef.current = window.setTimeout(() => {
-                  setCopyStatus("idle");
-                  copyTimerRef.current = null;
-                }, 1600);
+          <UiButton
+            className="event-popover-action-btn event-popover-close"
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="关闭事件详情"
+            title="关闭事件详情"
+            onClick={() =>
+              dispatch({
+                type: "SET_EVENT_POPOVER",
+                index: -1,
+                event: null,
+                anchor: null,
               })
-              .catch(() => {
-                if (copyTimerRef.current) {
-                  window.clearTimeout(copyTimerRef.current);
-                }
-                setCopyStatus("error");
-                copyTimerRef.current = window.setTimeout(() => {
-                  setCopyStatus("idle");
-                  copyTimerRef.current = null;
-                }, 1600);
-              });
-          }}
-        >
-          <MaterialIcon name={copyIcon} />
-        </UiButton>
-        <UiButton
-          className="event-popover-close"
-          variant="ghost"
-          size="sm"
-          iconOnly
-          aria-label="关闭事件详情"
-          onClick={() =>
-            dispatch({
-              type: "SET_EVENT_POPOVER",
-              index: -1,
-              event: null,
-              anchor: null,
-            })
-          }
-        >
-          <MaterialIcon name="close" />
-        </UiButton>
+            }
+          >
+            <MaterialIcon name="close" />
+          </UiButton>
+        </div>
       </div>
       <pre className="event-popover-body">{popoverState.displayJsonStr}</pre>
     </div>

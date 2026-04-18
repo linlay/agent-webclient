@@ -4311,6 +4311,19 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   box-shadow: none;
 }
 
+.event-popover-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.event-popover-action-btn.ui-btn.ui-btn-sm.is-icon-only {
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
 .event-popover-body {
   flex: 1;
   overflow: auto;
