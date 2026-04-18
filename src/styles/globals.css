@@ -2270,6 +2270,8 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   background: color-mix(in srgb, var(--accent-soft) 14%, var(--bg-elev-2));
   font-size: 11px;
   font-weight: 700;
+  flex: 0 0 auto;
+  align-self: center;
 }
 
 .plan-toggle-btn:hover {
@@ -3166,6 +3168,12 @@ html[data-theme='dark'] .worker-chat-float-btn:hover {
   .composer-actions.has-voice-controls {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .composer-actions.has-voice-controls .plan-toggle-btn,
+  .composer-actions.has-voice-controls .voice-btn,
+  .composer-actions.has-voice-controls .send-btn {
+    flex: 0 0 auto;
   }
 
   .composer-mode-switch.ui-btn {

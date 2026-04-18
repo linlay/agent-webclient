@@ -1626,19 +1626,6 @@ export const ComposerArea: React.FC = () => {
                 >
                   <MaterialIcon name="add" />
                 </UiButton>
-                <UiButton
-                  className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    dispatch({
-                      type: "SET_PLANNING_MODE",
-                      enabled: !state.planningMode,
-                    })
-                  }
-                >
-                  计划
-                </UiButton>
                 <ControlsForm
                   disabled={isFrontendActive || state.streaming}
                   onChange={setControlParams}
@@ -1658,6 +1645,21 @@ export const ComposerArea: React.FC = () => {
                   ></UiButton>
                 ) : !isVoiceMode ? (
                   <>
+                    {state.planningMode && (
+                      <UiButton
+                        className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          dispatch({
+                            type: "SET_PLANNING_MODE",
+                            enabled: !state.planningMode,
+                          })
+                        }
+                      >
+                        计划
+                      </UiButton>
+                    )}
                     <UiButton
                       className={`voice-btn ${speechListening ? "is-listening" : ""}`}
                       variant="secondary"
