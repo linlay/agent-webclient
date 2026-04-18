@@ -117,4 +117,18 @@ describe("TopNav", () => {
 		expect(html).toContain(">ws已就绪<");
 		expect(html).toContain("status-pill is-idle is-ws-ready");
 	});
+
+	it("renders sse idle status without websocket-ready styling", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			transportMode: "sse",
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain(">SSE 已启用<");
+		expect(html).toContain("status-pill is-idle");
+		expect(html).not.toContain("is-ws-ready");
+	});
 });

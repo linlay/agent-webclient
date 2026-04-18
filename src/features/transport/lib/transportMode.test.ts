@@ -10,9 +10,9 @@ describe("transportMode helpers", () => {
 		delete (globalThis as Record<string, unknown>).localStorage;
 	});
 
-	it("normalizes every input to websocket mode", () => {
+	it("normalizes supported transport modes and defaults unknown values to websocket", () => {
 		expect(normalizeTransportMode("ws")).toBe("ws");
-		expect(normalizeTransportMode("sse")).toBe("ws");
+		expect(normalizeTransportMode("sse")).toBe("sse");
 		expect(normalizeTransportMode("grpc")).toBe("ws");
 		expect(normalizeTransportMode(undefined)).toBe("ws");
 	});
@@ -29,9 +29,9 @@ describe("transportMode helpers", () => {
 			},
 		});
 
-		writeStoredTransportMode("ws");
-		expect(store.get(TRANSPORT_MODE_STORAGE_KEY)).toBe("ws");
-		expect(readStoredTransportMode()).toBe("ws");
+		writeStoredTransportMode("sse");
+		expect(store.get(TRANSPORT_MODE_STORAGE_KEY)).toBe("sse");
+		expect(readStoredTransportMode()).toBe("sse");
 	});
 
 	it("fails soft when localStorage access throws", () => {

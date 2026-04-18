@@ -403,7 +403,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 		case "SET_TRANSPORT_MODE":
 			return {
 				...state,
-				transportMode: "ws",
+				transportMode: action.mode,
 				wsStatus: "disconnected",
 				wsErrorMessage: "",
 			};

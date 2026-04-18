@@ -292,4 +292,22 @@ describe("apiClientProxy", () => {
 		expect(proxy.uploadFile).toBe(mockApiClient.uploadFile);
 		expect(proxy.downloadResource).toBe(mockApiClient.downloadResource);
 	});
+
+	it("routes ordinary api requests over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getAgents.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["http"],
+		});
+
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["http"],
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
+	});
 });

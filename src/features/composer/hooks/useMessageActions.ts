@@ -15,6 +15,7 @@ import {
   resolvePreferredTeamId,
 } from '@/features/composer/lib/queryRouting';
 import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
+import { executeQueryStreamSse } from '@/features/transport/lib/queryStreamRuntime.sse';
 import { executeQueryStreamWs } from '@/features/transport/lib/queryStreamRuntime.ws';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
@@ -38,6 +39,12 @@ interface SendMessageEventDetail {
 
 function readEventTeamId(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.teamId);
+}
+
+export function resolveQueryStreamExecutor(transportMode: 'sse' | 'ws') {
+  return transportMode === 'sse'
+    ? executeQueryStreamSse
+    : executeQueryStreamWs;
 }
 
 /**
@@ -327,7 +334,7 @@ export function useMessageActions() {
       };
 
       try {
-        await executeQueryStreamWs({
+        await resolveQueryStreamExecutor(stateRef.current.transportMode)({
           params: {
             requestId,
             message: cleanMessage,

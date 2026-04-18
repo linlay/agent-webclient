@@ -1,9 +1,9 @@
-export type TransportMode = "ws";
+export type TransportMode = "sse" | "ws";
 
 export const TRANSPORT_MODE_STORAGE_KEY = "agent-webclient.transportMode";
 
 export function normalizeTransportMode(value: unknown): TransportMode {
-	return "ws";
+	return value === "sse" ? "sse" : "ws";
 }
 
 export function readStoredTransportMode(): TransportMode | null {
@@ -16,7 +16,7 @@ export function readStoredTransportMode(): TransportMode | null {
 		if (!stored) {
 			return null;
 		}
-		return stored ? "ws" : null;
+		return normalizeTransportMode(stored);
 	} catch (_error) {
 		return null;
 	}

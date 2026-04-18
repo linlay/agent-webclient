@@ -31,18 +31,24 @@ import {
 	getWsClientAccessToken,
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
+import type { TransportMode } from "@/features/transport/lib/transportMode";
 
-export function setTransportModeProvider(
-	_provider: () => "ws",
-): void {
-	// WebSocket is the only supported transport mode.
+let getTransportMode: () => TransportMode = () => "ws";
+
+export function setTransportModeProvider(provider: () => TransportMode): void {
+	getTransportMode = provider;
 }
 
 async function routeRequest<T>(
 	type: string,
 	payload: unknown,
 	fallback: () => Promise<ApiResponse<T>>,
+	options: { fallbackOnConnectFailure?: boolean } = {},
 ): Promise<ApiResponse<T>> {
+	if (getTransportMode() !== "ws") {
+		return fallback();
+	}
+
 	let accessToken = String(getCurrentAccessToken() || "").trim();
 	if (!accessToken) {
 		accessToken = String(await ensureAccessToken("missing")).trim();
@@ -54,13 +60,20 @@ async function routeRequest<T>(
 			? initWsClient({ accessToken })
 			: currentClient;
 
-	if (currentClient != null && getWsClientAccessToken() === accessToken) {
+	if (
+		currentClient != null &&
+		getWsClientAccessToken() === accessToken &&
+		typeof wsClient.updateOptions === "function"
+	) {
 		wsClient.updateOptions({ accessToken });
 	}
 
 	try {
 		await wsClient.connect();
-	} catch {
+	} catch (error) {
+		if (options.fallbackOnConnectFailure === false) {
+			throw error;
+		}
 		return fallback();
 	}
 
@@ -134,7 +147,9 @@ export function submitTool(params: {
 	toolId: string;
 	params: Record<string, unknown>;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/submit", params, () => submitToolHttp(params));
+	return routeRequest("/api/submit", params, () => submitToolHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function submitAwaiting(params: {
@@ -142,29 +157,39 @@ export function submitAwaiting(params: {
 	awaitingId: string;
 	params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
-	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params));
+	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeRequest("/api/interrupt", params, () => interruptChatHttp(params));
+	return routeRequest("/api/interrupt", params, () => interruptChatHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeRequest("/api/steer", params, () => steerChatHttp(params));
+	return routeRequest("/api/steer", params, () => steerChatHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function rememberChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/remember", params, () => rememberChatHttp(params));
+	return routeRequest("/api/remember", params, () => rememberChatHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function learnChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/learn", params, () => learnChatHttp(params));
+	return routeRequest("/api/learn", params, () => learnChatHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export {

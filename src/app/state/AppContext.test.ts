@@ -121,13 +121,13 @@ describe('appReducer conversation reset behavior', () => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
-        getItem: (key: string) => (key === TRANSPORT_MODE_STORAGE_KEY ? 'ws' : ''),
+        getItem: (key: string) => (key === TRANSPORT_MODE_STORAGE_KEY ? 'sse' : ''),
       },
     });
 
     const state = createInitialState();
 
-    expect(state.transportMode).toBe('ws');
+    expect(state.transportMode).toBe('sse');
     expect(state.wsStatus).toBe('disconnected');
     expect(state.wsErrorMessage).toBe('');
   });
@@ -256,14 +256,14 @@ describe('appReducer conversation reset behavior', () => {
 
     const nextMode = appReducer(baseState, {
       type: 'SET_TRANSPORT_MODE',
-      mode: 'ws',
+      mode: 'sse',
     });
     const nextStatus = appReducer(nextMode, {
       type: 'SET_WS_STATUS',
       status: 'connected',
     });
 
-    expect(nextMode.transportMode).toBe('ws');
+    expect(nextMode.transportMode).toBe('sse');
     expect(nextStatus.wsStatus).toBe('connected');
     expect(nextStatus.wsErrorMessage).toBe('');
   });
@@ -296,7 +296,7 @@ describe('appReducer conversation reset behavior', () => {
       },
       {
         type: 'SET_TRANSPORT_MODE',
-        mode: 'ws',
+        mode: 'sse',
       },
     );
 
@@ -307,6 +307,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(resetByToken.wsErrorMessage).toBe('');
     expect(resetByMode.wsErrorMessage).toBe('');
     expect(resetByMode.wsStatus).toBe('disconnected');
+    expect(resetByMode.transportMode).toBe('sse');
   });
 
   it('resets voice chat runtime state and input mode during conversation reset', () => {

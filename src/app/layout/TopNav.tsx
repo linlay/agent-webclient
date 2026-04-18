@@ -15,7 +15,7 @@ interface TopNavStatusDisplay {
 export function resolveTopNavStatus(
 	state: Pick<
 		AppState,
-		"streaming" | "events" | "wsStatus" | "wsErrorMessage"
+		"streaming" | "events" | "wsStatus" | "wsErrorMessage" | "transportMode"
 	>,
 ): TopNavStatusDisplay {
 	const wsErrorMessage = String(state.wsErrorMessage || "").trim();
@@ -25,6 +25,19 @@ export function resolveTopNavStatus(
 		return {
 			statusClass: "is-running",
 			statusText: "运行中...",
+		};
+	}
+
+	if (state.transportMode === "sse") {
+		if (hasRunError) {
+			return {
+				statusClass: "is-error",
+				statusText: "运行异常",
+			};
+		}
+		return {
+			statusClass: "is-idle",
+			statusText: "SSE 已启用",
 		};
 	}
 

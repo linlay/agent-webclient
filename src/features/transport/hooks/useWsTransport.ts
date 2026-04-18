@@ -472,20 +472,37 @@ export function useWsTransport() {
 	const activeAttachRef = useRef<ActiveAttachState | null>(null);
 
 	useEffect(() => {
-		setTransportModeProvider(() => "ws");
+		setTransportModeProvider(() => stateRef.current.transportMode);
 		return () => {
 			setTransportModeProvider(() => "ws");
 		};
-	}, [stateRef]);
-
-	useEffect(() => registerAttachRunListener({
-		dispatch,
-		stateRef,
-		handleEvent,
-		activeAttachRef,
-	}), [dispatch, handleEvent, stateRef]);
+	}, [state.transportMode, stateRef]);
 
 	useEffect(() => {
+		if (state.transportMode !== "ws") {
+			activeAttachRef.current?.abort();
+			activeAttachRef.current = null;
+			return;
+		}
+
+		return registerAttachRunListener({
+			dispatch,
+			stateRef,
+			handleEvent,
+			activeAttachRef,
+		});
+	}, [dispatch, handleEvent, state.transportMode, stateRef]);
+
+	useEffect(() => {
+		if (state.transportMode !== "ws") {
+			activeAttachRef.current?.abort();
+			activeAttachRef.current = null;
+			destroyWsClient();
+			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
+			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
+			return;
+		}
+
 		let cancelled = false;
 
 		void connectWsTransport({
@@ -520,5 +537,5 @@ export function useWsTransport() {
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
 		};
-	}, [dispatch, handleEvent, state.accessToken, stateRef]);
+	}, [dispatch, handleEvent, state.accessToken, state.transportMode, stateRef]);
 }

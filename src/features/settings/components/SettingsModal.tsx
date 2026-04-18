@@ -4,6 +4,7 @@ import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import type {
   ConversationMode,
   ThemeMode,
+  TransportMode,
   VoiceCapabilities,
   VoiceClientGateConfig,
   WsConnectionStatus,
@@ -154,6 +155,13 @@ export const SettingsModal: React.FC = () => {
       }),
     );
   }, []);
+
+  const handleTransportModeChange = useCallback(
+    (transportMode: TransportMode) => {
+      dispatch({ type: "SET_TRANSPORT_MODE", mode: transportMode });
+    },
+    [dispatch],
+  );
 
   const mapAsrStatus = useCallback((status: string, errorText?: string) => {
     if (errorText) return `error: ${errorText}`;
@@ -452,6 +460,12 @@ export const SettingsModal: React.FC = () => {
     state.wsStatus,
     state.wsErrorMessage,
   );
+  const transportHint =
+    state.transportMode === "ws"
+      ? state.streaming
+        ? "当前流式响应中，连接状态由 WebSocket 维持。"
+        : `当前默认使用 WebSocket 传输。${wsStatusText}。`
+      : "当前使用 SSE 查询流，不启用 live 实时同步。";
 
   return (
     <div className="modal" id="settings-modal">
@@ -542,11 +556,36 @@ export const SettingsModal: React.FC = () => {
 
           <div className="field-group">
             <label>传输模式</label>
-            <p className="settings-value">WebSocket</p>
+            <div
+              className="settings-segmented"
+              role="tablist"
+              aria-label="传输模式"
+            >
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${state.transportMode === "sse" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={state.transportMode === "sse"}
+                active={state.transportMode === "sse"}
+                onClick={() => handleTransportModeChange("sse")}
+              >
+                SSE
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${state.transportMode === "ws" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={state.transportMode === "ws"}
+                active={state.transportMode === "ws"}
+                onClick={() => handleTransportModeChange("ws")}
+              >
+                WebSocket
+              </UiButton>
+            </div>
             <p className="settings-hint">
-              {state.streaming
-                ? "当前流式响应中，连接状态由 WebSocket 维持。"
-                : `当前默认使用 WebSocket 传输。${wsStatusText}。`}
+              {transportHint}
             </p>
           </div>
         </div>

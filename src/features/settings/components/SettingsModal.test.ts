@@ -93,6 +93,8 @@ describe("SettingsModal", () => {
     expect(html).toContain("对话模式");
     expect(html).toContain("界面主题");
     expect(html).toContain("传输模式");
+    expect(html).toContain("SSE");
+    expect(html).toContain("WebSocket");
   });
 
   it("keeps the remaining controls in the preferences grid for desktop app mode", () => {
@@ -108,5 +110,17 @@ describe("SettingsModal", () => {
     expect(html).toContain("对话模式");
     expect(html).toContain("传输模式");
     expect(html).not.toContain("界面主题");
+  });
+
+  it("shows sse-specific transport guidance when sse is selected", () => {
+    const state = createInitialState();
+    useAppState.mockReturnValue({
+      ...state,
+      transportMode: "sse",
+    });
+
+    const html = renderToStaticMarkup(React.createElement(SettingsModal));
+
+    expect(html).toContain("当前使用 SSE 查询流，不启用 live 实时同步。");
   });
 });
