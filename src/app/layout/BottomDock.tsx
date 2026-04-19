@@ -10,10 +10,7 @@ export const BottomDock: React.FC = () => {
 
 	return (
 		<div className="bottom-dock">
-			<div
-				className="bottom-dock-inner"
-				style={{ maxWidth: "1000px", margin: "0 auto" }}
-			>
+			<div className="bottom-dock-inner">
 				<div className="bottom-dock-stack">
 					<div className="bottom-dock-artifact-rail">
 						<ArtifactPanel />

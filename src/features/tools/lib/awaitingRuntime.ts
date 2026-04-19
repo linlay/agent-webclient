@@ -118,6 +118,7 @@ function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
 function readAwaitingPayload(
   value: unknown,
 ): Record<string, unknown> | null | undefined {
+  // Deprecated: only kept for legacy HTML awaiting event replay compatibility.
   if (value === undefined) {
     return undefined;
   }
@@ -267,6 +268,7 @@ function isLegacyQuestionAsk(event: AgentEvent): boolean {
 }
 
 function isLegacyHtmlAsk(event: AgentEvent): boolean {
+  // Deprecated: only kept for legacy HTML awaiting event replay compatibility.
   return (
     toText(event.type) === AIAwaitEventTypeEnum.Ask
     && !readAwaitingMode(event)

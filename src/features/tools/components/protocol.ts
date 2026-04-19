@@ -194,6 +194,9 @@ function normalizeFormSubmitParam(
     ? undefined
     : null;
   const reason = String(item.reason || '').trim() || undefined;
+  if (payload === null) {
+    return null;
+  }
   if (payload === undefined && !reason) {
     return null;
   }
@@ -245,7 +248,13 @@ export function readAwaitingSubmitPayload(
     return null;
   }
 
+  if (!Array.isArray(value.params)) {
+    return null;
+  }
   const params = normalizeAwaitingSubmitParams(value.params, 'form');
+  if (params.length !== value.params.length) {
+    return null;
+  }
   return {
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,

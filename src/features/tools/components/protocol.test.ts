@@ -191,10 +191,23 @@ describe('awaiting protocol helpers', () => {
     });
   });
 
+  it('rejects malformed frontend awaiting submit payloads for forms', () => {
+    const awaiting = createFormAwaiting();
+
+    expect(readAwaitingSubmitPayload({
+      type: 'frontend_awaiting_submit',
+      params: [
+        {
+          id: 'leave_form',
+          payload: 'bad',
+        },
+      ],
+    }, awaiting)).toBeNull();
+  });
+
   it('treats close and done as iframe close signals', () => {
     expect(isAwaitingFrameCloseMessage({ type: 'close' })).toBe(true);
     expect(isAwaitingFrameCloseMessage({ type: 'done' })).toBe(true);
     expect(isAwaitingFrameCloseMessage({ type: 'noop' })).toBe(false);
   });
 });
-

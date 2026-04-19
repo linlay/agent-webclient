@@ -45,15 +45,17 @@ export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
 }
 
 export function getAwaitingQuestionHeading(question: AIAwaitQuestion): string {
-  return question.header?.trim() || question.question;
+  return question.question?.trim() || question.header?.trim() || '';
 }
 
 export function getAwaitingQuestionPrompt(question: AIAwaitQuestion): string {
   const heading = getAwaitingQuestionHeading(question);
-  if (heading === question.question) {
+  const header = question.header?.trim() || '';
+  const prompt = header || question.question;
+  if (!prompt || heading === prompt) {
     return "";
   }
-  return question.question;
+  return prompt;
 }
 
 export function getAwaitingQuestionPlaceholder(

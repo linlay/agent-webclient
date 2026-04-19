@@ -23,6 +23,9 @@ interface AwaitingHtmlContainerProps {
   onResolvedByOther?: () => void;
 }
 
+export const INVALID_AWAITING_SUBMIT_ERROR =
+  '收集表单信息异常：提交数据结构不合法';
+
 function getSubmitErrorText(result: unknown): string {
   if (typeof result === 'string' && result.trim()) {
     return result.trim();
@@ -85,6 +88,18 @@ export function clearAwaitingCollectRequest(
   }
   handlers?.onCollectingChange?.(null);
   handlers?.onStatusChange?.('');
+}
+
+export function reportInvalidAwaitingSubmitPayload(
+  awaitingId: string,
+  eventData: unknown,
+  onErrorChange: (error: string) => void,
+): void {
+  console.warn('[awaiting-html] invalid frontend_awaiting_submit payload', {
+    awaitingId,
+    eventData,
+  });
+  onErrorChange(INVALID_AWAITING_SUBMIT_ERROR);
 }
 
 export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
@@ -294,6 +309,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
       const payload = readAwaitingSubmitPayload(event.data, data);
       if (!payload) {
+        reportInvalidAwaitingSubmitPayload(
+          data.awaitingId,
+          event.data,
+          setSubmitError,
+        );
         return;
       }
       clearCollectTimeout();
@@ -382,4 +402,3 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     </div>
   );
 };
-

@@ -6,9 +6,13 @@ import {
   AWAITING_COLLECT_TIMEOUT_ERROR,
   AWAITING_COLLECT_TIMEOUT_MS,
   AwaitingHtmlContainer,
+  INVALID_AWAITING_SUBMIT_ERROR,
   beginAwaitingCollectRequest,
   clearAwaitingCollectRequest,
+  reportInvalidAwaitingSubmitPayload,
 } from '@/features/tools/components/AwaitingHtmlContainer';
+
+const originalWarn = console.warn;
 
 jest.mock('antd', () => {
   const ReactRuntime = require('react');
@@ -53,6 +57,14 @@ function createActiveAwaiting(
 }
 
 describe('AwaitingHtmlContainer', () => {
+  beforeEach(() => {
+    console.warn = jest.fn();
+  });
+
+  afterEach(() => {
+    console.warn = originalWarn;
+  });
+
   it('renders submit and reject buttons for form mode', () => {
     const html = renderToStaticMarkup(
       React.createElement(AwaitingHtmlContainer, {
@@ -125,5 +137,22 @@ describe('AwaitingHtmlContainer', () => {
     expect(onCollectingChange).toHaveBeenCalledWith(null);
     expect(onStatusChange).toHaveBeenCalledWith('');
   });
-});
 
+  it('warns and reports error when iframe submit payload shape is invalid', () => {
+    const onErrorChange = jest.fn();
+    reportInvalidAwaitingSubmitPayload('await_1', {
+      type: 'frontend_awaiting_submit',
+      params: [{ payload: 'bad' }],
+    }, onErrorChange);
+
+    expect(console.warn).toHaveBeenCalledWith(
+      '[awaiting-html] invalid frontend_awaiting_submit payload',
+      expect.objectContaining({
+        awaitingId: 'await_1',
+      }),
+    );
+    expect(onErrorChange).toHaveBeenCalledWith(
+      INVALID_AWAITING_SUBMIT_ERROR,
+    );
+  });
+});

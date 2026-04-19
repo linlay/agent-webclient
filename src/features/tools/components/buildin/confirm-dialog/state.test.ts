@@ -50,7 +50,7 @@ describe("confirm dialog state helpers", () => {
     expect(clampAwaitingIndex(1, 2)).toBe(1);
   });
 
-  it("reads display text from header and placeholder fields", () => {
+  it("prefers question as heading and downgrades header to prompt", () => {
     const question: AIAwaitQuestion = {
       type: AIAwaitQuestionType.Password,
       header: "数据库密码",
@@ -58,8 +58,8 @@ describe("confirm dialog state helpers", () => {
       placeholder: "sk-...",
     };
 
-    expect(getAwaitingQuestionHeading(question)).toBe("数据库密码");
-    expect(getAwaitingQuestionPrompt(question)).toBe("请输入数据库密码");
+    expect(getAwaitingQuestionHeading(question)).toBe("请输入数据库密码");
+    expect(getAwaitingQuestionPrompt(question)).toBe("数据库密码");
     expect(getAwaitingQuestionPlaceholder(question)).toBe("sk-...");
   });
 

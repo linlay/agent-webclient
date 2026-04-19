@@ -29,7 +29,7 @@
   --tool-pill-scale: 0.86;
   --colorFill: rgba(0, 0, 0, 0.15);
   --colorFillSecondary: rgba(0, 0, 0, 0.06);
-  --left-sidebar-width: 320px;
+  --left-sidebar-width: 300px;
   --right-sidebar-width: 320px;
   --top-nav-height: 42px;
 
@@ -793,7 +793,8 @@ textarea {
 .timeline-stack {
   position: relative;
   min-height: 100%;
-  max-width: 1000px;
+  width: 100%;
+  max-width: 800px;
   margin: auto;
 }
 
@@ -808,17 +809,6 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.timeline-lane::before {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  transform: translateX(-0.5px);
-  background: color-mix(in srgb, var(--line-soft) 100%, transparent);
 }
 
 .timeline-row {
@@ -1366,9 +1356,21 @@ textarea {
 }
 
 .timeline-run-group {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.timeline-run-group::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: color-mix(in srgb, var(--line-soft) 100%, transparent);
 }
 
 .timeline-run-items {
@@ -1582,7 +1584,7 @@ html[data-theme="dark"] .chat-item.is-active {
     color-mix(in srgb, var(--accent-soft) 36%, transparent);
 }
 
-html[data-theme="dark"] .timeline-lane::before {
+html[data-theme="dark"] .timeline-run-group::before {
   background: color-mix(in srgb, var(--line-strong) 68%, transparent);
 }
 
@@ -2122,6 +2124,8 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .bottom-dock-inner {
   width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   overflow: visible;
 }
 
