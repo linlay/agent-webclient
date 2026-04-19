@@ -41,7 +41,6 @@ validate_target_os() {
 }
 
 require_release_tools() {
-  command -v go >/dev/null 2>&1 || die "go is required"
   command -v npm >/dev/null 2>&1 || die "npm is required"
 }
 
@@ -99,16 +98,6 @@ archive_bundle_dir() {
   esac
 }
 
-binary_name_for_os() {
-  local target_os="$1"
-  validate_target_os "$target_os"
-  if [[ "$target_os" == "windows" ]]; then
-    printf '%s.exe\n' "$APP_NAME"
-    return
-  fi
-  printf '%s\n' "$APP_NAME"
-}
-
 program_bundle_filename() {
   local version="$1"
   local target_os="$2"
@@ -161,8 +150,8 @@ write_program_manifest() {
   local dest="$1"
   local target_os="$2"
   local target_arch="$3"
-  local backend_entry="$4"
-  local asset_file_name="$5"
+  local asset_file_name="$4"
+  local backend_entry="backend/server.js"
   local start_script="start.sh"
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
@@ -217,6 +206,8 @@ write_program_manifest() {
 ${error_log_json}
     "requiredPaths": [
       "$backend_entry",
+      "backend/package.json",
+      "backend/node_modules",
       "$start_script",
       "$stop_script",
       "$deploy_script",

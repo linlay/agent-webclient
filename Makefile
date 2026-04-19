@@ -4,24 +4,20 @@ COMPOSE_FILE ?= compose.yml
 PASS_PROGRAM_TARGETS = $(if $(filter undefined,$(origin PROGRAM_TARGETS)),,PROGRAM_TARGETS=$(PROGRAM_TARGETS))
 PASS_PROGRAM_TARGET_MATRIX = $(if $(filter undefined,$(origin PROGRAM_TARGET_MATRIX)),,PROGRAM_TARGET_MATRIX=$(PROGRAM_TARGET_MATRIX))
 
-.PHONY: install dev build build-web build-backend test docker-build docker-up docker-down release release-program release-image
+.PHONY: install dev build build-web test docker-build docker-up docker-down release release-program release-image
 
 install:
 	npm install
+	cd backend && npm install
 
 dev:
 	npm start
 
 build:
 	$(MAKE) build-web
-	$(MAKE) build-backend
 
 build-web:
 	npm run build
-
-build-backend:
-	mkdir -p bin
-	cd backend && CGO_ENABLED=0 go build -o ../bin/agent-webclient ./cmd/agent-webclient
 
 test:
 	npm test

@@ -6,7 +6,9 @@ $Script:AppName = 'agent-webclient'
 $Script:ManifestFile = Join-Path $Script:BundleRoot 'manifest.json'
 $Script:EnvExampleFile = Join-Path $Script:BundleRoot '.env.example'
 $Script:EnvFile = Join-Path $Script:BundleRoot '.env'
-$Script:BackendBin = Join-Path (Join-Path $Script:BundleRoot 'backend') 'agent-webclient.exe'
+$Script:BackendEntry = Join-Path (Join-Path $Script:BundleRoot 'backend') 'server.js'
+$Script:BackendPackageFile = Join-Path (Join-Path $Script:BundleRoot 'backend') 'package.json'
+$Script:BackendModulesDir = Join-Path (Join-Path $Script:BundleRoot 'backend') 'node_modules'
 $Script:DistDir = Join-Path (Join-Path $Script:BundleRoot 'frontend') 'dist'
 $Script:RunDir = Join-Path $Script:BundleRoot 'run'
 $Script:PidFile = Join-Path $Script:RunDir 'agent-webclient.pid'
@@ -24,8 +26,14 @@ function Test-ProgramBundle {
   if (-not (Test-Path -LiteralPath $Script:EnvExampleFile -PathType Leaf)) {
     Fail-Program "required file not found: $Script:EnvExampleFile"
   }
-  if (-not (Test-Path -LiteralPath $Script:BackendBin -PathType Leaf)) {
-    Fail-Program "required file not found: $Script:BackendBin"
+  if (-not (Test-Path -LiteralPath $Script:BackendEntry -PathType Leaf)) {
+    Fail-Program "required file not found: $Script:BackendEntry"
+  }
+  if (-not (Test-Path -LiteralPath $Script:BackendPackageFile -PathType Leaf)) {
+    Fail-Program "required file not found: $Script:BackendPackageFile"
+  }
+  if (-not (Test-Path -LiteralPath $Script:BackendModulesDir -PathType Container)) {
+    Fail-Program "required directory not found: $Script:BackendModulesDir"
   }
   if (-not (Test-Path -LiteralPath $Script:DistDir -PathType Container)) {
     Fail-Program "required directory not found: $Script:DistDir"
@@ -64,6 +72,25 @@ function Import-ProgramEnv {
   }
 }
 
+function Resolve-NodeBin {
+  if ($env:NODE_BIN) {
+    if (-not (Test-Path -LiteralPath $env:NODE_BIN -PathType Leaf)) {
+      Fail-Program "NODE_BIN not found: $env:NODE_BIN"
+    }
+    $env:ELECTRON_RUN_AS_NODE = '1'
+    return $env:NODE_BIN
+  }
+
+  try {
+    $nodeCommand = Get-Command node -ErrorAction Stop
+  } catch {
+    Fail-Program 'node runtime not found; install Node.js 18+ or set NODE_BIN in .env'
+  }
+
+  Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+  return $nodeCommand.Source
+}
+
 function Initialize-ProgramRuntime {
   New-Item -ItemType Directory -Force -Path $Script:RunDir | Out-Null
 }
@@ -92,6 +119,8 @@ function Start-ProgramBackend {
     [switch]$Daemon
   )
 
+  $nodeBin = Resolve-NodeBin
+
   if ($Daemon) {
     Clear-StaleProgramPid
     if (Test-Path -LiteralPath $Script:LogFile) {
@@ -105,7 +134,7 @@ function Start-ProgramBackend {
       New-Item -ItemType File -Path $Script:ErrorLogFile -Force | Out-Null
     }
 
-    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -WindowStyle Hidden -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
+    $proc = Start-Process -FilePath $nodeBin -ArgumentList @($Script:BackendEntry) -WorkingDirectory $Script:BundleRoot -WindowStyle Hidden -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
     $proc.Id | Set-Content -LiteralPath $Script:PidFile
     Start-Sleep -Seconds 1
     if ($proc.HasExited) {
@@ -118,7 +147,7 @@ function Start-ProgramBackend {
     return
   }
 
-  & $Script:BackendBin
+  & $nodeBin $Script:BackendEntry
 }
 
 function Stop-ProgramBackend {
