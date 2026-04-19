@@ -195,7 +195,7 @@ export const TopNav: React.FC = () => {
                   name="dock_to_right"
                   className="brand-logo-icon"
                 />
-                <span className="brand-logo-text">A</span>
+                <span className="brand-logo-text">Z</span>
               </UiButton>
               <div className="brand-text">
                 <strong>AGENT</strong>
@@ -210,7 +210,7 @@ export const TopNav: React.FC = () => {
             aria-label="开始新聊天"
             title="开始新聊天"
             variant="ghost"
-						iconOnly
+            iconOnly
             onClick={handleStartNewConversation}
           >
             <MaterialIcon name="edit_square" />
