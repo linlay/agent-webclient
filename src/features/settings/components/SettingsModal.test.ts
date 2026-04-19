@@ -121,6 +121,8 @@ describe("SettingsModal", () => {
 
     const html = renderToStaticMarkup(React.createElement(SettingsModal));
 
-    expect(html).toContain("当前使用 SSE 查询流，不启用 live 实时同步。");
+    expect(html).toContain(
+      "当前使用 SSE 查询流，不启用 live 实时同步；普通 API 继续通过 HTTP 可用。",
+    );
   });
 });

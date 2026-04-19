@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '@/features/transport/lib/apiClientProxy';
 import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
+import { isAppMode } from '@/shared/utils/routing';
 import {
   refreshWorkerDataWithCoordinator,
   type WorkerDataSnapshot,
@@ -16,14 +17,19 @@ import {
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 export function shouldStartInitialWorkerRefresh(input: {
-  wsStatus: string;
   hasStarted: boolean;
+  appMode: boolean;
+  hasAccessToken: boolean;
 }): boolean {
   if (input.hasStarted) {
     return false;
   }
 
-  return input.wsStatus === 'connected';
+  if (input.appMode && !input.hasAccessToken) {
+    return false;
+  }
+
+  return true;
 }
 
 export function useWorkerData(input: {
@@ -33,6 +39,7 @@ export function useWorkerData(input: {
   const { loadChat, selectWorkerConversation } = input;
   const { state, dispatch, stateRef } = useAppContext();
   const initialRefreshStartedRef = useRef(false);
+  const appMode = isAppMode();
 
   const extractAgentWorkerKey = useCallback((detail: { workerKey?: unknown; agentKey?: unknown }): string => {
     const explicitAgentKey = String(detail.agentKey || '').trim();
@@ -233,8 +240,9 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     if (!shouldStartInitialWorkerRefresh({
-      wsStatus: state.wsStatus,
       hasStarted: initialRefreshStartedRef.current,
+      appMode,
+      hasAccessToken: Boolean(String(state.accessToken || '').trim()),
     })) {
       return;
     }
@@ -242,7 +250,7 @@ export function useWorkerData(input: {
     initialRefreshStartedRef.current = true;
     setAccessToken(stateRef.current.accessToken);
     refreshWorkerData().catch(() => undefined);
-  }, [refreshWorkerData, state.wsStatus, stateRef]);
+  }, [appMode, refreshWorkerData, state.accessToken, stateRef]);
 
   useEffect(() => {
     const handler = (e: Event) => {

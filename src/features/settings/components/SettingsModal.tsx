@@ -465,7 +465,7 @@ export const SettingsModal: React.FC = () => {
       ? state.streaming
         ? "当前流式响应中，连接状态由 WebSocket 维持。"
         : `当前默认使用 WebSocket 传输。${wsStatusText}。`
-      : "当前使用 SSE 查询流，不启用 live 实时同步。";
+      : "当前使用 SSE 查询流，不启用 live 实时同步；普通 API 继续通过 HTTP 可用。";
 
   return (
     <div className="modal" id="settings-modal">

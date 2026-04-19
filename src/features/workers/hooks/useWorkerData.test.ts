@@ -1,49 +1,46 @@
 import { shouldStartInitialWorkerRefresh } from '@/features/workers/hooks/useWorkerData';
 
 describe('shouldStartInitialWorkerRefresh', () => {
-  it('waits for websocket connection before the first fetch', () => {
+  it('starts immediately for standalone pages once the first refresh has not started', () => {
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'disconnected',
       hasStarted: false,
-    })).toBe(false);
+      appMode: false,
+      hasAccessToken: false,
+    })).toBe(true);
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'connecting',
       hasStarted: false,
-    })).toBe(false);
-    expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'error',
-      hasStarted: false,
-    })).toBe(false);
-    expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'connected',
-      hasStarted: false,
+      appMode: false,
+      hasAccessToken: true,
     })).toBe(true);
   });
 
   it('does not auto refresh again after the initial refresh has started', () => {
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'connected',
       hasStarted: true,
+      appMode: false,
+      hasAccessToken: true,
     })).toBe(false);
   });
 
-  it('matches the intended first-load sequence for websocket mode', () => {
-    let hasStarted = false;
-
+  it('waits for app-mode token hydration before the first fetch', () => {
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'disconnected',
-      hasStarted,
+      hasStarted: false,
+      appMode: true,
+      hasAccessToken: false,
     })).toBe(false);
 
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'connected',
-      hasStarted,
+      hasStarted: false,
+      appMode: true,
+      hasAccessToken: true,
     })).toBe(true);
-    hasStarted = true;
+  });
 
+  it('keeps the first-fetch rule independent from websocket readiness', () => {
     expect(shouldStartInitialWorkerRefresh({
-      wsStatus: 'connected',
-      hasStarted,
-    })).toBe(false);
+      hasStarted: false,
+      appMode: false,
+      hasAccessToken: true,
+    })).toBe(true);
   });
 });

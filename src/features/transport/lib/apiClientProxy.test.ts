@@ -310,4 +310,138 @@ describe("apiClientProxy", () => {
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
 	});
+
+	it("routes getAgent over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { agentKey: "agent_1" },
+		});
+
+		await expect(proxy.getAgent("agent_1")).resolves.toMatchObject({
+			data: { agentKey: "agent_1" },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
+	});
+
+	it("routes submit requests over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.submitTool.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { accepted: true },
+		});
+		mockApiClient.submitAwaiting.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { accepted: true },
+		});
+
+		await expect(
+			proxy.submitTool({
+				runId: "run_1",
+				toolId: "tool_1",
+				params: { city: "beijing" },
+			}),
+		).resolves.toMatchObject({ data: { accepted: true } });
+		await expect(
+			proxy.submitAwaiting({
+				runId: "run_1",
+				awaitingId: "await_1",
+				params: [],
+			}),
+		).resolves.toMatchObject({ data: { accepted: true } });
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.submitTool).toHaveBeenCalledWith({
+			runId: "run_1",
+			toolId: "tool_1",
+			params: { city: "beijing" },
+		});
+		expect(mockApiClient.submitAwaiting).toHaveBeenCalledWith({
+			runId: "run_1",
+			awaitingId: "await_1",
+			params: [],
+		});
+	});
+
+	it("routes interrupt and steer over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.interruptChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { stopped: true },
+		});
+		mockApiClient.steerChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { steered: true },
+		});
+
+		const interruptParams = {
+			requestId: "req_1",
+			chatId: "chat_1",
+			message: "stop",
+		};
+		const steerParams = {
+			requestId: "req_2",
+			chatId: "chat_1",
+			message: "change direction",
+		};
+
+		await expect(proxy.interruptChat(interruptParams)).resolves.toMatchObject({
+			data: { stopped: true },
+		});
+		await expect(proxy.steerChat(steerParams)).resolves.toMatchObject({
+			data: { steered: true },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.interruptChat).toHaveBeenCalledWith(interruptParams);
+		expect(mockApiClient.steerChat).toHaveBeenCalledWith(steerParams);
+	});
+
+	it("routes background commands over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.rememberChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { remembered: true },
+		});
+		mockApiClient.learnChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { learned: true },
+		});
+
+		const commandParams = {
+			requestId: "req_bg",
+			chatId: "chat_1",
+		};
+
+		await expect(proxy.rememberChat(commandParams)).resolves.toMatchObject({
+			data: { remembered: true },
+		});
+		await expect(proxy.learnChat(commandParams)).resolves.toMatchObject({
+			data: { learned: true },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.rememberChat).toHaveBeenCalledWith(commandParams);
+		expect(mockApiClient.learnChat).toHaveBeenCalledWith(commandParams);
+	});
 });
