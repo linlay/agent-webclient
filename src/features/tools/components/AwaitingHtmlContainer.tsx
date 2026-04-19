@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, message } from 'antd';
 import type {
-  ActiveAwaiting,
   AIAwaitSubmitPayloadData,
+  FormActiveAwaiting,
 } from '@/app/state/types';
-import { ViewportTypeEnum } from '@/app/state/types';
 import { getViewport } from '@/features/transport/lib/apiClientProxy';
 import {
   type AwaitingCollectDecision,
@@ -17,8 +16,8 @@ import {
 } from '@/features/tools/components/protocol';
 
 interface AwaitingHtmlContainerProps {
-  data: ActiveAwaiting;
-  onPatch?: (patch: Partial<ActiveAwaiting>) => void;
+  data: FormActiveAwaiting;
+  onPatch?: (patch: Partial<FormActiveAwaiting>) => void;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
   onClose?: () => void;
   onResolvedByOther?: () => void;
@@ -43,18 +42,9 @@ interface AwaitingCollectLifecycleHandlers {
   onErrorChange: (error: string) => void;
 }
 
-export function shouldRenderAwaitingApprovalActions(
-  awaiting: Pick<ActiveAwaiting, 'viewportType' | 'mode'>,
-): boolean {
-  return (
-    awaiting.viewportType === ViewportTypeEnum.Html
-    && awaiting.mode === 'approval'
-  );
-}
-
 export function beginAwaitingCollectRequest(
   input: {
-    awaiting: ActiveAwaiting;
+    awaiting: FormActiveAwaiting;
     decision: AwaitingCollectDecision;
     postMessage: (message: unknown, targetOrigin: string) => void;
     scheduleTimeout: (
@@ -115,7 +105,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [submitError, setSubmitError] = useState('');
   const [collectingDecision, setCollectingDecision] =
     useState<AwaitingCollectDecision | null>(null);
-  const isApprovalMode = shouldRenderAwaitingApprovalActions(data);
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data),
@@ -334,7 +323,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     return () => window.removeEventListener('message', onWindowMessage);
   }, [clearCollectTimeout, data, onClose, onSubmit]);
 
-  const approvalActionDisabled = useMemo(
+  const actionDisabled = useMemo(
     () => (
       data.loading
       || !data.viewportHtml
@@ -370,28 +359,27 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         />
       )}
 
-      {isApprovalMode && (
-        <div className="awaiting-panel-footer">
-          <div className="awaiting-panel-actions">
-            <Button
-              disabled={approvalActionDisabled}
-              type="primary"
-              onClick={() => requestCollectFromFrame('approve')}
-            >
-              批准
-            </Button>
-            <Button
-              disabled={approvalActionDisabled}
-              onClick={() => requestCollectFromFrame('reject')}
-            >
-              取消
-            </Button>
-          </div>
+      <div className="awaiting-panel-footer">
+        <div className="awaiting-panel-actions">
+          <Button
+            disabled={actionDisabled}
+            type="primary"
+            onClick={() => requestCollectFromFrame('submit')}
+          >
+            提交
+          </Button>
+          <Button
+            disabled={actionDisabled}
+            onClick={() => requestCollectFromFrame('reject')}
+          >
+            驳回
+          </Button>
         </div>
-      )}
+      </div>
 
       {submitStatus && <div className="status-line">{submitStatus}</div>}
       {submitError && <div className="system-alert">{submitError}</div>}
     </div>
   );
 };
+

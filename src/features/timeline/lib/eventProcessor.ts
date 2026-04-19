@@ -12,7 +12,11 @@ import { isTerminalStatus, safeText, toText } from '@/shared/utils/eventUtils';
 import { parseFrontendToolParams } from '@/features/tools/lib/frontendToolParams';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { pickToolName, resolveViewportKey } from '@/features/timeline/lib/toolEvent';
-import { maskAwaitingAnswerParams } from '@/features/tools/lib/awaitingQuestionMeta';
+import {
+  getAwaitingItemMeta,
+  getAwaitingQuestionMetaByQuestion,
+  maskAwaitingAnswerParams,
+} from '@/features/tools/lib/awaitingQuestionMeta';
 
 export interface EventProcessorState {
   getContentNodeId(contentId: string): string | undefined;
@@ -235,26 +239,99 @@ function formatStructuredEventText(value: unknown): string {
 function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
   const runId = toText(event.runId);
   const awaitingId = toText(event.awaitingId);
-  if (!runId || !awaitingId) {
-    return (event as Record<string, unknown>).questions
-      ?? (event as Record<string, unknown>).answers;
+  const rawRecord = event as Record<string, unknown>;
+  const answers = rawRecord.answers;
+  const approvals = rawRecord.approvals;
+  const forms = rawRecord.forms;
+  const legacyQuestions = rawRecord.questions;
+
+  if (Array.isArray(answers)) {
+    const normalizedAnswers = !runId || !awaitingId
+      ? answers
+      : maskAwaitingAnswerParams(
+          runId,
+          awaitingId,
+          answers.filter((item): item is any => Boolean(item) && typeof item === 'object'),
+        ).map((item) => {
+          const meta = getAwaitingItemMeta(runId, awaitingId, item.id);
+          return meta?.kind === 'question'
+            ? {
+                ...item,
+                header: meta.header,
+                question: meta.question,
+              }
+            : item;
+        });
+    return normalizedAnswers;
   }
 
-  const raw =
-    (event as Record<string, unknown>).questions
-    ?? (event as Record<string, unknown>).answers;
-  if (!Array.isArray(raw)) {
-    return raw;
+  if (Array.isArray(approvals) && runId && awaitingId) {
+    return approvals.map((item) => {
+      if (!item || typeof item !== 'object') {
+        return item;
+      }
+      const id = toText((item as Record<string, unknown>).id);
+      const meta = id ? getAwaitingItemMeta(runId, awaitingId, id) : null;
+      return meta?.kind === 'approval'
+        ? {
+            ...item,
+            command: meta.command,
+            level: meta.level,
+          }
+        : item;
+    });
   }
 
-  return maskAwaitingAnswerParams(runId, awaitingId, raw as any);
+  if (Array.isArray(forms) && runId && awaitingId) {
+    return forms.map((item) => {
+      if (!item || typeof item !== 'object') {
+        return item;
+      }
+      const id = toText((item as Record<string, unknown>).id);
+      const meta = id ? getAwaitingItemMeta(runId, awaitingId, id) : null;
+      return meta?.kind === 'form'
+        ? {
+            ...item,
+            action: meta.action,
+          }
+        : item;
+    });
+  }
+
+  if (Array.isArray(legacyQuestions) && runId && awaitingId) {
+    return legacyQuestions.map((item) => {
+      if (!item || typeof item !== 'object') {
+        return item;
+      }
+      const legacyQuestion = toText((item as Record<string, unknown>).question);
+      const meta = legacyQuestion
+        ? getAwaitingQuestionMetaByQuestion(runId, awaitingId, legacyQuestion)
+        : null;
+      if (meta?.type !== 'password') {
+        return item;
+      }
+      return {
+        ...item,
+        answer: '••••••',
+        answers: Array.isArray((item as Record<string, unknown>).answers)
+          ? ((item as Record<string, unknown>).answers as unknown[]).map(() => '••••••')
+          : undefined,
+      };
+    });
+  }
+
+  return legacyQuestions ?? answers ?? approvals ?? forms;
 }
 
 function readAwaitingAnswerText(event: AgentEvent): string {
+  const rawRecord = event as Record<string, unknown>;
   return pickEventText(
     formatStructuredEventText(maskStructuredAwaitingAnswers(event)),
     event.text,
-    (event as Record<string, unknown>).answers,
+    rawRecord.answers,
+    rawRecord.approvals,
+    rawRecord.forms,
+    rawRecord.questions,
     event.message,
   );
 }

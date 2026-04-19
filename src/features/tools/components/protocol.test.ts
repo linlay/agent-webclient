@@ -1,5 +1,8 @@
 import { ViewportTypeEnum } from '@/app/state/types';
-import type { ActiveAwaiting } from '@/app/state/types';
+import type {
+  ActiveAwaiting,
+  FormActiveAwaiting,
+} from '@/app/state/types';
 import {
   buildAwaitingCollectMessage,
   buildAwaitingInitMessage,
@@ -10,53 +13,56 @@ import {
   readAwaitingSubmitPayload,
 } from '@/features/tools/components/protocol';
 
-function createActiveAwaiting(
-  patch: Partial<ActiveAwaiting> = {},
-): ActiveAwaiting {
+function createQuestionAwaiting(
+  patch: Partial<Extract<ActiveAwaiting, { mode: 'question' }>> = {},
+): Extract<ActiveAwaiting, { mode: 'question' }> {
   return {
     key: 'run_1#await_1',
     awaitingId: 'await_1',
     runId: 'run_1',
     timeout: 60,
-    viewportKey: 'confirm_dialog',
-    viewportType: ViewportTypeEnum.Builtin,
-    mode: undefined,
-    payload: null,
+    mode: 'question',
     questions: [],
+    ...patch,
+  };
+}
+
+function createFormAwaiting(
+  patch: Partial<FormActiveAwaiting> = {},
+): FormActiveAwaiting {
+  return {
+    key: 'run_1#await_1',
+    awaitingId: 'await_1',
+    runId: 'run_1',
+    timeout: 60,
+    mode: 'form',
+    forms: [
+      {
+        id: 'leave_form',
+        action: '提交请假申请',
+        initialPayload: {
+          employee_id: 'E1001',
+        },
+      },
+    ],
+    viewportKey: 'leave_form',
+    viewportType: ViewportTypeEnum.Html,
     loading: false,
     loadError: '',
-    viewportHtml: '',
+    viewportHtml: '<html><body>ok</body></html>',
     ...patch,
   };
 }
 
 describe('awaiting protocol helpers', () => {
-  it('selects builtin and html render modes from viewport type', () => {
+  it('selects builtin and html render modes from awaiting mode', () => {
     expect(getAwaitingRenderMode(null)).toBe('none');
-    expect(getAwaitingRenderMode(createActiveAwaiting())).toBe('builtin');
-    expect(
-      getAwaitingRenderMode(createActiveAwaiting({
-        viewportType: ViewportTypeEnum.Html,
-        viewportKey: 'leave_form',
-      })),
-    ).toBe('html');
+    expect(getAwaitingRenderMode(createQuestionAwaiting())).toBe('builtin');
+    expect(getAwaitingRenderMode(createFormAwaiting())).toBe('html');
   });
 
-  it('builds awaiting init and update messages from active awaiting state', () => {
-    const awaiting = createActiveAwaiting({
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-      mode: 'approval',
-      payload: {
-        employee_id: 'E1001',
-      },
-      questions: [
-        {
-          type: 'text',
-          question: '请确认请假原因',
-        },
-      ],
-    });
+  it('builds awaiting init and update messages from form awaiting state', () => {
+    const awaiting = createFormAwaiting();
 
     expect(buildAwaitingInitMessage(awaiting)).toEqual({
       type: 'awaiting_init',
@@ -64,80 +70,111 @@ describe('awaiting protocol helpers', () => {
         runId: 'run_1',
         awaitingId: 'await_1',
         viewportKey: 'leave_form',
-        viewportType: ViewportTypeEnum.Html,
-        mode: 'approval',
-        payload: {
-          employee_id: 'E1001',
-        },
+        mode: 'form',
         timeout: 60,
-        questions: [
+        forms: [
           {
-            type: 'text',
-            question: '请确认请假原因',
+            id: 'leave_form',
+            action: '提交请假申请',
+            initialPayload: {
+              employee_id: 'E1001',
+            },
           },
         ],
+        initialPayload: {
+          employee_id: 'E1001',
+        },
       },
     });
     expect(buildAwaitingUpdateMessage(awaiting).type).toBe('awaiting_update');
   });
 
   it('builds collect messages with run id, awaiting id and decision', () => {
-    const awaiting = createActiveAwaiting({
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-    });
+    const awaiting = createFormAwaiting();
 
-    expect(buildAwaitingCollectMessage(awaiting, 'approve')).toEqual({
+    expect(buildAwaitingCollectMessage(awaiting, 'submit')).toEqual({
       type: 'awaiting_collect',
       data: {
         runId: 'run_1',
         awaitingId: 'await_1',
-        decision: 'approve',
+        decision: 'submit',
       },
     });
   });
 
-  it('normalizes iframe submit params and preserves string/number answers', () => {
+  it('normalizes union submit params by mode', () => {
     expect(normalizeAwaitingSubmitParams([
       {
-        header: '审批意见',
-        question: '是否批准？',
+        id: 'q1',
         answer: 'approve',
         answers: ['approve', '', 'keep'],
       },
       {
-        question: '天数',
+        id: 'q2',
         answer: 3,
       },
+    ], 'question')).toEqual([
       {
-        answer: 'missing-question',
-      },
-    ])).toEqual([
-      {
-        header: '审批意见',
-        question: '是否批准？',
+        id: 'q1',
         answer: 'approve',
         answers: ['approve', 'keep'],
       },
       {
-        question: '天数',
+        id: 'q2',
         answer: 3,
+      },
+    ]);
+
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'a1',
+        decision: 'reject',
+        reason: '缺少说明',
+      },
+    ], 'approval')).toEqual([
+      {
+        id: 'a1',
+        decision: 'reject',
+        reason: '缺少说明',
+      },
+    ]);
+
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'f1',
+        payload: {
+          amount: 80,
+        },
+      },
+      {
+        id: 'f2',
+        reason: '取消提交',
+      },
+    ], 'form')).toEqual([
+      {
+        id: 'f1',
+        payload: {
+          amount: 80,
+        },
+      },
+      {
+        id: 'f2',
+        reason: '取消提交',
       },
     ]);
   });
 
-  it('reads frontend awaiting submit payloads using the active awaiting identifiers', () => {
-    const awaiting = createActiveAwaiting({
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-    });
+  it('reads frontend awaiting submit payloads for form awaitings using active identifiers', () => {
+    const awaiting = createFormAwaiting();
 
     expect(readAwaitingSubmitPayload({
       type: 'frontend_awaiting_submit',
       params: [
         {
-          question: '是否批准？',
-          answer: 'approve',
+          id: 'leave_form',
+          payload: {
+            approved: true,
+          },
         },
       ],
     }, awaiting)).toEqual({
@@ -145,8 +182,10 @@ describe('awaiting protocol helpers', () => {
       awaitingId: 'await_1',
       params: [
         {
-          question: '是否批准？',
-          answer: 'approve',
+          id: 'leave_form',
+          payload: {
+            approved: true,
+          },
         },
       ],
     });
@@ -158,3 +197,4 @@ describe('awaiting protocol helpers', () => {
     expect(isAwaitingFrameCloseMessage({ type: 'noop' })).toBe(false);
   });
 });
+

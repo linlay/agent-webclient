@@ -341,6 +341,7 @@ describe('processEvent', () => {
 
     registerAwaitingQuestionMeta('run_1', 'await_1', [
       {
+        id: 'db_password',
         type: 'password',
         header: '数据库密码',
         question: '请输入数据库密码',
@@ -351,29 +352,25 @@ describe('processEvent', () => {
       type: 'awaiting.answer',
       runId: 'run_1',
       awaitingId: 'await_1',
-      questions: [
+      answers: [
         {
-          header: '数据库密码',
-          question: '请输入数据库密码',
+          id: 'db_password',
           answer: 'super-secret',
         },
       ],
       timestamp: 221,
     }, 'replay', false);
 
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text).toBe(
-      JSON.stringify(
-        [
-          {
-            header: '数据库密码',
-            question: '请输入数据库密码',
-            answer: '••••••',
-          },
-        ],
-        null,
-        2,
-      ),
-    );
+    expect(
+      JSON.parse(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text || '[]'),
+    ).toEqual([
+      {
+        id: 'db_password',
+        answer: '••••••',
+        header: '数据库密码',
+        question: '请输入数据库密码',
+      },
+    ]);
   });
 
   it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {

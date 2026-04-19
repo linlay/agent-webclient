@@ -10,16 +10,16 @@ describe('reduceActiveAwaiting', () => {
     clearAllAwaitingQuestionMeta();
   });
 
-  it('hydrates builtin confirm dialogs directly from awaiting.ask questions when provided', () => {
+  it('opens question awaitings directly from awaiting.ask.questions without viewport metadata', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       timeout: 60,
       questions: [
         {
+          id: 'q1',
           type: 'select',
           question: '继续执行吗？',
           options: [
@@ -37,41 +37,68 @@ describe('reduceActiveAwaiting', () => {
       key: 'run_1#await_1',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       timeout: 60,
-      loading: false,
-      loadError: '',
-      viewportHtml: '',
     });
+    expect(asked?.mode).toBe('question');
     expect(asked?.questions).toHaveLength(1);
     expect(asked?.questions[0]).toMatchObject({
+      id: 'q1',
       question: '继续执行吗？',
     });
   });
 
-  it('opens builtin confirm dialogs on awaiting.ask and hydrates questions on awaiting.payload', () => {
+  it('keeps legacy question awaitings compatible when awaiting.ask omits mode', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
-      runId: 'run_1',
-      awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      runId: 'run_legacy_1',
+      awaitingId: 'await_legacy_1',
       timeout: 60,
+      questions: [
+        {
+          type: 'select',
+          question: '您希望我演示哪种提问式确认场景？',
+          options: [
+            {
+              label: '通用确认',
+              description: '日常事务确认',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(asked).toMatchObject({
+      key: 'run_legacy_1#await_legacy_1',
+      runId: 'run_legacy_1',
+      awaitingId: 'await_legacy_1',
+      mode: 'question',
+      timeout: 60,
+    });
+    expect(asked?.questions[0]).toMatchObject({
+      id: '您希望我演示哪种提问式确认场景？',
+    });
+  });
+
+  it('hydrates legacy question awaitings from awaiting.payload only for replay compatibility', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_legacy_2',
+      awaitingId: 'await_legacy_2',
+      timeout: 120000,
     });
 
     const hydrated = reduceActiveAwaiting(asked, {
       type: 'awaiting.payload',
-      awaitingId: 'await_1',
+      awaitingId: 'await_legacy_2',
       questions: [
         {
           type: 'select',
-          question: '继续执行吗？',
+          question: '您希望我演示哪种提问式确认场景？',
           options: [
             {
-              label: '继续',
-              description: '允许继续执行',
-              value: 'continue',
+              label: '请假流程提问',
+              description: '演示请假申请所需字段收集',
             },
           ],
         },
@@ -79,30 +106,23 @@ describe('reduceActiveAwaiting', () => {
     });
 
     expect(asked).toMatchObject({
-      key: 'run_1#await_1',
-      runId: 'run_1',
-      awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
-      timeout: 60,
-      loading: false,
-      loadError: '',
-      viewportHtml: '',
+      key: 'run_legacy_2#await_legacy_2',
+      mode: 'question',
+      timeout: 120000,
       questions: [],
     });
     expect(hydrated?.questions).toHaveLength(1);
     expect(hydrated?.questions[0]).toMatchObject({
-      question: '继续执行吗？',
+      id: '您希望我演示哪种提问式确认场景？',
     });
   });
 
-  it('keeps text, number and password question fields without requiring options', () => {
+  it('keeps text, number and password question fields and assigns fallback ids when missing', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_2',
       awaitingId: 'await_2',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       questions: [
         {
           type: 'text',
@@ -126,33 +146,38 @@ describe('reduceActiveAwaiting', () => {
 
     expect(asked?.questions).toEqual([
       {
+        id: '请输入仓库地址',
         type: 'text',
         header: '仓库地址',
         question: '请输入仓库地址',
         placeholder: 'https://...',
       },
       {
+        id: '请输入端口',
         type: 'number',
         question: '请输入端口',
         placeholder: '8080',
+        header: undefined,
       },
       {
+        id: '请输入令牌',
         type: 'password',
         question: '请输入令牌',
         placeholder: 'sk-...',
+        header: undefined,
       },
     ]);
   });
 
-  it('registers question metadata for later answer masking', () => {
+  it('registers question metadata for later answer masking by id', () => {
     reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_3',
       awaitingId: 'await_3',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       questions: [
         {
+          id: 'db_password',
           type: 'password',
           header: '数据库密码',
           question: '请输入数据库密码',
@@ -162,29 +187,25 @@ describe('reduceActiveAwaiting', () => {
     });
 
     expect(
-      getAwaitingQuestionMeta('run_3', 'await_3', '请输入数据库密码'),
+      getAwaitingQuestionMeta('run_3', 'await_3', 'db_password'),
     ).toMatchObject({
       type: 'password',
       header: '数据库密码',
     });
   });
 
-  it('opens html awaiting sessions for arbitrary viewport keys', () => {
+  it('opens approval awaitings without viewport metadata', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_4',
       awaitingId: 'await_4',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
       mode: 'approval',
-      payload: {
-        employee_id: 'E1001',
-      },
       timeout: 120,
-      questions: [
+      approvals: [
         {
-          type: 'text',
-          question: '请确认请假原因',
+          id: 'approve_1',
+          command: '删除生产环境缓存',
+          level: 'high',
         },
       ],
     });
@@ -193,31 +214,36 @@ describe('reduceActiveAwaiting', () => {
       key: 'run_4#await_4',
       runId: 'run_4',
       awaitingId: 'await_4',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
       timeout: 120,
       mode: 'approval',
-      payload: {
-        employee_id: 'E1001',
-      },
-      loading: false,
-      loadError: '',
-      viewportHtml: '',
     });
-    expect(asked?.questions).toHaveLength(1);
+    expect(asked?.mode).toBe('approval');
+    expect(asked?.approvals).toEqual([
+      {
+        id: 'approve_1',
+        command: '删除生产环境缓存',
+        level: 'high',
+      },
+    ]);
   });
 
-  it('preserves html viewport runtime state and mode/payload for repeated asks on the same awaiting key', () => {
+  it('opens form awaitings only for html viewports and preserves html runtime state on repeated asks', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_5',
       awaitingId: 'await_5',
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'expense_form',
-      mode: 'approval',
-      payload: {
-        amount: 800,
-      },
+      mode: 'form',
+      forms: [
+        {
+          id: 'expense_form',
+          action: '提交报销单',
+          initialPayload: {
+            amount: 800,
+          },
+        },
+      ],
     });
 
     const hydrated = {
@@ -233,56 +259,65 @@ describe('reduceActiveAwaiting', () => {
       awaitingId: 'await_5',
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'expense_form',
+      mode: 'form',
     });
 
-    expect(next?.viewportHtml).toBe('<html><body>ok</body></html>');
-    expect(next?.loading).toBe(false);
-    expect(next?.loadError).toBe('');
-    expect(next?.mode).toBe('approval');
-    expect(next?.payload).toEqual({ amount: 800 });
+    expect(next).toMatchObject({
+      mode: 'form',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'expense_form',
+    });
+    if (next?.mode !== 'form') {
+      throw new Error('expected form awaiting');
+    }
+    expect(next.viewportHtml).toBe('<html><body>ok</body></html>');
+    expect(next.loading).toBe(false);
+    expect(next.loadError).toBe('');
+    expect(next.forms).toEqual([
+      {
+        id: 'expense_form',
+        action: '提交报销单',
+        initialPayload: {
+          amount: 800,
+        },
+      },
+    ]);
   });
 
-  it('accepts updated html mode and normalizes explicit non-object payloads to null', () => {
+  it('rejects form awaitings without html viewport metadata', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_6',
       awaitingId: 'await_6',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-      mode: 'question',
-      payload: {
-        employee_id: 'E1001',
-      },
+      mode: 'form',
+      forms: [
+        {
+          id: 'leave_form',
+          action: '提交请假申请',
+        },
+      ],
     });
 
-    const next = reduceActiveAwaiting(current, {
-      type: 'awaiting.ask',
-      runId: 'run_6',
-      awaitingId: 'await_6',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-      mode: 'approval',
-      payload: 'bad-payload' as unknown as Record<string, unknown>,
-    });
-
-    expect(next?.mode).toBe('approval');
-    expect(next?.payload).toBeNull();
+    expect(current).toBeNull();
   });
 
-  it('keeps html awaiting compatible with legacy events that omit mode and payload', () => {
+  it('keeps legacy html awaiting compatible by treating it as form', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_7',
       awaitingId: 'await_7',
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'leave_form',
+      payload: {
+        employee_id: 'E1001',
+      },
     });
 
     expect(asked).toMatchObject({
       key: 'run_7#await_7',
-      mode: undefined,
-      payload: null,
+      mode: 'form',
     });
+    expect(asked?.mode).toBe('form');
   });
 
   it('falls back to toolTimeout when awaiting.ask omits timeout', () => {
@@ -290,8 +325,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       toolTimeout: 120000,
     });
 
@@ -303,8 +337,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
       timeout: 60,
       toolTimeout: 120000,
     });
@@ -317,8 +350,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
     });
 
     const next = reduceActiveAwaiting(current, {
@@ -336,13 +368,52 @@ describe('reduceActiveAwaiting', () => {
     expect(next).toEqual(current);
   });
 
+  it('marks awaiting as resolved when awaiting.answer matches the active dialog', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'approval',
+      approvals: [
+        {
+          id: 'approve_1',
+          command: '删除生产环境缓存',
+        },
+      ],
+    });
+
+    const next = reduceActiveAwaiting(current, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      approvals: [
+        {
+          id: 'approve_1',
+          decision: 'approve',
+        },
+      ],
+    });
+
+    expect(next).toMatchObject({
+      awaitingId: 'await_1',
+      resolvedByOther: true,
+    });
+  });
+
   it('clears awaiting state when the run reaches a terminal event', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
+      questions: [
+        {
+          id: 'continue',
+          type: 'select',
+          question: '继续执行吗？',
+          options: [],
+        },
+      ],
     });
 
     const next = reduceActiveAwaiting(current, {
@@ -352,7 +423,8 @@ describe('reduceActiveAwaiting', () => {
 
     expect(next).toBeNull();
     expect(
-      getAwaitingQuestionMeta('run_1', 'await_1', '继续执行吗？'),
+      getAwaitingQuestionMeta('run_1', 'await_1', 'continue'),
     ).toBeNull();
   });
 });
+

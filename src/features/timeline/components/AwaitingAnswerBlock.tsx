@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import type { AIAwaitSubmitParamData, TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -9,14 +9,85 @@ interface AwaitingAnswerBlockProps {
   node: TimelineNode;
 }
 
-function formatAwaitingAnswerValue(item: AIAwaitSubmitParamData): string {
+interface AwaitingAnswerDisplayItem {
+  key: string;
+  title: string;
+  value: string;
+}
+
+function formatUnknownJson(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswerDisplayItem {
+  const id = String(item.id || "").trim();
+  const title =
+    String(item.header || "").trim()
+    || String(item.question || "").trim()
+    || String(item.command || "").trim()
+    || String(item.action || "").trim()
+    || id
+    || "未命名项";
+
+  if (typeof item.decision === "string" && item.decision.trim()) {
+    const reason = String(item.reason || "").trim();
+    return {
+      key: `${id}:${item.decision}`,
+      title,
+      value: reason
+        ? `${item.decision} · ${reason}`
+        : item.decision,
+    };
+  }
+
+  if (item.payload !== undefined) {
+    const reason = String(item.reason || "").trim();
+    const payloadText = item.payload == null
+      ? ""
+      : formatUnknownJson(item.payload);
+    return {
+      key: `${id}:form`,
+      title,
+      value: reason || payloadText || "（无回答内容）",
+    };
+  }
+
   if (item.answer !== undefined && item.answer !== null) {
-    return String(item.answer);
+    return {
+      key: `${id}:answer`,
+      title,
+      value: String(item.answer),
+    };
   }
+
   if (Array.isArray(item.answers)) {
-    return item.answers.join(", ");
+    return {
+      key: `${id}:answers`,
+      title,
+      value: item.answers.map((entry) => String(entry)).join(", ") || "（无回答内容）",
+    };
   }
-  return "（无回答内容）";
+
+  if (typeof item.reason === "string" && item.reason.trim()) {
+    return {
+      key: `${id}:reason`,
+      title,
+      value: item.reason,
+    };
+  }
+
+  return {
+    key: id || title,
+    title,
+    value: "（无回答内容）",
+  };
 }
 
 export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
@@ -24,12 +95,20 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const expanded = Boolean(node.expanded);
-  const questions = useMemo<AIAwaitSubmitParamData[]>(() => {
+  const items = useMemo<AwaitingAnswerDisplayItem[]>(() => {
     try {
       const parsed = JSON.parse(node.text || "[]");
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed
+        .filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+        .map(formatAwaitingAnswerItem);
     } catch (error) {
-      console.error("Error parsing questions:", error);
+      console.error("Error parsing awaiting answers:", error);
     }
     return [];
   }, [node.text]);
@@ -52,20 +131,20 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
         }
       >
         <span>
-          已询问{" "}
+          已提交{" "}
           <span style={{ color: "var(--text-main)" }}>
-            {questions?.length || 0}
+            {items.length || 0}
           </span>{" "}
-          个问题
+          项回答
         </span>
         <MaterialIcon name="chevron_right" className="chevron" />
       </UiButton>
       <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>
         <Flex vertical gap={10}>
-          {questions?.map((item) => (
-            <Flex vertical key={`${item.question}:${item.header || ""}`}>
-              <div>{item.header || item.question}</div>
-              <div style={{ opacity: 0.5 }}>{formatAwaitingAnswerValue(item)}</div>
+          {items.map((item) => (
+            <Flex vertical key={item.key}>
+              <div>{item.title}</div>
+              <div style={{ opacity: 0.5, whiteSpace: "pre-wrap" }}>{item.value}</div>
             </Flex>
           ))}
         </Flex>
@@ -73,3 +152,4 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
     </div>
   );
 };
+

@@ -6,14 +6,28 @@ import type { ThemeMode } from "@/shared/styles/theme";
 import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {
   AIEvent,
+  AIAwaitApproval,
+  AIAwaitApprovalDecision,
+  AIAwaitApprovalSubmitParamData,
+  AIAwaitForm,
+  AIAwaitFormSubmitParamData,
+  AIAwaitMode,
   AIAwaitQuestion,
+  AIAwaitQuestionSubmitParamData,
 } from "@/app/state/eventTypes";
 import { ViewportTypeEnum } from "@/app/state/eventTypes";
 export type { ThemeMode } from "@/shared/styles/theme";
 export type { TransportMode } from "@/features/transport/lib/transportMode";
 export type {
+  AIAwaitApproval,
+  AIAwaitApprovalDecision,
+  AIAwaitApprovalSubmitParamData,
+  AIAwaitForm,
+  AIAwaitFormSubmitParamData,
+  AIAwaitMode,
   AIAwaitQuestion,
   AIAwaitQuestionOption,
+  AIAwaitQuestionSubmitParamData,
   AIAwaitSubmitParamData,
   AIAwaitSubmitPayloadData,
 } from "@/app/state/eventTypes";
@@ -208,21 +222,38 @@ export interface ActiveFrontendTool {
 /* ============================================
    Active Awaiting
    ============================================ */
-export interface ActiveAwaiting {
+interface ActiveAwaitingBase {
   key: string;
   awaitingId: string;
   runId: string;
   timeout: number | null;
-  viewportKey: string;
-  viewportType: ViewportTypeEnum;
-  mode?: 'question' | 'approval';
-  payload?: Record<string, unknown> | null;
+  resolvedByOther?: boolean;
+}
+
+export interface QuestionActiveAwaiting extends ActiveAwaitingBase {
+  mode: "question";
   questions: AIAwaitQuestion[];
+}
+
+export interface ApprovalActiveAwaiting extends ActiveAwaitingBase {
+  mode: "approval";
+  approvals: AIAwaitApproval[];
+}
+
+export interface FormActiveAwaiting extends ActiveAwaitingBase {
+  mode: "form";
+  forms: AIAwaitForm[];
+  viewportKey: string;
+  viewportType: ViewportTypeEnum.Html;
   loading: boolean;
   loadError: string;
   viewportHtml: string;
-  resolvedByOther?: boolean;
 }
+
+export type ActiveAwaiting =
+  | QuestionActiveAwaiting
+  | ApprovalActiveAwaiting
+  | FormActiveAwaiting;
 
 /* ============================================
    Message

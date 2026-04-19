@@ -89,7 +89,15 @@ export type AppAction =
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
 	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
-	| { type: "PATCH_ACTIVE_AWAITING"; patch: Partial<ActiveAwaiting> }
+	| {
+			type: "PATCH_ACTIVE_AWAITING";
+			patch: {
+				resolvedByOther?: boolean;
+				loading?: boolean;
+				loadError?: string;
+				viewportHtml?: string;
+			};
+	  }
 	| { type: "CLEAR_ACTIVE_AWAITING" }
 	| {
 			type: "SHOW_COMMAND_STATUS_OVERLAY";
@@ -263,6 +271,36 @@ function upsertArtifact(
 	const next = artifacts.slice();
 	next[index] = artifact;
 	return next;
+}
+
+function patchActiveAwaiting(
+	current: ActiveAwaiting,
+	patch: Extract<AppAction, { type: "PATCH_ACTIVE_AWAITING" }>["patch"],
+): ActiveAwaiting {
+	if (current.mode === "form") {
+		return {
+			...current,
+			...(typeof patch.resolvedByOther === "boolean"
+				? { resolvedByOther: patch.resolvedByOther }
+				: {}),
+			...(typeof patch.loading === "boolean" ? { loading: patch.loading } : {}),
+			...(typeof patch.loadError === "string"
+				? { loadError: patch.loadError }
+				: {}),
+			...(typeof patch.viewportHtml === "string"
+				? { viewportHtml: patch.viewportHtml }
+				: {}),
+		};
+	}
+
+	if (typeof patch.resolvedByOther === "boolean") {
+		return {
+			...current,
+			resolvedByOther: patch.resolvedByOther,
+		};
+	}
+
+	return current;
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -486,10 +524,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			}
 			return {
 				...state,
-				activeAwaiting: {
-					...state.activeAwaiting,
-					...action.patch,
-				},
+				activeAwaiting: patchActiveAwaiting(state.activeAwaiting, action.patch),
 			};
 		case "CLEAR_ACTIVE_AWAITING":
 			if (!state.activeAwaiting) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ViewportTypeEnum } from '@/app/state/types';
-import type { ActiveAwaiting } from '@/app/state/types';
+import type { FormActiveAwaiting } from '@/app/state/types';
 import {
   AWAITING_COLLECT_TIMEOUT_ERROR,
   AWAITING_COLLECT_TIMEOUT_MS,
@@ -26,8 +26,8 @@ jest.mock('@/features/transport/lib/apiClientProxy', () => ({
 }));
 
 function createActiveAwaiting(
-  patch: Partial<ActiveAwaiting> = {},
-): ActiveAwaiting {
+  patch: Partial<FormActiveAwaiting> = {},
+): FormActiveAwaiting {
   return {
     key: 'run_1#await_1',
     awaitingId: 'await_1',
@@ -35,9 +35,16 @@ function createActiveAwaiting(
     timeout: 60,
     viewportKey: 'leave_form',
     viewportType: ViewportTypeEnum.Html,
-    mode: 'question',
-    payload: null,
-    questions: [],
+    mode: 'form',
+    forms: [
+      {
+        id: 'leave_form',
+        action: '提交请假申请',
+        initialPayload: {
+          employee_id: 'E1001',
+        },
+      },
+    ],
     loading: false,
     loadError: '',
     viewportHtml: '<html><body>ok</body></html>',
@@ -46,26 +53,15 @@ function createActiveAwaiting(
 }
 
 describe('AwaitingHtmlContainer', () => {
-  it('renders approval buttons only in approval mode', () => {
-    const approvalHtml = renderToStaticMarkup(
+  it('renders submit and reject buttons for form mode', () => {
+    const html = renderToStaticMarkup(
       React.createElement(AwaitingHtmlContainer, {
-        data: createActiveAwaiting({
-          mode: 'approval',
-        }),
-      }),
-    );
-    const questionHtml = renderToStaticMarkup(
-      React.createElement(AwaitingHtmlContainer, {
-        data: createActiveAwaiting({
-          mode: 'question',
-        }),
+        data: createActiveAwaiting(),
       }),
     );
 
-    expect(approvalHtml).toContain('批准');
-    expect(approvalHtml).toContain('取消');
-    expect(questionHtml).not.toContain('批准');
-    expect(questionHtml).not.toContain('取消');
+    expect(html).toContain('提交');
+    expect(html).toContain('驳回');
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {
@@ -76,13 +72,8 @@ describe('AwaitingHtmlContainer', () => {
     let timeoutCallback: (() => void) | null = null;
 
     const timeout = beginAwaitingCollectRequest({
-      awaiting: createActiveAwaiting({
-        mode: 'approval',
-        payload: {
-          employee_id: 'E1001',
-        },
-      }),
-      decision: 'approve',
+      awaiting: createActiveAwaiting(),
+      decision: 'submit',
       postMessage,
       scheduleTimeout: (callback, delay) => {
         timeoutCallback = callback;
@@ -100,10 +91,10 @@ describe('AwaitingHtmlContainer', () => {
       data: {
         runId: 'run_1',
         awaitingId: 'await_1',
-        decision: 'approve',
+        decision: 'submit',
       },
     }, '*');
-    expect(onCollectingChange).toHaveBeenCalledWith('approve');
+    expect(onCollectingChange).toHaveBeenCalledWith('submit');
     expect(onStatusChange).toHaveBeenCalledWith('采集中...');
     expect(onErrorChange).toHaveBeenCalledWith('');
 
@@ -135,3 +126,4 @@ describe('AwaitingHtmlContainer', () => {
     expect(onStatusChange).toHaveBeenCalledWith('');
   });
 });
+

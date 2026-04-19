@@ -88,6 +88,9 @@ export enum AIAwaitQuestionType {
   Password = 'password',
 }
 
+export type AIAwaitMode = 'question' | 'approval' | 'form';
+export type AIAwaitApprovalDecision = 'approve' | 'reject' | 'approve_always';
+
 export interface ResourceData {
   name?: string;
   mimeType?: string;
@@ -115,6 +118,7 @@ export interface AIAwaitQuestionOption {
 }
 
 export interface AIAwaitQuestion {
+  id: string;
   type: AIAwaitQuestionType;
   header?: string;
   question: string;
@@ -125,12 +129,40 @@ export interface AIAwaitQuestion {
   freeTextPlaceholder?: string;
 }
 
-export interface AIAwaitSubmitParamData {
-  header?: string;
-  question: string;
+export interface AIAwaitApproval {
+  id: string;
+  command: string;
+  level?: string;
+}
+
+export interface AIAwaitForm {
+  id: string;
+  action: string;
+  initialPayload?: Record<string, unknown> | null;
+}
+
+export interface AIAwaitQuestionSubmitParamData {
+  id: string;
   answer?: string | number;
   answers?: string[];
 }
+
+export interface AIAwaitApprovalSubmitParamData {
+  id: string;
+  decision: AIAwaitApprovalDecision;
+  reason?: string;
+}
+
+export interface AIAwaitFormSubmitParamData {
+  id: string;
+  payload?: Record<string, unknown> | null;
+  reason?: string;
+}
+
+export type AIAwaitSubmitParamData =
+  | AIAwaitQuestionSubmitParamData
+  | AIAwaitApprovalSubmitParamData
+  | AIAwaitFormSubmitParamData;
 
 export interface AIAwaitSubmitPayloadData {
   params: AIAwaitSubmitParamData[];
@@ -177,10 +209,9 @@ export interface AIEventCommonFields {
   awaitingId?: string;
   timeout?: number;
   viewportType?: ViewportTypeEnum;
-  mode?: 'question' | 'approval';
-  payload?: Record<string, unknown>;
+  mode?: AIAwaitMode;
+  payload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
-  answers?: unknown;
   artifactId?: string;
   artifact?: ResourceData;
   rawEvent?: unknown;
@@ -243,14 +274,19 @@ export interface AIArtifactEvent extends AIBaseEvent {
 
 export interface AIAwaitAskEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Ask;
+  approvals?: AIAwaitApproval[];
+  forms?: AIAwaitForm[];
 }
 
 export interface AIAwaitPayloadEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Payload;
+  questions?: AIAwaitQuestion[];
 }
 export interface AIAwaitAnswerEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Answer;
-  answers?: AIAwaitSubmitParamData[];
+  answers?: AIAwaitQuestionSubmitParamData[];
+  approvals?: AIAwaitApprovalSubmitParamData[];
+  forms?: AIAwaitFormSubmitParamData[];
 }
 
 export type AIAwaitEvent = AIAwaitAskEvent | AIAwaitPayloadEvent | AIAwaitAnswerEvent;

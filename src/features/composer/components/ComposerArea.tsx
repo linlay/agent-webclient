@@ -7,9 +7,8 @@ import React, {
 } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type {
-  AIAwaitQuestion,
-  ActiveAwaiting,
   AIAwaitSubmitPayloadData,
+  FormActiveAwaiting,
 } from "@/app/state/types";
 import { MentionSuggest } from "@/features/composer/components/MentionSuggest";
 import { SlashPalette } from "@/features/composer/components/SlashPalette";
@@ -56,7 +55,15 @@ import { TextAreaRef } from "antd/es/input/TextArea";
 import { Buildin } from "@/features/tools/components/buildin";
 import { message } from "antd";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
-import { getAwaitingRenderMode } from "@/features/tools/components/protocol";
+
+type FormActiveAwaitingPatch = Pick<
+  FormActiveAwaiting,
+  "loading" | "loadError" | "viewportHtml"
+>;
+
+type FormActiveAwaitingPatchPayload = Partial<FormActiveAwaitingPatch> & {
+  resolvedByOther?: boolean;
+};
 
 interface ComposerAttachment {
   id: string;
@@ -128,20 +135,6 @@ function getComposerAttachmentSubtitle(
     : getAttachmentKindLabel(attachment);
 }
 
-interface AwaitingAnswerDraft {
-  answer: string[];
-  freeText: string;
-}
-
-function createAwaitingAnswerDrafts(
-  questions: AIAwaitQuestion[],
-): AwaitingAnswerDraft[] {
-  return questions.map(() => ({
-    answer: [],
-    freeText: "",
-  }));
-}
-
 export const ComposerArea: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -163,9 +156,6 @@ export const ComposerArea: React.FC = () => {
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
-  );
-  const [awaitingAnswers, setAwaitingAnswers] = useState<AwaitingAnswerDraft[]>(
-    [],
   );
   const [slashPopoverWidth, setSlashPopoverWidth] = useState<number>();
   const [attachmentScrollState, setAttachmentScrollState] = useState({
@@ -259,14 +249,6 @@ export const ComposerArea: React.FC = () => {
     isAwaitingActive ||
     hasUploadingAttachments ||
     (!inputValue.trim() && sendReferences.length === 0);
-
-  useEffect(() => {
-    if (!activeAwaiting) {
-      setAwaitingAnswers([]);
-      return;
-    }
-    setAwaitingAnswers(createAwaitingAnswerDrafts(activeAwaiting.questions));
-  }, [activeAwaiting]);
 
   const updateComposerAttachmentScrollState = useCallback(() => {
     const viewport = attachmentViewportRef.current;
@@ -969,11 +951,11 @@ export const ComposerArea: React.FC = () => {
         return error;
       }
     },
-    [activeAwaiting, awaitingAnswers, clearActiveAwaiting, dispatch],
+    [activeAwaiting, clearActiveAwaiting, dispatch],
   );
 
   const handlePatchActiveAwaiting = useCallback(
-    (patch: Partial<ActiveAwaiting>) => {
+    (patch: FormActiveAwaitingPatchPayload) => {
       dispatch({ type: "PATCH_ACTIVE_AWAITING", patch });
     },
     [dispatch],
@@ -1379,10 +1361,8 @@ export const ComposerArea: React.FC = () => {
     updateMentionSuggestions,
   ]);
 
-  const awaitingRenderMode = getAwaitingRenderMode(activeAwaiting);
-
   return isAwaitingActive && activeAwaiting ? (
-    awaitingRenderMode === "html" ? (
+    activeAwaiting.mode === "form" ? (
       <AwaitingHtmlContainer
         data={activeAwaiting}
         onPatch={handlePatchActiveAwaiting}
@@ -1390,13 +1370,19 @@ export const ComposerArea: React.FC = () => {
         onClose={clearActiveAwaiting}
         onResolvedByOther={clearActiveAwaiting}
       />
-    ) : (
-      <Buildin.ConfirmDialog
+    ) : activeAwaiting.mode === "approval" ? (
+      <Buildin.ApprovalDialog
         data={activeAwaiting}
         onSubmit={handleAwaitingSubmit}
         onResolvedByOther={clearActiveAwaiting}
       />
-    )
+    ) : activeAwaiting.mode === "question" ? (
+      <Buildin.QuestionDialog
+        data={activeAwaiting}
+        onSubmit={handleAwaitingSubmit}
+        onResolvedByOther={clearActiveAwaiting}
+      />
+    ) : null
   ) : (
     <div
       ref={composerRef}

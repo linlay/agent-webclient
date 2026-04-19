@@ -20,11 +20,11 @@ import React, {
   useState,
 } from "react";
 import {
-  ActiveAwaiting,
   AIAwaitQuestion,
   AIAwaitQuestionType,
-  AIAwaitSubmitParamData,
+  AIAwaitQuestionSubmitParamData,
   AIAwaitSubmitPayloadData,
+  QuestionActiveAwaiting,
 } from "@/app/state/types";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
@@ -54,7 +54,7 @@ import {
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
 interface ConfirmDialogProps extends CallbackData {
-  data: ActiveAwaiting;
+  data: QuestionActiveAwaiting;
   onResolvedByOther?: () => void;
 }
 
@@ -62,7 +62,7 @@ interface CallbackData {
   onSubmit?: (paylod: AIAwaitSubmitPayloadData) => Promise<any>;
 }
 
-export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   data,
   onSubmit,
   onResolvedByOther,
@@ -89,7 +89,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       runId: data?.runId || "",
       awaitingId: data?.awaitingId || "",
       params: questions.map((item) => ({
-        question: item.question,
+        id: item.id,
       })),
     });
   }, [data?.awaitingId, data?.runId, questions]);
@@ -223,7 +223,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                     className={Style.FormItem}
                     rules={[
                       {
-                        validator: async (_, value: AIAwaitSubmitParamData) => {
+                        validator: async (_, value: AIAwaitQuestionSubmitParamData) => {
                           const error = getAwaitingAnswerError(
                             questions[field.name],
                             value,
@@ -329,6 +329,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   );
 };
 
+export const ConfirmDialog = QuestionDialog;
+
 interface QuestionRef {
   check: (i: number) => void;
   getElements: () => NodeListOf<HTMLElement> | undefined;
@@ -340,8 +342,8 @@ const Question = forwardRef<
     data: AIAwaitQuestion;
     onEnter: () => void;
     pagnation: React.ReactNode;
-    value?: AIAwaitSubmitParamData;
-    onChange?: (value: AIAwaitSubmitParamData) => void;
+    value?: AIAwaitQuestionSubmitParamData;
+    onChange?: (value: AIAwaitQuestionSubmitParamData) => void;
   }
 >(({ data, value, onChange, onEnter, pagnation }, ref) => {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -381,13 +383,13 @@ const Question = forwardRef<
   );
 
   const setAnswer = useCallback(
-    (next: Partial<AIAwaitSubmitParamData>) => {
+    (next: Partial<AIAwaitQuestionSubmitParamData>) => {
       onChange?.({
-        question: data.question,
+        id: data.id,
         ...next,
       });
     },
-    [data.question, onChange],
+    [data.id, onChange],
   );
 
   const renderQuestionHeader = () => {

@@ -2,7 +2,7 @@ import {
   AIAwaitQuestionType,
   type AIAwaitQuestion,
   type AIAwaitQuestionOption,
-  type AIAwaitSubmitParamData,
+  type AIAwaitQuestionSubmitParamData,
 } from "@/app/state/types";
 
 export function hasAwaitingQuestions(
@@ -79,7 +79,7 @@ export function getSelectOptionValues(question: AIAwaitQuestion): string[] {
 
 export function getAwaitingAnswerError(
   question: AIAwaitQuestion,
-  value: AIAwaitSubmitParamData | undefined,
+  value: AIAwaitQuestionSubmitParamData | undefined,
 ): string | null {
   switch (question.type) {
     case AIAwaitQuestionType.Select:
@@ -107,7 +107,7 @@ export function getAwaitingAnswerError(
 
 export function getSelectFreeTextAnswer(
   question: AIAwaitQuestion,
-  value: AIAwaitSubmitParamData | undefined,
+  value: AIAwaitQuestionSubmitParamData | undefined,
 ): string {
   const optionValues = new Set(getSelectOptionValues(question));
   if (question.multiSelect) {
@@ -123,7 +123,7 @@ export function getSelectFreeTextAnswer(
 
 export function getSelectedOptionAnswers(
   question: AIAwaitQuestion,
-  value: AIAwaitSubmitParamData | undefined,
+  value: AIAwaitQuestionSubmitParamData | undefined,
 ): string[] {
   const optionValues = new Set(getSelectOptionValues(question));
   if (question.multiSelect) {
@@ -136,7 +136,7 @@ export function getSelectedOptionAnswers(
 
 export function getSelectGroupValue(
   question: AIAwaitQuestion,
-  value: AIAwaitSubmitParamData | undefined,
+  value: AIAwaitQuestionSubmitParamData | undefined,
 ): string[] {
   const selected = getSelectedOptionAnswers(question, value);
   if (question.allowFreeText && getSelectFreeTextAnswer(question, value)) {

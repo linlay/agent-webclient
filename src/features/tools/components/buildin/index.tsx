@@ -1,5 +1,7 @@
-import { ConfirmDialog } from "@/features/tools/components/buildin/confirm-dialog"
+import { ApprovalDialog } from "@/features/tools/components/buildin/approval-dialog";
+import { QuestionDialog } from "@/features/tools/components/buildin/confirm-dialog";
 
 export const Buildin = {
-  ConfirmDialog,
-}
+  ApprovalDialog,
+  QuestionDialog,
+};

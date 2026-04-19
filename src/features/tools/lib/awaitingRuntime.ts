@@ -1,7 +1,11 @@
 import type {
   ActiveAwaiting,
   AgentEvent,
+  AIAwaitApproval,
+  AIAwaitForm,
+  AIAwaitMode,
   AIAwaitQuestion,
+  FormActiveAwaiting,
 } from '@/app/state/types';
 import {
   AIAwaitEventTypeEnum,
@@ -11,6 +15,8 @@ import {
 import { toText } from '@/shared/utils/eventUtils';
 import {
   clearAwaitingQuestionMeta,
+  registerAwaitingApprovalMeta,
+  registerAwaitingFormMeta,
   registerAwaitingQuestionMeta,
 } from '@/features/tools/lib/awaitingQuestionMeta';
 
@@ -25,38 +31,59 @@ function cloneQuestions(questions: AIAwaitQuestion[]): AIAwaitQuestion[] {
   }));
 }
 
+function cloneApprovals(approvals: AIAwaitApproval[]): AIAwaitApproval[] {
+  return approvals.map((approval) => ({ ...approval }));
+}
+
 function clonePayload(
   payload: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
   return payload ? { ...payload } : null;
 }
 
+function cloneForms(forms: AIAwaitForm[]): AIAwaitForm[] {
+  return forms.map((form) => ({
+    ...form,
+    initialPayload: clonePayload(form.initialPayload),
+  }));
+}
+
 export function cloneActiveAwaiting(
   awaiting: ActiveAwaiting | null,
 ): ActiveAwaiting | null {
-  return awaiting
-    ? {
-        ...awaiting,
-        payload: clonePayload(awaiting.payload),
-        questions: cloneQuestions(awaiting.questions),
-      }
-    : null;
+  if (!awaiting) {
+    return null;
+  }
+
+  if (awaiting.mode === 'question') {
+    return {
+      ...awaiting,
+      questions: cloneQuestions(awaiting.questions),
+    };
+  }
+
+  if (awaiting.mode === 'approval') {
+    return {
+      ...awaiting,
+      approvals: cloneApprovals(awaiting.approvals),
+    };
+  }
+
+  return {
+    ...awaiting,
+    forms: cloneForms(awaiting.forms),
+  };
 }
 
-function createAwaitingRuntimeState(
+function createFormRuntimeState(
   current: ActiveAwaiting | null,
   key: string,
-): Pick<
-  ActiveAwaiting,
-  'loading' | 'loadError' | 'viewportHtml' | 'mode' | 'payload'
-> {
-  if (current?.key === key) {
+): Pick<FormActiveAwaiting, 'loading' | 'loadError' | 'viewportHtml'> {
+  if (current?.key === key && current.mode === 'form') {
     return {
       loading: current.loading,
       loadError: current.loadError,
       viewportHtml: current.viewportHtml,
-      mode: current.mode,
-      payload: clonePayload(current.payload),
     };
   }
 
@@ -64,8 +91,6 @@ function createAwaitingRuntimeState(
     loading: false,
     loadError: '',
     viewportHtml: '',
-    mode: undefined,
-    payload: null,
   };
 }
 
@@ -79,25 +104,26 @@ function hasOwnField(
     && Object.prototype.hasOwnProperty.call(value, key);
 }
 
-function readAwaitingMode(
-  event: AgentEvent,
-): ActiveAwaiting['mode'] | undefined {
+function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
   if (!hasOwnField(event, 'mode')) {
     return undefined;
   }
 
   const mode = toText(event.mode);
-  return mode === 'approval' || mode === 'question' ? mode : undefined;
+  return mode === 'question' || mode === 'approval' || mode === 'form'
+    ? mode
+    : undefined;
 }
 
-function readAwaitingPayload(event: AgentEvent): Record<string, unknown> | null | undefined {
-  if (!hasOwnField(event, 'payload')) {
+function readAwaitingPayload(
+  value: unknown,
+): Record<string, unknown> | null | undefined {
+  if (value === undefined) {
     return undefined;
   }
 
-  const { payload } = event;
-  return payload && typeof payload === 'object' && !Array.isArray(payload)
-    ? { ...payload }
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...value }
     : null;
 }
 
@@ -105,6 +131,7 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
   if (!Array.isArray(value)) {
     return [];
   }
+
   return value
     .filter(
       (item): item is AIAwaitQuestion =>
@@ -113,6 +140,7 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
     .map((question) => {
       const type = toText(question.type) as AIAwaitQuestion['type'];
       const normalized: AIAwaitQuestion = {
+        id: toText(question.id) || toText(question.question),
         type,
         question: toText(question.question),
         header: toText(question.header) || undefined,
@@ -144,23 +172,72 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
 
       return normalized;
     })
-    .filter((question) => Boolean(question.question));
+    .filter((question) => Boolean(question.id) && Boolean(question.question));
 }
 
-function isBuiltinConfirmDialogAsk(event: AgentEvent): boolean {
-  return (
-    toText(event.type) === AIAwaitEventTypeEnum.Ask
-    && toText(event.viewportType) === ViewportTypeEnum.Builtin
-    && toText(event.viewportKey) === BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY
-  );
+function normalizeApprovals(value: unknown): AIAwaitApproval[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (item): item is AIAwaitApproval =>
+        Boolean(item) && typeof item === 'object' && !Array.isArray(item),
+    )
+    .map((approval) => ({
+      id: toText(approval.id) || toText(approval.command),
+      command: toText(approval.command),
+      level: toText(approval.level) || undefined,
+    }))
+    .filter((approval) => Boolean(approval.id) && Boolean(approval.command));
 }
 
-function isHtmlViewportAsk(event: AgentEvent): boolean {
-  return (
-    toText(event.type) === AIAwaitEventTypeEnum.Ask
-    && toText(event.viewportType) === ViewportTypeEnum.Html
-    && Boolean(toText(event.viewportKey))
-  );
+function normalizeForms(
+  value: unknown,
+  fallbackAction = '',
+  fallbackPayload?: Record<string, unknown> | null,
+): AIAwaitForm[] {
+  if (!Array.isArray(value)) {
+    if (!fallbackAction) {
+      return [];
+    }
+    return [
+      {
+        id: fallbackAction,
+        action: fallbackAction,
+        initialPayload: fallbackPayload ?? null,
+      },
+    ];
+  }
+
+  const normalized = value
+    .filter(
+      (item): item is AIAwaitForm =>
+        Boolean(item) && typeof item === 'object' && !Array.isArray(item),
+    )
+    .map((form) => ({
+      id: toText(form.id) || toText(form.action),
+      action: toText(form.action) || fallbackAction,
+      initialPayload: readAwaitingPayload(form.initialPayload),
+    }))
+    .filter((form) => Boolean(form.id) && Boolean(form.action));
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  if (!fallbackAction) {
+    return [];
+  }
+
+  return [
+    {
+      id: fallbackAction,
+      action: fallbackAction,
+      initialPayload: fallbackPayload ?? null,
+    },
+  ];
 }
 
 function readAwaitingTimeout(event: AgentEvent): number | null {
@@ -173,6 +250,29 @@ function readAwaitingTimeout(event: AgentEvent): number | null {
     (event as Record<string, unknown>).toolTimeout,
   );
   return Number.isFinite(fallbackTimeout) ? fallbackTimeout : null;
+}
+
+function isLegacyQuestionAsk(event: AgentEvent): boolean {
+  if (toText(event.type) !== AIAwaitEventTypeEnum.Ask || readAwaitingMode(event)) {
+    return false;
+  }
+
+  const viewportType = toText(event.viewportType);
+  if (viewportType === ViewportTypeEnum.Html) {
+    return false;
+  }
+
+  return !Array.isArray((event as Record<string, unknown>).approvals)
+    && !Array.isArray((event as Record<string, unknown>).forms);
+}
+
+function isLegacyHtmlAsk(event: AgentEvent): boolean {
+  return (
+    toText(event.type) === AIAwaitEventTypeEnum.Ask
+    && !readAwaitingMode(event)
+    && toText(event.viewportType) === ViewportTypeEnum.Html
+    && Boolean(toText(event.viewportKey))
+  );
 }
 
 export function reduceActiveAwaiting(
@@ -188,84 +288,116 @@ export function reduceActiveAwaiting(
     || type === 'run.complete'
     || type === 'run.cancel'
   ) {
-    if (current) {
+    if (current?.mode === 'question') {
       clearAwaitingQuestionMeta(current.runId, current.awaitingId);
     }
     return null;
   }
 
-  if (isBuiltinConfirmDialogAsk(event)) {
+  if (type === AIAwaitEventTypeEnum.Ask) {
     const awaitingId = toText(event.awaitingId);
     const runId = toText(event.runId);
     if (!awaitingId || !runId) {
       return current;
     }
-    const key = `${runId}#${awaitingId}`;
-    const nextQuestions = normalizeQuestions(event.questions);
-    if (nextQuestions.length > 0) {
-      registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
-    }
-    const runtime = createAwaitingRuntimeState(current, key);
-    return {
-      key,
-      awaitingId,
-      runId,
-      timeout: readAwaitingTimeout(event),
-      viewportKey: BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY,
-      viewportType: ViewportTypeEnum.Builtin,
-      ...runtime,
-      questions:
-        nextQuestions.length > 0
-          ? nextQuestions
-          : current?.key === key
-          ? cloneQuestions(current.questions)
-          : [],
-    };
-  }
 
-  if (isHtmlViewportAsk(event)) {
-    const awaitingId = toText(event.awaitingId);
-    const runId = toText(event.runId);
-    const viewportKey = toText(event.viewportKey);
-    if (!awaitingId || !runId || !viewportKey) {
-      return current;
-    }
     const key = `${runId}#${awaitingId}`;
-    const mode = readAwaitingMode(event);
-    const payload = readAwaitingPayload(event);
-    const nextQuestions = normalizeQuestions(event.questions);
-    if (nextQuestions.length > 0) {
-      registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
+    const nextMode = readAwaitingMode(event);
+
+    if (nextMode === 'question' || isLegacyQuestionAsk(event)) {
+      const nextQuestions = normalizeQuestions(event.questions);
+      if (nextQuestions.length > 0) {
+        registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
+      }
+      return {
+        key,
+        awaitingId,
+        runId,
+        timeout: readAwaitingTimeout(event),
+        mode: 'question',
+        questions:
+          nextQuestions.length > 0
+            ? nextQuestions
+            : current?.key === key && current.mode === 'question'
+            ? cloneQuestions(current.questions)
+            : [],
+        resolvedByOther:
+          current?.key === key ? current.resolvedByOther : undefined,
+      };
     }
-    const runtime = createAwaitingRuntimeState(current, key);
-    return {
-      key,
-      awaitingId,
-      runId,
-      timeout: readAwaitingTimeout(event),
-      viewportKey,
-      viewportType: ViewportTypeEnum.Html,
-      ...runtime,
-      mode: mode ?? runtime.mode,
-      payload: payload === undefined ? runtime.payload : payload,
-      questions:
-        nextQuestions.length > 0
-          ? nextQuestions
-          : current?.key === key
-          ? cloneQuestions(current.questions)
-          : [],
-    };
+
+    if (nextMode === 'approval') {
+      const nextApprovals = normalizeApprovals(event.approvals);
+      if (nextApprovals.length > 0) {
+        registerAwaitingApprovalMeta(runId, awaitingId, nextApprovals);
+      }
+      return {
+        key,
+        awaitingId,
+        runId,
+        timeout: readAwaitingTimeout(event),
+        mode: 'approval',
+        approvals:
+          nextApprovals.length > 0
+            ? nextApprovals
+            : current?.key === key && current.mode === 'approval'
+            ? cloneApprovals(current.approvals)
+            : [],
+        resolvedByOther:
+          current?.key === key ? current.resolvedByOther : undefined,
+      };
+    }
+
+    if (nextMode === 'form' || isLegacyHtmlAsk(event)) {
+      const viewportKey = toText(event.viewportKey);
+      const viewportType = toText(event.viewportType);
+      if (!viewportKey || viewportType !== ViewportTypeEnum.Html) {
+        return current;
+      }
+      const nextForms = nextMode === 'form'
+        ? normalizeForms(event.forms)
+        : normalizeForms(
+            event.forms,
+            viewportKey,
+            readAwaitingPayload((event as Record<string, unknown>).payload) ?? null,
+          );
+      if (nextForms.length > 0) {
+        registerAwaitingFormMeta(runId, awaitingId, nextForms);
+      }
+      const runtime = createFormRuntimeState(current, key);
+      return {
+        key,
+        awaitingId,
+        runId,
+        timeout: readAwaitingTimeout(event),
+        mode: 'form',
+        forms:
+          nextForms.length > 0
+            ? nextForms
+            : current?.key === key && current.mode === 'form'
+            ? cloneForms(current.forms)
+            : [],
+        viewportKey,
+        viewportType: ViewportTypeEnum.Html,
+        ...runtime,
+        resolvedByOther:
+          current?.key === key ? current.resolvedByOther : undefined,
+      };
+    }
+
+    return current;
   }
 
   if (type === AIAwaitEventTypeEnum.Payload) {
     const awaitingId = toText(event.awaitingId);
-    if (!current || !awaitingId || current.awaitingId !== awaitingId) {
+    if (!current || current.mode !== 'question' || !awaitingId || current.awaitingId !== awaitingId) {
       return current;
     }
     const nextQuestions = normalizeQuestions(event.questions);
-    if (nextQuestions.length > 0) {
-      registerAwaitingQuestionMeta(current.runId, awaitingId, nextQuestions);
+    if (nextQuestions.length === 0) {
+      return current;
     }
+    registerAwaitingQuestionMeta(current.runId, awaitingId, nextQuestions);
     return {
       ...current,
       questions: nextQuestions,

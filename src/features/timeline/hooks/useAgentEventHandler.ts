@@ -184,13 +184,19 @@ function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
   return false;
 }
 
-function normalizeAwaitingQuestionsSignature(
+function normalizeAwaitingItemsSignature(
   awaiting: ActiveAwaiting | null,
 ): string {
-  if (!awaiting || awaiting.questions.length === 0) {
+  if (!awaiting) {
     return '';
   }
-  return JSON.stringify(awaiting.questions);
+  if (awaiting.mode === 'question') {
+    return awaiting.questions?.length > 0 ? JSON.stringify(awaiting.questions) : '';
+  }
+  if (awaiting.mode === 'approval') {
+    return awaiting.approvals?.length > 0 ? JSON.stringify(awaiting.approvals) : '';
+  }
+  return awaiting.forms?.length > 0 ? JSON.stringify(awaiting.forms) : '';
 }
 
 function normalizeAwaitingRuntimeSignature(
@@ -201,13 +207,12 @@ function normalizeAwaitingRuntimeSignature(
   }
 
   return JSON.stringify({
-    viewportType: awaiting.viewportType,
-    viewportKey: awaiting.viewportKey,
     mode: awaiting.mode,
-    payload: awaiting.payload ?? null,
-    loading: awaiting.loading,
-    loadError: awaiting.loadError,
-    viewportHtml: awaiting.viewportHtml,
+    viewportType: awaiting.mode === 'form' ? awaiting.viewportType : '',
+    viewportKey: awaiting.mode === 'form' ? awaiting.viewportKey : '',
+    loading: awaiting.mode === 'form' ? awaiting.loading : false,
+    loadError: awaiting.mode === 'form' ? awaiting.loadError : '',
+    viewportHtml: awaiting.mode === 'form' ? awaiting.viewportHtml : '',
     resolvedByOther: Boolean(awaiting.resolvedByOther),
   });
 }
@@ -239,8 +244,8 @@ function shouldSyncActiveAwaitingFromState(
   }
 
   return (
-    normalizeAwaitingQuestionsSignature(stateAwaiting)
-    !== normalizeAwaitingQuestionsSignature(cacheAwaiting)
+    normalizeAwaitingItemsSignature(stateAwaiting)
+    !== normalizeAwaitingItemsSignature(cacheAwaiting)
     || normalizeAwaitingRuntimeSignature(stateAwaiting)
     !== normalizeAwaitingRuntimeSignature(cacheAwaiting)
   );

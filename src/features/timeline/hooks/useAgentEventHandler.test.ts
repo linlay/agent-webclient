@@ -192,8 +192,7 @@ describe('shouldSyncLiveCache', () => {
       type: 'awaiting.ask',
       runId: 'run_1',
       awaitingId: 'await_1',
-      viewportType: 'builtin',
-      viewportKey: 'confirm_dialog',
+      mode: 'question',
     });
 
     expect(cache.activeAwaiting).toMatchObject({
@@ -207,6 +206,7 @@ describe('shouldSyncLiveCache', () => {
       awaitingId: 'await_1',
       questions: [
         {
+          id: 'continue',
           type: 'select',
           question: '继续执行吗？',
           options: [
@@ -225,6 +225,44 @@ describe('shouldSyncLiveCache', () => {
     });
   });
 
+  it('keeps legacy awaiting.ask sessions authoritative when viewport fields are omitted', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_legacy_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: null,
+    };
+
+    const cache = createLocalCacheFromState(state);
+    cache.activeAwaiting = reduceActiveAwaiting(cache.activeAwaiting, {
+      type: 'awaiting.ask',
+      runId: 'run_legacy_1',
+      awaitingId: 'await_legacy_1',
+      questions: [
+        {
+          type: 'select',
+          question: '您希望我演示哪种提问式确认场景？',
+          options: [
+            {
+              label: '通用确认',
+              description: '日常事务确认',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(cache.activeAwaiting).toMatchObject({
+      awaitingId: 'await_legacy_1',
+      mode: 'question',
+    });
+    expect(cache.activeAwaiting?.questions).toHaveLength(1);
+    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+  });
+
   it('rebuilds when React state has hydrated questions for the same awaiting session', () => {
     const baseState = createInitialState();
     const state = {
@@ -238,10 +276,10 @@ describe('shouldSyncLiveCache', () => {
         awaitingId: 'await_1',
         runId: 'run_1',
         timeout: 60,
-        viewportKey: 'confirm_dialog',
-        viewportType: 'builtin' as const,
+        mode: 'question' as const,
         questions: [
           {
+            id: 'continue',
             type: 'select' as const,
             question: '继续执行吗？',
             options: [
@@ -252,9 +290,6 @@ describe('shouldSyncLiveCache', () => {
             ],
           },
         ],
-        loading: false,
-        loadError: '',
-        viewportHtml: '',
       },
     };
 
@@ -275,10 +310,10 @@ describe('shouldSyncLiveCache', () => {
       awaitingId: 'await_1',
       runId: 'run_1',
       timeout: 60,
-      viewportKey: 'confirm_dialog',
-      viewportType: 'builtin' as const,
+      mode: 'question' as const,
       questions: [
         {
+          id: 'continue',
           type: 'select' as const,
           question: '继续执行吗？',
           options: [
@@ -289,9 +324,6 @@ describe('shouldSyncLiveCache', () => {
           ],
         },
       ],
-      loading: false,
-      loadError: '',
-      viewportHtml: '',
     };
 
     const next = reduceActiveAwaiting(current, {
@@ -320,9 +352,16 @@ describe('shouldSyncLiveCache', () => {
         awaitingId: 'await_1',
         runId: 'run_1',
         timeout: 60,
+        mode: 'form' as const,
         viewportKey: 'leave_form',
         viewportType: 'html' as const,
-        questions: [],
+        forms: [
+          {
+            id: 'leave_form',
+            action: '提交请假申请',
+            initialPayload: null,
+          },
+        ],
         loading: false,
         loadError: '',
         viewportHtml: '<html><body>form</body></html>',
@@ -353,13 +392,18 @@ describe('shouldSyncLiveCache', () => {
         awaitingId: 'await_1',
         runId: 'run_1',
         timeout: 60,
+        mode: 'form' as const,
         viewportKey: 'leave_form',
         viewportType: 'html' as const,
-        mode: 'approval' as const,
-        payload: {
-          employee_id: 'E1001',
-        },
-        questions: [],
+        forms: [
+          {
+            id: 'leave_form',
+            action: '提交请假申请',
+            initialPayload: {
+              employee_id: 'E1001',
+            },
+          },
+        ],
         loading: false,
         loadError: '',
         viewportHtml: '<html><body>form</body></html>',
@@ -370,8 +414,13 @@ describe('shouldSyncLiveCache', () => {
       ...state,
       activeAwaiting: {
         ...state.activeAwaiting,
-        mode: 'question' as const,
-        payload: null,
+        forms: [
+          {
+            id: 'leave_form',
+            action: '提交请假申请',
+            initialPayload: null,
+          },
+        ],
       },
     });
 
