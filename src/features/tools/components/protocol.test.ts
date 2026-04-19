@@ -40,6 +40,7 @@ function createFormAwaiting(
       {
         id: 'leave_form',
         action: '提交请假申请',
+        command: 'mock create-leave --payload ...',
         initialPayload: {
           employee_id: 'E1001',
         },
@@ -76,6 +77,7 @@ describe('awaiting protocol helpers', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
+            command: 'mock create-leave --payload ...',
             initialPayload: {
               employee_id: 'E1001',
             },
@@ -128,13 +130,13 @@ describe('awaiting protocol helpers', () => {
     expect(normalizeAwaitingSubmitParams([
       {
         id: 'a1',
-        decision: 'reject',
+        decision: 'approve_prefix_run',
         reason: '缺少说明',
       },
     ], 'approval')).toEqual([
       {
         id: 'a1',
-        decision: 'reject',
+        decision: 'approve_prefix_run',
         reason: '缺少说明',
       },
     ]);

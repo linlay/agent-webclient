@@ -7,6 +7,7 @@ import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {
   AIEvent,
   AIAwaitApproval,
+  AIAwaitApprovalOption,
   AIAwaitApprovalDecision,
   AIAwaitApprovalSubmitParamData,
   AIAwaitForm,
@@ -20,6 +21,7 @@ export type { ThemeMode } from "@/shared/styles/theme";
 export type { TransportMode } from "@/features/transport/lib/transportMode";
 export type {
   AIAwaitApproval,
+  AIAwaitApprovalOption,
   AIAwaitApprovalDecision,
   AIAwaitApprovalSubmitParamData,
   AIAwaitForm,

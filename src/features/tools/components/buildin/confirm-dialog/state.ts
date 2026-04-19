@@ -85,7 +85,7 @@ export function getAwaitingAnswerError(
 ): string | null {
   switch (question.type) {
     case AIAwaitQuestionType.Select:
-      if (question.multiSelect) {
+      if (question.multiple) {
         return Array.isArray(value?.answers) && value.answers.some((item) => item.trim())
           ? null
           : "请至少选择一个选项";
@@ -112,7 +112,7 @@ export function getSelectFreeTextAnswer(
   value: AIAwaitQuestionSubmitParamData | undefined,
 ): string {
   const optionValues = new Set(getSelectOptionValues(question));
-  if (question.multiSelect) {
+  if (question.multiple) {
     return (
       value?.answers?.find((item) => item && !optionValues.has(item))
       || ""
@@ -128,7 +128,7 @@ export function getSelectedOptionAnswers(
   value: AIAwaitQuestionSubmitParamData | undefined,
 ): string[] {
   const optionValues = new Set(getSelectOptionValues(question));
-  if (question.multiSelect) {
+  if (question.multiple) {
     return (value?.answers || []).filter((item) => optionValues.has(item));
   }
   return typeof value?.answer === "string" && optionValues.has(value.answer)

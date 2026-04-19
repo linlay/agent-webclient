@@ -100,7 +100,7 @@ describe("confirm dialog state helpers", () => {
       type: AIAwaitQuestionType.Select,
       question: "环境",
       allowFreeText: true,
-      multiSelect: true,
+      multiple: true,
       options: [
         { label: "dev" },
         { label: "prod" },

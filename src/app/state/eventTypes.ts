@@ -89,7 +89,11 @@ export enum AIAwaitQuestionType {
 }
 
 export type AIAwaitMode = 'question' | 'approval' | 'form';
-export type AIAwaitApprovalDecision = 'approve' | 'reject' | 'approve_always';
+export type AIAwaitApprovalDecision =
+  | 'approve'
+  | 'reject'
+  | 'approve_prefix_run'
+  | 'approve_always'; // legacy replay compatibility only
 
 export interface ResourceData {
   name?: string;
@@ -117,6 +121,12 @@ export interface AIAwaitQuestionOption {
   value?: string;
 }
 
+export interface AIAwaitApprovalOption {
+  label: string;
+  description?: string;
+  value: string;
+}
+
 export interface AIAwaitQuestion {
   id: string;
   type: AIAwaitQuestionType;
@@ -124,7 +134,7 @@ export interface AIAwaitQuestion {
   question: string;
   placeholder?: string;
   options?: AIAwaitQuestionOption[];
-  multiSelect?: boolean;
+  multiple?: boolean;
   allowFreeText?: boolean;
   freeTextPlaceholder?: string;
 }
@@ -132,12 +142,16 @@ export interface AIAwaitQuestion {
 export interface AIAwaitApproval {
   id: string;
   command: string;
-  level?: string;
+  description?: string;
+  options?: AIAwaitApprovalOption[];
+  allowFreeText?: boolean;
+  freeTextPlaceholder?: string;
 }
 
 export interface AIAwaitForm {
   id: string;
   action: string;
+  command?: string;
   initialPayload?: Record<string, unknown> | null;
 }
 
@@ -211,6 +225,7 @@ export interface AIEventCommonFields {
   viewportType?: ViewportTypeEnum;
   mode?: AIAwaitMode;
   payload?: Record<string, unknown> | null;
+  viewportPayload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
   artifactId?: string;
   artifact?: ResourceData;

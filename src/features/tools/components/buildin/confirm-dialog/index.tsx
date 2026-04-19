@@ -373,13 +373,13 @@ const Question = forwardRef<
         const checkboxRef = checkboxsRef.current[i];
         if (checkboxRef) {
           checkboxRef.input?.click();
-          if (!data.multiSelect) {
+          if (!data.multiple) {
             onEnter();
           }
         }
       },
     }),
-    [data.multiSelect, data.type, onEnter],
+    [data.multiple, data.type, onEnter],
   );
 
   const setAnswer = useCallback(
@@ -485,7 +485,7 @@ const Question = forwardRef<
           const optionKeys = keys.filter(
             (item) => item !== FREE_TEXT_OPTION_VALUE,
           );
-          if (data.multiSelect) {
+          if (data.multiple) {
             const nextAnswers = freeTextAnswer
               ? [...optionKeys, freeTextAnswer]
               : optionKeys;
@@ -543,7 +543,7 @@ const Question = forwardRef<
             value={freeTextAnswer}
             onChange={(e) => {
               const nextValue = e.target.value;
-              if (data.multiSelect) {
+              if (data.multiple) {
                 setAnswer({
                   answers: nextValue
                     ? [...selectedOptionAnswers, nextValue]

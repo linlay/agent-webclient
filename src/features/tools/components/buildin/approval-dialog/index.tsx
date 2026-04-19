@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Flex, Input, message } from "antd";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Flex, Input, Radio, message } from "antd";
 import type {
+  AIAwaitApproval,
   AIAwaitApprovalDecision,
+  AIAwaitApprovalOption,
+  AIAwaitApprovalSubmitParamData,
   AIAwaitSubmitPayloadData,
   ApprovalActiveAwaiting,
 } from "@/app/state/types";
@@ -13,15 +16,59 @@ interface ApprovalDialogProps {
   onResolvedByOther?: () => void;
 }
 
+const DEFAULT_APPROVAL_OPTIONS: AIAwaitApprovalOption[] = [
+  {
+    label: "同意",
+    value: "approve",
+    description: "只本次放行这条命令",
+  },
+  {
+    label: "同意（本次运行同前缀都放行）",
+    value: "approve_prefix_run",
+    description: "本次 run 内同规则命令自动放行，不再重复询问",
+  },
+  {
+    label: "拒绝",
+    value: "reject",
+    description: "终止这条命令",
+  },
+];
+
+export function resolveApprovalOptions(
+  approval: Pick<ApprovalActiveAwaiting["approvals"][number], "options">,
+): AIAwaitApprovalOption[] {
+  const normalized = Array.isArray(approval.options)
+    ? approval.options.filter((option): option is AIAwaitApprovalOption => Boolean(option?.label) && Boolean(option?.value))
+    : [];
+  return normalized.length > 0
+    ? normalized.map((option) => ({ ...option }))
+    : DEFAULT_APPROVAL_OPTIONS.map((option) => ({ ...option }));
+}
+
+export function buildApprovalSubmitParams(
+  approvals: AIAwaitApproval[],
+  decisions: Record<string, AIAwaitApprovalDecision | undefined>,
+  reasons: Record<string, string>,
+): AIAwaitApprovalSubmitParamData[] {
+  return approvals.map((approval) => ({
+    id: approval.id,
+    decision: decisions[approval.id] as AIAwaitApprovalDecision,
+    ...(approval.allowFreeText && reasons[approval.id]?.trim()
+      ? { reason: reasons[approval.id].trim() }
+      : {}),
+  }));
+}
+
 export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   data,
   onSubmit,
   onResolvedByOther,
 }) => {
   const resolvedByOtherHandledRef = useRef(false);
-  const [loadingDecision, setLoadingDecision] =
-    useState<AIAwaitApprovalDecision | null>(null);
-  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [decisions, setDecisions] = useState<Record<string, AIAwaitApprovalDecision | undefined>>({});
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const readOnly = submitting || Boolean(data.resolvedByOther);
 
   useEffect(() => {
     if (!data.resolvedByOther) {
@@ -36,29 +83,45 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     onResolvedByOther?.();
   }, [data.resolvedByOther, onResolvedByOther]);
 
+  useEffect(() => {
+    setDecisions((current) => {
+      const next: Record<string, AIAwaitApprovalDecision | undefined> = {};
+      data.approvals.forEach((approval) => {
+        next[approval.id] = current[approval.id];
+      });
+      return next;
+    });
+    setReasons((current) => {
+      const next: Record<string, string> = {};
+      data.approvals.forEach((approval) => {
+        next[approval.id] = current[approval.id] || "";
+      });
+      return next;
+    });
+  }, [data.approvals]);
+
+  const canSubmit = useMemo(
+    () => !readOnly && data.approvals.every((approval) => Boolean(decisions[approval.id])),
+    [data.approvals, decisions, readOnly],
+  );
+
   const submitDecision = useCallback(
-    async (decision: AIAwaitApprovalDecision) => {
-      if (!onSubmit) {
+    async () => {
+      if (!onSubmit || readOnly) {
         return;
       }
-      setLoadingDecision(decision);
+      setSubmitting(true);
       try {
         await onSubmit({
           runId: data.runId,
           awaitingId: data.awaitingId,
-          params: data.approvals.map((approval) => ({
-            id: approval.id,
-            decision,
-            ...(decision === "reject" && reason.trim()
-              ? { reason: reason.trim() }
-              : {}),
-          })),
+          params: buildApprovalSubmitParams(data.approvals, decisions, reasons),
         });
       } finally {
-        setLoadingDecision(null);
+        setSubmitting(false);
       }
     },
-    [data.approvals, data.awaitingId, data.runId, onSubmit, reason],
+    [data.approvals, data.awaitingId, data.runId, decisions, onSubmit, readOnly, reasons],
   );
 
   return (
@@ -88,43 +151,68 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
               <div style={{ color: "var(--text-main)", fontWeight: 600 }}>
                 {approval.command}
               </div>
-              {approval.level && (
+              {approval.description && (
                 <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                  等级：{approval.level}
+                  {approval.description}
                 </div>
+              )}
+              <Radio.Group
+                value={decisions[approval.id]}
+                disabled={readOnly}
+                onChange={(event) => {
+                  setDecisions((current) => ({
+                    ...current,
+                    [approval.id]: event.target.value as AIAwaitApprovalDecision,
+                  }));
+                }}
+              >
+                <Flex vertical gap={8}>
+                  {resolveApprovalOptions(approval).map((option) => (
+                    <Radio key={`${approval.id}:${option.value}`} value={option.value}>
+                      <Flex vertical gap={2}>
+                        <span>{option.label}</span>
+                        {option.description && (
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                            {option.description}
+                          </span>
+                        )}
+                      </Flex>
+                    </Radio>
+                  ))}
+                </Flex>
+              </Radio.Group>
+              {approval.allowFreeText && (
+                <Input.TextArea
+                  disabled={readOnly}
+                  value={reasons[approval.id] || ""}
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                  placeholder={approval.freeTextPlaceholder || "可选：填写理由"}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    setReasons((current) => ({
+                      ...current,
+                      [approval.id]: nextValue,
+                    }));
+                  }}
+                />
               )}
             </Flex>
           ))}
-
-          <Input.TextArea
-            value={reason}
-            autoSize={{ minRows: 2, maxRows: 4 }}
-            placeholder="拒绝原因（可选）"
-            onChange={(e) => setReason(e.target.value)}
-          />
         </Flex>
 
         <Flex gap={10} justify="flex-end" align="center">
           <Button
-            onClick={() => {
-              void submitDecision("reject");
-            }}
-            loading={loadingDecision === "reject"}
-          >
-            驳回
-          </Button>
-          <Button
             type="primary"
+            disabled={!canSubmit}
             onClick={() => {
-              void submitDecision("approve");
+              void submitDecision();
             }}
-            loading={loadingDecision === "approve"}
+            loading={submitting}
           >
-            批准
+            提交审批
           </Button>
         </Flex>
       </Flex>
     </div>
   );
 };
-

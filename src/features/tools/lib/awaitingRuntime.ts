@@ -32,7 +32,12 @@ function cloneQuestions(questions: AIAwaitQuestion[]): AIAwaitQuestion[] {
 }
 
 function cloneApprovals(approvals: AIAwaitApproval[]): AIAwaitApproval[] {
-  return approvals.map((approval) => ({ ...approval }));
+  return approvals.map((approval) => ({
+    ...approval,
+    options: Array.isArray(approval.options)
+      ? approval.options.map((option) => ({ ...option }))
+      : undefined,
+  }));
 }
 
 function clonePayload(
@@ -159,9 +164,9 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
               )
               .map((option) => ({ ...option }))
           : [];
-        normalized.multiSelect =
-          typeof question.multiSelect === 'boolean'
-            ? question.multiSelect
+        normalized.multiple =
+          typeof question.multiple === 'boolean'
+            ? question.multiple
             : undefined;
         normalized.allowFreeText =
           typeof question.allowFreeText === 'boolean'
@@ -189,7 +194,28 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
     .map((approval) => ({
       id: toText(approval.id) || toText(approval.command),
       command: toText(approval.command),
-      level: toText(approval.level) || undefined,
+      description: toText(approval.description) || undefined,
+      options: Array.isArray(approval.options)
+        ? approval.options
+            .filter(
+              (option) =>
+                Boolean(option)
+                && typeof option === 'object'
+                && !Array.isArray(option),
+            )
+            .map((option) => ({
+              label: toText(option.label),
+              value: toText(option.value),
+              description: toText(option.description) || undefined,
+            }))
+            .filter((option) => Boolean(option.label) && Boolean(option.value))
+        : undefined,
+      allowFreeText:
+        typeof approval.allowFreeText === 'boolean'
+          ? approval.allowFreeText
+          : undefined,
+      freeTextPlaceholder:
+        toText(approval.freeTextPlaceholder) || undefined,
     }))
     .filter((approval) => Boolean(approval.id) && Boolean(approval.command));
 }
@@ -198,6 +224,7 @@ function normalizeForms(
   value: unknown,
   fallbackAction = '',
   fallbackPayload?: Record<string, unknown> | null,
+  viewportPayload?: Record<string, unknown> | null,
 ): AIAwaitForm[] {
   if (!Array.isArray(value)) {
     if (!fallbackAction) {
@@ -217,11 +244,21 @@ function normalizeForms(
       (item): item is AIAwaitForm =>
         Boolean(item) && typeof item === 'object' && !Array.isArray(item),
     )
-    .map((form) => ({
-      id: toText(form.id) || toText(form.action),
-      action: toText(form.action) || fallbackAction,
-      initialPayload: readAwaitingPayload(form.initialPayload),
-    }))
+    .map((form, index) => {
+      const payloadForms = Array.isArray(viewportPayload?.forms)
+        ? viewportPayload.forms
+        : [];
+      const viewportForm = payloadForms[index];
+      const command = viewportForm && typeof viewportForm === 'object' && !Array.isArray(viewportForm)
+        ? toText((viewportForm as Record<string, unknown>).command) || undefined
+        : undefined;
+      return {
+        id: toText(form.id) || toText(form.action),
+        action: toText(form.action) || fallbackAction,
+        command,
+        initialPayload: readAwaitingPayload(form.initialPayload),
+      };
+    })
     .filter((form) => Boolean(form.id) && Boolean(form.action));
 
   if (normalized.length > 0) {
@@ -357,7 +394,12 @@ export function reduceActiveAwaiting(
         return current;
       }
       const nextForms = nextMode === 'form'
-        ? normalizeForms(event.forms)
+        ? normalizeForms(
+            event.forms,
+            '',
+            undefined,
+            readAwaitingPayload((event as Record<string, unknown>).viewportPayload) ?? null,
+          )
         : normalizeForms(
             event.forms,
             viewportKey,

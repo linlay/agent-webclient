@@ -48,6 +48,36 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
+  it('normalizes multiple select questions and ignores legacy multiSelect', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_multi_1',
+      awaitingId: 'await_multi_1',
+      mode: 'question',
+      questions: [
+        {
+          id: 'q1',
+          type: 'select',
+          question: '请选择环境',
+          multiple: true,
+          multiSelect: true,
+          options: [
+            { label: 'dev' },
+            { label: 'prod' },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(asked?.questions[0]).toMatchObject({
+      id: 'q1',
+      type: 'select',
+      question: '请选择环境',
+      multiple: true,
+    });
+    expect('multiSelect' in (asked?.questions[0] ?? {})).toBe(false);
+  });
+
   it('keeps legacy question awaitings compatible when awaiting.ask omits mode', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
@@ -205,7 +235,14 @@ describe('reduceActiveAwaiting', () => {
         {
           id: 'approve_1',
           command: '删除生产环境缓存',
-          level: 'high',
+          description: '清理线上 Redis 缓存',
+          options: [
+            { label: '同意', value: 'approve' },
+            { label: '同意（本次运行同前缀都放行）', value: 'approve_prefix_run' },
+            { label: '拒绝', value: 'reject' },
+          ],
+          allowFreeText: true,
+          freeTextPlaceholder: '可选：填写理由',
         },
       ],
     });
@@ -222,7 +259,14 @@ describe('reduceActiveAwaiting', () => {
       {
         id: 'approve_1',
         command: '删除生产环境缓存',
-        level: 'high',
+        description: '清理线上 Redis 缓存',
+        options: [
+          { label: '同意', value: 'approve' },
+          { label: '同意（本次运行同前缀都放行）', value: 'approve_prefix_run' },
+          { label: '拒绝', value: 'reject' },
+        ],
+        allowFreeText: true,
+        freeTextPlaceholder: '可选：填写理由',
       },
     ]);
   });
@@ -244,6 +288,17 @@ describe('reduceActiveAwaiting', () => {
           },
         },
       ],
+      viewportPayload: {
+        forms: [
+          {
+            id: 'expense_form',
+            command: 'mock create-expense --payload ...',
+            initialPayload: {
+              amount: 800,
+            },
+          },
+        ],
+      },
     });
 
     const hydrated = {
@@ -277,6 +332,7 @@ describe('reduceActiveAwaiting', () => {
       {
         id: 'expense_form',
         action: '提交报销单',
+        command: 'mock create-expense --payload ...',
         initialPayload: {
           amount: 800,
         },
@@ -427,4 +483,3 @@ describe('reduceActiveAwaiting', () => {
     ).toBeNull();
   });
 });
-

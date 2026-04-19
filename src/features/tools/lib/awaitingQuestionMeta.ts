@@ -20,7 +20,7 @@ interface AwaitingApprovalMeta {
   kind: 'approval';
   id: string;
   command: string;
-  level?: string;
+  description?: string;
 }
 
 interface AwaitingFormMeta {
@@ -122,7 +122,7 @@ export function registerAwaitingApprovalMeta(
       kind: 'approval',
       id: approval.id,
       command: approval.command,
-      level: approval.level,
+      description: approval.description,
     });
   }
 
