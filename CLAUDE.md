@@ -12,7 +12,7 @@
 - 数学公式：KaTeX
 - 测试：Jest、ts-jest
 - 部署：Docker、Nginx 静态站点代理
-- 辅助后端：Go（用于程序发布与容器内启动封装）
+- Program Bundle 后端：Node.js 18+、Express、http-proxy-middleware
 
 ## 3. 架构设计
 应用采用单页前端结构，`src/App.tsx` 负责装配整体布局与上下文。全局状态由 `src/context/AppContext.tsx` 统一管理，消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力拆分在 hooks 和 lib 层。
@@ -31,7 +31,7 @@
 - `src/hooks/`：消息发送、事件处理、动作运行时、语音运行时、Worker 数据同步等逻辑
 - `src/lib/`：API 客户端、SSE / WebSocket 解析、附件处理、worker / timeline 格式化、语音与协议辅助逻辑
 - `src/styles/`：全局样式与设计令牌
-- `backend/`：用于程序化发布的轻量 Go 启动器
+- `backend/`：Program Bundle 使用的轻量 Express 代理服务与测试
 - `scripts/`：镜像、程序包与发布辅助脚本
 - `nginx.conf`：容器内反向代理模板
 - `Makefile`：本地开发、测试、构建与容器命令入口
@@ -71,10 +71,11 @@
 ## 7. 开发要点
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 代理目标由 `BASE_URL` 控制，`/ws` 代理到 `BASE_URL`，语音 WebSocket 与语音相关 HTTP 代理到 `VOICE_BASE_URL`。
+- Program Bundle 运行时会启动 [`backend/server.js`](./backend/server.js)，由 Express 负责静态文件托管、SPA fallback、`/api/*` / `/api/voice/*` / `/ws` 代理。
 - 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 与 `/ws` 到对应上游，并将 `/api/voice/ws`、`/api/voice/*` 单独反向代理到 `VOICE_BASE_URL`。
 - SSE 和 WebSocket 请求都需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- 当前仓库存在 `package-lock.json`；常规本地安装走 `make install` / `npm install`，发布脚本在锁文件可用时会优先使用 `npm ci`。
+- 当前仓库存在根目录 `package-lock.json`；常规本地安装走 `make install`，会同时安装前端依赖和 `backend/package.json` 中的 Program Bundle 运行时依赖。
 
 ## 8. 开发流程
 本地开发流程：

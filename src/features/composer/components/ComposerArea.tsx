@@ -55,6 +55,7 @@ import { TextAreaRef } from "antd/es/input/TextArea";
 import { Buildin } from "@/features/tools/components/buildin";
 import { message } from "antd";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
+import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 
 type FormActiveAwaitingPatch = Pick<
   FormActiveAwaiting,
@@ -1361,6 +1362,12 @@ export const ComposerArea: React.FC = () => {
     updateMentionSuggestions,
   ]);
 
+  const isTimelineEmpty = useMemo(() => {
+    return (
+      buildTimelineDisplayItems(timelineEntries, state.events).length === 0
+    );
+  }, [timelineEntries, state.events]);
+
   return isAwaitingActive && activeAwaiting ? (
     activeAwaiting.mode === "form" ? (
       <AwaitingHtmlContainer
@@ -1534,7 +1541,10 @@ export const ComposerArea: React.FC = () => {
                         ? "前端工具处理中，请在确认面板内提交"
                         : "回复消息...（Enter 发送，Shift+Enter 换行）"
                     }
-                    autoSize
+                    autoSize={{
+                      minRows: isTimelineEmpty ? 5 : 1,
+                      maxRows: 10
+                    }}
                     disabled={isFrontendActive}
                     value={inputValue}
                     onChange={(e) => {

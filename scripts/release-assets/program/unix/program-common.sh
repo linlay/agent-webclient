@@ -7,11 +7,15 @@ APP_NAME="agent-webclient"
 MANIFEST_FILE="$BUNDLE_ROOT/manifest.json"
 ENV_EXAMPLE_FILE="$BUNDLE_ROOT/.env.example"
 ENV_FILE="$BUNDLE_ROOT/.env"
-BACKEND_BIN="$BUNDLE_ROOT/backend/$APP_NAME"
+BACKEND_ENTRY="$BUNDLE_ROOT/backend/server.js"
+BACKEND_PACKAGE_FILE="$BUNDLE_ROOT/backend/package.json"
+BACKEND_NODE_MODULES_DIR="$BUNDLE_ROOT/backend/node_modules"
 DIST_DIR="$BUNDLE_ROOT/frontend/dist"
 RUN_DIR="$BUNDLE_ROOT/run"
 PID_FILE="$RUN_DIR/$APP_NAME.pid"
 LOG_FILE="$RUN_DIR/$APP_NAME.log"
+NODE_CMD=""
+PROGRAM_USE_ELECTRON_NODE=0
 
 program_die() {
   echo "[program] $*" >&2
@@ -31,7 +35,9 @@ program_require_dir() {
 program_validate_bundle() {
   program_require_file "$MANIFEST_FILE"
   program_require_file "$ENV_EXAMPLE_FILE"
-  [[ -x "$BACKEND_BIN" ]] || program_die "backend binary is not executable: $BACKEND_BIN"
+  program_require_file "$BACKEND_ENTRY"
+  program_require_file "$BACKEND_PACKAGE_FILE"
+  program_require_dir "$BACKEND_NODE_MODULES_DIR"
   program_require_dir "$DIST_DIR"
   program_require_file "$DIST_DIR/index.html"
 }
@@ -46,6 +52,28 @@ program_load_env() {
   BASE_URL="${BASE_URL:-http://127.0.0.1:11949}"
   VOICE_BASE_URL="${VOICE_BASE_URL:-$BASE_URL}"
   export PORT BASE_URL VOICE_BASE_URL
+}
+
+resolve_node_bin() {
+  if [[ -n "${NODE_BIN:-}" ]]; then
+    [[ -x "$NODE_BIN" ]] || program_die "NODE_BIN is not executable: $NODE_BIN"
+    NODE_CMD="$NODE_BIN"
+    PROGRAM_USE_ELECTRON_NODE=1
+    return
+  fi
+
+  NODE_CMD="$(command -v node 2>/dev/null || true)"
+  [[ -n "$NODE_CMD" ]] || program_die "node runtime not found; install Node.js 18+ or set NODE_BIN in .env"
+  PROGRAM_USE_ELECTRON_NODE=0
+}
+
+program_prepare_node_command() {
+  resolve_node_bin
+  if [[ "$PROGRAM_USE_ELECTRON_NODE" == "1" ]]; then
+    export ELECTRON_RUN_AS_NODE=1
+    return
+  fi
+  unset ELECTRON_RUN_AS_NODE || true
 }
 
 program_prepare_runtime_dirs() {
@@ -76,8 +104,9 @@ program_start_backend_daemon() {
   local pid
 
   program_clear_stale_pid
+  program_prepare_node_command
   : >"$LOG_FILE"
-  nohup "$BACKEND_BIN" >>"$LOG_FILE" 2>&1 &
+  nohup "$NODE_CMD" "$BACKEND_ENTRY" >>"$LOG_FILE" 2>&1 &
   pid=$!
   printf '%s\n' "$pid" >"$PID_FILE"
   sleep 1
@@ -91,7 +120,8 @@ program_start_backend_daemon() {
 }
 
 program_exec_backend() {
-  exec "$BACKEND_BIN"
+  program_prepare_node_command
+  exec "$NODE_CMD" "$BACKEND_ENTRY"
 }
 
 program_stop_backend() {

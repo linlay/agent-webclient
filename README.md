@@ -5,7 +5,7 @@
 
 当前仓库只提供 Web 客户端。发布链路分为两类：
 
-- Program Bundle：纯前端宿主机部署包，包含静态资源和宿主机元数据
+- Program Bundle：宿主机部署包，包含静态资源、Express 代理后端和宿主机元数据
 - Image Bundle：包含离线 Docker 镜像、compose 和运行脚本的镜像部署包
 
 ## 2. 快速开始
@@ -39,6 +39,14 @@ make dev
 
 默认访问地址为 [http://localhost:11948](http://localhost:11948)。开发模式下，Webpack Dev Server 会将普通 `/api/*` 代理到 `BASE_URL`，并将非语音 JSON API 默认通过 `/ws` 转发到 `BASE_URL`。语音 WebSocket 使用 `/api/voice/ws` 单独代理到 `VOICE_BASE_URL`。Webpack 自身的热更新 WebSocket 会使用内部路径 `/__webpack_hmr`，避免与业务 `/ws` 冲突。SSE 仅保留为手动兼容模式。
 
+### 本地验证 Program Bundle 后端
+```bash
+make build
+node backend/server.js
+```
+
+该命令会启动 Express 后端并托管生产构建产物。仓库内运行时会优先读取根目录 `dist/`；解压后的 Program Bundle 运行时会读取 `frontend/dist/`。
+
 ### 测试
 ```bash
 make test
@@ -59,15 +67,16 @@ make release
 make release-program
 ```
 
-该命令会先生成生产环境 `dist/`，再输出纯前端版本化压缩包：
+该命令会先生成生产环境 `dist/`，再输出带 Node.js 后端的版本化压缩包：
 
-- 压缩包：`dist/release/agent-webclient-vX.Y.Z.tar.gz`
+- macOS：`dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz`
+- Windows：`dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip`
 - 解压目录：`agent-webclient/`
 
 Program Bundle 约束：
 
-- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`
-- 不包含 `server/`、`node_modules/`、`start.sh`、`stop.sh`、`compose.release.yml`、`nginx.conf`
+- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.js`、`backend/package.json`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
+- Desktop 内运行时会通过 `.env` 中的 `NODE_BIN` 使用 Electron 自带 Node；独立部署时回退到系统 Node.js 18+
 - 版本号来自根目录 [`VERSION`](./VERSION)，格式固定为 `vX.Y.Z`
 
 ## 3. 配置说明
@@ -116,18 +125,26 @@ make release-program
 - `make release` 与 `make release-program` 行为一致。
 - 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
 - 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
-- 最终产物输出到 `dist/release/agent-webclient-vX.Y.Z.tar.gz`。
-- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`。
+- 默认产物为 `darwin/arm64` 和 `windows/amd64` 两个平台；也可以通过 `PROGRAM_TARGET_MATRIX=<os>/<arch>` 覆盖。
+- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`backend/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
 - 打包完成后，工作区只保留 `dist/release/` 下的最终压缩包，不保留展开的 `dist/js`、`dist/css`、`dist/fonts`。
 
 ### Program Bundle 使用
 ```bash
-tar -xzf dist/release/agent-webclient-vX.Y.Z.tar.gz
+tar -xzf dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz
 cd agent-webclient
+cp .env.example .env
 ./deploy.sh
+./start.sh --daemon
 ```
 
-该产物不包含应用进程、`start.sh` 或 `stop.sh`。`deploy.sh` 只做校验和生成 `.env`，然后提示宿主机如何托管 `dist/`。
+部署端需要至少确认：
+- `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
+- `.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
+- 已安装 Node.js 18+，或者由 Desktop 自动注入 `NODE_BIN`。
+- `PORT` 未与宿主机其他服务冲突，默认值为 `11948`。
+
+启动后可通过 `./stop.sh` 停止服务。
 
 ### Image Bundle 发布
 ```bash
@@ -166,7 +183,7 @@ cp .env.example .env
 建议按以下顺序验证：
 
 1. `make release`
-确认生成 `dist/release/agent-webclient-vX.Y.Z.tar.gz`，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`deploy.sh`、`dist/`。
+确认生成对应平台压缩包，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.js`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
 
 2. `make release-program`
 确认行为与 `make release` 一致。

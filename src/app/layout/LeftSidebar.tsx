@@ -22,11 +22,7 @@ import {
 } from "@/features/chats/lib/chatListFormatter";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
-import type {
-  Chat,
-  WorkerConversationRow,
-  WorkerRow,
-} from "@/app/state/types";
+import type { Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { AgentIcon } from "@/shared/icons/agent";
 
 type AgentIconConfig = {
@@ -78,7 +74,6 @@ const WorkerChatPreviewItem: React.FC<{
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
-        <div className="worker-chat-item-badge"></div>
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || "(无预览)"}
         </span>
@@ -396,7 +391,7 @@ export const LeftSidebar: React.FC = () => {
   return (
     <>
       <aside
-        className={`sidebar left-sidebar ${state.leftDrawerOpen || state.layoutMode !== "mobile-drawer" ? "is-open" : ""}`}
+        className={`sidebar left-sidebar ${state.leftDrawerOpen ? "is-open" : ""}`}
         id="left-sidebar"
       >
         {state.conversationMode !== "worker" && (
@@ -410,7 +405,7 @@ export const LeftSidebar: React.FC = () => {
         <div className="sidebar-filter-row">
           <UiInput
             id="chat-search"
-            inputSize="md"
+            inputSize="sm"
             type="text"
             placeholder={
               state.conversationMode === "worker"
@@ -490,6 +485,16 @@ export const LeftSidebar: React.FC = () => {
             )}
           </Spin>
         </div>
+        <UiButton
+          className="icon-btn"
+          id="settings-btn"
+          variant="ghost"
+          aria-label="打开设置"
+          onClick={() => dispatch({ type: "SET_SETTINGS_OPEN", open: true })}
+        >
+          <MaterialIcon name="settings" />
+          <span>设置</span>
+        </UiButton>
       </aside>
 
       <Modal

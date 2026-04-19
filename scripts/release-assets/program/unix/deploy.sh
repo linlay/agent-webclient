@@ -10,5 +10,5 @@ program_validate_bundle
 program_prepare_runtime_dirs
 
 echo "[program-deploy] bundle validated"
-echo "[program-deploy] backend binary: $BACKEND_BIN"
+echo "[program-deploy] backend entry: $BACKEND_ENTRY"
 echo "[program-deploy] runtime directories prepared under $RUN_DIR"

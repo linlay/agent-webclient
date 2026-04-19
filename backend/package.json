@@ -1,0 +1,13 @@
+{
+  "name": "agent-webclient-backend",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Express runtime for the agent-webclient program bundle",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "4.22.1",
+    "http-proxy-middleware": "2.0.9"
+  }
+}
