@@ -341,18 +341,6 @@ textarea {
   background-clip: content-box;
 }
 
-.timeline-empty {
-  margin-top: 56px;
-  border: 1px dashed color-mix(in srgb, var(--line-strong) 58%, transparent);
-  border-radius: var(--radius-lg);
-  background:
-    linear-gradient(150deg, color-mix(in srgb, var(--bg-elev-2) 86%, transparent), color-mix(in srgb, var(--bg-elev-1) 82%, transparent));
-  color: var(--ink-muted);
-  font-size: 14px;
-  text-align: center;
-  padding: 26px;
-}
-
 .timeline-stack {
   position: relative;
   min-height: 100%;

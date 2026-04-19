@@ -1,6 +1,6 @@
 import type { WorkerConversationRow } from '@/app/state/types';
 import { appReducer, createInitialState } from '@/app/state/AppContext';
-import { TRANSPORT_MODE_STORAGE_KEY } from '@/features/transport/lib/transportMode';
+import * as transportModeModule from '@/features/transport/lib/transportMode';
 
 describe('appReducer conversation reset behavior', () => {
   const originalWindow = globalThis.window;
@@ -118,12 +118,9 @@ describe('appReducer conversation reset behavior', () => {
   });
 
   it('hydrates the initial transport mode from localStorage', () => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: {
-        getItem: (key: string) => (key === TRANSPORT_MODE_STORAGE_KEY ? 'sse' : ''),
-      },
-    });
+    jest
+      .spyOn(transportModeModule, 'readStoredTransportMode')
+      .mockReturnValue('sse');
 
     const state = createInitialState();
 
@@ -133,16 +130,45 @@ describe('appReducer conversation reset behavior', () => {
   });
 
   it('defaults the initial transport mode to ws when nothing is stored', () => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: {
-        getItem: () => '',
-      },
-    });
+    jest
+      .spyOn(transportModeModule, 'readStoredTransportMode')
+      .mockReturnValue(null);
 
     const state = createInitialState();
 
     expect(state.transportMode).toBe('ws');
+  });
+
+  it('opens the left drawer by default on desktop widths', () => {
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/',
+          search: '',
+        },
+        innerWidth: 1440,
+      } as Window & typeof globalThis;
+
+    const state = createInitialState();
+
+    expect(state.layoutMode).toBe('desktop-fixed');
+    expect(state.leftDrawerOpen).toBe(true);
+  });
+
+  it('keeps the left drawer closed by default on mobile widths', () => {
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/',
+          search: '',
+        },
+        innerWidth: 900,
+      } as Window & typeof globalThis;
+
+    const state = createInitialState();
+
+    expect(state.layoutMode).toBe('mobile-drawer');
+    expect(state.leftDrawerOpen).toBe(false);
   });
 
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {

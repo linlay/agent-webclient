@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import {
 	DESKTOP_FIXED_BREAKPOINT,
@@ -10,7 +10,6 @@ import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import { RightSidebar } from "@/app/layout/RightSidebar";
-import { WorkerChatSidebar } from "@/features/workers/components/WorkerChatSidebar";
 import { DrawerOverlay } from "@/app/layout/DrawerOverlay";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
@@ -24,6 +23,7 @@ import { useActionRuntime } from "@/features/tools/hooks/useActionRuntime";
 import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
 import { useWsTransport } from "@/features/transport/hooks/useWsTransport";
+import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 // import { useLiveEvents } from "@/hooks/useLiveEvents";
 
 function inferLayoutMode(width: number): LayoutMode {
@@ -54,6 +54,9 @@ export const AppShell: React.FC = () => {
 			: state.layoutMode === "tablet-mixed"
 				? "layout-tablet-mixed"
 				: "";
+	const leftDrawerClass = state.leftDrawerOpen
+		? "left-drawer-open"
+		: "left-drawer-closed";
 
 	/* Responsive layout detection */
 	useEffect(() => {
@@ -73,17 +76,26 @@ export const AppShell: React.FC = () => {
 		state.layoutMode === "mobile-drawer";
 	const desktopRightSidebarVisible =
 		state.desktopDebugSidebarEnabled || Boolean(state.attachmentPreview);
+	const timelineEntries = useMemo(() => {
+		return state.timelineOrder
+			.map((id) => state.timelineNodes.get(id))
+			.filter((node): node is NonNullable<typeof node> => Boolean(node));
+	}, [state.timelineOrder, state.timelineNodes]);
+	const isTimelineEmpty = useMemo(() => {
+		return (
+			buildTimelineDisplayItems(timelineEntries, state.events).length === 0
+		);
+	}, [timelineEntries, state.events]);
 
 	return (
 		<div
 			ref={appRef}
-			className={`app-shell ${layoutClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"}`.trim()}
+			className={`app-shell ${layoutClass} ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
 			id="app"
 		>
 			<TopNav />
 			<LeftSidebar />
 			<ConversationStage />
-			<WorkerChatSidebar />
 			<RightSidebar />
 			<BottomDock />
 			<CommandStatusOverlay />

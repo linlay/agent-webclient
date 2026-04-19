@@ -137,6 +137,15 @@ export function useChatActions() {
     });
   }, []);
 
+  const applyLoadedChatState = useCallback((chatId: string) => {
+    dispatch({ type: 'SET_CHAT_ID', chatId });
+    clearArtifactAutoCollapseTimer();
+    clearPlanAutoCollapseTimer();
+    dispatch({ type: 'RESET_CONVERSATION' });
+    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
+    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
+  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, dispatch]);
+
   const detachActiveConversationSession = useCallback(() => {
     const state = stateRef.current;
     const activeRequestId = String(activeQuerySessionRequestIdRef.current || '').trim();
@@ -214,6 +223,9 @@ export function useChatActions() {
     session.abortController = restored.abortController;
     markSessionSnapshotApplied(session);
 
+    clearArtifactAutoCollapseTimer();
+    clearPlanAutoCollapseTimer();
+    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
     flushSync(() => {
       dispatch({
         type: 'BATCH_UPDATE',
@@ -223,7 +235,14 @@ export function useChatActions() {
     window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
     activeQuerySessionRequestIdRef.current = session.requestId;
     return true;
-  }, [activeQuerySessionRequestIdRef, chatQuerySessionIndexRef, dispatch, querySessionsRef]);
+  }, [
+    activeQuerySessionRequestIdRef,
+    chatQuerySessionIndexRef,
+    clearArtifactAutoCollapseTimer,
+    clearPlanAutoCollapseTimer,
+    dispatch,
+    querySessionsRef,
+  ]);
 
   const loadChat = useCallback(
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
@@ -232,12 +251,6 @@ export function useChatActions() {
 
       const seq = ++loadSeqRef.current;
       detachActiveConversationSession();
-      dispatch({ type: 'SET_CHAT_ID', chatId });
-      clearArtifactAutoCollapseTimer();
-      clearPlanAutoCollapseTimer();
-      dispatch({ type: 'RESET_CONVERSATION' });
-      window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
-      window.dispatchEvent(new CustomEvent('agent:voice-reset'));
 
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
       const workerKey = createWorkerKeyFromChat((currentChat || {}) as Chat);
@@ -289,6 +302,8 @@ export function useChatActions() {
               || Boolean(rs.plan?.planId && chatPlan.planId && rs.plan.planId !== chatPlan.planId),
           });
         }
+
+        applyLoadedChatState(chatId);
 
         /* Dispatch the complete replay result as a single batch update */
         dispatch({
@@ -346,6 +361,7 @@ export function useChatActions() {
       detachActiveConversationSession,
       dispatch,
       focusComposerSoon,
+      applyLoadedChatState,
       restoreSessionConversation,
       stateRef,
     ]
