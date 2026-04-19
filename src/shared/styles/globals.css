@@ -2088,7 +2088,6 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .timeline-content-viewport {
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg-elev-2) 94%, transparent);
 }
 
 .timeline-content-viewport-body {
