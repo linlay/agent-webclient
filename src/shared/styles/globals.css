@@ -2174,6 +2174,14 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   gap: 14px;
 }
 
+.composer-stack {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .composer-pill {
   --composer-main-min-height: 84px;
   position: relative;
@@ -2210,6 +2218,87 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   outline: none;
   resize: none;
   overflow-y: hidden;
+}
+
+.composer-wonders {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.composer-wonders-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 4px;
+}
+
+.composer-wonders-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-electric-strong);
+}
+
+.composer-wonders-title {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.composer-wonders-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.composer-wonder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 100%;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-elev-2) 96%, white),
+      color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2))
+    );
+  padding: 14px 15px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.composer-wonder-card:hover,
+.composer-wonder-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-electric) 42%, var(--line-soft));
+  box-shadow:
+    var(--shadow-soft),
+    0 0 0 3px color-mix(in srgb, var(--accent-soft) 72%, transparent);
+  outline: none;
+}
+
+.composer-wonder-index {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.composer-wonder-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .composer-attachments-shell {
@@ -6173,6 +6262,16 @@ html[data-theme="dark"] .sidebar-settings-menu {
 
   .command-scope-group {
     flex-wrap: wrap;
+  }
+
+  .composer-wonders-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .composer-wonders-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

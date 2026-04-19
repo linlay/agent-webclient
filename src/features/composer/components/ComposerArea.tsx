@@ -21,6 +21,7 @@ import {
   uploadFile,
 } from "@/shared/api/apiClient";
 import {
+  getAgent,
   interruptChat,
   learnChat,
   rememberChat,
@@ -44,6 +45,10 @@ import {
   getFilteredSlashCommands,
   getLatestQueryText,
 } from "@/features/composer/lib/slashCommands";
+import {
+  normalizeWonders,
+  pickRandomWonders,
+} from "@/features/composer/lib/wonders";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
@@ -145,15 +150,21 @@ export const ComposerArea: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<TextAreaRef>(null);
   const attachmentViewportRef = useRef<HTMLDivElement>(null);
+  const blankWonderSignatureRef = useRef("");
   const isComposingRef = useRef(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
+  const wasBlankConversationRef = useRef(false);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [attachmentChatId, setAttachmentChatId] = useState("");
+  const [agentWonderCache, setAgentWonderCache] = useState<
+    Record<string, string[]>
+  >({});
   const [slashDismissed, setSlashDismissed] = useState(false);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
+  const [sampledWonders, setSampledWonders] = useState<string[]>([]);
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
@@ -191,6 +202,25 @@ export const ComposerArea: React.FC = () => {
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
+  const currentAgentKey = useMemo(() => {
+    if (currentWorker?.type !== "agent") {
+      return "";
+    }
+    return String(currentWorker.sourceId || "").trim();
+  }, [currentWorker]);
+  const currentAgentWonders = useMemo(() => {
+    if (!currentAgentKey) {
+      return [];
+    }
+    const agent = state.agents.find(
+      (item) => String(item?.key || "").trim() === currentAgentKey,
+    );
+    const fromState = normalizeWonders(agent?.wonders);
+    if (fromState.length > 0) {
+      return fromState;
+    }
+    return agentWonderCache[currentAgentKey] || [];
+  }, [agentWonderCache, currentAgentKey, state.agents]);
   const voiceModeAvailable = currentWorker?.type === "agent";
   const isVoiceMode = state.inputMode === "voice";
   const voiceUserPreview = state.voiceChat.partialUserText || "等待你开口...";
@@ -1263,29 +1293,33 @@ export const ComposerArea: React.FC = () => {
       window.removeEventListener("agent:focus-composer", onFocusComposer);
   }, []);
 
+  const applyComposerDraft = useCallback((draft: string) => {
+    setInputValue(draft);
+    setSlashDismissed(false);
+    if (draft.startsWith("/")) {
+      closeMention();
+    } else {
+      updateMentionSuggestions(draft);
+    }
+    window.requestAnimationFrame(() => {
+      const el = textareaRef.current?.resizableTextArea?.textArea;
+      if (!el) return;
+      el.focus();
+      const caret = draft.length;
+      el.setSelectionRange(caret, caret);
+    });
+  }, [closeMention, updateMentionSuggestions]);
+
   useEffect(() => {
     const onSetDraft = (event: Event) => {
       const draft = String((event as CustomEvent).detail?.draft || "");
-      setInputValue(draft);
-      setSlashDismissed(false);
-      if (draft.startsWith("/")) {
-        closeMention();
-      } else {
-        updateMentionSuggestions(draft);
-      }
-      window.requestAnimationFrame(() => {
-        const el = textareaRef.current?.resizableTextArea?.textArea;
-        if (!el) return;
-        el.focus();
-        const caret = draft.length;
-        el.setSelectionRange(caret, caret);
-      });
+      applyComposerDraft(draft);
     };
 
     window.addEventListener("agent:set-composer-draft", onSetDraft);
     return () =>
       window.removeEventListener("agent:set-composer-draft", onSetDraft);
-  }, [closeMention, updateMentionSuggestions]);
+  }, [applyComposerDraft]);
 
   useEffect(() => {
     const onSelectMention = (event: Event) => {
@@ -1367,6 +1401,85 @@ export const ComposerArea: React.FC = () => {
       buildTimelineDisplayItems(timelineEntries, state.events).length === 0
     );
   }, [timelineEntries, state.events]);
+  const isBlankConversation =
+    isTimelineEmpty && !String(state.chatId || "").trim();
+
+  useEffect(() => {
+    if (!currentAgentKey) {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(agentWonderCache, currentAgentKey)) {
+      return;
+    }
+
+    let cancelled = false;
+    void getAgent(currentAgentKey)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+        const payload = (response.data || {}) as { wonders?: unknown };
+        const wonders = normalizeWonders(payload.wonders);
+        setAgentWonderCache((current) => {
+          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
+            return current;
+          }
+          return {
+            ...current,
+            [currentAgentKey]: wonders,
+          };
+        });
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setAgentWonderCache((current) => {
+          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
+            return current;
+          }
+          return {
+            ...current,
+            [currentAgentKey]: [],
+          };
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agentWonderCache, currentAgentKey]);
+
+  useEffect(() => {
+    const signature = currentAgentKey
+      ? `${currentAgentKey}\u0000${currentAgentWonders.join("\u0001")}`
+      : "";
+    const shouldShowWonders =
+      isBlankConversation && signature !== "" && currentAgentWonders.length > 0;
+
+    if (!shouldShowWonders) {
+      if (sampledWonders.length > 0) {
+        setSampledWonders([]);
+      }
+      blankWonderSignatureRef.current = "";
+      wasBlankConversationRef.current = false;
+      return;
+    }
+
+    if (
+      !wasBlankConversationRef.current
+      || blankWonderSignatureRef.current !== signature
+    ) {
+      setSampledWonders(pickRandomWonders(currentAgentWonders, 3));
+      blankWonderSignatureRef.current = signature;
+    }
+    wasBlankConversationRef.current = true;
+  }, [
+    currentAgentKey,
+    currentAgentWonders,
+    isBlankConversation,
+    sampledWonders.length,
+  ]);
 
   return isAwaitingActive && activeAwaiting ? (
     activeAwaiting.mode === "form" ? (
@@ -1428,48 +1541,49 @@ export const ComposerArea: React.FC = () => {
           getPopupContainer={() => composerRef.current ?? document.body}
           onSelect={(commandId) => void executeSlashCommand(commandId)}
         >
-          <div
-            ref={composerPillRef}
-            className={`composer-pill ${isFrontendActive ? "hidden" : ""} ${isVoiceMode ? "is-voice-mode" : ""}`}
-          >
+          <div className="composer-stack">
             <div
-              ref={attachmentViewportRef}
-              className="composer-attachments-viewport"
-              aria-live="polite"
+              ref={composerPillRef}
+              className={`composer-pill ${isFrontendActive ? "hidden" : ""} ${isVoiceMode ? "is-voice-mode" : ""}`}
             >
-              <div className="composer-attachments">
-                {attachments.map((attachment) => (
-                  <AttachmentCard
-                    key={attachment.id}
-                    attachment={{
-                      name: attachment.name,
-                      size: attachment.size,
-                      type: attachment.type,
-                      mimeType: attachment.mimeType,
-                      url: attachment.resourceUrl,
-                      previewUrl: attachment.previewUrl,
-                    }}
-                    variant="composer"
-                    status={attachment.status}
-                    displayMode={
-                      useUnifiedComposerAttachmentRow ? "file" : "auto"
-                    }
-                    thumbnailMode={
-                      useUnifiedComposerAttachmentRow ? "inline" : "auto"
-                    }
-                    subtitle={getComposerAttachmentSubtitle(
-                      attachment,
-                      useUnifiedComposerAttachmentRow,
-                    )}
-                    onRemove={() => handleRemoveAttachment(attachment.id)}
-                    removeLabel={`移除文件 ${attachment.name}`}
-                  />
-                ))}
+              <div
+                ref={attachmentViewportRef}
+                className="composer-attachments-viewport"
+                aria-live="polite"
+              >
+                <div className="composer-attachments">
+                  {attachments.map((attachment) => (
+                    <AttachmentCard
+                      key={attachment.id}
+                      attachment={{
+                        name: attachment.name,
+                        size: attachment.size,
+                        type: attachment.type,
+                        mimeType: attachment.mimeType,
+                        url: attachment.resourceUrl,
+                        previewUrl: attachment.previewUrl,
+                      }}
+                      variant="composer"
+                      status={attachment.status}
+                      displayMode={
+                        useUnifiedComposerAttachmentRow ? "file" : "auto"
+                      }
+                      thumbnailMode={
+                        useUnifiedComposerAttachmentRow ? "inline" : "auto"
+                      }
+                      subtitle={getComposerAttachmentSubtitle(
+                        attachment,
+                        useUnifiedComposerAttachmentRow,
+                      )}
+                      onRemove={() => handleRemoveAttachment(attachment.id)}
+                      removeLabel={`移除文件 ${attachment.name}`}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="composer-mode-shell">
-              <div className="composer-mode-main">
-                {isVoiceMode ? (
+              <div className="composer-mode-shell">
+                <div className="composer-mode-main">
+                  {isVoiceMode ? (
                   <div
                     className={`voice-chat-panel is-${state.voiceChat.status}`}
                     aria-live="polite"
@@ -1531,172 +1645,198 @@ export const ComposerArea: React.FC = () => {
                       </div>
                     )}
                   </div>
-                ) : (
-                  <Input.TextArea
-                    ref={textareaRef}
-                    id="message-input"
-                    variant="borderless"
-                    placeholder={
-                      isFrontendActive
-                        ? "前端工具处理中，请在确认面板内提交"
-                        : "回复消息...（Enter 发送，Shift+Enter 换行）"
-                    }
-                    autoSize={{
-                      minRows: isTimelineEmpty ? 5 : 1,
-                      maxRows: 10
-                    }}
-                    disabled={isFrontendActive}
-                    value={inputValue}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setInputValue(next);
-                      setSlashDismissed(false);
-                      if (slashCommands.length > 0 || next.startsWith("/")) {
-                        closeMention();
+                  ) : (
+                    <Input.TextArea
+                      ref={textareaRef}
+                      id="message-input"
+                      variant="borderless"
+                      placeholder={
+                        isFrontendActive
+                          ? "前端工具处理中，请在确认面板内提交"
+                          : "回复消息...（Enter 发送，Shift+Enter 换行）"
                       }
-                      if (!next.startsWith("/")) {
-                        updateMentionSuggestions(next);
-                      }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    onCompositionStart={() => {
-                      isComposingRef.current = true;
-                    }}
-                    onCompositionEnd={() => {
-                      isComposingRef.current = false;
-                    }}
-                  />
-                )}
+                      autoSize={{
+                        minRows: isTimelineEmpty ? 5 : 1,
+                        maxRows: 10
+                      }}
+                      disabled={isFrontendActive}
+                      value={inputValue}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setInputValue(next);
+                        setSlashDismissed(false);
+                        if (slashCommands.length > 0 || next.startsWith("/")) {
+                          closeMention();
+                        }
+                        if (!next.startsWith("/")) {
+                          updateMentionSuggestions(next);
+                        }
+                      }}
+                      onKeyDown={handleKeyDown}
+                      onCompositionStart={() => {
+                        isComposingRef.current = true;
+                      }}
+                      onCompositionEnd={() => {
+                        isComposingRef.current = false;
+                      }}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-            {attachments.length > 0 && (
-              <div
-                className={`composer-attachments-shell ${hasComposerAttachmentOverflow ? "is-scrollable" : ""}`.trim()}
-              >
-                {hasComposerAttachmentOverflow && (
-                  <button
-                    type="button"
-                    className="composer-attachments-nav is-left"
-                    onClick={() => scrollComposerAttachments("left")}
-                    disabled={!attachmentScrollState.canScrollLeft}
-                    aria-label="查看左侧附件"
-                    title="查看左侧附件"
-                  >
-                    <MaterialIcon name="chevron_left" />
-                  </button>
-                )}
-                {hasComposerAttachmentOverflow && (
-                  <button
-                    type="button"
-                    className="composer-attachments-nav is-right"
-                    onClick={() => scrollComposerAttachments("right")}
-                    disabled={!attachmentScrollState.canScrollRight}
-                    aria-label="查看右侧附件"
-                    title="查看右侧附件"
-                  >
-                    <MaterialIcon name="chevron_right" />
-                  </button>
-                )}
-              </div>
-            )}
-            <div className="composer-control-row">
-              <div className="composer-plus-wrap">
-                <UiButton
-                  className="composer-plus-btn"
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  loading={hasUploadingAttachments}
-                  disabled={isFrontendActive || isVoiceMode || state.streaming}
-                  onClick={openFilePicker}
-                  aria-label="上传文件"
-                  title={
-                    isFrontendActive
-                      ? "前端工具处理中，暂时不能上传文件"
-                      : isVoiceMode
-                        ? "请先切回文字输入再上传文件"
-                        : state.streaming
-                          ? "当前运行中，暂不支持追加文件"
-                          : "上传文件"
-                  }
+              {attachments.length > 0 && (
+                <div
+                  className={`composer-attachments-shell ${hasComposerAttachmentOverflow ? "is-scrollable" : ""}`.trim()}
                 >
-                  <MaterialIcon name="add" />
-                </UiButton>
-                <ControlsForm
-                  disabled={isFrontendActive || state.streaming}
-                  onChange={setControlParams}
-                />
-              </div>
-              <div
-                className={`composer-actions ${isVoiceMode ? "has-voice-controls" : ""}`.trim()}
-              >
-                {state.streaming ? (
+                  {hasComposerAttachmentOverflow && (
+                    <button
+                      type="button"
+                      className="composer-attachments-nav is-left"
+                      onClick={() => scrollComposerAttachments("left")}
+                      disabled={!attachmentScrollState.canScrollLeft}
+                      aria-label="查看左侧附件"
+                      title="查看左侧附件"
+                    >
+                      <MaterialIcon name="chevron_left" />
+                    </button>
+                  )}
+                  {hasComposerAttachmentOverflow && (
+                    <button
+                      type="button"
+                      className="composer-attachments-nav is-right"
+                      onClick={() => scrollComposerAttachments("right")}
+                      disabled={!attachmentScrollState.canScrollRight}
+                      aria-label="查看右侧附件"
+                      title="查看右侧附件"
+                    >
+                      <MaterialIcon name="chevron_right" />
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="composer-control-row">
+                <div className="composer-plus-wrap">
                   <UiButton
-                    className="interrupt-btn"
-                    id="interrupt-btn"
-                    variant="danger"
+                    className="composer-plus-btn"
+                    variant="ghost"
                     size="sm"
-                    disabled={isFrontendActive}
-                    onClick={() => void interruptCurrentRun()}
-                  ></UiButton>
-                ) : !isVoiceMode ? (
-                  <>
-                    {state.planningMode && (
+                    iconOnly
+                    loading={hasUploadingAttachments}
+                    disabled={isFrontendActive || isVoiceMode || state.streaming}
+                    onClick={openFilePicker}
+                    aria-label="上传文件"
+                    title={
+                      isFrontendActive
+                        ? "前端工具处理中，暂时不能上传文件"
+                        : isVoiceMode
+                          ? "请先切回文字输入再上传文件"
+                          : state.streaming
+                            ? "当前运行中，暂不支持追加文件"
+                            : "上传文件"
+                    }
+                  >
+                    <MaterialIcon name="add" />
+                  </UiButton>
+                  <ControlsForm
+                    disabled={isFrontendActive || state.streaming}
+                    onChange={setControlParams}
+                  />
+                </div>
+                <div
+                  className={`composer-actions ${isVoiceMode ? "has-voice-controls" : ""}`.trim()}
+                >
+                  {state.streaming ? (
+                    <UiButton
+                      className="interrupt-btn"
+                      id="interrupt-btn"
+                      variant="danger"
+                      size="sm"
+                      disabled={isFrontendActive}
+                      onClick={() => void interruptCurrentRun()}
+                    ></UiButton>
+                  ) : !isVoiceMode ? (
+                    <>
+                      {state.planningMode && (
+                        <UiButton
+                          className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            dispatch({
+                              type: "SET_PLANNING_MODE",
+                              enabled: !state.planningMode,
+                            })
+                          }
+                        >
+                          计划
+                        </UiButton>
+                      )}
                       <UiButton
-                        className={`plan-toggle-btn ${state.planningMode ? "is-active" : ""}`}
-                        variant="ghost"
+                        className={`voice-btn ${speechListening ? "is-listening" : ""}`}
+                        variant="secondary"
                         size="sm"
-                        onClick={() =>
-                          dispatch({
-                            type: "SET_PLANNING_MODE",
-                            enabled: !state.planningMode,
-                          })
+                        iconOnly
+                        disabled={isFrontendActive}
+                        onClick={toggleSpeechInput}
+                        aria-label={
+                          !speechSupported
+                            ? "语音输入不可用"
+                            : speechListening
+                              ? "停止语音输入"
+                              : "语音输入"
+                        }
+                        title={
+                          isFrontendActive
+                            ? "前端工具处理中，暂时不能语音输入"
+                            : speechStatus
                         }
                       >
-                        计划
+                        <MaterialIcon name="mic" />
                       </UiButton>
-                    )}
-                    <UiButton
-                      className={`voice-btn ${speechListening ? "is-listening" : ""}`}
-                      variant="secondary"
-                      size="sm"
-                      iconOnly
-                      disabled={isFrontendActive}
-                      onClick={toggleSpeechInput}
-                      aria-label={
-                        !speechSupported
-                          ? "语音输入不可用"
-                          : speechListening
-                            ? "停止语音输入"
-                            : "语音输入"
-                      }
-                      title={
-                        isFrontendActive
-                          ? "前端工具处理中，暂时不能语音输入"
-                          : speechStatus
-                      }
-                    >
-                      <MaterialIcon name="mic" />
-                    </UiButton>
-                    <UiButton
-                      className="send-btn"
-                      id="send-btn"
-                      variant="primary"
-                      size="sm"
-                      iconOnly
-                      disabled={sendDisabled}
-                      onClick={handleSend}
-                      aria-label="发送"
-                    >
-                      <MaterialIcon name="arrow_upward" />
-                    </UiButton>
-                  </>
-                ) : (
-                  <></>
-                )}
+                      <UiButton
+                        className="send-btn"
+                        id="send-btn"
+                        variant="primary"
+                        size="sm"
+                        iconOnly
+                        disabled={sendDisabled}
+                        onClick={handleSend}
+                        aria-label="发送"
+                      >
+                        <MaterialIcon name="arrow_upward" />
+                      </UiButton>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               </div>
+              {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
             </div>
-            {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
+            {isBlankConversation && sampledWonders.length > 0 && (
+              <section className="composer-wonders" aria-label="推荐问题">
+                <div className="composer-wonders-header">
+                  <div className="composer-wonders-kicker">妙问</div>
+                  <div className="composer-wonders-title">
+                    试试这些推荐问题
+                  </div>
+                </div>
+                <div className="composer-wonders-grid">
+                  {sampledWonders.map((wonder, index) => (
+                    <button
+                      key={`${index}:${wonder}`}
+                      type="button"
+                      className="composer-wonder-card"
+                      onClick={() => applyComposerDraft(wonder)}
+                    >
+                      <span className="composer-wonder-index">
+                        推荐问题 {index + 1}
+                      </span>
+                      <span className="composer-wonder-text">{wonder}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </SlashPalette>
       </div>

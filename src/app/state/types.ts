@@ -429,6 +429,7 @@ export interface Agent {
   key: string;
   name: string;
   role?: string;
+  wonders?: string[];
   controls?: AgentControl[];
   icon?: {
     color?: string;
