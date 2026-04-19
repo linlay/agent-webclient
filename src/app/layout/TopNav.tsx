@@ -8,55 +8,18 @@ import { Divider } from "antd";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
-  statusModifierClass?: "is-ws-ready";
   statusText: string;
-  statusTitle?: string;
 }
 
 export function resolveTopNavStatus(
-  state: Pick<
-    AppState,
-    "streaming" | "events" | "wsStatus" | "wsErrorMessage" | "transportMode"
-  >,
+  state: Pick<AppState, "streaming" | "events">,
 ): TopNavStatusDisplay {
-  const wsErrorMessage = String(state.wsErrorMessage || "").trim();
   const hasRunError = state.events.some((event) => event.type === "run.error");
 
   if (state.streaming) {
     return {
       statusClass: "is-running",
       statusText: "运行中...",
-    };
-  }
-
-  if (state.transportMode === "sse") {
-    if (hasRunError) {
-      return {
-        statusClass: "is-error",
-        statusText: "运行异常",
-      };
-    }
-    return {
-      statusClass: "is-idle",
-      statusText: "SSE 已启用",
-    };
-  }
-
-  if (state.wsStatus === "connecting") {
-    return {
-      statusClass: "is-running",
-      statusText: "WebSocket 连接中...",
-    };
-  }
-
-  if (
-    state.wsStatus === "error" ||
-    (state.wsStatus === "disconnected" && wsErrorMessage)
-  ) {
-    return {
-      statusClass: "is-error",
-      statusText: "WebSocket 连接异常",
-      statusTitle: wsErrorMessage || "WebSocket 连接异常",
     };
   }
 
@@ -69,16 +32,14 @@ export function resolveTopNavStatus(
 
   return {
     statusClass: "is-idle",
-    statusModifierClass: "is-ws-ready",
-    statusText: "ws已就绪",
+    statusText: "待命",
   };
 }
 
 export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const { statusClass, statusModifierClass, statusText, statusTitle } =
-    resolveTopNavStatus(state);
+  const { statusClass, statusText } = resolveTopNavStatus(state);
   const currentWorker = resolveCurrentWorkerSummary(state);
   const currentWorkerRole = String(currentWorker?.role || "").trim() || "--";
   const voiceModeAvailable = currentWorker?.type === "agent";
@@ -223,9 +184,8 @@ export const TopNav: React.FC = () => {
               {currentWorker?.displayName || "未选择员工"}
             </strong>
             <span
-              className={`status-pill ${statusClass}${statusModifierClass ? ` ${statusModifierClass}` : ""}`}
+              className={`status-pill ${statusClass}`}
               id="api-status"
-              title={statusTitle}
             >
               {statusText}
             </span>

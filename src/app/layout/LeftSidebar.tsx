@@ -5,6 +5,7 @@ import {
   CollapseProps,
   Flex,
   Modal,
+  Popover,
   Spin,
   Tooltip,
   Typography,
@@ -16,6 +17,12 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { UiInput } from "@/shared/ui/UiInput";
 import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiTag } from "@/shared/ui/UiTag";
+import {
+  dispatchSidebarSettingsAction,
+  resolveSettingsSummaryBadges,
+  SidebarSettingsMenu,
+  type SidebarSettingsMenuAction,
+} from "@/features/settings/components/SidebarSettingsMenu";
 import {
   formatChatTimeLabel,
   pickChatAgentLabel,
@@ -141,6 +148,7 @@ export const LeftSidebar: React.FC = () => {
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const historyInputRef = useRef<HTMLInputElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
   const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -279,6 +287,16 @@ export const LeftSidebar: React.FC = () => {
     historyItemRefs.current[historyIndex]?.scrollIntoView({ block: "nearest" });
   }, [historyIndex]);
 
+  useEffect(() => {
+    if (!settingsMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSettingsMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [settingsMenuOpen]);
+
   const handleSelectChat = (chatId: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", { detail: { chatId } }),
@@ -320,6 +338,13 @@ export const LeftSidebar: React.FC = () => {
     setHistoryWorkerKey("");
     setHistorySearch("");
     setHistoryIndex(0);
+  };
+
+  const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
+    const shouldClose = dispatchSidebarSettingsAction(action, dispatch);
+    if (shouldClose) {
+      setSettingsMenuOpen(false);
+    }
   };
 
   const getWorkerChatLoading = (chatId: string) => {
@@ -386,6 +411,17 @@ export const LeftSidebar: React.FC = () => {
       state.workerSelectionKey,
       workerIconsByKey,
     ],
+  );
+
+  const settingsSummaryBadges = useMemo(
+    () =>
+      resolveSettingsSummaryBadges({
+        transportMode: state.transportMode,
+        themeMode: state.themeMode,
+        wsStatus: state.wsStatus,
+        wsErrorMessage: state.wsErrorMessage,
+      }),
+    [state.themeMode, state.transportMode, state.wsErrorMessage, state.wsStatus],
   );
 
   return (
@@ -485,16 +521,47 @@ export const LeftSidebar: React.FC = () => {
             )}
           </Spin>
         </div>
-        <UiButton
-          className="icon-btn"
-          id="settings-btn"
-          variant="ghost"
-          aria-label="打开设置"
-          onClick={() => dispatch({ type: "SET_SETTINGS_OPEN", open: true })}
+        <Popover
+          open={settingsMenuOpen}
+          trigger="click"
+          placement="topLeft"
+          overlayClassName="sidebar-settings-popover"
+          onOpenChange={setSettingsMenuOpen}
+          content={
+            <SidebarSettingsMenu
+              wsStatus={state.wsStatus}
+              wsErrorMessage={state.wsErrorMessage}
+              onAction={handleSettingsMenuAction}
+            />
+          }
         >
-          <MaterialIcon name="settings" />
-          <span>设置</span>
-        </UiButton>
+          <UiButton
+            className="icon-btn sidebar-settings-trigger"
+            id="settings-btn"
+            variant="ghost"
+            aria-label="打开设置菜单"
+            aria-haspopup="menu"
+            aria-expanded={settingsMenuOpen}
+          >
+            <MaterialIcon name="settings" />
+            <span>设置</span>
+            <span className="settings-trigger-summary">
+              {settingsSummaryBadges.map((badge) => (
+                <span
+                  key={badge.key}
+                  className="settings-summary-chip"
+                  title={badge.title}
+                >
+                  <MaterialIcon
+                    name={badge.icon}
+                    className="settings-summary-chip-icon"
+                  />
+                  <span>{badge.label}</span>
+                </span>
+              ))}
+            </span>
+          </UiButton>
+        </Popover>
       </aside>
 
       <Modal

@@ -214,7 +214,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       e.stopPropagation();
       handleDecisionChange(
         currentApproval.id,
-        nextOption.value as AIAwaitApprovalDecision,
+        nextOption.decision as AIAwaitApprovalDecision,
       );
     },
     [approvals.length, currentApproval, doIgnore, handleDecisionChange, readOnly],
@@ -299,7 +299,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                   >
                     <Flex vertical gap={8}>
                       {resolveApprovalOptions(approval).map((option) => (
-                        <Radio key={`${approval.id}:${option.value}`} value={option.value}>
+                        <Radio key={`${approval.id}:${option.decision}`} value={option.decision}>
                           <Flex vertical gap={2}>
                             <span>{option.label}</span>
                             {option.description && (

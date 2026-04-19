@@ -205,10 +205,10 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
             )
             .map((option) => ({
               label: toText(option.label),
-              value: toText(option.value),
+              decision: toText(option.decision),
               description: toText(option.description) || undefined,
             }))
-            .filter((option) => Boolean(option.label) && Boolean(option.value))
+            .filter((option) => Boolean(option.label) && Boolean(option.decision))
         : undefined,
       allowFreeText:
         typeof approval.allowFreeText === 'boolean'

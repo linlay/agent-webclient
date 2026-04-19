@@ -60,37 +60,22 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain('id="api-status"');
-		expect(html).toContain("WebSocket 连接异常");
-		expect(html).toContain("status-pill is-error");
-		expect(html).toContain(
-			'title="WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。"',
-		);
+		expect(html).toContain(">待命<");
+		expect(html).toContain("status-pill is-idle");
+		expect(html).not.toContain("WebSocket 连接异常");
 	});
 
-	it("renders websocket connecting status as running", () => {
+	it("renders streaming status as running", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
-			wsStatus: "connecting",
+			streaming: true,
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("WebSocket 连接中...");
+		expect(html).toContain("运行中...");
 		expect(html).toContain("status-pill is-running");
-	});
-
-	it("renders websocket idle status distinctly when websocket is connected", () => {
-		const state = createInitialState();
-		useAppState.mockReturnValue({
-			...state,
-			wsStatus: "connected",
-		});
-
-		const html = renderToStaticMarkup(React.createElement(TopNav));
-
-		expect(html).toContain(">ws已就绪<");
-		expect(html).toContain("status-pill is-idle is-ws-ready");
 	});
 
 	it("renders run errors when websocket transport is not in an error state", () => {
@@ -114,21 +99,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">ws已就绪<");
-		expect(html).toContain("status-pill is-idle is-ws-ready");
-	});
-
-	it("renders sse idle status without websocket-ready styling", () => {
-		const state = createInitialState();
-		useAppState.mockReturnValue({
-			...state,
-			transportMode: "sse",
-		});
-
-		const html = renderToStaticMarkup(React.createElement(TopNav));
-
-		expect(html).toContain(">SSE 已启用<");
+		expect(html).toContain(">待命<");
 		expect(html).toContain("status-pill is-idle");
-		expect(html).not.toContain("is-ws-ready");
 	});
 });

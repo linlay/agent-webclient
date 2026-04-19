@@ -8,17 +8,17 @@ import type {
 const DEFAULT_APPROVAL_OPTIONS: AIAwaitApprovalOption[] = [
   {
     label: "同意",
-    value: "approve",
+    decision: "approve",
     description: "只本次放行这条命令",
   },
   {
     label: "同意（本次运行同前缀都放行）",
-    value: "approve_prefix_run",
+    decision: "approve_prefix_run",
     description: "本次 run 内同规则命令自动放行，不再重复询问",
   },
   {
     label: "拒绝",
-    value: "reject",
+    decision: "reject",
     description: "终止这条命令",
   },
 ];
@@ -29,7 +29,7 @@ export function resolveApprovalOptions(
   const normalized = Array.isArray(approval.options)
     ? approval.options.filter(
         (option): option is AIAwaitApprovalOption =>
-          Boolean(option?.label) && Boolean(option?.value),
+          Boolean(option?.label) && Boolean(option?.decision),
       )
     : [];
   return normalized.length > 0

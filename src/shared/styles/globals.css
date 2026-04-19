@@ -5204,6 +5204,154 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   justify-content: flex-start;
 }
 
+.sidebar-settings-trigger {
+  width: calc(100% - 8px);
+  justify-content: space-between !important;
+  gap: 10px;
+}
+
+.settings-trigger-summary {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 84%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
+  color: var(--ink-muted);
+  font:
+    600 10px/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.settings-summary-chip-icon {
+  font-size: 14px;
+}
+
+.sidebar-settings-popover .ant-popover-inner {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.sidebar-settings-popover .ant-popover-inner-content {
+  padding: 0;
+}
+
+.sidebar-settings-menu {
+  width: min(320px, calc(100vw - 28px));
+  padding: 10px;
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+}
+
+.sidebar-settings-section + .sidebar-settings-section {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--line-soft) 78%, transparent);
+}
+
+.sidebar-settings-section-title {
+  margin: 0 2px 8px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-settings-section-body {
+  display: grid;
+  gap: 6px;
+}
+
+.sidebar-settings-item.ui-btn {
+  width: 100%;
+  padding: 9px 10px;
+  justify-content: flex-start;
+  text-align: left;
+  border-radius: 12px;
+}
+
+.sidebar-settings-item.ui-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-soft) 82%, var(--bg-elev-2));
+  color: var(--ink-1);
+}
+
+.sidebar-settings-item.ui-btn.is-active {
+  border-color: color-mix(
+    in srgb,
+    var(--accent-electric) 36%,
+    var(--line-soft)
+  );
+  background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+}
+
+.sidebar-settings-item.ui-btn.is-disabled {
+  opacity: 0.6;
+}
+
+.sidebar-settings-item-content {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-settings-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-settings-item-icon {
+  font-size: 17px;
+}
+
+.sidebar-settings-item-label {
+  color: var(--ink-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sidebar-settings-item-badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft) 84%, transparent);
+  color: var(--accent-electric-strong);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sidebar-settings-item-description {
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+html[data-theme="dark"] .settings-summary-chip {
+  background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+}
+
+html[data-theme="dark"] .sidebar-settings-popover .ant-popover-inner {
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+}
+
+html[data-theme="dark"] .sidebar-settings-menu {
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+}
+
 .layout-desktop-fixed .right-sidebar {
   transform: translateX(0);
   position: relative;
@@ -5874,7 +6022,6 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 .awaiting-answer-value {
   font-size: 13px;
   line-height: 1.5;
-  font-weight: 500;
   color: var(--text-main);
   white-space: pre-wrap;
 }

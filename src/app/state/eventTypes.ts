@@ -124,7 +124,7 @@ export interface AIAwaitQuestionOption {
 export interface AIAwaitApprovalOption {
   label: string;
   description?: string;
-  value: string;
+  decision: string;
 }
 
 export interface AIAwaitQuestion {
@@ -202,6 +202,7 @@ export interface AIEventCommonFields {
   text?: string;
   error?: unknown;
   result?: unknown;
+  approval?: Record<string, unknown>;
   output?: unknown;
   plan?: AIPlan[];
   arguments?: unknown;
