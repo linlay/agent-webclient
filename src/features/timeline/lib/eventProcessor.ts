@@ -276,7 +276,6 @@ function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
         ? {
             ...item,
             command: meta.command,
-            level: meta.level,
           }
         : item;
     });

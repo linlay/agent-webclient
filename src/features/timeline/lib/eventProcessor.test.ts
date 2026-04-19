@@ -9,6 +9,7 @@ import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
 import {
   clearAllAwaitingQuestionMeta,
+  registerAwaitingApprovalMeta,
   registerAwaitingQuestionMeta,
 } from '@/features/tools/lib/awaitingQuestionMeta';
 
@@ -369,6 +370,43 @@ describe('processEvent', () => {
         answer: '••••••',
         header: '数据库密码',
         question: '请输入数据库密码',
+      },
+    ]);
+  });
+
+  it('rehydrates approval answers without requiring a level field', () => {
+    const state = createState();
+
+    registerAwaitingApprovalMeta('run_1', 'await_1', [
+      {
+        id: 'approval_1',
+        command: 'rm -rf /tmp/demo',
+        description: '删除临时目录',
+      },
+    ]);
+
+    processAndApply(state, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      approvals: [
+        {
+          id: 'approval_1',
+          decision: 'approved',
+          reason: '继续执行',
+        },
+      ],
+      timestamp: 222,
+    }, 'replay', false);
+
+    expect(
+      JSON.parse(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text || '[]'),
+    ).toEqual([
+      {
+        id: 'approval_1',
+        decision: 'approved',
+        reason: '继续执行',
+        command: 'rm -rf /tmp/demo',
       },
     ]);
   });
