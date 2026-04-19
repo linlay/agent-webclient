@@ -12,7 +12,6 @@ interface AwaitingAnswerBlockProps {
 interface AwaitingAnswerDisplayItem {
   key: string;
   title: string;
-  subtitle?: string;
   value: string;
 }
 
@@ -30,21 +29,18 @@ function formatUnknownJson(value: unknown): string {
 function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswerDisplayItem {
   const id = String(item.id || "").trim();
   const question = String(item.question || "").trim();
-  const header = String(item.header || "").trim();
   const title =
     question
     || String(item.command || "").trim()
     || String(item.action || "").trim()
     || id
     || "未命名项";
-  const subtitle = header && header !== title ? header : undefined;
 
   if (typeof item.decision === "string" && item.decision.trim()) {
     const reason = String(item.reason || "").trim();
     return {
       key: `${id}:${item.decision}`,
       title,
-      subtitle,
       value: reason
         ? `${item.decision} · ${reason}`
         : item.decision,
@@ -59,7 +55,6 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
     return {
       key: `${id}:form`,
       title,
-      subtitle,
       value: reason || payloadText || "（无回答内容）",
     };
   }
@@ -68,7 +63,6 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
     return {
       key: `${id}:answer`,
       title,
-      subtitle,
       value: String(item.answer),
     };
   }
@@ -77,7 +71,6 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
     return {
       key: `${id}:answers`,
       title,
-      subtitle,
       value: item.answers.map((entry) => String(entry)).join(", ") || "（无回答内容）",
     };
   }
@@ -93,7 +86,6 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
   return {
     key: id || title,
     title,
-    subtitle,
     value: "（无回答内容）",
   };
 }
@@ -150,12 +142,9 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>
         <Flex vertical gap={10}>
           {items.map((item) => (
-            <Flex vertical key={item.key}>
-              <div>{item.title}</div>
-              {item.subtitle ? (
-                <div style={{ opacity: 0.5, fontSize: 12 }}>{item.subtitle}</div>
-              ) : null}
-              <div style={{ opacity: 0.5, whiteSpace: "pre-wrap" }}>{item.value}</div>
+            <Flex vertical key={item.key} className="awaiting-answer-item">
+              <div className="awaiting-answer-question">{item.title}</div>
+              <div className="awaiting-answer-value">{item.value}</div>
             </Flex>
           ))}
         </Flex>
