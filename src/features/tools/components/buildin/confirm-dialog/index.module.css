@@ -4,6 +4,7 @@
   border-radius: 20px;
   overflow: hidden;
   padding: 10px;
+  background: var(--bg-card);
 
   .Pagination {
     font-size: 12px;
@@ -24,12 +25,16 @@
   .FormItem {
     margin-bottom: 0;
   }
+  button {
+    font-size: 12px;
+
+  }
 }
 
 
 
 .QuestionWrapper {
-
+  font-size: 12px;
   .Question {
     padding: 10px;
     gap: 16px;
@@ -89,9 +94,10 @@
     }
   }
   .Option {
-    padding: 10px;
+    padding: 6px;
     border-radius: 10px;
     color: var(--text-muted);
+    font-size: 12px;
 
     &:hover:not(&.FreeText),
     &:focus-within:not(&.FreeText) {
@@ -111,7 +117,7 @@
   .CheckboxGroup :global(.Selected) {
     color: var(--colorTextSecondary);
     background-color: var(--bg-hover);
-    padding: 1px 8px;
+    padding: 0 6px;
     border-radius: 10px;
     font-size: 12px;
     display: none;

@@ -38,14 +38,12 @@ export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   }
   const tagName = element.tagName;
   return (
-    tagName === "INPUT" ||
-    tagName === "TEXTAREA" ||
-    element.isContentEditable
+    tagName === "INPUT" || tagName === "TEXTAREA" || element.isContentEditable
   );
 }
 
 export function getAwaitingQuestionHeading(question: AIAwaitQuestion): string {
-  return question.question?.trim() || question.header?.trim() || "";
+  return question?.question?.trim() || question?.header?.trim() || "";
 }
 
 export function getAwaitingQuestionPrompt(question: AIAwaitQuestion): string {

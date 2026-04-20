@@ -50,6 +50,7 @@ import {
   hasAwaitingQuestions,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
+import { debounce } from "lodash";
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
@@ -298,6 +299,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           type="link"
           shape="round"
           className={Style.IgnoreButton}
+          size="small"
           onClick={doIgnore}
         >
           <span>忽略</span>
@@ -307,6 +309,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           <Button
             type="primary"
             shape="round"
+            size="small"
             onClick={() => {
               void moveForward();
             }}
@@ -319,6 +322,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
             type="primary"
             shape="round"
             htmlType="submit"
+            size="small"
             loading={loading}
           >
             <span>提交</span>
@@ -367,6 +371,7 @@ const Question = forwardRef<
   const options = getSelectOptions(data);
   const freeTextAnswer = getSelectFreeTextAnswer(data, value);
   const selectedOptionAnswers = getSelectedOptionAnswers(data, value);
+  const onEnterDebounce = useCallback(debounce(onEnter, 500), [onEnter]);
 
   useImperativeHandle(
     ref,
@@ -380,12 +385,12 @@ const Question = forwardRef<
         if (checkboxRef) {
           checkboxRef.input?.click();
           if (!data.multiple) {
-            onEnter();
+            onEnterDebounce();
           }
         }
       },
     }),
-    [data.multiple, data.type, onEnter],
+    [data.multiple, data.type, onEnterDebounce],
   );
 
   const setAnswer = useCallback(
@@ -476,7 +481,7 @@ const Question = forwardRef<
                 : null;
             if (e.key === "Enter" && nextValue !== null) {
               e.preventDefault();
-              onEnter();
+              onEnterDebounce();
             }
           }}
         />
@@ -505,7 +510,7 @@ const Question = forwardRef<
           const last = optionKeys.at(-1);
           setAnswer({ answer: last });
           if (last) {
-            onEnter();
+            onEnterDebounce();
           }
         }}
       >

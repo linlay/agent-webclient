@@ -3551,7 +3551,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   font-size: 11px;
   font-weight: 700;
   color: #fff !important;
-  background: #fff;
+  background: var(--bg-card);
   flex: 0 0 auto;
   align-self: center;
 }
