@@ -279,8 +279,7 @@ button:active {
 
 .ui-btn:focus-visible,
 .ui-input:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 38%, transparent);
+  outline: 2px solid var(--accent-electric);
 }
 
 .ui-btn:disabled {
@@ -1613,7 +1612,7 @@ html[data-theme="dark"] .composer-pill {
 }
 
 html[data-theme="dark"] .composer-pill:focus-within {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 80%, transparent);
+  outline: 2px solid var(--accent-electric);
 }
 
 html[data-theme="dark"] .composer-control-input,
@@ -2203,10 +2202,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .composer-pill:focus-within {
-  border-color: var(--accent-electric);
-  box-shadow:
-    var(--shadow-soft),
-    0 0 0 3px color-mix(in srgb, var(--accent-soft) 78%, transparent);
+  outline: 2px solid var(--accent-electric);
 }
 
 .composer-pill textarea {
@@ -2579,28 +2575,23 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   flex-direction: column;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(224, 231, 241, 0.9);
+  border: 1px solid var(--line-soft);
   border-radius: 16px;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(255, 216, 167, 0.12),
-      transparent 26%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.96),
-      rgba(248, 250, 254, 0.96)
-    );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 12px 28px rgba(17, 39, 76, 0.04);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
 }
 
 .awaiting-panel-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.awaiting-panel-header-main {
+  display: flex;
+  align-items: baseline;
   gap: 8px 12px;
   flex-wrap: wrap;
 }
@@ -2613,6 +2604,23 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .awaiting-panel-caption {
   font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.awaiting-panel-form-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.awaiting-panel-form-switcher-label {
+  max-width: min(320px, 55vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
   font-weight: 700;
   color: var(--ink-muted);
 }

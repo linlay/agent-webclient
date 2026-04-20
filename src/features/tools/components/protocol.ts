@@ -18,6 +18,8 @@ export interface AwaitingViewportData {
   viewportKey: string;
   mode: 'form';
   timeout: number | null;
+  activeFormIndex: number;
+  activeFormId: string;
   forms: FormActiveAwaiting['forms'];
   payload: Record<string, unknown> | null;
 }
@@ -55,6 +57,16 @@ function cloneFormPayload(
   return payload ? { ...payload } : null;
 }
 
+function clampActiveFormIndex(
+  activeFormIndex: number,
+  forms: FormActiveAwaiting['forms'],
+): number {
+  if (forms.length <= 1) {
+    return 0;
+  }
+  return Math.min(forms.length - 1, Math.max(0, activeFormIndex));
+}
+
 export function getAwaitingRenderMode(
   awaiting: ActiveAwaiting | null,
 ): AwaitingRenderMode {
@@ -83,45 +95,53 @@ export function getAwaitingRenderMode(
 
 export function buildAwaitingViewportData(
   awaiting: FormActiveAwaiting,
+  activeFormIndex = 0,
 ): AwaitingViewportData {
   const forms = awaiting.forms ?? [];
+  const resolvedActiveFormIndex = clampActiveFormIndex(activeFormIndex, forms);
+  const activeForm = forms[resolvedActiveFormIndex];
   return {
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     viewportKey: awaiting.viewportKey,
     mode: 'form',
     timeout: awaiting.timeout,
+    activeFormIndex: resolvedActiveFormIndex,
+    activeFormId: activeForm?.id ?? '',
     forms: forms.map((form) => ({
       id: form.id,
       action: form.action,
       title: form.title,
       payload: cloneFormPayload(form),
     })),
-    payload: cloneFormPayload(forms[0]),
+    payload: cloneFormPayload(activeForm),
   };
 }
 
 export function buildAwaitingViewportSignature(
   awaiting: FormActiveAwaiting,
+  activeFormIndex = 0,
 ): string {
-  return JSON.stringify(buildAwaitingViewportData(awaiting));
+  return JSON.stringify(buildAwaitingViewportData(awaiting, activeFormIndex));
 }
 
 export function buildAwaitingInitMessage(
   awaiting: FormActiveAwaiting,
+  activeFormIndex = 0,
 ): AwaitingViewportMessage {
   return {
     type: 'awaiting_init',
-    data: buildAwaitingViewportData(awaiting),
+    data: buildAwaitingViewportData(awaiting, activeFormIndex),
   };
 }
 
 export function buildAwaitingUpdateMessage(
   awaiting: FormActiveAwaiting,
+  activeFormIndex = 0,
 ): AwaitingViewportMessage {
   return {
     type: 'awaiting_update',
-    data: buildAwaitingViewportData(awaiting),
+    data: buildAwaitingViewportData(awaiting, activeFormIndex),
   };
 }
 

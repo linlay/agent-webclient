@@ -73,6 +73,8 @@ describe('awaiting protocol helpers', () => {
         viewportKey: 'leave_form',
         mode: 'form',
         timeout: 60,
+        activeFormIndex: 0,
+        activeFormId: 'leave_form',
         forms: [
           {
             id: 'leave_form',
@@ -113,6 +115,8 @@ describe('awaiting protocol helpers', () => {
         viewportKey: 'leave_form',
         mode: 'form',
         timeout: 60,
+        activeFormIndex: 0,
+        activeFormId: 'leave_form',
         forms: [
           {
             id: 'leave_form',
@@ -125,6 +129,63 @@ describe('awaiting protocol helpers', () => {
         ],
         payload: {
           employee_id: 'E1001',
+        },
+      },
+    });
+  });
+
+  it('builds iframe data for the active form when multiple forms share one html', () => {
+    const awaiting = createFormAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: '提交请假申请',
+          title: 'mock 请假申请',
+          payload: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: '提交出差申请',
+          title: 'mock 出差申请',
+          payload: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    });
+
+    expect(buildAwaitingInitMessage(awaiting, 1)).toEqual({
+      type: 'awaiting_init',
+      data: {
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        viewportKey: 'leave_form',
+        mode: 'form',
+        timeout: 60,
+        activeFormIndex: 1,
+        activeFormId: 'travel_form',
+        forms: [
+          {
+            id: 'leave_form',
+            action: '提交请假申请',
+            title: 'mock 请假申请',
+            payload: {
+              employee_id: 'E1001',
+            },
+          },
+          {
+            id: 'travel_form',
+            action: '提交出差申请',
+            title: 'mock 出差申请',
+            payload: {
+              employee_id: 'E2002',
+            },
+          },
+        ],
+        payload: {
+          employee_id: 'E2002',
         },
       },
     });

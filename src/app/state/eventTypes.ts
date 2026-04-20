@@ -170,7 +170,7 @@ export interface AIAwaitApprovalSubmitParamData {
 
 export interface AIAwaitFormSubmitParamData {
   id: string;
-  payload?: Record<string, unknown> | null;
+  payload?: Record<string, any> | null;
   reason?: string;
 }
 
