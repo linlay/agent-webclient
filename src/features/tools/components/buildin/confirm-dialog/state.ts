@@ -38,19 +38,19 @@ export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   }
   const tagName = element.tagName;
   return (
-    tagName === "INPUT"
-    || tagName === "TEXTAREA"
-    || element.isContentEditable
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    element.isContentEditable
   );
 }
 
 export function getAwaitingQuestionHeading(question: AIAwaitQuestion): string {
-  return question.question?.trim() || question.header?.trim() || '';
+  return question.question?.trim() || question.header?.trim() || "";
 }
 
 export function getAwaitingQuestionPrompt(question: AIAwaitQuestion): string {
   const heading = getAwaitingQuestionHeading(question);
-  const header = question.header?.trim() || '';
+  const header = question.header?.trim() || "";
   const prompt = header || question.question;
   if (!prompt || heading === prompt) {
     return "";
@@ -71,7 +71,9 @@ export function getSelectOptionValue(option: AIAwaitQuestionOption): string {
   return option.value ?? option.label;
 }
 
-export function getSelectOptions(question: AIAwaitQuestion): AIAwaitQuestionOption[] {
+export function getSelectOptions(
+  question: AIAwaitQuestion,
+): AIAwaitQuestionOption[] {
   return Array.isArray(question.options) ? question.options : [];
 }
 
@@ -86,7 +88,8 @@ export function getAwaitingAnswerError(
   switch (question.type) {
     case AIAwaitQuestionType.Select:
       if (question.multiple) {
-        return Array.isArray(value?.answers) && value.answers.some((item) => item.trim())
+        return Array.isArray(value?.answers) &&
+          value.answers.some((item) => item.trim())
           ? null
           : "请至少选择一个选项";
       }
@@ -114,8 +117,7 @@ export function getSelectFreeTextAnswer(
   const optionValues = new Set(getSelectOptionValues(question));
   if (question.multiple) {
     return (
-      value?.answers?.find((item) => item && !optionValues.has(item))
-      || ""
+      value?.answers?.find((item) => item && !optionValues.has(item)) || ""
     );
   }
   return typeof value?.answer === "string" && !optionValues.has(value.answer)

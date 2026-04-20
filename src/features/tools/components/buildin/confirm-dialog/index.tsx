@@ -115,6 +115,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     enabled: currentQuestion?.type === AIAwaitQuestionType.Select,
     getAllHost: () => questionsRef.current[curIndex]?.getElements(),
     onEnter: (element) => {
+      if (element.dataset.multiple === "true") {
+        moveForward();
+        return;
+      }
       const i = Number(element.dataset.index);
       const questionRef = questionsRef.current[curIndex];
       questionRef?.check(i);
@@ -134,6 +138,12 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     },
   });
 
+  useEffect(() => {
+    setTimeout(() => {
+      const questionRef = questionsRef.current[curIndex];
+      questionRef?.getElements()?.[0]?.focus();
+    }, 300);
+  }, [curIndex]);
   useEffect(() => {
     callbackRef.current = {
       onSubmit,
@@ -223,7 +233,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                     className={Style.FormItem}
                     rules={[
                       {
-                        validator: async (_, value: AIAwaitQuestionSubmitParamData) => {
+                        validator: async (
+                          _,
+                          value: AIAwaitQuestionSubmitParamData,
+                        ) => {
                           const error = getAwaitingAnswerError(
                             questions[field.name],
                             value,
@@ -359,18 +372,11 @@ const Question = forwardRef<
     ref,
     () => ({
       getElements: () => {
-        if (data.type !== AIAwaitQuestionType.Select) {
-          return undefined;
-        }
-        return hostRef.current?.querySelectorAll(
-          '[data-select-option="true"][tabIndex="0"]',
-        );
+        return hostRef.current?.querySelectorAll('[tabIndex="0"]');
       },
+      // 单选方法
       check: (i: number) => {
-        if (data.type !== AIAwaitQuestionType.Select) {
-          return;
-        }
-        const checkboxRef = checkboxsRef.current[i];
+        const checkboxRef = checkboxsRef.current?.[i];
         if (checkboxRef) {
           checkboxRef.input?.click();
           if (!data.multiple) {
@@ -410,6 +416,7 @@ const Question = forwardRef<
         {renderQuestionHeader()}
         <Input
           className={Style.InputField}
+          tabIndex={0}
           placeholder={placeholder}
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
@@ -429,6 +436,7 @@ const Question = forwardRef<
         {renderQuestionHeader()}
         <Input.Password
           className={Style.InputField}
+          tabIndex={0}
           placeholder={placeholder}
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
@@ -449,6 +457,7 @@ const Question = forwardRef<
         <InputNumber
           className={Style.InputField}
           style={{ width: "100%" }}
+          tabIndex={0}
           controls={false}
           placeholder={placeholder}
           value={typeof value?.answer === "number" ? value.answer : null}
@@ -518,7 +527,7 @@ const Question = forwardRef<
                 align="center"
                 tabIndex={0}
                 data-index={i}
-                data-select-option="true"
+                data-multiple={data.multiple}
                 style={{ outline: "none" }}
               >
                 <span>{i + 1}。</span>
@@ -541,6 +550,7 @@ const Question = forwardRef<
             variant="borderless"
             placeholder={placeholder}
             value={freeTextAnswer}
+            tabIndex={0}
             onChange={(e) => {
               const nextValue = e.target.value;
               if (data.multiple) {
