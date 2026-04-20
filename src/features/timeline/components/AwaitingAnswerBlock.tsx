@@ -31,6 +31,7 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
   const question = String(item.question || "").trim();
   const title =
     question
+    || String(item.title || "").trim()
     || String(item.command || "").trim()
     || String(item.action || "").trim()
     || id

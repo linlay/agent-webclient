@@ -293,6 +293,7 @@ function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
         ? {
             ...item,
             action: meta.action,
+            title: meta.title,
           }
         : item;
     });

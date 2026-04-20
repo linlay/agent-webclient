@@ -19,7 +19,7 @@ export interface AwaitingViewportData {
   mode: 'form';
   timeout: number | null;
   forms: FormActiveAwaiting['forms'];
-  initialPayload: Record<string, unknown> | null;
+  payload: Record<string, unknown> | null;
 }
 
 export interface AwaitingViewportMessage {
@@ -42,6 +42,17 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 
 function isModeWithBuiltinDialog(mode: AIAwaitMode | undefined): boolean {
   return mode === 'question' || mode === 'approval';
+}
+
+type LegacyAwaitingForm = FormActiveAwaiting['forms'][number] & {
+  initialPayload?: Record<string, unknown> | null;
+};
+
+function cloneFormPayload(
+  form: LegacyAwaitingForm | undefined,
+): Record<string, unknown> | null {
+  const payload = form?.payload ?? form?.initialPayload;
+  return payload ? { ...payload } : null;
 }
 
 export function getAwaitingRenderMode(
@@ -81,12 +92,12 @@ export function buildAwaitingViewportData(
     mode: 'form',
     timeout: awaiting.timeout,
     forms: forms.map((form) => ({
-      ...form,
-      initialPayload: form.initialPayload ? { ...form.initialPayload } : null,
+      id: form.id,
+      action: form.action,
+      title: form.title,
+      payload: cloneFormPayload(form),
     })),
-    initialPayload: forms[0]?.initialPayload
-      ? { ...forms[0].initialPayload }
-      : null,
+    payload: cloneFormPayload(forms[0]),
   };
 }
 

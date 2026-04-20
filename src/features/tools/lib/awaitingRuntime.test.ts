@@ -285,22 +285,12 @@ describe('reduceActiveAwaiting', () => {
         {
           id: 'expense_form',
           action: '提交报销单',
-          initialPayload: {
+          title: '报销申请',
+          payload: {
             amount: 800,
           },
         },
       ],
-      viewportPayload: {
-        forms: [
-          {
-            id: 'expense_form',
-            command: 'mock create-expense --payload ...',
-            initialPayload: {
-              amount: 800,
-            },
-          },
-        ],
-      },
     });
 
     const hydrated = {
@@ -334,9 +324,49 @@ describe('reduceActiveAwaiting', () => {
       {
         id: 'expense_form',
         action: '提交报销单',
-        command: 'mock create-expense --payload ...',
-        initialPayload: {
+        title: '报销申请',
+        payload: {
           amount: 800,
+        },
+      },
+    ]);
+  });
+
+  it('keeps legacy initialPayload form events compatible for replay', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_legacy_form',
+      awaitingId: 'await_legacy_form',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+      mode: 'form',
+      forms: [
+        {
+          id: 'leave_form',
+          action: '提交请假申请',
+          title: 'mock 请假申请',
+          initialPayload: {
+            employee_id: 'E1001',
+          },
+        },
+      ],
+    } as any);
+
+    expect(current).toMatchObject({
+      mode: 'form',
+      viewportKey: 'leave_form',
+    });
+    expect(current?.mode).toBe('form');
+    if (current?.mode !== 'form') {
+      throw new Error('expected form awaiting');
+    }
+    expect(current.forms).toEqual([
+      {
+        id: 'leave_form',
+        action: '提交请假申请',
+        title: 'mock 请假申请',
+        payload: {
+          employee_id: 'E1001',
         },
       },
     ]);

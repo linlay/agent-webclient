@@ -472,7 +472,7 @@ describe('appReducer conversation reset behavior', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            initialPayload: null,
+            payload: null,
           },
         ],
         loading: true,

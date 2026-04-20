@@ -49,7 +49,7 @@ function clonePayload(
 function cloneForms(forms: AIAwaitForm[]): AIAwaitForm[] {
   return forms.map((form) => ({
     ...form,
-    initialPayload: clonePayload(form.initialPayload),
+    payload: clonePayload(form.payload),
   }));
 }
 
@@ -225,7 +225,6 @@ function normalizeForms(
   value: unknown,
   fallbackAction = '',
   fallbackPayload?: Record<string, unknown> | null,
-  viewportPayload?: Record<string, unknown> | null,
 ): AIAwaitForm[] {
   if (!Array.isArray(value)) {
     if (!fallbackAction) {
@@ -235,7 +234,7 @@ function normalizeForms(
       {
         id: fallbackAction,
         action: fallbackAction,
-        initialPayload: fallbackPayload ?? null,
+        payload: fallbackPayload ?? null,
       },
     ];
   }
@@ -245,19 +244,15 @@ function normalizeForms(
       (item): item is AIAwaitForm =>
         Boolean(item) && typeof item === 'object' && !Array.isArray(item),
     )
-    .map((form, index) => {
-      const payloadForms = Array.isArray(viewportPayload?.forms)
-        ? viewportPayload.forms
-        : [];
-      const viewportForm = payloadForms[index];
-      const command = viewportForm && typeof viewportForm === 'object' && !Array.isArray(viewportForm)
-        ? toText((viewportForm as Record<string, unknown>).command) || undefined
-        : undefined;
+    .map((form) => {
+      const legacyForm = form as AIAwaitForm & {
+        initialPayload?: Record<string, unknown> | null;
+      };
       return {
         id: toText(form.id) || toText(form.action),
         action: toText(form.action) || fallbackAction,
-        command,
-        initialPayload: readAwaitingPayload(form.initialPayload),
+        title: toText(form.title) || undefined,
+        payload: readAwaitingPayload(legacyForm.payload ?? legacyForm.initialPayload),
       };
     })
     .filter((form) => Boolean(form.id) && Boolean(form.action));
@@ -274,7 +269,7 @@ function normalizeForms(
     {
       id: fallbackAction,
       action: fallbackAction,
-      initialPayload: fallbackPayload ?? null,
+      payload: fallbackPayload ?? null,
     },
   ];
 }
@@ -395,12 +390,7 @@ export function reduceActiveAwaiting(
         return current;
       }
       const nextForms = nextMode === 'form'
-        ? normalizeForms(
-            event.forms,
-            '',
-            undefined,
-            readAwaitingPayload((event as Record<string, unknown>).viewportPayload) ?? null,
-          )
+        ? normalizeForms(event.forms)
         : normalizeForms(
             event.forms,
             viewportKey,

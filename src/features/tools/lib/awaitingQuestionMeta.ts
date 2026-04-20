@@ -28,6 +28,7 @@ interface AwaitingFormMeta {
   kind: 'form';
   id: string;
   action: string;
+  title?: string;
 }
 
 export type AwaitingItemMeta =
@@ -149,6 +150,7 @@ export function registerAwaitingFormMeta(
       kind: 'form',
       id: form.id,
       action: form.action,
+      title: form.title,
     });
   }
 

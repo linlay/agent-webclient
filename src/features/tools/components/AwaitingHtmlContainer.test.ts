@@ -44,7 +44,8 @@ function createActiveAwaiting(
       {
         id: 'leave_form',
         action: '提交请假申请',
-        initialPayload: {
+        title: 'mock 请假申请',
+        payload: {
           employee_id: 'E1001',
         },
       },

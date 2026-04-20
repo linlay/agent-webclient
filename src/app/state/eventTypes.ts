@@ -152,8 +152,8 @@ export interface AIAwaitApproval {
 export interface AIAwaitForm {
   id: string;
   action: string;
-  command?: string;
-  initialPayload?: Record<string, unknown> | null;
+  payload?: Record<string, unknown> | null;
+  title?: string;
 }
 
 export interface AIAwaitQuestionSubmitParamData {
@@ -227,7 +227,6 @@ export interface AIEventCommonFields {
   viewportType?: ViewportTypeEnum;
   mode?: AIAwaitMode;
   payload?: Record<string, unknown> | null;
-  viewportPayload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
   artifactId?: string;
   artifact?: ResourceData;

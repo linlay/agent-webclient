@@ -359,7 +359,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            initialPayload: null,
+            payload: null,
           },
         ],
         loading: false,
@@ -399,7 +399,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            initialPayload: {
+            payload: {
               employee_id: 'E1001',
             },
           },
@@ -418,7 +418,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            initialPayload: null,
+            payload: null,
           },
         ],
       },

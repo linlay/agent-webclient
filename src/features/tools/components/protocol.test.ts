@@ -40,8 +40,8 @@ function createFormAwaiting(
       {
         id: 'leave_form',
         action: '提交请假申请',
-        command: 'mock create-leave --payload ...',
-        initialPayload: {
+        title: 'mock 请假申请',
+        payload: {
           employee_id: 'E1001',
         },
       },
@@ -77,18 +77,57 @@ describe('awaiting protocol helpers', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            command: 'mock create-leave --payload ...',
-            initialPayload: {
+            title: 'mock 请假申请',
+            payload: {
               employee_id: 'E1001',
             },
           },
         ],
-        initialPayload: {
+        payload: {
           employee_id: 'E1001',
         },
       },
     });
     expect(buildAwaitingUpdateMessage(awaiting).type).toBe('awaiting_update');
+  });
+
+  it('keeps legacy initialPayload compatible when building iframe init data', () => {
+    const awaiting = createFormAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: '提交请假申请',
+          title: 'mock 请假申请',
+        } as FormActiveAwaiting['forms'][number],
+      ],
+    });
+    (awaiting.forms[0] as FormActiveAwaiting['forms'][number] & {
+      initialPayload?: Record<string, unknown> | null;
+    }).initialPayload = { employee_id: 'E1001' };
+
+    expect(buildAwaitingInitMessage(awaiting)).toEqual({
+      type: 'awaiting_init',
+      data: {
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        viewportKey: 'leave_form',
+        mode: 'form',
+        timeout: 60,
+        forms: [
+          {
+            id: 'leave_form',
+            action: '提交请假申请',
+            title: 'mock 请假申请',
+            payload: {
+              employee_id: 'E1001',
+            },
+          },
+        ],
+        payload: {
+          employee_id: 'E1001',
+        },
+      },
+    });
   });
 
   it('builds collect messages with run id, awaiting id and decision', () => {
