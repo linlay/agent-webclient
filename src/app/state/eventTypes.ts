@@ -174,6 +174,11 @@ export interface AIAwaitFormSubmitParamData {
   reason?: string;
 }
 
+export interface AIAwaitAnswerError {
+  code: string;
+  message: string;
+}
+
 export type AIAwaitSubmitParamData =
   | AIAwaitQuestionSubmitParamData
   | AIAwaitApprovalSubmitParamData
@@ -300,9 +305,11 @@ export interface AIAwaitPayloadEvent extends AIBaseEvent {
 }
 export interface AIAwaitAnswerEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Answer;
+  status: 'answered' | 'error';
   answers?: AIAwaitQuestionSubmitParamData[];
   approvals?: AIAwaitApprovalSubmitParamData[];
   forms?: AIAwaitFormSubmitParamData[];
+  error?: AIAwaitAnswerError;
 }
 
 export type AIAwaitEvent = AIAwaitAskEvent | AIAwaitPayloadEvent | AIAwaitAnswerEvent;

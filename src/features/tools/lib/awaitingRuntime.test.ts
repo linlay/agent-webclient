@@ -475,6 +475,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.answer',
       runId: 'run_1',
       awaitingId: 'await_1',
+      status: 'answered',
       approvals: [
         {
           id: 'approve_1',

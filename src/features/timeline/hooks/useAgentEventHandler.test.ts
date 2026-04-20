@@ -330,6 +330,7 @@ describe('shouldSyncLiveCache', () => {
       type: 'awaiting.answer',
       awaitingId: 'await_1',
       runId: 'run_1',
+      status: 'answered',
     });
 
     expect(next).toMatchObject({

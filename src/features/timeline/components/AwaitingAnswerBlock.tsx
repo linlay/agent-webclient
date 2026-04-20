@@ -15,6 +15,15 @@ interface AwaitingAnswerDisplayItem {
   value: string;
 }
 
+interface AwaitingAnswerEnvelope {
+  status?: "answered" | "error";
+  items?: Record<string, unknown>[];
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
+
 function formatUnknownJson(value: unknown): string {
   if (typeof value === "string") {
     return value;
@@ -91,28 +100,66 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
   };
 }
 
+function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
+  try {
+    const parsed = JSON.parse(text || "[]");
+    if (Array.isArray(parsed)) {
+      return {
+        status: "answered",
+        items: parsed.filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        ),
+      };
+    }
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    const record = parsed as Record<string, unknown>;
+    const status = record.status === "answered" || record.status === "error"
+      ? record.status
+      : undefined;
+    const items = Array.isArray(record.items)
+      ? record.items.filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+      : undefined;
+    const error = record.error && typeof record.error === "object" && !Array.isArray(record.error)
+      ? record.error as AwaitingAnswerEnvelope["error"]
+      : undefined;
+    return {
+      status,
+      items,
+      error,
+    };
+  } catch (error) {
+    console.error("Error parsing awaiting answers:", error);
+    return {};
+  }
+}
+
 export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
 }) => {
   const dispatch = useAppDispatch();
   const expanded = Boolean(node.expanded);
+  const envelope = useMemo(() => parseAwaitingAnswerEnvelope(node.text || "[]"), [node.text]);
   const items = useMemo<AwaitingAnswerDisplayItem[]>(() => {
-    try {
-      const parsed = JSON.parse(node.text || "[]");
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      return parsed
-        .filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item) && typeof item === "object" && !Array.isArray(item),
-        )
-        .map(formatAwaitingAnswerItem);
-    } catch (error) {
-      console.error("Error parsing awaiting answers:", error);
+    if (envelope.status === "error") {
+      const errorCode = String(envelope.error?.code || "").trim();
+      const errorMessage = String(envelope.error?.message || "").trim();
+      return [{
+        key: `error:${errorCode || "unknown"}`,
+        title: "状态",
+        value: errorMessage || errorCode || "等待异常",
+      }];
     }
-    return [];
-  }, [node.text]);
+    return (envelope.items || []).map(formatAwaitingAnswerItem);
+  }, [envelope]);
+  const summaryText = envelope.status === "error"
+    ? (node.title || "等待异常")
+    : `已提交 ${items.length || 0} 项回答`;
 
   return (
     <div>
@@ -131,13 +178,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
           })
         }
       >
-        <span>
-          已提交{" "}
-          <span style={{ color: "var(--text-main)" }}>
-            {items.length || 0}
-          </span>{" "}
-          项回答
-        </span>
+        <span>{summaryText}</span>
         <MaterialIcon name="chevron_right" className="chevron" />
       </UiButton>
       <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>

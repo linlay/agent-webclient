@@ -324,10 +324,35 @@ function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
   return legacyQuestions ?? answers ?? approvals ?? forms;
 }
 
+function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
+  const rawRecord = event as Record<string, unknown>;
+  const status = toText(rawRecord.status);
+  if (status === 'error') {
+    const rawError = rawRecord.error;
+    const error = rawError && typeof rawError === 'object' && !Array.isArray(rawError)
+      ? {
+          code: toText((rawError as Record<string, unknown>).code),
+          message: toText((rawError as Record<string, unknown>).message),
+        }
+      : undefined;
+    return {
+      status: 'error',
+      error,
+    };
+  }
+  if (status === 'answered') {
+    return {
+      status: 'answered',
+      items: maskStructuredAwaitingAnswers(event),
+    };
+  }
+  return maskStructuredAwaitingAnswers(event);
+}
+
 function readAwaitingAnswerText(event: AgentEvent): string {
   const rawRecord = event as Record<string, unknown>;
   return pickEventText(
-    formatStructuredEventText(maskStructuredAwaitingAnswers(event)),
+    formatStructuredEventText(buildAwaitingAnswerEnvelope(event)),
     event.text,
     rawRecord.answers,
     rawRecord.approvals,
@@ -335,6 +360,28 @@ function readAwaitingAnswerText(event: AgentEvent): string {
     rawRecord.questions,
     event.message,
   );
+}
+
+function awaitingAnswerTitle(event: AgentEvent): string {
+  if (event.type !== 'awaiting.answer') {
+    return '已提交回答';
+  }
+  if (event.status === 'answered') {
+    return '已提交回答';
+  }
+  if (event.status !== 'error') {
+    return '已提交回答';
+  }
+  switch (event.error?.code) {
+    case 'user_dismissed':
+      return '已取消等待';
+    case 'timeout':
+      return '等待已超时';
+    case 'invalid_submit':
+      return '提交失败';
+    default:
+      return '等待异常';
+  }
 }
 
 function buildToolTimelineNode(input: {
@@ -640,7 +687,7 @@ export function processEvent(
         id: nodeId,
         kind: 'awaiting-answer',
         awaitingId,
-        title: '已提交回答',
+        title: awaitingAnswerTitle(event),
         text: readAwaitingAnswerText(event) || '（无回答内容）',
         status: 'completed',
         expanded: existing?.expanded ?? false,
