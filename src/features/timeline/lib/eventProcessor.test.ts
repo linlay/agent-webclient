@@ -381,6 +381,7 @@ describe('processEvent', () => {
       {
         id: 'approval_1',
         command: 'rm -rf /tmp/demo',
+        ruleKey: 'dangerous-commands::rm',
         description: '删除临时目录',
       },
     ]);
@@ -407,6 +408,7 @@ describe('processEvent', () => {
         decision: 'approved',
         reason: '继续执行',
         command: 'rm -rf /tmp/demo',
+        ruleKey: 'dangerous-commands::rm',
       },
     ]);
   });

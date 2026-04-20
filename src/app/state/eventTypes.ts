@@ -142,6 +142,7 @@ export interface AIAwaitQuestion {
 export interface AIAwaitApproval {
   id: string;
   command: string;
+  ruleKey?: string;
   description?: string;
   options?: AIAwaitApprovalOption[];
   allowFreeText?: boolean;

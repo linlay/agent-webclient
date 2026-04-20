@@ -235,6 +235,7 @@ describe('reduceActiveAwaiting', () => {
         {
           id: 'approve_1',
           command: '删除生产环境缓存',
+          ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
           description: '清理线上 Redis 缓存',
           options: [
             { label: '同意', decision: 'approve' },
@@ -259,6 +260,7 @@ describe('reduceActiveAwaiting', () => {
       {
         id: 'approve_1',
         command: '删除生产环境缓存',
+        ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
         description: '清理线上 Redis 缓存',
         options: [
           { label: '同意', decision: 'approve' },
@@ -434,6 +436,7 @@ describe('reduceActiveAwaiting', () => {
         {
           id: 'approve_1',
           command: '删除生产环境缓存',
+          ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
         },
       ],
     });

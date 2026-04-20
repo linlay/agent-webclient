@@ -194,6 +194,7 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
     .map((approval) => ({
       id: toText(approval.id) || toText(approval.command),
       command: toText(approval.command),
+      ruleKey: toText(approval.ruleKey) || undefined,
       description: toText(approval.description) || undefined,
       options: Array.isArray(approval.options)
         ? approval.options

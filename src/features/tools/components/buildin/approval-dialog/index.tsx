@@ -227,6 +227,13 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     };
   }, [handleKeyDown]);
 
+  const formatRuleKeyLabel = useCallback((ruleKey?: string) => {
+    if (!ruleKey) {
+      return "";
+    }
+    return ruleKey.split("::").slice(0, 2).join("::");
+  }, []);
+
   return (
     <div className={Style.ConfirmDialog}>
       <Flex vertical gap={16} className={Style.QuestionWrapper}>
@@ -279,6 +286,11 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                     padding: 12,
                   }}
                 >
+                  {formatRuleKeyLabel(approval.ruleKey) && (
+                    <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                      {formatRuleKeyLabel(approval.ruleKey)}
+                    </div>
+                  )}
                   <div style={{ color: "var(--text-main)", fontWeight: 600 }}>
                     {approval.command}
                   </div>
