@@ -10,6 +10,7 @@ import {
   TimelineRow,
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
+import { TaskGroupSection } from "@/features/timeline/components/TaskGroupSection";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -86,8 +87,11 @@ export const ConversationStage: React.FC = () => {
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
   }, [state.timelineOrder, state.timelineNodes]);
   const displayItems = useMemo(() => {
-    return buildTimelineDisplayItems(timelineEntries, state.events);
-  }, [timelineEntries, state.events]);
+    return buildTimelineDisplayItems(timelineEntries, state.events, {
+      taskItemsById: state.taskItemsById,
+      taskGroupsById: state.taskGroupsById,
+    });
+  }, [timelineEntries, state.events, state.taskItemsById, state.taskGroupsById]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -232,13 +236,44 @@ export const ConversationStage: React.FC = () => {
                   return (
                     <section key={item.key} className="timeline-run-group">
                       <div className="timeline-run-items">
-                        {item.renderEntries.map((entry) =>
-                          entry.kind === "node" ? (
-                            <TimelineRow key={entry.key} node={entry.node} />
-                          ) : (
-                            <TimelineRow key={entry.key} toolGroup={entry} />
-                          ),
-                        )}
+                        {item.sections.length > 0
+                          ? item.sections.map((section) =>
+                              section.kind === "mainline" ? (
+                                <div
+                                  key={section.key}
+                                  className="timeline-run-mainline"
+                                >
+                                  {section.renderEntries.map((entry) =>
+                                    entry.kind === "node" ? (
+                                      <TimelineRow
+                                        key={entry.key}
+                                        node={entry.node}
+                                      />
+                                    ) : (
+                                      <TimelineRow
+                                        key={entry.key}
+                                        toolGroup={entry}
+                                      />
+                                    ),
+                                  )}
+                                </div>
+                              ) : (
+                                <TaskGroupSection
+                                  key={section.key}
+                                  group={section.group}
+                                />
+                              ),
+                            )
+                          : item.renderEntries.map((entry) =>
+                              entry.kind === "node" ? (
+                                <TimelineRow key={entry.key} node={entry.node} />
+                              ) : (
+                                <TimelineRow
+                                  key={entry.key}
+                                  toolGroup={entry}
+                                />
+                              ),
+                            )}
                       </div>
                       {isCompleted && (
                         <div className="timeline-run-meta">

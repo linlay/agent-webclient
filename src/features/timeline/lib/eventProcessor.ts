@@ -4,6 +4,8 @@ import type {
   PublishedArtifact,
   Plan,
   PlanRuntime,
+  TaskGroupMeta,
+  TaskItemMeta,
   TimelineNode,
   ToolState,
 } from '@/app/state/types';
@@ -31,6 +33,10 @@ export interface EventProcessorState {
   chatId: string;
   runId: string;
   currentRunningPlanTaskId?: string;
+  getTaskItem(taskId: string): TaskItemMeta | undefined;
+  getTaskGroup(groupId: string): TaskGroupMeta | undefined;
+  getActiveTaskIds(): string[];
+  getPlanTaskDescription?(taskId: string): string | undefined;
   getPlanId?(): string | undefined;
 }
 
@@ -53,6 +59,8 @@ export type EventCommand =
   | { cmd: 'UPSERT_ARTIFACT'; artifact: PublishedArtifact }
   | { cmd: 'SET_PLAN'; plan: Plan | null; resetRuntime: boolean }
   | { cmd: 'SET_PLAN_RUNTIME'; taskId: string; runtime: PlanRuntime }
+  | { cmd: 'SET_TASK_ITEM_META'; taskId: string; task: TaskItemMeta }
+  | { cmd: 'SET_TASK_GROUP_META'; groupId: string; group: TaskGroupMeta }
   | { cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID'; taskId: string }
   | { cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID'; taskId: string }
   | {
@@ -67,6 +75,218 @@ export type EventCommand =
   | { cmd: 'SYSTEM_ERROR'; nodeId: string; text: string; ts: number };
 
 const INCOMPLETE_TOOL_ARGS_NOTE = '[incomplete tool args]';
+
+interface ResolvedTaskBinding {
+  taskId: string;
+  taskName: string;
+  taskGroupId: string;
+}
+
+function readTaskGroupId(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>).taskGroupId);
+}
+
+function readTaskGroupTitle(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>).taskGroupTitle);
+}
+
+function normalizeTaskStatus(status: string): string {
+  const value = toText(status).trim().toLowerCase();
+  if (value === 'complete' || value === 'completed' || value === 'done') {
+    return 'completed';
+  }
+  if (value === 'fail' || value === 'failed' || value === 'error') {
+    return 'failed';
+  }
+  if (value === 'cancel' || value === 'canceled' || value === 'cancelled') {
+    return 'canceled';
+  }
+  if (value === 'running' || value === 'in_progress') {
+    return 'running';
+  }
+  return value || 'pending';
+}
+
+function buildTaskGroupTitle(input: {
+  explicitTitle: string;
+  childTaskNames: string[];
+}): string {
+  if (input.explicitTitle) {
+    return input.explicitTitle;
+  }
+  const names = input.childTaskNames.filter(Boolean);
+  if (names.length <= 1) {
+    return names[0] || 'Task';
+  }
+  return `Running ${names.length} tasks...`;
+}
+
+function computeTaskDurationMs(startedAt?: number, endedAt?: number): number | undefined {
+  if (!Number.isFinite(startedAt) || !Number.isFinite(endedAt)) {
+    return undefined;
+  }
+  return Math.max(0, Number(endedAt) - Number(startedAt));
+}
+
+function resolveVisibleTaskBinding(
+  event: AgentEvent,
+  state: EventProcessorState,
+  existing?: TimelineNode,
+): ResolvedTaskBinding | null {
+  const explicitTaskId = toText(event.taskId).trim();
+  if (explicitTaskId) {
+    const task = state.getTaskItem(explicitTaskId);
+    const taskGroupId = readTaskGroupId(event) || task?.taskGroupId || existing?.taskGroupId || '';
+    const taskName = toText(event.taskName).trim()
+      || task?.taskName
+      || state.getPlanTaskDescription?.(explicitTaskId)
+      || existing?.taskName
+      || explicitTaskId;
+    return {
+      taskId: explicitTaskId,
+      taskName,
+      taskGroupId,
+    };
+  }
+
+  if (existing?.taskId) {
+    return {
+      taskId: existing.taskId,
+      taskName: existing.taskName || existing.taskId,
+      taskGroupId: existing.taskGroupId || '',
+    };
+  }
+
+  const activeTaskIds = state.getActiveTaskIds().filter(Boolean);
+  if (activeTaskIds.length !== 1) {
+    return null;
+  }
+
+  const task = state.getTaskItem(activeTaskIds[0]);
+  const taskId = task?.taskId || activeTaskIds[0];
+  return {
+    taskId,
+    taskName: task?.taskName || state.getPlanTaskDescription?.(taskId) || taskId,
+    taskGroupId: task?.taskGroupId || '',
+  };
+}
+
+function resolveTaskGroupIdForStart(
+  event: AgentEvent,
+  state: EventProcessorState,
+  existingTask?: TaskItemMeta,
+): string {
+  const explicitGroupId = readTaskGroupId(event);
+  if (explicitGroupId) {
+    return explicitGroupId;
+  }
+  if (existingTask?.taskGroupId) {
+    return existingTask.taskGroupId;
+  }
+
+  const activeGroupIds = Array.from(
+    new Set(
+      state.getActiveTaskIds()
+        .map((taskId) => state.getTaskItem(taskId)?.taskGroupId || '')
+        .filter(Boolean),
+    ),
+  );
+  if (activeGroupIds.length === 1) {
+    return activeGroupIds[0];
+  }
+
+  return `task_group_${toText(event.taskId).trim() || state.peekCounter()}`;
+}
+
+function buildNextTaskItem(input: {
+  event: AgentEvent;
+  state: EventProcessorState;
+  taskId: string;
+  status: string;
+  updatedAt: number;
+  existing?: TaskItemMeta;
+  groupId: string;
+}): TaskItemMeta {
+  const { event, state, taskId, status, updatedAt, existing, groupId } = input;
+  const taskName = toText(event.taskName).trim()
+    || existing?.taskName
+    || state.getPlanTaskDescription?.(taskId)
+    || taskId;
+  const startedAt = status === 'running'
+    ? (existing?.startedAt ?? (event.timestamp || updatedAt))
+    : (existing?.startedAt ?? event.timestamp ?? updatedAt);
+  const endedAt = status === 'running' ? undefined : (event.timestamp || updatedAt);
+
+  return {
+    taskId,
+    taskName,
+    taskGroupId: groupId,
+    runId: toText(event.runId) || existing?.runId || state.runId,
+    status,
+    startedAt,
+    endedAt,
+    durationMs: computeTaskDurationMs(startedAt, endedAt),
+    updatedAt,
+    error: status === 'failed' ? toText(event.error) || existing?.error || '' : '',
+  };
+}
+
+function buildNextTaskGroup(input: {
+  event: AgentEvent;
+  state: EventProcessorState;
+  groupId: string;
+  explicitTitle: string;
+  nextTask: TaskItemMeta;
+  existing?: TaskGroupMeta;
+}): TaskGroupMeta {
+  const { event, state, groupId, explicitTitle, nextTask, existing } = input;
+  const childTaskIdSet = new Set(existing?.childTaskIds || []);
+  childTaskIdSet.add(nextTask.taskId);
+  const childTaskIds = Array.from(childTaskIdSet);
+  const childTasks = childTaskIds
+    .map((taskId) => (taskId === nextTask.taskId ? nextTask : state.getTaskItem(taskId)))
+    .filter((task): task is TaskItemMeta => Boolean(task));
+
+  const startedAtCandidates = childTasks
+    .map((task) => task.startedAt)
+    .filter((value): value is number => Number.isFinite(value));
+  const endedAtCandidates = childTasks
+    .map((task) => task.endedAt)
+    .filter((value): value is number => Number.isFinite(value));
+  const startedAt = startedAtCandidates.length > 0 ? Math.min(...startedAtCandidates) : undefined;
+  const hasRunning = childTasks.some((task) => normalizeTaskStatus(task.status) === 'running');
+  const hasFailed = childTasks.some((task) => normalizeTaskStatus(task.status) === 'failed');
+  const hasCompleted = childTasks.some((task) => normalizeTaskStatus(task.status) === 'completed');
+  const hasCanceled = childTasks.some((task) => normalizeTaskStatus(task.status) === 'canceled');
+  const endedAt = !hasRunning && endedAtCandidates.length > 0 ? Math.max(...endedAtCandidates) : undefined;
+
+  let status = 'pending';
+  if (hasRunning) {
+    status = 'running';
+  } else if (hasFailed) {
+    status = 'failed';
+  } else if (hasCompleted) {
+    status = 'completed';
+  } else if (hasCanceled) {
+    status = 'canceled';
+  }
+
+  return {
+    groupId,
+    runId: toText(event.runId) || existing?.runId || nextTask.runId,
+    title: buildTaskGroupTitle({
+      explicitTitle: explicitTitle || existing?.explicitTitle || '',
+      childTaskNames: childTasks.map((task) => task.taskName),
+    }),
+    explicitTitle: explicitTitle || existing?.explicitTitle || '',
+    status,
+    startedAt,
+    endedAt,
+    durationMs: computeTaskDurationMs(startedAt, endedAt),
+    updatedAt: nextTask.updatedAt,
+    childTaskIds,
+  };
+}
 
 function ensureMappedNode(params: {
   currentNodeId: string | undefined;
@@ -384,6 +604,25 @@ function awaitingAnswerTitle(event: AgentEvent): string {
   }
 }
 
+function applyTaskBindingToNode(
+  event: AgentEvent,
+  state: EventProcessorState,
+  existing: TimelineNode | undefined,
+): Pick<TimelineNode, 'taskId' | 'taskName' | 'taskGroupId'> {
+  const binding = resolveVisibleTaskBinding(event, state, existing);
+  return binding
+    ? {
+        taskId: binding.taskId,
+        taskName: binding.taskName,
+        taskGroupId: binding.taskGroupId,
+      }
+    : {
+        taskId: existing?.taskId,
+        taskName: existing?.taskName,
+        taskGroupId: existing?.taskGroupId,
+      };
+}
+
 function buildToolTimelineNode(input: {
   nodeId: string;
   event: AgentEvent;
@@ -393,11 +632,14 @@ function buildToolTimelineNode(input: {
   status: string;
   result: TimelineNode['result'];
   ts: number;
+  state: EventProcessorState;
 }): TimelineNode {
-  const { nodeId, event, existing, existingToolState, argsText, result, status, ts } = input;
+  const { nodeId, event, existing, existingToolState, argsText, result, status, ts, state } = input;
+  const taskBinding = applyTaskBindingToNode(event, state, existing);
   return {
     id: nodeId,
     kind: 'tool',
+    ...taskBinding,
     toolId: toText(event.toolId) || existing?.toolId || existingToolState?.toolId || '',
     toolLabel: toText(event.toolLabel) || existing?.toolLabel || existingToolState?.toolLabel || '',
     toolName: pickToolName(existing?.toolName, existingToolState?.toolName, event.toolName),
@@ -496,12 +738,14 @@ export function processEvent(
       state,
     });
     const text = typeof event.text === 'string' ? event.text : '';
+    const existing = state.getTimelineNode(nodeId);
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
       node: {
         id: nodeId,
         kind: 'content',
+        ...applyTaskBindingToNode(event, state, existing),
         contentId,
         text,
         segments: text ? parseContentSegments(contentId, text) : [],
@@ -529,6 +773,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'content',
+        ...applyTaskBindingToNode(event, state, existing),
         contentId,
         text: newText,
         segments: parseContentSegments(contentId, newText),
@@ -558,6 +803,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'content',
+        ...applyTaskBindingToNode(event, state, existing),
         contentId,
         text: finalText,
         segments: parseContentSegments(contentId, finalText),
@@ -579,12 +825,14 @@ export function processEvent(
       state,
     });
     const text = typeof event.text === 'string' ? event.text : '';
+    const existing = state.getTimelineNode(nodeId);
     commands.push({
       cmd: 'SET_TIMELINE_NODE',
       id: nodeId,
       node: {
         id: nodeId,
         kind: 'content',
+        ...applyTaskBindingToNode(event, state, existing),
         contentId,
         text,
         segments: parseContentSegments(contentId, text),
@@ -629,6 +877,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'thinking',
+        ...applyTaskBindingToNode(event, state, existing),
         reasoningLabel,
         text,
         status: 'running',
@@ -659,6 +908,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'thinking',
+        ...applyTaskBindingToNode(event, state, existing),
         reasoningLabel: existing?.reasoningLabel,
         text,
         status: 'completed',
@@ -686,6 +936,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'awaiting-answer',
+        ...applyTaskBindingToNode(event, state, existing),
         awaitingId,
         title: awaitingAnswerTitle(event),
         text: readAwaitingAnswerText(event) || '（无回答内容）',
@@ -736,6 +987,7 @@ export function processEvent(
         status: type === 'tool.snapshot' ? 'completed' : 'running',
         result: existing?.result || null,
         ts: event.timestamp || existing?.ts || Date.now(),
+        state,
       }),
     });
     commands.push({
@@ -796,6 +1048,7 @@ export function processEvent(
       node: {
         id: nodeId,
         kind: 'tool',
+        ...applyTaskBindingToNode(event, state, existingNode),
         toolId,
         toolLabel: nextToolState.toolLabel || existingNode?.toolLabel || '',
         toolName: pickToolName(existingNode?.toolName, nextToolState.toolName),
@@ -840,6 +1093,7 @@ export function processEvent(
         status: event.error ? 'failed' : 'completed',
         result: { text: resultText, isCode: typeof resultValue !== 'string' },
         ts: existing?.ts || event.timestamp || Date.now(),
+        state,
       }),
     });
     return commands;
@@ -873,6 +1127,7 @@ export function processEvent(
         status: event.error ? 'failed' : (existing?.status === 'failed' ? 'failed' : 'completed'),
         result: existing?.result || null,
         ts: existing?.ts || event.timestamp || Date.now(),
+        state,
       }),
     });
     return commands;
@@ -902,20 +1157,42 @@ export function processEvent(
   }
 
   if (type === 'task.start') {
-    const taskId = event.taskId || '';
+    const taskId = toText(event.taskId).trim();
     if (!taskId) return commands;
+    const updatedAt = event.timestamp || Date.now();
+    const existingTask = state.getTaskItem(taskId);
+    const groupId = resolveTaskGroupIdForStart(event, state, existingTask);
+    const nextTask = buildNextTaskItem({
+      event,
+      state,
+      taskId,
+      status: 'running',
+      updatedAt,
+      existing: existingTask,
+      groupId,
+    });
+    const nextGroup = buildNextTaskGroup({
+      event,
+      state,
+      groupId,
+      explicitTitle: readTaskGroupTitle(event),
+      nextTask,
+      existing: state.getTaskGroup(groupId),
+    });
+    commands.push({ cmd: 'SET_TASK_ITEM_META', taskId, task: nextTask });
+    commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
     commands.push({ cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID', taskId });
     commands.push({ cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID', taskId });
     commands.push({
       cmd: 'SET_PLAN_RUNTIME',
       taskId,
-      runtime: { status: 'running', updatedAt: Date.now(), error: '' },
+      runtime: { status: 'running', updatedAt, error: '' },
     });
     return commands;
   }
 
   if (type === 'task.complete' || type === 'task.fail' || type === 'task.cancel') {
-    const taskId = event.taskId || '';
+    const taskId = toText(event.taskId).trim();
     if (!taskId) return commands;
     const status =
       type === 'task.complete'
@@ -923,12 +1200,34 @@ export function processEvent(
         : type === 'task.cancel'
           ? 'canceled'
           : 'failed';
+    const updatedAt = event.timestamp || Date.now();
+    const existingTask = state.getTaskItem(taskId);
+    const groupId = readTaskGroupId(event) || existingTask?.taskGroupId || `task_group_${taskId}`;
+    const nextTask = buildNextTaskItem({
+      event,
+      state,
+      taskId,
+      status,
+      updatedAt,
+      existing: existingTask,
+      groupId,
+    });
+    const nextGroup = buildNextTaskGroup({
+      event,
+      state,
+      groupId,
+      explicitTitle: readTaskGroupTitle(event),
+      nextTask,
+      existing: state.getTaskGroup(groupId),
+    });
+    commands.push({ cmd: 'SET_TASK_ITEM_META', taskId, task: nextTask });
+    commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
     commands.push({
       cmd: 'SET_PLAN_RUNTIME',
       taskId,
       runtime: {
         status,
-        updatedAt: Date.now(),
+        updatedAt,
         error: type === 'task.fail' && event.error ? String(event.error) : '',
       },
     });

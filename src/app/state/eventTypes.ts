@@ -202,6 +202,7 @@ export interface AIEventCommonFields {
   actionId?: string;
   planId?: string;
   taskId?: string;
+  taskGroupId?: string;
   agentKey?: string;
   message?: string;
   delta?: string;
@@ -227,6 +228,7 @@ export interface AIEventCommonFields {
   chatName?: string;
   firstAgentName?: string;
   taskName?: string;
+  taskGroupTitle?: string;
   awaitingId?: string;
   timeout?: number;
   viewportType?: ViewportTypeEnum;

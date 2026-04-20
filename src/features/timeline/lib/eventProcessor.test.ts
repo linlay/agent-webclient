@@ -2,6 +2,8 @@ import type {
   AgentEvent,
   Plan,
   PlanRuntime,
+  TaskGroupMeta,
+  TaskItemMeta,
   TimelineNode,
   ToolState,
 } from '@/app/state/types';
@@ -38,6 +40,8 @@ type TestState = {
   }>;
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
+  taskItemsById: Map<string, TaskItemMeta>;
+  taskGroupsById: Map<string, TaskGroupMeta>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 };
@@ -57,6 +61,8 @@ function createState(): TestState {
     artifacts: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
+    taskItemsById: new Map(),
+    taskGroupsById: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -76,6 +82,14 @@ function buildProcessorState(state: TestState): EventProcessorState {
     chatId: state.chatId,
     runId: state.runId,
     currentRunningPlanTaskId: state.planCurrentRunningTaskId,
+    getTaskItem: (taskId) => state.taskItemsById.get(taskId),
+    getTaskGroup: (groupId) => state.taskGroupsById.get(groupId),
+    getActiveTaskIds: () =>
+      Array.from(state.taskItemsById.values())
+        .filter((task) => task.status === 'running')
+        .map((task) => task.taskId),
+    getPlanTaskDescription: (taskId) =>
+      state.plan?.plan.find((item) => item.taskId === taskId)?.description,
     getPlanId: () => state.plan?.planId,
   };
 }
@@ -131,6 +145,12 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
         break;
       case 'SET_PLAN_RUNTIME':
         state.planRuntimeByTaskId.set(command.taskId, command.runtime);
+        break;
+      case 'SET_TASK_ITEM_META':
+        state.taskItemsById.set(command.taskId, command.task);
+        break;
+      case 'SET_TASK_GROUP_META':
+        state.taskGroupsById.set(command.groupId, command.group);
         break;
       case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
         state.planCurrentRunningTaskId = command.taskId;
@@ -603,5 +623,108 @@ describe('processEvent', () => {
     processAndApply(state, { type: 'task.complete', taskId: 'task_2' }, 'live', true);
     expect(state.planRuntimeByTaskId.get('task_2')?.status).toBe('completed');
     expect(state.planCurrentRunningTaskId).toBe('');
+  });
+
+  it('stores task metadata and attaches explicit task ids to visible timeline nodes', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'Explore orchestrator' }],
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+      taskName: 'Explore agentOrchestrator definition',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'content.delta',
+      contentId: 'content_1',
+      taskId: 'task_1',
+      delta: 'searching',
+      timestamp: 120,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'task.complete',
+      taskId: 'task_1',
+      timestamp: 220,
+    }, 'live', true);
+
+    expect(state.taskItemsById.get('task_1')).toMatchObject({
+      taskId: 'task_1',
+      taskName: 'Explore agentOrchestrator definition',
+      taskGroupId: 'task_group_task_1',
+      status: 'completed',
+      startedAt: 100,
+      endedAt: 220,
+      durationMs: 120,
+    });
+    expect(state.taskGroupsById.get('task_group_task_1')).toMatchObject({
+      groupId: 'task_group_task_1',
+      title: 'Explore agentOrchestrator definition',
+      childTaskIds: ['task_1'],
+      status: 'completed',
+    });
+    expect(state.timelineNodes.get('content_0')).toMatchObject({
+      taskId: 'task_1',
+      taskName: 'Explore agentOrchestrator definition',
+      taskGroupId: 'task_group_task_1',
+    });
+  });
+
+  it('auto-assigns visible nodes to the only running task when events omit taskId', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+      taskName: 'Single running task',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'reasoning.delta',
+      reasoningId: 'reasoning_1',
+      delta: 'thinking',
+      timestamp: 120,
+    }, 'live', true);
+
+    expect(state.timelineNodes.get('thinking_0')).toMatchObject({
+      taskId: 'task_1',
+      taskName: 'Single running task',
+      taskGroupId: 'task_group_task_1',
+    });
+  });
+
+  it('does not guess task ownership when multiple tasks are running in parallel', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+      taskName: 'Parallel task A',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'task.start',
+      taskId: 'task_2',
+      taskName: 'Parallel task B',
+      timestamp: 120,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'content.delta',
+      contentId: 'content_1',
+      delta: 'unassigned',
+      timestamp: 140,
+    }, 'live', true);
+
+    expect(state.timelineNodes.get('content_0')).toMatchObject({
+      taskId: undefined,
+      taskName: undefined,
+      taskGroupId: undefined,
+    });
+    expect(state.taskGroupsById.get('task_group_task_1')?.title).toBe('Running 2 tasks...');
+    expect(state.taskItemsById.get('task_2')?.taskGroupId).toBe('task_group_task_1');
   });
 });

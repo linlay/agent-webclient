@@ -10,6 +10,8 @@ import type {
 	PublishedArtifact,
 	PlanRuntime,
 	Plan,
+	TaskGroupMeta,
+	TaskItemMeta,
 	ActiveFrontendTool,
 	ActionState,
 	Team,
@@ -50,6 +52,8 @@ export type AppAction =
 	| { type: "SET_PLAN"; plan: Plan | null }
 	| { type: "SET_PLAN_EXPANDED"; expanded: boolean }
 	| { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
+	| { type: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }
+	| { type: "SET_TASK_GROUP_META"; groupId: string; group: TaskGroupMeta }
 	| { type: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
@@ -181,6 +185,8 @@ function buildConversationResetState(
 		artifacts: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
+		taskItemsById: new Map(),
+		taskGroupsById: new Map(),
 		planCurrentRunningTaskId: "",
 		planLastTouchedTaskId: "",
 		artifactExpanded: false,
@@ -378,6 +384,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, planExpanded: action.expanded };
 		case "SET_PLAN_MANUAL_OVERRIDE":
 			return { ...state, planManualOverride: action.override };
+		case "SET_TASK_ITEM_META": {
+			const taskItemsById = new Map(state.taskItemsById);
+			taskItemsById.set(action.taskId, action.task);
+			return { ...state, taskItemsById };
+		}
+		case "SET_TASK_GROUP_META": {
+			const taskGroupsById = new Map(state.taskGroupsById);
+			taskGroupsById.set(action.groupId, action.group);
+			return { ...state, taskGroupsById };
+		}
 		case "SET_PLAN_CURRENT_RUNNING_TASK_ID":
 			return { ...state, planCurrentRunningTaskId: action.taskId };
 		case "SET_PLAN_LAST_TOUCHED_TASK_ID":

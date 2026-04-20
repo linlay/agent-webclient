@@ -84,9 +84,12 @@ export const AppShell: React.FC = () => {
 	}, [state.timelineOrder, state.timelineNodes]);
 	const isTimelineEmpty = useMemo(() => {
 		return (
-			buildTimelineDisplayItems(timelineEntries, state.events).length === 0
+			buildTimelineDisplayItems(timelineEntries, state.events, {
+				taskItemsById: state.taskItemsById,
+				taskGroupsById: state.taskGroupsById,
+			}).length === 0
 		);
-	}, [timelineEntries, state.events]);
+	}, [timelineEntries, state.events, state.taskItemsById, state.taskGroupsById]);
 
 	return (
 		<div

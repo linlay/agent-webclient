@@ -127,6 +127,9 @@ export interface TimelineNode {
   status?: string;
   expanded?: boolean;
   ts: number;
+  taskId?: string;
+  taskName?: string;
+  taskGroupId?: string;
   /* tool-specific */
   toolId?: string;
   toolLabel?: string;
@@ -200,6 +203,32 @@ export interface PlanRuntime {
   status: string;
   updatedAt: number;
   error: string;
+}
+
+export interface TaskItemMeta {
+  taskId: string;
+  taskName: string;
+  taskGroupId: string;
+  runId: string;
+  status: string;
+  startedAt?: number;
+  endedAt?: number;
+  durationMs?: number;
+  updatedAt: number;
+  error: string;
+}
+
+export interface TaskGroupMeta {
+  groupId: string;
+  runId: string;
+  title: string;
+  explicitTitle?: string;
+  status: string;
+  startedAt?: number;
+  endedAt?: number;
+  durationMs?: number;
+  updatedAt: number;
+  childTaskIds: string[];
 }
 
 /* ============================================
@@ -527,6 +556,8 @@ export interface AppState {
   artifacts: PublishedArtifact[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
+  taskItemsById: Map<string, TaskItemMeta>;
+  taskGroupsById: Map<string, TaskGroupMeta>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
   toolStates: Map<string, ToolState>;

@@ -5,6 +5,8 @@ import type {
   TimelineNode,
   Plan,
   PlanRuntime,
+  TaskGroupMeta,
+  TaskItemMeta,
   ToolState,
   TtsVoiceBlock,
 } from '@/app/state/types';
@@ -31,6 +33,8 @@ export interface ReplayState {
   artifacts: PublishedArtifact[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
+  taskItemsById: Map<string, TaskItemMeta>;
+  taskGroupsById: Map<string, TaskGroupMeta>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 }
@@ -54,6 +58,8 @@ export function createReplayState(): ReplayState {
     artifacts: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
+    taskItemsById: new Map(),
+    taskGroupsById: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -128,6 +134,14 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
     chatId: rs.chatId,
     runId: rs.runId,
     currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
+    getTaskItem: (taskId) => rs.taskItemsById.get(taskId),
+    getTaskGroup: (groupId) => rs.taskGroupsById.get(groupId),
+    getActiveTaskIds: () =>
+      Array.from(rs.taskItemsById.values())
+        .filter((task) => task.status === 'running')
+        .map((task) => task.taskId),
+    getPlanTaskDescription: (taskId) =>
+      rs.plan?.plan.find((item) => item.taskId === taskId)?.description,
     getPlanId: () => rs.plan?.planId,
   };
 }
@@ -210,6 +224,12 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'SET_PLAN_RUNTIME':
       rs.planRuntimeByTaskId.set(command.taskId, command.runtime);
+      return;
+    case 'SET_TASK_ITEM_META':
+      rs.taskItemsById.set(command.taskId, command.task);
+      return;
+    case 'SET_TASK_GROUP_META':
+      rs.taskGroupsById.set(command.groupId, command.group);
       return;
     case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
       rs.planCurrentRunningTaskId = command.taskId;

@@ -80,6 +80,8 @@ export function createInitialState(): AppState {
 		artifacts: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
+		taskItemsById: new Map(),
+		taskGroupsById: new Map(),
 		planCurrentRunningTaskId: "",
 		planLastTouchedTaskId: "",
 		toolStates: new Map(),
