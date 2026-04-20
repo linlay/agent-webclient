@@ -114,6 +114,7 @@ export function createInitialState(): AppState {
 		leftDrawerOpen: layoutMode !== "mobile-drawer",
 		rightDrawerOpen: false,
 		desktopDebugSidebarEnabled: false,
+		terminalDockOpen: false,
 		attachmentPreview: null,
 		layoutMode,
 		artifactExpanded: false,

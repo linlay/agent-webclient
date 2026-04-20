@@ -556,6 +556,7 @@ export interface AppState {
   leftDrawerOpen: boolean;
   rightDrawerOpen: boolean;
   desktopDebugSidebarEnabled: boolean;
+  terminalDockOpen: boolean;
   attachmentPreview: AttachmentPreviewState | null;
   layoutMode: LayoutMode;
   artifactExpanded: boolean;
