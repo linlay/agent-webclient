@@ -124,24 +124,27 @@ const WorkerPanelHeader: React.FC<{
           },
         }}
       />
-      <Flex align="center" className="worker-panel-header-body">
-        <Typography.Text ellipsis style={{ flex: 1 }}>
-          {row.displayName}
-          <span className="worker-panel-role">{row.role || "--"}</span>
-        </Typography.Text>
-        {!!lastChat?.updatedAt && (
-          <div className="worker-panel-time">
-            {formatChatTimeLabel(lastChat?.updatedAt)}
-          </div>
-        )}
-        <Tooltip title="新建对话">
-          <Button
-            className="worker-panel-new"
-            type="text"
-            icon={<MaterialIcon name="add" />}
-            onClick={handleStartNewConversation}
-          />
-        </Tooltip>
+      <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
+        <Flex align="center" className="worker-panel-header-body">
+          <Typography.Text ellipsis style={{ flex: 1 }}>
+            {row.displayName}
+            <span className="worker-panel-role">{row.role || "--"}</span>
+          </Typography.Text>
+          {!!lastChat?.updatedAt && (
+            <div className="worker-panel-time">
+              {formatChatTimeLabel(lastChat?.updatedAt)}
+            </div>
+          )}
+          <Tooltip title="新建对话">
+            <Button
+              className="worker-panel-new"
+              type="text"
+              icon={<MaterialIcon name="add" />}
+              onClick={handleStartNewConversation}
+            />
+          </Tooltip>
+        </Flex>
+        <div className="worker-panel-preview">{preview}</div>
       </Flex>
     </div>
   );
@@ -368,6 +371,7 @@ export const LeftSidebar: React.FC = () => {
       filteredWorkerRows.map((row) => {
         const rawChats = workerChatsByKey.get(row.key) || [];
         const recentChats = rawChats.slice(0, 5);
+        const icon = workerIconsByKey.get(row.key);
         return {
           key: row.key,
           className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
@@ -376,7 +380,7 @@ export const LeftSidebar: React.FC = () => {
             <WorkerPanelHeader
               row={row}
               isActive={row.key === state.workerSelectionKey}
-              icon={workerIconsByKey.get(row.key)}
+              icon={icon}
               lastChat={rawChats[0]}
             />
           ),
@@ -441,55 +445,49 @@ export const LeftSidebar: React.FC = () => {
         className={`sidebar left-sidebar ${state.leftDrawerOpen ? "is-open" : ""}`}
         id="left-sidebar"
       >
-        {state.conversationMode !== "worker" && (
-          <label
-            className="field-label field-label-spaced"
-            htmlFor="chat-search"
-          >
-            搜索
-          </label>
-        )}
-        <div className="sidebar-filter-row">
-          <UiInput
-            id="chat-search"
-            inputSize="sm"
-            type="text"
-            placeholder={
-              state.conversationMode === "worker"
-                ? "按 名称 / key / teamId 过滤..."
-                : "搜索对话..."
-            }
-            value={state.chatFilter}
-            style={{
-              border: 0,
-            }}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_CHAT_FILTER",
-                filter: e.target.value,
-              })
-            }
-          />
-
-          <UiButton
-            className="icon-btn icon-btn-fixed"
-            size="sm"
-            variant="ghost"
-            loading={isSidebarLoading}
-            onClick={() => {
-              if (state.conversationMode === "worker") {
-                window.dispatchEvent(
-                  new CustomEvent("agent:refresh-worker-data"),
-                );
-              } else {
-                window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+        {state.leftDrawerOpen && (
+          <div className="sidebar-filter-row">
+            <UiInput
+              id="chat-search"
+              inputSize="sm"
+              type="text"
+              placeholder={
+                state.conversationMode === "worker"
+                  ? "按 名称 / key / teamId 过滤..."
+                  : "搜索对话..."
               }
-            }}
-          >
-            <MaterialIcon name="refresh" />
-            <span>刷新</span>
-          </UiButton>
-        </div>
+              value={state.chatFilter}
+              style={{
+                border: 0,
+              }}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_CHAT_FILTER",
+                  filter: e.target.value,
+                })
+              }
+            />
+
+            <UiButton
+              className="icon-btn icon-btn-fixed"
+              size="sm"
+              variant="ghost"
+              loading={isSidebarLoading}
+              onClick={() => {
+                if (state.conversationMode === "worker") {
+                  window.dispatchEvent(
+                    new CustomEvent("agent:refresh-worker-data"),
+                  );
+                } else {
+                  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+                }
+              }}
+            >
+              <MaterialIcon name="refresh" />
+              <span>刷新</span>
+            </UiButton>
+          </div>
+        )}
 
         {state.conversationMode !== "worker" && (
           <div className="chat-meta">
@@ -507,7 +505,7 @@ export const LeftSidebar: React.FC = () => {
             {state.conversationMode === "worker" ? (
               filteredWorkerRows.length === 0 ? (
                 <div className="status-line">暂无员工/小组</div>
-              ) : (
+              ) : state.leftDrawerOpen ? (
                 <Collapse
                   accordion
                   ghost
@@ -516,6 +514,37 @@ export const LeftSidebar: React.FC = () => {
                   items={workerCollapseItems}
                   onChange={handleWorkerCollapseChange}
                 />
+              ) : (
+                <Flex vertical>
+                  {filteredWorkerRows?.map((item, i) => (
+                    <Popover
+                      placement="leftTop"
+                      arrow={false}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          width: "var(--left-sidebar-width)",
+                        },
+                      }}
+                      content={workerCollapseItems?.[i]?.children}
+                    >
+                      <Button type="text" className="worker-collapsed-icon">
+                        <AgentIcon
+                          icon={workerIconsByKey.get(item.key)}
+                          type={item.type}
+                          props={{
+                            icon: {
+                              className: "worker-panel-icon",
+                            },
+                            avatar: {
+                              className: "worker-panel-icon",
+                            },
+                          }}
+                        />
+                      </Button>
+                    </Popover>
+                  ))}
+                </Flex>
               )
             ) : filteredChats.length === 0 ? (
               <div className="status-line">暂无对话</div>
@@ -534,7 +563,7 @@ export const LeftSidebar: React.FC = () => {
         </div>
         <Popover
           open={settingsMenuOpen}
-          trigger="click"
+          trigger={state.leftDrawerOpen ? "click" : "hover"}
           placement="top"
           arrow={false}
           classNames={{
@@ -558,22 +587,26 @@ export const LeftSidebar: React.FC = () => {
             aria-expanded={settingsMenuOpen}
           >
             <MaterialIcon name="settings" />
-            <span>设置</span>
-            <span className="settings-trigger-summary">
-              {settingsSummaryBadges.map((badge) => (
-                <span
-                  key={badge.key}
-                  className="settings-summary-chip"
-                  title={badge.title}
-                >
-                  <MaterialIcon
-                    name={badge.icon}
-                    className="settings-summary-chip-icon"
-                  />
-                  <span>{badge.label}</span>
+            {state.leftDrawerOpen && (
+              <>
+                <span>设置</span>
+                <span className="settings-trigger-summary">
+                  {settingsSummaryBadges.map((badge) => (
+                    <span
+                      key={badge.key}
+                      className="settings-summary-chip"
+                      title={badge.title}
+                    >
+                      <MaterialIcon
+                        name={badge.icon}
+                        className="settings-summary-chip-icon"
+                      />
+                      <span>{badge.label}</span>
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
+              </>
+            )}
           </UiButton>
         </Popover>
       </aside>

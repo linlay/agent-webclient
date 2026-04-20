@@ -29,6 +29,7 @@
   --tool-pill-scale: 0.86;
   --colorFill: rgba(0, 0, 0, 0.15);
   --colorFillSecondary: rgba(0, 0, 0, 0.06);
+  --left-sidebar-close-width: 56px;
   --left-sidebar-width: 300px;
   --right-sidebar-width: 320px;
   --terminal-dock-height: 250px;
@@ -426,7 +427,7 @@ textarea {
    ======================================== */
 .app-shell {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto 1fr;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100vh;
   overflow: hidden;
@@ -461,6 +462,8 @@ textarea {
   backdrop-filter: blur(16px) saturate(115%);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   animation: fade-slide-in 0.45s ease both;
+  grid-row: 1;
+  grid-column: 2 / -1;
 }
 .layout-desktop-fixed .top-nav,
 .layout-tablet-mixed .top-nav {
@@ -4154,6 +4157,15 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 /* ========================================
    Sidebar (Left & Right)
    ======================================== */
+.left-drawer-closed .left-sidebar{
+  width: var(--left-sidebar-close-width);
+}
+.left-sidebar{
+  grid-row: 1 / -1;
+  grid-column: 1;
+  transform: none !important;
+  position: relative !important;
+}
 .sidebar {
   position: fixed;
   top: 0;
@@ -4294,6 +4306,9 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   color: var(--ink-2);
 }
 
+.left-drawer-closed .chat-list{
+  padding: 6px;
+}
 .chat-list {
   flex: 1;
   overflow-y: auto;
@@ -5300,10 +5315,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
    ======================================== */
 .layout-desktop-fixed .left-sidebar {
   position: relative;
-  width: 0;
   min-width: 0;
-  border-right: 0;
-  pointer-events: none;
 }
 #settings-btn {
   margin: 4px;
@@ -5470,7 +5482,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
 
 .layout-desktop-fixed {
   display: grid;
-  grid-template-columns: 0 1fr var(--right-sidebar-width);
+  grid-template-columns: var(--left-sidebar-close-width) 1fr var(--right-sidebar-width);
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100vh;
   overflow: hidden;
@@ -5523,7 +5535,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 .layout-desktop-fixed.desktop-debug-disabled {
-  grid-template-columns: 0 1fr 0;
+  grid-template-columns: var(--left-sidebar-close-width) 1fr 0;
 }
 
 .layout-desktop-fixed.desktop-debug-disabled.left-drawer-open {
@@ -5570,11 +5582,9 @@ html[data-theme="dark"] .sidebar-settings-menu {
 
 .layout-tablet-mixed .left-sidebar {
   position: relative;
-  width: 0;
   min-width: 0;
   grid-column: 1;
   grid-row: 2 / -1;
-  border-right: 0;
   pointer-events: none;
 }
 
@@ -5864,6 +5874,15 @@ html[data-theme="dark"] .sidebar-settings-menu {
   color: var(--ink-2);
 }
 
+.worker-collapsed-icon{
+  border: 0;
+  height: 43px;
+  padding: 0 !important;
+}
+.worker-collapsed-icon:hover{
+  border: 0;
+}
+
 .worker-collapse {
   display: flex;
   flex-direction: column;
@@ -5946,7 +5965,19 @@ html[data-theme="dark"] .sidebar-settings-menu {
 .ant-collapse-item-active .worker-panel-new {
   display: unset;
 }
+.ant-collapse-item-active .worker-panel-preview {
+  height: 0;
+}
 
+.worker-panel-preview{
+  font-size: 12px;
+  height: 18px;
+  transition: height 0.2s ease-in-out;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .worker-panel-new {
   display: none;
   width: 20px !important;
