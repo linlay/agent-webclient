@@ -1,29 +1,32 @@
 <!doctype html>
 <html lang="zh-CN" data-theme="light">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>AGENT Webclient</title>
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link
-			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&family=Material+Symbols+Rounded:FILL@0..1&display=swap"
-			rel="stylesheet"
-		/>
-		<script>
-			(() => {
-				try {
-					const storedTheme = localStorage.getItem("agent-webclient.themeMode");
-					if (storedTheme === "dark" || storedTheme === "light") {
-						document.documentElement.setAttribute("data-theme", storedTheme);
-					}
-				} catch (_error) {
-					// Ignore storage access errors during boot.
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>AGENT Webclient</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link
+		href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&family=Material+Symbols+Rounded:FILL@0..1&display=swap"
+		rel="stylesheet" />
+	<link rel="stylesheet" href="./xterm.css" />
+	<script>
+		(() => {
+			try {
+				const storedTheme = localStorage.getItem("agent-webclient.themeMode");
+				if (storedTheme === "dark" || storedTheme === "light") {
+					document.documentElement.setAttribute("data-theme", storedTheme);
 				}
-			})();
-		</script>
-	</head>
-	<body>
-		<div id="root"></div>
-	</body>
+			} catch (_error) {
+				// Ignore storage access errors during boot.
+			}
+		})();
+	</script>
+</head>
+
+<body>
+	<div id="root"></div>
+</body>
+
 </html>

@@ -24,6 +24,7 @@ import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
 import { useWsTransport } from "@/features/transport/hooks/useWsTransport";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
+import { TerminalDock } from "./TerminalDock";
 // import { useLiveEvents } from "@/hooks/useLiveEvents";
 
 function inferLayoutMode(width: number): LayoutMode {
@@ -90,7 +91,7 @@ export const AppShell: React.FC = () => {
 	return (
 		<div
 			ref={appRef}
-			className={`app-shell ${layoutClass} ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
+			className={`app-shell ${layoutClass} ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
 			id="app"
 		>
 			<TopNav />
@@ -98,6 +99,7 @@ export const AppShell: React.FC = () => {
 			<ConversationStage />
 			<RightSidebar />
 			<BottomDock />
+			{state.terminalDockOpen ? <TerminalDock /> : null}
 			<CommandStatusOverlay />
 			{showOverlay && <DrawerOverlay />}
 			{state.settingsOpen && <SettingsModal />}

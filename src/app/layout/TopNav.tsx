@@ -288,7 +288,20 @@ export const TopNav: React.FC = () => {
           >
             <MaterialIcon name="bug_report" />
           </UiButton>
-          <UiButton variant="ghost" size="sm" iconOnly>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            active={state.terminalDockOpen}
+            aria-label={state.terminalDockOpen ? "关闭终端面板" : "打开终端面板"}
+            title={state.terminalDockOpen ? "关闭终端面板" : "打开终端面板"}
+            onClick={() =>
+              dispatch({
+                type: "SET_TERMINAL_DOCK_OPEN",
+                open: !state.terminalDockOpen,
+              })
+            }
+          >
             <MaterialIcon name="terminal" />
           </UiButton>
           <UiButton
