@@ -485,9 +485,9 @@ textarea {
   align-items: center;
 }
 .nav-left {
-  width: var(--left-sidebar-width);
   justify-content: space-between;
-  padding-left: 6px;
+  padding-left: 12px;
+  gap: 12px;
 }
 
 .nav-center {
@@ -5889,7 +5889,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
   gap: 10px;
 }
 
-.worker-collapse .status-line {
+.worker-collapse .status-line, .worker-popover .status-line {
   border: 0;
   border-radius: 0;
   background-color: transparent;

@@ -165,7 +165,7 @@ export const ConversationStage: React.FC = () => {
           className={`timeline-stack ${displayItems.length === 0 ? "is-empty" : ""}`}
         >
           {displayItems.length === 0 ? (
-            <div className="timeline-empty">{currentWorker?.displayName ? `与 ${currentWorker?.displayName}对话` : "今天有什么可以帮您"}</div>
+            <div className="timeline-empty">{currentWorker?.displayName ? `与 ${currentWorker?.displayName} 对话` : "今天有什么可以帮您"}</div>
           ) : (
             <div className="timeline-lane">
               {displayItems.map((item) => {

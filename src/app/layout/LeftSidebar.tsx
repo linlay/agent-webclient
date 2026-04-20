@@ -518,8 +518,12 @@ export const LeftSidebar: React.FC = () => {
                 <Flex vertical>
                   {filteredWorkerRows?.map((item, i) => (
                     <Popover
+                      key={item.key}
                       placement="leftTop"
                       arrow={false}
+                      classNames={{
+                        root: "worker-popover",
+                      }}
                       styles={{
                         body: {
                           padding: 0,
