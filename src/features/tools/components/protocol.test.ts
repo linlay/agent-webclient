@@ -42,7 +42,7 @@ function createFormAwaiting(
         action: '提交请假申请',
         title: 'mock 请假申请',
         payload: {
-          employee_id: 'E1001',
+          applicant_id: 'E1001',
         },
       },
     ],
@@ -79,12 +79,12 @@ describe('awaiting protocol helpers', () => {
             action: '提交请假申请',
             title: 'mock 请假申请',
             payload: {
-              employee_id: 'E1001',
+              applicant_id: 'E1001',
             },
           },
         ],
         payload: {
-          employee_id: 'E1001',
+          applicant_id: 'E1001',
         },
       },
     });
@@ -103,7 +103,7 @@ describe('awaiting protocol helpers', () => {
     });
     (awaiting.forms[0] as FormActiveAwaiting['forms'][number] & {
       initialPayload?: Record<string, unknown> | null;
-    }).initialPayload = { employee_id: 'E1001' };
+    }).initialPayload = { applicant_id: 'E1001' };
 
     expect(buildAwaitingInitMessage(awaiting)).toEqual({
       type: 'awaiting_init',
@@ -119,12 +119,12 @@ describe('awaiting protocol helpers', () => {
             action: '提交请假申请',
             title: 'mock 请假申请',
             payload: {
-              employee_id: 'E1001',
+              applicant_id: 'E1001',
             },
           },
         ],
         payload: {
-          employee_id: 'E1001',
+          applicant_id: 'E1001',
         },
       },
     });

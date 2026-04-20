@@ -346,7 +346,7 @@ describe('reduceActiveAwaiting', () => {
           action: '提交请假申请',
           title: 'mock 请假申请',
           initialPayload: {
-            employee_id: 'E1001',
+            applicant_id: 'E1001',
           },
         },
       ],
@@ -366,7 +366,7 @@ describe('reduceActiveAwaiting', () => {
         action: '提交请假申请',
         title: 'mock 请假申请',
         payload: {
-          employee_id: 'E1001',
+          applicant_id: 'E1001',
         },
       },
     ]);
@@ -397,7 +397,7 @@ describe('reduceActiveAwaiting', () => {
       viewportType: ViewportTypeEnum.Html,
       viewportKey: 'leave_form',
       payload: {
-        employee_id: 'E1001',
+        applicant_id: 'E1001',
       },
     });
 

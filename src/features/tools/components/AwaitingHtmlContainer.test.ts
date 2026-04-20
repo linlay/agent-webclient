@@ -46,7 +46,7 @@ function createActiveAwaiting(
         action: '提交请假申请',
         title: 'mock 请假申请',
         payload: {
-          employee_id: 'E1001',
+          applicant_id: 'E1001',
         },
       },
     ],
