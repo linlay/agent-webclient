@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { loadConfig, resolveFrontendRequest } = require('./server');
+const { createDevCorsMiddleware, loadConfig, resolveFrontendRequest } = require('./server');
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'agent-webclient-backend-'));
@@ -14,8 +14,40 @@ function writeFrontendFile(rootDir, relativePath, content) {
   fs.writeFileSync(targetPath, content, 'utf8');
 }
 
+function createMockResponse() {
+  const headers = {};
+
+  return {
+    body: '',
+    ended: false,
+    headers,
+    statusCode: 200,
+    append(name, value) {
+      const key = String(name).toLowerCase();
+      if (!headers[key]) {
+        headers[key] = value;
+        return;
+      }
+      headers[key] = `${headers[key]}, ${value}`;
+    },
+    end(body = '') {
+      this.body = body;
+      this.ended = true;
+      return this;
+    },
+    setHeader(name, value) {
+      headers[String(name).toLowerCase()] = value;
+    },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+  };
+}
+
 describe('backend/server', () => {
   const tempRoots = [];
+  const devCorsMiddleware = createDevCorsMiddleware();
 
   afterEach(() => {
     while (tempRoots.length > 0) {
@@ -64,5 +96,71 @@ describe('backend/server', () => {
     tempRoots.push(rootDir);
 
     expect(() => loadConfig({ env: { PORT: '0' }, appRoot: rootDir })).toThrow(/index\.html/);
+  });
+
+  test('responds to allowed dev-origin preflight requests with CORS headers', async () => {
+    const req = {
+      headers: {
+        origin: 'http://127.0.0.1:5173',
+      },
+      method: 'OPTIONS',
+    };
+    const res = createMockResponse();
+    const next = jest.fn();
+
+    devCorsMiddleware(req, res, next);
+
+    expect(res.statusCode).toBe(204);
+    expect(res.ended).toBe(true);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.headers['access-control-allow-origin']).toBe('http://127.0.0.1:5173');
+    expect(res.headers['access-control-allow-methods']).toBe(
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    );
+    expect(res.headers['access-control-allow-headers']).toBe(
+      'Content-Type, Authorization, Accept, Cache-Control',
+    );
+    expect(String(res.headers.vary || '')).toContain('Origin');
+  });
+
+  test('adds CORS headers to non-OPTIONS requests from allowed dev origins', () => {
+    const req = {
+      headers: {
+        origin: 'http://localhost:5173',
+      },
+      method: 'GET',
+    };
+    const res = createMockResponse();
+    const next = jest.fn();
+
+    devCorsMiddleware(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.ended).toBe(false);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(res.headers['access-control-allow-methods']).toBe(
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    );
+  });
+
+  test('does not add CORS headers for non-matching origins', () => {
+    const req = {
+      headers: {
+        origin: 'http://127.0.0.1:3000',
+      },
+      method: 'GET',
+    };
+    const res = createMockResponse();
+    const next = jest.fn();
+
+    devCorsMiddleware(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.ended).toBe(false);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    expect(res.headers['access-control-allow-methods']).toBeUndefined();
+    expect(res.headers['access-control-allow-headers']).toBeUndefined();
   });
 });

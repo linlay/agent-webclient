@@ -181,7 +181,12 @@ write_program_manifest() {
     "mode": "standalone",
     "entry": "/",
     "directAccess": true,
-    "hostManaged": false
+    "hostManaged": false,
+    "hideFromNav": true,
+    "embedPath": "/appagent",
+    "embedParams": {
+      "desktopApp": "1"
+    }
   },
   "backend": {
     "entry": "$backend_entry"
@@ -222,9 +227,36 @@ ${error_log_json}
     "portEnvKey": "PORT",
     "defaultPort": 11948
   },
+  "prerequisites": [
+    "agent-platform"
+  ],
   "desktop": {
+    "displayOrder": 3,
+    "autoStart": true,
     "assetFileName": "$asset_file_name",
-    "bundleTopLevelDir": "$APP_NAME"
+    "bundleTopLevelDir": "$APP_NAME",
+    "envBindings": [
+      {
+        "key": "BASE_URL",
+        "fromService": "agent-platform",
+        "template": "http://127.0.0.1:{{port}}",
+        "onlyIfDefault": true,
+        "defaults": [
+          "",
+          "http://127.0.0.1:11949",
+          "http://localhost:11949"
+        ]
+      },
+      {
+        "key": "PORT",
+        "value": "{{serviceDefaultPort}}",
+        "onlyIfDefault": true
+      },
+      {
+        "key": "NODE_BIN",
+        "value": "{{processExecPath}}"
+      }
+    ]
   }
 }
 EOF

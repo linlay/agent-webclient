@@ -6,6 +6,12 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const DEFAULT_PORT = '11948';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:11949';
+const DEV_CORS_ALLOWED_ORIGINS = new Set([
+  'http://127.0.0.1:5173',
+  'http://localhost:5173',
+]);
+const DEV_CORS_ALLOW_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+const DEV_CORS_ALLOW_HEADERS = 'Content-Type, Authorization, Accept, Cache-Control';
 
 function parseRequestPath(urlValue) {
   return new URL(String(urlValue || '/'), 'http://127.0.0.1').pathname;
@@ -130,6 +136,31 @@ function createProxy(target, logger) {
   });
 }
 
+function createDevCorsMiddleware() {
+  return function devCorsMiddleware(req, res, next) {
+    const origin = typeof req.headers.origin === 'string'
+      ? req.headers.origin
+      : '';
+
+    if (!DEV_CORS_ALLOWED_ORIGINS.has(origin)) {
+      next();
+      return;
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', DEV_CORS_ALLOW_METHODS);
+    res.setHeader('Access-Control-Allow-Headers', DEV_CORS_ALLOW_HEADERS);
+    res.append('Vary', 'Origin');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  };
+}
+
 function resolveFrontendRequest(config, requestPath) {
   const normalizedPath = parseRequestPath(requestPath);
   if (normalizedPath === '/') {
@@ -175,11 +206,13 @@ function resolveFrontendRequest(config, requestPath) {
 function createApp(config, options = {}) {
   const logger = options.logger || console;
   const app = express();
+  const devCorsMiddleware = createDevCorsMiddleware();
   const apiProxy = createApiProxy(config.baseUrl, logger);
   const voiceProxy = createProxy(config.voiceBaseUrl, logger);
   const wsProxy = createProxy(config.baseUrl, logger);
 
   app.disable('x-powered-by');
+  app.use(devCorsMiddleware);
   app.use('/api/voice', voiceProxy);
   app.use('/api', apiProxy);
   app.use('/ws', wsProxy);
@@ -273,6 +306,7 @@ module.exports = {
   DEFAULT_BASE_URL,
   DEFAULT_PORT,
   createApp,
+  createDevCorsMiddleware,
   createServer,
   isSseQueryRequest,
   loadConfig,
