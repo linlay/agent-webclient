@@ -14,6 +14,7 @@ import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDispl
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 
 async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -67,6 +68,7 @@ export const ConversationStage: React.FC = () => {
   const autoScrollEnabledRef = useRef(true);
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
+  const currentWorker = resolveCurrentWorkerSummary(state);
 
   const isNearBottom = (el: HTMLDivElement, threshold = 24): boolean => {
     return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
@@ -163,7 +165,7 @@ export const ConversationStage: React.FC = () => {
           className={`timeline-stack ${displayItems.length === 0 ? "is-empty" : ""}`}
         >
           {displayItems.length === 0 ? (
-            <div className="timeline-empty">新建聊天</div>
+            <div className="timeline-empty">{currentWorker?.displayName ? `与 ${currentWorker?.displayName}对话` : "今天有什么可以帮您"}</div>
           ) : (
             <div className="timeline-lane">
               {displayItems.map((item) => {

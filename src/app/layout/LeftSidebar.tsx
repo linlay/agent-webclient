@@ -112,30 +112,36 @@ const WorkerPanelHeader: React.FC<{
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <AgentIcon icon={icon} type={row.type} />
-      <Flex className="worker-panel-header-body" vertical>
-        <Flex align="center">
-          <Typography.Text ellipsis style={{ flex: 1 }}>
-            {row.displayName}
-            <span className="worker-panel-role">{row.role || "--"}</span>
-          </Typography.Text>
-          {!!lastChat?.updatedAt && (
-            <div className="worker-panel-time">
-              {formatChatTimeLabel(lastChat?.updatedAt)}
-            </div>
-          )}
-          <Tooltip title="新建对话">
-            <Button
-              className="worker-panel-new"
-              type="text"
-              icon={<MaterialIcon name="add" />}
-              onClick={handleStartNewConversation}
-            />
-          </Tooltip>
-        </Flex>
-        <Typography.Text ellipsis className="worker-panel-preview">
-          {preview}
+      <AgentIcon
+        icon={icon}
+        type={row.type}
+        props={{
+          icon: {
+            className: "worker-panel-icon",
+          },
+          avatar: {
+            className: "worker-panel-icon",
+          },
+        }}
+      />
+      <Flex align="center" className="worker-panel-header-body">
+        <Typography.Text ellipsis style={{ flex: 1 }}>
+          {row.displayName}
+          <span className="worker-panel-role">{row.role || "--"}</span>
         </Typography.Text>
+        {!!lastChat?.updatedAt && (
+          <div className="worker-panel-time">
+            {formatChatTimeLabel(lastChat?.updatedAt)}
+          </div>
+        )}
+        <Tooltip title="新建对话">
+          <Button
+            className="worker-panel-new"
+            type="text"
+            icon={<MaterialIcon name="add" />}
+            onClick={handleStartNewConversation}
+          />
+        </Tooltip>
       </Flex>
     </div>
   );
@@ -421,7 +427,12 @@ export const LeftSidebar: React.FC = () => {
         wsStatus: state.wsStatus,
         wsErrorMessage: state.wsErrorMessage,
       }),
-    [state.themeMode, state.transportMode, state.wsErrorMessage, state.wsStatus],
+    [
+      state.themeMode,
+      state.transportMode,
+      state.wsErrorMessage,
+      state.wsStatus,
+    ],
   );
 
   return (
@@ -524,8 +535,11 @@ export const LeftSidebar: React.FC = () => {
         <Popover
           open={settingsMenuOpen}
           trigger="click"
-          placement="topLeft"
-          overlayClassName="sidebar-settings-popover"
+          placement="top"
+          arrow={false}
+          classNames={{
+            root: "sidebar-settings-popover",
+          }}
           onOpenChange={setSettingsMenuOpen}
           content={
             <SidebarSettingsMenu

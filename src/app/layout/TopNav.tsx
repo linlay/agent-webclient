@@ -41,7 +41,6 @@ export const TopNav: React.FC = () => {
   const dispatch = useAppDispatch();
   const { statusClass, statusText } = resolveTopNavStatus(state);
   const currentWorker = resolveCurrentWorkerSummary(state);
-  const currentWorkerRole = String(currentWorker?.role || "").trim() || "--";
   const voiceModeAvailable = currentWorker?.type === "agent";
   const showMuteControl = voiceModeAvailable || state.audioMuted;
   const isMacPlatform = React.useMemo(

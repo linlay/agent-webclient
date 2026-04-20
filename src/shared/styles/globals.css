@@ -425,13 +425,11 @@ textarea {
    App Shell Layout
    ======================================== */
 .app-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
   height: 100vh;
-  height: 100dvh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  isolation: isolate;
   background:
     radial-gradient(
       circle at top left,
@@ -441,6 +439,9 @@ textarea {
     var(--bg-base);
 }
 
+.app-shell.timeline-empty-layout {
+  grid-template-rows: auto minmax(0, 2fr) minmax(0, 3fr);
+}
 /* ========================================
    Top Navigation
    ======================================== */
@@ -3550,8 +3551,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   font-size: 11px;
   font-weight: 700;
   color: #fff !important;
-  background: var(--accent-danger);
-  box-shadow: 0 4px 10px rgba(211, 59, 88, 0.24);
+  background: #fff;
   flex: 0 0 auto;
   align-self: center;
 }
@@ -3559,12 +3559,12 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 .interrupt-btn span {
   width: 12px;
   height: 12px;
-  background: #fff;
+  background: var(--accent-danger);
   border-radius: 2px;
 }
 
 .interrupt-btn:hover {
-  box-shadow: 0 6px 12px rgba(211, 59, 88, 0.3);
+  border: 1px solid var(--accent-danger);
 }
 
 .interrupt-btn:disabled {
@@ -5292,6 +5292,10 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   margin: 4px;
   justify-content: flex-start;
 }
+#settings-btn>.ui-btn-label {
+  width: 100%;
+  justify-content: space-between;
+}
 
 .sidebar-settings-trigger {
   width: calc(100% - 8px);
@@ -5331,6 +5335,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
   padding: 0;
   border-radius: 16px;
   overflow: hidden;
+  width: calc(var(--left-sidebar-width) - 10px);
 }
 
 .sidebar-settings-popover .ant-popover-inner-content {
@@ -5338,7 +5343,6 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .sidebar-settings-menu {
-  width: min(320px, calc(100vw - 28px));
   padding: 10px;
   background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
 }
@@ -5452,7 +5456,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
   grid-template-columns: 0 1fr var(--right-sidebar-width);
   grid-template-rows: auto 1fr auto;
   height: 100vh;
-  height: 100dvh;
   overflow: hidden;
 }
 
@@ -5460,10 +5463,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
   grid-template-columns: var(--left-sidebar-width) 1fr var(
       --right-sidebar-width
     );
-}
-
-.layout-desktop-fixed.timeline-empty-layout {
-  grid-template-rows: auto minmax(0, 2fr) minmax(0, 3fr);
 }
 
 .layout-desktop-fixed .top-nav {
@@ -5526,16 +5525,11 @@ html[data-theme="dark"] .sidebar-settings-menu {
   grid-template-columns: 0 1fr;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
-  height: 100dvh;
   overflow: hidden;
 }
 
 .layout-tablet-mixed.left-drawer-open {
   grid-template-columns: var(--left-sidebar-width) 1fr;
-}
-
-.layout-tablet-mixed.timeline-empty-layout {
-  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .layout-tablet-mixed .top-nav {
@@ -5853,8 +5847,10 @@ html[data-theme="dark"] .sidebar-settings-menu {
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
 }
-
-.worker-collapse .ant-collapse-item.ant-collapse-item-active .ant-avatar {
+.worker-panel-icon{
+  transition: transform 0.2s ease-in-out;
+}
+.worker-collapse .ant-collapse-item.ant-collapse-item-active .worker-panel-icon {
   transform: scale(0.7);
 }
 
@@ -5923,23 +5919,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
   font-size: 11px;
   color: var(--text-muted);
   margin-left: 4px;
-}
-
-.ant-collapse-item-active .worker-panel-preview {
-  height: 0;
-  overflow: hidden;
-}
-
-.worker-panel-preview {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ink-2);
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  transition: height 0.3s;
-  height: 20px;
 }
 
 .worker-panel-extra-btn {

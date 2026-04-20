@@ -1293,22 +1293,25 @@ export const ComposerArea: React.FC = () => {
       window.removeEventListener("agent:focus-composer", onFocusComposer);
   }, []);
 
-  const applyComposerDraft = useCallback((draft: string) => {
-    setInputValue(draft);
-    setSlashDismissed(false);
-    if (draft.startsWith("/")) {
-      closeMention();
-    } else {
-      updateMentionSuggestions(draft);
-    }
-    window.requestAnimationFrame(() => {
-      const el = textareaRef.current?.resizableTextArea?.textArea;
-      if (!el) return;
-      el.focus();
-      const caret = draft.length;
-      el.setSelectionRange(caret, caret);
-    });
-  }, [closeMention, updateMentionSuggestions]);
+  const applyComposerDraft = useCallback(
+    (draft: string) => {
+      setInputValue(draft);
+      setSlashDismissed(false);
+      if (draft.startsWith("/")) {
+        closeMention();
+      } else {
+        updateMentionSuggestions(draft);
+      }
+      window.requestAnimationFrame(() => {
+        const el = textareaRef.current?.resizableTextArea?.textArea;
+        if (!el) return;
+        el.focus();
+        const caret = draft.length;
+        el.setSelectionRange(caret, caret);
+      });
+    },
+    [closeMention, updateMentionSuggestions],
+  );
 
   useEffect(() => {
     const onSetDraft = (event: Event) => {
@@ -1408,7 +1411,9 @@ export const ComposerArea: React.FC = () => {
     if (!currentAgentKey) {
       return;
     }
-    if (Object.prototype.hasOwnProperty.call(agentWonderCache, currentAgentKey)) {
+    if (
+      Object.prototype.hasOwnProperty.call(agentWonderCache, currentAgentKey)
+    ) {
       return;
     }
 
@@ -1467,8 +1472,8 @@ export const ComposerArea: React.FC = () => {
     }
 
     if (
-      !wasBlankConversationRef.current
-      || blankWonderSignatureRef.current !== signature
+      !wasBlankConversationRef.current ||
+      blankWonderSignatureRef.current !== signature
     ) {
       setSampledWonders(pickRandomWonders(currentAgentWonders, 3));
       blankWonderSignatureRef.current = signature;
@@ -1584,67 +1589,73 @@ export const ComposerArea: React.FC = () => {
               <div className="composer-mode-shell">
                 <div className="composer-mode-main">
                   {isVoiceMode ? (
-                  <div
-                    className={`voice-chat-panel is-${state.voiceChat.status}`}
-                    aria-live="polite"
-                  >
-                    <div className="voice-chat-panel-header">
-                      <div className="voice-chat-panel-identity">
-                        <div
-                          className={`voice-chat-orb is-${state.voiceChat.status}`}
-                          aria-hidden="true"
-                        >
-                          <span />
-                          <span />
-                          <span />
-                        </div>
-                        <div className="voice-chat-panel-heading">
-                          <div className="voice-chat-panel-title-row">
-                            <div className="voice-chat-panel-title">语聊中</div>
-                            <div className="voice-chat-worker">
-                              当前员工：
-                              <strong>
-                                {state.voiceChat.currentAgentName ||
-                                  currentWorker?.displayName ||
-                                  "--"}
-                              </strong>
+                    <div
+                      className={`voice-chat-panel is-${state.voiceChat.status}`}
+                      aria-live="polite"
+                    >
+                      <div className="voice-chat-panel-header">
+                        <div className="voice-chat-panel-identity">
+                          <div
+                            className={`voice-chat-orb is-${state.voiceChat.status}`}
+                            aria-hidden="true"
+                          >
+                            <span />
+                            <span />
+                            <span />
+                          </div>
+                          <div className="voice-chat-panel-heading">
+                            <div className="voice-chat-panel-title-row">
+                              <div className="voice-chat-panel-title">
+                                语聊中
+                              </div>
+                              <div className="voice-chat-worker">
+                                当前员工：
+                                <strong>
+                                  {state.voiceChat.currentAgentName ||
+                                    currentWorker?.displayName ||
+                                    "--"}
+                                </strong>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div
-                        className={`voice-chat-status is-${state.voiceChat.status}`}
-                      >
-                        <span className="voice-chat-status-dot" />
-                        {voiceStatusText}
-                      </div>
-                    </div>
-                    <div className="voice-chat-summary-grid">
-                      <div className="voice-chat-snippet voice-chat-snippet-user">
-                        <div className="voice-chat-snippet-label">你刚刚说</div>
                         <div
-                          className={`voice-chat-snippet-text ${!hasVoiceUserPreview ? "is-placeholder" : ""}`}
-                          title={voiceUserPreview}
+                          className={`voice-chat-status is-${state.voiceChat.status}`}
                         >
-                          {voiceUserPreview}
+                          <span className="voice-chat-status-dot" />
+                          {voiceStatusText}
                         </div>
                       </div>
-                      <div className="voice-chat-snippet voice-chat-snippet-assistant">
-                        <div className="voice-chat-snippet-label">助手回复</div>
-                        <div
-                          className={`voice-chat-snippet-text ${!hasVoiceAssistantPreview ? "is-placeholder" : ""}`}
-                          title={voiceAssistantPreview}
-                        >
-                          {voiceAssistantPreview}
+                      <div className="voice-chat-summary-grid">
+                        <div className="voice-chat-snippet voice-chat-snippet-user">
+                          <div className="voice-chat-snippet-label">
+                            你刚刚说
+                          </div>
+                          <div
+                            className={`voice-chat-snippet-text ${!hasVoiceUserPreview ? "is-placeholder" : ""}`}
+                            title={voiceUserPreview}
+                          >
+                            {voiceUserPreview}
+                          </div>
+                        </div>
+                        <div className="voice-chat-snippet voice-chat-snippet-assistant">
+                          <div className="voice-chat-snippet-label">
+                            助手回复
+                          </div>
+                          <div
+                            className={`voice-chat-snippet-text ${!hasVoiceAssistantPreview ? "is-placeholder" : ""}`}
+                            title={voiceAssistantPreview}
+                          >
+                            {voiceAssistantPreview}
+                          </div>
                         </div>
                       </div>
+                      {state.voiceChat.error && (
+                        <div className="voice-chat-error">
+                          {state.voiceChat.error}
+                        </div>
+                      )}
                     </div>
-                    {state.voiceChat.error && (
-                      <div className="voice-chat-error">
-                        {state.voiceChat.error}
-                      </div>
-                    )}
-                  </div>
                   ) : (
                     <Input.TextArea
                       ref={textareaRef}
@@ -1657,7 +1668,7 @@ export const ComposerArea: React.FC = () => {
                       }
                       autoSize={{
                         minRows: isTimelineEmpty ? 5 : 1,
-                        maxRows: 10
+                        maxRows: 10,
                       }}
                       disabled={isFrontendActive}
                       value={inputValue}
@@ -1721,7 +1732,9 @@ export const ComposerArea: React.FC = () => {
                     size="sm"
                     iconOnly
                     loading={hasUploadingAttachments}
-                    disabled={isFrontendActive || isVoiceMode || state.streaming}
+                    disabled={
+                      isFrontendActive || isVoiceMode || state.streaming
+                    }
                     onClick={openFilePicker}
                     aria-label="上传文件"
                     title={
@@ -1750,6 +1763,7 @@ export const ComposerArea: React.FC = () => {
                       id="interrupt-btn"
                       variant="danger"
                       size="sm"
+                      iconOnly
                       disabled={isFrontendActive}
                       onClick={() => void interruptCurrentRun()}
                     ></UiButton>
@@ -1810,15 +1824,15 @@ export const ComposerArea: React.FC = () => {
                   )}
                 </div>
               </div>
-              {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
+              {showSpeechHint && (
+                <div className="voice-hint">{speechStatus}</div>
+              )}
             </div>
             {isBlankConversation && sampledWonders.length > 0 && (
               <section className="composer-wonders" aria-label="推荐问题">
                 <div className="composer-wonders-header">
                   <div className="composer-wonders-kicker">妙问</div>
-                  <div className="composer-wonders-title">
-                    试试这些推荐问题
-                  </div>
+                  <div className="composer-wonders-title">试试这些推荐问题</div>
                 </div>
                 <div className="composer-wonders-grid">
                   {sampledWonders.map((wonder, index) => (
