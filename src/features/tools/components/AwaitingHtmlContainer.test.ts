@@ -8,7 +8,9 @@ import {
   AwaitingHtmlContainer,
   INVALID_AWAITING_SUBMIT_ERROR,
   beginAwaitingCollectRequest,
+  buildAggregatedAwaitingSubmitPayload,
   clearAwaitingCollectRequest,
+  mergeSubmittedParamsIntoAwaitingForms,
   reportInvalidAwaitingSubmitPayload,
 } from '@/features/tools/components/AwaitingHtmlContainer';
 
@@ -155,5 +157,97 @@ describe('AwaitingHtmlContainer', () => {
     expect(onErrorChange).toHaveBeenCalledWith(
       INVALID_AWAITING_SUBMIT_ERROR,
     );
+  });
+
+  it('merges collected form payloads back into the awaiting form list', () => {
+    expect(mergeSubmittedParamsIntoAwaitingForms([
+      {
+        id: 'leave_form',
+        action: '提交请假申请',
+        title: 'mock 请假申请',
+        payload: {
+          employee_id: 'E1001',
+        },
+      },
+      {
+        id: 'travel_form',
+        action: '提交出差申请',
+        title: 'mock 出差申请',
+        payload: {
+          employee_id: 'E2002',
+        },
+      },
+    ], [
+      {
+        id: 'travel_form',
+        payload: {
+          employee_id: 'E3003',
+        },
+      },
+    ])).toEqual([
+      {
+        id: 'leave_form',
+        action: '提交请假申请',
+        title: 'mock 请假申请',
+        payload: {
+          employee_id: 'E1001',
+        },
+      },
+      {
+        id: 'travel_form',
+        action: '提交出差申请',
+        title: 'mock 出差申请',
+        payload: {
+          employee_id: 'E3003',
+        },
+      },
+    ]);
+  });
+
+  it('builds final submit payloads that include all forms', () => {
+    expect(buildAggregatedAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: '提交请假申请',
+          title: 'mock 请假申请',
+          payload: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: '提交出差申请',
+          title: 'mock 出差申请',
+          payload: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }), [
+      {
+        id: 'travel_form',
+        payload: {
+          employee_id: 'E3003',
+        },
+      },
+    ])).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          payload: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          payload: {
+            employee_id: 'E3003',
+          },
+        },
+      ],
+    });
   });
 });

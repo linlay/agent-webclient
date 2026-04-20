@@ -1,10 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, message } from 'antd';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Button, message } from "antd";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
+  AIAwaitFormSubmitParamData,
   AIAwaitSubmitPayloadData,
   FormActiveAwaiting,
-} from '@/app/state/types';
-import { getViewport } from '@/features/transport/lib/apiClientProxy';
+} from "@/app/state/types";
+import { getViewport } from "@/features/transport/lib/apiClientProxy";
 import {
   type AwaitingCollectDecision,
   buildAwaitingCollectMessage,
@@ -13,7 +21,7 @@ import {
   buildAwaitingViewportSignature,
   isAwaitingFrameCloseMessage,
   readAwaitingSubmitPayload,
-} from '@/features/tools/components/protocol';
+} from "@/features/tools/components/protocol";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -24,20 +32,24 @@ interface AwaitingHtmlContainerProps {
 }
 
 export const INVALID_AWAITING_SUBMIT_ERROR =
-  '收集表单信息异常：提交数据结构不合法';
+  "收集表单信息异常：提交数据结构不合法";
 
 function getSubmitErrorText(result: unknown): string {
-  if (typeof result === 'string' && result.trim()) {
+  if (typeof result === "string" && result.trim()) {
     return result.trim();
   }
   if (result instanceof Error && result.message.trim()) {
     return result.message.trim();
   }
-  return '';
+  return "";
 }
 
 export const AWAITING_COLLECT_TIMEOUT_MS = 5_000;
-export const AWAITING_COLLECT_TIMEOUT_ERROR = '业务表单未响应采集请求';
+export const AWAITING_COLLECT_TIMEOUT_ERROR = "业务表单未响应采集请求";
+
+type AwaitingCollectFlow =
+  | { type: "submit" | "reject" }
+  | { type: "switch"; nextIndex: number };
 
 interface AwaitingCollectLifecycleHandlers {
   onCollectingChange: (decision: AwaitingCollectDecision | null) => void;
@@ -66,14 +78,14 @@ export function beginAwaitingCollectRequest(
     onErrorChange,
   } = input;
 
-  postMessage(buildAwaitingCollectMessage(awaiting, decision), '*');
+  postMessage(buildAwaitingCollectMessage(awaiting, decision), "*");
   onCollectingChange(decision);
-  onStatusChange('采集中...');
-  onErrorChange('');
+  onStatusChange("采集中...");
+  onErrorChange("");
 
   return scheduleTimeout(() => {
     onCollectingChange(null);
-    onStatusChange('');
+    onStatusChange("");
     onErrorChange(AWAITING_COLLECT_TIMEOUT_ERROR);
   }, AWAITING_COLLECT_TIMEOUT_MS);
 }
@@ -87,7 +99,7 @@ export function clearAwaitingCollectRequest(
     clearTimeoutFn(timeout);
   }
   handlers?.onCollectingChange?.(null);
-  handlers?.onStatusChange?.('');
+  handlers?.onStatusChange?.("");
 }
 
 export function reportInvalidAwaitingSubmitPayload(
@@ -95,11 +107,102 @@ export function reportInvalidAwaitingSubmitPayload(
   eventData: unknown,
   onErrorChange: (error: string) => void,
 ): void {
-  console.warn('[awaiting-html] invalid frontend_awaiting_submit payload', {
+  console.warn("[awaiting-html] invalid frontend_awaiting_submit payload", {
     awaitingId,
     eventData,
   });
   onErrorChange(INVALID_AWAITING_SUBMIT_ERROR);
+}
+
+function clampAwaitingFormIndex(index: number, formsLength: number): number {
+  if (formsLength <= 1) {
+    return 0;
+  }
+  return Math.min(formsLength - 1, Math.max(0, index));
+}
+
+function cloneAwaitingFormPayload(
+  payload: Record<string, any> | null | undefined,
+): Record<string, any> | null {
+  return payload ? { ...payload } : null;
+}
+
+function hasPayloadField(param: AIAwaitFormSubmitParamData): boolean {
+  return Object.prototype.hasOwnProperty.call(param, "payload");
+}
+
+export function mergeSubmittedParamsIntoAwaitingForms(
+  forms: FormActiveAwaiting["forms"],
+  params: AIAwaitFormSubmitParamData[],
+): FormActiveAwaiting["forms"] {
+  const payloadById = new Map<string, Record<string, unknown> | null>();
+
+  for (const param of params) {
+    if (!hasPayloadField(param)) {
+      continue;
+    }
+    payloadById.set(param.id, cloneAwaitingFormPayload(param.payload));
+  }
+
+  if (payloadById.size === 0) {
+    return forms;
+  }
+
+  return forms.map((form) => {
+    if (!payloadById.has(form.id)) {
+      return form;
+    }
+    return {
+      ...form,
+      payload: payloadById.get(form.id) ?? null,
+    };
+  });
+}
+
+export function buildAggregatedAwaitingSubmitPayload(
+  awaiting: FormActiveAwaiting,
+  collectedParams: AIAwaitFormSubmitParamData[],
+): AIAwaitSubmitPayloadData {
+  const collectedParamById = new Map<string, AIAwaitFormSubmitParamData>();
+
+  for (const param of collectedParams) {
+    collectedParamById.set(param.id, {
+      ...param,
+      ...(hasPayloadField(param)
+        ? { payload: cloneAwaitingFormPayload(param.payload) }
+        : {}),
+    });
+  }
+
+  const params = awaiting.forms.map((form) => {
+    const collected = collectedParamById.get(form.id);
+    const payload = hasPayloadField(collected ?? { id: form.id })
+      ? cloneAwaitingFormPayload(collected?.payload)
+      : cloneAwaitingFormPayload(form.payload);
+
+    collectedParamById.delete(form.id);
+
+    return {
+      id: form.id,
+      payload,
+      ...(collected?.reason ? { reason: collected.reason } : {}),
+    };
+  });
+
+  for (const param of collectedParamById.values()) {
+    params.push({
+      ...param,
+      ...(hasPayloadField(param)
+        ? ({ payload: cloneAwaitingFormPayload(param.payload) } as any)
+        : null),
+    });
+  }
+
+  return {
+    runId: awaiting.runId,
+    awaitingId: awaiting.awaitingId,
+    params,
+  };
 }
 
 export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
@@ -111,19 +214,22 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const activeKeyRef = useRef(data.key);
-  const requestedKeyRef = useRef('');
-  const currentFrameKeyRef = useRef('');
-  const lastPostedSignatureRef = useRef('');
+  const requestedKeyRef = useRef("");
+  const currentFrameKeyRef = useRef("");
+  const lastPostedSignatureRef = useRef("");
   const resolvedByOtherHandledRef = useRef(false);
   const collectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [submitStatus, setSubmitStatus] = useState('');
-  const [submitError, setSubmitError] = useState('');
+  const collectFlowRef = useRef<AwaitingCollectFlow | null>(null);
+  const [activeFormIndex, setActiveFormIndex] = useState(0);
+  const [submitStatus, setSubmitStatus] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [collectingDecision, setCollectingDecision] =
     useState<AwaitingCollectDecision | null>(null);
+  const currentForm = data.forms[activeFormIndex];
 
   const viewportSignature = useMemo(
-    () => buildAwaitingViewportSignature(data),
-    [data],
+    () => buildAwaitingViewportSignature(data, activeFormIndex),
+    [activeFormIndex, data],
   );
 
   const clearCollectTimeout = useCallback(() => {
@@ -134,40 +240,51 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     collectTimeoutRef.current = null;
   }, []);
 
-  const postToFrame = useCallback((kind: 'init' | 'update') => {
-    const frame = iframeRef.current;
-    if (!frame?.contentWindow) {
-      return;
-    }
+  const postToFrame = useCallback(
+    (kind: "init" | "update") => {
+      const frame = iframeRef.current;
+      if (!frame?.contentWindow) {
+        return;
+      }
 
-    frame.contentWindow.postMessage(
-      kind === 'init'
-        ? buildAwaitingInitMessage(data)
-        : buildAwaitingUpdateMessage(data),
-      '*',
-    );
-    lastPostedSignatureRef.current = viewportSignature;
-  }, [data, viewportSignature]);
+      frame.contentWindow.postMessage(
+        kind === "init"
+          ? buildAwaitingInitMessage(data, activeFormIndex)
+          : buildAwaitingUpdateMessage(data, activeFormIndex),
+        "*",
+      );
+      lastPostedSignatureRef.current = viewportSignature;
+    },
+    [activeFormIndex, data, viewportSignature],
+  );
 
-  const requestCollectFromFrame = useCallback((decision: AwaitingCollectDecision) => {
-    const frame = iframeRef.current;
-    if (!frame?.contentWindow) {
-      return;
-    }
+  const requestCollectFromFrame = useCallback(
+    (decision: AwaitingCollectDecision, flow: AwaitingCollectFlow) => {
+      const frame = iframeRef.current;
+      if (!frame?.contentWindow) {
+        return;
+      }
 
-    clearCollectTimeout();
-    collectTimeoutRef.current = beginAwaitingCollectRequest({
-      awaiting: data,
-      decision,
-      postMessage: (messageValue, targetOrigin) => {
-        frame.contentWindow?.postMessage(messageValue, targetOrigin);
-      },
-      scheduleTimeout: (callback, delay) => setTimeout(callback, delay),
-      onCollectingChange: setCollectingDecision,
-      onStatusChange: setSubmitStatus,
-      onErrorChange: setSubmitError,
-    });
-  }, [clearCollectTimeout, data]);
+      collectFlowRef.current = flow;
+      clearCollectTimeout();
+      collectTimeoutRef.current = beginAwaitingCollectRequest({
+        awaiting: data,
+        decision,
+        postMessage: (messageValue, targetOrigin) => {
+          frame.contentWindow?.postMessage(messageValue, targetOrigin);
+        },
+        scheduleTimeout: (callback, delay) =>
+          setTimeout(() => {
+            collectFlowRef.current = null;
+            callback();
+          }, delay),
+        onCollectingChange: setCollectingDecision,
+        onStatusChange: setSubmitStatus,
+        onErrorChange: setSubmitError,
+      });
+    },
+    [clearCollectTimeout, data],
+  );
 
   useEffect(() => {
     activeKeyRef.current = data.key;
@@ -175,13 +292,21 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
   useEffect(() => {
     clearCollectTimeout();
-    requestedKeyRef.current = '';
-    currentFrameKeyRef.current = '';
-    lastPostedSignatureRef.current = '';
+    collectFlowRef.current = null;
+    requestedKeyRef.current = "";
+    currentFrameKeyRef.current = "";
+    lastPostedSignatureRef.current = "";
+    setActiveFormIndex(0);
     setCollectingDecision(null);
-    setSubmitStatus('');
-    setSubmitError('');
+    setSubmitStatus("");
+    setSubmitError("");
   }, [clearCollectTimeout, data.key]);
+
+  useEffect(() => {
+    setActiveFormIndex((prev) =>
+      clampAwaitingFormIndex(prev, data.forms.length),
+    );
+  }, [data.forms.length]);
 
   useEffect(() => {
     if (!data.resolvedByOther) {
@@ -192,17 +317,22 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       return;
     }
     clearCollectTimeout();
+    collectFlowRef.current = null;
     resolvedByOtherHandledRef.current = true;
     setCollectingDecision(null);
-    setSubmitStatus('');
-    setSubmitError('');
-    void message.info('已被其他终端提交');
+    setSubmitStatus("");
+    setSubmitError("");
+    void message.info("已被其他终端提交");
     onResolvedByOther?.();
   }, [clearCollectTimeout, data.resolvedByOther, onResolvedByOther]);
 
-  useEffect(() => () => {
-    clearCollectTimeout();
-  }, [clearCollectTimeout]);
+  useEffect(
+    () => () => {
+      clearCollectTimeout();
+      collectFlowRef.current = null;
+    },
+    [clearCollectTimeout],
+  );
 
   useEffect(() => {
     if (!data.viewportKey || data.viewportHtml || data.loading) {
@@ -216,8 +346,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     requestedKeyRef.current = expectedKey;
     onPatch?.({
       loading: true,
-      loadError: '',
-      viewportHtml: '',
+      loadError: "",
+      viewportHtml: "",
     });
 
     getViewport(data.viewportKey)
@@ -226,13 +356,14 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           return;
         }
         const payload = response.data as Record<string, unknown> | null;
-        const html = typeof payload?.html === 'string' ? payload.html.trim() : '';
+        const html =
+          typeof payload?.html === "string" ? payload.html.trim() : "";
         if (!html) {
-          throw new Error('Viewport response does not contain html');
+          throw new Error("Viewport response does not contain html");
         }
         onPatch?.({
           loading: false,
-          loadError: '',
+          loadError: "",
           viewportHtml: html,
         });
       })
@@ -243,16 +374,10 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         onPatch?.({
           loading: false,
           loadError: `业务确认表单加载失败: ${(error as Error).message}`,
-          viewportHtml: '',
+          viewportHtml: "",
         });
       });
-  }, [
-    data.key,
-    data.loading,
-    data.viewportHtml,
-    data.viewportKey,
-    onPatch,
-  ]);
+  }, [data.key, data.loading, data.viewportHtml, data.viewportKey, onPatch]);
 
   useEffect(() => {
     if (!data.viewportHtml || !iframeRef.current) {
@@ -266,16 +391,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
       currentFrameKeyRef.current = expectedKey;
-      postToFrame('init');
+      postToFrame("init");
     };
 
-    frame.addEventListener('load', sendInit);
-    if (frame.contentDocument?.readyState === 'complete') {
+    frame.addEventListener("load", sendInit);
+    if (frame.contentDocument?.readyState === "complete") {
       sendInit();
     }
 
     return () => {
-      frame.removeEventListener('load', sendInit);
+      frame.removeEventListener("load", sendInit);
     };
   }, [data.key, data.viewportHtml, postToFrame]);
 
@@ -293,7 +418,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       return;
     }
 
-    postToFrame('update');
+    postToFrame("update");
   }, [data.key, data.viewportHtml, postToFrame, viewportSignature]);
 
   useEffect(() => {
@@ -320,45 +445,149 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       clearAwaitingCollectRequest(clearTimeout, null, {
         onCollectingChange: setCollectingDecision,
       });
-      if (!onSubmit) {
-        setSubmitStatus('');
-        setSubmitError('提交失败：缺少提交流程处理器');
+      const flow = collectFlowRef.current;
+      collectFlowRef.current = null;
+      const collectedParams = payload.params as AIAwaitFormSubmitParamData[];
+      const nextForms = mergeSubmittedParamsIntoAwaitingForms(
+        data.forms,
+        collectedParams,
+      );
+
+      if (nextForms !== data.forms) {
+        onPatch?.({ forms: nextForms });
+      }
+
+      if (flow?.type === "switch") {
+        setActiveFormIndex(
+          clampAwaitingFormIndex(flow.nextIndex, nextForms.length),
+        );
+        setSubmitStatus("");
+        setSubmitError("");
         return;
       }
 
-      setSubmitStatus('提交中...');
-      setSubmitError('');
-      const result = await onSubmit(payload);
+      if (!onSubmit) {
+        setSubmitStatus("");
+        setSubmitError("提交失败：缺少提交流程处理器");
+        return;
+      }
+
+      setSubmitStatus("提交中...");
+      setSubmitError("");
+      const result = await onSubmit(
+        buildAggregatedAwaitingSubmitPayload(
+          {
+            ...data,
+            forms: nextForms,
+          },
+          collectedParams,
+        ),
+      );
       const errorText = getSubmitErrorText(result);
       if (errorText) {
-        setSubmitStatus('');
+        setSubmitStatus("");
         setSubmitError(`提交失败：${errorText}`);
         return;
       }
-      setSubmitStatus('');
-      setSubmitError('');
+      setSubmitStatus("");
+      setSubmitError("");
     };
 
-    window.addEventListener('message', onWindowMessage);
-    return () => window.removeEventListener('message', onWindowMessage);
-  }, [clearCollectTimeout, data, onClose, onSubmit]);
+    window.addEventListener("message", onWindowMessage);
+    return () => window.removeEventListener("message", onWindowMessage);
+  }, [clearCollectTimeout, data, onClose, onPatch, onSubmit]);
 
   const actionDisabled = useMemo(
-    () => (
-      data.loading
-      || !data.viewportHtml
-      || !onSubmit
-      || Boolean(collectingDecision)
-      || submitStatus === '提交中...'
-    ),
-    [collectingDecision, data.loading, data.viewportHtml, onSubmit, submitStatus],
+    () =>
+      data.loading ||
+      !data.viewportHtml ||
+      !onSubmit ||
+      Boolean(collectingDecision) ||
+      submitStatus === "提交中...",
+    [
+      collectingDecision,
+      data.loading,
+      data.viewportHtml,
+      onSubmit,
+      submitStatus,
+    ],
+  );
+  const switchDisabled =
+    data.loading ||
+    !data.viewportHtml ||
+    Boolean(collectingDecision) ||
+    submitStatus === "提交中...";
+
+  const handleSwitchForm = useCallback(
+    (nextIndex: number) => {
+      const resolvedIndex = clampAwaitingFormIndex(
+        nextIndex,
+        data.forms.length,
+      );
+      if (resolvedIndex === activeFormIndex) {
+        return;
+      }
+      if (!iframeRef.current?.contentWindow || !data.viewportHtml) {
+        setActiveFormIndex(resolvedIndex);
+        return;
+      }
+      requestCollectFromFrame("submit", {
+        type: "switch",
+        nextIndex: resolvedIndex,
+      });
+    },
+    [
+      activeFormIndex,
+      data.forms.length,
+      data.viewportHtml,
+      requestCollectFromFrame,
+    ],
   );
 
   return (
     <div className="awaiting-panel" id="awaiting-html-panel">
       <div className="awaiting-panel-header">
-        <strong className="awaiting-panel-title">业务确认</strong>
-        <span className="awaiting-panel-caption">{data.viewportKey}</span>
+        <div className="awaiting-panel-header-main">
+          <strong className="awaiting-panel-title">业务确认</strong>
+          <span className="awaiting-panel-caption">{data.viewportKey}</span>
+        </div>
+        {data.forms.length > 1 && (
+          <div className="awaiting-panel-form-switcher">
+            <Button
+              disabled={switchDisabled || activeFormIndex <= 0}
+              icon={<LeftOutlined style={{ fontSize: 12 }} />}
+              size="small"
+              type="text"
+              onClick={() => handleSwitchForm(activeFormIndex - 1)}
+            />
+            <span
+              className="awaiting-panel-form-switcher-label"
+              title={
+                currentForm?.title ||
+                currentForm?.action ||
+                currentForm?.id ||
+                ""
+              }
+            >
+              {activeFormIndex + 1} / {data.forms.length}
+              {currentForm && (
+                <>
+                  {" "}
+                  · {currentForm.title || currentForm.action || currentForm.id}
+                </>
+              )}
+            </span>
+            <Button
+              disabled={
+                switchDisabled || activeFormIndex >= data.forms.length - 1
+              }
+              icon={<RightOutlined style={{ fontSize: 12 }} />}
+              size="small"
+              type="text"
+              onClick={() => handleSwitchForm(activeFormIndex + 1)}
+            />
+          </div>
+        )}
       </div>
 
       {data.loading && <div className="status-line">加载表单中...</div>}
@@ -384,13 +613,17 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <Button
             disabled={actionDisabled}
             type="primary"
-            onClick={() => requestCollectFromFrame('submit')}
+            onClick={() =>
+              requestCollectFromFrame("submit", { type: "submit" })
+            }
           >
             提交
           </Button>
           <Button
             disabled={actionDisabled}
-            onClick={() => requestCollectFromFrame('reject')}
+            onClick={() =>
+              requestCollectFromFrame("reject", { type: "reject" })
+            }
           >
             驳回
           </Button>
