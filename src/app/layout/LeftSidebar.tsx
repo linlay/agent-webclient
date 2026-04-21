@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   Button,
   Collapse,
@@ -97,13 +98,11 @@ const WorkerPanelHeader: React.FC<{
   isActive: boolean;
   icon?: AgentIconConfig;
   lastChat?: WorkerConversationRow;
-}> = ({ row, isActive, icon, lastChat }) => {
-  const handleStartNewConversation = (
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
-    e.stopPropagation();
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
-  };
+  onStartNewConversation: (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => void;
+}> = ({ row, isActive, icon, lastChat, onStartNewConversation }) => {
   const preview = lastChat
     ? lastChat?.lastRunContent || lastChat?.chatName || "最新对话无答复"
     : "暂无历史对话";
@@ -140,12 +139,95 @@ const WorkerPanelHeader: React.FC<{
               className="worker-panel-new"
               type="text"
               icon={<MaterialIcon name="add" />}
-              onClick={handleStartNewConversation}
+              onClick={(e) => onStartNewConversation(e, row.key)}
             />
           </Tooltip>
         </Flex>
         <div className="worker-panel-preview">{preview}</div>
       </Flex>
+    </div>
+  );
+};
+
+const WorkerConversationPreviewList: React.FC<{
+  row: WorkerRow;
+  chats: WorkerConversationRow[];
+  activeChatId: string;
+  icon?: AgentIconConfig;
+  showHeader?: boolean;
+  getWorkerChatLoading: (chatId: string) => boolean;
+  onSelectChat: (chatId: string) => void;
+  onOpenHistory: (event: React.MouseEvent<Element>, workerKey: string) => void;
+  onStartNewConversation: (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => void;
+}> = ({
+  row,
+  chats,
+  activeChatId,
+  icon,
+  showHeader = false,
+  getWorkerChatLoading,
+  onSelectChat,
+  onOpenHistory,
+  onStartNewConversation,
+}) => {
+  const recentChats = chats.slice(0, 5);
+
+  return (
+    <div className="worker-chat-preview-list">
+      {showHeader && (
+        <div className="worker-popover-header">
+          <div className="worker-popover-header-main">
+            <AgentIcon
+              icon={icon}
+              type={row.type}
+              props={{
+                icon: {
+                  className: "worker-panel-icon worker-popover-header-icon",
+                },
+                avatar: {
+                  className: "worker-panel-icon worker-popover-header-icon",
+                },
+              }}
+            />
+            <span className="worker-popover-header-title">{row.displayName}</span>
+          </div>
+          <Tooltip title="新建对话">
+            <Button
+              className="worker-panel-new worker-popover-new"
+              type="text"
+              icon={<MaterialIcon name="add" />}
+              onClick={(e) => onStartNewConversation(e, row.key)}
+            />
+          </Tooltip>
+        </div>
+      )}
+      <div className="worker-chat-divider"></div>
+      {recentChats.length === 0 ? (
+        <div className="status-line">暂无相关对话</div>
+      ) : (
+        <>
+          {recentChats.map((chat) => (
+            <WorkerChatPreviewItem
+              key={chat.chatId}
+              chat={chat}
+              isActive={chat.chatId === activeChatId}
+              loading={getWorkerChatLoading(chat.chatId)}
+              onClick={() => onSelectChat(chat.chatId)}
+            />
+          ))}
+        </>
+      )}
+      {chats.length > 5 && (
+        <div
+          className="worker-chat-more"
+          onClick={(e) => onOpenHistory(e, row.key)}
+        >
+          查看更多（共 {chats.length} 条）
+        </div>
+      )}
     </div>
   );
 };
@@ -323,6 +405,29 @@ export const LeftSidebar: React.FC = () => {
     );
   };
 
+  const handleStartNewConversationForWorker = (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => {
+    e.stopPropagation();
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    if (!row) return;
+
+    const workerChats = workerChatsByKey.get(workerKey) || [];
+    flushSync(() => {
+      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+      dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: workerChats });
+      dispatch({
+        type: "SET_WORKER_CHAT_PANEL_COLLAPSED",
+        collapsed: true,
+      });
+    });
+
+    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  };
+
   const handleWorkerCollapseChange = (key: string | string[]) => {
     const nextKey = Array.isArray(key)
       ? String(key[0] || "")
@@ -366,61 +471,38 @@ export const LeftSidebar: React.FC = () => {
     return false;
   };
 
-  const workerCollapseItems = useMemo<CollapseProps["items"]>(
-    () =>
-      filteredWorkerRows.map((row) => {
-        const rawChats = workerChatsByKey.get(row.key) || [];
-        const recentChats = rawChats.slice(0, 5);
-        const icon = workerIconsByKey.get(row.key);
-        return {
-          key: row.key,
-          className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
-          showArrow: false,
-          label: (
-            <WorkerPanelHeader
-              row={row}
-              isActive={row.key === state.workerSelectionKey}
-              icon={icon}
-              lastChat={rawChats[0]}
-            />
-          ),
-          children: (
-            <div>
-              <div className="worker-chat-divider"></div>
-              {recentChats.length === 0 ? (
-                <div className="status-line">暂无相关对话</div>
-              ) : (
-                <>
-                  {recentChats.map((chat) => (
-                    <WorkerChatPreviewItem
-                      key={chat.chatId}
-                      chat={chat}
-                      isActive={chat.chatId === state.chatId}
-                      loading={getWorkerChatLoading(chat.chatId)}
-                      onClick={() => handleSelectChat(chat.chatId)}
-                    />
-                  ))}
-                </>
-              )}
-              {rawChats.length > 5 && (
-                <div
-                  className="worker-chat-more"
-                  onClick={(e) => handleOpenHistory(e, row.key)}
-                >
-                  查看更多
-                </div>
-              )}
-            </div>
-          ),
-        };
-      }),
-    [
-      filteredWorkerRows,
-      workerChatsByKey,
-      state.chatId,
-      state.workerSelectionKey,
-      workerIconsByKey,
-    ],
+  const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
+    (row) => {
+      const rawChats = workerChatsByKey.get(row.key) || [];
+      const icon = workerIconsByKey.get(row.key);
+
+      return {
+        key: row.key,
+        className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
+        showArrow: false,
+        label: (
+          <WorkerPanelHeader
+            row={row}
+            isActive={row.key === state.workerSelectionKey}
+            icon={icon}
+            lastChat={rawChats[0]}
+            onStartNewConversation={handleStartNewConversationForWorker}
+          />
+        ),
+        children: (
+          <WorkerConversationPreviewList
+            row={row}
+            chats={rawChats}
+            activeChatId={state.chatId}
+            icon={icon}
+            getWorkerChatLoading={getWorkerChatLoading}
+            onSelectChat={handleSelectChat}
+            onOpenHistory={handleOpenHistory}
+            onStartNewConversation={handleStartNewConversationForWorker}
+          />
+        ),
+      };
+    },
   );
 
   const settingsSummaryBadges = useMemo(
@@ -519,6 +601,7 @@ export const LeftSidebar: React.FC = () => {
                   {filteredWorkerRows?.map((item, i) => (
                     <Popover
                       key={item.key}
+                      trigger="hover"
                       placement="leftTop"
                       arrow={false}
                       classNames={{
@@ -530,9 +613,27 @@ export const LeftSidebar: React.FC = () => {
                           width: "var(--left-sidebar-width)",
                         },
                       }}
-                      content={workerCollapseItems?.[i]?.children}
+                      content={
+                        <WorkerConversationPreviewList
+                          row={item}
+                          chats={workerChatsByKey.get(item.key) || []}
+                          activeChatId={state.chatId}
+                          icon={workerIconsByKey.get(item.key)}
+                          showHeader
+                          getWorkerChatLoading={getWorkerChatLoading}
+                          onSelectChat={handleSelectChat}
+                          onOpenHistory={handleOpenHistory}
+                          onStartNewConversation={
+                            handleStartNewConversationForWorker
+                          }
+                        />
+                      }
                     >
-                      <Button type="text" className="worker-collapsed-icon">
+                      <Button
+                        type="text"
+                        className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
+                        onClick={() => handleSelectWorker(item.key)}
+                      >
                         <AgentIcon
                           icon={workerIconsByKey.get(item.key)}
                           type={item.type}
@@ -545,6 +646,9 @@ export const LeftSidebar: React.FC = () => {
                             },
                           }}
                         />
+                        <span className="worker-collapsed-name">
+                          {item.displayName}
+                        </span>
                       </Button>
                     </Popover>
                   ))}
