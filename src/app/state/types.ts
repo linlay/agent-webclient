@@ -72,7 +72,8 @@ export type TimelineNodeKind =
   | "thinking"
   | "awaiting-answer"
   | "tool"
-  | "content";
+  | "content"
+  | "agent-group";
 export type TimelineRole = "user" | "assistant" | "system" | "";
 
 export interface ToolResultPayload {
@@ -130,6 +131,8 @@ export interface TimelineNode {
   taskId?: string;
   taskName?: string;
   taskGroupId?: string;
+  groupId?: string;
+  mainToolId?: string;
   /* tool-specific */
   toolId?: string;
   toolLabel?: string;
@@ -229,6 +232,13 @@ export interface TaskGroupMeta {
   durationMs?: number;
   updatedAt: number;
   childTaskIds: string[];
+}
+
+export interface AgentGroup {
+  groupId: string;
+  mainToolId: string;
+  taskIds: string[];
+  createdAt: number;
 }
 
 /* ============================================
@@ -558,6 +568,10 @@ export interface AppState {
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
   taskGroupsById: Map<string, TaskGroupMeta>;
+  activeTaskIds: Set<string>;
+  agentGroupsByGroupId: Map<string, AgentGroup>;
+  groupIdByTaskId: Map<string, string>;
+  groupIdByMainToolId: Map<string, string>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
   toolStates: Map<string, ToolState>;

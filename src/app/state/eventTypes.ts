@@ -203,6 +203,7 @@ export interface AIEventCommonFields {
   planId?: string;
   taskId?: string;
   taskGroupId?: string;
+  groupId?: string;
   agentKey?: string;
   message?: string;
   delta?: string;
@@ -229,6 +230,7 @@ export interface AIEventCommonFields {
   firstAgentName?: string;
   taskName?: string;
   taskGroupTitle?: string;
+  mainToolId?: string;
   awaitingId?: string;
   timeout?: number;
   viewportType?: ViewportTypeEnum;

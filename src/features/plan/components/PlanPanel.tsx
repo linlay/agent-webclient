@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
-import type { Plan, PlanRuntime } from "@/app/state/types";
+import type { AgentGroup, Plan, PlanRuntime, TaskItemMeta } from "@/app/state/types";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
@@ -36,7 +36,52 @@ export interface PlanSummaryView {
 export function buildPlanSummaryView(
   plan: Plan | null,
   planRuntimeByTaskId: Map<string, PlanRuntime>,
+  taskItemsById?: Map<string, TaskItemMeta>,
+  agentGroupsByGroupId?: Map<string, AgentGroup>,
 ): PlanSummaryView {
+  if (taskItemsById && agentGroupsByGroupId && agentGroupsByGroupId.size > 0) {
+    const groupedTasks = Array.from(agentGroupsByGroupId.values()).flatMap((group) =>
+      group.taskIds
+        .map((taskId) => taskItemsById.get(taskId))
+        .filter((task): task is TaskItemMeta => Boolean(task))
+        .map((task) => ({
+          taskId: task.taskId,
+          description: task.taskName,
+          status: normalizePlanStatus(task.status),
+        })),
+    );
+    if (groupedTasks.length > 0) {
+      const completedTasks = groupedTasks.filter((task) => task.status === "completed").length;
+      const hasFailed = groupedTasks.some((task) => task.status === "failed");
+      const hasRunning = groupedTasks.some((task) => task.status === "running");
+      const hasCanceled = groupedTasks.some((task) => task.status === "canceled");
+      let statusText = "待开始";
+      let statusTone: PlanSummaryView["statusTone"] = "muted";
+      if (completedTasks === groupedTasks.length) {
+        statusText = "已完成";
+        statusTone = "accent";
+      } else if (hasFailed) {
+        statusText = "失败";
+        statusTone = "danger";
+      } else if (hasRunning) {
+        statusText = "进行中";
+        statusTone = "accent";
+      } else if (hasCanceled) {
+        statusText = "已取消";
+        statusTone = "default";
+      }
+      return {
+        normalizedTasks: groupedTasks,
+        totalTasks: groupedTasks.length,
+        currentCount: groupedTasks.length,
+        progressText: `${completedTasks}/${groupedTasks.length}`,
+        statusText,
+        statusTone,
+        titleText: "并行子 Agent",
+      };
+    }
+  }
+
   const tasks = plan?.plan || [];
   const normalizedTasks = tasks.map((task) => {
     const runtime = planRuntimeByTaskId.get(task.taskId);
@@ -97,8 +142,8 @@ export const PlanPanel: React.FC = () => {
 
   const planListId = `floating-plan-list-${String(state.plan.planId || "plan").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const summary = useMemo(
-    () => buildPlanSummaryView(state.plan, state.planRuntimeByTaskId),
-    [state.plan, state.planRuntimeByTaskId],
+    () => buildPlanSummaryView(state.plan, state.planRuntimeByTaskId, state.taskItemsById, state.agentGroupsByGroupId),
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, state.agentGroupsByGroupId],
   );
 
   return (

@@ -1,4 +1,5 @@
 import type {
+  AgentGroup,
   ActiveAwaiting,
   AgentEvent,
   PublishedArtifact,
@@ -35,6 +36,10 @@ export interface ReplayState {
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
   taskGroupsById: Map<string, TaskGroupMeta>;
+  activeTaskIds: Set<string>;
+  agentGroupsByGroupId: Map<string, AgentGroup>;
+  groupIdByTaskId: Map<string, string>;
+  groupIdByMainToolId: Map<string, string>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 }
@@ -60,6 +65,10 @@ export function createReplayState(): ReplayState {
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
     taskGroupsById: new Map(),
+    activeTaskIds: new Set(),
+    agentGroupsByGroupId: new Map(),
+    groupIdByTaskId: new Map(),
+    groupIdByMainToolId: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -136,10 +145,8 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
     currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
     getTaskItem: (taskId) => rs.taskItemsById.get(taskId),
     getTaskGroup: (groupId) => rs.taskGroupsById.get(groupId),
-    getActiveTaskIds: () =>
-      Array.from(rs.taskItemsById.values())
-        .filter((task) => task.status === 'running')
-        .map((task) => task.taskId),
+    getAgentGroup: (groupId) => rs.agentGroupsByGroupId.get(groupId),
+    getActiveTaskIds: () => Array.from(rs.activeTaskIds),
     getPlanTaskDescription: (taskId) =>
       rs.plan?.plan.find((item) => item.taskId === taskId)?.description,
     getPlanId: () => rs.plan?.planId,
@@ -230,6 +237,19 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'SET_TASK_GROUP_META':
       rs.taskGroupsById.set(command.groupId, command.group);
+      return;
+    case 'SET_AGENT_GROUP_ADD_TASK':
+      rs.agentGroupsByGroupId.set(command.groupId, command.group);
+      rs.groupIdByMainToolId.set(command.group.mainToolId, command.groupId);
+      for (const taskId of command.group.taskIds) {
+        rs.groupIdByTaskId.set(taskId, command.groupId);
+      }
+      return;
+    case 'ADD_ACTIVE_TASK_ID':
+      rs.activeTaskIds.add(command.taskId);
+      return;
+    case 'REMOVE_ACTIVE_TASK_ID':
+      rs.activeTaskIds.delete(command.taskId);
       return;
     case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
       rs.planCurrentRunningTaskId = command.taskId;

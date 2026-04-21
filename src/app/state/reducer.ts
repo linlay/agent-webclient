@@ -12,6 +12,7 @@ import type {
 	Plan,
 	TaskGroupMeta,
 	TaskItemMeta,
+	AgentGroup,
 	ActiveFrontendTool,
 	ActionState,
 	Team,
@@ -54,6 +55,10 @@ export type AppAction =
 	| { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
 	| { type: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }
 	| { type: "SET_TASK_GROUP_META"; groupId: string; group: TaskGroupMeta }
+	| { type: "SET_AGENT_GROUP_ADD_TASK"; groupId: string; group: AgentGroup }
+	| { type: "TOGGLE_AGENT_GROUP_EXPANDED"; groupId: string }
+	| { type: "ADD_ACTIVE_TASK_ID"; taskId: string }
+	| { type: "REMOVE_ACTIVE_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
@@ -187,6 +192,10 @@ function buildConversationResetState(
 		planRuntimeByTaskId: new Map(),
 		taskItemsById: new Map(),
 		taskGroupsById: new Map(),
+		activeTaskIds: new Set(),
+		agentGroupsByGroupId: new Map(),
+		groupIdByTaskId: new Map(),
+		groupIdByMainToolId: new Map(),
 		planCurrentRunningTaskId: "",
 		planLastTouchedTaskId: "",
 		artifactExpanded: false,
@@ -393,6 +402,42 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			const taskGroupsById = new Map(state.taskGroupsById);
 			taskGroupsById.set(action.groupId, action.group);
 			return { ...state, taskGroupsById };
+		}
+		case "SET_AGENT_GROUP_ADD_TASK": {
+			const agentGroupsByGroupId = new Map(state.agentGroupsByGroupId);
+			agentGroupsByGroupId.set(action.groupId, action.group);
+			const groupIdByTaskId = new Map(state.groupIdByTaskId);
+			for (const taskId of action.group.taskIds) {
+				groupIdByTaskId.set(taskId, action.groupId);
+			}
+			const groupIdByMainToolId = new Map(state.groupIdByMainToolId);
+			if (action.group.mainToolId) {
+				groupIdByMainToolId.set(action.group.mainToolId, action.groupId);
+			}
+			return { ...state, agentGroupsByGroupId, groupIdByTaskId, groupIdByMainToolId };
+		}
+		case "TOGGLE_AGENT_GROUP_EXPANDED": {
+			const nodeId = `agent_group_${action.groupId}`;
+			const existing = state.timelineNodes.get(nodeId);
+			if (!existing || existing.kind !== "agent-group") {
+				return state;
+			}
+			const timelineNodes = new Map(state.timelineNodes);
+			timelineNodes.set(nodeId, { ...existing, expanded: !existing.expanded });
+			return { ...state, timelineNodes };
+		}
+		case "ADD_ACTIVE_TASK_ID": {
+			const activeTaskIds = new Set(state.activeTaskIds);
+			activeTaskIds.add(action.taskId);
+			return { ...state, activeTaskIds };
+		}
+		case "REMOVE_ACTIVE_TASK_ID": {
+			if (!state.activeTaskIds.has(action.taskId)) {
+				return state;
+			}
+			const activeTaskIds = new Set(state.activeTaskIds);
+			activeTaskIds.delete(action.taskId);
+			return { ...state, activeTaskIds };
 		}
 		case "SET_PLAN_CURRENT_RUNNING_TASK_ID":
 			return { ...state, planCurrentRunningTaskId: action.taskId };

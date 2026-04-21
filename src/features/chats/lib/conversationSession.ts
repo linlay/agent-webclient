@@ -1,4 +1,5 @@
 import type {
+  AgentGroup,
   ActionState,
   ActiveAwaiting,
   ActiveFrontendTool,
@@ -34,6 +35,10 @@ export interface ConversationSnapshot {
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
   taskGroupsById: Map<string, TaskGroupMeta>;
+  activeTaskIds: Set<string>;
+  agentGroupsByGroupId: Map<string, AgentGroup>;
+  groupIdByTaskId: Map<string, string>;
+  groupIdByMainToolId: Map<string, string>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
   toolStates: Map<string, ToolState>;
@@ -92,6 +97,18 @@ function cloneMap<K, V>(input: Map<K, V>): Map<K, V> {
 
 function cloneSet<T>(input: Set<T>): Set<T> {
   return new Set(input);
+}
+
+function cloneAgentGroupMap(input: Map<string, AgentGroup>): Map<string, AgentGroup> {
+  return new Map(
+    Array.from(input.entries(), ([key, value]) => [
+      key,
+      {
+        ...value,
+        taskIds: value.taskIds.slice(),
+      },
+    ]),
+  );
 }
 
 function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
@@ -205,6 +222,10 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     planRuntimeByTaskId: cloneMap(state.planRuntimeByTaskId),
     taskItemsById: cloneTaskItemMap(state.taskItemsById),
     taskGroupsById: cloneTaskGroupMap(state.taskGroupsById),
+    activeTaskIds: cloneSet(state.activeTaskIds),
+    agentGroupsByGroupId: cloneAgentGroupMap(state.agentGroupsByGroupId),
+    groupIdByTaskId: cloneMap(state.groupIdByTaskId),
+    groupIdByMainToolId: cloneMap(state.groupIdByMainToolId),
     planCurrentRunningTaskId: String(state.planCurrentRunningTaskId || '').trim(),
     planLastTouchedTaskId: String(state.planLastTouchedTaskId || '').trim(),
     toolStates: cloneMap(state.toolStates),
@@ -246,6 +267,10 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     planRuntimeByTaskId: cloneMap(snapshot.planRuntimeByTaskId),
     taskItemsById: cloneTaskItemMap(snapshot.taskItemsById),
     taskGroupsById: cloneTaskGroupMap(snapshot.taskGroupsById),
+    activeTaskIds: cloneSet(snapshot.activeTaskIds),
+    agentGroupsByGroupId: cloneAgentGroupMap(snapshot.agentGroupsByGroupId),
+    groupIdByTaskId: cloneMap(snapshot.groupIdByTaskId),
+    groupIdByMainToolId: cloneMap(snapshot.groupIdByMainToolId),
     toolStates: cloneMap(snapshot.toolStates),
     toolNodeById: cloneMap(snapshot.toolNodeById),
     contentNodeById: cloneMap(snapshot.contentNodeById),
@@ -288,6 +313,10 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.planRuntimeByTaskId = cloneMap(snapshot.planRuntimeByTaskId);
   rs.taskItemsById = cloneTaskItemMap(snapshot.taskItemsById);
   rs.taskGroupsById = cloneTaskGroupMap(snapshot.taskGroupsById);
+  rs.activeTaskIds = cloneSet(snapshot.activeTaskIds);
+  rs.agentGroupsByGroupId = cloneAgentGroupMap(snapshot.agentGroupsByGroupId);
+  rs.groupIdByTaskId = cloneMap(snapshot.groupIdByTaskId);
+  rs.groupIdByMainToolId = cloneMap(snapshot.groupIdByMainToolId);
   rs.planCurrentRunningTaskId = snapshot.planCurrentRunningTaskId;
   rs.planLastTouchedTaskId = snapshot.planLastTouchedTaskId;
   return rs;
@@ -315,6 +344,10 @@ function applyReplayStateToSnapshot(
   next.planRuntimeByTaskId = rs.planRuntimeByTaskId;
   next.taskItemsById = rs.taskItemsById;
   next.taskGroupsById = rs.taskGroupsById;
+  next.activeTaskIds = rs.activeTaskIds;
+  next.agentGroupsByGroupId = rs.agentGroupsByGroupId;
+  next.groupIdByTaskId = rs.groupIdByTaskId;
+  next.groupIdByMainToolId = rs.groupIdByMainToolId;
   next.planCurrentRunningTaskId = rs.planCurrentRunningTaskId;
   next.planLastTouchedTaskId = rs.planLastTouchedTaskId;
   return next;

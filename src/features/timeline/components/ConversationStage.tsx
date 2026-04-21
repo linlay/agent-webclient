@@ -11,6 +11,7 @@ import {
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
 import { TaskGroupSection } from "@/features/timeline/components/TaskGroupSection";
+import { AgentGroupCard } from "@/features/timeline/components/AgentGroupCard";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -132,6 +133,16 @@ export const ConversationStage: React.FC = () => {
     [state.streaming],
   );
 
+  const renderEntry = useCallback((entry: any) => {
+    if (entry.kind === "node") {
+      if (entry.node.kind === "agent-group" && entry.node.groupId) {
+        return <AgentGroupCard key={entry.key} groupId={entry.node.groupId} />;
+      }
+      return <TimelineRow key={entry.key} node={entry.node} />;
+    }
+    return <TimelineRow key={entry.key} toolGroup={entry} />;
+  }, []);
+
   useEffect(() => {
     return () => {
       statusTimerRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -243,19 +254,7 @@ export const ConversationStage: React.FC = () => {
                                   key={section.key}
                                   className="timeline-run-mainline"
                                 >
-                                  {section.renderEntries.map((entry) =>
-                                    entry.kind === "node" ? (
-                                      <TimelineRow
-                                        key={entry.key}
-                                        node={entry.node}
-                                      />
-                                    ) : (
-                                      <TimelineRow
-                                        key={entry.key}
-                                        toolGroup={entry}
-                                      />
-                                    ),
-                                  )}
+                                  {section.renderEntries.map((entry) => renderEntry(entry))}
                                 </div>
                               ) : (
                                 <TaskGroupSection
@@ -264,16 +263,7 @@ export const ConversationStage: React.FC = () => {
                                 />
                               ),
                             )
-                          : item.renderEntries.map((entry) =>
-                              entry.kind === "node" ? (
-                                <TimelineRow key={entry.key} node={entry.node} />
-                              ) : (
-                                <TimelineRow
-                                  key={entry.key}
-                                  toolGroup={entry}
-                                />
-                              ),
-                            )}
+                          : item.renderEntries.map((entry) => renderEntry(entry))}
                       </div>
                       {isCompleted && (
                         <div className="timeline-run-meta">
@@ -334,6 +324,9 @@ export const ConversationStage: React.FC = () => {
                   );
                 }
 
+                if (item.node.kind === "agent-group" && item.node.groupId) {
+                  return <AgentGroupCard key={item.key} groupId={item.node.groupId} />;
+                }
                 return <TimelineRow key={item.key} node={item.node} />;
               })}
             </div>

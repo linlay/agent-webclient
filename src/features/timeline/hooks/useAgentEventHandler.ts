@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/state/AppContext';
 import type { AppAction } from '@/app/state/AppContext';
 import type {
+  AgentGroup,
   ActiveAwaiting,
   AgentEvent,
   AppState,
@@ -62,6 +63,10 @@ interface LocalCache {
   toolStateById: Map<string, ToolState>;
   taskItemsById: Map<string, TaskItemMeta>;
   taskGroupsById: Map<string, TaskGroupMeta>;
+  activeTaskIds: Set<string>;
+  agentGroupsByGroupId: Map<string, AgentGroup>;
+  groupIdByTaskId: Map<string, string>;
+  groupIdByMainToolId: Map<string, string>;
   nodeById: Map<string, TimelineNode>;
   nodeText: Map<string, string>;  // nodeId -> accumulated text
   counter: number;
@@ -81,6 +86,10 @@ function createLocalCache(): LocalCache {
     toolStateById: new Map(),
     taskItemsById: new Map(),
     taskGroupsById: new Map(),
+    activeTaskIds: new Set(),
+    agentGroupsByGroupId: new Map(),
+    groupIdByTaskId: new Map(),
+    groupIdByMainToolId: new Map(),
     nodeById: new Map(),
     nodeText: new Map(),
     counter: 0,
@@ -106,6 +115,10 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
     toolStateById: new Map(state.toolStates),
     taskItemsById: new Map(state.taskItemsById),
     taskGroupsById: new Map(state.taskGroupsById),
+    activeTaskIds: new Set(state.activeTaskIds),
+    agentGroupsByGroupId: new Map(state.agentGroupsByGroupId),
+    groupIdByTaskId: new Map(state.groupIdByTaskId),
+    groupIdByMainToolId: new Map(state.groupIdByMainToolId),
     nodeById: new Map(state.timelineNodes),
     nodeText,
     counter: state.timelineCounter,
@@ -297,6 +310,7 @@ export function shouldSyncLiveCache(cache: LocalCache, state: AppState): boolean
     || hasStateAheadNodeMap(cache.toolNodeById, state.toolNodeById)
     || hasStateAheadObjectMap(cache.taskItemsById, state.taskItemsById)
     || hasStateAheadObjectMap(cache.taskGroupsById, state.taskGroupsById)
+    || hasStateAheadObjectMap(cache.agentGroupsByGroupId, state.agentGroupsByGroupId)
     || hasStateAheadNodeText(cache, state)
   );
 }
@@ -317,12 +331,8 @@ export function createLiveProcessorState(cache: LocalCache, state: AppState): Ev
     currentRunningPlanTaskId: state.planCurrentRunningTaskId,
     getTaskItem: (taskId) => cache.taskItemsById.get(taskId) ?? state.taskItemsById.get(taskId),
     getTaskGroup: (groupId) => cache.taskGroupsById.get(groupId) ?? state.taskGroupsById.get(groupId),
-    getActiveTaskIds: () => {
-      const taskMap = cache.taskItemsById.size > 0 ? cache.taskItemsById : state.taskItemsById;
-      return Array.from(taskMap.values())
-        .filter((task) => task.status === 'running')
-        .map((task) => task.taskId);
-    },
+    getAgentGroup: (groupId) => cache.agentGroupsByGroupId.get(groupId) ?? state.agentGroupsByGroupId.get(groupId),
+    getActiveTaskIds: () => Array.from(cache.activeTaskIds.size > 0 ? cache.activeTaskIds : state.activeTaskIds),
     getPlanTaskDescription: (taskId) =>
       state.plan?.plan.find((item) => item.taskId === taskId)?.description,
     getPlanId: () => state.plan?.planId,
@@ -415,6 +425,22 @@ function applyLiveEventCommand(input: {
     case 'SET_TASK_GROUP_META':
       cache.taskGroupsById.set(command.groupId, command.group);
       dispatch({ type: 'SET_TASK_GROUP_META', groupId: command.groupId, group: command.group });
+      return;
+    case 'SET_AGENT_GROUP_ADD_TASK':
+      cache.agentGroupsByGroupId.set(command.groupId, command.group);
+      cache.groupIdByMainToolId.set(command.group.mainToolId, command.groupId);
+      for (const taskId of command.group.taskIds) {
+        cache.groupIdByTaskId.set(taskId, command.groupId);
+      }
+      dispatch({ type: 'SET_AGENT_GROUP_ADD_TASK', groupId: command.groupId, group: command.group });
+      return;
+    case 'ADD_ACTIVE_TASK_ID':
+      cache.activeTaskIds.add(command.taskId);
+      dispatch({ type: 'ADD_ACTIVE_TASK_ID', taskId: command.taskId });
+      return;
+    case 'REMOVE_ACTIVE_TASK_ID':
+      cache.activeTaskIds.delete(command.taskId);
+      dispatch({ type: 'REMOVE_ACTIVE_TASK_ID', taskId: command.taskId });
       return;
     case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
       dispatch({ type: 'SET_PLAN_CURRENT_RUNNING_TASK_ID', taskId: command.taskId });

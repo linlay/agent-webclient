@@ -1,4 +1,5 @@
 import type {
+  AgentGroup,
   AgentEvent,
   PlanItem,
   PublishedArtifact,
@@ -35,6 +36,7 @@ export interface EventProcessorState {
   currentRunningPlanTaskId?: string;
   getTaskItem(taskId: string): TaskItemMeta | undefined;
   getTaskGroup(groupId: string): TaskGroupMeta | undefined;
+  getAgentGroup?(groupId: string): AgentGroup | undefined;
   getActiveTaskIds(): string[];
   getPlanTaskDescription?(taskId: string): string | undefined;
   getPlanId?(): string | undefined;
@@ -61,6 +63,9 @@ export type EventCommand =
   | { cmd: 'SET_PLAN_RUNTIME'; taskId: string; runtime: PlanRuntime }
   | { cmd: 'SET_TASK_ITEM_META'; taskId: string; task: TaskItemMeta }
   | { cmd: 'SET_TASK_GROUP_META'; groupId: string; group: TaskGroupMeta }
+  | { cmd: 'SET_AGENT_GROUP_ADD_TASK'; groupId: string; group: AgentGroup }
+  | { cmd: 'ADD_ACTIVE_TASK_ID'; taskId: string }
+  | { cmd: 'REMOVE_ACTIVE_TASK_ID'; taskId: string }
   | { cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID'; taskId: string }
   | { cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID'; taskId: string }
   | {
@@ -83,7 +88,8 @@ interface ResolvedTaskBinding {
 }
 
 function readTaskGroupId(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>).taskGroupId);
+  const raw = event as Record<string, unknown>;
+  return toText(raw.groupId) || toText(raw.taskGroupId);
 }
 
 function readTaskGroupTitle(event: AgentEvent): string {
@@ -285,6 +291,25 @@ function buildNextTaskGroup(input: {
     durationMs: computeTaskDurationMs(startedAt, endedAt),
     updatedAt: nextTask.updatedAt,
     childTaskIds,
+  };
+}
+
+function buildNextAgentGroup(input: {
+  groupId: string;
+  mainToolId: string;
+  taskId: string;
+  createdAt: number;
+  existing?: AgentGroup;
+}): AgentGroup {
+  const taskIds = input.existing?.taskIds ? input.existing.taskIds.slice() : [];
+  if (!taskIds.includes(input.taskId)) {
+    taskIds.push(input.taskId);
+  }
+  return {
+    groupId: input.groupId,
+    mainToolId: input.mainToolId || input.existing?.mainToolId || '',
+    taskIds,
+    createdAt: input.existing?.createdAt || input.createdAt,
   };
 }
 
@@ -1181,6 +1206,37 @@ export function processEvent(
     });
     commands.push({ cmd: 'SET_TASK_ITEM_META', taskId, task: nextTask });
     commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
+    commands.push({ cmd: 'ADD_ACTIVE_TASK_ID', taskId });
+    const mainToolId = toText((event as Record<string, unknown>).mainToolId);
+    if (groupId) {
+      const agentGroup = buildNextAgentGroup({
+        groupId,
+        mainToolId,
+        taskId,
+        createdAt: updatedAt,
+        existing: state.getAgentGroup?.(groupId),
+      });
+      const nodeId = `agent_group_${groupId}`;
+      const existingNode = state.getTimelineNode(nodeId);
+      if (!existingNode) {
+        commands.push({ cmd: 'APPEND_TIMELINE_ORDER', nodeId });
+      }
+      commands.push({ cmd: 'SET_AGENT_GROUP_ADD_TASK', groupId, group: agentGroup });
+      commands.push({
+        cmd: 'SET_TIMELINE_NODE',
+        id: nodeId,
+        node: {
+          id: nodeId,
+          kind: 'agent-group',
+          groupId,
+          mainToolId,
+          text: toText((event as Record<string, unknown>).description) || nextTask.taskName,
+          status: nextGroup.status,
+          expanded: existingNode?.expanded ?? false,
+          ts: existingNode?.ts || updatedAt,
+        },
+      });
+    }
     commands.push({ cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID', taskId });
     commands.push({ cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID', taskId });
     commands.push({
@@ -1222,6 +1278,26 @@ export function processEvent(
     });
     commands.push({ cmd: 'SET_TASK_ITEM_META', taskId, task: nextTask });
     commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
+    commands.push({ cmd: 'REMOVE_ACTIVE_TASK_ID', taskId });
+    if (groupId) {
+      const existingAgentGroup = state.getAgentGroup?.(groupId);
+      const nodeId = `agent_group_${groupId}`;
+      const existingNode = state.getTimelineNode(nodeId);
+      if (existingAgentGroup && existingNode) {
+        commands.push({
+          cmd: 'SET_TIMELINE_NODE',
+          id: nodeId,
+          node: {
+            ...existingNode,
+            kind: 'agent-group',
+            groupId,
+            mainToolId: existingNode.mainToolId || toText((event as Record<string, unknown>).mainToolId),
+            status: nextGroup.status,
+            ts: existingNode.ts || updatedAt,
+          },
+        });
+      }
+    }
     commands.push({
       cmd: 'SET_PLAN_RUNTIME',
       taskId,
