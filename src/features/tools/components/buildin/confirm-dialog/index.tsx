@@ -48,6 +48,8 @@ import {
   getSelectOptions,
   getSelectOptionValue,
   hasAwaitingQuestions,
+  isMultiSelectQuestionType,
+  isSelectQuestionType,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { debounce } from "lodash";
@@ -113,10 +115,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   }, [curIndex, form, questions.length]);
 
   useKeyboard({
-    enabled: currentQuestion?.type === AIAwaitQuestionType.Select,
+    enabled: currentQuestion ? isSelectQuestionType(currentQuestion) : false,
     getAllHost: () => questionsRef.current[curIndex]?.getElements(),
     onEnter: (element) => {
-      if (element.dataset.multiple === "true") {
+      if (element.dataset.multiSelect === "true") {
         moveForward();
         return;
       }
@@ -384,13 +386,13 @@ const Question = forwardRef<
         const checkboxRef = checkboxsRef.current?.[i];
         if (checkboxRef) {
           checkboxRef.input?.click();
-          if (!data.multiple) {
+          if (!isMultiSelectQuestionType(data)) {
             onEnterDebounce();
           }
         }
       },
     }),
-    [data.multiple, data.type, onEnterDebounce],
+    [data, onEnterDebounce],
   );
 
   const setAnswer = useCallback(
@@ -499,7 +501,7 @@ const Question = forwardRef<
           const optionKeys = keys.filter(
             (item) => item !== FREE_TEXT_OPTION_VALUE,
           );
-          if (data.multiple) {
+          if (isMultiSelectQuestionType(data)) {
             const nextAnswers = freeTextAnswer
               ? [...optionKeys, freeTextAnswer]
               : optionKeys;
@@ -527,14 +529,14 @@ const Question = forwardRef<
               value={optionValue}
               className={Style.Option}
             >
-              <Flex
-                gap={10}
-                align="center"
-                tabIndex={0}
-                data-index={i}
-                data-multiple={data.multiple}
-                style={{ outline: "none" }}
-              >
+                <Flex
+                  gap={10}
+                  align="center"
+                  tabIndex={0}
+                  data-index={i}
+                  data-multi-select={isMultiSelectQuestionType(data)}
+                  style={{ outline: "none" }}
+                >
                 <span>{i + 1}。</span>
                 <span className={Style.Info}>{option.label}</span>
                 {option.description && (
@@ -558,7 +560,7 @@ const Question = forwardRef<
             tabIndex={0}
             onChange={(e) => {
               const nextValue = e.target.value;
-              if (data.multiple) {
+              if (isMultiSelectQuestionType(data)) {
                 setAnswer({
                   answers: nextValue
                     ? [...selectedOptionAnswers, nextValue]

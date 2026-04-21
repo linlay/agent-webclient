@@ -85,6 +85,7 @@ export enum AIAwaitQuestionType {
   Text = 'text',
   Number = 'number',
   Select = 'select',
+  MultiSelect = 'multi-select',
   Password = 'password',
 }
 
@@ -134,7 +135,6 @@ export interface AIAwaitQuestion {
   question: string;
   placeholder?: string;
   options?: AIAwaitQuestionOption[];
-  multiple?: boolean;
   allowFreeText?: boolean;
   freeTextPlaceholder?: string;
 }

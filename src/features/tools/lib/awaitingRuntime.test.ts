@@ -48,7 +48,7 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('normalizes multiple select questions and ignores legacy multiSelect', () => {
+  it('normalizes multi-select questions without legacy multiple flags', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_multi_1',
@@ -57,10 +57,8 @@ describe('reduceActiveAwaiting', () => {
       questions: [
         {
           id: 'q1',
-          type: 'select',
+          type: 'multi-select',
           question: '请选择环境',
-          multiple: true,
-          multiSelect: true,
           options: [
             { label: 'dev' },
             { label: 'prod' },
@@ -71,11 +69,10 @@ describe('reduceActiveAwaiting', () => {
 
     expect(asked?.questions[0]).toMatchObject({
       id: 'q1',
-      type: 'select',
+      type: 'multi-select',
       question: '请选择环境',
-      multiple: true,
     });
-    expect('multiSelect' in (asked?.questions[0] ?? {})).toBe(false);
+    expect('multiple' in (asked?.questions[0] ?? {})).toBe(false);
   });
 
   it('keeps legacy question awaitings compatible when awaiting.ask omits mode', () => {

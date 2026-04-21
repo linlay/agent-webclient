@@ -153,7 +153,10 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
         placeholder: toText(question.placeholder) || undefined,
       };
 
-      if (type === AIAwaitQuestionType.Select) {
+      if (
+        type === AIAwaitQuestionType.Select
+        || type === AIAwaitQuestionType.MultiSelect
+      ) {
         normalized.options = Array.isArray(question.options)
           ? question.options
               .filter(
@@ -164,10 +167,6 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
               )
               .map((option) => ({ ...option }))
           : [];
-        normalized.multiple =
-          typeof question.multiple === 'boolean'
-            ? question.multiple
-            : undefined;
         normalized.allowFreeText =
           typeof question.allowFreeText === 'boolean'
             ? question.allowFreeText

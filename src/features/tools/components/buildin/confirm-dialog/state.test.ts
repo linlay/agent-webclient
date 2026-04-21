@@ -97,10 +97,9 @@ describe("confirm dialog state helpers", () => {
 
   it("tracks select free text separately from option values", () => {
     const question: AIAwaitQuestion = {
-      type: AIAwaitQuestionType.Select,
+      type: AIAwaitQuestionType.MultiSelect,
       question: "环境",
       allowFreeText: true,
-      multiple: true,
       options: [
         { label: "dev" },
         { label: "prod" },

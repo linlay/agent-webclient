@@ -59,10 +59,21 @@ export function getAwaitingQuestionPrompt(question: AIAwaitQuestion): string {
 export function getAwaitingQuestionPlaceholder(
   question: AIAwaitQuestion,
 ): string {
-  if (question.type === AIAwaitQuestionType.Select) {
+  if (isSelectQuestionType(question)) {
     return question.freeTextPlaceholder || "";
   }
   return question.placeholder || "";
+}
+
+export function isSelectQuestionType(question: AIAwaitQuestion): boolean {
+  return (
+    question.type === AIAwaitQuestionType.Select
+    || question.type === AIAwaitQuestionType.MultiSelect
+  );
+}
+
+export function isMultiSelectQuestionType(question: AIAwaitQuestion): boolean {
+  return question.type === AIAwaitQuestionType.MultiSelect;
 }
 
 export function getSelectOptionValue(option: AIAwaitQuestionOption): string {
@@ -84,13 +95,11 @@ export function getAwaitingAnswerError(
   value: AIAwaitQuestionSubmitParamData | undefined,
 ): string | null {
   switch (question.type) {
+    case AIAwaitQuestionType.MultiSelect:
+      return Array.isArray(value?.answers) && value.answers.some((item) => item.trim())
+        ? null
+        : "请至少选择一个选项";
     case AIAwaitQuestionType.Select:
-      if (question.multiple) {
-        return Array.isArray(value?.answers) &&
-          value.answers.some((item) => item.trim())
-          ? null
-          : "请至少选择一个选项";
-      }
       return typeof value?.answer === "string" && value.answer.trim()
         ? null
         : "请选择或输入一个答案";
@@ -113,7 +122,7 @@ export function getSelectFreeTextAnswer(
   value: AIAwaitQuestionSubmitParamData | undefined,
 ): string {
   const optionValues = new Set(getSelectOptionValues(question));
-  if (question.multiple) {
+  if (isMultiSelectQuestionType(question)) {
     return (
       value?.answers?.find((item) => item && !optionValues.has(item)) || ""
     );
@@ -128,7 +137,7 @@ export function getSelectedOptionAnswers(
   value: AIAwaitQuestionSubmitParamData | undefined,
 ): string[] {
   const optionValues = new Set(getSelectOptionValues(question));
-  if (question.multiple) {
+  if (isMultiSelectQuestionType(question)) {
     return (value?.answers || []).filter((item) => optionValues.has(item));
   }
   return typeof value?.answer === "string" && optionValues.has(value.answer)
