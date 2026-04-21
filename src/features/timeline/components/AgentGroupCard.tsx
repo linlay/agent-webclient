@@ -6,6 +6,19 @@ interface AgentGroupCardProps {
 	groupId: string;
 }
 
+export function scrollToTaskNode(taskId: string): void {
+	if (typeof document === "undefined") {
+		return;
+	}
+	const target = document.querySelector(`[data-task-id="${taskId}"]`);
+	if (
+		target &&
+		typeof (target as { scrollIntoView?: unknown }).scrollIntoView === "function"
+	) {
+		target.scrollIntoView({ behavior: "smooth", block: "center" });
+	}
+}
+
 function summarizeStatus(statuses: string[]): "running" | "completed" | "failed" | "canceled" {
 	if (statuses.some((status) => status === "running")) return "running";
 	if (statuses.some((status) => status === "failed")) return "failed";
@@ -45,7 +58,7 @@ export const AgentGroupCard: React.FC<AgentGroupCardProps> = ({ groupId }) => {
 			>
 				<span className="timeline-task-group-header-copy">
 					<span className="timeline-task-group-title">
-						<MaterialIcon name={iconName} /> Running {group.taskIds.length} agents
+						<MaterialIcon name={iconName} /> ⏺ Running {group.taskIds.length} agents…
 					</span>
 				</span>
 				<span className="timeline-task-group-header-meta">
@@ -67,12 +80,7 @@ export const AgentGroupCard: React.FC<AgentGroupCardProps> = ({ groupId }) => {
 									type="button"
 									className="timeline-task-summary-item"
 									data-task-id={task.taskId}
-									onClick={() => {
-										const target = document.querySelector(`[data-task-id="${task.taskId}"]`);
-										if (target instanceof HTMLElement) {
-											target.scrollIntoView({ behavior: "smooth", block: "center" });
-										}
-									}}
+									onClick={() => scrollToTaskNode(task.taskId)}
 								>
 									<span className="timeline-task-card-title-row">
 										<span

@@ -373,35 +373,46 @@ function appendIncompleteToolArgsNote(argsText: string): string {
   return `${argsText}\n\n${INCOMPLETE_TOOL_ARGS_NOTE}`;
 }
 
-function normalizePublishedArtifact(event: AgentEvent): PublishedArtifact | null {
-  const rawArtifact = event.artifact;
-  if (!rawArtifact || typeof rawArtifact !== 'object' || Array.isArray(rawArtifact)) {
-    return null;
-  }
-
-  const record = rawArtifact as Record<string, any>;
+function normalizeArtifactRecord(record: Record<string, any>, timestamp: number): PublishedArtifact | null {
   const url = safeText(record.url).trim();
-  const fallbackId = toText(event.artifactId).trim()
+  const artifactId = safeText(record.artifactId).trim()
     || safeText(record.sha256).trim()
     || url
     || safeText(record.name).trim();
-  if (!url || !fallbackId) {
+  if (!url || !artifactId) {
     return null;
   }
 
   const rawSize = Number(record.sizeBytes ?? record.size);
   return {
-    artifactId: fallbackId,
+    artifactId,
     artifact: {
       mimeType: safeText(record.mimeType).trim() || 'application/octet-stream',
-      name: safeText(record.name).trim() || fallbackId,
+      name: safeText(record.name).trim() || artifactId,
       sha256: safeText(record.sha256).trim(),
       sizeBytes: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : 0,
       type: 'file',
       url,
     },
-    timestamp: Number(event.timestamp) || Date.now(),
+    timestamp,
   };
+}
+
+function normalizePublishedArtifacts(event: AgentEvent): PublishedArtifact[] {
+  const rawArtifacts = event.artifacts;
+  if (!Array.isArray(rawArtifacts) || rawArtifacts.length === 0) {
+    return [];
+  }
+
+  const timestamp = Number(event.timestamp) || Date.now();
+  return rawArtifacts
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+      return normalizeArtifactRecord(item as Record<string, any>, timestamp);
+    })
+    .filter((item): item is PublishedArtifact => Boolean(item));
 }
 
 function resolveFinalToolArgsText(
@@ -1163,11 +1174,13 @@ export function processEvent(
   }
 
   if (type === 'artifact.publish') {
-    const artifact = normalizePublishedArtifact(event);
-    if (!artifact) {
+    const artifacts = normalizePublishedArtifacts(event);
+    if (artifacts.length === 0) {
       return commands;
     }
-    commands.push({ cmd: 'UPSERT_ARTIFACT', artifact });
+    for (const artifact of artifacts) {
+      commands.push({ cmd: 'UPSERT_ARTIFACT', artifact });
+    }
     return commands;
   }
 

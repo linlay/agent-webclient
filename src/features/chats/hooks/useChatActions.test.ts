@@ -98,16 +98,29 @@ describe('replayEvent tool migration', () => {
 
     replayEvent(state, {
       type: 'artifact.publish',
-      artifactId: 'artifact_1',
+      runId: 'run_1',
       timestamp: 120,
-      artifact: {
-        type: 'file',
-        name: 'run.log',
-        mimeType: 'text/plain',
-        sha256: 'sha-log',
-        sizeBytes: 512,
-        url: 'https://example.com/run.log',
-      },
+      artifactCount: 2,
+      artifacts: [
+        {
+          artifactId: 'artifact_1',
+          type: 'file',
+          name: 'run.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-log',
+          sizeBytes: 512,
+          url: 'https://example.com/run.log',
+        },
+        {
+          artifactId: 'artifact_2',
+          type: 'file',
+          name: 'notes.txt',
+          mimeType: 'text/plain',
+          sha256: 'sha-notes',
+          sizeBytes: 128,
+          url: 'https://example.com/notes.txt',
+        },
+      ],
     });
 
     expect(state.artifacts).toEqual([
@@ -123,6 +136,18 @@ describe('replayEvent tool migration', () => {
           url: 'https://example.com/run.log',
         },
       },
+      {
+        artifactId: 'artifact_2',
+        timestamp: 120,
+        artifact: {
+          type: 'file',
+          name: 'notes.txt',
+          mimeType: 'text/plain',
+          sha256: 'sha-notes',
+          sizeBytes: 128,
+          url: 'https://example.com/notes.txt',
+        },
+      },
     ]);
   });
 
@@ -131,16 +156,19 @@ describe('replayEvent tool migration', () => {
 
     replayEvent(state, {
       type: 'artifact.publish',
-      artifactId: 'artifact_old',
+      runId: 'run_1',
       timestamp: 120,
-      artifact: {
-        type: 'file',
-        name: 'old.log',
-        mimeType: 'text/plain',
-        sha256: 'sha-old',
-        sizeBytes: 128,
-        url: 'https://example.com/old.log',
-      },
+      artifacts: [
+        {
+          artifactId: 'artifact_old',
+          type: 'file',
+          name: 'old.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-old',
+          sizeBytes: 128,
+          url: 'https://example.com/old.log',
+        },
+      ],
     });
 
     setReplayArtifacts(state, [

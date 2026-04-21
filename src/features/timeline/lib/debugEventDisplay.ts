@@ -58,6 +58,9 @@ export function getEventRowGroupClass(eventType: string): string {
 }
 
 export function getEventId(event: AgentEvent): string {
+  if (String(event.type || '').toLowerCase() === 'artifact.publish') {
+    return safeStr(event.runId);
+  }
   const keys = [
     'requestId',
     'chatId',
@@ -69,7 +72,6 @@ export function getEventId(event: AgentEvent): string {
     'actionId',
     'planId',
     'taskId',
-    'artifactId',
   ];
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(event, key)) {

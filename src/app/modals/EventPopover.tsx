@@ -46,7 +46,7 @@ const EVENT_GROUP_CONFIG = [
   { prefix: "task.", idKey: "taskId", family: "task" },
   { prefix: "tool.", idKey: "toolId", family: "tool" },
   { prefix: "action.", idKey: "actionId", family: "action" },
-  { prefix: "artifact.", idKey: "artifactId", family: "artifact" },
+  { prefix: "artifact.", idKey: "runId", family: "artifact" },
   { prefix: "awaiting.", idKey: "awaitingId", family: "awaiting" },
 ] as const;
 

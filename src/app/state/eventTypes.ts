@@ -237,8 +237,6 @@ export interface AIEventCommonFields {
   mode?: AIAwaitMode;
   payload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
-  artifactId?: string;
-  artifact?: ResourceData;
   rawEvent?: unknown;
   timestamp?: number;
   [key: string]: unknown;
@@ -294,7 +292,8 @@ export interface AIActionEvent extends AIBaseTaskEvent {
 
 export interface AIArtifactEvent extends AIBaseEvent {
   type: AIArtifactEventTypeEnum;
-  artifact?: ResourceData;
+  artifactCount?: number;
+  artifacts?: Array<ResourceData & { artifactId?: string }>;
 }
 
 export interface AIAwaitAskEvent extends AIBaseEvent {

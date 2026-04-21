@@ -1,5 +1,6 @@
 import {
   classifyEventGroup,
+  getEventId,
   getEventRowGroupClass,
   markDebugEventHidden,
   shouldDisplayDebugEvent,
@@ -35,6 +36,17 @@ describe('getEventRowGroupClass', () => {
 
   it('keeps recognized event types on their existing group class', () => {
     expect(getEventRowGroupClass('request.query')).toBe('event-group-request');
+  });
+});
+
+describe('getEventId', () => {
+  it('uses runId for artifact.publish events', () => {
+    expect(getEventId({
+      type: 'artifact.publish',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      artifacts: [],
+    })).toBe('run_1');
   });
 });
 

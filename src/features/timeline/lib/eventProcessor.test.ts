@@ -276,16 +276,30 @@ describe('processEvent', () => {
 
     processAndApply(state, {
       type: 'artifact.publish',
-      artifactId: 'artifact_1',
+      runId: 'run_1',
+      chatId: 'chat_1',
       timestamp: 200,
-      artifact: {
-        type: 'file',
-        name: 'report.pdf',
-        mimeType: 'application/pdf',
-        sha256: 'abc123',
-        sizeBytes: 2048,
-        url: 'https://example.com/report.pdf',
-      },
+      artifactCount: 2,
+      artifacts: [
+        {
+          artifactId: 'artifact_1',
+          type: 'file',
+          name: 'report.pdf',
+          mimeType: 'application/pdf',
+          sha256: 'abc123',
+          sizeBytes: 2048,
+          url: 'https://example.com/report.pdf',
+        },
+        {
+          artifactId: 'artifact_2',
+          type: 'file',
+          name: 'summary.txt',
+          mimeType: 'text/plain',
+          sha256: 'def456',
+          sizeBytes: 128,
+          url: 'https://example.com/summary.txt',
+        },
+      ],
     }, 'live', true);
 
     expect(state.artifacts).toEqual([
@@ -299,6 +313,63 @@ describe('processEvent', () => {
           sha256: 'abc123',
           sizeBytes: 2048,
           url: 'https://example.com/report.pdf',
+        },
+      },
+      {
+        artifactId: 'artifact_2',
+        timestamp: 200,
+        artifact: {
+          type: 'file',
+          name: 'summary.txt',
+          mimeType: 'text/plain',
+          sha256: 'def456',
+          sizeBytes: 128,
+          url: 'https://example.com/summary.txt',
+        },
+      },
+    ]);
+  });
+
+  it('ignores invalid artifact.publish payloads and invalid items', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'artifact.publish',
+      runId: 'run_1',
+      artifacts: [
+        {
+          artifactId: 'artifact_1',
+          type: 'file',
+          name: 'valid.txt',
+          mimeType: 'text/plain',
+          sizeBytes: 12,
+          url: 'https://example.com/valid.txt',
+        },
+        {
+          artifactId: 'artifact_2',
+          type: 'file',
+          name: 'missing-url.txt',
+        },
+      ],
+    }, 'live', true);
+
+    processAndApply(state, {
+      type: 'artifact.publish',
+      runId: 'run_1',
+      artifactCount: 1,
+    }, 'live', true);
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: expect.any(Number),
+        artifact: {
+          type: 'file',
+          name: 'valid.txt',
+          mimeType: 'text/plain',
+          sha256: '',
+          sizeBytes: 12,
+          url: 'https://example.com/valid.txt',
         },
       },
     ]);

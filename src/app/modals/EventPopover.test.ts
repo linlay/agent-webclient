@@ -109,6 +109,21 @@ describe("EventPopover collect controls", () => {
     ]);
   });
 
+  it("groups artifact.publish events by runId", () => {
+    const event: AgentEvent = {
+      type: "artifact.publish",
+      runId: "run_1",
+      chatId: "chat_1",
+      artifacts: [],
+    };
+
+    expect(resolveEventGroupMeta(event)).toEqual({
+      family: "artifact",
+      idKey: "runId",
+      idValue: "run_1",
+    });
+  });
+
   it("renders copy button for all events and collect button for whitelisted delta events", () => {
     const state = createInitialState();
     const event: AgentEvent = {
