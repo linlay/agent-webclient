@@ -10,74 +10,25 @@ import type {
   TimelineNode,
   ToolState,
 } from '@/app/state/types';
+import type {
+  EventCommand,
+  EventProcessorConfig,
+  EventProcessorState,
+} from '@/features/timeline/lib/eventProcessorTypes';
 import { parseContentSegments } from '@/features/timeline/lib/contentSegments';
 import { isTerminalStatus, safeText, toText } from '@/shared/utils/eventUtils';
 import { parseFrontendToolParams } from '@/features/tools/lib/frontendToolParams';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
-import { pickToolName, resolveViewportKey } from '@/features/timeline/lib/toolEvent';
 import {
-  getAwaitingItemMeta,
-  getAwaitingQuestionMetaByQuestion,
-  maskAwaitingAnswerParams,
-} from '@/features/tools/lib/awaitingQuestionMeta';
-
-export interface EventProcessorState {
-  getContentNodeId(contentId: string): string | undefined;
-  getReasoningNodeId(reasoningKey: string): string | undefined;
-  getToolNodeId(toolId: string): string | undefined;
-  getToolState(toolId: string): ToolState | undefined;
-  getTimelineNode(nodeId: string): TimelineNode | undefined;
-  getNodeText(nodeId: string): string;
-  nextCounter(): number;
-  peekCounter(): number;
-  activeReasoningKey: string;
-  chatId: string;
-  runId: string;
-  currentRunningPlanTaskId?: string;
-  getTaskItem(taskId: string): TaskItemMeta | undefined;
-  getTaskGroup(groupId: string): TaskGroupMeta | undefined;
-  getAgentGroup?(groupId: string): AgentGroup | undefined;
-  getActiveTaskIds(): string[];
-  getPlanTaskDescription?(taskId: string): string | undefined;
-  getPlanId?(): string | undefined;
-}
-
-export interface EventProcessorConfig {
-  mode: 'live' | 'replay';
-  reasoningExpandedDefault: boolean;
-}
-
-export type EventCommand =
-  | { cmd: 'SET_CHAT_ID'; chatId: string }
-  | { cmd: 'SET_RUN_ID'; runId: string }
-  | { cmd: 'SET_CHAT_AGENT'; chatId: string; agentKey: string }
-  | { cmd: 'SET_CONTENT_NODE_ID'; contentId: string; nodeId: string }
-  | { cmd: 'SET_REASONING_NODE_ID'; reasoningId: string; nodeId: string }
-  | { cmd: 'SET_TOOL_NODE_ID'; toolId: string; nodeId: string }
-  | { cmd: 'APPEND_TIMELINE_ORDER'; nodeId: string }
-  | { cmd: 'SET_TIMELINE_NODE'; id: string; node: TimelineNode }
-  | { cmd: 'SET_TOOL_STATE'; toolId: string; state: ToolState }
-  | { cmd: 'SET_ACTIVE_REASONING_KEY'; key: string }
-  | { cmd: 'UPSERT_ARTIFACT'; artifact: PublishedArtifact }
-  | { cmd: 'SET_PLAN'; plan: Plan | null; resetRuntime: boolean }
-  | { cmd: 'SET_PLAN_RUNTIME'; taskId: string; runtime: PlanRuntime }
-  | { cmd: 'SET_TASK_ITEM_META'; taskId: string; task: TaskItemMeta }
-  | { cmd: 'SET_TASK_GROUP_META'; groupId: string; group: TaskGroupMeta }
-  | { cmd: 'SET_AGENT_GROUP_ADD_TASK'; groupId: string; group: AgentGroup }
-  | { cmd: 'ADD_ACTIVE_TASK_ID'; taskId: string }
-  | { cmd: 'REMOVE_ACTIVE_TASK_ID'; taskId: string }
-  | { cmd: 'SET_PLAN_CURRENT_RUNNING_TASK_ID'; taskId: string }
-  | { cmd: 'SET_PLAN_LAST_TOUCHED_TASK_ID'; taskId: string }
-  | {
-    cmd: 'USER_MESSAGE';
-    nodeId: string;
-    text: string;
-    ts: number;
-    variant: 'default' | 'steer' | 'remember' | 'learn';
-    attachments?: TimelineNode['attachments'];
-    steerId?: string;
-  }
-  | { cmd: 'SYSTEM_ERROR'; nodeId: string; text: string; ts: number };
+  awaitingAnswerTitle,
+  readAwaitingAnswerText,
+} from '@/features/timeline/lib/eventProcessorAwaiting';
+import { pickToolName, resolveViewportKey } from '@/features/timeline/lib/toolEvent';
+export type {
+  EventCommand,
+  EventProcessorConfig,
+  EventProcessorState,
+} from '@/features/timeline/lib/eventProcessorTypes';
 
 const INCOMPLETE_TOOL_ARGS_NOTE = '[incomplete tool args]';
 
@@ -489,154 +440,6 @@ function formatStructuredEventText(value: unknown): string {
     return JSON.stringify(value, null, 2);
   } catch {
     return safeText(value);
-  }
-}
-
-function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
-  const runId = toText(event.runId);
-  const awaitingId = toText(event.awaitingId);
-  const rawRecord = event as Record<string, unknown>;
-  const answers = rawRecord.answers;
-  const approvals = rawRecord.approvals;
-  const forms = rawRecord.forms;
-  const legacyQuestions = rawRecord.questions;
-
-  if (Array.isArray(answers)) {
-    const normalizedAnswers = !runId || !awaitingId
-      ? answers
-      : maskAwaitingAnswerParams(
-          runId,
-          awaitingId,
-          answers.filter((item): item is any => Boolean(item) && typeof item === 'object'),
-        ).map((item) => {
-          const meta = getAwaitingItemMeta(runId, awaitingId, item.id);
-          return meta?.kind === 'question'
-            ? {
-                ...item,
-                header: meta.header,
-                question: meta.question,
-              }
-            : item;
-        });
-    return normalizedAnswers;
-  }
-
-  if (Array.isArray(approvals) && runId && awaitingId) {
-    return approvals.map((item) => {
-      if (!item || typeof item !== 'object') {
-        return item;
-      }
-      const id = toText((item as Record<string, unknown>).id);
-      const meta = id ? getAwaitingItemMeta(runId, awaitingId, id) : null;
-      return meta?.kind === 'approval'
-        ? {
-            ...item,
-            command: meta.command,
-            ruleKey: meta.ruleKey,
-          }
-        : item;
-    });
-  }
-
-  if (Array.isArray(forms) && runId && awaitingId) {
-    return forms.map((item) => {
-      if (!item || typeof item !== 'object') {
-        return item;
-      }
-      const id = toText((item as Record<string, unknown>).id);
-      const meta = id ? getAwaitingItemMeta(runId, awaitingId, id) : null;
-      return meta?.kind === 'form'
-        ? {
-            ...item,
-            action: meta.action,
-            title: meta.title,
-          }
-        : item;
-    });
-  }
-
-  if (Array.isArray(legacyQuestions) && runId && awaitingId) {
-    return legacyQuestions.map((item) => {
-      if (!item || typeof item !== 'object') {
-        return item;
-      }
-      const legacyQuestion = toText((item as Record<string, unknown>).question);
-      const meta = legacyQuestion
-        ? getAwaitingQuestionMetaByQuestion(runId, awaitingId, legacyQuestion)
-        : null;
-      if (meta?.type !== 'password') {
-        return item;
-      }
-      return {
-        ...item,
-        answer: '••••••',
-        answers: Array.isArray((item as Record<string, unknown>).answers)
-          ? ((item as Record<string, unknown>).answers as unknown[]).map(() => '••••••')
-          : undefined,
-      };
-    });
-  }
-
-  return legacyQuestions ?? answers ?? approvals ?? forms;
-}
-
-function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
-  const rawRecord = event as Record<string, unknown>;
-  const status = toText(rawRecord.status);
-  if (status === 'error') {
-    const rawError = rawRecord.error;
-    const error = rawError && typeof rawError === 'object' && !Array.isArray(rawError)
-      ? {
-          code: toText((rawError as Record<string, unknown>).code),
-          message: toText((rawError as Record<string, unknown>).message),
-        }
-      : undefined;
-    return {
-      status: 'error',
-      error,
-    };
-  }
-  if (status === 'answered') {
-    return {
-      status: 'answered',
-      items: maskStructuredAwaitingAnswers(event),
-    };
-  }
-  return maskStructuredAwaitingAnswers(event);
-}
-
-function readAwaitingAnswerText(event: AgentEvent): string {
-  const rawRecord = event as Record<string, unknown>;
-  return pickEventText(
-    formatStructuredEventText(buildAwaitingAnswerEnvelope(event)),
-    event.text,
-    rawRecord.answers,
-    rawRecord.approvals,
-    rawRecord.forms,
-    rawRecord.questions,
-    event.message,
-  );
-}
-
-function awaitingAnswerTitle(event: AgentEvent): string {
-  if (event.type !== 'awaiting.answer') {
-    return '已提交回答';
-  }
-  if (event.status === 'answered') {
-    return '已提交回答';
-  }
-  if (event.status !== 'error') {
-    return '已提交回答';
-  }
-  switch (event.error?.code) {
-    case 'user_dismissed':
-      return '已取消等待';
-    case 'timeout':
-      return '等待已超时';
-    case 'invalid_submit':
-      return '提交失败';
-    default:
-      return '等待异常';
   }
 }
 

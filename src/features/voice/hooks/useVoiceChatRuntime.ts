@@ -3,8 +3,6 @@ import { useAppContext } from "@/app/state/AppContext";
 import type {
 	AppState,
 	VoiceCapabilities,
-	VoiceClientGateConfig,
-	VoiceOption,
 } from "@/app/state/types";
 import {
 	createRequestId,
@@ -37,86 +35,19 @@ import {
 	resolveVoiceAsrRuntimeConfig,
 } from "@/features/voice/lib/voiceAsrProtocol";
 import { runVoiceChatListeningReady } from "@/features/voice/lib/voiceChatListeningReady";
+import {
+	areVoiceClientGateConfigsEqual,
+	ensureVoiceOptions,
+	formatVoiceSocketClose,
+	MAX_VOICE_WS_RECONNECT_ATTEMPTS,
+	QA_ASR_TASK_ID,
+	resolveDefaultVoice,
+	type VoiceTaskEvent,
+	VOICE_WS_RECONNECT_BASE_DELAY_MS,
+} from "@/features/voice/lib/voiceChatRuntimeUtils";
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
-
-const QA_ASR_TASK_ID = "qa-asr";
-const MAX_VOICE_WS_RECONNECT_ATTEMPTS = 4;
-const VOICE_WS_RECONNECT_BASE_DELAY_MS = 600;
-
-type VoiceTaskEvent = {
-	type: string;
-	taskId?: string;
-	message?: string;
-	code?: string;
-	reason?: string;
-	text?: string;
-	chatId?: string;
-	sampleRate?: number;
-	channels?: number;
-	seq?: number;
-	byteLength?: number;
-	websocketPath?: string;
-};
-
-function areVoiceClientGateConfigsEqual(
-	left: VoiceClientGateConfig,
-	right: VoiceClientGateConfig,
-): boolean {
-	return (
-		left.enabled === right.enabled &&
-		left.rmsThreshold === right.rmsThreshold &&
-		left.openHoldMs === right.openHoldMs &&
-		left.closeHoldMs === right.closeHoldMs &&
-		left.preRollMs === right.preRollMs
-	);
-}
-
-function formatVoiceSocketClose(event: CloseEvent | Event | undefined): string {
-	if (!event || typeof event !== "object" || !("code" in event)) {
-		return "语音 WebSocket 已关闭";
-	}
-	const closeEvent = event as CloseEvent;
-	const code = Number(closeEvent.code) || 0;
-	const reason = String(closeEvent.reason || "").trim();
-	const clean = closeEvent.wasClean ? "clean" : "unclean";
-	return reason
-		? `语音 WebSocket 已关闭 (code=${code}, reason=${reason}, ${clean})`
-		: `语音 WebSocket 已关闭 (code=${code}, ${clean})`;
-}
-
-function ensureVoiceOptions(data: unknown): VoiceOption[] {
-	const payload = data as { voices?: unknown };
-	const voices = Array.isArray(payload?.voices) ? payload.voices : [];
-	return voices
-		.map((item) => {
-			const record = item as Record<string, unknown>;
-			return {
-				id: String(record.id || "").trim(),
-				displayName: String(record.displayName || record.id || "").trim(),
-				provider: String(record.provider || "").trim(),
-				default: Boolean(record.default),
-			};
-		})
-		.filter((item) => item.id);
-}
-
-function resolveDefaultVoice(
-	voices: VoiceOption[],
-	currentVoice: string,
-	defaultVoiceId: unknown,
-): string {
-	const current = String(currentVoice || "").trim();
-	if (current && voices.some((item) => item.id === current)) {
-		return current;
-	}
-	const preferred = String(defaultVoiceId || "").trim();
-	if (preferred && voices.some((item) => item.id === preferred)) {
-		return preferred;
-	}
-	return voices.find((item) => item.default)?.id || voices[0]?.id || "";
-}
 
 export function useVoiceChatRuntime() {
 	const { state, dispatch, stateRef } = useAppContext();

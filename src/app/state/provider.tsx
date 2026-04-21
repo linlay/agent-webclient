@@ -7,8 +7,8 @@ import React, {
 	useReducer,
 	useRef,
 } from "react";
+import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
-import type { AppAction } from "@/app/state/reducer";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";

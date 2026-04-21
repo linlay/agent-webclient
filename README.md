@@ -32,6 +32,8 @@ cp .env.example .env
 make install
 ```
 
+仓库统一使用 `npm` 作为包管理器，并提交前端根目录与 `backend/` 的 `package-lock.json` 来固定依赖版本。
+
 ### 本地启动
 ```bash
 make dev

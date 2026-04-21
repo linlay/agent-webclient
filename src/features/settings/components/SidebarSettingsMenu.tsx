@@ -1,5 +1,5 @@
 import React from "react";
-import type { AppAction } from "@/app/state/reducer";
+import type { AppAction } from "@/app/state/actions";
 import type {
   ThemeMode,
   TransportMode,
