@@ -64,6 +64,13 @@ interface RelatedEventEntry {
 }
 
 type CollectibleFamily = keyof typeof COLLECTIBLE_GROUP_EVENT_TYPES;
+type CopyTarget = "eventJson" | "systemPrompt" | "tools";
+type CopyFeedbackState = "idle" | "copied" | "error";
+
+interface DebugPreCallCopyPayloads {
+  systemPromptText: string;
+  toolsText: string;
+}
 
 function readEventIdValue(event: AgentEvent, idKey: EventGroupIdKey): string {
   const value = event[idKey];
@@ -176,6 +183,29 @@ function readStringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function resolveDebugPreCallCopyPayloads(
+  event: AgentEvent | null,
+): DebugPreCallCopyPayloads | null {
+  if (!event || String(event.type || "").toLowerCase() !== "debug.precall") {
+    return null;
+  }
+  const payload = readObjectValue(event.data);
+  if (!payload) {
+    return null;
+  }
+
+  const hasSystemPrompt = typeof payload.systemPrompt === "string";
+  const hasTools = Array.isArray(payload.tools);
+  if (!hasSystemPrompt && !hasTools) {
+    return null;
+  }
+
+  return {
+    systemPromptText: hasSystemPrompt ? String(payload.systemPrompt) : "",
+    toolsText: hasTools ? JSON.stringify(payload.tools, null, 2) : "",
+  };
+}
+
 function buildCollectedSnapshot(
   event: AgentEvent,
   relatedEvents: RelatedEventEntry[],
@@ -266,13 +296,15 @@ export const EventPopover: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const copyTimerRef = useRef<number | null>(null);
+  const copyTimerRef = useRef<Map<CopyTarget, number>>(new Map());
   const [popoverState, setPopoverState] = useState(() =>
     resolveInitialPopoverState(state.eventPopoverEventRef),
   );
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
-    "idle",
-  );
+  const [copyStatus, setCopyStatus] = useState<Record<CopyTarget, CopyFeedbackState>>({
+    eventJson: "idle",
+    systemPrompt: "idle",
+    tools: "idle",
+  });
   const [position, setPosition] = useState({ top: 80, right: 320 });
   const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
   const event = state.eventPopoverEventRef;
@@ -319,16 +351,25 @@ export const EventPopover: React.FC = () => {
     () => getCollectibleRelatedEvents(event, groupMeta, relatedEvents),
     [event, groupMeta, relatedEvents],
   );
+  const debugPreCallCopyPayloads = useMemo(
+    () => resolveDebugPreCallCopyPayloads(event),
+    [event],
+  );
   useEffect(() => {
     setPopoverState(resolveInitialPopoverState(event));
-    setCopyStatus("idle");
+    copyTimerRef.current.forEach((timer) => window.clearTimeout(timer));
+    copyTimerRef.current.clear();
+    setCopyStatus({
+      eventJson: "idle",
+      systemPrompt: "idle",
+      tools: "idle",
+    });
   }, [event]);
 
   useEffect(() => {
     return () => {
-      if (copyTimerRef.current) {
-        window.clearTimeout(copyTimerRef.current);
-      }
+      copyTimerRef.current.forEach((timer) => window.clearTimeout(timer));
+      copyTimerRef.current.clear();
     };
   }, []);
 
@@ -373,10 +414,42 @@ export const EventPopover: React.FC = () => {
     : "未识别分组";
   const showSwitcher = relatedEvents.length > 1;
   const showCollect = collectibleRelatedEvents.length > 1;
-  const copyIcon = copyStatus === "copied" ? "check" : "content_copy";
+  const copyIcon =
+    copyStatus.eventJson === "copied" ? "check" : "content_copy";
   const readableTimestamp = formatReadableTimestamp(
     resolveDisplayPayloadTimestamp(popoverState.payload),
   );
+
+  const handleCopy = (target: CopyTarget, text: string) => {
+    if (!text) {
+      return;
+    }
+    void copyText(text)
+      .then(() => {
+        const existing = copyTimerRef.current.get(target);
+        if (existing) {
+          window.clearTimeout(existing);
+        }
+        setCopyStatus((current) => ({ ...current, [target]: "copied" }));
+        const timer = window.setTimeout(() => {
+          setCopyStatus((current) => ({ ...current, [target]: "idle" }));
+          copyTimerRef.current.delete(target);
+        }, 1600);
+        copyTimerRef.current.set(target, timer);
+      })
+      .catch(() => {
+        const existing = copyTimerRef.current.get(target);
+        if (existing) {
+          window.clearTimeout(existing);
+        }
+        setCopyStatus((current) => ({ ...current, [target]: "error" }));
+        const timer = window.setTimeout(() => {
+          setCopyStatus((current) => ({ ...current, [target]: "idle" }));
+          copyTimerRef.current.delete(target);
+        }, 1600);
+        copyTimerRef.current.set(target, timer);
+      });
+  };
 
   return (
     <div
@@ -400,6 +473,59 @@ export const EventPopover: React.FC = () => {
           <span className="event-popover-meta">{`时间: ${readableTimestamp}`}</span>
         </div>
         <div className="event-popover-actions">
+          {debugPreCallCopyPayloads?.systemPromptText !== undefined &&
+            debugPreCallCopyPayloads.systemPromptText !== "" && (
+              <UiButton
+                className="event-popover-copy-btn"
+                variant="ghost"
+                size="sm"
+                aria-label="复制 systemPrompt"
+                title={
+                  copyStatus.systemPrompt === "copied"
+                    ? "已复制 systemPrompt"
+                    : copyStatus.systemPrompt === "error"
+                      ? "复制失败"
+                      : "复制 systemPrompt"
+                }
+                onClick={() =>
+                  handleCopy(
+                    "systemPrompt",
+                    debugPreCallCopyPayloads.systemPromptText,
+                  )
+                }
+              >
+                {copyStatus.systemPrompt === "copied"
+                  ? "已复制 systemPrompt"
+                  : copyStatus.systemPrompt === "error"
+                    ? "复制失败"
+                    : "复制 systemPrompt"}
+              </UiButton>
+            )}
+          {debugPreCallCopyPayloads?.toolsText !== undefined &&
+            debugPreCallCopyPayloads.toolsText !== "" && (
+              <UiButton
+                className="event-popover-copy-btn"
+                variant="ghost"
+                size="sm"
+                aria-label="复制 tools"
+                title={
+                  copyStatus.tools === "copied"
+                    ? "已复制 tools"
+                    : copyStatus.tools === "error"
+                      ? "复制失败"
+                      : "复制 tools"
+                }
+                onClick={() =>
+                  handleCopy("tools", debugPreCallCopyPayloads.toolsText)
+                }
+              >
+                {copyStatus.tools === "copied"
+                  ? "已复制 tools"
+                  : copyStatus.tools === "error"
+                    ? "复制失败"
+                    : "复制 tools"}
+              </UiButton>
+            )}
           {showCollect && (
             <UiButton
               className="event-popover-action-btn"
@@ -429,9 +555,9 @@ export const EventPopover: React.FC = () => {
             disabled={!popoverState.rawJsonStr}
             aria-label="复制事件 JSON"
             title={
-              copyStatus === "copied"
+              copyStatus.eventJson === "copied"
                 ? "已复制"
-                : copyStatus === "error"
+                : copyStatus.eventJson === "error"
                   ? "复制失败"
                   : "复制事件 JSON"
             }
@@ -439,27 +565,7 @@ export const EventPopover: React.FC = () => {
               if (!popoverState.rawJsonStr) {
                 return;
               }
-              void copyText(popoverState.rawJsonStr)
-                .then(() => {
-                  if (copyTimerRef.current) {
-                    window.clearTimeout(copyTimerRef.current);
-                  }
-                  setCopyStatus("copied");
-                  copyTimerRef.current = window.setTimeout(() => {
-                    setCopyStatus("idle");
-                    copyTimerRef.current = null;
-                  }, 1600);
-                })
-                .catch(() => {
-                  if (copyTimerRef.current) {
-                    window.clearTimeout(copyTimerRef.current);
-                  }
-                  setCopyStatus("error");
-                  copyTimerRef.current = window.setTimeout(() => {
-                    setCopyStatus("idle");
-                    copyTimerRef.current = null;
-                  }, 1600);
-                });
+              handleCopy("eventJson", popoverState.rawJsonStr);
             }}
           >
             <MaterialIcon name={copyIcon} />
@@ -497,6 +603,7 @@ export const __TEST_ONLY__ = {
   buildCollectedSnapshot,
   mapCollectedSnapshotType,
   resolveEventGroupMeta,
+  resolveDebugPreCallCopyPayloads,
   resolveInitialPopoverState,
   stringifyPopoverPayload,
 };

@@ -5008,12 +5008,19 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .event-popover-action-btn.ui-btn.ui-btn-sm.is-icon-only {
     width: 28px;
     min-width: 28px;
     min-height: 28px;
+}
+
+.event-popover-copy-btn {
+    white-space: nowrap;
+    font-size: 11px;
 }
 
 .event-popover-body {

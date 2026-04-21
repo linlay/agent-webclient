@@ -11,6 +11,7 @@ const {
   getCollectibleRelatedEvents,
   buildCollectedSnapshot,
   resolveEventGroupMeta,
+  resolveDebugPreCallCopyPayloads,
   resolveInitialPopoverState,
 } = __TEST_ONLY__;
 
@@ -171,6 +172,30 @@ describe("EventPopover collect controls", () => {
     expect(html).toContain('aria-label="复制事件 JSON"');
     expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).not.toContain('aria-label="收集事件快照"');
+  });
+
+  it("renders debug.preCall copy buttons when system prompt and tools are present", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "debug.preCall",
+      runId: "run_1",
+      data: {
+        systemPrompt: "system prompt",
+        tools: [{ name: "search" }],
+      },
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      events: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="复制 systemPrompt"');
+    expect(html).toContain('aria-label="复制 tools"');
   });
 });
 
@@ -436,5 +461,30 @@ describe("EventPopover display and copy helpers", () => {
     await copyText('{"type":"content.start"}');
 
     expect(writeText).toHaveBeenCalledWith('{"type":"content.start"}');
+  });
+
+  it("extracts debug.preCall copy payloads", () => {
+    expect(
+      resolveDebugPreCallCopyPayloads({
+        type: "debug.preCall",
+        data: {
+          systemPrompt: "system prompt",
+          tools: [{ name: "search" }],
+        },
+      }),
+    ).toEqual({
+      systemPromptText: "system prompt",
+      toolsText: JSON.stringify([{ name: "search" }], null, 2),
+    });
+
+    expect(
+      resolveDebugPreCallCopyPayloads({
+        type: "debug.postCall",
+        data: {
+          systemPrompt: "ignored",
+          tools: [],
+        },
+      }),
+    ).toBeNull();
   });
 });
