@@ -7,7 +7,12 @@ import { ensureAccessToken } from "@/shared/api/apiClient";
 import { setTransportModeProvider } from "@/features/transport/lib/apiClientProxy";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
 import { isAppMode } from "@/shared/utils/routing";
-import { destroyWsClient, getWsClient, initWsClient } from "@/features/transport/lib/wsClientSingleton";
+import {
+	destroyWsClient,
+	getWsClient,
+	initWsClient,
+	scheduleDestroyWsClient,
+} from "@/features/transport/lib/wsClientSingleton";
 import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
 import {
 	describeWsConnectionFailure,
@@ -533,7 +538,7 @@ export function useWsTransport() {
 			cancelled = true;
 			activeAttachRef.current?.abort();
 			activeAttachRef.current = null;
-			destroyWsClient();
+			scheduleDestroyWsClient();
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
 		};

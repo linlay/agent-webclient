@@ -125,7 +125,7 @@ export function useWorkerData(input: {
     await runWithSidebarLoading(async () => {
       try {
         const response = await getAgents();
-        const agents = (response.data as Agent[]) || [];
+        const agents = (response.data as Agent[]) || [];        
         dispatch({ type: 'SET_AGENTS', agents });
         rebuildWorkerRowsFromState({ agents });
       } catch (error) {

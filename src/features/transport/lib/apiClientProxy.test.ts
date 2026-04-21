@@ -194,6 +194,54 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
+	it("does not fall back to http when agents websocket connect fails", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const error = new WsClientDisconnectedError("WebSocket connection failed");
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockRejectedValue(error),
+			updateOptions: jest.fn(),
+			request: jest.fn(),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getAgents()).rejects.toBe(error);
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("does not fall back to http when teams websocket connect fails", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const error = new WsClientDisconnectedError("WebSocket connection failed");
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockRejectedValue(error),
+			updateOptions: jest.fn(),
+			request: jest.fn(),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getTeams()).rejects.toBe(error);
+		expect(mockApiClient.getTeams).not.toHaveBeenCalled();
+	});
+
+	it("does not fall back to http when chats websocket connect fails", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const error = new WsClientDisconnectedError("WebSocket connection failed");
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockRejectedValue(error),
+			updateOptions: jest.fn(),
+			request: jest.fn(),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChats()).rejects.toBe(error);
+		expect(mockApiClient.getChats).not.toHaveBeenCalled();
+	});
+
 	it("does not fall back to http when ws request times out", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");

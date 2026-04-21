@@ -48,7 +48,6 @@ async function routeRequest<T>(
 	if (getTransportMode() !== "ws") {
 		return fallback();
 	}
-
 	let accessToken = String(getCurrentAccessToken() || "").trim();
 	if (!accessToken) {
 		accessToken = String(await ensureAccessToken("missing")).trim();
@@ -81,7 +80,9 @@ async function routeRequest<T>(
 }
 
 export function getAgents(): Promise<ApiResponse> {
-	return routeRequest("/api/agents", undefined, () => getAgentsHttp());
+	return routeRequest("/api/agents", undefined, () => getAgentsHttp(), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
@@ -89,7 +90,9 @@ export function getAgent(agentKey: string): Promise<ApiResponse> {
 }
 
 export function getTeams(): Promise<ApiResponse> {
-	return routeRequest("/api/teams", undefined, () => getTeamsHttp());
+	return routeRequest("/api/teams", undefined, () => getTeamsHttp(), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function getSkills(tag?: string): Promise<ApiResponse> {
@@ -117,7 +120,9 @@ export function getTool(toolName: string): Promise<ApiResponse> {
 }
 
 export function getChats(): Promise<ApiResponse> {
-	return routeRequest("/api/chats", undefined, () => getChatsHttp());
+	return routeRequest("/api/chats", undefined, () => getChatsHttp(), {
+		fallbackOnConnectFailure: false,
+	});
 }
 
 export function getChat(
