@@ -61,6 +61,7 @@ const DEBUG_EVENT_TABS: Array<{
   { key: "chat", label: "chat", color: "#6B92BF" },
   { key: "run", label: "run", color: "#4476AD" },
   { key: "awaiting", label: "awaiting", color: "#D2B395" },
+  { key: "memory", label: "memory", color: "#7091B6" },
   { key: "reasoning", label: "reasoning", color: "#7AB9A8" },
   { key: "content", label: "content", color: "#5AA79D" },
   { key: "tool", label: "tool", color: "#D6A05E" },

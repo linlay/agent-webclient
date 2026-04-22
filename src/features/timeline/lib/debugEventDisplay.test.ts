@@ -13,6 +13,7 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('chat.loaded')).toBe('chat');
     expect(classifyEventGroup('run.start')).toBe('run');
     expect(classifyEventGroup('awaiting.ask')).toBe('awaiting');
+    expect(classifyEventGroup('memory.context')).toBe('memory');
     expect(classifyEventGroup('content.delta')).toBe('content');
     expect(classifyEventGroup('reasoning.snapshot')).toBe('reasoning');
     expect(classifyEventGroup('tool.result')).toBe('tool');

@@ -8,6 +8,7 @@ export type DebugEventGroup =
   | 'chat'
   | 'run'
   | 'awaiting'
+  | 'memory'
   | 'content'
   | 'reasoning'
   | 'tool'
@@ -29,6 +30,7 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
   if (type.startsWith('chat.')) return 'chat';
   if (type.startsWith('run.')) return 'run';
   if (type.startsWith('awaiting.')) return 'awaiting';
+  if (type.startsWith('memory.')) return 'memory';
   if (type.startsWith('content.')) return 'content';
   if (type.startsWith('reasoning.')) return 'reasoning';
   if (type.startsWith('tool.')) return 'tool';
