@@ -275,7 +275,7 @@ button:active {
 
 .ui-btn:focus-visible,
 .ui-input:focus-visible {
-    outline: 2px solid var(--accent-electric);
+    outline: 1px solid var(--border);
 }
 
 .ui-btn:disabled {
@@ -1769,7 +1769,7 @@ html[data-theme="dark"] .composer-pill {
 }
 
 html[data-theme="dark"] .composer-pill:focus-within {
-    outline: 2px solid var(--accent-electric);
+    outline: 1px solid var(--accent-electric);
 }
 
 html[data-theme="dark"] .composer-control-input,
@@ -2340,9 +2340,9 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     align-items: flex-start;
     flex: 1 1 auto;
     min-width: 0;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 98%, transparent);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
+    background: var(--bg-card);
     padding: 6px 6px 6px 12px;
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(10px);
@@ -2352,7 +2352,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .composer-pill:focus-within {
-    outline: 2px solid var(--accent-electric);
+    box-shadow: var(--shadow-medium);
 }
 
 .composer-pill textarea {
@@ -2743,6 +2743,14 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     flex-wrap: wrap;
 }
 
+.awaiting-panel-header-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
 .awaiting-panel-title {
     font-size: 14px;
     font-weight: 800;
@@ -2759,7 +2767,12 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-left: auto;
+}
+
+.awaiting-timeout-badge {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .awaiting-panel-form-switcher-label {

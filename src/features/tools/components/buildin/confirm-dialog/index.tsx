@@ -36,6 +36,7 @@ import {
 } from "@ant-design/icons";
 import Style from "@/features/tools/components/buildin/confirm-dialog/index.module.css";
 import {
+  buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
   getAwaitingAnswerError,
@@ -52,6 +53,7 @@ import {
   isSelectQuestionType,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { debounce } from "lodash";
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
@@ -76,16 +78,28 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   const resolvedByOtherHandledRef = useRef(false);
   const total = useRef(0);
   const [loading, setLoading] = useState(false);
+  const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const questions = useMemo(() => data?.questions || [], [data]);
   const currentQuestion = questions[curIndex];
   const ready = useMemo(() => hasAwaitingQuestions(questions), [questions]);
 
-  const doSubmit = useCallback((payload: AIAwaitSubmitPayloadData) => {
+  const submitPayload = useCallback((payload: AIAwaitSubmitPayloadData) => {
     setLoading(true);
     const pending = callbackRef.current?.onSubmit?.(payload);
-    pending?.finally(() => setLoading(false));
+    if (!pending) {
+      setLoading(false);
+      return Promise.resolve(undefined);
+    }
+    return pending.finally(() => setLoading(false));
   }, []);
+
+  const doSubmit = useCallback(
+    (payload: AIAwaitSubmitPayloadData) => {
+      void submitPayload(payload);
+    },
+    [submitPayload],
+  );
 
   const doIgnore = useCallback(() => {
     callbackRef.current?.onSubmit?.({
@@ -174,7 +188,39 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       params: createAwaitingParamPlaceholders(questions) as any,
     });
     setCurIndex((prev) => clampAwaitingIndex(prev, questions.length));
+    setTimeoutExpired(false);
   }, [data?.awaitingId, data?.runId, form, questions]);
+
+  const handleAutoSubmit = useCallback(() => {
+    if (loading || data?.resolvedByOther) {
+      return;
+    }
+    setTimeoutExpired(true);
+    void submitPayload({
+      runId: data?.runId || "",
+      awaitingId: data?.awaitingId || "",
+      params: buildQuestionSubmitParams(
+        questions,
+        form.getFieldValue("params") as
+          | AIAwaitQuestionSubmitParamData[]
+          | undefined,
+      ),
+    });
+  }, [
+    data?.awaitingId,
+    data?.resolvedByOther,
+    data?.runId,
+    form,
+    loading,
+    questions,
+    submitPayload,
+  ]);
+
+  const timeoutCountdown = useAwaitingTimeoutCountdown({
+    awaitingKey: data.key,
+    timeout: data.timeout,
+    onExpire: handleAutoSubmit,
+  });
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -218,6 +264,13 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       disabled={loading}
       onFinish={doSubmit}
     >
+      {timeoutCountdown.label && (
+        <Flex justify="flex-end" className={Style.TimeoutRow}>
+          {timeoutExpired && loading
+            ? "自动提交中..."
+            : `提交倒计时 ${timeoutCountdown.label}`}
+        </Flex>
+      )}
       <Form.Item name="runId" hidden />
       <Form.Item name="awaitingId" hidden />
       <Form.List name="params">
@@ -529,14 +582,14 @@ const Question = forwardRef<
               value={optionValue}
               className={Style.Option}
             >
-                <Flex
-                  gap={10}
-                  align="center"
-                  tabIndex={0}
-                  data-index={i}
-                  data-multi-select={isMultiSelectQuestionType(data)}
-                  style={{ outline: "none" }}
-                >
+              <Flex
+                gap={10}
+                align="center"
+                tabIndex={0}
+                data-index={i}
+                data-multi-select={isMultiSelectQuestionType(data)}
+                style={{ outline: "none" }}
+              >
                 <span>{i + 1}.</span>
                 <span className={Style.Info}>{option.label}</span>
                 {option.description && (

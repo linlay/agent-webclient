@@ -22,6 +22,7 @@ import {
   isAwaitingFrameCloseMessage,
   readAwaitingSubmitPayload,
 } from "@/features/tools/components/protocol";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -223,6 +224,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [activeFormIndex, setActiveFormIndex] = useState(0);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [collectingDecision, setCollectingDecision] =
     useState<AwaitingCollectDecision | null>(null);
   const currentForm = data.forms[activeFormIndex];
@@ -286,6 +288,75 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     [clearCollectTimeout, data],
   );
 
+  const submitAggregatedPayload = useCallback(
+    async (
+      forms: FormActiveAwaiting["forms"],
+      collectedParams: AIAwaitFormSubmitParamData[],
+      autoSubmit = timeoutExpired,
+    ) => {
+      if (!onSubmit) {
+        setSubmitStatus("");
+        setSubmitError("提交失败：缺少提交流程处理器");
+        return;
+      }
+
+      setSubmitStatus(autoSubmit ? "自动提交中..." : "提交中...");
+      setSubmitError("");
+      const result = await onSubmit(
+        buildAggregatedAwaitingSubmitPayload(
+          {
+            ...data,
+            forms,
+          },
+          collectedParams,
+        ),
+      );
+      const errorText = getSubmitErrorText(result);
+      if (errorText) {
+        setSubmitStatus("");
+        setSubmitError(`提交失败：${errorText}`);
+        return;
+      }
+      setSubmitStatus("");
+      setSubmitError("");
+    },
+    [data, onSubmit, timeoutExpired],
+  );
+
+  const handleAutoSubmit = useCallback(() => {
+    if (
+      data.resolvedByOther
+      || submitStatus === "提交中..."
+      || submitStatus === "自动提交中..."
+      || Boolean(collectingDecision)
+    ) {
+      return;
+    }
+
+    setTimeoutExpired(true);
+
+    if (iframeRef.current?.contentWindow && data.viewportHtml) {
+      requestCollectFromFrame("submit", { type: "submit" });
+      return;
+    }
+
+    void submitAggregatedPayload(data.forms, [], true);
+  }, [
+    collectingDecision,
+    data.forms,
+    data.resolvedByOther,
+    data.viewportHtml,
+    requestCollectFromFrame,
+    submitAggregatedPayload,
+    submitStatus,
+  ]);
+
+  const timeoutCountdown = useAwaitingTimeoutCountdown({
+    awaitingKey: data.key,
+    timeout: data.timeout,
+    onExpire: handleAutoSubmit,
+  });
+
   useEffect(() => {
     activeKeyRef.current = data.key;
   }, [data.key]);
@@ -300,6 +371,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setCollectingDecision(null);
     setSubmitStatus("");
     setSubmitError("");
+    setTimeoutExpired(false);
   }, [clearCollectTimeout, data.key]);
 
   useEffect(() => {
@@ -466,36 +538,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      if (!onSubmit) {
-        setSubmitStatus("");
-        setSubmitError("提交失败：缺少提交流程处理器");
-        return;
-      }
-
-      setSubmitStatus("提交中...");
-      setSubmitError("");
-      const result = await onSubmit(
-        buildAggregatedAwaitingSubmitPayload(
-          {
-            ...data,
-            forms: nextForms,
-          },
-          collectedParams,
-        ),
-      );
-      const errorText = getSubmitErrorText(result);
-      if (errorText) {
-        setSubmitStatus("");
-        setSubmitError(`提交失败：${errorText}`);
-        return;
-      }
-      setSubmitStatus("");
-      setSubmitError("");
+      await submitAggregatedPayload(nextForms, collectedParams);
     };
 
     window.addEventListener("message", onWindowMessage);
     return () => window.removeEventListener("message", onWindowMessage);
-  }, [clearCollectTimeout, data, onClose, onPatch, onSubmit]);
+  }, [clearCollectTimeout, data, onClose, onPatch, submitAggregatedPayload]);
 
   const actionDisabled = useMemo(
     () =>
@@ -503,7 +551,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       !data.viewportHtml ||
       !onSubmit ||
       Boolean(collectingDecision) ||
-      submitStatus === "提交中...",
+      submitStatus === "提交中..." ||
+      submitStatus === "自动提交中...",
     [
       collectingDecision,
       data.loading,
@@ -516,7 +565,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     data.loading ||
     !data.viewportHtml ||
     Boolean(collectingDecision) ||
-    submitStatus === "提交中...";
+    submitStatus === "提交中..." ||
+    submitStatus === "自动提交中...";
 
   const handleSwitchForm = useCallback(
     (nextIndex: number) => {
@@ -551,43 +601,55 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <strong className="awaiting-panel-title">业务确认</strong>
           <span className="awaiting-panel-caption">{data.viewportKey}</span>
         </div>
-        {data.forms.length > 1 && (
-          <div className="awaiting-panel-form-switcher">
-            <Button
-              disabled={switchDisabled || activeFormIndex <= 0}
-              icon={<LeftOutlined style={{ fontSize: 12 }} />}
-              size="small"
-              type="text"
-              onClick={() => handleSwitchForm(activeFormIndex - 1)}
-            />
-            <span
-              className="awaiting-panel-form-switcher-label"
-              title={
-                currentForm?.title ||
-                currentForm?.action ||
-                currentForm?.id ||
-                ""
-              }
-            >
-              {activeFormIndex + 1} / {data.forms.length}
-              {currentForm && (
-                <>
-                  {" "}
-                  · {currentForm.title || currentForm.action || currentForm.id}
-                </>
-              )}
+        <div className="awaiting-panel-header-side">
+          {timeoutCountdown.label && (
+            <span className="awaiting-timeout-badge">
+              {timeoutExpired
+              && (submitStatus === "采集中..."
+                || submitStatus === "提交中..."
+                || submitStatus === "自动提交中...")
+                ? "自动提交中..."
+                : `提交倒计时 ${timeoutCountdown.label}`}
             </span>
-            <Button
-              disabled={
-                switchDisabled || activeFormIndex >= data.forms.length - 1
-              }
-              icon={<RightOutlined style={{ fontSize: 12 }} />}
-              size="small"
-              type="text"
-              onClick={() => handleSwitchForm(activeFormIndex + 1)}
-            />
-          </div>
-        )}
+          )}
+          {data.forms.length > 1 && (
+            <div className="awaiting-panel-form-switcher">
+              <Button
+                disabled={switchDisabled || activeFormIndex <= 0}
+                icon={<LeftOutlined style={{ fontSize: 12 }} />}
+                size="small"
+                type="text"
+                onClick={() => handleSwitchForm(activeFormIndex - 1)}
+              />
+              <span
+                className="awaiting-panel-form-switcher-label"
+                title={
+                  currentForm?.title ||
+                  currentForm?.action ||
+                  currentForm?.id ||
+                  ""
+                }
+              >
+                {activeFormIndex + 1} / {data.forms.length}
+                {currentForm && (
+                  <>
+                    {" "}
+                    · {currentForm.title || currentForm.action || currentForm.id}
+                  </>
+                )}
+              </span>
+              <Button
+                disabled={
+                  switchDisabled || activeFormIndex >= data.forms.length - 1
+                }
+                icon={<RightOutlined style={{ fontSize: 12 }} />}
+                size="small"
+                type="text"
+                onClick={() => handleSwitchForm(activeFormIndex + 1)}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {data.loading && <div className="status-line">加载表单中...</div>}

@@ -50,3 +50,25 @@ export function buildApprovalSubmitParams(
       : {}),
   }));
 }
+
+export function buildPartialApprovalSubmitParams(
+  approvals: AIAwaitApproval[],
+  decisions: Record<string, AIAwaitApprovalDecision | undefined>,
+  reasons: Record<string, string>,
+): AIAwaitApprovalSubmitParamData[] {
+  return approvals.flatMap((approval) => {
+    const decision = decisions[approval.id];
+    if (!decision) {
+      return [];
+    }
+    return [
+      {
+        id: approval.id,
+        decision,
+        ...(approval.allowFreeText && reasons[approval.id]?.trim()
+          ? { reason: reasons[approval.id].trim() }
+          : {}),
+      },
+    ];
+  });
+}
