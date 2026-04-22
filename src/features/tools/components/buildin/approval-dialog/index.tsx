@@ -28,9 +28,11 @@ import {
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import {
+  buildPartialApprovalSubmitParams,
   buildApprovalSubmitParams,
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { debounce } from "lodash";
 
 interface ApprovalDialogProps {
@@ -53,6 +55,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const approvalsRef = useRef<ApprovalRef[]>([]);
   const resolvedByOtherHandledRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
+  const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const [decisions, setDecisions] = useState<
     Record<string, AIAwaitApprovalDecision | undefined>
@@ -93,6 +96,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     setDecisions({});
     setReasons({});
     setCurIndex(0);
+    setTimeoutExpired(false);
   }, [data.awaitingId, data.runId]);
 
   useEffect(() => {
@@ -113,9 +117,9 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     setCurIndex((prev) => clampAwaitingIndex(prev, approvals.length));
   }, [approvals]);
 
-  const submitDecision = useCallback(
-    async (nextDecisions = decisions, nextReasons = reasons) => {
-      if (!onSubmit || readOnly || !hasAllDecisions(nextDecisions)) {
+  const submitPayload = useCallback(
+    async (params: AIAwaitSubmitPayloadData["params"]) => {
+      if (!onSubmit || submitting || data.resolvedByOther) {
         return;
       }
       setSubmitting(true);
@@ -123,25 +127,37 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         await onSubmit({
           runId: data.runId,
           awaitingId: data.awaitingId,
-          params: buildApprovalSubmitParams(
-            approvals,
-            nextDecisions,
-            nextReasons,
-          ),
+          params,
         });
       } finally {
         setSubmitting(false);
       }
     },
     [
-      approvals,
       data.awaitingId,
       data.runId,
+      onSubmit,
+      data.resolvedByOther,
+      submitting,
+    ],
+  );
+
+  const submitDecision = useCallback(
+    async (nextDecisions = decisions, nextReasons = reasons) => {
+      if (readOnly || !hasAllDecisions(nextDecisions)) {
+        return;
+      }
+      await submitPayload(
+        buildApprovalSubmitParams(approvals, nextDecisions, nextReasons),
+      );
+    },
+    [
+      approvals,
       decisions,
       hasAllDecisions,
-      onSubmit,
       readOnly,
       reasons,
+      submitPayload,
     ],
   );
 
@@ -155,6 +171,29 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       params: [],
     });
   }, [data.awaitingId, data.runId, onSubmit, readOnly]);
+
+  const handleAutoSubmit = useCallback(() => {
+    if (submitting || data.resolvedByOther) {
+      return;
+    }
+    setTimeoutExpired(true);
+    void submitPayload(
+      buildPartialApprovalSubmitParams(approvals, decisions, reasons),
+    );
+  }, [
+    approvals,
+    data.resolvedByOther,
+    decisions,
+    reasons,
+    submitPayload,
+    submitting,
+  ]);
+
+  const timeoutCountdown = useAwaitingTimeoutCountdown({
+    awaitingKey: data.key,
+    timeout: data.timeout,
+    onExpire: handleAutoSubmit,
+  });
 
   const moveForward = useCallback(
     async (nextDecision?: AIAwaitApprovalDecision) => {
@@ -276,6 +315,15 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   return ready ? (
     <div className={Style.ConfirmDialog}>
+      {timeoutCountdown.label && (
+        <Flex justify="flex-end" className={Style.TimeoutRow}>
+          <span className={Style.TimeoutBadge}>
+            {timeoutExpired && submitting
+              ? "自动提交中..."
+              : `提交倒计时 ${timeoutCountdown.label}`}
+          </span>
+        </Flex>
+      )}
       <Tabs
         activeKey={curIndex.toString()}
         onChange={(key) =>

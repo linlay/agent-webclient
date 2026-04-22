@@ -155,3 +155,39 @@ export function getSelectGroupValue(
   }
   return selected;
 }
+
+export function buildQuestionSubmitParams(
+  questions: AIAwaitQuestion[] | null | undefined,
+  params: AIAwaitQuestionSubmitParamData[] | null | undefined,
+): AIAwaitQuestionSubmitParamData[] {
+  const normalizedQuestions = Array.isArray(questions) ? questions : [];
+  const normalizedParams = Array.isArray(params) ? params : [];
+
+  return normalizedQuestions.map((question, index) => {
+    const value = normalizedParams[index];
+    const next: AIAwaitQuestionSubmitParamData = {
+      id: question.id,
+    };
+
+    if (typeof value?.answer === "number" && Number.isFinite(value.answer)) {
+      next.answer = value.answer;
+      return next;
+    }
+
+    if (typeof value?.answer === "string" && value.answer.trim()) {
+      next.answer = value.answer.trim();
+      return next;
+    }
+
+    if (Array.isArray(value?.answers)) {
+      const answers = value.answers
+        .map((item) => String(item).trim())
+        .filter(Boolean);
+      if (answers.length > 0) {
+        next.answers = answers;
+      }
+    }
+
+    return next;
+  });
+}

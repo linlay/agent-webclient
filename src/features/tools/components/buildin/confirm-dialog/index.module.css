@@ -31,7 +31,16 @@
   }
 }
 
-
+.TimeoutRow {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  transform: translateY(-100%);
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: bold;
+}
 
 .QuestionWrapper {
   font-size: 12px;
@@ -122,6 +131,12 @@
     border-radius: 10px;
     color: var(--text-muted);
     font-size: 12px;
+
+    :global{
+      input{
+        font-size: 12px;
+      }
+    }
 
     &:hover:not(&.FreeText),
     &:focus-within:not(&.FreeText) {

@@ -3,6 +3,7 @@ import {
   type AIAwaitQuestion,
 } from "@/app/state/types";
 import {
+  buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
   getAwaitingAnswerError,
@@ -133,5 +134,52 @@ describe("confirm dialog state helpers", () => {
         isContentEditable: false,
       } as HTMLElement),
     ).toBe(false);
+  });
+
+  it("builds partial question submit params for timeout auto-submit", () => {
+    const questions: AIAwaitQuestion[] = [
+      {
+        id: "name",
+        type: AIAwaitQuestionType.Text,
+        question: "姓名",
+      },
+      {
+        id: "env",
+        type: AIAwaitQuestionType.MultiSelect,
+        question: "环境",
+        options: [{ label: "dev" }, { label: "prod" }],
+      },
+      {
+        id: "port",
+        type: AIAwaitQuestionType.Number,
+        question: "端口",
+      },
+    ];
+
+    expect(buildQuestionSubmitParams(questions, [
+      {
+        id: "name",
+        answer: "  Alice  ",
+      },
+      {
+        id: "env",
+        answers: ["dev", " ", "custom"],
+      },
+      {
+        id: "port",
+      } as any,
+    ])).toEqual([
+      {
+        id: "name",
+        answer: "Alice",
+      },
+      {
+        id: "env",
+        answers: ["dev", "custom"],
+      },
+      {
+        id: "port",
+      },
+    ]);
   });
 });

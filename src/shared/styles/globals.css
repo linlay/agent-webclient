@@ -2743,6 +2743,14 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     flex-wrap: wrap;
 }
 
+.awaiting-panel-header-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
 .awaiting-panel-title {
     font-size: 14px;
     font-weight: 800;
@@ -2759,7 +2767,12 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-left: auto;
+}
+
+.awaiting-timeout-badge {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .awaiting-panel-form-switcher-label {
