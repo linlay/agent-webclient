@@ -11,6 +11,8 @@ const {
   getCollectibleRelatedEvents,
   buildCollectedSnapshot,
   buildEventCopyMenuItems,
+  buildCopyMenuTitle,
+  getPrimaryCopyMenuItem,
   resolveEventGroupMeta,
   resolveDebugPreCallCopyPayloads,
   resolveInitialPopoverState,
@@ -489,6 +491,7 @@ describe("EventPopover display and copy helpers", () => {
       ),
       systemPromptText: "system prompt",
       toolsText: JSON.stringify([{ name: "search" }], null, 2),
+      modelText: "",
     });
   });
 
@@ -514,6 +517,7 @@ describe("EventPopover display and copy helpers", () => {
       ),
       systemPromptText: "anthropic system",
       toolsText: JSON.stringify([{ name: "browser" }], null, 2),
+      modelText: "",
     });
   });
 
@@ -524,24 +528,27 @@ describe("EventPopover display and copy helpers", () => {
           type: "debug.preCall",
           data: {
             requestBody: {
+              model: "gpt-5",
               messages: [{ role: "system", content: "system prompt" }],
               tools: [{ name: "search" }],
             },
           },
         },
+        [],
         '{"type":"debug.preCall"}',
       ),
     ).toEqual([
       {
-        target: "eventJson",
-        label: "复制事件 JSON",
+        key: "eventJson",
+        label: "复制全部",
         text: '{"type":"debug.preCall"}',
       },
       {
-        target: "requestBody",
+        key: "requestBody",
         label: "复制 requestBody",
         text: JSON.stringify(
           {
+            model: "gpt-5",
             messages: [{ role: "system", content: "system prompt" }],
             tools: [{ name: "search" }],
           },
@@ -550,19 +557,387 @@ describe("EventPopover display and copy helpers", () => {
         ),
       },
       {
-        target: "systemPrompt",
+        key: "systemPrompt",
         label: "复制 systemPrompt",
         text: "system prompt",
       },
       {
-        target: "tools",
+        key: "tools",
         label: "复制 tools",
         text: JSON.stringify([{ name: "search" }], null, 2),
+      },
+      {
+        key: "model",
+        label: "复制 model",
+        text: "gpt-5",
       },
     ]);
   });
 
-  it("omits unavailable debug.preCall copy options and keeps event JSON for other events", () => {
+  it("builds chat event copy menu items", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "chat.update",
+          chatId: "chat_1",
+          chatName: "Alpha",
+        },
+        [],
+        '{"type":"chat.update"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"chat.update"}',
+      },
+      {
+        key: "chatId",
+        label: "复制 chatId",
+        text: "chat_1",
+      },
+      {
+        key: "chatName",
+        label: "复制 chatName",
+        text: "Alpha",
+      },
+    ]);
+  });
+
+  it("builds request event copy menu items with message and references", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "request.query",
+          requestId: "req_1",
+          message: "hello",
+          references: [{ id: "file_1", url: "https://example.com/a.txt" }],
+        },
+        [],
+        '{"type":"request.query"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"request.query"}',
+      },
+      {
+        key: "requestId",
+        label: "复制 requestId",
+        text: "req_1",
+      },
+      {
+        key: "message",
+        label: "复制消息",
+        text: "hello",
+      },
+      {
+        key: "references",
+        label: "复制 references",
+        text: JSON.stringify(
+          [{ id: "file_1", url: "https://example.com/a.txt" }],
+          null,
+          2,
+        ),
+      },
+    ]);
+  });
+
+  it("builds content copy menu items with current text and collected snapshot", () => {
+    const event: AgentEvent = {
+      type: "content.delta",
+      contentId: "content_1",
+      delta: "hello",
+    };
+    const relatedEvents = [
+      createEntry({ type: "content.start", contentId: "content_1" }, 0),
+      createEntry(event, 1),
+      createEntry(
+        {
+          type: "content.end",
+          contentId: "content_1",
+          text: "hello world",
+          timestamp: 123,
+        },
+        2,
+      ),
+    ];
+
+    expect(
+      buildEventCopyMenuItems(event, relatedEvents, '{"type":"content.delta"}'),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"content.delta"}',
+      },
+      {
+        key: "contentId",
+        label: "复制 contentId",
+        text: "content_1",
+      },
+      {
+        key: "currentText",
+        label: "复制当前文本",
+        text: "hello",
+      },
+      {
+        key: "collectedText",
+        label: "复制汇总文本",
+        text: "hello",
+      },
+      {
+        key: "collectedSnapshot",
+        label: "复制汇总快照 JSON",
+        text: JSON.stringify(
+          {
+            type: "content.snapshot",
+            contentId: "content_1",
+            delta: "hello",
+            text: "hello",
+            timestamp: 123,
+          },
+          null,
+          2,
+        ),
+      },
+    ]);
+  });
+
+  it("prefers parsed tool params over arguments and delta when building tool copy menu items", () => {
+    const event: AgentEvent = {
+      type: "tool.args",
+      toolId: "tool_1",
+      toolLabel: "搜索工具",
+      toolName: "search",
+      toolParams: { q: "zenmind" },
+      arguments: "{\"ignored\":true}",
+      delta: "{\"fallback\":true}",
+    };
+
+    const items = buildEventCopyMenuItems(
+      event,
+      [createEntry(event, 0)],
+      '{"type":"tool.args"}',
+    );
+
+    expect(items.map((item) => item.key)).toEqual([
+      "eventJson",
+      "toolId",
+      "toolName",
+      "arguments",
+      "collectedSnapshot",
+    ]);
+    expect(items[0]).toEqual({
+      key: "eventJson",
+      label: "复制全部",
+      text: '{"type":"tool.args"}',
+    });
+    expect(items[3]).toEqual({
+      key: "arguments",
+      label: "复制参数",
+      text: JSON.stringify({ q: "zenmind" }, null, 2),
+    });
+    expect(JSON.parse(items[4].text)).toEqual({
+      type: "tool.snapshot",
+      toolId: "tool_1",
+      toolLabel: "搜索工具",
+      toolName: "search",
+      toolParams: { q: "zenmind" },
+      arguments: "{\"fallback\":true}",
+      delta: "{\"fallback\":true}",
+      text: "{\"fallback\":true}",
+    });
+  });
+
+  it("falls back from action arguments string to buffered delta when needed", () => {
+    const eventWithArguments: AgentEvent = {
+      type: "action.end",
+      actionId: "action_1",
+      actionName: "switch_theme",
+      arguments: "{\"theme\":\"dark\"}",
+    };
+    expect(
+      buildEventCopyMenuItems(
+        eventWithArguments,
+        [createEntry(eventWithArguments, 0)],
+        '{"type":"action.end"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"action.end"}',
+      },
+      {
+        key: "actionId",
+        label: "复制 actionId",
+        text: "action_1",
+      },
+      {
+        key: "actionName",
+        label: "复制 actionName",
+        text: "switch_theme",
+      },
+      {
+        key: "arguments",
+        label: "复制参数",
+        text: "{\"theme\":\"dark\"}",
+      },
+      {
+        key: "collectedSnapshot",
+        label: "复制汇总快照 JSON",
+        text: JSON.stringify(
+          {
+            type: "action.snapshot",
+            actionId: "action_1",
+            actionName: "switch_theme",
+            arguments: "{\"theme\":\"dark\"}",
+          },
+          null,
+          2,
+        ),
+      },
+    ]);
+
+    const deltaEvents = [
+      createEntry(
+        {
+          type: "action.start",
+          actionId: "action_2",
+          actionName: "switch_theme",
+        },
+        0,
+      ),
+      createEntry(
+        {
+          type: "action.args",
+          actionId: "action_2",
+          delta: "{\"theme\":",
+        },
+        1,
+      ),
+      createEntry(
+        {
+          type: "action.args",
+          actionId: "action_2",
+          delta: "\"light\"}",
+        },
+        2,
+      ),
+    ];
+
+    const deltaItems = buildEventCopyMenuItems(
+      deltaEvents[1].event,
+      deltaEvents,
+      '{"type":"action.args"}',
+    );
+    expect(deltaItems.map((item) => item.key)).toEqual([
+      "eventJson",
+      "actionId",
+      "arguments",
+      "collectedSnapshot",
+    ]);
+    expect(deltaItems[0]).toEqual({
+      key: "eventJson",
+      label: "复制全部",
+      text: '{"type":"action.args"}',
+    });
+    expect(deltaItems[2]).toEqual({
+      key: "arguments",
+      label: "复制参数",
+      text: "{\"theme\":\"light\"}",
+    });
+    expect(JSON.parse(deltaItems[3].text)).toEqual({
+      type: "action.snapshot",
+      actionId: "action_2",
+      delta: "\"light\"}",
+      actionName: "switch_theme",
+      arguments: "{\"theme\":\"light\"}",
+    });
+  });
+
+  it("builds artifact publish copy menu items with url list", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "artifact.publish",
+          runId: "run_1",
+          artifacts: [
+            { artifactId: "a1", url: "https://example.com/a" },
+            { artifactId: "a2", url: "https://example.com/b" },
+          ],
+        },
+        [],
+        '{"type":"artifact.publish"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"artifact.publish"}',
+      },
+      {
+        key: "runId",
+        label: "复制 runId",
+        text: "run_1",
+      },
+      {
+        key: "artifacts",
+        label: "复制 artifacts JSON",
+        text: JSON.stringify(
+          [
+            { artifactId: "a1", url: "https://example.com/a" },
+            { artifactId: "a2", url: "https://example.com/b" },
+          ],
+          null,
+          2,
+        ),
+      },
+      {
+        key: "artifactUrls",
+        label: "复制 artifact URLs",
+        text: "https://example.com/a\nhttps://example.com/b",
+      },
+    ]);
+  });
+
+  it("builds awaiting copy menu items from structured payloads", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "awaiting.payload",
+          awaitingId: "await_1",
+          questions: [{ id: "q1", question: "继续吗？", type: "text" as const }],
+        },
+        [],
+        '{"type":"awaiting.payload"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "复制全部",
+        text: '{"type":"awaiting.payload"}',
+      },
+      {
+        key: "awaitingId",
+        label: "复制 awaitingId",
+        text: "await_1",
+      },
+      {
+        key: "awaitingItems",
+        label: "复制问题/审批/表单 JSON",
+        text: JSON.stringify(
+          [{ id: "q1", question: "继续吗？", type: "text" }],
+          null,
+          2,
+        ),
+      },
+    ]);
+  });
+
+  it("omits unavailable copy options and keeps event JSON for other events", () => {
     expect(
       buildEventCopyMenuItems(
         {
@@ -573,16 +948,17 @@ describe("EventPopover display and copy helpers", () => {
             },
           },
         },
+        [],
         '{"type":"debug.preCall"}',
       ),
     ).toEqual([
       {
-        target: "eventJson",
-        label: "复制事件 JSON",
+        key: "eventJson",
+        label: "复制全部",
         text: '{"type":"debug.preCall"}',
       },
       {
-        target: "requestBody",
+        key: "requestBody",
         label: "复制 requestBody",
         text: JSON.stringify(
           {
@@ -591,6 +967,11 @@ describe("EventPopover display and copy helpers", () => {
           null,
           2,
         ),
+      },
+      {
+        key: "model",
+        label: "复制 model",
+        text: "mock-model",
       },
     ]);
 
@@ -604,14 +985,53 @@ describe("EventPopover display and copy helpers", () => {
             },
           },
         },
+        [],
         '{"type":"debug.postCall"}',
       ),
     ).toEqual([
       {
-        target: "eventJson",
-        label: "复制事件 JSON",
+        key: "eventJson",
+        label: "复制全部",
         text: '{"type":"debug.postCall"}',
       },
     ]);
+  });
+
+  it("keeps copy-all as the primary copy item", () => {
+    const items = buildEventCopyMenuItems(
+      {
+        type: "chat.update",
+        chatId: "chat_1",
+      },
+      [],
+      '{"type":"chat.update"}',
+    );
+
+    expect(getPrimaryCopyMenuItem(items)).toEqual({
+      key: "eventJson",
+      label: "复制全部",
+      text: '{"type":"chat.update"}',
+    });
+  });
+
+  it("builds copy button titles from dynamic item labels", () => {
+    expect(
+      buildCopyMenuTitle(
+        { key: "eventJson", label: "全部" },
+        { eventJson: "copied" },
+      ),
+    ).toBe("已复制 全部");
+    expect(
+      buildCopyMenuTitle(
+        { key: "artifactUrls", label: "artifact URLs" },
+        { artifactUrls: "error" },
+      ),
+    ).toBe("artifact URLs 复制失败");
+    expect(
+      buildCopyMenuTitle(
+        { key: "eventJson", label: "全部" },
+        {},
+      ),
+    ).toBe("打开复制菜单");
   });
 });
