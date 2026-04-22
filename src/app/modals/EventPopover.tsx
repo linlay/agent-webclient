@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
@@ -64,12 +65,19 @@ interface RelatedEventEntry {
 }
 
 type CollectibleFamily = keyof typeof COLLECTIBLE_GROUP_EVENT_TYPES;
-type CopyTarget = "eventJson" | "systemPrompt" | "tools";
+type CopyTarget = "eventJson" | "requestBody" | "systemPrompt" | "tools";
 type CopyFeedbackState = "idle" | "copied" | "error";
 
 interface DebugPreCallCopyPayloads {
+  requestBodyText: string;
   systemPromptText: string;
   toolsText: string;
+}
+
+interface EventCopyMenuItem {
+  target: CopyTarget;
+  label: string;
+  text: string;
 }
 
 function readEventIdValue(event: AgentEvent, idKey: EventGroupIdKey): string {
@@ -183,6 +191,66 @@ function readStringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function extractTextParts(value: unknown): string[] {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractTextParts(item));
+  }
+  const record = readObjectValue(value);
+  if (!record) {
+    return [];
+  }
+  if (typeof record.text === "string") {
+    return extractTextParts(record.text);
+  }
+  if (
+    typeof record.value === "string" &&
+    readStringValue(record.type).toLowerCase() === "text"
+  ) {
+    return extractTextParts(record.value);
+  }
+  return [];
+}
+
+function extractSystemPromptFromRequestBody(
+  requestBody: Record<string, unknown>,
+): string {
+  const directPrompt = extractTextParts(requestBody.system).join("\n\n");
+  if (directPrompt) {
+    return directPrompt;
+  }
+
+  const messages = Array.isArray(requestBody.messages) ? requestBody.messages : [];
+  const openAIPrompt = messages
+    .flatMap((message) => {
+      const entry = readObjectValue(message);
+      if (!entry || readStringValue(entry.role).toLowerCase() !== "system") {
+        return [];
+      }
+      return extractTextParts(entry.content);
+    })
+    .join("\n\n");
+  return openAIPrompt;
+}
+
+function copyTargetLabel(target: CopyTarget): string {
+  switch (target) {
+    case "eventJson":
+      return "事件 JSON";
+    case "requestBody":
+      return "requestBody";
+    case "systemPrompt":
+      return "systemPrompt";
+    case "tools":
+      return "tools";
+    default:
+      return "";
+  }
+}
+
 function resolveDebugPreCallCopyPayloads(
   event: AgentEvent | null,
 ): DebugPreCallCopyPayloads | null {
@@ -193,17 +261,63 @@ function resolveDebugPreCallCopyPayloads(
   if (!payload) {
     return null;
   }
-
-  const hasSystemPrompt = typeof payload.systemPrompt === "string";
-  const hasTools = Array.isArray(payload.tools);
-  if (!hasSystemPrompt && !hasTools) {
+  const requestBody = readObjectValue(payload.requestBody);
+  if (!requestBody) {
     return null;
   }
 
+  const systemPromptText = extractSystemPromptFromRequestBody(requestBody);
+  const toolsText = Array.isArray(requestBody.tools)
+    ? JSON.stringify(requestBody.tools, null, 2)
+    : "";
+
   return {
-    systemPromptText: hasSystemPrompt ? String(payload.systemPrompt) : "",
-    toolsText: hasTools ? JSON.stringify(payload.tools, null, 2) : "",
+    requestBodyText: JSON.stringify(requestBody, null, 2),
+    systemPromptText,
+    toolsText,
   };
+}
+
+function buildEventCopyMenuItems(
+  event: AgentEvent | null,
+  rawJsonStr: string,
+): EventCopyMenuItem[] {
+  const items: EventCopyMenuItem[] = [];
+  if (rawJsonStr) {
+    items.push({
+      target: "eventJson",
+      label: "复制事件 JSON",
+      text: rawJsonStr,
+    });
+  }
+
+  const debugPreCallPayloads = resolveDebugPreCallCopyPayloads(event);
+  if (!debugPreCallPayloads) {
+    return items;
+  }
+
+  if (debugPreCallPayloads.requestBodyText) {
+    items.push({
+      target: "requestBody",
+      label: "复制 requestBody",
+      text: debugPreCallPayloads.requestBodyText,
+    });
+  }
+  if (debugPreCallPayloads.systemPromptText) {
+    items.push({
+      target: "systemPrompt",
+      label: "复制 systemPrompt",
+      text: debugPreCallPayloads.systemPromptText,
+    });
+  }
+  if (debugPreCallPayloads.toolsText) {
+    items.push({
+      target: "tools",
+      label: "复制 tools",
+      text: debugPreCallPayloads.toolsText,
+    });
+  }
+  return items;
 }
 
 function buildCollectedSnapshot(
@@ -302,9 +416,12 @@ export const EventPopover: React.FC = () => {
   );
   const [copyStatus, setCopyStatus] = useState<Record<CopyTarget, CopyFeedbackState>>({
     eventJson: "idle",
+    requestBody: "idle",
     systemPrompt: "idle",
     tools: "idle",
   });
+  const [lastCopyTarget, setLastCopyTarget] = useState<CopyTarget>("eventJson");
+  const [copyMenuOpen, setCopyMenuOpen] = useState(false);
   const [position, setPosition] = useState({ top: 80, right: 320 });
   const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
   const event = state.eventPopoverEventRef;
@@ -351,9 +468,9 @@ export const EventPopover: React.FC = () => {
     () => getCollectibleRelatedEvents(event, groupMeta, relatedEvents),
     [event, groupMeta, relatedEvents],
   );
-  const debugPreCallCopyPayloads = useMemo(
-    () => resolveDebugPreCallCopyPayloads(event),
-    [event],
+  const copyMenuItems = useMemo(
+    () => buildEventCopyMenuItems(event, popoverState.rawJsonStr),
+    [event, popoverState.rawJsonStr],
   );
   useEffect(() => {
     setPopoverState(resolveInitialPopoverState(event));
@@ -361,9 +478,12 @@ export const EventPopover: React.FC = () => {
     copyTimerRef.current.clear();
     setCopyStatus({
       eventJson: "idle",
+      requestBody: "idle",
       systemPrompt: "idle",
       tools: "idle",
     });
+    setLastCopyTarget("eventJson");
+    setCopyMenuOpen(false);
   }, [event]);
 
   useEffect(() => {
@@ -415,7 +535,7 @@ export const EventPopover: React.FC = () => {
   const showSwitcher = relatedEvents.length > 1;
   const showCollect = collectibleRelatedEvents.length > 1;
   const copyIcon =
-    copyStatus.eventJson === "copied" ? "check" : "content_copy";
+    copyStatus[lastCopyTarget] === "copied" ? "check" : "content_copy";
   const readableTimestamp = formatReadableTimestamp(
     resolveDisplayPayloadTimestamp(popoverState.payload),
   );
@@ -424,6 +544,7 @@ export const EventPopover: React.FC = () => {
     if (!text) {
       return;
     }
+    setLastCopyTarget(target);
     void copyText(text)
       .then(() => {
         const existing = copyTimerRef.current.get(target);
@@ -451,6 +572,13 @@ export const EventPopover: React.FC = () => {
       });
   };
 
+  const copyMenuTitle =
+    copyStatus[lastCopyTarget] === "copied"
+      ? `已复制 ${copyTargetLabel(lastCopyTarget)}`
+      : copyStatus[lastCopyTarget] === "error"
+        ? `${copyTargetLabel(lastCopyTarget)} 复制失败`
+        : "打开复制菜单";
+
   return (
     <div
       ref={popoverRef}
@@ -473,59 +601,6 @@ export const EventPopover: React.FC = () => {
           <span className="event-popover-meta">{`时间: ${readableTimestamp}`}</span>
         </div>
         <div className="event-popover-actions">
-          {debugPreCallCopyPayloads?.systemPromptText !== undefined &&
-            debugPreCallCopyPayloads.systemPromptText !== "" && (
-              <UiButton
-                className="event-popover-copy-btn"
-                variant="ghost"
-                size="sm"
-                aria-label="复制 systemPrompt"
-                title={
-                  copyStatus.systemPrompt === "copied"
-                    ? "已复制 systemPrompt"
-                    : copyStatus.systemPrompt === "error"
-                      ? "复制失败"
-                      : "复制 systemPrompt"
-                }
-                onClick={() =>
-                  handleCopy(
-                    "systemPrompt",
-                    debugPreCallCopyPayloads.systemPromptText,
-                  )
-                }
-              >
-                {copyStatus.systemPrompt === "copied"
-                  ? "已复制 systemPrompt"
-                  : copyStatus.systemPrompt === "error"
-                    ? "复制失败"
-                    : "复制 systemPrompt"}
-              </UiButton>
-            )}
-          {debugPreCallCopyPayloads?.toolsText !== undefined &&
-            debugPreCallCopyPayloads.toolsText !== "" && (
-              <UiButton
-                className="event-popover-copy-btn"
-                variant="ghost"
-                size="sm"
-                aria-label="复制 tools"
-                title={
-                  copyStatus.tools === "copied"
-                    ? "已复制 tools"
-                    : copyStatus.tools === "error"
-                      ? "复制失败"
-                      : "复制 tools"
-                }
-                onClick={() =>
-                  handleCopy("tools", debugPreCallCopyPayloads.toolsText)
-                }
-              >
-                {copyStatus.tools === "copied"
-                  ? "已复制 tools"
-                  : copyStatus.tools === "error"
-                    ? "复制失败"
-                    : "复制 tools"}
-              </UiButton>
-            )}
           {showCollect && (
             <UiButton
               className="event-popover-action-btn"
@@ -547,29 +622,49 @@ export const EventPopover: React.FC = () => {
               <MaterialIcon name="inventory_2" />
             </UiButton>
           )}
-          <UiButton
-            className="event-popover-action-btn"
-            variant="ghost"
-            size="sm"
-            iconOnly
-            disabled={!popoverState.rawJsonStr}
-            aria-label="复制事件 JSON"
-            title={
-              copyStatus.eventJson === "copied"
-                ? "已复制"
-                : copyStatus.eventJson === "error"
-                  ? "复制失败"
-                  : "复制事件 JSON"
-            }
-            onClick={() => {
-              if (!popoverState.rawJsonStr) {
-                return;
-              }
-              handleCopy("eventJson", popoverState.rawJsonStr);
+          <Popover
+            open={copyMenuOpen}
+            trigger="click"
+            placement="bottomRight"
+            arrow={false}
+            classNames={{
+              root: "event-popover-copy-menu-overlay",
             }}
+            onOpenChange={setCopyMenuOpen}
+            content={
+              <div className="event-popover-copy-menu" role="menu" aria-label="复制菜单">
+                {copyMenuItems.map((item) => (
+                  <UiButton
+                    key={item.target}
+                    variant="ghost"
+                    size="sm"
+                    className="event-popover-copy-menu-item"
+                    aria-label={item.label}
+                    title={item.label}
+                    onClick={() => {
+                      setCopyMenuOpen(false);
+                      handleCopy(item.target, item.text);
+                    }}
+                  >
+                    {item.label}
+                  </UiButton>
+                ))}
+              </div>
+            }
           >
-            <MaterialIcon name={copyIcon} />
-          </UiButton>
+            <UiButton
+              className="event-popover-action-btn"
+              variant="ghost"
+              size="sm"
+              iconOnly
+              aria-label="打开复制菜单"
+              aria-haspopup="menu"
+              aria-expanded={copyMenuOpen}
+              title={copyMenuTitle}
+            >
+              <MaterialIcon name={copyIcon} />
+            </UiButton>
+          </Popover>
           <UiButton
             className="event-popover-action-btn event-popover-close"
             variant="ghost"
@@ -604,6 +699,7 @@ export const __TEST_ONLY__ = {
   mapCollectedSnapshotType,
   resolveEventGroupMeta,
   resolveDebugPreCallCopyPayloads,
+  buildEventCopyMenuItems,
   resolveInitialPopoverState,
   stringifyPopoverPayload,
 };

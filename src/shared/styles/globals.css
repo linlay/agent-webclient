@@ -5018,7 +5018,24 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     min-height: 28px;
 }
 
-.event-popover-copy-btn {
+.event-popover-copy-menu-overlay .ant-popover-inner {
+    padding: 0;
+}
+
+.event-popover-copy-menu-overlay .ant-popover-inner-content {
+    padding: 6px;
+}
+
+.event-popover-copy-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 168px;
+}
+
+.event-popover-copy-menu-item {
+    width: 100%;
+    justify-content: flex-start;
     white-space: nowrap;
     font-size: 11px;
 }

@@ -10,6 +10,7 @@ const {
   formatReadableTimestamp,
   getCollectibleRelatedEvents,
   buildCollectedSnapshot,
+  buildEventCopyMenuItems,
   resolveEventGroupMeta,
   resolveDebugPreCallCopyPayloads,
   resolveInitialPopoverState,
@@ -146,7 +147,7 @@ describe("EventPopover collect controls", () => {
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
     expect(html).toContain('aria-label="收集事件快照"');
-    expect(html).toContain('aria-label="复制事件 JSON"');
+    expect(html).toContain('aria-label="打开复制菜单"');
     expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).toContain(
       `时间: ${formatReadableTimestamp(1776518171300)}`,
@@ -169,19 +170,21 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="复制事件 JSON"');
+    expect(html).toContain('aria-label="打开复制菜单"');
     expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).not.toContain('aria-label="收集事件快照"');
   });
 
-  it("renders debug.preCall copy buttons when system prompt and tools are present", () => {
+  it("renders a copy menu trigger for debug.preCall instead of flat copy buttons", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.preCall",
       runId: "run_1",
       data: {
-        systemPrompt: "system prompt",
-        tools: [{ name: "search" }],
+        requestBody: {
+          messages: [{ role: "system", content: "system prompt" }],
+          tools: [{ name: "search" }],
+        },
       },
       timestamp: 1776518171300,
     };
@@ -194,8 +197,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="复制 systemPrompt"');
-    expect(html).toContain('aria-label="复制 tools"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).not.toContain('aria-label="复制 systemPrompt"');
+    expect(html).not.toContain('aria-label="复制 tools"');
   });
 });
 
@@ -463,28 +467,151 @@ describe("EventPopover display and copy helpers", () => {
     expect(writeText).toHaveBeenCalledWith('{"type":"content.start"}');
   });
 
-  it("extracts debug.preCall copy payloads", () => {
+  it("extracts debug.preCall copy payloads from an OpenAI-style requestBody", () => {
     expect(
       resolveDebugPreCallCopyPayloads({
         type: "debug.preCall",
         data: {
-          systemPrompt: "system prompt",
-          tools: [{ name: "search" }],
+          requestBody: {
+            messages: [{ role: "system", content: "system prompt" }],
+            tools: [{ name: "search" }],
+          },
         },
       }),
     ).toEqual({
+      requestBodyText: JSON.stringify(
+        {
+          messages: [{ role: "system", content: "system prompt" }],
+          tools: [{ name: "search" }],
+        },
+        null,
+        2,
+      ),
       systemPromptText: "system prompt",
       toolsText: JSON.stringify([{ name: "search" }], null, 2),
     });
+  });
 
+  it("extracts debug.preCall copy payloads from an Anthropic-style requestBody", () => {
     expect(
       resolveDebugPreCallCopyPayloads({
-        type: "debug.postCall",
+        type: "debug.preCall",
         data: {
-          systemPrompt: "ignored",
-          tools: [],
+          requestBody: {
+            system: "anthropic system",
+            tools: [{ name: "browser" }],
+          },
         },
       }),
-    ).toBeNull();
+    ).toEqual({
+      requestBodyText: JSON.stringify(
+        {
+          system: "anthropic system",
+          tools: [{ name: "browser" }],
+        },
+        null,
+        2,
+      ),
+      systemPromptText: "anthropic system",
+      toolsText: JSON.stringify([{ name: "browser" }], null, 2),
+    });
+  });
+
+  it("builds copy menu items from requestBody-derived debug.preCall content", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "debug.preCall",
+          data: {
+            requestBody: {
+              messages: [{ role: "system", content: "system prompt" }],
+              tools: [{ name: "search" }],
+            },
+          },
+        },
+        '{"type":"debug.preCall"}',
+      ),
+    ).toEqual([
+      {
+        target: "eventJson",
+        label: "复制事件 JSON",
+        text: '{"type":"debug.preCall"}',
+      },
+      {
+        target: "requestBody",
+        label: "复制 requestBody",
+        text: JSON.stringify(
+          {
+            messages: [{ role: "system", content: "system prompt" }],
+            tools: [{ name: "search" }],
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        target: "systemPrompt",
+        label: "复制 systemPrompt",
+        text: "system prompt",
+      },
+      {
+        target: "tools",
+        label: "复制 tools",
+        text: JSON.stringify([{ name: "search" }], null, 2),
+      },
+    ]);
+  });
+
+  it("omits unavailable debug.preCall copy options and keeps event JSON for other events", () => {
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "debug.preCall",
+          data: {
+            requestBody: {
+              model: "mock-model",
+            },
+          },
+        },
+        '{"type":"debug.preCall"}',
+      ),
+    ).toEqual([
+      {
+        target: "eventJson",
+        label: "复制事件 JSON",
+        text: '{"type":"debug.preCall"}',
+      },
+      {
+        target: "requestBody",
+        label: "复制 requestBody",
+        text: JSON.stringify(
+          {
+            model: "mock-model",
+          },
+          null,
+          2,
+        ),
+      },
+    ]);
+
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "debug.postCall",
+          data: {
+            requestBody: {
+              system: "ignored",
+            },
+          },
+        },
+        '{"type":"debug.postCall"}',
+      ),
+    ).toEqual([
+      {
+        target: "eventJson",
+        label: "复制事件 JSON",
+        text: '{"type":"debug.postCall"}',
+      },
+    ]);
   });
 });
