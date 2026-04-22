@@ -36,6 +36,7 @@ interface ResolvedTaskBinding {
   taskId: string;
   taskName: string;
   taskGroupId: string;
+  subAgentKey?: string;
 }
 
 function readTaskGroupId(event: AgentEvent): string {
@@ -45,6 +46,10 @@ function readTaskGroupId(event: AgentEvent): string {
 
 function readTaskGroupTitle(event: AgentEvent): string {
   return toText((event as Record<string, unknown>).taskGroupTitle);
+}
+
+function readSubAgentKey(event: AgentEvent): string {
+  return toText((event as Record<string, unknown>).subAgentKey).trim();
 }
 
 function normalizeTaskStatus(status: string): string {
@@ -99,10 +104,12 @@ function resolveVisibleTaskBinding(
       || state.getPlanTaskDescription?.(explicitTaskId)
       || existing?.taskName
       || explicitTaskId;
+    const subAgentKey = readSubAgentKey(event) || task?.subAgentKey || existing?.subAgentKey || '';
     return {
       taskId: explicitTaskId,
       taskName,
       taskGroupId,
+      subAgentKey: subAgentKey || undefined,
     };
   }
 
@@ -111,6 +118,7 @@ function resolveVisibleTaskBinding(
       taskId: existing.taskId,
       taskName: existing.taskName || existing.taskId,
       taskGroupId: existing.taskGroupId || '',
+      subAgentKey: existing.subAgentKey,
     };
   }
 
@@ -125,6 +133,7 @@ function resolveVisibleTaskBinding(
     taskId,
     taskName: task?.taskName || state.getPlanTaskDescription?.(taskId) || taskId,
     taskGroupId: task?.taskGroupId || '',
+    subAgentKey: task?.subAgentKey,
   };
 }
 
@@ -178,6 +187,7 @@ function buildNextTaskItem(input: {
     taskId,
     taskName,
     taskGroupId: groupId,
+    subAgentKey: readSubAgentKey(event) || existing?.subAgentKey || '',
     runId: toText(event.runId) || existing?.runId || state.runId,
     status,
     startedAt,
@@ -447,18 +457,20 @@ function applyTaskBindingToNode(
   event: AgentEvent,
   state: EventProcessorState,
   existing: TimelineNode | undefined,
-): Pick<TimelineNode, 'taskId' | 'taskName' | 'taskGroupId'> {
+): Pick<TimelineNode, 'taskId' | 'taskName' | 'taskGroupId' | 'subAgentKey'> {
   const binding = resolveVisibleTaskBinding(event, state, existing);
   return binding
     ? {
         taskId: binding.taskId,
         taskName: binding.taskName,
         taskGroupId: binding.taskGroupId,
+        subAgentKey: binding.subAgentKey,
       }
     : {
         taskId: existing?.taskId,
         taskName: existing?.taskName,
         taskGroupId: existing?.taskGroupId,
+        subAgentKey: existing?.subAgentKey,
       };
 }
 
@@ -1024,7 +1036,7 @@ export function processEvent(
     commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
     commands.push({ cmd: 'ADD_ACTIVE_TASK_ID', taskId });
     const mainToolId = toText((event as Record<string, unknown>).mainToolId);
-    if (groupId) {
+    if (groupId && nextTask.subAgentKey) {
       const agentGroup = buildNextAgentGroup({
         groupId,
         mainToolId,
@@ -1095,7 +1107,7 @@ export function processEvent(
     commands.push({ cmd: 'SET_TASK_ITEM_META', taskId, task: nextTask });
     commands.push({ cmd: 'SET_TASK_GROUP_META', groupId, group: nextGroup });
     commands.push({ cmd: 'REMOVE_ACTIVE_TASK_ID', taskId });
-    if (groupId) {
+    if (groupId && nextTask.subAgentKey) {
       const existingAgentGroup = state.getAgentGroup?.(groupId);
       const nodeId = `agent_group_${groupId}`;
       const existingNode = state.getTimelineNode(nodeId);

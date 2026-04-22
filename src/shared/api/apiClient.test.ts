@@ -10,6 +10,7 @@ import {
   extractUploadReferences,
   getAgent,
   getAgents,
+  getChats,
   getVoiceCapabilities,
   getVoiceCapabilitiesFlexible,
   getVoiceVoices,
@@ -692,5 +693,54 @@ describe('apiClient query payloads', () => {
 
     expect(extractUploadReferences({ reference: { id: 'legacy' } })).toEqual([]);
     expect(extractUploadReferences(null)).toEqual([]);
+  });
+
+  it('normalizes chat summaries from /api/chats into hasPendingAwaiting', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: [
+            {
+              chatId: 'chat_1',
+              chatName: 'Need approval',
+              awaiting: {
+                awaitingId: 'await_1',
+                runId: 'run_1',
+                mode: 'approval',
+                createdAt: 123,
+              },
+            },
+            {
+              chatId: 'chat_2',
+              chatName: 'No waiting',
+            },
+          ],
+        }),
+    });
+
+    const response = await getChats();
+
+    expect(response.data).toEqual([
+      {
+        chatId: 'chat_1',
+        chatName: 'Need approval',
+        awaiting: {
+          awaitingId: 'await_1',
+          runId: 'run_1',
+          mode: 'approval',
+          createdAt: 123,
+        },
+        hasPendingAwaiting: true,
+      },
+      {
+        chatId: 'chat_2',
+        chatName: 'No waiting',
+        hasPendingAwaiting: false,
+      },
+    ]);
   });
 });

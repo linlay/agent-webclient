@@ -35,6 +35,18 @@ jest.mock("@/shared/api/apiClient", () => {
 		getChat: jest.fn(),
 		getChats: jest.fn(),
 		getCurrentAccessToken: jest.fn(),
+		normalizeChatSummariesPayload: jest.fn((data: unknown) =>
+			Array.isArray(data)
+				? data.map((item) =>
+					item && typeof item === "object"
+						? {
+							...item,
+							hasPendingAwaiting: Boolean((item as { awaiting?: unknown }).awaiting),
+						}
+						: item,
+				  )
+				: [],
+		),
 		getResourceText: jest.fn(),
 		getSkills: jest.fn(),
 		getTeams: jest.fn(),
@@ -71,6 +83,7 @@ let mockApiClient: {
 	getChat: jest.Mock;
 	getChats: jest.Mock;
 	getCurrentAccessToken: jest.Mock;
+	normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
 	getSkills: jest.Mock;
 	getTeams: jest.Mock;
@@ -240,6 +253,55 @@ describe("apiClientProxy", () => {
 
 		await expect(proxy.getChats()).rejects.toBe(error);
 		expect(mockApiClient.getChats).not.toHaveBeenCalled();
+	});
+
+	it("normalizes chat summaries returned from ws /api/chats responses", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [
+				{
+					chatId: "chat_1",
+					awaiting: {
+						awaitingId: "await_1",
+						runId: "run_1",
+						mode: "question",
+						createdAt: 123,
+					},
+				},
+			],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChats()).resolves.toMatchObject({
+			data: [
+				{
+					chatId: "chat_1",
+					hasPendingAwaiting: true,
+				},
+			],
+		});
+		expect(mockApiClient.normalizeChatSummariesPayload).toHaveBeenCalledWith([
+			{
+				chatId: "chat_1",
+				awaiting: {
+					awaitingId: "await_1",
+					runId: "run_1",
+					mode: "question",
+					createdAt: 123,
+				},
+			},
+		]);
 	});
 
 	it("does not fall back to http when ws request times out", async () => {

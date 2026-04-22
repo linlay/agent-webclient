@@ -25,6 +25,7 @@ export interface TaskItemDisplayItem {
   taskId: string;
   taskName: string;
   taskGroupId: string;
+  subAgentKey?: string;
   status: string;
   startedAt?: number;
   endedAt?: number;
@@ -237,6 +238,10 @@ function normalizeTaskStatus(status: string): string {
   return value;
 }
 
+function hasSubAgentKey(value: unknown): boolean {
+  return String(value || '').trim().length > 0;
+}
+
 function buildTaskRunSections(
   runNodes: TimelineNode[],
   queryNode: TimelineNode,
@@ -281,6 +286,7 @@ function buildTaskRunSections(
           taskId,
           taskName: String(nodes[0]?.taskName || taskId),
           taskGroupId: String(nodes[0]?.taskGroupId || `task_group_${taskId}`),
+          subAgentKey: String(nodes[0]?.subAgentKey || '').trim() || undefined,
           runId: '',
           status: String(nodes[nodes.length - 1]?.status || 'running'),
           startedAt: fallbackStartedAt,
@@ -294,6 +300,9 @@ function buildTaskRunSections(
 
   const groupDisplayById = new Map<string, TaskGroupDisplayItem>();
   for (const task of taskItemsInRun.values()) {
+    if (!hasSubAgentKey(task.subAgentKey)) {
+      continue;
+    }
     const groupId = String(task.taskGroupId || `task_group_${task.taskId}`);
     const current = groupDisplayById.get(groupId);
     if (!current) {
@@ -327,6 +336,7 @@ function buildTaskRunSections(
           taskId: task.taskId,
           taskName: task.taskName || task.taskId,
           taskGroupId: task.taskGroupId,
+          subAgentKey: task.subAgentKey,
           status: normalizeTaskStatus(task.status),
           startedAt: task.startedAt,
           endedAt: task.endedAt,
@@ -411,16 +421,18 @@ function buildTaskRunSections(
     const taskId = String(node.taskId || '').trim();
     if (taskId && includedTaskIds.has(taskId)) {
       const groupId = taskItemsInRun.get(taskId)?.taskGroupId || String(node.taskGroupId || `task_group_${taskId}`);
-      if (groupDisplayById.has(groupId) && !emittedGroupIds.has(groupId)) {
-        flushMainline();
-        sections.push({
-          kind: 'task-group',
-          key: `task_group_${groupId}`,
-          group: groupDisplayById.get(groupId)!,
-        });
-        emittedGroupIds.add(groupId);
+      if (groupDisplayById.has(groupId)) {
+        if (!emittedGroupIds.has(groupId)) {
+          flushMainline();
+          sections.push({
+            kind: 'task-group',
+            key: `task_group_${groupId}`,
+            group: groupDisplayById.get(groupId)!,
+          });
+          emittedGroupIds.add(groupId);
+        }
+        continue;
       }
-      continue;
     }
 
     pendingMainlineNodes.push(node);

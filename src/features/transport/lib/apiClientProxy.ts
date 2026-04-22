@@ -9,6 +9,7 @@ import {
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
+	normalizeChatSummariesPayload,
 	getResourceText,
 	getSkills as getSkillsHttp,
 	getTeams as getTeamsHttp,
@@ -119,10 +120,14 @@ export function getTool(toolName: string): Promise<ApiResponse> {
 	return routeRequest("/api/tool", { toolName }, () => getToolHttp(toolName));
 }
 
-export function getChats(): Promise<ApiResponse> {
-	return routeRequest("/api/chats", undefined, () => getChatsHttp(), {
+export async function getChats(): Promise<ApiResponse> {
+	const response = await routeRequest("/api/chats", undefined, () => getChatsHttp(), {
 		fallbackOnConnectFailure: false,
 	});
+	return {
+		...response,
+		data: normalizeChatSummariesPayload(response.data),
+	};
 }
 
 export function getChat(

@@ -131,6 +131,7 @@ export interface TimelineNode {
   taskId?: string;
   taskName?: string;
   taskGroupId?: string;
+  subAgentKey?: string;
   groupId?: string;
   mainToolId?: string;
   /* tool-specific */
@@ -212,6 +213,7 @@ export interface TaskItemMeta {
   taskId: string;
   taskName: string;
   taskGroupId: string;
+  subAgentKey?: string;
   runId: string;
   status: string;
   startedAt?: number;

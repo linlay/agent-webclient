@@ -131,6 +131,23 @@ export async function ensureAccessToken(
   return getCurrentAccessToken();
 }
 
+export function normalizeChatSummariesPayload(data: unknown): unknown[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.map((item) => {
+    if (!isObjectRecord(item)) {
+      return item;
+    }
+
+    return {
+      ...item,
+      hasPendingAwaiting: Boolean(item.awaiting),
+    };
+  });
+}
+
 async function readJsonResponse(response: Response): Promise<ApiResponse> {
   const rawText = await response.text();
   let json: Record<string, unknown> | null;
@@ -517,7 +534,10 @@ export function getTool(toolName: string): Promise<ApiResponse> {
 }
 
 export function getChats(): Promise<ApiResponse> {
-  return requestJson("/api/chats");
+  return requestJson("/api/chats").then((response) => ({
+    ...response,
+    data: normalizeChatSummariesPayload(response.data),
+  }));
 }
 
 export function getChat(

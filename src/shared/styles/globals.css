@@ -4155,7 +4155,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .plan-item {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     gap: 8px;
     padding: 7px 10px;
     font-size: 11px;
@@ -4172,8 +4172,18 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .plan-item-text {
+    flex: 1;
     min-width: 0;
     line-height: 1.45;
+}
+
+.plan-item-duration {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+    white-space: nowrap;
 }
 
 /* ========================================

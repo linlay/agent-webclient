@@ -1,4 +1,5 @@
 import type {
+  AgentGroup,
   AgentEvent,
   Plan,
   PlanRuntime,
@@ -42,6 +43,7 @@ type TestState = {
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
   taskGroupsById: Map<string, TaskGroupMeta>;
+  agentGroupsByGroupId: Map<string, AgentGroup>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 };
@@ -63,6 +65,7 @@ function createState(): TestState {
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
     taskGroupsById: new Map(),
+    agentGroupsByGroupId: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -84,6 +87,7 @@ function buildProcessorState(state: TestState): EventProcessorState {
     currentRunningPlanTaskId: state.planCurrentRunningTaskId,
     getTaskItem: (taskId) => state.taskItemsById.get(taskId),
     getTaskGroup: (groupId) => state.taskGroupsById.get(groupId),
+    getAgentGroup: (groupId) => state.agentGroupsByGroupId.get(groupId),
     getActiveTaskIds: () =>
       Array.from(state.taskItemsById.values())
         .filter((task) => task.status === 'running')
@@ -151,6 +155,9 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
         break;
       case 'SET_TASK_GROUP_META':
         state.taskGroupsById.set(command.groupId, command.group);
+        break;
+      case 'SET_AGENT_GROUP_ADD_TASK':
+        state.agentGroupsByGroupId.set(command.groupId, command.group);
         break;
       case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
         state.planCurrentRunningTaskId = command.taskId;
@@ -727,6 +734,7 @@ describe('processEvent', () => {
       taskId: 'task_1',
       taskName: 'Explore agentOrchestrator definition',
       taskGroupId: 'task_group_task_1',
+      subAgentKey: '',
       status: 'completed',
       startedAt: 100,
       endedAt: 220,
@@ -742,6 +750,42 @@ describe('processEvent', () => {
       taskId: 'task_1',
       taskName: 'Explore agentOrchestrator definition',
       taskGroupId: 'task_group_task_1',
+      subAgentKey: undefined,
+    });
+    expect(state.agentGroupsByGroupId.size).toBe(0);
+    expect(state.timelineNodes.has('agent_group_task_group_task_1')).toBe(false);
+  });
+
+  it('creates an agent-group timeline node only for tasks with subAgentKey', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'task.start',
+      taskId: 'task_child',
+      taskName: 'Parallel child task',
+      subAgentKey: 'subagent_1',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'task.complete',
+      taskId: 'task_child',
+      subAgentKey: 'subagent_1',
+      timestamp: 160,
+    }, 'live', true);
+
+    expect(state.taskItemsById.get('task_child')).toMatchObject({
+      taskId: 'task_child',
+      subAgentKey: 'subagent_1',
+      status: 'completed',
+    });
+    expect(state.agentGroupsByGroupId.get('task_group_task_child')).toMatchObject({
+      groupId: 'task_group_task_child',
+      taskIds: ['task_child'],
+    });
+    expect(state.timelineNodes.get('agent_group_task_group_task_child')).toMatchObject({
+      kind: 'agent-group',
+      groupId: 'task_group_task_child',
+      status: 'completed',
     });
   });
 
@@ -765,6 +809,7 @@ describe('processEvent', () => {
       taskId: 'task_1',
       taskName: 'Single running task',
       taskGroupId: 'task_group_task_1',
+      subAgentKey: '',
     });
   });
 

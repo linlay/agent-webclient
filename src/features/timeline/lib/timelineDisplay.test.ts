@@ -183,7 +183,7 @@ describe('buildTimelineDisplayItems', () => {
     });
   });
 
-  it('builds a task group section inside a run and keeps collapsed metadata separate from mainline nodes', () => {
+  it('keeps ordinary task nodes in the run mainline even when task metadata is present', () => {
     const taskItemsById = new Map<string, TaskItemMeta>([
       ['task_1', {
         taskId: 'task_1',
@@ -228,17 +228,72 @@ describe('buildTimelineDisplayItems', () => {
 
     expect(items[1].kind === 'run' ? items[1].sections : []).toEqual([
       {
+        kind: 'mainline',
+        key: 'mainline_thinking_1',
+        renderEntries: [
+          { kind: 'node', key: 'node_thinking_1', node: expect.objectContaining({ id: 'thinking_1' }) },
+          { kind: 'node', key: 'node_tool_1', node: expect.objectContaining({ id: 'tool_1' }) },
+          { kind: 'node', key: 'node_content_1', node: expect.objectContaining({ id: 'content_1' }) },
+        ],
+      },
+    ]);
+  });
+
+  it('builds a task group section for a single sub-agent task', () => {
+    const taskItemsById = new Map<string, TaskItemMeta>([
+      ['task_1', {
+        taskId: 'task_1',
+        taskName: 'Explore webclient task panel rendering',
+        taskGroupId: 'group_1',
+        subAgentKey: 'subagent_1',
+        runId: 'run_1',
+        status: 'completed',
+        startedAt: 110,
+        endedAt: 180,
+        durationMs: 70,
+        updatedAt: 180,
+        error: '',
+      }],
+    ]);
+    const taskGroupsById = new Map<string, TaskGroupMeta>([
+      ['group_1', {
+        groupId: 'group_1',
+        runId: 'run_1',
+        title: 'Explore webclient task panel rendering',
+        status: 'completed',
+        startedAt: 110,
+        endedAt: 180,
+        durationMs: 70,
+        updatedAt: 180,
+        childTaskIds: ['task_1'],
+      }],
+    ]);
+
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
+        createNode({ id: 'thinking_1', kind: 'thinking', text: 'plan', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 110 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 120 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'answer', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 130 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.complete', timestamp: 200 },
+      ],
+      { taskItemsById, taskGroupsById, now: 200 },
+    );
+
+    expect(items[1].kind === 'run' ? items[1].sections : []).toEqual([
+      {
         kind: 'task-group',
         key: 'task_group_group_1',
         group: expect.objectContaining({
           groupId: 'group_1',
           title: 'Explore webclient task panel rendering',
-          durationMs: 70,
           childTasks: [
             expect.objectContaining({
               taskId: 'task_1',
-              taskName: 'Explore webclient task panel rendering',
-              durationMs: 70,
+              subAgentKey: 'subagent_1',
             }),
           ],
         }),
@@ -252,6 +307,7 @@ describe('buildTimelineDisplayItems', () => {
         taskId: 'task_1',
         taskName: 'Explore agentOrchestrator definition',
         taskGroupId: 'group_parallel',
+        subAgentKey: 'subagent_1',
         runId: 'run_1',
         status: 'completed',
         startedAt: 110,
@@ -264,6 +320,7 @@ describe('buildTimelineDisplayItems', () => {
         taskId: 'task_2',
         taskName: 'Explore _invoke_agent_ runtime orchestration',
         taskGroupId: 'group_parallel',
+        subAgentKey: 'subagent_2',
         runId: 'run_1',
         status: 'completed',
         startedAt: 115,
@@ -276,6 +333,7 @@ describe('buildTimelineDisplayItems', () => {
         taskId: 'task_3',
         taskName: 'Explore webclient task panel rendering',
         taskGroupId: 'group_parallel',
+        subAgentKey: 'subagent_3',
         runId: 'run_1',
         status: 'running',
         startedAt: 120,
@@ -302,9 +360,9 @@ describe('buildTimelineDisplayItems', () => {
     const items = buildTimelineDisplayItems(
       [
         createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
-        createNode({ id: 'content_1', kind: 'content', text: 'A', taskId: 'task_1', taskName: 'Explore agentOrchestrator definition', taskGroupId: 'group_parallel', ts: 130 }),
-        createNode({ id: 'content_2', kind: 'content', text: 'B', taskId: 'task_2', taskName: 'Explore _invoke_agent_ runtime orchestration', taskGroupId: 'group_parallel', ts: 140 }),
-        createNode({ id: 'content_3', kind: 'content', text: 'C', taskId: 'task_3', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_parallel', ts: 150 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'A', taskId: 'task_1', taskName: 'Explore agentOrchestrator definition', taskGroupId: 'group_parallel', subAgentKey: 'subagent_1', ts: 130 }),
+        createNode({ id: 'content_2', kind: 'content', text: 'B', taskId: 'task_2', taskName: 'Explore _invoke_agent_ runtime orchestration', taskGroupId: 'group_parallel', subAgentKey: 'subagent_2', ts: 140 }),
+        createNode({ id: 'content_3', kind: 'content', text: 'C', taskId: 'task_3', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_parallel', subAgentKey: 'subagent_3', ts: 150 }),
       ],
       [
         { type: 'request.query', timestamp: 100 },
