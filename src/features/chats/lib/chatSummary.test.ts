@@ -34,6 +34,21 @@ describe('chatSummary helpers', () => {
     });
   });
 
+  it('keeps explicit false awaiting state when newer patches clear pending approval', () => {
+    const merged = mergeChatSummary(
+      {
+        chatId: 'chat_1',
+        hasPendingAwaiting: true,
+      },
+      {
+        chatId: 'chat_1',
+        hasPendingAwaiting: false,
+      },
+    );
+
+    expect(merged.hasPendingAwaiting).toBe(false);
+  });
+
   it('moves an updated chat summary to the front', () => {
     const chats: Chat[] = [
       { chatId: 'chat_old', chatName: 'Old chat' },
@@ -115,6 +130,7 @@ describe('chatSummary helpers', () => {
           lastRunId: 'run_b',
           lastRunContent: 'new',
           updatedAt: 200,
+          hasPendingAwaiting: true,
         },
       ],
       workerSelectionKey: 'agent:agent-alice',
@@ -122,5 +138,9 @@ describe('chatSummary helpers', () => {
     });
 
     expect(rows.map((row) => row.chatId)).toEqual(['chat_2', 'chat_1']);
+    expect(rows[0]).toMatchObject({
+      chatId: 'chat_2',
+      hasPendingAwaiting: true,
+    });
   });
 });

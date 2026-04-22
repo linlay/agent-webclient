@@ -39,6 +39,28 @@ type AgentIconConfig = {
   name?: string;
 };
 
+const ConversationTimeMeta: React.FC<{
+  updatedAt?: string | number | Date;
+  hasPendingAwaiting?: boolean;
+  className?: string;
+  timeClassName?: string;
+}> = ({
+  updatedAt,
+  hasPendingAwaiting = false,
+  className = "",
+  timeClassName = "chat-time",
+}) => {
+  const time = formatChatTimeLabel(updatedAt);
+  return (
+    <div className={["chat-time-meta", className].filter(Boolean).join(" ")}>
+      {hasPendingAwaiting ? (
+        <span className="chat-awaiting-status">等待批准</span>
+      ) : null}
+      <span className={timeClassName}>{time}</span>
+    </div>
+  );
+};
+
 const ChatItem: React.FC<{
   chat: Chat;
   agents: Array<{ key?: string; name?: string }>;
@@ -46,7 +68,6 @@ const ChatItem: React.FC<{
   onClick: () => void;
 }> = ({ chat, agents, isActive, onClick }) => {
   const label = pickChatAgentLabel(chat, agents);
-  const time = formatChatTimeLabel(chat.updatedAt);
   const title = chat.chatName || chat.chatId || "(无标题)";
 
   return (
@@ -60,7 +81,10 @@ const ChatItem: React.FC<{
         <div className="chat-title-wrap">
           <div className="chat-title">{title}</div>
         </div>
-        <div className="chat-time">{time}</div>
+        <ConversationTimeMeta
+          updatedAt={chat.updatedAt}
+          hasPendingAwaiting={Boolean(chat.hasPendingAwaiting)}
+        />
       </div>
       <div className="chat-meta-line">
         <UiTag tone="muted">{label}</UiTag>
@@ -86,9 +110,12 @@ const WorkerChatPreviewItem: React.FC<{
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || "(无预览)"}
         </span>
-        <span className="worker-chat-time">
-          {formatChatTimeLabel(chat.updatedAt)}
-        </span>
+        <ConversationTimeMeta
+          updatedAt={chat.updatedAt}
+          hasPendingAwaiting={Boolean(chat.hasPendingAwaiting)}
+          className="worker-chat-time-meta"
+          timeClassName="worker-chat-time"
+        />
       </div>
     </UiListItem>
   );
@@ -131,9 +158,12 @@ const WorkerPanelHeader: React.FC<{
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
           {!!lastChat?.updatedAt && (
-            <div className="worker-panel-time">
-              {formatChatTimeLabel(lastChat?.updatedAt)}
-            </div>
+            <ConversationTimeMeta
+              updatedAt={lastChat?.updatedAt}
+              hasPendingAwaiting={Boolean(lastChat?.hasPendingAwaiting)}
+              className="worker-panel-time"
+              timeClassName="worker-panel-time-label"
+            />
           )}
           <Tooltip title="新建对话">
             <Button

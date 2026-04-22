@@ -174,6 +174,31 @@ describe("LeftSidebar", () => {
     });
   }
 
+  function createChatListState(): AppState {
+    const state = createInitialState();
+    return {
+      ...state,
+      conversationMode: "chat",
+      leftDrawerOpen: true,
+      chats: [
+        {
+          chatId: "chat_pending",
+          chatName: "Pending Chat",
+          updatedAt: 1713781200000,
+          agentKey: "worker_a",
+          firstAgentKey: "worker_a",
+          hasPendingAwaiting: true,
+        },
+      ],
+      agents: [
+        {
+          key: "worker_a",
+          name: "Alpha Agent",
+        },
+      ],
+    };
+  }
+
   beforeEach(() => {
     antdButtonProps.length = 0;
     globalWithStorage.localStorage = {
@@ -274,5 +299,31 @@ describe("LeftSidebar", () => {
     expect(workerSelectionEvents[0].detail).toEqual({
       workerKey: "agent:worker_a",
     });
+  });
+
+  it("renders awaiting status before time in the chat list", () => {
+    mockState(createChatListState());
+
+    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+
+    expect(html).toContain(
+      'class="chat-time-meta"><span class="chat-awaiting-status">等待批准</span><span class="chat-time">',
+    );
+  });
+
+  it("renders awaiting status before time across worker header and preview rows", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats[state.chats.length - 1].hasPendingAwaiting = true;
+    mockState(state);
+
+    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+
+    expect(html).toContain(
+      'class="chat-time-meta worker-panel-time"><span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
+    );
+    expect(html).toContain(
+      'class="chat-time-meta worker-chat-time-meta"><span class="chat-awaiting-status">等待批准</span><span class="worker-chat-time">',
+    );
   });
 });

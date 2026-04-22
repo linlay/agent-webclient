@@ -469,6 +469,80 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
+	it("upserts awaiting.ask for another chat and keeps it out of the active timeline", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.ask",
+			payload: {
+				chatId: "chat_remote",
+				runId: "run_remote",
+				awaitingId: "await_1",
+				createdAt: 1776830869957,
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_remote",
+				lastRunId: "run_remote",
+				hasPendingAwaiting: true,
+				updatedAt: 1776830869957,
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("clears pending awaiting state when awaiting.answer arrives over push", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.answer",
+			payload: {
+				chatId: "chat_remote",
+				runId: "run_remote",
+				awaitingId: "await_1",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_remote",
+				lastRunId: "run_remote",
+				hasPendingAwaiting: false,
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("dispatches agent:attach-run for run.started on the active chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });

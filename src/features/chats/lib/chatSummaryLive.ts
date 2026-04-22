@@ -25,6 +25,48 @@ function readEventFirstAgentName(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.firstAgentName);
 }
 
+export function resolveChatSummaryUpdatedAt(
+  event: AgentEvent,
+): string | number {
+  const raw = event as Record<string, unknown>;
+  if (typeof raw.updatedAt === 'string') {
+    return raw.updatedAt;
+  }
+  if (typeof raw.updatedAt === 'number' && Number.isFinite(raw.updatedAt)) {
+    return raw.updatedAt;
+  }
+  if (typeof raw.createdAt === 'string') {
+    return raw.createdAt;
+  }
+  if (typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt)) {
+    return raw.createdAt;
+  }
+  if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
+    return event.timestamp;
+  }
+  return Date.now();
+}
+
+export function resolveChatSummaryPendingAwaiting(
+  event: AgentEvent,
+): boolean | undefined {
+  const type = toText(event.type);
+  if (type === 'awaiting.ask') {
+    return true;
+  }
+  if (
+    type === 'awaiting.answer'
+    || type === 'request.query'
+    || type === 'run.start'
+    || type === 'run.complete'
+    || type === 'run.error'
+    || type === 'run.cancel'
+  ) {
+    return false;
+  }
+  return undefined;
+}
+
 export function upsertLiveChatSummary(input: {
   event: AgentEvent;
   cache: LiveChatSummaryCache;
@@ -55,12 +97,13 @@ export function upsertLiveChatSummary(input: {
     cache.teamId ||
     toText(existingChat?.teamId) ||
     selectedContext.teamId;
-  const timestamp = event.timestamp || Date.now();
+  const updatedAt = resolveChatSummaryUpdatedAt(event);
+  const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
 
   return {
     chat: {
       chatId,
-      chatName: readEventChatName(event) || undefined,
+      chatName: readEventChatName(event) || toText(existingChat?.chatName) || undefined,
       firstAgentName:
         readEventFirstAgentName(event) ||
         toText(existingChat?.firstAgentName) ||
@@ -70,7 +113,8 @@ export function upsertLiveChatSummary(input: {
       teamId: teamId || undefined,
       lastRunId: runId || undefined,
       lastRunContent,
-      updatedAt: timestamp,
+      updatedAt,
+      hasPendingAwaiting,
     },
     resolved: {
       chatId,

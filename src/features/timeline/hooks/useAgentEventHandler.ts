@@ -733,6 +733,11 @@ export function useAgentEventHandler() {
         return;
       }
 
+      if (type === 'awaiting.ask' || type === 'awaiting.answer') {
+        upsertLiveChatSummary({ event, cache, state });
+        return;
+      }
+
       if (
         (type === 'content.start' || type === 'content.delta' || type === 'content.end' || type === 'content.snapshot')
         && event.contentId

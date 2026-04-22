@@ -44,6 +44,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
       updatedAt: normalizeUpdatedAt(chat?.updatedAt),
       lastRunId: toText(chat?.lastRunId),
       lastRunContent: toText(chat?.lastRunContent),
+      hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
     }))
     .filter((row) => row.chatId);
 }

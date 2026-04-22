@@ -6,6 +6,10 @@ import type { AgentEvent, AppState, Chat } from "@/app/state/types";
 import { ensureAccessToken } from "@/shared/api/apiClient";
 import { setTransportModeProvider } from "@/features/transport/lib/apiClientProxy";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
+import {
+	resolveChatSummaryPendingAwaiting,
+	resolveChatSummaryUpdatedAt,
+} from "@/features/chats/lib/chatSummaryLive";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	destroyWsClient,
@@ -56,27 +60,6 @@ function toPushEvent(frame: {
 	} as AgentEvent;
 }
 
-function resolveChatUpdatedAt(event: AgentEvent): string | number {
-	const raw = event as Record<string, unknown>;
-	if (typeof raw.updatedAt === "string") {
-		return raw.updatedAt;
-	}
-	if (
-		typeof raw.updatedAt === "number"
-		&& Number.isFinite(raw.updatedAt)
-	) {
-		return raw.updatedAt;
-	}
-	if (
-		typeof event.timestamp === "number"
-		&& Number.isFinite(event.timestamp)
-		&& event.timestamp > 0
-	) {
-		return event.timestamp;
-	}
-	return Date.now();
-}
-
 function toChatPatchFromPushEvent(
 	event: AgentEvent,
 ): (Partial<Chat> & Pick<Chat, "chatId">) | null {
@@ -88,8 +71,12 @@ function toChatPatchFromPushEvent(
 	const raw = event as Record<string, unknown>;
 	const chatPatch: Partial<Chat> & Pick<Chat, "chatId"> = {
 		chatId,
-		updatedAt: resolveChatUpdatedAt(event),
+		updatedAt: resolveChatSummaryUpdatedAt(event),
 	};
+	const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
+	if (hasPendingAwaiting !== undefined) {
+		chatPatch.hasPendingAwaiting = hasPendingAwaiting;
+	}
 
 	const chatName = String(raw.chatName || "").trim();
 	if (chatName) {
@@ -349,6 +336,13 @@ function buildWsClient(
 					dispatchLoadChatEvent(eventChatId);
 				}
 				return;
+			}
+
+			if (type === "awaiting.ask" || type === "awaiting.answer") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				if (!isActiveChat) {
+					return;
+				}
 			}
 
 			if (options.stateRef.current.streaming) {

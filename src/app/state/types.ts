@@ -458,6 +458,7 @@ export interface Chat {
   updatedAt?: string | number;
   lastRunId?: string;
   lastRunContent?: string;
+  hasPendingAwaiting?: boolean;
   [key: string]: unknown;
 }
 
@@ -531,6 +532,7 @@ export interface WorkerConversationRow {
   updatedAt: number;
   lastRunId: string;
   lastRunContent: string;
+  hasPendingAwaiting?: boolean;
 }
 
 /* ============================================

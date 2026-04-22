@@ -4497,6 +4497,20 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     color: var(--ink-muted);
 }
 
+.chat-time-meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-awaiting-status {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ok);
+    white-space: nowrap;
+}
+
 .chat-meta-line {
     margin-top: 4px;
     font-size: 12px;
@@ -6094,9 +6108,15 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 .worker-panel-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+.worker-panel-time-label {
     font-size: 11px;
     color: var(--text-muted);
-    margin-left: 4px;
 }
 
 .worker-popover-header {
@@ -6293,6 +6313,13 @@ html[data-theme="dark"] .sidebar-settings-menu {
     font-size: 10px;
     color: var(--ink-muted);
     font-family: "IBM Plex Mono", monospace;
+}
+
+.worker-chat-time-meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .awaiting-answer-item {

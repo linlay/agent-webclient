@@ -27,6 +27,7 @@ describe('buildWorkerConversationRows', () => {
         agentKey: 'agent-alpha',
         lastRunId: 'a1',
         updatedAt: 200,
+        hasPendingAwaiting: true,
       } as Chat,
       {
         chatId: 'chat_older',
@@ -43,5 +44,6 @@ describe('buildWorkerConversationRows', () => {
       'chat_newer',
       'chat_older',
     ]);
+    expect(rows[0]?.hasPendingAwaiting).toBe(true);
   });
 });
