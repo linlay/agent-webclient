@@ -537,7 +537,7 @@ const Question = forwardRef<
                   data-multi-select={isMultiSelectQuestionType(data)}
                   style={{ outline: "none" }}
                 >
-                <span>{i + 1}。</span>
+                <span>{i + 1}.</span>
                 <span className={Style.Info}>{option.label}</span>
                 {option.description && (
                   <Tooltip title={option.description}>
@@ -552,7 +552,7 @@ const Question = forwardRef<
       </Checkbox.Group>
       {data.allowFreeText && (
         <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10}>
-          <span>{options.length + 1}。</span>
+          <span>{options.length + 1}.</span>
           <Input
             variant="borderless"
             placeholder={placeholder}

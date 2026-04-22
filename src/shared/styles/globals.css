@@ -2364,7 +2364,6 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     line-height: 1.45;
     outline: none;
     resize: none;
-    overflow-y: hidden;
 }
 
 .composer-wonders {
@@ -3653,21 +3652,14 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     padding: 0 12px;
     font-size: 11px;
     font-weight: 700;
-    color: #fff !important;
-    background: var(--bg-card);
     flex: 0 0 auto;
     align-self: center;
 }
 
-.interrupt-btn span {
-    width: 12px;
-    height: 12px;
-    background: var(--accent-danger);
-    border-radius: 2px;
-}
-
 .interrupt-btn:hover {
-    border: 1px solid var(--accent-danger);
+    background-color: color-mix(in srgb,
+            var(--accent-danger) 10%,
+            transparent);
 }
 
 .interrupt-btn:disabled {
@@ -3746,7 +3738,10 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .steer-preview-actions {
     display: flex;
-    gap: 8px;
+    gap: 4px;
+}
+.steer-primary-btn{
+    background-color: var(--bg-base);
 }
 
 .steer-btn {

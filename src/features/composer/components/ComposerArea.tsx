@@ -1620,7 +1620,12 @@ export const ComposerArea: React.FC = () => {
                       iconOnly
                       disabled={isFrontendActive}
                       onClick={() => void interruptCurrentRun()}
-                    ></UiButton>
+                    >
+                      <MaterialIcon
+                        name="stop_circle"
+                        style={{ fontSize: 28 }}
+                      />
+                    </UiButton>
                   ) : !isVoiceMode ? (
                     <>
                       {state.planningMode && (
