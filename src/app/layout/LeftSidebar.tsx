@@ -4,6 +4,7 @@ import {
   Button,
   Collapse,
   CollapseProps,
+  Divider,
   Flex,
   Modal,
   Popover,
@@ -597,7 +598,7 @@ export const LeftSidebar: React.FC = () => {
                   onChange={handleWorkerCollapseChange}
                 />
               ) : (
-                <Flex vertical>
+                <Flex vertical gap={10}>
                   {filteredWorkerRows?.map((item, i) => (
                     <Popover
                       key={item.key}
@@ -640,9 +641,12 @@ export const LeftSidebar: React.FC = () => {
                           props={{
                             icon: {
                               className: "worker-panel-icon",
+                              width: 26,
+                              height: 26,
                             },
                             avatar: {
                               className: "worker-panel-icon",
+                              size: 26,
                             },
                           }}
                         />
