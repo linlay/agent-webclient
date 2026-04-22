@@ -29,9 +29,9 @@ export const SteerBar: React.FC<{
               <Button
                 size="small"
                 type="primary"
+                className="steer-primary-btn"
                 shape="round"
                 loading
-                disabled
               >
                 引导
               </Button>
@@ -50,8 +50,9 @@ export const SteerBar: React.FC<{
             <div className="steer-preview-actions">
               <Button
                 size="small"
-                type="primary"
+                type="text"
                 shape="round"
+                className="steer-primary-btn"
                 loading={steerSubmitting}
                 disabled={!steerDraft.trim() || steerSubmitting}
                 onClick={onSubmit}
