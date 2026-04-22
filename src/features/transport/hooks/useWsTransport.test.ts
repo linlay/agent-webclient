@@ -815,6 +815,107 @@ describe("connectWsTransport", () => {
 		);
 	});
 
+	it("updates chat read state and agent unread counts from chat.read/chat.unread push frames", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({
+			accessToken: "token_local",
+			agents: [
+				{
+					key: "agent_alpha",
+					name: "Alpha",
+					stats: { unreadCount: 2 },
+				},
+			],
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.read",
+			payload: {
+				chatId: "chat_1",
+				agentKey: "agent_alpha",
+				lastRunId: "run_1",
+				readAt: 111,
+				readRunId: "run_1",
+				agentUnreadCount: 1,
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_1",
+				lastRunId: "run_1",
+				read: {
+					isRead: true,
+					readAt: 111,
+					readRunId: "run_1",
+				},
+			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_AGENTS",
+			agents: [
+				expect.objectContaining({
+					key: "agent_alpha",
+					stats: expect.objectContaining({
+						unreadCount: 1,
+					}),
+				}),
+			],
+		});
+
+		dispatch.mockClear();
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.unread",
+			payload: {
+				chatId: "chat_1",
+				agentKey: "agent_alpha",
+				lastRunId: "run_2",
+				readAt: 0,
+				readRunId: "",
+				agentUnreadCount: 2,
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_1",
+				lastRunId: "run_2",
+				read: {
+					isRead: false,
+					readAt: 0,
+				},
+			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_AGENTS",
+			agents: [
+				expect.objectContaining({
+					key: "agent_alpha",
+					stats: expect.objectContaining({
+						unreadCount: 2,
+					}),
+				}),
+			],
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("upserts run.finished for any chat and reloads the active chat when idle", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });

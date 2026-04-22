@@ -17,6 +17,7 @@ import {
   getVoiceVoicesFlexible,
   interruptChat,
   learnChat,
+  markChatRead,
   rememberChat,
   setAccessToken,
   steerChat,
@@ -238,6 +239,20 @@ describe('apiClient query payloads', () => {
     expect(interruptPayload.runId).toBe('run_1');
     expect(steerPayload.runId).toBe('run_1');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('posts chatId and runId for markChatRead', async () => {
+    await markChatRead({
+      chatId: 'chat_read',
+      runId: 'run_read',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/read');
+    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(payload).toEqual({
+      chatId: 'chat_read',
+      runId: 'run_read',
+    });
   });
 
   it('posts remember and learn commands to their dedicated endpoints', async () => {
@@ -695,7 +710,7 @@ describe('apiClient query payloads', () => {
     expect(extractUploadReferences(null)).toEqual([]);
   });
 
-  it('normalizes chat summaries from /api/chats into hasPendingAwaiting', async () => {
+  it('normalizes chat summaries from /api/chats into hasPendingAwaiting while preserving read state', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -707,6 +722,11 @@ describe('apiClient query payloads', () => {
             {
               chatId: 'chat_1',
               chatName: 'Need approval',
+              read: {
+                isRead: false,
+                readAt: 456,
+                readRunId: 'run_1',
+              },
               awaiting: {
                 awaitingId: 'await_1',
                 runId: 'run_1',
@@ -728,6 +748,11 @@ describe('apiClient query payloads', () => {
       {
         chatId: 'chat_1',
         chatName: 'Need approval',
+        read: {
+          isRead: false,
+          readAt: 456,
+          readRunId: 'run_1',
+        },
         awaiting: {
           awaitingId: 'await_1',
           runId: 'run_1',

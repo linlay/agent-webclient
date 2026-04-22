@@ -1,5 +1,6 @@
 import React from "react";
 import type { WorkerConversationRow } from "@/app/state/types";
+import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { UiInput } from "@/shared/ui/UiInput";
 import { UiListItem } from "@/shared/ui/UiListItem";
@@ -60,7 +61,10 @@ export const HistoryModal: React.FC<{
 							onClick={() => onSelect(index)}
 						>
 							<div className="command-list-head">
-								<strong>{chat.chatName || chat.chatId}</strong>
+								<strong className={`command-list-title ${isChatUnread(chat) ? "is-unread" : ""}`}>
+									{isChatUnread(chat) ? <span className="chat-unread-dot command-list-unread-dot" /> : null}
+									<span>{chat.chatName || chat.chatId}</span>
+								</strong>
 								<span>{formatChatTimeLabel(chat.updatedAt)}</span>
 							</div>
 							<div className="command-list-preview">

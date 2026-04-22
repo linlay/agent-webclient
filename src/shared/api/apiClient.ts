@@ -673,6 +673,21 @@ export interface BackgroundCommandParams {
   chatId: string;
 }
 
+export interface MarkChatReadParams {
+  chatId: string;
+  runId?: string;
+}
+
+export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
+  return requestJson("/api/read", {
+    method: "POST",
+    body: JSON.stringify({
+      chatId: params.chatId,
+      runId: params.runId,
+    }),
+  });
+}
+
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
   return requestJson("/api/interrupt", {
     method: "POST",

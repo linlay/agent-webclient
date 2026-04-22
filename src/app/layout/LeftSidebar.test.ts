@@ -139,6 +139,9 @@ describe("LeftSidebar", () => {
         firstAgentKey: "worker_a",
         lastRunId: `run_${count}`,
         lastRunContent: `Latest reply ${count}`,
+        read: {
+          isRead: count % 2 === 0,
+        },
       };
     });
 
@@ -154,6 +157,9 @@ describe("LeftSidebar", () => {
         {
           key: "worker_a",
           name: "Alpha Agent",
+          stats: {
+            unreadCount: 3,
+          },
           icon: {
             name: "smart_toy",
             color: "#123456",
@@ -187,6 +193,9 @@ describe("LeftSidebar", () => {
           updatedAt: 1713781200000,
           agentKey: "worker_a",
           firstAgentKey: "worker_a",
+          read: {
+            isRead: false,
+          },
           hasPendingAwaiting: true,
         },
       ],
@@ -194,6 +203,9 @@ describe("LeftSidebar", () => {
         {
           key: "worker_a",
           name: "Alpha Agent",
+          stats: {
+            unreadCount: 1,
+          },
         },
       ],
     };
@@ -274,6 +286,20 @@ describe("LeftSidebar", () => {
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
     expect(html).toContain("查看更多（共 6 条）");
+  });
+
+  it("renders unread badges for worker and chat rows", () => {
+    mockState(createWorkerState());
+
+    const workerHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
+    expect(workerHtml).toContain("worker-collapsed-unread-count");
+    expect(workerHtml).toContain(">3<");
+    expect(workerHtml).toContain("worker-chat-item-badge");
+
+    mockState(createChatListState());
+    const chatHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
+    expect(chatHtml).toContain("is-unread");
+    expect(chatHtml).toContain("chat-unread-dot");
   });
 
   it("dispatches worker selection when clicking a collapsed worker entry", () => {

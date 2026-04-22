@@ -1,6 +1,10 @@
 export enum AIChatEventTypeEnum {
   Start = 'chat.start',
   Update = 'chat.update',
+  Created = 'chat.created',
+  Updated = 'chat.updated',
+  Read = 'chat.read',
+  Unread = 'chat.unread',
 }
 
 export enum AIRequestEventTypeEnum {

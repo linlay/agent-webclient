@@ -4,7 +4,6 @@ import {
   Button,
   Collapse,
   CollapseProps,
-  Divider,
   Flex,
   Modal,
   Popover,
@@ -29,6 +28,10 @@ import {
   formatChatTimeLabel,
   pickChatAgentLabel,
 } from "@/features/chats/lib/chatListFormatter";
+import {
+  isChatUnread,
+  resolveWorkerUnreadCount,
+} from "@/features/chats/lib/chatReadState";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import type { Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
@@ -37,6 +40,27 @@ import { AgentIcon } from "@/shared/icons/agent";
 type AgentIconConfig = {
   color?: string;
   name?: string;
+};
+
+const UnreadDot: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <span
+    className={["chat-unread-dot", className].filter(Boolean).join(" ")}
+    aria-label="未读"
+  />
+);
+
+const UnreadCountBadge: React.FC<{ count: number; className?: string }> = ({
+  count,
+  className = "",
+}) => {
+  if (count <= 0) {
+    return null;
+  }
+  return (
+    <span className={["chat-unread-count", className].filter(Boolean).join(" ")}>
+      {count}
+    </span>
+  );
 };
 
 const ConversationTimeMeta: React.FC<{
@@ -69,16 +93,18 @@ const ChatItem: React.FC<{
 }> = ({ chat, agents, isActive, onClick }) => {
   const label = pickChatAgentLabel(chat, agents);
   const title = chat.chatName || chat.chatId || "(无标题)";
+  const isUnread = isChatUnread(chat);
 
   return (
     <UiListItem
-      className={`chat-item ${isActive ? "is-active" : ""}`}
+      className={`chat-item ${isActive ? "is-active" : ""} ${isUnread ? "is-unread" : ""}`}
       selected={isActive}
       dense
       onClick={onClick}
     >
       <div className="chat-item-head">
         <div className="chat-title-wrap">
+          {isUnread ? <UnreadDot /> : null}
           <div className="chat-title">{title}</div>
         </div>
         <ConversationTimeMeta
@@ -99,14 +125,16 @@ const WorkerChatPreviewItem: React.FC<{
   loading: boolean;
   onClick: () => void;
 }> = ({ chat, isActive, loading, onClick }) => {
+  const isUnread = isChatUnread(chat);
   return (
     <UiListItem
-      className={`worker-chat-item ${isActive ? "is-active" : ""}`}
+      className={`worker-chat-item ${isActive ? "is-active" : ""} ${isUnread ? "is-unread" : ""}`}
       selected={isActive}
       loading={loading}
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
+        {isUnread ? <UnreadDot className="worker-chat-item-badge" /> : null}
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || "(无预览)"}
         </span>
@@ -126,11 +154,12 @@ const WorkerPanelHeader: React.FC<{
   isActive: boolean;
   icon?: AgentIconConfig;
   lastChat?: WorkerConversationRow;
+  unreadCount?: number;
   onStartNewConversation: (
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
-}> = ({ row, isActive, icon, lastChat, onStartNewConversation }) => {
+}> = ({ row, isActive, icon, lastChat, unreadCount = 0, onStartNewConversation }) => {
   const preview = lastChat
     ? lastChat?.lastRunContent || lastChat?.chatName || "最新对话无答复"
     : "暂无历史对话";
@@ -157,6 +186,7 @@ const WorkerPanelHeader: React.FC<{
             {row.displayName}
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
+          <UnreadCountBadge count={unreadCount} className="worker-panel-unread-count" />
           {!!lastChat?.updatedAt && (
             <ConversationTimeMeta
               updatedAt={lastChat?.updatedAt}
@@ -370,6 +400,17 @@ export const LeftSidebar: React.FC = () => {
     return chatsByKey;
   }, [state.chats, state.workerRows]);
 
+  const workerUnreadCountByKey = useMemo(() => {
+    const unreadCounts = new Map<string, number>();
+    for (const row of state.workerRows) {
+      unreadCounts.set(
+        row.key,
+        resolveWorkerUnreadCount(row, state.agents, state.chats),
+      );
+    }
+    return unreadCounts;
+  }, [state.agents, state.chats, state.workerRows]);
+
   const historyWorker =
     state.workerIndexByKey.get(historyWorkerKey) ||
     state.workerRows.find((row) => row.key === historyWorkerKey) ||
@@ -506,6 +547,7 @@ export const LeftSidebar: React.FC = () => {
     (row) => {
       const rawChats = workerChatsByKey.get(row.key) || [];
       const icon = workerIconsByKey.get(row.key);
+      const unreadCount = workerUnreadCountByKey.get(row.key) || 0;
 
       return {
         key: row.key,
@@ -517,6 +559,7 @@ export const LeftSidebar: React.FC = () => {
             isActive={row.key === state.workerSelectionKey}
             icon={icon}
             lastChat={rawChats[0]}
+            unreadCount={unreadCount}
             onStartNewConversation={handleStartNewConversationForWorker}
           />
         ),
@@ -629,7 +672,7 @@ export const LeftSidebar: React.FC = () => {
                 />
               ) : (
                 <Flex vertical gap={10}>
-                  {filteredWorkerRows?.map((item, i) => (
+                  {filteredWorkerRows?.map((item) => (
                     <Popover
                       key={item.key}
                       trigger="hover"
@@ -679,6 +722,10 @@ export const LeftSidebar: React.FC = () => {
                               size: 26,
                             },
                           }}
+                        />
+                        <UnreadCountBadge
+                          count={workerUnreadCountByKey.get(item.key) || 0}
+                          className="worker-collapsed-unread-count"
                         />
                         <span className="worker-collapsed-name">
                           {item.displayName}

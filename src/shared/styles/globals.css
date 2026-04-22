@@ -4508,6 +4508,34 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     text-overflow: ellipsis;
 }
 
+.chat-unread-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent-electric);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-electric) 14%, transparent);
+}
+
+.chat-unread-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent-electric) 92%, white 8%);
+    color: white;
+    font: 700 10px/1 "IBM Plex Mono", monospace;
+}
+
+.chat-item.is-unread .chat-title,
+.worker-chat-item.is-unread .worker-chat-name,
+.command-list-title.is-unread span {
+    font-weight: 800;
+}
+
 .chat-time {
     flex: 0 0 auto;
     font-size: 10px;
@@ -5089,9 +5117,17 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .command-list-head strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     line-height: 1.3;
     min-width: 0;
+}
+
+.command-list-unread-dot {
+    width: 7px;
+    height: 7px;
 }
 
 .command-list-head span {
@@ -6017,6 +6053,10 @@ html[data-theme="dark"] .sidebar-settings-menu {
     text-align: center;
 }
 
+.worker-collapsed-unread-count {
+    margin-top: 2px;
+}
+
 .worker-collapse {
     display: flex;
     flex-direction: column;
@@ -6093,6 +6133,10 @@ html[data-theme="dark"] .sidebar-settings-menu {
 .worker-panel-role {
     font-size: 11px;
     color: var(--text-muted);
+    margin-left: 8px;
+}
+
+.worker-panel-unread-count {
     margin-left: 8px;
 }
 
@@ -6272,11 +6316,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 .worker-chat-item-badge {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--accent-electric);
-    opacity: 0;
+    margin-right: 2px;
 }
 
 .worker-chat-divider {

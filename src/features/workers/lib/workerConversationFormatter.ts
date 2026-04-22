@@ -1,4 +1,5 @@
 import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
+import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
 import { toText } from '@/shared/utils/eventUtils';
 
 function normalizeUpdatedAt(updatedAt: unknown): number {
@@ -38,13 +39,18 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
   return matchedChats
     .slice()
     .sort(compareChatFreshness)
-    .map((chat) => ({
-      chatId: toText(chat?.chatId),
-      chatName: toText(chat?.chatName) || toText(chat?.chatId),
-      updatedAt: normalizeUpdatedAt(chat?.updatedAt),
-      lastRunId: toText(chat?.lastRunId),
-      lastRunContent: toText(chat?.lastRunContent),
-      hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
-    }))
+    .map((chat) => {
+      const read = normalizeChatReadState(chat?.read);
+      return {
+        chatId: toText(chat?.chatId),
+        chatName: toText(chat?.chatName) || toText(chat?.chatId),
+        updatedAt: normalizeUpdatedAt(chat?.updatedAt),
+        lastRunId: toText(chat?.lastRunId),
+        lastRunContent: toText(chat?.lastRunContent),
+        read,
+        isRead: read?.isRead ?? true,
+        hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
+      };
+    })
     .filter((row) => row.chatId);
 }

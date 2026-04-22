@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
-import { getChat } from '@/features/transport/lib/apiClientProxy';
+import { getChat, markChatRead } from '@/features/transport/lib/apiClientProxy';
 import type { ArtifactFile, Chat, AgentEvent, Plan, PublishedArtifact, WorkerRow } from '@/app/state/types';
+import { normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { useWorkerData } from '@/features/workers/hooks/useWorkerData';
@@ -24,6 +25,10 @@ export { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } fro
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';
+}
+
+export function shouldAutoMarkChatRead(chat: Pick<Chat, 'chatId' | 'read'> | null | undefined): boolean {
+  return Boolean(String(chat?.chatId || '').trim()) && chat?.read?.isRead === false;
 }
 
 function normalizeChatPlan(value: unknown): Plan | null | undefined {
@@ -244,6 +249,46 @@ export function useChatActions() {
     querySessionsRef,
   ]);
 
+  const syncMarkReadResult = useCallback((chatId: string, data: unknown) => {
+    if (!isObjectRecord(data)) {
+      return;
+    }
+
+    const read = normalizeChatReadState(data.read);
+    if (read) {
+      dispatch({ type: 'UPSERT_CHAT', chat: { chatId, read } });
+    }
+
+    const agentKey = String(data.agentKey || '').trim();
+    const agentUnreadCount = Number(data.agentUnreadCount);
+    if (agentKey && Number.isFinite(agentUnreadCount) && agentUnreadCount >= 0) {
+      const nextAgents = upsertAgentUnreadCount(stateRef.current.agents, agentKey, agentUnreadCount);
+      if (nextAgents === stateRef.current.agents) {
+        return;
+      }
+      dispatch({
+        type: 'SET_AGENTS',
+        agents: nextAgents,
+      });
+    }
+  }, [dispatch, stateRef]);
+
+  const autoMarkReadIfNeeded = useCallback(async (chat: Chat | undefined) => {
+    if (!shouldAutoMarkChatRead(chat)) {
+      return;
+    }
+
+    try {
+      const response = await markChatRead({
+        chatId: String(chat?.chatId || '').trim(),
+        runId: String(chat?.lastRunId || '').trim() || undefined,
+      });
+      syncMarkReadResult(String(chat?.chatId || '').trim(), response.data);
+    } catch (error) {
+      dispatch({ type: 'APPEND_DEBUG', line: `[markRead error] ${(error as Error).message}` });
+    }
+  }, [dispatch, syncMarkReadResult]);
+
   const loadChat = useCallback(
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
       if (!chatId) return;
@@ -265,6 +310,7 @@ export function useChatActions() {
       }
 
       if (restoreSessionConversation(chatId)) {
+        void autoMarkReadIfNeeded(currentChat);
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -351,6 +397,7 @@ export function useChatActions() {
         if (activeRunId) {
           dispatchAttachRunEvent(chatId, activeRunId, 0);
         }
+        void autoMarkReadIfNeeded(currentChat);
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -367,6 +414,7 @@ export function useChatActions() {
       detachActiveConversationSession,
       dispatch,
       focusComposerSoon,
+      autoMarkReadIfNeeded,
       applyLoadedChatState,
       restoreSessionConversation,
       stateRef,

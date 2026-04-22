@@ -55,6 +55,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		getViewport: jest.fn(),
 		interruptChat: jest.fn(),
 		learnChat: jest.fn(),
+		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
 		setAccessToken: jest.fn(),
 		steerChat: jest.fn(),
@@ -92,6 +93,7 @@ let mockApiClient: {
 	getViewport: jest.Mock;
 	interruptChat: jest.Mock;
 	learnChat: jest.Mock;
+	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
@@ -302,6 +304,42 @@ describe("apiClientProxy", () => {
 				},
 			},
 		]);
+	});
+
+	it("routes markChatRead over ws without falling back to http", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				chatId: "chat_1",
+				read: { isRead: true },
+			},
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(
+			proxy.markChatRead({ chatId: "chat_1", runId: "run_1" }),
+		).resolves.toMatchObject({
+			data: {
+				chatId: "chat_1",
+				read: { isRead: true },
+			},
+		});
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/read",
+			payload: { chatId: "chat_1", runId: "run_1" },
+		});
+		expect(mockApiClient.markChatRead).not.toHaveBeenCalled();
 	});
 
 	it("does not fall back to http when ws request times out", async () => {

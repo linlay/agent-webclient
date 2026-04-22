@@ -10,6 +10,10 @@ import {
 	resolveChatSummaryPendingAwaiting,
 	resolveChatSummaryUpdatedAt,
 } from "@/features/chats/lib/chatSummaryLive";
+import {
+	normalizeChatReadState,
+	upsertAgentUnreadCount,
+} from "@/features/chats/lib/chatReadState";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	destroyWsClient,
@@ -99,9 +103,20 @@ function toChatPatchFromPushEvent(
 		chatPatch.teamId = teamId;
 	}
 
-	const runId = String(event.runId || "").trim();
+	const runId = String(event.runId || raw.lastRunId || "").trim();
 	if (runId) {
 		chatPatch.lastRunId = runId;
+	}
+
+	if (event.type === "chat.read" || event.type === "chat.unread") {
+		const nextReadState = normalizeChatReadState({
+			isRead: event.type === "chat.read",
+			readAt: raw.readAt,
+			readRunId: raw.readRunId,
+		});
+		if (nextReadState) {
+			chatPatch.read = nextReadState;
+		}
 	}
 
 	const lastRunContent = typeof raw.lastRunContent === "string"
@@ -158,6 +173,29 @@ function upsertPushChatSummary(
 		return;
 	}
 	dispatch({ type: "UPSERT_CHAT", chat: chatPatch });
+}
+
+function syncAgentUnreadCountFromPush(
+	dispatch: WsTransportDispatch,
+	stateRef: { current: AppState },
+	event: AgentEvent,
+): void {
+	const raw = event as Record<string, unknown>;
+	const agentKey = String(event.agentKey || "").trim();
+	const agentUnreadCount = Number(raw.agentUnreadCount);
+	if (!agentKey || !Number.isFinite(agentUnreadCount) || agentUnreadCount < 0) {
+		return;
+	}
+
+	const nextAgents = upsertAgentUnreadCount(
+		stateRef.current.agents,
+		agentKey,
+		agentUnreadCount,
+	);
+	if (nextAgents === stateRef.current.agents) {
+		return;
+	}
+	dispatch({ type: "SET_AGENTS", agents: nextAgents });
 }
 
 function dispatchLoadChatEvent(chatId: string): void {
@@ -310,6 +348,12 @@ function buildWsClient(
 
 			if (type === "chat.created") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
+				return;
+			}
+
+			if (type === "chat.read" || type === "chat.unread") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
 				return;
 			}
 

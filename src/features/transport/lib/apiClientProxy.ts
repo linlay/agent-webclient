@@ -18,6 +18,7 @@ import {
 	getViewport as getViewportHttp,
 	interruptChat as interruptChatHttp,
 	learnChat as learnChatHttp,
+	markChatRead as markChatReadHttp,
 	rememberChat as rememberChatHttp,
 	setAccessToken,
 	steerChat as steerChatHttp,
@@ -25,6 +26,7 @@ import {
 	submitTool as submitToolHttp,
 	uploadFile,
 	type ApiResponse,
+	type MarkChatReadParams,
 	type QueryLikeParams,
 } from "@/shared/api/apiClient";
 import {
@@ -168,6 +170,12 @@ export function submitAwaiting(params: {
 	params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
 	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
+}
+
+export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
+	return routeRequest("/api/read", params, () => markChatReadHttp(params), {
 		fallbackOnConnectFailure: false,
 	});
 }

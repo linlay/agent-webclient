@@ -460,8 +460,15 @@ export interface Chat {
   updatedAt?: string | number;
   lastRunId?: string;
   lastRunContent?: string;
+  read?: ChatReadState;
   hasPendingAwaiting?: boolean;
   [key: string]: unknown;
+}
+
+export interface ChatReadState {
+  isRead: boolean;
+  readAt?: number;
+  readRunId?: string;
 }
 
 /* ============================================
@@ -473,11 +480,17 @@ export interface Agent {
   role?: string;
   wonders?: string[];
   controls?: AgentControl[];
+  stats?: AgentStats;
   icon?: {
     color?: string;
     name?: string;
   }
   [key: string]: unknown;
+}
+
+export interface AgentStats {
+  totalCount?: number;
+  unreadCount?: number;
 }
 
 export interface AgentControl {
@@ -534,6 +547,8 @@ export interface WorkerConversationRow {
   updatedAt: number;
   lastRunId: string;
   lastRunContent: string;
+  read?: ChatReadState;
+  isRead?: boolean;
   hasPendingAwaiting?: boolean;
 }
 
