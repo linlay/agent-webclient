@@ -23,6 +23,7 @@ import {
   createLiveQuerySession,
   snapshotConversationState,
   markSessionSnapshotApplied,
+  type LiveQuerySession,
 } from '@/features/chats/lib/conversationSession';
 import type { AgentEvent } from '@/app/state/types';
 import { toText } from '@/shared/utils/eventUtils';
@@ -39,6 +40,49 @@ interface SendMessageEventDetail {
 
 function readEventTeamId(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.teamId);
+}
+
+function isTerminalRunEventType(type: string): boolean {
+  return type === 'run.error' || type === 'run.complete' || type === 'run.cancel';
+}
+
+export function syncLiveSessionTerminalState(
+  session: Pick<LiveQuerySession, 'streaming' | 'abortController'>,
+  event: AgentEvent,
+): boolean {
+  const type = toText(event.type);
+  if (!isTerminalRunEventType(type)) {
+    return false;
+  }
+
+  session.streaming = false;
+  session.abortController = null;
+  return true;
+}
+
+export function canSendToTargetChat(input: {
+  currentActiveSession: Pick<LiveQuerySession, 'streaming' | 'abortController' | 'chatId'> | null;
+  currentStateChatId?: string;
+  targetChatId?: string;
+  stateStreaming: boolean;
+}): boolean {
+  const currentSessionChatId = String(
+    input.currentActiveSession?.chatId || input.currentStateChatId || '',
+  ).trim();
+  const targetChatId = String(input.targetChatId || '').trim();
+  const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
+
+  if (!input.currentActiveSession?.streaming || !isSameChat) {
+    return true;
+  }
+
+  if (!input.stateStreaming) {
+    input.currentActiveSession.streaming = false;
+    input.currentActiveSession.abortController = null;
+    return true;
+  }
+
+  return false;
 }
 
 export function resolveQueryStreamExecutor(transportMode: 'sse' | 'ws') {
@@ -88,14 +132,21 @@ export function useMessageActions() {
       const currentActiveSession = currentActiveReqId
         ? querySessionsRef.current.get(currentActiveReqId) ?? null
         : null;
-      const currentSessionChatId = currentActiveSession?.chatId || String(stateRef.current.chatId || '').trim();
       const targetChatId = String(preferredChatId || '').trim();
-      const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
+      const canSend = canSendToTargetChat({
+        currentActiveSession,
+        currentStateChatId: String(stateRef.current.chatId || '').trim(),
+        targetChatId,
+        stateStreaming: Boolean(stateRef.current.streaming),
+      });
 
-      if (currentActiveSession?.streaming && isSameChat) {
+      if (!canSend) {
         // Same chat is already streaming — block duplicate submit
         return;
       }
+
+      const currentSessionChatId = currentActiveSession?.chatId || String(stateRef.current.chatId || '').trim();
+      const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
 
       if (stateRef.current.streaming && !isSameChat) {
         // Different chat requested while current is streaming — detach current session
@@ -313,6 +364,7 @@ export function useMessageActions() {
       const sessionHandleEvent = (event: AgentEvent) => {
         session.bufferedEvents.push(event);
         bindSessionIdentity(event);
+        syncLiveSessionTerminalState(session, event);
 
         if (isSessionActive()) {
           handleEvent(event);
@@ -324,7 +376,7 @@ export function useMessageActions() {
           upsertBackgroundChatSummary(event, toText(event.message) || undefined);
           return;
         }
-        if (type === 'run.start' || type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
+        if (type === 'run.start' || isTerminalRunEventType(type)) {
           upsertBackgroundChatSummary(event);
           return;
         }
