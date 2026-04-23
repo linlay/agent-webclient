@@ -2,6 +2,7 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const express = require('express');
+const httpProxy = require('http-proxy');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const DEFAULT_PORT = '11948';
@@ -128,12 +129,38 @@ function createProxy(target, logger) {
   return createProxyMiddleware({
     target: target.toString(),
     changeOrigin: true,
-    ws: true,
+    ws: false,
     xfwd: true,
     logLevel: 'silent',
     selfHandleResponse: false,
     onError: createProxyErrorHandler(logger),
   });
+}
+
+function createWebSocketProxy(target, logger) {
+  const proxy = httpProxy.createProxyServer({
+    target: target.toString(),
+    changeOrigin: true,
+    ws: true,
+    xfwd: true,
+  });
+
+  proxy.on('error', (error, req, socket) => {
+    logger.error(
+      `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
+    );
+
+    if (socket && typeof socket.write === 'function' && !socket.destroyed) {
+      try {
+        socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+      } catch {
+        // Ignore socket write failures while reporting websocket proxy errors.
+      }
+    }
+    socket?.destroy?.();
+  });
+
+  return proxy;
 }
 
 function createDevCorsMiddleware() {
@@ -209,13 +236,11 @@ function createApp(config, options = {}) {
   const devCorsMiddleware = createDevCorsMiddleware();
   const apiProxy = createApiProxy(config.baseUrl, logger);
   const voiceProxy = createProxy(config.voiceBaseUrl, logger);
-  const wsProxy = createProxy(config.baseUrl, logger);
 
   app.disable('x-powered-by');
   app.use(devCorsMiddleware);
   app.use('/api/voice', voiceProxy);
   app.use('/api', apiProxy);
-  app.use('/ws', wsProxy);
   app.use(express.static(config.frontendDist, { fallthrough: true }));
   app.use((req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -235,29 +260,31 @@ function createApp(config, options = {}) {
     proxies: {
       apiProxy,
       voiceProxy,
-      wsProxy,
     },
   };
 }
 
 function createServer(config, options = {}) {
   const logger = options.logger || console;
-  const { app, proxies } = createApp(config, { logger });
+  const { app } = createApp(config, { logger });
+  const apiWsProxy = createWebSocketProxy(config.baseUrl, logger);
+  const voiceWsProxy = createWebSocketProxy(config.voiceBaseUrl, logger);
+  const wsProxy = createWebSocketProxy(config.baseUrl, logger);
   const server = http.createServer(app);
 
   server.on('upgrade', (req, socket, head) => {
     const requestPath = parseRequestPath(req.url);
 
     if (requestPath.startsWith('/api/voice')) {
-      proxies.voiceProxy.upgrade(req, socket, head);
+      voiceWsProxy.ws(req, socket, head);
       return;
     }
     if (requestPath.startsWith('/api')) {
-      proxies.apiProxy.upgrade(req, socket, head);
+      apiWsProxy.ws(req, socket, head);
       return;
     }
     if (requestPath === '/ws') {
-      proxies.wsProxy.upgrade(req, socket, head);
+      wsProxy.ws(req, socket, head);
       return;
     }
 

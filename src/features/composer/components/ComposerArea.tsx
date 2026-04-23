@@ -833,6 +833,18 @@ export const ComposerArea: React.FC = () => {
           line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,
         });
       } catch (error) {
+        const isStaleAwaiting =
+          error instanceof Error &&
+          /unknown awaiting|awaiting.*not found|awaiting.*expired/i.test(
+            error.message,
+          );
+        if (isStaleAwaiting) {
+          void message.warning("该操作已过期或失效，已自动恢复");
+          clearActiveAwaiting();
+          dispatch({ type: "SET_STREAMING", streaming: false });
+          dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+          return;
+        }
         return error;
       }
     },
