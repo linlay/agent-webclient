@@ -145,31 +145,25 @@ const WorkerPanelHeader: React.FC<{
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <Badge dot={unreadCount > 0}>
-        <AgentIcon
-          icon={icon}
-          type={row.type}
-          props={{
-            icon: {
-              className: "worker-panel-icon",
-            },
-            avatar: {
-              className: "worker-panel-icon",
-            },
-          }}
-        />
-      </Badge>
+      <AgentIcon
+        icon={icon}
+        type={row.type}
+        props={{
+          icon: {
+            className: "worker-panel-icon",
+          },
+          avatar: {
+            className: "worker-panel-icon",
+          },
+        }}
+      />
       <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
         <Flex align="center" className="worker-panel-header-body">
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
-          {!!lastChat?.updatedAt && (
-            <span className="worker-panel-time-label">
-              {formatChatTimeLabel(lastChat?.updatedAt)}
-            </span>
-          )}
+          <Badge count={unreadCount} size="small" color="blue" />
           <Tooltip title="新建对话">
             <Button
               className="worker-panel-new"
@@ -180,12 +174,16 @@ const WorkerPanelHeader: React.FC<{
           </Tooltip>
         </Flex>
         <Flex align="center" className="worker-panel-preview" gap={4}>
-          {unreadCount > 0 && <span>[{unreadCount}条]</span>}
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {preview}
           </Typography.Text>
           {lastChat?.hasPendingAwaiting && (
             <span className="chat-awaiting-status">等待批准</span>
+          )}
+          {!!lastChat?.updatedAt && (
+            <span className="worker-panel-time-label">
+              {formatChatTimeLabel(lastChat?.updatedAt)}
+            </span>
           )}
         </Flex>
       </Flex>

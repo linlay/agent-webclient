@@ -6142,7 +6142,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
     height: 0;
 }
 
-.ant-collapse-item-active>.ant-collapse-header .worker-panel-time-label {
+.ant-collapse-item-active>.ant-collapse-header .ant-badge {
     display: none;
 }
 
