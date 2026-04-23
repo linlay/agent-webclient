@@ -6,6 +6,7 @@ import {
   Collapse,
   CollapseProps,
   Flex,
+  Input,
   Modal,
   Popover,
   Spin,
@@ -37,6 +38,7 @@ import { buildWorkerConversationRows } from "@/features/workers/lib/workerConver
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import type { Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { AgentIcon } from "@/shared/icons/agent";
+import { SearchOutlined } from "@ant-design/icons";
 
 type AgentIconConfig = {
   color?: string;
@@ -586,19 +588,15 @@ export const LeftSidebar: React.FC = () => {
       >
         {state.leftDrawerOpen && (
           <div className="sidebar-filter-row">
-            <UiInput
-              id="chat-search"
-              inputSize="sm"
-              type="text"
+            <Input
+              variant="filled"
               placeholder={
                 state.conversationMode === "worker"
                   ? "按 名称 / key / teamId 过滤..."
                   : "搜索对话..."
               }
               value={state.chatFilter}
-              style={{
-                border: 0,
-              }}
+              prefix={<SearchOutlined style={{ color: "var(--text-muted)" }} />}
               onChange={(e) =>
                 dispatch({
                   type: "SET_CHAT_FILTER",
@@ -606,12 +604,12 @@ export const LeftSidebar: React.FC = () => {
                 })
               }
             />
-
             <UiButton
               className="icon-btn icon-btn-fixed"
               size="sm"
               variant="ghost"
               loading={isSidebarLoading}
+              iconOnly
               onClick={() => {
                 if (state.conversationMode === "worker") {
                   window.dispatchEvent(
@@ -623,7 +621,6 @@ export const LeftSidebar: React.FC = () => {
               }}
             >
               <MaterialIcon name="refresh" />
-              <span>刷新</span>
             </UiButton>
           </div>
         )}
