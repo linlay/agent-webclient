@@ -36,7 +36,7 @@
     --top-nav-height: 42px;
 
     --bg-page: var(--bg-base);
-    --bg-card: var(--bg-elev-2);
+    --bg-card: color-mix(in srgb, var(--bg-elev-2) 80%, transparent);
     --text-main: var(--ink-1);
     --text-sub: var(--ink-2);
     --text-muted: var(--ink-muted);
@@ -52,7 +52,7 @@
 html[data-theme="dark"] {
     --bg-base: #0d0e10;
     --bg-elev-1: #111214;
-    --bg-elev-2: #161719;
+    --bg-elev-2: #252627;
     --bg-input: #111214;
     --bg-hover: #1a1c20;
     --ink-1: #f2f3f5;
@@ -83,6 +83,7 @@ html,
 body {
     margin: 0;
     min-height: 100%;
+    background: var(--bg-base);
 }
 
 body {
@@ -96,12 +97,7 @@ body {
         Roboto,
         sans-serif;
     color: var(--ink-1);
-    background: var(--bg-base);
     overflow-x: hidden;
-}
-
-html[data-theme="dark"] body {
-    background: var(--bg-base);
 }
 
 html[data-theme="dark"] {
@@ -423,11 +419,8 @@ textarea {
     grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100vh;
     overflow: hidden;
-    background:
-        radial-gradient(circle at top left,
-            color-mix(in srgb, var(--accent-soft) 58%, transparent),
-            transparent 28%),
-        var(--bg-base);
+    gap: 10px;
+    padding: 5px;
 }
 
 .app-shell.terminal-dock-open {
@@ -449,9 +442,6 @@ textarea {
     position: sticky;
     top: 0;
     z-index: 30;
-    background: color-mix(in srgb, var(--glass) 96%, transparent);
-    backdrop-filter: blur(16px) saturate(115%);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
     animation: fade-slide-in 0.45s ease both;
     grid-row: 1;
     grid-column: 2 / -1;
@@ -470,6 +460,9 @@ textarea {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-soft);
+    border-radius: 10px;
 }
 
 .nav-group {
@@ -738,9 +731,6 @@ textarea {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    background: linear-gradient(180deg,
-            color-mix(in srgb, var(--bg-elev-1) 68%, var(--bg-base)),
-            var(--bg-base));
     animation: fade-slide-in 0.5s 0.08s ease both;
 }
 
@@ -1713,10 +1703,6 @@ html[data-theme="dark"] .plan-header,
 html[data-theme="dark"] .floating-plan.is-expanded .plan-list {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
     background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
-}
-
-html[data-theme="dark"] .conversation-stage {
-    background: linear-gradient(180deg, var(--bg-elev-1), var(--bg-base));
 }
 
 html[data-theme="dark"] .timeline-empty {
@@ -4252,21 +4238,21 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     bottom: 0;
     z-index: 40;
     width: var(--left-sidebar-width);
-    background: color-mix(in srgb, var(--bg-elev-1) 96%, var(--bg-elev-2));
-    border-right: 1px solid color-mix(in srgb, var(--line-soft) 100%, transparent);
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     overflow: hidden;
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
 }
 
 .right-sidebar {
     width: var(--right-sidebar-width);
     right: 0;
     left: auto;
-    border-right: 0;
-    border-left: 1px solid color-mix(in srgb, var(--line-soft) 100%, transparent);
     transform: translateX(100%);
 }
 
@@ -4988,8 +4974,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     position: fixed;
     inset: 0;
     z-index: 35;
-    background: rgba(0, 0, 0, 0.22);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(5px);
     transition: opacity 0.3s ease;
 }
 
@@ -5510,7 +5495,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 
 .sidebar-settings-menu {
     padding: 10px;
-    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    background: var(--bg-elev-2);
 }
 
 .sidebar-settings-section+.sidebar-settings-section {
@@ -5606,13 +5591,12 @@ html[data-theme="dark"] .sidebar-settings-popover .ant-popover-inner {
 }
 
 html[data-theme="dark"] .sidebar-settings-menu {
-    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    background: var(--bg-base);
 }
 
 .layout-desktop-fixed .right-sidebar {
     transform: translateX(0);
     position: relative;
-    border-left: 1px solid var(--line-soft);
 }
 
 .layout-desktop-fixed {
@@ -5659,7 +5643,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
     width: var(--left-sidebar-width);
     min-width: var(--left-sidebar-width);
     pointer-events: auto;
-    box-shadow: var(--shadow-soft);
 }
 
 .layout-desktop-fixed .right-sidebar {
