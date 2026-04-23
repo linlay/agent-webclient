@@ -471,7 +471,7 @@ const ApprovalQuestion = forwardRef<
     const hostRef = useRef<HTMLDivElement>(null);
     const checkboxsRef = useRef<CheckboxRef[]>([]);
     const options = useMemo(() => resolveApprovalOptions(approval), [approval]);
-    const onEnterDebounce = useCallback(debounce(onEnter, 500), [onEnter]);
+    const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
 
     useImperativeHandle(
       ref,

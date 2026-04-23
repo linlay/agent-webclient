@@ -426,7 +426,7 @@ const Question = forwardRef<
   const options = getSelectOptions(data);
   const freeTextAnswer = getSelectFreeTextAnswer(data, value);
   const selectedOptionAnswers = getSelectedOptionAnswers(data, value);
-  const onEnterDebounce = useCallback(debounce(onEnter, 500), [onEnter]);
+  const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
 
   useImperativeHandle(
     ref,

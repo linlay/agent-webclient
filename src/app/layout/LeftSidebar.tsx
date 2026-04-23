@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
+  Badge,
   Button,
   Collapse,
   CollapseProps,
@@ -42,46 +43,17 @@ type AgentIconConfig = {
   name?: string;
 };
 
-const UnreadDot: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <span
-    className={["chat-unread-dot", className].filter(Boolean).join(" ")}
-    aria-label="未读"
-  />
-);
-
-const UnreadCountBadge: React.FC<{ count: number; className?: string }> = ({
-  count,
-  className = "",
+const UnreadDot: React.FC<{ chat: Chat | WorkerConversationRow }> = ({
+  chat,
 }) => {
-  if (count <= 0) {
-    return null;
-  }
+  const isUnread = isChatUnread(chat);
   return (
-    <span className={["chat-unread-count", className].filter(Boolean).join(" ")}>
-      {count}
-    </span>
-  );
-};
-
-const ConversationTimeMeta: React.FC<{
-  updatedAt?: string | number | Date;
-  hasPendingAwaiting?: boolean;
-  className?: string;
-  timeClassName?: string;
-}> = ({
-  updatedAt,
-  hasPendingAwaiting = false,
-  className = "",
-  timeClassName = "chat-time",
-}) => {
-  const time = formatChatTimeLabel(updatedAt);
-  return (
-    <div className={["chat-time-meta", className].filter(Boolean).join(" ")}>
-      {hasPendingAwaiting ? (
-        <span className="chat-awaiting-status">等待批准</span>
-      ) : null}
-      <span className={timeClassName}>{time}</span>
-    </div>
+    <span
+      className={["chat-unread-dot", isUnread ? "is-unread" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label="未读"
+    />
   );
 };
 
@@ -104,13 +76,12 @@ const ChatItem: React.FC<{
     >
       <div className="chat-item-head">
         <div className="chat-title-wrap">
-          {isUnread ? <UnreadDot /> : null}
+          <UnreadDot chat={chat} />
           <div className="chat-title">{title}</div>
         </div>
-        <ConversationTimeMeta
-          updatedAt={chat.updatedAt}
-          hasPendingAwaiting={Boolean(chat.hasPendingAwaiting)}
-        />
+        <span className="worker-panel-time-label">
+          {formatChatTimeLabel(chat.updatedAt)}
+        </span>
       </div>
       <div className="chat-meta-line">
         <UiTag tone="muted">{label}</UiTag>
@@ -125,25 +96,24 @@ const WorkerChatPreviewItem: React.FC<{
   loading: boolean;
   onClick: () => void;
 }> = ({ chat, isActive, loading, onClick }) => {
-  const isUnread = isChatUnread(chat);
   return (
     <UiListItem
-      className={`worker-chat-item ${isActive ? "is-active" : ""} ${isUnread ? "is-unread" : ""}`}
+      className={`worker-chat-item ${isActive ? "is-active" : ""}`}
       selected={isActive}
       loading={loading}
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
-        {isUnread ? <UnreadDot className="worker-chat-item-badge" /> : null}
+        <UnreadDot chat={chat} />
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || "(无预览)"}
         </span>
-        <ConversationTimeMeta
-          updatedAt={chat.updatedAt}
-          hasPendingAwaiting={Boolean(chat.hasPendingAwaiting)}
-          className="worker-chat-time-meta"
-          timeClassName="worker-chat-time"
-        />
+        {chat.hasPendingAwaiting && (
+          <span className="chat-awaiting-status">等待批准</span>
+        )}
+        <span className="worker-panel-time-label">
+          {formatChatTimeLabel(chat.updatedAt)}
+        </span>
       </div>
     </UiListItem>
   );
@@ -159,7 +129,14 @@ const WorkerPanelHeader: React.FC<{
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
-}> = ({ row, isActive, icon, lastChat, unreadCount = 0, onStartNewConversation }) => {
+}> = ({
+  row,
+  isActive,
+  icon,
+  lastChat,
+  unreadCount = 0,
+  onStartNewConversation,
+}) => {
   const preview = lastChat
     ? lastChat?.lastRunContent || lastChat?.chatName || "最新对话无答复"
     : "暂无历史对话";
@@ -168,32 +145,30 @@ const WorkerPanelHeader: React.FC<{
     <div
       className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
     >
-      <AgentIcon
-        icon={icon}
-        type={row.type}
-        props={{
-          icon: {
-            className: "worker-panel-icon",
-          },
-          avatar: {
-            className: "worker-panel-icon",
-          },
-        }}
-      />
+      <Badge dot={unreadCount > 0}>
+        <AgentIcon
+          icon={icon}
+          type={row.type}
+          props={{
+            icon: {
+              className: "worker-panel-icon",
+            },
+            avatar: {
+              className: "worker-panel-icon",
+            },
+          }}
+        />
+      </Badge>
       <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
         <Flex align="center" className="worker-panel-header-body">
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
-          <UnreadCountBadge count={unreadCount} className="worker-panel-unread-count" />
           {!!lastChat?.updatedAt && (
-            <ConversationTimeMeta
-              updatedAt={lastChat?.updatedAt}
-              hasPendingAwaiting={Boolean(lastChat?.hasPendingAwaiting)}
-              className="worker-panel-time"
-              timeClassName="worker-panel-time-label"
-            />
+            <span className="worker-panel-time-label">
+              {formatChatTimeLabel(lastChat?.updatedAt)}
+            </span>
           )}
           <Tooltip title="新建对话">
             <Button
@@ -204,7 +179,15 @@ const WorkerPanelHeader: React.FC<{
             />
           </Tooltip>
         </Flex>
-        <div className="worker-panel-preview">{preview}</div>
+        <Flex align="center" className="worker-panel-preview" gap={4}>
+          {unreadCount > 0 && <span>[{unreadCount}条]</span>}
+          <Typography.Text ellipsis style={{ flex: 1 }}>
+            {preview}
+          </Typography.Text>
+          {lastChat?.hasPendingAwaiting && (
+            <span className="chat-awaiting-status">等待批准</span>
+          )}
+        </Flex>
       </Flex>
     </div>
   );
@@ -253,7 +236,9 @@ const WorkerConversationPreviewList: React.FC<{
                 },
               }}
             />
-            <span className="worker-popover-header-title">{row.displayName}</span>
+            <span className="worker-popover-header-title">
+              {row.displayName}
+            </span>
           </div>
           <Tooltip title="新建对话">
             <Button
@@ -672,67 +657,69 @@ export const LeftSidebar: React.FC = () => {
                 />
               ) : (
                 <Flex vertical gap={10}>
-                  {filteredWorkerRows?.map((item) => (
-                    <Popover
-                      key={item.key}
-                      trigger="hover"
-                      placement="leftTop"
-                      arrow={false}
-                      classNames={{
-                        root: "worker-popover",
-                      }}
-                      styles={{
-                        body: {
-                          padding: 0,
-                          width: "var(--left-sidebar-width)",
-                        },
-                      }}
-                      content={
-                        <WorkerConversationPreviewList
-                          row={item}
-                          chats={workerChatsByKey.get(item.key) || []}
-                          activeChatId={state.chatId}
-                          icon={workerIconsByKey.get(item.key)}
-                          showHeader
-                          getWorkerChatLoading={getWorkerChatLoading}
-                          onSelectChat={handleSelectChat}
-                          onOpenHistory={handleOpenHistory}
-                          onStartNewConversation={
-                            handleStartNewConversationForWorker
-                          }
-                        />
-                      }
-                    >
-                      <Button
-                        type="text"
-                        className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
-                        onClick={() => handleSelectWorker(item.key)}
+                  {filteredWorkerRows?.map((item) => {
+                    const unreadCount =
+                      workerUnreadCountByKey.get(item.key) || 0;
+                    return (
+                      <Popover
+                        key={item.key}
+                        trigger="hover"
+                        placement="leftTop"
+                        arrow={false}
+                        classNames={{
+                          root: "worker-popover",
+                        }}
+                        styles={{
+                          body: {
+                            padding: 0,
+                            width: "var(--left-sidebar-width)",
+                          },
+                        }}
+                        content={
+                          <WorkerConversationPreviewList
+                            row={item}
+                            chats={workerChatsByKey.get(item.key) || []}
+                            activeChatId={state.chatId}
+                            icon={workerIconsByKey.get(item.key)}
+                            showHeader
+                            getWorkerChatLoading={getWorkerChatLoading}
+                            onSelectChat={handleSelectChat}
+                            onOpenHistory={handleOpenHistory}
+                            onStartNewConversation={
+                              handleStartNewConversationForWorker
+                            }
+                          />
+                        }
                       >
-                        <AgentIcon
-                          icon={workerIconsByKey.get(item.key)}
-                          type={item.type}
-                          props={{
-                            icon: {
-                              className: "worker-panel-icon",
-                              width: 26,
-                              height: 26,
-                            },
-                            avatar: {
-                              className: "worker-panel-icon",
-                              size: 26,
-                            },
-                          }}
-                        />
-                        <UnreadCountBadge
-                          count={workerUnreadCountByKey.get(item.key) || 0}
-                          className="worker-collapsed-unread-count"
-                        />
-                        <span className="worker-collapsed-name">
-                          {item.displayName}
-                        </span>
-                      </Button>
-                    </Popover>
-                  ))}
+                        <Button
+                          type="text"
+                          className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
+                          onClick={() => handleSelectWorker(item.key)}
+                        >
+                          <Badge dot={unreadCount > 0}>
+                            <AgentIcon
+                              icon={workerIconsByKey.get(item.key)}
+                              type={item.type}
+                              props={{
+                                icon: {
+                                  className: "worker-panel-icon",
+                                  width: 26,
+                                  height: 26,
+                                },
+                                avatar: {
+                                  className: "worker-panel-icon",
+                                  size: 26,
+                                },
+                              }}
+                            />
+                          </Badge>
+                          <span className="worker-collapsed-name">
+                            {item.displayName}
+                          </span>
+                        </Button>
+                      </Popover>
+                    );
+                  })}
                 </Flex>
               )
             ) : filteredChats.length === 0 ? (
