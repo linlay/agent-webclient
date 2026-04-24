@@ -787,9 +787,7 @@ export const ComposerArea: React.FC = () => {
     setSlashDismissed,
     state: {
       desktopDebugSidebarEnabled: state.desktopDebugSidebarEnabled,
-      layoutMode: state.layoutMode,
       planningMode: state.planningMode,
-      rightDrawerOpen: state.rightDrawerOpen,
     },
   });
 

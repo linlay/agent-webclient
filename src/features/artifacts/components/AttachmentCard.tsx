@@ -106,8 +106,6 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 
 		if (preview && canPreviewAttachment(attachment)) {
 			dispatch({ type: "OPEN_ATTACHMENT_PREVIEW", preview });
-			dispatch({ type: "SET_RIGHT_DRAWER_OPEN", open: true });
-			dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false });
 			return;
 		}
 

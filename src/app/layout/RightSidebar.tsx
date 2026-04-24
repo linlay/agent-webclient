@@ -252,7 +252,7 @@ export const RightSidebar: React.FC = () => {
   const preview = state.attachmentPreview;
   const desktopSidebarVisible =
     state.desktopDebugSidebarEnabled || Boolean(preview);
-  const showHeader = state.layoutMode !== "desktop-fixed" || Boolean(preview);
+  const showHeader = Boolean(preview);
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
@@ -327,26 +327,15 @@ export const RightSidebar: React.FC = () => {
   const handleClose = () => {
     if (preview) {
       dispatch({ type: "CLOSE_ATTACHMENT_PREVIEW" });
-      if (state.layoutMode !== "desktop-fixed") {
-        dispatch({ type: "SET_RIGHT_DRAWER_OPEN", open: false });
-      }
       return;
     }
 
-    dispatch({ type: "SET_RIGHT_DRAWER_OPEN", open: false });
+    dispatch({ type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED", enabled: false });
   };
 
   return (
     <aside
-      className={`sidebar right-sidebar ${
-        state.layoutMode === "desktop-fixed"
-          ? desktopSidebarVisible
-            ? "is-open"
-            : ""
-          : state.rightDrawerOpen
-            ? "is-open"
-            : ""
-      }`}
+      className={`sidebar right-sidebar ${desktopSidebarVisible ? "is-open" : ""}`}
       id="right-sidebar"
     >
       {showHeader && (

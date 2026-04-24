@@ -234,56 +234,28 @@ export const TopNav: React.FC = () => {
           <Divider type="vertical" />
           <UiButton
             id="open-right-drawer-btn"
-            className={`icon-btn ${state.layoutMode === "desktop-fixed" && state.desktopDebugSidebarEnabled ? "is-active" : ""}`}
+            className={`icon-btn ${state.desktopDebugSidebarEnabled ? "is-active" : ""}`}
             size="sm"
             variant="ghost"
             iconOnly
-            active={
-              state.layoutMode === "desktop-fixed" &&
-              state.desktopDebugSidebarEnabled
-            }
+            active={state.desktopDebugSidebarEnabled}
             aria-label={
-              state.layoutMode === "desktop-fixed"
-                ? state.desktopDebugSidebarEnabled
-                  ? "关闭调试面板"
-                  : "打开调试面板"
-                : "打开调试面板"
+              state.desktopDebugSidebarEnabled ? "关闭调试面板" : "打开调试面板"
             }
             onClick={() => {
               if (state.attachmentPreview) {
                 dispatch({ type: "CLOSE_ATTACHMENT_PREVIEW" });
-                if (state.layoutMode === "desktop-fixed") {
-                  dispatch({
-                    type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-                    enabled: true,
-                  });
-                } else {
-                  dispatch({
-                    type: "SET_RIGHT_DRAWER_OPEN",
-                    open: true,
-                  });
-                }
-                return;
-              }
-
-              if (state.layoutMode === "desktop-fixed") {
                 dispatch({
                   type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-                  enabled: !state.desktopDebugSidebarEnabled,
+                  enabled: true,
                 });
                 return;
               }
 
               dispatch({
-                type: "SET_RIGHT_DRAWER_OPEN",
-                open: !state.rightDrawerOpen,
+                type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
+                enabled: !state.desktopDebugSidebarEnabled,
               });
-              if (state.layoutMode === "mobile-drawer") {
-                dispatch({
-                  type: "SET_LEFT_DRAWER_OPEN",
-                  open: false,
-                });
-              }
             }}
           >
             <MaterialIcon name="bug_report" />
@@ -303,19 +275,6 @@ export const TopNav: React.FC = () => {
             }
           >
             <MaterialIcon name="terminal" />
-          </UiButton>
-          <UiButton
-            size="sm"
-            iconOnly
-            variant="ghost"
-            onClick={() =>
-              dispatch({
-                type: "SET_RIGHT_DRAWER_OPEN",
-                open: !state.rightDrawerOpen,
-              })
-            }
-          >
-            <MaterialIcon name="dock_to_left" />
           </UiButton>
         </div>
       </div>

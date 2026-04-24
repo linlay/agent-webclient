@@ -1,16 +1,10 @@
-import React, { useRef, useEffect, useMemo } from "react";
-import { useAppState, useAppDispatch } from "@/app/state/AppContext";
-import {
-	DESKTOP_FIXED_BREAKPOINT,
-	MOBILE_BREAKPOINT,
-} from "@/app/state/constants";
-import type { LayoutMode } from "@/app/state/constants";
+import React, { useMemo } from "react";
+import { useAppState } from "@/app/state/AppContext";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import { RightSidebar } from "@/app/layout/RightSidebar";
-import { DrawerOverlay } from "@/app/layout/DrawerOverlay";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
 import { ActionModal } from "@/app/modals/ActionModal";
@@ -27,16 +21,8 @@ import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDispl
 import { TerminalDock } from "./TerminalDock";
 // import { useLiveEvents } from "@/hooks/useLiveEvents";
 
-function inferLayoutMode(width: number): LayoutMode {
-	if (width >= DESKTOP_FIXED_BREAKPOINT) return "desktop-fixed";
-	if (width >= MOBILE_BREAKPOINT) return "tablet-mixed";
-	return "mobile-drawer";
-}
-
 export const AppShell: React.FC = () => {
 	const state = useAppState();
-	const dispatch = useAppDispatch();
-	const appRef = useRef<HTMLDivElement>(null);
 
 	/* Initialize business logic hooks */
 	useWsTransport();
@@ -49,32 +35,9 @@ export const AppShell: React.FC = () => {
 	// Default real-time updates now come from `/ws` push frames via useWsTransport().
 	// useLiveEvents();
 
-	const layoutClass =
-		state.layoutMode === "desktop-fixed"
-			? "layout-desktop-fixed"
-			: state.layoutMode === "tablet-mixed"
-				? "layout-tablet-mixed"
-				: "";
 	const leftDrawerClass = state.leftDrawerOpen
 		? "left-drawer-open"
 		: "left-drawer-closed";
-
-	/* Responsive layout detection */
-	useEffect(() => {
-		const handleResize = () => {
-			const mode = inferLayoutMode(window.innerWidth);
-			if (mode !== state.layoutMode) {
-				dispatch({ type: "SET_LAYOUT_MODE", mode });
-			}
-		};
-		handleResize();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [dispatch, state.layoutMode]);
-
-	const showOverlay =
-		(state.leftDrawerOpen || state.rightDrawerOpen) &&
-		state.layoutMode === "mobile-drawer";
 	const desktopRightSidebarVisible =
 		state.desktopDebugSidebarEnabled || Boolean(state.attachmentPreview);
 	const timelineEntries = useMemo(() => {
@@ -93,8 +56,7 @@ export const AppShell: React.FC = () => {
 
 	return (
 		<div
-			ref={appRef}
-			className={`app-shell ${layoutClass} ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
+			className={`app-shell layout-desktop-fixed ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
 			id="app"
 		>
 			<TopNav />
@@ -104,7 +66,6 @@ export const AppShell: React.FC = () => {
 			<BottomDock />
 			{state.terminalDockOpen ? <TerminalDock /> : null}
 			<CommandStatusOverlay />
-			{showOverlay && <DrawerOverlay />}
 			{state.settingsOpen && <SettingsModal />}
 			<CommandModal />
 			<ActionModal />

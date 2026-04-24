@@ -139,23 +139,21 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.transportMode).toBe('ws');
   });
 
-  it('opens the left drawer by default on desktop widths', () => {
+  it('opens the left drawer by default', () => {
     (globalThis as unknown as { window?: Window & typeof globalThis }).window =
       {
         location: {
           pathname: '/',
           search: '',
         },
-        innerWidth: 1440,
       } as Window & typeof globalThis;
 
     const state = createInitialState();
 
-    expect(state.layoutMode).toBe('desktop-fixed');
     expect(state.leftDrawerOpen).toBe(true);
   });
 
-  it('keeps the left drawer closed by default on mobile widths', () => {
+  it('keeps the desktop layout defaults on narrow widths', () => {
     (globalThis as unknown as { window?: Window & typeof globalThis }).window =
       {
         location: {
@@ -167,8 +165,7 @@ describe('appReducer conversation reset behavior', () => {
 
     const state = createInitialState();
 
-    expect(state.layoutMode).toBe('mobile-drawer');
-    expect(state.leftDrawerOpen).toBe(false);
+    expect(state.leftDrawerOpen).toBe(true);
   });
 
   it('preserves worker conversation context for RESET_ACTIVE_CONVERSATION', () => {

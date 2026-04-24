@@ -1,4 +1,3 @@
-import type { LayoutMode } from "@/app/state/constants";
 import type { ContentSegment } from "@/features/timeline/lib/contentSegments";
 import type { ActionRuntime } from "@/features/tools/lib/actionRuntime";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
@@ -618,11 +617,9 @@ export interface AppState {
   chatLoadSeq: number;
   settingsOpen: boolean;
   leftDrawerOpen: boolean;
-  rightDrawerOpen: boolean;
   desktopDebugSidebarEnabled: boolean;
   terminalDockOpen: boolean;
   attachmentPreview: AttachmentPreviewState | null;
-  layoutMode: LayoutMode;
   artifactExpanded: boolean;
   artifactManualOverride: boolean | null;
   artifactAutoCollapseTimer: UiTimerHandle | null;

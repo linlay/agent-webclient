@@ -449,9 +449,6 @@ export const LeftSidebar: React.FC = () => {
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", { detail: { chatId } }),
     );
-    if (state.layoutMode === "mobile-drawer") {
-      dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false });
-    }
   };
 
   const handleSelectWorker = (workerKey: string) => {

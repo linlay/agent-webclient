@@ -36,6 +36,24 @@ jest.mock("antd", () => {
   const Flex = ({ children, className, style }: any) =>
     React.createElement("div", { className, style }, children);
 
+  const Input = ({ className, prefix, ...props }: any) =>
+    React.createElement(
+      "div",
+      { className },
+      prefix,
+      React.createElement("input", props),
+    );
+
+  const Badge = ({ children, count, dot }: any) =>
+    React.createElement(
+      "span",
+      {
+        "data-badge-count": count,
+        "data-badge-dot": dot ? "true" : "false",
+      },
+      children,
+    );
+
   const Modal = ({ open, title, children }: any) =>
     open
       ? React.createElement(
@@ -60,8 +78,10 @@ jest.mock("antd", () => {
 
   return {
     Button,
+    Badge,
     Collapse,
     Flex,
+    Input,
     Modal,
     Popover,
     Spin,
@@ -292,9 +312,8 @@ describe("LeftSidebar", () => {
     mockState(createWorkerState());
 
     const workerHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
-    expect(workerHtml).toContain("worker-collapsed-unread-count");
-    expect(workerHtml).toContain(">3<");
-    expect(workerHtml).toContain("worker-chat-item-badge");
+    expect(workerHtml).toContain('data-badge-dot="true"');
+    expect(workerHtml).toContain("chat-unread-dot is-unread");
 
     mockState(createChatListState());
     const chatHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
@@ -327,14 +346,13 @@ describe("LeftSidebar", () => {
     });
   });
 
-  it("renders awaiting status before time in the chat list", () => {
+  it("renders unread chat rows in the chat list", () => {
     mockState(createChatListState());
 
     const html = renderToStaticMarkup(React.createElement(LeftSidebar));
 
-    expect(html).toContain(
-      'class="chat-time-meta"><span class="chat-awaiting-status">等待批准</span><span class="chat-time">',
-    );
+    expect(html).toContain('class="ui-list-item is-dense chat-item  is-unread"');
+    expect(html).toContain('class="chat-unread-dot is-unread"');
   });
 
   it("renders awaiting status before time across worker header and preview rows", () => {
@@ -346,10 +364,10 @@ describe("LeftSidebar", () => {
     const html = renderToStaticMarkup(React.createElement(LeftSidebar));
 
     expect(html).toContain(
-      'class="chat-time-meta worker-panel-time"><span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
+      '<span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain(
-      'class="chat-time-meta worker-chat-time-meta"><span class="chat-awaiting-status">等待批准</span><span class="worker-chat-time">',
+      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="未读"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
     );
   });
 });

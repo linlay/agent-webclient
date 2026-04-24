@@ -1,4 +1,3 @@
-import type { LayoutMode } from "@/app/state/constants";
 import type {
 	ActiveAwaiting,
 	ActionState,
@@ -61,9 +60,7 @@ export type AppAction =
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { type: "SET_SETTINGS_OPEN"; open: boolean }
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
-	| { type: "SET_RIGHT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
-	| { type: "SET_LAYOUT_MODE"; mode: LayoutMode }
 	| { type: "OPEN_ATTACHMENT_PREVIEW"; preview: AttachmentPreviewState }
 	| { type: "CLOSE_ATTACHMENT_PREVIEW" }
 	| { type: "SET_CHAT_FILTER"; filter: string }

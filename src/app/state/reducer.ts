@@ -148,12 +148,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, settingsOpen: action.open };
 		case "SET_LEFT_DRAWER_OPEN":
 			return { ...state, leftDrawerOpen: action.open };
-		case "SET_RIGHT_DRAWER_OPEN":
-			return { ...state, rightDrawerOpen: action.open };
 		case "SET_TERMINAL_DOCK_OPEN":
 			return { ...state, terminalDockOpen: action.open };
-		case "SET_LAYOUT_MODE":
-			return { ...state, layoutMode: action.mode };
 		case "OPEN_ATTACHMENT_PREVIEW":
 			return { ...state, attachmentPreview: action.preview };
 		case "CLOSE_ATTACHMENT_PREVIEW":

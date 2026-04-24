@@ -1,9 +1,5 @@
 import type { AppState, VoiceChatState } from "@/app/state/types";
-import {
-	ACCESS_TOKEN_STORAGE_KEY,
-	DESKTOP_FIXED_BREAKPOINT,
-	MOBILE_BREAKPOINT,
-} from "@/app/state/constants";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import { getAppAccessToken } from "@/shared/api/appAuth";
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
@@ -37,19 +33,6 @@ function createInitialVoiceChatState(): VoiceChatState {
 	};
 }
 
-function resolveInitialLayoutMode(): AppState["layoutMode"] {
-	if (typeof window === "undefined" || typeof window.innerWidth !== "number") {
-		return "mobile-drawer";
-	}
-	if (window.innerWidth >= DESKTOP_FIXED_BREAKPOINT) {
-		return "desktop-fixed";
-	}
-	if (window.innerWidth >= MOBILE_BREAKPOINT) {
-		return "tablet-mixed";
-	}
-	return "mobile-drawer";
-}
-
 export function createInitialState(): AppState {
 	const storedToken = isAppMode()
 		? getAppAccessToken() || ""
@@ -58,7 +41,6 @@ export function createInitialState(): AppState {
 			: "";
 	const themeMode = resolveInitialThemeMode();
 	const transportMode = readStoredTransportMode() || "ws";
-	const layoutMode = resolveInitialLayoutMode();
 
 	return {
 		agents: [],
@@ -117,12 +99,10 @@ export function createInitialState(): AppState {
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
 		settingsOpen: false,
-		leftDrawerOpen: layoutMode !== "mobile-drawer",
-		rightDrawerOpen: false,
+		leftDrawerOpen: true,
 		desktopDebugSidebarEnabled: false,
 		terminalDockOpen: false,
 		attachmentPreview: null,
-		layoutMode,
 		artifactExpanded: false,
 		artifactManualOverride: null,
 		artifactAutoCollapseTimer: null,
