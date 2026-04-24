@@ -21,11 +21,12 @@ import {
 	sendJsonFrame,
 	type VoiceSocketContext,
 } from "@/features/voice/lib/voiceSocket";
+import { t } from "@/shared/i18n";
 
 const DEFAULT_VOICE_WS_PATH = "/api/voice/ws";
 
 export const DEFAULT_TTS_DEBUG_TEXT =
-	"这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。";
+	t("voice.debug.defaultTtsText");
 
 interface VoiceTaskStartOptions {
 	voice?: string;

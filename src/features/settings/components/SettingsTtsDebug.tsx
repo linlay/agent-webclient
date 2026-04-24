@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { DEFAULT_TTS_DEBUG_TEXT } from "@/features/voice/lib/voiceRuntime";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -18,13 +17,14 @@ export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
 }) => {
   const { t } = useI18n();
   const [ttsDebugText, setTtsDebugText] = useState("");
+  const defaultTtsDebugText = t("voice.debug.defaultTtsText");
 
   useEffect(() => {
     if (!settingsOpen) return;
     setTtsDebugText((current) =>
-      current.trim() ? current : DEFAULT_TTS_DEBUG_TEXT,
+      current.trim() ? current : defaultTtsDebugText,
     );
-  }, [settingsOpen]);
+  }, [defaultTtsDebugText, settingsOpen]);
 
   return (
     <div className="field-group" style={{ marginTop: "14px" }}>
@@ -33,7 +33,7 @@ export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
         id="tts-debug-input"
         rows={3}
         className="settings-textarea"
-        placeholder={DEFAULT_TTS_DEBUG_TEXT}
+        placeholder={defaultTtsDebugText}
         value={ttsDebugText}
         onChange={(event) => setTtsDebugText(event.target.value)}
       />

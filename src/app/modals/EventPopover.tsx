@@ -11,6 +11,7 @@ import type { AgentEvent } from "@/app/state/types";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useI18n } from "@/shared/i18n";
 
 const COLLECTIBLE_EVENT_TYPES = new Set([
   "reasoning.start",
@@ -85,10 +86,48 @@ interface CopyMenuItemState {
   label: string;
 }
 
-const DEFAULT_COPY_MENU_ITEM: CopyMenuItemState = {
-  key: "eventJson",
-  label: "全部",
+type EventPopoverT = (key: string, params?: Record<string, unknown>) => string;
+
+const defaultEventPopoverT: EventPopoverT = (key, params = {}) => {
+  const fallbacks: Record<string, string> = {
+    "eventPopover.copy.allShort": "All",
+    "eventPopover.copy.all": "Copy all",
+    "eventPopover.copy.requestBody": "Copy requestBody",
+    "eventPopover.copy.systemPrompt": "Copy systemPrompt",
+    "eventPopover.copy.tools": "Copy tools",
+    "eventPopover.copy.model": "Copy model",
+    "eventPopover.copy.message": "Copy message",
+    "eventPopover.copy.error": "Copy error message",
+    "eventPopover.copy.currentText": "Copy current text",
+    "eventPopover.copy.collectedText": "Copy collected text",
+    "eventPopover.copy.collectedSnapshot": "Copy collected snapshot JSON",
+    "eventPopover.copy.arguments": "Copy arguments",
+    "eventPopover.copy.result": "Copy result",
+    "eventPopover.copy.awaitingItems": "Copy question/approval/form JSON",
+    "eventPopover.copy.field": "Copy {field}",
+    "eventPopover.feedback.copied": "Copied {label}",
+    "eventPopover.feedback.copyFailed": "{label} copy failed",
+    "eventPopover.copy.openMenu": "Open copy menu",
+    "eventPopover.group.unknown": "Unknown group",
+    "eventPopover.meta.time": "Time: {time}",
+    "eventPopover.action.collectSnapshot": "Collect event snapshot",
+    "eventPopover.copy.menuAria": "Copy menu",
+    "eventPopover.title.doubleClickCopy": "Double-click to copy all",
+    "eventPopover.close": "Close event details",
+  };
+  const template = fallbacks[key] || key;
+  return template.replace(/\{([^}]+)\}/g, (_, rawKey: string) => {
+    const value = params[String(rawKey || "").trim()];
+    return value == null ? "" : String(value);
+  });
 };
+
+function buildDefaultCopyMenuItem(t: EventPopoverT): CopyMenuItemState {
+  return {
+    key: "eventJson",
+    label: t("eventPopover.copy.allShort"),
+  };
+}
 
 function readEventIdValue(
   event: Partial<Record<EventGroupIdKey, unknown>> | null | undefined,
@@ -245,8 +284,9 @@ function pushCopyMenuItem(
 function pushDefaultCopyMenuItem(
   items: EventCopyMenuItem[],
   rawJsonStr: string,
+  t: EventPopoverT,
 ): void {
-  pushCopyMenuItem(items, "eventJson", "复制全部", rawJsonStr);
+  pushCopyMenuItem(items, "eventJson", t("eventPopover.copy.all"), rawJsonStr);
 }
 
 function extractTextParts(value: unknown): string[] {
@@ -449,15 +489,26 @@ function readAwaitingItemsForCopy(event: AgentEvent | null): string {
 function buildCopyMenuTitle(
   lastCopyItem: CopyMenuItemState,
   copyStatus: Record<string, CopyFeedbackState>,
+  t: EventPopoverT = defaultEventPopoverT,
 ): string {
   const status = copyStatus[lastCopyItem.key] || "idle";
   if (status === "copied") {
-    return `已复制 ${lastCopyItem.label}`;
+    return t("eventPopover.feedback.copied", { label: lastCopyItem.label });
   }
   if (status === "error") {
-    return `${lastCopyItem.label} 复制失败`;
+    return t("eventPopover.feedback.copyFailed", {
+      label: lastCopyItem.label,
+    });
   }
-  return "打开复制菜单";
+  return t("eventPopover.copy.openMenu");
+}
+
+function copyFieldLabel(t: EventPopoverT, field: string): string {
+  return t("eventPopover.copy.field", { field });
+}
+
+function stripCopyPrefix(label: string): string {
+  return label.replace(/^Copy\s*/i, "").replace(/^\u590d\u5236\s*/, "");
 }
 
 function getPrimaryCopyMenuItem(
@@ -470,9 +521,10 @@ function buildEventCopyMenuItems(
   event: AgentEvent | null,
   relatedEvents: RelatedEventEntry[],
   rawJsonStr: string,
+  t: EventPopoverT = defaultEventPopoverT,
 ): EventCopyMenuItem[] {
   const items: EventCopyMenuItem[] = [];
-  pushDefaultCopyMenuItem(items, rawJsonStr);
+  pushDefaultCopyMenuItem(items, rawJsonStr, t);
   const type = String(event?.type || "").toLowerCase();
   const collectibleRelatedEvents = getCollectibleRelatedEvents(
     event,
@@ -488,79 +540,79 @@ function buildEventCopyMenuItems(
   if (type === "debug.precall") {
     const debugPreCallPayloads = resolveDebugPreCallCopyPayloads(event);
     if (debugPreCallPayloads) {
-      pushCopyMenuItem(items, "requestBody", "复制 requestBody", debugPreCallPayloads.requestBodyText);
-      pushCopyMenuItem(items, "systemPrompt", "复制 systemPrompt", debugPreCallPayloads.systemPromptText);
-      pushCopyMenuItem(items, "tools", "复制 tools", debugPreCallPayloads.toolsText);
-      pushCopyMenuItem(items, "model", "复制 model", debugPreCallPayloads.modelText);
+      pushCopyMenuItem(items, "requestBody", t("eventPopover.copy.requestBody"), debugPreCallPayloads.requestBodyText);
+      pushCopyMenuItem(items, "systemPrompt", t("eventPopover.copy.systemPrompt"), debugPreCallPayloads.systemPromptText);
+      pushCopyMenuItem(items, "tools", t("eventPopover.copy.tools"), debugPreCallPayloads.toolsText);
+      pushCopyMenuItem(items, "model", t("eventPopover.copy.model"), debugPreCallPayloads.modelText);
     }
     return items;
   }
 
   if (type.startsWith("chat.")) {
-    pushCopyMenuItem(items, "chatId", "复制 chatId", readEventIdValue(event || {}, "chatId"));
-    pushCopyMenuItem(items, "chatName", "复制 chatName", readNonEmptyStringValue(event?.chatName));
+    pushCopyMenuItem(items, "chatId", copyFieldLabel(t, "chatId"), readEventIdValue(event || {}, "chatId"));
+    pushCopyMenuItem(items, "chatName", copyFieldLabel(t, "chatName"), readNonEmptyStringValue(event?.chatName));
     return items;
   }
 
   if (type === "request.query" || type === "request.steer") {
-    pushCopyMenuItem(items, "requestId", "复制 requestId", readEventIdValue(event || {}, "requestId"));
-    pushCopyMenuItem(items, "message", "复制消息", readNonEmptyStringValue(event?.message));
-    pushCopyMenuItem(items, "references", "复制 references", stringifyCopyValue(event?.references));
+    pushCopyMenuItem(items, "requestId", copyFieldLabel(t, "requestId"), readEventIdValue(event || {}, "requestId"));
+    pushCopyMenuItem(items, "message", t("eventPopover.copy.message"), readNonEmptyStringValue(event?.message));
+    pushCopyMenuItem(items, "references", copyFieldLabel(t, "references"), stringifyCopyValue(event?.references));
     return items;
   }
 
   if (type.startsWith("run.")) {
-    pushCopyMenuItem(items, "runId", "复制 runId", readEventIdValue(event || {}, "runId"));
-    pushCopyMenuItem(items, "chatId", "复制 chatId", readEventIdValue(event || {}, "chatId"));
-    pushCopyMenuItem(items, "requestId", "复制 requestId", readEventIdValue(event || {}, "requestId"));
+    pushCopyMenuItem(items, "runId", copyFieldLabel(t, "runId"), readEventIdValue(event || {}, "runId"));
+    pushCopyMenuItem(items, "chatId", copyFieldLabel(t, "chatId"), readEventIdValue(event || {}, "chatId"));
+    pushCopyMenuItem(items, "requestId", copyFieldLabel(t, "requestId"), readEventIdValue(event || {}, "requestId"));
     if (type === "run.error") {
-      pushCopyMenuItem(items, "error", "复制错误信息", stringifyCopyValue(event?.error));
+      pushCopyMenuItem(items, "error", t("eventPopover.copy.error"), stringifyCopyValue(event?.error));
     }
     return items;
   }
 
   if (type.startsWith("content.")) {
-    pushCopyMenuItem(items, "contentId", "复制 contentId", readEventIdValue(event || {}, "contentId"));
-    pushCopyMenuItem(items, "currentText", "复制当前文本", readCurrentTextForCopy(event));
-    pushCopyMenuItem(items, "collectedText", "复制汇总文本", collectedText);
-    pushCopyMenuItem(items, "collectedSnapshot", "复制汇总快照 JSON", collectedSnapshotJson);
+    pushCopyMenuItem(items, "contentId", copyFieldLabel(t, "contentId"), readEventIdValue(event || {}, "contentId"));
+    pushCopyMenuItem(items, "currentText", t("eventPopover.copy.currentText"), readCurrentTextForCopy(event));
+    pushCopyMenuItem(items, "collectedText", t("eventPopover.copy.collectedText"), collectedText);
+    pushCopyMenuItem(items, "collectedSnapshot", t("eventPopover.copy.collectedSnapshot"), collectedSnapshotJson);
     return items;
   }
 
   if (type.startsWith("reasoning.")) {
-    pushCopyMenuItem(items, "reasoningId", "复制 reasoningId", readEventIdValue(event || {}, "reasoningId"));
-    pushCopyMenuItem(items, "currentText", "复制当前文本", readCurrentTextForCopy(event));
-    pushCopyMenuItem(items, "collectedText", "复制汇总文本", collectedText);
-    pushCopyMenuItem(items, "collectedSnapshot", "复制汇总快照 JSON", collectedSnapshotJson);
+    pushCopyMenuItem(items, "reasoningId", copyFieldLabel(t, "reasoningId"), readEventIdValue(event || {}, "reasoningId"));
+    pushCopyMenuItem(items, "currentText", t("eventPopover.copy.currentText"), readCurrentTextForCopy(event));
+    pushCopyMenuItem(items, "collectedText", t("eventPopover.copy.collectedText"), collectedText);
+    pushCopyMenuItem(items, "collectedSnapshot", t("eventPopover.copy.collectedSnapshot"), collectedSnapshotJson);
     return items;
   }
 
   if (type.startsWith("tool.")) {
-    pushCopyMenuItem(items, "toolId", "复制 toolId", readEventIdValue(event || {}, "toolId"));
+    pushCopyMenuItem(items, "toolId", copyFieldLabel(t, "toolId"), readEventIdValue(event || {}, "toolId"));
     pushCopyMenuItem(
       items,
       "toolName",
-      "复制 toolName",
+      copyFieldLabel(t, "toolName"),
       readNonEmptyStringValue(event?.toolLabel) || readNonEmptyStringValue(event?.toolName),
     );
-    pushCopyMenuItem(items, "arguments", "复制参数", readToolArgumentsForCopy(event, relatedEvents));
-    pushCopyMenuItem(items, "result", "复制结果", readResultForCopy(relatedEvents));
-    pushCopyMenuItem(items, "collectedSnapshot", "复制汇总快照 JSON", collectedSnapshotJson);
+    pushCopyMenuItem(items, "arguments", t("eventPopover.copy.arguments"), readToolArgumentsForCopy(event, relatedEvents));
+    pushCopyMenuItem(items, "result", t("eventPopover.copy.result"), readResultForCopy(relatedEvents));
+    pushCopyMenuItem(items, "collectedSnapshot", t("eventPopover.copy.collectedSnapshot"), collectedSnapshotJson);
     return items;
   }
 
   if (type.startsWith("action.")) {
-    pushCopyMenuItem(items, "actionId", "复制 actionId", readEventIdValue(event || {}, "actionId"));
-    pushCopyMenuItem(items, "actionName", "复制 actionName", readNonEmptyStringValue(event?.actionName));
-    pushCopyMenuItem(items, "arguments", "复制参数", readActionArgumentsForCopy(event, relatedEvents));
-    pushCopyMenuItem(items, "result", "复制结果", readResultForCopy(relatedEvents));
-    pushCopyMenuItem(items, "collectedSnapshot", "复制汇总快照 JSON", collectedSnapshotJson);
+    pushCopyMenuItem(items, "actionId", copyFieldLabel(t, "actionId"), readEventIdValue(event || {}, "actionId"));
+    pushCopyMenuItem(items, "actionName", copyFieldLabel(t, "actionName"), readNonEmptyStringValue(event?.actionName));
+    pushCopyMenuItem(items, "arguments", t("eventPopover.copy.arguments"), readActionArgumentsForCopy(event, relatedEvents));
+    pushCopyMenuItem(items, "result", t("eventPopover.copy.result"), readResultForCopy(relatedEvents));
+    pushCopyMenuItem(items, "collectedSnapshot", t("eventPopover.copy.collectedSnapshot"), collectedSnapshotJson);
     return items;
   }
 
   if (type.startsWith("plan.")) {
-    pushCopyMenuItem(items, "planId", "复制 planId", readEventIdValue(event || {}, "planId"));
-    pushCopyMenuItem(items, "planJson", "复制 plan JSON", stringifyCopyValue(event?.plan));
+    pushCopyMenuItem(items, "planId", copyFieldLabel(t, "planId"), readEventIdValue(event || {}, "planId"));
+    pushCopyMenuItem(items, "planJson", copyFieldLabel(t, "plan JSON"), stringifyCopyValue(event?.plan));
     return items;
   }
 
@@ -568,25 +620,25 @@ function buildEventCopyMenuItems(
     const groupId =
       readNonEmptyStringValue((event as Record<string, unknown> | null)?.taskGroupId) ||
       readNonEmptyStringValue((event as Record<string, unknown> | null)?.groupId);
-    pushCopyMenuItem(items, "taskId", "复制 taskId", readEventIdValue(event || {}, "taskId"));
-    pushCopyMenuItem(items, "taskName", "复制 taskName", readNonEmptyStringValue(event?.taskName));
-    pushCopyMenuItem(items, "taskGroupId", "复制 taskGroupId", groupId);
+    pushCopyMenuItem(items, "taskId", copyFieldLabel(t, "taskId"), readEventIdValue(event || {}, "taskId"));
+    pushCopyMenuItem(items, "taskName", copyFieldLabel(t, "taskName"), readNonEmptyStringValue(event?.taskName));
+    pushCopyMenuItem(items, "taskGroupId", copyFieldLabel(t, "taskGroupId"), groupId);
     if (type === "task.fail") {
-      pushCopyMenuItem(items, "error", "复制错误信息", stringifyCopyValue(event?.error));
+      pushCopyMenuItem(items, "error", t("eventPopover.copy.error"), stringifyCopyValue(event?.error));
     }
     return items;
   }
 
   if (type === "artifact.publish") {
-    pushCopyMenuItem(items, "runId", "复制 runId", readEventIdValue(event || {}, "runId"));
-    pushCopyMenuItem(items, "artifacts", "复制 artifacts JSON", stringifyCopyValue(event?.artifacts));
-    pushCopyMenuItem(items, "artifactUrls", "复制 artifact URLs", readArtifactUrlsForCopy(event));
+    pushCopyMenuItem(items, "runId", copyFieldLabel(t, "runId"), readEventIdValue(event || {}, "runId"));
+    pushCopyMenuItem(items, "artifacts", copyFieldLabel(t, "artifacts JSON"), stringifyCopyValue(event?.artifacts));
+    pushCopyMenuItem(items, "artifactUrls", copyFieldLabel(t, "artifact URLs"), readArtifactUrlsForCopy(event));
     return items;
   }
 
   if (type.startsWith("awaiting.")) {
-    pushCopyMenuItem(items, "awaitingId", "复制 awaitingId", readEventIdValue(event || {}, "awaitingId"));
-    pushCopyMenuItem(items, "awaitingItems", "复制问题/审批/表单 JSON", readAwaitingItemsForCopy(event));
+    pushCopyMenuItem(items, "awaitingId", copyFieldLabel(t, "awaitingId"), readEventIdValue(event || {}, "awaitingId"));
+    pushCopyMenuItem(items, "awaitingItems", t("eventPopover.copy.awaitingItems"), readAwaitingItemsForCopy(event));
     return items;
   }
 
@@ -682,6 +734,7 @@ function resolveInitialPopoverState(event: AgentEvent | null): {
 export const EventPopover: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<Map<string, number>>(new Map());
   const [popoverState, setPopoverState] = useState(() =>
@@ -689,7 +742,7 @@ export const EventPopover: React.FC = () => {
   );
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyFeedbackState>>({});
   const [lastCopyItem, setLastCopyItem] = useState<CopyMenuItemState>(
-    DEFAULT_COPY_MENU_ITEM,
+    () => buildDefaultCopyMenuItem(t),
   );
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
   const [position, setPosition] = useState({ top: 80, right: 320 });
@@ -739,8 +792,8 @@ export const EventPopover: React.FC = () => {
     [event, groupMeta, relatedEvents],
   );
   const copyMenuItems = useMemo(
-    () => buildEventCopyMenuItems(event, relatedEvents, popoverState.rawJsonStr),
-    [event, relatedEvents, popoverState.rawJsonStr],
+    () => buildEventCopyMenuItems(event, relatedEvents, popoverState.rawJsonStr, t),
+    [event, relatedEvents, popoverState.rawJsonStr, t],
   );
   const primaryCopyMenuItem = useMemo(
     () => getPrimaryCopyMenuItem(copyMenuItems),
@@ -751,9 +804,9 @@ export const EventPopover: React.FC = () => {
     copyTimerRef.current.forEach((timer) => window.clearTimeout(timer));
     copyTimerRef.current.clear();
     setCopyStatus({});
-    setLastCopyItem(DEFAULT_COPY_MENU_ITEM);
+    setLastCopyItem(buildDefaultCopyMenuItem(t));
     setCopyMenuOpen(false);
-  }, [event]);
+  }, [event, t]);
 
   useEffect(() => {
     return () => {
@@ -800,7 +853,7 @@ export const EventPopover: React.FC = () => {
   const seq = event.seq ?? "-";
   const groupSummary = groupMeta
     ? `${groupMeta.idKey}: ${groupMeta.idValue}`
-    : "未识别分组";
+    : t("eventPopover.group.unknown");
   const showSwitcher = relatedEvents.length > 1;
   const showCollect = collectibleRelatedEvents.length > 1;
   const copyIcon =
@@ -814,7 +867,7 @@ export const EventPopover: React.FC = () => {
     if (!text) {
       return;
     }
-    setLastCopyItem({ key, label: label.replace(/^复制\s*/, "") });
+        setLastCopyItem({ key, label: stripCopyPrefix(label) });
     void copyText(text)
       .then(() => {
         const existing = copyTimerRef.current.get(key);
@@ -842,7 +895,7 @@ export const EventPopover: React.FC = () => {
       });
   };
 
-  const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus);
+  const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus, t);
 
   return (
     <div
@@ -854,7 +907,7 @@ export const EventPopover: React.FC = () => {
           handleCopy(primaryCopyMenuItem);
         }
       }}
-      title="双击复制全部"
+      title={t("eventPopover.title.doubleClickCopy")}
       style={{
         top: `${position.top}px`,
         right: `${position.right}px`,
@@ -869,7 +922,9 @@ export const EventPopover: React.FC = () => {
               ? `${groupSummary} · ${activeRelatedIndex + 1}/${relatedEvents.length}`
               : groupSummary}
           </span>
-          <span className="event-popover-meta">{`时间: ${readableTimestamp}`}</span>
+          <span className="event-popover-meta">
+            {t("eventPopover.meta.time", { time: readableTimestamp })}
+          </span>
         </div>
         <div className="event-popover-actions">
           {showCollect && (
@@ -878,8 +933,8 @@ export const EventPopover: React.FC = () => {
               variant="ghost"
               size="sm"
               iconOnly
-              aria-label="收集事件快照"
-              title="收集事件快照"
+              aria-label={t("eventPopover.action.collectSnapshot")}
+              title={t("eventPopover.action.collectSnapshot")}
               onClick={() => {
                 const payload = buildCollectedSnapshot(event, collectibleRelatedEvents);
                 const rawJsonStr = stringifyPopoverPayload(payload);
@@ -903,7 +958,7 @@ export const EventPopover: React.FC = () => {
             }}
             onOpenChange={setCopyMenuOpen}
             content={
-              <div className="event-popover-copy-menu" role="menu" aria-label="复制菜单">
+              <div className="event-popover-copy-menu" role="menu" aria-label={t("eventPopover.copy.menuAria")}>
                 {copyMenuItems.map((item) => (
                   <UiButton
                     key={item.key}
@@ -928,7 +983,7 @@ export const EventPopover: React.FC = () => {
               variant="ghost"
               size="sm"
               iconOnly
-              aria-label="打开复制菜单"
+              aria-label={t("eventPopover.copy.openMenu")}
               aria-haspopup="menu"
               aria-expanded={copyMenuOpen}
               title={copyMenuTitle}
@@ -941,8 +996,8 @@ export const EventPopover: React.FC = () => {
             variant="ghost"
             size="sm"
             iconOnly
-            aria-label="关闭事件详情"
-            title="关闭事件详情"
+            aria-label={t("eventPopover.close")}
+            title={t("eventPopover.close")}
             onClick={() =>
               dispatch({
                 type: "SET_EVENT_POPOVER",

@@ -33,6 +33,7 @@ import {
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
 
 interface ApprovalDialogProps {
@@ -51,6 +52,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   onSubmit,
   onResolvedByOther,
 }) => {
+  const { t } = useI18n();
   const approvals = data.approvals;
   const approvalsRef = useRef<ApprovalRef[]>([]);
   const resolvedByOtherHandledRef = useRef(false);
@@ -88,9 +90,9 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       return;
     }
     resolvedByOtherHandledRef.current = true;
-    void message.info("已被其他终端提交");
+    void message.info(t("approvalDialog.resolvedByOther"));
     onResolvedByOther?.();
-  }, [data.resolvedByOther, onResolvedByOther]);
+  }, [data.resolvedByOther, onResolvedByOther, t]);
 
   useEffect(() => {
     setDecisions({});
@@ -319,8 +321,10 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         <Flex justify="flex-end" className={Style.TimeoutRow}>
           <span className={Style.TimeoutBadge}>
             {timeoutExpired && submitting
-              ? "自动提交中..."
-              : `提交倒计时 ${timeoutCountdown.label}`}
+              ? t("approvalDialog.status.autoSubmitting")
+              : t("approvalDialog.timeout.countdown", {
+                  label: timeoutCountdown.label,
+                })}
           </span>
         </Flex>
       )}
@@ -392,7 +396,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
           onClick={doIgnore}
           disabled={readOnly}
         >
-          <span>忽略</span>
+          <span>{t("approvalDialog.action.ignore")}</span>
           <span>ESC</span>
         </Button>
         {curIndex < approvals.length - 1 && (
@@ -405,7 +409,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
             }}
             disabled={readOnly || !currentDecision}
           >
-            继续
+            {t("approvalDialog.action.continue")}
           </Button>
         )}
         {curIndex >= approvals.length - 1 && (
@@ -419,7 +423,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
             loading={submitting}
             disabled={!canSubmit}
           >
-            <span>提交</span>
+            <span>{t("approvalDialog.action.submit")}</span>
             <EnterOutlined />
           </Button>
         )}
@@ -435,7 +439,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
       <LoadingOutlined style={{ color: "var(--colorPrimary)" }} />
-      <div>等待审批加载中...</div>
+      <div>{t("approvalDialog.loading")}</div>
     </Flex>
   );
 };
@@ -469,6 +473,7 @@ const ApprovalQuestion = forwardRef<
     ref,
   ) => {
     const hostRef = useRef<HTMLDivElement>(null);
+    const { t } = useI18n();
     const checkboxsRef = useRef<CheckboxRef[]>([]);
     const options = useMemo(() => resolveApprovalOptions(approval), [approval]);
     const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
@@ -491,7 +496,7 @@ const ApprovalQuestion = forwardRef<
         <Flex className={Style.Question} align="baseline">
           <Flex vertical gap={4} className={Style.QuestionText}>
             <span className={Style.QuestionHeading}>
-              请确认是否继续执行以下操作
+              {t("approvalDialog.defaultHeading")}
             </span>
             <span className={Style.QuestionPrompt}>
               {approval?.description}
@@ -541,7 +546,9 @@ const ApprovalQuestion = forwardRef<
                     {option.description}
                   </span>
                 )}
-                <span className="Selected">已选</span>
+                <span className="Selected">
+                  {t("approvalDialog.selected")}
+                </span>
               </Flex>
             </Checkbox>
           ))}

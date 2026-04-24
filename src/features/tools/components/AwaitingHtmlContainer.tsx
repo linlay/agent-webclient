@@ -23,6 +23,7 @@ import {
   readAwaitingSubmitPayload,
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useI18n } from "@/shared/i18n";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -33,7 +34,7 @@ interface AwaitingHtmlContainerProps {
 }
 
 export const INVALID_AWAITING_SUBMIT_ERROR =
-  "收集表单信息异常：提交数据结构不合法";
+  "Invalid awaiting submit payload";
 
 function getSubmitErrorText(result: unknown): string {
   if (typeof result === "string" && result.trim()) {
@@ -46,7 +47,8 @@ function getSubmitErrorText(result: unknown): string {
 }
 
 export const AWAITING_COLLECT_TIMEOUT_MS = 5_000;
-export const AWAITING_COLLECT_TIMEOUT_ERROR = "业务表单未响应采集请求";
+export const AWAITING_COLLECT_TIMEOUT_ERROR =
+  "Awaiting form did not respond to the collect request";
 
 type AwaitingCollectFlow =
   | { type: "submit" | "reject" }
@@ -103,7 +105,7 @@ export function beginAwaitingCollectRequest(
 
   postMessage(buildAwaitingCollectMessage(awaiting, decision), "*");
   onCollectingChange(decision);
-  onStatusChange("采集中...");
+  onStatusChange("collecting");
   onErrorChange("");
 
   return scheduleTimeout(() => {
@@ -235,6 +237,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   onClose,
   onResolvedByOther,
 }) => {
+  const { t } = useI18n();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const activeKeyRef = useRef(data.key);
   const requestedKeyRef = useRef("");
@@ -318,11 +321,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     ) => {
       if (!onSubmit) {
         setSubmitStatus("");
-        setSubmitError("提交失败：缺少提交流程处理器");
+        setSubmitError(t("awaiting.submit.missingHandler"));
         return;
       }
 
-      setSubmitStatus(autoSubmit ? "自动提交中..." : "提交中...");
+      setSubmitStatus(autoSubmit ? "autoSubmitting" : "submitting");
       setSubmitError("");
       const result = await onSubmit(
         buildAggregatedAwaitingSubmitPayload(
@@ -336,20 +339,20 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       const errorText = getSubmitErrorText(result);
       if (errorText) {
         setSubmitStatus("");
-        setSubmitError(`提交失败：${errorText}`);
+        setSubmitError(t("awaiting.submit.failedWithDetail", { detail: errorText }));
         return;
       }
       setSubmitStatus("");
       setSubmitError("");
     },
-    [data, onSubmit, timeoutExpired],
+    [data, onSubmit, t, timeoutExpired],
   );
 
   const handleAutoSubmit = useCallback(() => {
     if (
       data.resolvedByOther
-      || submitStatus === "提交中..."
-      || submitStatus === "自动提交中..."
+      || submitStatus === "submitting"
+      || submitStatus === "autoSubmitting"
       || Boolean(collectingDecision)
     ) {
       return;
@@ -416,9 +419,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setCollectingDecision(null);
     setSubmitStatus("");
     setSubmitError("");
-    void message.info("已被其他终端提交");
+    void message.info(t("awaiting.resolvedByOther"));
     onResolvedByOther?.();
-  }, [clearCollectTimeout, data.resolvedByOther, onResolvedByOther]);
+  }, [clearCollectTimeout, data.resolvedByOther, onResolvedByOther, t]);
 
   useEffect(
     () => () => {
@@ -467,11 +470,13 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         }
         onPatch?.({
           loading: false,
-          loadError: `业务确认表单加载失败: ${(error as Error).message}`,
+          loadError: t("awaiting.load.failedWithDetail", {
+            detail: (error as Error).message,
+          }),
           viewportHtml: "",
         });
       });
-  }, [data.key, data.loading, data.viewportHtml, data.viewportKey, onPatch]);
+  }, [data.key, data.loading, data.viewportHtml, data.viewportKey, onPatch, t]);
 
   useEffect(() => {
     if (!data.viewportHtml || !iframeRef.current) {
@@ -566,8 +571,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       !data.viewportHtml ||
       !onSubmit ||
       Boolean(collectingDecision) ||
-      submitStatus === "提交中..." ||
-      submitStatus === "自动提交中...",
+      submitStatus === "submitting" ||
+      submitStatus === "autoSubmitting",
     [
       collectingDecision,
       data.loading,
@@ -580,8 +585,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     data.loading ||
     !data.viewportHtml ||
     Boolean(collectingDecision) ||
-    submitStatus === "提交中..." ||
-    submitStatus === "自动提交中...";
+    submitStatus === "submitting" ||
+    submitStatus === "autoSubmitting";
+
+  const submitStatusText = submitStatus
+    ? t(`awaiting.status.${submitStatus}`)
+    : "";
 
   const handleSwitchForm = useCallback(
     (nextIndex: number) => {
@@ -613,18 +622,22 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     <div className="awaiting-panel" id="awaiting-html-panel">
       <div className="awaiting-panel-header">
         <div className="awaiting-panel-header-main">
-          <strong className="awaiting-panel-title">业务确认</strong>
+          <strong className="awaiting-panel-title">
+            {t("awaiting.title")}
+          </strong>
           <span className="awaiting-panel-caption">{data.viewportKey}</span>
         </div>
         <div className="awaiting-panel-header-side">
           {timeoutCountdown.label && (
             <span className="awaiting-timeout-badge">
               {timeoutExpired
-              && (submitStatus === "采集中..."
-                || submitStatus === "提交中..."
-                || submitStatus === "自动提交中...")
-                ? "自动提交中..."
-                : `提交倒计时 ${timeoutCountdown.label}`}
+              && (submitStatus === "collecting"
+                || submitStatus === "submitting"
+                || submitStatus === "autoSubmitting")
+                ? t("awaiting.status.autoSubmitting")
+                : t("awaiting.timeout.countdown", {
+                    label: timeoutCountdown.label,
+                  })}
             </span>
           )}
           {data.forms.length > 1 && (
@@ -667,12 +680,14 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         </div>
       </div>
 
-      {data.loading && <div className="status-line">加载表单中...</div>}
+      {data.loading && <div className="status-line">{t("awaiting.load.loading")}</div>}
       {data.loadError && (
         <div className="awaiting-panel-error">{data.loadError}</div>
       )}
       {!data.loading && !data.loadError && !data.viewportHtml && (
-        <div className="awaiting-panel-empty">等待业务确认表单加载...</div>
+        <div className="awaiting-panel-empty">
+          {t("awaiting.load.waiting")}
+        </div>
       )}
       {data.viewportHtml && (
         <iframe
@@ -694,7 +709,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               requestCollectFromFrame("submit", { type: "submit" })
             }
           >
-            提交
+            {t("awaiting.action.submit")}
           </Button>
           <Button
             disabled={actionDisabled}
@@ -702,12 +717,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               requestCollectFromFrame("reject", { type: "reject" })
             }
           >
-            驳回
+            {t("awaiting.action.reject")}
           </Button>
         </div>
       </div>
 
-      {submitStatus && <div className="status-line">{submitStatus}</div>}
+      {submitStatusText && <div className="status-line">{submitStatusText}</div>}
       {submitError && <div className="system-alert">{submitError}</div>}
     </div>
   );

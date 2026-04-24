@@ -7,18 +7,12 @@ import {
   CollapseProps,
   Flex,
   Input,
-  Modal,
   Popover,
   Spin,
-  Tooltip,
-  Typography,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { HistoryModal } from "@/app/modals/HistoryModal";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiInput } from "@/shared/ui/UiInput";
-import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiTag } from "@/shared/ui/UiTag";
 import {
   dispatchSidebarSettingsAction,
@@ -27,272 +21,14 @@ import {
   type SidebarSettingsMenuAction,
 } from "@/features/settings/components/SidebarSettingsMenu";
 import { useI18n } from "@/shared/i18n";
-import {
-  formatChatTimeLabel,
-  pickChatAgentLabel,
-} from "@/features/chats/lib/chatListFormatter";
-import {
-  isChatUnread,
-  resolveWorkerUnreadCount,
-} from "@/features/chats/lib/chatReadState";
 import { selectNavigationState } from "@/app/state/selectors";
-import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
-import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
-import type { Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { AgentIcon } from "@/shared/icons/agent";
 import { SearchOutlined } from "@ant-design/icons";
-
-type AgentIconConfig = {
-  color?: string;
-  name?: string;
-};
-
-const UnreadDot: React.FC<{ chat: Chat | WorkerConversationRow }> = ({
-  chat,
-}) => {
-  const { t } = useI18n();
-  const isUnread = isChatUnread(chat);
-  return (
-    <span
-      className={["chat-unread-dot", isUnread ? "is-unread" : ""]
-        .filter(Boolean)
-        .join(" ")}
-      aria-label={t("leftSidebar.unread")}
-    />
-  );
-};
-
-const ChatItem: React.FC<{
-  chat: Chat;
-  agents: Array<{ key?: string; name?: string }>;
-  isActive: boolean;
-  onClick: () => void;
-}> = ({ chat, agents, isActive, onClick }) => {
-  const { t } = useI18n();
-  const label = pickChatAgentLabel(chat, agents);
-  const title = chat.chatName || chat.chatId || t("leftSidebar.titleUntitled");
-  const isUnread = isChatUnread(chat);
-
-  return (
-    <UiListItem
-      className={`chat-item ${isActive ? "is-active" : ""} ${isUnread ? "is-unread" : ""}`}
-      selected={isActive}
-      dense
-      onClick={onClick}
-    >
-      <div className="chat-item-head">
-        <div className="chat-title-wrap">
-          <UnreadDot chat={chat} />
-          <div className="chat-title">{title}</div>
-        </div>
-        <span className="worker-panel-time-label">
-          {formatChatTimeLabel(chat.updatedAt)}
-        </span>
-      </div>
-      <div className="chat-meta-line">
-        <UiTag tone="muted">{label}</UiTag>
-      </div>
-    </UiListItem>
-  );
-};
-
-const WorkerChatPreviewItem: React.FC<{
-  chat: WorkerConversationRow;
-  isActive: boolean;
-  loading: boolean;
-  onClick: () => void;
-}> = ({ chat, isActive, loading, onClick }) => {
-  const { t } = useI18n();
-  return (
-    <UiListItem
-      className={`worker-chat-item ${isActive ? "is-active" : ""}`}
-      selected={isActive}
-      loading={loading}
-      onClick={onClick}
-    >
-      <div className="worker-chat-item-head">
-        <UnreadDot chat={chat} />
-        <span className="worker-chat-name">
-          {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
-        </span>
-        {chat.hasPendingAwaiting && (
-          <span className="chat-awaiting-status">{t("leftSidebar.awaitingApproval")}</span>
-        )}
-        <span className="worker-panel-time-label">
-          {formatChatTimeLabel(chat.updatedAt)}
-        </span>
-      </div>
-    </UiListItem>
-  );
-};
-
-const WorkerPanelHeader: React.FC<{
-  row: WorkerRow;
-  isActive: boolean;
-  icon?: AgentIconConfig;
-  lastChat?: WorkerConversationRow;
-  unreadCount?: number;
-  onStartNewConversation: (
-    e: React.MouseEvent<HTMLElement>,
-    workerKey: string,
-  ) => void;
-}> = ({
-  row,
-  isActive,
-  icon,
-  lastChat,
-  unreadCount = 0,
-  onStartNewConversation,
-}) => {
-  const { t } = useI18n();
-  const preview = lastChat
-    ? lastChat?.lastRunContent || lastChat?.chatName || t("leftSidebar.latestConversationNoReply")
-    : t("leftSidebar.noHistory");
-
-  return (
-    <div
-      className={`worker-panel-header ${isActive ? "is-active" : ""} ${row.hasHistory ? "" : "is-empty"}`}
-    >
-      <AgentIcon
-        icon={icon}
-        type={row.type}
-        props={{
-          icon: {
-            className: "worker-panel-icon",
-          },
-          avatar: {
-            className: "worker-panel-icon",
-          },
-        }}
-      />
-      <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
-        <Flex align="center" className="worker-panel-header-body">
-          <Typography.Text ellipsis style={{ flex: 1 }}>
-            {row.displayName}
-            <span className="worker-panel-role">{row.role || "--"}</span>
-          </Typography.Text>
-          <Badge count={unreadCount} size="small" color="blue" />
-          <Tooltip title={t("leftSidebar.newConversation")}>
-            <Button
-              className="worker-panel-new"
-              type="text"
-              icon={<MaterialIcon name="add" />}
-              onClick={(e) => onStartNewConversation(e, row.key)}
-            />
-          </Tooltip>
-        </Flex>
-        <Flex align="center" className="worker-panel-preview" gap={4}>
-          <Typography.Text ellipsis style={{ flex: 1 }}>
-            {preview}
-          </Typography.Text>
-          {lastChat?.hasPendingAwaiting && (
-            <span className="chat-awaiting-status">{t("leftSidebar.awaitingApproval")}</span>
-          )}
-          {!!lastChat?.updatedAt && (
-            <span className="worker-panel-time-label">
-              {formatChatTimeLabel(lastChat?.updatedAt)}
-            </span>
-          )}
-        </Flex>
-      </Flex>
-    </div>
-  );
-};
-
-const WorkerConversationPreviewList: React.FC<{
-  row: WorkerRow;
-  chats: WorkerConversationRow[];
-  activeChatId: string;
-  icon?: AgentIconConfig;
-  showHeader?: boolean;
-  getWorkerChatLoading: (chatId: string) => boolean;
-  onSelectChat: (chatId: string) => void;
-  onOpenHistory: (event: React.MouseEvent<Element>, workerKey: string) => void;
-  onStartNewConversation: (
-    e: React.MouseEvent<HTMLElement>,
-    workerKey: string,
-  ) => void;
-}> = ({
-  row,
-  chats,
-  activeChatId,
-  icon,
-  showHeader = false,
-  getWorkerChatLoading,
-  onSelectChat,
-  onOpenHistory,
-  onStartNewConversation,
-}) => {
-  const { t } = useI18n();
-  const recentChats = chats.slice(0, 5);
-  const unreadCount = chats
-    .reduce((count, chat) => count + (isChatUnread(chat) ? 1 : 0), 0);
-  const unreadSuffix =
-    unreadCount > 0
-      ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
-      : "";
-
-  return (
-    <div className="worker-chat-preview-list">
-      {showHeader && (
-        <div className="worker-popover-header">
-          <div className="worker-popover-header-main">
-            <AgentIcon
-              icon={icon}
-              type={row.type}
-              props={{
-                icon: {
-                  className: "worker-panel-icon worker-popover-header-icon",
-                },
-                avatar: {
-                  className: "worker-panel-icon worker-popover-header-icon",
-                },
-              }}
-            />
-            <span className="worker-popover-header-title">
-              {row.displayName}
-            </span>
-          </div>
-          <Tooltip title={t("leftSidebar.newConversation")}>
-            <Button
-              className="worker-panel-new worker-popover-new"
-              type="text"
-              icon={<MaterialIcon name="add" />}
-              onClick={(e) => onStartNewConversation(e, row.key)}
-            />
-          </Tooltip>
-        </div>
-      )}
-      <div className="worker-chat-divider"></div>
-      {recentChats.length === 0 ? (
-        <div className="status-line">{t("leftSidebar.noRelatedConversations")}</div>
-      ) : (
-        <>
-          {recentChats.map((chat) => (
-            <WorkerChatPreviewItem
-              key={chat.chatId}
-              chat={chat}
-              isActive={chat.chatId === activeChatId}
-              loading={getWorkerChatLoading(chat.chatId)}
-              onClick={() => onSelectChat(chat.chatId)}
-            />
-          ))}
-        </>
-      )}
-      {chats.length > 5 && (
-        <div
-          className="worker-chat-more"
-          onClick={(e) => onOpenHistory(e, row.key)}
-        >
-          {t("leftSidebar.showMore", {
-            count: chats.length,
-            unreadSuffix,
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
+import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
+import { ChatItem } from "@/app/layout/sidebar/ChatItem";
+import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
+import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
+import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
@@ -307,133 +43,27 @@ export const LeftSidebar: React.FC = () => {
   const historyInputRef = useRef<HTMLInputElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
   const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const filteredChats = useMemo(() => {
-    const filter = state.chatFilter.toLowerCase().trim();
-    if (!filter) return state.chats;
-    return state.chats.filter((chat) => {
-      const name = (chat.chatName || "").toLowerCase();
-      const id = (chat.chatId || "").toLowerCase();
-      return name.includes(filter) || id.includes(filter);
-    });
-  }, [state.chats, state.chatFilter]);
-
-  const workerBaseOrderByKey = useMemo(
-    () => new Map(state.workerRows.map((row, index) => [row.key, index])),
-    [state.workerRows],
-  );
-
-  const workerChatOrderByKey = useMemo(() => {
-    const sortedChats = state.chats.slice().sort((a, b) => {
-      const updatedA = Number(a?.updatedAt);
-      const updatedB = Number(b?.updatedAt);
-      const normalizedA = Number.isFinite(updatedA) ? updatedA : 0;
-      const normalizedB = Number.isFinite(updatedB) ? updatedB : 0;
-
-      if (normalizedA !== normalizedB) return normalizedB - normalizedA;
-
-      const chatIdA = String(a?.chatId || "");
-      const chatIdB = String(b?.chatId || "");
-      return chatIdA.localeCompare(chatIdB);
-    });
-
-    const orderByKey = new Map<string, number>();
-    sortedChats.forEach((chat) => {
-      const workerKey = createWorkerKeyFromChat(chat);
-      if (!workerKey || orderByKey.has(workerKey)) return;
-      orderByKey.set(workerKey, orderByKey.size);
-    });
-
-    return orderByKey;
-  }, [state.chats]);
-
-  const filteredWorkerRows = useMemo(() => {
-    const filter = state.chatFilter.toLowerCase().trim();
-    const rows = !filter
-      ? state.workerRows
-      : state.workerRows.filter((row) =>
-          String(row.searchText || "").includes(filter),
-        );
-
-    return rows.slice().sort((a, b) => {
-      const chatOrderA = workerChatOrderByKey.get(a.key);
-      const chatOrderB = workerChatOrderByKey.get(b.key);
-      const hasChatsA = chatOrderA !== undefined;
-      const hasChatsB = chatOrderB !== undefined;
-
-      if (hasChatsA && hasChatsB) return chatOrderA - chatOrderB;
-      if (hasChatsA !== hasChatsB) return hasChatsA ? -1 : 1;
-
-      return (
-        (workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
-        (workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
-      );
-    });
-  }, [
-    state.workerRows,
-    state.chatFilter,
-    workerBaseOrderByKey,
-    workerChatOrderByKey,
-  ]);
-
-  const workerIconsByKey = useMemo(() => {
-    const icons = new Map<string, AgentIconConfig>();
-    for (const agent of state.agents) {
-      if (!agent?.key || !agent.icon) continue;
-      icons.set(`agent:${agent.key}`, agent.icon);
-    }
-    for (const team of state.teams) {
-      if (!team?.teamId || !team.icon) continue;
-      icons.set(`team:${team.teamId}`, team.icon);
-    }
-    return icons;
-  }, [state.agents, state.teams]);
-
-  const workerChatsByKey = useMemo(() => {
-    const chatsByKey = new Map<string, WorkerConversationRow[]>();
-    for (const row of state.workerRows) {
-      chatsByKey.set(
-        row.key,
-        buildWorkerConversationRows({
-          chats: state.chats,
-          worker: row,
-        }),
-      );
-    }
-    return chatsByKey;
-  }, [state.chats, state.workerRows]);
-
-  const workerUnreadCountByKey = useMemo(() => {
-    const unreadCounts = new Map<string, number>();
-    for (const row of state.workerRows) {
-      unreadCounts.set(
-        row.key,
-        resolveWorkerUnreadCount(row, state.agents, state.chats),
-      );
-    }
-    return unreadCounts;
-  }, [state.agents, state.chats, state.workerRows]);
+  const {
+    filteredChats,
+    filteredWorkerRows,
+    workerIconsByKey,
+    workerChatsByKey,
+    workerUnreadCountByKey,
+    filteredHistoryRows,
+  } = useLeftSidebarData({
+    agents: state.agents,
+    chatFilter: state.chatFilter,
+    chats: state.chats,
+    historySearch,
+    historyWorkerKey,
+    teams: state.teams,
+    workerRows: state.workerRows,
+  });
 
   const historyWorker =
     state.workerIndexByKey.get(historyWorkerKey) ||
     state.workerRows.find((row) => row.key === historyWorkerKey) ||
     null;
-
-  const historyRows = useMemo(
-    () => workerChatsByKey.get(historyWorkerKey) || [],
-    [historyWorkerKey, workerChatsByKey],
-  );
-
-  const filteredHistoryRows = useMemo(() => {
-    const search = historySearch.trim().toLowerCase();
-    if (!search) return historyRows;
-    return historyRows.filter((row) => {
-      const haystack = [row.chatName, row.chatId, row.lastRunContent]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(search);
-    });
-  }, [historyRows, historySearch]);
 
   useEffect(() => {
     if (state.conversationMode !== "worker") {
@@ -797,48 +427,23 @@ export const LeftSidebar: React.FC = () => {
         </Popover>
       </aside>
 
-      <Modal
+      <SidebarHistorySection
         open={Boolean(historyWorkerKey)}
-        onCancel={handleCloseHistory}
-        footer={null}
-        destroyOnHidden
-        width="min(780px, calc(100vw - 32px))"
-        className="worker-history-modal"
-        title={
-          historyWorker
-            ? t("leftSidebar.historyTitleWithWorker", {
-                workerTypeLabel:
-                  historyWorker.type === "team"
-                    ? t("switch.workerType.team")
-                    : t("switch.workerType.agent"),
-                displayName: historyWorker.displayName,
-              })
-            : t("leftSidebar.historyTitle")
-        }
-      >
-        <HistoryModal
-          historyRows={filteredHistoryRows}
-          historyIndex={Math.min(
-            historyIndex,
-            Math.max(filteredHistoryRows.length - 1, 0),
-          )}
-          historySearch={historySearch}
-          historyInputRef={historyInputRef}
-          historyListRef={historyListRef}
-          historyItemRefs={historyItemRefs}
-          onHistorySearchChange={(value) => {
-            setHistorySearch(value);
-            setHistoryIndex(0);
-          }}
-          onActivateIndex={setHistoryIndex}
-          onSelect={(index) => {
-            const target = filteredHistoryRows[index];
-            if (!target) return;
-            handleCloseHistory();
-            handleSelectChat(target.chatId);
-          }}
-        />
-      </Modal>
+        historyWorker={historyWorker}
+        historyRows={filteredHistoryRows}
+        historyIndex={historyIndex}
+        historySearch={historySearch}
+        historyInputRef={historyInputRef}
+        historyListRef={historyListRef}
+        historyItemRefs={historyItemRefs}
+        onClose={handleCloseHistory}
+        onHistorySearchChange={(value) => {
+          setHistorySearch(value);
+          setHistoryIndex(0);
+        }}
+        onActivateIndex={setHistoryIndex}
+        onSelectChat={handleSelectChat}
+      />
     </>
   );
 };

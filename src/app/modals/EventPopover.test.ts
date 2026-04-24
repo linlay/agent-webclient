@@ -148,11 +148,11 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="收集事件快照"');
-    expect(html).toContain('aria-label="打开复制菜单"');
-    expect(html).toContain('aria-label="关闭事件详情"');
+    expect(html).toContain('aria-label="Collect event snapshot"');
+    expect(html).toContain('aria-label="Open copy menu"');
+    expect(html).toContain('aria-label="Close event details"');
     expect(html).toContain(
-      `时间: ${formatReadableTimestamp(1776518171300)}`,
+      `Time: ${formatReadableTimestamp(1776518171300)}`,
     );
   });
 
@@ -172,9 +172,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="打开复制菜单"');
-    expect(html).toContain('aria-label="关闭事件详情"');
-    expect(html).not.toContain('aria-label="收集事件快照"');
+    expect(html).toContain('aria-label="Open copy menu"');
+    expect(html).toContain('aria-label="Close event details"');
+    expect(html).not.toContain('aria-label="Collect event snapshot"');
   });
 
   it("renders a copy menu trigger for debug.preCall instead of flat copy buttons", () => {
@@ -199,9 +199,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="打开复制菜单"');
-    expect(html).not.toContain('aria-label="复制 systemPrompt"');
-    expect(html).not.toContain('aria-label="复制 tools"');
+    expect(html).toContain('aria-label="Open copy menu"');
+    expect(html).not.toContain('aria-label="Copy systemPrompt"');
+    expect(html).not.toContain('aria-label="Copy tools"');
   });
 });
 
@@ -540,12 +540,12 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"debug.preCall"}',
       },
       {
         key: "requestBody",
-        label: "复制 requestBody",
+        label: "Copy requestBody",
         text: JSON.stringify(
           {
             model: "gpt-5",
@@ -558,17 +558,17 @@ describe("EventPopover display and copy helpers", () => {
       },
       {
         key: "systemPrompt",
-        label: "复制 systemPrompt",
+        label: "Copy systemPrompt",
         text: "system prompt",
       },
       {
         key: "tools",
-        label: "复制 tools",
+        label: "Copy tools",
         text: JSON.stringify([{ name: "search" }], null, 2),
       },
       {
         key: "model",
-        label: "复制 model",
+        label: "Copy model",
         text: "gpt-5",
       },
     ]);
@@ -588,17 +588,17 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"chat.update"}',
       },
       {
         key: "chatId",
-        label: "复制 chatId",
+        label: "Copy chatId",
         text: "chat_1",
       },
       {
         key: "chatName",
-        label: "复制 chatName",
+        label: "Copy chatName",
         text: "Alpha",
       },
     ]);
@@ -619,22 +619,22 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"request.query"}',
       },
       {
         key: "requestId",
-        label: "复制 requestId",
+        label: "Copy requestId",
         text: "req_1",
       },
       {
         key: "message",
-        label: "复制消息",
+        label: "Copy message",
         text: "hello",
       },
       {
         key: "references",
-        label: "复制 references",
+        label: "Copy references",
         text: JSON.stringify(
           [{ id: "file_1", url: "https://example.com/a.txt" }],
           null,
@@ -669,27 +669,27 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"content.delta"}',
       },
       {
         key: "contentId",
-        label: "复制 contentId",
+        label: "Copy contentId",
         text: "content_1",
       },
       {
         key: "currentText",
-        label: "复制当前文本",
+        label: "Copy current text",
         text: "hello",
       },
       {
         key: "collectedText",
-        label: "复制汇总文本",
+        label: "Copy collected text",
         text: "hello",
       },
       {
         key: "collectedSnapshot",
-        label: "复制汇总快照 JSON",
+        label: "Copy collected snapshot JSON",
         text: JSON.stringify(
           {
             type: "content.snapshot",
@@ -731,12 +731,12 @@ describe("EventPopover display and copy helpers", () => {
     ]);
     expect(items[0]).toEqual({
       key: "eventJson",
-      label: "复制全部",
+      label: "Copy all",
       text: '{"type":"tool.args"}',
     });
     expect(items[3]).toEqual({
       key: "arguments",
-      label: "复制参数",
+      label: "Copy arguments",
       text: JSON.stringify({ q: "zenmind" }, null, 2),
     });
     expect(JSON.parse(items[4].text)).toEqual({
@@ -767,27 +767,27 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"action.end"}',
       },
       {
         key: "actionId",
-        label: "复制 actionId",
+        label: "Copy actionId",
         text: "action_1",
       },
       {
         key: "actionName",
-        label: "复制 actionName",
+        label: "Copy actionName",
         text: "switch_theme",
       },
       {
         key: "arguments",
-        label: "复制参数",
+        label: "Copy arguments",
         text: "{\"theme\":\"dark\"}",
       },
       {
         key: "collectedSnapshot",
-        label: "复制汇总快照 JSON",
+        label: "Copy collected snapshot JSON",
         text: JSON.stringify(
           {
             type: "action.snapshot",
@@ -841,12 +841,12 @@ describe("EventPopover display and copy helpers", () => {
     ]);
     expect(deltaItems[0]).toEqual({
       key: "eventJson",
-      label: "复制全部",
+      label: "Copy all",
       text: '{"type":"action.args"}',
     });
     expect(deltaItems[2]).toEqual({
       key: "arguments",
-      label: "复制参数",
+      label: "Copy arguments",
       text: "{\"theme\":\"light\"}",
     });
     expect(JSON.parse(deltaItems[3].text)).toEqual({
@@ -875,17 +875,17 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"artifact.publish"}',
       },
       {
         key: "runId",
-        label: "复制 runId",
+        label: "Copy runId",
         text: "run_1",
       },
       {
         key: "artifacts",
-        label: "复制 artifacts JSON",
+        label: "Copy artifacts JSON",
         text: JSON.stringify(
           [
             { artifactId: "a1", url: "https://example.com/a" },
@@ -897,7 +897,7 @@ describe("EventPopover display and copy helpers", () => {
       },
       {
         key: "artifactUrls",
-        label: "复制 artifact URLs",
+        label: "Copy artifact URLs",
         text: "https://example.com/a\nhttps://example.com/b",
       },
     ]);
@@ -917,17 +917,17 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"awaiting.payload"}',
       },
       {
         key: "awaitingId",
-        label: "复制 awaitingId",
+        label: "Copy awaitingId",
         text: "await_1",
       },
       {
         key: "awaitingItems",
-        label: "复制问题/审批/表单 JSON",
+        label: "Copy question/approval/form JSON",
         text: JSON.stringify(
           [{ id: "q1", question: "继续吗？", type: "text" }],
           null,
@@ -954,12 +954,12 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"debug.preCall"}',
       },
       {
         key: "requestBody",
-        label: "复制 requestBody",
+        label: "Copy requestBody",
         text: JSON.stringify(
           {
             model: "mock-model",
@@ -970,7 +970,7 @@ describe("EventPopover display and copy helpers", () => {
       },
       {
         key: "model",
-        label: "复制 model",
+        label: "Copy model",
         text: "mock-model",
       },
     ]);
@@ -991,7 +991,7 @@ describe("EventPopover display and copy helpers", () => {
     ).toEqual([
       {
         key: "eventJson",
-        label: "复制全部",
+        label: "Copy all",
         text: '{"type":"debug.postCall"}',
       },
     ]);
@@ -1009,7 +1009,7 @@ describe("EventPopover display and copy helpers", () => {
 
     expect(getPrimaryCopyMenuItem(items)).toEqual({
       key: "eventJson",
-      label: "复制全部",
+      label: "Copy all",
       text: '{"type":"chat.update"}',
     });
   });
@@ -1017,21 +1017,21 @@ describe("EventPopover display and copy helpers", () => {
   it("builds copy button titles from dynamic item labels", () => {
     expect(
       buildCopyMenuTitle(
-        { key: "eventJson", label: "全部" },
+        { key: "eventJson", label: "All" },
         { eventJson: "copied" },
       ),
-    ).toBe("已复制 全部");
+    ).toBe("Copied All");
     expect(
       buildCopyMenuTitle(
         { key: "artifactUrls", label: "artifact URLs" },
         { artifactUrls: "error" },
       ),
-    ).toBe("artifact URLs 复制失败");
+    ).toBe("artifact URLs copy failed");
     expect(
       buildCopyMenuTitle(
-        { key: "eventJson", label: "全部" },
+        { key: "eventJson", label: "All" },
         {},
       ),
-    ).toBe("打开复制菜单");
+    ).toBe("Open copy menu");
   });
 });

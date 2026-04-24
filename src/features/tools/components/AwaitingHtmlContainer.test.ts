@@ -46,7 +46,7 @@ function createActiveAwaiting(
     forms: [
       {
         id: 'leave_form',
-        action: '提交请假申请',
+        action: 'Submit请假申请',
         title: 'mock 请假申请',
         payload: {
           applicant_id: 'E1001',
@@ -76,8 +76,8 @@ describe('AwaitingHtmlContainer', () => {
       }),
     );
 
-    expect(html).toContain('提交');
-    expect(html).toContain('驳回');
+    expect(html).toContain('Submit');
+    expect(html).toContain('Reject');
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {
@@ -111,7 +111,7 @@ describe('AwaitingHtmlContainer', () => {
       },
     }, '*');
     expect(onCollectingChange).toHaveBeenCalledWith('submit');
-    expect(onStatusChange).toHaveBeenCalledWith('采集中...');
+    expect(onStatusChange).toHaveBeenCalledWith('collecting');
     expect(onErrorChange).toHaveBeenCalledWith('');
 
     timeoutCallback?.();
@@ -182,7 +182,7 @@ describe('AwaitingHtmlContainer', () => {
     expect(mergeSubmittedParamsIntoAwaitingForms([
       {
         id: 'leave_form',
-        action: '提交请假申请',
+        action: 'Submit请假申请',
         title: 'mock 请假申请',
         payload: {
           employee_id: 'E1001',
@@ -190,7 +190,7 @@ describe('AwaitingHtmlContainer', () => {
       },
       {
         id: 'travel_form',
-        action: '提交出差申请',
+        action: 'Submit出差申请',
         title: 'mock 出差申请',
         payload: {
           employee_id: 'E2002',
@@ -206,7 +206,7 @@ describe('AwaitingHtmlContainer', () => {
     ])).toEqual([
       {
         id: 'leave_form',
-        action: '提交请假申请',
+        action: 'Submit请假申请',
         title: 'mock 请假申请',
         payload: {
           employee_id: 'E1001',
@@ -214,7 +214,7 @@ describe('AwaitingHtmlContainer', () => {
       },
       {
         id: 'travel_form',
-        action: '提交出差申请',
+        action: 'Submit出差申请',
         title: 'mock 出差申请',
         payload: {
           employee_id: 'E3003',
@@ -228,7 +228,7 @@ describe('AwaitingHtmlContainer', () => {
       forms: [
         {
           id: 'leave_form',
-          action: '提交请假申请',
+          action: 'Submit请假申请',
           title: 'mock 请假申请',
           payload: {
             employee_id: 'E1001',
@@ -236,7 +236,7 @@ describe('AwaitingHtmlContainer', () => {
         },
         {
           id: 'travel_form',
-          action: '提交出差申请',
+          action: 'Submit出差申请',
           title: 'mock 出差申请',
           payload: {
             employee_id: 'E2002',
