@@ -27,7 +27,7 @@ interface AwaitingApprovalMeta {
 interface AwaitingFormMeta {
   kind: 'form';
   id: string;
-  action: string;
+  action?: string;
   title?: string;
 }
 
@@ -143,7 +143,7 @@ export function registerAwaitingFormMeta(
   const byQuestion = existing?.byQuestion ?? new Map<string, AwaitingQuestionMeta>();
 
   for (const form of forms) {
-    if (!form.id || !form.action) {
+    if (!form.id) {
       continue;
     }
     byId.set(form.id, {

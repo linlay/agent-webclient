@@ -369,6 +369,56 @@ describe('reduceActiveAwaiting', () => {
     ]);
   });
 
+  it('keeps html forms without action when payload is present', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_leave_1',
+      awaitingId: 'await_leave_1',
+      viewportType: ViewportTypeEnum.Html,
+      viewportKey: 'leave_form',
+      mode: 'form',
+      forms: [
+        {
+          id: 'form-1',
+          title: 'mock 请假申请',
+          payload: {
+            applicant_id: 'E1001',
+            department_id: 'engineering',
+            leave_type: 'annual',
+            start_date: '2026-04-20',
+            end_date: '2026-04-22',
+            days: 2.5,
+            reason: 'family_trip',
+          },
+        },
+      ],
+    } as any);
+
+    expect(current).toMatchObject({
+      mode: 'form',
+      viewportKey: 'leave_form',
+    });
+    expect(current?.mode).toBe('form');
+    if (current?.mode !== 'form') {
+      throw new Error('expected form awaiting');
+    }
+    expect(current.forms).toEqual([
+      {
+        id: 'form-1',
+        title: 'mock 请假申请',
+        payload: {
+          applicant_id: 'E1001',
+          department_id: 'engineering',
+          leave_type: 'annual',
+          start_date: '2026-04-20',
+          end_date: '2026-04-22',
+          days: 2.5,
+          reason: 'family_trip',
+        },
+      },
+    ]);
+  });
+
   it('rejects form awaitings without html viewport metadata', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',

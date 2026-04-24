@@ -247,7 +247,7 @@ describe("connectWsTransport", () => {
 				destroyWsClientImpl,
 			}),
 		).rejects.toThrow(
-			"缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
+			"Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
 		);
 
 		expect(initWsClientImpl).not.toHaveBeenCalled();
@@ -255,7 +255,7 @@ describe("connectWsTransport", () => {
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
 			message:
-				"缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
+				"Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -264,7 +264,7 @@ describe("connectWsTransport", () => {
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
 			line:
-				"[live] 缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
+				"[live] Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
 		});
 	});
 
@@ -288,14 +288,14 @@ describe("connectWsTransport", () => {
 				destroyWsClientImpl: jest.fn(),
 			}),
 		).rejects.toThrow(
-			"WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
 		);
 
 		expect(ensureAccessTokenImpl).not.toHaveBeenCalled();
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
 			message:
-				"WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+				"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -304,7 +304,7 @@ describe("connectWsTransport", () => {
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
 			line:
-				"[live] WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+				"[live] WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
 		});
 	});
 

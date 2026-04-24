@@ -2,19 +2,20 @@ import React, { useEffect } from "react";
 import { Popover } from "antd";
 import type {
   SlashCommandAvailability,
-  SlashCommandDefinition,
+  ResolvedSlashCommandDefinition,
 } from "@/features/composer/lib/slashCommands";
 import { isSlashCommandDisabled } from "@/features/composer/lib/slashCommands";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 
 const SlashPaletteContent: React.FC<{
   slashPaletteRef: React.RefObject<HTMLDivElement>;
-  slashCommands: SlashCommandDefinition[];
+  slashCommands: ResolvedSlashCommandDefinition[];
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
-  onSelect: (commandId: SlashCommandDefinition["id"]) => void;
+  onSelect: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
 }> = ({
   slashPaletteRef,
   slashCommands,
@@ -23,6 +24,7 @@ const SlashPaletteContent: React.FC<{
   planningMode,
   onSelect,
 }) => {
+  const { t } = useI18n();
   const itemsRef = React.useRef<HTMLElement[]>([]);
 
   useEffect(() => {
@@ -31,7 +33,11 @@ const SlashPaletteContent: React.FC<{
 
   return (
     <div ref={slashPaletteRef} className="slash-command-popover">
-      <div className="slash-command-list" role="listbox" aria-label="斜杠命令">
+      <div
+        className="slash-command-list"
+        role="listbox"
+        aria-label={t("slashPalette.ariaLabel")}
+      >
         {slashCommands.map((command, index) => {
           const disabled = isSlashCommandDisabled(
             command.id,
@@ -73,13 +79,13 @@ const SlashPaletteContent: React.FC<{
 export const SlashPalette: React.FC<{
   open: boolean;
   slashPaletteRef: React.RefObject<HTMLDivElement>;
-  slashCommands: SlashCommandDefinition[];
+  slashCommands: ResolvedSlashCommandDefinition[];
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
   slashPopoverWidth?: number;
   getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
-  onSelect: (commandId: SlashCommandDefinition["id"]) => void;
+  onSelect: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
   children: React.ReactElement;
 }> = ({
   open,

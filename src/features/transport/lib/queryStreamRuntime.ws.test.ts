@@ -25,7 +25,7 @@ describe("executeQueryStreamWs", () => {
 				handleEvent: jest.fn(),
 			}),
 		).rejects.toThrow(
-			"WebSocket 传输尚未初始化，请先切换到 WebSocket 模式并确认连接成功。",
+			"WebSocket transport is not initialized yet. Switch to WebSocket mode and confirm the connection first.",
 		);
 	});
 
@@ -206,7 +206,7 @@ describe("executeQueryStreamWs", () => {
 				handleEvent: jest.fn(),
 			}),
 		).rejects.toThrow(
-			"WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
 		);
 	});
 });

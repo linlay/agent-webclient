@@ -7,6 +7,7 @@ import {
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
 } from '@/shared/api/appAuth';
+import { t } from '@/shared/i18n';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
 
@@ -408,7 +409,7 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
     typeof URL.createObjectURL !== "function" ||
     typeof URL.revokeObjectURL !== "function"
   ) {
-    throw new Error("当前环境不支持文件下载");
+    throw new Error(t("api.fileDownloadUnsupported"));
   }
 
   const objectUrl = URL.createObjectURL(blob);
@@ -437,7 +438,9 @@ export async function downloadResource(
   });
 
   if (!response.ok) {
-    const fallbackMessage = `下载失败 (${response.status})`;
+    const fallbackMessage = t("api.downloadFailedWithStatus", {
+      status: response.status,
+    });
     const rawText = await response.text();
     const error = getErrorMessageFromText(rawText, fallbackMessage);
     throw new ApiError(error.message, {
@@ -463,7 +466,9 @@ export async function getResourceText(
   });
 
   if (!response.ok) {
-    const fallbackMessage = `加载资源文本失败 (${response.status})`;
+    const fallbackMessage = t("api.loadResourceTextFailedWithStatus", {
+      status: response.status,
+    });
     const rawText = await response.text();
     const error = getErrorMessageFromText(rawText, fallbackMessage);
     throw new ApiError(error.message, {

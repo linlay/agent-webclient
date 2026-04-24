@@ -58,6 +58,28 @@ interface AwaitingCollectLifecycleHandlers {
   onErrorChange: (error: string) => void;
 }
 
+export interface AwaitingInitFrame {
+  addEventListener: (
+    type: "load",
+    listener: () => void,
+  ) => void;
+  removeEventListener: (
+    type: "load",
+    listener: () => void,
+  ) => void;
+}
+
+export function bindAwaitingInitListener(
+  frame: AwaitingInitFrame,
+  sendInit: () => void,
+): () => void {
+  frame.addEventListener("load", sendInit);
+  sendInit();
+  return () => {
+    frame.removeEventListener("load", sendInit);
+  };
+}
+
 export function beginAwaitingCollectRequest(
   input: {
     awaiting: FormActiveAwaiting;
@@ -466,14 +488,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       postToFrame("init");
     };
 
-    frame.addEventListener("load", sendInit);
-    if (frame.contentDocument?.readyState === "complete") {
-      sendInit();
-    }
-
-    return () => {
-      frame.removeEventListener("load", sendInit);
-    };
+    return bindAwaitingInitListener(frame, sendInit);
   }, [data.key, data.viewportHtml, postToFrame]);
 
   useEffect(() => {

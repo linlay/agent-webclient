@@ -29,11 +29,15 @@ describe('slashCommands', () => {
 
   it('uses 对话 wording for the new command', () => {
     expect(SLASH_COMMANDS.find((item) => item.id === 'new')).toMatchObject({
-      label: '新对话',
-      description: '清空当前对话上下文，保留当前 worker 选择',
+      labelKey: 'slash.command.new.label',
+      descriptionKey: 'slash.command.new.description',
     });
-    expect(SLASH_COMMANDS.find((item) => item.id === 'voice')).toMatchObject({
-      description: '在文字输入与一问一答语聊模式之间切换',
+    expect(getFilteredSlashCommands('/new')[0]).toMatchObject({
+      label: 'New conversation',
+      description: 'Clear the current conversation context while keeping the current worker selection',
+    });
+    expect(getFilteredSlashCommands('/voice')[0]).toMatchObject({
+      description: 'Switch between text input and turn-based voice chat',
     });
   });
 

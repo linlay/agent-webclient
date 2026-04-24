@@ -9,7 +9,8 @@
     "start:web": "dotenv -e .env -- webpack serve --mode development",
     "build": "npm run build:web",
     "build:web": "dotenv -e .env -- webpack --mode production",
-    "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false"
+    "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false",
+    "check:i18n": "node ./scripts/check-hardcoded-han.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",

@@ -1,13 +1,14 @@
 import React from "react";
 import type { CommandModalScope, WorkerRow } from "@/app/state/types";
+import { useI18n } from "@/shared/i18n";
 import { UiInput } from "@/shared/ui/UiInput";
 import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiTag } from "@/shared/ui/UiTag";
 
 export const SWITCH_SCOPES = [
-	{ key: "all", label: "全部" },
-	{ key: "agent", label: "员工" },
-	{ key: "team", label: "小组" },
+	{ key: "all", labelKey: "switch.scope.all" },
+	{ key: "agent", labelKey: "switch.workerType.agent" },
+	{ key: "team", labelKey: "switch.workerType.team" },
 ] as const;
 
 export const SwitchModal: React.FC<{
@@ -35,6 +36,8 @@ export const SwitchModal: React.FC<{
 	onActivateIndex,
 	onSelect,
 }) => {
+	const { t } = useI18n();
+
 	return (
 		<div className="command-modal-section">
 			<div className="command-switch-toolbar">
@@ -43,11 +46,11 @@ export const SwitchModal: React.FC<{
 					id="worker-switch-search"
 					inputSize="md"
 					type="text"
-					placeholder="搜索名称 / key / role..."
+					placeholder={t("switch.searchPlaceholder")}
 					value={searchText}
 					onChange={(event) => onSearchChange(event.target.value)}
 				/>
-				<div className="command-scope-group" role="tablist" aria-label="切换范围">
+				<div className="command-scope-group" role="tablist" aria-label={t("switch.scopeLabel")}>
 					{SWITCH_SCOPES.map((item) => (
 						<button
 							key={item.key}
@@ -57,21 +60,21 @@ export const SwitchModal: React.FC<{
 							aria-selected={scope === item.key}
 							onClick={() => onScopeChange(item.key)}
 						>
-							{item.label}
+							{t(item.labelKey)}
 						</button>
 					))}
 				</div>
 			</div>
 
 			{switchRows.length === 0 ? (
-				<div className="command-empty-state">没有匹配到员工或小组。</div>
+				<div className="command-empty-state">{t("switch.empty")}</div>
 			) : (
 				<div
 					ref={switchListRef}
 					className="command-modal-list command-modal-list-focusable"
 					tabIndex={0}
 					role="listbox"
-					aria-label="切换员工"
+					aria-label={t("switch.ariaLabel")}
 				>
 					{switchRows.map((row, index) => (
 						<UiListItem
@@ -89,7 +92,7 @@ export const SwitchModal: React.FC<{
 							<div className="command-list-head">
 								<strong>{row.displayName}</strong>
 								<UiTag tone={row.type === "team" ? "default" : "accent"}>
-									{row.type === "team" ? "小组" : "员工"}
+									{row.type === "team" ? t("switch.workerType.team") : t("switch.workerType.agent")}
 								</UiTag>
 							</div>
 							<div className="command-list-meta">
@@ -97,7 +100,7 @@ export const SwitchModal: React.FC<{
 								<span>{row.role || "--"}</span>
 							</div>
 							<div className="command-list-preview">
-								{row.latestRunContent || (row.hasHistory ? row.latestChatName : "暂无历史对话")}
+								{row.latestRunContent || (row.hasHistory ? row.latestChatName : t("switch.preview.noHistory"))}
 							</div>
 						</UiListItem>
 					))}

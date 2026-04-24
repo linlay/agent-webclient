@@ -247,14 +247,15 @@ function normalizeForms(
       const legacyForm = form as AIAwaitForm & {
         initialPayload?: Record<string, unknown> | null;
       };
+      const action = toText(form.action) || fallbackAction;
       return {
-        id: toText(form.id) || toText(form.action),
-        action: toText(form.action) || fallbackAction,
+        id: toText(form.id) || action,
+        action: action || undefined,
         title: toText(form.title) || undefined,
         payload: readAwaitingPayload(legacyForm.payload ?? legacyForm.initialPayload),
       };
     })
-    .filter((form) => Boolean(form.id) && Boolean(form.action));
+    .filter((form) => Boolean(form.id));
 
   if (normalized.length > 0) {
     return normalized;

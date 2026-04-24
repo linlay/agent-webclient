@@ -26,6 +26,7 @@ import {
   type LiveQuerySession,
 } from '@/features/chats/lib/conversationSession';
 import type { AgentEvent } from '@/app/state/types';
+import { readEventTeamId } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 
 interface SendMessageEventDetail {
@@ -36,10 +37,6 @@ interface SendMessageEventDetail {
   agentKey?: unknown;
   teamId?: unknown;
   params?: unknown;
-}
-
-function readEventTeamId(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.teamId);
 }
 
 function isTerminalRunEventType(type: string): boolean {

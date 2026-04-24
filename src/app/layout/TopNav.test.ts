@@ -60,9 +60,9 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain('id="api-status"');
-		expect(html).toContain(">待命<");
+		expect(html).toContain(">Idle<");
 		expect(html).toContain("status-pill is-idle");
-		expect(html).not.toContain("WebSocket 连接异常");
+		expect(html).not.toContain("WebSocket connection error");
 	});
 
 	it("renders streaming status as running", () => {
@@ -74,7 +74,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("运行中...");
+		expect(html).toContain("Running...");
 		expect(html).toContain("status-pill is-running");
 	});
 
@@ -87,7 +87,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("运行异常");
+		expect(html).toContain("Run error");
 		expect(html).toContain("status-pill is-error");
 	});
 
@@ -99,7 +99,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">待命<");
+		expect(html).toContain(">Idle<");
 		expect(html).toContain("status-pill is-idle");
 	});
 });

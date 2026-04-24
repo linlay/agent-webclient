@@ -26,6 +26,7 @@ import {
   SidebarSettingsMenu,
   type SidebarSettingsMenuAction,
 } from "@/features/settings/components/SidebarSettingsMenu";
+import { useI18n } from "@/shared/i18n";
 import {
   formatChatTimeLabel,
   pickChatAgentLabel,
@@ -34,6 +35,7 @@ import {
   isChatUnread,
   resolveWorkerUnreadCount,
 } from "@/features/chats/lib/chatReadState";
+import { selectNavigationState } from "@/app/state/selectors";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import type { Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
@@ -48,13 +50,14 @@ type AgentIconConfig = {
 const UnreadDot: React.FC<{ chat: Chat | WorkerConversationRow }> = ({
   chat,
 }) => {
+  const { t } = useI18n();
   const isUnread = isChatUnread(chat);
   return (
     <span
       className={["chat-unread-dot", isUnread ? "is-unread" : ""]
         .filter(Boolean)
         .join(" ")}
-      aria-label="未读"
+      aria-label={t("leftSidebar.unread")}
     />
   );
 };
@@ -65,8 +68,9 @@ const ChatItem: React.FC<{
   isActive: boolean;
   onClick: () => void;
 }> = ({ chat, agents, isActive, onClick }) => {
+  const { t } = useI18n();
   const label = pickChatAgentLabel(chat, agents);
-  const title = chat.chatName || chat.chatId || "(无标题)";
+  const title = chat.chatName || chat.chatId || t("leftSidebar.titleUntitled");
   const isUnread = isChatUnread(chat);
 
   return (
@@ -98,6 +102,7 @@ const WorkerChatPreviewItem: React.FC<{
   loading: boolean;
   onClick: () => void;
 }> = ({ chat, isActive, loading, onClick }) => {
+  const { t } = useI18n();
   return (
     <UiListItem
       className={`worker-chat-item ${isActive ? "is-active" : ""}`}
@@ -108,10 +113,10 @@ const WorkerChatPreviewItem: React.FC<{
       <div className="worker-chat-item-head">
         <UnreadDot chat={chat} />
         <span className="worker-chat-name">
-          {chat.lastRunContent || chat.chatName || "(无预览)"}
+          {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
         </span>
         {chat.hasPendingAwaiting && (
-          <span className="chat-awaiting-status">等待批准</span>
+          <span className="chat-awaiting-status">{t("leftSidebar.awaitingApproval")}</span>
         )}
         <span className="worker-panel-time-label">
           {formatChatTimeLabel(chat.updatedAt)}
@@ -139,9 +144,10 @@ const WorkerPanelHeader: React.FC<{
   unreadCount = 0,
   onStartNewConversation,
 }) => {
+  const { t } = useI18n();
   const preview = lastChat
-    ? lastChat?.lastRunContent || lastChat?.chatName || "最新对话无答复"
-    : "暂无历史对话";
+    ? lastChat?.lastRunContent || lastChat?.chatName || t("leftSidebar.latestConversationNoReply")
+    : t("leftSidebar.noHistory");
 
   return (
     <div
@@ -166,7 +172,7 @@ const WorkerPanelHeader: React.FC<{
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
-          <Tooltip title="新建对话">
+          <Tooltip title={t("leftSidebar.newConversation")}>
             <Button
               className="worker-panel-new"
               type="text"
@@ -180,7 +186,7 @@ const WorkerPanelHeader: React.FC<{
             {preview}
           </Typography.Text>
           {lastChat?.hasPendingAwaiting && (
-            <span className="chat-awaiting-status">等待批准</span>
+            <span className="chat-awaiting-status">{t("leftSidebar.awaitingApproval")}</span>
           )}
           {!!lastChat?.updatedAt && (
             <span className="worker-panel-time-label">
@@ -217,10 +223,14 @@ const WorkerConversationPreviewList: React.FC<{
   onOpenHistory,
   onStartNewConversation,
 }) => {
+  const { t } = useI18n();
   const recentChats = chats.slice(0, 5);
   const unreadCount = chats
-    .slice(5)
     .reduce((count, chat) => count + (isChatUnread(chat) ? 1 : 0), 0);
+  const unreadSuffix =
+    unreadCount > 0
+      ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
+      : "";
 
   return (
     <div className="worker-chat-preview-list">
@@ -243,7 +253,7 @@ const WorkerConversationPreviewList: React.FC<{
               {row.displayName}
             </span>
           </div>
-          <Tooltip title="新建对话">
+          <Tooltip title={t("leftSidebar.newConversation")}>
             <Button
               className="worker-panel-new worker-popover-new"
               type="text"
@@ -255,7 +265,7 @@ const WorkerConversationPreviewList: React.FC<{
       )}
       <div className="worker-chat-divider"></div>
       {recentChats.length === 0 ? (
-        <div className="status-line">暂无相关对话</div>
+        <div className="status-line">{t("leftSidebar.noRelatedConversations")}</div>
       ) : (
         <>
           {recentChats.map((chat) => (
@@ -274,8 +284,10 @@ const WorkerConversationPreviewList: React.FC<{
           className="worker-chat-more"
           onClick={(e) => onOpenHistory(e, row.key)}
         >
-          查看更多（共 {chats.length} 条
-          {unreadCount > 0 ? `，未读 ${unreadCount} 条` : ""}）
+          {t("leftSidebar.showMore", {
+            count: chats.length,
+            unreadSuffix,
+          })}
         </div>
       )}
     </div>
@@ -284,7 +296,9 @@ const WorkerConversationPreviewList: React.FC<{
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
-  const isSidebarLoading = state.sidebarPendingRequestCount > 0;
+  const { t } = useI18n();
+  const navigation = selectNavigationState(state);
+  const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
@@ -593,10 +607,10 @@ export const LeftSidebar: React.FC = () => {
               variant="filled"
               placeholder={
                 state.conversationMode === "worker"
-                  ? "按 名称 / key / teamId 过滤..."
-                  : "搜索对话..."
+                  ? t("leftSidebar.filterWorkers")
+                  : t("leftSidebar.filterChats")
               }
-              value={state.chatFilter}
+              value={navigation.chatFilter}
               prefix={<SearchOutlined style={{ color: "var(--text-muted)" }} />}
               onChange={(e) =>
                 dispatch({
@@ -628,7 +642,7 @@ export const LeftSidebar: React.FC = () => {
 
         {state.conversationMode !== "worker" && (
           <div className="chat-meta">
-            <span className="chat-meta-label">智能体</span>
+            <span className="chat-meta-label">{t("leftSidebar.workerLabel")}</span>
             {state.chatId && state.chatAgentById.has(state.chatId) && (
               <UiTag className="chip" tone="accent">
                 {state.chatAgentById.get(state.chatId)}
@@ -638,10 +652,10 @@ export const LeftSidebar: React.FC = () => {
         )}
 
         <div className="chat-list" id="chat-list">
-          <Spin spinning={isSidebarLoading} tip="加载中...">
+          <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.conversationMode === "worker" ? (
               filteredWorkerRows.length === 0 ? (
-                <div className="status-line">暂无员工/小组</div>
+                <div className="status-line">{t("leftSidebar.noWorkers")}</div>
               ) : state.leftDrawerOpen ? (
                 <Collapse
                   accordion
@@ -719,7 +733,7 @@ export const LeftSidebar: React.FC = () => {
                 </Flex>
               )
             ) : filteredChats.length === 0 ? (
-              <div className="status-line">暂无对话</div>
+              <div className="status-line">{t("leftSidebar.noConversations")}</div>
             ) : (
               filteredChats.map((chat) => (
                 <ChatItem
@@ -754,14 +768,14 @@ export const LeftSidebar: React.FC = () => {
             className="icon-btn sidebar-settings-trigger"
             id="settings-btn"
             variant="ghost"
-            aria-label="打开设置菜单"
+            aria-label={t("leftSidebar.openSettingsMenu")}
             aria-haspopup="menu"
             aria-expanded={settingsMenuOpen}
           >
             <MaterialIcon name="settings" />
             {state.leftDrawerOpen && (
               <>
-                <span>设置</span>
+                <span>{t("leftSidebar.settings")}</span>
                 <span className="settings-trigger-summary">
                   {settingsSummaryBadges.map((badge) => (
                     <span
@@ -792,8 +806,14 @@ export const LeftSidebar: React.FC = () => {
         className="worker-history-modal"
         title={
           historyWorker
-            ? `${historyWorker.type === "team" ? "小组" : "员工"}历史对话 · ${historyWorker.displayName}`
-            : "历史对话"
+            ? t("leftSidebar.historyTitleWithWorker", {
+                workerTypeLabel:
+                  historyWorker.type === "team"
+                    ? t("switch.workerType.team")
+                    : t("switch.workerType.agent"),
+                displayName: historyWorker.displayName,
+              })
+            : t("leftSidebar.historyTitle")
         }
       >
         <HistoryModal

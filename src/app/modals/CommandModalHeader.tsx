@@ -1,12 +1,13 @@
 import React from "react";
 import type { CommandModalType } from "@/app/state/types";
+import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 
 function getTitle(type: CommandModalType): string {
-	if (type === "history") return "历史对话";
-	if (type === "switch") return "切换员工";
-	if (type === "detail") return "当前详情";
-	if (type === "schedule") return "计划任务";
+	if (type === "history") return t("commandModal.history.title");
+	if (type === "switch") return t("commandModal.switch.title");
+	if (type === "detail") return t("commandModal.detail.title");
+	if (type === "schedule") return t("commandModal.schedule.title");
 	return "";
 }
 
@@ -23,7 +24,7 @@ export const CommandModalHeader: React.FC<{
 				<p className="command-modal-subtitle">{subtitle}</p>
 			</div>
 			<UiButton ref={closeButtonRef} variant="ghost" size="sm" onClick={onClose}>
-				关闭
+				{t("commandModal.close")}
 			</UiButton>
 		</div>
 	);

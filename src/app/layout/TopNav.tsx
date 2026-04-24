@@ -1,7 +1,9 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import { selectConversationState, selectUiState } from "@/app/state/selectors";
 import type { AppState } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Divider } from "antd";
@@ -19,30 +21,33 @@ export function resolveTopNavStatus(
   if (state.streaming) {
     return {
       statusClass: "is-running",
-      statusText: "运行中...",
+      statusText: "topNav.status.running",
     };
   }
 
   if (hasRunError) {
     return {
       statusClass: "is-error",
-      statusText: "运行异常",
+      statusText: "topNav.status.error",
     };
   }
 
   return {
     statusClass: "is-idle",
-    statusText: "待命",
+    statusText: "topNav.status.idle",
   };
 }
 
 export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
+  const ui = selectUiState(state);
+  const conversation = selectConversationState(state);
   const { statusClass, statusText } = resolveTopNavStatus(state);
   const currentWorker = resolveCurrentWorkerSummary(state);
   const voiceModeAvailable = currentWorker?.type === "agent";
-  const showMuteControl = voiceModeAvailable || state.audioMuted;
+  const showMuteControl = voiceModeAvailable || ui.audioMuted;
   const isMacPlatform = React.useMemo(
     () =>
       typeof navigator !== "undefined" &&
@@ -76,20 +81,20 @@ export const TopNav: React.FC = () => {
   };
 
   const handleStartVoiceMode = React.useCallback(() => {
-    if (voiceToggleDisabled || state.inputMode === "voice") return;
+    if (voiceToggleDisabled || conversation.inputMode === "voice") return;
     dispatch({
       type: "SET_INPUT_MODE",
       mode: "voice",
     });
-  }, [dispatch, state.inputMode, voiceToggleDisabled]);
+  }, [conversation.inputMode, dispatch, voiceToggleDisabled]);
 
   const handleHangupVoiceMode = React.useCallback(() => {
-    if (state.inputMode !== "voice") return;
+    if (conversation.inputMode !== "voice") return;
     dispatch({
       type: "SET_INPUT_MODE",
       mode: "text",
     });
-  }, [dispatch, state.inputMode]);
+  }, [conversation.inputMode, dispatch]);
 
   React.useEffect(() => {
     if (state.settingsOpen || state.commandModal.open) return;
@@ -142,7 +147,7 @@ export const TopNav: React.FC = () => {
                 className="icon-btn"
                 size="sm"
                 iconOnly
-                aria-label="打开对话列表"
+                aria-label={t("topNav.openDrawer")}
                 variant="primary"
                 onClick={() =>
                   dispatch({
@@ -167,8 +172,8 @@ export const TopNav: React.FC = () => {
             id="top-nav-new-chat-btn"
             className="icon-btn top-nav-new-chat-btn"
             size="sm"
-            aria-label="开始新聊天"
-            title="开始新聊天"
+            aria-label={t("topNav.newConversation")}
+            title={t("topNav.newConversation")}
             variant="ghost"
             iconOnly
             onClick={handleStartNewConversation}
@@ -180,13 +185,13 @@ export const TopNav: React.FC = () => {
         <div className="nav-group nav-center">
           <div className={`current-worker-card`} aria-live="polite">
             <strong className="current-worker-name">
-              {currentWorker?.displayName || "未选择员工"}
+              {currentWorker?.displayName || t("topNav.noSelection")}
             </strong>
             <span
               className={`status-pill ${statusClass}`}
               id="api-status"
             >
-              {statusText}
+              {t(statusText)}
             </span>
           </div>
         </div>
@@ -194,40 +199,40 @@ export const TopNav: React.FC = () => {
         <div className="nav-group">
           {voiceModeAvailable ? (
             <UiButton
-              className={`current-worker-tool current-worker-tool-voice ${state.inputMode === "voice" ? "is-hangup" : "is-call"}`}
+              className={`current-worker-tool current-worker-tool-voice ${conversation.inputMode === "voice" ? "is-hangup" : "is-call"}`}
               variant="ghost"
               size="sm"
               iconOnly
               disabled={voiceToggleDisabled}
-              aria-label={state.inputMode === "voice" ? "挂断语聊" : "打开语聊"}
+              aria-label={conversation.inputMode === "voice" ? t("topNav.voice.hangup") : t("topNav.voice.open")}
               aria-keyshortcuts={
-                state.inputMode === "voice" ? "Escape" : voiceOpenAriaShortcut
+                conversation.inputMode === "voice" ? "Escape" : voiceOpenAriaShortcut
               }
               title={
-                state.inputMode === "voice"
-                  ? "挂断语聊 (Esc)"
-                  : `打开语聊 (${voiceOpenShortcutLabel})`
+                conversation.inputMode === "voice"
+                  ? t("topNav.voice.hangupWithShortcut")
+                  : t("topNav.voice.openWithShortcut", { shortcut: voiceOpenShortcutLabel })
               }
               onClick={handleToggleVoiceMode}
             >
               <MaterialIcon
-                name={state.inputMode === "voice" ? "call_end" : "call"}
+                name={conversation.inputMode === "voice" ? "call_end" : "call"}
               />
             </UiButton>
           ) : null}
           {showMuteControl ? (
             <UiButton
-              className={`current-worker-tool ${state.audioMuted ? "is-muted" : ""}`}
+              className={`current-worker-tool ${ui.audioMuted ? "is-muted" : ""}`}
               variant="ghost"
               size="sm"
               iconOnly
-              active={state.audioMuted}
-              aria-label={state.audioMuted ? "取消静音" : "静音语音输出"}
-              title={state.audioMuted ? "取消静音" : "静音语音输出"}
+              active={ui.audioMuted}
+              aria-label={ui.audioMuted ? t("topNav.audio.unmute") : t("topNav.audio.mute")}
+              title={ui.audioMuted ? t("topNav.audio.unmute") : t("topNav.audio.mute")}
               onClick={handleToggleAudioMuted}
             >
               <MaterialIcon
-                name={state.audioMuted ? "volume_off" : "volume_up"}
+                name={ui.audioMuted ? "volume_off" : "volume_up"}
               />
             </UiButton>
           ) : null}
@@ -240,7 +245,7 @@ export const TopNav: React.FC = () => {
             iconOnly
             active={state.desktopDebugSidebarEnabled}
             aria-label={
-              state.desktopDebugSidebarEnabled ? "关闭调试面板" : "打开调试面板"
+              ui.desktopDebugSidebarEnabled ? t("topNav.debug.close") : t("topNav.debug.open")
             }
             onClick={() => {
               if (state.attachmentPreview) {
@@ -264,13 +269,13 @@ export const TopNav: React.FC = () => {
             variant="ghost"
             size="sm"
             iconOnly
-            active={state.terminalDockOpen}
-            aria-label={state.terminalDockOpen ? "关闭终端面板" : "打开终端面板"}
-            title={state.terminalDockOpen ? "关闭终端面板" : "打开终端面板"}
+            active={ui.terminalDockOpen}
+            aria-label={ui.terminalDockOpen ? t("topNav.terminal.close") : t("topNav.terminal.open")}
+            title={ui.terminalDockOpen ? t("topNav.terminal.close") : t("topNav.terminal.open")}
             onClick={() =>
               dispatch({
                 type: "SET_TERMINAL_DOCK_OPEN",
-                open: !state.terminalDockOpen,
+                open: !ui.terminalDockOpen,
               })
             }
           >

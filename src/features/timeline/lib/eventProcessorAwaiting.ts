@@ -4,6 +4,7 @@ import {
 	getAwaitingQuestionMetaByQuestion,
 	maskAwaitingAnswerParams,
 } from "@/features/tools/lib/awaitingQuestionMeta";
+import { t } from "@/shared/i18n";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 
 export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
@@ -140,23 +141,23 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 
 export function awaitingAnswerTitle(event: AgentEvent): string {
 	if (event.type !== "awaiting.answer") {
-		return "已提交回答";
+		return t("timeline.awaitingAnswer.submitted");
 	}
 	if (event.status === "answered") {
-		return "已提交回答";
+		return t("timeline.awaitingAnswer.submitted");
 	}
 	if (event.status !== "error") {
-		return "已提交回答";
+		return t("timeline.awaitingAnswer.submitted");
 	}
 	switch (event.error?.code) {
 		case "user_dismissed":
-			return "已取消等待";
+			return t("timeline.awaitingAnswer.canceled");
 		case "timeout":
-			return "等待已超时";
+			return t("timeline.awaitingAnswer.timeout");
 		case "invalid_submit":
-			return "提交失败";
+			return t("timeline.awaitingAnswer.submitFailed");
 		default:
-			return "等待异常";
+			return t("timeline.awaitingAnswer.error");
 	}
 }
 

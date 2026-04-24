@@ -1,4 +1,5 @@
 import type { TimelineNode } from '@/app/state/types';
+import { t } from '@/shared/i18n';
 
 export type SlashCommandId =
   | 'remember'
@@ -18,9 +19,14 @@ export type SlashCommandId =
 export interface SlashCommandDefinition {
   id: SlashCommandId;
   command: `/${SlashCommandId}`;
+  labelKey: string;
+  descriptionKey: string;
+  keywords: string[];
+}
+
+export interface ResolvedSlashCommandDefinition extends SlashCommandDefinition {
   label: string;
   description: string;
-  keywords: string[];
 }
 
 export interface SlashCommandAvailability {
@@ -39,108 +45,117 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'new',
     command: '/new',
-    label: '新对话',
-    description: '清空当前对话上下文，保留当前 worker 选择',
+    labelKey: 'slash.command.new.label',
+    descriptionKey: 'slash.command.new.description',
     keywords: ['new', 'chat', 'reset', 'clear'],
   },
   {
     id: 'history',
     command: '/history',
-    label: '历史对话',
-    description: '查看当前员工或小组的历史会话',
+    labelKey: 'slash.command.history.label',
+    descriptionKey: 'slash.command.history.description',
     keywords: ['history', 'chat', 'conversation', 'recent'],
   },
   {
     id: 'remember',
     command: '/remember',
-    label: '记录记忆',
-    description: '记录长期偏好、事实或约束，并提交给后端记忆接口',
+    labelKey: 'slash.command.remember.label',
+    descriptionKey: 'slash.command.remember.description',
     keywords: ['remember', 'memory', 'preference', 'fact'],
   },
   {
     id: 'learn',
     command: '/learn',
-    label: '沉淀学习',
-    description: '提炼当前会话经验、规则与做法，并提交给后端学习接口',
+    labelKey: 'slash.command.learn.label',
+    descriptionKey: 'slash.command.learn.description',
     keywords: ['learn', 'lesson', 'rule', 'practice'],
   },
   {
     id: 'schedule',
     command: '/schedule',
-    label: '计划任务',
-    description: '为当前员工或小组预填计划任务草稿',
+    labelKey: 'slash.command.schedule.label',
+    descriptionKey: 'slash.command.schedule.description',
     keywords: ['schedule', 'task', 'plan', 'cron'],
   },
   {
     id: 'detail',
     command: '/detail',
-    label: '当前详情',
-    description: '查看当前员工或小组的模型、技能、工具等信息',
+    labelKey: 'slash.command.detail.label',
+    descriptionKey: 'slash.command.detail.description',
     keywords: ['detail', 'profile', 'info', 'agent'],
   },
   {
     id: 'switch',
     command: '/switch',
-    label: '切换员工',
-    description: '搜索并切换当前员工或小组',
+    labelKey: 'slash.command.switch.label',
+    descriptionKey: 'slash.command.switch.description',
     keywords: ['switch', 'worker', 'agent', 'team'],
   },
   {
     id: 'redo',
     command: '/redo',
-    label: '重发最近 query',
-    description: '重新发送当前对话里最近一条 query',
+    labelKey: 'slash.command.redo.label',
+    descriptionKey: 'slash.command.redo.description',
     keywords: ['redo', 'retry', 'resend', 'again'],
   },
   {
     id: 'debug',
     command: '/debug',
-    label: '调试面板',
-    description: '切换右侧调试面板或抽屉',
+    labelKey: 'slash.command.debug.label',
+    descriptionKey: 'slash.command.debug.description',
     keywords: ['debug', 'panel', 'logs', 'events'],
   },
   {
     id: 'voice',
     command: '/voice',
-    label: '语聊模式',
-    description: '在文字输入与一问一答语聊模式之间切换',
+    labelKey: 'slash.command.voice.label',
+    descriptionKey: 'slash.command.voice.description',
     keywords: ['voice', 'speech', 'call', 'mic'],
   },
   {
     id: 'settings',
     command: '/settings',
-    label: '设置',
-    description: '打开设置窗口',
+    labelKey: 'slash.command.settings.label',
+    descriptionKey: 'slash.command.settings.description',
     keywords: ['settings', 'config', 'preferences'],
   },
   {
     id: 'plan',
     command: '/plan',
-    label: '计划模式',
-    description: '切换 planning mode',
+    labelKey: 'slash.command.plan.label',
+    descriptionKey: 'slash.command.plan.description',
     keywords: ['plan', 'planning'],
   },
   {
     id: 'stop',
     command: '/stop',
-    label: '停止运行',
-    description: '中断当前 streaming run',
+    labelKey: 'slash.command.stop.label',
+    descriptionKey: 'slash.command.stop.description',
     keywords: ['stop', 'interrupt', 'abort', 'cancel'],
   },
 ];
+
+function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashCommandDefinition {
+  return {
+    ...command,
+    label: t(command.labelKey),
+    description: t(command.descriptionKey),
+  };
+}
 
 export function shouldShowSlashCommandPalette(input: string): boolean {
   return /^\/\S*$/.test(String(input || ''));
 }
 
-export function getFilteredSlashCommands(input: string): SlashCommandDefinition[] {
+export function getFilteredSlashCommands(input: string): ResolvedSlashCommandDefinition[] {
   if (!shouldShowSlashCommandPalette(input)) {
     return [];
   }
   const query = String(input || '').slice(1).trim().toLowerCase();
-  if (!query) return SLASH_COMMANDS;
+  const commands = SLASH_COMMANDS.map(resolveSlashCommand);
+  if (!query) return commands;
 
-  return SLASH_COMMANDS.filter((command) => {
+  return commands.filter((command) => {
     const haystack = [
       command.command,
       command.label,

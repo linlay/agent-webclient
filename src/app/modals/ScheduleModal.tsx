@@ -1,4 +1,5 @@
 import React from "react";
+import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiInput } from "@/shared/ui/UiInput";
@@ -20,32 +21,34 @@ export const ScheduleModal: React.FC<{
 	onConfirm,
 	onCancel,
 }) => {
+	const { t } = useI18n();
+
 	return (
 		<div className="command-modal-section command-schedule-form">
 			<div className="field-group">
-				<label htmlFor="schedule-task-input">任务内容</label>
+				<label htmlFor="schedule-task-input">{t("schedule.label.task")}</label>
 				<UiInput
 					ref={scheduleTaskRef}
 					id="schedule-task-input"
 					inputSize="md"
 					type="text"
-					placeholder="例如：每天整理客户日报"
+					placeholder={t("schedule.example.task")}
 					value={scheduleTask}
 					onChange={(event) => onTaskChange(event.target.value)}
 				/>
 			</div>
 			<div className="field-group">
-				<label htmlFor="schedule-rule-input">执行时间 / 规则</label>
+				<label htmlFor="schedule-rule-input">{t("schedule.label.rule")}</label>
 				<UiInput
 					id="schedule-rule-input"
 					inputSize="md"
 					type="text"
-					placeholder="例如：每个工作日 18:00"
+					placeholder={t("schedule.example.rule")}
 					value={scheduleRule}
 					onChange={(event) => onRuleChange(event.target.value)}
 				/>
 				<p className="settings-hint">
-					确认后会生成带当前员工上下文的草稿，按需再发送。支持 `Ctrl/Cmd + Enter` 快速确认。
+					{t("schedule.hint")}
 				</p>
 			</div>
 			<div className="command-schedule-actions">
@@ -56,11 +59,9 @@ export const ScheduleModal: React.FC<{
 					onClick={onConfirm}
 				>
 					<MaterialIcon name="schedule" />
-					<span>生成草稿</span>
+					<span>{t("schedule.action.generateDraft")}</span>
 				</UiButton>
-				<UiButton variant="ghost" size="sm" onClick={onCancel}>
-					取消
-				</UiButton>
+				<UiButton variant="ghost" size="sm" onClick={onCancel}>{t("commandModal.close")}</UiButton>
 			</div>
 		</div>
 	);

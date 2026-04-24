@@ -93,6 +93,64 @@ describe('awaiting protocol helpers', () => {
     expect(buildAwaitingUpdateMessage(awaiting).type).toBe('awaiting_update');
   });
 
+  it('builds awaiting init data for forms without action', () => {
+    const awaiting = createFormAwaiting({
+      forms: [
+        {
+          id: 'form-1',
+          title: 'mock 请假申请',
+          payload: {
+            applicant_id: 'E1001',
+            department_id: 'engineering',
+            leave_type: 'annual',
+            start_date: '2026-04-20',
+            end_date: '2026-04-22',
+            days: 2.5,
+            reason: 'family_trip',
+          },
+        },
+      ],
+    });
+
+    expect(buildAwaitingInitMessage(awaiting)).toEqual({
+      type: 'awaiting_init',
+      data: {
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        viewportKey: 'leave_form',
+        mode: 'form',
+        timeout: 60,
+        activeFormIndex: 0,
+        activeFormId: 'form-1',
+        forms: [
+          {
+            id: 'form-1',
+            action: undefined,
+            title: 'mock 请假申请',
+            payload: {
+              applicant_id: 'E1001',
+              department_id: 'engineering',
+              leave_type: 'annual',
+              start_date: '2026-04-20',
+              end_date: '2026-04-22',
+              days: 2.5,
+              reason: 'family_trip',
+            },
+          },
+        ],
+        payload: {
+          applicant_id: 'E1001',
+          department_id: 'engineering',
+          leave_type: 'annual',
+          start_date: '2026-04-20',
+          end_date: '2026-04-22',
+          days: 2.5,
+          reason: 'family_trip',
+        },
+      },
+    });
+  });
+
   it('keeps legacy initialPayload compatible when building iframe init data', () => {
     const awaiting = createFormAwaiting({
       forms: [

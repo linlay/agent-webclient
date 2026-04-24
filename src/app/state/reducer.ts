@@ -8,8 +8,13 @@ import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { normalizeThemeMode } from "@/shared/styles/theme";
 import type { AppAction } from "@/app/state/actions";
 import {
+	addSetValue,
 	buildConversationResetState,
+	deleteMapValue,
 	patchActiveAwaiting,
+	removeSetValue,
+	setMapValue,
+	toggleSetValue,
 	upsertArtifact,
 } from "@/app/state/reducerHelpers";
 
@@ -90,14 +95,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 		case "SET_PLAN_MANUAL_OVERRIDE":
 			return { ...state, planManualOverride: action.override };
 		case "SET_TASK_ITEM_META": {
-			const taskItemsById = new Map(state.taskItemsById);
-			taskItemsById.set(action.taskId, action.task);
-			return { ...state, taskItemsById };
+			return {
+				...state,
+				taskItemsById: setMapValue(state.taskItemsById, action.taskId, action.task),
+			};
 		}
 		case "SET_TASK_GROUP_META": {
-			const taskGroupsById = new Map(state.taskGroupsById);
-			taskGroupsById.set(action.groupId, action.group);
-			return { ...state, taskGroupsById };
+			return {
+				...state,
+				taskGroupsById: setMapValue(state.taskGroupsById, action.groupId, action.group),
+			};
 		}
 		case "SET_AGENT_GROUP_ADD_TASK": {
 			const agentGroupsByGroupId = new Map(state.agentGroupsByGroupId);
@@ -123,26 +130,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			return { ...state, timelineNodes };
 		}
 		case "ADD_ACTIVE_TASK_ID": {
-			const activeTaskIds = new Set(state.activeTaskIds);
-			activeTaskIds.add(action.taskId);
-			return { ...state, activeTaskIds };
+			return { ...state, activeTaskIds: addSetValue(state.activeTaskIds, action.taskId) };
 		}
 		case "REMOVE_ACTIVE_TASK_ID": {
-			if (!state.activeTaskIds.has(action.taskId)) {
-				return state;
-			}
-			const activeTaskIds = new Set(state.activeTaskIds);
-			activeTaskIds.delete(action.taskId);
-			return { ...state, activeTaskIds };
+			return { ...state, activeTaskIds: removeSetValue(state.activeTaskIds, action.taskId) };
 		}
 		case "SET_PLAN_CURRENT_RUNNING_TASK_ID":
 			return { ...state, planCurrentRunningTaskId: action.taskId };
 		case "SET_PLAN_LAST_TOUCHED_TASK_ID":
 			return { ...state, planLastTouchedTaskId: action.taskId };
 		case "SET_PLAN_RUNTIME": {
-			const planRuntimeByTaskId = new Map(state.planRuntimeByTaskId);
-			planRuntimeByTaskId.set(action.taskId, action.runtime);
-			return { ...state, planRuntimeByTaskId };
+			return {
+				...state,
+				planRuntimeByTaskId: setMapValue(
+					state.planRuntimeByTaskId,
+					action.taskId,
+					action.runtime,
+				),
+			};
 		}
 		case "SET_SETTINGS_OPEN":
 			return { ...state, settingsOpen: action.open };
@@ -256,13 +261,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 			}
 			return { ...state, pendingSteers: [] };
 		case "TOGGLE_RUN_DOWNVOTE": {
-			const downvotedRunKeys = new Set(state.downvotedRunKeys);
-			if (downvotedRunKeys.has(action.runKey)) {
-				downvotedRunKeys.delete(action.runKey);
-			} else {
-				downvotedRunKeys.add(action.runKey);
-			}
-			return { ...state, downvotedRunKeys };
+			return {
+				...state,
+				downvotedRunKeys: toggleSetValue(state.downvotedRunKeys, action.runKey),
+			};
 		}
 		case "SET_MENTION_OPEN":
 			return { ...state, mentionOpen: action.open };
@@ -362,9 +364,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				},
 			};
 		case "SET_TIMELINE_NODE": {
-			const timelineNodes = new Map(state.timelineNodes);
-			timelineNodes.set(action.id, action.node);
-			return { ...state, timelineNodes };
+			return {
+				...state,
+				timelineNodes: setMapValue(state.timelineNodes, action.id, action.node),
+			};
 		}
 		case "PATCH_CONTENT_TTS_VOICE_BLOCK": {
 			const current = state.timelineNodes.get(action.nodeId);
@@ -387,12 +390,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				signature: action.signature,
 			};
 
-			const timelineNodes = new Map(state.timelineNodes);
-			timelineNodes.set(action.nodeId, {
-				...current,
-				ttsVoiceBlocks: blocks,
-			});
-			return { ...state, timelineNodes };
+			return {
+				...state,
+				timelineNodes: setMapValue(state.timelineNodes, action.nodeId, {
+					...current,
+					ttsVoiceBlocks: blocks,
+				}),
+			};
 		}
 		case "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS": {
 			const current = state.timelineNodes.get(action.nodeId);
@@ -412,12 +416,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				return state;
 			}
 
-			const timelineNodes = new Map(state.timelineNodes);
-			timelineNodes.set(action.nodeId, {
-				...current,
-				ttsVoiceBlocks: blocks,
-			});
-			return { ...state, timelineNodes };
+			return {
+				...state,
+				timelineNodes: setMapValue(state.timelineNodes, action.nodeId, {
+					...current,
+					ttsVoiceBlocks: blocks,
+				}),
+			};
 		}
 		case "APPEND_TIMELINE_ORDER":
 			return {
@@ -425,24 +430,28 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				timelineOrder: [...state.timelineOrder, action.id],
 			};
 		case "SET_TOOL_STATE": {
-			const toolStates = new Map(state.toolStates);
-			toolStates.set(action.key, action.state);
-			return { ...state, toolStates };
+			return {
+				...state,
+				toolStates: setMapValue(state.toolStates, action.key, action.state),
+			};
 		}
 		case "SET_PENDING_TOOL": {
-			const pendingTools = new Map(state.pendingTools);
-			pendingTools.set(action.key, action.tool);
-			return { ...state, pendingTools };
+			return {
+				...state,
+				pendingTools: setMapValue(state.pendingTools, action.key, action.tool),
+			};
 		}
 		case "SET_ACTION_STATE": {
-			const actionStates = new Map(state.actionStates);
-			actionStates.set(action.key, action.state);
-			return { ...state, actionStates };
+			return {
+				...state,
+				actionStates: setMapValue(state.actionStates, action.key, action.state),
+			};
 		}
 		case "ADD_EXECUTED_ACTION_ID": {
-			const executedActionIds = new Set(state.executedActionIds);
-			executedActionIds.add(action.actionId);
-			return { ...state, executedActionIds };
+			return {
+				...state,
+				executedActionIds: addSetValue(state.executedActionIds, action.actionId),
+			};
 		}
 		case "SET_EVENT_POPOVER":
 			return {
@@ -452,46 +461,69 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 				eventPopoverAnchor: action.anchor ?? null,
 			};
 		case "SET_MESSAGE": {
-			const messagesById = new Map(state.messagesById);
-			messagesById.set(action.id, action.message);
-			return { ...state, messagesById };
+			return {
+				...state,
+				messagesById: setMapValue(state.messagesById, action.id, action.message),
+			};
 		}
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
 		case "SET_CONTENT_NODE_BY_ID": {
-			const contentNodeById = new Map(state.contentNodeById);
-			contentNodeById.set(action.contentId, action.nodeId);
-			return { ...state, contentNodeById };
+			return {
+				...state,
+				contentNodeById: setMapValue(
+					state.contentNodeById,
+					action.contentId,
+					action.nodeId,
+				),
+			};
 		}
 		case "SET_REASONING_NODE_BY_ID": {
-			const reasoningNodeById = new Map(state.reasoningNodeById);
-			reasoningNodeById.set(action.reasoningId, action.nodeId);
-			return { ...state, reasoningNodeById };
+			return {
+				...state,
+				reasoningNodeById: setMapValue(
+					state.reasoningNodeById,
+					action.reasoningId,
+					action.nodeId,
+				),
+			};
 		}
 		case "SET_REASONING_COLLAPSE_TIMER": {
-			const reasoningCollapseTimers = new Map(state.reasoningCollapseTimers);
-			reasoningCollapseTimers.set(action.reasoningId, action.timer);
-			return { ...state, reasoningCollapseTimers };
+			return {
+				...state,
+				reasoningCollapseTimers: setMapValue(
+					state.reasoningCollapseTimers,
+					action.reasoningId,
+					action.timer,
+				),
+			};
 		}
 		case "CLEAR_REASONING_COLLAPSE_TIMER": {
-			if (!state.reasoningCollapseTimers.has(action.reasoningId)) {
-				return state;
-			}
-			const reasoningCollapseTimers = new Map(state.reasoningCollapseTimers);
-			reasoningCollapseTimers.delete(action.reasoningId);
-			return { ...state, reasoningCollapseTimers };
+			return {
+				...state,
+				reasoningCollapseTimers: deleteMapValue(
+					state.reasoningCollapseTimers,
+					action.reasoningId,
+				),
+			};
 		}
 		case "SET_TOOL_NODE_BY_ID": {
-			const toolNodeById = new Map(state.toolNodeById);
-			toolNodeById.set(action.toolId, action.nodeId);
-			return { ...state, toolNodeById };
+			return {
+				...state,
+				toolNodeById: setMapValue(state.toolNodeById, action.toolId, action.nodeId),
+			};
 		}
 		case "SET_ACTIVE_REASONING_KEY":
 			return { ...state, activeReasoningKey: action.key };
 		case "SET_CHAT_AGENT_BY_ID": {
-			const chatAgentById = new Map(state.chatAgentById);
-			chatAgentById.set(action.chatId, action.agentKey);
-			return { ...state, chatAgentById };
+			return {
+				...state,
+				chatAgentById: setMapValue(
+					state.chatAgentById,
+					action.chatId,
+					action.agentKey,
+				),
+			};
 		}
 		case "INCREMENT_TIMELINE_COUNTER":
 			return { ...state, timelineCounter: state.timelineCounter + 1 };

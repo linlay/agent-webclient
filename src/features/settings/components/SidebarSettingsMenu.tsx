@@ -5,6 +5,7 @@ import type {
   TransportMode,
   WsConnectionStatus,
 } from "@/app/state/types";
+import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -53,13 +54,13 @@ export function resolveSettingsSummaryBadges(input: {
   const transportTitle =
     input.transportMode === "ws"
       ? wsDetail
-        ? `当前传输模式：WebSocket（连接异常：${wsDetail}）`
+        ? t("settingsMenu.summary.transport.wsError", { detail: wsDetail })
         : input.wsStatus === "connecting"
-          ? "当前传输模式：WebSocket（连接中）"
+          ? t("settingsMenu.summary.transport.wsConnecting")
           : input.wsStatus === "connected"
-            ? "当前传输模式：WebSocket（连接已就绪）"
-            : "当前传输模式：WebSocket"
-      : "当前传输模式：SSE";
+            ? t("settingsMenu.summary.transport.wsConnected")
+            : t("settingsMenu.summary.transport.ws")
+      : t("settingsMenu.summary.transport.sse");
 
   return [
     {
@@ -71,9 +72,14 @@ export function resolveSettingsSummaryBadges(input: {
     {
       key: "theme",
       icon: input.themeMode === "dark" ? "dark_mode" : "light_mode",
-      label: input.themeMode === "dark" ? "夜" : "日",
+      label:
+        input.themeMode === "dark"
+          ? t("settingsMenu.summary.theme.darkLabel")
+          : t("settingsMenu.summary.theme.lightLabel"),
       title:
-        input.themeMode === "dark" ? "当前界面：夜间模式" : "当前界面：日间模式",
+        input.themeMode === "dark"
+          ? t("settingsMenu.summary.theme.darkTitle")
+          : t("settingsMenu.summary.theme.lightTitle"),
     },
   ];
 }
@@ -85,21 +91,21 @@ export function buildSidebarSettingsMenuSections(input: {
   const detail = String(input.wsErrorMessage || "").trim();
   const wsDescription =
     input.wsStatus === "connecting"
-      ? "当前连接状态：WebSocket 连接中。"
+      ? t("settingsMenu.ws.connecting")
       : input.wsStatus === "connected"
-        ? "当前连接状态：WebSocket 已就绪。"
+        ? t("settingsMenu.ws.connected")
         : detail
-          ? `当前连接状态：${detail}`
-          : "进入完整设置对话框查看连接与主题详情。";
+          ? t("settingsMenu.ws.error", { detail })
+          : t("settingsMenu.ws.default");
 
   return [
     {
       key: "entry",
-      title: "设置",
+      title: t("settingsMenu.section.entry"),
       items: [
         {
           key: "open-settings",
-          label: "打开设置...",
+          label: t("settingsMenu.openSettings"),
           description: wsDescription,
           icon: "tune",
           action: { type: "open-settings" },
@@ -108,28 +114,28 @@ export function buildSidebarSettingsMenuSections(input: {
     },
     {
       key: "reserved",
-      title: "预留",
+      title: t("settingsMenu.section.reserved"),
       items: [
         {
           key: "reserved-connection",
-          label: "连接设置（即将开放）",
-          description: "预留菜单入口，后续补充。",
+          label: t("settingsMenu.reserved.connection"),
+          description: t("settingsMenu.reserved.description"),
           icon: "sync_alt",
           disabled: true,
           action: { type: "noop" },
         },
         {
           key: "reserved-appearance",
-          label: "外观偏好（即将开放）",
-          description: "预留菜单入口，后续补充。",
+          label: t("settingsMenu.reserved.appearance"),
+          description: t("settingsMenu.reserved.description"),
           icon: "palette",
           disabled: true,
           action: { type: "noop" },
         },
         {
           key: "reserved-shortcuts",
-          label: "快捷键（即将开放）",
-          description: "预留菜单入口，后续补充。",
+          label: t("settingsMenu.reserved.shortcuts"),
+          description: t("settingsMenu.reserved.description"),
           icon: "keyboard_command_key",
           disabled: true,
           action: { type: "noop" },
@@ -161,7 +167,7 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
   );
 
   return (
-    <div className="sidebar-settings-menu" role="menu" aria-label="设置菜单">
+    <div className="sidebar-settings-menu" role="menu" aria-label={t("settingsMenu.ariaLabel")}>
       {sections.map((section) => (
         <div className="sidebar-settings-section" key={section.key}>
           <div className="sidebar-settings-section-title">{section.title}</div>
@@ -189,7 +195,7 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                       {item.label}
                     </span>
                     {item.active ? (
-                      <span className="sidebar-settings-item-badge">当前</span>
+                      <span className="sidebar-settings-item-badge">{t("settingsMenu.status.current")}</span>
                     ) : null}
                   </span>
                   {item.description ? (

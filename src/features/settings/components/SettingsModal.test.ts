@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { SettingsModal, formatWsStatusText } from "@/features/settings/components/SettingsModal";
+import { I18nProvider } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -43,17 +44,17 @@ describe("formatWsStatusText", () => {
     expect(
       formatWsStatusText(
         "error",
-        "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+        "WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
       ),
     ).toBe(
-      "WebSocket 连接异常：WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+      "WebSocket connection error: WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
     );
   });
 
   it("falls back to generic status text when no error details exist", () => {
-    expect(formatWsStatusText("connected")).toBe("WebSocket 已连接");
-    expect(formatWsStatusText("connecting")).toBe("WebSocket 连接中...");
-    expect(formatWsStatusText("disconnected")).toBe("WebSocket 未连接");
+    expect(formatWsStatusText("connected")).toBe("WebSocket connected");
+    expect(formatWsStatusText("connecting")).toBe("WebSocket connecting...");
+    expect(formatWsStatusText("disconnected")).toBe("WebSocket disconnected");
   });
 });
 
@@ -86,13 +87,23 @@ describe("SettingsModal", () => {
     }
   });
 
+  function renderSettingsModal() {
+    return renderToStaticMarkup(
+      React.createElement(I18nProvider, {
+        locale: "en-US",
+        fallbackLocale: "en-US",
+        children: React.createElement(SettingsModal),
+      }),
+    );
+  }
+
   it("wraps conversation, theme, and transport controls in the preferences grid", () => {
-    const html = renderToStaticMarkup(React.createElement(SettingsModal));
+    const html = renderSettingsModal();
 
     expect(html).toContain("settings-preferences-grid");
-    expect(html).toContain("对话模式");
-    expect(html).toContain("界面主题");
-    expect(html).toContain("传输模式");
+    expect(html).toContain("Conversation mode");
+    expect(html).toContain("Theme");
+    expect(html).toContain("Transport mode");
     expect(html).toContain("SSE");
     expect(html).toContain("WebSocket");
   });
@@ -104,12 +115,12 @@ describe("SettingsModal", () => {
       },
     };
 
-    const html = renderToStaticMarkup(React.createElement(SettingsModal));
+    const html = renderSettingsModal();
 
     expect(html).toContain("settings-preferences-grid");
-    expect(html).toContain("对话模式");
-    expect(html).toContain("传输模式");
-    expect(html).not.toContain("界面主题");
+    expect(html).toContain("Conversation mode");
+    expect(html).toContain("Transport mode");
+    expect(html).not.toContain("Theme");
   });
 
   it("shows sse-specific transport guidance when sse is selected", () => {
@@ -119,10 +130,10 @@ describe("SettingsModal", () => {
       transportMode: "sse",
     });
 
-    const html = renderToStaticMarkup(React.createElement(SettingsModal));
+    const html = renderSettingsModal();
 
     expect(html).toContain(
-      "当前使用 SSE 查询流，不启用 live 实时同步；普通 API 继续通过 HTTP 可用。",
+      "SSE is currently used for query streaming. Live synchronization is disabled, while regular APIs continue to work over HTTP.",
     );
   });
 });

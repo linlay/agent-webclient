@@ -155,7 +155,7 @@ export interface AIAwaitApproval {
 
 export interface AIAwaitForm {
   id: string;
-  action: string;
+  action?: string;
   payload?: Record<string, unknown> | null;
   title?: string;
 }

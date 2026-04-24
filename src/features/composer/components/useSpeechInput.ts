@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t } from "@/shared/i18n";
 
 export type SpeechRecognitionLike = {
 	lang: string;
@@ -50,7 +51,10 @@ export function useSpeechInput(input: {
 	const speechListeningRef = useRef(false);
 	const [speechSupported, setSpeechSupported] = useState(false);
 	const [speechListening, setSpeechListening] = useState(false);
-	const [speechStatus, setSpeechStatus] = useState("点击开始听写");
+	const [speechState, setSpeechState] = useState<
+		"ready" | "unsupported" | "listening" | "error"
+	>("ready");
+	const [speechStatus, setSpeechStatus] = useState(t("composer.speech.ready"));
 
 	const mergeSpeechText = useCallback((base: string, append: string) => {
 		if (!append) return base;
@@ -60,17 +64,19 @@ export function useSpeechInput(input: {
 	useEffect(() => {
 		const supported = Boolean(getSpeechConstructor());
 		setSpeechSupported(supported);
+		setSpeechState(supported ? "ready" : "unsupported");
 		setSpeechStatus(
 			supported
-				? "点击开始听写"
-				: "当前浏览器不支持语音输入",
+				? t("composer.speech.ready")
+				: t("composer.speech.unsupported"),
 		);
 	}, []);
 
 	const stopSpeechInput = useCallback(() => {
 		speechListeningRef.current = false;
 		setSpeechListening(false);
-		setSpeechStatus("点击开始听写");
+		setSpeechState("ready");
+		setSpeechStatus(t("composer.speech.ready"));
 		const recognition = speechRecognitionRef.current;
 		if (!recognition) return;
 		try {
@@ -84,7 +90,8 @@ export function useSpeechInput(input: {
 		const ctor = getSpeechConstructor();
 
 		if (!ctor) {
-			setSpeechStatus("当前浏览器不支持语音输入");
+			setSpeechState("unsupported");
+			setSpeechStatus(t("composer.speech.unsupported"));
 			return;
 		}
 
@@ -96,18 +103,21 @@ export function useSpeechInput(input: {
 			recognition.onstart = () => {
 				speechListeningRef.current = true;
 				setSpeechListening(true);
-				setSpeechStatus("正在听写...");
+				setSpeechState("listening");
+				setSpeechStatus(t("composer.speech.listening"));
 			};
 			recognition.onend = () => {
 				speechListeningRef.current = false;
 				setSpeechListening(false);
-				setSpeechStatus("点击开始听写");
+				setSpeechState("ready");
+				setSpeechStatus(t("composer.speech.ready"));
 			};
 			recognition.onerror = (event) => {
-				const msg = String(event?.error || "识别失败");
+				const msg = String(event?.error || "recognition failed");
 				speechListeningRef.current = false;
 				setSpeechListening(false);
-				setSpeechStatus(`语音识别错误: ${msg}`);
+				setSpeechState("error");
+				setSpeechStatus(t("composer.speech.error", { detail: msg }));
 			};
 			recognition.onresult = (event) => {
 				let finalDelta = "";
@@ -140,7 +150,8 @@ export function useSpeechInput(input: {
 		try {
 			speechRecognitionRef.current.start();
 		} catch {
-			setSpeechStatus("语音识别未启动，请重试");
+			setSpeechState("error");
+			setSpeechStatus(t("composer.speech.retry"));
 		}
 	}, [input, mergeSpeechText]);
 
@@ -167,6 +178,7 @@ export function useSpeechInput(input: {
 	return {
 		speechSupported,
 		speechListening,
+		speechState,
 		speechStatus,
 		toggleSpeechInput,
 		stopSpeechInput,

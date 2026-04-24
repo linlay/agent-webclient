@@ -15,6 +15,7 @@ import type {
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
 import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
+import { readEventTeamId } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 import {
   ARTIFACT_AUTO_COLLAPSE_MS,
@@ -29,10 +30,6 @@ import {
 import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
 import { stripSpecialBlocksFromText } from '@/features/timeline/lib/contentSegments';
 import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
-
-function readEventTeamId(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.teamId);
-}
 
 function resolveSelectedWorkerContext(state: AppState): { agentKey: string; teamId: string } {
   const selectedWorker = state.workerIndexByKey.get(toText(state.workerSelectionKey)) || null;

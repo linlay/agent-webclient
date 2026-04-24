@@ -454,7 +454,7 @@ describe("WsClient", () => {
 		socket.error();
 
 		await expect(promise).rejects.toThrow(
-			"WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
 		);
 		client.disconnect();
 	});

@@ -2,6 +2,7 @@ import React from "react";
 import type { PendingSteer } from "@/app/state/types";
 import { Button } from "antd";
 import { SteerIcon } from "@/features/timeline/components/TimelineRow";
+import { useI18n } from "@/shared/i18n";
 
 export const SteerBar: React.FC<{
   pendingSteers: PendingSteer[];
@@ -10,6 +11,7 @@ export const SteerBar: React.FC<{
   onSubmit: () => void;
   onCancel: () => void;
 }> = ({ pendingSteers, steerDraft, steerSubmitting, onSubmit, onCancel }) => {
+  const { t } = useI18n();
   const hasSteerDraft = Boolean(String(steerDraft || "").trim());
 
   return (
@@ -33,10 +35,10 @@ export const SteerBar: React.FC<{
                 shape="round"
                 loading
               >
-                引导
+                {t("composer.steer.submit")}
               </Button>
               <Button size="small" type="text" shape="round" disabled>
-                取消
+                {t("composer.steer.cancel")}
               </Button>
             </div>
           </div>
@@ -57,7 +59,7 @@ export const SteerBar: React.FC<{
                 disabled={!steerDraft.trim() || steerSubmitting}
                 onClick={onSubmit}
               >
-                引导
+                {t("composer.steer.submit")}
               </Button>
               <Button
                 size="small"
@@ -66,7 +68,7 @@ export const SteerBar: React.FC<{
                 disabled={steerSubmitting}
                 onClick={onCancel}
               >
-                取消
+                {t("composer.steer.cancel")}
               </Button>
             </div>
           </div>

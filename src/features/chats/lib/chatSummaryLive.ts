@@ -1,4 +1,9 @@
 import type { AgentEvent, AppState, Chat } from '@/app/state/types';
+import {
+  readEventChatName,
+  readEventFirstAgentName,
+  readEventTeamId,
+} from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 
 export interface LiveChatSummaryCache {
@@ -11,18 +16,6 @@ export interface LiveChatSummaryCache {
 export interface LiveChatSummaryContext {
   agentKey: string;
   teamId: string;
-}
-
-function readEventTeamId(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.teamId);
-}
-
-function readEventChatName(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.chatName);
-}
-
-function readEventFirstAgentName(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.firstAgentName);
 }
 
 export function resolveChatSummaryUpdatedAt(

@@ -289,9 +289,9 @@ describe("LeftSidebar", () => {
     const html = renderToStaticMarkup(React.createElement(LeftSidebar));
 
     expect(html).toContain('id="settings-btn"');
-    expect(html).toContain("打开设置菜单");
+    expect(html).toContain("Open settings menu");
     expect(html).toContain(">SSE<");
-    expect(html).toContain(">夜<");
+    expect(html).toContain(">Dark<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
   });
@@ -305,7 +305,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("Alpha Agent");
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
-    expect(html).toContain("查看更多（共 6 条，未读 3 条）");
+    expect(html).toContain("View more (6 total, 3 unread)");
   });
 
   it("renders unread badges for worker and chat rows", () => {
@@ -364,10 +364,10 @@ describe("LeftSidebar", () => {
     const html = renderToStaticMarkup(React.createElement(LeftSidebar));
 
     expect(html).toContain(
-      '<span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
+      '<span class="chat-awaiting-status">Awaiting approval</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain(
-      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="未读"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待批准</span><span class="worker-panel-time-label">',
+      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="Unread"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">Awaiting approval</span><span class="worker-panel-time-label">',
     );
   });
 });

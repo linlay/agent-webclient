@@ -2,6 +2,7 @@ import React from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
+import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 
 const ThemedAppShell: React.FC = () => {
 	const { themeMode } = useAppState();
@@ -61,11 +62,17 @@ const ThemedAppShell: React.FC = () => {
 	);
 };
 
-const App: React.FC = () => {
+interface AppProps {
+	i18n?: Omit<I18nProviderProps, "children">;
+}
+
+const App: React.FC<AppProps> = ({ i18n }) => {
 	return (
-		<AppProvider>
-			<ThemedAppShell />
-		</AppProvider>
+		<I18nProvider fallbackLocale="en-US" {...i18n}>
+			<AppProvider>
+				<ThemedAppShell />
+			</AppProvider>
+		</I18nProvider>
 	);
 };
 

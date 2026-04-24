@@ -434,7 +434,7 @@ describe('processEvent', () => {
       id: 'awaiting_answer_run_1_await_1',
       kind: 'awaiting-answer',
       awaitingId: 'await_1',
-      title: '已提交回答',
+      title: 'Answers submitted',
       text: '{\n  "status": "answered",\n  "items": [\n    {\n      "id": "q1",\n      "question": "继续执行吗？",\n      "answer": "继续"\n    }\n  ]\n}',
       status: 'completed',
       expanded: false,
@@ -541,11 +541,11 @@ describe('processEvent', () => {
       timestamp: 223,
     }, 'replay', false);
 
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toEqual({
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toMatchObject({
       id: 'awaiting_answer_run_1_await_1',
       kind: 'awaiting-answer',
       awaitingId: 'await_1',
-      title: '等待已超时',
+      title: 'Awaiting timed out',
       text: '{\n  "status": "error",\n  "error": {\n    "code": "timeout",\n    "message": "等待项已超时"\n  }\n}',
       status: 'completed',
       expanded: false,
@@ -564,7 +564,7 @@ describe('processEvent', () => {
       timestamp: 224,
     } as any, 'replay', false);
 
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.title).toBe('已提交回答');
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.title).toBe('Answers submitted');
     expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text).toBe('{\n  "approved": true,\n  "comment": "继续"\n}');
   });
 

@@ -22,7 +22,7 @@ describe("resolveSettingsSummaryBadges", () => {
       }),
       expect.objectContaining({
         key: "theme",
-        label: "夜",
+        label: "Dark",
       }),
     ]);
   });
@@ -35,7 +35,7 @@ describe("buildSidebarSettingsMenuSections", () => {
       wsErrorMessage: "握手失败",
     });
 
-    expect(sections.map((section) => section.title)).toEqual(["设置", "预留"]);
+    expect(sections.map((section) => section.title)).toEqual(["Settings", "Reserved"]);
     expect(sections[0]?.items[0]?.description).toContain("握手失败");
     expect(sections[1]?.items.every((item) => item.disabled)).toBe(true);
   });
@@ -66,10 +66,10 @@ describe("SidebarSettingsMenu", () => {
       }),
     );
 
-    expect(html).toContain("设置菜单");
-    expect(html).toContain("打开设置...");
-    expect(html).toContain("连接设置（即将开放）");
-    expect(html).toContain("外观偏好（即将开放）");
-    expect(html).toContain("快捷键（即将开放）");
+    expect(html).toContain("Settings menu");
+    expect(html).toContain("Open settings...");
+    expect(html).toContain("Connection settings (coming soon)");
+    expect(html).toContain("Appearance preferences (coming soon)");
+    expect(html).toContain("Keyboard shortcuts (coming soon)");
   });
 });

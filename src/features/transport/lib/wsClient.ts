@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@/app/state/types";
 import { ApiError, type ApiResponse } from "@/shared/api/apiClient";
+import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
 export type WsConnectionStatus =
@@ -143,16 +144,21 @@ export function createWsFrameId(
 
 function hasHelpfulWsMessage(message: string): boolean {
 	return (
-		message.startsWith("缺少 Access Token") ||
-		message.startsWith("WebSocket 握手失败") ||
-		message.startsWith("WebSocket 传输尚未初始化")
+		message.startsWith("Missing access token") ||
+		message.startsWith("Missing Access Token") ||
+		message.startsWith("WebSocket handshake failed") ||
+		message.startsWith("WebSocket transport is not initialized") ||
+		message.startsWith(t("ws.missingAccessToken.browser")) ||
+		message.startsWith(t("ws.missingAccessToken.host")) ||
+		message.startsWith(t("ws.handshakeFailed")) ||
+		message.startsWith(t("ws.transportNotInitialized"))
 	);
 }
 
 function missingAccessTokenMessage(appMode = false): string {
 	return appMode
-		? "缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。"
-		: "缺少 Access Token，无法建立 WebSocket 连接。请先在设置中填写有效令牌。";
+		? t("ws.missingAccessToken.host")
+		: t("ws.missingAccessToken.browser");
 }
 
 export function isWsConnectionFailure(error: unknown): boolean {
@@ -187,23 +193,23 @@ export function describeWsConnectionFailure(
 		return missingAccessTokenMessage(appMode);
 	}
 	if (!rawMessage) {
-		return "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。";
+		return t("ws.handshakeFailed");
+	}
+	if (rawMessage === "WebSocket transport is not initialized") {
+		return t("ws.transportNotInitialized");
 	}
 	if (hasHelpfulWsMessage(rawMessage)) {
 		return rawMessage;
-	}
-	if (rawMessage === "WebSocket transport is not initialized") {
-		return "WebSocket 传输尚未初始化，请先切换到 WebSocket 模式并确认连接成功。";
 	}
 	if (
 		rawMessage === "WebSocket connection failed" ||
 		rawMessage === "WebSocket transport disconnected"
 	) {
-		return "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。";
+		return t("ws.handshakeFailed");
 	}
 	return rawMessage.startsWith("WebSocket ")
 		? rawMessage
-		: `WebSocket 连接失败：${rawMessage}`;
+		: t("ws.connectionFailedWithMessage", { message: rawMessage });
 }
 
 export function toWsConnectionError(
