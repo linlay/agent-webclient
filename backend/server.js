@@ -1,8 +1,8 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const express = require('express');
-const httpProxy = require('http-proxy');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const DEFAULT_PORT = '11948';
@@ -138,29 +138,77 @@ function createProxy(target, logger) {
 }
 
 function createWebSocketProxy(target, logger) {
-  const proxy = httpProxy.createProxyServer({
-    target: target.toString(),
-    changeOrigin: true,
-    ws: true,
-    xfwd: true,
-  });
+  const targetUrl = new URL(target.toString());
+  const secure = targetUrl.protocol === 'https:' || targetUrl.protocol === 'wss:';
+  const targetPort = Number(targetUrl.port || (secure ? 443 : 80));
+  const targetHost = targetUrl.hostname;
+  const targetBasePath = targetUrl.pathname === '/'
+    ? ''
+    : targetUrl.pathname.replace(/\/$/, '');
 
-  proxy.on('error', (error, req, socket) => {
-    logger.error(
-      `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
-    );
+  return {
+    ws(req, socket, head) {
+      const requestUrl = `${targetBasePath}${req.url || '/'}`;
+      const requestHeaders = { ...req.headers, host: targetUrl.host };
+      const upstreamRequest = (secure ? https : http).request({
+        protocol: secure ? 'https:' : 'http:',
+        hostname: targetHost,
+        port: targetPort,
+        method: req.method || 'GET',
+        path: requestUrl,
+        headers: requestHeaders,
+      });
 
-    if (socket && typeof socket.write === 'function' && !socket.destroyed) {
-      try {
-        socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-      } catch {
-        // Ignore socket write failures while reporting websocket proxy errors.
-      }
-    }
-    socket?.destroy?.();
-  });
+      const fail = (error) => {
+        logger.error(
+          `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
+        );
 
-  return proxy;
+        if (socket && typeof socket.write === 'function' && !socket.destroyed) {
+          try {
+            socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+          } catch {
+            // Ignore socket write failures while reporting websocket proxy errors.
+          }
+        }
+        socket?.destroy?.();
+        upstreamRequest.destroy();
+      };
+
+      socket.pause();
+      upstreamRequest.once('error', fail);
+      socket.once('error', () => upstreamRequest.destroy());
+      socket.once('close', () => upstreamRequest.destroy());
+
+      upstreamRequest.once('upgrade', (upstreamResponse, upstreamSocket, upstreamHead) => {
+        upstreamRequest.removeListener('error', fail);
+        upstreamSocket.on('error', (error) => {
+          logger.error(
+            `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
+          );
+          socket.destroy(error);
+        });
+
+        const responseHeaders = [`HTTP/${req.httpVersion || '1.1'} ${upstreamResponse.statusCode || 101} ${upstreamResponse.statusMessage || 'Switching Protocols'}`];
+        for (let index = 0; index < upstreamResponse.rawHeaders.length; index += 2) {
+          responseHeaders.push(`${upstreamResponse.rawHeaders[index]}: ${upstreamResponse.rawHeaders[index + 1]}`);
+        }
+        socket.write(`${responseHeaders.join('\r\n')}\r\n\r\n`);
+        if (upstreamHead && upstreamHead.length > 0) {
+          socket.write(upstreamHead);
+        }
+        if (head && head.length > 0) {
+          upstreamSocket.write(head);
+        }
+
+        socket.pipe(upstreamSocket);
+        upstreamSocket.pipe(socket);
+        socket.resume();
+      });
+
+      upstreamRequest.end();
+    },
+  };
 }
 
 function createDevCorsMiddleware() {
@@ -335,6 +383,7 @@ module.exports = {
   createApp,
   createDevCorsMiddleware,
   createServer,
+  createWebSocketProxy,
   isSseQueryRequest,
   loadConfig,
   parseRequestPath,

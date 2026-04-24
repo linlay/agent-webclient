@@ -1,8 +1,15 @@
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
+const WebSocket = require('ws');
 
-const { createDevCorsMiddleware, loadConfig, resolveFrontendRequest } = require('./server');
+const {
+  createDevCorsMiddleware,
+  createServer,
+  loadConfig,
+  resolveFrontendRequest,
+} = require('./server');
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'agent-webclient-backend-'));
@@ -43,6 +50,36 @@ function createMockResponse() {
       return this;
     },
   };
+}
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      server.removeListener('error', reject);
+      resolve(server.address().port);
+    });
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve) => {
+    server.close(() => resolve());
+  });
+}
+
+function waitForWebSocketOpen(ws) {
+  return new Promise((resolve, reject) => {
+    ws.once('open', resolve);
+    ws.once('error', reject);
+  });
+}
+
+function waitForWebSocketMessage(ws) {
+  return new Promise((resolve, reject) => {
+    ws.once('message', (data) => resolve(String(data)));
+    ws.once('error', reject);
+  });
 }
 
 describe('backend/server', () => {
@@ -163,4 +200,55 @@ describe('backend/server', () => {
     expect(res.headers['access-control-allow-methods']).toBeUndefined();
     expect(res.headers['access-control-allow-headers']).toBeUndefined();
   });
+
+  test('tunnels websocket upgrade bytes to the configured base url', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    let upstreamPath = '';
+    let upstreamHost = '';
+    const upstreamWss = new WebSocket.Server({ noServer: true });
+    const upstreamServer = http.createServer();
+    upstreamServer.on('upgrade', (req, socket, head) => {
+      upstreamPath = req.url;
+      upstreamHost = req.headers.host;
+      upstreamWss.handleUpgrade(req, socket, head, (ws) => {
+        ws.on('message', (data) => ws.send(`echo:${String(data)}`));
+        ws.send('ready');
+      });
+    });
+
+    const upstreamPort = await listen(upstreamServer);
+    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
+    config.baseUrl = new URL(`http://127.0.0.1:${upstreamPort}`);
+    config.voiceBaseUrl = config.baseUrl;
+
+    const { server } = createServer(config, {
+      logger: { error: jest.fn() },
+    });
+    const proxyPort = await listen(server);
+
+    const client = new WebSocket(`ws://127.0.0.1:${proxyPort}/ws?token=abc`, {
+      perMessageDeflate: false,
+    });
+    const readyMessage = waitForWebSocketMessage(client);
+    await waitForWebSocketOpen(client);
+    await expect(readyMessage).resolves.toBe('ready');
+
+    const echoMessage = waitForWebSocketMessage(client);
+    client.send('hello');
+    await expect(echoMessage).resolves.toBe('echo:hello');
+
+    expect(upstreamPath).toBe('/ws?token=abc');
+    expect(upstreamHost).toBe(`127.0.0.1:${upstreamPort}`);
+
+    client.terminate();
+    for (const ws of upstreamWss.clients) {
+      ws.terminate();
+    }
+    upstreamWss.close();
+    await closeServer(server);
+    await closeServer(upstreamServer);
+  }, 10_000);
 });
