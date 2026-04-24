@@ -68,7 +68,7 @@ export type TimelineDisplayItem =
   | {
     kind: 'run';
     key: string;
-    queryNode: TimelineNode;
+    queryNode: TimelineNode | null;
     nodes: TimelineNode[];
     renderEntries: TimelineRenderEntry[];
     sections: TimelineRunSection[];
@@ -244,14 +244,14 @@ function hasSubAgentKey(value: unknown): boolean {
 
 function buildTaskRunSections(
   runNodes: TimelineNode[],
-  queryNode: TimelineNode,
+  queryNode: TimelineNode | null,
   nextQueryNode: TimelineNode | null,
   options: BuildTimelineDisplayOptions,
 ): TimelineRunSection[] {
   const taskItemsById = options.taskItemsById || new Map<string, TaskItemMeta>();
   const taskGroupsById = options.taskGroupsById || new Map<string, TaskGroupMeta>();
   const now = options.now ?? Date.now();
-  const runStartedAt = queryNode.ts;
+  const runStartedAt = queryNode?.ts ?? runNodes[0]?.ts;
   const nextRunStartedAt = nextQueryNode?.ts;
   const taskNodesById = new Map<string, TimelineNode[]>();
 
@@ -266,9 +266,11 @@ function buildTaskRunSections(
   }
 
   const includedTaskIds = new Set<string>(taskNodesById.keys());
-  for (const task of taskItemsById.values()) {
-    if (overlapsRunWindow(task, runStartedAt, nextRunStartedAt)) {
-      includedTaskIds.add(task.taskId);
+  if (Number.isFinite(runStartedAt)) {
+    for (const task of taskItemsById.values()) {
+      if (overlapsRunWindow(task, Number(runStartedAt), nextRunStartedAt)) {
+        includedTaskIds.add(task.taskId);
+      }
     }
   }
 
@@ -472,36 +474,40 @@ export function buildTimelineDisplayItems(
   let runTerminalCursor = 0;
 
   const flushRun = (nextQueryNode: TimelineNode | null = null): void => {
-    if (!activeQueryNode || pendingRunNodes.length === 0) {
+    if (pendingRunNodes.length === 0) {
       pendingRunNodes = [];
+      activeQueryNode = null;
       return;
     }
 
+    const queryNode = activeQueryNode;
     const terminal = runTerminals[runTerminalCursor];
     const lastNode = pendingRunNodes[pendingRunNodes.length - 1];
     const completedAt = terminal
-      ? terminal.timestamp || lastNode?.ts || undefined
+      ? (typeof terminal.timestamp === 'number' ? terminal.timestamp : lastNode?.ts)
       : undefined;
     const responseDurationMs =
-      typeof completedAt === 'number' && typeof activeQueryNode.ts === 'number'
-        ? Math.max(0, completedAt - activeQueryNode.ts)
+      typeof completedAt === 'number' && typeof queryNode?.ts === 'number'
+        ? Math.max(0, completedAt - queryNode.ts)
         : undefined;
 
     if (terminal) {
       runTerminalCursor += 1;
     }
 
+    const runKeySource = queryNode?.id || pendingRunNodes[0]?.id || String(runTerminalCursor);
     items.push({
       kind: 'run',
-      key: `run_${activeQueryNode.id}`,
-      queryNode: activeQueryNode,
+      key: `run_${runKeySource}`,
+      queryNode,
       nodes: pendingRunNodes,
       renderEntries: buildRunRenderEntries(pendingRunNodes),
-      sections: buildTaskRunSections(pendingRunNodes, activeQueryNode, nextQueryNode, options),
+      sections: buildTaskRunSections(pendingRunNodes, queryNode, nextQueryNode, options),
       completedAt,
       responseDurationMs,
     });
     pendingRunNodes = [];
+    activeQueryNode = null;
   };
 
   for (const node of nodes) {
@@ -510,6 +516,15 @@ export function buildTimelineDisplayItems(
       && node.messageVariant !== 'steer'
       && node.messageVariant !== 'remember'
       && node.messageVariant !== 'learn';
+    const nextTerminal = runTerminals[runTerminalCursor];
+    if (
+      pendingRunNodes.length > 0
+      && typeof nextTerminal?.timestamp === 'number'
+      && node.ts > nextTerminal.timestamp
+    ) {
+      flushRun(isUserQuery ? node : null);
+    }
+
     if (isUserQuery) {
       flushRun(node);
       activeQueryNode = node;
@@ -518,6 +533,11 @@ export function buildTimelineDisplayItems(
     }
 
     if (activeQueryNode) {
+      pendingRunNodes.push(node);
+      continue;
+    }
+
+    if (runTerminalCursor < runTerminals.length) {
       pendingRunNodes.push(node);
       continue;
     }

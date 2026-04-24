@@ -92,6 +92,29 @@ describe('buildTimelineDisplayItems', () => {
     expect(items[1].kind === 'run' ? items[1].responseDurationMs : 'bad').toBe(60);
   });
 
+  it('builds a completed run without a user query node', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'thinking_1', kind: 'thinking', text: 'plan', ts: 110 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'scheduled reply', ts: 130 }),
+      ],
+      [{ type: 'run.complete', timestamp: 160 }],
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: 'run',
+      key: 'run_thinking_1',
+      completedAt: 160,
+      responseDurationMs: undefined,
+      queryNode: null,
+    });
+    expect(items[0].kind === 'run' ? items[0].nodes.map((node) => node.id) : []).toEqual([
+      'thinking_1',
+      'content_1',
+    ]);
+  });
+
   it('keeps request.steer-style nodes inside the current run group', () => {
     const items = buildTimelineDisplayItems(
       [
