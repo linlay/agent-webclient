@@ -218,6 +218,9 @@ const WorkerConversationPreviewList: React.FC<{
   onStartNewConversation,
 }) => {
   const recentChats = chats.slice(0, 5);
+  const unreadCount = chats
+    .slice(5)
+    .reduce((count, chat) => count + (isChatUnread(chat) ? 1 : 0), 0);
 
   return (
     <div className="worker-chat-preview-list">
@@ -271,7 +274,8 @@ const WorkerConversationPreviewList: React.FC<{
           className="worker-chat-more"
           onClick={(e) => onOpenHistory(e, row.key)}
         >
-          查看更多（共 {chats.length} 条）
+          查看更多（共 {chats.length} 条
+          {unreadCount > 0 ? `，未读 ${unreadCount} 条` : ""}）
         </div>
       )}
     </div>

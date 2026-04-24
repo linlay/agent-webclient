@@ -305,7 +305,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("Alpha Agent");
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
-    expect(html).toContain("查看更多（共 6 条）");
+    expect(html).toContain("查看更多（共 6 条，未读 3 条）");
   });
 
   it("renders unread badges for worker and chat rows", () => {
