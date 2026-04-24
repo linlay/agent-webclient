@@ -1,0 +1,268 @@
+/* ========================================
+   Artifact Panel
+   ======================================== */
+.floating-artifact {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.artifact-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+    flex: 0 0 auto;
+}
+
+.artifact-chevron .material-symbols-rounded {
+    font-size: 18px;
+}
+
+.artifact-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 60px;
+    overflow: hidden;
+    border: 0 solid transparent;
+    box-shadow: none;
+    opacity: 1;
+    transform: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    align-content: flex-start;
+    gap: 10px;
+    transition:
+        max-height 0.24s ease,
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.floating-artifact.is-expanded .artifact-list {
+    max-height: unset;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.artifact-item {
+    flex: 0 0 220px;
+    min-width: 220px;
+    list-style: none;
+}
+
+.artifact-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.18s ease;
+}
+
+.artifact-link .attachment-card-file-shell {
+    min-height: 0;
+}
+
+.artifact-link:hover .attachment-card-file-shell {
+    border-color: color-mix(in srgb,
+            var(--accent-lime) 24%,
+            rgba(214, 220, 229, 0.92));
+}
+
+.artifact-actions {
+    position: absolute;
+    top: -40px;
+    right: 0;
+}
+
+.artifact-toggle.ui-btn {
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent-lime) 22%, var(--line-soft));
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--accent-lime) 10%, var(--bg-elev-2)),
+            color-mix(in srgb, var(--bg-elev-2) 96%, transparent));
+    color: var(--ink-2);
+    box-shadow: var(--shadow-soft);
+}
+
+.artifact-toggle.ui-btn:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-lime) 34%, var(--line-soft));
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--accent-lime) 14%, var(--bg-elev-2)),
+            color-mix(in srgb, var(--bg-elev-2) 98%, transparent));
+    color: var(--ink-1);
+}
+
+.artifact-toggle .ui-btn-label {
+    gap: 4px;
+}
+
+/* ========================================
+   Plan Panel
+   ======================================== */
+.floating-plan {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.plan-header {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 18%, var(--line-soft));
+    border-radius: 16px;
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--accent-soft) 52%, var(--bg-elev-2)),
+            color-mix(in srgb, var(--bg-elev-2) 94%, transparent));
+    padding: 9px 13px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    text-align: left;
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(10px);
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.plan-header:hover {
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 30%,
+            var(--line-soft));
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--accent-soft) 66%, var(--bg-elev-2)),
+            color-mix(in srgb, var(--bg-elev-2) 96%, transparent));
+    box-shadow: var(--shadow-medium);
+}
+
+.plan-title {
+    flex: 0 0 auto;
+    font:
+        700 12px/1 "IBM Plex Mono",
+        monospace;
+    color: var(--ink-1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.plan-header-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.plan-summary-status {
+    font:
+        700 11px/1 "IBM Plex Mono",
+        monospace;
+    color: var(--accent-electric-strong);
+    letter-spacing: 0.02em;
+    flex: 0 0 auto;
+}
+
+.plan-overall-status {
+    flex: 0 0 auto;
+}
+
+.plan-summary-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plan-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-muted);
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.plan-chevron .material-symbols-rounded {
+    font-size: 18px;
+}
+
+.plan-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 8px;
+    max-height: 0;
+    overflow: hidden;
+    border: 0 solid transparent;
+    border-top-width: 0;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
+    opacity: 1;
+    transform: none;
+    pointer-events: none;
+    transition:
+        max-height 0.24s ease,
+        padding 0.24s ease,
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.floating-plan.is-expanded .plan-list {
+    max-height: min(320px, calc(100dvh - 220px));
+    overflow: auto;
+    padding: 8px;
+    margin-top: 6px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
+    pointer-events: auto;
+}
+
+.plan-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--ink-2);
+    border-radius: 6px;
+}
+
+.plan-item+.plan-item {
+    margin-top: 2px;
+}
+
+.plan-item[data-status="running"] {
+    background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+}
+
+.plan-item-text {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.45;
+}
+
+.plan-item-duration {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+    white-space: nowrap;
+}

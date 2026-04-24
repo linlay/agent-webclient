@@ -1,0 +1,479 @@
+/* ========================================
+   Sidebar (Left & Right)
+   ======================================== */
+.left-drawer-closed .left-sidebar {
+    width: var(--left-sidebar-close-width);
+}
+
+.left-sidebar {
+    grid-row: 1 / -1;
+    grid-column: 1;
+    transform: none !important;
+    position: relative !important;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 40;
+    width: var(--left-sidebar-width);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+}
+
+.right-sidebar {
+    width: var(--right-sidebar-width);
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+}
+
+.sidebar.is-open {
+    transform: translateX(0);
+}
+
+.sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
+}
+
+.sidebar-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.sidebar-title-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.drawer-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: var(--ink-muted);
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+.drawer-close:hover {
+    color: var(--ink-1);
+    background: var(--bg-hover);
+    box-shadow: none;
+}
+
+.left-actions {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px;
+}
+
+.left-actions button {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.field-label {
+    display: block;
+    padding: 0 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 4px;
+}
+
+.field-label-spaced {
+    margin-top: 8px;
+}
+
+.sidebar-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 6px 6px 0;
+}
+
+.icon-btn-fixed {
+    flex-shrink: 0;
+}
+
+.text-input {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 0 16px 10px;
+    padding: 7px 10px;
+}
+
+.chat-meta {
+    padding: 0 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-meta-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.chip {
+    font:
+        500 10px/1 "IBM Plex Mono",
+        monospace;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line-soft);
+    background: var(--bg-input);
+    color: var(--ink-2);
+}
+
+.left-drawer-closed .chat-list {
+    padding: 6px;
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 6px 6px;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.chat-list::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
+}
+
+.ui-list-item,
+.chat-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 98%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+    padding: 10px;
+    display: block;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.ui-list-item.is-dense {
+    padding-top: 9px;
+    padding-bottom: 9px;
+}
+
+.ui-list-item+.ui-list-item,
+.chat-item+.chat-item {
+    margin-top: 8px;
+}
+
+.ui-list-item:hover,
+.chat-item:hover {
+    background: color-mix(in srgb, var(--accent-soft) 44%, var(--bg-elev-2));
+    box-shadow: var(--shadow-soft);
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 18%,
+            var(--line-soft));
+}
+
+.ui-list-item.is-selected,
+.chat-item.is-active {
+    background-color: color-mix(in srgb,
+            var(--accent-soft) 84%,
+            var(--bg-elev-2));
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 48%,
+            var(--line-soft));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 72%, transparent);
+}
+
+.ui-list-item.is-loading,
+.chat-item.is-loading {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    background-image: linear-gradient(90deg,
+            var(--colorFillSecondary) 25%,
+            var(--colorFill) 37%,
+            var(--colorFillSecondary) 63%) !important;
+    background-size: 400% 100%;
+    animation-name: ui-list-item-loading-shimmer;
+    animation-duration: 1.4s;
+    animation-timing-function: ease;
+    animation-iteration-count: infinite;
+}
+
+@keyframes ui-list-item-loading-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+.chat-item-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-title-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ink-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-unread-dot {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent-electric);
+    opacity: 0;
+}
+
+.chat-unread-dot.is-unread {
+    opacity: 1;
+}
+
+.chat-time {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--ink-muted);
+}
+
+.chat-time-meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-awaiting-status {
+    font-size: 10px;
+    color: var(--ok);
+    white-space: nowrap;
+    background:
+        color-mix(in srgb, var(--ok) 10%, transparent);
+    border-radius: 20px;
+    padding: 2px 6px;
+}
+
+.chat-meta-line {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.chat-meta-line .ui-tag {
+    max-width: 100%;
+}
+
+.chat-meta-line:last-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   Debug Panel (Right Sidebar)
+   ======================================== */
+
+.debug-panel {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.debug-panel .ant-tabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.debug-panel .ant-tag {
+    margin-inline-end: 0;
+}
+
+.debug-panel .ant-tabs-content-holder {
+    flex: 1;
+    min-height: 0;
+}
+
+.debug-panel .ant-tabs-tabpane {
+    height: 100%;
+}
+
+.attachment-preview-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.attachment-preview-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid var(--line-soft);
+}
+
+.attachment-preview-copy {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.attachment-preview-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--ink-1);
+}
+
+.attachment-preview-meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.attachment-preview-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background:
+        radial-gradient(circle at top,
+            color-mix(in srgb, var(--accent-soft) 28%, transparent),
+            transparent 42%),
+        color-mix(in srgb, var(--bg-elev-1) 96%, white);
+}
+
+.attachment-preview-image,
+.attachment-preview-video {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-input) 82%, #fff);
+}
+
+.attachment-preview-frame {
+    width: 100%;
+    flex: 1;
+    min-height: 480px;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.attachment-preview-text {
+    margin: 0;
+    padding: 14px;
+    flex: 1;
+    min-height: 100%;
+    overflow: auto;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-input) 86%, #fff);
+    color: var(--ink-1);
+    font:
+        12px/1.6 "IBM Plex Mono",
+        monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.attachment-preview-media-shell {
+    padding: 18px 14px;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-input) 82%, #fff);
+}
+
+.attachment-preview-audio {
+    width: 100%;
+}
+
+.attachment-preview-note {
+    padding: 0 12px 12px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+}
+
+.debug-panel .scroll,
+.debug-panel .list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.debug-events-tab {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 8px;
+}
+
+.mono {
+    font-family: "IBM Plex Mono", monospace;
+}

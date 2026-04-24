@@ -1,0 +1,36 @@
+.styled-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--line-strong) 65%, transparent) transparent;
+}
+
+.styled-scroll::-webkit-scrollbar,
+.messages-scroll::-webkit-scrollbar,
+.scroll::-webkit-scrollbar,
+.list::-webkit-scrollbar,
+.mention-suggest-list::-webkit-scrollbar,
+.tool-detail::-webkit-scrollbar,
+.tool-call-inline::-webkit-scrollbar,
+.tool-call-result::-webkit-scrollbar,
+.tool-code::-webkit-scrollbar,
+.debug-log::-webkit-scrollbar,
+.event-popover-body::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+.styled-scroll::-webkit-scrollbar-thumb,
+.messages-scroll::-webkit-scrollbar-thumb,
+.scroll::-webkit-scrollbar-thumb,
+.list::-webkit-scrollbar-thumb,
+.mention-suggest-list::-webkit-scrollbar-thumb,
+.tool-detail::-webkit-scrollbar-thumb,
+.tool-call-inline::-webkit-scrollbar-thumb,
+.tool-call-result::-webkit-scrollbar-thumb,
+.tool-code::-webkit-scrollbar-thumb,
+.debug-log::-webkit-scrollbar-thumb,
+.event-popover-body::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line-strong) 65%, transparent);
+    background-clip: content-box;
+}

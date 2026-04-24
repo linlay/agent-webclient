@@ -1,0 +1,340 @@
+/* ========================================
+   Tool Pill & Detail
+   ======================================== */
+.tool-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
+}
+
+@keyframes flash {
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0;
+    }
+}
+
+.tool-trigger {
+    min-height: 26px !important;
+    border: 0;
+    background: transparent !important;
+    padding: 0 !important;
+    color: var(--ink-muted);
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: min(100%, 520px);
+}
+
+.tool-trigger .ui-btn-label {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tool-trigger:hover {
+    color: var(--ink-2);
+    box-shadow: none;
+
+    .chevron {
+        opacity: 1;
+    }
+}
+
+.tool-trigger[data-expandable="false"] {
+    cursor: default;
+}
+
+.tool-trigger .chevron {
+    display: inline-flex;
+    transition:
+        transform 0.22s ease,
+        opacity 0.22s ease;
+    opacity: 0;
+}
+
+.tool-trigger.is-open .chevron {
+    transform: rotate(90deg);
+    opacity: 1;
+}
+
+.tool-pill-label {
+    min-width: 0;
+    max-width: min(46vw, 260px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool-trigger-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
+    padding: 1px 6px;
+    font-size: 10px;
+    color: var(--ink-muted);
+    background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
+    white-space: nowrap;
+}
+
+.tool-status-dot[data-tool-status="running"] {
+    animation-name: flash;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    background: var(--accent-electric);
+}
+
+.tool-status-dot[data-tool-status="completed"] {
+    background: var(--accent-lime);
+}
+
+.tool-status-dot[data-tool-status="failed"],
+.tool-status-dot[data-tool-status="error"],
+.tool-status-dot[data-tool-status="canceled"] {
+    background: var(--accent-danger);
+}
+
+.tool-trigger[data-tool-status="running"] .tool-trigger-status {
+    color: color-mix(in srgb, var(--accent-electric) 76%, var(--ink-2));
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 34%,
+            var(--line-soft));
+}
+
+.tool-trigger[data-tool-status="completed"] .tool-trigger-status {
+    color: color-mix(in srgb, var(--accent-lime) 80%, var(--ink-2));
+    border-color: color-mix(in srgb, var(--accent-lime) 36%, var(--line-soft));
+}
+
+.tool-trigger[data-tool-status="failed"] .tool-trigger-status,
+.tool-trigger[data-tool-status="error"] .tool-trigger-status,
+.tool-trigger[data-tool-status="canceled"] .tool-trigger-status {
+    color: color-mix(in srgb, var(--accent-danger) 86%, var(--ink-2));
+    border-color: color-mix(in srgb,
+            var(--accent-danger) 36%,
+            var(--line-soft));
+}
+
+.tool-detail {
+    display: none;
+}
+
+.tool-detail.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-call-card[data-tool-status="failed"],
+.tool-call-card[data-tool-status="error"],
+.tool-call-card[data-tool-status="canceled"] {
+    border-color: color-mix(in srgb,
+            var(--accent-danger) 32%,
+            var(--line-soft));
+}
+
+.tool-call-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+}
+
+.tool-call-title {
+    font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+}
+
+.tool-call-meta {
+    letter-spacing: 0.04em;
+}
+
+.tool-call-meta-status {
+    position: relative;
+    padding-left: 8px;
+}
+
+.tool-call-meta-status::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.55;
+    transform: translateY(-50%);
+}
+
+.tool-call-card.is-grouped[data-tool-status="running"] .tool-call-meta-status {
+    color: color-mix(in srgb, var(--accent-electric) 78%, var(--ink-muted));
+}
+
+.tool-call-card.is-grouped[data-tool-status="completed"] .tool-call-meta-status {
+    color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-muted));
+}
+
+.tool-call-card.is-grouped[data-tool-status="failed"] .tool-call-meta-status,
+.tool-call-card.is-grouped[data-tool-status="error"] .tool-call-meta-status,
+.tool-call-card.is-grouped[data-tool-status="canceled"] .tool-call-meta-status {
+    color: color-mix(in srgb, var(--accent-danger) 80%, var(--ink-muted));
+}
+
+.tool-call-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.tool-call-note {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+    white-space: pre-wrap;
+}
+
+.tool-call-inline,
+.tool-call-result {
+    margin: 0;
+    /* border: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent); */
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.tool-call-result .input {
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.tool-call-result .input td {
+    padding: 0;
+    vertical-align: baseline;
+}
+
+.tool-call-result .input td:first-child {
+    color: color-mix(in srgb, var(--accent-lime) 30%, var(--ink-muted));
+    padding-right: 10px;
+}
+
+.tool-call-inline {
+    display: block;
+    padding: 7px 9px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.tool-call-copy {
+    min-height: 22px !important;
+    padding: 0 6px !important;
+    color: var(--ink-muted);
+    position: absolute;
+    top: -22px;
+    right: 0;
+}
+
+.tool-call-copy .ui-btn-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tool-call-copy .material-symbols-rounded {
+    font-size: 13px;
+}
+
+.tool-call-copy:hover {
+    color: var(--ink-2);
+    box-shadow: none;
+}
+
+.tool-call-copy[data-copy-state="copied"] {
+    color: color-mix(in srgb, var(--accent-lime) 82%, var(--ink-2));
+}
+
+.tool-call-copy[data-copy-state="error"] {
+    color: color-mix(in srgb, var(--accent-danger) 86%, var(--ink-2));
+}
+
+.tool-call-result {
+    padding: 10px 12px;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(8 * 1.5em + 20px);
+    white-space: pre;
+    word-break: break-word;
+}
+
+/* ========================================
+   Frontend Tool Container
+   ======================================== */
+.frontend-tool-container {
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 26%, var(--line-soft));
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 0;
+}
+
+.frontend-tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--accent-soft) 28%, transparent);
+}
+
+.frontend-tool-meta {
+    font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--ink-muted);
+}
+
+.frontend-tool-frame {
+    width: 100%;
+    height: min(420px, 55vh);
+    border: 0;
+}
+
+.frontend-tool-status {
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--ink-muted);
+    border-top: 1px solid var(--line-soft);
+    min-height: 0;
+}
+
+.frontend-tool-status.ok {
+    color: var(--accent-lime);
+}
+
+.frontend-tool-status.err {
+    color: var(--accent-danger);
+}
+
+.is-frontend-active .composer-pill {
+    display: none;
+}
