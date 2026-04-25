@@ -105,11 +105,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     callbackRef.current?.onSubmit?.({
       runId: data?.runId || "",
       awaitingId: data?.awaitingId || "",
-      params: questions.map((item) => ({
-        id: item.id,
-      })),
+      params: [],
     });
-  }, [data?.awaitingId, data?.runId, questions]);
+  }, [data?.awaitingId, data?.runId]);
 
   const moveForward = useCallback(async () => {
     if (questions.length === 0) {

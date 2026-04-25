@@ -29,6 +29,7 @@ interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
   onPatch?: (patch: Partial<FormActiveAwaiting>) => void;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
+  onClose?: () => void;
   onResolvedByOther?: () => void;
 }
 
@@ -278,6 +279,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   data,
   onPatch,
   onSubmit,
+  onClose,
   onResolvedByOther,
 }) => {
   const { t } = useI18n();
@@ -582,6 +584,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         }
         setSubmitStatus("");
         setSubmitError("");
+        onClose?.();
         return;
       }
 
@@ -624,7 +627,15 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
     window.addEventListener("message", onWindowMessage);
     return () => window.removeEventListener("message", onWindowMessage);
-  }, [clearCollectTimeout, data, onPatch, onSubmit, submitAggregatedPayload, t]);
+  }, [
+    clearCollectTimeout,
+    data,
+    onClose,
+    onPatch,
+    onSubmit,
+    submitAggregatedPayload,
+    t,
+  ]);
 
   const actionDisabled = useMemo(
     () =>
