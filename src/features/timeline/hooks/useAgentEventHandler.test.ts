@@ -360,7 +360,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            payload: null,
+            form: null,
           },
         ],
         loading: false,
@@ -380,7 +380,7 @@ describe('shouldSyncLiveCache', () => {
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
 
-  it('rebuilds cache when html awaiting mode or payload changes in React state', () => {
+  it('rebuilds cache when html awaiting mode or form data changes in React state', () => {
     const baseState = createInitialState();
     const state = {
       ...baseState,
@@ -400,7 +400,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            payload: {
+            form: {
               employee_id: 'E1001',
             },
           },
@@ -419,7 +419,7 @@ describe('shouldSyncLiveCache', () => {
           {
             id: 'leave_form',
             action: '提交请假申请',
-            payload: null,
+            form: null,
           },
         ],
       },

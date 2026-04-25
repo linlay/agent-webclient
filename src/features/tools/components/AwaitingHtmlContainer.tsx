@@ -29,7 +29,6 @@ interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
   onPatch?: (patch: Partial<FormActiveAwaiting>) => void;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
-  onClose?: () => void;
   onResolvedByOther?: () => void;
 }
 
@@ -146,40 +145,40 @@ function clampAwaitingFormIndex(index: number, formsLength: number): number {
   return Math.min(formsLength - 1, Math.max(0, index));
 }
 
-function cloneAwaitingFormPayload(
-  payload: Record<string, any> | null | undefined,
+function cloneAwaitingFormData(
+  form: Record<string, any> | null | undefined,
 ): Record<string, any> | null {
-  return payload ? { ...payload } : null;
+  return form ? { ...form } : null;
 }
 
-function hasPayloadField(param: AIAwaitFormSubmitParamData): boolean {
-  return Object.prototype.hasOwnProperty.call(param, "payload");
+function hasFormField(param: AIAwaitFormSubmitParamData): boolean {
+  return Object.prototype.hasOwnProperty.call(param, "form");
 }
 
 export function mergeSubmittedParamsIntoAwaitingForms(
   forms: FormActiveAwaiting["forms"],
   params: AIAwaitFormSubmitParamData[],
 ): FormActiveAwaiting["forms"] {
-  const payloadById = new Map<string, Record<string, unknown> | null>();
+  const formById = new Map<string, Record<string, unknown> | null>();
 
   for (const param of params) {
-    if (!hasPayloadField(param)) {
+    if (param.action !== "submit" || !hasFormField(param)) {
       continue;
     }
-    payloadById.set(param.id, cloneAwaitingFormPayload(param.payload));
+    formById.set(param.id, cloneAwaitingFormData(param.form));
   }
 
-  if (payloadById.size === 0) {
+  if (formById.size === 0) {
     return forms;
   }
 
   return forms.map((form) => {
-    if (!payloadById.has(form.id)) {
+    if (!formById.has(form.id)) {
       return form;
     }
     return {
       ...form,
-      payload: payloadById.get(form.id) ?? null,
+      form: formById.get(form.id) ?? null,
     };
   });
 }
@@ -189,37 +188,69 @@ export function buildAggregatedAwaitingSubmitPayload(
   collectedParams: AIAwaitFormSubmitParamData[],
 ): AIAwaitSubmitPayloadData {
   const collectedParamById = new Map<string, AIAwaitFormSubmitParamData>();
+  const firstCollectedAction = collectedParams[0]?.action;
+  const sharedNonSubmitAction =
+    (firstCollectedAction === "reject" || firstCollectedAction === "cancel")
+    && collectedParams.length > 0
+    && collectedParams.every((param) => param.action === firstCollectedAction)
+      ? firstCollectedAction
+      : null;
 
-  for (const param of collectedParams) {
-    collectedParamById.set(param.id, {
-      ...param,
-      ...(hasPayloadField(param)
-        ? { payload: cloneAwaitingFormPayload(param.payload) }
-        : {}),
-    });
+  if (sharedNonSubmitAction === "reject" || sharedNonSubmitAction === "cancel") {
+    return {
+      runId: awaiting.runId,
+      awaitingId: awaiting.awaitingId,
+      params: awaiting.forms.map((form) => ({
+        id: form.id,
+        action: sharedNonSubmitAction,
+      })),
+    };
   }
 
-  const params = awaiting.forms.map((form) => {
+  for (const param of collectedParams) {
+    collectedParamById.set(param.id, param.action === "submit"
+      ? {
+          ...param,
+          ...(hasFormField(param)
+            ? { form: cloneAwaitingFormData(param.form) }
+            : {}),
+        }
+      : { ...param });
+  }
+
+  const params: AIAwaitFormSubmitParamData[] = awaiting.forms.map((form) => {
     const collected = collectedParamById.get(form.id);
-    const payload = hasPayloadField(collected ?? { id: form.id })
-      ? cloneAwaitingFormPayload(collected?.payload)
-      : cloneAwaitingFormPayload(form.payload);
-
     collectedParamById.delete(form.id);
-
+    if (collected?.action === "reject" || collected?.action === "cancel") {
+      return {
+        id: form.id,
+        action: collected.action,
+      };
+    }
+    const submittedForm = collected?.action === "submit" && hasFormField(collected)
+      ? cloneAwaitingFormData(collected.form)
+      : cloneAwaitingFormData(form.form);
     return {
       id: form.id,
-      payload,
-      ...(collected?.reason ? { reason: collected.reason } : {}),
+      action: "submit" as const,
+      form: submittedForm,
     };
   });
 
   for (const param of collectedParamById.values()) {
+    if (param.action === "submit") {
+      params.push({
+        id: param.id,
+        action: "submit",
+        ...(hasFormField(param)
+          ? ({ form: cloneAwaitingFormData(param.form) } as any)
+          : {}),
+      });
+      continue;
+    }
     params.push({
-      ...param,
-      ...(hasPayloadField(param)
-        ? ({ payload: cloneAwaitingFormPayload(param.payload) } as any)
-        : null),
+      id: param.id,
+      action: param.action,
     });
   }
 
@@ -230,11 +261,23 @@ export function buildAggregatedAwaitingSubmitPayload(
   };
 }
 
+export function buildCancelAwaitingSubmitPayload(
+  awaiting: FormActiveAwaiting,
+): AIAwaitSubmitPayloadData {
+  return {
+    runId: awaiting.runId,
+    awaitingId: awaiting.awaitingId,
+    params: awaiting.forms.map((form) => ({
+      id: form.id,
+      action: "cancel" as const,
+    })),
+  };
+}
+
 export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   data,
   onPatch,
   onSubmit,
-  onClose,
   onResolvedByOther,
 }) => {
   const { t } = useI18n();
@@ -520,7 +563,25 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       }
 
       if (isAwaitingFrameCloseMessage(event.data)) {
-        onClose?.();
+        clearCollectTimeout();
+        collectFlowRef.current = null;
+        setCollectingDecision(null);
+        if (!onSubmit) {
+          setSubmitStatus("");
+          setSubmitError(t("awaiting.submit.missingHandler"));
+          return;
+        }
+        setSubmitStatus("submitting");
+        setSubmitError("");
+        const result = await onSubmit(buildCancelAwaitingSubmitPayload(data));
+        const errorText = getSubmitErrorText(result);
+        if (errorText) {
+          setSubmitStatus("");
+          setSubmitError(t("awaiting.submit.failedWithDetail", { detail: errorText }));
+          return;
+        }
+        setSubmitStatus("");
+        setSubmitError("");
         return;
       }
 
@@ -563,7 +624,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
     window.addEventListener("message", onWindowMessage);
     return () => window.removeEventListener("message", onWindowMessage);
-  }, [clearCollectTimeout, data, onClose, onPatch, submitAggregatedPayload]);
+  }, [clearCollectTimeout, data, onPatch, onSubmit, submitAggregatedPayload, t]);
 
   const actionDisabled = useMemo(
     () =>

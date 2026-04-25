@@ -40,16 +40,16 @@ function cloneApprovals(approvals: AIAwaitApproval[]): AIAwaitApproval[] {
   }));
 }
 
-function clonePayload(
-  payload: Record<string, unknown> | null | undefined,
+function cloneFormData(
+  form: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
-  return payload ? { ...payload } : null;
+  return form ? { ...form } : null;
 }
 
 function cloneForms(forms: AIAwaitForm[]): AIAwaitForm[] {
   return forms.map((form) => ({
     ...form,
-    payload: clonePayload(form.payload),
+    form: cloneFormData(form.form),
   }));
 }
 
@@ -120,7 +120,7 @@ function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
     : undefined;
 }
 
-function readAwaitingPayload(
+function readAwaitingForm(
   value: unknown,
 ): Record<string, unknown> | null | undefined {
   // Deprecated: only kept for legacy HTML awaiting event replay compatibility.
@@ -223,7 +223,7 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
 function normalizeForms(
   value: unknown,
   fallbackAction = '',
-  fallbackPayload?: Record<string, unknown> | null,
+  fallbackForm?: Record<string, unknown> | null,
 ): AIAwaitForm[] {
   if (!Array.isArray(value)) {
     if (!fallbackAction) {
@@ -233,7 +233,7 @@ function normalizeForms(
       {
         id: fallbackAction,
         action: fallbackAction,
-        payload: fallbackPayload ?? null,
+        form: fallbackForm ?? null,
       },
     ];
   }
@@ -245,6 +245,7 @@ function normalizeForms(
     )
     .map((form) => {
       const legacyForm = form as AIAwaitForm & {
+        payload?: Record<string, unknown> | null;
         initialPayload?: Record<string, unknown> | null;
       };
       const action = toText(form.action) || fallbackAction;
@@ -252,7 +253,9 @@ function normalizeForms(
         id: toText(form.id) || action,
         action: action || undefined,
         title: toText(form.title) || undefined,
-        payload: readAwaitingPayload(legacyForm.payload ?? legacyForm.initialPayload),
+        form: readAwaitingForm(
+          legacyForm.form ?? legacyForm.payload ?? legacyForm.initialPayload,
+        ),
       };
     })
     .filter((form) => Boolean(form.id));
@@ -269,7 +272,7 @@ function normalizeForms(
     {
       id: fallbackAction,
       action: fallbackAction,
-      payload: fallbackPayload ?? null,
+      form: fallbackForm ?? null,
     },
   ];
 }
@@ -394,7 +397,10 @@ export function reduceActiveAwaiting(
         : normalizeForms(
             event.forms,
             viewportKey,
-            readAwaitingPayload((event as Record<string, unknown>).payload) ?? null,
+            readAwaitingForm(
+              (event as Record<string, unknown>).form
+              ?? (event as Record<string, unknown>).payload,
+            ) ?? null,
           );
       if (nextForms.length > 0) {
         registerAwaitingFormMeta(runId, awaitingId, nextForms);

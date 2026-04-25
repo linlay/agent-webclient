@@ -283,7 +283,7 @@ describe('reduceActiveAwaiting', () => {
           id: 'expense_form',
           action: '提交报销单',
           title: '报销申请',
-          payload: {
+          form: {
             amount: 800,
           },
         },
@@ -322,7 +322,7 @@ describe('reduceActiveAwaiting', () => {
         id: 'expense_form',
         action: '提交报销单',
         title: '报销申请',
-        payload: {
+        form: {
           amount: 800,
         },
       },
@@ -362,14 +362,14 @@ describe('reduceActiveAwaiting', () => {
         id: 'leave_form',
         action: '提交请假申请',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           applicant_id: 'E1001',
         },
       },
     ]);
   });
 
-  it('keeps html forms without action when payload is present', () => {
+  it('keeps html forms without action when form data is present', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_leave_1',
@@ -381,7 +381,7 @@ describe('reduceActiveAwaiting', () => {
         {
           id: 'form-1',
           title: 'mock 请假申请',
-          payload: {
+          form: {
             applicant_id: 'E1001',
             department_id: 'engineering',
             leave_type: 'annual',
@@ -406,7 +406,7 @@ describe('reduceActiveAwaiting', () => {
       {
         id: 'form-1',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           applicant_id: 'E1001',
           department_id: 'engineering',
           leave_type: 'annual',

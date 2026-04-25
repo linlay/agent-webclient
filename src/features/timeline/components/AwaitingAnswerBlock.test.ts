@@ -85,4 +85,35 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).toContain('状态');
     expect(html).toContain('等待项已超时');
   });
+
+  it('renders submitted form data from the form field', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AwaitingAnswerBlock, {
+        node: {
+          id: 'node_4',
+          kind: 'awaiting.answer',
+          text: JSON.stringify({
+            status: 'answered',
+            items: [
+              {
+                id: 'form_1',
+                title: '请假申请',
+                action: 'submit',
+                form: {
+                  applicant_id: 'E1001',
+                  days: 2,
+                },
+              },
+            ],
+          }),
+          expanded: true,
+          ts: 0,
+        } as any,
+      }),
+    );
+
+    expect(html).toContain('请假申请');
+    expect(html).toContain('&quot;applicant_id&quot;: &quot;E1001&quot;');
+    expect(html).toContain('&quot;days&quot;: 2');
+  });
 });

@@ -10,6 +10,7 @@ import {
   beginAwaitingCollectRequest,
   bindAwaitingInitListener,
   buildAggregatedAwaitingSubmitPayload,
+  buildCancelAwaitingSubmitPayload,
   clearAwaitingCollectRequest,
   mergeSubmittedParamsIntoAwaitingForms,
   reportInvalidAwaitingSubmitPayload,
@@ -48,7 +49,7 @@ function createActiveAwaiting(
         id: 'leave_form',
         action: 'Submit请假申请',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           applicant_id: 'E1001',
         },
       },
@@ -146,7 +147,7 @@ describe('AwaitingHtmlContainer', () => {
     const onErrorChange = jest.fn();
     reportInvalidAwaitingSubmitPayload('await_1', {
       type: 'frontend_awaiting_submit',
-      params: [{ payload: 'bad' }],
+      params: [{ action: 'submit', form: 'bad' }],
     }, onErrorChange);
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -184,7 +185,7 @@ describe('AwaitingHtmlContainer', () => {
         id: 'leave_form',
         action: 'Submit请假申请',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           employee_id: 'E1001',
         },
       },
@@ -192,14 +193,15 @@ describe('AwaitingHtmlContainer', () => {
         id: 'travel_form',
         action: 'Submit出差申请',
         title: 'mock 出差申请',
-        payload: {
+        form: {
           employee_id: 'E2002',
         },
       },
     ], [
       {
         id: 'travel_form',
-        payload: {
+        action: 'submit',
+        form: {
           employee_id: 'E3003',
         },
       },
@@ -208,7 +210,7 @@ describe('AwaitingHtmlContainer', () => {
         id: 'leave_form',
         action: 'Submit请假申请',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           employee_id: 'E1001',
         },
       },
@@ -216,7 +218,7 @@ describe('AwaitingHtmlContainer', () => {
         id: 'travel_form',
         action: 'Submit出差申请',
         title: 'mock 出差申请',
-        payload: {
+        form: {
           employee_id: 'E3003',
         },
       },
@@ -230,7 +232,7 @@ describe('AwaitingHtmlContainer', () => {
           id: 'leave_form',
           action: 'Submit请假申请',
           title: 'mock 请假申请',
-          payload: {
+          form: {
             employee_id: 'E1001',
           },
         },
@@ -238,7 +240,7 @@ describe('AwaitingHtmlContainer', () => {
           id: 'travel_form',
           action: 'Submit出差申请',
           title: 'mock 出差申请',
-          payload: {
+          form: {
             employee_id: 'E2002',
           },
         },
@@ -246,7 +248,8 @@ describe('AwaitingHtmlContainer', () => {
     }), [
       {
         id: 'travel_form',
-        payload: {
+        action: 'submit',
+        form: {
           employee_id: 'E3003',
         },
       },
@@ -256,15 +259,94 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          payload: {
+          action: 'submit',
+          form: {
             employee_id: 'E1001',
           },
         },
         {
           id: 'travel_form',
-          payload: {
+          action: 'submit',
+          form: {
             employee_id: 'E3003',
           },
+        },
+      ],
+    });
+  });
+
+  it('builds final reject payloads that mark every form as rejected', () => {
+    expect(buildAggregatedAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: 'Submit请假申请',
+          title: 'mock 请假申请',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'Submit出差申请',
+          title: 'mock 出差申请',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }), [
+      {
+        id: 'travel_form',
+        action: 'reject',
+      },
+    ])).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          action: 'reject',
+        },
+        {
+          id: 'travel_form',
+          action: 'reject',
+        },
+      ],
+    });
+  });
+
+  it('builds cancel payloads that mark every form as cancelled', () => {
+    expect(buildCancelAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: 'Submit请假申请',
+          title: 'mock 请假申请',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'Submit出差申请',
+          title: 'mock 出差申请',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }))).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          action: 'cancel',
+        },
+        {
+          id: 'travel_form',
+          action: 'cancel',
         },
       ],
     });

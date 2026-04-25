@@ -57,15 +57,22 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
     };
   }
 
-  if (item.payload !== undefined) {
-    const reason = String(item.reason || "").trim();
-    const payloadText = item.payload == null
+  if (item.form !== undefined) {
+    const formText = item.form == null
       ? ""
-      : formatUnknownJson(item.payload);
+      : formatUnknownJson(item.form);
     return {
       key: `${id}:form`,
       title,
-      value: reason || payloadText || "（无回答内容）",
+      value: formText || "（无回答内容）",
+    };
+  }
+
+  if (typeof item.action === "string" && item.action.trim()) {
+    return {
+      key: `${id}:action`,
+      title,
+      value: item.action,
     };
   }
 

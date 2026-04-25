@@ -156,7 +156,7 @@ export interface AIAwaitApproval {
 export interface AIAwaitForm {
   id: string;
   action?: string;
-  payload?: Record<string, unknown> | null;
+  form?: Record<string, unknown> | null;
   title?: string;
 }
 
@@ -172,10 +172,12 @@ export interface AIAwaitApprovalSubmitParamData {
   reason?: string;
 }
 
+export type AIAwaitFormSubmitAction = 'submit' | 'reject' | 'cancel';
+
 export interface AIAwaitFormSubmitParamData {
   id: string;
-  payload?: Record<string, any> | null;
-  reason?: string;
+  action: AIAwaitFormSubmitAction;
+  form?: Record<string, any> | null;
 }
 
 export interface AIAwaitAnswerError {

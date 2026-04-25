@@ -336,7 +336,6 @@ export const ComposerArea: React.FC = () => {
           data={state.activeAwaiting}
           onPatch={handlePatchActiveAwaiting}
           onSubmit={handleAwaitingSubmit}
-          onClose={clearActiveAwaiting}
           onResolvedByOther={clearActiveAwaiting}
         />
       );

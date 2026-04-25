@@ -41,7 +41,7 @@ function createFormAwaiting(
         id: 'leave_form',
         action: '提交请假申请',
         title: 'mock 请假申请',
-        payload: {
+        form: {
           applicant_id: 'E1001',
         },
       },
@@ -80,12 +80,12 @@ describe('awaiting protocol helpers', () => {
             id: 'leave_form',
             action: '提交请假申请',
             title: 'mock 请假申请',
-            payload: {
+            form: {
               applicant_id: 'E1001',
             },
           },
         ],
-        payload: {
+        form: {
           applicant_id: 'E1001',
         },
       },
@@ -99,7 +99,7 @@ describe('awaiting protocol helpers', () => {
         {
           id: 'form-1',
           title: 'mock 请假申请',
-          payload: {
+          form: {
             applicant_id: 'E1001',
             department_id: 'engineering',
             leave_type: 'annual',
@@ -127,7 +127,7 @@ describe('awaiting protocol helpers', () => {
             id: 'form-1',
             action: undefined,
             title: 'mock 请假申请',
-            payload: {
+            form: {
               applicant_id: 'E1001',
               department_id: 'engineering',
               leave_type: 'annual',
@@ -138,7 +138,7 @@ describe('awaiting protocol helpers', () => {
             },
           },
         ],
-        payload: {
+        form: {
           applicant_id: 'E1001',
           department_id: 'engineering',
           leave_type: 'annual',
@@ -180,12 +180,12 @@ describe('awaiting protocol helpers', () => {
             id: 'leave_form',
             action: '提交请假申请',
             title: 'mock 请假申请',
-            payload: {
+            form: {
               applicant_id: 'E1001',
             },
           },
         ],
-        payload: {
+        form: {
           applicant_id: 'E1001',
         },
       },
@@ -199,7 +199,7 @@ describe('awaiting protocol helpers', () => {
           id: 'leave_form',
           action: '提交请假申请',
           title: 'mock 请假申请',
-          payload: {
+          form: {
             employee_id: 'E1001',
           },
         },
@@ -207,7 +207,7 @@ describe('awaiting protocol helpers', () => {
           id: 'travel_form',
           action: '提交出差申请',
           title: 'mock 出差申请',
-          payload: {
+          form: {
             employee_id: 'E2002',
           },
         },
@@ -229,7 +229,7 @@ describe('awaiting protocol helpers', () => {
             id: 'leave_form',
             action: '提交请假申请',
             title: 'mock 请假申请',
-            payload: {
+            form: {
               employee_id: 'E1001',
             },
           },
@@ -237,12 +237,12 @@ describe('awaiting protocol helpers', () => {
             id: 'travel_form',
             action: '提交出差申请',
             title: 'mock 出差申请',
-            payload: {
+            form: {
               employee_id: 'E2002',
             },
           },
         ],
-        payload: {
+        form: {
           employee_id: 'E2002',
         },
       },
@@ -302,24 +302,26 @@ describe('awaiting protocol helpers', () => {
     expect(normalizeAwaitingSubmitParams([
       {
         id: 'f1',
-        payload: {
+        action: 'submit',
+        form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        reason: '取消提交',
+        action: 'cancel',
       },
     ], 'form')).toEqual([
       {
         id: 'f1',
-        payload: {
+        action: 'submit',
+        form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        reason: '取消提交',
+        action: 'cancel',
       },
     ]);
   });
@@ -332,7 +334,8 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          payload: {
+          action: 'submit',
+          form: {
             approved: true,
           },
         },
@@ -343,7 +346,8 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          payload: {
+          action: 'submit',
+          form: {
             approved: true,
           },
         },
@@ -359,7 +363,8 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          payload: 'bad',
+          action: 'submit',
+          form: 'bad',
         },
       ],
     }, awaiting)).toBeNull();

@@ -21,7 +21,7 @@ export interface AwaitingViewportData {
   activeFormIndex: number;
   activeFormId: string;
   forms: FormActiveAwaiting['forms'];
-  payload: Record<string, unknown> | null;
+  form: Record<string, unknown> | null;
 }
 
 export interface AwaitingViewportMessage {
@@ -50,11 +50,11 @@ type LegacyAwaitingForm = FormActiveAwaiting['forms'][number] & {
   initialPayload?: Record<string, unknown> | null;
 };
 
-function cloneFormPayload(
+function cloneFormData(
   form: LegacyAwaitingForm | undefined,
 ): Record<string, unknown> | null {
-  const payload = form?.payload ?? form?.initialPayload;
-  return payload ? { ...payload } : null;
+  const formData = form?.form ?? form?.initialPayload;
+  return formData ? { ...formData } : null;
 }
 
 function clampActiveFormIndex(
@@ -112,9 +112,9 @@ export function buildAwaitingViewportData(
       id: form.id,
       action: form.action,
       title: form.title,
-      payload: cloneFormPayload(form),
+      form: cloneFormData(form),
     })),
-    payload: cloneFormPayload(activeForm),
+    form: cloneFormData(activeForm),
   };
 }
 
@@ -216,27 +216,33 @@ function normalizeFormSubmitParam(
   item: Record<string, unknown>,
 ): AIAwaitFormSubmitParamData | null {
   const id = String(item.id || '').trim();
+  const action = String(item.action || '').trim();
   if (!id) {
     return null;
   }
-
-  const payload = isObjectRecord(item.payload)
-    ? { ...item.payload }
-    : item.payload == null
-    ? undefined
-    : null;
-  const reason = String(item.reason || '').trim() || undefined;
-  if (payload === null) {
+  if (action !== 'submit' && action !== 'reject' && action !== 'cancel') {
     return null;
   }
-  if (payload === undefined && !reason) {
-    return null;
+
+  if (action === 'submit') {
+    const form = isObjectRecord(item.form)
+      ? { ...item.form }
+      : item.form == null
+      ? undefined
+      : null;
+    if (form == null) {
+      return null;
+    }
+    return {
+      id,
+      action,
+      form,
+    };
   }
 
   return {
     id,
-    ...(payload !== undefined ? { payload } : {}),
-    ...(reason ? { reason } : {}),
+    action,
   };
 }
 
