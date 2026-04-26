@@ -50,8 +50,9 @@ program_load_env() {
   set +a
   PORT="${PORT:-11948}"
   BASE_URL="${BASE_URL:-http://127.0.0.1:11949}"
+  WS_BASE_URL="${WS_BASE_URL:-$BASE_URL}"
   VOICE_BASE_URL="${VOICE_BASE_URL:-$BASE_URL}"
-  export PORT BASE_URL VOICE_BASE_URL
+  export PORT BASE_URL WS_BASE_URL VOICE_BASE_URL
 }
 
 resolve_node_bin() {

@@ -15,4 +15,4 @@ COPY nginx.conf /etc/nginx/nginx.conf.template
 
 EXPOSE 80
 
-CMD ["/bin/sh", "-c", "envsubst '$$BASE_URL $$VOICE_BASE_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "WS_BASE_URL=\"${WS_BASE_URL:-$BASE_URL}\"; export WS_BASE_URL; envsubst '$$BASE_URL $$WS_BASE_URL $$VOICE_BASE_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

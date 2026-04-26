@@ -82,6 +82,20 @@ function waitForWebSocketMessage(ws) {
   });
 }
 
+function httpGetBody(url) {
+  return new Promise((resolve, reject) => {
+    const req = http.get(url, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+    });
+    req.once('error', reject);
+  });
+}
+
 describe('backend/server', () => {
   const tempRoots = [];
   const devCorsMiddleware = createDevCorsMiddleware();
@@ -133,6 +147,35 @@ describe('backend/server', () => {
     tempRoots.push(rootDir);
 
     expect(() => loadConfig({ env: { PORT: '0' }, appRoot: rootDir })).toThrow(/index\.html/);
+  });
+
+  test('loads WS_BASE_URL independently while defaulting to BASE_URL', () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    const defaultConfig = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: 'http://base.example.com',
+        VOICE_BASE_URL: 'http://voice.example.com',
+      },
+      appRoot: rootDir,
+    });
+    expect(defaultConfig.wsBaseUrl.toString()).toBe('http://base.example.com/');
+
+    const explicitConfig = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: 'http://base.example.com',
+        WS_BASE_URL: 'http://ws.example.com',
+        VOICE_BASE_URL: 'http://voice.example.com',
+      },
+      appRoot: rootDir,
+    });
+    expect(explicitConfig.baseUrl.toString()).toBe('http://base.example.com/');
+    expect(explicitConfig.wsBaseUrl.toString()).toBe('http://ws.example.com/');
+    expect(explicitConfig.voiceBaseUrl.toString()).toBe('http://voice.example.com/');
   });
 
   test('responds to allowed dev-origin preflight requests with CORS headers', async () => {
@@ -201,7 +244,53 @@ describe('backend/server', () => {
     expect(res.headers['access-control-allow-headers']).toBeUndefined();
   });
 
-  test('tunnels websocket upgrade bytes to the configured base url', async () => {
+  test('keeps api and voice http upstreams separate from WS_BASE_URL', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    const apiServer = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(`api:${req.url}`);
+    });
+    const voiceServer = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(`voice:${req.url}`);
+    });
+    const apiPort = await listen(apiServer);
+    const voicePort = await listen(voiceServer);
+    const config = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: `http://127.0.0.1:${apiPort}`,
+        WS_BASE_URL: 'http://127.0.0.1:1',
+        VOICE_BASE_URL: `http://127.0.0.1:${voicePort}`,
+      },
+      appRoot: rootDir,
+    });
+
+    const { server } = createServer(config, {
+      logger: { error: jest.fn() },
+    });
+    const proxyPort = await listen(server);
+
+    try {
+      await expect(httpGetBody(`http://127.0.0.1:${proxyPort}/api/ping`)).resolves.toEqual({
+        statusCode: 200,
+        body: 'api:/api/ping',
+      });
+      await expect(httpGetBody(`http://127.0.0.1:${proxyPort}/api/voice/ping`)).resolves.toEqual({
+        statusCode: 200,
+        body: 'voice:/api/voice/ping',
+      });
+    } finally {
+      await closeServer(server);
+      await closeServer(apiServer);
+      await closeServer(voiceServer);
+    }
+  }, 10_000);
+
+  test('tunnels websocket upgrade bytes to the configured ws base url', async () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);
     writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
@@ -220,9 +309,15 @@ describe('backend/server', () => {
     });
 
     const upstreamPort = await listen(upstreamServer);
-    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
-    config.baseUrl = new URL(`http://127.0.0.1:${upstreamPort}`);
-    config.voiceBaseUrl = config.baseUrl;
+    const config = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: 'http://127.0.0.1:1',
+        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: 'http://127.0.0.1:1',
+      },
+      appRoot: rootDir,
+    });
 
     const { server } = createServer(config, {
       logger: { error: jest.fn() },

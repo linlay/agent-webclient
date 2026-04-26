@@ -54,6 +54,7 @@ function loadConfig(options = {}) {
   const appRoot = options.appRoot || path.resolve(__dirname, '..');
   const port = String(env.PORT || DEFAULT_PORT).trim() || DEFAULT_PORT;
   const baseUrl = new URL(String(env.BASE_URL || DEFAULT_BASE_URL).trim() || DEFAULT_BASE_URL);
+  const wsBaseUrl = new URL(String(env.WS_BASE_URL || baseUrl.toString()).trim() || baseUrl.toString());
   const voiceBaseUrl = new URL(
     String(env.VOICE_BASE_URL || baseUrl.toString()).trim() || baseUrl.toString(),
   );
@@ -63,6 +64,7 @@ function loadConfig(options = {}) {
     appRoot,
     port,
     baseUrl,
+    wsBaseUrl,
     voiceBaseUrl,
     frontendDist: frontend.frontendDist,
     indexFile: frontend.indexFile,
@@ -317,7 +319,7 @@ function createServer(config, options = {}) {
   const { app } = createApp(config, { logger });
   const apiWsProxy = createWebSocketProxy(config.baseUrl, logger);
   const voiceWsProxy = createWebSocketProxy(config.voiceBaseUrl, logger);
-  const wsProxy = createWebSocketProxy(config.baseUrl, logger);
+  const wsProxy = createWebSocketProxy(config.wsBaseUrl || config.baseUrl, logger);
   const server = http.createServer(app);
 
   server.on('upgrade', (req, socket, head) => {

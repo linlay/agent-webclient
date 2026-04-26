@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
+const wsTarget = String(process.env.WS_BASE_URL || '').trim() || apiTarget;
 const voiceTarget = String(process.env.VOICE_BASE_URL || '').trim();
 const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
 const allowedHosts = allowedHostsEnv === 'all'
@@ -140,7 +141,7 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/ws'],
-          target: apiTarget,
+          target: wsTarget,
           changeOrigin: true,
           ws: true,
         },

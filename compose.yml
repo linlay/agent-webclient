@@ -8,6 +8,7 @@ services:
       - .env
     environment:
       BASE_URL: ${BASE_URL}
+      WS_BASE_URL: ${WS_BASE_URL:-}
       VOICE_BASE_URL: ${VOICE_BASE_URL}
     ports:
       - "${PORT:-11948}:80"

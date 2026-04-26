@@ -70,6 +70,27 @@ describe('webpack devServer proxy', () => {
     expect(queryWsRule.ws).toBe(true);
   });
 
+  it('uses WS_BASE_URL for query websocket endpoint when configured', () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'development',
+      BASE_URL: 'http://backend.example.com',
+      WS_BASE_URL: 'http://ws.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'development' });
+    const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
+    const queryWsRule = proxyRules.find((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/ws'));
+
+    expect(queryWsRule).toBeTruthy();
+    expect(queryWsRule.target).toBe('http://ws.example.com');
+    expect(queryWsRule.ws).toBe(true);
+  });
+
   it('moves webpack hmr websocket off /ws', () => {
     process.env = {
       ...originalEnv,

@@ -67,6 +67,9 @@ function Import-ProgramEnv {
   if (-not $env:BASE_URL) {
     $env:BASE_URL = 'http://127.0.0.1:11949'
   }
+  if (-not $env:WS_BASE_URL) {
+    $env:WS_BASE_URL = $env:BASE_URL
+  }
   if (-not $env:VOICE_BASE_URL) {
     $env:VOICE_BASE_URL = $env:BASE_URL
   }

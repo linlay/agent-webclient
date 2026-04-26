@@ -72,9 +72,9 @@
 ## 7. 开发要点
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
 - 仓库统一使用 `npm`；前端根目录与 `backend/` 都提交 `package-lock.json`，不使用 `pnpm` / `yarn` 锁文件。
-- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 代理目标由 `BASE_URL` 控制，`/ws` 代理到 `BASE_URL`，语音 WebSocket 与语音相关 HTTP 代理到 `VOICE_BASE_URL`。
+- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 代理目标由 `BASE_URL` 控制，`/ws` 代理到 `WS_BASE_URL`，未设置时继承 `BASE_URL`；语音 WebSocket 与语音相关 HTTP 代理到 `VOICE_BASE_URL`。
 - Program Bundle 运行时会启动 [`backend/server.js`](./backend/server.js)，由 Express 负责静态文件托管、SPA fallback、`/api/*` / `/api/voice/*` / `/ws` 代理。
-- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 与 `/ws` 到对应上游，并将 `/api/voice/ws`、`/api/voice/*` 单独反向代理到 `VOICE_BASE_URL`。
+- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 到 `BASE_URL`、`/ws` 到 `WS_BASE_URL`，并将 `/api/voice/ws`、`/api/voice/*` 单独反向代理到 `VOICE_BASE_URL`。
 - SSE 和 WebSocket 请求都需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
 - `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口；旧的并行样式入口不再保留。
@@ -82,14 +82,14 @@
 ## 8. 开发流程
 本地开发流程：
 1. `cp .env.example .env`
-2. 在 `.env` 中设置可访问的 `BASE_URL` 与 `VOICE_BASE_URL`
+2. 在 `.env` 中设置可访问的 `BASE_URL`、可选 `WS_BASE_URL` 与 `VOICE_BASE_URL`
 3. `make install`
 4. `make dev`
 5. `make test`
 6. `make build`
 
 容器联调流程：
-1. 在 `.env` 中设置可访问的 `BASE_URL` 与 `VOICE_BASE_URL`
+1. 在 `.env` 中设置可访问的 `BASE_URL`、可选 `WS_BASE_URL` 与 `VOICE_BASE_URL`
 2. 执行 `make docker-up`
 3. 通过 `docker compose -f compose.yml logs -f webclient` 检查容器与代理状态
 4. 需要重建镜像时执行 `make docker-build`

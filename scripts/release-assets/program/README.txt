@@ -16,3 +16,4 @@ Contents:
 Runtime notes:
 - Desktop writes `NODE_BIN` into `.env` and starts the backend with `ELECTRON_RUN_AS_NODE=1`.
 - Standalone hosts should provide Node.js 18+ in `PATH` when `NODE_BIN` is unset.
+- `BASE_URL` points to the runner HTTP API, optional `WS_BASE_URL` points to the main WebSocket upstream and defaults to `BASE_URL`, and `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream.
