@@ -26,11 +26,11 @@ const DEFAULT_TERMS: Record<Locale, I18nTerms> = {
     conversationLabel: "conversation",
   },
   "zh-CN": {
-    agentLabel: "Agent",
-    agentPluralLabel: "Agents",
-    teamLabel: "Team",
-    teamPluralLabel: "Teams",
-    conversationLabel: "Conversation",
+    agentLabel: "智能体",
+    agentPluralLabel: "智能体",
+    teamLabel: "团队",
+    teamPluralLabel: "团队",
+    conversationLabel: "会话",
   },
 };
 

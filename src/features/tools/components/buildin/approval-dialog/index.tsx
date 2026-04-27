@@ -337,44 +337,46 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                 void moveForward(nextDecision);
               }}
               pagnation={
-                approvals.length > 1 && (
-                  <Flex className={Style.Pagination} align="center" gap={10}>
-                    <Button
-                      disabled={curIndex <= 0}
-                      icon={<LeftOutlined style={{ fontSize: 12 }} />}
-                      size="small"
-                      type="text"
-                      onClick={() => setCurIndex(curIndex - 1)}
-                    />
-                    <span>
-                      {curIndex + 1} / {approvals.length}
-                    </span>
-                    <Button
-                      size="small"
-                      type="text"
-                      disabled={curIndex >= approvals.length - 1}
-                      icon={<RightOutlined style={{ fontSize: 12 }} />}
-                      onClick={() => setCurIndex(curIndex + 1)}
-                    />
-                  </Flex>
-                )
+                <Flex className={Style.HeaderSide} align="center" gap={12}>
+                  {timeoutCountdown.label && (
+                    <Flex className={Style.TimeoutRow}>
+                      <span className={Style.TimeoutBadge}>
+                        {timeoutExpired && submitting
+                          ? t("approvalDialog.status.autoSubmitting")
+                          : t("approvalDialog.timeout.countdown", {
+                              label: timeoutCountdown.label,
+                            })}
+                      </span>
+                    </Flex>
+                  )}
+                  {approvals.length > 1 && (
+                    <Flex className={Style.Pagination} align="center" gap={10}>
+                      <Button
+                        disabled={curIndex <= 0}
+                        icon={<LeftOutlined style={{ fontSize: 12 }} />}
+                        size="small"
+                        type="text"
+                        onClick={() => setCurIndex(curIndex - 1)}
+                      />
+                      <span>
+                        {curIndex + 1} / {approvals.length}
+                      </span>
+                      <Button
+                        size="small"
+                        type="text"
+                        disabled={curIndex >= approvals.length - 1}
+                        icon={<RightOutlined style={{ fontSize: 12 }} />}
+                        onClick={() => setCurIndex(curIndex + 1)}
+                      />
+                    </Flex>
+                  )}
+                </Flex>
               }
             />
           ),
         }))}
       />
-      <Flex gap={10} align="center">
-        {timeoutCountdown.label && (
-          <Flex className={Style.TimeoutRow}>
-            <span className={Style.TimeoutBadge}>
-              {timeoutExpired && submitting
-                ? t("approvalDialog.status.autoSubmitting")
-                : t("approvalDialog.timeout.countdown", {
-                    label: timeoutCountdown.label,
-                  })}
-            </span>
-          </Flex>
-        )}
+      <Flex gap={10} align="center" className={Style.FooterRow}>
         <Button
           type="link"
           shape="round"

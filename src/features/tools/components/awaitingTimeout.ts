@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const COUNTDOWN_TICK_MS = 250;
+const MAX_AWAITING_TIMEOUT_CACHE_SIZE = 200;
+
+interface AwaitingTimeoutEntry {
+  deadlineAt: number;
+  didExpire: boolean;
+}
+
+const awaitingTimeoutByKey = new Map<string, AwaitingTimeoutEntry>();
 
 export function normalizeAwaitingTimeoutMs(
   timeout: number | null | undefined,
@@ -26,6 +34,74 @@ export function formatAwaitingTimeoutLabel(remainingMs: number): string {
   }
 
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function pruneAwaitingTimeoutCache() {
+  while (awaitingTimeoutByKey.size > MAX_AWAITING_TIMEOUT_CACHE_SIZE) {
+    const oldestKey = awaitingTimeoutByKey.keys().next().value;
+    if (!oldestKey) {
+      return;
+    }
+    awaitingTimeoutByKey.delete(oldestKey);
+  }
+}
+
+export function resolveAwaitingTimeoutEntry(
+  awaitingKey: string,
+  timeoutMs: number | null,
+  now = Date.now(),
+): AwaitingTimeoutEntry | null {
+  if (timeoutMs === null) {
+    if (awaitingKey) {
+      awaitingTimeoutByKey.delete(awaitingKey);
+    }
+    return null;
+  }
+
+  const cachedEntry = awaitingKey
+    ? awaitingTimeoutByKey.get(awaitingKey)
+    : undefined;
+  if (cachedEntry) {
+    return cachedEntry;
+  }
+
+  const nextEntry = {
+    deadlineAt: now + timeoutMs,
+    didExpire: false,
+  };
+  if (awaitingKey) {
+    awaitingTimeoutByKey.set(awaitingKey, nextEntry);
+    pruneAwaitingTimeoutCache();
+  }
+  return nextEntry;
+}
+
+export function markAwaitingTimeoutExpired(
+  awaitingKey: string,
+  deadlineAt: number,
+) {
+  if (!awaitingKey) {
+    return;
+  }
+
+  const cachedEntry = awaitingTimeoutByKey.get(awaitingKey);
+  if (!cachedEntry) {
+    awaitingTimeoutByKey.set(awaitingKey, {
+      deadlineAt,
+      didExpire: true,
+    });
+    pruneAwaitingTimeoutCache();
+    return;
+  }
+
+  awaitingTimeoutByKey.set(awaitingKey, {
+    deadlineAt: cachedEntry.deadlineAt,
+    didExpire: true,
+  });
+}
+
+export function resetAwaitingTimeoutEntries() {
+  awaitingTimeoutByKey.clear();
 }
 
 interface UseAwaitingTimeoutCountdownInput {
@@ -58,9 +134,15 @@ export function useAwaitingTimeoutCountdown(
   }, [onExpire]);
 
   useEffect(() => {
-    expiredRef.current = false;
-    setNow(Date.now());
-    setDeadlineAt(timeoutMs ? Date.now() + timeoutMs : null);
+    const nextNow = Date.now();
+    const timeoutEntry = resolveAwaitingTimeoutEntry(
+      awaitingKey,
+      timeoutMs,
+      nextNow,
+    );
+    expiredRef.current = timeoutEntry?.didExpire ?? false;
+    setNow(nextNow);
+    setDeadlineAt(timeoutEntry?.deadlineAt ?? null);
   }, [awaitingKey, timeoutMs]);
 
   useEffect(() => {
@@ -77,6 +159,7 @@ export function useAwaitingTimeoutCountdown(
       }
 
       expiredRef.current = true;
+      markAwaitingTimeoutExpired(awaitingKey, deadlineAt);
       onExpireRef.current?.();
     };
 
@@ -85,7 +168,7 @@ export function useAwaitingTimeoutCountdown(
     return () => {
       window.clearInterval(timer);
     };
-  }, [deadlineAt]);
+  }, [awaitingKey, deadlineAt]);
 
   const remainingMs =
     deadlineAt === null ? null : Math.max(0, deadlineAt - now);

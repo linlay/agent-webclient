@@ -306,31 +306,40 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                         void moveForward();
                       }}
                       pagnation={
-                        questions.length > 1 && (
-                          <Flex
-                            className={Style.Pagination}
-                            align="center"
-                            gap={10}
-                          >
-                            <Button
-                              disabled={curIndex <= 0}
-                              icon={<LeftOutlined style={{ fontSize: 12 }} />}
-                              size="small"
-                              type="text"
-                              onClick={() => setCurIndex(curIndex - 1)}
-                            />
-                            <span>
-                              {curIndex + 1} / {questions.length}
-                            </span>
-                            <Button
-                              size="small"
-                              type="text"
-                              disabled={curIndex >= questions.length - 1}
-                              icon={<RightOutlined style={{ fontSize: 12 }} />}
-                              onClick={() => setCurIndex(curIndex + 1)}
-                            />
-                          </Flex>
-                        )
+                        <Flex className={Style.HeaderSide} align="center" gap={12}>
+                          {timeoutCountdown.label && (
+                            <Flex className={Style.TimeoutRow}>
+                              {timeoutExpired && loading
+                                ? "自动提交中..."
+                                : `提交倒计时 ${timeoutCountdown.label}`}
+                            </Flex>
+                          )}
+                          {questions.length > 1 && (
+                            <Flex
+                              className={Style.Pagination}
+                              align="center"
+                              gap={10}
+                            >
+                              <Button
+                                disabled={curIndex <= 0}
+                                icon={<LeftOutlined style={{ fontSize: 12 }} />}
+                                size="small"
+                                type="text"
+                                onClick={() => setCurIndex(curIndex - 1)}
+                              />
+                              <span>
+                                {curIndex + 1} / {questions.length}
+                              </span>
+                              <Button
+                                size="small"
+                                type="text"
+                                disabled={curIndex >= questions.length - 1}
+                                icon={<RightOutlined style={{ fontSize: 12 }} />}
+                                onClick={() => setCurIndex(curIndex + 1)}
+                              />
+                            </Flex>
+                          )}
+                        </Flex>
                       }
                     />
                   </Form.Item>
@@ -340,14 +349,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           );
         }}
       </Form.List>
-      <Flex gap={10} align="center">
-        {timeoutCountdown.label && (
-          <Flex className={Style.TimeoutRow}>
-            {timeoutExpired && loading
-              ? "自动提交中..."
-              : `提交倒计时 ${timeoutCountdown.label}`}
-          </Flex>
-        )}
+      <Flex gap={10} align="center" className={Style.FooterRow}>
         <Button
           type="link"
           shape="round"

@@ -67,8 +67,15 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ i18n }) => {
+	const mergedI18n: Omit<I18nProviderProps, "children"> = {
+		locale: "zh-CN",
+		fallbackLocale: "zh-CN",
+		persistLocale: false,
+		...(i18n || {}),
+	};
+
 	return (
-		<I18nProvider fallbackLocale="en-US" {...i18n}>
+		<I18nProvider {...mergedI18n}>
 			<AppProvider>
 				<ThemedAppShell />
 			</AppProvider>

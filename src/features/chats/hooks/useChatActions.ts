@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getChat, markChatRead } from '@/features/transport/lib/apiClientProxy';
@@ -29,6 +29,22 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 
 export function shouldAutoMarkChatRead(chat: Pick<Chat, 'chatId' | 'read'> | null | undefined): boolean {
   return Boolean(String(chat?.chatId || '').trim()) && chat?.read?.isRead === false;
+}
+
+export function getAutoReadTriggerKey(
+  chat: Pick<Chat, 'chatId' | 'lastRunId' | 'updatedAt' | 'read'> | null | undefined,
+): string {
+  if (!shouldAutoMarkChatRead(chat)) {
+    return '';
+  }
+
+  return [
+    String(chat?.chatId || '').trim(),
+    String(chat?.lastRunId || '').trim(),
+    String(chat?.updatedAt ?? '').trim(),
+    String(chat?.read?.readAt ?? '').trim(),
+    String(chat?.read?.readRunId || '').trim(),
+  ].join('|');
 }
 
 function normalizeChatPlan(value: unknown): Plan | null | undefined {
@@ -112,6 +128,7 @@ export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] 
  */
 export function useChatActions() {
   const {
+    state,
     dispatch,
     stateRef,
     querySessionsRef,
@@ -119,6 +136,7 @@ export function useChatActions() {
     activeQuerySessionRequestIdRef,
   } = useAppContext();
   const loadSeqRef = useRef(0);
+  const lastAutoReadTriggerKeyRef = useRef('');
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
     const timer = stateRef.current.planAutoCollapseTimer;
@@ -289,6 +307,27 @@ export function useChatActions() {
     }
   }, [dispatch, syncMarkReadResult]);
 
+  const activeChat = useMemo(
+    () => state.chats.find((chat) => String(chat?.chatId || '') === String(state.chatId || '')),
+    [state.chatId, state.chats],
+  );
+  const autoReadTriggerKey = useMemo(
+    () => getAutoReadTriggerKey(activeChat),
+    [activeChat],
+  );
+
+  useEffect(() => {
+    if (!autoReadTriggerKey || !activeChat) {
+      return;
+    }
+    if (lastAutoReadTriggerKeyRef.current === autoReadTriggerKey) {
+      return;
+    }
+
+    lastAutoReadTriggerKeyRef.current = autoReadTriggerKey;
+    void autoMarkReadIfNeeded(activeChat);
+  }, [activeChat, autoMarkReadIfNeeded, autoReadTriggerKey]);
+
   const loadChat = useCallback(
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
       if (!chatId) return;
@@ -310,7 +349,6 @@ export function useChatActions() {
       }
 
       if (restoreSessionConversation(chatId)) {
-        void autoMarkReadIfNeeded(currentChat);
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -397,7 +435,6 @@ export function useChatActions() {
         if (activeRunId) {
           dispatchAttachRunEvent(chatId, activeRunId, 0);
         }
-        void autoMarkReadIfNeeded(currentChat);
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -414,7 +451,6 @@ export function useChatActions() {
       detachActiveConversationSession,
       dispatch,
       focusComposerSoon,
-      autoMarkReadIfNeeded,
       applyLoadedChatState,
       restoreSessionConversation,
       stateRef,

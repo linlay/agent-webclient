@@ -311,6 +311,10 @@ describe('awaiting protocol helpers', () => {
         id: 'f2',
         action: 'cancel',
       },
+      {
+        id: 'f3',
+        action: 'reject',
+      },
     ], 'form')).toEqual([
       {
         id: 'f1',
@@ -322,6 +326,10 @@ describe('awaiting protocol helpers', () => {
       {
         id: 'f2',
         action: 'cancel',
+      },
+      {
+        id: 'f3',
+        action: 'reject',
       },
     ]);
   });

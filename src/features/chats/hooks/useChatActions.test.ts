@@ -1,5 +1,13 @@
 import type { Agent, Chat, Team } from '@/app/state/types';
-import { createReplayState, normalizeChatArtifactItems, replayEvent, setReplayArtifacts, setReplayPlan, shouldAutoMarkChatRead } from '@/features/chats/hooks/useChatActions';
+import {
+  createReplayState,
+  getAutoReadTriggerKey,
+  normalizeChatArtifactItems,
+  replayEvent,
+  setReplayArtifacts,
+  setReplayPlan,
+  shouldAutoMarkChatRead,
+} from '@/features/chats/hooks/useChatActions';
 
 describe('replayEvent tool migration', () => {
   it('marks only unread chats for auto-read on load', () => {
@@ -22,6 +30,34 @@ describe('replayEvent tool migration', () => {
         chatId: 'chat_missing_read',
       }),
     ).toBe(false);
+  });
+
+  it('builds a stable auto-read trigger key only for unread chats', () => {
+    expect(
+      getAutoReadTriggerKey({
+        chatId: 'chat_unread',
+        lastRunId: 'run_1',
+        updatedAt: 123,
+        read: {
+          isRead: false,
+          readAt: 111,
+          readRunId: 'run_0',
+        },
+      }),
+    ).toBe('chat_unread|run_1|123|111|run_0');
+
+    expect(
+      getAutoReadTriggerKey({
+        chatId: 'chat_read',
+        lastRunId: 'run_1',
+        updatedAt: 123,
+        read: {
+          isRead: true,
+          readAt: 123,
+          readRunId: 'run_1',
+        },
+      }),
+    ).toBe('');
   });
 
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {

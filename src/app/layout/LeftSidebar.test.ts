@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
+import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
 
@@ -117,6 +118,16 @@ const globalWithStorage = globalThis as typeof globalThis & {
 };
 
 describe("LeftSidebar", () => {
+  function renderSidebar(): string {
+    return renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", fallbackLocale: "zh-CN", persistLocale: false },
+        React.createElement(LeftSidebar),
+      ),
+    );
+  }
+
   const originalLocalStorage = globalWithStorage.localStorage;
   const globalWithWindow = globalThis as typeof globalThis & {
     window?: {
@@ -286,12 +297,12 @@ describe("LeftSidebar", () => {
   });
 
   it("renders compact transport and theme summaries on the settings trigger", () => {
-    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const html = renderSidebar();
 
     expect(html).toContain('id="settings-btn"');
-    expect(html).toContain("Open settings menu");
+    expect(html).toContain("打开设置菜单");
     expect(html).toContain(">SSE<");
-    expect(html).toContain(">Dark<");
+    expect(html).toContain(">夜<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
   });
@@ -299,31 +310,31 @@ describe("LeftSidebar", () => {
   it("renders collapsed worker entries with names, popover header, and total history count", () => {
     mockState(createWorkerState());
 
-    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const html = renderSidebar();
 
     expect(html).toContain("worker-collapsed-name");
     expect(html).toContain("Alpha Agent");
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
-    expect(html).toContain("View more (6 total, 3 unread)");
+    expect(html).toContain("查看更多（共 6 条，未读 3 条）");
   });
 
   it("renders unread badges for worker and chat rows", () => {
     mockState(createWorkerState());
 
-    const workerHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const workerHtml = renderSidebar();
     expect(workerHtml).toContain('data-badge-dot="true"');
     expect(workerHtml).toContain("chat-unread-dot is-unread");
 
     mockState(createChatListState());
-    const chatHtml = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const chatHtml = renderSidebar();
     expect(chatHtml).toContain("is-unread");
     expect(chatHtml).toContain("chat-unread-dot");
   });
 
   it("dispatches worker selection when clicking a collapsed worker entry", () => {
     mockState(createWorkerState());
-    renderToStaticMarkup(React.createElement(LeftSidebar));
+    renderSidebar();
 
     const button = antdButtonProps.find((props) =>
       String(props.className || "").includes("worker-collapsed-icon"),
@@ -349,7 +360,7 @@ describe("LeftSidebar", () => {
   it("renders unread chat rows in the chat list", () => {
     mockState(createChatListState());
 
-    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const html = renderSidebar();
 
     expect(html).toContain('class="ui-list-item is-dense chat-item  is-unread"');
     expect(html).toContain('class="chat-unread-dot is-unread"');
@@ -361,13 +372,13 @@ describe("LeftSidebar", () => {
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
     mockState(state);
 
-    const html = renderToStaticMarkup(React.createElement(LeftSidebar));
+    const html = renderSidebar();
 
     expect(html).toContain(
-      '<span class="chat-awaiting-status">Awaiting approval</span><span class="worker-panel-time-label">',
+      '<span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain(
-      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="Unread"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">Awaiting approval</span><span class="worker-panel-time-label">',
+      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="未读"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
     );
   });
 });

@@ -10,6 +10,11 @@
     font-size: 12px;
   }
 
+  .HeaderSide {
+    margin-left: auto;
+    min-width: max-content;
+  }
+
   .IgnoreButton {
     color: var(--text-muted);
 
@@ -31,11 +36,15 @@
   }
 }
 
+.FooterRow {
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .TimeoutRow {
   color: var(--text-muted);
   font-size: 12px;
-  flex: 1;
-  padding-left: 12px;
+  white-space: nowrap;
 }
 
 .QuestionWrapper {
@@ -95,20 +104,25 @@
   .CheckboxGroup {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
 
     :global {
       .Selected {
-        color: var(--colorTextSecondary);
-        background-color: var(--colorBgTextHover, rgba(0, 0, 0, 0.06));
-        padding: 1px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-        display: none;
+        display: none !important;
       }
 
       .ant-checkbox {
         display: none;
+      }
+
+      .ant-checkbox-wrapper {
+        width: 100%;
+        margin-inline-start: 0 !important;
+        border-radius: 16px;
+        transition:
+          background-color 0.18s ease,
+          color 0.18s ease,
+          box-shadow 0.18s ease;
       }
 
       .ant-checkbox-wrapper>:last-child {
@@ -116,57 +130,59 @@
       }
 
       .ant-checkbox-wrapper-checked {
-        .Selected {
-          display: block;
-        }
+        background: color-mix(in srgb, var(--accent-soft) 42%, var(--bg-elev-2));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-electric) 18%, transparent);
       }
     }
   }
   .Option {
-    padding: 6px;
-    border-radius: 10px;
+    display: block;
+    width: 100%;
+    margin: 0 !important;
+    padding: 14px 18px;
+    border-radius: 16px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 16px;
+    line-height: 1.35;
+    transition:
+      background-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
 
     :global{
       input{
-        font-size: 12px;
+        font-size: 16px;
       }
     }
 
     &:hover:not(&.FreeText),
     &:focus-within:not(&.FreeText) {
-      background-color: var(--bg-hover);
+      background-color: color-mix(in srgb, var(--bg-hover) 78%, var(--bg-elev-2));
     }
 
     .Info {
       color: var(--text-main);
-      font-weight: bold;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    [data-index] {
+      width: 100%;
+      min-height: 38px;
+    }
+
+    [data-index] > span:first-child {
+      width: 26px;
+      flex: 0 0 26px;
+      color: var(--text-muted);
+      font-weight: 600;
     }
   }
 
   .FreeText {
-    padding: 6px 14px;
-  }
-
-  .CheckboxGroup :global(.Selected) {
-    color: var(--colorTextSecondary);
-    background-color: var(--bg-hover);
-    padding: 0 6px;
-    border-radius: 10px;
-    font-size: 12px;
-    display: none;
-  }
-
-  .CheckboxGroup :global(.ant-checkbox) {
-    display: none;
-  }
-
-  .CheckboxGroup :global(.ant-checkbox-wrapper-checked .Selected) {
-    display: block;
-  }
-
-  .CheckboxGroup :global(.ant-checkbox-wrapper>:last-child) {
-    flex: 1;
+    padding: 14px 18px;
+    background: color-mix(in srgb, var(--bg-base) 86%, var(--bg-elev-2));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-soft) 92%, transparent);
   }
 }

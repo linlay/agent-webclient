@@ -21,5 +21,5 @@ export interface I18nRuntimeConfig {
   terms: I18nTerms;
 }
 
-export const DEFAULT_LOCALE: Locale = "en-US";
+export const DEFAULT_LOCALE: Locale = "zh-CN";
 export const I18N_LOCALE_STORAGE_KEY = "agent-webclient.locale";

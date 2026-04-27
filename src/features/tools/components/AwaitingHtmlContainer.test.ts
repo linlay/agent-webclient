@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ViewportTypeEnum } from '@/app/state/types';
 import type { FormActiveAwaiting } from '@/app/state/types';
+import { I18nProvider } from '@/shared/i18n';
 import {
   AWAITING_COLLECT_TIMEOUT_ERROR,
   AWAITING_COLLECT_TIMEOUT_MS,
@@ -11,6 +12,7 @@ import {
   bindAwaitingInitListener,
   buildAggregatedAwaitingSubmitPayload,
   buildCancelAwaitingSubmitPayload,
+  buildRejectAwaitingSubmitPayload,
   clearAwaitingCollectRequest,
   mergeSubmittedParamsIntoAwaitingForms,
   reportInvalidAwaitingSubmitPayload,
@@ -23,6 +25,8 @@ jest.mock('antd', () => {
   return {
     Button: ({ children, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('button', props, children),
+    Input: (props: Record<string, unknown>) =>
+      ReactRuntime.createElement('input', props),
     message: {
       info: jest.fn(),
     },
@@ -62,6 +66,18 @@ function createActiveAwaiting(
 }
 
 describe('AwaitingHtmlContainer', () => {
+  function renderAwaiting(
+    element: React.ReactElement,
+  ): string {
+    return renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: 'zh-CN', fallbackLocale: 'zh-CN', persistLocale: false },
+        element,
+      ),
+    );
+  }
+
   beforeEach(() => {
     console.warn = jest.fn();
   });
@@ -70,15 +86,37 @@ describe('AwaitingHtmlContainer', () => {
     console.warn = originalWarn;
   });
 
-  it('renders submit and reject buttons for form mode', () => {
-    const html = renderToStaticMarkup(
+  it('renders only the submit button for form mode', () => {
+    const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
       }),
     );
 
-    expect(html).toContain('Submit');
-    expect(html).toContain('Reject');
+    expect(html).toContain('提交');
+    expect(html).not.toContain('驳回</button>');
+  });
+
+  it('renders the form title as the only main header text', () => {
+    const html = renderAwaiting(
+      React.createElement(AwaitingHtmlContainer, {
+        data: createActiveAwaiting(),
+      }),
+    );
+
+    expect(html).toContain(
+      '<strong class="awaiting-panel-title">模拟 请假申请</strong>',
+    );
+  });
+
+  it('renders a reject reason input in the footer', () => {
+    const html = renderAwaiting(
+      React.createElement(AwaitingHtmlContainer, {
+        data: createActiveAwaiting(),
+      }),
+    );
+
+    expect(html).toContain('placeholder="请输入驳回理由"');
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {
@@ -307,10 +345,60 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
+          form: {
+            employee_id: 'E1001',
+          },
         },
         {
           id: 'travel_form',
           action: 'reject',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    });
+  });
+
+  it('builds direct reject payloads that include the shared reason', () => {
+    expect(buildRejectAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: 'Submit请假申请',
+          title: 'mock 请假申请',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'Submit出差申请',
+          title: 'mock 出差申请',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }), '资料不完整')).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          action: 'reject',
+          form: {
+            employee_id: 'E1001',
+            reason: '资料不完整',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'reject',
+          form: {
+            employee_id: 'E2002',
+            reason: '资料不完整',
+          },
         },
       ],
     });
