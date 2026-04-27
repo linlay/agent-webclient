@@ -77,18 +77,6 @@
     white-space: nowrap;
 }
 
-.tool-trigger-status {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
-    padding: 1px 6px;
-    font-size: 10px;
-    color: var(--ink-muted);
-    background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
-    white-space: nowrap;
-}
-
 .tool-status-dot[data-tool-status="running"] {
     animation-name: flash;
     animation-duration: 1s;
@@ -97,6 +85,10 @@
 }
 
 .tool-status-dot[data-tool-status="completed"] {
+    background: var(--accent-electric);
+}
+
+.tool-status-dot[data-tool-status="success"] {
     background: var(--accent-lime);
 }
 
@@ -104,27 +96,6 @@
 .tool-status-dot[data-tool-status="error"],
 .tool-status-dot[data-tool-status="canceled"] {
     background: var(--accent-danger);
-}
-
-.tool-trigger[data-tool-status="running"] .tool-trigger-status {
-    color: color-mix(in srgb, var(--accent-electric) 76%, var(--ink-2));
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 34%,
-            var(--line-soft));
-}
-
-.tool-trigger[data-tool-status="completed"] .tool-trigger-status {
-    color: color-mix(in srgb, var(--accent-lime) 80%, var(--ink-2));
-    border-color: color-mix(in srgb, var(--accent-lime) 36%, var(--line-soft));
-}
-
-.tool-trigger[data-tool-status="failed"] .tool-trigger-status,
-.tool-trigger[data-tool-status="error"] .tool-trigger-status,
-.tool-trigger[data-tool-status="canceled"] .tool-trigger-status {
-    color: color-mix(in srgb, var(--accent-danger) 86%, var(--ink-2));
-    border-color: color-mix(in srgb,
-            var(--accent-danger) 36%,
-            var(--line-soft));
 }
 
 .tool-detail {
@@ -135,14 +106,6 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.tool-call-card[data-tool-status="failed"],
-.tool-call-card[data-tool-status="error"],
-.tool-call-card[data-tool-status="canceled"] {
-    border-color: color-mix(in srgb,
-            var(--accent-danger) 32%,
-            var(--line-soft));
 }
 
 .tool-call-head {
@@ -183,11 +146,12 @@
     transform: translateY(-50%);
 }
 
-.tool-call-card.is-grouped[data-tool-status="running"] .tool-call-meta-status {
+.tool-call-card.is-grouped[data-tool-status="running"] .tool-call-meta-status,
+.tool-call-card.is-grouped[data-tool-status="completed"] .tool-call-meta-status {
     color: color-mix(in srgb, var(--accent-electric) 78%, var(--ink-muted));
 }
 
-.tool-call-card.is-grouped[data-tool-status="completed"] .tool-call-meta-status {
+.tool-call-card.is-grouped[data-tool-status="success"] .tool-call-meta-status {
     color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-muted));
 }
 

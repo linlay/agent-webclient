@@ -33,8 +33,7 @@ interface AwaitingHtmlContainerProps {
   onResolvedByOther?: () => void;
 }
 
-export const INVALID_AWAITING_SUBMIT_ERROR =
-  "Invalid awaiting submit payload";
+export const INVALID_AWAITING_SUBMIT_ERROR = "Invalid awaiting submit payload";
 
 function getSubmitErrorText(result: unknown): string {
   if (typeof result === "string" && result.trim()) {
@@ -61,14 +60,8 @@ interface AwaitingCollectLifecycleHandlers {
 }
 
 export interface AwaitingInitFrame {
-  addEventListener: (
-    type: "load",
-    listener: () => void,
-  ) => void;
-  removeEventListener: (
-    type: "load",
-    listener: () => void,
-  ) => void;
+  addEventListener: (type: "load", listener: () => void) => void;
+  removeEventListener: (type: "load", listener: () => void) => void;
 }
 
 export function bindAwaitingInitListener(
@@ -191,13 +184,16 @@ export function buildAggregatedAwaitingSubmitPayload(
   const collectedParamById = new Map<string, AIAwaitFormSubmitParamData>();
   const firstCollectedAction = collectedParams[0]?.action;
   const sharedNonSubmitAction =
-    (firstCollectedAction === "reject" || firstCollectedAction === "cancel")
-    && collectedParams.length > 0
-    && collectedParams.every((param) => param.action === firstCollectedAction)
+    (firstCollectedAction === "reject" || firstCollectedAction === "cancel") &&
+    collectedParams.length > 0 &&
+    collectedParams.every((param) => param.action === firstCollectedAction)
       ? firstCollectedAction
       : null;
 
-  if (sharedNonSubmitAction === "reject" || sharedNonSubmitAction === "cancel") {
+  if (
+    sharedNonSubmitAction === "reject" ||
+    sharedNonSubmitAction === "cancel"
+  ) {
     return {
       runId: awaiting.runId,
       awaitingId: awaiting.awaitingId,
@@ -209,14 +205,17 @@ export function buildAggregatedAwaitingSubmitPayload(
   }
 
   for (const param of collectedParams) {
-    collectedParamById.set(param.id, param.action === "submit"
-      ? {
-          ...param,
-          ...(hasFormField(param)
-            ? { form: cloneAwaitingFormData(param.form) }
-            : {}),
-        }
-      : { ...param });
+    collectedParamById.set(
+      param.id,
+      param.action === "submit"
+        ? {
+            ...param,
+            ...(hasFormField(param)
+              ? { form: cloneAwaitingFormData(param.form) }
+              : {}),
+          }
+        : { ...param },
+    );
   }
 
   const params: AIAwaitFormSubmitParamData[] = awaiting.forms.map((form) => {
@@ -228,9 +227,10 @@ export function buildAggregatedAwaitingSubmitPayload(
         action: collected.action,
       };
     }
-    const submittedForm = collected?.action === "submit" && hasFormField(collected)
-      ? cloneAwaitingFormData(collected.form)
-      : cloneAwaitingFormData(form.form);
+    const submittedForm =
+      collected?.action === "submit" && hasFormField(collected)
+        ? cloneAwaitingFormData(collected.form)
+        : cloneAwaitingFormData(form.form);
     return {
       id: form.id,
       action: "submit" as const,
@@ -384,7 +384,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       const errorText = getSubmitErrorText(result);
       if (errorText) {
         setSubmitStatus("");
-        setSubmitError(t("awaiting.submit.failedWithDetail", { detail: errorText }));
+        setSubmitError(
+          t("awaiting.submit.failedWithDetail", { detail: errorText }),
+        );
         return;
       }
       setSubmitStatus("");
@@ -395,10 +397,10 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
   const handleAutoSubmit = useCallback(() => {
     if (
-      data.resolvedByOther
-      || submitStatus === "submitting"
-      || submitStatus === "autoSubmitting"
-      || Boolean(collectingDecision)
+      data.resolvedByOther ||
+      submitStatus === "submitting" ||
+      submitStatus === "autoSubmitting" ||
+      Boolean(collectingDecision)
     ) {
       return;
     }
@@ -579,7 +581,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         const errorText = getSubmitErrorText(result);
         if (errorText) {
           setSubmitStatus("");
-          setSubmitError(t("awaiting.submit.failedWithDetail", { detail: errorText }));
+          setSubmitError(
+            t("awaiting.submit.failedWithDetail", { detail: errorText }),
+          );
           return;
         }
         setSubmitStatus("");
@@ -700,18 +704,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <span className="awaiting-panel-caption">{data.viewportKey}</span>
         </div>
         <div className="awaiting-panel-header-side">
-          {timeoutCountdown.label && (
-            <span className="awaiting-timeout-badge">
-              {timeoutExpired
-              && (submitStatus === "collecting"
-                || submitStatus === "submitting"
-                || submitStatus === "autoSubmitting")
-                ? t("awaiting.status.autoSubmitting")
-                : t("awaiting.timeout.countdown", {
-                    label: timeoutCountdown.label,
-                  })}
-            </span>
-          )}
           {data.forms.length > 1 && (
             <div className="awaiting-panel-form-switcher">
               <Button
@@ -734,7 +726,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                 {currentForm && (
                   <>
                     {" "}
-                    · {currentForm.title || currentForm.action || currentForm.id}
+                    ·{" "}
+                    {currentForm.title || currentForm.action || currentForm.id}
                   </>
                 )}
               </span>
@@ -752,14 +745,14 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         </div>
       </div>
 
-      {data.loading && <div className="status-line">{t("awaiting.load.loading")}</div>}
+      {data.loading && (
+        <div className="status-line">{t("awaiting.load.loading")}</div>
+      )}
       {data.loadError && (
         <div className="awaiting-panel-error">{data.loadError}</div>
       )}
       {!data.loading && !data.loadError && !data.viewportHtml && (
-        <div className="awaiting-panel-empty">
-          {t("awaiting.load.waiting")}
-        </div>
+        <div className="awaiting-panel-empty">{t("awaiting.load.waiting")}</div>
       )}
       {data.viewportHtml && (
         <iframe
@@ -773,6 +766,20 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       )}
 
       <div className="awaiting-panel-footer">
+        <div style={{flex: 1}}>
+          {timeoutCountdown.label && (
+            <span className="awaiting-timeout-badge">
+              {timeoutExpired &&
+              (submitStatus === "collecting" ||
+                submitStatus === "submitting" ||
+                submitStatus === "autoSubmitting")
+                ? t("awaiting.status.autoSubmitting")
+                : t("awaiting.timeout.countdown", {
+                    label: timeoutCountdown.label,
+                  })}
+            </span>
+          )}
+        </div>
         <div className="awaiting-panel-actions">
           <Button
             disabled={actionDisabled}
@@ -794,7 +801,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         </div>
       </div>
 
-      {submitStatusText && <div className="status-line">{submitStatusText}</div>}
+      {submitStatusText && (
+        <div className="status-line">{submitStatusText}</div>
+      )}
       {submitError && <div className="system-alert">{submitError}</div>}
     </div>
   );

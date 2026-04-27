@@ -32,14 +32,10 @@
 }
 
 .TimeoutRow {
-  position: absolute;
-  top: -6px;
-  right: 0;
-  transform: translateY(-100%);
-  margin-bottom: 8px;
   color: var(--text-muted);
   font-size: 12px;
-  font-weight: bold;
+  flex: 1;
+  padding-left: 12px;
 }
 
 .QuestionWrapper {

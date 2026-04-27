@@ -136,6 +136,12 @@
 .worker-panel-header-body .ant-badge{
     transform: scale(0.8);
 }
+.worker-panel-header-body .ant-badge .ant-badge-count-sm{
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    border-radius: 10px;
+}
 
 .worker-panel-role {
     font-size: 11px;

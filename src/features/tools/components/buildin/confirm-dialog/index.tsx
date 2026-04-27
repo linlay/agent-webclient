@@ -262,13 +262,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       disabled={loading}
       onFinish={doSubmit}
     >
-      {timeoutCountdown.label && (
-        <Flex justify="flex-end" className={Style.TimeoutRow}>
-          {timeoutExpired && loading
-            ? "自动提交中..."
-            : `提交倒计时 ${timeoutCountdown.label}`}
-        </Flex>
-      )}
       <Form.Item name="runId" hidden />
       <Form.Item name="awaitingId" hidden />
       <Form.List name="params">
@@ -347,7 +340,14 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           );
         }}
       </Form.List>
-      <Flex gap={10} justify="flex-end" align="center">
+      <Flex gap={10} align="center">
+        {timeoutCountdown.label && (
+          <Flex className={Style.TimeoutRow}>
+            {timeoutExpired && loading
+              ? "自动提交中..."
+              : `提交倒计时 ${timeoutCountdown.label}`}
+          </Flex>
+        )}
         <Button
           type="link"
           shape="round"

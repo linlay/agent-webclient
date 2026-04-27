@@ -135,13 +135,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         setSubmitting(false);
       }
     },
-    [
-      data.awaitingId,
-      data.runId,
-      onSubmit,
-      data.resolvedByOther,
-      submitting,
-    ],
+    [data.awaitingId, data.runId, onSubmit, data.resolvedByOther, submitting],
   );
 
   const submitDecision = useCallback(
@@ -153,14 +147,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         buildApprovalSubmitParams(approvals, nextDecisions, nextReasons),
       );
     },
-    [
-      approvals,
-      decisions,
-      hasAllDecisions,
-      readOnly,
-      reasons,
-      submitPayload,
-    ],
+    [approvals, decisions, hasAllDecisions, readOnly, reasons, submitPayload],
   );
 
   const doIgnore = useCallback(() => {
@@ -317,17 +304,6 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   return ready ? (
     <div className={Style.ConfirmDialog}>
-      {timeoutCountdown.label && (
-        <Flex justify="flex-end" className={Style.TimeoutRow}>
-          <span className={Style.TimeoutBadge}>
-            {timeoutExpired && submitting
-              ? t("approvalDialog.status.autoSubmitting")
-              : t("approvalDialog.timeout.countdown", {
-                  label: timeoutCountdown.label,
-                })}
-          </span>
-        </Flex>
-      )}
       <Tabs
         activeKey={curIndex.toString()}
         onChange={(key) =>
@@ -387,7 +363,18 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
           ),
         }))}
       />
-      <Flex gap={10} justify="flex-end" align="center">
+      <Flex gap={10} align="center">
+        {timeoutCountdown.label && (
+          <Flex className={Style.TimeoutRow}>
+            <span className={Style.TimeoutBadge}>
+              {timeoutExpired && submitting
+                ? t("approvalDialog.status.autoSubmitting")
+                : t("approvalDialog.timeout.countdown", {
+                    label: timeoutCountdown.label,
+                  })}
+            </span>
+          </Flex>
+        )}
         <Button
           type="link"
           shape="round"
@@ -546,9 +533,7 @@ const ApprovalQuestion = forwardRef<
                     {option.description}
                   </span>
                 )}
-                <span className="Selected">
-                  {t("approvalDialog.selected")}
-                </span>
+                <span className="Selected">{t("approvalDialog.selected")}</span>
               </Flex>
             </Checkbox>
           ))}

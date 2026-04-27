@@ -970,7 +970,6 @@ html[data-theme="dark"] .timeline-user-bubble {
     box-shadow: 0 6px 18px rgba(8, 24, 56, 0.28);
 }
 
-html[data-theme="dark"] .tool-trigger-status,
 html[data-theme="dark"] .tool-call-inline,
 html[data-theme="dark"] .tool-call-result,
 html[data-theme="dark"] .status-line,

@@ -54,6 +54,8 @@ function resolveStatusLabel(status?: string): string {
     : value === "streaming"
       ? "运行中"
       : value === "completed"
+        ? "等待结果"
+      : value === "success"
         ? "完成"
         : value === "failed" || value === "error"
           ? "失败"
@@ -89,7 +91,7 @@ export function formatToolPillTitle(
       toolLabel: source.toolLabel,
       toolName: source.toolName,
     });
-    return source.count > 1 ? `${baseLabel} x${source.count}` : baseLabel;
+    return baseLabel;
   }
 
   return resolveToolLabel(source);

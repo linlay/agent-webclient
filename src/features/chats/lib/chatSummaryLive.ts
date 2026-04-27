@@ -20,7 +20,7 @@ export interface LiveChatSummaryContext {
 
 export function resolveChatSummaryUpdatedAt(
   event: AgentEvent,
-): string | number {
+): string | number | undefined {
   const raw = event as Record<string, unknown>;
   if (typeof raw.updatedAt === 'string') {
     return raw.updatedAt;
@@ -37,7 +37,7 @@ export function resolveChatSummaryUpdatedAt(
   if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
     return event.timestamp;
   }
-  return Date.now();
+  return undefined;
 }
 
 export function resolveChatSummaryPendingAwaiting(

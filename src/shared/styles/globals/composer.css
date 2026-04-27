@@ -623,7 +623,7 @@
 
 .awaiting-panel-footer {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     margin-top: 2px;
 }
 
@@ -632,7 +632,6 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
-    width: 100%;
 }
 
 .awaiting-panel .status-line,
