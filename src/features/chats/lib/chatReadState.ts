@@ -121,3 +121,58 @@ export function upsertAgentUnreadCount(
 		};
 	});
 }
+
+const readAllState: ChatReadState = { isRead: true };
+
+export function markAgentChatsRead(chats: Chat[], agentKey: string): Chat[] {
+	const normalizedAgentKey = toText(agentKey);
+	const currentChats = Array.isArray(chats) ? chats : [];
+	if (!normalizedAgentKey) {
+		return currentChats;
+	}
+	let changed = false;
+	const nextChats = currentChats.map((chat) => {
+		if (toText(chat?.agentKey || chat?.firstAgentKey) !== normalizedAgentKey) {
+			return chat;
+		}
+		if (!isChatUnread(chat)) {
+			return chat;
+		}
+		changed = true;
+		return {
+			...chat,
+			read: {
+				...readAllState,
+				readRunId: toText(chat?.lastRunId) || chat.read?.readRunId,
+			},
+		};
+	});
+	return changed ? nextChats : currentChats;
+}
+
+export function markWorkerRowsRead(
+	rows: WorkerConversationRow[],
+	agentKey: string,
+): WorkerConversationRow[] {
+	const normalizedAgentKey = toText(agentKey);
+	const currentRows = Array.isArray(rows) ? rows : [];
+	if (!normalizedAgentKey) {
+		return currentRows;
+	}
+	let changed = false;
+	const nextRows = currentRows.map((row) => {
+		if (toText(row?.agentKey) !== normalizedAgentKey || !isChatUnread(row)) {
+			return row;
+		}
+		changed = true;
+		return {
+			...row,
+			isRead: true,
+			read: {
+				...readAllState,
+				readRunId: toText(row?.lastRunId) || row.read?.readRunId,
+			},
+		};
+	});
+	return changed ? nextRows : currentRows;
+}

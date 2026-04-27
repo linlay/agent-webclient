@@ -21,6 +21,10 @@ export const WorkerPanelHeader: React.FC<{
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
+  onMarkAllRead?: (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => void;
 }> = ({
   row,
   isActive,
@@ -28,6 +32,7 @@ export const WorkerPanelHeader: React.FC<{
   lastChat,
   unreadCount = 0,
   onStartNewConversation,
+  onMarkAllRead,
 }) => {
   const { t } = useI18n();
   const preview = lastChat
@@ -61,6 +66,16 @@ export const WorkerPanelHeader: React.FC<{
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
+          {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
+            <Tooltip title={t("leftSidebar.markAllRead")}>
+              <Button
+                className="worker-panel-new"
+                type="text"
+                icon={<MaterialIcon name="done_all" />}
+                onClick={(e) => onMarkAllRead(e, row.key)}
+              />
+            </Tooltip>
+          )}
           <Tooltip title={t("leftSidebar.newConversation")}>
             <Button
               className="worker-panel-new"
@@ -89,4 +104,3 @@ export const WorkerPanelHeader: React.FC<{
     </div>
   );
 };
-

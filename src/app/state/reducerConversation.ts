@@ -3,6 +3,7 @@ import type { AppState } from "@/app/state/types";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import {
 	addSetValue,
+	removeSetValue,
 	setMapValue,
 	toggleSetValue,
 } from "@/app/state/reducerHelpers";
@@ -73,6 +74,13 @@ export function reduceConversationState(
 			return {
 				...state,
 				downvotedRunKeys: toggleSetValue(state.downvotedRunKeys, action.runKey),
+			};
+		case "SET_RUN_DOWNVOTED":
+			return {
+				...state,
+				downvotedRunKeys: action.downvoted
+					? addSetValue(state.downvotedRunKeys, action.runKey)
+					: removeSetValue(state.downvotedRunKeys, action.runKey),
 			};
 		case "ADD_EXECUTED_ACTION_ID":
 			return {

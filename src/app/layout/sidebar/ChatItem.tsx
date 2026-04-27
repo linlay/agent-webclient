@@ -9,6 +9,7 @@ import {
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { Chat } from "@/app/state/types";
 import { UnreadDot } from "./UnreadDot";
+import { ChatActionsMenu } from "./ChatActionsMenu";
 
 export const ChatItem: React.FC<{
   chat: Chat;
@@ -36,6 +37,7 @@ export const ChatItem: React.FC<{
         <span className="worker-panel-time-label">
           {formatChatTimeLabel(chat.updatedAt)}
         </span>
+        <ChatActionsMenu chatId={chat.chatId} chatName={title} />
       </div>
       <div className="chat-meta-line">
         <UiTag tone="muted">{label}</UiTag>
@@ -43,4 +45,3 @@ export const ChatItem: React.FC<{
     </UiListItem>
   );
 };
-

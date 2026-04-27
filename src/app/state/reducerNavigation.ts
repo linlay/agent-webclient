@@ -2,6 +2,11 @@ import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { setMapValue } from "@/app/state/reducerHelpers";
+import {
+	markAgentChatsRead,
+	markWorkerRowsRead,
+	upsertAgentUnreadCount,
+} from "@/features/chats/lib/chatReadState";
 
 export function reduceNavigationState(
 	state: AppState,
@@ -32,6 +37,28 @@ export function reduceNavigationState(
 				...state,
 				chats: upsertChatSummary(state.chats, action.chat),
 			};
+		case "CHAT_DELETED": {
+			const chatId = String(action.chatId || "");
+			return {
+				...state,
+				chats: state.chats.filter((chat) => String(chat.chatId || "") !== chatId),
+				workerRelatedChats: state.workerRelatedChats.filter(
+					(chat) => String(chat.chatId || "") !== chatId,
+				),
+			};
+		}
+		case "MARK_AGENT_CHATS_READ": {
+			const agentKey = String(action.agentKey || "").trim();
+			if (!agentKey) {
+				return state;
+			}
+			return {
+				...state,
+				chats: markAgentChatsRead(state.chats, agentKey),
+				workerRelatedChats: markWorkerRowsRead(state.workerRelatedChats, agentKey),
+				agents: upsertAgentUnreadCount(state.agents, agentKey, 0),
+			};
+		}
 		case "SET_CHAT_FILTER":
 			return { ...state, chatFilter: action.filter };
 		case "SET_CONVERSATION_MODE":

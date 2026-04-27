@@ -426,6 +426,29 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.read_all") {
+				const agentKey = String(liveEvent.agentKey || "").trim();
+				if (agentKey) {
+					options.dispatch({ type: "MARK_AGENT_CHATS_READ", agentKey });
+				}
+				return;
+			}
+
+			if (type === "chat.deleted") {
+				const deletedChatId = String(liveEvent.chatId || "").trim();
+				if (deletedChatId) {
+					options.dispatch({ type: "CHAT_DELETED", chatId: deletedChatId });
+					if (deletedChatId === currentChatId) {
+						options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
+						options.dispatch({ type: "SET_RUN_ID", runId: "" });
+						options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
+						window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+						window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+					}
+				}
+				return;
+			}
+
 			if (type === "run.start") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				if (options.stateRef.current.streaming) {

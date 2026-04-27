@@ -29,6 +29,8 @@ import { ChatItem } from "@/app/layout/sidebar/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
+import { markChatRead, searchGlobal } from "@/features/transport/lib/apiClientProxy";
+import type { WorkerConversationRow } from "@/app/state/types";
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
@@ -38,6 +40,7 @@ export const LeftSidebar: React.FC = () => {
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
+  const [remoteHistoryRows, setRemoteHistoryRows] = useState<WorkerConversationRow[] | null>(null);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const historyInputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +67,47 @@ export const LeftSidebar: React.FC = () => {
     state.workerIndexByKey.get(historyWorkerKey) ||
     state.workerRows.find((row) => row.key === historyWorkerKey) ||
     null;
+
+  useEffect(() => {
+    const query = historySearch.trim();
+    if (!historyWorkerKey || !historyWorker || !query) {
+      setRemoteHistoryRows(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const params =
+        historyWorker.type === "team"
+          ? { query, teamId: historyWorker.sourceId, limit: 30 }
+          : { query, agentKey: historyWorker.sourceId, limit: 30 };
+      void searchGlobal(params)
+        .then((response) => {
+          const results = Array.isArray(response.data?.results)
+            ? response.data.results
+            : [];
+          setRemoteHistoryRows(
+            results.map((result) => ({
+              chatId: String(result.chatId || ""),
+              chatName: String(result.chatName || result.chatId || ""),
+              agentKey: result.agentKey,
+              teamId: result.teamId,
+              updatedAt: Number(result.timestamp) || 0,
+              lastRunId: String(result.runId || ""),
+              lastRunContent: String(result.snippet || ""),
+              searchSnippet: String(result.snippet || ""),
+              isRead: true,
+            })).filter((row) => row.chatId),
+          );
+        })
+        .catch((error) => {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[search error] ${(error as Error).message}`,
+          });
+          setRemoteHistoryRows([]);
+        });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [dispatch, historySearch, historyWorker, historyWorkerKey]);
 
   useEffect(() => {
     if (state.conversationMode !== "worker") {
@@ -150,10 +194,34 @@ export const LeftSidebar: React.FC = () => {
     setHistoryIndex(0);
   };
 
+  const handleMarkWorkerAllRead = async (
+    event: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => {
+    event.stopPropagation();
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    if (!row || row.type !== "agent") return;
+    const agentKey = String(row.sourceId || "").trim();
+    if (!agentKey) return;
+    dispatch({ type: "MARK_AGENT_CHATS_READ", agentKey });
+    try {
+      await markChatRead({ agentKey });
+    } catch (error) {
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[mark all read error] ${(error as Error).message}`,
+      });
+      window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+    }
+  };
+
   const handleCloseHistory = () => {
     setHistoryWorkerKey("");
     setHistorySearch("");
     setHistoryIndex(0);
+    setRemoteHistoryRows(null);
   };
 
   const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
@@ -191,6 +259,7 @@ export const LeftSidebar: React.FC = () => {
             lastChat={rawChats[0]}
             unreadCount={unreadCount}
             onStartNewConversation={handleStartNewConversationForWorker}
+            onMarkAllRead={handleMarkWorkerAllRead}
           />
         ),
         children: (
@@ -203,6 +272,7 @@ export const LeftSidebar: React.FC = () => {
             onSelectChat={handleSelectChat}
             onOpenHistory={handleOpenHistory}
             onStartNewConversation={handleStartNewConversationForWorker}
+            onMarkAllRead={handleMarkWorkerAllRead}
           />
         ),
       };
@@ -328,6 +398,7 @@ export const LeftSidebar: React.FC = () => {
                             onStartNewConversation={
                               handleStartNewConversationForWorker
                             }
+                            onMarkAllRead={handleMarkWorkerAllRead}
                           />
                         }
                       >
@@ -430,7 +501,7 @@ export const LeftSidebar: React.FC = () => {
       <SidebarHistorySection
         open={Boolean(historyWorkerKey)}
         historyWorker={historyWorker}
-        historyRows={filteredHistoryRows}
+        historyRows={remoteHistoryRows ?? filteredHistoryRows}
         historyIndex={historyIndex}
         historySearch={historySearch}
         historyInputRef={historyInputRef}
@@ -440,6 +511,9 @@ export const LeftSidebar: React.FC = () => {
         onHistorySearchChange={(value) => {
           setHistorySearch(value);
           setHistoryIndex(0);
+          if (!value.trim()) {
+            setRemoteHistoryRows(null);
+          }
         }}
         onActivateIndex={setHistoryIndex}
         onSelectChat={handleSelectChat}

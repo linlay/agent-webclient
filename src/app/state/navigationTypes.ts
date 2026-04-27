@@ -90,9 +90,12 @@ export interface WorkerRow {
 export interface WorkerConversationRow {
 	chatId: string;
 	chatName: string;
+	agentKey?: string;
+	teamId?: string;
 	updatedAt: number;
 	lastRunId: string;
 	lastRunContent: string;
+	searchSnippet?: string;
 	read?: ChatReadState;
 	isRead?: boolean;
 	hasPendingAwaiting?: boolean;

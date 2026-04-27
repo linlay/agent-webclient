@@ -25,6 +25,10 @@ export const WorkerConversationPreviewList: React.FC<{
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
+  onMarkAllRead?: (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => void;
 }> = ({
   row,
   chats,
@@ -35,6 +39,7 @@ export const WorkerConversationPreviewList: React.FC<{
   onSelectChat,
   onOpenHistory,
   onStartNewConversation,
+  onMarkAllRead,
 }) => {
   const { t } = useI18n();
   const recentChats = chats.slice(0, 5);
@@ -76,6 +81,16 @@ export const WorkerConversationPreviewList: React.FC<{
               onClick={(e) => onStartNewConversation(e, row.key)}
             />
           </Tooltip>
+          {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
+            <Tooltip title={t("leftSidebar.markAllRead")}>
+              <Button
+                className="worker-panel-new worker-popover-new"
+                type="text"
+                icon={<MaterialIcon name="done_all" />}
+                onClick={(e) => onMarkAllRead(e, row.key)}
+              />
+            </Tooltip>
+          )}
         </div>
       )}
       <div className="worker-chat-divider"></div>
@@ -108,4 +123,3 @@ export const WorkerConversationPreviewList: React.FC<{
     </div>
   );
 };
-

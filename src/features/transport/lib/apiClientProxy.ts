@@ -2,8 +2,11 @@ import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
 	createQueryStream,
+	deleteChat as deleteChatHttp,
 	downloadResource,
+	downloadChatExport,
 	ensureAccessToken,
+	searchGlobal as searchGlobalHttp,
 	getAgent as getAgentHttp,
 	getAgents as getAgentsHttp,
 	getChat as getChatHttp,
@@ -22,10 +25,14 @@ import {
 	rememberChat as rememberChatHttp,
 	setAccessToken,
 	steerChat as steerChatHttp,
+	submitFeedback as submitFeedbackHttp,
 	submitAwaiting as submitAwaitingHttp,
 	submitTool as submitToolHttp,
 	uploadFile,
 	type ApiResponse,
+	type FeedbackParams,
+	type GlobalSearchParams,
+	type GlobalSearchResponse,
 	type MarkChatReadParams,
 	type QueryLikeParams,
 } from "@/shared/api/apiClient";
@@ -180,6 +187,28 @@ export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
 	});
 }
 
+export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
+	return routeRequest("/api/feedback", params, () => submitFeedbackHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
+}
+
+export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
+	return routeRequest("/api/chat-delete", params, () => deleteChatHttp(params), {
+		fallbackOnConnectFailure: false,
+	});
+}
+
+export function searchGlobal(
+	params: GlobalSearchParams,
+): Promise<ApiResponse<GlobalSearchResponse>> {
+	return routeRequest<GlobalSearchResponse>(
+		"/api/search",
+		params,
+		() => searchGlobalHttp(params),
+	);
+}
+
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 	return routeRequest("/api/interrupt", params, () => interruptChatHttp(params), {
 		fallbackOnConnectFailure: false,
@@ -214,6 +243,7 @@ export {
 	buildResourceUrl,
 	createQueryStream,
 	downloadResource,
+	downloadChatExport,
 	ensureAccessToken,
 	getCurrentAccessToken,
 	getResourceText,

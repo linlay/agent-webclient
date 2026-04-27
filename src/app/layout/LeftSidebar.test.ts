@@ -10,7 +10,7 @@ const antdButtonProps: Array<Record<string, unknown>> = [];
 jest.mock("antd", () => {
   const React = require("react");
 
-  const Button = ({ children, icon, className, ...props }: any) => {
+  const Button = ({ children, icon, className, loading, ...props }: any) => {
     antdButtonProps.push({ className, ...props });
     return React.createElement(
       "button",
@@ -33,6 +33,9 @@ jest.mock("antd", () => {
         ),
       ),
     );
+
+  const Dropdown = ({ children }: any) =>
+    React.createElement(React.Fragment, null, children);
 
   const Flex = ({ children, className, style }: any) =>
     React.createElement("div", { className, style }, children);
@@ -81,6 +84,7 @@ jest.mock("antd", () => {
     Button,
     Badge,
     Collapse,
+    Dropdown,
     Flex,
     Input,
     Modal,
