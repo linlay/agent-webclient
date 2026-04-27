@@ -181,6 +181,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const timeoutCountdown = useAwaitingTimeoutCountdown({
     awaitingKey: data.key,
     timeout: data.timeout,
+    createdAt: data.createdAt,
     onExpire: handleAutoSubmit,
   });
 

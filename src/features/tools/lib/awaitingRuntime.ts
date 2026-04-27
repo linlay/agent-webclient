@@ -289,6 +289,16 @@ function readAwaitingTimeout(event: AgentEvent): number | null {
   return Number.isFinite(fallbackTimeout) ? fallbackTimeout : null;
 }
 
+function readAwaitingCreatedAt(event: AgentEvent): number | null {
+  const createdAt = Number((event as Record<string, unknown>).createdAt);
+  if (Number.isFinite(createdAt) && createdAt > 0) {
+    return createdAt;
+  }
+
+  const timestamp = Number(event.timestamp);
+  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+}
+
 function isLegacyQuestionAsk(event: AgentEvent): boolean {
   if (toText(event.type) !== AIAwaitEventTypeEnum.Ask || readAwaitingMode(event)) {
     return false;
@@ -341,6 +351,9 @@ export function reduceActiveAwaiting(
 
     const key = `${runId}#${awaitingId}`;
     const nextMode = readAwaitingMode(event);
+    const createdAt =
+      readAwaitingCreatedAt(event)
+      ?? (current?.key === key ? current.createdAt ?? null : null);
 
     if (nextMode === 'question' || isLegacyQuestionAsk(event)) {
       const nextQuestions = normalizeQuestions(event.questions);
@@ -352,6 +365,7 @@ export function reduceActiveAwaiting(
         awaitingId,
         runId,
         timeout: readAwaitingTimeout(event),
+        createdAt,
         mode: 'question',
         questions:
           nextQuestions.length > 0
@@ -374,6 +388,7 @@ export function reduceActiveAwaiting(
         awaitingId,
         runId,
         timeout: readAwaitingTimeout(event),
+        createdAt,
         mode: 'approval',
         approvals:
           nextApprovals.length > 0
@@ -411,6 +426,7 @@ export function reduceActiveAwaiting(
         awaitingId,
         runId,
         timeout: readAwaitingTimeout(event),
+        createdAt,
         mode: 'form',
         forms:
           nextForms.length > 0

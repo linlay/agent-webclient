@@ -111,6 +111,7 @@ interface ActiveAwaitingBase {
 	awaitingId: string;
 	runId: string;
 	timeout: number | null;
+	createdAt?: number | null;
 	resolvedByOther?: boolean;
 }
 

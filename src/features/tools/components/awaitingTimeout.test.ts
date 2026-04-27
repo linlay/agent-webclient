@@ -66,4 +66,33 @@ describe("awaiting timeout helpers", () => {
       didExpire: false,
     });
   });
+
+  it("uses createdAt as the countdown start so refresh does not restart the timer", () => {
+    const timeoutMs = normalizeAwaitingTimeoutMs(60);
+
+    expect(
+      resolveAwaitingTimeoutEntry("run#await", timeoutMs, 50000, 1000),
+    ).toEqual({
+      deadlineAt: 61000,
+      didExpire: false,
+    });
+
+    expect(
+      resolveAwaitingTimeoutEntry("run#await-reloaded", timeoutMs, 50000, 1000),
+    ).toEqual({
+      deadlineAt: 61000,
+      didExpire: false,
+    });
+  });
+
+  it("marks createdAt-based entries expired immediately when the deadline already passed", () => {
+    const timeoutMs = normalizeAwaitingTimeoutMs(30);
+
+    expect(
+      resolveAwaitingTimeoutEntry("run#await", timeoutMs, 40000, 1000),
+    ).toEqual({
+      deadlineAt: 31000,
+      didExpire: true,
+    });
+  });
 });

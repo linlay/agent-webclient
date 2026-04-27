@@ -217,6 +217,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   const timeoutCountdown = useAwaitingTimeoutCountdown({
     awaitingKey: data.key,
     timeout: data.timeout,
+    createdAt: data.createdAt,
     onExpire: handleAutoSubmit,
   });
 

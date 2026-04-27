@@ -501,6 +501,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const timeoutCountdown = useAwaitingTimeoutCountdown({
     awaitingKey: data.key,
     timeout: data.timeout,
+    createdAt: data.createdAt,
     onExpire: handleAutoSubmit,
   });
 

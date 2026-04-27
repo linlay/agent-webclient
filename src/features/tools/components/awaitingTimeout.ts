@@ -50,6 +50,7 @@ export function resolveAwaitingTimeoutEntry(
   awaitingKey: string,
   timeoutMs: number | null,
   now = Date.now(),
+  createdAt?: number | null,
 ): AwaitingTimeoutEntry | null {
   if (timeoutMs === null) {
     if (awaitingKey) {
@@ -58,16 +59,25 @@ export function resolveAwaitingTimeoutEntry(
     return null;
   }
 
+  const normalizedCreatedAt = Number(createdAt);
+  const hasCreatedAt =
+    Number.isFinite(normalizedCreatedAt) && normalizedCreatedAt > 0;
+  const expectedDeadlineAt =
+    hasCreatedAt
+      ? normalizedCreatedAt + timeoutMs
+      : now + timeoutMs;
   const cachedEntry = awaitingKey
     ? awaitingTimeoutByKey.get(awaitingKey)
     : undefined;
-  if (cachedEntry) {
+  if (cachedEntry && (!hasCreatedAt || cachedEntry.deadlineAt === expectedDeadlineAt)) {
     return cachedEntry;
   }
 
   const nextEntry = {
-    deadlineAt: now + timeoutMs,
-    didExpire: false,
+    deadlineAt: expectedDeadlineAt,
+    didExpire:
+      cachedEntry?.didExpire === true
+      || expectedDeadlineAt <= now,
   };
   if (awaitingKey) {
     awaitingTimeoutByKey.set(awaitingKey, nextEntry);
@@ -107,6 +117,7 @@ export function resetAwaitingTimeoutEntries() {
 interface UseAwaitingTimeoutCountdownInput {
   awaitingKey: string;
   timeout: number | null | undefined;
+  createdAt?: number | null;
   onExpire?: () => void;
 }
 
@@ -119,7 +130,7 @@ interface AwaitingTimeoutCountdownState {
 export function useAwaitingTimeoutCountdown(
   input: UseAwaitingTimeoutCountdownInput,
 ): AwaitingTimeoutCountdownState {
-  const { awaitingKey, timeout, onExpire } = input;
+  const { awaitingKey, timeout, createdAt, onExpire } = input;
   const timeoutMs = useMemo(
     () => normalizeAwaitingTimeoutMs(timeout),
     [timeout],
@@ -139,11 +150,12 @@ export function useAwaitingTimeoutCountdown(
       awaitingKey,
       timeoutMs,
       nextNow,
+      createdAt,
     );
     expiredRef.current = timeoutEntry?.didExpire ?? false;
     setNow(nextNow);
     setDeadlineAt(timeoutEntry?.deadlineAt ?? null);
-  }, [awaitingKey, timeoutMs]);
+  }, [awaitingKey, createdAt, timeoutMs]);
 
   useEffect(() => {
     if (!deadlineAt) {
