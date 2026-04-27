@@ -27,6 +27,12 @@ import {
 	toWsConnectionError,
 	type WsClient,
 } from "@/features/transport/lib/wsClient";
+import {
+	createLiveQuerySession,
+	type LiveQuerySession,
+} from "@/features/chats/lib/conversationSession";
+import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
+import { toText } from "@/shared/utils/eventUtils";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
@@ -241,7 +247,33 @@ interface RegisterAttachRunListenerOptions {
 	stateRef: { current: AppState };
 	handleEvent: (event: AgentEvent) => void;
 	activeAttachRef: { current: ActiveAttachState | null };
+	querySessionsRef: { current: Map<string, LiveQuerySession> };
+	chatQuerySessionIndexRef: { current: Map<string, string> };
+	activeQuerySessionRequestIdRef: { current: string };
 	getWsClientImpl?: typeof getWsClient;
+}
+
+function isAttachTerminalRunEventType(type: string): boolean {
+	return type === "run.error" || type === "run.complete" || type === "run.cancel";
+}
+
+function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent): void {
+	const nextChatId = toText(event.chatId);
+	if (nextChatId) {
+		session.chatId = nextChatId;
+	}
+	const nextRunId = toText(event.runId);
+	if (nextRunId) {
+		session.runId = nextRunId;
+	}
+	const nextAgentKey = toText(event.agentKey);
+	if (nextAgentKey) {
+		session.agentKey = nextAgentKey;
+	}
+	const nextTeamId = readEventTeamId(event);
+	if (nextTeamId) {
+		session.teamId = nextTeamId;
+	}
 }
 
 export function registerAttachRunListener(
@@ -252,6 +284,14 @@ export function registerAttachRunListener(
 	const cleanupActiveAttach = (requestId: string) => {
 		if (options.activeAttachRef.current?.requestId !== requestId) {
 			return;
+		}
+		const session = options.querySessionsRef.current.get(requestId);
+		if (session) {
+			session.streaming = false;
+			session.abortController = null;
+		}
+		if (options.activeQuerySessionRequestIdRef.current === requestId) {
+			options.activeQuerySessionRequestIdRef.current = "";
 		}
 		options.activeAttachRef.current = null;
 		options.dispatch({ type: "SET_STREAMING", streaming: false });
@@ -280,15 +320,43 @@ export function registerAttachRunListener(
 		}
 
 		const controller = new AbortController();
+		let session: LiveQuerySession | null = null;
+		const attachHandleEvent = (attachedEvent: AgentEvent) => {
+			if (session) {
+				session.bufferedEvents.push(attachedEvent);
+				bindAttachSessionIdentity(session, attachedEvent);
+				if (isAttachTerminalRunEventType(toText(attachedEvent.type))) {
+					session.streaming = false;
+					session.abortController = null;
+				}
+				if (session.chatId) {
+					options.chatQuerySessionIndexRef.current.set(
+						session.chatId,
+						session.requestId,
+					);
+				}
+			}
+			options.handleEvent(attachedEvent);
+		};
 		const stream = wsClient.attachRun(
 			runId,
 			lastSeq,
-			options.handleEvent,
+			attachHandleEvent,
 			(_reason, _lastSeq) => {
 				cleanupActiveAttach(stream.requestId);
 			},
 			controller.signal,
 		);
+		session = createLiveQuerySession({
+			requestId: stream.requestId,
+			chatId,
+		});
+		session.runId = runId;
+		session.streaming = true;
+		session.abortController = controller;
+		options.querySessionsRef.current.set(stream.requestId, session);
+		options.chatQuerySessionIndexRef.current.set(chatId, stream.requestId);
+		options.activeQuerySessionRequestIdRef.current = stream.requestId;
 		options.activeAttachRef.current = {
 			requestId: stream.requestId,
 			runId,
@@ -297,6 +365,7 @@ export function registerAttachRunListener(
 			abort: stream.abort,
 		};
 		options.dispatch({ type: "SET_RUN_ID", runId });
+		options.dispatch({ type: "SET_REQUEST_ID", requestId: stream.requestId });
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
 	};
@@ -510,7 +579,14 @@ export async function connectWsTransport(
 }
 
 export function useWsTransport() {
-	const { dispatch, state, stateRef } = useAppContext();
+	const {
+		dispatch,
+		state,
+		stateRef,
+		querySessionsRef,
+		chatQuerySessionIndexRef,
+		activeQuerySessionRequestIdRef,
+	} = useAppContext();
 	const { handleEvent } = useAgentEventHandler();
 	const activeAttachRef = useRef<ActiveAttachState | null>(null);
 
@@ -533,8 +609,19 @@ export function useWsTransport() {
 			stateRef,
 			handleEvent,
 			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
 		});
-	}, [dispatch, handleEvent, state.transportMode, stateRef]);
+	}, [
+		activeQuerySessionRequestIdRef,
+		chatQuerySessionIndexRef,
+		dispatch,
+		handleEvent,
+		querySessionsRef,
+		state.transportMode,
+		stateRef,
+	]);
 
 	useEffect(() => {
 		if (state.transportMode !== "ws") {

@@ -664,11 +664,17 @@ describe("connectWsTransport", () => {
 			},
 		);
 		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
 			stateRef: { current: createState({ transportMode: "ws" }) },
 			handleEvent,
 			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
 			getWsClientImpl: () => ({ attachRun }) as any,
 		});
 
@@ -681,11 +687,21 @@ describe("connectWsTransport", () => {
 
 		expect(attachRun).toHaveBeenCalledTimes(1);
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "run_1" });
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_REQUEST_ID", requestId: "attach_1" });
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: true });
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_ABORT_CONTROLLER",
 			controller: expect.any(AbortController),
 		});
+		expect(querySessionsRef.current.get("attach_1")).toEqual(expect.objectContaining({
+			requestId: "attach_1",
+			chatId: "chat_1",
+			runId: "run_1",
+			streaming: true,
+			abortController: expect.any(AbortController),
+		}));
+		expect(chatQuerySessionIndexRef.current.get("chat_1")).toBe("attach_1");
+		expect(activeQuerySessionRequestIdRef.current).toBe("attach_1");
 
 		attaches[0].onDone("done", 9);
 
@@ -694,6 +710,11 @@ describe("connectWsTransport", () => {
 			type: "SET_ABORT_CONTROLLER",
 			controller: null,
 		});
+		expect(querySessionsRef.current.get("attach_1")).toEqual(expect.objectContaining({
+			streaming: false,
+			abortController: null,
+		}));
+		expect(activeQuerySessionRequestIdRef.current).toBe("");
 
 		cleanup();
 	});
@@ -759,11 +780,17 @@ describe("connectWsTransport", () => {
 			},
 		);
 		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
 			stateRef: { current: createState({ transportMode: "ws" }) },
 			handleEvent,
 			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
 			getWsClientImpl: () => ({ attachRun }) as any,
 		});
 

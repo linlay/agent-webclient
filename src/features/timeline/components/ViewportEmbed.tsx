@@ -171,12 +171,12 @@ function resizeIframe(iframe: HTMLIFrameElement): void {
 		const doc = iframe.contentDocument || iframe.contentWindow?.document;
 		if (doc?.body) {
 			const height = Math.max(doc.body.scrollHeight, 100);
-			iframe.style.height = `${height + 16}px`;
+			iframe.style.height = `${height}px`;
 
 			setTimeout(() => {
 				try {
 					const nextHeight = Math.max(doc.body.scrollHeight, 100);
-					iframe.style.height = `${nextHeight + 16}px`;
+					iframe.style.height = `${nextHeight}px`;
 				} catch {
 					/* ignore */
 				}
