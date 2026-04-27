@@ -86,7 +86,7 @@ describe('AwaitingHtmlContainer', () => {
     console.warn = originalWarn;
   });
 
-  it('renders only the submit button for form mode', () => {
+  it('renders submit and reject actions for form mode', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
@@ -94,7 +94,7 @@ describe('AwaitingHtmlContainer', () => {
     );
 
     expect(html).toContain('提交');
-    expect(html).not.toContain('驳回</button>');
+    expect(html).toContain('驳回</button>');
   });
 
   it('renders the form title as the only main header text', () => {
@@ -345,16 +345,10 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
-          form: {
-            employee_id: 'E1001',
-          },
         },
         {
           id: 'travel_form',
           action: 'reject',
-          form: {
-            employee_id: 'E2002',
-          },
         },
       ],
     });
@@ -387,18 +381,12 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
-          form: {
-            employee_id: 'E1001',
-            reason: '资料不完整',
-          },
+          reason: '资料不完整',
         },
         {
           id: 'travel_form',
           action: 'reject',
-          form: {
-            employee_id: 'E2002',
-            reason: '资料不完整',
-          },
+          reason: '资料不完整',
         },
       ],
     });

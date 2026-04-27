@@ -177,6 +177,7 @@ export type AIAwaitFormSubmitAction = 'submit' | 'reject' | 'cancel';
 export interface AIAwaitFormSubmitParamData {
   id: string;
   action: AIAwaitFormSubmitAction;
+  reason?: string;
   form?: Record<string, any> | null;
 }
 

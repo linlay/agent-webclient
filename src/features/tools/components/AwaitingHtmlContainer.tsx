@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Button, Input, message } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { EnterOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
   AIAwaitFormSubmitParamData,
   AIAwaitSubmitPayloadData,
@@ -51,7 +51,6 @@ export const AWAITING_COLLECT_TIMEOUT_ERROR =
 
 type AwaitingCollectFlow =
   | { type: "submit" }
-  | { type: "reject"; reason: string }
   | { type: "switch"; nextIndex: number };
 
 interface AwaitingCollectLifecycleHandlers {
@@ -160,23 +159,13 @@ function hasFormField(param: AIAwaitFormSubmitParamData): boolean {
 
 function buildRejectParam(
   id: string,
-  form?: Record<string, any> | null,
   reason?: string,
 ): AIAwaitFormSubmitParamData {
   const trimmedReason = typeof reason === "string" ? reason.trim() : "";
-  const nextForm =
-    form && typeof form === "object"
-      ? {
-          ...form,
-          ...(trimmedReason ? { reason: trimmedReason } : {}),
-        }
-      : trimmedReason
-        ? { reason: trimmedReason }
-        : null;
   return {
     id,
     action: "reject",
-    ...(nextForm ? { form: nextForm } : {}),
+    ...(trimmedReason ? { reason: trimmedReason } : {}),
   };
 }
 
@@ -230,7 +219,7 @@ export function buildAggregatedAwaitingSubmitPayload(
       awaitingId: awaiting.awaitingId,
       params: awaiting.forms.map((form) =>
         sharedNonSubmitAction === "reject"
-          ? buildRejectParam(form.id, cloneAwaitingFormData(form.form))
+          ? buildRejectParam(form.id, collectedParams[0]?.reason)
           : ({
               id: form.id,
               action: "cancel",
@@ -257,12 +246,7 @@ export function buildAggregatedAwaitingSubmitPayload(
     const collected = collectedParamById.get(form.id);
     collectedParamById.delete(form.id);
     if (collected?.action === "reject") {
-      return buildRejectParam(
-        form.id,
-        hasFormField(collected)
-          ? cloneAwaitingFormData(collected.form)
-          : cloneAwaitingFormData(form.form),
-      );
+      return buildRejectParam(form.id, collected.reason);
     }
     if (collected?.action === "cancel") {
       return {
@@ -293,12 +277,7 @@ export function buildAggregatedAwaitingSubmitPayload(
       continue;
     }
     if (param.action === "reject") {
-      params.push(
-        buildRejectParam(
-          param.id,
-          hasFormField(param) ? cloneAwaitingFormData(param.form) : null,
-        ),
-      );
+      params.push(buildRejectParam(param.id, param.reason));
       continue;
     }
     params.push({
@@ -337,7 +316,7 @@ export function buildRejectAwaitingSubmitPayload(
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     params: sourceForms.map((form) =>
-      buildRejectParam(form.id, cloneAwaitingFormData(form.form), reason),
+      buildRejectParam(form.id, reason),
     ),
   };
 }
@@ -366,13 +345,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     useState<AwaitingCollectDecision | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const currentForm = data.forms[activeFormIndex];
-  const panelCaption =
-    normalizeAwaitingCaption(
-      currentForm?.title ||
-        currentForm?.action ||
-        currentForm?.id ||
-        data.viewportKey,
-    );
+  const panelCaption = normalizeAwaitingCaption(
+    currentForm?.title ||
+      currentForm?.action ||
+      currentForm?.id ||
+      data.viewportKey,
+  );
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data, activeFormIndex),
@@ -703,25 +681,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      if (flow?.type === "reject") {
-        setSubmitStatus("submitting");
-        setSubmitError("");
-        const result = await onSubmit?.(
-          buildRejectAwaitingSubmitPayload(data, flow.reason, nextForms),
-        );
-        const errorText = getSubmitErrorText(result);
-        if (errorText) {
-          setSubmitStatus("");
-          setSubmitError(
-            t("awaiting.submit.failedWithDetail", { detail: errorText }),
-          );
-          return;
-        }
-        setSubmitStatus("");
-        setSubmitError("");
-        return;
-      }
-
       await submitAggregatedPayload(nextForms, collectedParams);
     };
 
@@ -781,14 +740,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       return;
     }
 
-    if (iframeRef.current?.contentWindow && data.viewportHtml) {
-      requestCollectFromFrame("submit", {
-        type: "reject",
-        reason: rejectReason,
-      });
-      return;
-    }
-
     setSubmitStatus("submitting");
     setSubmitError("");
     const result = await onSubmit(
@@ -804,7 +755,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     }
     setSubmitStatus("");
     setSubmitError("");
-  }, [data, onSubmit, rejectReason, requestCollectFromFrame, t]);
+  }, [data, onSubmit, rejectReason, t]);
 
   const reasonInputDisabled =
     data.loading ||
@@ -915,6 +866,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               aria-label={t("awaiting.rejectReason.placeholder")}
               className="awaiting-reject-reason-input"
               disabled={reasonInputDisabled}
+              size="small"
               placeholder={t("awaiting.rejectReason.placeholder")}
               value={rejectReason}
               onChange={(event) => setRejectReason(event.target.value)}
@@ -922,17 +874,26 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             />
           </div>
           <div className="awaiting-panel-actions">
-            <Button disabled={rejectDisabled} onClick={() => void handleReject()}>
+            <Button
+              shape="round"
+              size="small"
+              disabled={rejectDisabled}
+              className="reject-btn"
+              onClick={() => void handleReject()}
+            >
               {t("awaiting.action.reject")}
             </Button>
             <Button
-              disabled={submitDisabled}
               type="primary"
+              shape="round"
+              size="small"
+              disabled={submitDisabled}
               onClick={() =>
                 requestCollectFromFrame("submit", { type: "submit" })
               }
             >
               {t("awaiting.action.submit")}
+              <EnterOutlined />
             </Button>
           </div>
         </div>

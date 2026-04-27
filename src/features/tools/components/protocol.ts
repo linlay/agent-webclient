@@ -243,6 +243,9 @@ function normalizeFormSubmitParam(
   return {
     id,
     action,
+    ...(action === 'reject' && String(item.reason || '').trim()
+      ? { reason: String(item.reason || '').trim() }
+      : {}),
   };
 }
 
