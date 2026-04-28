@@ -159,7 +159,7 @@ function buildRejectParam(
   const trimmedReason = typeof reason === "string" ? reason.trim() : "";
   return {
     id,
-    action: "reject",
+    decision: "reject",
     ...(trimmedReason ? { reason: trimmedReason } : {}),
     ...(form !== undefined ? { form: cloneAwaitingFormData(form) } : {}),
   };
@@ -173,7 +173,7 @@ export function mergeSubmittedParamsIntoAwaitingForms(
 
   for (const param of params) {
     if (
-      (param.action !== "submit" && param.action !== "reject") ||
+      (param.decision !== "submit" && param.decision !== "reject") ||
       !hasFormField(param)
     ) {
       continue;
@@ -201,17 +201,18 @@ export function buildAggregatedAwaitingSubmitPayload(
   collectedParams: AIAwaitFormSubmitParamData[],
 ): AIAwaitSubmitPayloadData {
   const collectedParamById = new Map<string, AIAwaitFormSubmitParamData>();
-  const firstCollectedAction = collectedParams[0]?.action;
-  const sharedNonSubmitAction =
-    (firstCollectedAction === "reject" || firstCollectedAction === "cancel") &&
+  const firstCollectedDecision = collectedParams[0]?.decision;
+  const sharedNonSubmitDecision =
+    (firstCollectedDecision === "reject" ||
+      firstCollectedDecision === "cancel") &&
     collectedParams.length > 0 &&
-    collectedParams.every((param) => param.action === firstCollectedAction)
-      ? firstCollectedAction
+    collectedParams.every((param) => param.decision === firstCollectedDecision)
+      ? firstCollectedDecision
       : null;
 
   if (
-    sharedNonSubmitAction === "reject" ||
-    sharedNonSubmitAction === "cancel"
+    sharedNonSubmitDecision === "reject" ||
+    sharedNonSubmitDecision === "cancel"
   ) {
     const sharedCollectedParamById = new Map(
       collectedParams.map((param) => [param.id, param]),
@@ -220,7 +221,7 @@ export function buildAggregatedAwaitingSubmitPayload(
       runId: awaiting.runId,
       awaitingId: awaiting.awaitingId,
       params: awaiting.forms.map((form) => {
-        if (sharedNonSubmitAction === "reject") {
+        if (sharedNonSubmitDecision === "reject") {
           const collected = sharedCollectedParamById.get(form.id);
           return buildRejectParam(
             form.id,
@@ -230,7 +231,7 @@ export function buildAggregatedAwaitingSubmitPayload(
         }
         return {
           id: form.id,
-          action: "cancel",
+          decision: "cancel",
         } as const;
       }),
     };
@@ -239,7 +240,7 @@ export function buildAggregatedAwaitingSubmitPayload(
   for (const param of collectedParams) {
     collectedParamById.set(
       param.id,
-      param.action === "submit"
+      param.decision === "submit"
         ? {
             ...param,
             ...(hasFormField(param)
@@ -253,42 +254,42 @@ export function buildAggregatedAwaitingSubmitPayload(
   const params: AIAwaitFormSubmitParamData[] = awaiting.forms.map((form) => {
     const collected = collectedParamById.get(form.id);
     collectedParamById.delete(form.id);
-    if (collected?.action === "reject") {
+    if (collected?.decision === "reject") {
       return buildRejectParam(
         form.id,
         collected.reason,
         hasFormField(collected) ? collected.form : form.form,
       );
     }
-    if (collected?.action === "cancel") {
+    if (collected?.decision === "cancel") {
       return {
         id: form.id,
-        action: collected.action,
+        decision: collected.decision,
       };
     }
     const submittedForm =
-      collected?.action === "submit" && hasFormField(collected)
+      collected?.decision === "submit" && hasFormField(collected)
         ? cloneAwaitingFormData(collected.form)
         : cloneAwaitingFormData(form.form);
     return {
       id: form.id,
-      action: "submit" as const,
+      decision: "submit" as const,
       form: submittedForm,
     };
   });
 
   for (const param of collectedParamById.values()) {
-    if (param.action === "submit") {
+    if (param.decision === "submit") {
       params.push({
         id: param.id,
-        action: "submit",
+        decision: "submit",
         ...(hasFormField(param)
           ? ({ form: cloneAwaitingFormData(param.form) } as any)
           : {}),
       });
       continue;
     }
-    if (param.action === "reject") {
+    if (param.decision === "reject") {
       params.push(
         buildRejectParam(
           param.id,
@@ -300,7 +301,7 @@ export function buildAggregatedAwaitingSubmitPayload(
     }
     params.push({
       id: param.id,
-      action: param.action,
+      decision: param.decision,
     });
   }
 
@@ -319,7 +320,7 @@ export function buildCancelAwaitingSubmitPayload(
     awaitingId: awaiting.awaitingId,
     params: awaiting.forms.map((form) => ({
       id: form.id,
-      action: "cancel" as const,
+      decision: "cancel" as const,
     })),
   };
 }

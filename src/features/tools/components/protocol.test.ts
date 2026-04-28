@@ -302,18 +302,18 @@ describe('awaiting protocol helpers', () => {
     expect(normalizeAwaitingSubmitParams([
       {
         id: 'f1',
-        action: 'submit',
+        decision: 'submit',
         form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        action: 'cancel',
+        decision: 'cancel',
       },
       {
         id: 'f3',
-        action: 'reject',
+        decision: 'reject',
         reason: '缺少说明',
         form: {
           amount: 90,
@@ -322,18 +322,18 @@ describe('awaiting protocol helpers', () => {
     ], 'form')).toEqual([
       {
         id: 'f1',
-        action: 'submit',
+        decision: 'submit',
         form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        action: 'cancel',
+        decision: 'cancel',
       },
       {
         id: 'f3',
-        action: 'reject',
+        decision: 'reject',
         reason: '缺少说明',
         form: {
           amount: 90,
@@ -350,7 +350,7 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'submit',
+          decision: 'submit',
           form: {
             approved: true,
           },
@@ -362,13 +362,33 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'submit',
+          decision: 'submit',
           form: {
             approved: true,
           },
         },
       ],
     });
+  });
+
+  it('accepts legacy action keys for form submit payloads', () => {
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'f1',
+        action: 'submit',
+        form: {
+          amount: 80,
+        },
+      },
+    ], 'form')).toEqual([
+      {
+        id: 'f1',
+        decision: 'submit',
+        form: {
+          amount: 80,
+        },
+      },
+    ]);
   });
 
   it('rejects malformed frontend awaiting submit payloads for forms', () => {
@@ -379,7 +399,7 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'submit',
+          decision: 'submit',
           form: 'bad',
         },
       ],
