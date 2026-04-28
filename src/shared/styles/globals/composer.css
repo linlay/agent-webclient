@@ -506,24 +506,9 @@
 }
 
 .awaiting-timeout-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 34px;
-    padding: 0 16px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--accent-electric) 22%, #dfe8ff);
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 0.96),
-            color-mix(in srgb, var(--accent-soft) 26%, #fff));
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.72),
-        0 4px 12px rgba(38, 99, 235, 0.06);
-    color: color-mix(in srgb, var(--ink-muted) 86%, #6f7f98 14%);
-    font-size: 13px;
+    color: var(--text-muted);
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.01em;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 

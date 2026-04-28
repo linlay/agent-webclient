@@ -91,12 +91,13 @@ export const ChatActionsMenu: React.FC<{
 				size="small"
 				className="chat-actions-trigger"
 				loading={pending}
-				icon={<MaterialIcon name="more_vert" />}
 				onClick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
 				}}
-			/>
+			>
+				<MaterialIcon name="more_vert" />
+			</Button>
 		</Dropdown>
 	);
 };
