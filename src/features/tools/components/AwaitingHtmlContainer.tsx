@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Input, message } from "antd";
+import { Button, Flex, Input, message } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
   AIAwaitFormSubmitParamData,
@@ -24,6 +24,7 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -362,14 +363,13 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     useState<AwaitingCollectDecision | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const currentForm = data.forms[activeFormIndex];
-  const panelCaption =
-    String(
-      currentForm?.title ||
-        currentForm?.action ||
-        currentForm?.id ||
-        data.viewportKey ||
-        "",
-    ).trim();
+  const panelCaption = String(
+    currentForm?.title ||
+      currentForm?.action ||
+      currentForm?.id ||
+      data.viewportKey ||
+      "",
+  ).trim();
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data, activeFormIndex),
@@ -912,23 +912,31 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <Button
             className="awaiting-panel-submit-line"
             disabled={submitDisabled}
-            type="primary"
+            type="text"
             onClick={() =>
               requestCollectFromFrame("submit", { type: "submit" })
             }
           >
+            <MaterialIcon
+              name="arrow_forward"
+              className="awaiting-panel-submit-icon"
+            />
             <span className="awaiting-panel-submit-lead">{submitLineLead}</span>
-            {submitLineTail}
+            <span className="awaiting-panel-submit-tail">{submitLineTail}</span>
           </Button>
-          <Input
-            aria-label={t("awaiting.rejectReason.placeholder")}
-            className="awaiting-reject-reason-input"
-            disabled={reasonInputDisabled}
-            placeholder={t("awaiting.rejectReason.placeholder")}
-            value={rejectReason}
-            onChange={(event) => setRejectReason(event.target.value)}
-            onPressEnter={() => void handleReject()}
-          />
+          <Flex gap={8} className="awaiting-reject-reason" align="center">
+            <MaterialIcon name="close" className="awaiting-reject-reason-icon" />
+            <span>驳回</span>
+            <Input
+              aria-label={t("awaiting.rejectReason.placeholder")}
+              disabled={reasonInputDisabled}
+              variant="borderless"
+              placeholder={t("awaiting.rejectReason.placeholder")}
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              onPressEnter={() => void handleReject()}
+            />
+          </Flex>
         </div>
       </div>
 
