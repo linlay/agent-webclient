@@ -12,6 +12,12 @@ import {
   getAgent,
   getAgents,
   getChats,
+  getMemoryRecord,
+  getMemoryRecords,
+  getMemoryScope,
+  getMemoryScopes,
+  saveMemoryScope,
+  validateMemoryScope,
   getVoiceCapabilities,
   getVoiceCapabilitiesFlexible,
   getVoiceVoices,
@@ -352,6 +358,86 @@ describe('apiClient query payloads', () => {
     await getAgent('demo-agent');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
+  });
+
+  it('requests memory records and detail over HTTP query params', async () => {
+    await getMemoryRecords({
+      agentKey: 'agent-a',
+      keyword: 'bugfix',
+      kind: 'fact',
+      scopeType: 'agent',
+      status: 'active',
+      category: 'general',
+      limit: 15,
+    });
+    await getMemoryRecord('agent-a', 'mem_101');
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/memory/records?agentKey=agent-a&keyword=bugfix&kind=fact&scopeType=agent&status=active&category=general&limit=15',
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      '/api/memory/record?agentKey=agent-a&id=mem_101',
+    );
+  });
+
+  it('requests memory scopes, scope detail, validate, and save over HTTP', async () => {
+    await getMemoryScopes('agent-a');
+    await getMemoryScope('agent-a', 'agent', 'agent:agent-a');
+    await validateMemoryScope('agent-a', 'agent', '# AGENT');
+    await saveMemoryScope({
+      agentKey: 'agent-a',
+      scopeType: 'agent',
+      scopeKey: 'agent:agent-a',
+      mode: 'records',
+      archiveMissing: true,
+      records: [
+        {
+          id: 'mem_1',
+          title: '偏好中文输出',
+          summary: 'Prefer Chinese output.',
+          category: 'general',
+          importance: 8,
+          confidence: 0.95,
+          tags: ['preference'],
+        },
+      ],
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/memory/scopes?agentKey=agent-a',
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      '/api/memory/scope?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      '/api/memory/scope/validate',
+    );
+    expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
+      agentKey: 'agent-a',
+      scopeType: 'agent',
+      markdown: '# AGENT',
+    });
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+      '/api/memory/scope',
+    );
+    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
+      agentKey: 'agent-a',
+      scopeType: 'agent',
+      scopeKey: 'agent:agent-a',
+      mode: 'records',
+      archiveMissing: true,
+      records: [
+        {
+          id: 'mem_1',
+          title: '偏好中文输出',
+          summary: 'Prefer Chinese output.',
+          category: 'general',
+          importance: 8,
+          confidence: 0.95,
+          tags: ['preference'],
+        },
+      ],
+    });
   });
 
   it('injects a bridge token into app mode api requests', async () => {

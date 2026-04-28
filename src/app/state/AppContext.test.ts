@@ -263,6 +263,43 @@ describe('appReducer conversation reset behavior', () => {
     expect(removed.pendingSteers).toEqual([]);
   });
 
+  it('manages memory info modal state while preserving filters on close', () => {
+    const baseState = createInitialState();
+
+    const withFilters = appReducer(baseState, {
+      type: 'SET_MEMORY_INFO_FILTERS',
+      filters: {
+        keyword: 'bugfix',
+        limit: 30,
+      },
+    });
+    const opened = appReducer(withFilters, {
+      type: 'SET_MEMORY_INFO_OPEN',
+      open: true,
+    });
+    const busyState = {
+      ...opened,
+      memoryInfoLoading: true,
+      memoryInfoError: 'boom',
+      memoryInfoDetailLoading: true,
+      memoryInfoDetailError: 'detail boom',
+    };
+    const closed = appReducer(busyState, {
+      type: 'SET_MEMORY_INFO_OPEN',
+      open: false,
+    });
+
+    expect(closed.memoryInfoOpen).toBe(false);
+    expect(closed.memoryInfoFilters.keyword).toBe('bugfix');
+    expect(closed.memoryInfoFilters.limit).toBe(30);
+    expect(closed.memoryInfoLoading).toBe(false);
+    expect(closed.memoryInfoError).toBe('');
+    expect(closed.memoryInfoDetailLoading).toBe(false);
+    expect(closed.memoryInfoDetailError).toBe('');
+    expect(opened.memoryConsoleTab).toBe('preferences');
+    expect(baseState.memoryPreferenceActiveScopeType).toBe('agent');
+  });
+
   it('normalizes theme updates through the reducer', () => {
     const baseState = createInitialState();
 

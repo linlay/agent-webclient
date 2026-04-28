@@ -25,6 +25,18 @@ import type {
 	WorkerRow,
 } from "@/app/state/types";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type {
+	MemoryInfoFilters,
+	MemoryConsoleTab,
+	MemoryPreferenceMode,
+	MemoryScopeDetailMeta,
+	MemoryScopeDraftRecord,
+	MemoryScopeSaveSummary,
+	MemoryScopeSummary,
+	MemoryScopeValidationResult,
+	MemoryRecordDetail,
+	MemoryRecordListItem,
+} from "@/shared/api/memoryTypes";
 
 export type AppAction =
 	| { type: "SET_AGENTS"; agents: Agent[] }
@@ -61,6 +73,55 @@ export type AppAction =
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { type: "SET_SETTINGS_OPEN"; open: boolean }
+	| { type: "SET_MEMORY_INFO_OPEN"; open: boolean }
+	| { type: "SET_MEMORY_CONSOLE_TAB"; tab: MemoryConsoleTab }
+	| { type: "SET_MEMORY_INFO_LOADING"; loading: boolean }
+	| { type: "SET_MEMORY_INFO_ERROR"; error: string }
+	| {
+			type: "SET_MEMORY_INFO_FILTERS";
+			filters: Partial<MemoryInfoFilters>;
+	  }
+	| {
+			type: "SET_MEMORY_INFO_RECORDS";
+			records: MemoryRecordListItem[];
+			nextCursor?: string;
+			selectedRecordId?: string;
+	  }
+	| { type: "SET_MEMORY_INFO_SELECTED_RECORD_ID"; id: string }
+	| { type: "SET_MEMORY_INFO_DETAIL_LOADING"; loading: boolean }
+	| { type: "SET_MEMORY_INFO_DETAIL_ERROR"; error: string }
+	| { type: "SET_MEMORY_INFO_DETAIL"; detail: MemoryRecordDetail | null }
+	| { type: "SET_MEMORY_PREFERENCE_SCOPES"; scopes: MemoryScopeSummary[] }
+	| {
+			type: "SET_MEMORY_PREFERENCE_ACTIVE_SCOPE";
+			scopeType: string;
+			scopeKey: string;
+			label?: string;
+			fileName?: string;
+			meta?: MemoryScopeDetailMeta | null;
+	  }
+	| { type: "SET_MEMORY_PREFERENCE_LOADING"; loading: boolean }
+	| { type: "SET_MEMORY_PREFERENCE_ERROR"; error: string }
+	| { type: "SET_MEMORY_PREFERENCE_MODE"; mode: MemoryPreferenceMode }
+	| { type: "SET_MEMORY_PREFERENCE_MARKDOWN_DRAFT"; markdown: string }
+	| {
+			type: "SET_MEMORY_PREFERENCE_RECORDS_DRAFT";
+			records: MemoryScopeDraftRecord[];
+	  }
+	| {
+			type: "SET_MEMORY_PREFERENCE_SELECTED_RECORD_ID";
+			id: string;
+	  }
+	| { type: "SET_MEMORY_PREFERENCE_DIRTY"; dirty: boolean }
+	| { type: "SET_MEMORY_PREFERENCE_SAVING"; saving: boolean }
+	| {
+			type: "SET_MEMORY_PREFERENCE_SAVE_SUMMARY";
+			summary: MemoryScopeSaveSummary | null;
+	  }
+	| {
+			type: "SET_MEMORY_PREFERENCE_VALIDATION";
+			validation: MemoryScopeValidationResult | null;
+	  }
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
 	| { type: "OPEN_ATTACHMENT_PREVIEW"; preview: AttachmentPreviewState }

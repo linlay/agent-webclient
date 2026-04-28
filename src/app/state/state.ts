@@ -1,6 +1,11 @@
 import type { AppState, VoiceChatState } from "@/app/state/types";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import { getAppAccessToken } from "@/shared/api/appAuth";
+import {
+	createDefaultMemoryConsoleTab,
+	createDefaultMemoryInfoFilters,
+	createDefaultMemoryPreferenceMode,
+} from "@/shared/api/memoryTypes";
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
 import { resolveInitialThemeMode } from "@/shared/styles/theme";
@@ -99,6 +104,33 @@ export function createInitialState(): AppState {
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
 		settingsOpen: false,
+		memoryInfoOpen: false,
+		memoryConsoleTab: createDefaultMemoryConsoleTab(),
+		memoryInfoLoading: false,
+		memoryInfoError: "",
+		memoryInfoRecords: [],
+		memoryInfoSelectedRecordId: "",
+		memoryInfoDetail: null,
+		memoryInfoDetailLoading: false,
+		memoryInfoDetailError: "",
+		memoryInfoFilters: createDefaultMemoryInfoFilters(),
+		memoryInfoNextCursor: "",
+		memoryPreferenceScopes: [],
+		memoryPreferenceActiveScopeType: "agent",
+		memoryPreferenceActiveScopeKey: "",
+		memoryPreferenceLabel: "AGENT",
+		memoryPreferenceFileName: "AGENT.md",
+		memoryPreferenceMeta: null,
+		memoryPreferenceLoading: false,
+		memoryPreferenceError: "",
+		memoryPreferenceMode: createDefaultMemoryPreferenceMode(),
+		memoryPreferenceMarkdownDraft: "",
+		memoryPreferenceRecordsDraft: [],
+		memoryPreferenceSelectedRecordId: "",
+		memoryPreferenceDirty: false,
+		memoryPreferenceSaving: false,
+		memoryPreferenceSaveSummary: null,
+		memoryPreferenceValidation: null,
 		leftDrawerOpen: true,
 		desktopDebugSidebarEnabled: false,
 		terminalDockOpen: false,

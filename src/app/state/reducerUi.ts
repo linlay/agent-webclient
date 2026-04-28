@@ -9,6 +9,95 @@ export function reduceUiState(
 	switch (action.type) {
 		case "SET_SETTINGS_OPEN":
 			return { ...state, settingsOpen: action.open };
+		case "SET_MEMORY_INFO_OPEN":
+			return {
+				...state,
+				memoryInfoOpen: action.open,
+				memoryConsoleTab: action.open ? "preferences" : state.memoryConsoleTab,
+				memoryInfoLoading: action.open ? state.memoryInfoLoading : false,
+				memoryInfoError: action.open ? state.memoryInfoError : "",
+				memoryInfoDetailLoading: action.open
+					? state.memoryInfoDetailLoading
+					: false,
+				memoryInfoDetailError: action.open ? state.memoryInfoDetailError : "",
+				memoryPreferenceLoading: action.open
+					? state.memoryPreferenceLoading
+					: false,
+				memoryPreferenceError: action.open
+					? state.memoryPreferenceError
+					: "",
+				memoryPreferenceSaving: action.open
+					? state.memoryPreferenceSaving
+					: false,
+			};
+		case "SET_MEMORY_CONSOLE_TAB":
+			return { ...state, memoryConsoleTab: action.tab };
+		case "SET_MEMORY_INFO_LOADING":
+			return { ...state, memoryInfoLoading: action.loading };
+		case "SET_MEMORY_INFO_ERROR":
+			return { ...state, memoryInfoError: action.error };
+		case "SET_MEMORY_INFO_FILTERS":
+			return {
+				...state,
+				memoryInfoFilters: {
+					...state.memoryInfoFilters,
+					...action.filters,
+				},
+			};
+		case "SET_MEMORY_INFO_RECORDS":
+			return {
+				...state,
+				memoryInfoRecords: action.records,
+				memoryInfoNextCursor: String(action.nextCursor || ""),
+				memoryInfoSelectedRecordId:
+					action.selectedRecordId !== undefined
+						? action.selectedRecordId
+						: state.memoryInfoSelectedRecordId,
+			};
+		case "SET_MEMORY_INFO_SELECTED_RECORD_ID":
+			return { ...state, memoryInfoSelectedRecordId: action.id };
+		case "SET_MEMORY_INFO_DETAIL_LOADING":
+			return { ...state, memoryInfoDetailLoading: action.loading };
+		case "SET_MEMORY_INFO_DETAIL_ERROR":
+			return { ...state, memoryInfoDetailError: action.error };
+		case "SET_MEMORY_INFO_DETAIL":
+			return { ...state, memoryInfoDetail: action.detail };
+		case "SET_MEMORY_PREFERENCE_SCOPES":
+			return { ...state, memoryPreferenceScopes: action.scopes };
+		case "SET_MEMORY_PREFERENCE_ACTIVE_SCOPE":
+			return {
+				...state,
+				memoryPreferenceActiveScopeType: action.scopeType,
+				memoryPreferenceActiveScopeKey: action.scopeKey,
+				memoryPreferenceLabel:
+					action.label ?? state.memoryPreferenceLabel,
+				memoryPreferenceFileName:
+					action.fileName ?? state.memoryPreferenceFileName,
+				memoryPreferenceMeta:
+					action.meta === undefined
+						? state.memoryPreferenceMeta
+						: action.meta,
+			};
+		case "SET_MEMORY_PREFERENCE_LOADING":
+			return { ...state, memoryPreferenceLoading: action.loading };
+		case "SET_MEMORY_PREFERENCE_ERROR":
+			return { ...state, memoryPreferenceError: action.error };
+		case "SET_MEMORY_PREFERENCE_MODE":
+			return { ...state, memoryPreferenceMode: action.mode };
+		case "SET_MEMORY_PREFERENCE_MARKDOWN_DRAFT":
+			return { ...state, memoryPreferenceMarkdownDraft: action.markdown };
+		case "SET_MEMORY_PREFERENCE_RECORDS_DRAFT":
+			return { ...state, memoryPreferenceRecordsDraft: action.records };
+		case "SET_MEMORY_PREFERENCE_SELECTED_RECORD_ID":
+			return { ...state, memoryPreferenceSelectedRecordId: action.id };
+		case "SET_MEMORY_PREFERENCE_DIRTY":
+			return { ...state, memoryPreferenceDirty: action.dirty };
+		case "SET_MEMORY_PREFERENCE_SAVING":
+			return { ...state, memoryPreferenceSaving: action.saving };
+		case "SET_MEMORY_PREFERENCE_SAVE_SUMMARY":
+			return { ...state, memoryPreferenceSaveSummary: action.summary };
+		case "SET_MEMORY_PREFERENCE_VALIDATION":
+			return { ...state, memoryPreferenceValidation: action.validation };
 		case "SET_LEFT_DRAWER_OPEN":
 			return { ...state, leftDrawerOpen: action.open };
 		case "SET_TERMINAL_DOCK_OPEN":

@@ -7,6 +7,15 @@ import {
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
 } from '@/shared/api/appAuth';
+import type {
+  MemoryScopeDetail,
+  MemoryScopeSavePayload,
+  MemoryScopeSaveResult,
+  MemoryScopesResponse,
+  MemoryScopeValidationResult,
+  MemoryRecordDetail,
+  MemoryRecordsPayload,
+} from '@/shared/api/memoryTypes';
 import { t } from '@/shared/i18n';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
@@ -149,7 +158,9 @@ export function normalizeChatSummariesPayload(data: unknown): unknown[] {
   });
 }
 
-async function readJsonResponse(response: Response): Promise<ApiResponse> {
+async function readJsonResponse<T = unknown>(
+  response: Response,
+): Promise<ApiResponse<T>> {
   const rawText = await response.text();
   let json: Record<string, unknown> | null;
 
@@ -189,7 +200,7 @@ async function readJsonResponse(response: Response): Promise<ApiResponse> {
     status: response.status,
     code: json.code as number,
     msg: json.msg as string,
-    data: json.data,
+    data: json.data as T,
   };
 }
 
@@ -309,15 +320,15 @@ async function readVoiceVoicesResponse(
   return json;
 }
 
-async function requestJson(
+async function requestJson<T = unknown>(
   path: string,
   options: RequestInit & {
     headers?: Record<string, string>;
     jsonContentType?: boolean;
   } = {},
-): Promise<ApiResponse> {
+): Promise<ApiResponse<T>> {
   const response = await requestWithAuth(path, options);
-  return readJsonResponse(response);
+  return readJsonResponse<T>(response);
 }
 
 async function requestWithAuth(
@@ -559,6 +570,83 @@ export function getChat(
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
   const query = toQueryString({ viewportKey });
   return requestJson(`/api/viewport?${query}`);
+}
+
+export interface GetMemoryRecordsParams {
+  agentKey: string;
+  keyword?: string;
+  kind?: string;
+  scopeType?: string;
+  status?: string;
+  category?: string;
+  limit?: number;
+  cursor?: string;
+  chatId?: string;
+}
+
+export function getMemoryRecords(
+  params: GetMemoryRecordsParams,
+): Promise<ApiResponse<MemoryRecordsPayload>> {
+  const query = toQueryString({
+    agentKey: params.agentKey,
+    keyword: params.keyword,
+    kind: params.kind,
+    scopeType: params.scopeType,
+    status: params.status,
+    category: params.category,
+    limit: params.limit,
+    cursor: params.cursor,
+    chatId: params.chatId,
+  });
+  return requestJson<MemoryRecordsPayload>(`/api/memory/records?${query}`);
+}
+
+export function getMemoryRecord(
+  agentKey: string,
+  id: string,
+): Promise<ApiResponse<MemoryRecordDetail>> {
+  const query = toQueryString({ agentKey, id });
+  return requestJson<MemoryRecordDetail>(`/api/memory/record?${query}`);
+}
+
+export function getMemoryScopes(
+  agentKey: string,
+): Promise<ApiResponse<MemoryScopesResponse>> {
+  const query = toQueryString({ agentKey });
+  return requestJson<MemoryScopesResponse>(`/api/memory/scopes?${query}`);
+}
+
+export function getMemoryScope(
+  agentKey: string,
+  scopeType: string,
+  scopeKey?: string,
+): Promise<ApiResponse<MemoryScopeDetail>> {
+  const query = toQueryString({ agentKey, scopeType, scopeKey });
+  return requestJson<MemoryScopeDetail>(`/api/memory/scope?${query}`);
+}
+
+export function validateMemoryScope(
+  agentKey: string,
+  scopeType: string,
+  markdown: string,
+): Promise<ApiResponse<MemoryScopeValidationResult>> {
+  return requestJson<MemoryScopeValidationResult>("/api/memory/scope/validate", {
+    method: "POST",
+    body: JSON.stringify({
+      agentKey,
+      scopeType,
+      markdown,
+    }),
+  });
+}
+
+export function saveMemoryScope(
+  payload: MemoryScopeSavePayload,
+): Promise<ApiResponse<MemoryScopeSaveResult>> {
+  return requestJson<MemoryScopeSaveResult>("/api/memory/scope", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getVoiceCapabilities(): Promise<ApiResponse> {

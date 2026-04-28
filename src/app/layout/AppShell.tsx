@@ -7,6 +7,7 @@ import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import { RightSidebar } from "@/app/layout/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
+import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
 import { ActionModal } from "@/app/modals/ActionModal";
 import { EventPopover } from "@/app/modals/EventPopover";
 import { CommandModal } from "@/app/modals/CommandModal";
@@ -66,6 +67,7 @@ export const AppShell: React.FC = () => {
 			<BottomDock />
 			{state.terminalDockOpen ? <TerminalDock /> : null}
 			<CommandStatusOverlay />
+			{state.memoryInfoOpen ? <MemoryInfoModal /> : null}
 			{state.settingsOpen && <SettingsModal />}
 			<CommandModal />
 			<ActionModal />

@@ -22,7 +22,7 @@ describe("resolveSettingsSummaryBadges", () => {
       }),
       expect.objectContaining({
         key: "theme",
-        label: "Dark",
+        label: "夜",
       }),
     ]);
   });
@@ -35,18 +35,22 @@ describe("buildSidebarSettingsMenuSections", () => {
       wsErrorMessage: "握手失败",
     });
 
-    expect(sections.map((section) => section.title)).toEqual(["Settings", "Reserved"]);
+    expect(sections.map((section) => section.title)).toEqual(["设置", "预留"]);
     expect(sections[0]?.items[0]?.description).toContain("握手失败");
+    expect(sections[0]?.items[1]?.label).toBe("记忆信息");
     expect(sections[1]?.items.every((item) => item.disabled)).toBe(true);
   });
 });
 
 describe("dispatchSidebarSettingsAction", () => {
-  it("dispatches open-settings and ignores placeholders", () => {
+  it("dispatches open-settings, open-memory-info, and ignores placeholders", () => {
     const dispatch = jest.fn();
 
     expect(
       dispatchSidebarSettingsAction({ type: "open-settings" }, dispatch),
+    ).toBe(true);
+    expect(
+      dispatchSidebarSettingsAction({ type: "open-memory-info" }, dispatch),
     ).toBe(true);
     expect(dispatchSidebarSettingsAction({ type: "noop" }, dispatch)).toBe(
       false,
@@ -54,6 +58,7 @@ describe("dispatchSidebarSettingsAction", () => {
 
     expect(dispatch.mock.calls).toEqual([
       [{ type: "SET_SETTINGS_OPEN", open: true }],
+      [{ type: "SET_MEMORY_INFO_OPEN", open: true }],
     ]);
   });
 });
@@ -66,10 +71,11 @@ describe("SidebarSettingsMenu", () => {
       }),
     );
 
-    expect(html).toContain("Settings menu");
-    expect(html).toContain("Open settings...");
-    expect(html).toContain("Connection settings (coming soon)");
-    expect(html).toContain("Appearance preferences (coming soon)");
-    expect(html).toContain("Keyboard shortcuts (coming soon)");
+    expect(html).toContain("设置菜单");
+    expect(html).toContain("打开设置...");
+    expect(html).toContain("记忆信息");
+    expect(html).toContain("连接设置（即将开放）");
+    expect(html).toContain("外观偏好（即将开放）");
+    expect(html).toContain("快捷键（即将开放）");
   });
 });

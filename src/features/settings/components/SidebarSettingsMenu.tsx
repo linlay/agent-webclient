@@ -18,6 +18,7 @@ export interface SettingsSummaryBadge {
 
 export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
+  | { type: "open-memory-info" }
   | { type: "noop" };
 
 export interface SidebarSettingsMenuItem {
@@ -110,6 +111,13 @@ export function buildSidebarSettingsMenuSections(input: {
           icon: "tune",
           action: { type: "open-settings" },
         },
+        {
+          key: "open-memory-info",
+          label: t("settingsMenu.memoryInfo"),
+          description: t("settingsMenu.memoryInfoDescription"),
+          icon: "database",
+          action: { type: "open-memory-info" },
+        },
       ],
     },
     {
@@ -151,6 +159,10 @@ export function dispatchSidebarSettingsAction(
 ): boolean {
   if (action.type === "open-settings") {
     dispatch({ type: "SET_SETTINGS_OPEN", open: true });
+    return true;
+  }
+  if (action.type === "open-memory-info") {
+    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true });
     return true;
   }
   return false;

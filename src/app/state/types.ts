@@ -1,5 +1,17 @@
 import type { ActionRuntime } from "@/features/tools/lib/actionRuntime";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type {
+	MemoryInfoFilters,
+	MemoryConsoleTab,
+	MemoryPreferenceMode,
+	MemoryScopeDetailMeta,
+	MemoryScopeDraftRecord,
+	MemoryScopeSaveSummary,
+	MemoryScopeSummary,
+	MemoryScopeValidationResult,
+	MemoryRecordDetail,
+	MemoryRecordListItem,
+} from "@/shared/api/memoryTypes";
 import type { ThemeMode } from "@/shared/styles/theme";
 import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {
@@ -118,6 +130,33 @@ export interface AppState {
 	workerChatPanelCollapsed: boolean;
 	chatLoadSeq: number;
 	settingsOpen: boolean;
+	memoryInfoOpen: boolean;
+	memoryConsoleTab: MemoryConsoleTab;
+	memoryInfoLoading: boolean;
+	memoryInfoError: string;
+	memoryInfoRecords: MemoryRecordListItem[];
+	memoryInfoSelectedRecordId: string;
+	memoryInfoDetail: MemoryRecordDetail | null;
+	memoryInfoDetailLoading: boolean;
+	memoryInfoDetailError: string;
+	memoryInfoFilters: MemoryInfoFilters;
+	memoryInfoNextCursor: string;
+	memoryPreferenceScopes: MemoryScopeSummary[];
+	memoryPreferenceActiveScopeType: string;
+	memoryPreferenceActiveScopeKey: string;
+	memoryPreferenceLabel: string;
+	memoryPreferenceFileName: string;
+	memoryPreferenceMeta: MemoryScopeDetailMeta | null;
+	memoryPreferenceLoading: boolean;
+	memoryPreferenceError: string;
+	memoryPreferenceMode: MemoryPreferenceMode;
+	memoryPreferenceMarkdownDraft: string;
+	memoryPreferenceRecordsDraft: MemoryScopeDraftRecord[];
+	memoryPreferenceSelectedRecordId: string;
+	memoryPreferenceDirty: boolean;
+	memoryPreferenceSaving: boolean;
+	memoryPreferenceSaveSummary: MemoryScopeSaveSummary | null;
+	memoryPreferenceValidation: MemoryScopeValidationResult | null;
 	leftDrawerOpen: boolean;
 	desktopDebugSidebarEnabled: boolean;
 	terminalDockOpen: boolean;
