@@ -679,9 +679,11 @@
     font-weight: 600;
     white-space: nowrap;
 }
-.awaiting-reject-reason-icon{
+
+.awaiting-reject-reason-icon {
     color: var(--accent-danger);
 }
+
 .awaiting-reject-reason:hover,
 .awaiting-reject-reason:focus-within {
     background: color-mix(in srgb, var(--bg-base) 78%, var(--bg-elev-2));
@@ -689,6 +691,15 @@
             var(--accent-electric) 60%,
             var(--line-strong));
 }
+
+.awaiting-reject-reason input {
+    padding: 0;
+    font-weight: normal;
+    line-height: unset;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
 .awaiting-reject-reason input::placeholder {
     font-size: 12px;
 }
