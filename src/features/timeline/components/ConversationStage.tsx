@@ -14,30 +14,11 @@ import { TaskGroupSection } from "@/features/timeline/components/TaskGroupSectio
 import { AgentGroupCard } from "@/features/timeline/components/AgentGroupCard";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
+import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
-
-async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "true");
-  textarea.style.position = "absolute";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-  if (!copied) {
-    throw new Error("copy failed");
-  }
-}
 
 function formatResponseDuration(durationMs?: number): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {

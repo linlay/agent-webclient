@@ -14,6 +14,9 @@ import {
 	stringifyCopyValue,
 	stringifyPopoverPayload,
 } from "@/app/modals/lib/eventPopoverFormatters";
+import { copyText } from "@/shared/utils/copy";
+
+export { copyText };
 
 export type CopyFeedbackState = "idle" | "copied" | "error";
 
@@ -72,26 +75,6 @@ export function buildDefaultCopyMenuItem(t: EventPopoverT): CopyMenuItemState {
 		key: "eventJson",
 		label: t("eventPopover.copy.allShort"),
 	};
-}
-
-export async function copyText(text: string): Promise<void> {
-	if (navigator.clipboard?.writeText) {
-		await navigator.clipboard.writeText(text);
-		return;
-	}
-
-	const textarea = document.createElement("textarea");
-	textarea.value = text;
-	textarea.setAttribute("readonly", "true");
-	textarea.style.position = "absolute";
-	textarea.style.left = "-9999px";
-	document.body.appendChild(textarea);
-	textarea.select();
-	const copied = document.execCommand("copy");
-	document.body.removeChild(textarea);
-	if (!copied) {
-		throw new Error("copy failed");
-	}
 }
 
 export function buildCopyMenuTitle(
