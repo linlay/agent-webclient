@@ -68,7 +68,7 @@ export const enUSMessages: I18nMessages = {
   "awaiting.load.loading": "Loading form...",
   "awaiting.load.waiting": "Waiting for the business confirmation form...",
   "awaiting.resolvedByOther": "This request was already submitted from another client.",
-  "awaiting.rejectReason.placeholder": "Enter reject reason",
+  "awaiting.rejectReason.placeholder": "Enter a reject reason. You can still edit the form contents.",
   "awaiting.status.autoSubmitting": "Auto-submitting...",
   "awaiting.status.collecting": "Collecting...",
   "awaiting.status.submitting": "Submitting...",

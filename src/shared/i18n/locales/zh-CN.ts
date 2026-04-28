@@ -68,7 +68,7 @@ export const zhCNMessages: I18nMessages = {
   "awaiting.load.loading": "加载表单中...",
   "awaiting.load.waiting": "等待业务确认表单加载...",
   "awaiting.resolvedByOther": "已被其他终端提交",
-  "awaiting.rejectReason.placeholder": "请输入驳回理由",
+  "awaiting.rejectReason.placeholder": "请输入驳回理由，可以修改表单内容",
   "awaiting.status.autoSubmitting": "自动提交中...",
   "awaiting.status.collecting": "采集中...",
   "awaiting.status.submitting": "提交中...",
