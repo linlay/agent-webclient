@@ -630,32 +630,37 @@
 
 .awaiting-panel-footer {
     display: flex;
+    flex-direction: column;
     align-items: stretch;
+    gap: 10px;
     margin-top: 2px;
 }
 
-.awaiting-panel-footer-main {
-    flex: 1 1 auto;
-    min-width: 260px;
-}
-
-.awaiting-panel-footer-bottom {
+.awaiting-panel-footer-hints {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    width: 100%;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.awaiting-panel-footer-meta {
-    flex: 1 1 auto;
-    min-width: 0;
+.awaiting-panel-submit-line.ant-btn {
+    width: 100%;
+    min-height: 40px;
+    height: 40px;
+    justify-content: flex-start;
+    padding-inline: 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.awaiting-panel-submit-line.ant-btn:not(:disabled) {
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--accent-electric) 18%, transparent);
 }
 
 .awaiting-reject-reason-input {
     width: 100%;
-    height: 34px;
+    height: 40px;
     border-radius: 12px;
     border: none;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-soft) 88%, transparent);

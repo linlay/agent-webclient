@@ -86,7 +86,7 @@ describe('AwaitingHtmlContainer', () => {
     console.warn = originalWarn;
   });
 
-  it('renders only the submit button for form mode', () => {
+  it('renders a single submit line and no footer action buttons', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
@@ -105,17 +105,18 @@ describe('AwaitingHtmlContainer', () => {
     );
 
     expect(html).toContain(
-      '<strong class="awaiting-panel-title">模拟 请假申请</strong>',
+      '<strong class="awaiting-panel-title">mock 请假申请</strong>',
     );
   });
 
-  it('renders a reject reason input in the footer', () => {
+  it('renders only the submit line and reject input in the footer', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
       }),
     );
 
+    expect(html).toContain('同意，可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入驳回理由"');
   });
 

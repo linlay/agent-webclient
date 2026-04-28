@@ -235,7 +235,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 .layout-desktop-fixed.desktop-debug-enabled {
-    grid-template-columns: 0 1fr var(--right-sidebar-width);
+    grid-template-columns: var(--left-sidebar-close-width) 1fr var(--right-sidebar-width);
 }
 
 .layout-desktop-fixed.desktop-debug-enabled.left-drawer-open {

@@ -146,14 +146,6 @@ function cloneAwaitingFormData(
   return form ? { ...form } : null;
 }
 
-function normalizeAwaitingCaption(value: string): string {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  return trimmed.replace(/^mock\b/i, "模拟");
-}
-
 function hasFormField(param: AIAwaitFormSubmitParamData): boolean {
   return Object.prototype.hasOwnProperty.call(param, "form");
 }
@@ -367,12 +359,13 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [rejectReason, setRejectReason] = useState("");
   const currentForm = data.forms[activeFormIndex];
   const panelCaption =
-    normalizeAwaitingCaption(
+    String(
       currentForm?.title ||
         currentForm?.action ||
         currentForm?.id ||
-        data.viewportKey,
-    );
+        data.viewportKey ||
+        "",
+    ).trim();
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data, activeFormIndex),
@@ -775,6 +768,13 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   );
 
   const handleReject = useCallback(async () => {
+    const trimmedReason = rejectReason.trim();
+    if (!trimmedReason) {
+      setSubmitStatus("");
+      setSubmitError(t("awaiting.rejectReason.placeholder"));
+      return;
+    }
+
     if (!onSubmit) {
       setSubmitStatus("");
       setSubmitError(t("awaiting.submit.missingHandler"));
@@ -784,7 +784,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     if (iframeRef.current?.contentWindow && data.viewportHtml) {
       requestCollectFromFrame("submit", {
         type: "reject",
-        reason: rejectReason,
+        reason: trimmedReason,
       });
       return;
     }
@@ -792,7 +792,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setSubmitStatus("submitting");
     setSubmitError("");
     const result = await onSubmit(
-      buildRejectAwaitingSubmitPayload(data, rejectReason),
+      buildRejectAwaitingSubmitPayload(data, trimmedReason),
     );
     const errorText = getSubmitErrorText(result);
     if (errorText) {
@@ -909,32 +909,26 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       )}
 
       <div className="awaiting-panel-footer">
-        <div className="awaiting-panel-footer-bottom">
-          <div className="awaiting-panel-footer-main">
-            <Input
-              aria-label={t("awaiting.rejectReason.placeholder")}
-              className="awaiting-reject-reason-input"
-              disabled={reasonInputDisabled}
-              placeholder={t("awaiting.rejectReason.placeholder")}
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              onPressEnter={() => void handleReject()}
-            />
-          </div>
-          <div className="awaiting-panel-actions">
-            <Button disabled={rejectDisabled} onClick={() => void handleReject()}>
-              {t("awaiting.action.reject")}
-            </Button>
-            <Button
-              disabled={submitDisabled}
-              type="primary"
-              onClick={() =>
-                requestCollectFromFrame("submit", { type: "submit" })
-              }
-            >
-              {t("awaiting.action.submit")}
-            </Button>
-          </div>
+        <div className="awaiting-panel-footer-hints">
+          <Button
+            className="awaiting-panel-submit-line"
+            disabled={submitDisabled}
+            type="primary"
+            onClick={() =>
+              requestCollectFromFrame("submit", { type: "submit" })
+            }
+          >
+            {t("awaiting.hint.submitEditable")}
+          </Button>
+          <Input
+            aria-label={t("awaiting.rejectReason.placeholder")}
+            className="awaiting-reject-reason-input"
+            disabled={reasonInputDisabled}
+            placeholder={t("awaiting.rejectReason.placeholder")}
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            onPressEnter={() => void handleReject()}
+          />
         </div>
       </div>
 
