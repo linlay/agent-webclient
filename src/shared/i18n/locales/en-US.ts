@@ -120,6 +120,7 @@ export const enUSMessages: I18nMessages = {
   "leftSidebar.historyTitleWithWorker": "{workerTypeLabel} history · {displayName}",
   "leftSidebar.latestConversationNoReply": "Latest conversation has no reply",
   "leftSidebar.loading": "Loading...",
+  "leftSidebar.markAllRead": "Mark all read",
   "leftSidebar.newConversation": "New conversation",
   "leftSidebar.noConversations": "No conversations",
   "leftSidebar.noHistory": "No conversation history",

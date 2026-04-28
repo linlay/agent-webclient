@@ -5,6 +5,7 @@ import {
   buildResourceUrl,
   createRequestId,
   createQueryStream,
+  deleteChat,
   downloadResource,
   extractUploadChatId,
   extractUploadReferences,
@@ -19,8 +20,10 @@ import {
   learnChat,
   markChatRead,
   rememberChat,
+  searchGlobal,
   setAccessToken,
   steerChat,
+  submitFeedback,
   uploadFile,
 } from '@/shared/api/apiClient';
 
@@ -252,6 +255,51 @@ describe('apiClient query payloads', () => {
     expect(payload).toEqual({
       chatId: 'chat_read',
       runId: 'run_read',
+    });
+  });
+
+  it('posts agentKey for markChatRead all', async () => {
+    await markChatRead({ agentKey: 'agent_a' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/read');
+    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(payload).toEqual({
+      agentKey: 'agent_a',
+    });
+  });
+
+  it('posts feedback, delete, and global search payloads', async () => {
+    await submitFeedback({
+      chatId: 'chat_1',
+      runId: 'run_1',
+      type: 'thumbs_down',
+      comment: 'bad',
+    });
+    await deleteChat({ chatId: 'chat_1' });
+    await searchGlobal({
+      query: 'needle',
+      agentKey: 'agent_a',
+      teamId: 'team_a',
+      limit: 7,
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/feedback');
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
+      chatId: 'chat_1',
+      runId: 'run_1',
+      type: 'thumbs_down',
+      comment: 'bad',
+    });
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/chat-delete');
+    expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
+      chatId: 'chat_1',
+    });
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/search');
+    expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
+      query: 'needle',
+      agentKey: 'agent_a',
+      teamId: 'team_a',
+      limit: 7,
     });
   });
 

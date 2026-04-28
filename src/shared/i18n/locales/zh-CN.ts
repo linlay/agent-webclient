@@ -120,6 +120,7 @@ export const zhCNMessages: I18nMessages = {
   "leftSidebar.historyTitleWithWorker": "{workerTypeLabel}历史会话 · {displayName}",
   "leftSidebar.latestConversationNoReply": "最新会话无答复",
   "leftSidebar.loading": "加载中...",
+  "leftSidebar.markAllRead": "全部已读",
   "leftSidebar.newConversation": "新建会话",
   "leftSidebar.noConversations": "暂无会话",
   "leftSidebar.noHistory": "暂无历史会话",

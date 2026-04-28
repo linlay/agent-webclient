@@ -72,6 +72,7 @@ export type TimelineDisplayItem =
     nodes: TimelineNode[];
     renderEntries: TimelineRenderEntry[];
     sections: TimelineRunSection[];
+    runId?: string;
     completedAt?: number;
     responseDurationMs?: number;
   }
@@ -88,6 +89,7 @@ export interface BuildTimelineDisplayOptions {
 }
 
 interface RunTerminalInfo {
+  runId?: string;
   timestamp?: number;
 }
 
@@ -209,6 +211,7 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
       return type === 'run.complete' || type === 'run.error' || type === 'run.cancel';
     })
     .map((event) => ({
+      runId: typeof event.runId === 'string' ? event.runId : undefined,
       timestamp: typeof event.timestamp === 'number' ? event.timestamp : undefined,
     }));
 }
@@ -503,6 +506,7 @@ export function buildTimelineDisplayItems(
       nodes: pendingRunNodes,
       renderEntries: buildRunRenderEntries(pendingRunNodes),
       sections: buildTaskRunSections(pendingRunNodes, queryNode, nextQueryNode, options),
+      runId: terminal?.runId,
       completedAt,
       responseDurationMs,
     });

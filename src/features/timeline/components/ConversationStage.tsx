@@ -17,6 +17,7 @@ import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
 
 async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -121,6 +122,43 @@ export const ConversationStage: React.FC = () => {
       }
     },
     [flashActionStatus],
+  );
+
+  const handleDownvote = useCallback(
+    async (runId: string, nextDownvoted: boolean) => {
+      const chatId = String(state.chatId || "").trim();
+      const normalizedRunId = String(runId || "").trim();
+      if (!chatId || !normalizedRunId) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: "[feedback error] missing chatId or runId",
+        });
+        return;
+      }
+      dispatch({
+        type: "SET_RUN_DOWNVOTED",
+        runKey: normalizedRunId,
+        downvoted: nextDownvoted,
+      });
+      try {
+        await submitFeedback({
+          chatId,
+          runId: normalizedRunId,
+          type: nextDownvoted ? "thumbs_down" : "clear",
+        });
+      } catch (error) {
+        dispatch({
+          type: "SET_RUN_DOWNVOTED",
+          runKey: normalizedRunId,
+          downvoted: !nextDownvoted,
+        });
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[feedback error] ${(error as Error).message}`,
+        });
+      }
+    },
+    [dispatch, state.chatId],
   );
 
   const handleResend = useCallback(
@@ -242,7 +280,8 @@ export const ConversationStage: React.FC = () => {
                     item.responseDurationMs,
                   );
                   const runCopyKey = `${item.key}:copy`;
-                  const isDownvoted = state.downvotedRunKeys.has(item.key);
+                  const runId = String(item.runId || "").trim();
+                  const isDownvoted = Boolean(runId && state.downvotedRunKeys.has(runId));
                   const runCopyStatus = actionStatus[runCopyKey] || "复制";
                   return (
                     <section key={item.key} className="timeline-run-group">
@@ -295,12 +334,8 @@ export const ConversationStage: React.FC = () => {
                               active={isDownvoted}
                               title={isDownvoted ? "取消点踩" : "点踩"}
                               aria-label={isDownvoted ? "取消点踩" : "点踩"}
-                              onClick={() =>
-                                dispatch({
-                                  type: "TOGGLE_RUN_DOWNVOTE",
-                                  runKey: item.key,
-                                })
-                              }
+                              disabled={!runId}
+                              onClick={() => void handleDownvote(runId, !isDownvoted)}
                             >
                               <MaterialIcon name="thumb_down" />
                             </UiButton>

@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import type { WorkerConversationRow } from "@/app/state/types";
 import { buildCurrentWorkerDetailView, buildScheduleDraft, buildWorkerSwitchRows, resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { CommandModalHeader } from "@/app/modals/CommandModalHeader";
 import { DetailModal } from "@/app/modals/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { ScheduleModal } from "@/app/modals/ScheduleModal";
 import { SWITCH_SCOPES, SwitchModal } from "@/app/modals/SwitchModal";
+import { searchGlobal } from "@/features/transport/lib/apiClientProxy";
 
 function clampIndex(index: number, length: number): number {
 	if (length <= 0) return 0;
@@ -28,9 +30,13 @@ export const CommandModal: React.FC = () => {
 	const cardRef = useRef<HTMLDivElement>(null);
 	const switchItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 	const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+	const [remoteHistoryRows, setRemoteHistoryRows] =
+		useState<WorkerConversationRow[] | null>(null);
 
 	const modal = state.commandModal;
 	const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
+	const currentWorkerType = currentWorker?.type || "";
+	const currentWorkerSourceId = currentWorker?.sourceId || "";
 	const detailView = useMemo(
 		() => (currentWorker ? buildCurrentWorkerDetailView(currentWorker) : null),
 		[currentWorker],
@@ -40,6 +46,7 @@ export const CommandModal: React.FC = () => {
 		[modal.scope, modal.searchText, state.workerRows],
 	);
 	const filteredHistoryRows = useMemo(() => {
+		if (remoteHistoryRows) return remoteHistoryRows;
 		const rows = currentWorker?.relatedChats || [];
 		const search = String(modal.historySearch || "").trim().toLowerCase();
 		if (!search) return rows;
@@ -51,7 +58,7 @@ export const CommandModal: React.FC = () => {
 			].join(" ").toLowerCase();
 			return haystack.includes(search);
 		});
-	}, [currentWorker, modal.historySearch]);
+	}, [currentWorker, modal.historySearch, remoteHistoryRows]);
 	const switchIndex = clampIndex(modal.activeIndex, switchRows.length);
 	const historyIndex = clampIndex(modal.activeIndex, filteredHistoryRows.length);
 
@@ -136,6 +143,49 @@ export const CommandModal: React.FC = () => {
 		if (!modal.open || modal.type !== "history") return;
 		historyItemRefs.current[historyIndex]?.scrollIntoView({ block: "nearest" });
 	}, [historyIndex, modal.open, modal.type]);
+
+	useEffect(() => {
+		const query = String(modal.historySearch || "").trim();
+		if (!modal.open || modal.type !== "history" || !currentWorkerType || !currentWorkerSourceId || !query) {
+			setRemoteHistoryRows(null);
+			return;
+		}
+		const timer = window.setTimeout(() => {
+			const params =
+				currentWorkerType === "team"
+					? { query, teamId: currentWorkerSourceId, limit: 30 }
+					: { query, agentKey: currentWorkerSourceId, limit: 30 };
+			void searchGlobal(params)
+				.then((response) => {
+					const results = Array.isArray(response.data?.results)
+						? response.data.results
+						: [];
+					setRemoteHistoryRows(
+						results
+							.map((result) => ({
+								chatId: String(result.chatId || ""),
+								chatName: String(result.chatName || result.chatId || ""),
+								agentKey: result.agentKey,
+								teamId: result.teamId,
+								updatedAt: Number(result.timestamp) || 0,
+								lastRunId: String(result.runId || ""),
+								lastRunContent: String(result.snippet || ""),
+								searchSnippet: String(result.snippet || ""),
+								isRead: true,
+							}))
+							.filter((row) => row.chatId),
+					);
+				})
+				.catch((error) => {
+					dispatch({
+						type: "APPEND_DEBUG",
+						line: `[search error] ${(error as Error).message}`,
+					});
+					setRemoteHistoryRows([]);
+				});
+		}, 250);
+		return () => window.clearTimeout(timer);
+	}, [currentWorkerSourceId, currentWorkerType, dispatch, modal.historySearch, modal.open, modal.type]);
 
 	useEffect(() => {
 		if (!modal.open || modal.type !== "switch") return;
@@ -331,12 +381,15 @@ export const CommandModal: React.FC = () => {
 						historyInputRef={historyInputRef}
 						historyListRef={historyListRef}
 						historyItemRefs={historyItemRefs}
-						onHistorySearchChange={(value) =>
+						onHistorySearchChange={(value) => {
+							if (!value.trim()) {
+								setRemoteHistoryRows(null);
+							}
 							dispatch({
 								type: "PATCH_COMMAND_MODAL",
 								modal: { historySearch: value, activeIndex: 0 },
-							})
-						}
+							});
+						}}
 						onActivateIndex={(index) =>
 							dispatch({
 								type: "PATCH_COMMAND_MODAL",

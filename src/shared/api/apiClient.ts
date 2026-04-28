@@ -679,8 +679,9 @@ export interface BackgroundCommandParams {
 }
 
 export interface MarkChatReadParams {
-  chatId: string;
+  chatId?: string;
   runId?: string;
+  agentKey?: string;
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
@@ -689,8 +690,116 @@ export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
     body: JSON.stringify({
       chatId: params.chatId,
       runId: params.runId,
+      agentKey: params.agentKey,
     }),
   });
+}
+
+export interface FeedbackParams {
+  chatId: string;
+  runId: string;
+  type: "thumbs_down" | "clear" | string;
+  comment?: string;
+}
+
+export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
+  return requestJson("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify({
+      chatId: params.chatId,
+      runId: params.runId,
+      type: params.type,
+      comment: params.comment,
+    }),
+  });
+}
+
+export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
+  return requestJson("/api/chat-delete", {
+    method: "POST",
+    body: JSON.stringify({ chatId: params.chatId }),
+  });
+}
+
+export interface GlobalSearchParams {
+  query: string;
+  agentKey?: string;
+  teamId?: string;
+  limit?: number;
+}
+
+export interface GlobalSearchResult {
+  chatId: string;
+  chatName: string;
+  agentKey?: string;
+  teamId?: string;
+  runId?: string;
+  kind: string;
+  role?: string;
+  timestamp: number;
+  snippet: string;
+  score: number;
+}
+
+export interface GlobalSearchResponse {
+  query: string;
+  count: number;
+  results: GlobalSearchResult[];
+}
+
+export function searchGlobal(
+  params: GlobalSearchParams,
+): Promise<ApiResponse<GlobalSearchResponse>> {
+  return requestJson("/api/search", {
+    method: "POST",
+    body: JSON.stringify({
+      query: params.query,
+      agentKey: params.agentKey,
+      teamId: params.teamId,
+      limit: params.limit,
+    }),
+  }) as Promise<ApiResponse<GlobalSearchResponse>>;
+}
+
+function filenameFromContentDisposition(value: string | null): string {
+  const header = String(value || "");
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      return utf8Match[1].trim();
+    }
+  }
+  const quotedMatch = /filename="([^"]+)"/i.exec(header);
+  if (quotedMatch?.[1]) return quotedMatch[1].trim();
+  const plainMatch = /filename=([^;]+)/i.exec(header);
+  return plainMatch?.[1]?.trim() || "";
+}
+
+export async function downloadChatExport(chatId: string): Promise<void> {
+  const path = `/api/chat-export?chatId=${encodeURIComponent(chatId)}`;
+  const response = await fetch(path, {
+    method: "GET",
+    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+  });
+  if (!response.ok) {
+    const fallbackMessage = t("api.downloadFailedWithStatus", {
+      status: response.status,
+    });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+    });
+  }
+  const blob = await response.blob();
+  const filename =
+    filenameFromContentDisposition(response.headers.get("Content-Disposition"))
+    || `${chatId || "chat"}.md`;
+  triggerBrowserDownload(blob, filename);
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {

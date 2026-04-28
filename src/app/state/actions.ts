@@ -33,6 +33,8 @@ export type AppAction =
 	| { type: "START_SIDEBAR_REQUEST" }
 	| { type: "FINISH_SIDEBAR_REQUEST" }
 	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
+	| { type: "CHAT_DELETED"; chatId: string }
+	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }
 	| { type: "SET_REQUEST_ID"; requestId: string }
@@ -88,6 +90,7 @@ export type AppAction =
 	| { type: "REMOVE_PENDING_STEER"; steerId: string }
 	| { type: "CLEAR_PENDING_STEERS" }
 	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
+	| { type: "SET_RUN_DOWNVOTED"; runKey: string; downvoted: boolean }
 	| { type: "SET_MENTION_OPEN"; open: boolean }
 	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
 	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }

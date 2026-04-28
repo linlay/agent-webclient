@@ -346,16 +346,10 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
-          form: {
-            employee_id: 'E1001',
-          },
         },
         {
           id: 'travel_form',
           action: 'reject',
-          form: {
-            employee_id: 'E2002',
-          },
         },
       ],
     });
@@ -388,18 +382,12 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
-          form: {
-            employee_id: 'E1001',
-            reason: '资料不完整',
-          },
+          reason: '资料不完整',
         },
         {
           id: 'travel_form',
           action: 'reject',
-          form: {
-            employee_id: 'E2002',
-            reason: '资料不完整',
-          },
+          reason: '资料不完整',
         },
       ],
     });

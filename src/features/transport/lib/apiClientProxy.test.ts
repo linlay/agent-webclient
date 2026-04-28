@@ -28,6 +28,8 @@ jest.mock("@/shared/api/apiClient", () => {
 		ApiError: MockApiError,
 		buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
 		createQueryStream: jest.fn(),
+		deleteChat: jest.fn(),
+		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
@@ -57,8 +59,10 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
+		searchGlobal: jest.fn(),
 		setAccessToken: jest.fn(),
 		steerChat: jest.fn(),
+		submitFeedback: jest.fn(),
 		submitAwaiting: jest.fn(),
 		submitTool: jest.fn(),
 	uploadFile: jest.fn(),
@@ -77,6 +81,8 @@ let mockApiClient: {
 	) => Error;
 	buildResourceUrl: jest.Mock;
 	createQueryStream: jest.Mock;
+	deleteChat: jest.Mock;
+	downloadChatExport: jest.Mock;
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
@@ -95,8 +101,10 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
+	searchGlobal: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
+	submitFeedback: jest.Mock;
 	submitAwaiting: jest.Mock;
 	submitTool: jest.Mock;
 	uploadFile: jest.Mock;
@@ -340,6 +348,54 @@ describe("apiClientProxy", () => {
 			payload: { chatId: "chat_1", runId: "run_1" },
 		});
 		expect(mockApiClient.markChatRead).not.toHaveBeenCalled();
+	});
+
+	it("routes chat action requests over ws", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {},
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.submitFeedback({
+			chatId: "chat_1",
+			runId: "run_1",
+			type: "thumbs_down",
+		});
+		await proxy.deleteChat({ chatId: "chat_1" });
+		await proxy.searchGlobal({ query: "needle", agentKey: "agent_a", limit: 5 });
+		await proxy.markChatRead({ agentKey: "agent_a" });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/feedback",
+			payload: { chatId: "chat_1", runId: "run_1", type: "thumbs_down" },
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/chat-delete",
+			payload: { chatId: "chat_1" },
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/search",
+			payload: { query: "needle", agentKey: "agent_a", limit: 5 },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/read",
+			payload: { agentKey: "agent_a" },
+		});
+		expect(mockApiClient.submitFeedback).not.toHaveBeenCalled();
+		expect(mockApiClient.deleteChat).not.toHaveBeenCalled();
+		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
 	});
 
 	it("does not fall back to http when ws request times out", async () => {

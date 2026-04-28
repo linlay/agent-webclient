@@ -4,7 +4,6 @@ import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { UiInput } from "@/shared/ui/UiInput";
 import { UiListItem } from "@/shared/ui/UiListItem";
-import { Badge } from "antd";
 
 export const HistoryModal: React.FC<{
   historyRows: WorkerConversationRow[];
@@ -73,8 +72,13 @@ export const HistoryModal: React.FC<{
                 <span>{formatChatTimeLabel(chat.updatedAt)}</span>
               </div>
               <div className="command-list-preview">
-                {chat.lastRunContent || "(无预览)"}
+                {chat.searchSnippet || chat.lastRunContent || "(无预览)"}
               </div>
+              {(chat.agentKey || chat.teamId) && (
+                <div className="command-list-preview">
+                  {[chat.agentKey, chat.teamId].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </UiListItem>
           ))}
         </div>

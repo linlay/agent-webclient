@@ -152,23 +152,13 @@ function hasFormField(param: AIAwaitFormSubmitParamData): boolean {
 
 function buildRejectParam(
   id: string,
-  form?: Record<string, any> | null,
   reason?: string,
 ): AIAwaitFormSubmitParamData {
   const trimmedReason = typeof reason === "string" ? reason.trim() : "";
-  const nextForm =
-    form && typeof form === "object"
-      ? {
-          ...form,
-          ...(trimmedReason ? { reason: trimmedReason } : {}),
-        }
-      : trimmedReason
-        ? { reason: trimmedReason }
-        : null;
   return {
     id,
     action: "reject",
-    ...(nextForm ? { form: nextForm } : {}),
+    ...(trimmedReason ? { reason: trimmedReason } : {}),
   };
 }
 
@@ -222,7 +212,7 @@ export function buildAggregatedAwaitingSubmitPayload(
       awaitingId: awaiting.awaitingId,
       params: awaiting.forms.map((form) =>
         sharedNonSubmitAction === "reject"
-          ? buildRejectParam(form.id, cloneAwaitingFormData(form.form))
+          ? buildRejectParam(form.id, collectedParams[0]?.reason)
           : ({
               id: form.id,
               action: "cancel",
@@ -249,12 +239,7 @@ export function buildAggregatedAwaitingSubmitPayload(
     const collected = collectedParamById.get(form.id);
     collectedParamById.delete(form.id);
     if (collected?.action === "reject") {
-      return buildRejectParam(
-        form.id,
-        hasFormField(collected)
-          ? cloneAwaitingFormData(collected.form)
-          : cloneAwaitingFormData(form.form),
-      );
+      return buildRejectParam(form.id, collected.reason);
     }
     if (collected?.action === "cancel") {
       return {
@@ -285,12 +270,7 @@ export function buildAggregatedAwaitingSubmitPayload(
       continue;
     }
     if (param.action === "reject") {
-      params.push(
-        buildRejectParam(
-          param.id,
-          hasFormField(param) ? cloneAwaitingFormData(param.form) : null,
-        ),
-      );
+      params.push(buildRejectParam(param.id, param.reason));
       continue;
     }
     params.push({
@@ -329,7 +309,7 @@ export function buildRejectAwaitingSubmitPayload(
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     params: sourceForms.map((form) =>
-      buildRejectParam(form.id, cloneAwaitingFormData(form.form), reason),
+      buildRejectParam(form.id, reason),
     ),
   };
 }
@@ -788,7 +768,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       });
       return;
     }
-
     setSubmitStatus("submitting");
     setSubmitError("");
     const result = await onSubmit(
@@ -816,13 +795,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const submitDisabled =
     data.loading ||
     !data.viewportHtml ||
-    !onSubmit ||
-    Boolean(collectingDecision) ||
-    submitStatus === "submitting" ||
-    submitStatus === "autoSubmitting";
-
-  const rejectDisabled =
-    data.loading ||
     !onSubmit ||
     Boolean(collectingDecision) ||
     submitStatus === "submitting" ||

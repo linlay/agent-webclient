@@ -4,6 +4,7 @@ import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { UnreadDot } from "./UnreadDot";
+import { ChatActionsMenu } from "./ChatActionsMenu";
 
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
@@ -32,8 +33,8 @@ export const WorkerChatPreviewItem: React.FC<{
         <span className="worker-panel-time-label">
           {formatChatTimeLabel(chat.updatedAt)}
         </span>
+        <ChatActionsMenu chatId={chat.chatId} chatName={chat.chatName} />
       </div>
     </UiListItem>
   );
 };
-

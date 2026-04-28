@@ -363,6 +363,16 @@ export function useChatActions() {
         const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
+        const downvotedRunKeys = new Set<string>();
+        const runs = Array.isArray(chatData.runs) ? chatData.runs : [];
+        for (const rawRun of runs) {
+          if (!isObjectRecord(rawRun)) continue;
+          if (String(rawRun.feedbackType || '').trim() !== 'thumbs_down') continue;
+          const runId = String(rawRun.runId || '').trim();
+          if (runId) {
+            downvotedRunKeys.add(runId);
+          }
+        }
 
         /* Replay events into a LOCAL MUTABLE state to avoid React batching issues */
         const events = Array.isArray(chatData?.events) ? chatData.events : [];
@@ -416,6 +426,7 @@ export function useChatActions() {
             groupIdByMainToolId: rs.groupIdByMainToolId,
             planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
             planLastTouchedTaskId: rs.planLastTouchedTaskId,
+            downvotedRunKeys,
           },
         });
 
