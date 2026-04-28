@@ -720,6 +720,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const submitStatusText = submitStatus
     ? t(`awaiting.status.${submitStatus}`)
     : "";
+  const submitLineText = t("awaiting.hint.submitEditable");
+  const submitLineLead = submitLineText.split(/[，。,.]/)[0] || submitLineText;
+  const submitLineTail = submitLineText.slice(submitLineLead.length);
 
   const handleSwitchForm = useCallback(
     (nextIndex: number) => {
@@ -890,7 +893,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               requestCollectFromFrame("submit", { type: "submit" })
             }
           >
-            {t("awaiting.hint.submitEditable")}
+            <span className="awaiting-panel-submit-lead">{submitLineLead}</span>
+            {submitLineTail}
           </Button>
           <Input
             aria-label={t("awaiting.rejectReason.placeholder")}

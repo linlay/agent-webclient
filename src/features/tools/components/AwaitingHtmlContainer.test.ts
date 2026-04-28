@@ -116,7 +116,8 @@ describe('AwaitingHtmlContainer', () => {
       }),
     );
 
-    expect(html).toContain('同意，可以修改表单内容并提交');
+    expect(html).toContain('awaiting-panel-submit-lead');
+    expect(html).toContain('同意</span>，可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入驳回理由，可以修改表单内容"');
   });
 
