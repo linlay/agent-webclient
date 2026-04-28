@@ -17,6 +17,8 @@ export const SidebarHistorySection: React.FC<{
   onHistorySearchChange: (value: string) => void;
   onActivateIndex: (index: number) => void;
   onSelectChat: (chatId: string) => void;
+  onMarkAllRead?: (event: React.MouseEvent<HTMLElement>) => void;
+  onChatDeleted?: (chatId: string) => void;
 }> = ({
   open,
   historyWorker,
@@ -30,6 +32,8 @@ export const SidebarHistorySection: React.FC<{
   onHistorySearchChange,
   onActivateIndex,
   onSelectChat,
+  onMarkAllRead,
+  onChatDeleted,
 }) => {
   const { t } = useI18n();
 
@@ -65,6 +69,8 @@ export const SidebarHistorySection: React.FC<{
         historyItemRefs={historyItemRefs}
         onHistorySearchChange={onHistorySearchChange}
         onActivateIndex={onActivateIndex}
+        onMarkAllRead={onMarkAllRead}
+        onChatDeleted={onChatDeleted}
         onSelect={(index) => {
           const target = historyRows[index];
           if (!target) return;
@@ -75,4 +81,3 @@ export const SidebarHistorySection: React.FC<{
     </Modal>
   );
 };
-

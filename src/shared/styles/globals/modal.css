@@ -62,13 +62,35 @@
     gap: 20px;
 }
 
+.history-list-container .ant-divider {
+    margin: 6px 0;
+    border-color: var(--border);
+}
+.history-list-container .chat-actions-trigger{
+    padding: 0;
+    opacity: 0;
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    transition: none;
+}
+.history-list-actions, .history-list-actions .chat-actions-trigger{
+    color: var(--text-muted);
+}
+.command-list-item:hover .chat-actions-trigger{
+    opacity: 1;
+}
+.command-list-item:hover .history-list-action-time{
+    opacity: 0;
+}
 .command-modal-list {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
     overflow: auto;
     padding-right: 4px;
     max-height: 70vh;
+    gap: 2px;
 }
 
 .command-modal-list-focusable:focus-visible {
@@ -77,22 +99,31 @@
     border-radius: 12px;
 }
 
-.command-list-item {
-    width: 100%;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--bg-input) 72%, var(--bg-elev-2));
-    padding: 12px;
-    text-align: left;
+.command-history-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.command-list-item.is-active,
-.command-list-item:hover {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 52%,
-            var(--line-soft));
-    background: color-mix(in srgb, var(--accent-soft) 80%, var(--bg-elev-2));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 90%, transparent);
+.command-history-toolbar .ui-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.command-history-action {
+    position: absolute;
+    top: 13px;
+    right: 45px;
+    color: var(--accent-electric) !important;
+}
+
+.command-list-item {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: left;
+    position: relative;
 }
 
 .command-list-head {
@@ -100,6 +131,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    position: relative;
+}
+
+.command-list-head .chat-actions-trigger {
+    flex: 0 0 auto;
+    color: var(--ink-muted);
 }
 
 .command-list-head strong {
@@ -131,7 +168,7 @@
     margin-top: 6px;
     font-size: 12px;
     line-height: 1.5;
-    color: var(--ink-2);
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

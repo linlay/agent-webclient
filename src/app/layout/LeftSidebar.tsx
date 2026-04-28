@@ -517,6 +517,18 @@ export const LeftSidebar: React.FC = () => {
         }}
         onActivateIndex={setHistoryIndex}
         onSelectChat={handleSelectChat}
+        onMarkAllRead={
+          historyWorker?.type === "agent"
+            ? (event) => handleMarkWorkerAllRead(event, historyWorker.key)
+            : undefined
+        }
+        onChatDeleted={(chatId) => {
+          setRemoteHistoryRows((rows) =>
+            rows
+              ? rows.filter((row) => String(row.chatId || "") !== chatId)
+              : rows,
+          );
+        }}
       />
     </>
   );

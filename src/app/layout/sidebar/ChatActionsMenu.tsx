@@ -10,7 +10,8 @@ import {
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
 	chatName?: string;
-}> = ({ chatId, chatName }) => {
+	onDeleted?: (chatId: string) => void;
+}> = ({ chatId, chatName, onDeleted }) => {
 	const { state, dispatch } = useAppContext();
 	const [pending, setPending] = useState(false);
 	const normalizedChatId = String(chatId || "").trim();
@@ -39,6 +40,7 @@ export const ChatActionsMenu: React.FC<{
 				try {
 					await deleteChat({ chatId: normalizedChatId });
 					dispatch({ type: "CHAT_DELETED", chatId: normalizedChatId });
+					onDeleted?.(normalizedChatId);
 					clearActiveChatIfNeeded();
 				} catch (error) {
 					dispatch({
