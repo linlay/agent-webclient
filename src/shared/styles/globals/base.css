@@ -409,6 +409,15 @@ textarea {
 .hidden {
     display: none !important;
 }
+.ant-tooltip .ant-tooltip-arrow{
+    display: none;
+}
+.ant-tooltip .ant-tooltip-inner {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--line-strong);
+    color: var(--text-main);
+    box-shadow: none;
+}
 
 /* ========================================
    Animations
