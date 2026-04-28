@@ -1172,6 +1172,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     width: 100%;
     height: min(320px, 48vh);
     border: 0;
+    pointer-events: none;
 }
 
 .status-line {
