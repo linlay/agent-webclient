@@ -16,6 +16,7 @@ interface ComposerInputProps {
   partialAssistantText: string;
   onInputChange: (value: string) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
   textareaRef: React.RefObject<TextAreaRef>;
@@ -48,6 +49,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   partialAssistantText,
   onInputChange,
   onKeyDown,
+  onPaste,
   onCompositionStart,
   onCompositionEnd,
   textareaRef,
@@ -140,6 +142,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
             value={inputValue}
             onChange={(event) => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
             onCompositionStart={onCompositionStart}
             onCompositionEnd={onCompositionEnd}
           />

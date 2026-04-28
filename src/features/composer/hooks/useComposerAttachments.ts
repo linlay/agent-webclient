@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, Dispatch } from "react";
+import type { ChangeEvent, ClipboardEvent, Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
 import {
@@ -146,12 +146,15 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [state.chatId],
   );
 
-  const handleFileSelection = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files || []);
-      event.target.value = "";
-      if (files.length === 0) {
-        return;
+  const uploadFiles = useCallback(
+    (files: File[]) => {
+      if (
+        files.length === 0 ||
+        state.streaming ||
+        isFrontendActive ||
+        isVoiceMode
+      ) {
+        return false;
       }
 
       const nextAttachments = createPendingComposerAttachments(files);
@@ -175,16 +178,43 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
           setAttachmentChatId,
         });
       })();
+
+      return true;
     },
     [
       attachmentChatId,
       dispatch,
+      isFrontendActive,
+      isVoiceMode,
       state.chatAgentById,
       state.chatId,
       state.pendingNewChatAgentKey,
+      state.streaming,
       state.workerIndexByKey,
       state.workerSelectionKey,
     ],
+  );
+
+  const handleFileSelection = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files || []);
+      event.target.value = "";
+      uploadFiles(files);
+    },
+    [uploadFiles],
+  );
+
+  const handleFilePaste = useCallback(
+    (event: ClipboardEvent<HTMLElement>) => {
+      const files = Array.from(event.clipboardData?.files || []);
+      if (files.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      uploadFiles(files);
+    },
+    [uploadFiles],
   );
 
   useEffect(() => {
@@ -270,6 +300,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     clearComposerAttachments,
     fileInputRef,
     handleFileSelection,
+    handleFilePaste,
     handleRemoveAttachment,
     hasComposerAttachmentOverflow,
     hasUploadingAttachments,

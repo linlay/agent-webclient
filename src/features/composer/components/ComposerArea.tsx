@@ -89,6 +89,7 @@ export const ComposerArea: React.FC = () => {
     clearComposerAttachments,
     fileInputRef,
     handleFileSelection,
+    handleFilePaste,
     handleRemoveAttachment,
     hasComposerAttachmentOverflow,
     hasUploadingAttachments,
@@ -440,6 +441,7 @@ export const ComposerArea: React.FC = () => {
                     }
                   }}
                   onKeyDown={handleKeyDown}
+                  onPaste={handleFilePaste}
                   onCompositionStart={() => {
                     isComposingRef.current = true;
                   }}
