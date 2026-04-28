@@ -7,7 +7,7 @@ import { DetailModal } from "@/app/modals/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { ScheduleModal } from "@/app/modals/ScheduleModal";
 import { SWITCH_SCOPES, SwitchModal } from "@/app/modals/SwitchModal";
-import { searchGlobal } from "@/features/transport/lib/apiClientProxy";
+import { markChatRead, searchGlobal } from "@/features/transport/lib/apiClientProxy";
 
 function clampIndex(index: number, length: number): number {
 	if (length <= 0) return 0;
@@ -95,6 +95,23 @@ export const CommandModal: React.FC = () => {
 				},
 			}),
 		);
+	};
+
+	const markCurrentWorkerAllRead = async (event: React.MouseEvent<HTMLElement>) => {
+		event.stopPropagation();
+		if (!currentWorker || currentWorker.type !== "agent") return;
+		const agentKey = String(currentWorker.sourceId || "").trim();
+		if (!agentKey) return;
+		dispatch({ type: "MARK_AGENT_CHATS_READ", agentKey });
+		try {
+			await markChatRead({ agentKey });
+		} catch (error) {
+			dispatch({
+				type: "APPEND_DEBUG",
+				line: `[mark all read error] ${(error as Error).message}`,
+			});
+			window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+		}
 	};
 
 	const confirmSchedule = () => {
@@ -396,6 +413,18 @@ export const CommandModal: React.FC = () => {
 								modal: { activeIndex: index },
 							})
 						}
+						onMarkAllRead={
+							currentWorker?.type === "agent"
+								? markCurrentWorkerAllRead
+								: undefined
+						}
+						onChatDeleted={(chatId) => {
+							setRemoteHistoryRows((rows) =>
+								rows
+									? rows.filter((row) => String(row.chatId || "") !== chatId)
+									: rows,
+							);
+						}}
 						onSelect={selectHistory}
 					/>
 				)}

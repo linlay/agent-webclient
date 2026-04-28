@@ -147,9 +147,8 @@ button {
 
 button:hover {
     border-color: color-mix(in srgb,
-            var(--accent-electric) 18%,
+            var(--accent-electric) 60%,
             var(--line-strong));
-    box-shadow: var(--shadow-soft);
 }
 
 button:active {
@@ -408,6 +407,17 @@ textarea {
 
 .hidden {
     display: none !important;
+}
+
+.ant-tooltip .ant-tooltip-arrow {
+    display: none;
+}
+
+.ant-tooltip .ant-tooltip-inner {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--line-strong);
+    color: var(--text-main);
+    box-shadow: none;
 }
 
 /* ========================================

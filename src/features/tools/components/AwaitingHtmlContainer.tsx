@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Input, message } from "antd";
+import { Button, Flex, Input, message } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
   AIAwaitFormSubmitParamData,
@@ -24,6 +24,7 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -153,12 +154,14 @@ function hasFormField(param: AIAwaitFormSubmitParamData): boolean {
 function buildRejectParam(
   id: string,
   reason?: string,
+  form?: Record<string, any> | null,
 ): AIAwaitFormSubmitParamData {
   const trimmedReason = typeof reason === "string" ? reason.trim() : "";
   return {
     id,
-    action: "reject",
+    decision: "reject",
     ...(trimmedReason ? { reason: trimmedReason } : {}),
+    ...(form !== undefined ? { form: cloneAwaitingFormData(form) } : {}),
   };
 }
 
@@ -169,7 +172,10 @@ export function mergeSubmittedParamsIntoAwaitingForms(
   const formById = new Map<string, Record<string, unknown> | null>();
 
   for (const param of params) {
-    if (param.action !== "submit" || !hasFormField(param)) {
+    if (
+      (param.decision !== "submit" && param.decision !== "reject") ||
+      !hasFormField(param)
+    ) {
       continue;
     }
     formById.set(param.id, cloneAwaitingFormData(param.form));
@@ -195,36 +201,46 @@ export function buildAggregatedAwaitingSubmitPayload(
   collectedParams: AIAwaitFormSubmitParamData[],
 ): AIAwaitSubmitPayloadData {
   const collectedParamById = new Map<string, AIAwaitFormSubmitParamData>();
-  const firstCollectedAction = collectedParams[0]?.action;
-  const sharedNonSubmitAction =
-    (firstCollectedAction === "reject" || firstCollectedAction === "cancel") &&
+  const firstCollectedDecision = collectedParams[0]?.decision;
+  const sharedNonSubmitDecision =
+    (firstCollectedDecision === "reject" ||
+      firstCollectedDecision === "cancel") &&
     collectedParams.length > 0 &&
-    collectedParams.every((param) => param.action === firstCollectedAction)
-      ? firstCollectedAction
+    collectedParams.every((param) => param.decision === firstCollectedDecision)
+      ? firstCollectedDecision
       : null;
 
   if (
-    sharedNonSubmitAction === "reject" ||
-    sharedNonSubmitAction === "cancel"
+    sharedNonSubmitDecision === "reject" ||
+    sharedNonSubmitDecision === "cancel"
   ) {
+    const sharedCollectedParamById = new Map(
+      collectedParams.map((param) => [param.id, param]),
+    );
     return {
       runId: awaiting.runId,
       awaitingId: awaiting.awaitingId,
-      params: awaiting.forms.map((form) =>
-        sharedNonSubmitAction === "reject"
-          ? buildRejectParam(form.id, collectedParams[0]?.reason)
-          : ({
-              id: form.id,
-              action: "cancel",
-            } as const),
-      ),
+      params: awaiting.forms.map((form) => {
+        if (sharedNonSubmitDecision === "reject") {
+          const collected = sharedCollectedParamById.get(form.id);
+          return buildRejectParam(
+            form.id,
+            collectedParams[0]?.reason,
+            collected && hasFormField(collected) ? collected.form : form.form,
+          );
+        }
+        return {
+          id: form.id,
+          decision: "cancel",
+        } as const;
+      }),
     };
   }
 
   for (const param of collectedParams) {
     collectedParamById.set(
       param.id,
-      param.action === "submit"
+      param.decision === "submit"
         ? {
             ...param,
             ...(hasFormField(param)
@@ -238,44 +254,54 @@ export function buildAggregatedAwaitingSubmitPayload(
   const params: AIAwaitFormSubmitParamData[] = awaiting.forms.map((form) => {
     const collected = collectedParamById.get(form.id);
     collectedParamById.delete(form.id);
-    if (collected?.action === "reject") {
-      return buildRejectParam(form.id, collected.reason);
+    if (collected?.decision === "reject") {
+      return buildRejectParam(
+        form.id,
+        collected.reason,
+        hasFormField(collected) ? collected.form : form.form,
+      );
     }
-    if (collected?.action === "cancel") {
+    if (collected?.decision === "cancel") {
       return {
         id: form.id,
-        action: collected.action,
+        decision: collected.decision,
       };
     }
     const submittedForm =
-      collected?.action === "submit" && hasFormField(collected)
+      collected?.decision === "submit" && hasFormField(collected)
         ? cloneAwaitingFormData(collected.form)
         : cloneAwaitingFormData(form.form);
     return {
       id: form.id,
-      action: "submit" as const,
+      decision: "submit" as const,
       form: submittedForm,
     };
   });
 
   for (const param of collectedParamById.values()) {
-    if (param.action === "submit") {
+    if (param.decision === "submit") {
       params.push({
         id: param.id,
-        action: "submit",
+        decision: "submit",
         ...(hasFormField(param)
           ? ({ form: cloneAwaitingFormData(param.form) } as any)
           : {}),
       });
       continue;
     }
-    if (param.action === "reject") {
-      params.push(buildRejectParam(param.id, param.reason));
+    if (param.decision === "reject") {
+      params.push(
+        buildRejectParam(
+          param.id,
+          param.reason,
+          hasFormField(param) ? param.form : undefined,
+        ),
+      );
       continue;
     }
     params.push({
       id: param.id,
-      action: param.action,
+      decision: param.decision,
     });
   }
 
@@ -294,7 +320,7 @@ export function buildCancelAwaitingSubmitPayload(
     awaitingId: awaiting.awaitingId,
     params: awaiting.forms.map((form) => ({
       id: form.id,
-      action: "cancel" as const,
+      decision: "cancel" as const,
     })),
   };
 }
@@ -309,7 +335,7 @@ export function buildRejectAwaitingSubmitPayload(
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     params: sourceForms.map((form) =>
-      buildRejectParam(form.id, reason),
+      buildRejectParam(form.id, reason, form.form),
     ),
   };
 }
@@ -338,14 +364,13 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     useState<AwaitingCollectDecision | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const currentForm = data.forms[activeFormIndex];
-  const panelCaption =
-    String(
-      currentForm?.title ||
-        currentForm?.action ||
-        currentForm?.id ||
-        data.viewportKey ||
-        "",
-    ).trim();
+  const panelCaption = String(
+    currentForm?.title ||
+      currentForm?.action ||
+      currentForm?.id ||
+      data.viewportKey ||
+      "",
+  ).trim();
 
   const viewportSignature = useMemo(
     () => buildAwaitingViewportSignature(data, activeFormIndex),
@@ -888,23 +913,31 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <Button
             className="awaiting-panel-submit-line"
             disabled={submitDisabled}
-            type="primary"
+            type="text"
             onClick={() =>
               requestCollectFromFrame("submit", { type: "submit" })
             }
           >
+            <MaterialIcon
+              name="arrow_forward"
+              className="awaiting-panel-submit-icon"
+            />
             <span className="awaiting-panel-submit-lead">{submitLineLead}</span>
-            {submitLineTail}
+            <span className="awaiting-panel-submit-tail">{submitLineTail}</span>
           </Button>
-          <Input
-            aria-label={t("awaiting.rejectReason.placeholder")}
-            className="awaiting-reject-reason-input"
-            disabled={reasonInputDisabled}
-            placeholder={t("awaiting.rejectReason.placeholder")}
-            value={rejectReason}
-            onChange={(event) => setRejectReason(event.target.value)}
-            onPressEnter={() => void handleReject()}
-          />
+          <Flex gap={8} className="awaiting-reject-reason" align="center">
+            <MaterialIcon name="close" className="awaiting-reject-reason-icon" />
+            <span>驳回</span>
+            <Input
+              aria-label={t("awaiting.rejectReason.placeholder")}
+              disabled={reasonInputDisabled}
+              variant="borderless"
+              placeholder={t("awaiting.rejectReason.placeholder")}
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              onPressEnter={() => void handleReject()}
+            />
+          </Flex>
         </div>
       </div>
 

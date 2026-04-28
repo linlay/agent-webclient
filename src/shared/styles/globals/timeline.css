@@ -921,7 +921,6 @@ html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .current-worker-tool.ui-btn,
 html[data-theme="dark"] .current-worker-card,
 html[data-theme="dark"] .status-pill,
-html[data-theme="dark"] .ui-list-item,
 html[data-theme="dark"] .chat-item,
 html[data-theme="dark"] .composer-pill,
 html[data-theme="dark"] .mention-suggest,
@@ -940,18 +939,6 @@ html[data-theme="dark"] .floating-plan.is-expanded .plan-list {
 
 html[data-theme="dark"] .timeline-empty {
     color: var(--ink-muted);
-}
-
-html[data-theme="dark"] .ui-list-item:hover,
-html[data-theme="dark"] .chat-item:hover {
-    background: color-mix(in srgb, var(--accent-soft) 28%, var(--bg-elev-2));
-    box-shadow: none;
-}
-
-html[data-theme="dark"] .ui-list-item.is-selected,
-html[data-theme="dark"] .chat-item.is-active {
-    background: color-mix(in srgb, var(--accent-soft) 52%, var(--bg-elev-2));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 36%, transparent);
 }
 
 html[data-theme="dark"] .timeline-run-group::before {
@@ -1172,6 +1159,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     width: 100%;
     height: min(320px, 48vh);
     border: 0;
+    pointer-events: none;
 }
 
 .status-line {

@@ -175,9 +175,8 @@
 .chat-item {
     width: 100%;
     text-align: left;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 98%, transparent);
     border-radius: 10px;
-    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+    background: transparent;
     padding: 10px;
     display: block;
     transition:
@@ -191,29 +190,11 @@
     padding-bottom: 9px;
 }
 
-.ui-list-item+.ui-list-item,
-.chat-item+.chat-item {
-    margin-top: 8px;
-}
-
 .ui-list-item:hover,
-.chat-item:hover {
-    background: color-mix(in srgb, var(--accent-soft) 44%, var(--bg-elev-2));
-    box-shadow: var(--shadow-soft);
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 18%,
-            var(--line-soft));
-}
-
+.chat-item:hover,
 .ui-list-item.is-selected,
 .chat-item.is-active {
-    background-color: color-mix(in srgb,
-            var(--accent-soft) 84%,
-            var(--bg-elev-2));
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 48%,
-            var(--line-soft));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 72%, transparent);
+    background-color: var(--bg-base);
 }
 
 .ui-list-item.is-loading,

@@ -216,15 +216,19 @@ function normalizeFormSubmitParam(
   item: Record<string, unknown>,
 ): AIAwaitFormSubmitParamData | null {
   const id = String(item.id || '').trim();
-  const action = String(item.action || '').trim();
+  const decision = String(item.decision || item.action || '').trim();
   if (!id) {
     return null;
   }
-  if (action !== 'submit' && action !== 'reject' && action !== 'cancel') {
+  if (
+    decision !== 'submit'
+    && decision !== 'reject'
+    && decision !== 'cancel'
+  ) {
     return null;
   }
 
-  if (action === 'submit') {
+  if (decision === 'submit') {
     const form = isObjectRecord(item.form)
       ? { ...item.form }
       : item.form == null
@@ -235,17 +239,30 @@ function normalizeFormSubmitParam(
     }
     return {
       id,
-      action,
+      decision,
       form,
     };
   }
 
+  const form = decision === 'reject'
+    ? isObjectRecord(item.form)
+      ? { ...item.form }
+      : item.form == null
+      ? undefined
+      : null
+    : undefined;
+
+  if (form === null) {
+    return null;
+  }
+
   return {
     id,
-    action,
-    ...(action === 'reject' && String(item.reason || '').trim()
+    decision,
+    ...(decision === 'reject' && String(item.reason || '').trim()
       ? { reason: String(item.reason || '').trim() }
       : {}),
+    ...(form !== undefined ? { form } : {}),
   };
 }
 

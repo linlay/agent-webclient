@@ -25,6 +25,8 @@ jest.mock('antd', () => {
   return {
     Button: ({ children, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('button', props, children),
+    Flex: ({ children, ...props }: Record<string, unknown>) =>
+      ReactRuntime.createElement('div', props, children),
     Input: (props: Record<string, unknown>) =>
       ReactRuntime.createElement('input', props),
     message: {
@@ -117,7 +119,12 @@ describe('AwaitingHtmlContainer', () => {
     );
 
     expect(html).toContain('awaiting-panel-submit-lead');
-    expect(html).toContain('同意</span>，可以修改表单内容并提交');
+    expect(html).toContain(
+      '<span class="awaiting-panel-submit-lead">同意</span>',
+    );
+    expect(html).toContain(
+      '<span class="awaiting-panel-submit-tail">，可以修改表单内容并提交</span>',
+    );
     expect(html).toContain('placeholder="请输入驳回理由，可以修改表单内容"');
   });
 
@@ -187,7 +194,7 @@ describe('AwaitingHtmlContainer', () => {
     const onErrorChange = jest.fn();
     reportInvalidAwaitingSubmitPayload('await_1', {
       type: 'frontend_awaiting_submit',
-      params: [{ action: 'submit', form: 'bad' }],
+      params: [{ decision: 'submit', form: 'bad' }],
     }, onErrorChange);
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -240,7 +247,7 @@ describe('AwaitingHtmlContainer', () => {
     ], [
       {
         id: 'travel_form',
-        action: 'submit',
+        decision: 'submit',
         form: {
           employee_id: 'E3003',
         },
@@ -288,7 +295,7 @@ describe('AwaitingHtmlContainer', () => {
     }), [
       {
         id: 'travel_form',
-        action: 'submit',
+        decision: 'submit',
         form: {
           employee_id: 'E3003',
         },
@@ -299,14 +306,14 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'submit',
+          decision: 'submit',
           form: {
             employee_id: 'E1001',
           },
         },
         {
           id: 'travel_form',
-          action: 'submit',
+          decision: 'submit',
           form: {
             employee_id: 'E3003',
           },
@@ -338,7 +345,7 @@ describe('AwaitingHtmlContainer', () => {
     }), [
       {
         id: 'travel_form',
-        action: 'reject',
+        decision: 'reject',
       },
     ])).toEqual({
       runId: 'run_1',
@@ -346,11 +353,17 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'reject',
+          decision: 'reject',
+          form: {
+            employee_id: 'E1001',
+          },
         },
         {
           id: 'travel_form',
-          action: 'reject',
+          decision: 'reject',
+          form: {
+            employee_id: 'E2002',
+          },
         },
       ],
     });
@@ -382,13 +395,72 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'reject',
+          decision: 'reject',
           reason: '资料不完整',
+          form: {
+            employee_id: 'E1001',
+          },
         },
         {
           id: 'travel_form',
-          action: 'reject',
+          decision: 'reject',
           reason: '资料不完整',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    });
+  });
+
+  it('builds reject payloads with collected form data', () => {
+    expect(buildAggregatedAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: 'Submit请假申请',
+          title: 'mock 请假申请',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'Submit出差申请',
+          title: 'mock 出差申请',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }), [
+      {
+        id: 'travel_form',
+        decision: 'reject',
+        reason: '资料不完整',
+        form: {
+          employee_id: 'E3003',
+        },
+      },
+    ])).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          decision: 'reject',
+          reason: '资料不完整',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          decision: 'reject',
+          reason: '资料不完整',
+          form: {
+            employee_id: 'E3003',
+          },
         },
       ],
     });
@@ -420,11 +492,11 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          action: 'cancel',
+          decision: 'cancel',
         },
         {
           id: 'travel_form',
-          action: 'cancel',
+          decision: 'cancel',
         },
       ],
     });
