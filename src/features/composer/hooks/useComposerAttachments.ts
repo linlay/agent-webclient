@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, ClipboardEvent, Dispatch } from "react";
+import type {
+  ChangeEvent,
+  ClipboardEvent,
+  Dispatch,
+  DragEvent,
+} from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
 import {
@@ -217,6 +222,25 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [uploadFiles],
   );
 
+  const handleFileDragOver = useCallback((event: DragEvent<HTMLElement>) => {
+    if (Array.from(event.dataTransfer?.types || []).includes("Files")) {
+      event.preventDefault();
+    }
+  }, []);
+
+  const handleFileDrop = useCallback(
+    (event: DragEvent<HTMLElement>) => {
+      const files = Array.from(event.dataTransfer?.files || []);
+      if (files.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      uploadFiles(files);
+    },
+    [uploadFiles],
+  );
+
   useEffect(() => {
     attachmentsRef.current = attachments;
   }, [attachments]);
@@ -299,6 +323,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     attachments,
     clearComposerAttachments,
     fileInputRef,
+    handleFileDragOver,
+    handleFileDrop,
     handleFileSelection,
     handleFilePaste,
     handleRemoveAttachment,

@@ -17,6 +17,8 @@ interface ComposerInputProps {
   onInputChange: (value: string) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  onDragOver: (event: React.DragEvent<HTMLTextAreaElement>) => void;
+  onDrop: (event: React.DragEvent<HTMLTextAreaElement>) => void;
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
   textareaRef: React.RefObject<TextAreaRef>;
@@ -50,6 +52,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   onInputChange,
   onKeyDown,
   onPaste,
+  onDragOver,
+  onDrop,
   onCompositionStart,
   onCompositionEnd,
   textareaRef,
@@ -143,6 +147,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
             onChange={(event) => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
             onCompositionStart={onCompositionStart}
             onCompositionEnd={onCompositionEnd}
           />
