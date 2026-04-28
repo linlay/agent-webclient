@@ -240,12 +240,25 @@ function normalizeFormSubmitParam(
     };
   }
 
+  const form = action === 'reject'
+    ? isObjectRecord(item.form)
+      ? { ...item.form }
+      : item.form == null
+      ? undefined
+      : null
+    : undefined;
+
+  if (form === null) {
+    return null;
+  }
+
   return {
     id,
     action,
     ...(action === 'reject' && String(item.reason || '').trim()
       ? { reason: String(item.reason || '').trim() }
       : {}),
+    ...(form !== undefined ? { form } : {}),
   };
 }
 

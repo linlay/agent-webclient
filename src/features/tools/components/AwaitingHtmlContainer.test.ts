@@ -347,10 +347,16 @@ describe('AwaitingHtmlContainer', () => {
         {
           id: 'leave_form',
           action: 'reject',
+          form: {
+            employee_id: 'E1001',
+          },
         },
         {
           id: 'travel_form',
           action: 'reject',
+          form: {
+            employee_id: 'E2002',
+          },
         },
       ],
     });
@@ -384,11 +390,70 @@ describe('AwaitingHtmlContainer', () => {
           id: 'leave_form',
           action: 'reject',
           reason: '资料不完整',
+          form: {
+            employee_id: 'E1001',
+          },
         },
         {
           id: 'travel_form',
           action: 'reject',
           reason: '资料不完整',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    });
+  });
+
+  it('builds reject payloads with collected form data', () => {
+    expect(buildAggregatedAwaitingSubmitPayload(createActiveAwaiting({
+      forms: [
+        {
+          id: 'leave_form',
+          action: 'Submit请假申请',
+          title: 'mock 请假申请',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'Submit出差申请',
+          title: 'mock 出差申请',
+          form: {
+            employee_id: 'E2002',
+          },
+        },
+      ],
+    }), [
+      {
+        id: 'travel_form',
+        action: 'reject',
+        reason: '资料不完整',
+        form: {
+          employee_id: 'E3003',
+        },
+      },
+    ])).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [
+        {
+          id: 'leave_form',
+          action: 'reject',
+          reason: '资料不完整',
+          form: {
+            employee_id: 'E1001',
+          },
+        },
+        {
+          id: 'travel_form',
+          action: 'reject',
+          reason: '资料不完整',
+          form: {
+            employee_id: 'E3003',
+          },
         },
       ],
     });
