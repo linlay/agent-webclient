@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal } from "antd";
+import { Flex, Modal } from "antd";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
@@ -46,15 +46,20 @@ export const SidebarHistorySection: React.FC<{
       width="min(780px, calc(100vw - 32px))"
       className="worker-history-modal"
       title={
-        historyWorker
-          ? t("leftSidebar.historyTitleWithWorker", {
-              workerTypeLabel:
-                historyWorker.type === "team"
-                  ? t("switch.workerType.team")
-                  : t("switch.workerType.agent"),
-              displayName: historyWorker.displayName,
-            })
-          : t("leftSidebar.historyTitle")
+        <Flex align="center" gap={6}>
+          <span>
+            {historyWorker
+              ? t("leftSidebar.historyTitleWithWorker", {
+                  workerTypeLabel:
+                    historyWorker.type === "team"
+                      ? t("switch.workerType.team")
+                      : t("switch.workerType.agent"),
+                  displayName: historyWorker.displayName,
+                })
+              : t("leftSidebar.historyTitle")}
+          </span>
+          <div className="history-modal-title-tag">共 {historyRows.length} 条会话</div>
+        </Flex>
       }
     >
       <HistoryModal

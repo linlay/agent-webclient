@@ -243,6 +243,14 @@
 .worker-history-modal .ant-modal-body {
     padding-top: 8px;
 }
+.history-modal-title-tag{
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: normal;
+    font-size: 12px;
+}
 
 .worker-related-list {
     margin-top: 12px;
