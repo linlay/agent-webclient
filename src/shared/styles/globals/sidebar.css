@@ -484,9 +484,9 @@
 .left-sidebar-buttons {
     padding: 2px;
 }
-
-.left-sidebar-buttons .ui-btn {
-    justify-content: flex-start;
+.left-sidebar-buttons .ant-badge .ant-badge-count{
+    color: var(--accent);
+    background-color: var(--accent-soft);
 }
 
 .left-sidebar-buttons .ui-btn-label {

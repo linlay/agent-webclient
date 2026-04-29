@@ -319,7 +319,7 @@ export const LeftSidebar: React.FC = () => {
       >
         {state.leftDrawerOpen && (
           <>
-            <Flex vertical className="left-sidebar-buttons" gap={2}>
+            <Flex className="left-sidebar-buttons" gap={2}>
               <UiButton
                 size="sm"
                 variant="ghost"
@@ -331,10 +331,20 @@ export const LeftSidebar: React.FC = () => {
                 }}
               >
                 <MaterialIcon name="schedule" />
-                自动化
+                <Flex gap={4} align="center">
+                  <span>自动化</span>
+                  <Badge count={6} />
+                </Flex>
+              </UiButton>
+              <UiButton size="sm" variant="ghost">
+                <MaterialIcon name="neurology" />
+                <Flex gap={4} align="center">
+                  <span>记忆</span>
+                  <Badge count={8} />
+                </Flex>
               </UiButton>
             </Flex>
-            <Flex gap={2} style={{padding: '0 4px'}}>
+            <Flex gap={2} style={{ padding: "0 4px" }}>
               <Input
                 variant="filled"
                 placeholder={
