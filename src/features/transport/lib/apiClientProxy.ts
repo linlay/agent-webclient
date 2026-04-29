@@ -79,6 +79,37 @@ export function setTransportModeProvider(provider: () => TransportModeValue): vo
 	getTransportMode = provider;
 }
 
+type WsRequestClient = NonNullable<ReturnType<typeof getWsClient>>;
+type TokenRefreshReason = Parameters<typeof ensureAccessToken>[0];
+
+async function resolveWsAccessToken(
+	reason: TokenRefreshReason = "missing",
+): Promise<string> {
+	let accessToken = String(getCurrentAccessToken() || "").trim();
+	if (!accessToken || reason === "unauthorized") {
+		accessToken = String(await ensureAccessToken(reason)).trim();
+	}
+	return accessToken;
+}
+
+function resolveWsClient(accessToken: string): WsRequestClient {
+	const currentClient = getWsClient();
+	const wsClient =
+		currentClient == null || getWsClientAccessToken() !== accessToken
+			? initWsClient({ accessToken, resolveAccessToken: resolveWsAccessToken })
+			: currentClient;
+
+	if (
+		currentClient != null &&
+		getWsClientAccessToken() === accessToken &&
+		typeof wsClient.updateOptions === "function"
+	) {
+		wsClient.updateOptions({ accessToken, resolveAccessToken: resolveWsAccessToken });
+	}
+
+	return wsClient;
+}
+
 async function routeRequest<T>(
 	type: string,
 	payload: unknown,
@@ -91,32 +122,30 @@ async function routeRequest<T>(
 	if (getTransportMode() !== "ws") {
 		return fallback();
 	}
-	let accessToken = String(getCurrentAccessToken() || "").trim();
-	if (!accessToken) {
-		accessToken = String(await ensureAccessToken("missing")).trim();
-	}
-
-	const currentClient = getWsClient();
-	const wsClient =
-		currentClient == null || getWsClientAccessToken() !== accessToken
-			? initWsClient({ accessToken })
-			: currentClient;
-
-	if (
-		currentClient != null &&
-		getWsClientAccessToken() === accessToken &&
-		typeof wsClient.updateOptions === "function"
-	) {
-		wsClient.updateOptions({ accessToken });
-	}
+	let accessToken = await resolveWsAccessToken("missing");
+	let wsClient = resolveWsClient(accessToken);
 
 	try {
 		await wsClient.connect();
 	} catch (error) {
-		if (options.fallbackOnConnectFailure === false) {
-			throw error;
+		const refreshedToken = await resolveWsAccessToken("unauthorized");
+		if (refreshedToken && refreshedToken !== accessToken) {
+			accessToken = refreshedToken;
+			wsClient = resolveWsClient(accessToken);
+			try {
+				await wsClient.connect();
+			} catch (refreshError) {
+				if (options.fallbackOnConnectFailure === false) {
+					throw refreshError;
+				}
+				return fallback();
+			}
+		} else {
+			if (options.fallbackOnConnectFailure === false) {
+				throw error;
+			}
+			return fallback();
 		}
-		return fallback();
 	}
 
 	try {

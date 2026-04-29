@@ -70,4 +70,22 @@ describe("wsClientSingleton", () => {
 		expect(mockWsClientInstances[0]?.disconnect).not.toHaveBeenCalled();
 		expect(singleton.getWsClient()).toBe(client);
 	});
+
+	it("keeps the tracked singleton token in sync when the client refreshes it", async () => {
+		const singleton = await import("./wsClientSingleton");
+		const onAccessTokenChange = jest.fn();
+
+		singleton.initWsClient({
+			accessToken: "token_1",
+			onAccessTokenChange,
+		});
+
+		const options = mockWsClientInstances[0]?.options as {
+			onAccessTokenChange?: (accessToken: string) => void;
+		};
+		options.onAccessTokenChange?.("token_2");
+
+		expect(singleton.getWsClientAccessToken()).toBe("token_2");
+		expect(onAccessTokenChange).toHaveBeenCalledWith("token_2");
+	});
 });

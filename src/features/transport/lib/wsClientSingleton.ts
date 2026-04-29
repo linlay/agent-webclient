@@ -12,12 +12,24 @@ function clearPendingDestroy(): void {
 	pendingDestroyTimer = null;
 }
 
+function withAccessTokenSync(options: WsClientOptions): WsClientOptions {
+	const onAccessTokenChange = options.onAccessTokenChange;
+	return {
+		...options,
+		onAccessTokenChange: (accessToken) => {
+			wsClientAccessToken = String(accessToken || "").trim();
+			onAccessTokenChange?.(accessToken);
+		},
+	};
+}
+
 export function initWsClient(options: WsClientOptions = {}): WsClient {
 	clearPendingDestroy();
 	const accessToken = String(options.accessToken || "").trim();
+	const syncedOptions = withAccessTokenSync(options);
 
 	if (wsClient && wsClientAccessToken === accessToken) {
-		wsClient.updateOptions(options);
+		wsClient.updateOptions(syncedOptions);
 		return wsClient;
 	}
 
@@ -25,7 +37,7 @@ export function initWsClient(options: WsClientOptions = {}): WsClient {
 		wsClient.disconnect();
 	}
 
-	wsClient = new WsClient(options);
+	wsClient = new WsClient(syncedOptions);
 	wsClientAccessToken = accessToken;
 	return wsClient;
 }

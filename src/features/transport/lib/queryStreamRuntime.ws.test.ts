@@ -1,15 +1,49 @@
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
-import { getWsClient } from "@/features/transport/lib/wsClientSingleton";
+import {
+	ensureAccessToken,
+	getCurrentAccessToken,
+} from "@/shared/api/apiClient";
+import { isAppMode } from "@/shared/utils/routing";
+import {
+	getWsClient,
+	getWsClientAccessToken,
+	initWsClient,
+} from "@/features/transport/lib/wsClientSingleton";
 
 jest.mock("./wsClientSingleton", () => ({
 	getWsClient: jest.fn(),
+	getWsClientAccessToken: jest.fn(),
+	initWsClient: jest.fn(),
+}));
+
+jest.mock("@/shared/api/apiClient", () => ({
+	ensureAccessToken: jest.fn(),
+	getCurrentAccessToken: jest.fn(),
+}));
+
+jest.mock("@/shared/utils/routing", () => ({
+	isAppMode: jest.fn(),
 }));
 
 describe("executeQueryStreamWs", () => {
 	const getWsClientMock = getWsClient as jest.MockedFunction<typeof getWsClient>;
+	const getWsClientAccessTokenMock = getWsClientAccessToken as jest.MockedFunction<typeof getWsClientAccessToken>;
+	const initWsClientMock = initWsClient as jest.MockedFunction<typeof initWsClient>;
+	const ensureAccessTokenMock = ensureAccessToken as jest.MockedFunction<typeof ensureAccessToken>;
+	const getCurrentAccessTokenMock = getCurrentAccessToken as jest.MockedFunction<typeof getCurrentAccessToken>;
+	const isAppModeMock = isAppMode as jest.MockedFunction<typeof isAppMode>;
 
 	beforeEach(() => {
 		getWsClientMock.mockReset();
+		getWsClientAccessTokenMock.mockReset();
+		initWsClientMock.mockReset();
+		ensureAccessTokenMock.mockReset();
+		getCurrentAccessTokenMock.mockReset();
+		isAppModeMock.mockReset();
+		ensureAccessTokenMock.mockResolvedValue("");
+		getCurrentAccessTokenMock.mockReturnValue("");
+		getWsClientAccessTokenMock.mockReturnValue("");
+		isAppModeMock.mockReturnValue(false);
 	});
 
 	it("throws a user-facing error when websocket transport is not initialized", async () => {
@@ -24,9 +58,7 @@ describe("executeQueryStreamWs", () => {
 				dispatch: jest.fn(),
 				handleEvent: jest.fn(),
 			}),
-		).rejects.toThrow(
-			"WebSocket transport is not initialized yet. Switch to WebSocket mode and confirm the connection first.",
-		);
+		).rejects.toThrow(/WebSocket .*?(not initialized|尚未初始化)/i);
 	});
 
 	it("dispatches the expected lifecycle actions", async () => {
@@ -79,10 +111,65 @@ describe("executeQueryStreamWs", () => {
 		);
 	});
 
+	it("recreates the ws client with a refreshed app token after a pre-stream handshake failure", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const firstStream = jest.fn((options: { onError?: (error: Error) => void }) => {
+			options.onError?.(new Error("WebSocket connection failed"));
+			return { abort: jest.fn() };
+		});
+		const secondStream = jest.fn((options: {
+			onEvent: (event: unknown) => void;
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onEvent({ type: "content.delta", text: "after refresh" });
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+		const refreshedConnect = jest.fn().mockResolvedValue(undefined);
+
+		isAppModeMock.mockReturnValue(true);
+		getCurrentAccessTokenMock.mockReturnValue("token_old");
+		getWsClientAccessTokenMock.mockReturnValue("token_old");
+		ensureAccessTokenMock.mockResolvedValue("token_new");
+		getWsClientMock.mockReturnValue({
+			updateOptions: jest.fn(),
+			stream: firstStream,
+		} as never);
+		initWsClientMock.mockReturnValue({
+			connect: refreshedConnect,
+			updateOptions: jest.fn(),
+			stream: secondStream,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_refresh",
+				message: "hello",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		expect(firstStream).toHaveBeenCalledTimes(1);
+		expect(ensureAccessTokenMock).toHaveBeenCalledWith("unauthorized");
+		expect(initWsClientMock).toHaveBeenCalledWith(
+			expect.objectContaining({ accessToken: "token_new" }),
+		);
+		expect(refreshedConnect).toHaveBeenCalledTimes(1);
+		expect(secondStream).toHaveBeenCalledTimes(1);
+		expect(handleEvent).toHaveBeenCalledWith({
+			type: "content.delta",
+			text: "after refresh",
+		});
+	});
+
 	it("aborts the underlying stream when the external signal is cancelled", async () => {
 		const dispatch = jest.fn();
 		const handleEvent = jest.fn();
 		const abortSpy = jest.fn();
+		getCurrentAccessTokenMock.mockReturnValue("token_1");
+		getWsClientAccessTokenMock.mockReturnValue("token_1");
 
 		getWsClientMock.mockReturnValue({
 			stream: jest.fn(
@@ -116,6 +203,8 @@ describe("executeQueryStreamWs", () => {
 			handleEvent,
 		});
 
+		await Promise.resolve();
+		await Promise.resolve();
 		externalController.abort();
 		await promise;
 
@@ -133,6 +222,8 @@ describe("executeQueryStreamWs", () => {
 	it("settles only once when abort and done race", async () => {
 		const dispatch = jest.fn();
 		const abortSpy = jest.fn();
+		getCurrentAccessTokenMock.mockReturnValue("token_1");
+		getWsClientAccessTokenMock.mockReturnValue("token_1");
 
 		getWsClientMock.mockReturnValue({
 			stream: jest.fn(
@@ -168,6 +259,8 @@ describe("executeQueryStreamWs", () => {
 			handleEvent: jest.fn(),
 		});
 
+		await Promise.resolve();
+		await Promise.resolve();
 		externalController.abort();
 		await promise;
 
@@ -205,8 +298,6 @@ describe("executeQueryStreamWs", () => {
 				dispatch: jest.fn(),
 				handleEvent: jest.fn(),
 			}),
-		).rejects.toThrow(
-			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
-		);
+		).rejects.toThrow(/WebSocket .*?(handshake failed|握手失败)/i);
 	});
 });

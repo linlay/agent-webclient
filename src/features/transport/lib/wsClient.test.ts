@@ -72,6 +72,16 @@ function flushMicrotasks(): Promise<void> {
 		.then(() => undefined);
 }
 
+async function waitForSocketCount(count: number): Promise<void> {
+	for (let attempt = 0; attempt < 10; attempt += 1) {
+		if (MockWebSocket.instances.length >= count) {
+			return;
+		}
+		await flushMicrotasks();
+	}
+	throw new Error(`expected ${count} websocket instances`);
+}
+
 async function waitForSentFrame(socket: MockWebSocket): Promise<string> {
 	for (let attempt = 0; attempt < 10; attempt += 1) {
 		if (socket.sent[0]) {
@@ -490,10 +500,75 @@ describe("WsClient", () => {
 
 		client.disconnect();
 		client.updateOptions({ accessToken: "token_b" });
-		client.connect();
+		const secondConnect = client.connect();
 
 		const secondSocket = MockWebSocket.instances[1];
 		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		secondSocket.open();
+		await expect(secondConnect).resolves.toBeUndefined();
+	});
+
+	it("refreshes the token after repeated automatic reconnect failures", async () => {
+		jest.useFakeTimers();
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+			reconnectTokenRefreshThreshold: 2,
+		});
+
+		const firstConnect = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		firstSocket.open();
+		await expect(firstConnect).resolves.toBeUndefined();
+
+		firstSocket.close(1006, "server disconnected");
+		jest.advanceTimersByTime(1_000);
+		await waitForSocketCount(2);
+
+		const secondSocket = MockWebSocket.instances[1];
+		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_a");
+		secondSocket.error();
+		await flushMicrotasks();
+
+		jest.advanceTimersByTime(1_000);
+		await waitForSocketCount(3);
+
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+		expect(MockWebSocket.instances[2].url).toBe(
+			"ws://localhost:3000/ws?token=token_b",
+		);
+		MockWebSocket.instances[2].open();
+		await flushMicrotasks();
+	});
+
+	it("refreshes the token immediately when the close reason points to auth", async () => {
+		jest.useFakeTimers();
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+		});
+
+		const firstConnect = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		firstSocket.open();
+		await expect(firstConnect).resolves.toBeUndefined();
+
+		firstSocket.close(1008, "token expired");
+		jest.advanceTimersByTime(1_000);
+		await waitForSocketCount(2);
+
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+		expect(MockWebSocket.instances[1].url).toBe(
+			"ws://localhost:3000/ws?token=token_b",
+		);
+		MockWebSocket.instances[1].open();
+		await flushMicrotasks();
 	});
 
 	it("swallows reconnect handshake failures while preserving error state", async () => {

@@ -250,13 +250,13 @@ describe("connectWsTransport", () => {
 				initWsClientImpl,
 				destroyWsClientImpl,
 			}),
-		).rejects.toThrow(/Access Token|access token/i);
+		).rejects.toThrow(/(Missing access token|缺少 Access Token)/i);
 
 		expect(initWsClientImpl).not.toHaveBeenCalled();
 		expect(destroyWsClientImpl).toHaveBeenCalledTimes(1);
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
-			message: expect.stringMatching(/Access Token|access token/i),
+			message: expect.stringMatching(/(Missing access token|缺少 Access Token)/i),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -264,7 +264,7 @@ describe("connectWsTransport", () => {
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
-			line: expect.stringMatching(/Access Token|access token/i),
+			line: expect.stringMatching(/\[live\].*(Missing access token|缺少 Access Token)/i),
 		});
 	});
 
@@ -287,12 +287,12 @@ describe("connectWsTransport", () => {
 				initWsClientImpl,
 				destroyWsClientImpl: jest.fn(),
 			}),
-		).rejects.toThrow(/WebSocket/);
+		).rejects.toThrow(/WebSocket .*?(handshake failed|握手失败)/i);
 
 		expect(ensureAccessTokenImpl).not.toHaveBeenCalled();
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
-			message: expect.stringMatching(/WebSocket/),
+			message: expect.stringMatching(/WebSocket .*?(handshake failed|握手失败)/i),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -300,7 +300,7 @@ describe("connectWsTransport", () => {
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
-			line: expect.stringMatching(/WebSocket/),
+			line: expect.stringMatching(/\[live\].*WebSocket .*?(handshake failed|握手失败)/i),
 		});
 	});
 

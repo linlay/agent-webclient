@@ -9,6 +9,8 @@ export type WsConnectionStatus =
 	| "connected"
 	| "error";
 
+export type WsAccessTokenRefreshReason = "missing" | "unauthorized";
+
 interface WsRequestFrame {
 	frame: "request";
 	type: string;
@@ -79,12 +81,17 @@ type ActiveStream = {
 
 export interface WsClientOptions {
 	accessToken?: string;
+	resolveAccessToken?: (
+		reason: WsAccessTokenRefreshReason,
+	) => string | Promise<string>;
+	onAccessTokenChange?: (accessToken: string) => void;
 	onStatusChange?: (status: WsConnectionStatus) => void;
 	onPush?: (frame: WsPushFrame) => void;
 	connectTimeoutMs?: number;
 	heartbeatTimeoutMs?: number;
 	reconnectBaseDelayMs?: number;
 	reconnectMaxDelayMs?: number;
+	reconnectTokenRefreshThreshold?: number;
 	healthCheckIntervalMs?: number;
 	requestTimeoutMs?: number;
 }
@@ -299,6 +306,8 @@ export class WsClient {
 	private connectPromise: Promise<void> | null = null;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
+	private accessTokenRefreshPromise: Promise<string> | null = null;
+	private lifecycleVersion = 0;
 	private reconnectAttempt = 0;
 	private lastSeenAt = 0;
 	private expectedClose = false;
@@ -311,11 +320,18 @@ export class WsClient {
 	private readonly heartbeatTimeoutMs: number;
 	private readonly reconnectBaseDelayMs: number;
 	private readonly reconnectMaxDelayMs: number;
+	private readonly reconnectTokenRefreshThreshold: number;
 	private readonly healthCheckIntervalMs: number;
 	private readonly requestTimeoutMs: number;
+	private resolveAccessToken?: (
+		reason: WsAccessTokenRefreshReason,
+	) => string | Promise<string>;
+	private onAccessTokenChange?: (accessToken: string) => void;
 
 	constructor(options: WsClientOptions = {}) {
 		this.accessToken = String(options.accessToken || "").trim();
+		this.resolveAccessToken = options.resolveAccessToken;
+		this.onAccessTokenChange = options.onAccessTokenChange;
 		this.onStatusChange = options.onStatusChange;
 		this.onPush = options.onPush;
 		this.connectTimeoutMs = Math.max(1000, options.connectTimeoutMs ?? 10_000);
@@ -324,6 +340,10 @@ export class WsClient {
 		this.reconnectMaxDelayMs = Math.max(
 			this.reconnectBaseDelayMs,
 			options.reconnectMaxDelayMs ?? 30_000,
+		);
+		this.reconnectTokenRefreshThreshold = Math.max(
+			1,
+			options.reconnectTokenRefreshThreshold ?? 2,
 		);
 		this.healthCheckIntervalMs = Math.max(
 			1000,
@@ -335,6 +355,12 @@ export class WsClient {
 	updateOptions(options: Partial<WsClientOptions> = {}): void {
 		if (options.accessToken !== undefined) {
 			this.accessToken = String(options.accessToken || "").trim();
+		}
+		if (options.resolveAccessToken !== undefined) {
+			this.resolveAccessToken = options.resolveAccessToken;
+		}
+		if (options.onAccessTokenChange !== undefined) {
+			this.onAccessTokenChange = options.onAccessTokenChange;
 		}
 		if (options.onStatusChange !== undefined) {
 			this.onStatusChange = options.onStatusChange;
@@ -349,6 +375,7 @@ export class WsClient {
 	}
 
 	disconnect(): void {
+		this.lifecycleVersion += 1;
 		this.expectedClose = true;
 		this.clearReconnectTimer();
 		this.clearHealthCheckTimer();
@@ -621,12 +648,12 @@ export class WsClient {
 				);
 			};
 
-			const handleCloseBeforeOpen = () => {
+			const handleCloseBeforeOpen = (event?: CloseEvent) => {
 				cleanupBeforeOpen();
 				this.connectPromise = null;
 				if (!this.expectedClose) {
 					this.setStatus("error");
-					this.scheduleReconnect();
+					this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
 				} else {
 					this.setStatus("disconnected");
 				}
@@ -749,7 +776,7 @@ export class WsClient {
 		}
 	};
 
-	private readonly handleClose = () => {
+	private readonly handleClose = (event?: CloseEvent) => {
 		this.clearHealthCheckTimer();
 		this.socket?.removeEventListener("message", this.handleMessage);
 		this.socket?.removeEventListener("close", this.handleClose);
@@ -765,7 +792,7 @@ export class WsClient {
 
 		this.setStatus("error");
 		this.cleanupPending(new WsClientDisconnectedError());
-		this.scheduleReconnect();
+		this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
 	};
 
 	private readonly handleSocketError = () => {
@@ -809,11 +836,53 @@ export class WsClient {
 		this.activeStreams.delete(id);
 	}
 
-	private scheduleReconnect(): void {
+	private shouldRefreshTokenForClose(
+		event?: Pick<CloseEvent, "code" | "reason">,
+	): boolean {
+		const reason = String(event?.reason || "").toLowerCase();
+		return (
+			event?.code === 1008 ||
+			reason.includes("token") ||
+			reason.includes("unauthorized")
+		);
+	}
+
+	private async refreshAccessToken(
+		reason: WsAccessTokenRefreshReason,
+	): Promise<string> {
+		if (!this.resolveAccessToken) {
+			return this.accessToken;
+		}
+		if (!this.accessTokenRefreshPromise) {
+			this.accessTokenRefreshPromise = Promise.resolve(
+				this.resolveAccessToken(reason),
+			)
+				.then((token) => {
+					const normalized = String(token || "").trim();
+					if (normalized) {
+						this.accessToken = normalized;
+						this.onAccessTokenChange?.(normalized);
+					}
+					return normalized;
+				})
+				.finally(() => {
+					this.accessTokenRefreshPromise = null;
+				});
+		}
+		return this.accessTokenRefreshPromise;
+	}
+
+	private scheduleReconnect(forceRefreshToken = false): void {
 		if (this.reconnectTimer || this.expectedClose) {
 			return;
 		}
 
+		const reconnectAttempt = this.reconnectAttempt + 1;
+		const shouldRefreshToken =
+			Boolean(this.resolveAccessToken) &&
+			(forceRefreshToken ||
+				reconnectAttempt >= this.reconnectTokenRefreshThreshold);
+		const lifecycleVersion = this.lifecycleVersion;
 		const delay = Math.min(
 			this.reconnectBaseDelayMs * 2 ** this.reconnectAttempt,
 			this.reconnectMaxDelayMs,
@@ -827,7 +896,18 @@ export class WsClient {
 			) {
 				return;
 			}
-			void this.connect().catch((error) => {
+			void (async () => {
+				if (this.lifecycleVersion !== lifecycleVersion || this.expectedClose) {
+					return;
+				}
+				if (shouldRefreshToken) {
+					await this.refreshAccessToken("unauthorized");
+				}
+				if (this.lifecycleVersion !== lifecycleVersion || this.expectedClose) {
+					return;
+				}
+				await this.connect();
+			})().catch((error) => {
 				if (isWsConnectionFailure(error)) {
 					return;
 				}

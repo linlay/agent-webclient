@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
@@ -431,8 +431,27 @@ function buildWsClient(
 	accessToken: string,
 ): WsClient {
 	const initWsClientImpl = options.initWsClientImpl ?? initWsClient;
+	const ensureAccessTokenImpl =
+		options.ensureAccessTokenImpl ?? ensureAccessToken;
+	const appMode = (options.isAppModeImpl ?? isAppMode)();
+	const currentStateToken = () =>
+		String(options.stateRef.current.accessToken || options.state.accessToken || "")
+			.trim();
+	const syncToken = (token: string) => {
+		const normalized = String(token || "").trim();
+		if (normalized && normalized !== currentStateToken()) {
+			options.dispatch({ type: "SET_ACCESS_TOKEN", token: normalized });
+		}
+		return normalized || currentStateToken();
+	};
 	return initWsClientImpl({
 		accessToken,
+		resolveAccessToken: async (reason) => {
+			if (!appMode) {
+				return currentStateToken();
+			}
+			return syncToken(await ensureAccessTokenImpl(reason));
+		},
 		onStatusChange: (status) => {
 			options.dispatch({ type: "SET_WS_STATUS", status });
 		},
@@ -669,7 +688,18 @@ export function useWsTransport() {
 		activeQuerySessionRequestIdRef,
 	} = useAppContext();
 	const { handleEvent } = useAgentEventHandler();
+	const handleEventRef = useRef(handleEvent);
 	const activeAttachRef = useRef<ActiveAttachState | null>(null);
+	const appMode = isAppMode();
+	const wsConnectKey = appMode ? "__app_mode__" : state.accessToken;
+
+	useEffect(() => {
+		handleEventRef.current = handleEvent;
+	}, [handleEvent]);
+
+	const stableHandleEvent = useCallback((event: AgentEvent) => {
+		handleEventRef.current(event);
+	}, []);
 
 	useEffect(() => {
 		setTransportModeProvider(() => stateRef.current.transportMode);
@@ -688,7 +718,7 @@ export function useWsTransport() {
 		return registerAttachRunListener({
 			dispatch,
 			stateRef,
-			handleEvent,
+			handleEvent: stableHandleEvent,
 			activeAttachRef,
 			querySessionsRef,
 			chatQuerySessionIndexRef,
@@ -698,8 +728,8 @@ export function useWsTransport() {
 		activeQuerySessionRequestIdRef,
 		chatQuerySessionIndexRef,
 		dispatch,
-		handleEvent,
 		querySessionsRef,
+		stableHandleEvent,
 		state.transportMode,
 		stateRef,
 	]);
@@ -718,9 +748,9 @@ export function useWsTransport() {
 
 		void connectWsTransport({
 			dispatch,
-			state,
+			state: { accessToken: stateRef.current.accessToken },
 			stateRef,
-			handleEvent,
+			handleEvent: stableHandleEvent,
 			isCancelled: () => cancelled,
 		}).catch((error) => {
 			if (cancelled) {
@@ -730,9 +760,9 @@ export function useWsTransport() {
 				return;
 			}
 			const normalized = toWsConnectionError(error, {
-				appMode: isAppMode(),
+				appMode,
 				hasAccessToken: Boolean(
-					String(stateRef.current.accessToken || state.accessToken || "").trim(),
+					String(stateRef.current.accessToken || "").trim(),
 				),
 			});
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: normalized.message });
@@ -748,5 +778,11 @@ export function useWsTransport() {
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
 		};
-	}, [dispatch, handleEvent, state.accessToken, state.transportMode, stateRef]);
+	}, [
+		dispatch,
+		stableHandleEvent,
+		state.transportMode,
+		stateRef,
+		wsConnectKey,
+	]);
 }

@@ -270,7 +270,9 @@ describe("apiClientProxy", () => {
 			data: ["ws"],
 		});
 
-		expect(mockInitWsClient).toHaveBeenCalledWith({ accessToken: "token_1" });
+		expect(mockInitWsClient).toHaveBeenCalledWith(
+			expect.objectContaining({ accessToken: "token_1" }),
+		);
 		expect(connect).toHaveBeenCalledTimes(1);
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/agents",
@@ -455,6 +457,58 @@ describe("apiClientProxy", () => {
 				read: { isRead: true },
 			},
 		});
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/read",
+			payload: { chatId: "chat_1", runId: "run_1" },
+		});
+		expect(mockApiClient.markChatRead).not.toHaveBeenCalled();
+	});
+
+	it("refreshes the app token once when a ws action connect fails", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const firstConnect = jest.fn().mockRejectedValue(
+			new WsClientDisconnectedError("WebSocket connection failed"),
+		);
+		const secondConnect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				chatId: "chat_1",
+				read: { isRead: true },
+			},
+		});
+		mockApiClient.getCurrentAccessToken.mockReturnValue("token_old");
+		mockApiClient.ensureAccessToken.mockResolvedValue("token_new");
+		mockGetWsClient.mockReturnValue({
+			connect: firstConnect,
+			updateOptions: jest.fn(),
+			request: jest.fn(),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("token_old");
+		mockInitWsClient.mockReturnValue({
+			connect: secondConnect,
+			request,
+		});
+
+		await expect(
+			proxy.markChatRead({ chatId: "chat_1", runId: "run_1" }),
+		).resolves.toMatchObject({
+			data: {
+				chatId: "chat_1",
+				read: { isRead: true },
+			},
+		});
+
+		expect(firstConnect).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.ensureAccessToken).toHaveBeenCalledWith("unauthorized");
+		expect(mockInitWsClient).toHaveBeenCalledWith(
+			expect.objectContaining({ accessToken: "token_new" }),
+		);
+		expect(secondConnect).toHaveBeenCalledTimes(1);
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/read",
 			payload: { chatId: "chat_1", runId: "run_1" },
