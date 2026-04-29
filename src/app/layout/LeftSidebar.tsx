@@ -32,6 +32,14 @@ import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySectio
 import { markChatRead, searchGlobal } from "@/features/transport/lib/apiClientProxy";
 import type { WorkerConversationRow } from "@/app/state/types";
 
+function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
+  const normalizedChatId = String(chatId || "").trim();
+  if (!normalizedChatId) return -1;
+  return rows.findIndex(
+    (row) => String(row.chatId || "").trim() === normalizedChatId,
+  );
+}
+
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
@@ -189,9 +197,11 @@ export const LeftSidebar: React.FC = () => {
     workerKey: string,
   ) => {
     event.stopPropagation();
+    const workerChats = workerChatsByKey.get(workerKey) || [];
+    const currentChatIndex = findChatIndex(workerChats, state.chatId);
     setHistoryWorkerKey(workerKey);
     setHistorySearch("");
-    setHistoryIndex(0);
+    setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
   };
 
   const handleMarkWorkerAllRead = async (

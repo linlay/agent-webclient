@@ -18,6 +18,12 @@ function includesTarget(container: HTMLElement | null, target: EventTarget | nul
 	return Boolean(container && target instanceof Node && container.contains(target));
 }
 
+function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
+	const normalizedChatId = String(chatId || "").trim();
+	if (!normalizedChatId) return -1;
+	return rows.findIndex((row) => String(row.chatId || "").trim() === normalizedChatId);
+}
+
 export const CommandModal: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
@@ -30,6 +36,7 @@ export const CommandModal: React.FC = () => {
 	const cardRef = useRef<HTMLDivElement>(null);
 	const switchItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 	const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+	const historyDefaultSelectionAppliedRef = useRef(false);
 	const [remoteHistoryRows, setRemoteHistoryRows] =
 		useState<WorkerConversationRow[] | null>(null);
 
@@ -160,6 +167,32 @@ export const CommandModal: React.FC = () => {
 		if (!modal.open || modal.type !== "history") return;
 		historyItemRefs.current[historyIndex]?.scrollIntoView({ block: "nearest" });
 	}, [historyIndex, modal.open, modal.type]);
+
+	useEffect(() => {
+		if (!modal.open || modal.type !== "history" || modal.historySearch) {
+			historyDefaultSelectionAppliedRef.current = false;
+			return;
+		}
+		if (historyDefaultSelectionAppliedRef.current) return;
+
+		const currentChatIndex = findChatIndex(filteredHistoryRows, state.chatId);
+		if (currentChatIndex < 0) return;
+
+		historyDefaultSelectionAppliedRef.current = true;
+		if (modal.activeIndex === currentChatIndex) return;
+		dispatch({
+			type: "PATCH_COMMAND_MODAL",
+			modal: { activeIndex: currentChatIndex },
+		});
+	}, [
+		dispatch,
+		filteredHistoryRows,
+		modal.activeIndex,
+		modal.historySearch,
+		modal.open,
+		modal.type,
+		state.chatId,
+	]);
 
 	useEffect(() => {
 		const query = String(modal.historySearch || "").trim();

@@ -250,8 +250,8 @@
 
 .chat-unread-dot {
     display: block;
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     flex: 0 0 auto;
     border-radius: 50%;
     background: var(--accent-electric);
