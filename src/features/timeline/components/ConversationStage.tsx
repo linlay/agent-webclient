@@ -19,6 +19,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
+import { Button, Flex, Form, Input, Popover } from "antd";
 
 function formatResponseDuration(durationMs?: number): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
@@ -74,7 +75,12 @@ export const ConversationStage: React.FC = () => {
       taskItemsById: state.taskItemsById,
       taskGroupsById: state.taskGroupsById,
     });
-  }, [timelineEntries, state.events, state.taskItemsById, state.taskGroupsById]);
+  }, [
+    timelineEntries,
+    state.events,
+    state.taskItemsById,
+    state.taskGroupsById,
+  ]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -199,7 +205,11 @@ export const ConversationStage: React.FC = () => {
           className={`timeline-stack ${displayItems.length === 0 ? "is-empty" : ""}`}
         >
           {displayItems.length === 0 ? (
-            <div className="timeline-empty">{currentWorker?.displayName ? `与 ${currentWorker?.displayName} 对话` : "今天有什么可以帮您"}</div>
+            <div className="timeline-empty">
+              {currentWorker?.displayName
+                ? `与 ${currentWorker?.displayName} 对话`
+                : "今天有什么可以帮您"}
+            </div>
           ) : (
             <div className="timeline-lane">
               {displayItems.map((item) => {
@@ -262,7 +272,9 @@ export const ConversationStage: React.FC = () => {
                   );
                   const runCopyKey = `${item.key}:copy`;
                   const runId = String(item.runId || "").trim();
-                  const isDownvoted = Boolean(runId && state.downvotedRunKeys.has(runId));
+                  const isDownvoted = Boolean(
+                    runId && state.downvotedRunKeys.has(runId),
+                  );
                   const runCopyStatus = actionStatus[runCopyKey] || "复制";
                   return (
                     <section key={item.key} className="timeline-run-group">
@@ -274,7 +286,9 @@ export const ConversationStage: React.FC = () => {
                                   key={section.key}
                                   className="timeline-run-mainline"
                                 >
-                                  {section.renderEntries.map((entry) => renderEntry(entry))}
+                                  {section.renderEntries.map((entry) =>
+                                    renderEntry(entry),
+                                  )}
                                 </div>
                               ) : (
                                 <TaskGroupSection
@@ -283,7 +297,9 @@ export const ConversationStage: React.FC = () => {
                                 />
                               ),
                             )
-                          : item.renderEntries.map((entry) => renderEntry(entry))}
+                          : item.renderEntries.map((entry) =>
+                              renderEntry(entry),
+                            )}
                       </div>
                       {isCompleted && (
                         <div className="timeline-run-meta">
@@ -307,19 +323,29 @@ export const ConversationStage: React.FC = () => {
                             >
                               <MaterialIcon name="content_copy" />
                             </UiButton>
-                            <UiButton
-                              className={`timeline-meta-btn ${isDownvoted ? "is-downvoted" : ""}`}
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              active={isDownvoted}
-                              title={isDownvoted ? "取消点踩" : "点踩"}
-                              aria-label={isDownvoted ? "取消点踩" : "点踩"}
-                              disabled={!runId}
-                              onClick={() => void handleDownvote(runId, !isDownvoted)}
+                            <Popover
+                              destroyOnHidden
+                              content={
+                                <FeedbackModal
+                                  onFinish={(text: string) => {
+                                    handleDownvote(runId, !isDownvoted);
+                                  }}
+                                />
+                              }
                             >
-                              <MaterialIcon name="thumb_down" />
-                            </UiButton>
+                              <UiButton
+                                className={`timeline-meta-btn ${isDownvoted ? "is-downvoted" : ""}`}
+                                variant="ghost"
+                                size="sm"
+                                iconOnly
+                                active={isDownvoted}
+                                title={isDownvoted ? "取消点踩" : "点踩"}
+                                aria-label={isDownvoted ? "取消点踩" : "点踩"}
+                                disabled={!runId}
+                              >
+                                <MaterialIcon name="thumb_down" />
+                              </UiButton>
+                            </Popover>
                           </div>
                           {time.short && (
                             <div
@@ -341,7 +367,12 @@ export const ConversationStage: React.FC = () => {
                 }
 
                 if (item.node.kind === "agent-group" && item.node.groupId) {
-                  return <AgentGroupCard key={item.key} groupId={item.node.groupId} />;
+                  return (
+                    <AgentGroupCard
+                      key={item.key}
+                      groupId={item.node.groupId}
+                    />
+                  );
                 }
                 return <TimelineRow key={item.key} node={item.node} />;
               })}
@@ -350,5 +381,28 @@ export const ConversationStage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const FeedbackModal: React.FC<{
+  onFinish: (values: any) => void;
+}> = (props) => {
+  const { onFinish } = props;
+
+  return (
+    <Form onFinish={onFinish} size="small" style={{ width: 320 }}>
+      <strong>反馈（选填）</strong>
+      <Form.Item name="reason" style={{ margin: "10px 0" }}>
+        <Input.TextArea
+          placeholder="我们想知道你对此回答不满意的原因，你认为更好的回答是什么？"
+          rows={4}
+        />
+      </Form.Item>
+      <Flex gap={10} justify="flex-end">
+        <Button type="primary" htmlType="submit">
+          提交
+        </Button>
+      </Flex>
+    </Form>
   );
 };
