@@ -1,19 +1,18 @@
 import React from "react";
 
-export interface UiListItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface UiListItemProps extends React.ButtonHTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   dense?: boolean;
   loading?: boolean;
 }
 
-export const UiListItem = React.forwardRef<HTMLButtonElement, UiListItemProps>(
+export const UiListItem = React.forwardRef<HTMLDivElement, UiListItemProps>(
   (
     {
       selected = false,
       dense = false,
       loading = false,
       className = "",
-      type = "button",
       children,
       ...rest
     },
@@ -30,15 +29,14 @@ export const UiListItem = React.forwardRef<HTMLButtonElement, UiListItemProps>(
       .join(" ");
 
     return (
-      <button
+      <div
         ref={ref}
-        type={type}
         className={classes}
         aria-busy={loading || undefined}
         {...rest}
       >
         {children}
-      </button>
+      </div>
     );
   },
 );

@@ -14,7 +14,7 @@ export const HistoryModal: React.FC<{
   historySearch: string;
   historyInputRef: React.RefObject<HTMLInputElement>;
   historyListRef: React.RefObject<HTMLDivElement>;
-  historyItemRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
+  historyItemRefs: React.MutableRefObject<Array<HTMLElement | null>>;
   onHistorySearchChange: (value: string) => void;
   onActivateIndex: (index: number) => void;
   onSelect: (index: number) => void;
