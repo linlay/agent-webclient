@@ -40,6 +40,7 @@ import {
   normalizePreferenceScopeType,
   preferredScopeTypeFromSummaries,
   resolveMemoryAgentContext,
+  resolveMemoryPreviewContext,
   syncSelectedPreferenceDraftFromLiveValues,
   toScopeRecordInputs,
 } from "@/features/settings/lib/memoryInfo";
@@ -1266,13 +1267,13 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
             </div>
           </div>
 
-          <div className="memory-preview-layer-tabs">
+          <div className="memory-preview-layer-tabs settings-segmented">
             {PREVIEW_PROMPT_LAYER_ORDER.map((layer) => (
               <UiButton
                 key={layer}
                 variant="ghost"
                 size="sm"
-                className={`memory-preview-layer-tab ${promptLayer === layer ? "is-active" : ""}`}
+                className={`settings-segmented-btn memory-preview-layer-tab ${promptLayer === layer ? "is-active" : ""}`}
                 active={promptLayer === layer}
                 onClick={() => onPromptLayerChange(layer)}
               >
@@ -1565,13 +1566,33 @@ export const MemoryInfoModal: React.FC = () => {
       state.workerRelatedChats,
     ],
   );
+  const previewContext = useMemo(
+    () =>
+      resolveMemoryPreviewContext({
+        chatId: state.chatId,
+        chats: state.chats,
+        workerSelectionKey: state.workerSelectionKey,
+        workerIndexByKey: state.workerIndexByKey,
+        workerRows: state.workerRows,
+        workerRelatedChats: state.workerRelatedChats,
+      }),
+    [
+      state.chatId,
+      state.chats,
+      state.workerSelectionKey,
+      state.workerIndexByKey,
+      state.workerRows,
+      state.workerRelatedChats,
+    ],
+  );
   const currentChat = useMemo(
     () =>
       state.chats.find((chat) => toText(chat.chatId) === toText(state.chatId)) ||
       null,
     [state.chatId, state.chats],
   );
-  const currentTeamId = toText(currentChat?.teamId);
+  const previewChatId = toText(previewContext.chatId);
+  const previewTeamId = toText(currentChat?.teamId) || toText(previewContext.teamId);
 
   const closeModal = useCallback(() => {
     dispatch({ type: "SET_MEMORY_INFO_OPEN", open: false });
@@ -1610,7 +1631,7 @@ export const MemoryInfoModal: React.FC = () => {
 
   const runMemoryPreview = useCallback(
     async (messageOverride?: string) => {
-      const chatId = toText(state.chatId);
+      const chatId = previewChatId;
       const message = toText(
         messageOverride !== undefined
           ? messageOverride
@@ -1652,7 +1673,7 @@ export const MemoryInfoModal: React.FC = () => {
         });
       }
     },
-    [dispatch, state.chatId, state.memoryPreviewDraft, t],
+    [dispatch, previewChatId, state.memoryPreviewDraft, t],
   );
 
   const loadDetail = useCallback(
@@ -2335,7 +2356,7 @@ export const MemoryInfoModal: React.FC = () => {
       return;
     }
     if (
-      !toText(state.chatId) ||
+      !toText(previewChatId) ||
       !toText(state.memoryPreviewDraft) ||
       toText(state.memoryPreviewDraft) !== toText(state.composerDraft)
     ) {
@@ -2345,8 +2366,8 @@ export const MemoryInfoModal: React.FC = () => {
     void runMemoryPreview(state.memoryPreviewDraft);
   }, [
     state.composerDraft,
+    previewChatId,
     runMemoryPreview,
-    state.chatId,
     state.memoryConsoleTab,
     state.memoryInfoOpen,
     state.memoryPreviewDraft,
@@ -2437,8 +2458,8 @@ export const MemoryInfoModal: React.FC = () => {
       }}
       previewPanel={{
         agentKey: agentContext.agentKey,
-        chatId: state.chatId,
-        teamId: currentTeamId,
+        chatId: previewChatId,
+        teamId: previewTeamId,
         draft: state.memoryPreviewDraft,
         loading: state.memoryPreviewLoading,
         error: state.memoryPreviewError,

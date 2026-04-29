@@ -14,6 +14,12 @@ export interface MemoryAgentContext {
   source: "worker" | "chat" | "none";
 }
 
+export interface MemoryPreviewContext {
+  chatId: string;
+  teamId: string;
+  source: "active-chat" | "worker-chat" | "none";
+}
+
 function findChatById(chats: Chat[], chatId: string): Chat | null {
   const normalized = toText(chatId);
   return chats.find((chat) => toText(chat?.chatId) === normalized) || null;
@@ -76,6 +82,60 @@ export function resolveMemoryAgentContext(
   return {
     agentKey: "",
     label: "",
+    source: "none",
+  };
+}
+
+export function resolveMemoryPreviewContext(
+  state: Pick<
+    AppState,
+    | "chatId"
+    | "chats"
+    | "workerSelectionKey"
+    | "workerIndexByKey"
+    | "workerRows"
+    | "workerRelatedChats"
+  >,
+): MemoryPreviewContext {
+  const activeChatId = toText(state.chatId);
+  if (activeChatId) {
+    const chat = findChatById(state.chats, activeChatId);
+    return {
+      chatId: activeChatId,
+      teamId: toText(chat?.teamId),
+      source: "active-chat",
+    };
+  }
+
+  const selectedWorkerKey = toText(state.workerSelectionKey);
+  if (selectedWorkerKey) {
+    const relatedChat =
+      state.workerRelatedChats.find((chat) => toText(chat?.chatId)) || null;
+    if (relatedChat) {
+      return {
+        chatId: toText(relatedChat.chatId),
+        teamId: toText(relatedChat.teamId),
+        source: "worker-chat",
+      };
+    }
+
+    const selectedWorker =
+      state.workerIndexByKey.get(selectedWorkerKey) ||
+      state.workerRows.find((row) => toText(row.key) === selectedWorkerKey) ||
+      null;
+    const latestChatId = toText(selectedWorker?.latestChatId);
+    if (latestChatId) {
+      return {
+        chatId: latestChatId,
+        teamId: "",
+        source: "worker-chat",
+      };
+    }
+  }
+
+  return {
+    chatId: "",
+    teamId: "",
     source: "none",
   };
 }

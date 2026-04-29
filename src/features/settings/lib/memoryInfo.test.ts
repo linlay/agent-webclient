@@ -4,6 +4,7 @@ import {
   formatScopeTabLabel,
   hydratePreferenceDrafts,
   resolveMemoryAgentContext,
+  resolveMemoryPreviewContext,
   syncSelectedPreferenceDraftFromLiveValues,
   toScopeRecordInputs,
 } from "@/features/settings/lib/memoryInfo";
@@ -70,6 +71,53 @@ describe("resolveMemoryAgentContext", () => {
       agentKey: "",
       label: "",
       source: "none",
+    });
+  });
+
+  it("prefers the active chat for preview context when chatId exists", () => {
+    const state = createInitialState();
+
+    expect(
+      resolveMemoryPreviewContext({
+        ...state,
+        chatId: "chat_1",
+        chats: [
+          {
+            chatId: "chat_1",
+            chatName: "demo",
+            teamId: "team-ops",
+          },
+        ],
+      }),
+    ).toEqual({
+      chatId: "chat_1",
+      teamId: "team-ops",
+      source: "active-chat",
+    });
+  });
+
+  it("falls back to the selected worker's latest related chat for preview context", () => {
+    const state = createInitialState();
+
+    expect(
+      resolveMemoryPreviewContext({
+        ...state,
+        workerSelectionKey: "agent:agent-alice",
+        workerRelatedChats: [
+          {
+            chatId: "chat_worker_1",
+            chatName: "worker chat",
+            updatedAt: 100,
+            lastRunId: "run_1",
+            lastRunContent: "hello",
+            teamId: "team-worker",
+          },
+        ],
+      }),
+    ).toEqual({
+      chatId: "chat_worker_1",
+      teamId: "team-worker",
+      source: "worker-chat",
     });
   });
 
