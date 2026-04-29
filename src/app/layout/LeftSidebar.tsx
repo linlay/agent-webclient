@@ -23,7 +23,6 @@ import {
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
-import { SearchOutlined } from "@ant-design/icons";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { ChatItem } from "@/app/layout/sidebar/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
