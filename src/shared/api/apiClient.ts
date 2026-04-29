@@ -161,6 +161,95 @@ export interface ScheduleExecutionsRequest {
   offset?: number;
 }
 
+export interface ArchiveChatsRequest {
+  chatIds: string[];
+}
+
+export interface ArchiveChatResult {
+  chatId: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface ArchiveChatsResponse {
+  results: ArchiveChatResult[];
+}
+
+export interface ArchivesRequest {
+  agentKey?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ArchivedSummaryResponse {
+  chatId: string;
+  chatName: string;
+  agentKey?: string;
+  teamId?: string;
+  createdAt: number;
+  updatedAt: number;
+  archivedAt: number;
+  lastRunId?: string;
+  lastRunContent?: string;
+  snippet?: string;
+  hasAttachments?: boolean;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+}
+
+export interface ArchivesResponse {
+  total: number;
+  items: ArchivedSummaryResponse[];
+}
+
+export interface ArchiveSearchParams {
+  query: string;
+  agentKey?: string;
+  limit?: number;
+}
+
+export interface ArchiveSearchResult {
+  chatId: string;
+  chatName: string;
+  agentKey?: string;
+  teamId?: string;
+  lastRunId?: string;
+  lastRunContent?: string;
+  archivedAt: number;
+  snippet: string;
+  score: number;
+}
+
+export interface ArchiveSearchResponse {
+  query: string;
+  count: number;
+  results: ArchiveSearchResult[];
+}
+
+export interface ArchiveDetailResponse {
+  chatId: string;
+  chatName?: string;
+  events?: unknown[];
+  rawMessages?: unknown[];
+  runs?: unknown[];
+  plan?: unknown;
+  artifact?: unknown;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  resourceTicket?: string;
+}
+
+export interface ArchiveDeleteResponse {
+  chatId: string;
+  deleted: boolean;
+}
+
 let authToken = "";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -678,6 +767,54 @@ export function getChat(
     includeRawMessages: includeRawMessages ? "true" : undefined,
   });
   return requestJson(`/api/chat?${query}`);
+}
+
+export function archiveChats(
+  params: ArchiveChatsRequest,
+): Promise<ApiResponse<ArchiveChatsResponse>> {
+  return postJson<ArchiveChatsResponse>("/api/chat-archive", {
+    chatIds: params.chatIds,
+  });
+}
+
+export function getArchives(
+  params: ArchivesRequest = {},
+): Promise<ApiResponse<ArchivesResponse>> {
+  const query = toQueryString({
+    agentKey: params.agentKey,
+    limit: params.limit,
+    offset: params.offset,
+  });
+  return requestJson<ArchivesResponse>(query ? `/api/archives?${query}` : "/api/archives");
+}
+
+export function getArchive(
+  chatId: string,
+  includeRawMessages = false,
+): Promise<ApiResponse<ArchiveDetailResponse>> {
+  const query = toQueryString({
+    chatId,
+    includeRawMessages: includeRawMessages ? "true" : undefined,
+  });
+  return requestJson<ArchiveDetailResponse>(`/api/archive?${query}`);
+}
+
+export function searchArchives(
+  params: ArchiveSearchParams,
+): Promise<ApiResponse<ArchiveSearchResponse>> {
+  return postJson<ArchiveSearchResponse>("/api/archive-search", {
+    query: params.query,
+    agentKey: params.agentKey,
+    limit: params.limit,
+  });
+}
+
+export function deleteArchive(params: {
+  chatId: string;
+}): Promise<ApiResponse<ArchiveDeleteResponse>> {
+  return postJson<ArchiveDeleteResponse>("/api/archive-delete", {
+    chatId: params.chatId,
+  });
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {

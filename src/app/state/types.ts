@@ -133,6 +133,7 @@ export interface AppState {
 	workerChatPanelCollapsed: boolean;
 	chatLoadSeq: number;
 	settingsOpen: boolean;
+	archiveOpen: boolean;
 	memoryInfoOpen: boolean;
 	memoryConsoleTab: MemoryConsoleTab;
 	memoryInfoLoading: boolean;

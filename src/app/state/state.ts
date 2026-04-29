@@ -104,6 +104,7 @@ export function createInitialState(): AppState {
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
 		settingsOpen: false,
+		archiveOpen: false,
 		memoryInfoOpen: false,
 		memoryConsoleTab: createDefaultMemoryConsoleTab(),
 		memoryInfoLoading: false,

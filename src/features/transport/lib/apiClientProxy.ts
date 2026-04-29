@@ -1,14 +1,19 @@
 import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
+	archiveChats as archiveChatsHttp,
 	createQueryStream,
 	createSchedule as createScheduleHttp,
+	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
 	deleteSchedule as deleteScheduleHttp,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
+	getArchive as getArchiveHttp,
+	getArchives as getArchivesHttp,
 	searchGlobal as searchGlobalHttp,
+	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
 	getAgents as getAgentsHttp,
 	getChat as getChatHttp,
@@ -37,6 +42,14 @@ import {
 	updateSchedule as updateScheduleHttp,
 	uploadFile,
 	type ApiResponse,
+	type ArchiveChatsRequest,
+	type ArchiveChatsResponse,
+	type ArchiveDeleteResponse,
+	type ArchiveDetailResponse,
+	type ArchivesRequest,
+	type ArchivesResponse,
+	type ArchiveSearchParams,
+	type ArchiveSearchResponse,
 	type CreateScheduleRequest,
 	type DeleteScheduleRequest,
 	type FeedbackParams,
@@ -174,6 +187,68 @@ export function getChat(
 			...(includeRawMessages ? { includeRawMessages: true } : {}),
 		},
 		() => getChatHttp(chatId, includeRawMessages),
+	);
+}
+
+export function archiveChats(
+	params: ArchiveChatsRequest,
+): Promise<ApiResponse<ArchiveChatsResponse>> {
+	return routeRequest<ArchiveChatsResponse>(
+		"/api/chat-archive",
+		params,
+		() => archiveChatsHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
+}
+
+export function getArchives(
+	params: ArchivesRequest = {},
+): Promise<ApiResponse<ArchivesResponse>> {
+	return routeRequest<ArchivesResponse>(
+		"/api/archives",
+		params,
+		() => getArchivesHttp(params),
+	);
+}
+
+export function getArchive(
+	chatId: string,
+	includeRawMessages = false,
+): Promise<ApiResponse<ArchiveDetailResponse>> {
+	return routeRequest<ArchiveDetailResponse>(
+		"/api/archive",
+		{
+			chatId,
+			...(includeRawMessages ? { includeRawMessages: true } : {}),
+		},
+		() => getArchiveHttp(chatId, includeRawMessages),
+	);
+}
+
+export function searchArchives(
+	params: ArchiveSearchParams,
+): Promise<ApiResponse<ArchiveSearchResponse>> {
+	return routeRequest<ArchiveSearchResponse>(
+		"/api/archive-search",
+		params,
+		() => searchArchivesHttp(params),
+	);
+}
+
+export function deleteArchive(params: {
+	chatId: string;
+}): Promise<ApiResponse<ArchiveDeleteResponse>> {
+	return routeRequest<ArchiveDeleteResponse>(
+		"/api/archive-delete",
+		params,
+		() => deleteArchiveHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
 	);
 }
 

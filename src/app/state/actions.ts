@@ -49,6 +49,7 @@ export type AppAction =
 	| { type: "FINISH_SIDEBAR_REQUEST" }
 	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
 	| { type: "CHAT_DELETED"; chatId: string }
+	| { type: "CHAT_ARCHIVED"; chatId: string }
 	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }
@@ -76,6 +77,7 @@ export type AppAction =
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { type: "SET_SETTINGS_OPEN"; open: boolean }
+	| { type: "SET_ARCHIVE_OPEN"; open: boolean }
 	| { type: "SET_MEMORY_INFO_OPEN"; open: boolean }
 	| { type: "SET_MEMORY_CONSOLE_TAB"; tab: MemoryConsoleTab }
 	| { type: "SET_MEMORY_INFO_LOADING"; loading: boolean }

@@ -241,6 +241,41 @@ describe('appReducer conversation reset behavior', () => {
     });
   });
 
+  it('removes archived chat summaries from active and worker lists', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chats: [
+        { chatId: 'chat_1', chatName: 'Archive me' },
+        { chatId: 'chat_2', chatName: 'Keep me' },
+      ],
+      workerRelatedChats: [
+        {
+          chatId: 'chat_1',
+          chatName: 'Archive me',
+          updatedAt: 100,
+          lastRunId: 'run_1',
+          lastRunContent: 'old',
+        },
+        {
+          chatId: 'chat_2',
+          chatName: 'Keep me',
+          updatedAt: 200,
+          lastRunId: 'run_2',
+          lastRunContent: 'new',
+        },
+      ],
+    };
+
+    const next = appReducer(state, {
+      type: 'CHAT_ARCHIVED',
+      chatId: 'chat_1',
+    });
+
+    expect(next.chats.map((chat) => chat.chatId)).toEqual(['chat_2']);
+    expect(next.workerRelatedChats.map((chat) => chat.chatId)).toEqual(['chat_2']);
+  });
+
   it('manages pending steer queue lifecycle', () => {
     const baseState = createInitialState();
 

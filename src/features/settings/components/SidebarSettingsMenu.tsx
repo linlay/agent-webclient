@@ -18,6 +18,7 @@ export interface SettingsSummaryBadge {
 
 export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
+  | { type: "open-archive" }
   | { type: "open-memory-info" }
   | { type: "noop" };
 
@@ -118,6 +119,13 @@ export function buildSidebarSettingsMenuSections(input: {
           icon: "database",
           action: { type: "open-memory-info" },
         },
+        {
+          key: "open-archive",
+          label: t("settingsMenu.archive"),
+          description: t("settingsMenu.archiveDescription"),
+          icon: "inventory_2",
+          action: { type: "open-archive" },
+        },
       ],
     },
     {
@@ -163,6 +171,10 @@ export function dispatchSidebarSettingsAction(
   }
   if (action.type === "open-memory-info") {
     dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true });
+    return true;
+  }
+  if (action.type === "open-archive") {
+    dispatch({ type: "SET_ARCHIVE_OPEN", open: true });
     return true;
   }
   return false;

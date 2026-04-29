@@ -9,6 +9,8 @@ export function reduceUiState(
 	switch (action.type) {
 		case "SET_SETTINGS_OPEN":
 			return { ...state, settingsOpen: action.open };
+		case "SET_ARCHIVE_OPEN":
+			return { ...state, archiveOpen: action.open };
 		case "SET_MEMORY_INFO_OPEN":
 			return {
 				...state,

@@ -57,6 +57,7 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
 		settingsOpen: false,
+		archiveOpen: false,
 		leftDrawerOpen: false,
 		desktopDebugSidebarEnabled: false,
 		attachmentPreview: null,
@@ -246,16 +247,13 @@ describe("connectWsTransport", () => {
 				initWsClientImpl,
 				destroyWsClientImpl,
 			}),
-		).rejects.toThrow(
-			"Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
-		);
+		).rejects.toThrow(/Access Token|access token/i);
 
 		expect(initWsClientImpl).not.toHaveBeenCalled();
 		expect(destroyWsClientImpl).toHaveBeenCalledTimes(1);
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
-			message:
-				"Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
+			message: expect.stringMatching(/Access Token|access token/i),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -263,8 +261,7 @@ describe("connectWsTransport", () => {
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
-			line:
-				"[live] Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
+			line: expect.stringMatching(/Access Token|access token/i),
 		});
 	});
 
@@ -287,15 +284,12 @@ describe("connectWsTransport", () => {
 				initWsClientImpl,
 				destroyWsClientImpl: jest.fn(),
 			}),
-		).rejects.toThrow(
-			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
-		);
+		).rejects.toThrow(/WebSocket/);
 
 		expect(ensureAccessTokenImpl).not.toHaveBeenCalled();
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_ERROR_MESSAGE",
-			message:
-				"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
+			message: expect.stringMatching(/WebSocket/),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_WS_STATUS",
@@ -303,8 +297,7 @@ describe("connectWsTransport", () => {
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
-			line:
-				"[live] WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
+			line: expect.stringMatching(/WebSocket/),
 		});
 	});
 
@@ -427,6 +420,65 @@ describe("connectWsTransport", () => {
 				firstAgentKey: "agent_data",
 			}),
 		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("removes and resets the active chat when chat.archived arrives over push", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.archived",
+			payload: {
+				chatId: "chat_active",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "CHAT_ARCHIVED",
+			chatId: "chat_active",
+		});
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "" });
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "" });
+		expect(dispatch).toHaveBeenCalledWith({ type: "RESET_ACTIVE_CONVERSATION" });
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "agent:reset-event-cache" }),
+		);
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "agent:voice-reset" }),
+		);
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 

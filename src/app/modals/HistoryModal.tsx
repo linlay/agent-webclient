@@ -98,6 +98,7 @@ export const HistoryModal: React.FC<{
                   <ChatActionsMenu
                     chatId={chat.chatId}
                     chatName={chat.chatName || chat.chatId}
+                    onArchived={onChatDeleted}
                     onDeleted={onChatDeleted}
                   />
                 </Flex>

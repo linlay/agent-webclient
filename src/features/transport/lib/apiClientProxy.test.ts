@@ -26,9 +26,11 @@ jest.mock("@/shared/api/apiClient", () => {
 
 	return {
 		ApiError: MockApiError,
+			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
 			createSchedule: jest.fn(),
 			createQueryStream: jest.fn(),
+			deleteArchive: jest.fn(),
 			deleteChat: jest.fn(),
 			deleteSchedule: jest.fn(),
 		downloadChatExport: jest.fn(),
@@ -36,6 +38,8 @@ jest.mock("@/shared/api/apiClient", () => {
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
 		getAgents: jest.fn(),
+		getArchive: jest.fn(),
+		getArchives: jest.fn(),
 		getChat: jest.fn(),
 		getChats: jest.fn(),
 			getCurrentAccessToken: jest.fn(),
@@ -64,6 +68,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
+		searchArchives: jest.fn(),
 		searchGlobal: jest.fn(),
 		setAccessToken: jest.fn(),
 			steerChat: jest.fn(),
@@ -86,9 +91,11 @@ let mockApiClient: {
 		message: string,
 		options?: { status?: number | null; code?: number | string | null; data?: unknown },
 	) => Error;
+		archiveChats: jest.Mock;
 		buildResourceUrl: jest.Mock;
 		createSchedule: jest.Mock;
 		createQueryStream: jest.Mock;
+		deleteArchive: jest.Mock;
 		deleteChat: jest.Mock;
 		deleteSchedule: jest.Mock;
 	downloadChatExport: jest.Mock;
@@ -96,6 +103,8 @@ let mockApiClient: {
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
 	getAgents: jest.Mock;
+	getArchive: jest.Mock;
+	getArchives: jest.Mock;
 	getChat: jest.Mock;
 	getChats: jest.Mock;
 		getCurrentAccessToken: jest.Mock;
@@ -113,6 +122,7 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
+	searchArchives: jest.Mock;
 	searchGlobal: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
@@ -478,6 +488,11 @@ describe("apiClientProxy", () => {
 		await proxy.deleteChat({ chatId: "chat_1" });
 		await proxy.searchGlobal({ query: "needle", agentKey: "agent_a", limit: 5 });
 		await proxy.markChatRead({ agentKey: "agent_a" });
+		await proxy.archiveChats({ chatIds: ["chat_1"] });
+		await proxy.getArchives({ agentKey: "agent_a", limit: 10, offset: 20 });
+		await proxy.getArchive("chat_1", true);
+		await proxy.searchArchives({ query: "old", agentKey: "agent_a", limit: 6 });
+		await proxy.deleteArchive({ chatId: "chat_1" });
 
 		expect(request).toHaveBeenNthCalledWith(1, {
 			type: "/api/feedback",
@@ -495,9 +510,31 @@ describe("apiClientProxy", () => {
 			type: "/api/read",
 			payload: { agentKey: "agent_a" },
 		});
+		expect(request).toHaveBeenNthCalledWith(5, {
+			type: "/api/chat-archive",
+			payload: { chatIds: ["chat_1"] },
+		});
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/archives",
+			payload: { agentKey: "agent_a", limit: 10, offset: 20 },
+		});
+		expect(request).toHaveBeenNthCalledWith(7, {
+			type: "/api/archive",
+			payload: { chatId: "chat_1", includeRawMessages: true },
+		});
+		expect(request).toHaveBeenNthCalledWith(8, {
+			type: "/api/archive-search",
+			payload: { query: "old", agentKey: "agent_a", limit: 6 },
+		});
+		expect(request).toHaveBeenNthCalledWith(9, {
+			type: "/api/archive-delete",
+			payload: { chatId: "chat_1" },
+		});
 		expect(mockApiClient.submitFeedback).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteChat).not.toHaveBeenCalled();
 		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
+		expect(mockApiClient.archiveChats).not.toHaveBeenCalled();
+		expect(mockApiClient.deleteArchive).not.toHaveBeenCalled();
 	});
 
 	it("falls back to http when a read-only ws request times out", async () => {
@@ -815,5 +852,63 @@ describe("apiClientProxy", () => {
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.rememberChat).toHaveBeenCalledWith(commandParams);
 		expect(mockApiClient.learnChat).toHaveBeenCalledWith(commandParams);
+	});
+
+	it("routes archive requests over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.archiveChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { results: [{ chatId: "chat_1", success: true }] },
+		});
+		mockApiClient.getArchives.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { total: 0, items: [] },
+		});
+		mockApiClient.getArchive.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", events: [] },
+		});
+		mockApiClient.searchArchives.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { query: "old", count: 0, results: [] },
+		});
+		mockApiClient.deleteArchive.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", deleted: true },
+		});
+
+		await proxy.archiveChats({ chatIds: ["chat_1"] });
+		await proxy.getArchives({ agentKey: "agent_a", limit: 10 });
+		await proxy.getArchive("chat_1", true);
+		await proxy.searchArchives({ query: "old", limit: 6 });
+		await proxy.deleteArchive({ chatId: "chat_1" });
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.archiveChats).toHaveBeenCalledWith({
+			chatIds: ["chat_1"],
+		});
+		expect(mockApiClient.getArchives).toHaveBeenCalledWith({
+			agentKey: "agent_a",
+			limit: 10,
+		});
+		expect(mockApiClient.getArchive).toHaveBeenCalledWith("chat_1", true);
+		expect(mockApiClient.searchArchives).toHaveBeenCalledWith({
+			query: "old",
+			limit: 6,
+		});
+		expect(mockApiClient.deleteArchive).toHaveBeenCalledWith({
+			chatId: "chat_1",
+		});
 	});
 });

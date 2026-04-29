@@ -189,6 +189,165 @@
     background: color-mix(in srgb, var(--bg-input) 56%, var(--bg-elev-2));
 }
 
+.archive-modal .ant-modal-body {
+    padding-top: 8px;
+}
+
+.archive-modal-layout {
+    min-height: 520px;
+    max-height: min(72vh, 720px);
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.archive-modal-list-pane,
+.archive-detail-pane {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.archive-toolbar .ant-input-prefix {
+    color: var(--ink-muted);
+    margin-right: 6px;
+}
+
+.archive-bulk-panel {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-input) 68%, var(--bg-elev-2));
+    padding: 10px;
+}
+
+.archive-bulk-label,
+.archive-bulk-result {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.archive-bulk-result {
+    margin-top: 8px;
+}
+
+.archive-list {
+    min-height: 0;
+    max-height: 430px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 4px;
+}
+
+.archive-list-item {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink-1);
+    padding: 11px 12px;
+    text-align: left;
+}
+
+.archive-list-item:hover,
+.archive-list-item.is-active {
+    background: var(--bg-base);
+}
+
+.archive-list-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.archive-list-item-head strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.archive-list-item-head span {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.archive-list-preview {
+    display: block;
+    margin-top: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.archive-list-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.archive-detail-pane {
+    border-left: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    padding-left: 16px;
+}
+
+.archive-detail-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.archive-detail-head h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.archive-detail-head p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.archive-detail-content {
+    min-height: 0;
+    max-height: 520px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.archive-preview-line {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-input) 62%, var(--bg-elev-2));
+    padding: 10px 12px;
+}
+
+.archive-preview-label {
+    margin-bottom: 6px;
+    font: 600 11px/1.2 "IBM Plex Mono", monospace;
+    color: var(--ink-muted);
+}
+
+.archive-preview-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-1);
+}
+
 .command-switch-toolbar {
     display: grid;
     gap: 12px;

@@ -37,7 +37,8 @@ export function reduceNavigationState(
 				...state,
 				chats: upsertChatSummary(state.chats, action.chat),
 			};
-		case "CHAT_DELETED": {
+		case "CHAT_DELETED":
+		case "CHAT_ARCHIVED": {
 			const chatId = String(action.chatId || "");
 			return {
 				...state,

@@ -492,6 +492,21 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.archived") {
+				const archivedChatId = String(liveEvent.chatId || "").trim();
+				if (archivedChatId) {
+					options.dispatch({ type: "CHAT_ARCHIVED", chatId: archivedChatId });
+					if (archivedChatId === currentChatId) {
+						options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
+						options.dispatch({ type: "SET_RUN_ID", runId: "" });
+						options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
+						window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+						window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+					}
+				}
+				return;
+			}
+
 			if (type === "run.start") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				if (options.stateRef.current.streaming) {
