@@ -29,7 +29,10 @@ import { ChatItem } from "@/app/layout/sidebar/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
-import { markChatRead, searchGlobal } from "@/features/transport/lib/apiClientProxy";
+import {
+  markChatRead,
+  searchGlobal,
+} from "@/features/transport/lib/apiClientProxy";
 import type { WorkerConversationRow } from "@/app/state/types";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
@@ -48,7 +51,9 @@ export const LeftSidebar: React.FC = () => {
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
-  const [remoteHistoryRows, setRemoteHistoryRows] = useState<WorkerConversationRow[] | null>(null);
+  const [remoteHistoryRows, setRemoteHistoryRows] = useState<
+    WorkerConversationRow[] | null
+  >(null);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const historyInputRef = useRef<HTMLInputElement>(null);
@@ -93,17 +98,19 @@ export const LeftSidebar: React.FC = () => {
             ? response.data.results
             : [];
           setRemoteHistoryRows(
-            results.map((result) => ({
-              chatId: String(result.chatId || ""),
-              chatName: String(result.chatName || result.chatId || ""),
-              agentKey: result.agentKey,
-              teamId: result.teamId,
-              updatedAt: Number(result.timestamp) || 0,
-              lastRunId: String(result.runId || ""),
-              lastRunContent: String(result.snippet || ""),
-              searchSnippet: String(result.snippet || ""),
-              isRead: true,
-            })).filter((row) => row.chatId),
+            results
+              .map((result) => ({
+                chatId: String(result.chatId || ""),
+                chatName: String(result.chatName || result.chatId || ""),
+                agentKey: result.agentKey,
+                teamId: result.teamId,
+                updatedAt: Number(result.timestamp) || 0,
+                lastRunId: String(result.runId || ""),
+                lastRunContent: String(result.snippet || ""),
+                searchSnippet: String(result.snippet || ""),
+                isRead: true,
+              }))
+              .filter((row) => row.chatId),
           );
         })
         .catch((error) => {
@@ -312,16 +319,29 @@ export const LeftSidebar: React.FC = () => {
         id="left-sidebar"
       >
         {state.leftDrawerOpen && (
-          <div className="sidebar-filter-row">
+          <Flex vertical className="left-sidebar-buttons" gap={2}>
+            <UiButton
+              size="sm"
+              aria-label={t("topNav.newConversation")}
+              title={t("topNav.newConversation")}
+              variant="ghost"
+            >
+              <MaterialIcon name="edit_square" />
+              新对话
+            </UiButton>
+            <UiButton size="sm" variant="ghost">
+              <MaterialIcon name="schedule" />
+              自动化
+            </UiButton>
             <Input
-              variant="filled"
+              variant="borderless"
               placeholder={
                 state.conversationMode === "worker"
                   ? t("leftSidebar.filterWorkers")
                   : t("leftSidebar.filterChats")
               }
               value={navigation.chatFilter}
-              prefix={<SearchOutlined style={{ color: "var(--text-muted)" }} />}
+              prefix={<MaterialIcon name="search" style={{marginRight: 10}} />}
               onChange={(e) =>
                 dispatch({
                   type: "SET_CHAT_FILTER",
@@ -330,11 +350,9 @@ export const LeftSidebar: React.FC = () => {
               }
             />
             <UiButton
-              className="icon-btn icon-btn-fixed"
               size="sm"
               variant="ghost"
               loading={isSidebarLoading}
-              iconOnly
               onClick={() => {
                 if (state.conversationMode === "worker") {
                   window.dispatchEvent(
@@ -346,13 +364,16 @@ export const LeftSidebar: React.FC = () => {
               }}
             >
               <MaterialIcon name="refresh" />
+              刷新
             </UiButton>
-          </div>
+          </Flex>
         )}
 
         {state.conversationMode !== "worker" && (
           <div className="chat-meta">
-            <span className="chat-meta-label">{t("leftSidebar.workerLabel")}</span>
+            <span className="chat-meta-label">
+              {t("leftSidebar.workerLabel")}
+            </span>
             {state.chatId && state.chatAgentById.has(state.chatId) && (
               <UiTag className="chip" tone="accent">
                 {state.chatAgentById.get(state.chatId)}
@@ -444,7 +465,9 @@ export const LeftSidebar: React.FC = () => {
                 </Flex>
               )
             ) : filteredChats.length === 0 ? (
-              <div className="status-line">{t("leftSidebar.noConversations")}</div>
+              <div className="status-line">
+                {t("leftSidebar.noConversations")}
+              </div>
             ) : (
               filteredChats.map((chat) => (
                 <ChatItem
