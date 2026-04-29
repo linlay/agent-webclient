@@ -14,8 +14,10 @@ import {
   getChats,
   getMemoryRecord,
   getMemoryRecords,
+  getMemoryMeta,
   getMemoryScope,
   getMemoryScopes,
+  previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
   getVoiceCapabilities,
@@ -382,8 +384,13 @@ describe('apiClient query payloads', () => {
 
   it('requests memory scopes, scope detail, validate, and save over HTTP', async () => {
     await getMemoryScopes('agent-a');
+    await getMemoryMeta();
     await getMemoryScope('agent-a', 'agent', 'agent:agent-a');
     await validateMemoryScope('agent-a', 'agent', '# AGENT');
+    await previewMemoryContext({
+      chatId: 'chat-preview',
+      message: 'desktop builtin 发布流程',
+    });
     await saveMemoryScope({
       agentKey: 'agent-a',
       scopeType: 'agent',
@@ -407,20 +414,30 @@ describe('apiClient query payloads', () => {
       '/api/memory/scopes?agentKey=agent-a',
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
+      '/api/memory/meta',
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      '/api/memory/scope?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
+    );
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
       '/api/memory/scope/validate',
     );
-    expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
+    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
       agentKey: 'agent-a',
       scopeType: 'agent',
       markdown: '# AGENT',
     });
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe(
+      '/api/memory/context/preview',
+    );
+    expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
+      chatId: 'chat-preview',
+      message: 'desktop builtin 发布流程',
+    });
+    expect((fetchMock.mock.calls[5] as [string, RequestInit])[0]).toBe(
       '/api/memory/scope',
     );
-    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
+    expect(JSON.parse(String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body))).toEqual({
       agentKey: 'agent-a',
       scopeType: 'agent',
       scopeKey: 'agent:agent-a',

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Buildin } from "@/features/tools/components/buildin";
@@ -40,6 +40,13 @@ export const ComposerArea: React.FC = () => {
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
+
+  useEffect(() => {
+    if (state.composerDraft === inputValue) {
+      return;
+    }
+    dispatch({ type: "SET_COMPOSER_DRAFT", draft: inputValue });
+  }, [dispatch, inputValue, state.composerDraft]);
 
   const isFrontendActive = !!state.activeFrontendTool;
   const isVoiceMode = state.inputMode === "voice";

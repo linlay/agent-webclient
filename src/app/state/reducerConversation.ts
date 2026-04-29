@@ -51,6 +51,8 @@ export function reduceConversationState(
 			};
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
+		case "SET_COMPOSER_DRAFT":
+			return { ...state, composerDraft: action.draft };
 		case "SET_STEER_DRAFT":
 			return { ...state, steerDraft: action.draft };
 		case "ENQUEUE_PENDING_STEER":

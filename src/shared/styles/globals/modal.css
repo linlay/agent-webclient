@@ -482,7 +482,7 @@
 
 .memory-console-tabs {
     width: fit-content;
-    min-width: 280px;
+    min-width: 420px;
 }
 
 .memory-info-card .settings-segmented {
@@ -857,6 +857,145 @@
     word-break: break-word;
 }
 
+.memory-preview-layout {
+    min-height: 0;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.memory-preview-pane {
+    min-width: 0;
+}
+
+.memory-preview-pane-input {
+    overflow: auto;
+}
+
+.memory-preview-pane-result {
+    overflow: hidden;
+}
+
+.memory-preview-context-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.memory-preview-context-item {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--bg-input));
+    padding: 12px 13px;
+}
+
+.memory-preview-context-item span,
+.memory-preview-summary-grid .memory-info-detail-card small {
+    display: block;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+}
+
+.memory-preview-context-item strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-1);
+    word-break: break-word;
+}
+
+.memory-preview-textarea {
+    min-height: 124px;
+}
+
+.memory-preview-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.memory-preview-summary-grid .memory-info-detail-card {
+    gap: 8px;
+}
+
+.memory-preview-layer-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.memory-preview-layer-tab.ui-btn {
+    border-radius: 12px;
+}
+
+.memory-preview-prompt-block {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--bg-input));
+    padding: 14px 15px;
+}
+
+.memory-preview-prompt-block pre {
+    margin: 10px 0 0;
+    max-height: 260px;
+    overflow: auto;
+    font:
+        12px/1.65 "IBM Plex Mono",
+        monospace;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.memory-preview-layer-list,
+.memory-preview-item-list,
+.memory-preview-decision-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.memory-preview-layer-block,
+.memory-preview-item,
+.memory-preview-decision-item {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--bg-input));
+    padding: 12px 13px;
+}
+
+.memory-preview-layer-head,
+.memory-preview-item-head,
+.memory-preview-decision-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.memory-preview-layer-head span,
+.memory-preview-item-head span {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+}
+
+.memory-preview-item-head strong,
+.memory-preview-decision-head strong {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-1);
+}
+
+.memory-preview-layer-empty {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+}
+
 .memory-preference-scope-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -1077,11 +1216,19 @@
         grid-template-columns: 1fr;
     }
 
+    .memory-console-tabs {
+        min-width: 0;
+        width: 100%;
+    }
+
     .memory-info-filter-grid,
     .memory-info-detail-grid {
         grid-template-columns: 1fr;
     }
 
+    .memory-preview-layout,
+    .memory-preview-context-list,
+    .memory-preview-summary-grid,
     .memory-preference-layout,
     .memory-preference-form-grid {
         grid-template-columns: 1fr;

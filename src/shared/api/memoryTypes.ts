@@ -44,7 +44,83 @@ export interface MemoryInfoFilters {
   limit: number;
 }
 
-export type MemoryConsoleTab = "preferences" | "records";
+export interface MemoryMeta {
+  categories: string[];
+  types: string[];
+  scopeTypes: string[];
+  statuses: string[];
+  sourceTypes: string[];
+}
+
+export type MemoryContextPromptLayer = "stable" | "session" | "observation";
+
+export interface MemoryContextPreviewSummary {
+  stableCount: number;
+  sessionCount: number;
+  observationCount: number;
+  stableChars: number;
+  sessionChars: number;
+  observationChars: number;
+  disclosedLayers?: string[];
+  stopReason?: string;
+  snapshotId?: string;
+  candidateCounts?: Record<string, number>;
+  selectedCounts?: Record<string, number>;
+}
+
+export interface MemoryContextPreviewPrompts {
+  stable: string;
+  session: string;
+  observation: string;
+}
+
+export interface MemoryContextPreviewItem {
+  id: string;
+  kind: string;
+  scopeType: string;
+  scopeKey: string;
+  title: string;
+  summary: string;
+  category: string;
+  importance: number;
+  confidence: number;
+  status: string;
+  sourceType: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt: number;
+  accessCount?: number;
+  lastAccessedAt?: number | null;
+  order: number;
+}
+
+export interface MemoryContextPreviewLayer {
+  layer: string;
+  candidateCount: number;
+  selectedCount: number;
+  chars: number;
+  items: MemoryContextPreviewItem[];
+}
+
+export interface MemoryContextPreviewDecision {
+  layer: string;
+  reason: string;
+  itemIds: string[];
+}
+
+export interface MemoryContextPreviewResponse {
+  message: string;
+  agentKey: string;
+  chatId: string;
+  teamId?: string;
+  enabled: boolean;
+  summary: MemoryContextPreviewSummary;
+  prompts: MemoryContextPreviewPrompts;
+  layers: MemoryContextPreviewLayer[];
+  decisions?: MemoryContextPreviewDecision[];
+}
+
+export type MemoryConsoleTab = "preferences" | "preview" | "records";
 export type MemoryPreferenceMode = "records" | "markdown";
 export type MemoryPreferenceScopeType = "user" | "agent" | "team" | "global";
 
@@ -184,6 +260,33 @@ export function createDefaultMemoryConsoleTab(): MemoryConsoleTab {
 
 export function createDefaultMemoryPreferenceMode(): MemoryPreferenceMode {
   return "records";
+}
+
+export function createDefaultMemoryMeta(): MemoryMeta {
+  return {
+    categories: [
+      "general",
+      "preference",
+      "constraint",
+      "profile",
+      "workflow",
+      "decision",
+      "glossary",
+      "unresolved_issue",
+      "bugfix",
+      "todo",
+      "project",
+      "remember",
+    ],
+    types: ["fact", "observation"],
+    scopeTypes: ["user", "agent", "team", "chat", "global"],
+    statuses: ["active", "open", "superseded", "archived", "contested"],
+    sourceTypes: ["tool-write", "console-edit", "remember", "learn", "promote"],
+  };
+}
+
+export function createDefaultMemoryPreviewPromptLayer(): MemoryContextPromptLayer {
+  return "stable";
 }
 
 export function createEmptyMemoryScopeValidationResult(): MemoryScopeValidationResult {

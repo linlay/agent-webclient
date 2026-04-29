@@ -277,12 +277,47 @@ describe('appReducer conversation reset behavior', () => {
       type: 'SET_MEMORY_INFO_OPEN',
       open: true,
     });
+    const previewTab = appReducer(opened, {
+      type: 'SET_MEMORY_CONSOLE_TAB',
+      tab: 'preview',
+    });
     const busyState = {
-      ...opened,
+      ...previewTab,
       memoryInfoLoading: true,
       memoryInfoError: 'boom',
       memoryInfoDetailLoading: true,
       memoryInfoDetailError: 'detail boom',
+      memoryMeta: {
+        categories: ['general'],
+        types: ['fact'],
+        scopeTypes: ['agent'],
+        statuses: ['active'],
+        sourceTypes: ['tool-write'],
+      },
+      memoryPreviewDraft: '发布 builtin',
+      memoryPreviewLoading: true,
+      memoryPreviewError: 'preview boom',
+      memoryPreviewResult: {
+        message: '发布 builtin',
+        agentKey: 'agent-a',
+        chatId: 'chat_1',
+        enabled: true,
+        summary: {
+          stableCount: 1,
+          sessionCount: 0,
+          observationCount: 0,
+          stableChars: 30,
+          sessionChars: 0,
+          observationChars: 0,
+        },
+        prompts: {
+          stable: 'Runtime Context: Stable Memory',
+          session: '',
+          observation: '',
+        },
+        layers: [],
+      },
+      memoryPreviewPromptLayer: 'session' as const,
     };
     const closed = appReducer(busyState, {
       type: 'SET_MEMORY_INFO_OPEN',
@@ -296,8 +331,26 @@ describe('appReducer conversation reset behavior', () => {
     expect(closed.memoryInfoError).toBe('');
     expect(closed.memoryInfoDetailLoading).toBe(false);
     expect(closed.memoryInfoDetailError).toBe('');
+    expect(closed.memoryMeta).toEqual(busyState.memoryMeta);
+    expect(closed.memoryPreviewDraft).toBe('');
+    expect(closed.memoryPreviewLoading).toBe(false);
+    expect(closed.memoryPreviewError).toBe('');
+    expect(closed.memoryPreviewResult).toBeNull();
+    expect(closed.memoryPreviewPromptLayer).toBe('stable');
     expect(opened.memoryConsoleTab).toBe('records');
+    expect(previewTab.memoryConsoleTab).toBe('preview');
     expect(baseState.memoryPreferenceActiveScopeType).toBe('agent');
+  });
+
+  it('stores composer draft text through the reducer', () => {
+    const baseState = createInitialState();
+
+    const next = appReducer(baseState, {
+      type: 'SET_COMPOSER_DRAFT',
+      draft: '当前输入内容',
+    });
+
+    expect(next.composerDraft).toBe('当前输入内容');
   });
 
   it('normalizes theme updates through the reducer', () => {

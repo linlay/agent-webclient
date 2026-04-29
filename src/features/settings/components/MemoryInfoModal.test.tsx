@@ -4,6 +4,7 @@ import { I18nProvider } from "@/shared/i18n";
 import {
   createDefaultMemoryConsoleTab,
   createDefaultMemoryInfoFilters,
+  createDefaultMemoryMeta,
   createDefaultMemoryPreferenceMode,
 } from "@/shared/api/memoryTypes";
 import { MemoryInfoModalView } from "@/features/settings/components/MemoryInfoModal";
@@ -26,6 +27,7 @@ function renderView(
           agentKey: "agent-alice",
           loading: false,
           error: "",
+          memoryMeta: createDefaultMemoryMeta(),
           records: [],
           selectedRecordId: "",
           detail: null,
@@ -60,6 +62,7 @@ function renderView(
             recordCount: 1,
             generatedFromStore: true,
           },
+          memoryMeta: createDefaultMemoryMeta(),
           loading: false,
           error: "",
           mode: createDefaultMemoryPreferenceMode(),
@@ -105,6 +108,75 @@ function renderView(
           onValidate: () => undefined,
           onSave: () => undefined,
         },
+        previewPanel: {
+          agentKey: "agent-alice",
+          chatId: "chat-preview",
+          teamId: "team-1",
+          draft: "怎么发布 desktop builtin？",
+          loading: false,
+          error: "",
+          result: {
+            message: "怎么发布 desktop builtin？",
+            agentKey: "agent-alice",
+            chatId: "chat-preview",
+            teamId: "team-1",
+            enabled: true,
+            summary: {
+              stableCount: 2,
+              sessionCount: 1,
+              observationCount: 3,
+              stableChars: 320,
+              sessionChars: 120,
+              observationChars: 580,
+              stopReason: "selected",
+              snapshotId: "snap_xxx",
+              candidateCounts: { stable: 8, session: 2, observation: 5 },
+              selectedCounts: { stable: 2, session: 1, observation: 3 },
+            },
+            prompts: {
+              stable: "Runtime Context: Stable Memory",
+              session: "Runtime Context: Session Memory",
+              observation: "Runtime Context: Relevant Observations",
+            },
+            layers: [
+              {
+                layer: "stable",
+                candidateCount: 8,
+                selectedCount: 2,
+                chars: 320,
+                items: [
+                  {
+                    id: "mem_stable_1",
+                    kind: "fact",
+                    scopeType: "agent",
+                    scopeKey: "agent:agent-alice",
+                    title: "发布流程",
+                    summary: "先 make release-program，再同步 desktop assets。",
+                    category: "workflow",
+                    importance: 9,
+                    confidence: 0.95,
+                    status: "active",
+                    sourceType: "tool-write",
+                    createdAt: 1_777_344_000_000,
+                    updatedAt: 1_777_344_300_000,
+                    order: 1,
+                  },
+                ],
+              },
+            ],
+            decisions: [
+              {
+                layer: "stable",
+                reason: "scope_match",
+                itemIds: ["mem_stable_1"],
+              },
+            ],
+          },
+          promptLayer: "stable",
+          onDraftChange: () => undefined,
+          onPromptLayerChange: () => undefined,
+          onPreview: () => undefined,
+        },
         ...overrides,
       }),
     }),
@@ -116,9 +188,14 @@ describe("MemoryInfoModalView", () => {
     const html = renderView();
 
     expect(html).toContain("Preferences");
+    expect(html).toContain("Preview");
     expect(html).toContain("Memory records");
     expect(html).toContain("Preference editor");
     expect(html).toContain("Current scope: AGENT · AGENT.md");
+    expect(html.indexOf("Preferences")).toBeLessThan(html.indexOf("Preview"));
+    expect(html.indexOf("Preview")).toBeLessThan(
+      html.indexOf("Memory records"),
+    );
     expect(html.indexOf("Preference list")).toBeLessThan(
       html.indexOf("Preference detail"),
     );
@@ -135,6 +212,18 @@ describe("MemoryInfoModalView", () => {
     expect(html).toContain("Preference detail");
     expect(html).toContain("Raw JSON");
     expect(html).toContain("memory-preference-record-marker");
+  });
+
+  it("renders the preview tab, prompt layers, and decision details", () => {
+    const html = renderView({
+      activeTab: "preview",
+    });
+
+    expect(html).toContain("Preview current input");
+    expect(html).toContain("Runtime Context: Stable Memory");
+    expect(html).toContain("Selected memory");
+    expect(html).toContain("scope_match");
+    expect(html).toContain("mem_stable_1");
   });
 
   it("renders markdown-mode guidance and friendly validation copy", () => {
@@ -161,6 +250,7 @@ describe("MemoryInfoModalView", () => {
           recordCount: 1,
           generatedFromStore: true,
         },
+        memoryMeta: createDefaultMemoryMeta(),
         loading: false,
         error: "",
         mode: "markdown",
@@ -215,6 +305,7 @@ describe("MemoryInfoModalView", () => {
         agentKey: "agent-alice",
         loading: false,
         error: "",
+        memoryMeta: createDefaultMemoryMeta(),
         records: [
           {
             id: "mem_201",
@@ -287,6 +378,7 @@ describe("MemoryInfoModalView", () => {
         label: "AGENT",
         fileName: "AGENT.md",
         meta: null,
+        memoryMeta: createDefaultMemoryMeta(),
         loading: false,
         error: "",
         mode: "records",
@@ -325,6 +417,7 @@ describe("MemoryInfoModalView", () => {
         agentKey: "",
         loading: false,
         error: "",
+        memoryMeta: createDefaultMemoryMeta(),
         records: [],
         selectedRecordId: "",
         detail: null,
@@ -339,5 +432,86 @@ describe("MemoryInfoModalView", () => {
       },
     });
     expect(recordHtml).toContain("Select an agent before opening memory info.");
+  });
+
+  it("keeps legacy category values visible when meta options do not include them", () => {
+    const html = renderView({
+      preferencesPanel: {
+        agentKey: "agent-alice",
+        missingAgent: false,
+        scopes: [
+          {
+            scopeType: "agent",
+            scopeKey: "agent:agent-alice",
+            label: "AGENT",
+            fileName: "AGENT.md",
+            recordCount: 1,
+            updatedAt: 1_777_344_000_000,
+          },
+        ],
+        activeScopeType: "agent",
+        activeScopeKey: "agent:agent-alice",
+        label: "AGENT",
+        fileName: "AGENT.md",
+        meta: {
+          editable: true,
+          recordCount: 1,
+          generatedFromStore: true,
+        },
+        memoryMeta: {
+          ...createDefaultMemoryMeta(),
+          categories: ["general", "workflow"],
+        },
+        loading: false,
+        error: "",
+        mode: "records",
+        markdownDraft: "# AGENT\n",
+        recordsDraft: [
+          {
+            clientId: "draft:legacy",
+            id: "mem_legacy",
+            title: "旧分类",
+            summary: "Legacy category value.",
+            category: "response_style",
+            importance: 6,
+            confidence: 0.8,
+            tags: [],
+            status: "active",
+            scopeType: "agent",
+            scopeKey: "agent:agent-alice",
+            createdAt: 1_777_344_000_000,
+            updatedAt: 1_777_344_300_000,
+          },
+        ],
+        selectedRecordId: "draft:legacy",
+        dirty: false,
+        saving: false,
+        saveSummary: null,
+        validation: null,
+        editorRefs: {
+          title: { current: null },
+          summary: { current: null },
+          category: { current: null },
+          importance: { current: null },
+          confidence: { current: null },
+          tags: { current: null },
+          markdown: { current: null },
+        },
+        onScopeSelect: () => undefined,
+        onModeChange: () => undefined,
+        onMarkdownChange: () => undefined,
+        onRecordFieldChange: () => undefined,
+        onSelectRecord: () => undefined,
+        onNewRecord: () => undefined,
+        onDeleteRecord: () => undefined,
+        onValidate: () => undefined,
+        onSave: () => undefined,
+      },
+    });
+
+    expect(html).toContain("response_style");
+    expect(html).toContain(
+      "<option value=\"response_style\" selected=\"\">response_style</option>",
+    );
   });
 });

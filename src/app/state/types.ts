@@ -3,6 +3,9 @@ import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachment
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
+	MemoryContextPreviewResponse,
+	MemoryContextPromptLayer,
+	MemoryMeta,
 	MemoryPreferenceMode,
 	MemoryScopeDetailMeta,
 	MemoryScopeDraftRecord,
@@ -141,6 +144,7 @@ export interface AppState {
 	memoryInfoDetailError: string;
 	memoryInfoFilters: MemoryInfoFilters;
 	memoryInfoNextCursor: string;
+	memoryMeta: MemoryMeta | null;
 	memoryPreferenceScopes: MemoryScopeSummary[];
 	memoryPreferenceActiveScopeType: string;
 	memoryPreferenceActiveScopeKey: string;
@@ -157,6 +161,11 @@ export interface AppState {
 	memoryPreferenceSaving: boolean;
 	memoryPreferenceSaveSummary: MemoryScopeSaveSummary | null;
 	memoryPreferenceValidation: MemoryScopeValidationResult | null;
+	memoryPreviewDraft: string;
+	memoryPreviewLoading: boolean;
+	memoryPreviewError: string;
+	memoryPreviewResult: MemoryContextPreviewResponse | null;
+	memoryPreviewPromptLayer: MemoryContextPromptLayer;
 	leftDrawerOpen: boolean;
 	desktopDebugSidebarEnabled: boolean;
 	terminalDockOpen: boolean;
@@ -182,6 +191,7 @@ export interface AppState {
 	planningMode: boolean;
 	inputMode: InputMode;
 	voiceChat: VoiceChatState;
+	composerDraft: string;
 	steerDraft: string;
 	pendingSteers: PendingSteer[];
 	downvotedRunKeys: Set<string>;

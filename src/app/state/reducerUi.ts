@@ -29,6 +29,13 @@ export function reduceUiState(
 				memoryPreferenceSaving: action.open
 					? state.memoryPreferenceSaving
 					: false,
+				memoryPreviewDraft: action.open ? state.memoryPreviewDraft : "",
+				memoryPreviewLoading: action.open ? state.memoryPreviewLoading : false,
+				memoryPreviewError: action.open ? state.memoryPreviewError : "",
+				memoryPreviewResult: action.open ? state.memoryPreviewResult : null,
+				memoryPreviewPromptLayer: action.open
+					? state.memoryPreviewPromptLayer
+					: "stable",
 			};
 		case "SET_MEMORY_CONSOLE_TAB":
 			return { ...state, memoryConsoleTab: action.tab };
@@ -62,6 +69,8 @@ export function reduceUiState(
 			return { ...state, memoryInfoDetailError: action.error };
 		case "SET_MEMORY_INFO_DETAIL":
 			return { ...state, memoryInfoDetail: action.detail };
+		case "SET_MEMORY_META":
+			return { ...state, memoryMeta: action.meta };
 		case "SET_MEMORY_PREFERENCE_SCOPES":
 			return { ...state, memoryPreferenceScopes: action.scopes };
 		case "SET_MEMORY_PREFERENCE_ACTIVE_SCOPE":
@@ -98,6 +107,16 @@ export function reduceUiState(
 			return { ...state, memoryPreferenceSaveSummary: action.summary };
 		case "SET_MEMORY_PREFERENCE_VALIDATION":
 			return { ...state, memoryPreferenceValidation: action.validation };
+		case "SET_MEMORY_PREVIEW_DRAFT":
+			return { ...state, memoryPreviewDraft: action.draft };
+		case "SET_MEMORY_PREVIEW_LOADING":
+			return { ...state, memoryPreviewLoading: action.loading };
+		case "SET_MEMORY_PREVIEW_ERROR":
+			return { ...state, memoryPreviewError: action.error };
+		case "SET_MEMORY_PREVIEW_RESULT":
+			return { ...state, memoryPreviewResult: action.result };
+		case "SET_MEMORY_PREVIEW_PROMPT_LAYER":
+			return { ...state, memoryPreviewPromptLayer: action.layer };
 		case "SET_LEFT_DRAWER_OPEN":
 			return { ...state, leftDrawerOpen: action.open };
 		case "SET_TERMINAL_DOCK_OPEN":

@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import {
+  getMemoryMeta,
   getMemoryRecord,
   getMemoryRecords,
   getMemoryScope,
   getMemoryScopes,
+  previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
 } from "@/shared/api/apiClient";
 import type {
   MemoryConsoleTab,
+  MemoryContextPreviewResponse,
+  MemoryContextPromptLayer,
   MemoryInfoFilters,
+  MemoryMeta,
   MemoryPreferenceMode,
   MemoryPreferenceScopeType,
   MemoryRecordDetail,
@@ -55,6 +60,7 @@ interface MemoryRecordsPanelProps {
   agentKey: string;
   loading: boolean;
   error: string;
+  memoryMeta: MemoryMeta | null;
   records: MemoryRecordListItem[];
   selectedRecordId: string;
   detail: MemoryRecordDetail | null;
@@ -77,6 +83,7 @@ interface MemoryPreferencesPanelProps {
   label: string;
   fileName: string;
   meta: MemoryScopeDetailMeta | null;
+  memoryMeta: MemoryMeta | null;
   loading: boolean;
   error: string;
   mode: MemoryPreferenceMode;
@@ -90,7 +97,7 @@ interface MemoryPreferencesPanelProps {
   editorRefs: {
     title: React.RefObject<HTMLInputElement>;
     summary: React.RefObject<HTMLTextAreaElement>;
-    category: React.RefObject<HTMLInputElement>;
+    category: React.RefObject<HTMLSelectElement>;
     importance: React.RefObject<HTMLInputElement>;
     confidence: React.RefObject<HTMLInputElement>;
     tags: React.RefObject<HTMLInputElement>;
@@ -107,6 +114,20 @@ interface MemoryPreferencesPanelProps {
   onSave: () => void;
 }
 
+interface MemoryPreviewPanelProps {
+  agentKey: string;
+  chatId: string;
+  teamId: string;
+  draft: string;
+  loading: boolean;
+  error: string;
+  result: MemoryContextPreviewResponse | null;
+  promptLayer: MemoryContextPromptLayer;
+  onDraftChange: (value: string) => void;
+  onPromptLayerChange: (layer: MemoryContextPromptLayer) => void;
+  onPreview: () => void;
+}
+
 export interface MemoryInfoModalViewProps {
   open: boolean;
   title: string;
@@ -116,6 +137,7 @@ export interface MemoryInfoModalViewProps {
   onClose: () => void;
   recordsPanel: MemoryRecordsPanelProps;
   preferencesPanel: MemoryPreferencesPanelProps;
+  previewPanel: MemoryPreviewPanelProps;
 }
 
 const PREFERENCE_SCOPE_ORDER: MemoryPreferenceScopeType[] = [
@@ -123,6 +145,11 @@ const PREFERENCE_SCOPE_ORDER: MemoryPreferenceScopeType[] = [
   "agent",
   "team",
   "global",
+];
+const PREVIEW_PROMPT_LAYER_ORDER: MemoryContextPromptLayer[] = [
+  "stable",
+  "session",
+  "observation",
 ];
 
 function toneForStatus(
@@ -147,6 +174,45 @@ function formatDetailValue(value: unknown): string {
     return String(value);
   }
   return toText(value) || "--";
+}
+
+function mergeMemoryMetaOptions(
+  preferred: string[] | undefined,
+  fallback: string[],
+  extras: Array<string | undefined>,
+): string[] {
+  return Array.from(
+    new Set([...(preferred && preferred.length > 0 ? preferred : fallback), ...extras]
+      .map((value) => toText(value))
+      .filter(Boolean)),
+  );
+}
+
+function promptToneForLayer(
+  layer: string,
+): "default" | "accent" | "muted" | "danger" {
+  switch (toText(layer).toLowerCase()) {
+    case "stable":
+      return "accent";
+    case "session":
+      return "default";
+    case "observation":
+      return "muted";
+    default:
+      return "default";
+  }
+}
+
+function formatPreviewLayerLabel(t: Translator, layer: string): string {
+  const normalized = toText(layer).trim().toLowerCase();
+  if (
+    normalized === "stable" ||
+    normalized === "session" ||
+    normalized === "observation"
+  ) {
+    return t(`memoryPreview.layer.${normalized}`);
+  }
+  return layer || "--";
 }
 
 function renderMemoryDetailRows(t: Translator, detail: MemoryRecordDetail) {
@@ -260,6 +326,7 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   agentKey,
   loading,
   error,
+  memoryMeta,
   records,
   selectedRecordId,
   detail,
@@ -273,18 +340,25 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   onFilterChange,
 }) => {
   const { t } = useI18n();
-  const categoryOptions = Array.from(
-    new Set(
-      [
-        "remember",
-        "identity",
-        "work_rules",
-        "general",
-        "bugfix",
-        filters.category,
-        ...records.map((record) => toText(record.category)),
-      ].filter(Boolean),
-    ),
+  const kindOptions = mergeMemoryMetaOptions(
+    memoryMeta?.types,
+    ["fact", "observation"],
+    [filters.kind, ...records.map((record) => toText(record.kind))],
+  );
+  const scopeTypeOptions = mergeMemoryMetaOptions(
+    memoryMeta?.scopeTypes,
+    ["user", "agent", "team", "chat", "global"],
+    [filters.scopeType, ...records.map((record) => toText(record.scopeType))],
+  );
+  const statusOptions = mergeMemoryMetaOptions(
+    memoryMeta?.statuses,
+    ["active", "open", "superseded", "archived", "contested"],
+    [filters.status, ...records.map((record) => toText(record.status))],
+  );
+  const categoryOptions = mergeMemoryMetaOptions(
+    memoryMeta?.categories,
+    ["general", "remember", "identity", "work_rules", "bugfix"],
+    [filters.category, ...records.map((record) => toText(record.category))],
   );
 
   return (
@@ -332,8 +406,11 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 }
               >
                 <option value="">{t("memoryInfo.filters.any")}</option>
-                <option value="fact">fact</option>
-                <option value="observation">observation</option>
+                {kindOptions.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {kind}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="memory-info-field">
@@ -346,11 +423,11 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 }
               >
                 <option value="">{t("memoryInfo.filters.any")}</option>
-                <option value="user">user</option>
-                <option value="agent">agent</option>
-                <option value="team">team</option>
-                <option value="chat">chat</option>
-                <option value="global">global</option>
+                {scopeTypeOptions.map((scopeType) => (
+                  <option key={scopeType} value={scopeType}>
+                    {scopeType}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="memory-info-field">
@@ -363,11 +440,11 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 }
               >
                 <option value="">{t("memoryInfo.filters.any")}</option>
-                <option value="active">active</option>
-                <option value="open">open</option>
-                <option value="superseded">superseded</option>
-                <option value="archived">archived</option>
-                <option value="contested">contested</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="memory-info-field">
@@ -556,6 +633,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
   label,
   fileName,
   meta,
+  memoryMeta,
   loading,
   error,
   mode,
@@ -588,6 +666,14 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
     Boolean(validation && !validation.valid) &&
     error === validationFailedMessage;
   const showMarkdownModeHint = mode === "markdown";
+  const categoryOptions = mergeMemoryMetaOptions(
+    memoryMeta?.categories,
+    ["general", "preference", "constraint", "workflow", "decision", "bugfix"],
+    [
+      selectedDraft?.category,
+      ...recordsDraft.map((record) => toText(record.category)),
+    ],
+  );
 
   return (
     <div className="memory-console-pane">
@@ -891,14 +977,20 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                 <div className="memory-preference-form-grid">
                   <label className="memory-info-field">
                     <span>{t("memoryPreferences.field.category")}</span>
-                    <input
-                      className="memory-info-input"
+                    <select
+                      className="memory-info-select"
                       ref={editorRefs.category}
                       value={selectedDraft.category}
                       onChange={(event) =>
                         onRecordFieldChange("category", event.currentTarget.value)
                       }
-                    />
+                    >
+                      {categoryOptions.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="memory-info-field">
                     <span>{t("memoryPreferences.field.importance")}</span>
@@ -1002,6 +1094,324 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
   );
 };
 
+const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
+  agentKey,
+  chatId,
+  teamId,
+  draft,
+  loading,
+  error,
+  result,
+  promptLayer,
+  onDraftChange,
+  onPromptLayerChange,
+  onPreview,
+}) => {
+  const { t } = useI18n();
+  const hasChat = Boolean(toText(chatId));
+  const hasDraft = Boolean(toText(draft));
+  const activePrompt = result
+    ? result.prompts?.[promptLayer] || ""
+    : "";
+  const previewLayers = Array.isArray(result?.layers) ? result.layers : [];
+  const decisions = Array.isArray(result?.decisions) ? result.decisions : [];
+
+  return (
+    <div className="memory-console-pane">
+      <div className="memory-preview-layout">
+        <section className="memory-info-pane memory-preview-pane memory-preview-pane-input">
+          <div className="memory-info-pane-header">
+            <div>
+              <strong>{t("memoryPreview.panel.input")}</strong>
+              <p className="memory-info-pane-hint">
+                {t("memoryPreview.panel.inputHint")}
+              </p>
+            </div>
+          </div>
+
+          <div className="memory-preview-context-list">
+            <div className="memory-preview-context-item">
+              <span>{t("memoryPreview.context.chatId")}</span>
+              <strong>{chatId || "--"}</strong>
+            </div>
+            <div className="memory-preview-context-item">
+              <span>{t("memoryPreview.context.agentKey")}</span>
+              <strong>{agentKey || "--"}</strong>
+            </div>
+            <div className="memory-preview-context-item">
+              <span>{t("memoryPreview.context.teamId")}</span>
+              <strong>{teamId || "--"}</strong>
+            </div>
+          </div>
+
+          <label className="memory-info-field">
+            <span>{t("memoryPreview.field.message")}</span>
+            <textarea
+              className="settings-textarea memory-preview-textarea"
+              value={draft}
+              onChange={(event) => onDraftChange(event.currentTarget.value)}
+              placeholder={t("memoryPreview.field.messagePlaceholder")}
+            />
+          </label>
+
+          <div className="memory-info-actions">
+            <UiButton
+              variant="secondary"
+              size="sm"
+              loading={loading}
+              disabled={!hasChat || !hasDraft}
+              onClick={onPreview}
+            >
+              {t("memoryPreview.actions.preview")}
+            </UiButton>
+          </div>
+
+          {!hasChat ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.noChat")}
+            </div>
+          ) : null}
+          {hasChat && !hasDraft ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.noMessage")}
+            </div>
+          ) : null}
+          {error ? <div className="memory-info-error">{error}</div> : null}
+
+          {result ? (
+            <div className="memory-preview-summary-grid">
+              <div className="memory-info-detail-card">
+                <span className="command-detail-label">
+                  {formatPreviewLayerLabel(t, "stable")}
+                </span>
+                <strong>
+                  {t("memoryPreview.summary.selection", {
+                    selected:
+                      result.summary.selectedCounts?.stable ??
+                      result.summary.stableCount,
+                    candidate:
+                      result.summary.candidateCounts?.stable ??
+                      result.summary.stableCount,
+                  })}
+                </strong>
+                <small>
+                  {t("memoryPreview.summary.chars", {
+                    count: result.summary.stableChars,
+                  })}
+                </small>
+              </div>
+              <div className="memory-info-detail-card">
+                <span className="command-detail-label">
+                  {formatPreviewLayerLabel(t, "session")}
+                </span>
+                <strong>
+                  {t("memoryPreview.summary.selection", {
+                    selected:
+                      result.summary.selectedCounts?.session ??
+                      result.summary.sessionCount,
+                    candidate:
+                      result.summary.candidateCounts?.session ??
+                      result.summary.sessionCount,
+                  })}
+                </strong>
+                <small>
+                  {t("memoryPreview.summary.chars", {
+                    count: result.summary.sessionChars,
+                  })}
+                </small>
+              </div>
+              <div className="memory-info-detail-card">
+                <span className="command-detail-label">
+                  {formatPreviewLayerLabel(t, "observation")}
+                </span>
+                <strong>
+                  {t("memoryPreview.summary.selection", {
+                    selected:
+                      result.summary.selectedCounts?.observation ??
+                      result.summary.observationCount,
+                    candidate:
+                      result.summary.candidateCounts?.observation ??
+                      result.summary.observationCount,
+                  })}
+                </strong>
+                <small>
+                  {t("memoryPreview.summary.chars", {
+                    count: result.summary.observationChars,
+                  })}
+                </small>
+              </div>
+              <div className="memory-info-detail-card">
+                <span className="command-detail-label">
+                  {t("memoryPreview.summary.stopReason")}
+                </span>
+                <strong>{result.summary.stopReason || "--"}</strong>
+              </div>
+              <div className="memory-info-detail-card">
+                <span className="command-detail-label">
+                  {t("memoryPreview.summary.snapshotId")}
+                </span>
+                <strong>{result.summary.snapshotId || "--"}</strong>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="memory-info-pane memory-preview-pane memory-preview-pane-result">
+          <div className="memory-info-pane-header">
+            <div>
+              <strong>{t("memoryPreview.panel.prompt")}</strong>
+              <p className="memory-info-pane-hint">
+                {t("memoryPreview.panel.promptHint")}
+              </p>
+            </div>
+          </div>
+
+          <div className="memory-preview-layer-tabs">
+            {PREVIEW_PROMPT_LAYER_ORDER.map((layer) => (
+              <UiButton
+                key={layer}
+                variant="ghost"
+                size="sm"
+                className={`memory-preview-layer-tab ${promptLayer === layer ? "is-active" : ""}`}
+                active={promptLayer === layer}
+                onClick={() => onPromptLayerChange(layer)}
+              >
+                {formatPreviewLayerLabel(t, layer)}
+              </UiButton>
+            ))}
+          </div>
+
+          {!hasChat ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.noChat")}
+            </div>
+          ) : loading && !result ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.loading.preview")}
+            </div>
+          ) : !hasDraft ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.noMessage")}
+            </div>
+          ) : result && !result.enabled ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.disabled")}
+            </div>
+          ) : !result ? (
+            <div className="command-empty-state">
+              {t("memoryPreview.empty.noResult")}
+            </div>
+          ) : (
+            <div className="memory-info-detail-stack">
+              <div className="memory-preview-prompt-block">
+                <span className="command-detail-label">
+                  {formatPreviewLayerLabel(t, promptLayer)}
+                </span>
+                <pre>{activePrompt || t("memoryPreview.empty.noPrompt")}</pre>
+              </div>
+
+              <div className="memory-info-detail-block">
+                <span className="command-detail-label">
+                  {t("memoryPreview.section.selectedMemory")}
+                </span>
+                <div className="memory-preview-layer-list">
+                  {previewLayers.map((layer) => (
+                    <div className="memory-preview-layer-block" key={layer.layer}>
+                      <div className="memory-preview-layer-head">
+                        <UiTag tone={promptToneForLayer(layer.layer)}>
+                          {formatPreviewLayerLabel(t, layer.layer)}
+                        </UiTag>
+                        <span>
+                          {t("memoryPreview.summary.selection", {
+                            selected: layer.selectedCount,
+                            candidate: layer.candidateCount,
+                          })}
+                          {" · "}
+                          {t("memoryPreview.summary.chars", {
+                            count: layer.chars,
+                          })}
+                        </span>
+                      </div>
+                      {layer.items.length === 0 ? (
+                        <div className="memory-preview-layer-empty">
+                          {t("memoryPreview.empty.noItems")}
+                        </div>
+                      ) : (
+                        <div className="memory-preview-item-list">
+                          {layer.items.map((item) => (
+                            <div
+                              className="memory-preview-item"
+                              key={`${layer.layer}-${item.id}-${item.order}`}
+                            >
+                              <div className="memory-preview-item-head">
+                                <strong>{toText(item.title) || item.id}</strong>
+                                <span>#{item.order}</span>
+                              </div>
+                              <div className="memory-info-record-meta">
+                                <UiTag>{item.kind || "--"}</UiTag>
+                                <UiTag tone="muted">
+                                  {item.scopeType || "--"}
+                                </UiTag>
+                                <UiTag tone="muted">
+                                  {item.category || "--"}
+                                </UiTag>
+                                <UiTag tone={toneForStatus(item.status)}>
+                                  {item.status || "--"}
+                                </UiTag>
+                              </div>
+                              <div className="memory-info-record-summary">
+                                {toText(item.summary) ||
+                                  t("memoryInfo.empty.noSummary")}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="memory-info-detail-block">
+                <span className="command-detail-label">
+                  {t("memoryPreview.section.decisions")}
+                </span>
+                {decisions.length === 0 ? (
+                  <div className="memory-preview-layer-empty">
+                    {t("memoryPreview.empty.noDecisions")}
+                  </div>
+                ) : (
+                  <div className="memory-preview-decision-list">
+                    {decisions.map((decision, index) => (
+                      <div
+                        className="memory-preview-decision-item"
+                        key={`${decision.layer}-${decision.reason}-${index}`}
+                      >
+                        <div className="memory-preview-decision-head">
+                          <UiTag tone={promptToneForLayer(decision.layer)}>
+                            {formatPreviewLayerLabel(t, decision.layer)}
+                          </UiTag>
+                          <strong>{decision.reason || "--"}</strong>
+                        </div>
+                        <div className="memory-info-detail-content">
+                          {Array.isArray(decision.itemIds) &&
+                          decision.itemIds.length > 0
+                            ? decision.itemIds.join(", ")
+                            : "--"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+};
+
 export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
   open,
   title,
@@ -1011,6 +1421,7 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
   onClose,
   recordsPanel,
   preferencesPanel,
+  previewPanel,
 }) => {
   const { t } = useI18n();
 
@@ -1061,6 +1472,15 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
           <UiButton
             variant="ghost"
             size="sm"
+            className={`settings-segmented-btn ${activeTab === "preview" ? "is-active" : ""}`}
+            active={activeTab === "preview"}
+            onClick={() => onTabChange("preview")}
+          >
+            {t("memoryPreview.tab")}
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            size="sm"
             className={`settings-segmented-btn ${activeTab === "records" ? "is-active" : ""}`}
             active={activeTab === "records"}
             onClick={() => onTabChange("records")}
@@ -1071,6 +1491,8 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
 
         {activeTab === "preferences" ? (
           <MemoryPreferencesPanelView {...preferencesPanel} />
+        ) : activeTab === "preview" ? (
+          <MemoryPreviewPanelView {...previewPanel} />
         ) : (
           <MemoryRecordsPanelView {...recordsPanel} />
         )}
@@ -1107,11 +1529,13 @@ export const MemoryInfoModal: React.FC = () => {
   const detailRequestSeqRef = useRef(0);
   const preferenceScopesSeqRef = useRef(0);
   const preferenceScopeSeqRef = useRef(0);
+  const metaLoadAttemptedRef = useRef(false);
+  const previewAutoTriggeredRef = useRef(false);
   const recordsLoadSignatureRef = useRef("");
   const preferencesLoadSignatureRef = useRef("");
   const preferenceTitleInputRef = useRef<HTMLInputElement>(null);
   const preferenceSummaryTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const preferenceCategoryInputRef = useRef<HTMLInputElement>(null);
+  const preferenceCategoryInputRef = useRef<HTMLSelectElement>(null);
   const preferenceImportanceInputRef = useRef<HTMLInputElement>(null);
   const preferenceConfidenceInputRef = useRef<HTMLInputElement>(null);
   const preferenceTagsInputRef = useRef<HTMLInputElement>(null);
@@ -1141,6 +1565,13 @@ export const MemoryInfoModal: React.FC = () => {
       state.workerRelatedChats,
     ],
   );
+  const currentChat = useMemo(
+    () =>
+      state.chats.find((chat) => toText(chat.chatId) === toText(state.chatId)) ||
+      null,
+    [state.chatId, state.chats],
+  );
+  const currentTeamId = toText(currentChat?.teamId);
 
   const closeModal = useCallback(() => {
     dispatch({ type: "SET_MEMORY_INFO_OPEN", open: false });
@@ -1158,6 +1589,70 @@ export const MemoryInfoModal: React.FC = () => {
       });
     },
     [dispatch],
+  );
+
+  const loadMemoryMeta = useCallback(async () => {
+    if (state.memoryMeta || metaLoadAttemptedRef.current) {
+      return;
+    }
+    metaLoadAttemptedRef.current = true;
+    try {
+      const response = await getMemoryMeta();
+      dispatch({ type: "SET_MEMORY_META", meta: response.data });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[memory meta] ${message}`,
+      });
+    }
+  }, [dispatch, state.memoryMeta]);
+
+  const runMemoryPreview = useCallback(
+    async (messageOverride?: string) => {
+      const chatId = toText(state.chatId);
+      const message = toText(
+        messageOverride !== undefined
+          ? messageOverride
+          : state.memoryPreviewDraft,
+      );
+      if (!chatId || !message) {
+        return;
+      }
+      dispatch({
+        type: "BATCH_UPDATE",
+        updates: {
+          memoryPreviewLoading: true,
+          memoryPreviewError: "",
+          memoryPreviewResult: null,
+        },
+      });
+      try {
+        const response = await previewMemoryContext({ chatId, message });
+        dispatch({
+          type: "BATCH_UPDATE",
+          updates: {
+            memoryPreviewLoading: false,
+            memoryPreviewError: "",
+            memoryPreviewResult: response.data,
+          },
+        });
+      } catch (error) {
+        const messageText =
+          error instanceof Error ? error.message : String(error);
+        dispatch({
+          type: "BATCH_UPDATE",
+          updates: {
+            memoryPreviewLoading: false,
+            memoryPreviewError: t("memoryPreview.errors.load", {
+              detail: messageText,
+            }),
+            memoryPreviewResult: null,
+          },
+        });
+      }
+    },
+    [dispatch, state.chatId, state.memoryPreviewDraft, t],
   );
 
   const loadDetail = useCallback(
@@ -1765,9 +2260,18 @@ export const MemoryInfoModal: React.FC = () => {
     detailRequestSeqRef.current += 1;
     preferenceScopesSeqRef.current += 1;
     preferenceScopeSeqRef.current += 1;
+    metaLoadAttemptedRef.current = false;
+    previewAutoTriggeredRef.current = false;
     recordsLoadSignatureRef.current = "";
     preferencesLoadSignatureRef.current = "";
   }, [state.memoryInfoOpen]);
+
+  useEffect(() => {
+    if (!state.memoryInfoOpen) {
+      return;
+    }
+    void loadMemoryMeta();
+  }, [loadMemoryMeta, state.memoryInfoOpen]);
 
   useEffect(() => {
     if (!state.memoryInfoOpen) {
@@ -1804,6 +2308,50 @@ export const MemoryInfoModal: React.FC = () => {
     state.memoryInfoOpen,
   ]);
 
+  useEffect(() => {
+    if (!state.memoryInfoOpen || state.memoryConsoleTab !== "preview") {
+      return;
+    }
+    if (state.memoryPreviewDraft || !state.composerDraft) {
+      return;
+    }
+    dispatch({
+      type: "SET_MEMORY_PREVIEW_DRAFT",
+      draft: state.composerDraft,
+    });
+  }, [
+    dispatch,
+    state.composerDraft,
+    state.memoryConsoleTab,
+    state.memoryInfoOpen,
+    state.memoryPreviewDraft,
+  ]);
+
+  useEffect(() => {
+    if (!state.memoryInfoOpen || state.memoryConsoleTab !== "preview") {
+      return;
+    }
+    if (previewAutoTriggeredRef.current) {
+      return;
+    }
+    if (
+      !toText(state.chatId) ||
+      !toText(state.memoryPreviewDraft) ||
+      toText(state.memoryPreviewDraft) !== toText(state.composerDraft)
+    ) {
+      return;
+    }
+    previewAutoTriggeredRef.current = true;
+    void runMemoryPreview(state.memoryPreviewDraft);
+  }, [
+    state.composerDraft,
+    runMemoryPreview,
+    state.chatId,
+    state.memoryConsoleTab,
+    state.memoryInfoOpen,
+    state.memoryPreviewDraft,
+  ]);
+
   const subtitle = agentContext.agentKey
     ? t("memoryInfo.subtitle", {
         label: agentContext.label || agentContext.agentKey,
@@ -1822,6 +2370,7 @@ export const MemoryInfoModal: React.FC = () => {
         agentKey: agentContext.agentKey,
         loading: state.memoryInfoLoading,
         error: state.memoryInfoError,
+        memoryMeta: state.memoryMeta,
         records: state.memoryInfoRecords,
         selectedRecordId: state.memoryInfoSelectedRecordId,
         detail: state.memoryInfoDetail,
@@ -1851,6 +2400,7 @@ export const MemoryInfoModal: React.FC = () => {
         label: state.memoryPreferenceLabel,
         fileName: state.memoryPreferenceFileName,
         meta: state.memoryPreferenceMeta,
+        memoryMeta: state.memoryMeta,
         loading: state.memoryPreferenceLoading,
         error: state.memoryPreferenceError,
         mode: state.memoryPreferenceMode,
@@ -1883,6 +2433,23 @@ export const MemoryInfoModal: React.FC = () => {
         },
         onSave: () => {
           void handlePreferenceSave();
+        },
+      }}
+      previewPanel={{
+        agentKey: agentContext.agentKey,
+        chatId: state.chatId,
+        teamId: currentTeamId,
+        draft: state.memoryPreviewDraft,
+        loading: state.memoryPreviewLoading,
+        error: state.memoryPreviewError,
+        result: state.memoryPreviewResult,
+        promptLayer: state.memoryPreviewPromptLayer,
+        onDraftChange: (draft) =>
+          dispatch({ type: "SET_MEMORY_PREVIEW_DRAFT", draft }),
+        onPromptLayerChange: (layer) =>
+          dispatch({ type: "SET_MEMORY_PREVIEW_PROMPT_LAYER", layer }),
+        onPreview: () => {
+          void runMemoryPreview();
         },
       }}
     />

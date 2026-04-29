@@ -28,6 +28,9 @@ import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachment
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
+	MemoryContextPreviewResponse,
+	MemoryContextPromptLayer,
+	MemoryMeta,
 	MemoryPreferenceMode,
 	MemoryScopeDetailMeta,
 	MemoryScopeDraftRecord,
@@ -91,6 +94,7 @@ export type AppAction =
 	| { type: "SET_MEMORY_INFO_DETAIL_LOADING"; loading: boolean }
 	| { type: "SET_MEMORY_INFO_DETAIL_ERROR"; error: string }
 	| { type: "SET_MEMORY_INFO_DETAIL"; detail: MemoryRecordDetail | null }
+	| { type: "SET_MEMORY_META"; meta: MemoryMeta | null }
 	| { type: "SET_MEMORY_PREFERENCE_SCOPES"; scopes: MemoryScopeSummary[] }
 	| {
 			type: "SET_MEMORY_PREFERENCE_ACTIVE_SCOPE";
@@ -122,6 +126,17 @@ export type AppAction =
 			type: "SET_MEMORY_PREFERENCE_VALIDATION";
 			validation: MemoryScopeValidationResult | null;
 	  }
+	| { type: "SET_MEMORY_PREVIEW_DRAFT"; draft: string }
+	| { type: "SET_MEMORY_PREVIEW_LOADING"; loading: boolean }
+	| { type: "SET_MEMORY_PREVIEW_ERROR"; error: string }
+	| {
+			type: "SET_MEMORY_PREVIEW_RESULT";
+			result: MemoryContextPreviewResponse | null;
+	  }
+	| {
+			type: "SET_MEMORY_PREVIEW_PROMPT_LAYER";
+			layer: MemoryContextPromptLayer;
+	  }
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
 	| { type: "OPEN_ATTACHMENT_PREVIEW"; preview: AttachmentPreviewState }
@@ -146,6 +161,7 @@ export type AppAction =
 	| { type: "SET_INPUT_MODE"; mode: AppState["inputMode"] }
 	| { type: "PATCH_VOICE_CHAT"; patch: Partial<VoiceChatState> }
 	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
+	| { type: "SET_COMPOSER_DRAFT"; draft: string }
 	| { type: "SET_STEER_DRAFT"; draft: string }
 	| { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
 	| { type: "REMOVE_PENDING_STEER"; steerId: string }

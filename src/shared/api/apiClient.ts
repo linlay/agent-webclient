@@ -9,6 +9,8 @@ import {
 } from '@/shared/api/appAuth';
 import type {
   MemoryScopeDetail,
+  MemoryContextPreviewResponse,
+  MemoryMeta,
   MemoryScopeSavePayload,
   MemoryScopeSaveResult,
   MemoryScopesResponse,
@@ -616,6 +618,10 @@ export function getMemoryScopes(
   return requestJson<MemoryScopesResponse>(`/api/memory/scopes?${query}`);
 }
 
+export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
+  return requestJson<MemoryMeta>("/api/memory/meta");
+}
+
 export function getMemoryScope(
   agentKey: string,
   scopeType: string,
@@ -636,6 +642,19 @@ export function validateMemoryScope(
       agentKey,
       scopeType,
       markdown,
+    }),
+  });
+}
+
+export function previewMemoryContext(params: {
+  chatId: string;
+  message: string;
+}): Promise<ApiResponse<MemoryContextPreviewResponse>> {
+  return requestJson<MemoryContextPreviewResponse>("/api/memory/context/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      chatId: params.chatId,
+      message: params.message,
     }),
   });
 }
