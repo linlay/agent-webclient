@@ -41,11 +41,12 @@ import {
 	getWsClientAccessToken,
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
-import type { TransportMode } from "@/features/transport/lib/transportMode";
+import { isWsTransportError } from "@/features/transport/lib/wsClient";
+import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
-let getTransportMode: () => TransportMode = () => "ws";
+let getTransportMode: () => TransportModeValue = () => "ws";
 
-export function setTransportModeProvider(provider: () => TransportMode): void {
+export function setTransportModeProvider(provider: () => TransportModeValue): void {
 	getTransportMode = provider;
 }
 
@@ -53,7 +54,10 @@ async function routeRequest<T>(
 	type: string,
 	payload: unknown,
 	fallback: () => Promise<ApiResponse<T>>,
-	options: { fallbackOnConnectFailure?: boolean } = {},
+	options: {
+		fallbackOnConnectFailure?: boolean;
+		fallbackOnRequestFailure?: boolean;
+	} = {},
 ): Promise<ApiResponse<T>> {
 	if (getTransportMode() !== "ws") {
 		return fallback();
@@ -86,7 +90,17 @@ async function routeRequest<T>(
 		return fallback();
 	}
 
-	return wsClient.request<T>({ type, payload });
+	try {
+		return await wsClient.request<T>({ type, payload });
+	} catch (error) {
+		if (
+			options.fallbackOnRequestFailure === false
+			|| !isWsTransportError(error)
+		) {
+			throw error;
+		}
+		return fallback();
+	}
 }
 
 export function getAgents(): Promise<ApiResponse> {
@@ -162,6 +176,7 @@ export function submitTool(params: {
 }): Promise<ApiResponse> {
 	return routeRequest("/api/submit", params, () => submitToolHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
@@ -172,24 +187,28 @@ export function submitAwaiting(params: {
 }): Promise<ApiResponse> {
 	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
 	return routeRequest("/api/read", params, () => markChatReadHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
 export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
 	return routeRequest("/api/feedback", params, () => submitFeedbackHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
 	return routeRequest("/api/chat-delete", params, () => deleteChatHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
@@ -206,12 +225,14 @@ export function searchGlobal(
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 	return routeRequest("/api/interrupt", params, () => interruptChatHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
 	return routeRequest("/api/steer", params, () => steerChatHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
@@ -221,6 +242,7 @@ export function rememberChat(params: {
 }): Promise<ApiResponse> {
 	return routeRequest("/api/remember", params, () => rememberChatHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 
@@ -230,6 +252,7 @@ export function learnChat(params: {
 }): Promise<ApiResponse> {
 	return routeRequest("/api/learn", params, () => learnChatHttp(params), {
 		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
 	});
 }
 

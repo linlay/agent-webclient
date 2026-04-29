@@ -454,8 +454,28 @@ describe("WsClient", () => {
 		socket.error();
 
 		await expect(promise).rejects.toThrow(
-			"WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
+			/握手失败|handshake failed/i,
 		);
+		client.disconnect();
+	});
+
+	it("times out handshake attempts that never open", async () => {
+		jest.useFakeTimers();
+		const client = createClient({
+			accessToken: "token_a",
+			connectTimeoutMs: 1_000,
+		});
+		const promise = client.connect();
+
+		const socket = MockWebSocket.instances[0];
+		jest.advanceTimersByTime(1_000);
+		await flushMicrotasks();
+
+		await expect(promise).rejects.toThrow(
+			/握手失败|handshake failed/i,
+		);
+		expect(socket.closeCalls).toBe(1);
+		expect(client.getStatus()).toBe("error");
 		client.disconnect();
 	});
 

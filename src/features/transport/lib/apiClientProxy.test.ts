@@ -422,7 +422,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
 	});
 
-	it("does not fall back to http when ws request times out", async () => {
+	it("falls back to http when a read-only ws request times out", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -436,9 +436,42 @@ describe("apiClientProxy", () => {
 			request,
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAgents.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["http-after-timeout"],
+		});
 
-		await expect(proxy.getAgents()).rejects.toBe(error);
-		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["http-after-timeout"],
+		});
+		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
+	});
+
+	it("falls back to http when a read-only ws request disconnects after connect", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const error = new WsClientDisconnectedError("WebSocket transport disconnected");
+		const request = jest.fn().mockRejectedValue(error);
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [{ chatId: "chat_http", awaiting: { awaitingId: "await_http" } }],
+		});
+
+		await expect(proxy.getChats()).resolves.toMatchObject({
+			data: [{ chatId: "chat_http", hasPendingAwaiting: true }],
+		});
+		expect(mockApiClient.getChats).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not fall back for read-only requests when ws returns an ApiError", async () => {

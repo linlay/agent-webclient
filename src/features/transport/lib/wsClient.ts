@@ -81,6 +81,7 @@ export interface WsClientOptions {
 	accessToken?: string;
 	onStatusChange?: (status: WsConnectionStatus) => void;
 	onPush?: (frame: WsPushFrame) => void;
+	connectTimeoutMs?: number;
 	heartbeatTimeoutMs?: number;
 	reconnectBaseDelayMs?: number;
 	reconnectMaxDelayMs?: number;
@@ -306,6 +307,7 @@ export class WsClient {
 	private readonly activeStreams = new Map<string, ActiveStream>();
 	private onStatusChange?: (status: WsConnectionStatus) => void;
 	private onPush?: (frame: WsPushFrame) => void;
+	private readonly connectTimeoutMs: number;
 	private readonly heartbeatTimeoutMs: number;
 	private readonly reconnectBaseDelayMs: number;
 	private readonly reconnectMaxDelayMs: number;
@@ -316,6 +318,7 @@ export class WsClient {
 		this.accessToken = String(options.accessToken || "").trim();
 		this.onStatusChange = options.onStatusChange;
 		this.onPush = options.onPush;
+		this.connectTimeoutMs = Math.max(1000, options.connectTimeoutMs ?? 10_000);
 		this.heartbeatTimeoutMs = Math.max(1000, options.heartbeatTimeoutMs ?? 45_000);
 		this.reconnectBaseDelayMs = Math.max(100, options.reconnectBaseDelayMs ?? 1_000);
 		this.reconnectMaxDelayMs = Math.max(
@@ -564,8 +567,30 @@ export class WsClient {
 		this.connectPromise = new Promise<void>((resolve, reject) => {
 			const socket = new WebSocket(buildWsUrl(this.accessToken));
 			this.socket = socket;
+			let connectTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+				connectTimer = null;
+				cleanupBeforeOpen();
+				this.connectPromise = null;
+				this.socket = null;
+				this.setStatus("error");
+				this.scheduleReconnect();
+				try {
+					socket.close(4001, "connect timeout");
+				} catch {
+					// Ignore close failures for sockets that never finished opening.
+				}
+				reject(
+					toWsConnectionError(new Error("WebSocket connection failed"), {
+						hasAccessToken: Boolean(this.accessToken),
+					}),
+				);
+			}, this.connectTimeoutMs);
 
 			const cleanupBeforeOpen = () => {
+				if (connectTimer) {
+					clearTimeout(connectTimer);
+					connectTimer = null;
+				}
 				socket.removeEventListener("open", handleOpen);
 				socket.removeEventListener("error", handleError);
 				socket.removeEventListener("close", handleCloseBeforeOpen);
