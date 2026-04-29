@@ -644,7 +644,6 @@
     padding-inline: 14px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
 }
 
 .awaiting-panel-submit-icon {
@@ -664,7 +663,12 @@
     font-weight: 600;
     white-space: nowrap;
 }
-
+.awaiting-reject-reason-button{
+    cursor: pointer;
+}
+.awaiting-reject-reason-button:hover{
+    transform: scale(1.1);
+}
 .awaiting-reject-reason-icon {
     color: var(--accent-danger);
 }
@@ -678,7 +682,7 @@
 }
 
 .awaiting-reject-reason input {
-    padding: 0;
+    padding: 0 2px;
     font-weight: normal;
     line-height: unset;
     color: var(--text-muted);

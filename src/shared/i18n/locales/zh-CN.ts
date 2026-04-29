@@ -63,7 +63,6 @@ export const zhCNMessages: I18nMessages = {
   "awaiting.action.reject": "驳回",
   "awaiting.action.submit": "提交",
   "awaiting.hint.rejectEditable": "请输入驳回理由，可以修改表单内容",
-  "awaiting.hint.submitEditable": "同意，可以修改表单内容并提交",
   "awaiting.load.failedWithDetail": "业务确认表单加载失败: {detail}",
   "awaiting.load.loading": "加载表单中...",
   "awaiting.load.waiting": "等待业务确认表单加载...",

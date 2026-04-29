@@ -63,7 +63,6 @@ export const enUSMessages: I18nMessages = {
   "awaiting.action.reject": "Reject",
   "awaiting.action.submit": "Submit",
   "awaiting.hint.rejectEditable": "Enter a reject reason. You can still edit the form contents.",
-  "awaiting.hint.submitEditable": "Approve it. You can still edit the form contents before submitting.",
   "awaiting.load.failedWithDetail": "Failed to load the business confirmation form: {detail}",
   "awaiting.load.loading": "Loading form...",
   "awaiting.load.waiting": "Waiting for the business confirmation form...",

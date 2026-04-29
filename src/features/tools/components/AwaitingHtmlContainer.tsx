@@ -745,9 +745,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const submitStatusText = submitStatus
     ? t(`awaiting.status.${submitStatus}`)
     : "";
-  const submitLineText = t("awaiting.hint.submitEditable");
-  const submitLineLead = submitLineText.split(/[，。,.]/)[0] || submitLineText;
-  const submitLineTail = submitLineText.slice(submitLineLead.length);
 
   const handleSwitchForm = useCallback(
     (nextIndex: number) => {
@@ -777,11 +774,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
   const handleReject = useCallback(async () => {
     const trimmedReason = rejectReason.trim();
-    if (!trimmedReason) {
-      setSubmitStatus("");
-      setSubmitError(t("awaiting.rejectReason.placeholder"));
-      return;
-    }
 
     if (!onSubmit) {
       setSubmitStatus("");
@@ -922,12 +914,25 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               name="arrow_forward"
               className="awaiting-panel-submit-icon"
             />
-            <span className="awaiting-panel-submit-lead">{submitLineLead}</span>
-            <span className="awaiting-panel-submit-tail">{submitLineTail}</span>
+            <span className="awaiting-panel-submit-lead">同意</span>
+            <span className="awaiting-panel-submit-tail">
+              可以修改表单内容并提交
+            </span>
           </Button>
           <Flex gap={8} className="awaiting-reject-reason" align="center">
-            <MaterialIcon name="close" className="awaiting-reject-reason-icon" />
-            <span>驳回</span>
+            <Flex
+              className="awaiting-reject-reason-button"
+              gap={8}
+              onClick={() =>
+                !reasonInputDisabled && handleReject()
+              }
+            >
+              <MaterialIcon
+                name="close"
+                className="awaiting-reject-reason-icon"
+              />
+              <span>驳回</span>
+            </Flex>
             <Input
               aria-label={t("awaiting.rejectReason.placeholder")}
               disabled={reasonInputDisabled}
