@@ -4,6 +4,7 @@ import {
   formatScopeTabLabel,
   hydratePreferenceDrafts,
   resolveMemoryAgentContext,
+  syncSelectedPreferenceDraftFromLiveValues,
   toScopeRecordInputs,
 } from "@/features/settings/lib/memoryInfo";
 
@@ -102,6 +103,50 @@ describe("resolveMemoryAgentContext", () => {
         importance: 8,
         confidence: 0.95,
         tags: ["preference"],
+      },
+    ]);
+  });
+
+  it("syncs the selected draft with live editor values before saving", () => {
+    const [draft] = hydratePreferenceDrafts([
+      {
+        id: "mem_101",
+        title: "",
+        summary: "",
+        category: "general",
+        importance: 5,
+        confidence: 0.8,
+        status: "active",
+        scopeType: "agent",
+        scopeKey: "agent:agent-a",
+        tags: [],
+        createdAt: 100,
+        updatedAt: 200,
+      },
+    ]);
+
+    const synced = syncSelectedPreferenceDraftFromLiveValues(
+      draft ? [draft] : [],
+      draft?.clientId || "",
+      {
+        title: "我的偏好123123",
+        summary: "我的偏好我的偏好",
+        category: "general",
+        importance: "5",
+        confidence: "0.9",
+        tags: "pref,zh",
+      },
+    );
+
+    expect(toScopeRecordInputs(synced)).toEqual([
+      {
+        id: "mem_101",
+        title: "我的偏好123123",
+        summary: "我的偏好我的偏好",
+        category: "general",
+        importance: 5,
+        confidence: 0.9,
+        tags: ["pref", "zh"],
       },
     ]);
   });

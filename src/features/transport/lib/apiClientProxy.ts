@@ -90,9 +90,7 @@ async function routeRequest<T>(
 }
 
 export function getAgents(): Promise<ApiResponse> {
-	return routeRequest("/api/agents", undefined, () => getAgentsHttp(), {
-		fallbackOnConnectFailure: false,
-	});
+	return routeRequest("/api/agents", undefined, () => getAgentsHttp());
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
@@ -100,9 +98,7 @@ export function getAgent(agentKey: string): Promise<ApiResponse> {
 }
 
 export function getTeams(): Promise<ApiResponse> {
-	return routeRequest("/api/teams", undefined, () => getTeamsHttp(), {
-		fallbackOnConnectFailure: false,
-	});
+	return routeRequest("/api/teams", undefined, () => getTeamsHttp());
 }
 
 export function getSkills(tag?: string): Promise<ApiResponse> {
@@ -130,9 +126,7 @@ export function getTool(toolName: string): Promise<ApiResponse> {
 }
 
 export async function getChats(): Promise<ApiResponse> {
-	const response = await routeRequest("/api/chats", undefined, () => getChatsHttp(), {
-		fallbackOnConnectFailure: false,
-	});
+	const response = await routeRequest("/api/chats", undefined, () => getChatsHttp());
 	return {
 		...response,
 		data: normalizeChatSummariesPayload(response.data),

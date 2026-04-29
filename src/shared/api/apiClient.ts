@@ -573,7 +573,7 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 }
 
 export interface GetMemoryRecordsParams {
-  agentKey: string;
+  agentKey?: string;
   keyword?: string;
   kind?: string;
   scopeType?: string;
@@ -602,7 +602,7 @@ export function getMemoryRecords(
 }
 
 export function getMemoryRecord(
-  agentKey: string,
+  agentKey: string | undefined,
   id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
   const query = toQueryString({ agentKey, id });

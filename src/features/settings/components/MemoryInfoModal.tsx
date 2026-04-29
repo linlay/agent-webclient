@@ -35,6 +35,7 @@ import {
   normalizePreferenceScopeType,
   preferredScopeTypeFromSummaries,
   resolveMemoryAgentContext,
+  syncSelectedPreferenceDraftFromLiveValues,
   toScopeRecordInputs,
 } from "@/features/settings/lib/memoryInfo";
 import { toText } from "@/shared/utils/eventUtils";
@@ -86,6 +87,15 @@ interface MemoryPreferencesPanelProps {
   saving: boolean;
   saveSummary: MemoryScopeSaveSummary | null;
   validation: MemoryScopeValidationResult | null;
+  editorRefs: {
+    title: React.RefObject<HTMLInputElement>;
+    summary: React.RefObject<HTMLTextAreaElement>;
+    category: React.RefObject<HTMLInputElement>;
+    importance: React.RefObject<HTMLInputElement>;
+    confidence: React.RefObject<HTMLInputElement>;
+    tags: React.RefObject<HTMLInputElement>;
+    markdown: React.RefObject<HTMLTextAreaElement>;
+  };
   onScopeSelect: (scopeType: MemoryPreferenceScopeType) => void;
   onModeChange: (mode: MemoryPreferenceMode) => void;
   onMarkdownChange: (value: string) => void;
@@ -241,6 +251,19 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   onFilterChange,
 }) => {
   const { t } = useI18n();
+  const categoryOptions = Array.from(
+    new Set(
+      [
+        "remember",
+        "identity",
+        "work_rules",
+        "general",
+        "bugfix",
+        filters.category,
+        ...records.map((record) => toText(record.category)),
+      ].filter(Boolean),
+    ),
+  );
 
   return (
     <div className="memory-console-pane">
@@ -327,25 +350,20 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
             </label>
             <label className="memory-info-field">
               <span>{t("memoryInfo.filters.category")}</span>
-              <input
-                className="memory-info-input"
+              <select
+                className="memory-info-select"
                 value={filters.category}
                 onChange={(event) =>
                   onFilterChange("category", event.currentTarget.value)
                 }
-                placeholder={t("memoryInfo.filters.categoryPlaceholder")}
-              />
-            </label>
-            <label className="memory-info-field">
-              <span>{t("memoryInfo.filters.limit")}</span>
-              <input
-                className="memory-info-input"
-                inputMode="numeric"
-                value={String(filters.limit)}
-                onChange={(event) =>
-                  onFilterChange("limit", event.currentTarget.value)
-                }
-              />
+              >
+                <option value="">{t("memoryInfo.filters.any")}</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 
@@ -366,7 +384,6 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
               </div>
             ) : (
               records.map((record) => {
-                const normalizedTags = normalizeMemoryTagList(record.tags);
                 return (
                   <button
                     key={record.id}
@@ -399,18 +416,6 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                         </UiTag>
                       ) : null}
                     </div>
-                    <div className="memory-info-record-summary">
-                      {toText(record.summary) || t("memoryInfo.empty.noSummary")}
-                    </div>
-                    {normalizedTags.length > 0 ? (
-                      <div className="memory-info-record-tags">
-                        {normalizedTags.map((tag) => (
-                          <UiTag key={`${record.id}-${tag}`} tone="default">
-                            #{tag}
-                          </UiTag>
-                        ))}
-                      </div>
-                    ) : null}
                   </button>
                 );
               })
@@ -539,6 +544,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
   saving,
   saveSummary,
   validation,
+  editorRefs,
   onScopeSelect,
   onModeChange,
   onMarkdownChange,
@@ -554,6 +560,11 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
     recordsDraft.find((record) => record.clientId === selectedRecordId) || null;
   const availableScopes =
     scopes.length > 0 ? scopes : buildFallbackScopeSummaries(t);
+  const validationFailedMessage = t("memoryPreferences.notice.validationFailed");
+  const shouldHideDuplicateValidationError =
+    mode === "markdown" &&
+    Boolean(validation && !validation.valid) &&
+    error === validationFailedMessage;
 
   return (
     <div className="memory-console-pane">
@@ -646,7 +657,9 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             </div>
           ) : null}
 
-          {error ? <div className="memory-info-error">{error}</div> : null}
+          {error && !shouldHideDuplicateValidationError ? (
+            <div className="memory-info-error">{error}</div>
+          ) : null}
           {dirty ? (
             <div className="memory-info-banner memory-info-banner-warning">
               {t("memoryPreferences.notice.unsaved")}
@@ -664,7 +677,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
           ) : null}
           {mode === "markdown" && validation && !validation.valid ? (
             <div className="memory-info-banner memory-info-banner-danger">
-              {t("memoryPreferences.notice.validationFailed")}
+              {validationFailedMessage}
             </div>
           ) : null}
 
@@ -679,6 +692,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                   <span>{t("memoryPreferences.field.title")}</span>
                   <input
                     className="memory-info-input"
+                    ref={editorRefs.title}
                     value={selectedDraft.title}
                     onChange={(event) =>
                       onRecordFieldChange("title", event.currentTarget.value)
@@ -689,6 +703,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                   <span>{t("memoryPreferences.field.summary")}</span>
                   <textarea
                     className="settings-textarea memory-preference-textarea"
+                    ref={editorRefs.summary}
                     value={selectedDraft.summary}
                     onChange={(event) =>
                       onRecordFieldChange("summary", event.currentTarget.value)
@@ -700,6 +715,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     <span>{t("memoryPreferences.field.category")}</span>
                     <input
                       className="memory-info-input"
+                      ref={editorRefs.category}
                       value={selectedDraft.category}
                       onChange={(event) =>
                         onRecordFieldChange("category", event.currentTarget.value)
@@ -711,6 +727,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     <input
                       className="memory-info-input"
                       inputMode="numeric"
+                      ref={editorRefs.importance}
                       value={String(selectedDraft.importance ?? "")}
                       onChange={(event) =>
                         onRecordFieldChange(
@@ -725,6 +742,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     <input
                       className="memory-info-input"
                       inputMode="decimal"
+                      ref={editorRefs.confidence}
                       value={String(selectedDraft.confidence ?? "")}
                       onChange={(event) =>
                         onRecordFieldChange(
@@ -738,6 +756,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     <span>{t("memoryPreferences.field.tags")}</span>
                     <input
                       className="memory-info-input"
+                      ref={editorRefs.tags}
                       value={normalizeMemoryTagList(selectedDraft.tags).join(",")}
                       onChange={(event) =>
                         onRecordFieldChange("tags", event.currentTarget.value)
@@ -751,6 +770,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             <div className="memory-preference-markdown-panel">
               <textarea
                 className="settings-textarea memory-preference-markdown"
+                ref={editorRefs.markdown}
                 value={markdownDraft}
                 onChange={(event) => onMarkdownChange(event.currentTarget.value)}
               />
@@ -1045,6 +1065,13 @@ export const MemoryInfoModal: React.FC = () => {
   const preferenceScopeSeqRef = useRef(0);
   const recordsLoadSignatureRef = useRef("");
   const preferencesLoadSignatureRef = useRef("");
+  const preferenceTitleInputRef = useRef<HTMLInputElement>(null);
+  const preferenceSummaryTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const preferenceCategoryInputRef = useRef<HTMLInputElement>(null);
+  const preferenceImportanceInputRef = useRef<HTMLInputElement>(null);
+  const preferenceConfidenceInputRef = useRef<HTMLInputElement>(null);
+  const preferenceTagsInputRef = useRef<HTMLInputElement>(null);
+  const preferenceMarkdownTextareaRef = useRef<HTMLTextAreaElement>(null);
   const agentContext = useMemo(
     () =>
       resolveMemoryAgentContext({
@@ -1092,7 +1119,7 @@ export const MemoryInfoModal: React.FC = () => {
   const loadDetail = useCallback(
     async (id: string, agentKeyOverride?: string) => {
       const agentKey = toText(agentKeyOverride) || agentContext.agentKey;
-      if (!agentKey || !id) {
+      if (!id) {
         dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
         dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
         dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: false });
@@ -1104,7 +1131,15 @@ export const MemoryInfoModal: React.FC = () => {
       dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
 
       try {
-        const response = await getMemoryRecord(agentKey, id);
+        let response: Awaited<ReturnType<typeof getMemoryRecord>>;
+        try {
+          response = await getMemoryRecord(agentKey || undefined, id);
+        } catch (error) {
+          if (!agentKey) {
+            throw error;
+          }
+          response = await getMemoryRecord(undefined, id);
+        }
         if (seq !== detailRequestSeqRef.current) return;
         dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: response.data });
       } catch (error) {
@@ -1125,34 +1160,38 @@ export const MemoryInfoModal: React.FC = () => {
   );
 
   const loadRecords = useCallback(async () => {
-    if (!agentContext.agentKey) {
-      dispatch({ type: "SET_MEMORY_INFO_LOADING", loading: false });
-      dispatch({ type: "SET_MEMORY_INFO_ERROR", error: "" });
-      dispatch({
-        type: "SET_MEMORY_INFO_RECORDS",
-        records: [],
-        selectedRecordId: "",
-      });
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: false });
-      return;
-    }
-
     const seq = ++listRequestSeqRef.current;
     dispatch({ type: "SET_MEMORY_INFO_LOADING", loading: true });
     dispatch({ type: "SET_MEMORY_INFO_ERROR", error: "" });
 
     try {
-      const response = await getMemoryRecords({
-        agentKey: agentContext.agentKey,
+      const baseRequest = {
         keyword: state.memoryInfoFilters.keyword,
         kind: state.memoryInfoFilters.kind,
         scopeType: state.memoryInfoFilters.scopeType,
         status: state.memoryInfoFilters.status,
         category: state.memoryInfoFilters.category,
         limit: state.memoryInfoFilters.limit,
+      };
+      const hasExplicitFilter = Boolean(
+        toText(baseRequest.keyword) ||
+          toText(baseRequest.kind) ||
+          toText(baseRequest.scopeType) ||
+          toText(baseRequest.status) ||
+          toText(baseRequest.category),
+      );
+      let response = await getMemoryRecords({
+        agentKey: agentContext.agentKey || undefined,
+        ...baseRequest,
       });
+      if (
+        agentContext.agentKey &&
+        !hasExplicitFilter &&
+        (!Array.isArray(response.data?.results) ||
+          response.data.results.length === 0)
+      ) {
+        response = await getMemoryRecords(baseRequest);
+      }
       if (seq !== listRequestSeqRef.current) return;
       const records = Array.isArray(response.data?.results)
         ? response.data.results
@@ -1162,6 +1201,9 @@ export const MemoryInfoModal: React.FC = () => {
       )
         ? state.memoryInfoSelectedRecordId
         : records[0]?.id || "";
+      const nextSelectedRecord = records.find(
+        (item) => item.id === nextSelectedRecordId,
+      );
 
       dispatch({
         type: "SET_MEMORY_INFO_RECORDS",
@@ -1181,7 +1223,10 @@ export const MemoryInfoModal: React.FC = () => {
         state.memoryInfoDetail?.id !== nextSelectedRecordId ||
         detailRequestSeqRef.current === 0
       ) {
-        void loadDetail(nextSelectedRecordId, agentContext.agentKey);
+        void loadDetail(
+          nextSelectedRecordId,
+          nextSelectedRecord?.agentKey || agentContext.agentKey || undefined,
+        );
       }
     } catch (error) {
       if (seq !== listRequestSeqRef.current) return;
@@ -1500,6 +1545,15 @@ export const MemoryInfoModal: React.FC = () => {
   const handlePreferenceValidate = useCallback(async () => {
     if (!agentContext.agentKey) return;
     if (state.memoryPreferenceMode !== "markdown") return;
+    const syncedMarkdownDraft =
+      preferenceMarkdownTextareaRef.current?.value ??
+      state.memoryPreferenceMarkdownDraft;
+    if (syncedMarkdownDraft !== state.memoryPreferenceMarkdownDraft) {
+      dispatch({
+        type: "SET_MEMORY_PREFERENCE_MARKDOWN_DRAFT",
+        markdown: syncedMarkdownDraft,
+      });
+    }
     dispatch({
       type: "BATCH_UPDATE",
       updates: {
@@ -1511,16 +1565,14 @@ export const MemoryInfoModal: React.FC = () => {
       const response = await validateMemoryScope(
         agentContext.agentKey,
         state.memoryPreferenceActiveScopeType,
-        state.memoryPreferenceMarkdownDraft,
+        syncedMarkdownDraft,
       );
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
           memoryPreferenceValidation: response.data,
           memoryPreferenceLoading: false,
-          memoryPreferenceError: response.data.valid
-            ? ""
-            : t("memoryPreferences.notice.validationFailed"),
+          memoryPreferenceError: "",
         },
       });
     } catch (error) {
@@ -1546,9 +1598,41 @@ export const MemoryInfoModal: React.FC = () => {
 
   const handlePreferenceSave = useCallback(async () => {
     if (!agentContext.agentKey) return;
+    const syncedRecordsDraft =
+      state.memoryPreferenceMode === "records"
+        ? syncSelectedPreferenceDraftFromLiveValues(
+            state.memoryPreferenceRecordsDraft,
+            state.memoryPreferenceSelectedRecordId,
+            {
+              title: preferenceTitleInputRef.current?.value,
+              summary: preferenceSummaryTextareaRef.current?.value,
+              category: preferenceCategoryInputRef.current?.value,
+              importance: preferenceImportanceInputRef.current?.value,
+              confidence: preferenceConfidenceInputRef.current?.value,
+              tags: preferenceTagsInputRef.current?.value,
+            },
+          )
+        : state.memoryPreferenceRecordsDraft;
+    const syncedMarkdownDraft =
+      preferenceMarkdownTextareaRef.current?.value ??
+      state.memoryPreferenceMarkdownDraft;
+    const syncUpdates: Record<string, unknown> = {};
+    if (
+      state.memoryPreferenceMode === "records" &&
+      syncedRecordsDraft !== state.memoryPreferenceRecordsDraft
+    ) {
+      syncUpdates.memoryPreferenceRecordsDraft = syncedRecordsDraft;
+    }
+    if (
+      state.memoryPreferenceMode === "markdown" &&
+      syncedMarkdownDraft !== state.memoryPreferenceMarkdownDraft
+    ) {
+      syncUpdates.memoryPreferenceMarkdownDraft = syncedMarkdownDraft;
+    }
     dispatch({
       type: "BATCH_UPDATE",
       updates: {
+        ...syncUpdates,
         memoryPreferenceSaving: true,
         memoryPreferenceError: "",
         memoryPreferenceSaveSummary: null,
@@ -1560,7 +1644,7 @@ export const MemoryInfoModal: React.FC = () => {
         const validationResponse = await validateMemoryScope(
           agentContext.agentKey,
           state.memoryPreferenceActiveScopeType,
-          state.memoryPreferenceMarkdownDraft,
+          syncedMarkdownDraft,
         );
         dispatch({
           type: "SET_MEMORY_PREFERENCE_VALIDATION",
@@ -1571,7 +1655,7 @@ export const MemoryInfoModal: React.FC = () => {
             type: "BATCH_UPDATE",
             updates: {
               memoryPreferenceSaving: false,
-              memoryPreferenceError: t("memoryPreferences.notice.validationFailed"),
+              memoryPreferenceError: "",
             },
           });
           return;
@@ -1585,9 +1669,9 @@ export const MemoryInfoModal: React.FC = () => {
         mode: state.memoryPreferenceMode,
         archiveMissing: true,
         ...(state.memoryPreferenceMode === "markdown"
-          ? { markdown: state.memoryPreferenceMarkdownDraft }
+          ? { markdown: syncedMarkdownDraft }
           : {
-              records: toScopeRecordInputs(state.memoryPreferenceRecordsDraft),
+              records: toScopeRecordInputs(syncedRecordsDraft),
             }),
       });
 
@@ -1625,6 +1709,7 @@ export const MemoryInfoModal: React.FC = () => {
     state.memoryPreferenceMarkdownDraft,
     state.memoryPreferenceMode,
     state.memoryPreferenceRecordsDraft,
+    state.memoryPreferenceSelectedRecordId,
     t,
   ]);
 
@@ -1641,13 +1726,13 @@ export const MemoryInfoModal: React.FC = () => {
   }, [state.memoryInfoOpen]);
 
   useEffect(() => {
-    if (!state.memoryInfoOpen || !agentContext.agentKey) {
+    if (!state.memoryInfoOpen) {
       return;
     }
     if (state.memoryConsoleTab !== "records") {
       return;
     }
-    const signature = `${agentContext.agentKey}:records`;
+    const signature = `${agentContext.agentKey || "__all__"}:records`;
     if (recordsLoadSignatureRef.current === signature) {
       return;
     }
@@ -1699,7 +1784,7 @@ export const MemoryInfoModal: React.FC = () => {
         detailLoading: state.memoryInfoDetailLoading,
         detailError: state.memoryInfoDetailError,
         filters: state.memoryInfoFilters,
-        missingAgent: !agentContext.agentKey,
+        missingAgent: false,
         onQuery: () => {
           void loadRecords();
         },
@@ -1708,7 +1793,8 @@ export const MemoryInfoModal: React.FC = () => {
         },
         onSelectRecord: (id) => {
           dispatch({ type: "SET_MEMORY_INFO_SELECTED_RECORD_ID", id });
-          void loadDetail(id);
+          const record = state.memoryInfoRecords.find((item) => item.id === id);
+          void loadDetail(id, record?.agentKey || agentContext.agentKey || undefined);
         },
         onFilterChange: updateFilter,
       }}
@@ -1731,6 +1817,15 @@ export const MemoryInfoModal: React.FC = () => {
         saving: state.memoryPreferenceSaving,
         saveSummary: state.memoryPreferenceSaveSummary,
         validation: state.memoryPreferenceValidation,
+        editorRefs: {
+          title: preferenceTitleInputRef,
+          summary: preferenceSummaryTextareaRef,
+          category: preferenceCategoryInputRef,
+          importance: preferenceImportanceInputRef,
+          confidence: preferenceConfidenceInputRef,
+          tags: preferenceTagsInputRef,
+          markdown: preferenceMarkdownTextareaRef,
+        },
         onScopeSelect: handlePreferenceScopeSelect,
         onModeChange: handlePreferenceModeChange,
         onMarkdownChange: handlePreferenceMarkdownChange,

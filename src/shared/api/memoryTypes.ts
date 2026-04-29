@@ -174,7 +174,7 @@ export function createDefaultMemoryInfoFilters(): MemoryInfoFilters {
     scopeType: "",
     status: "",
     category: "",
-    limit: 20,
+    limit: 1000,
   };
 }
 

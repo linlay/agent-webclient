@@ -189,6 +189,76 @@ export function toScopeRecordInputs(
   }));
 }
 
+export interface LivePreferenceDraftValues {
+  title?: string;
+  summary?: string;
+  category?: string;
+  importance?: string | number;
+  confidence?: string | number;
+  tags?: string | string[];
+}
+
+export function syncSelectedPreferenceDraftFromLiveValues(
+  drafts: MemoryScopeDraftRecord[],
+  selectedRecordId: string,
+  liveValues?: LivePreferenceDraftValues | null,
+): MemoryScopeDraftRecord[] {
+  if (!selectedRecordId || !liveValues) {
+    return drafts;
+  }
+
+  const hasLiveValue = (
+    liveValues.title !== undefined ||
+    liveValues.summary !== undefined ||
+    liveValues.category !== undefined ||
+    liveValues.importance !== undefined ||
+    liveValues.confidence !== undefined ||
+    liveValues.tags !== undefined
+  );
+  if (!hasLiveValue) {
+    return drafts;
+  }
+
+  return drafts.map((record) => {
+    if (record.clientId !== selectedRecordId) {
+      return record;
+    }
+
+    return {
+      ...record,
+      title:
+        liveValues.title !== undefined
+          ? toText(liveValues.title)
+          : record.title,
+      summary:
+        liveValues.summary !== undefined
+          ? toText(liveValues.summary)
+          : record.summary,
+      category:
+        liveValues.category !== undefined
+          ? toText(liveValues.category) || "general"
+          : record.category,
+      importance:
+        liveValues.importance !== undefined
+          ? Number.parseInt(String(liveValues.importance || "0"), 10) || 0
+          : record.importance,
+      confidence:
+        liveValues.confidence !== undefined
+          ? Number.parseFloat(String(liveValues.confidence || "0")) || 0
+          : record.confidence,
+      tags:
+        liveValues.tags !== undefined
+          ? Array.isArray(liveValues.tags)
+            ? normalizeMemoryTagList(liveValues.tags)
+            : liveValues.tags
+                .split(/[,\n\uFF0C]/)
+                .map((item) => toText(item))
+                .filter(Boolean)
+          : record.tags,
+    };
+  });
+}
+
 export function normalizePreferenceScopeType(
   value: string,
 ): MemoryPreferenceScopeType {

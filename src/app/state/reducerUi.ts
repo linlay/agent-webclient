@@ -13,7 +13,7 @@ export function reduceUiState(
 			return {
 				...state,
 				memoryInfoOpen: action.open,
-				memoryConsoleTab: action.open ? "preferences" : state.memoryConsoleTab,
+				memoryConsoleTab: action.open ? "records" : state.memoryConsoleTab,
 				memoryInfoLoading: action.open ? state.memoryInfoLoading : false,
 				memoryInfoError: action.open ? state.memoryInfoError : "",
 				memoryInfoDetailLoading: action.open

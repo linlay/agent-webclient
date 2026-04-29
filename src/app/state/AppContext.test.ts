@@ -296,7 +296,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(closed.memoryInfoError).toBe('');
     expect(closed.memoryInfoDetailLoading).toBe(false);
     expect(closed.memoryInfoDetailError).toBe('');
-    expect(opened.memoryConsoleTab).toBe('preferences');
+    expect(opened.memoryConsoleTab).toBe('records');
     expect(baseState.memoryPreferenceActiveScopeType).toBe('agent');
   });
 

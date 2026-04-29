@@ -217,7 +217,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
-	it("does not fall back to http when agents websocket connect fails", async () => {
+	it("falls back to http when agents websocket connect fails", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -228,12 +228,20 @@ describe("apiClientProxy", () => {
 			request: jest.fn(),
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAgents.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["http-agents"],
+		});
 
-		await expect(proxy.getAgents()).rejects.toBe(error);
-		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["http-agents"],
+		});
+		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not fall back to http when teams websocket connect fails", async () => {
+	it("falls back to http when teams websocket connect fails", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -244,12 +252,20 @@ describe("apiClientProxy", () => {
 			request: jest.fn(),
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getTeams.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["http-teams"],
+		});
 
-		await expect(proxy.getTeams()).rejects.toBe(error);
-		expect(mockApiClient.getTeams).not.toHaveBeenCalled();
+		await expect(proxy.getTeams()).resolves.toMatchObject({
+			data: ["http-teams"],
+		});
+		expect(mockApiClient.getTeams).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not fall back to http when chats websocket connect fails", async () => {
+	it("falls back to http when chats websocket connect fails", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -260,9 +276,17 @@ describe("apiClientProxy", () => {
 			request: jest.fn(),
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [{ chatId: "chat_http", awaiting: { awaitingId: "await_http" } }],
+		});
 
-		await expect(proxy.getChats()).rejects.toBe(error);
-		expect(mockApiClient.getChats).not.toHaveBeenCalled();
+		await expect(proxy.getChats()).resolves.toMatchObject({
+			data: [{ chatId: "chat_http", hasPendingAwaiting: true }],
+		});
+		expect(mockApiClient.getChats).toHaveBeenCalledTimes(1);
 	});
 
 	it("normalizes chat summaries returned from ws /api/chats responses", async () => {
