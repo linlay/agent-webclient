@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Input, Spin } from "antd";
-import type { Agent } from "@/app/state/types";
+import type { Agent, Team } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
   createSchedule,
@@ -68,12 +68,25 @@ const CRON_PRESETS = [
   { label: "每小时", value: "0 * * * *" },
 ];
 
-const FALLBACK_ZONE_OPTIONS = [
+const COMMON_ZONE_OPTIONS = [
   "Asia/Shanghai",
   "UTC",
   "Asia/Tokyo",
+  "Asia/Seoul",
+  "Asia/Singapore",
+  "Asia/Hong_Kong",
+  "Asia/Bangkok",
+  "Asia/Kolkata",
+  "Asia/Dubai",
   "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
   "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "Australia/Sydney",
 ];
 
 function compactPayload<T extends Record<string, unknown>>(payload: T): T {
@@ -170,20 +183,6 @@ function toDurationLabel(value?: number | null): string {
   return `${(value / 1000).toFixed(1)}s`;
 }
 
-function getSupportedZoneIds(): string[] {
-  try {
-    const supportedValuesOf = (Intl as unknown as {
-      supportedValuesOf?: (key: "timeZone") => string[];
-    }).supportedValuesOf as
-      | ((key: "timeZone") => string[])
-      | undefined;
-    const zones = supportedValuesOf?.("timeZone") || [];
-    return zones.length > 0 ? zones : FALLBACK_ZONE_OPTIONS;
-  } catch {
-    return FALLBACK_ZONE_OPTIONS;
-  }
-}
-
 export function scheduleSourcePath(schedule: ScheduleSummaryResponse): string {
   const source = String(schedule.sourceFile || "").trim();
   if (!source) return schedule.id;
@@ -192,18 +191,10 @@ export function scheduleSourcePath(schedule: ScheduleSummaryResponse): string {
   return filename || schedule.id;
 }
 
-function scheduleWorkerLabel(schedule: ScheduleSummaryResponse): string {
-  const parts = [];
-  if (schedule.agentKey) parts.push(`智能体 ${schedule.agentKey}`);
-  if (schedule.teamId) parts.push(`Team ${schedule.teamId}`);
-  return parts.join(" / ") || "--";
-}
-
 function scheduleListMeta(schedule: ScheduleSummaryResponse): string {
   const lastStatus = schedule.lastExecution?.status || "--";
   return [
     schedule.cron || "--",
-    scheduleWorkerLabel(schedule),
     `下次 ${toTimeLabel(schedule.nextFireTime)}`,
     `最近 ${lastStatus}`,
   ].join(" · ");
@@ -287,7 +278,8 @@ function validateForm(form: ScheduleFormState): string {
 export const ScheduleModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
-}> = ({ currentWorker, agents }) => {
+  teams: Team[];
+}> = ({ currentWorker, agents, teams }) => {
   const [schedules, setSchedules] = useState<ScheduleSummaryResponse[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [executions, setExecutions] = useState<ScheduleExecutionResponse[]>([]);
@@ -317,7 +309,9 @@ export const ScheduleModal: React.FC<{
     for (const agent of Array.isArray(agents) ? agents : []) {
       const key = String(agent?.key || "").trim();
       if (!key) continue;
-      options.set(key, String(agent?.name || key).trim() || key);
+      const name = String(agent?.name || key).trim() || key;
+      const role = String(agent?.role || "").trim();
+      options.set(key, role ? `${name} · ${role}` : name);
     }
     const currentAgentKey = form.agentKey.trim();
     if (currentAgentKey && !options.has(currentAgentKey)) {
@@ -327,7 +321,7 @@ export const ScheduleModal: React.FC<{
   }, [agents, form.agentKey]);
 
   const zoneOptions = useMemo(() => {
-    const values = new Set(getSupportedZoneIds());
+    const values = new Set(COMMON_ZONE_OPTIONS);
     const currentZone = form.zoneId.trim();
     if (currentZone) values.add(currentZone);
     return Array.from(values).sort((left, right) => {
@@ -338,6 +332,29 @@ export const ScheduleModal: React.FC<{
       return left.localeCompare(right);
     });
   }, [form.zoneId]);
+
+  const workerNameByKey = useMemo(() => {
+    const values = new Map<string, string>();
+    for (const agent of Array.isArray(agents) ? agents : []) {
+      const key = String(agent?.key || "").trim();
+      if (!key) continue;
+      values.set(`agent:${key}`, String(agent?.name || key).trim() || key);
+    }
+    for (const team of Array.isArray(teams) ? teams : []) {
+      const teamId = String(team?.teamId || "").trim();
+      if (!teamId) continue;
+      values.set(`team:${teamId}`, String(team?.name || teamId).trim() || teamId);
+    }
+    return values;
+  }, [agents, teams]);
+
+  const getScheduleWorkerName = useCallback((schedule: ScheduleSummaryResponse): string => {
+    const teamId = String(schedule.teamId || "").trim();
+    if (teamId) return workerNameByKey.get(`team:${teamId}`) || teamId;
+    const agentKey = String(schedule.agentKey || "").trim();
+    if (agentKey) return workerNameByKey.get(`agent:${agentKey}`) || agentKey;
+    return "--";
+  }, [workerNameByKey]);
 
   const filteredSchedules = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -576,7 +593,10 @@ export const ScheduleModal: React.FC<{
                     onClick={() => selectSchedule(item.id)}
 	                  >
                     <span className="schedule-list-item-head">
-                      <strong title={item.name || item.id}>{item.name || item.id}</strong>
+                      <span className="schedule-list-item-title" title={`${getScheduleWorkerName(item)} ${item.name || item.id}`}>
+                        <span className="schedule-list-item-owner">[{getScheduleWorkerName(item)}]</span>
+                        <strong>{item.name || item.id}</strong>
+                      </span>
                       <UiTag tone={item.enabled ? "accent" : "muted"}>
                         {item.enabled ? "启用" : "停用"}
                       </UiTag>
@@ -618,13 +638,20 @@ export const ScheduleModal: React.FC<{
             </div>
 	            <div className="field-group">
 	              <label htmlFor="schedule-cron-input">Cron</label>
-	              <UiInput id="schedule-cron-input" inputSize="md" value={form.cron} onChange={(event) => updateForm({ cron: event.target.value })} />
-	              <div className="schedule-cron-presets">
-	                {CRON_PRESETS.map((preset) => (
-	                  <UiButton key={preset.value} size="sm" variant="ghost" onClick={() => updateForm({ cron: preset.value })}>
-	                    {preset.label}
-	                  </UiButton>
-	                ))}
+	              <div className="schedule-cron-control">
+	                <UiInput id="schedule-cron-input" inputSize="md" value={form.cron} onChange={(event) => updateForm({ cron: event.target.value })} />
+	                <select
+	                  aria-label="Cron 快捷选择"
+	                  value={CRON_PRESETS.some((preset) => preset.value === form.cron) ? form.cron : ""}
+	                  onChange={(event) => {
+	                    if (event.target.value) updateForm({ cron: event.target.value });
+	                  }}
+	                >
+	                  <option value="">快捷选择</option>
+	                  {CRON_PRESETS.map((preset) => (
+	                    <option key={preset.value} value={preset.value}>{preset.label}</option>
+	                  ))}
+	                </select>
 	              </div>
 	            </div>
 	            <div className="field-group">

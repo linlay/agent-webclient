@@ -84,18 +84,20 @@ describe("ScheduleModal", () => {
       React.createElement(ScheduleModal, {
         currentWorker: createCurrentWorker(),
         agents: [
-          { key: "agent-a", name: "小宅" },
-          { key: "agent-b", name: "小智" },
+          { key: "agent-a", name: "小宅", role: "执行官" },
+          { key: "agent-b", name: "小智", role: "分析师" },
         ],
+        teams: [{ teamId: "team-a", name: "Alpha Team" }],
       }),
     );
 
     expect(html).toContain("计划任务 0 个");
     expect(html).toContain("请求");
     expect(html).toContain("智能体");
-    expect(html).toContain("小宅");
+    expect(html).toContain("小宅 · 执行官");
     expect(html).toContain("Asia/Shanghai");
-    expect(html).toContain("schedule-cron-presets");
+    expect(html).toContain("schedule-cron-control");
+    expect(html).toContain("快捷选择");
     expect(html).toContain("value=\"team-a\"");
     expect(html).toContain("每天 09:00");
     expect(html).toContain("创建任务");

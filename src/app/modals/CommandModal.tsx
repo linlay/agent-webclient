@@ -566,6 +566,7 @@ export const CommandModal: React.FC = () => {
           <ScheduleModal
             currentWorker={currentWorker}
             agents={state.agents}
+            teams={state.teams}
           />
         )}
       </div>

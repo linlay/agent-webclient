@@ -538,13 +538,31 @@
     gap: 8px;
 }
 
-.schedule-list-item-head strong {
+.schedule-list-item-title {
     min-width: 0;
     flex: 1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.schedule-list-item-title strong {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
     font-size: 13px;
+    line-height: 1.35;
+}
+
+.schedule-list-item-owner {
+    flex: 0 0 auto;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-muted);
+    font-size: 12px;
     line-height: 1.35;
 }
 
@@ -589,7 +607,6 @@
 
 .schedule-detail-actions,
 .schedule-save-actions,
-.schedule-cron-presets,
 .schedule-executions-head {
     display: flex;
     align-items: center;
@@ -607,8 +624,15 @@
     margin-bottom: 0;
 }
 
-.schedule-cron-presets {
-    margin: 8px 0 0;
+.schedule-cron-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 132px;
+    align-items: center;
+    gap: 8px;
+}
+
+.schedule-cron-control select {
+    min-width: 0;
 }
 
 .schedule-enabled-field {
