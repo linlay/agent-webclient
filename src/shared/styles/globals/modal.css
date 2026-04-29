@@ -530,8 +530,17 @@
     background: var(--bg-hover);
 }
 
-.schedule-list-item strong {
+.schedule-list-item-head {
     min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.schedule-list-item-head strong {
+    min-width: 0;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -539,7 +548,11 @@
     line-height: 1.35;
 }
 
-.schedule-list-item-path {
+.schedule-list-item-head .ui-tag {
+    flex: 0 0 auto;
+}
+
+.schedule-list-item-meta {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

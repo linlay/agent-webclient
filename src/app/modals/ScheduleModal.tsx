@@ -22,6 +22,7 @@ import type {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiInput } from "@/shared/ui/UiInput";
+import { UiTag } from "@/shared/ui/UiTag";
 
 type ScheduleStatusFilter = "all" | "enabled" | "disabled";
 type ScheduleFormMode = "create" | "edit";
@@ -187,13 +188,25 @@ export function scheduleSourcePath(schedule: ScheduleSummaryResponse): string {
   const source = String(schedule.sourceFile || "").trim();
   if (!source) return schedule.id;
   const normalized = source.replace(/\\/g, "/");
-  const marker = "/schedules/";
-  const markerIndex = normalized.lastIndexOf(marker);
-  if (markerIndex >= 0) {
-    return `schedules/${normalized.slice(markerIndex + marker.length)}`;
-  }
-  if (normalized.startsWith("schedules/")) return normalized;
-  return normalized;
+  const filename = normalized.split("/").filter(Boolean).pop();
+  return filename || schedule.id;
+}
+
+function scheduleWorkerLabel(schedule: ScheduleSummaryResponse): string {
+  const parts = [];
+  if (schedule.agentKey) parts.push(`智能体 ${schedule.agentKey}`);
+  if (schedule.teamId) parts.push(`Team ${schedule.teamId}`);
+  return parts.join(" / ") || "--";
+}
+
+function scheduleListMeta(schedule: ScheduleSummaryResponse): string {
+  const lastStatus = schedule.lastExecution?.status || "--";
+  return [
+    schedule.cron || "--",
+    scheduleWorkerLabel(schedule),
+    `下次 ${toTimeLabel(schedule.nextFireTime)}`,
+    `最近 ${lastStatus}`,
+  ].join(" · ");
 }
 
 function buildQuery(form: ScheduleFormState): ScheduleQueryRequest {
@@ -562,10 +575,15 @@ export const ScheduleModal: React.FC<{
                     className={`schedule-list-item ${item.id === selectedId ? "is-active" : ""}`}
                     onClick={() => selectSchedule(item.id)}
 	                  >
-	                    <strong>{item.name || item.id}</strong>
-	                    <span className="schedule-list-item-path">
-	                      {scheduleSourcePath(item)}
-	                    </span>
+                    <span className="schedule-list-item-head">
+                      <strong title={item.name || item.id}>{item.name || item.id}</strong>
+                      <UiTag tone={item.enabled ? "accent" : "muted"}>
+                        {item.enabled ? "启用" : "停用"}
+                      </UiTag>
+                    </span>
+                    <span className="schedule-list-item-meta" title={scheduleListMeta(item)}>
+                      {scheduleListMeta(item)}
+                    </span>
 	                  </button>
                 ))}
               </div>
@@ -577,7 +595,7 @@ export const ScheduleModal: React.FC<{
           <div className="schedule-detail-head">
             <div>
               <strong>{formMode === "create" ? "新建计划任务" : selectedSummary?.name || "编辑计划任务"}</strong>
-              <span>{formMode === "create" ? "保存后立即写入后端 schedule 配置" : selectedSummary?.sourceFile || selectedSummary?.id}</span>
+              <span>{formMode === "create" ? "保存后立即写入后端 schedule 配置" : selectedSummary ? scheduleSourcePath(selectedSummary) : selectedId}</span>
             </div>
             {selectedSummary && (
               <div className="schedule-detail-actions">

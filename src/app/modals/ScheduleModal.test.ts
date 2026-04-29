@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ScheduleModal } from "@/app/modals/ScheduleModal";
+import { ScheduleModal, scheduleSourcePath } from "@/app/modals/ScheduleModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getSchedules } from "@/features/transport/lib/apiClientProxy";
 
@@ -101,7 +101,7 @@ describe("ScheduleModal", () => {
     expect(html).toContain("创建任务");
   });
 
-  it("renders schedule list items as a compact name and schedules path pair", () => {
+  it("normalizes schedule source files to display filenames", () => {
     const schedule = {
       id: "gitpull_zenmind_20260429_2146",
       name: "令宿 - 全量拉取 zenmind 子项目",
@@ -113,15 +113,7 @@ describe("ScheduleModal", () => {
         "/Users/linlay/Project/zenmind/zenmind-env/schedules/gitpull_zenmind_20260429_2146.yml",
     };
 
-    const html = renderToStaticMarkup(
-      React.createElement(ScheduleModal, {
-        currentWorker: createCurrentWorker(),
-        agents: [{ key: "agent-a", name: "小宅" }],
-      }),
-    );
-
-    expect(html).toContain("令宿 - 全量拉取 zenmind 子项目");
-    expect(html).toContain("schedules/gitpull_zenmind_20260429_2146.yml");
-    expect(html).not.toContain(`Agent ${schedule.agentKey}`);
+    expect(scheduleSourcePath(schedule)).toBe("gitpull_zenmind_20260429_2146.yml");
+    expect(scheduleSourcePath({ ...schedule, sourceFile: "" })).toBe("gitpull_zenmind_20260429_2146");
   });
 });
