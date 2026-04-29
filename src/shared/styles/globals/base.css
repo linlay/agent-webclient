@@ -409,12 +409,16 @@ textarea {
     display: none !important;
 }
 
+.ant-tooltip {
+    backdrop-filter: blur(10px);
+}
+
 .ant-tooltip .ant-tooltip-arrow {
     display: none;
 }
 
 .ant-tooltip .ant-tooltip-inner {
-    background: var(--bg-elev-2);
+    background: transparent;
     border: 1px solid var(--line-strong);
     color: var(--text-main);
     box-shadow: none;

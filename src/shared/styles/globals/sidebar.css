@@ -249,6 +249,7 @@
 }
 
 .chat-unread-dot {
+    display: block;
     width: 6px;
     height: 6px;
     flex: 0 0 auto;

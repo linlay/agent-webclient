@@ -318,7 +318,7 @@
 
 .worker-chat-item {
     position: relative;
-    padding: 9px 9px 9px 8px;
+    padding: 9px 9px 9px 18px;
     border: 0;
     border-radius: 0;
     background-color: transparent;
@@ -326,8 +326,9 @@
     color: var(--text-muted);
 }
 
-.worker-chat-item .chat-actions-trigger {
-    color: var(--text-muted);
+[data-action] .chat-actions-trigger,
+[data-action] .worker-chat-loading,
+[data-action] .chat-unread-dot {
     opacity: 0;
     position: absolute;
     padding: 0;
@@ -335,6 +336,25 @@
     transform: translateY(-50%);
     right: 10px;
     transition: none;
+}
+[data-action] .chat-unread-dot{
+    margin-right: 6px;
+}
+[data-action="loading"] .worker-chat-loading{
+    opacity: 1;
+}
+[data-action="unread"] .chat-unread-dot.is-unread {
+    opacity: 1;
+}
+[data-action] .worker-panel-time-label {
+    opacity: 0;
+}
+[data-action="time"] .worker-panel-time-label {
+    opacity: 1;
+}
+
+.worker-chat-item .chat-actions-trigger {
+    color: var(--text-muted);
 }
 
 .worker-chat-item:hover {
@@ -346,7 +366,9 @@
     opacity: 1;
 }
 
-.worker-chat-item:hover .worker-panel-time-label {
+.worker-chat-item:hover .worker-panel-time-label,
+.worker-chat-item:hover .chat-unread-dot.is-unread,
+.worker-chat-item:hover .worker-chat-loading[data-loading="true"] {
     opacity: 0;
 }
 

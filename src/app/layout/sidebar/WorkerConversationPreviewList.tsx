@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Tooltip } from "antd";
+import { Button, Flex, Tooltip } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
@@ -25,10 +25,7 @@ export const WorkerConversationPreviewList: React.FC<{
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
-  onMarkAllRead?: (
-    e: React.MouseEvent<HTMLElement>,
-    workerKey: string,
-  ) => void;
+  onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
 }> = ({
   row,
   chats,
@@ -73,24 +70,26 @@ export const WorkerConversationPreviewList: React.FC<{
               {row.displayName}
             </span>
           </div>
-          <Tooltip title={t("leftSidebar.newConversation")}>
-            <Button
-              className="worker-panel-new worker-popover-new"
-              type="text"
-              icon={<MaterialIcon name="add" />}
-              onClick={(e) => onStartNewConversation(e, row.key)}
-            />
-          </Tooltip>
-          {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
-            <Tooltip title={t("leftSidebar.markAllRead")}>
+          <Flex gap={6}>
+            {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
+              <Tooltip title={t("leftSidebar.markAllRead")}>
+                <Button
+                  className="worker-panel-new worker-popover-new"
+                  type="text"
+                  icon={<MaterialIcon name="done_all" />}
+                  onClick={(e) => onMarkAllRead(e, row.key)}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
                 className="worker-panel-new worker-popover-new"
                 type="text"
-                icon={<MaterialIcon name="done_all" />}
-                onClick={(e) => onMarkAllRead(e, row.key)}
+                icon={<MaterialIcon name="add" />}
+                onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
-          )}
+          </Flex>
         </div>
       )}
       <div className="worker-chat-divider"></div>
