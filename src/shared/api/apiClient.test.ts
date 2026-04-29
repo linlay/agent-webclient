@@ -3,9 +3,11 @@ import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/appAuth';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
+  createSchedule,
   createRequestId,
   createQueryStream,
   deleteChat,
+  deleteSchedule,
   downloadResource,
   extractUploadChatId,
   extractUploadReferences,
@@ -17,6 +19,9 @@ import {
   getMemoryMeta,
   getMemoryScope,
   getMemoryScopes,
+  getSchedule,
+  getScheduleExecutions,
+  getSchedules,
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
@@ -32,6 +37,8 @@ import {
   setAccessToken,
   steerChat,
   submitFeedback,
+  toggleSchedule,
+  updateSchedule,
   uploadFile,
 } from '@/shared/api/apiClient';
 
@@ -224,6 +231,58 @@ describe('apiClient query payloads', () => {
       message: '',
       references: [{ id: 'upload_1', name: 'spec.md' }],
     });
+  });
+
+  it('sends schedule management requests as JSON posts', async () => {
+    await getSchedules();
+    await getSchedule('daily-demo');
+    await createSchedule({
+      name: 'Daily Demo',
+      description: 'Demo schedule',
+      cron: '0 9 * * *',
+      agentKey: 'demo-agent',
+      enabled: true,
+      query: { message: 'hello', role: 'user' },
+    });
+    await updateSchedule({
+      id: 'daily-demo',
+      cron: '0 18 * * 1-5',
+      query: { message: 'updated' },
+    });
+    await toggleSchedule({ id: 'daily-demo', enabled: false });
+    await getScheduleExecutions({ id: 'daily-demo', limit: 20 });
+    await deleteSchedule({ id: 'daily-demo' });
+
+    const calls = fetchMock.mock.calls.map(([url, options]) => ({
+      url,
+      body: JSON.parse(String((options as RequestInit).body || '{}')),
+    }));
+    expect(calls).toEqual([
+      { url: '/api/schedules', body: {} },
+      { url: '/api/schedule', body: { id: 'daily-demo' } },
+      {
+        url: '/api/schedule-create',
+        body: {
+          name: 'Daily Demo',
+          description: 'Demo schedule',
+          cron: '0 9 * * *',
+          agentKey: 'demo-agent',
+          enabled: true,
+          query: { message: 'hello', role: 'user' },
+        },
+      },
+      {
+        url: '/api/schedule-update',
+        body: {
+          id: 'daily-demo',
+          cron: '0 18 * * 1-5',
+          query: { message: 'updated' },
+        },
+      },
+      { url: '/api/schedule-toggle', body: { id: 'daily-demo', enabled: false } },
+      { url: '/api/schedule-executions', body: { id: 'daily-demo', limit: 20 } },
+      { url: '/api/schedule-delete', body: { id: 'daily-demo' } },
+    ]);
   });
 
   it('keeps runId for interrupt and steer requests', async () => {

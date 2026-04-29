@@ -26,9 +26,11 @@ jest.mock("@/shared/api/apiClient", () => {
 
 	return {
 		ApiError: MockApiError,
-		buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
-		createQueryStream: jest.fn(),
-		deleteChat: jest.fn(),
+			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
+			createSchedule: jest.fn(),
+			createQueryStream: jest.fn(),
+			deleteChat: jest.fn(),
+			deleteSchedule: jest.fn(),
 		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
@@ -36,8 +38,11 @@ jest.mock("@/shared/api/apiClient", () => {
 		getAgents: jest.fn(),
 		getChat: jest.fn(),
 		getChats: jest.fn(),
-		getCurrentAccessToken: jest.fn(),
-		normalizeChatSummariesPayload: jest.fn((data: unknown) =>
+			getCurrentAccessToken: jest.fn(),
+			getSchedule: jest.fn(),
+			getScheduleExecutions: jest.fn(),
+			getSchedules: jest.fn(),
+			normalizeChatSummariesPayload: jest.fn((data: unknown) =>
 			Array.isArray(data)
 				? data.map((item) =>
 					item && typeof item === "object"
@@ -61,11 +66,13 @@ jest.mock("@/shared/api/apiClient", () => {
 		rememberChat: jest.fn(),
 		searchGlobal: jest.fn(),
 		setAccessToken: jest.fn(),
-		steerChat: jest.fn(),
-		submitFeedback: jest.fn(),
-		submitAwaiting: jest.fn(),
-		submitTool: jest.fn(),
-	uploadFile: jest.fn(),
+			steerChat: jest.fn(),
+			submitFeedback: jest.fn(),
+			submitAwaiting: jest.fn(),
+			submitTool: jest.fn(),
+			toggleSchedule: jest.fn(),
+			updateSchedule: jest.fn(),
+			uploadFile: jest.fn(),
 	};
 });
 jest.mock("./wsClientSingleton", () => ({
@@ -75,13 +82,15 @@ jest.mock("./wsClientSingleton", () => ({
 }));
 
 let mockApiClient: {
-	ApiError: new (
+		ApiError: new (
 		message: string,
 		options?: { status?: number | null; code?: number | string | null; data?: unknown },
 	) => Error;
-	buildResourceUrl: jest.Mock;
-	createQueryStream: jest.Mock;
-	deleteChat: jest.Mock;
+		buildResourceUrl: jest.Mock;
+		createSchedule: jest.Mock;
+		createQueryStream: jest.Mock;
+		deleteChat: jest.Mock;
+		deleteSchedule: jest.Mock;
 	downloadChatExport: jest.Mock;
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
@@ -89,8 +98,11 @@ let mockApiClient: {
 	getAgents: jest.Mock;
 	getChat: jest.Mock;
 	getChats: jest.Mock;
-	getCurrentAccessToken: jest.Mock;
-	normalizeChatSummariesPayload: jest.Mock;
+		getCurrentAccessToken: jest.Mock;
+		getSchedule: jest.Mock;
+		getScheduleExecutions: jest.Mock;
+		getSchedules: jest.Mock;
+		normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
 	getSkills: jest.Mock;
 	getTeams: jest.Mock;
@@ -104,11 +116,13 @@ let mockApiClient: {
 	searchGlobal: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
-	submitFeedback: jest.Mock;
-	submitAwaiting: jest.Mock;
-	submitTool: jest.Mock;
-	uploadFile: jest.Mock;
-};
+		submitFeedback: jest.Mock;
+		submitAwaiting: jest.Mock;
+		submitTool: jest.Mock;
+		toggleSchedule: jest.Mock;
+		updateSchedule: jest.Mock;
+		uploadFile: jest.Mock;
+	};
 let WsClientDisconnectedError: typeof import("./wsClient").WsClientDisconnectedError;
 let WsClientRequestTimeoutError: typeof import("./wsClient").WsClientRequestTimeoutError;
 
@@ -158,6 +172,70 @@ describe("apiClientProxy", () => {
 			payload: undefined,
 		});
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("routes schedule management calls over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getSchedules();
+		await proxy.createSchedule({
+			name: "Daily Demo",
+			description: "Demo",
+			cron: "0 9 * * *",
+			agentKey: "demo-agent",
+			query: { message: "hello" },
+		});
+		await proxy.updateSchedule({ id: "daily-demo", cron: "0 18 * * 1-5" });
+		await proxy.toggleSchedule({ id: "daily-demo", enabled: false });
+		await proxy.getScheduleExecutions({ id: "daily-demo", limit: 20 });
+		await proxy.deleteSchedule({ id: "daily-demo" });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/schedules",
+			payload: {},
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/schedule-create",
+			payload: {
+				name: "Daily Demo",
+				description: "Demo",
+				cron: "0 9 * * *",
+				agentKey: "demo-agent",
+				query: { message: "hello" },
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/schedule-update",
+			payload: { id: "daily-demo", cron: "0 18 * * 1-5" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/schedule-toggle",
+			payload: { id: "daily-demo", enabled: false },
+		});
+		expect(request).toHaveBeenNthCalledWith(5, {
+			type: "/api/schedule-executions",
+			payload: { id: "daily-demo", limit: 20 },
+		});
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/schedule-delete",
+			payload: { id: "daily-demo" },
+		});
+		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {
@@ -588,6 +666,39 @@ describe("apiClientProxy", () => {
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
+	});
+
+	it("routes schedule management over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getSchedules.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockApiClient.toggleSchedule.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", enabled: false },
+		});
+
+		await expect(proxy.getSchedules()).resolves.toMatchObject({
+			data: { items: [], total: 0 },
+		});
+		await expect(
+			proxy.toggleSchedule({ id: "daily-demo", enabled: false }),
+		).resolves.toMatchObject({
+			data: { id: "daily-demo", enabled: false },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getSchedules).toHaveBeenCalledWith({});
+		expect(mockApiClient.toggleSchedule).toHaveBeenCalledWith({
+			id: "daily-demo",
+			enabled: false,
+		});
 	});
 
 	it("routes submit requests over http when sse mode is selected", async () => {

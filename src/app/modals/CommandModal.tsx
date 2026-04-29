@@ -3,7 +3,6 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { WorkerConversationRow } from "@/app/state/types";
 import {
   buildCurrentWorkerDetailView,
-  buildScheduleDraft,
   buildWorkerSwitchRows,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
@@ -45,7 +44,6 @@ export const CommandModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const historyInputRef = useRef<HTMLInputElement>(null);
-  const scheduleTaskRef = useRef<HTMLInputElement>(null);
   const switchListRef = useRef<HTMLDivElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -160,20 +158,6 @@ export const CommandModal: React.FC = () => {
     }
   };
 
-  const confirmSchedule = () => {
-    if (!currentWorker) return;
-    const task = String(modal.scheduleTask || "").trim();
-    const rule = String(modal.scheduleRule || "").trim();
-    if (!task || !rule) return;
-    const draft = buildScheduleDraft(currentWorker, task, rule);
-    closeModal(false);
-    window.dispatchEvent(
-      new CustomEvent("agent:set-composer-draft", {
-        detail: { draft },
-      }),
-    );
-  };
-
   useEffect(() => {
     if (!modal.open) return;
     if (modal.type === "switch") {
@@ -191,8 +175,7 @@ export const CommandModal: React.FC = () => {
       return;
     }
     if (modal.type === "schedule") {
-      scheduleTaskRef.current?.focus();
-      scheduleTaskRef.current?.select();
+      closeButtonRef.current?.focus();
       return;
     }
     if (modal.type === "detail") {
@@ -310,8 +293,8 @@ export const CommandModal: React.FC = () => {
       }}
     >
       <div
-        ref={cardRef}
-        className="modal-card command-modal-card"
+	        ref={cardRef}
+	        className={`modal-card command-modal-card ${modal.type === "schedule" ? "is-schedule-console" : ""}`}
         tabIndex={-1}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -488,15 +471,7 @@ export const CommandModal: React.FC = () => {
             return;
           }
 
-          if (
-            modal.type === "schedule" &&
-            event.key === "Enter" &&
-            (event.metaKey || event.ctrlKey)
-          ) {
-            event.preventDefault();
-            confirmSchedule();
-            return;
-          }
+          if (modal.type === "schedule") return;
         }}
       >
         <CommandModalHeader
@@ -586,23 +561,7 @@ export const CommandModal: React.FC = () => {
 
         {modal.type === "schedule" && (
           <ScheduleModal
-            scheduleTaskRef={scheduleTaskRef}
-            scheduleTask={modal.scheduleTask}
-            scheduleRule={modal.scheduleRule}
-            onTaskChange={(value) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { scheduleTask: value },
-              })
-            }
-            onRuleChange={(value) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { scheduleRule: value },
-              })
-            }
-            onConfirm={confirmSchedule}
-            onCancel={() => closeModal()}
+            currentWorker={currentWorker}
           />
         )}
       </div>

@@ -50,6 +50,117 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
+export interface ScheduleListRequest {
+  tag?: string;
+}
+
+export interface ScheduleListResponse {
+  items: ScheduleSummaryResponse[];
+  total: number;
+}
+
+export interface ScheduleExecutionListResponse {
+  items: ScheduleExecutionResponse[];
+  total: number;
+}
+
+export interface ScheduleSummaryResponse {
+  id: string;
+  name: string;
+  description: string;
+  cron: string;
+  agentKey: string;
+  enabled: boolean;
+  teamId?: string;
+  zoneId?: string;
+  sourceFile?: string;
+  remainingRuns?: number;
+  nextFireTime?: string;
+  lastExecution?: ScheduleExecutionBrief;
+}
+
+export interface ScheduleDetailResponse extends ScheduleSummaryResponse {
+  query: ScheduleQueryResponse;
+}
+
+export interface ScheduleQueryResponse {
+  message: string;
+  chatId?: string;
+  role?: string;
+  params?: Record<string, unknown>;
+  hidden?: boolean;
+}
+
+export interface ScheduleExecutionBrief {
+  id: string;
+  status: string;
+  startedAt: number;
+  durationMs?: number;
+  error?: string;
+}
+
+export interface ScheduleExecutionResponse {
+  id: string;
+  scheduleId: string;
+  scheduleName: string;
+  sourceFile: string;
+  agentKey: string;
+  teamId: string;
+  status: string;
+  error: string;
+  startedAt: number;
+  completedAt?: number;
+  durationMs?: number;
+}
+
+export interface ScheduleQueryRequest {
+  message: string;
+  chatId?: string;
+  role?: string;
+  params?: Record<string, unknown>;
+  hidden?: boolean;
+}
+
+export interface CreateScheduleRequest {
+  name: string;
+  description: string;
+  cron: string;
+  agentKey: string;
+  enabled?: boolean;
+  teamId?: string;
+  zoneId?: string;
+  remainingRuns?: number;
+  query: ScheduleQueryRequest;
+}
+
+export interface UpdateScheduleRequest {
+  id: string;
+  name?: string;
+  description?: string;
+  cron?: string;
+  agentKey?: string;
+  teamId?: string;
+  zoneId?: string;
+  enabled?: boolean;
+  remainingRuns?: number;
+  query?: ScheduleQueryRequest;
+}
+
+export interface ToggleScheduleRequest {
+  id: string;
+  enabled: boolean;
+}
+
+export interface DeleteScheduleRequest {
+  id: string;
+}
+
+export interface ScheduleExecutionsRequest {
+  id: string;
+  limit?: number;
+  offset?: number;
+}
+
 let authToken = "";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -572,6 +683,55 @@ export function getChat(
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
   const query = toQueryString({ viewportKey });
   return requestJson(`/api/viewport?${query}`);
+}
+
+function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export function getSchedules(
+  params: ScheduleListRequest = {},
+): Promise<ApiResponse<ScheduleListResponse>> {
+  return postJson<ScheduleListResponse>("/api/schedules", params);
+}
+
+export function getSchedule(
+  id: string,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule", { id });
+}
+
+export function createSchedule(
+  params: CreateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-create", params);
+}
+
+export function updateSchedule(
+  params: UpdateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-update", params);
+}
+
+export function deleteSchedule(
+  params: DeleteScheduleRequest,
+): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
+  return postJson<{ id: string; deleted: boolean }>("/api/schedule-delete", params);
+}
+
+export function toggleSchedule(
+  params: ToggleScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-toggle", params);
+}
+
+export function getScheduleExecutions(
+  params: ScheduleExecutionsRequest,
+): Promise<ApiResponse<ScheduleExecutionListResponse>> {
+  return postJson<ScheduleExecutionListResponse>("/api/schedule-executions", params);
 }
 
 export interface GetMemoryRecordsParams {

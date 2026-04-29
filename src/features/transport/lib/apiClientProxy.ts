@@ -2,7 +2,9 @@ import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
 	createQueryStream,
+	createSchedule as createScheduleHttp,
 	deleteChat as deleteChatHttp,
+	deleteSchedule as deleteScheduleHttp,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
@@ -12,6 +14,9 @@ import {
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
+	getSchedule as getScheduleHttp,
+	getScheduleExecutions as getScheduleExecutionsHttp,
+	getSchedules as getSchedulesHttp,
 	normalizeChatSummariesPayload,
 	getResourceText,
 	getSkills as getSkillsHttp,
@@ -28,13 +33,24 @@ import {
 	submitFeedback as submitFeedbackHttp,
 	submitAwaiting as submitAwaitingHttp,
 	submitTool as submitToolHttp,
+	toggleSchedule as toggleScheduleHttp,
+	updateSchedule as updateScheduleHttp,
 	uploadFile,
 	type ApiResponse,
+	type CreateScheduleRequest,
+	type DeleteScheduleRequest,
 	type FeedbackParams,
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
 	type QueryLikeParams,
+	type ScheduleDetailResponse,
+	type ScheduleExecutionListResponse,
+	type ScheduleExecutionsRequest,
+	type ScheduleListRequest,
+	type ScheduleListResponse,
+	type ToggleScheduleRequest,
+	type UpdateScheduleRequest,
 } from "@/shared/api/apiClient";
 import {
 	getWsClient,
@@ -166,6 +182,76 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 		"/api/viewport",
 		{ viewportKey },
 		() => getViewportHttp(viewportKey),
+	);
+}
+
+export function getSchedules(
+	params: ScheduleListRequest = {},
+): Promise<ApiResponse<ScheduleListResponse>> {
+	return routeRequest<ScheduleListResponse>(
+		"/api/schedules",
+		params,
+		() => getSchedulesHttp(params),
+	);
+}
+
+export function getSchedule(
+	id: string,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule",
+		{ id },
+		() => getScheduleHttp(id),
+	);
+}
+
+export function createSchedule(
+	params: CreateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-create",
+		params,
+		() => createScheduleHttp(params),
+	);
+}
+
+export function updateSchedule(
+	params: UpdateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-update",
+		params,
+		() => updateScheduleHttp(params),
+	);
+}
+
+export function deleteSchedule(
+	params: DeleteScheduleRequest,
+): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
+	return routeRequest<{ id: string; deleted: boolean }>(
+		"/api/schedule-delete",
+		params,
+		() => deleteScheduleHttp(params),
+	);
+}
+
+export function toggleSchedule(
+	params: ToggleScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-toggle",
+		params,
+		() => toggleScheduleHttp(params),
+	);
+}
+
+export function getScheduleExecutions(
+	params: ScheduleExecutionsRequest,
+): Promise<ApiResponse<ScheduleExecutionListResponse>> {
+	return routeRequest<ScheduleExecutionListResponse>(
+		"/api/schedule-executions",
+		params,
+		() => getScheduleExecutionsHttp(params),
 	);
 }
 
