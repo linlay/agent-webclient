@@ -325,11 +325,25 @@ export const LeftSidebar: React.FC = () => {
               aria-label={t("topNav.newConversation")}
               title={t("topNav.newConversation")}
               variant="ghost"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("agent:start-new-conversation"),
+                );
+              }}
             >
               <MaterialIcon name="edit_square" />
               新对话
             </UiButton>
-            <UiButton size="sm" variant="ghost">
+            <UiButton
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                dispatch({
+                  type: "OPEN_COMMAND_MODAL",
+                  modal: { type: "schedule" },
+                });
+              }}
+            >
               <MaterialIcon name="schedule" />
               自动化
             </UiButton>
@@ -341,7 +355,9 @@ export const LeftSidebar: React.FC = () => {
                   : t("leftSidebar.filterChats")
               }
               value={navigation.chatFilter}
-              prefix={<MaterialIcon name="search" style={{marginRight: 10}} />}
+              prefix={
+                <MaterialIcon name="search" style={{ marginRight: 10 }} />
+              }
               onChange={(e) =>
                 dispatch({
                   type: "SET_CHAT_FILTER",

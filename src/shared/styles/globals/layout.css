@@ -144,13 +144,6 @@
     font-size: 18px;
 }
 
-.top-nav-new-chat-btn {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 36%,
-            var(--line-soft));
-    background: color-mix(in srgb, var(--accent-soft) 90%, var(--bg-elev-2));
-}
-
 .current-worker-card {
     display: flex;
     align-items: center;

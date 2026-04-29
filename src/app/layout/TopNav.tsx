@@ -61,10 +61,6 @@ export const TopNav: React.FC = () => {
   const voiceToggleDisabled =
     !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
 
-  const handleStartNewConversation = () => {
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
-  };
-
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
     dispatch({
@@ -168,18 +164,6 @@ export const TopNav: React.FC = () => {
               </div>
             </div>
           </div>
-          <UiButton
-            id="top-nav-new-chat-btn"
-            className="icon-btn top-nav-new-chat-btn"
-            size="sm"
-            aria-label={t("topNav.newConversation")}
-            title={t("topNav.newConversation")}
-            variant="ghost"
-            iconOnly
-            onClick={handleStartNewConversation}
-          >
-            <MaterialIcon name="edit_square" />
-          </UiButton>
         </div>
 
         <div className="nav-group nav-center">
