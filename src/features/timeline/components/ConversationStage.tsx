@@ -327,7 +327,7 @@ export const ConversationStage: React.FC = () => {
                               destroyOnHidden
                               content={
                                 <FeedbackModal
-                                  onFinish={(text: string) => {
+                                  onFinish={() => {
                                     handleDownvote(runId, !isDownvoted);
                                   }}
                                 />

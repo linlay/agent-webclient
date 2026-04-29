@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import { downloadResource, getResourceText } from "@/shared/api/apiClient";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -70,6 +71,32 @@ const DEBUG_EVENT_TABS: Array<{
   { key: "task", label: "task", color: "#A094D0" },
   { key: "artifact", label: "artifact", color: "#D98A42" },
 ];
+
+const ArtifactListPanel: React.FC = () => {
+  const state = useAppState();
+
+  const artifacts = React.useMemo(() => [...state.artifacts].reverse(), [
+    state.artifacts,
+  ]);
+
+  return (
+    <div className="artifact-drawer-panel">
+      <ul className="artifact-drawer-list">
+        {artifacts.map((item) => (
+          <li key={item.artifactId} className="artifact-drawer-item">
+            <AttachmentCard
+              attachment={item.artifact}
+              variant="composer"
+              displayMode="file"
+              density="compact"
+              subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 const AttachmentPreviewPanel: React.FC = () => {
   const state = useAppState();
@@ -250,9 +277,13 @@ export const RightSidebar: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const preview = state.attachmentPreview;
+  const showArtifactList =
+    !preview &&
+    state.artifactExpanded &&
+    state.artifactManualOverride === true;
   const desktopSidebarVisible =
-    state.desktopDebugSidebarEnabled || Boolean(preview);
-  const showHeader = Boolean(preview);
+    state.desktopDebugSidebarEnabled || showArtifactList || Boolean(preview);
+  const showHeader = Boolean(preview) || showArtifactList;
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
@@ -330,6 +361,12 @@ export const RightSidebar: React.FC = () => {
       return;
     }
 
+    if (showArtifactList) {
+      dispatch({ type: "SET_ARTIFACT_EXPANDED", expanded: false });
+      dispatch({ type: "SET_ARTIFACT_MANUAL_OVERRIDE", override: false });
+      return;
+    }
+
     dispatch({ type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED", enabled: false });
   };
 
@@ -340,10 +377,16 @@ export const RightSidebar: React.FC = () => {
     >
       {showHeader && (
         <div className="sidebar-head">
-          <h2>{preview ? "资源预览" : "调试面板"}</h2>
+          <h2>{preview ? "资源预览" : showArtifactList ? "全部文件" : "调试面板"}</h2>
           <UiButton
             className="drawer-close"
-            aria-label={preview ? "关闭资源预览" : "关闭调试面板"}
+            aria-label={
+              preview
+                ? "关闭资源预览"
+                : showArtifactList
+                  ? "关闭文件列表"
+                  : "关闭调试面板"
+            }
             variant="ghost"
             size="sm"
             iconOnly
@@ -356,6 +399,8 @@ export const RightSidebar: React.FC = () => {
 
       {preview ? (
         <AttachmentPreviewPanel />
+      ) : showArtifactList ? (
+        <ArtifactListPanel />
       ) : (
         <div className="debug-panel">
           <div className="list" id="events-list">

@@ -40,7 +40,9 @@ export const AppShell: React.FC = () => {
 		? "left-drawer-open"
 		: "left-drawer-closed";
 	const desktopRightSidebarVisible =
-		state.desktopDebugSidebarEnabled || Boolean(state.attachmentPreview);
+		state.desktopDebugSidebarEnabled ||
+		(state.artifactExpanded && state.artifactManualOverride === true) ||
+		Boolean(state.attachmentPreview);
 	const timelineEntries = useMemo(() => {
 		return state.timelineOrder
 			.map((id) => state.timelineNodes.get(id))

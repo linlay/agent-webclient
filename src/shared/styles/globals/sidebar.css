@@ -331,6 +331,35 @@
     height: 100%;
 }
 
+.artifact-drawer-panel {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.artifact-drawer-list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 12px;
+    overflow-y: auto;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.artifact-drawer-item {
+    min-width: 0;
+    list-style: none;
+}
+
+.artifact-drawer-item .attachment-card-file-shell {
+    flex-wrap: nowrap;
+}
+
 .attachment-preview-panel {
     flex: 1;
     min-height: 0;

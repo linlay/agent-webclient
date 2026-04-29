@@ -4,13 +4,8 @@ import type { PublishedArtifact } from "@/app/state/types";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { Flex } from "antd";
 
-/**
- * 需求
- * 1. 仅在有数据时才展示
- * 2. 可点击展开全部 artifact 列表，默认不展开，不展开时只展示一行
- * 3. 每新增一个 artifact，展开3秒，然后自动收起
- */
 function formatBytes(sizeBytes: number): string {
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -55,30 +50,24 @@ export const ArtifactPanel: React.FC = () => {
     () => buildArtifactSummaryView(state.artifacts),
     [state.artifacts],
   );
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
-  const artifactListId = "floating-artifact-list";
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const artifactDrawerId = "right-sidebar";
+  const drawerOpen =
+    state.artifactExpanded && state.artifactManualOverride === true;
 
   useEffect(() => {
+    const panel = panelRef.current;
     const list = listRef.current;
-    if (!list) return undefined;
+    if (!panel || !list) return undefined;
 
     let frameId = 0;
 
     const measureOverflow = () => {
       frameId = 0;
-      const items = Array.from(
-        list.querySelectorAll<HTMLElement>(".artifact-item"),
-      );
-
-      if (items.length <= 1) {
-        setHasOverflow(false);
-        return;
-      }
-
-      const firstRowTop = items[0]?.offsetTop ?? 0;
-      const wrapped = items.some((item) => item.offsetTop > firstRowTop + 1);
-      setHasOverflow(wrapped);
+      setHasOverflow(list.scrollWidth > list.clientWidth + 1);
     };
 
     const scheduleMeasure = () => {
@@ -95,6 +84,7 @@ export const ArtifactPanel: React.FC = () => {
       resizeObserver = new ResizeObserver(() => {
         scheduleMeasure();
       });
+      resizeObserver.observe(panel);
       resizeObserver.observe(list);
       Array.from(list.children).forEach((child) =>
         resizeObserver?.observe(child),
@@ -121,45 +111,20 @@ export const ArtifactPanel: React.FC = () => {
     }
     dispatch({
       type: "SET_ARTIFACT_EXPANDED",
-      expanded: !state.artifactExpanded,
+      expanded: !drawerOpen,
     });
     dispatch({
       type: "SET_ARTIFACT_MANUAL_OVERRIDE",
-      override: !state.artifactExpanded,
+      override: !drawerOpen,
     });
   };
 
   return (
-    <div
-      className={`floating-artifact ${state.artifactExpanded ? "is-expanded" : ""}`}
-      id="floating-artifact"
-    >
-      {hasOverflow ? (
-        <div className="artifact-actions">
-          <UiButton
-            className="artifact-toggle"
-            variant="ghost"
-            size="sm"
-            aria-expanded={state.artifactExpanded}
-            aria-controls={artifactListId}
-            onClick={handleToggleExpanded}
-          >
-            <span>
-              {state.artifactExpanded ? "收起" : `展开 ${summary.countText}`}
-            </span>
-            <span className="artifact-chevron" aria-hidden="true">
-              <MaterialIcon
-                name={
-                  state.artifactExpanded
-                    ? "keyboard_arrow_down"
-                    : "keyboard_arrow_up"
-                }
-              />
-            </span>
-          </UiButton>
-        </div>
-      ) : null}
-      <ul className="artifact-list" id={artifactListId} ref={listRef}>
+    <div className="floating-artifact" ref={panelRef}>
+      <ul
+        className={`artifact-list ${isCollapsed ? "is-collapsed" : ""}`}
+        ref={listRef}
+      >
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
           return (
@@ -175,6 +140,34 @@ export const ArtifactPanel: React.FC = () => {
           );
         })}
       </ul>
+      <Flex
+        className="artifact-actions"
+        data-collapse={isCollapsed}
+        align="center"
+      >
+        {hasOverflow && (
+          <UiButton
+            className="artifact-btn-expand"
+            variant="ghost"
+            size="sm"
+            aria-expanded={drawerOpen}
+            aria-controls={artifactDrawerId}
+            onClick={handleToggleExpanded}
+          >
+            <span>{drawerOpen ? "收起" : "查看全部"}</span>
+          </UiButton>
+        )}
+        <UiButton
+          className="artifact-btn-collapse"
+          data-collapse={isCollapsed}
+          variant="ghost"
+          size="sm"
+          iconOnly
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <MaterialIcon name="keyboard_arrow_down" />
+        </UiButton>
+      </Flex>
     </div>
   );
 };
