@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Input, Spin } from "antd";
+import type { Agent } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
   createSchedule,
@@ -21,7 +22,6 @@ import type {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiInput } from "@/shared/ui/UiInput";
-import { UiTag } from "@/shared/ui/UiTag";
 
 type ScheduleStatusFilter = "all" | "enabled" | "disabled";
 type ScheduleFormMode = "create" | "edit";
@@ -65,6 +65,14 @@ const CRON_PRESETS = [
   { label: "工作日 18:00", value: "0 18 * * 1-5" },
   { label: "每 5 分钟", value: "*/5 * * * *" },
   { label: "每小时", value: "0 * * * *" },
+];
+
+const FALLBACK_ZONE_OPTIONS = [
+  "Asia/Shanghai",
+  "UTC",
+  "Asia/Tokyo",
+  "Europe/London",
+  "America/New_York",
 ];
 
 function compactPayload<T extends Record<string, unknown>>(payload: T): T {
@@ -161,6 +169,33 @@ function toDurationLabel(value?: number | null): string {
   return `${(value / 1000).toFixed(1)}s`;
 }
 
+function getSupportedZoneIds(): string[] {
+  try {
+    const supportedValuesOf = (Intl as unknown as {
+      supportedValuesOf?: (key: "timeZone") => string[];
+    }).supportedValuesOf as
+      | ((key: "timeZone") => string[])
+      | undefined;
+    const zones = supportedValuesOf?.("timeZone") || [];
+    return zones.length > 0 ? zones : FALLBACK_ZONE_OPTIONS;
+  } catch {
+    return FALLBACK_ZONE_OPTIONS;
+  }
+}
+
+export function scheduleSourcePath(schedule: ScheduleSummaryResponse): string {
+  const source = String(schedule.sourceFile || "").trim();
+  if (!source) return schedule.id;
+  const normalized = source.replace(/\\/g, "/");
+  const marker = "/schedules/";
+  const markerIndex = normalized.lastIndexOf(marker);
+  if (markerIndex >= 0) {
+    return `schedules/${normalized.slice(markerIndex + marker.length)}`;
+  }
+  if (normalized.startsWith("schedules/")) return normalized;
+  return normalized;
+}
+
 function buildQuery(form: ScheduleFormState): ScheduleQueryRequest {
   const query: ScheduleQueryRequest = {
     message: form.message.trim(),
@@ -238,7 +273,8 @@ function validateForm(form: ScheduleFormState): string {
 
 export const ScheduleModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
-}> = ({ currentWorker }) => {
+  agents: Agent[];
+}> = ({ currentWorker, agents }) => {
   const [schedules, setSchedules] = useState<ScheduleSummaryResponse[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [executions, setExecutions] = useState<ScheduleExecutionResponse[]>([]);
@@ -262,6 +298,33 @@ export const ScheduleModal: React.FC<{
     }
     return Array.from(values.entries()).map(([value, label]) => ({ value, label }));
   }, [schedules]);
+
+  const agentOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const agent of Array.isArray(agents) ? agents : []) {
+      const key = String(agent?.key || "").trim();
+      if (!key) continue;
+      options.set(key, String(agent?.name || key).trim() || key);
+    }
+    const currentAgentKey = form.agentKey.trim();
+    if (currentAgentKey && !options.has(currentAgentKey)) {
+      options.set(currentAgentKey, currentAgentKey);
+    }
+    return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
+  }, [agents, form.agentKey]);
+
+  const zoneOptions = useMemo(() => {
+    const values = new Set(getSupportedZoneIds());
+    const currentZone = form.zoneId.trim();
+    if (currentZone) values.add(currentZone);
+    return Array.from(values).sort((left, right) => {
+      if (left === "Asia/Shanghai") return -1;
+      if (right === "Asia/Shanghai") return 1;
+      if (left === "UTC") return -1;
+      if (right === "UTC") return 1;
+      return left.localeCompare(right);
+    });
+  }, [form.zoneId]);
 
   const filteredSchedules = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -498,22 +561,12 @@ export const ScheduleModal: React.FC<{
                     key={item.id}
                     className={`schedule-list-item ${item.id === selectedId ? "is-active" : ""}`}
                     onClick={() => selectSchedule(item.id)}
-                  >
-                    <span className="schedule-list-item-head">
-                      <strong>{item.name || item.id}</strong>
-                      <UiTag tone={item.enabled ? "accent" : "muted"}>
-                        {item.enabled ? "启用" : "停用"}
-                      </UiTag>
-                    </span>
-                    <span className="schedule-list-item-meta">{item.cron}</span>
-                    <span className="schedule-list-item-meta">
-                      Agent {item.agentKey || "--"}{item.teamId ? ` · Team ${item.teamId}` : ""}
-                    </span>
-                    <span className="schedule-list-item-foot">
-                      <span>下次 {toTimeLabel(item.nextFireTime)}</span>
-                      <span>{item.lastExecution?.status || "无执行记录"}</span>
-                    </span>
-                  </button>
+	                  >
+	                    <strong>{item.name || item.id}</strong>
+	                    <span className="schedule-list-item-path">
+	                      {scheduleSourcePath(item)}
+	                    </span>
+	                  </button>
                 ))}
               </div>
             )}
@@ -545,75 +598,87 @@ export const ScheduleModal: React.FC<{
               <label htmlFor="schedule-name-input">名称</label>
               <UiInput id="schedule-name-input" inputSize="md" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
             </div>
-            <div className="field-group">
-              <label htmlFor="schedule-cron-input">Cron</label>
-              <UiInput id="schedule-cron-input" inputSize="md" value={form.cron} onChange={(event) => updateForm({ cron: event.target.value })} />
-            </div>
-            <div className="field-group">
-              <label htmlFor="schedule-agent-input">AgentKey</label>
-              <UiInput id="schedule-agent-input" inputSize="md" value={form.agentKey} onChange={(event) => updateForm({ agentKey: event.target.value })} />
-            </div>
+	            <div className="field-group">
+	              <label htmlFor="schedule-cron-input">Cron</label>
+	              <UiInput id="schedule-cron-input" inputSize="md" value={form.cron} onChange={(event) => updateForm({ cron: event.target.value })} />
+	              <div className="schedule-cron-presets">
+	                {CRON_PRESETS.map((preset) => (
+	                  <UiButton key={preset.value} size="sm" variant="ghost" onClick={() => updateForm({ cron: preset.value })}>
+	                    {preset.label}
+	                  </UiButton>
+	                ))}
+	              </div>
+	            </div>
+	            <div className="field-group">
+	              <label htmlFor="schedule-agent-input">智能体</label>
+	              <select id="schedule-agent-input" value={form.agentKey} onChange={(event) => updateForm({ agentKey: event.target.value })}>
+	                <option value="">请选择智能体</option>
+	                {agentOptions.map((agent) => (
+	                  <option key={agent.value} value={agent.value}>{agent.label}</option>
+	                ))}
+	              </select>
+	            </div>
             <div className="field-group">
               <label htmlFor="schedule-team-input">TeamID</label>
               <UiInput id="schedule-team-input" inputSize="md" value={form.teamId} onChange={(event) => updateForm({ teamId: event.target.value })} />
             </div>
-            <div className="field-group">
-              <label htmlFor="schedule-zone-input">时区</label>
-              <UiInput id="schedule-zone-input" inputSize="md" placeholder="Asia/Shanghai" value={form.zoneId} onChange={(event) => updateForm({ zoneId: event.target.value })} />
-            </div>
+	            <div className="field-group">
+	              <label htmlFor="schedule-zone-input">时区</label>
+	              <select id="schedule-zone-input" value={form.zoneId} onChange={(event) => updateForm({ zoneId: event.target.value })}>
+	                <option value="">默认时区</option>
+	                {zoneOptions.map((zoneId) => (
+	                  <option key={zoneId} value={zoneId}>{zoneId}</option>
+	                ))}
+	              </select>
+	            </div>
             <div className="field-group">
               <label htmlFor="schedule-runs-input">剩余次数</label>
               <UiInput id="schedule-runs-input" inputSize="md" type="number" min="1" placeholder="留空表示无限次" value={form.remainingRuns} onChange={(event) => updateForm({ remainingRuns: event.target.value })} />
             </div>
           </div>
 
-          <div className="schedule-cron-presets">
-            {CRON_PRESETS.map((preset) => (
-              <UiButton key={preset.value} size="sm" variant="ghost" onClick={() => updateForm({ cron: preset.value })}>
-                {preset.label}
-              </UiButton>
-            ))}
-          </div>
+	          <div className="field-group">
+	            <label htmlFor="schedule-description-input">描述</label>
+	            <textarea id="schedule-description-input" className="settings-textarea" rows={2} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
+	          </div>
 
-          <div className="field-group">
-            <label htmlFor="schedule-description-input">描述</label>
-            <textarea id="schedule-description-input" className="settings-textarea" rows={2} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
-          </div>
+	          <fieldset className="schedule-request-box">
+	            <legend>请求</legend>
+	            <div className="field-group">
+	              <label htmlFor="schedule-message-input">任务消息</label>
+	              <textarea id="schedule-message-input" className="settings-textarea" rows={4} value={form.message} onChange={(event) => updateForm({ message: event.target.value })} />
+	            </div>
 
-          <div className="field-group">
-            <label htmlFor="schedule-message-input">任务消息</label>
-            <textarea id="schedule-message-input" className="settings-textarea" rows={4} value={form.message} onChange={(event) => updateForm({ message: event.target.value })} />
-          </div>
+	            <div className="schedule-form-grid">
+	              <div className="field-group">
+	                <label htmlFor="schedule-chat-input">ChatID</label>
+	                <UiInput id="schedule-chat-input" inputSize="md" value={form.chatId} onChange={(event) => updateForm({ chatId: event.target.value })} />
+	              </div>
+	              <div className="field-group">
+	                <label htmlFor="schedule-role-input">Role</label>
+	                <UiInput id="schedule-role-input" inputSize="md" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
+	              </div>
+	              <div className="field-group">
+	                <label htmlFor="schedule-hidden-select">Hidden</label>
+	                <select id="schedule-hidden-select" value={form.hidden} onChange={(event) => updateForm({ hidden: event.target.value as ScheduleFormState["hidden"] })}>
+	                  <option value="">不传</option>
+	                  <option value="true">true</option>
+	                  <option value="false">false</option>
+	                </select>
+	              </div>
+	              <div className="field-group schedule-enabled-field">
+	                <label>
+	                  <input type="checkbox" checked={form.enabled} onChange={(event) => updateForm({ enabled: event.target.checked })} />
+	                  启用任务
+	                </label>
+	              </div>
+	            </div>
 
-          <div className="schedule-form-grid">
-            <div className="field-group">
-              <label htmlFor="schedule-chat-input">ChatID</label>
-              <UiInput id="schedule-chat-input" inputSize="md" value={form.chatId} onChange={(event) => updateForm({ chatId: event.target.value })} />
-            </div>
-            <div className="field-group">
-              <label htmlFor="schedule-role-input">Role</label>
-              <UiInput id="schedule-role-input" inputSize="md" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
-            </div>
-            <div className="field-group">
-              <label htmlFor="schedule-hidden-select">Hidden</label>
-              <select id="schedule-hidden-select" value={form.hidden} onChange={(event) => updateForm({ hidden: event.target.value as ScheduleFormState["hidden"] })}>
-                <option value="">不传</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-            <div className="field-group schedule-enabled-field">
-              <label>
-                <input type="checkbox" checked={form.enabled} onChange={(event) => updateForm({ enabled: event.target.checked })} />
-                启用任务
-              </label>
-            </div>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="schedule-params-input">Params JSON</label>
-            <textarea id="schedule-params-input" className="settings-textarea schedule-mono-textarea" rows={3} placeholder='{"kind":"daily"}' value={form.paramsText} onChange={(event) => updateForm({ paramsText: event.target.value })} />
-          </div>
+	            <div className="field-group">
+	              <label htmlFor="schedule-params-input">Params JSON</label>
+	              <textarea id="schedule-params-input" className="settings-textarea schedule-mono-textarea" rows={3} placeholder='{"kind":"daily"}' value={form.paramsText} onChange={(event) => updateForm({ paramsText: event.target.value })} />
+	            </div>
+	          </fieldset>
 
           {formError && <div className="settings-error">{formError}</div>}
 

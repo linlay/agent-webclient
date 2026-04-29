@@ -358,11 +358,11 @@
     border-radius: var(--radius-md);
     background: transparent;
     color: var(--ink-1);
-    padding: 10px;
+    padding: 8px 10px;
     text-align: left;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
 }
 
 .schedule-list-item:hover,
@@ -371,26 +371,23 @@
     background: var(--bg-hover);
 }
 
-.schedule-list-item-head,
-.schedule-list-item-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-}
-
-.schedule-list-item-head strong {
+.schedule-list-item strong {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    line-height: 1.35;
 }
 
-.schedule-list-item-meta,
-.schedule-list-item-foot {
+.schedule-list-item-path {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 11px;
     color: var(--ink-muted);
+    line-height: 1.35;
 }
 
 .schedule-detail-head {
@@ -439,7 +436,7 @@
 }
 
 .schedule-cron-presets {
-    margin: 10px 0 14px;
+    margin: 8px 0 0;
 }
 
 .schedule-enabled-field {
@@ -467,6 +464,24 @@
 
 .schedule-save-actions {
     margin-top: 12px;
+}
+
+.schedule-request-box {
+    margin: 14px 0 0;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    padding: 12px;
+}
+
+.schedule-request-box legend {
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-muted);
+}
+
+.schedule-request-box .field-group:last-child {
+    margin-bottom: 0;
 }
 
 .schedule-executions {

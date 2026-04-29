@@ -281,9 +281,12 @@ export const CommandModal: React.FC = () => {
     return null;
   }
 
-  const subtitle = currentWorker
-    ? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
-    : "当前未选中员工";
+  const subtitle =
+    modal.type === "schedule"
+      ? ""
+      : currentWorker
+        ? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
+        : "当前未选中员工";
   return (
     <div
       className="modal"
@@ -562,6 +565,7 @@ export const CommandModal: React.FC = () => {
         {modal.type === "schedule" && (
           <ScheduleModal
             currentWorker={currentWorker}
+            agents={state.agents}
           />
         )}
       </div>

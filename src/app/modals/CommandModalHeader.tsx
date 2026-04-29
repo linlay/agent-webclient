@@ -7,7 +7,7 @@ function getTitle(type: CommandModalType): string {
 	if (type === "history") return t("commandModal.history.title");
 	if (type === "switch") return t("commandModal.switch.title");
 	if (type === "detail") return t("commandModal.detail.title");
-	if (type === "schedule") return t("commandModal.schedule.title");
+	if (type === "schedule") return "自动化";
 	return "";
 }
 

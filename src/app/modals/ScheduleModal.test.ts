@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ScheduleModal } from "@/app/modals/ScheduleModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { getSchedules } from "@/features/transport/lib/apiClientProxy";
 
 jest.mock("antd", () => {
   const React = require("react");
@@ -21,6 +22,8 @@ jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   toggleSchedule: jest.fn(),
   updateSchedule: jest.fn(),
 }));
+
+const mockedGetSchedules = getSchedules as jest.Mock;
 
 function createCurrentWorker(): CurrentWorkerSummary {
   return {
@@ -53,16 +56,72 @@ function createCurrentWorker(): CurrentWorkerSummary {
 }
 
 describe("ScheduleModal", () => {
+  beforeEach(() => {
+    mockedGetSchedules.mockResolvedValue({
+      status: 200,
+      code: 0,
+      msg: "ok",
+      data: {
+        items: [
+          {
+            id: "gitpull_zenmind_20260429_2146",
+            name: "令宿 - 全量拉取 zenmind 子项目",
+            description: "pull",
+            cron: "0 9 * * *",
+            agentKey: "agent-a",
+            enabled: true,
+            sourceFile:
+              "/Users/linlay/Project/zenmind/zenmind-env/schedules/gitpull_zenmind_20260429_2146.yml",
+          },
+        ],
+        total: 1,
+      },
+    });
+  });
+
   it("renders the schedule console with create defaults from the current worker", () => {
     const html = renderToStaticMarkup(
-      React.createElement(ScheduleModal, { currentWorker: createCurrentWorker() }),
+      React.createElement(ScheduleModal, {
+        currentWorker: createCurrentWorker(),
+        agents: [
+          { key: "agent-a", name: "小宅" },
+          { key: "agent-b", name: "小智" },
+        ],
+      }),
     );
 
     expect(html).toContain("计划任务 0 个");
-    expect(html).toContain("新建计划任务");
-    expect(html).toContain("value=\"agent-a\"");
+    expect(html).toContain("请求");
+    expect(html).toContain("智能体");
+    expect(html).toContain("小宅");
+    expect(html).toContain("Asia/Shanghai");
+    expect(html).toContain("schedule-cron-presets");
     expect(html).toContain("value=\"team-a\"");
     expect(html).toContain("每天 09:00");
     expect(html).toContain("创建任务");
+  });
+
+  it("renders schedule list items as a compact name and schedules path pair", () => {
+    const schedule = {
+      id: "gitpull_zenmind_20260429_2146",
+      name: "令宿 - 全量拉取 zenmind 子项目",
+      description: "pull",
+      cron: "0 9 * * *",
+      agentKey: "agent-a",
+      enabled: true,
+      sourceFile:
+        "/Users/linlay/Project/zenmind/zenmind-env/schedules/gitpull_zenmind_20260429_2146.yml",
+    };
+
+    const html = renderToStaticMarkup(
+      React.createElement(ScheduleModal, {
+        currentWorker: createCurrentWorker(),
+        agents: [{ key: "agent-a", name: "小宅" }],
+      }),
+    );
+
+    expect(html).toContain("令宿 - 全量拉取 zenmind 子项目");
+    expect(html).toContain("schedules/gitpull_zenmind_20260429_2146.yml");
+    expect(html).not.toContain(`Agent ${schedule.agentKey}`);
   });
 });
