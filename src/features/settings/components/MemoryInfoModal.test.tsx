@@ -119,6 +119,12 @@ describe("MemoryInfoModalView", () => {
     expect(html).toContain("Memory records");
     expect(html).toContain("Preference editor");
     expect(html).toContain("Current scope: AGENT · AGENT.md");
+    expect(html.indexOf("Preference list")).toBeLessThan(
+      html.indexOf("Preference detail"),
+    );
+    expect(html.indexOf("Preference detail")).toBeLessThan(
+      html.indexOf("Preference editor"),
+    );
   });
 
   it("renders preference drafts and inspector content", () => {
@@ -128,6 +134,78 @@ describe("MemoryInfoModalView", () => {
     expect(html).toContain("Prefer Chinese output.");
     expect(html).toContain("Preference detail");
     expect(html).toContain("Raw JSON");
+    expect(html).toContain("memory-preference-record-marker");
+  });
+
+  it("renders markdown-mode guidance and friendly validation copy", () => {
+    const html = renderView({
+      preferencesPanel: {
+        agentKey: "agent-alice",
+        missingAgent: false,
+        scopes: [
+          {
+            scopeType: "agent",
+            scopeKey: "agent:agent-alice",
+            label: "AGENT",
+            fileName: "AGENT.md",
+            recordCount: 1,
+            updatedAt: 1_777_344_000_000,
+          },
+        ],
+        activeScopeType: "agent",
+        activeScopeKey: "agent:agent-alice",
+        label: "AGENT",
+        fileName: "AGENT.md",
+        meta: {
+          editable: true,
+          recordCount: 1,
+          generatedFromStore: true,
+        },
+        loading: false,
+        error: "",
+        mode: "markdown",
+        markdownDraft: "# AGENT\n",
+        recordsDraft: [],
+        selectedRecordId: "",
+        dirty: false,
+        saving: false,
+        saveSummary: null,
+        validation: {
+          valid: false,
+          errors: [
+            {
+              line: 11,
+              field: "field",
+              message: "expected 'key: value'",
+            },
+          ],
+          warnings: [],
+        },
+        editorRefs: {
+          title: { current: null },
+          summary: { current: null },
+          category: { current: null },
+          importance: { current: null },
+          confidence: { current: null },
+          tags: { current: null },
+          markdown: { current: null },
+        },
+        onScopeSelect: () => undefined,
+        onModeChange: () => undefined,
+        onMarkdownChange: () => undefined,
+        onRecordFieldChange: () => undefined,
+        onSelectRecord: () => undefined,
+        onNewRecord: () => undefined,
+        onDeleteRecord: () => undefined,
+        onValidate: () => undefined,
+        onSave: () => undefined,
+      },
+    });
+
+    expect(html).toContain("Markdown mode edits the scope&#x27;s raw entry format");
+    expect(html).toContain("Switch to structured mode");
+    expect(html).toContain("Line 11 field format:");
+    expect(html).toContain("Markdown mode only accepts");
   });
 
   it("renders the records tab and detail fields", () => {

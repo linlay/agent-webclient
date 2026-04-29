@@ -873,7 +873,7 @@
     min-height: 0;
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.98fr) minmax(0, 1.08fr);
+    grid-template-columns: minmax(290px, 340px) minmax(320px, 0.92fr) minmax(360px, 1.08fr);
     gap: 18px;
 }
 
@@ -919,6 +919,24 @@
         monospace;
 }
 
+.memory-preference-markdown-hint {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 90%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--accent-soft));
+    padding: 10px 12px;
+}
+
+.memory-preference-markdown-hint p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
 .memory-preference-validation {
     display: flex;
     flex-direction: column;
@@ -943,15 +961,14 @@
 }
 
 .memory-preference-record-row {
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
     border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: 16px;
+    border-radius: 14px;
     background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--bg-input));
-    padding: 14px 56px 14px 14px;
+    padding: 10px 10px 10px 12px;
     transition:
         border-color 140ms ease,
         background 140ms ease,
@@ -964,7 +981,7 @@
     background: color-mix(in srgb, var(--accent-soft) 74%, var(--bg-elev-2));
     box-shadow:
         inset 0 0 0 1px color-mix(in srgb, var(--accent-soft) 88%, transparent),
-        0 12px 24px color-mix(in srgb, var(--accent-soft) 14%, transparent);
+        0 8px 18px color-mix(in srgb, var(--accent-soft) 12%, transparent);
     transform: translateY(-1px);
 }
 
@@ -974,47 +991,72 @@
     padding: 0;
     text-align: left;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 4px minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
 }
 
-.memory-preference-pane-list .memory-info-record-head {
+.memory-preference-record-marker {
+    width: 4px;
+    min-height: 100%;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent-electric) 26%, var(--line-soft));
+}
+
+.memory-preference-record-row.is-selected .memory-preference-record-marker {
+    background: color-mix(in srgb, var(--accent-electric) 78%, white);
+}
+
+.memory-preference-record-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.memory-preference-record-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 10px;
 }
 
-.memory-preference-pane-list .memory-info-record-head strong {
+.memory-preference-record-topline strong {
+    min-width: 0;
     font-size: 12px;
-    line-height: 1.55;
-    font-weight: 600;
+    line-height: 1.45;
+    font-weight: 700;
+    color: var(--ink-1);
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 2;
 }
 
-.memory-preference-pane-list .memory-info-record-head span {
-    padding-top: 2px;
+.memory-preference-record-topline span {
+    flex: 0 0 auto;
     font-size: 11px;
+    line-height: 1.35;
+    white-space: nowrap;
+    color: var(--ink-muted);
 }
 
 .memory-preference-pane-list .memory-info-record-meta {
-    margin-top: 10px;
+    margin-top: 0;
     gap: 6px;
 }
 
 .memory-preference-pane-list .memory-info-record-summary {
-    margin-top: 10px;
+    margin-top: 0;
     font-size: 12px;
-    line-height: 1.68;
+    line-height: 1.55;
     color: var(--ink-muted);
-    -webkit-line-clamp: 5;
+    -webkit-line-clamp: 2;
 }
 
 .memory-preference-record-delete.ui-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    align-self: auto;
+    align-self: flex-start;
     min-width: 0;
     padding: 6px 8px;
     border-radius: 10px;
@@ -1022,10 +1064,10 @@
 
 @media (max-width: 1320px) {
     .memory-preference-layout {
-        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.95fr);
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
     }
 
-    .memory-preference-pane-detail {
+    .memory-preference-pane-editor {
         grid-column: 1 / -1;
     }
 }

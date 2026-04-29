@@ -234,6 +234,28 @@ function buildFallbackScopeSummaries(t: Translator): MemoryScopeSummary[] {
   ];
 }
 
+function formatValidationFieldLabel(t: Translator, field: string): string {
+  const normalized = toText(field).trim().toLowerCase();
+  if (!normalized) {
+    return t("memoryPreferences.validation.field.unknown");
+  }
+  if (normalized === "field" || normalized === "entry") {
+    return t(`memoryPreferences.validation.field.${normalized}`);
+  }
+  return field;
+}
+
+function formatValidationMessage(
+  t: Translator,
+  issue: { message?: string | null },
+): string {
+  const message = toText(issue.message);
+  if (message === "expected 'key: value'") {
+    return t("memoryPreferences.validation.expectedKeyValue");
+  }
+  return message || t("memoryPreferences.validation.unknown");
+}
+
 const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   agentKey,
   loading,
@@ -565,6 +587,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
     mode === "markdown" &&
     Boolean(validation && !validation.valid) &&
     error === validationFailedMessage;
+  const showMarkdownModeHint = mode === "markdown";
 
   return (
     <div className="memory-console-pane">
@@ -593,6 +616,161 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
       </div>
 
       <div className="memory-preference-layout">
+        <section className="memory-info-pane memory-preference-pane memory-preference-pane-list">
+          <div className="memory-info-pane-header">
+            <div>
+              <strong>{t("memoryPreferences.panel.records")}</strong>
+              <p className="memory-info-pane-hint">
+                {meta
+                  ? t("memoryPreferences.meta", {
+                      count: meta.recordCount,
+                      editable: meta.editable
+                        ? t("memoryPreferences.editable.yes")
+                        : t("memoryPreferences.editable.no"),
+                    })
+                  : t("memoryPreferences.metaEmpty")}
+              </p>
+            </div>
+            <UiButton variant="secondary" size="sm" onClick={onNewRecord}>
+              {t("memoryPreferences.actions.new")}
+            </UiButton>
+          </div>
+
+          {missingAgent ? (
+            <div className="command-empty-state">
+              {t("memoryPreferences.empty.noAgent")}
+            </div>
+          ) : loading && recordsDraft.length === 0 ? (
+            <div className="command-empty-state">
+              {t("memoryPreferences.loading.scope")}
+            </div>
+          ) : recordsDraft.length === 0 ? (
+            <div className="command-empty-state">
+              {t("memoryPreferences.empty.noPreference")}
+            </div>
+          ) : (
+            <div className="memory-info-record-list">
+              {recordsDraft.map((record) => (
+                <div
+                  key={record.clientId}
+                  className={`memory-preference-record-row ${record.clientId === selectedRecordId ? "is-selected" : ""}`.trim()}
+                >
+                  <button
+                    type="button"
+                    className="memory-preference-record-main"
+                    onClick={() => onSelectRecord(record.clientId)}
+                  >
+                    <span
+                      className="memory-preference-record-marker"
+                      aria-hidden="true"
+                    />
+                    <div className="memory-preference-record-body">
+                      <div className="memory-preference-record-topline">
+                        <strong>
+                          {toText(record.title) || t("memoryPreferences.newRecord")}
+                        </strong>
+                        <span>{formatMemoryTimestamp(record.updatedAt)}</span>
+                      </div>
+                      <div className="memory-info-record-summary">
+                        {toText(record.summary) ||
+                          t("memoryInfo.empty.noSummary")}
+                      </div>
+                      <div className="memory-info-record-meta">
+                        <UiTag tone="muted">{record.category || "general"}</UiTag>
+                        <UiTag tone="accent">
+                          {t("memoryInfo.labels.importanceShort", {
+                            value: record.importance,
+                          })}
+                        </UiTag>
+                      </div>
+                    </div>
+                  </button>
+                  <UiButton
+                    variant="ghost"
+                    size="sm"
+                    className="memory-preference-record-delete"
+                    onClick={() => onDeleteRecord(record.clientId)}
+                  >
+                    {t("memoryPreferences.actions.delete")}
+                  </UiButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="memory-info-pane memory-preference-pane memory-preference-pane-detail">
+          <div className="memory-info-pane-header">
+            <div>
+              <strong>{t("memoryPreferences.panel.detail")}</strong>
+              <p className="memory-info-pane-hint">
+                {t("memoryPreferences.panel.detailHint")}
+              </p>
+            </div>
+          </div>
+
+          {!selectedDraft ? (
+            <div className="command-empty-state">
+              {t("memoryPreferences.empty.unselected")}
+            </div>
+          ) : (
+            <div className="memory-info-detail-stack">
+              <div className="memory-info-detail-title">
+                <h4>{toText(selectedDraft.title) || t("memoryPreferences.newRecord")}</h4>
+                <div className="memory-info-detail-badges">
+                  <UiTag tone={toneForStatus(selectedDraft.status || "active")}>
+                    {selectedDraft.status || "active"}
+                  </UiTag>
+                  <UiTag tone="muted">
+                    {selectedDraft.scopeType || activeScopeType}
+                  </UiTag>
+                </div>
+              </div>
+
+              <div className="memory-info-detail-summary">
+                {toText(selectedDraft.summary) || t("memoryInfo.empty.noSummary")}
+              </div>
+
+              <div className="memory-info-detail-grid">
+                {renderPreferenceInspectorRows(
+                  t,
+                  selectedDraft,
+                  activeScopeType,
+                  activeScopeKey,
+                ).map(([labelValue, value]) => (
+                  <div className="memory-info-detail-card" key={String(labelValue)}>
+                    <span className="command-detail-label">{labelValue}</span>
+                    <strong>{formatDetailValue(value)}</strong>
+                  </div>
+                ))}
+              </div>
+
+              {normalizeMemoryTagList(selectedDraft.tags).length > 0 ? (
+                <div className="memory-info-detail-block">
+                  <span className="command-detail-label">
+                    {t("memoryPreferences.field.tags")}
+                  </span>
+                  <div className="memory-info-record-tags">
+                    {normalizeMemoryTagList(selectedDraft.tags).map((tag) => (
+                      <UiTag key={`${selectedDraft.clientId}-${tag}`} tone="default">
+                        #{tag}
+                      </UiTag>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <details className="memory-info-detail-block memory-info-raw-block">
+                <summary className="memory-info-raw-summary">
+                  <MaterialIcon name="code" />
+                  <span>{t("memoryPreferences.rawJson")}</span>
+                </summary>
+                <pre>{formatMemoryJson(selectedDraft)}</pre>
+              </details>
+            </div>
+          )}
+        </section>
+
         <section className="memory-info-pane memory-preference-pane memory-preference-pane-editor">
           <div className="memory-info-pane-header">
             <div>
@@ -768,6 +946,18 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             )
           ) : (
             <div className="memory-preference-markdown-panel">
+              {showMarkdownModeHint ? (
+                <div className="memory-preference-markdown-hint">
+                  <p>{t("memoryPreferences.markdown.hint")}</p>
+                  <UiButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onModeChange("records")}
+                  >
+                    {t("memoryPreferences.markdown.switchToRecords")}
+                  </UiButton>
+                </div>
+              ) : null}
               <textarea
                 className="settings-textarea memory-preference-markdown"
                 ref={editorRefs.markdown}
@@ -785,8 +975,8 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     >
                       {t("memoryPreferences.validation.error", {
                         line: issue.line,
-                        field: issue.field,
-                        message: issue.message,
+                        field: formatValidationFieldLabel(t, issue.field),
+                        message: formatValidationMessage(t, issue),
                       })}
                     </div>
                   ))}
@@ -797,159 +987,13 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     >
                       {t("memoryPreferences.validation.warning", {
                         line: issue.line,
-                        field: issue.field,
-                        message: issue.message,
+                        field: formatValidationFieldLabel(t, issue.field),
+                        message: formatValidationMessage(t, issue),
                       })}
                     </div>
                   ))}
                 </div>
               ) : null}
-            </div>
-          )}
-        </section>
-
-        <section className="memory-info-pane memory-preference-pane memory-preference-pane-list">
-          <div className="memory-info-pane-header">
-            <div>
-              <strong>{t("memoryPreferences.panel.records")}</strong>
-              <p className="memory-info-pane-hint">
-                {meta
-                  ? t("memoryPreferences.meta", {
-                      count: meta.recordCount,
-                      editable: meta.editable
-                        ? t("memoryPreferences.editable.yes")
-                        : t("memoryPreferences.editable.no"),
-                    })
-                  : t("memoryPreferences.metaEmpty")}
-              </p>
-            </div>
-            <UiButton variant="secondary" size="sm" onClick={onNewRecord}>
-              {t("memoryPreferences.actions.new")}
-            </UiButton>
-          </div>
-
-          {missingAgent ? (
-            <div className="command-empty-state">
-              {t("memoryPreferences.empty.noAgent")}
-            </div>
-          ) : loading && recordsDraft.length === 0 ? (
-            <div className="command-empty-state">
-              {t("memoryPreferences.loading.scope")}
-            </div>
-          ) : recordsDraft.length === 0 ? (
-            <div className="command-empty-state">
-              {t("memoryPreferences.empty.noPreference")}
-            </div>
-          ) : (
-            <div className="memory-info-record-list">
-              {recordsDraft.map((record) => (
-                <div
-                  key={record.clientId}
-                  className={`memory-preference-record-row ${record.clientId === selectedRecordId ? "is-selected" : ""}`.trim()}
-                >
-                  <button
-                    type="button"
-                    className="memory-preference-record-main"
-                    onClick={() => onSelectRecord(record.clientId)}
-                  >
-                    <div className="memory-info-record-head">
-                      <strong>{toText(record.title) || t("memoryPreferences.newRecord")}</strong>
-                      <span>{formatMemoryTimestamp(record.updatedAt)}</span>
-                    </div>
-                    <div className="memory-info-record-meta">
-                      <UiTag tone="muted">{record.category || "general"}</UiTag>
-                      <UiTag tone="accent">
-                        {t("memoryInfo.labels.importanceShort", {
-                          value: record.importance,
-                        })}
-                      </UiTag>
-                    </div>
-                    <div className="memory-info-record-summary">
-                      {toText(record.summary) || t("memoryInfo.empty.noSummary")}
-                    </div>
-                  </button>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    className="memory-preference-record-delete"
-                    onClick={() => onDeleteRecord(record.clientId)}
-                  >
-                    {t("memoryPreferences.actions.delete")}
-                  </UiButton>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="memory-info-pane memory-preference-pane memory-preference-pane-detail">
-          <div className="memory-info-pane-header">
-            <div>
-              <strong>{t("memoryPreferences.panel.detail")}</strong>
-              <p className="memory-info-pane-hint">
-                {t("memoryPreferences.panel.detailHint")}
-              </p>
-            </div>
-          </div>
-
-          {!selectedDraft ? (
-            <div className="command-empty-state">
-              {t("memoryPreferences.empty.unselected")}
-            </div>
-          ) : (
-            <div className="memory-info-detail-stack">
-              <div className="memory-info-detail-title">
-                <h4>{toText(selectedDraft.title) || t("memoryPreferences.newRecord")}</h4>
-                <div className="memory-info-detail-badges">
-                  <UiTag tone={toneForStatus(selectedDraft.status || "active")}>
-                    {selectedDraft.status || "active"}
-                  </UiTag>
-                  <UiTag tone="muted">
-                    {selectedDraft.scopeType || activeScopeType}
-                  </UiTag>
-                </div>
-              </div>
-
-              <div className="memory-info-detail-summary">
-                {toText(selectedDraft.summary) || t("memoryInfo.empty.noSummary")}
-              </div>
-
-              <div className="memory-info-detail-grid">
-                {renderPreferenceInspectorRows(
-                  t,
-                  selectedDraft,
-                  activeScopeType,
-                  activeScopeKey,
-                ).map(([labelValue, value]) => (
-                  <div className="memory-info-detail-card" key={String(labelValue)}>
-                    <span className="command-detail-label">{labelValue}</span>
-                    <strong>{formatDetailValue(value)}</strong>
-                  </div>
-                ))}
-              </div>
-
-              {normalizeMemoryTagList(selectedDraft.tags).length > 0 ? (
-                <div className="memory-info-detail-block">
-                  <span className="command-detail-label">
-                    {t("memoryPreferences.field.tags")}
-                  </span>
-                  <div className="memory-info-record-tags">
-                    {normalizeMemoryTagList(selectedDraft.tags).map((tag) => (
-                      <UiTag key={`${selectedDraft.clientId}-${tag}`} tone="default">
-                        #{tag}
-                      </UiTag>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <details className="memory-info-detail-block memory-info-raw-block">
-                <summary className="memory-info-raw-summary">
-                  <MaterialIcon name="code" />
-                  <span>{t("memoryPreferences.rawJson")}</span>
-                </summary>
-                <pre>{formatMemoryJson(selectedDraft)}</pre>
-              </details>
             </div>
           )}
         </section>
