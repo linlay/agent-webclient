@@ -31,7 +31,11 @@ import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/chats/lib/conversationSession";
-import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
+import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import {
+	readEventTeamId,
+	readRequestQueryText,
+} from "@/shared/utils/eventFieldReaders";
 import { toText } from "@/shared/utils/eventUtils";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -276,6 +280,44 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 	}
 }
 
+function renderAttachedRequestQuery(
+	options: RegisterAttachRunListenerOptions,
+	event: AgentEvent,
+): void {
+	if (toText(event.type) !== "request.query") {
+		return;
+	}
+
+	const text = readRequestQueryText(event);
+	const attachments = normalizeTimelineAttachments(
+		(event as Record<string, unknown>).references,
+	);
+	if (!text && attachments.length === 0) {
+		return;
+	}
+
+	const requestId = toText(event.requestId);
+	const nodeId = `user_${requestId || toText(event.seq) || Date.now()}`;
+	if (options.stateRef.current.timelineNodes.has(nodeId)) {
+		return;
+	}
+
+	options.dispatch({
+		type: "SET_TIMELINE_NODE",
+		id: nodeId,
+		node: {
+			id: nodeId,
+			kind: "message",
+			role: "user",
+			messageVariant: "default",
+			text,
+			attachments: attachments.length > 0 ? attachments : undefined,
+			ts: event.timestamp || Date.now(),
+		},
+	});
+	options.dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });
+}
+
 export function registerAttachRunListener(
 	options: RegisterAttachRunListenerOptions,
 ): () => void {
@@ -322,6 +364,7 @@ export function registerAttachRunListener(
 		const controller = new AbortController();
 		let session: LiveQuerySession | null = null;
 		const attachHandleEvent = (attachedEvent: AgentEvent) => {
+			renderAttachedRequestQuery(options, attachedEvent);
 			if (session) {
 				session.bufferedEvents.push(attachedEvent);
 				bindAttachSessionIdentity(session, attachedEvent);

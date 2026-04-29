@@ -719,6 +719,113 @@ describe("connectWsTransport", () => {
 		cleanup();
 	});
 
+	it("registerAttachRunListener renders request.query from attached streams", () => {
+		class MockWindow {
+			private listeners = new Map<string, Set<(event: Event) => void>>();
+
+			addEventListener(type: string, listener: (event: Event) => void): void {
+				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
+				current.add(listener);
+				this.listeners.set(type, current);
+			}
+
+			removeEventListener(type: string, listener: (event: Event) => void): void {
+				this.listeners.get(type)?.delete(listener);
+			}
+
+			dispatchEvent(event: Event): boolean {
+				for (const listener of this.listeners.get(event.type) || []) {
+					listener(event);
+				}
+				return true;
+			}
+		}
+
+		class MockCustomEvent {
+			type: string;
+			detail: Record<string, unknown>;
+
+			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
+				this.type = type;
+				this.detail = init?.detail || {};
+			}
+		}
+
+		const mockWindow = new MockWindow();
+		Object.defineProperty(globalThis, "window", {
+			value: mockWindow,
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		let attachedOnEvent: ((event: AgentEvent) => void) | null = null;
+		const attachRun = jest.fn(
+			(
+				_runId: string,
+				_lastSeq: number,
+				onEvent: (event: AgentEvent) => void,
+			) => {
+				attachedOnEvent = onEvent;
+				return {
+					requestId: "attach_1",
+					abort: jest.fn(),
+				};
+			},
+		);
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => ({ attachRun }) as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+		}) as unknown as Event);
+		attachedOnEvent?.({
+			type: "request.query",
+			requestId: "req_1",
+			query: "attached query",
+			references: [{ name: "demo.txt", sizeBytes: 12 }],
+			timestamp: 100,
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_TIMELINE_NODE",
+			id: "user_req_1",
+			node: expect.objectContaining({
+				id: "user_req_1",
+				kind: "message",
+				role: "user",
+				text: "attached query",
+				attachments: [{ name: "demo.txt", size: 12 }],
+			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "APPEND_TIMELINE_ORDER",
+			id: "user_req_1",
+		});
+		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
+			type: "request.query",
+			query: "attached query",
+		}));
+
+		cleanup();
+	});
+
 	it("registerAttachRunListener aborts the previous attach before starting a new one", () => {
 		class MockWindow {
 			private listeners = new Map<string, Set<(event: Event) => void>>();

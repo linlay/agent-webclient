@@ -7,7 +7,7 @@ import type {
 } from '@/app/state/types';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
-import { readEventTeamId } from '@/shared/utils/eventFieldReaders';
+import { readEventTeamId, readRequestQueryText } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 import {
   ARTIFACT_AUTO_COLLAPSE_MS,
@@ -215,7 +215,7 @@ export function useAgentEventHandler() {
       }
 
       if (type === 'request.query') {
-        const text = toText(event.message);
+        const text = readRequestQueryText(event);
         if (event.chatId) dispatch({ type: 'SET_CHAT_ID', chatId: event.chatId });
         if (event.agentKey && event.chatId) {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: event.chatId, agentKey: String(event.agentKey) });

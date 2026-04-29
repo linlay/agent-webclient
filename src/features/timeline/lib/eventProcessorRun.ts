@@ -1,4 +1,5 @@
 import type { AgentEvent } from "@/app/state/types";
+import { readRequestQueryText } from "@/shared/utils/eventFieldReaders";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -17,7 +18,7 @@ export function processRunEvent(
 
   if (type === "request.query") {
     if (config.mode !== "replay") return commands;
-    const text = safeText(event.message);
+    const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
       (event as Record<string, unknown>).references,
     );
@@ -83,4 +84,3 @@ export function processRunEvent(
 
   return commands;
 }
-
