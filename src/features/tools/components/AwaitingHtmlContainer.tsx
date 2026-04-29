@@ -165,6 +165,30 @@ function buildRejectParam(
   };
 }
 
+function resizeAwaitingIframe(iframe: HTMLIFrameElement): void {
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (doc?.body) {
+      const height = Math.max(doc.body.scrollHeight, 100);
+      iframe.style.height = `${height}px`;
+
+      setTimeout(() => {
+        try {
+          const nextHeight = Math.max(doc.body.scrollHeight, 100);
+          iframe.style.height = `${nextHeight}px`;
+        } catch {
+          /* ignore */
+        }
+      }, 500);
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  iframe.style.height = "300px";
+}
+
 export function mergeSubmittedParamsIntoAwaitingForms(
   forms: FormActiveAwaiting["forms"],
   params: AIAwaitFormSubmitParamData[],
@@ -399,6 +423,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         "*",
       );
       lastPostedSignatureRef.current = viewportSignature;
+      resizeAwaitingIframe(frame);
     },
     [activeFormIndex, data, viewportSignature],
   );
