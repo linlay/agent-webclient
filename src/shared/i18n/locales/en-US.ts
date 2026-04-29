@@ -114,7 +114,7 @@ export const enUSMessages: I18nMessages = {
   "eventPopover.title.doubleClickCopy": "Double-click to copy all",
   "leftSidebar.awaitingApproval": "Awaiting approval",
   "leftSidebar.filterChats": "Search conversations...",
-  "leftSidebar.filterWorkers": "Search",
+  "leftSidebar.filterWorkers": "Filter agents by name / key / teamId...",
   "leftSidebar.historyTitle": "Conversation history",
   "leftSidebar.historyTitleWithWorker": "{workerTypeLabel} history · {displayName}",
   "leftSidebar.latestConversationNoReply": "Latest conversation has no reply",

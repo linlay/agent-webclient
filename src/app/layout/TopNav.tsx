@@ -61,6 +61,10 @@ export const TopNav: React.FC = () => {
   const voiceToggleDisabled =
     !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
 
+  const handleStartNewConversation = () => {
+    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  };
+
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
     dispatch({
@@ -164,6 +168,18 @@ export const TopNav: React.FC = () => {
               </div>
             </div>
           </div>
+          <UiButton
+            id="top-nav-new-chat-btn"
+            className="icon-btn top-nav-new-chat-btn"
+            size="sm"
+            aria-label={t("topNav.newConversation")}
+            title={t("topNav.newConversation")}
+            variant="ghost"
+            iconOnly
+            onClick={handleStartNewConversation}
+          >
+            <MaterialIcon name="edit_square" />
+          </UiButton>
         </div>
 
         <div className="nav-group nav-center">
@@ -171,10 +187,7 @@ export const TopNav: React.FC = () => {
             <strong className="current-worker-name">
               {currentWorker?.displayName || t("topNav.noSelection")}
             </strong>
-            <span
-              className={`status-pill ${statusClass}`}
-              id="api-status"
-            >
+            <span className={`status-pill ${statusClass}`} id="api-status">
               {t(statusText)}
             </span>
           </div>
@@ -188,14 +201,22 @@ export const TopNav: React.FC = () => {
               size="sm"
               iconOnly
               disabled={voiceToggleDisabled}
-              aria-label={conversation.inputMode === "voice" ? t("topNav.voice.hangup") : t("topNav.voice.open")}
+              aria-label={
+                conversation.inputMode === "voice"
+                  ? t("topNav.voice.hangup")
+                  : t("topNav.voice.open")
+              }
               aria-keyshortcuts={
-                conversation.inputMode === "voice" ? "Escape" : voiceOpenAriaShortcut
+                conversation.inputMode === "voice"
+                  ? "Escape"
+                  : voiceOpenAriaShortcut
               }
               title={
                 conversation.inputMode === "voice"
                   ? t("topNav.voice.hangupWithShortcut")
-                  : t("topNav.voice.openWithShortcut", { shortcut: voiceOpenShortcutLabel })
+                  : t("topNav.voice.openWithShortcut", {
+                      shortcut: voiceOpenShortcutLabel,
+                    })
               }
               onClick={handleToggleVoiceMode}
             >
@@ -211,13 +232,19 @@ export const TopNav: React.FC = () => {
               size="sm"
               iconOnly
               active={ui.audioMuted}
-              aria-label={ui.audioMuted ? t("topNav.audio.unmute") : t("topNav.audio.mute")}
-              title={ui.audioMuted ? t("topNav.audio.unmute") : t("topNav.audio.mute")}
+              aria-label={
+                ui.audioMuted
+                  ? t("topNav.audio.unmute")
+                  : t("topNav.audio.mute")
+              }
+              title={
+                ui.audioMuted
+                  ? t("topNav.audio.unmute")
+                  : t("topNav.audio.mute")
+              }
               onClick={handleToggleAudioMuted}
             >
-              <MaterialIcon
-                name={ui.audioMuted ? "volume_off" : "volume_up"}
-              />
+              <MaterialIcon name={ui.audioMuted ? "volume_off" : "volume_up"} />
             </UiButton>
           ) : null}
           <Divider type="vertical" />
@@ -229,7 +256,9 @@ export const TopNav: React.FC = () => {
             iconOnly
             active={state.desktopDebugSidebarEnabled}
             aria-label={
-              ui.desktopDebugSidebarEnabled ? t("topNav.debug.close") : t("topNav.debug.open")
+              ui.desktopDebugSidebarEnabled
+                ? t("topNav.debug.close")
+                : t("topNav.debug.open")
             }
             onClick={() => {
               if (state.attachmentPreview) {
@@ -254,8 +283,16 @@ export const TopNav: React.FC = () => {
             size="sm"
             iconOnly
             active={ui.terminalDockOpen}
-            aria-label={ui.terminalDockOpen ? t("topNav.terminal.close") : t("topNav.terminal.open")}
-            title={ui.terminalDockOpen ? t("topNav.terminal.close") : t("topNav.terminal.open")}
+            aria-label={
+              ui.terminalDockOpen
+                ? t("topNav.terminal.close")
+                : t("topNav.terminal.open")
+            }
+            title={
+              ui.terminalDockOpen
+                ? t("topNav.terminal.close")
+                : t("topNav.terminal.open")
+            }
             onClick={() =>
               dispatch({
                 type: "SET_TERMINAL_DOCK_OPEN",

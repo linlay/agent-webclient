@@ -114,7 +114,7 @@ export const zhCNMessages: I18nMessages = {
   "eventPopover.title.doubleClickCopy": "双击复制全部",
   "leftSidebar.awaitingApproval": "等待审批",
   "leftSidebar.filterChats": "搜索会话...",
-  "leftSidebar.filterWorkers": "搜索",
+  "leftSidebar.filterWorkers": "按 名称 / key / teamId 过滤...",
   "leftSidebar.historyTitle": "历史会话",
   "leftSidebar.historyTitleWithWorker": "{workerTypeLabel}历史会话 · {displayName}",
   "leftSidebar.latestConversationNoReply": "最新会话无答复",

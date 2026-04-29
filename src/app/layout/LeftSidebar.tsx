@@ -318,70 +318,62 @@ export const LeftSidebar: React.FC = () => {
         id="left-sidebar"
       >
         {state.leftDrawerOpen && (
-          <Flex vertical className="left-sidebar-buttons" gap={2}>
-            <UiButton
-              size="sm"
-              aria-label={t("topNav.newConversation")}
-              title={t("topNav.newConversation")}
-              variant="ghost"
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent("agent:start-new-conversation"),
-                );
-              }}
-            >
-              <MaterialIcon name="edit_square" />
-              新对话
-            </UiButton>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                dispatch({
-                  type: "OPEN_COMMAND_MODAL",
-                  modal: { type: "schedule" },
-                });
-              }}
-            >
-              <MaterialIcon name="schedule" />
-              自动化
-            </UiButton>
-            <Input
-              variant="borderless"
-              placeholder={
-                state.conversationMode === "worker"
-                  ? t("leftSidebar.filterWorkers")
-                  : t("leftSidebar.filterChats")
-              }
-              value={navigation.chatFilter}
-              prefix={
-                <MaterialIcon name="search" style={{ marginRight: 10 }} />
-              }
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_CHAT_FILTER",
-                  filter: e.target.value,
-                })
-              }
-            />
-            <UiButton
-              size="sm"
-              variant="ghost"
-              loading={isSidebarLoading}
-              onClick={() => {
-                if (state.conversationMode === "worker") {
-                  window.dispatchEvent(
-                    new CustomEvent("agent:refresh-worker-data"),
-                  );
-                } else {
-                  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+          <>
+            <Flex vertical className="left-sidebar-buttons" gap={2}>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  dispatch({
+                    type: "OPEN_COMMAND_MODAL",
+                    modal: { type: "schedule" },
+                  });
+                }}
+              >
+                <MaterialIcon name="schedule" />
+                自动化
+              </UiButton>
+            </Flex>
+            <Flex gap={2} style={{padding: '0 4px'}}>
+              <Input
+                variant="filled"
+                placeholder={
+                  state.conversationMode === "worker"
+                    ? t("leftSidebar.filterWorkers")
+                    : t("leftSidebar.filterChats")
                 }
-              }}
-            >
-              <MaterialIcon name="refresh" />
-              刷新
-            </UiButton>
-          </Flex>
+                value={navigation.chatFilter}
+                prefix={
+                  <MaterialIcon name="search" style={{ marginRight: 6 }} />
+                }
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_CHAT_FILTER",
+                    filter: e.target.value,
+                  })
+                }
+              />
+              <UiButton
+                size="sm"
+                variant="ghost"
+                loading={isSidebarLoading}
+                iconOnly
+                onClick={() => {
+                  if (state.conversationMode === "worker") {
+                    window.dispatchEvent(
+                      new CustomEvent("agent:refresh-worker-data"),
+                    );
+                  } else {
+                    window.dispatchEvent(
+                      new CustomEvent("agent:refresh-chats"),
+                    );
+                  }
+                }}
+              >
+                <MaterialIcon name="refresh" />
+              </UiButton>
+            </Flex>
+          </>
         )}
 
         {state.conversationMode !== "worker" && (
