@@ -15,6 +15,7 @@ const {
   getPrimaryCopyMenuItem,
   resolveEventGroupMeta,
   resolveDebugPreCallCopyPayloads,
+  resolveInjectedPromptPayloads,
   resolveInitialPopoverState,
 } = __TEST_ONLY__;
 
@@ -148,11 +149,11 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Collect event snapshot"');
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).toContain('aria-label="Close event details"');
+    expect(html).toContain('aria-label="收集事件快照"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).toContain(
-      `Time: ${formatReadableTimestamp(1776518171300)}`,
+      `时间: ${formatReadableTimestamp(1776518171300)}`,
     );
   });
 
@@ -172,9 +173,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).toContain('aria-label="Close event details"');
-    expect(html).not.toContain('aria-label="Collect event snapshot"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).toContain('aria-label="关闭事件详情"');
+    expect(html).not.toContain('aria-label="收集事件快照"');
   });
 
   it("renders a copy menu trigger for debug.preCall instead of flat copy buttons", () => {
@@ -199,9 +200,42 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).not.toContain('aria-label="Copy systemPrompt"');
-    expect(html).not.toContain('aria-label="Copy tools"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).not.toContain('aria-label="复制 systemPrompt"');
+    expect(html).not.toContain('aria-label="复制 tools"');
+  });
+
+  it("renders an injected prompt viewer trigger for debug.preCall when payload exists", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "debug.preCall",
+      runId: "run_1",
+      data: {
+        requestBody: {
+          messages: [{ role: "system", content: "system prompt" }],
+        },
+        injectedPrompt: {
+          systemPrompt: "system prompt",
+          systemPromptTokens: 3,
+          providerMessages: [
+            { role: "system", content: "system prompt", estimatedTokens: 3 },
+            { role: "user", content: "show debug", estimatedTokens: 2 },
+          ],
+          providerMessagesTokens: 5,
+        },
+      },
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      events: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="查看注入 Prompt"');
   });
 });
 
@@ -518,6 +552,251 @@ describe("EventPopover display and copy helpers", () => {
       systemPromptText: "anthropic system",
       toolsText: JSON.stringify([{ name: "browser" }], null, 2),
       modelText: "",
+    });
+  });
+
+  it("extracts injected prompt payloads with token counts", () => {
+    expect(
+      resolveInjectedPromptPayloads({
+        type: "debug.preCall",
+        data: {
+          injectedPrompt: {
+            systemPrompt: "system prompt",
+            systemPromptTokens: 3,
+            systemSections: [
+              {
+                id: "agent-identity",
+                title: "Agent Identity",
+                role: "system",
+                category: "agent.identity",
+                content: "Agent Identity\nkey: jira",
+                tokens: 5,
+              },
+              {
+                id: "runtime-session",
+                title: "Runtime Context: Session",
+                role: "system",
+                category: "runtime.session",
+                content: "Runtime Context: Session\nchatId: chat-1",
+                tokens: 6,
+              },
+            ],
+            historyMessages: [
+              { role: "user", content: "first user", estimatedTokens: 2 },
+              { role: "assistant", content: "first answer", estimatedTokens: 3 },
+              { role: "tool", content: "tool output", estimatedTokens: 4 },
+              { role: "user", content: "second user", estimatedTokens: 2 },
+            ],
+            historyMessagesTokens: 11,
+            currentUserMessage: { role: "user", content: "show debug", estimatedTokens: 2 },
+            currentUserMessageTokens: 2,
+            providerMessages: [
+              { role: "system", content: "system prompt", estimatedTokens: 3 },
+              { role: "user", content: "show debug", estimatedTokens: 2 },
+            ],
+            providerMessagesTokens: 5,
+          },
+        },
+      }),
+    ).toEqual({
+      rawJsonText: JSON.stringify(
+        {
+          systemPrompt: "system prompt",
+          systemPromptTokens: 3,
+          systemSections: [
+            {
+              id: "agent-identity",
+              title: "Agent Identity",
+              role: "system",
+              category: "agent.identity",
+              content: "Agent Identity\nkey: jira",
+              tokens: 5,
+            },
+            {
+              id: "runtime-session",
+              title: "Runtime Context: Session",
+              role: "system",
+              category: "runtime.session",
+              content: "Runtime Context: Session\nchatId: chat-1",
+              tokens: 6,
+            },
+          ],
+          historyMessages: [
+            { role: "user", content: "first user", estimatedTokens: 2 },
+            { role: "assistant", content: "first answer", estimatedTokens: 3 },
+            { role: "tool", content: "tool output", estimatedTokens: 4 },
+            { role: "user", content: "second user", estimatedTokens: 2 },
+          ],
+          historyMessagesTokens: 11,
+          currentUserMessage: { role: "user", content: "show debug", estimatedTokens: 2 },
+          currentUserMessageTokens: 2,
+          providerMessages: [
+            { role: "system", content: "system prompt", estimatedTokens: 3 },
+            { role: "user", content: "show debug", estimatedTokens: 2 },
+          ],
+          providerMessagesTokens: 5,
+        },
+        null,
+        2,
+      ),
+      systemPromptText: "system prompt",
+      systemPromptTokens: 3,
+      historyMessagesText: JSON.stringify(
+        [
+          { role: "user", content: "first user", estimatedTokens: 2 },
+          { role: "assistant", content: "first answer", estimatedTokens: 3 },
+          { role: "tool", content: "tool output", estimatedTokens: 4 },
+          { role: "user", content: "second user", estimatedTokens: 2 },
+        ],
+        null,
+        2,
+      ),
+      historyMessagesTokens: 11,
+      currentUserMessageText: JSON.stringify(
+        { role: "user", content: "show debug", estimatedTokens: 2 },
+        null,
+        2,
+      ),
+      currentUserMessageTokens: 2,
+      providerMessagesText: JSON.stringify(
+        [
+          { role: "system", content: "system prompt", estimatedTokens: 3 },
+          { role: "user", content: "show debug", estimatedTokens: 2 },
+        ],
+        null,
+        2,
+      ),
+      providerMessagesTokens: 5,
+      entries: [
+        {
+          id: "agent-identity",
+          title: "Agent Identity",
+          role: "system",
+          category: "agent.identity",
+          tokens: 5,
+          contentText: "Agent Identity\nkey: jira",
+          rawJsonText: JSON.stringify(
+            {
+              id: "agent-identity",
+              title: "Agent Identity",
+              role: "system",
+              category: "agent.identity",
+              content: "Agent Identity\nkey: jira",
+              tokens: 5,
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "runtime-session",
+          title: "Runtime Context: Session",
+          role: "system",
+          category: "runtime.session",
+          tokens: 6,
+          contentText: "Runtime Context: Session\nchatId: chat-1",
+          rawJsonText: JSON.stringify(
+            {
+              id: "runtime-session",
+              title: "Runtime Context: Session",
+              role: "system",
+              category: "runtime.session",
+              content: "Runtime Context: Session\nchatId: chat-1",
+              tokens: 6,
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "history-1",
+          title: "History Message #1",
+          role: "user",
+          tokens: 2,
+          roundNumber: 1,
+          contentText: "first user",
+          rawJsonText: JSON.stringify(
+            { role: "user", content: "first user", estimatedTokens: 2 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "history-2",
+          title: "History Message #2",
+          role: "assistant",
+          tokens: 3,
+          roundNumber: 1,
+          contentText: "first answer",
+          rawJsonText: JSON.stringify(
+            { role: "assistant", content: "first answer", estimatedTokens: 3 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "history-3",
+          title: "History Message #3",
+          role: "tool",
+          tokens: 4,
+          roundNumber: 1,
+          contentText: "tool output",
+          rawJsonText: JSON.stringify(
+            { role: "tool", content: "tool output", estimatedTokens: 4 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "history-4",
+          title: "History Message #4",
+          role: "user",
+          tokens: 2,
+          roundNumber: 2,
+          contentText: "second user",
+          rawJsonText: JSON.stringify(
+            { role: "user", content: "second user", estimatedTokens: 2 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "current-user",
+          title: "Current User Message #5",
+          role: "user",
+          tokens: 2,
+          contentText: "show debug",
+          rawJsonText: JSON.stringify(
+            { role: "user", content: "show debug", estimatedTokens: 2 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "provider-1",
+          title: "Provider Message #1",
+          role: "system",
+          tokens: 3,
+          contentText: "system prompt",
+          rawJsonText: JSON.stringify(
+            { role: "system", content: "system prompt", estimatedTokens: 3 },
+            null,
+            2,
+          ),
+        },
+        {
+          id: "provider-2",
+          title: "Provider Message #2",
+          role: "user",
+          tokens: 2,
+          contentText: "show debug",
+          rawJsonText: JSON.stringify(
+            { role: "user", content: "show debug", estimatedTokens: 2 },
+            null,
+            2,
+          ),
+        },
+      ],
     });
   });
 
