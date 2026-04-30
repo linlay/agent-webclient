@@ -6,8 +6,9 @@ import type { WorkerConversationRow } from "@/app/state/types";
 import { UnreadDot } from "./UnreadDot";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import { LoadingOutlined } from "@ant-design/icons";
+import { Loading3QuartersOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
@@ -43,9 +44,8 @@ export const WorkerChatPreviewItem: React.FC<{
         )}
         {/* 显示优先级：hover > loading > unread > time */}
         <div data-action={action}>
-          <Spin
-            indicator={<LoadingOutlined />}
-            size="small"
+          <MaterialIcon
+            name="progress_activity"
             className="worker-chat-loading"
           />
           <UnreadDot chat={chat} />

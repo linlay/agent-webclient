@@ -59,7 +59,7 @@
 .worker-collapse {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .worker-collapse .status-line,
@@ -83,10 +83,10 @@
     overflow: hidden;
 }
 
-.worker-collapse .ant-collapse-item.ant-collapse-item-active {
-    background: var(--bg-card);
+.worker-collapse .ant-collapse-item.ant-collapse-item-active,
+.worker-collapse .ant-collapse-item:hover {
     border-radius: 8px;
-    box-shadow: var(--shadow-soft);
+    background: var(--bg-hover);
 }
 
 .worker-collapse .ant-collapse-item-active>.ant-collapse-header {
@@ -243,7 +243,8 @@
 .worker-history-modal .ant-modal-body {
     padding-top: 8px;
 }
-.history-modal-title-tag{
+
+.history-modal-title-tag {
     color: var(--accent);
     background: var(--accent-soft);
     padding: 2px 6px;
@@ -337,26 +338,36 @@
 [data-action] .chat-actions-trigger,
 [data-action] .worker-chat-loading,
 [data-action] .chat-unread-dot {
-    opacity: 0;
     position: absolute;
     padding: 0;
     top: 50%;
     transform: translateY(-50%);
     right: 10px;
     transition: none;
+    display: none;
 }
-[data-action] .chat-unread-dot{
+
+[data-action] .chat-unread-dot {
     margin-right: 6px;
 }
-[data-action="loading"] .worker-chat-loading{
-    opacity: 1;
+[data-action] .worker-chat-loading{
+    animation: ui-spin 1s linear infinite;
+    transform: none;
+    top: 10px;
+    color: var(--colorFill);
 }
+[data-action="loading"] .worker-chat-loading {
+    display: unset;
+}
+
 [data-action="unread"] .chat-unread-dot.is-unread {
-    opacity: 1;
+    display: unset;
 }
+
 [data-action] .worker-panel-time-label {
     opacity: 0;
 }
+
 [data-action="time"] .worker-panel-time-label {
     opacity: 1;
 }
@@ -371,12 +382,12 @@
 }
 
 .worker-chat-item:hover .chat-actions-trigger {
-    opacity: 1;
+    display: unset;
 }
 
 .worker-chat-item:hover .worker-panel-time-label,
 .worker-chat-item:hover .chat-unread-dot.is-unread,
-.worker-chat-item:hover .worker-chat-loading[data-loading="true"] {
+.worker-chat-item:hover .worker-chat-loading {
     opacity: 0;
 }
 

@@ -482,7 +482,7 @@
 }
 
 .left-sidebar-buttons {
-    padding: 2px;
+    padding: 6px;
 }
 .left-sidebar-buttons .ant-badge .ant-badge-count{
     color: var(--accent);

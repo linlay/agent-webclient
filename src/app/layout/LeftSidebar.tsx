@@ -343,7 +343,7 @@ export const LeftSidebar: React.FC = () => {
                 </Flex>
               </UiButton>
             </Flex>
-            <Flex gap={2} style={{ padding: "0 4px" }}>
+            <Flex gap={2} style={{ padding: "0 6px" }}>
               <Input
                 variant="filled"
                 placeholder={

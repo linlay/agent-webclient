@@ -186,13 +186,6 @@
     text-overflow: ellipsis;
 }
 
-.current-worker-tool.ui-btn:hover:not(:disabled) {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 24%,
-            var(--line-soft));
-    box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-soft) 16%, transparent);
-}
-
 .current-worker-tool.ui-btn.is-active {
     border-color: color-mix(in srgb,
             var(--accent-electric) 36%,
@@ -203,11 +196,6 @@
 
 .current-worker-tool-voice.ui-btn.is-call {
     color: #2f7c49;
-}
-
-.current-worker-tool-voice.ui-btn.is-call:hover:not(:disabled) {
-    border-color: color-mix(in srgb, #3e985e 46%, var(--line-soft));
-    box-shadow: 0 8px 18px rgba(65, 153, 95, 0.16);
 }
 
 .current-worker-tool-voice.ui-btn.is-hangup {
