@@ -668,6 +668,9 @@
     border-radius: var(--radius-md);
     padding: 12px;
 }
+.schedule-request-box .material-symbols-rounded{
+    transform: scale(.8);
+}
 
 .schedule-request-box legend {
     padding: 0 6px;
@@ -786,8 +789,10 @@
 }
 
 .field-group label {
-    display: block;
-    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
     color: var(--ink-muted);

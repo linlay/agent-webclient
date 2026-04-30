@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Input, Spin } from "antd";
+import { Input, Spin, Tooltip } from "antd";
 import type { Agent, Team } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
@@ -100,7 +100,9 @@ function compactPayload<T extends Record<string, unknown>>(payload: T): T {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" ? value as Record<string, unknown> : null;
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function firstString(values: unknown[]): string {
@@ -115,7 +117,9 @@ function firstString(values: unknown[]): string {
   return "";
 }
 
-function resolveDefaultAgentKey(currentWorker: CurrentWorkerSummary | null): string {
+function resolveDefaultAgentKey(
+  currentWorker: CurrentWorkerSummary | null,
+): string {
   if (!currentWorker) return "";
   if (currentWorker.type === "agent") return currentWorker.sourceId;
   const raw = currentWorker.raw || {};
@@ -125,7 +129,9 @@ function resolveDefaultAgentKey(currentWorker: CurrentWorkerSummary | null): str
   return firstString([raw.agentKey, ...agentKeys, ...agents, ...members]);
 }
 
-function createInitialForm(currentWorker: CurrentWorkerSummary | null): ScheduleFormState {
+function createInitialForm(
+  currentWorker: CurrentWorkerSummary | null,
+): ScheduleFormState {
   return {
     ...EMPTY_FORM,
     agentKey: resolveDefaultAgentKey(currentWorker),
@@ -157,9 +163,10 @@ function formFromSchedule(schedule: ScheduleDetailResponse): ScheduleFormState {
         : schedule.query?.hidden === false
           ? "false"
           : "",
-    paramsText: params && Object.keys(params).length > 0
-      ? JSON.stringify(params, null, 2)
-      : "",
+    paramsText:
+      params && Object.keys(params).length > 0
+        ? JSON.stringify(params, null, 2)
+        : "",
   };
 }
 
@@ -170,9 +177,7 @@ function isFiveFieldCron(value: string): boolean {
 function toTimeLabel(value?: string | number | null): string {
   if (value === undefined || value === null || value === "") return "--";
   const date =
-    typeof value === "number"
-      ? new Date(value)
-      : new Date(String(value));
+    typeof value === "number" ? new Date(value) : new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleString();
 }
@@ -287,7 +292,9 @@ export const ScheduleModal: React.FC<{
   const [statusFilter, setStatusFilter] = useState<ScheduleStatusFilter>("all");
   const [workerFilter, setWorkerFilter] = useState("");
   const [formMode, setFormMode] = useState<ScheduleFormMode>("create");
-  const [form, setForm] = useState<ScheduleFormState>(() => createInitialForm(currentWorker));
+  const [form, setForm] = useState<ScheduleFormState>(() =>
+    createInitialForm(currentWorker),
+  );
   const [loading, setLoading] = useState(false);
   const [executionsLoading, setExecutionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -298,10 +305,15 @@ export const ScheduleModal: React.FC<{
   const workerOptions = useMemo(() => {
     const values = new Map<string, string>();
     for (const item of schedules) {
-      if (item.agentKey) values.set(`agent:${item.agentKey}`, `Agent · ${item.agentKey}`);
-      if (item.teamId) values.set(`team:${item.teamId}`, `Team · ${item.teamId}`);
+      if (item.agentKey)
+        values.set(`agent:${item.agentKey}`, `Agent · ${item.agentKey}`);
+      if (item.teamId)
+        values.set(`team:${item.teamId}`, `Team · ${item.teamId}`);
     }
-    return Array.from(values.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(values.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
   }, [schedules]);
 
   const agentOptions = useMemo(() => {
@@ -317,7 +329,10 @@ export const ScheduleModal: React.FC<{
     if (currentAgentKey && !options.has(currentAgentKey)) {
       options.set(currentAgentKey, currentAgentKey);
     }
-    return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(options.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
   }, [agents, form.agentKey]);
 
   const zoneOptions = useMemo(() => {
@@ -343,26 +358,40 @@ export const ScheduleModal: React.FC<{
     for (const team of Array.isArray(teams) ? teams : []) {
       const teamId = String(team?.teamId || "").trim();
       if (!teamId) continue;
-      values.set(`team:${teamId}`, String(team?.name || teamId).trim() || teamId);
+      values.set(
+        `team:${teamId}`,
+        String(team?.name || teamId).trim() || teamId,
+      );
     }
     return values;
   }, [agents, teams]);
 
-  const getScheduleWorkerName = useCallback((schedule: ScheduleSummaryResponse): string => {
-    const teamId = String(schedule.teamId || "").trim();
-    if (teamId) return workerNameByKey.get(`team:${teamId}`) || teamId;
-    const agentKey = String(schedule.agentKey || "").trim();
-    if (agentKey) return workerNameByKey.get(`agent:${agentKey}`) || agentKey;
-    return "--";
-  }, [workerNameByKey]);
+  const getScheduleWorkerName = useCallback(
+    (schedule: ScheduleSummaryResponse): string => {
+      const teamId = String(schedule.teamId || "").trim();
+      if (teamId) return workerNameByKey.get(`team:${teamId}`) || teamId;
+      const agentKey = String(schedule.agentKey || "").trim();
+      if (agentKey) return workerNameByKey.get(`agent:${agentKey}`) || agentKey;
+      return "--";
+    },
+    [workerNameByKey],
+  );
 
   const filteredSchedules = useMemo(() => {
     const query = searchText.trim().toLowerCase();
     return schedules.filter((item) => {
       if (statusFilter === "enabled" && !item.enabled) return false;
       if (statusFilter === "disabled" && item.enabled) return false;
-      if (workerFilter.startsWith("agent:") && item.agentKey !== workerFilter.slice(6)) return false;
-      if (workerFilter.startsWith("team:") && item.teamId !== workerFilter.slice(5)) return false;
+      if (
+        workerFilter.startsWith("agent:") &&
+        item.agentKey !== workerFilter.slice(6)
+      )
+        return false;
+      if (
+        workerFilter.startsWith("team:") &&
+        item.teamId !== workerFilter.slice(5)
+      )
+        return false;
       if (!query) return true;
       return [
         item.name,
@@ -392,7 +421,10 @@ export const ScheduleModal: React.FC<{
     }
     setExecutionsLoading(true);
     try {
-      const response = await getScheduleExecutions({ id: normalizedId, limit: 20 });
+      const response = await getScheduleExecutions({
+        id: normalizedId,
+        limit: 20,
+      });
       setExecutions(response.data.items || []);
     } catch (error) {
       setError((error as Error).message);
@@ -411,47 +443,53 @@ export const ScheduleModal: React.FC<{
     setPendingDeleteId("");
   }, [currentWorker]);
 
-  const selectSchedule = useCallback(async (id: string) => {
-    const normalizedId = String(id || "").trim();
-    if (!normalizedId) {
-      startCreate();
-      return;
-    }
-    setSelectedId(normalizedId);
-    setFormMode("edit");
-    setFormError("");
-    setPendingDeleteId("");
-    try {
-      const response = await getSchedule(normalizedId);
-      setForm(formFromSchedule(response.data));
-      await loadExecutions(normalizedId);
-    } catch (error) {
-      setError((error as Error).message);
-    }
-  }, [loadExecutions, startCreate]);
-
-  const loadSchedules = useCallback(async (preferredId = "") => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await getSchedules();
-      const items = response.data.items || [];
-      setSchedules(items);
-      const nextId =
-        preferredId && items.some((item) => item.id === preferredId)
-          ? preferredId
-          : items[0]?.id || "";
-      if (nextId) {
-        await selectSchedule(nextId);
-      } else {
+  const selectSchedule = useCallback(
+    async (id: string) => {
+      const normalizedId = String(id || "").trim();
+      if (!normalizedId) {
         startCreate();
+        return;
       }
-    } catch (error) {
-      setError((error as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectSchedule, startCreate]);
+      setSelectedId(normalizedId);
+      setFormMode("edit");
+      setFormError("");
+      setPendingDeleteId("");
+      try {
+        const response = await getSchedule(normalizedId);
+        setForm(formFromSchedule(response.data));
+        await loadExecutions(normalizedId);
+      } catch (error) {
+        setError((error as Error).message);
+      }
+    },
+    [loadExecutions, startCreate],
+  );
+
+  const loadSchedules = useCallback(
+    async (preferredId = "") => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await getSchedules();
+        const items = response.data.items || [];
+        setSchedules(items);
+        const nextId =
+          preferredId && items.some((item) => item.id === preferredId)
+            ? preferredId
+            : items[0]?.id || "";
+        if (nextId) {
+          await selectSchedule(nextId);
+        } else {
+          startCreate();
+        }
+      } catch (error) {
+        setError((error as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectSchedule, startCreate],
+  );
 
   useEffect(() => {
     void loadSchedules("");
@@ -488,7 +526,10 @@ export const ScheduleModal: React.FC<{
     setSaving(true);
     setError("");
     try {
-      const response = await toggleSchedule({ id: item.id, enabled: !item.enabled });
+      const response = await toggleSchedule({
+        id: item.id,
+        enabled: !item.enabled,
+      });
       const detail = response.data;
       setSchedules((rows) =>
         rows.map((row) =>
@@ -541,24 +582,45 @@ export const ScheduleModal: React.FC<{
     <div className="command-modal-section schedule-console">
       <div className="schedule-console-toolbar">
         <Input
-          prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
+          prefix={
+            <MaterialIcon
+              name="search"
+              style={{ color: "var(--text-muted)" }}
+            />
+          }
           variant="filled"
           placeholder="搜索计划任务..."
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ScheduleStatusFilter)}>
+        <select
+          value={statusFilter}
+          onChange={(event) =>
+            setStatusFilter(event.target.value as ScheduleStatusFilter)
+          }
+        >
           <option value="all">全部状态</option>
           <option value="enabled">已启用</option>
           <option value="disabled">已停用</option>
         </select>
-        <select value={workerFilter} onChange={(event) => setWorkerFilter(event.target.value)}>
+        <select
+          value={workerFilter}
+          onChange={(event) => setWorkerFilter(event.target.value)}
+        >
           <option value="">全部对象</option>
           {workerOptions.map((item) => (
-            <option key={item.value} value={item.value}>{item.label}</option>
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
           ))}
         </select>
-        <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadSchedules(selectedId)} disabled={loading || saving}>
+        <UiButton
+          size="sm"
+          variant="ghost"
+          iconOnly
+          onClick={() => loadSchedules(selectedId)}
+          disabled={loading || saving}
+        >
           <MaterialIcon name="refresh" />
         </UiButton>
         <UiButton size="sm" variant="primary" onClick={startCreate}>
@@ -570,18 +632,28 @@ export const ScheduleModal: React.FC<{
       {error && (
         <div className="schedule-console-error">
           <span>{error}</span>
-          <UiButton size="sm" variant="ghost" onClick={() => loadSchedules(selectedId)}>重试</UiButton>
+          <UiButton
+            size="sm"
+            variant="ghost"
+            onClick={() => loadSchedules(selectedId)}
+          >
+            重试
+          </UiButton>
         </div>
       )}
 
       <div className="schedule-console-body">
         <div className="schedule-console-list">
-          <div className="schedule-console-count">计划任务 {schedules.length} 个</div>
+          <div className="schedule-console-count">
+            计划任务 {schedules.length} 个
+          </div>
           <Spin spinning={loading}>
             {filteredSchedules.length === 0 ? (
               <div className="command-empty-state">
                 暂无匹配计划任务。
-                <UiButton size="sm" variant="primary" onClick={startCreate}>新建任务</UiButton>
+                <UiButton size="sm" variant="primary" onClick={startCreate}>
+                  新建任务
+                </UiButton>
               </div>
             ) : (
               <div className="schedule-list-items">
@@ -591,20 +663,28 @@ export const ScheduleModal: React.FC<{
                     key={item.id}
                     className={`schedule-list-item ${item.id === selectedId ? "is-active" : ""}`}
                     onClick={() => selectSchedule(item.id)}
-	                  >
+                  >
                     <span className="schedule-list-item-head">
-                      <span className="schedule-list-item-title" title={`${getScheduleWorkerName(item)} ${item.name || item.id}`}>
-                        <span className="schedule-list-item-owner">[{getScheduleWorkerName(item)}]</span>
+                      <span
+                        className="schedule-list-item-title"
+                        title={`${getScheduleWorkerName(item)} ${item.name || item.id}`}
+                      >
+                        <span className="schedule-list-item-owner">
+                          [{getScheduleWorkerName(item)}]
+                        </span>
                         <strong>{item.name || item.id}</strong>
                       </span>
                       <UiTag tone={item.enabled ? "accent" : "muted"}>
                         {item.enabled ? "启用" : "停用"}
                       </UiTag>
                     </span>
-                    <span className="schedule-list-item-meta" title={scheduleListMeta(item)}>
+                    <span
+                      className="schedule-list-item-meta"
+                      title={scheduleListMeta(item)}
+                    >
                       {scheduleListMeta(item)}
                     </span>
-	                  </button>
+                  </button>
                 ))}
               </div>
             )}
@@ -614,18 +694,46 @@ export const ScheduleModal: React.FC<{
         <div className="schedule-console-detail">
           <div className="schedule-detail-head">
             <div>
-              <strong>{formMode === "create" ? "新建计划任务" : selectedSummary?.name || "编辑计划任务"}</strong>
-              <span>{formMode === "create" ? "保存后立即写入后端 schedule 配置" : selectedSummary ? scheduleSourcePath(selectedSummary) : selectedId}</span>
+              <strong>
+                {formMode === "create"
+                  ? "新建计划任务"
+                  : selectedSummary?.name || "编辑计划任务"}
+              </strong>
+              <span>
+                {formMode === "create"
+                  ? "保存后立即写入后端 schedule 配置"
+                  : selectedSummary
+                    ? scheduleSourcePath(selectedSummary)
+                    : selectedId}
+              </span>
             </div>
             {selectedSummary && (
               <div className="schedule-detail-actions">
-                <UiButton size="sm" variant="ghost" onClick={() => toggleSelected(selectedSummary)} disabled={saving}>
-                  <MaterialIcon name={selectedSummary.enabled ? "pause_circle" : "play_circle"} />
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleSelected(selectedSummary)}
+                  disabled={saving}
+                >
+                  <MaterialIcon
+                    name={
+                      selectedSummary.enabled ? "pause_circle" : "play_circle"
+                    }
+                  />
                   <span>{selectedSummary.enabled ? "停用" : "启用"}</span>
                 </UiButton>
-                <UiButton size="sm" variant="danger" onClick={() => confirmDelete(selectedSummary)} disabled={saving}>
+                <UiButton
+                  size="sm"
+                  variant="danger"
+                  onClick={() => confirmDelete(selectedSummary)}
+                  disabled={saving}
+                >
                   <MaterialIcon name="delete" />
-                  <span>{pendingDeleteId === selectedSummary.id ? "确认删除" : "删除"}</span>
+                  <span>
+                    {pendingDeleteId === selectedSummary.id
+                      ? "确认删除"
+                      : "删除"}
+                  </span>
                 </UiButton>
               </div>
             )}
@@ -634,120 +742,241 @@ export const ScheduleModal: React.FC<{
           <div className="schedule-form-grid">
             <div className="field-group">
               <label htmlFor="schedule-name-input">名称</label>
-              <UiInput id="schedule-name-input" inputSize="md" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
+              <UiInput
+                id="schedule-name-input"
+                inputSize="md"
+                value={form.name}
+                onChange={(event) => updateForm({ name: event.target.value })}
+              />
             </div>
-	            <div className="field-group">
-	              <label htmlFor="schedule-cron-input">Cron</label>
-	              <div className="schedule-cron-control">
-	                <UiInput id="schedule-cron-input" inputSize="md" value={form.cron} onChange={(event) => updateForm({ cron: event.target.value })} />
-	                <select
-	                  aria-label="Cron 快捷选择"
-	                  value={CRON_PRESETS.some((preset) => preset.value === form.cron) ? form.cron : ""}
-	                  onChange={(event) => {
-	                    if (event.target.value) updateForm({ cron: event.target.value });
-	                  }}
-	                >
-	                  <option value="">快捷选择</option>
-	                  {CRON_PRESETS.map((preset) => (
-	                    <option key={preset.value} value={preset.value}>{preset.label}</option>
-	                  ))}
-	                </select>
-	              </div>
-	            </div>
-	            <div className="field-group">
-	              <label htmlFor="schedule-agent-input">智能体</label>
-	              <select id="schedule-agent-input" value={form.agentKey} onChange={(event) => updateForm({ agentKey: event.target.value })}>
-	                <option value="">请选择智能体</option>
-	                {agentOptions.map((agent) => (
-	                  <option key={agent.value} value={agent.value}>{agent.label}</option>
-	                ))}
-	              </select>
-	            </div>
+            <div className="field-group">
+              <label htmlFor="schedule-cron-input">Cron</label>
+              <div className="schedule-cron-control">
+                <UiInput
+                  id="schedule-cron-input"
+                  inputSize="md"
+                  value={form.cron}
+                  onChange={(event) => updateForm({ cron: event.target.value })}
+                />
+                <select
+                  aria-label="Cron 快捷选择"
+                  value={
+                    CRON_PRESETS.some((preset) => preset.value === form.cron)
+                      ? form.cron
+                      : ""
+                  }
+                  onChange={(event) => {
+                    if (event.target.value)
+                      updateForm({ cron: event.target.value });
+                  }}
+                >
+                  <option value="">快捷选择</option>
+                  {CRON_PRESETS.map((preset) => (
+                    <option key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="field-group">
+              <label htmlFor="schedule-agent-input">智能体</label>
+              <select
+                id="schedule-agent-input"
+                value={form.agentKey}
+                onChange={(event) =>
+                  updateForm({ agentKey: event.target.value })
+                }
+              >
+                <option value="">请选择智能体</option>
+                {agentOptions.map((agent) => (
+                  <option key={agent.value} value={agent.value}>
+                    {agent.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="field-group">
               <label htmlFor="schedule-team-input">TeamID</label>
-              <UiInput id="schedule-team-input" inputSize="md" value={form.teamId} onChange={(event) => updateForm({ teamId: event.target.value })} />
+              <UiInput
+                id="schedule-team-input"
+                inputSize="md"
+                value={form.teamId}
+                onChange={(event) => updateForm({ teamId: event.target.value })}
+              />
             </div>
-	            <div className="field-group">
-	              <label htmlFor="schedule-zone-input">时区</label>
-	              <select id="schedule-zone-input" value={form.zoneId} onChange={(event) => updateForm({ zoneId: event.target.value })}>
-	                <option value="">默认时区</option>
-	                {zoneOptions.map((zoneId) => (
-	                  <option key={zoneId} value={zoneId}>{zoneId}</option>
-	                ))}
-	              </select>
-	            </div>
+            <div className="field-group">
+              <label htmlFor="schedule-zone-input">时区</label>
+              <select
+                id="schedule-zone-input"
+                value={form.zoneId}
+                onChange={(event) => updateForm({ zoneId: event.target.value })}
+              >
+                <option value="">默认时区</option>
+                {zoneOptions.map((zoneId) => (
+                  <option key={zoneId} value={zoneId}>
+                    {zoneId}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="field-group">
               <label htmlFor="schedule-runs-input">剩余次数</label>
-              <UiInput id="schedule-runs-input" inputSize="md" type="number" min="1" placeholder="留空表示无限次" value={form.remainingRuns} onChange={(event) => updateForm({ remainingRuns: event.target.value })} />
+              <UiInput
+                id="schedule-runs-input"
+                inputSize="md"
+                type="number"
+                min="1"
+                placeholder="留空表示无限次"
+                value={form.remainingRuns}
+                onChange={(event) =>
+                  updateForm({ remainingRuns: event.target.value })
+                }
+              />
             </div>
           </div>
 
-	          <div className="field-group">
-	            <label htmlFor="schedule-description-input">描述</label>
-	            <textarea id="schedule-description-input" className="settings-textarea" rows={2} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
-	          </div>
+          <div className="field-group">
+            <label htmlFor="schedule-description-input">描述</label>
+            <textarea
+              id="schedule-description-input"
+              className="settings-textarea"
+              rows={2}
+              value={form.description}
+              onChange={(event) =>
+                updateForm({ description: event.target.value })
+              }
+            />
+          </div>
 
-	          <fieldset className="schedule-request-box">
-	            <legend>请求</legend>
-	            <div className="field-group">
-	              <label htmlFor="schedule-message-input">任务消息</label>
-	              <textarea id="schedule-message-input" className="settings-textarea" rows={4} value={form.message} onChange={(event) => updateForm({ message: event.target.value })} />
-	            </div>
+          <fieldset className="schedule-request-box">
+            <legend>请求</legend>
+            <div className="field-group">
+              <label htmlFor="schedule-message-input">任务消息</label>
+              <textarea
+                id="schedule-message-input"
+                className="settings-textarea"
+                rows={4}
+                value={form.message}
+                onChange={(event) =>
+                  updateForm({ message: event.target.value })
+                }
+              />
+            </div>
 
-	            <div className="schedule-form-grid">
-	              <div className="field-group">
-	                <label htmlFor="schedule-chat-input">ChatID</label>
-	                <UiInput id="schedule-chat-input" inputSize="md" value={form.chatId} onChange={(event) => updateForm({ chatId: event.target.value })} />
-	              </div>
-	              <div className="field-group">
-	                <label htmlFor="schedule-role-input">Role</label>
-	                <UiInput id="schedule-role-input" inputSize="md" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
-	              </div>
-	              <div className="field-group">
-	                <label htmlFor="schedule-hidden-select">Hidden</label>
-	                <select id="schedule-hidden-select" value={form.hidden} onChange={(event) => updateForm({ hidden: event.target.value as ScheduleFormState["hidden"] })}>
-	                  <option value="">不传</option>
-	                  <option value="true">true</option>
-	                  <option value="false">false</option>
-	                </select>
-	              </div>
-	              <div className="field-group schedule-enabled-field">
-	                <label>
-	                  <input type="checkbox" checked={form.enabled} onChange={(event) => updateForm({ enabled: event.target.checked })} />
-	                  启用任务
-	                </label>
-	              </div>
-	            </div>
+            <div className="schedule-form-grid">
+              <div className="field-group">
+                <label htmlFor="schedule-chat-input">会话ID</label>
+                <UiInput
+                  id="schedule-chat-input"
+                  inputSize="md"
+                  value={form.chatId}
+                  onChange={(event) =>
+                    updateForm({ chatId: event.target.value })
+                  }
+                />
+              </div>
+              <div className="field-group">
+                <label htmlFor="schedule-role-input">角色</label>
+                <UiInput
+                  id="schedule-role-input"
+                  inputSize="md"
+                  value={form.role}
+                  onChange={(event) => updateForm({ role: event.target.value })}
+                />
+              </div>
+              <div className="field-group">
+                <label htmlFor="schedule-hidden-select">是否隐藏</label>
+                <select
+                  id="schedule-hidden-select"
+                  value={form.hidden}
+                  onChange={(event) =>
+                    updateForm({
+                      hidden: event.target.value as ScheduleFormState["hidden"],
+                    })
+                  }
+                >
+                  <option value="">不传</option>
+                  <option value="true">是</option>
+                  <option value="false">否</option>
+                </select>
+              </div>
+              <div className="field-group schedule-enabled-field">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.enabled}
+                    onChange={(event) =>
+                      updateForm({ enabled: event.target.checked })
+                    }
+                  />
+                  启用任务
+                </label>
+              </div>
+            </div>
 
-	            <div className="field-group">
-	              <label htmlFor="schedule-params-input">Params JSON</label>
-	              <textarea id="schedule-params-input" className="settings-textarea schedule-mono-textarea" rows={3} placeholder='{"kind":"daily"}' value={form.paramsText} onChange={(event) => updateForm({ paramsText: event.target.value })} />
-	            </div>
-	          </fieldset>
+            <div className="field-group" style={{ marginTop: 10 }}>
+              <label htmlFor="schedule-params-input">
+                <span>参数</span>
+                <Tooltip title="JSON格式" arrow={false}>
+                  <MaterialIcon name="help" />
+                </Tooltip>
+              </label>
+              <textarea
+                id="schedule-params-input"
+                className="settings-textarea schedule-mono-textarea"
+                rows={3}
+                placeholder='{"kind":"daily"}'
+                value={form.paramsText}
+                onChange={(event) =>
+                  updateForm({ paramsText: event.target.value })
+                }
+              />
+            </div>
+          </fieldset>
 
           {formError && <div className="settings-error">{formError}</div>}
 
           <div className="schedule-save-actions">
-            <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving}>
+            <UiButton
+              size="sm"
+              variant="primary"
+              onClick={saveForm}
+              disabled={saving}
+            >
               <MaterialIcon name="save" />
               <span>{formMode === "create" ? "创建任务" : "保存修改"}</span>
             </UiButton>
             {formMode === "edit" && (
-              <UiButton size="sm" variant="ghost" onClick={startCreate} disabled={saving}>取消编辑</UiButton>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={startCreate}
+                disabled={saving}
+              >
+                取消编辑
+              </UiButton>
             )}
           </div>
 
           <div className="schedule-executions">
             <div className="schedule-executions-head">
               <strong>执行记录</strong>
-              <UiButton size="sm" variant="ghost" onClick={() => loadExecutions(selectedId)} disabled={!selectedId || executionsLoading}>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={() => loadExecutions(selectedId)}
+                disabled={!selectedId || executionsLoading}
+              >
                 <MaterialIcon name="refresh" />
                 <span>刷新</span>
               </UiButton>
             </div>
             <Spin spinning={executionsLoading}>
               {!selectedId ? (
-                <div className="command-empty-state">保存或选择任务后查看执行记录。</div>
+                <div className="command-empty-state">
+                  保存或选择任务后查看执行记录。
+                </div>
               ) : executions.length === 0 ? (
                 <div className="command-empty-state">暂无执行记录。</div>
               ) : (
