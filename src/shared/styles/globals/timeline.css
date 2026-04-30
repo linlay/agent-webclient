@@ -48,6 +48,19 @@
 .timeline-row {
     position: relative;
     animation: node-rise 0.28s ease both;
+    transition:
+        box-shadow 0.2s ease,
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.timeline-row.is-debug-target {
+    border-radius: 18px;
+    background: color-mix(in srgb, #f7e4a3 18%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, #e2c66c 72%, transparent),
+        0 14px 28px color-mix(in srgb, #e2c66c 16%, transparent);
+    transform: translateY(-1px);
 }
 
 .timeline-row-user {

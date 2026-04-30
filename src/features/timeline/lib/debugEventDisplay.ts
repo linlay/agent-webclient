@@ -1,4 +1,5 @@
 import type { AgentEvent } from '@/app/state/types';
+import type { TimelineNode } from '@/app/state/types';
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 
 const hiddenDebugEvents = new WeakSet<AgentEvent>();
@@ -18,10 +19,61 @@ export type DebugEventGroup =
   | 'artifact'
   | '';
 
+export type DebugEventTarget =
+  | { kind: 'node'; id: string }
+  | { kind: 'task'; id: string };
+
+export interface DebugEventTargetState {
+  contentNodeById: Map<string, string>;
+  reasoningNodeById: Map<string, string>;
+  toolNodeById: Map<string, string>;
+  timelineNodes: Map<string, TimelineNode>;
+  timelineOrder: string[];
+}
+
 function safeStr(v: unknown): string {
   if (typeof v === 'string') return v;
   if (v === null || v === undefined) return '';
   return String(v);
+}
+
+function findClosestTimelineNodeId(
+  timestamp: number | undefined,
+  state: DebugEventTargetState,
+): string {
+  if (!Number.isFinite(timestamp)) {
+    return '';
+  }
+  let closestNodeId = '';
+  let smallestDistance = Number.POSITIVE_INFINITY;
+  state.timelineOrder.forEach((nodeId) => {
+    const node = state.timelineNodes.get(nodeId);
+    if (!node || !Number.isFinite(node.ts)) {
+      return;
+    }
+    const distance = Math.abs(Number(node.ts) - Number(timestamp));
+    if (distance < smallestDistance) {
+      smallestDistance = distance;
+      closestNodeId = nodeId;
+    }
+  });
+  return closestNodeId;
+}
+
+function findRequestNodeId(
+  requestId: string,
+  state: DebugEventTargetState,
+): string {
+  if (!requestId) return '';
+  const directNodeId = `user_${requestId}`;
+  if (state.timelineNodes.has(directNodeId)) {
+    return directNodeId;
+  }
+  const fallbackNodeId = state.timelineOrder.find((nodeId) => {
+    const node = state.timelineNodes.get(nodeId);
+    return node?.kind === 'message' && node?.role === 'user' && nodeId.endsWith(requestId);
+  });
+  return fallbackNodeId || '';
 }
 
 export function classifyEventGroup(eventType: string): DebugEventGroup {
@@ -81,4 +133,47 @@ export function getEventId(event: AgentEvent): string {
     }
   }
   return ''
+}
+
+export function resolveDebugEventTarget(
+  event: AgentEvent,
+  state: DebugEventTargetState,
+): DebugEventTarget | null {
+  const taskId = safeStr(event.taskId);
+  if (taskId) {
+    return { kind: 'task', id: taskId };
+  }
+
+  const contentId = safeStr(event.contentId);
+  const contentNodeId = contentId ? safeStr(state.contentNodeById.get(contentId)) : '';
+  if (contentNodeId) {
+    return { kind: 'node', id: contentNodeId };
+  }
+
+  const reasoningId = safeStr(event.reasoningId);
+  const reasoningNodeId = reasoningId ? safeStr(state.reasoningNodeById.get(reasoningId)) : '';
+  if (reasoningNodeId) {
+    return { kind: 'node', id: reasoningNodeId };
+  }
+
+  const toolId = safeStr(event.toolId);
+  const toolNodeId = toolId ? safeStr(state.toolNodeById.get(toolId)) : '';
+  if (toolNodeId) {
+    return { kind: 'node', id: toolNodeId };
+  }
+
+  const requestNodeId = findRequestNodeId(safeStr(event.requestId), state);
+  if (requestNodeId) {
+    return { kind: 'node', id: requestNodeId };
+  }
+
+  const closestNodeId = findClosestTimelineNodeId(
+    typeof event.timestamp === 'number' ? event.timestamp : undefined,
+    state,
+  );
+  if (closestNodeId) {
+    return { kind: 'node', id: closestNodeId };
+  }
+
+  return null;
 }

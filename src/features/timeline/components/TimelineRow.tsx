@@ -310,6 +310,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 	const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
 	if (!timeTarget) return null;
 	const taskID = node?.taskId || toolGroup?.nodes.find((item) => item.taskId)?.taskId;
+	const anchorNodeId = node?.id || toolGroup?.nodes[0]?.id || undefined;
 
 	const time = formatTimelineTime(timeTarget.ts);
 	const timeNode =
@@ -340,6 +341,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				className="timeline-row timeline-row-user"
 				data-kind="message"
 				data-role="user"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-user-stack">
@@ -384,6 +386,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				data-kind="message"
 				data-role="user"
 				data-variant="steer"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -414,6 +417,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 				className="timeline-row timeline-row-flow"
 				data-kind="message"
 				data-role="system"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -433,6 +437,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			<div
 				className="timeline-row timeline-row-flow"
 				data-kind="thinking"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -452,6 +457,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			<div
 				className="timeline-row timeline-row-flow"
 				data-kind="awaiting-answer"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -471,6 +477,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			<div
 				className="timeline-row timeline-row-flow"
 				data-kind="tool"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -490,6 +497,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			<div
 				className="timeline-row timeline-row-flow"
 				data-kind="content"
+				data-node-id={anchorNodeId}
 				data-task-id={taskID || undefined}
 			>
 				<div className="timeline-marker">
@@ -509,6 +517,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 			className="timeline-row timeline-row-flow"
 			data-kind={node?.kind}
 			data-role={node?.role}
+			data-node-id={anchorNodeId}
 			data-task-id={taskID || undefined}
 		>
 			<div className="timeline-marker">

@@ -13,9 +13,38 @@ import {
   getEventId,
   getEventRowGroupClass,
   classifyEventGroup,
+  resolveDebugEventTarget,
   shouldDisplayDebugEvent,
 } from "@/features/timeline/lib/debugEventDisplay";
 import { Flex, Tabs, Tag } from "antd";
+
+function scrollToDebugTarget(target: { kind: "node" | "task"; id: string }): boolean {
+  if (typeof document === "undefined" || !target.id) {
+    return false;
+  }
+
+  const selector =
+    target.kind === "task"
+      ? `[data-task-id="${target.id}"]`
+      : `[data-node-id="${target.id}"]`;
+  const element = document.querySelector(selector);
+  if (
+    !element ||
+    typeof (element as { scrollIntoView?: unknown }).scrollIntoView !== "function"
+  ) {
+    return false;
+  }
+
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  element.classList.remove("is-debug-target");
+  window.setTimeout(() => {
+    element.classList.add("is-debug-target");
+    window.setTimeout(() => {
+      element.classList.remove("is-debug-target");
+    }, 1800);
+  }, 40);
+  return true;
+}
 
 function formatDebugTime(timestamp?: number): string {
   return formatDebugTimestamp(timestamp);
@@ -285,8 +314,32 @@ export const RightSidebar: React.FC = () => {
     state.desktopDebugSidebarEnabled || showArtifactList || Boolean(preview);
   const showHeader = Boolean(preview) || showArtifactList;
 
+  const locateEventTarget = React.useCallback(
+    (event: AgentEvent) => {
+      const target = resolveDebugEventTarget(event, {
+        contentNodeById: state.contentNodeById,
+        reasoningNodeById: state.reasoningNodeById,
+        toolNodeById: state.toolNodeById,
+        timelineNodes: state.timelineNodes,
+        timelineOrder: state.timelineOrder,
+      });
+      if (!target) {
+        return false;
+      }
+      return scrollToDebugTarget(target);
+    },
+    [
+      state.contentNodeById,
+      state.reasoningNodeById,
+      state.timelineNodes,
+      state.timelineOrder,
+      state.toolNodeById,
+    ],
+  );
+
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
+      locateEventTarget(event);
       const rect = target.getBoundingClientRect();
       dispatch({
         type: "SET_EVENT_POPOVER",
@@ -298,7 +351,7 @@ export const RightSidebar: React.FC = () => {
         },
       });
     },
-    [dispatch],
+    [dispatch, locateEventTarget],
   );
 
   const eventsByTab = React.useMemo(() => {

@@ -3,6 +3,7 @@ import {
   getEventId,
   getEventRowGroupClass,
   markDebugEventHidden,
+  resolveDebugEventTarget,
   shouldDisplayDebugEvent,
 } from '@/features/timeline/lib/debugEventDisplay';
 
@@ -74,5 +75,119 @@ describe('shouldDisplayDebugEvent', () => {
         type: 'run.complete',
       }),
     ).toBe(true);
+  });
+});
+
+describe('resolveDebugEventTarget', () => {
+  const timelineNodes = new Map([
+    [
+      'user_req_1',
+      { id: 'user_req_1', kind: 'message', role: 'user', ts: 1000, text: 'hi' },
+    ],
+    [
+      'content_1',
+      { id: 'content_1', kind: 'content', ts: 1200, contentId: 'content_a', text: 'answer' },
+    ],
+    [
+      'thinking_1',
+      { id: 'thinking_1', kind: 'thinking', ts: 1150, text: 'thinking' },
+    ],
+    [
+      'tool_1',
+      { id: 'tool_1', kind: 'tool', ts: 1180, toolId: 'tool_a', text: 'tool' },
+    ],
+    [
+      'task_node_1',
+      { id: 'task_node_1', kind: 'content', ts: 1300, taskId: 'task_a', text: 'task output' },
+    ],
+  ]);
+  const timelineOrder = ['user_req_1', 'thinking_1', 'tool_1', 'content_1', 'task_node_1'];
+
+  it('maps content events through contentNodeById first', () => {
+    expect(
+      resolveDebugEventTarget(
+        { type: 'content.delta', contentId: 'content_a', timestamp: 1201 },
+        {
+          contentNodeById: new Map([['content_a', 'content_1']]),
+          reasoningNodeById: new Map(),
+          toolNodeById: new Map(),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'node', id: 'content_1' });
+  });
+
+  it('maps reasoning and tool events through their existing node maps', () => {
+    expect(
+      resolveDebugEventTarget(
+        { type: 'reasoning.delta', reasoningId: 'reasoning_a', timestamp: 1151 },
+        {
+          contentNodeById: new Map(),
+          reasoningNodeById: new Map([['reasoning_a', 'thinking_1']]),
+          toolNodeById: new Map(),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'node', id: 'thinking_1' });
+
+    expect(
+      resolveDebugEventTarget(
+        { type: 'tool.start', toolId: 'tool_a', timestamp: 1181 },
+        {
+          contentNodeById: new Map(),
+          reasoningNodeById: new Map(),
+          toolNodeById: new Map([['tool_a', 'tool_1']]),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'node', id: 'tool_1' });
+  });
+
+  it('maps task events to task anchors', () => {
+    expect(
+      resolveDebugEventTarget(
+        { type: 'task.start', taskId: 'task_a', timestamp: 1301 },
+        {
+          contentNodeById: new Map(),
+          reasoningNodeById: new Map(),
+          toolNodeById: new Map(),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'task', id: 'task_a' });
+  });
+
+  it('maps request-like events to user request node ids when present', () => {
+    expect(
+      resolveDebugEventTarget(
+        { type: 'debug.preCall', requestId: 'req_1', timestamp: 1002 },
+        {
+          contentNodeById: new Map(),
+          reasoningNodeById: new Map(),
+          toolNodeById: new Map(),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'node', id: 'user_req_1' });
+  });
+
+  it('falls back to the closest timeline node by timestamp', () => {
+    expect(
+      resolveDebugEventTarget(
+        { type: 'run.complete', timestamp: 1190 },
+        {
+          contentNodeById: new Map(),
+          reasoningNodeById: new Map(),
+          toolNodeById: new Map(),
+          timelineNodes,
+          timelineOrder,
+        },
+      ),
+    ).toEqual({ kind: 'node', id: 'tool_1' });
   });
 });
