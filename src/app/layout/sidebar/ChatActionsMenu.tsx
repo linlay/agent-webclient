@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Button, Dropdown, Modal, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { t } from "@/shared/i18n";
 import {
+	archiveChats,
 	deleteChat,
 	downloadChatExport,
 } from "@/features/transport/lib/apiClientProxy";
@@ -10,8 +12,9 @@ import {
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
 	chatName?: string;
+	onArchived?: (chatId: string) => void;
 	onDeleted?: (chatId: string) => void;
-}> = ({ chatId, chatName, onDeleted }) => {
+}> = ({ chatId, chatName, onArchived, onDeleted }) => {
 	const { state, dispatch } = useAppContext();
 	const [pending, setPending] = useState(false);
 	const normalizedChatId = String(chatId || "").trim();
@@ -30,11 +33,11 @@ export const ChatActionsMenu: React.FC<{
 	const handleDelete = () => {
 		if (!normalizedChatId || pending) return;
 		Modal.confirm({
-			title: "删除对话",
+			title: t("chatActions.delete.title"),
 			content: chatName || normalizedChatId,
-			okText: "删除",
+			okText: t("chatActions.delete.ok"),
 			okButtonProps: { danger: true },
-			cancelText: "取消",
+			cancelText: t("chatActions.cancel"),
 			onOk: async () => {
 				setPending(true);
 				try {
@@ -46,6 +49,37 @@ export const ChatActionsMenu: React.FC<{
 					dispatch({
 						type: "APPEND_DEBUG",
 						line: `[delete chat error] ${(error as Error).message}`,
+					});
+					throw error;
+				} finally {
+					setPending(false);
+				}
+			},
+		});
+	};
+
+	const handleArchive = () => {
+		if (!normalizedChatId || pending) return;
+		Modal.confirm({
+			title: t("chatActions.archive.title"),
+			content: chatName || normalizedChatId,
+			okText: t("chatActions.archive.ok"),
+			cancelText: t("chatActions.cancel"),
+			onOk: async () => {
+				setPending(true);
+				try {
+					const response = await archiveChats({ chatIds: [normalizedChatId] });
+					const result = response.data?.results?.[0];
+					if (!result?.success) {
+						throw new Error(result?.error || t("chatActions.archive.failed"));
+					}
+					dispatch({ type: "CHAT_ARCHIVED", chatId: normalizedChatId });
+					onArchived?.(normalizedChatId);
+					clearActiveChatIfNeeded();
+				} catch (error) {
+					dispatch({
+						type: "APPEND_DEBUG",
+						line: `[archive chat error] ${(error as Error).message}`,
 					});
 					throw error;
 				} finally {
@@ -74,14 +108,20 @@ export const ChatActionsMenu: React.FC<{
 		{
 			key: "export",
 			icon: <MaterialIcon name="download" />,
-			label: "导出",
+			label: t("chatActions.export"),
 			onClick: () => void handleExport(),
+		},
+		{
+			key: "archive",
+			icon: <MaterialIcon name="inventory_2" />,
+			label: t("chatActions.archive.menu"),
+			onClick: handleArchive,
 		},
 		{
 			key: "delete",
 			danger: true,
 			icon: <MaterialIcon name="delete" />,
-			label: "删除",
+			label: t("chatActions.delete.menu"),
 			onClick: handleDelete,
 		},
 	];

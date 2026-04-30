@@ -192,6 +192,7 @@
 
 .composer-attachments-viewport {
     min-width: 0;
+    width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;

@@ -19,6 +19,8 @@ export function reduceNavigationState(
 			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return { ...state, chats: action.chats };
+		case "SET_SCHEDULES":
+			return { ...state, schedules: action.schedules };
 		case "START_SIDEBAR_REQUEST":
 			return {
 				...state,
@@ -37,7 +39,8 @@ export function reduceNavigationState(
 				...state,
 				chats: upsertChatSummary(state.chats, action.chat),
 			};
-		case "CHAT_DELETED": {
+		case "CHAT_DELETED":
+		case "CHAT_ARCHIVED": {
 			const chatId = String(action.chatId || "");
 			return {
 				...state,

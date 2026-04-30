@@ -13,7 +13,7 @@ import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/api/appAuth";
-import { setAccessToken } from "@/shared/api/apiClient";
+import { getSchedules, setAccessToken } from "@/shared/api/apiClient";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	applyThemeModeToDocument,
@@ -44,6 +44,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	const querySessionsRef = useRef(new Map<string, LiveQuerySession>());
 	const chatQuerySessionIndexRef = useRef(new Map<string, string>());
 	const activeQuerySessionRequestIdRef = useRef("");
+	const initialScheduleLoadStartedRef = useRef(false);
 	stateRef.current = state;
 
 	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
@@ -129,6 +130,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			cancelled = true;
 		};
 	}, [dispatch]);
+
+	useEffect(() => {
+		if (initialScheduleLoadStartedRef.current) {
+			return;
+		}
+		if (isAppMode() && !String(state.accessToken || "").trim()) {
+			return;
+		}
+
+		initialScheduleLoadStartedRef.current = true;
+		setAccessToken(stateRef.current.accessToken);
+		getSchedules()
+			.then((response) => {
+				dispatch({
+					type: "SET_SCHEDULES",
+					schedules: response.data.items || [],
+				});
+			})
+			.catch((error) => {
+				dispatch({
+					type: "APPEND_DEBUG",
+					line: `[loadSchedules error] ${(error as Error).message}`,
+				});
+			});
+	}, [dispatch, state.accessToken]);
 
 	return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

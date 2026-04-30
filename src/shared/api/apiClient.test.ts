@@ -3,20 +3,29 @@ import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/appAuth';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
+  archiveChats,
+  createSchedule,
   createRequestId,
   createQueryStream,
+  deleteArchive,
   deleteChat,
+  deleteSchedule,
   downloadResource,
   extractUploadChatId,
   extractUploadReferences,
+  getArchive,
   getAgent,
   getAgents,
+  getArchives,
   getChats,
   getMemoryRecord,
   getMemoryRecords,
   getMemoryMeta,
   getMemoryScope,
   getMemoryScopes,
+  getSchedule,
+  getScheduleExecutions,
+  getSchedules,
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
@@ -28,10 +37,13 @@ import {
   learnChat,
   markChatRead,
   rememberChat,
+  searchArchives,
   searchGlobal,
   setAccessToken,
   steerChat,
   submitFeedback,
+  toggleSchedule,
+  updateSchedule,
   uploadFile,
 } from '@/shared/api/apiClient';
 
@@ -226,6 +238,58 @@ describe('apiClient query payloads', () => {
     });
   });
 
+  it('sends schedule management requests as JSON posts', async () => {
+    await getSchedules();
+    await getSchedule('daily-demo');
+    await createSchedule({
+      name: 'Daily Demo',
+      description: 'Demo schedule',
+      cron: '0 9 * * *',
+      agentKey: 'demo-agent',
+      enabled: true,
+      query: { message: 'hello', role: 'user' },
+    });
+    await updateSchedule({
+      id: 'daily-demo',
+      cron: '0 18 * * 1-5',
+      query: { message: 'updated' },
+    });
+    await toggleSchedule({ id: 'daily-demo', enabled: false });
+    await getScheduleExecutions({ id: 'daily-demo', limit: 20 });
+    await deleteSchedule({ id: 'daily-demo' });
+
+    const calls = fetchMock.mock.calls.map(([url, options]) => ({
+      url,
+      body: JSON.parse(String((options as RequestInit).body || '{}')),
+    }));
+    expect(calls).toEqual([
+      { url: '/api/schedules', body: {} },
+      { url: '/api/schedule', body: { id: 'daily-demo' } },
+      {
+        url: '/api/schedule-create',
+        body: {
+          name: 'Daily Demo',
+          description: 'Demo schedule',
+          cron: '0 9 * * *',
+          agentKey: 'demo-agent',
+          enabled: true,
+          query: { message: 'hello', role: 'user' },
+        },
+      },
+      {
+        url: '/api/schedule-update',
+        body: {
+          id: 'daily-demo',
+          cron: '0 18 * * 1-5',
+          query: { message: 'updated' },
+        },
+      },
+      { url: '/api/schedule-toggle', body: { id: 'daily-demo', enabled: false } },
+      { url: '/api/schedule-executions', body: { id: 'daily-demo', limit: 20 } },
+      { url: '/api/schedule-delete', body: { id: 'daily-demo' } },
+    ]);
+  });
+
   it('keeps runId for interrupt and steer requests', async () => {
     await interruptChat({
       requestId: 'req_interrupt',
@@ -308,6 +372,31 @@ describe('apiClient query payloads', () => {
       agentKey: 'agent_a',
       teamId: 'team_a',
       limit: 7,
+    });
+  });
+
+  it('calls archive endpoints with expected payloads and query params', async () => {
+    await archiveChats({ chatIds: ['chat_1', 'chat_2'] });
+    await getArchives({ agentKey: 'agent_a', limit: 20, offset: 40 });
+    await getArchive('chat_1', true);
+    await searchArchives({ query: 'needle', agentKey: 'agent_a', limit: 5 });
+    await deleteArchive({ chatId: 'chat_1' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat-archive');
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
+      chatIds: ['chat_1', 'chat_2'],
+    });
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/archives?agentKey=agent_a&limit=20&offset=40');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/archive?chatId=chat_1&includeRawMessages=true');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/archive-search');
+    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
+      query: 'needle',
+      agentKey: 'agent_a',
+      limit: 5,
+    });
+    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe('/api/archive-delete');
+    expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
+      chatId: 'chat_1',
     });
   });
 

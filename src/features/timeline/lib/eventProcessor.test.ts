@@ -278,6 +278,25 @@ describe('processEvent', () => {
     ]);
   });
 
+  it('reads request.query text from query when message is absent', () => {
+    const replayCommands = processEvent({
+      type: 'request.query',
+      requestId: 'req_query_field',
+      query: 'hello from query',
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+
+    expect(replayCommands).toEqual([
+      expect.objectContaining({
+        cmd: 'USER_MESSAGE',
+        nodeId: 'user_req_query_field',
+        text: 'hello from query',
+      }),
+    ]);
+  });
+
   it('collects published artifacts for dock rendering', () => {
     const state = createState();
 

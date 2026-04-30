@@ -26,7 +26,7 @@ import {
   type LiveQuerySession,
 } from '@/features/chats/lib/conversationSession';
 import type { AgentEvent } from '@/app/state/types';
-import { readEventTeamId } from '@/shared/utils/eventFieldReaders';
+import { readEventTeamId, readRequestQueryText } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 
 interface SendMessageEventDetail {
@@ -370,7 +370,7 @@ export function useMessageActions() {
 
         const type = toText(event.type);
         if (type === 'request.query') {
-          upsertBackgroundChatSummary(event, toText(event.message) || undefined);
+          upsertBackgroundChatSummary(event, readRequestQueryText(event) || undefined);
           return;
         }
         if (type === 'run.start' || isTerminalRunEventType(type)) {

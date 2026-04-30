@@ -1,12 +1,10 @@
 import React from "react";
-import { Button, Divider, Flex, Input, Tooltip } from "antd";
+import { Flex, Input } from "antd";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { UiInput } from "@/shared/ui/UiInput";
 import { UiListItem } from "@/shared/ui/UiListItem";
-import { useI18n } from "@/shared/i18n";
 import { ChatActionsMenu } from "@/app/layout/sidebar/ChatActionsMenu";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -16,7 +14,7 @@ export const HistoryModal: React.FC<{
   historySearch: string;
   historyInputRef: React.RefObject<HTMLInputElement>;
   historyListRef: React.RefObject<HTMLDivElement>;
-  historyItemRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
+  historyItemRefs: React.MutableRefObject<Array<HTMLElement | null>>;
   onHistorySearchChange: (value: string) => void;
   onActivateIndex: (index: number) => void;
   onSelect: (index: number) => void;
@@ -26,16 +24,13 @@ export const HistoryModal: React.FC<{
   historyRows,
   historyIndex,
   historySearch,
-  historyInputRef,
   historyListRef,
   historyItemRefs,
   onHistorySearchChange,
-  onActivateIndex,
   onSelect,
   onMarkAllRead,
   onChatDeleted,
 }) => {
-  const { t } = useI18n();
   const unreadCount = historyRows.reduce(
     (count, chat) => count + (isChatUnread(chat) ? 1 : 0),
     0,
@@ -90,19 +85,20 @@ export const HistoryModal: React.FC<{
               onClick={() => onSelect(index)}
             >
               <Flex justify="space-between" align="center" gap={10}>
-                <div
-                  className={`command-list-title ${isChatUnread(chat) ? "" : ""}`}
-                >
+                <Flex align="center" gap={6}>
                   {isChatUnread(chat) ? (
                     <span className="chat-unread-dot is-unread" />
                   ) : null}
                   <span>{chat.chatName || chat.chatId}</span>
-                </div>
+                </Flex>
                 <Flex align="center" gap={10} className="history-list-actions">
-                  <span className="history-list-action-time">{formatChatTimeLabel(chat.updatedAt)}</span>
+                  <span className="history-list-action-time">
+                    {formatChatTimeLabel(chat.updatedAt)}
+                  </span>
                   <ChatActionsMenu
                     chatId={chat.chatId}
                     chatName={chat.chatName || chat.chatId}
+                    onArchived={onChatDeleted}
                     onDeleted={onChatDeleted}
                   />
                 </Flex>

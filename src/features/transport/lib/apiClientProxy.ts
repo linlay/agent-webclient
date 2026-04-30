@@ -1,17 +1,27 @@
 import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
+	archiveChats as archiveChatsHttp,
 	createQueryStream,
+	createSchedule as createScheduleHttp,
+	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
+	deleteSchedule as deleteScheduleHttp,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
+	getArchive as getArchiveHttp,
+	getArchives as getArchivesHttp,
 	searchGlobal as searchGlobalHttp,
+	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
 	getAgents as getAgentsHttp,
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
+	getSchedule as getScheduleHttp,
+	getScheduleExecutions as getScheduleExecutionsHttp,
+	getSchedules as getSchedulesHttp,
 	normalizeChatSummariesPayload,
 	getResourceText,
 	getSkills as getSkillsHttp,
@@ -28,13 +38,32 @@ import {
 	submitFeedback as submitFeedbackHttp,
 	submitAwaiting as submitAwaitingHttp,
 	submitTool as submitToolHttp,
+	toggleSchedule as toggleScheduleHttp,
+	updateSchedule as updateScheduleHttp,
 	uploadFile,
 	type ApiResponse,
+	type ArchiveChatsRequest,
+	type ArchiveChatsResponse,
+	type ArchiveDeleteResponse,
+	type ArchiveDetailResponse,
+	type ArchivesRequest,
+	type ArchivesResponse,
+	type ArchiveSearchParams,
+	type ArchiveSearchResponse,
+	type CreateScheduleRequest,
+	type DeleteScheduleRequest,
 	type FeedbackParams,
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
 	type QueryLikeParams,
+	type ScheduleDetailResponse,
+	type ScheduleExecutionListResponse,
+	type ScheduleExecutionsRequest,
+	type ScheduleListRequest,
+	type ScheduleListResponse,
+	type ToggleScheduleRequest,
+	type UpdateScheduleRequest,
 } from "@/shared/api/apiClient";
 import {
 	getWsClient,
@@ -161,11 +190,143 @@ export function getChat(
 	);
 }
 
+export function archiveChats(
+	params: ArchiveChatsRequest,
+): Promise<ApiResponse<ArchiveChatsResponse>> {
+	return routeRequest<ArchiveChatsResponse>(
+		"/api/chat-archive",
+		params,
+		() => archiveChatsHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
+}
+
+export function getArchives(
+	params: ArchivesRequest = {},
+): Promise<ApiResponse<ArchivesResponse>> {
+	return routeRequest<ArchivesResponse>(
+		"/api/archives",
+		params,
+		() => getArchivesHttp(params),
+	);
+}
+
+export function getArchive(
+	chatId: string,
+	includeRawMessages = false,
+): Promise<ApiResponse<ArchiveDetailResponse>> {
+	return routeRequest<ArchiveDetailResponse>(
+		"/api/archive",
+		{
+			chatId,
+			...(includeRawMessages ? { includeRawMessages: true } : {}),
+		},
+		() => getArchiveHttp(chatId, includeRawMessages),
+	);
+}
+
+export function searchArchives(
+	params: ArchiveSearchParams,
+): Promise<ApiResponse<ArchiveSearchResponse>> {
+	return routeRequest<ArchiveSearchResponse>(
+		"/api/archive-search",
+		params,
+		() => searchArchivesHttp(params),
+	);
+}
+
+export function deleteArchive(params: {
+	chatId: string;
+}): Promise<ApiResponse<ArchiveDeleteResponse>> {
+	return routeRequest<ArchiveDeleteResponse>(
+		"/api/archive-delete",
+		params,
+		() => deleteArchiveHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
+}
+
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
 	return routeRequest(
 		"/api/viewport",
 		{ viewportKey },
 		() => getViewportHttp(viewportKey),
+	);
+}
+
+export function getSchedules(
+	params: ScheduleListRequest = {},
+): Promise<ApiResponse<ScheduleListResponse>> {
+	return routeRequest<ScheduleListResponse>(
+		"/api/schedules",
+		params,
+		() => getSchedulesHttp(params),
+	);
+}
+
+export function getSchedule(
+	id: string,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule",
+		{ id },
+		() => getScheduleHttp(id),
+	);
+}
+
+export function createSchedule(
+	params: CreateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-create",
+		params,
+		() => createScheduleHttp(params),
+	);
+}
+
+export function updateSchedule(
+	params: UpdateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-update",
+		params,
+		() => updateScheduleHttp(params),
+	);
+}
+
+export function deleteSchedule(
+	params: DeleteScheduleRequest,
+): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
+	return routeRequest<{ id: string; deleted: boolean }>(
+		"/api/schedule-delete",
+		params,
+		() => deleteScheduleHttp(params),
+	);
+}
+
+export function toggleSchedule(
+	params: ToggleScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+	return routeRequest<ScheduleDetailResponse>(
+		"/api/schedule-toggle",
+		params,
+		() => toggleScheduleHttp(params),
+	);
+}
+
+export function getScheduleExecutions(
+	params: ScheduleExecutionsRequest,
+): Promise<ApiResponse<ScheduleExecutionListResponse>> {
+	return routeRequest<ScheduleExecutionListResponse>(
+		"/api/schedule-executions",
+		params,
+		() => getScheduleExecutionsHttp(params),
 	);
 }
 

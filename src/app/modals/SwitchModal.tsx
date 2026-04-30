@@ -18,7 +18,7 @@ export const SwitchModal: React.FC<{
 	switchIndex: number;
 	searchInputRef: React.RefObject<HTMLInputElement>;
 	switchListRef: React.RefObject<HTMLDivElement>;
-	switchItemRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
+	switchItemRefs: React.MutableRefObject<Array<HTMLElement | null>>;
 	onSearchChange: (value: string) => void;
 	onScopeChange: (scope: CommandModalScope) => void;
 	onActivateIndex: (index: number) => void;

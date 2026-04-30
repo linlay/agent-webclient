@@ -23,14 +23,24 @@ import {
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
-import { SearchOutlined } from "@ant-design/icons";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { ChatItem } from "@/app/layout/sidebar/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
-import { markChatRead, searchGlobal } from "@/features/transport/lib/apiClientProxy";
+import {
+  markChatRead,
+  searchGlobal,
+} from "@/features/transport/lib/apiClientProxy";
 import type { WorkerConversationRow } from "@/app/state/types";
+
+function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
+  const normalizedChatId = String(chatId || "").trim();
+  if (!normalizedChatId) return -1;
+  return rows.findIndex(
+    (row) => String(row.chatId || "").trim() === normalizedChatId,
+  );
+}
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
@@ -40,7 +50,9 @@ export const LeftSidebar: React.FC = () => {
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
   const [historySearch, setHistorySearch] = useState("");
-  const [remoteHistoryRows, setRemoteHistoryRows] = useState<WorkerConversationRow[] | null>(null);
+  const [remoteHistoryRows, setRemoteHistoryRows] = useState<
+    WorkerConversationRow[] | null
+  >(null);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const historyInputRef = useRef<HTMLInputElement>(null);
@@ -85,17 +97,19 @@ export const LeftSidebar: React.FC = () => {
             ? response.data.results
             : [];
           setRemoteHistoryRows(
-            results.map((result) => ({
-              chatId: String(result.chatId || ""),
-              chatName: String(result.chatName || result.chatId || ""),
-              agentKey: result.agentKey,
-              teamId: result.teamId,
-              updatedAt: Number(result.timestamp) || 0,
-              lastRunId: String(result.runId || ""),
-              lastRunContent: String(result.snippet || ""),
-              searchSnippet: String(result.snippet || ""),
-              isRead: true,
-            })).filter((row) => row.chatId),
+            results
+              .map((result) => ({
+                chatId: String(result.chatId || ""),
+                chatName: String(result.chatName || result.chatId || ""),
+                agentKey: result.agentKey,
+                teamId: result.teamId,
+                updatedAt: Number(result.timestamp) || 0,
+                lastRunId: String(result.runId || ""),
+                lastRunContent: String(result.snippet || ""),
+                searchSnippet: String(result.snippet || ""),
+                isRead: true,
+              }))
+              .filter((row) => row.chatId),
           );
         })
         .catch((error) => {
@@ -189,9 +203,11 @@ export const LeftSidebar: React.FC = () => {
     workerKey: string,
   ) => {
     event.stopPropagation();
+    const workerChats = workerChatsByKey.get(workerKey) || [];
+    const currentChatIndex = findChatIndex(workerChats, state.chatId);
     setHistoryWorkerKey(workerKey);
     setHistorySearch("");
-    setHistoryIndex(0);
+    setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
   };
 
   const handleMarkWorkerAllRead = async (
@@ -302,47 +318,79 @@ export const LeftSidebar: React.FC = () => {
         id="left-sidebar"
       >
         {state.leftDrawerOpen && (
-          <div className="sidebar-filter-row">
-            <Input
-              variant="filled"
-              placeholder={
-                state.conversationMode === "worker"
-                  ? t("leftSidebar.filterWorkers")
-                  : t("leftSidebar.filterChats")
-              }
-              value={navigation.chatFilter}
-              prefix={<SearchOutlined style={{ color: "var(--text-muted)" }} />}
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_CHAT_FILTER",
-                  filter: e.target.value,
-                })
-              }
-            />
-            <UiButton
-              className="icon-btn icon-btn-fixed"
-              size="sm"
-              variant="ghost"
-              loading={isSidebarLoading}
-              iconOnly
-              onClick={() => {
-                if (state.conversationMode === "worker") {
-                  window.dispatchEvent(
-                    new CustomEvent("agent:refresh-worker-data"),
-                  );
-                } else {
-                  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+          <>
+            <Flex className="left-sidebar-buttons" gap={2}>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  dispatch({
+                    type: "OPEN_COMMAND_MODAL",
+                    modal: { type: "schedule" },
+                  });
+                }}
+              >
+                <MaterialIcon name="schedule" />
+                <Flex gap={4} align="center">
+                  <span>自动化</span>
+                  <Badge count={state.schedules?.length} />
+                </Flex>
+              </UiButton>
+              <UiButton size="sm" variant="ghost">
+                <MaterialIcon name="neurology" />
+                <Flex gap={4} align="center">
+                  <span>记忆</span>
+                  <Badge count={8} />
+                </Flex>
+              </UiButton>
+            </Flex>
+            <Flex gap={2} style={{ padding: "0 6px" }}>
+              <Input
+                variant="filled"
+                placeholder={
+                  state.conversationMode === "worker"
+                    ? t("leftSidebar.filterWorkers")
+                    : t("leftSidebar.filterChats")
                 }
-              }}
-            >
-              <MaterialIcon name="refresh" />
-            </UiButton>
-          </div>
+                value={navigation.chatFilter}
+                prefix={
+                  <MaterialIcon name="search" style={{ marginRight: 6 }} />
+                }
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_CHAT_FILTER",
+                    filter: e.target.value,
+                  })
+                }
+              />
+              <UiButton
+                size="sm"
+                variant="ghost"
+                loading={isSidebarLoading}
+                iconOnly
+                onClick={() => {
+                  if (state.conversationMode === "worker") {
+                    window.dispatchEvent(
+                      new CustomEvent("agent:refresh-worker-data"),
+                    );
+                  } else {
+                    window.dispatchEvent(
+                      new CustomEvent("agent:refresh-chats"),
+                    );
+                  }
+                }}
+              >
+                <MaterialIcon name="refresh" />
+              </UiButton>
+            </Flex>
+          </>
         )}
 
         {state.conversationMode !== "worker" && (
           <div className="chat-meta">
-            <span className="chat-meta-label">{t("leftSidebar.workerLabel")}</span>
+            <span className="chat-meta-label">
+              {t("leftSidebar.workerLabel")}
+            </span>
             {state.chatId && state.chatAgentById.has(state.chatId) && (
               <UiTag className="chip" tone="accent">
                 {state.chatAgentById.get(state.chatId)}
@@ -434,7 +482,9 @@ export const LeftSidebar: React.FC = () => {
                 </Flex>
               )
             ) : filteredChats.length === 0 ? (
-              <div className="status-line">{t("leftSidebar.noConversations")}</div>
+              <div className="status-line">
+                {t("leftSidebar.noConversations")}
+              </div>
             ) : (
               filteredChats.map((chat) => (
                 <ChatItem

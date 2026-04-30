@@ -26,18 +26,27 @@ jest.mock("@/shared/api/apiClient", () => {
 
 	return {
 		ApiError: MockApiError,
-		buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
-		createQueryStream: jest.fn(),
-		deleteChat: jest.fn(),
+			archiveChats: jest.fn(),
+			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
+			createSchedule: jest.fn(),
+			createQueryStream: jest.fn(),
+			deleteArchive: jest.fn(),
+			deleteChat: jest.fn(),
+			deleteSchedule: jest.fn(),
 		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
 		getAgents: jest.fn(),
+		getArchive: jest.fn(),
+		getArchives: jest.fn(),
 		getChat: jest.fn(),
 		getChats: jest.fn(),
-		getCurrentAccessToken: jest.fn(),
-		normalizeChatSummariesPayload: jest.fn((data: unknown) =>
+			getCurrentAccessToken: jest.fn(),
+			getSchedule: jest.fn(),
+			getScheduleExecutions: jest.fn(),
+			getSchedules: jest.fn(),
+			normalizeChatSummariesPayload: jest.fn((data: unknown) =>
 			Array.isArray(data)
 				? data.map((item) =>
 					item && typeof item === "object"
@@ -59,13 +68,16 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
+		searchArchives: jest.fn(),
 		searchGlobal: jest.fn(),
 		setAccessToken: jest.fn(),
-		steerChat: jest.fn(),
-		submitFeedback: jest.fn(),
-		submitAwaiting: jest.fn(),
-		submitTool: jest.fn(),
-	uploadFile: jest.fn(),
+			steerChat: jest.fn(),
+			submitFeedback: jest.fn(),
+			submitAwaiting: jest.fn(),
+			submitTool: jest.fn(),
+			toggleSchedule: jest.fn(),
+			updateSchedule: jest.fn(),
+			uploadFile: jest.fn(),
 	};
 });
 jest.mock("./wsClientSingleton", () => ({
@@ -75,22 +87,31 @@ jest.mock("./wsClientSingleton", () => ({
 }));
 
 let mockApiClient: {
-	ApiError: new (
+		ApiError: new (
 		message: string,
 		options?: { status?: number | null; code?: number | string | null; data?: unknown },
 	) => Error;
-	buildResourceUrl: jest.Mock;
-	createQueryStream: jest.Mock;
-	deleteChat: jest.Mock;
+		archiveChats: jest.Mock;
+		buildResourceUrl: jest.Mock;
+		createSchedule: jest.Mock;
+		createQueryStream: jest.Mock;
+		deleteArchive: jest.Mock;
+		deleteChat: jest.Mock;
+		deleteSchedule: jest.Mock;
 	downloadChatExport: jest.Mock;
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
 	getAgents: jest.Mock;
+	getArchive: jest.Mock;
+	getArchives: jest.Mock;
 	getChat: jest.Mock;
 	getChats: jest.Mock;
-	getCurrentAccessToken: jest.Mock;
-	normalizeChatSummariesPayload: jest.Mock;
+		getCurrentAccessToken: jest.Mock;
+		getSchedule: jest.Mock;
+		getScheduleExecutions: jest.Mock;
+		getSchedules: jest.Mock;
+		normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
 	getSkills: jest.Mock;
 	getTeams: jest.Mock;
@@ -101,14 +122,17 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
+	searchArchives: jest.Mock;
 	searchGlobal: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
-	submitFeedback: jest.Mock;
-	submitAwaiting: jest.Mock;
-	submitTool: jest.Mock;
-	uploadFile: jest.Mock;
-};
+		submitFeedback: jest.Mock;
+		submitAwaiting: jest.Mock;
+		submitTool: jest.Mock;
+		toggleSchedule: jest.Mock;
+		updateSchedule: jest.Mock;
+		uploadFile: jest.Mock;
+	};
 let WsClientDisconnectedError: typeof import("./wsClient").WsClientDisconnectedError;
 let WsClientRequestTimeoutError: typeof import("./wsClient").WsClientRequestTimeoutError;
 
@@ -158,6 +182,70 @@ describe("apiClientProxy", () => {
 			payload: undefined,
 		});
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("routes schedule management calls over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getSchedules();
+		await proxy.createSchedule({
+			name: "Daily Demo",
+			description: "Demo",
+			cron: "0 9 * * *",
+			agentKey: "demo-agent",
+			query: { message: "hello" },
+		});
+		await proxy.updateSchedule({ id: "daily-demo", cron: "0 18 * * 1-5" });
+		await proxy.toggleSchedule({ id: "daily-demo", enabled: false });
+		await proxy.getScheduleExecutions({ id: "daily-demo", limit: 20 });
+		await proxy.deleteSchedule({ id: "daily-demo" });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/schedules",
+			payload: {},
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/schedule-create",
+			payload: {
+				name: "Daily Demo",
+				description: "Demo",
+				cron: "0 9 * * *",
+				agentKey: "demo-agent",
+				query: { message: "hello" },
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/schedule-update",
+			payload: { id: "daily-demo", cron: "0 18 * * 1-5" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/schedule-toggle",
+			payload: { id: "daily-demo", enabled: false },
+		});
+		expect(request).toHaveBeenNthCalledWith(5, {
+			type: "/api/schedule-executions",
+			payload: { id: "daily-demo", limit: 20 },
+		});
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/schedule-delete",
+			payload: { id: "daily-demo" },
+		});
+		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {
@@ -400,6 +488,11 @@ describe("apiClientProxy", () => {
 		await proxy.deleteChat({ chatId: "chat_1" });
 		await proxy.searchGlobal({ query: "needle", agentKey: "agent_a", limit: 5 });
 		await proxy.markChatRead({ agentKey: "agent_a" });
+		await proxy.archiveChats({ chatIds: ["chat_1"] });
+		await proxy.getArchives({ agentKey: "agent_a", limit: 10, offset: 20 });
+		await proxy.getArchive("chat_1", true);
+		await proxy.searchArchives({ query: "old", agentKey: "agent_a", limit: 6 });
+		await proxy.deleteArchive({ chatId: "chat_1" });
 
 		expect(request).toHaveBeenNthCalledWith(1, {
 			type: "/api/feedback",
@@ -417,9 +510,31 @@ describe("apiClientProxy", () => {
 			type: "/api/read",
 			payload: { agentKey: "agent_a" },
 		});
+		expect(request).toHaveBeenNthCalledWith(5, {
+			type: "/api/chat-archive",
+			payload: { chatIds: ["chat_1"] },
+		});
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/archives",
+			payload: { agentKey: "agent_a", limit: 10, offset: 20 },
+		});
+		expect(request).toHaveBeenNthCalledWith(7, {
+			type: "/api/archive",
+			payload: { chatId: "chat_1", includeRawMessages: true },
+		});
+		expect(request).toHaveBeenNthCalledWith(8, {
+			type: "/api/archive-search",
+			payload: { query: "old", agentKey: "agent_a", limit: 6 },
+		});
+		expect(request).toHaveBeenNthCalledWith(9, {
+			type: "/api/archive-delete",
+			payload: { chatId: "chat_1" },
+		});
 		expect(mockApiClient.submitFeedback).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteChat).not.toHaveBeenCalled();
 		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
+		expect(mockApiClient.archiveChats).not.toHaveBeenCalled();
+		expect(mockApiClient.deleteArchive).not.toHaveBeenCalled();
 	});
 
 	it("falls back to http when a read-only ws request times out", async () => {
@@ -590,6 +705,39 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
 	});
 
+	it("routes schedule management over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getSchedules.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockApiClient.toggleSchedule.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", enabled: false },
+		});
+
+		await expect(proxy.getSchedules()).resolves.toMatchObject({
+			data: { items: [], total: 0 },
+		});
+		await expect(
+			proxy.toggleSchedule({ id: "daily-demo", enabled: false }),
+		).resolves.toMatchObject({
+			data: { id: "daily-demo", enabled: false },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getSchedules).toHaveBeenCalledWith({});
+		expect(mockApiClient.toggleSchedule).toHaveBeenCalledWith({
+			id: "daily-demo",
+			enabled: false,
+		});
+	});
+
 	it("routes submit requests over http when sse mode is selected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "sse");
@@ -704,5 +852,63 @@ describe("apiClientProxy", () => {
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.rememberChat).toHaveBeenCalledWith(commandParams);
 		expect(mockApiClient.learnChat).toHaveBeenCalledWith(commandParams);
+	});
+
+	it("routes archive requests over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.archiveChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { results: [{ chatId: "chat_1", success: true }] },
+		});
+		mockApiClient.getArchives.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { total: 0, items: [] },
+		});
+		mockApiClient.getArchive.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", events: [] },
+		});
+		mockApiClient.searchArchives.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { query: "old", count: 0, results: [] },
+		});
+		mockApiClient.deleteArchive.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", deleted: true },
+		});
+
+		await proxy.archiveChats({ chatIds: ["chat_1"] });
+		await proxy.getArchives({ agentKey: "agent_a", limit: 10 });
+		await proxy.getArchive("chat_1", true);
+		await proxy.searchArchives({ query: "old", limit: 6 });
+		await proxy.deleteArchive({ chatId: "chat_1" });
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.archiveChats).toHaveBeenCalledWith({
+			chatIds: ["chat_1"],
+		});
+		expect(mockApiClient.getArchives).toHaveBeenCalledWith({
+			agentKey: "agent_a",
+			limit: 10,
+		});
+		expect(mockApiClient.getArchive).toHaveBeenCalledWith("chat_1", true);
+		expect(mockApiClient.searchArchives).toHaveBeenCalledWith({
+			query: "old",
+			limit: 6,
+		});
+		expect(mockApiClient.deleteArchive).toHaveBeenCalledWith({
+			chatId: "chat_1",
+		});
 	});
 });

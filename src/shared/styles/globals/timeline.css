@@ -931,7 +931,6 @@ html[data-theme="dark"] .status-pill {
 }
 
 html[data-theme="dark"] .icon-btn,
-html[data-theme="dark"] .current-worker-tool.ui-btn,
 html[data-theme="dark"] .current-worker-card,
 html[data-theme="dark"] .status-pill,
 html[data-theme="dark"] .chat-item,
@@ -941,17 +940,12 @@ html[data-theme="dark"] .slash-command-popover,
 html[data-theme="dark"] .frontend-tool-container,
 html[data-theme="dark"] .worker-chat-sidebar,
 html[data-theme="dark"] .worker-chat-float-btn,
-html[data-theme="dark"] .timeline-empty,
 html[data-theme="dark"] .attachment-card-file-shell,
 html[data-theme="dark"] .attachment-card.is-image,
 html[data-theme="dark"] .plan-header,
 html[data-theme="dark"] .floating-plan.is-expanded .plan-list {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
     background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
-}
-
-html[data-theme="dark"] .timeline-empty {
-    color: var(--ink-muted);
 }
 
 html[data-theme="dark"] .timeline-run-group::before {
@@ -984,10 +978,6 @@ html[data-theme="dark"] .attachment-preview-frame {
 html[data-theme="dark"] .composer-pill {
     background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-elev-1));
     box-shadow: none;
-}
-
-html[data-theme="dark"] .composer-pill:focus-within {
-    outline: 1px solid var(--accent-electric);
 }
 
 html[data-theme="dark"] .composer-control-input,

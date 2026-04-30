@@ -21,10 +21,7 @@ export const WorkerPanelHeader: React.FC<{
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
   ) => void;
-  onMarkAllRead?: (
-    e: React.MouseEvent<HTMLElement>,
-    workerKey: string,
-  ) => void;
+  onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
 }> = ({
   row,
   isActive,
@@ -66,24 +63,26 @@ export const WorkerPanelHeader: React.FC<{
             <span className="worker-panel-role">{row.role || "--"}</span>
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
-          {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
-            <Tooltip title={t("leftSidebar.markAllRead")}>
+          <Flex gap={6}>
+            {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
+              <Tooltip title={t("leftSidebar.markAllRead")}>
+                <Button
+                  className="worker-panel-new"
+                  type="text"
+                  icon={<MaterialIcon name="done_all" />}
+                  onClick={(e) => onMarkAllRead(e, row.key)}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
                 className="worker-panel-new"
                 type="text"
-                icon={<MaterialIcon name="done_all" />}
-                onClick={(e) => onMarkAllRead(e, row.key)}
+                icon={<MaterialIcon name="add" />}
+                onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
-          )}
-          <Tooltip title={t("leftSidebar.newConversation")}>
-            <Button
-              className="worker-panel-new"
-              type="text"
-              icon={<MaterialIcon name="add" />}
-              onClick={(e) => onStartNewConversation(e, row.key)}
-            />
-          </Tooltip>
+          </Flex>
         </Flex>
         <Flex align="center" className="worker-panel-preview" gap={4}>
           <Typography.Text ellipsis style={{ flex: 1 }}>

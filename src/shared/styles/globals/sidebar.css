@@ -107,14 +107,6 @@
     margin-top: 8px;
 }
 
-.sidebar-filter-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px;
-    padding: 6px 6px 0;
-}
-
 .icon-btn-fixed {
     flex-shrink: 0;
 }
@@ -249,8 +241,9 @@
 }
 
 .chat-unread-dot {
-    width: 6px;
-    height: 6px;
+    display: block;
+    width: 8px;
+    height: 8px;
     flex: 0 0 auto;
     border-radius: 50%;
     background: var(--accent-electric);
@@ -486,4 +479,16 @@
 
 .mono {
     font-family: "IBM Plex Mono", monospace;
+}
+
+.left-sidebar-buttons {
+    padding: 6px;
+}
+.left-sidebar-buttons .ant-badge .ant-badge-count{
+    color: var(--accent);
+    background-color: var(--accent-soft);
+}
+
+.left-sidebar-buttons .ui-btn-label {
+    gap: 10px;
 }

@@ -311,6 +311,13 @@ describe("LeftSidebar", () => {
     expect(html).toContain("settings-summary-chip");
   });
 
+  it("renders automation as the schedule console entry without a hardcoded count", () => {
+    const html = renderSidebar();
+
+    expect(html).toContain("自动化");
+    expect(html).not.toContain('data-badge-count="6"');
+  });
+
   it("renders collapsed worker entries with names, popover header, and total history count", () => {
     mockState(createWorkerState());
 
@@ -382,7 +389,7 @@ describe("LeftSidebar", () => {
       '<span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain(
-      'class="worker-chat-item-head"><span class="chat-unread-dot" aria-label="未读"></span><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
+      '<span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><div data-action="time">',
     );
   });
 });

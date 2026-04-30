@@ -50,6 +50,206 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
+export interface ScheduleListRequest {
+  tag?: string;
+}
+
+export interface ScheduleListResponse {
+  items: ScheduleSummaryResponse[];
+  total: number;
+}
+
+export interface ScheduleExecutionListResponse {
+  items: ScheduleExecutionResponse[];
+  total: number;
+}
+
+export interface ScheduleSummaryResponse {
+  id: string;
+  name: string;
+  description: string;
+  cron: string;
+  agentKey: string;
+  enabled: boolean;
+  teamId?: string;
+  zoneId?: string;
+  sourceFile?: string;
+  remainingRuns?: number;
+  nextFireTime?: string;
+  lastExecution?: ScheduleExecutionBrief;
+}
+
+export interface ScheduleDetailResponse extends ScheduleSummaryResponse {
+  query: ScheduleQueryResponse;
+}
+
+export interface ScheduleQueryResponse {
+  message: string;
+  chatId?: string;
+  role?: string;
+  params?: Record<string, unknown>;
+  hidden?: boolean;
+}
+
+export interface ScheduleExecutionBrief {
+  id: string;
+  status: string;
+  startedAt: number;
+  durationMs?: number;
+  error?: string;
+}
+
+export interface ScheduleExecutionResponse {
+  id: string;
+  scheduleId: string;
+  scheduleName: string;
+  sourceFile: string;
+  agentKey: string;
+  teamId: string;
+  status: string;
+  error: string;
+  startedAt: number;
+  completedAt?: number;
+  durationMs?: number;
+}
+
+export interface ScheduleQueryRequest {
+  message: string;
+  chatId?: string;
+  role?: string;
+  params?: Record<string, unknown>;
+  hidden?: boolean;
+}
+
+export interface CreateScheduleRequest {
+  name: string;
+  description: string;
+  cron: string;
+  agentKey: string;
+  enabled?: boolean;
+  teamId?: string;
+  zoneId?: string;
+  remainingRuns?: number;
+  query: ScheduleQueryRequest;
+}
+
+export interface UpdateScheduleRequest {
+  id: string;
+  name?: string;
+  description?: string;
+  cron?: string;
+  agentKey?: string;
+  teamId?: string;
+  zoneId?: string;
+  enabled?: boolean;
+  remainingRuns?: number;
+  query?: ScheduleQueryRequest;
+}
+
+export interface ToggleScheduleRequest {
+  id: string;
+  enabled: boolean;
+}
+
+export interface DeleteScheduleRequest {
+  id: string;
+}
+
+export interface ScheduleExecutionsRequest {
+  id: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ArchiveChatsRequest {
+  chatIds: string[];
+}
+
+export interface ArchiveChatResult {
+  chatId: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface ArchiveChatsResponse {
+  results: ArchiveChatResult[];
+}
+
+export interface ArchivesRequest {
+  agentKey?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ArchivedSummaryResponse {
+  chatId: string;
+  chatName: string;
+  agentKey?: string;
+  teamId?: string;
+  createdAt: number;
+  updatedAt: number;
+  archivedAt: number;
+  lastRunId?: string;
+  lastRunContent?: string;
+  snippet?: string;
+  hasAttachments?: boolean;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+}
+
+export interface ArchivesResponse {
+  total: number;
+  items: ArchivedSummaryResponse[];
+}
+
+export interface ArchiveSearchParams {
+  query: string;
+  agentKey?: string;
+  limit?: number;
+}
+
+export interface ArchiveSearchResult {
+  chatId: string;
+  chatName: string;
+  agentKey?: string;
+  teamId?: string;
+  lastRunId?: string;
+  lastRunContent?: string;
+  archivedAt: number;
+  snippet: string;
+  score: number;
+}
+
+export interface ArchiveSearchResponse {
+  query: string;
+  count: number;
+  results: ArchiveSearchResult[];
+}
+
+export interface ArchiveDetailResponse {
+  chatId: string;
+  chatName?: string;
+  events?: unknown[];
+  rawMessages?: unknown[];
+  runs?: unknown[];
+  plan?: unknown;
+  artifact?: unknown;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  resourceTicket?: string;
+}
+
+export interface ArchiveDeleteResponse {
+  chatId: string;
+  deleted: boolean;
+}
+
 let authToken = "";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -569,9 +769,106 @@ export function getChat(
   return requestJson(`/api/chat?${query}`);
 }
 
+export function archiveChats(
+  params: ArchiveChatsRequest,
+): Promise<ApiResponse<ArchiveChatsResponse>> {
+  return postJson<ArchiveChatsResponse>("/api/chat-archive", {
+    chatIds: params.chatIds,
+  });
+}
+
+export function getArchives(
+  params: ArchivesRequest = {},
+): Promise<ApiResponse<ArchivesResponse>> {
+  const query = toQueryString({
+    agentKey: params.agentKey,
+    limit: params.limit,
+    offset: params.offset,
+  });
+  return requestJson<ArchivesResponse>(query ? `/api/archives?${query}` : "/api/archives");
+}
+
+export function getArchive(
+  chatId: string,
+  includeRawMessages = false,
+): Promise<ApiResponse<ArchiveDetailResponse>> {
+  const query = toQueryString({
+    chatId,
+    includeRawMessages: includeRawMessages ? "true" : undefined,
+  });
+  return requestJson<ArchiveDetailResponse>(`/api/archive?${query}`);
+}
+
+export function searchArchives(
+  params: ArchiveSearchParams,
+): Promise<ApiResponse<ArchiveSearchResponse>> {
+  return postJson<ArchiveSearchResponse>("/api/archive-search", {
+    query: params.query,
+    agentKey: params.agentKey,
+    limit: params.limit,
+  });
+}
+
+export function deleteArchive(params: {
+  chatId: string;
+}): Promise<ApiResponse<ArchiveDeleteResponse>> {
+  return postJson<ArchiveDeleteResponse>("/api/archive-delete", {
+    chatId: params.chatId,
+  });
+}
+
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
   const query = toQueryString({ viewportKey });
   return requestJson(`/api/viewport?${query}`);
+}
+
+function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export function getSchedules(
+  params: ScheduleListRequest = {},
+): Promise<ApiResponse<ScheduleListResponse>> {
+  return postJson<ScheduleListResponse>("/api/schedules", params);
+}
+
+export function getSchedule(
+  id: string,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule", { id });
+}
+
+export function createSchedule(
+  params: CreateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-create", params);
+}
+
+export function updateSchedule(
+  params: UpdateScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-update", params);
+}
+
+export function deleteSchedule(
+  params: DeleteScheduleRequest,
+): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
+  return postJson<{ id: string; deleted: boolean }>("/api/schedule-delete", params);
+}
+
+export function toggleSchedule(
+  params: ToggleScheduleRequest,
+): Promise<ApiResponse<ScheduleDetailResponse>> {
+  return postJson<ScheduleDetailResponse>("/api/schedule-toggle", params);
+}
+
+export function getScheduleExecutions(
+  params: ScheduleExecutionsRequest,
+): Promise<ApiResponse<ScheduleExecutionListResponse>> {
+  return postJson<ScheduleExecutionListResponse>("/api/schedule-executions", params);
 }
 
 export interface GetMemoryRecordsParams {
