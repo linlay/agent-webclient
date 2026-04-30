@@ -7,6 +7,7 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		agents: [],
 		teams: [],
 		chats: [],
+		schedules: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
 		pendingNewChatAgentKey: "",

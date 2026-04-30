@@ -53,6 +53,7 @@ import type {
 	VoiceChatState,
 	WsConnectionStatus,
 } from "@/app/state/voiceTypes";
+import type { ScheduleSummaryResponse } from "@/shared/api/apiClient";
 
 export type { ThemeMode } from "@/shared/styles/theme";
 export type { TransportMode } from "@/features/transport/lib/transportMode";
@@ -85,6 +86,7 @@ export interface AppState {
 	agents: Agent[];
 	teams: Team[];
 	chats: Chat[];
+	schedules: ScheduleSummaryResponse[];
 	sidebarPendingRequestCount: number;
 	chatAgentById: Map<string, string>;
 	pendingNewChatAgentKey: string;

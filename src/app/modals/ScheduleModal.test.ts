@@ -4,12 +4,18 @@ import { ScheduleModal, scheduleSourcePath } from "@/app/modals/ScheduleModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getSchedules } from "@/features/transport/lib/apiClientProxy";
 
+jest.mock("@/app/state/AppContext", () => ({
+  useAppDispatch: jest.fn(() => jest.fn()),
+  useAppState: jest.fn(() => ({ schedules: [] })),
+}));
+
 jest.mock("antd", () => {
   const React = require("react");
   return {
     Input: ({ prefix, ...props }: any) =>
       React.createElement("div", { className: "mock-input" }, prefix, React.createElement("input", props)),
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Tooltip: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };
 });
 

@@ -51,6 +51,7 @@ export function createInitialState(): AppState {
 		agents: [],
 		teams: [],
 		chats: [],
+		schedules: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
 		pendingNewChatAgentKey: "",

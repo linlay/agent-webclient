@@ -330,11 +330,12 @@ export const LeftSidebar: React.FC = () => {
                   });
                 }}
               >
-	                <MaterialIcon name="schedule" />
-	                <Flex gap={4} align="center">
-	                  <span>自动化</span>
-	                </Flex>
-	              </UiButton>
+                <MaterialIcon name="schedule" />
+                <Flex gap={4} align="center">
+                  <span>自动化</span>
+                  <Badge count={state.schedules?.length} />
+                </Flex>
+              </UiButton>
               <UiButton size="sm" variant="ghost">
                 <MaterialIcon name="neurology" />
                 <Flex gap={4} align="center">

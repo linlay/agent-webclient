@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input, Spin, Tooltip } from "antd";
 import type { Agent, Team } from "@/app/state/types";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
   createSchedule,
@@ -285,7 +286,9 @@ export const ScheduleModal: React.FC<{
   agents: Agent[];
   teams: Team[];
 }> = ({ currentWorker, agents, teams }) => {
-  const [schedules, setSchedules] = useState<ScheduleSummaryResponse[]>([]);
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const schedules = state.schedules;
   const [selectedId, setSelectedId] = useState("");
   const [executions, setExecutions] = useState<ScheduleExecutionResponse[]>([]);
   const [searchText, setSearchText] = useState("");
@@ -301,6 +304,7 @@ export const ScheduleModal: React.FC<{
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState("");
+  const didAutoSelectInitialScheduleRef = useRef(false);
 
   const workerOptions = useMemo(() => {
     const values = new Map<string, string>();
@@ -472,7 +476,7 @@ export const ScheduleModal: React.FC<{
       try {
         const response = await getSchedules();
         const items = response.data.items || [];
-        setSchedules(items);
+        dispatch({ type: "SET_SCHEDULES", schedules: items });
         const nextId =
           preferredId && items.some((item) => item.id === preferredId)
             ? preferredId
@@ -488,12 +492,21 @@ export const ScheduleModal: React.FC<{
         setLoading(false);
       }
     },
-    [selectSchedule, startCreate],
+    [dispatch, selectSchedule, startCreate],
   );
 
   useEffect(() => {
-    void loadSchedules("");
-  }, [loadSchedules]);
+    if (
+      didAutoSelectInitialScheduleRef.current ||
+      selectedId ||
+      formMode !== "create" ||
+      schedules.length === 0
+    ) {
+      return;
+    }
+    didAutoSelectInitialScheduleRef.current = true;
+    void selectSchedule(schedules[0].id);
+  }, [formMode, schedules, selectSchedule, selectedId]);
 
   const updateForm = (patch: Partial<ScheduleFormState>) => {
     setForm((current) => ({ ...current, ...patch }));
@@ -531,8 +544,9 @@ export const ScheduleModal: React.FC<{
         enabled: !item.enabled,
       });
       const detail = response.data;
-      setSchedules((rows) =>
-        rows.map((row) =>
+      dispatch({
+        type: "SET_SCHEDULES",
+        schedules: schedules.map((row) =>
           row.id === detail.id
             ? {
                 ...row,
@@ -540,7 +554,7 @@ export const ScheduleModal: React.FC<{
               }
             : row,
         ),
-      );
+      });
       if (selectedId === detail.id) {
         setForm(formFromSchedule(detail));
       }
@@ -561,7 +575,7 @@ export const ScheduleModal: React.FC<{
     try {
       await deleteSchedule({ id: item.id });
       const remaining = schedules.filter((row) => row.id !== item.id);
-      setSchedules(remaining);
+      dispatch({ type: "SET_SCHEDULES", schedules: remaining });
       setPendingDeleteId("");
       if (selectedId === item.id) {
         const nextId = remaining[0]?.id || "";
