@@ -916,7 +916,7 @@ export const ScheduleModal: React.FC<{
                 </select>
               </div>
               <div className="field-group schedule-enabled-field">
-                <label>
+                <label style={{whiteSpace: 'nowrap'}}>
                   <input
                     type="checkbox"
                     checked={form.enabled}
