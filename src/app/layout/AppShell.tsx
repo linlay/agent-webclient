@@ -4,7 +4,7 @@ import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
-import { RightSidebar } from "@/app/layout/RightSidebar";
+import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
 import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
@@ -40,10 +40,7 @@ export const AppShell: React.FC = () => {
 	const leftDrawerClass = state.leftDrawerOpen
 		? "left-drawer-open"
 		: "left-drawer-closed";
-	const desktopRightSidebarVisible =
-		state.desktopDebugSidebarEnabled ||
-		(state.artifactExpanded && state.artifactManualOverride === true) ||
-		Boolean(state.attachmentPreview);
+	const desktopRightSidebarVisible = state.rightSidebarOpen;
 	const timelineEntries = useMemo(() => {
 		return state.timelineOrder
 			.map((id) => state.timelineNodes.get(id))

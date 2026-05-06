@@ -109,14 +109,14 @@ export const ArtifactPanel: React.FC = () => {
       window.clearTimeout(state.artifactAutoCollapseTimer);
       dispatch({ type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER", timer: null });
     }
-    dispatch({
-      type: "SET_ARTIFACT_EXPANDED",
-      expanded: !drawerOpen,
-    });
-    dispatch({
-      type: "SET_ARTIFACT_MANUAL_OVERRIDE",
-      override: !drawerOpen,
-    });
+    if (drawerOpen) {
+      dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+      return;
+    }
+
+    dispatch({ type: "SET_ARTIFACT_EXPANDED", expanded: true });
+    dispatch({ type: "SET_ARTIFACT_MANUAL_OVERRIDE", override: true });
+    dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
   };
 
   return (

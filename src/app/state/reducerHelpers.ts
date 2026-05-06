@@ -97,6 +97,8 @@ export function buildConversationResetState(
 		activeReasoningKey: "",
 		activeFrontendTool: null,
 		activeAwaiting: null,
+		rightSidebarOpen: false,
+		rightSidebarOpenTab: null,
 		attachmentPreview: null,
 		inputMode: "text",
 		voiceChat: {

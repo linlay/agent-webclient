@@ -123,13 +123,25 @@ export function reduceUiState(
 			return { ...state, leftDrawerOpen: action.open };
 		case "SET_TERMINAL_DOCK_OPEN":
 			return { ...state, terminalDockOpen: action.open };
-		case "OPEN_ATTACHMENT_PREVIEW":
-			return { ...state, attachmentPreview: action.preview };
-		case "CLOSE_ATTACHMENT_PREVIEW":
-			if (!state.attachmentPreview) {
-				return state;
-			}
-			return { ...state, attachmentPreview: null };
+		case "OPEN_RIGHT_SIDEBAR": {
+			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
+			return {
+				...state,
+				rightSidebarOpen: true,
+				rightSidebarOpenTab: action.tab ?? null,
+				attachmentPreview: hasPreview
+					? action.preview ?? null
+					: state.attachmentPreview,
+			};
+		}
+		case "CLOSE_RIGHT_SIDEBAR":
+			return {
+				...state,
+				rightSidebarOpen: false,
+				rightSidebarOpenTab: null,
+				artifactExpanded: false,
+				artifactManualOverride: false,
+			};
 		case "SET_THEME_MODE":
 			return {
 				...state,

@@ -15,7 +15,7 @@ export function useSlashCommandExecution(input: {
 	submitLearnCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
-	state: Pick<AppState, "desktopDebugSidebarEnabled" | "planningMode">;
+	state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
 }) {
 	const {
 		slashAvailability,
@@ -84,10 +84,11 @@ export function useSlashCommandExecution(input: {
 					);
 					return;
 				case "debug":
-					dispatch({
-						type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-						enabled: !state.desktopDebugSidebarEnabled,
-					});
+					dispatch(
+						state.rightSidebarOpen
+							? { type: "CLOSE_RIGHT_SIDEBAR" }
+							: { type: "OPEN_RIGHT_SIDEBAR", tab: "debug" },
+					);
 					return;
 				case "voice":
 					toggleVoiceMode();

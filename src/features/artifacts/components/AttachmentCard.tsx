@@ -105,7 +105,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 		}
 
 		if (preview && canPreviewAttachment(attachment)) {
-			dispatch({ type: "OPEN_ATTACHMENT_PREVIEW", preview });
+			dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
 			return;
 		}
 

@@ -44,6 +44,7 @@ import type {
 	Message,
 	PendingSteer,
 	PublishedArtifact,
+	RightSidebarTabKey,
 	RenderQueue,
 	UiTimerHandle,
 } from "@/app/state/uiTypes";
@@ -170,7 +171,8 @@ export interface AppState {
 	memoryPreviewResult: MemoryContextPreviewResponse | null;
 	memoryPreviewPromptLayer: MemoryContextPromptLayer;
 	leftDrawerOpen: boolean;
-	desktopDebugSidebarEnabled: boolean;
+	rightSidebarOpen: boolean;
+	rightSidebarOpenTab: RightSidebarTabKey | null;
 	terminalDockOpen: boolean;
 	attachmentPreview: AttachmentPreviewState | null;
 	artifactExpanded: boolean;

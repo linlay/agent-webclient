@@ -249,30 +249,19 @@ export const TopNav: React.FC = () => {
           ) : null}
           <Divider type="vertical" />
           <UiButton
-            id="open-right-drawer-btn"
-            className={`icon-btn ${state.desktopDebugSidebarEnabled ? "is-active" : ""}`}
+            className="icon-btn"
             size="sm"
             variant="ghost"
             iconOnly
-            active={state.desktopDebugSidebarEnabled}
             aria-label={
-              ui.desktopDebugSidebarEnabled
+              ui.rightSidebarOpen
                 ? t("topNav.debug.close")
                 : t("topNav.debug.open")
             }
             onClick={() => {
-              if (state.attachmentPreview) {
-                dispatch({ type: "CLOSE_ATTACHMENT_PREVIEW" });
-                dispatch({
-                  type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-                  enabled: true,
-                });
-                return;
-              }
-
               dispatch({
-                type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED",
-                enabled: !state.desktopDebugSidebarEnabled,
+                type: "OPEN_RIGHT_SIDEBAR",
+                tab: "debug",
               });
             }}
           >
@@ -301,6 +290,26 @@ export const TopNav: React.FC = () => {
             }
           >
             <MaterialIcon name="terminal" />
+          </UiButton>
+          <UiButton
+            className="icon-btn"
+            size="sm"
+            variant="ghost"
+            iconOnly
+            active={state.rightSidebarOpen}
+            onClick={() => {
+              if (state.rightSidebarOpen) {
+                dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+                return;
+              }
+
+              dispatch({
+                type: "OPEN_RIGHT_SIDEBAR",
+                tab: "overview",
+              });
+            }}
+          >
+            <MaterialIcon name="dock_to_left" />
           </UiButton>
         </div>
       </div>

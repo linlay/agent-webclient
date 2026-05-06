@@ -40,7 +40,7 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
-    state: Pick<AppState, "desktopDebugSidebarEnabled" | "planningMode">;
+    state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
     toggleVoiceMode: () => void;
   };
   backgroundCommandText: {
@@ -65,7 +65,7 @@ interface UseComposerSendInput {
     | "abortController"
     | "chatAgentById"
     | "chatId"
-    | "desktopDebugSidebarEnabled"
+    | "rightSidebarOpen"
     | "events"
     | "pendingNewChatAgentKey"
     | "planningMode"

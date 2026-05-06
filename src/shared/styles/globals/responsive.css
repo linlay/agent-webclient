@@ -242,18 +242,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
     grid-template-columns: var(--left-sidebar-width) 1fr var(--right-sidebar-width);
 }
 
-.layout-desktop-fixed #open-right-drawer-btn {
-    display: inline-flex;
-}
-
-#open-right-drawer-btn.is-active {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 44%,
-            var(--line-soft));
-    background: color-mix(in srgb, var(--accent-soft) 52%, var(--bg-elev-2));
-    color: var(--accent-electric-strong);
-}
-
 .layout-desktop-fixed .drawer-close {
     display: none;
 }

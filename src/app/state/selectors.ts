@@ -4,7 +4,7 @@ export function selectUiState(state: AppState) {
   return {
     settingsOpen: state.settingsOpen,
     leftDrawerOpen: state.leftDrawerOpen,
-    desktopDebugSidebarEnabled: state.desktopDebugSidebarEnabled,
+    rightSidebarOpen: state.rightSidebarOpen,
     terminalDockOpen: state.terminalDockOpen,
     themeMode: state.themeMode,
     transportMode: state.transportMode,

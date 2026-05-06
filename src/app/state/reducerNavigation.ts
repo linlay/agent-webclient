@@ -88,8 +88,6 @@ export function reduceNavigationState(
 			return { ...state, workerRelatedChats: action.chats };
 		case "SET_WORKER_CHAT_PANEL_COLLAPSED":
 			return { ...state, workerChatPanelCollapsed: action.collapsed };
-		case "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED":
-			return { ...state, desktopDebugSidebarEnabled: action.enabled };
 		case "SET_PENDING_NEW_CHAT_AGENT_KEY":
 			return { ...state, pendingNewChatAgentKey: action.agentKey };
 		case "SET_WORKER_PRIORITY_KEY":

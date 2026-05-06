@@ -968,7 +968,6 @@ html[data-theme="dark"] .tool-call-inline,
 html[data-theme="dark"] .tool-call-result,
 html[data-theme="dark"] .status-line,
 html[data-theme="dark"] .event-row,
-html[data-theme="dark"] .attachment-preview-text,
 html[data-theme="dark"] .attachment-preview-media-shell,
 html[data-theme="dark"] .attachment-preview-frame {
     background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));

@@ -228,7 +228,7 @@ export const ComposerArea: React.FC = () => {
       setSlashDismissed,
       slashAvailability,
       state: {
-        desktopDebugSidebarEnabled: state.desktopDebugSidebarEnabled,
+        rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
       },
       toggleVoiceMode,

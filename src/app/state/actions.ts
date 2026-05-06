@@ -25,6 +25,7 @@ import type {
 	WorkerRow,
 } from "@/app/state/types";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
@@ -143,15 +144,18 @@ export type AppAction =
 	  }
 	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
 	| { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
-	| { type: "OPEN_ATTACHMENT_PREVIEW"; preview: AttachmentPreviewState }
-	| { type: "CLOSE_ATTACHMENT_PREVIEW" }
+	| {
+			type: "OPEN_RIGHT_SIDEBAR";
+			tab?: RightSidebarTabKey;
+			preview?: AttachmentPreviewState | null;
+	  }
+	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
 	| { type: "SET_CONVERSATION_MODE"; mode: "chat" | "worker" }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }
 	| { type: "SET_WORKER_ROWS"; rows: WorkerRow[] }
 	| { type: "SET_WORKER_RELATED_CHATS"; chats: WorkerConversationRow[] }
 	| { type: "SET_WORKER_CHAT_PANEL_COLLAPSED"; collapsed: boolean }
-	| { type: "SET_DESKTOP_DEBUG_SIDEBAR_ENABLED"; enabled: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
 	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
 	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
