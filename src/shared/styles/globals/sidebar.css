@@ -36,6 +36,53 @@
     transform: translateX(100%);
 }
 
+.right-sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -5px;
+    z-index: 3;
+    width: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.right-sidebar-resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 4px;
+    width: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: outline 0.15s ease;
+    outline: 4px solid transparent;
+}
+
+.right-sidebar-resize-handle:hover::after,
+.right-sidebar-resize-handle:focus-visible::after,
+.right-sidebar-resizing .right-sidebar-resize-handle::after {
+    outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.right-sidebar-resize-handle:focus-visible {
+    outline: none;
+}
+
+.right-sidebar-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+.right-sidebar-resizing * {
+    cursor: col-resize !important;
+}
+
 .sidebar.is-open {
     transform: translateX(0);
 }
@@ -330,22 +377,27 @@
     display: flex;
     flex-direction: column;
 }
-.right-sidebar-tabs.ant-tabs-top .ant-tabs-tab-btn .ant-tabs-tab-icon:not(:last-child){
+
+.right-sidebar-tabs.ant-tabs-top .ant-tabs-tab-btn .ant-tabs-tab-icon:not(:last-child) {
     display: inline-flex;
     margin-inline-end: 4px;
 }
-.right-sidebar-tabs.ant-tabs .ant-tabs-tab-btn{
+
+.right-sidebar-tabs.ant-tabs .ant-tabs-tab-btn {
     display: flex;
     color: var(--text-muted);
 }
-.right-sidebar-tabs.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn{
+
+.right-sidebar-tabs.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
     display: flex;
     color: var(--text-main);
 }
-.right-sidebar-tabs.ant-tabs .ant-tabs-ink-bar{
+
+.right-sidebar-tabs.ant-tabs .ant-tabs-ink-bar {
     display: none;
 }
-.right-sidebar-tabs.ant-tabs .ant-tabs-tab+.ant-tabs-tab{
+
+.right-sidebar-tabs.ant-tabs .ant-tabs-tab+.ant-tabs-tab {
     margin: 0 0 0 20px;
 }
 
@@ -353,7 +405,8 @@
     margin: 0;
     padding: 0 12px;
 }
-.right-sidebar-tabs.ant-tabs-top >.ant-tabs-nav::before{
+
+.right-sidebar-tabs.ant-tabs-top>.ant-tabs-nav::before {
     display: none;
 }
 
@@ -571,7 +624,8 @@
 .left-sidebar-buttons {
     padding: 6px;
 }
-.left-sidebar-buttons .ant-badge .ant-badge-count{
+
+.left-sidebar-buttons .ant-badge .ant-badge-count {
     color: var(--accent);
     background-color: var(--accent-soft);
 }
