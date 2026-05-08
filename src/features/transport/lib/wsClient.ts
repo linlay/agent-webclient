@@ -574,7 +574,10 @@ export class WsClient {
 		};
 	}
 
-	private async ensureConnected(signal?: AbortSignal): Promise<void> {
+	private async ensureConnected(
+		signal?: AbortSignal,
+		allowHandshakeRefresh = true,
+	): Promise<void> {
 		if (this.socket?.readyState === WebSocket.OPEN) {
 			return;
 		}
@@ -594,6 +597,7 @@ export class WsClient {
 		this.connectPromise = new Promise<void>((resolve, reject) => {
 			const socket = new WebSocket(buildWsUrl(this.accessToken));
 			this.socket = socket;
+			let didRetryHandshakeRefresh = false;
 			let connectTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
 				connectTimer = null;
 				cleanupBeforeOpen();
@@ -623,6 +627,33 @@ export class WsClient {
 				socket.removeEventListener("close", handleCloseBeforeOpen);
 			};
 
+			const retryHandshakeWithFreshToken = async (): Promise<boolean> => {
+				if (
+					!allowHandshakeRefresh ||
+					didRetryHandshakeRefresh ||
+					!this.resolveAccessToken ||
+					this.expectedClose ||
+					signal?.aborted
+				) {
+					return false;
+				}
+				didRetryHandshakeRefresh = true;
+				const previousToken = this.accessToken;
+				try {
+					await this.refreshAccessToken("unauthorized");
+				} catch {
+					return false;
+				}
+				if (!this.accessToken || this.accessToken === previousToken) {
+					return false;
+				}
+				this.connectPromise = null;
+				this.socket = null;
+				this.setStatus("connecting");
+				await this.ensureConnected(signal, false);
+				return true;
+			};
+
 			const handleOpen = () => {
 				cleanupBeforeOpen();
 				socket.addEventListener("message", this.handleMessage);
@@ -639,29 +670,41 @@ export class WsClient {
 				cleanupBeforeOpen();
 				this.connectPromise = null;
 				this.socket = null;
-				this.setStatus("error");
-				this.scheduleReconnect();
-				reject(
-					toWsConnectionError(new Error("WebSocket connection failed"), {
-						hasAccessToken: Boolean(this.accessToken),
-					}),
-				);
+				void (async () => {
+					if (await retryHandshakeWithFreshToken()) {
+						resolve();
+						return;
+					}
+					this.setStatus("error");
+					this.scheduleReconnect();
+					reject(
+						toWsConnectionError(new Error("WebSocket connection failed"), {
+							hasAccessToken: Boolean(this.accessToken),
+						}),
+					);
+				})();
 			};
 
 			const handleCloseBeforeOpen = (event?: CloseEvent) => {
 				cleanupBeforeOpen();
 				this.connectPromise = null;
-				if (!this.expectedClose) {
-					this.setStatus("error");
-					this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
-				} else {
-					this.setStatus("disconnected");
-				}
-				reject(
-					toWsConnectionError(new WsClientDisconnectedError(), {
-						hasAccessToken: Boolean(this.accessToken),
-					}),
-				);
+				void (async () => {
+					if (!this.expectedClose && (await retryHandshakeWithFreshToken())) {
+						resolve();
+						return;
+					}
+					if (!this.expectedClose) {
+						this.setStatus("error");
+						this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
+					} else {
+						this.setStatus("disconnected");
+					}
+					reject(
+						toWsConnectionError(new WsClientDisconnectedError(), {
+							hasAccessToken: Boolean(this.accessToken),
+						}),
+					);
+				})();
 			};
 
 			socket.addEventListener("open", handleOpen);
@@ -799,6 +842,13 @@ export class WsClient {
 		if (this.status !== "connecting") {
 			this.setStatus("error");
 		}
+		if (this.socket?.readyState === WebSocket.OPEN) {
+			try {
+				this.socket.close(4002, "socket error");
+			} catch {
+				// Ignore close failures; the close handler will clean up if it fires.
+			}
+		}
 	};
 
 	private sendFrame(frame: WsRequestFrame): void {
@@ -840,10 +890,17 @@ export class WsClient {
 		event?: Pick<CloseEvent, "code" | "reason">,
 	): boolean {
 		const reason = String(event?.reason || "").toLowerCase();
+		const code = Number(event?.code ?? 0);
 		return (
-			event?.code === 1008 ||
+			code === 1002 ||
+			code === 1006 ||
+			code === 1008 ||
+			code === 1011 ||
+			code >= 4000 ||
 			reason.includes("token") ||
-			reason.includes("unauthorized")
+			reason.includes("unauthorized") ||
+			reason.includes("invalid") ||
+			reason.includes("protocol")
 		);
 	}
 
@@ -859,7 +916,7 @@ export class WsClient {
 			)
 				.then((token) => {
 					const normalized = String(token || "").trim();
-					if (normalized) {
+					if (normalized || reason === "unauthorized") {
 						this.accessToken = normalized;
 						this.onAccessTokenChange?.(normalized);
 					}

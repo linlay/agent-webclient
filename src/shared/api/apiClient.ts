@@ -50,6 +50,32 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
+export interface RemoteControlSessionRequest {
+  agentKey: string;
+  chatId: string;
+  teamId?: string;
+  title?: string;
+  ttlSeconds?: number;
+  startTunnel?: boolean;
+}
+
+export interface RemoteControlSessionResponse {
+  sessionId: string;
+  agentKey: string;
+  chatId: string;
+  teamId?: string;
+  title?: string;
+  localUrl: string;
+  publicUrl: string;
+  qrCodeDataUrl?: string;
+  accessToken: string;
+  tunnelStatus: string;
+  tunnelError?: string;
+  createdAt: number;
+  expiresAt: number;
+  wsPath: string;
+}
+
 export interface ScheduleListRequest {
   tag?: string;
 }
@@ -815,6 +841,12 @@ export function deleteArchive(params: {
   return postJson<ArchiveDeleteResponse>("/api/archive-delete", {
     chatId: params.chatId,
   });
+}
+
+export function createRemoteControlSession(
+  params: RemoteControlSessionRequest,
+): Promise<ApiResponse<RemoteControlSessionResponse>> {
+  return postJson<RemoteControlSessionResponse>("/api/remote-control/sessions", params);
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {

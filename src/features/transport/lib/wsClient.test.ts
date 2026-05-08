@@ -489,6 +489,27 @@ describe("WsClient", () => {
 		client.disconnect();
 	});
 
+	it("refreshes token once when the initial handshake fails before opening", async () => {
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+		});
+
+		const promise = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		expect(firstSocket.url).toBe("ws://localhost:3000/ws?token=token_a");
+		firstSocket.error();
+		await flushMicrotasks();
+		await waitForSocketCount(2);
+
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+		const secondSocket = MockWebSocket.instances[1];
+		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		secondSocket.open();
+		await expect(promise).resolves.toBeUndefined();
+	});
+
 	it("uses the updated token when reconnecting", async () => {
 		const client = createClient({ accessToken: "token_a" });
 		client.connect();
@@ -508,7 +529,7 @@ describe("WsClient", () => {
 		await expect(secondConnect).resolves.toBeUndefined();
 	});
 
-	it("refreshes the token after repeated automatic reconnect failures", async () => {
+	it("refreshes the token immediately after an abnormal reconnect close", async () => {
 		jest.useFakeTimers();
 		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
 		const client = createClient({
@@ -529,19 +550,36 @@ describe("WsClient", () => {
 		await waitForSocketCount(2);
 
 		const secondSocket = MockWebSocket.instances[1];
-		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_a");
-		secondSocket.error();
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		secondSocket.open();
 		await flushMicrotasks();
+	});
 
+	it("does not keep retrying with a stale token when unauthorized refresh returns empty", async () => {
+		jest.useFakeTimers();
+		const changedTokens: string[] = [];
+		const resolveAccessToken = jest.fn().mockResolvedValue("");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+			onAccessTokenChange: (token) => changedTokens.push(token),
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+		});
+
+		const firstConnect = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		firstSocket.open();
+		await expect(firstConnect).resolves.toBeUndefined();
+
+		firstSocket.close(1006, "Invalid frame header");
 		jest.advanceTimersByTime(1_000);
-		await waitForSocketCount(3);
+		await waitForSocketCount(2);
 
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
-		expect(MockWebSocket.instances[2].url).toBe(
-			"ws://localhost:3000/ws?token=token_b",
-		);
-		MockWebSocket.instances[2].open();
-		await flushMicrotasks();
+		expect(changedTokens).toEqual([""]);
+		expect(MockWebSocket.instances[1].url).toBe("ws://localhost:3000/ws");
 	});
 
 	it("refreshes the token immediately when the close reason points to auth", async () => {

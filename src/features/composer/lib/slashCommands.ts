@@ -11,6 +11,7 @@ export type SlashCommandId =
   | 'settings'
   | 'plan'
   | 'stop'
+  | 'remote-control'
   | 'schedule'
   | 'detail'
   | 'history'
@@ -133,6 +134,13 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     descriptionKey: 'slash.command.stop.description',
     keywords: ['stop', 'interrupt', 'abort', 'cancel'],
   },
+  {
+    id: 'remote-control',
+    command: '/remote-control',
+    labelKey: 'slash.command.remoteControl.label',
+    descriptionKey: 'slash.command.remoteControl.description',
+    keywords: ['remote', 'control', 'mobile', 'phone', 'qr', 'qrcode'],
+  },
 ];
 
 function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashCommandDefinition {
@@ -181,6 +189,9 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'stop') {
     return !availability.streaming;
+  }
+  if (commandId === 'remote-control') {
+    return !availability.hasActiveChat || !availability.hasCurrentWorker || availability.commandModalOpen;
   }
   if (commandId === 'schedule' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;

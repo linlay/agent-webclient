@@ -3,6 +3,7 @@ import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
 	createQueryStream,
+	createRemoteControlSession as createRemoteControlSessionHttp,
 	createSchedule as createScheduleHttp,
 	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
@@ -57,6 +58,8 @@ import {
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
 	type QueryLikeParams,
+	type RemoteControlSessionRequest,
+	type RemoteControlSessionResponse,
 	type ScheduleDetailResponse,
 	type ScheduleExecutionListResponse,
 	type ScheduleExecutionsRequest,
@@ -410,6 +413,12 @@ export function searchGlobal(
 		params,
 		() => searchGlobalHttp(params),
 	);
+}
+
+export function createRemoteControlSession(
+	params: RemoteControlSessionRequest,
+): Promise<ApiResponse<RemoteControlSessionResponse>> {
+	return createRemoteControlSessionHttp(params);
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {

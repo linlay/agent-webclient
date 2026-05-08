@@ -23,7 +23,8 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(13);
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
-    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember', 'remote-control']);
+    expect(getFilteredSlashCommands('/remote').map((item) => item.id)).toEqual(['remote-control']);
     expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
   });
 
@@ -33,11 +34,11 @@ describe('slashCommands', () => {
       descriptionKey: 'slash.command.new.description',
     });
     expect(getFilteredSlashCommands('/new')[0]).toMatchObject({
-      label: 'New conversation',
-      description: 'Clear the current conversation context while keeping the current worker selection',
+      label: '新会话',
+      description: '清空当前会话上下文，保留当前 worker 选择',
     });
     expect(getFilteredSlashCommands('/voice')[0]).toMatchObject({
-      description: 'Switch between text input and turn-based voice chat',
+      description: '在文字输入与一问一答语聊模式之间切换',
     });
   });
 
@@ -61,6 +62,7 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('stop', availability)).toBe(false);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
+    expect(isSlashCommandDisabled('remote-control', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
   });
 

@@ -1,6 +1,5 @@
 const fs = require('fs');
 const http = require('http');
-const https = require('https');
 const path = require('path');
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
@@ -88,23 +87,33 @@ function createProxyErrorHandler(logger) {
   };
 }
 
+function createWebSocketProxyErrorHandler(logger) {
+  return function handleWebSocketProxyError(error, req, socket) {
+    logger.error(
+      `[backend] websocket proxy ${req?.url || ''} failed: ${error.message || String(error)}`,
+    );
+
+    if (socket && typeof socket.write === 'function' && !socket.destroyed) {
+      try {
+        socket.write('HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 20\r\n\r\nupstream unavailable');
+      } catch {
+        // Ignore socket write failures while reporting websocket proxy errors.
+      }
+    }
+    socket?.destroy?.();
+  };
+}
+
 function createApiProxy(target, logger) {
   return createProxyMiddleware({
     target: target.toString(),
     changeOrigin: true,
-    ws: true,
+    ws: false,
     xfwd: true,
     logLevel: 'silent',
     selfHandleResponse: false,
     onError: createProxyErrorHandler(logger),
     onProxyReq(proxyReq, req) {
-      if (!isSseQueryRequest(req)) {
-        return;
-      }
-      proxyReq.removeHeader('accept-encoding');
-      proxyReq.setHeader('Accept-Encoding', '');
-    },
-    onProxyReqWs(proxyReq, req) {
       if (!isSseQueryRequest(req)) {
         return;
       }
@@ -140,75 +149,22 @@ function createProxy(target, logger) {
 }
 
 function createWebSocketProxy(target, logger) {
-  const targetUrl = new URL(target.toString());
-  const secure = targetUrl.protocol === 'https:' || targetUrl.protocol === 'wss:';
-  const targetPort = Number(targetUrl.port || (secure ? 443 : 80));
-  const targetHost = targetUrl.hostname;
-  const targetBasePath = targetUrl.pathname === '/'
-    ? ''
-    : targetUrl.pathname.replace(/\/$/, '');
+  const proxy = createProxyMiddleware({
+    target: target.toString(),
+    changeOrigin: true,
+    ws: true,
+    xfwd: true,
+    logLevel: 'silent',
+    selfHandleResponse: false,
+    onError: createWebSocketProxyErrorHandler(logger),
+    onProxyReqWs(proxyReq) {
+      proxyReq.removeHeader('sec-websocket-extensions');
+    },
+  });
 
   return {
     ws(req, socket, head) {
-      const requestUrl = `${targetBasePath}${req.url || '/'}`;
-      const requestHeaders = { ...req.headers, host: targetUrl.host };
-      const upstreamRequest = (secure ? https : http).request({
-        protocol: secure ? 'https:' : 'http:',
-        hostname: targetHost,
-        port: targetPort,
-        method: req.method || 'GET',
-        path: requestUrl,
-        headers: requestHeaders,
-      });
-
-      const fail = (error) => {
-        logger.error(
-          `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
-        );
-
-        if (socket && typeof socket.write === 'function' && !socket.destroyed) {
-          try {
-            socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-          } catch {
-            // Ignore socket write failures while reporting websocket proxy errors.
-          }
-        }
-        socket?.destroy?.();
-        upstreamRequest.destroy();
-      };
-
-      socket.pause();
-      upstreamRequest.once('error', fail);
-      socket.once('error', () => upstreamRequest.destroy());
-      socket.once('close', () => upstreamRequest.destroy());
-
-      upstreamRequest.once('upgrade', (upstreamResponse, upstreamSocket, upstreamHead) => {
-        upstreamRequest.removeListener('error', fail);
-        upstreamSocket.on('error', (error) => {
-          logger.error(
-            `[backend] websocket proxy ${req?.url || ''} failed: ${error.message}`,
-          );
-          socket.destroy(error);
-        });
-
-        const responseHeaders = [`HTTP/${req.httpVersion || '1.1'} ${upstreamResponse.statusCode || 101} ${upstreamResponse.statusMessage || 'Switching Protocols'}`];
-        for (let index = 0; index < upstreamResponse.rawHeaders.length; index += 2) {
-          responseHeaders.push(`${upstreamResponse.rawHeaders[index]}: ${upstreamResponse.rawHeaders[index + 1]}`);
-        }
-        socket.write(`${responseHeaders.join('\r\n')}\r\n\r\n`);
-        if (upstreamHead && upstreamHead.length > 0) {
-          socket.write(upstreamHead);
-        }
-        if (head && head.length > 0) {
-          upstreamSocket.write(head);
-        }
-
-        socket.pipe(upstreamSocket);
-        upstreamSocket.pipe(socket);
-        socket.resume();
-      });
-
-      upstreamRequest.end();
+      proxy.upgrade(req, socket, head);
     },
   };
 }

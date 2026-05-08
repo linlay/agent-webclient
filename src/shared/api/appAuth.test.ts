@@ -1,4 +1,5 @@
 import {
+  AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   getAppAccessToken,
   refreshAppAccessToken,
@@ -27,21 +28,31 @@ function createMockStorage(initial: Record<string, string> = {}): MockStorage {
 
 function installWindow(options: {
   pathname?: string;
+  search?: string;
   storedToken?: string;
+  storedAuthContext?: string;
   globalToken?: string;
 } = {}) {
   const listeners = new Set<(event: MessageEvent) => void>();
   const sessionStorage = createMockStorage(
-    options.storedToken
-      ? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
-      : {},
+    {
+      ...(options.storedToken
+        ? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
+        : {}),
+      ...(options.storedAuthContext
+        ? { [AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]: options.storedAuthContext }
+        : {}),
+    },
   );
   const parent = {
     postMessage: jest.fn(),
   };
 
   const mockWindow = {
-    location: { pathname: options.pathname ?? '/appagent' },
+    location: {
+      pathname: options.pathname ?? '/appagent',
+      search: options.search ?? '',
+    },
     parent,
     sessionStorage,
     addEventListener: jest.fn((type: string, listener: EventListener) => {
@@ -72,6 +83,12 @@ function installWindow(options: {
   };
 }
 
+function unsignedJwtWithExp(exp: number): string {
+  const encode = (value: unknown) =>
+    Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${encode({ alg: 'none', typ: 'JWT' })}.${encode({ exp })}.signature`;
+}
+
 describe('appAuth', () => {
   const originalWindow = globalThis.window;
 
@@ -92,6 +109,37 @@ describe('appAuth', () => {
     });
 
     expect(getAppAccessToken()).toBe('session-token');
+  });
+
+  it('drops a stored token when the desktop auth context changes', () => {
+    const { sessionStorage } = installWindow({
+      search: '?desktopAuthContext=platform:202',
+      storedAuthContext: 'platform:101',
+      storedToken: 'stale-session-token',
+      globalToken: 'window-token',
+    });
+
+    expect(getAppAccessToken()).toBeNull();
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
+    expect(sessionStorage.dump()[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]).toBe(
+      'platform:202',
+    );
+    expect((globalThis.window as typeof globalThis.window & {
+      __AGENT_APP_ACCESS_TOKEN?: string;
+    }).__AGENT_APP_ACCESS_TOKEN).toBeUndefined();
+  });
+
+  it('ignores expired session tokens and falls back to a usable global bridge token', () => {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const expiredToken = unsignedJwtWithExp(nowSeconds - 60);
+    const freshToken = unsignedJwtWithExp(nowSeconds + 3600);
+    const { sessionStorage } = installWindow({
+      storedToken: expiredToken,
+      globalToken: freshToken,
+    });
+
+    expect(getAppAccessToken()).toBe(freshToken);
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
   });
 
   it('requests a missing token through postMessage and stores the response', async () => {
@@ -122,9 +170,9 @@ describe('appAuth', () => {
     expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe('token-from-host');
   });
 
-  it('uses refreshAccessToken for unauthorized refreshes and times out to null', async () => {
+  it('uses refreshAccessToken for unauthorized refreshes and clears stale stored tokens on timeout', async () => {
     jest.useFakeTimers();
-    const { parent } = installWindow();
+    const { parent, sessionStorage } = installWindow({ storedToken: 'stale-token' });
 
     const promise = refreshAppAccessToken('unauthorized');
 
@@ -139,9 +187,10 @@ describe('appAuth', () => {
 
     jest.advanceTimersByTime(10_000);
     await expect(promise).resolves.toBeNull();
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
   });
 
-  it('shares one in-flight bridge refresh request', async () => {
+  it('shares one matching in-flight bridge refresh request', async () => {
     jest.useFakeTimers();
     const { parent, dispatchMessage } = installWindow();
 
@@ -159,7 +208,7 @@ describe('appAuth', () => {
     });
 
     const first = refreshAppAccessToken('missing');
-    const second = refreshAppAccessToken('unauthorized');
+    const second = refreshAppAccessToken('missing');
 
     expect(parent.postMessage).toHaveBeenCalledTimes(1);
 
@@ -168,5 +217,47 @@ describe('appAuth', () => {
       'shared-token',
       'shared-token',
     ]);
+  });
+
+  it('does not let an older missing refresh overwrite a newer unauthorized token', async () => {
+    jest.useFakeTimers();
+    const { parent, sessionStorage, dispatchMessage } = installWindow({
+      storedToken: 'stale-token',
+    });
+
+    parent.postMessage.mockImplementation((payload: { requestId: string; action: string }) => {
+      const token =
+        payload.action === 'refreshAccessToken'
+          ? 'fresh-unauthorized-token'
+          : 'old-missing-token';
+      const delay = payload.action === 'refreshAccessToken' ? 10 : 50;
+      setTimeout(() => {
+        dispatchMessage({
+          source: parent,
+          data: {
+            type: 'zenmind:agent-app-auth:response',
+            requestId: payload.requestId,
+            token,
+          },
+        } as MessageEvent);
+      }, delay);
+    });
+
+    const missing = refreshAppAccessToken('missing');
+    const unauthorized = refreshAppAccessToken('unauthorized');
+
+    expect(parent.postMessage).toHaveBeenCalledTimes(2);
+
+    jest.advanceTimersByTime(10);
+    await expect(unauthorized).resolves.toBe('fresh-unauthorized-token');
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'fresh-unauthorized-token',
+    );
+
+    jest.advanceTimersByTime(40);
+    await expect(missing).resolves.toBe('old-missing-token');
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'fresh-unauthorized-token',
+    );
   });
 });

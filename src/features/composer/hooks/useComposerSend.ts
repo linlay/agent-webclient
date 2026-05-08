@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
+import { message as antdMessage } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
@@ -15,10 +16,16 @@ import {
   resolvePreferredTeamId,
 } from "@/features/composer/lib/queryRouting";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
+import type { RemoteControlCommandContext } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
   SlashCommandAvailability,
   SlashCommandId,
 } from "@/features/composer/lib/slashCommands";
+import {
+  normalizeSteerSubmissionResponse,
+  resolveActiveRunId,
+} from "@/features/composer/lib/steerSubmission";
+import { useI18n } from "@/shared/i18n";
 
 type ComposerSendAttachmentMeta = {
   name: string;
@@ -40,6 +47,7 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
+    remoteControlContext: RemoteControlCommandContext;
     state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
     toggleVoiceMode: () => void;
   };
@@ -114,6 +122,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     textareaRef,
     updateMentionSuggestions,
   } = input;
+  const { t } = useI18n();
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
@@ -131,15 +140,10 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [inputValue]);
 
   const resolveCurrentRunId = useCallback(() => {
-    const fromState = String(state.runId || "").trim();
-    if (fromState) return fromState;
-
-    for (let i = state.events.length - 1; i >= 0; i -= 1) {
-      const event = state.events[i];
-      const rid = String((event as { runId?: string }).runId || "").trim();
-      if (rid) return rid;
-    }
-    return "";
+    return resolveActiveRunId({
+      stateRunId: state.runId,
+      events: state.events,
+    });
   }, [state.events, state.runId]);
 
   const resolveCurrentAgentKey = useCallback(() => {
@@ -322,6 +326,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         pending: backgroundCommandText.learnPending,
         error: backgroundCommandText.learnError,
       }),
+    remoteControlContext: executeSlashCommandInput.remoteControlContext,
     setInputValue,
     setSlashDismissed,
     state: executeSlashCommandInput.state,
@@ -341,23 +346,38 @@ export function useComposerSend(input: UseComposerSendInput) {
 
     const message = inputValue.trim();
     if (!message && sendReferences.length === 0) return;
+    if (/^\/remote[\s-]+control$/i.test(message)) {
+      void executeSlashCommand("remote-control");
+      return;
+    }
     if (hasUploadingAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
     }
     if (state.streaming) {
-      if (sendReferences.length > 0) {
+      const activeRunId = resolveCurrentRunId();
+      const activeChatId = String(state.chatId || "").trim();
+      if (!activeChatId || !activeRunId) {
         dispatch({
           type: "APPEND_DEBUG",
-          line: "[upload] attachments are not supported while steering an active run",
+          line: `[send] recovered stale streaming state before submit (chatId=${activeChatId || "-"}, runId=${activeRunId || "-"})`,
         });
+        dispatch({ type: "SET_STREAMING", streaming: false });
+        dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+      } else {
+        if (sendReferences.length > 0) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: "[upload] attachments are not supported while steering an active run",
+          });
+          return;
+        }
+        dispatch({ type: "SET_STEER_DRAFT", draft: message });
+        setInputValue("");
+        setSlashDismissed(false);
+        closeMention();
         return;
       }
-      dispatch({ type: "SET_STEER_DRAFT", draft: message });
-      setInputValue("");
-      setSlashDismissed(false);
-      closeMention();
-      return;
     }
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
@@ -414,6 +434,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    resolveCurrentRunId,
     selectSlashCommand,
     sendAttachmentMeta,
     sendReferences,
@@ -429,6 +450,31 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.workerSelectionKey,
     stopSpeechInput,
   ]);
+
+  const restoreSteerDraftToComposer = useCallback(
+    (draft: string) => {
+      dispatch({ type: "SET_STEER_DRAFT", draft: "" });
+      dispatch({ type: "SET_STREAMING", streaming: false });
+      dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+      setInputValue(draft);
+      setSlashDismissed(false);
+      updateMentionSuggestions(draft);
+      window.requestAnimationFrame(() => {
+        const el = textareaRef.current?.resizableTextArea?.textArea;
+        if (!el) return;
+        el.focus();
+        const caret = draft.length;
+        el.setSelectionRange(caret, caret);
+      });
+    },
+    [
+      dispatch,
+      setInputValue,
+      setSlashDismissed,
+      textareaRef,
+      updateMentionSuggestions,
+    ],
+  );
 
   const handleSteer = useCallback(async () => {
     const message = state.steerDraft.trim();
@@ -448,12 +494,26 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[steer] skipped: missing chatId/runId (chatId=${chatId || "-"}, runId=${runId || "-"})`,
       });
+      restoreSteerDraftToComposer(message);
+      void antdMessage.warning(t("composer.steer.unavailable"));
       return;
     }
 
     setSteerSubmitting(true);
+    dispatch({
+      type: "ENQUEUE_PENDING_STEER",
+      steer: {
+        steerId,
+        message,
+        requestId,
+        runId,
+        createdAt: Date.now(),
+      },
+    });
+    dispatch({ type: "SET_STEER_DRAFT", draft: "" });
+
     try {
-      await steerChat({
+      const response = await steerChat({
         requestId,
         chatId,
         runId,
@@ -463,26 +523,38 @@ export function useComposerSend(input: UseComposerSendInput) {
         message,
         planningMode: Boolean(state.planningMode),
       });
+      const result = normalizeSteerSubmissionResponse(response);
+      if (!result.accepted) {
+        dispatch({ type: "REMOVE_PENDING_STEER", steerId });
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[steer] rejected: status=${result.status || "-"}, detail=${result.detail || "-"}`,
+        });
+        restoreSteerDraftToComposer(message);
+        void antdMessage.warning(
+          t("composer.steer.rejected", {
+            detail: result.detail || result.status || "unmatched",
+          }),
+        );
+        return;
+      }
+
       dispatch({
         type: "APPEND_DEBUG",
         line: `[steer] submitted for chatId=${chatId}, runId=${runId}, requestId=${requestId}`,
       });
-      dispatch({
-        type: "ENQUEUE_PENDING_STEER",
-        steer: {
-          steerId,
-          message,
-          requestId,
-          runId,
-          createdAt: Date.now(),
-        },
-      });
-      dispatch({ type: "SET_STEER_DRAFT", draft: "" });
     } catch (error) {
+      dispatch({ type: "REMOVE_PENDING_STEER", steerId });
+      dispatch({ type: "SET_STEER_DRAFT", draft: message });
       dispatch({
         type: "APPEND_DEBUG",
         line: `[steer] failed: ${(error as Error).message}`,
       });
+      void antdMessage.error(
+        t("composer.steer.failed", {
+          detail: (error as Error).message,
+        }),
+      );
     } finally {
       setSteerSubmitting(false);
     }
@@ -491,11 +563,13 @@ export function useComposerSend(input: UseComposerSendInput) {
     resolveCurrentAgentKey,
     resolveCurrentRunId,
     resolveCurrentTeamId,
+    restoreSteerDraftToComposer,
     state.chatId,
     state.planningMode,
     state.steerDraft,
     state.streaming,
     steerSubmitting,
+    t,
   ]);
 
   const handleCancelSteer = useCallback(() => {

@@ -526,6 +526,15 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.updated") {
+				upsertPushChatSummary(options.dispatch, liveEvent);
+				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
+				if (isActiveChat) {
+					dispatchLoadChatEvent(eventChatId);
+				}
+				return;
+			}
+
 			if (type === "run.start") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				if (options.stateRef.current.streaming) {
