@@ -6,9 +6,7 @@ $Script:AppName = 'agent-webclient'
 $Script:ManifestFile = Join-Path $Script:BundleRoot 'manifest.json'
 $Script:EnvExampleFile = Join-Path $Script:BundleRoot '.env.example'
 $Script:EnvFile = Join-Path $Script:BundleRoot '.env'
-$Script:BackendEntry = Join-Path (Join-Path $Script:BundleRoot 'backend') 'server.js'
-$Script:BackendPackageFile = Join-Path (Join-Path $Script:BundleRoot 'backend') 'package.json'
-$Script:BackendModulesDir = Join-Path (Join-Path $Script:BundleRoot 'backend') 'node_modules'
+$Script:BackendEntry = Join-Path (Join-Path $Script:BundleRoot 'backend') 'server.cjs'
 $Script:DistDir = Join-Path (Join-Path $Script:BundleRoot 'frontend') 'dist'
 $Script:RunDir = Join-Path $Script:BundleRoot 'run'
 $Script:PidFile = Join-Path $Script:RunDir 'agent-webclient.pid'
@@ -28,12 +26,6 @@ function Test-ProgramBundle {
   }
   if (-not (Test-Path -LiteralPath $Script:BackendEntry -PathType Leaf)) {
     Fail-Program "required file not found: $Script:BackendEntry"
-  }
-  if (-not (Test-Path -LiteralPath $Script:BackendPackageFile -PathType Leaf)) {
-    Fail-Program "required file not found: $Script:BackendPackageFile"
-  }
-  if (-not (Test-Path -LiteralPath $Script:BackendModulesDir -PathType Container)) {
-    Fail-Program "required directory not found: $Script:BackendModulesDir"
   }
   if (-not (Test-Path -LiteralPath $Script:DistDir -PathType Container)) {
     Fail-Program "required directory not found: $Script:DistDir"

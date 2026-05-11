@@ -151,7 +151,7 @@ write_program_manifest() {
   local target_os="$2"
   local target_arch="$3"
   local asset_file_name="$4"
-  local backend_entry="backend/server.js"
+  local backend_entry="backend/server.cjs"
   local start_script="start.sh"
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
@@ -211,8 +211,6 @@ write_program_manifest() {
 ${error_log_json}
     "requiredPaths": [
       "$backend_entry",
-      "backend/package.json",
-      "backend/node_modules",
       "$start_script",
       "$stop_script",
       "$deploy_script",

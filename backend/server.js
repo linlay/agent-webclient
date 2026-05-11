@@ -163,6 +163,9 @@ function createWebSocketProxy(target, logger) {
   });
 
   return {
+    upgrade(req, socket, head) {
+      proxy.upgrade(req, socket, head);
+    },
     ws(req, socket, head) {
       proxy.upgrade(req, socket, head);
     },
@@ -282,15 +285,15 @@ function createServer(config, options = {}) {
     const requestPath = parseRequestPath(req.url);
 
     if (requestPath.startsWith('/api/voice')) {
-      voiceWsProxy.ws(req, socket, head);
+      voiceWsProxy.upgrade(req, socket, head);
       return;
     }
     if (requestPath.startsWith('/api')) {
-      apiWsProxy.ws(req, socket, head);
+      apiWsProxy.upgrade(req, socket, head);
       return;
     }
     if (requestPath === '/ws') {
-      wsProxy.ws(req, socket, head);
+      wsProxy.upgrade(req, socket, head);
       return;
     }
 

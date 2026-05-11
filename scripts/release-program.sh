@@ -12,7 +12,6 @@ require_release_tools
 resolve_release_context
 
 require_dir "$PROGRAM_RELEASE_ASSETS_DIR"
-require_file "$PROGRAM_RELEASE_ASSETS_DIR/README.txt"
 require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/deploy.sh"
 require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/start.sh"
 require_file "$PROGRAM_RELEASE_ASSETS_DIR/unix/stop.sh"
@@ -23,9 +22,7 @@ require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/stop.ps1"
 require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/program-common.ps1"
 require_file "$REPO_ROOT/.env.example"
 require_file "$REPO_ROOT/package.json"
-require_file "$REPO_ROOT/package-lock.json"
 require_file "$REPO_ROOT/backend/server.js"
-require_file "$REPO_ROOT/backend/package.json"
 
 cd "$REPO_ROOT"
 
@@ -66,24 +63,9 @@ build_program_bundle() {
 
   echo "[release] assembling program bundle for $target_os..."
   cp -R "$REPO_ROOT/dist/." "$frontend_dir/dist/"
-  cp "$REPO_ROOT/backend/server.js" "$backend_dir/server.js"
-  cp "$REPO_ROOT/backend/package.json" "$backend_dir/package.json"
-  if [[ -f "$REPO_ROOT/backend/package-lock.json" ]]; then
-    cp "$REPO_ROOT/backend/package-lock.json" "$backend_dir/package-lock.json"
-  fi
+  node "$SCRIPT_DIR/build-backend-bundle.mjs" --output "$backend_dir/server.cjs"
   cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
-  cp "$PROGRAM_RELEASE_ASSETS_DIR/README.txt" "$bundle_root/README.txt"
   write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$(basename "$bundle_archive")"
-
-  echo "[release] installing backend dependencies for $target_os..."
-  (
-    cd "$backend_dir"
-    if [[ -f package-lock.json ]]; then
-      npm ci --omit=dev --ignore-scripts
-      exit 0
-    fi
-    npm install --omit=dev --ignore-scripts
-  )
 
   if [[ "$target_os" == "windows" ]]; then
     cp "$PROGRAM_RELEASE_ASSETS_DIR/windows/deploy.ps1" "$bundle_root/deploy.ps1"
@@ -96,7 +78,7 @@ build_program_bundle() {
     cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/stop.sh" "$bundle_root/stop.sh"
     cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/program-common.sh" "$scripts_dir/program-common.sh"
     chmod +x \
-      "$backend_dir/server.js" \
+      "$backend_dir/server.cjs" \
       "$bundle_root/deploy.sh" \
       "$bundle_root/start.sh" \
       "$bundle_root/stop.sh" \
