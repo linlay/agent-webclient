@@ -1532,7 +1532,6 @@ export const MemoryInfoModal: React.FC = () => {
   const preferenceScopeSeqRef = useRef(0);
   const metaLoadAttemptedRef = useRef(false);
   const previewAutoTriggeredRef = useRef(false);
-  const recordsLoadSignatureRef = useRef("");
   const preferencesLoadSignatureRef = useRef("");
   const preferenceTitleInputRef = useRef<HTMLInputElement>(null);
   const preferenceSummaryTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -2283,7 +2282,6 @@ export const MemoryInfoModal: React.FC = () => {
     preferenceScopeSeqRef.current += 1;
     metaLoadAttemptedRef.current = false;
     previewAutoTriggeredRef.current = false;
-    recordsLoadSignatureRef.current = "";
     preferencesLoadSignatureRef.current = "";
   }, [state.memoryInfoOpen]);
 
@@ -2293,21 +2291,6 @@ export const MemoryInfoModal: React.FC = () => {
     }
     void loadMemoryMeta();
   }, [loadMemoryMeta, state.memoryInfoOpen]);
-
-  useEffect(() => {
-    if (!state.memoryInfoOpen) {
-      return;
-    }
-    if (state.memoryConsoleTab !== "records") {
-      return;
-    }
-    const signature = `${agentContext.agentKey || "__all__"}:records`;
-    if (recordsLoadSignatureRef.current === signature) {
-      return;
-    }
-    recordsLoadSignatureRef.current = signature;
-    void loadRecords();
-  }, [agentContext.agentKey, loadRecords, state.memoryConsoleTab, state.memoryInfoOpen]);
 
   useEffect(() => {
     if (!state.memoryInfoOpen || !agentContext.agentKey) {

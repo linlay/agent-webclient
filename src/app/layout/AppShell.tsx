@@ -19,6 +19,7 @@ import { useActionRuntime } from "@/features/tools/hooks/useActionRuntime";
 import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
 import { useWsTransport } from "@/features/transport/hooks/useWsTransport";
+import { useMemoryRecordsInitialization } from "@/features/settings/hooks/useMemoryRecordsInitialization";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { TerminalDock } from "./TerminalDock";
 // import { useLiveEvents } from "@/hooks/useLiveEvents";
@@ -33,6 +34,7 @@ export const AppShell: React.FC = () => {
 	useActionRuntime();
 	useVoiceRuntime();
 	useVoiceChatRuntime();
+	useMemoryRecordsInitialization();
 	// Legacy SSE live sync remains available as a compatibility path only.
 	// Default real-time updates now come from `/ws` push frames via useWsTransport().
 	// useLiveEvents();

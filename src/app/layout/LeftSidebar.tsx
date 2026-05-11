@@ -336,11 +336,17 @@ export const LeftSidebar: React.FC = () => {
                   <Badge count={state.schedules?.length} />
                 </Flex>
               </UiButton>
-              <UiButton size="sm" variant="ghost">
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
+                }
+              >
                 <MaterialIcon name="neurology" />
                 <Flex gap={4} align="center">
                   <span>记忆</span>
-                  <Badge count={8} />
+                  <Badge count={state.memoryInfoRecords?.length || 0} />
                 </Flex>
               </UiButton>
             </Flex>
