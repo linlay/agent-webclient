@@ -19,7 +19,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
-import { Button, Flex, Form, Input, Popover } from "antd";
+import { Button, Flex, Form, Input, message, Popover } from "antd";
 
 function formatResponseDuration(durationMs?: number): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
@@ -133,6 +133,7 @@ export const ConversationStage: React.FC = () => {
           runId: normalizedRunId,
           type: nextDownvoted ? "thumbs_down" : "clear",
         });
+        message.success(nextDownvoted ? "已点踩" : "已取消点踩");
       } catch (error) {
         dispatch({
           type: "SET_RUN_DOWNVOTED",
@@ -323,29 +324,45 @@ export const ConversationStage: React.FC = () => {
                             >
                               <MaterialIcon name="content_copy" />
                             </UiButton>
-                            <Popover
-                              destroyOnHidden
-                              content={
-                                <FeedbackModal
-                                  onFinish={() => {
-                                    handleDownvote(runId, !isDownvoted);
-                                  }}
-                                />
-                              }
-                            >
+                            {isDownvoted ? (
                               <UiButton
-                                className={`timeline-meta-btn ${isDownvoted ? "is-downvoted" : ""}`}
+                                className="timeline-meta-btn is-downvoted"
                                 variant="ghost"
                                 size="sm"
                                 iconOnly
-                                active={isDownvoted}
-                                title={isDownvoted ? "取消点踩" : "点踩"}
-                                aria-label={isDownvoted ? "取消点踩" : "点踩"}
+                                active
+                                title="取消点踩"
+                                aria-label="取消点踩"
                                 disabled={!runId}
+                                onClick={() => handleDownvote(runId, false)}
                               >
                                 <MaterialIcon name="thumb_down" />
                               </UiButton>
-                            </Popover>
+                            ) : (
+                              <Popover
+                                destroyOnHidden
+                                trigger={['click']}
+                                content={
+                                  <FeedbackModal
+                                    onFinish={() => {
+                                      handleDownvote(runId, true);
+                                    }}
+                                  />
+                                }
+                              >
+                                <UiButton
+                                  className="timeline-meta-btn"
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  title="点踩"
+                                  aria-label="点踩"
+                                  disabled={!runId}
+                                >
+                                  <MaterialIcon name="thumb_down" />
+                                </UiButton>
+                              </Popover>
+                            )}
                           </div>
                           {time.short && (
                             <div
