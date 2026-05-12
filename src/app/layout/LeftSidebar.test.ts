@@ -119,7 +119,7 @@ const globalWithStorage = globalThis as typeof globalThis & {
     setItem: jest.Mock;
     removeItem: jest.Mock;
   };
-  __APP_SETTINGS_MENU_ENABLED__?: unknown;
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
 
 describe("LeftSidebar", () => {
@@ -275,7 +275,7 @@ describe("LeftSidebar", () => {
       transportMode: "sse",
       themeMode: "dark",
     });
-    delete globalWithStorage.__APP_SETTINGS_MENU_ENABLED__;
+    delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
   afterEach(() => {
@@ -311,7 +311,9 @@ describe("LeftSidebar", () => {
   });
 
   it("renders compact transport and theme summaries on the settings trigger when enabled by env", () => {
-    globalWithStorage.__APP_SETTINGS_MENU_ENABLED__ = "true";
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      APP_SETTINGS_MENU_ENABLED: "true",
+    };
 
     const html = renderSidebar();
 

@@ -25,7 +25,7 @@ const globalWithStorage = globalThis as typeof globalThis & {
 		setItem: jest.Mock;
 		removeItem: jest.Mock;
 	};
-	__APP_DEBUG_PANEL_ENABLED__?: unknown;
+	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
 
 describe("TopNav", () => {
@@ -39,7 +39,7 @@ describe("TopNav", () => {
 		};
 		useAppDispatch.mockReturnValue(jest.fn());
 		useAppState.mockReturnValue(createInitialState());
-		delete globalWithStorage.__APP_DEBUG_PANEL_ENABLED__;
+		delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
 	});
 
 	afterAll(() => {
@@ -113,7 +113,9 @@ describe("TopNav", () => {
 	});
 
 	it("renders the debug panel button when enabled by env", () => {
-		globalWithStorage.__APP_DEBUG_PANEL_ENABLED__ = "true";
+		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			APP_DEBUG_PANEL_ENABLED: "true",
+		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 

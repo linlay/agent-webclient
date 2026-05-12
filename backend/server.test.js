@@ -213,6 +213,52 @@ describe('backend/server', () => {
     expect(fs.readFileSync(response.filePath, 'utf8')).toBe('console.log("hello");');
   });
 
+  test('serves runtime config from the current .env file without rebuilding', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>index</body></html>');
+    fs.writeFileSync(
+      path.join(rootDir, '.env'),
+      [
+        'APP_DEBUG_PANEL_ENABLED=false',
+        'APP_SETTINGS_MENU_ENABLED=true',
+        'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.015',
+      ].join('\n'),
+      'utf8',
+    );
+
+    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
+    const { server } = createServer(config, { logger: { error: jest.fn() } });
+    const port = await listen(server);
+
+    try {
+      await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
+        statusCode: 200,
+        body: expect.stringContaining('"APP_DEBUG_PANEL_ENABLED":"false"'),
+      });
+
+      fs.writeFileSync(
+        path.join(rootDir, '.env'),
+        [
+          'APP_DEBUG_PANEL_ENABLED=true',
+          'APP_SETTINGS_MENU_ENABLED=true',
+          'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.02',
+        ].join('\n'),
+        'utf8',
+      );
+
+      await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
+        statusCode: 200,
+        body: expect.stringContaining('"APP_DEBUG_PANEL_ENABLED":"true"'),
+      });
+      await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
+        body: expect.stringContaining('"APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD":"0.02"'),
+      });
+    } finally {
+      await closeServer(server);
+    }
+  });
+
   test('falls back to index.html for SPA routes without file extensions', () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);

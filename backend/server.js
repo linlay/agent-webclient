@@ -12,9 +12,71 @@ const DEV_CORS_ALLOWED_ORIGINS = new Set([
 ]);
 const DEV_CORS_ALLOW_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 const DEV_CORS_ALLOW_HEADERS = 'Content-Type, Authorization, Accept, Cache-Control';
+const RUNTIME_CONFIG_ENV_KEYS = [
+  'APP_DEBUG_PANEL_ENABLED',
+  'APP_SETTINGS_MENU_ENABLED',
+  'APP_VOICE_ASR_CLIENT_GATE_ENABLED',
+  'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
+  'APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
+  'APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS',
+  'APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS',
+];
 
 function parseRequestPath(urlValue) {
   return new URL(String(urlValue || '/'), 'http://127.0.0.1').pathname;
+}
+
+function parseEnvFileContent(content) {
+  const values = {};
+  String(content || '')
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const separatorIndex = trimmed.indexOf('=');
+      if (separatorIndex <= 0) return;
+      const key = trimmed.slice(0, separatorIndex).trim();
+      let value = trimmed.slice(separatorIndex + 1).trim();
+      if (
+        value.length >= 2 &&
+        ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'")))
+      ) {
+        value = value.slice(1, -1);
+      }
+      values[key] = value;
+    });
+  return values;
+}
+
+function readEnvFile(appRoot) {
+  const envPath = path.join(appRoot, '.env');
+  try {
+    return parseEnvFileContent(fs.readFileSync(envPath, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return {};
+    }
+    throw error;
+  }
+}
+
+function resolveRuntimeConfig(config, options = {}) {
+  const baseEnv = options.env || process.env;
+  const fileEnv = readEnvFile(config.appRoot);
+  const env = {
+    ...baseEnv,
+    ...fileEnv,
+  };
+
+  return RUNTIME_CONFIG_ENV_KEYS.reduce((runtimeConfig, key) => {
+    runtimeConfig[key] = String(env[key] == null ? '' : env[key]).trim();
+    return runtimeConfig;
+  }, {});
+}
+
+function createRuntimeConfigScript(runtimeConfig) {
+  return `globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig)};\n`;
 }
 
 function isSseQueryRequest(req) {
@@ -248,6 +310,11 @@ function createApp(config, options = {}) {
 
   app.disable('x-powered-by');
   app.use(devCorsMiddleware);
+  app.get('/runtime-config.js', (_req, res) => {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.end(createRuntimeConfigScript(resolveRuntimeConfig(config)));
+  });
   app.use('/api/voice', voiceProxy);
   app.use('/api', apiProxy);
   app.use(express.static(config.frontendDist, { fallthrough: true }));
@@ -345,10 +412,13 @@ module.exports = {
   createDevCorsMiddleware,
   createServer,
   createWebSocketProxy,
+  createRuntimeConfigScript,
   isSseQueryRequest,
   loadConfig,
   parseRequestPath,
+  parseEnvFileContent,
   resolveFrontendRequest,
   resolveFrontendDist,
+  resolveRuntimeConfig,
   startServer,
 };

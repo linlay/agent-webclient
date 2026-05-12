@@ -49,7 +49,7 @@ const { useAppState } = jest.requireMock("@/app/state/AppContext") as {
 };
 
 const globalWithFeatureFlags = globalThis as typeof globalThis & {
-  __APP_DEBUG_PANEL_ENABLED__?: unknown;
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
   localStorage?: {
     getItem: jest.Mock;
     setItem: jest.Mock;
@@ -61,7 +61,7 @@ describe("RightSidebar", () => {
   const originalLocalStorage = globalWithFeatureFlags.localStorage;
 
   beforeEach(() => {
-    delete globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__;
+    delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     globalWithFeatureFlags.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -91,7 +91,9 @@ describe("RightSidebar", () => {
   });
 
   it("renders the debug tab when enabled by env", () => {
-    globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__ = "true";
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      APP_DEBUG_PANEL_ENABLED: "true",
+    };
 
     const html = renderToStaticMarkup(React.createElement(RightSidebar));
 

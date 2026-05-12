@@ -12,14 +12,12 @@ function createNode(partial: Partial<TimelineNode> & Pick<TimelineNode, 'id' | '
 }
 
 const globalWithFeatureFlags = globalThis as typeof globalThis & {
-  __APP_DEBUG_PANEL_ENABLED__?: unknown;
-  __APP_SETTINGS_MENU_ENABLED__?: unknown;
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
 
 describe('slashCommands', () => {
   beforeEach(() => {
-    delete globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__;
-    delete globalWithFeatureFlags.__APP_SETTINGS_MENU_ENABLED__;
+    delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
   it('only opens for a standalone slash token', () => {
@@ -42,11 +40,16 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/debug')).toEqual([]);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
 
-    globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__ = 'true';
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      APP_DEBUG_PANEL_ENABLED: 'true',
+    };
     expect(getFilteredSlashCommands('/debug').map((item) => item.id)).toEqual(['debug']);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
 
-    globalWithFeatureFlags.__APP_SETTINGS_MENU_ENABLED__ = 'true';
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      APP_DEBUG_PANEL_ENABLED: 'true',
+      APP_SETTINGS_MENU_ENABLED: 'true',
+    };
     expect(getFilteredSlashCommands('/settings').map((item) => item.id)).toEqual(['settings']);
   });
 

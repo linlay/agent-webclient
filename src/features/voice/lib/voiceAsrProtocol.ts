@@ -4,6 +4,7 @@ import type {
 	VoiceClientGateSettings,
 } from "@/app/state/types";
 import { bytesToBase64 } from "@/features/voice/lib/voiceChatAudio";
+import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 
 export const DEFAULT_VOICE_WS_PATH = "/api/voice/ws";
 export type VoiceAsrDefaultsInput = NonNullable<
@@ -41,7 +42,7 @@ export const DEFAULT_VOICE_ASR_DEFAULTS: VoiceAsrDefaults = {
 };
 
 function readVoiceEnvValue(key: string): unknown {
-	return (globalThis as Record<string, unknown>)[key];
+	return readRuntimeConfigValue(key);
 }
 
 function parseVoiceEnvBoolean(key: string): boolean | undefined {
@@ -108,19 +109,19 @@ export function resolveVoiceClientGateEnvDefaults(): VoiceClientGateConfig {
 	return normalizeVoiceClientGateConfig(
 		{
 			enabled: parseVoiceEnvBoolean(
-				"__APP_VOICE_ASR_CLIENT_GATE_ENABLED__",
+				"APP_VOICE_ASR_CLIENT_GATE_ENABLED",
 			),
 			rmsThreshold: parseVoiceEnvNumber(
-				"__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__",
+				"APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
 			),
 			openHoldMs: parseVoiceEnvNumber(
-				"__APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS__",
+				"APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",
 			),
 			closeHoldMs: parseVoiceEnvNumber(
-				"__APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS__",
+				"APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS",
 			),
 			preRollMs: parseVoiceEnvNumber(
-				"__APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS__",
+				"APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS",
 			),
 		},
 		DEFAULT_VOICE_CLIENT_GATE,

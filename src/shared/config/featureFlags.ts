@@ -1,6 +1,4 @@
-function readFeatureFlagValue(key: string): unknown {
-  return (globalThis as Record<string, unknown>)[key];
-}
+import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 
 export function parseFeatureFlag(value: unknown): boolean {
   if (typeof value === "boolean") return value;
@@ -9,9 +7,9 @@ export function parseFeatureFlag(value: unknown): boolean {
 }
 
 export function isDebugPanelEnabled(): boolean {
-  return parseFeatureFlag(readFeatureFlagValue("__APP_DEBUG_PANEL_ENABLED__"));
+  return parseFeatureFlag(readRuntimeConfigValue("APP_DEBUG_PANEL_ENABLED"));
 }
 
 export function isSettingsMenuEnabled(): boolean {
-  return parseFeatureFlag(readFeatureFlagValue("__APP_SETTINGS_MENU_ENABLED__"));
+  return parseFeatureFlag(readRuntimeConfigValue("APP_SETTINGS_MENU_ENABLED"));
 }

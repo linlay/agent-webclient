@@ -11,18 +11,8 @@ import {
 } from "@/features/voice/lib/voiceAsrProtocol";
 
 describe("voiceAsrProtocol helpers", () => {
-	const envKeys = [
-		"__APP_VOICE_ASR_CLIENT_GATE_ENABLED__",
-		"__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__",
-		"__APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS__",
-		"__APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS__",
-		"__APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS__",
-	] as const;
-
 	afterEach(() => {
-		for (const key of envKeys) {
-			delete (globalThis as Record<string, unknown>)[key];
-		}
+		delete globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
 	});
 
 	it("builds an asr.start payload from backend defaults", () => {
@@ -82,17 +72,14 @@ describe("voiceAsrProtocol helpers", () => {
 		});
 	});
 
-	it("reads client gate defaults from injected frontend env values", () => {
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_ENABLED__ =
-			"false";
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__ =
-			"0.015";
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS__ =
-			"150";
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS__ =
-			"700";
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS__ =
-			"280";
+	it("reads client gate defaults from runtime env values", () => {
+		globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			APP_VOICE_ASR_CLIENT_GATE_ENABLED: "false",
+			APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
+			APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS: "150",
+			APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS: "700",
+			APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS: "280",
+		};
 
 		expect(resolveVoiceClientGateEnvDefaults()).toEqual({
 			enabled: false,
@@ -104,8 +91,9 @@ describe("voiceAsrProtocol helpers", () => {
 	});
 
 	it("merges env defaults with backend client gate settings", () => {
-		(globalThis as Record<string, unknown>).__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__ =
-			"0.015";
+		globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
+		};
 
 		expect(
 			mergeVoiceAsrDefaults({

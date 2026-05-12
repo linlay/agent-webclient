@@ -1,5 +1,5 @@
+const fs = require('fs');
 const path = require('path');
-const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
@@ -15,8 +15,61 @@ const allowedHosts = allowedHostsEnv === 'all'
     .map((host) => host.trim())
     .filter(Boolean);
 
-function defineEnvLiteral(value) {
-  return JSON.stringify(value == null ? '' : String(value));
+const runtimeConfigEnvKeys = [
+  'APP_DEBUG_PANEL_ENABLED',
+  'APP_SETTINGS_MENU_ENABLED',
+  'APP_VOICE_ASR_CLIENT_GATE_ENABLED',
+  'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
+  'APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
+  'APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS',
+  'APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS',
+];
+
+function parseEnvFileContent(content) {
+  const values = {};
+  String(content || '')
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const separatorIndex = trimmed.indexOf('=');
+      if (separatorIndex <= 0) return;
+      const key = trimmed.slice(0, separatorIndex).trim();
+      let value = trimmed.slice(separatorIndex + 1).trim();
+      if (
+        value.length >= 2 &&
+        ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'")))
+      ) {
+        value = value.slice(1, -1);
+      }
+      values[key] = value;
+    });
+  return values;
+}
+
+function readRuntimeEnvFile() {
+  try {
+    return parseEnvFileContent(fs.readFileSync(path.resolve(__dirname, '.env'), 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
+function resolveRuntimeConfig() {
+  const env = {
+    ...process.env,
+    ...readRuntimeEnvFile(),
+  };
+  return runtimeConfigEnvKeys.reduce((config, key) => {
+    config[key] = String(env[key] == null ? '' : env[key]).trim();
+    return config;
+  }, {});
+}
+
+function createRuntimeConfigScript() {
+  return `globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = ${JSON.stringify(resolveRuntimeConfig())};\n`;
 }
 
 function isSseQueryRequest(req) {
@@ -101,15 +154,6 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
-      new webpack.DefinePlugin({
-        'globalThis.__APP_DEBUG_PANEL_ENABLED__': defineEnvLiteral(process.env.APP_DEBUG_PANEL_ENABLED),
-        'globalThis.__APP_SETTINGS_MENU_ENABLED__': defineEnvLiteral(process.env.APP_SETTINGS_MENU_ENABLED),
-        'globalThis.__APP_VOICE_ASR_CLIENT_GATE_ENABLED__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_ENABLED),
-        'globalThis.__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD),
-        'globalThis.__APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS),
-        'globalThis.__APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS),
-        'globalThis.__APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS),
-      }),
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',
@@ -187,6 +231,14 @@ module.exports = (env, argv) => {
           }
         },
       ],
+      setupMiddlewares: (middlewares, devServer) => {
+        devServer.app.get('/runtime-config.js', (_req, res) => {
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(createRuntimeConfigScript());
+        });
+        return middlewares;
+      },
     },
     devtool: isProd ? 'source-map' : 'eval-cheap-module-source-map',
     performance: {
