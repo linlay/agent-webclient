@@ -210,9 +210,6 @@
 }
 
 .tool-call-copy {
-    min-height: 22px !important;
-    padding: 0 6px !important;
-    color: var(--ink-muted);
     position: absolute;
     top: -22px;
     right: 0;
@@ -225,19 +222,23 @@
 }
 
 .tool-call-copy .material-symbols-rounded {
-    font-size: 13px;
+    font-size: 14px;
 }
 
-.tool-call-copy:hover {
+.tool-call-copy button {
+    min-height: 22px !important;
+    width: 22px !important;
+    min-width: 22px !important;
+}
+.tool-call-copy button:hover {
     color: var(--ink-2);
     box-shadow: none;
 }
-
-.tool-call-copy[data-copy-state="copied"] {
+.tool-call-copy button[data-copy-state="copied"] {
     color: color-mix(in srgb, var(--accent-lime) 82%, var(--ink-2));
 }
 
-.tool-call-copy[data-copy-state="error"] {
+.tool-call-copy button[data-copy-state="error"] {
     color: color-mix(in srgb, var(--accent-danger) 86%, var(--ink-2));
 }
 
@@ -246,7 +247,6 @@
     overflow-x: auto;
     overflow-y: auto;
     max-height: calc(8 * 1.5em + 20px);
-    white-space: pre;
     word-break: break-word;
 }
 

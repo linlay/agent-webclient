@@ -5,6 +5,7 @@ import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { copyText } from "@/shared/utils/copy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { Flex, Tooltip } from "antd";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -36,15 +37,15 @@ function resolveStatusLabel(status?: string): string {
       ? "运行中"
       : value === "completed"
         ? "等待结果"
-      : value === "success"
-        ? "完成"
-        : value === "failed" || value === "error"
-          ? "失败"
-          : value === "canceled"
-            ? "已取消"
-            : value === "pending"
-              ? "等待中"
-              : value;
+        : value === "success"
+          ? "完成"
+          : value === "failed" || value === "error"
+            ? "失败"
+            : value === "canceled"
+              ? "已取消"
+              : value === "pending"
+                ? "等待中"
+                : value;
 }
 
 export function formatToolArgumentsInline(argsText: string): string {
@@ -118,6 +119,7 @@ export function canExpandToolPill(
 export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, string>>({});
+  const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
   const copyTimerRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -206,6 +208,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               : copyStatus[resultCopyKey] === "复制失败"
                 ? "error"
                 : "idle";
+          const isWrap = wrapMap[record.key] || false;
 
           return (
             <div
@@ -225,26 +228,51 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               )}
 
               <div className="tool-call-body">
-                <UiButton
-                  className="tool-call-copy"
-                  variant="ghost"
-                  size="sm"
-                  data-copy-state={resultCopyState}
-                  onClick={() => {
-                    void handleCopyResult(
-                      resultCopyKey,
-                      record.argsInlineText + "\n\n" + resultText,
-                    );
-                  }}
+                <Flex className="tool-call-copy">
+                  <Tooltip title={isWrap ? "禁用自动换行" : "自动换行"}>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      onClick={() =>
+                        setWrapMap((current) => ({
+                          ...current,
+                          [record.key]: !isWrap,
+                        }))
+                      }
+                    >
+                      <MaterialIcon
+                        name={
+                          isWrap ? "format_text_wrap" : "format_text_overflow"
+                        }
+                      />
+                    </UiButton>
+                  </Tooltip>
+                  <Tooltip title={resultCopyLabel}>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      data-copy-state={resultCopyState}
+                      onClick={() => {
+                        void handleCopyResult(
+                          resultCopyKey,
+                          record.argsInlineText + "\n\n" + resultText,
+                        );
+                      }}
+                    >
+                      <MaterialIcon
+                        name={
+                          resultCopyState === "copied" ? "check" : "content_copy"
+                        }
+                      />
+                    </UiButton>
+                  </Tooltip>
+                </Flex>
+                <code
+                  className="tool-call-result"
+                  style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
                 >
-                  <MaterialIcon
-                    name={
-                      resultCopyState === "copied" ? "check" : "content_copy"
-                    }
-                  />
-                  {resultCopyLabel}
-                </UiButton>
-                <code className="tool-call-result">
                   <JsonToTable className="input" text={record.argsInlineText} />
                   <span>{resultText}</span>
                 </code>
