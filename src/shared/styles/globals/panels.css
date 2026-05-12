@@ -11,7 +11,8 @@
     display: flex;
     flex-direction: row;
     align-items: stretch;
-    gap: 10px;
+    gap: 4px;
+    overflow: hidden;
 }
 
 .artifact-chevron {
@@ -27,23 +28,13 @@
 }
 
 .artifact-list {
-    flex: 1 1 auto;
-    min-width: 0;
     margin: 0;
     padding: 0;
-    height: 0;
     list-style: none;
-    overflow: hidden;
-    border: 0 solid transparent;
     display: flex;
     flex-wrap: nowrap;
     align-items: stretch;
-    gap: 10px;
-    transition: height 0.3s ease;
-}
-
-.artifact-list.is-collapsed {
-    height: 54px;
+    gap: 4px;
 }
 
 .artifact-item {
@@ -70,26 +61,13 @@
 }
 
 .artifact-actions {
-    position: absolute;
+    position: sticky;
     right: 0;
     backdrop-filter: blur(10px);
-    transition: transform 0.3s ease;
-    border-radius: 8px;
+    color: var(--text-muted);
 }
-
-.artifact-actions[data-collapse="false"] {
-    transform: translateY(-100%);
-}
-
-.artifact-actions .artifact-btn-expand,
-.artifact-actions .artifact-btn-collapse {
-    white-space: nowrap;
-    min-height: 22px;
-    padding: 0 6px;
-}
-
-.artifact-btn-collapse[data-collapse="false"] {
-    transform: rotate(180deg);
+.artifact-actions .ui-btn.ui-btn-ghost{
+    color: var(--text-muted);
 }
 
 /* ========================================
