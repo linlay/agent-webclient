@@ -102,6 +102,8 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new webpack.DefinePlugin({
+        'globalThis.__APP_DEBUG_PANEL_ENABLED__': defineEnvLiteral(process.env.APP_DEBUG_PANEL_ENABLED),
+        'globalThis.__APP_SETTINGS_MENU_ENABLED__': defineEnvLiteral(process.env.APP_SETTINGS_MENU_ENABLED),
         'globalThis.__APP_VOICE_ASR_CLIENT_GATE_ENABLED__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_ENABLED),
         'globalThis.__APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD),
         'globalThis.__APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS__': defineEnvLiteral(process.env.APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS),

@@ -20,6 +20,7 @@ import {
   SidebarSettingsMenu,
   type SidebarSettingsMenuAction,
 } from "@/features/settings/components/SidebarSettingsMenu";
+import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
@@ -45,6 +46,7 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
+  const settingsMenuEnabled = isSettingsMenuEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
@@ -504,54 +506,56 @@ export const LeftSidebar: React.FC = () => {
             )}
           </Spin>
         </div>
-        <Popover
-          open={settingsMenuOpen}
-          trigger={state.leftDrawerOpen ? "click" : "hover"}
-          placement="top"
-          arrow={false}
-          classNames={{
-            root: "sidebar-settings-popover",
-          }}
-          onOpenChange={setSettingsMenuOpen}
-          content={
-            <SidebarSettingsMenu
-              wsStatus={state.wsStatus}
-              wsErrorMessage={state.wsErrorMessage}
-              onAction={handleSettingsMenuAction}
-            />
-          }
-        >
-          <UiButton
-            className="icon-btn sidebar-settings-trigger"
-            id="settings-btn"
-            variant="ghost"
-            aria-label={t("leftSidebar.openSettingsMenu")}
-            aria-haspopup="menu"
-            aria-expanded={settingsMenuOpen}
+        {settingsMenuEnabled ? (
+          <Popover
+            open={settingsMenuOpen}
+            trigger={state.leftDrawerOpen ? "click" : "hover"}
+            placement="top"
+            arrow={false}
+            classNames={{
+              root: "sidebar-settings-popover",
+            }}
+            onOpenChange={setSettingsMenuOpen}
+            content={
+              <SidebarSettingsMenu
+                wsStatus={state.wsStatus}
+                wsErrorMessage={state.wsErrorMessage}
+                onAction={handleSettingsMenuAction}
+              />
+            }
           >
-            <MaterialIcon name="settings" />
-            {state.leftDrawerOpen && (
-              <>
-                <span>{t("leftSidebar.settings")}</span>
-                <span className="settings-trigger-summary">
-                  {settingsSummaryBadges.map((badge) => (
-                    <span
-                      key={badge.key}
-                      className="settings-summary-chip"
-                      title={badge.title}
-                    >
-                      <MaterialIcon
-                        name={badge.icon}
-                        className="settings-summary-chip-icon"
-                      />
-                      <span>{badge.label}</span>
-                    </span>
-                  ))}
-                </span>
-              </>
-            )}
-          </UiButton>
-        </Popover>
+            <UiButton
+              className="icon-btn sidebar-settings-trigger"
+              id="settings-btn"
+              variant="ghost"
+              aria-label={t("leftSidebar.openSettingsMenu")}
+              aria-haspopup="menu"
+              aria-expanded={settingsMenuOpen}
+            >
+              <MaterialIcon name="settings" />
+              {state.leftDrawerOpen && (
+                <>
+                  <span>{t("leftSidebar.settings")}</span>
+                  <span className="settings-trigger-summary">
+                    {settingsSummaryBadges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className="settings-summary-chip"
+                        title={badge.title}
+                      >
+                        <MaterialIcon
+                          name={badge.icon}
+                          className="settings-summary-chip-icon"
+                        />
+                        <span>{badge.label}</span>
+                      </span>
+                    ))}
+                  </span>
+                </>
+              )}
+            </UiButton>
+          </Popover>
+        ) : null}
       </aside>
 
       <SidebarHistorySection

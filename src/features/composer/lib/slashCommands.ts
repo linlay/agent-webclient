@@ -1,4 +1,5 @@
 import type { TimelineNode } from '@/app/state/types';
+import { isDebugPanelEnabled, isSettingsMenuEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 
 export type SlashCommandId =
@@ -151,6 +152,16 @@ function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashComm
   };
 }
 
+export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean {
+  if (commandId === 'debug') {
+    return isDebugPanelEnabled();
+  }
+  if (commandId === 'settings') {
+    return isSettingsMenuEnabled();
+  }
+  return true;
+}
+
 export function shouldShowSlashCommandPalette(input: string): boolean {
   return /^\/\S*$/.test(String(input || ''));
 }
@@ -160,7 +171,9 @@ export function getFilteredSlashCommands(input: string): ResolvedSlashCommandDef
     return [];
   }
   const query = String(input || '').slice(1).trim().toLowerCase();
-  const commands = SLASH_COMMANDS.map(resolveSlashCommand);
+  const commands = SLASH_COMMANDS
+    .filter((command) => isSlashCommandFeatureEnabled(command.id))
+    .map(resolveSlashCommand);
   if (!query) return commands;
 
   return commands.filter((command) => {

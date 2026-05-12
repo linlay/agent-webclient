@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
-import { type SlashCommandAvailability, type SlashCommandId, isSlashCommandDisabled } from "@/features/composer/lib/slashCommands";
+import { type SlashCommandAvailability, type SlashCommandId, isSlashCommandDisabled, isSlashCommandFeatureEnabled } from "@/features/composer/lib/slashCommands";
 import { createRemoteControlSession } from "@/features/transport/lib/apiClientProxy";
 
 export interface RemoteControlCommandContext {
@@ -44,6 +44,9 @@ export function useSlashCommandExecution(input: {
 
 	return useCallback(
 		async (commandId: SlashCommandId) => {
+			if (!isSlashCommandFeatureEnabled(commandId)) {
+				return;
+			}
 			if (isSlashCommandDisabled(commandId, slashAvailability)) {
 				return;
 			}

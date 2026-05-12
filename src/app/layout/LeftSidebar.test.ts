@@ -119,6 +119,7 @@ const globalWithStorage = globalThis as typeof globalThis & {
     setItem: jest.Mock;
     removeItem: jest.Mock;
   };
+  __APP_SETTINGS_MENU_ENABLED__?: unknown;
 };
 
 describe("LeftSidebar", () => {
@@ -274,6 +275,7 @@ describe("LeftSidebar", () => {
       transportMode: "sse",
       themeMode: "dark",
     });
+    delete globalWithStorage.__APP_SETTINGS_MENU_ENABLED__;
   });
 
   afterEach(() => {
@@ -300,7 +302,17 @@ describe("LeftSidebar", () => {
     }
   });
 
-  it("renders compact transport and theme summaries on the settings trigger", () => {
+  it("does not render the settings trigger by default", () => {
+    const html = renderSidebar();
+
+    expect(html).not.toContain('id="settings-btn"');
+    expect(html).not.toContain("打开设置菜单");
+    expect(html).not.toContain("settings-summary-chip");
+  });
+
+  it("renders compact transport and theme summaries on the settings trigger when enabled by env", () => {
+    globalWithStorage.__APP_SETTINGS_MENU_ENABLED__ = "true";
+
     const html = renderSidebar();
 
     expect(html).toContain('id="settings-btn"');

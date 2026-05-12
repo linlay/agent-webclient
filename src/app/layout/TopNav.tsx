@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
 import type { AppState } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -48,6 +49,7 @@ export const TopNav: React.FC = () => {
   const currentWorker = resolveCurrentWorkerSummary(state);
   const voiceModeAvailable = currentWorker?.type === "agent";
   const showMuteControl = voiceModeAvailable || ui.audioMuted;
+  const debugPanelEnabled = isDebugPanelEnabled();
   const isMacPlatform = React.useMemo(
     () =>
       typeof navigator !== "undefined" &&
@@ -248,25 +250,27 @@ export const TopNav: React.FC = () => {
             </UiButton>
           ) : null}
           <Divider type="vertical" />
-          <UiButton
-            className="icon-btn"
-            size="sm"
-            variant="ghost"
-            iconOnly
-            aria-label={
-              ui.rightSidebarOpen
-                ? t("topNav.debug.close")
-                : t("topNav.debug.open")
-            }
-            onClick={() => {
-              dispatch({
-                type: "OPEN_RIGHT_SIDEBAR",
-                tab: "debug",
-              });
-            }}
-          >
-            <MaterialIcon name="bug_report" />
-          </UiButton>
+          {debugPanelEnabled ? (
+            <UiButton
+              className="icon-btn"
+              size="sm"
+              variant="ghost"
+              iconOnly
+              aria-label={
+                ui.rightSidebarOpen
+                  ? t("topNav.debug.close")
+                  : t("topNav.debug.open")
+              }
+              onClick={() => {
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: "debug",
+                });
+              }}
+            >
+              <MaterialIcon name="bug_report" />
+            </UiButton>
+          ) : null}
           <UiButton
             variant="ghost"
             size="sm"

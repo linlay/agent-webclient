@@ -25,6 +25,7 @@ const globalWithStorage = globalThis as typeof globalThis & {
 		setItem: jest.Mock;
 		removeItem: jest.Mock;
 	};
+	__APP_DEBUG_PANEL_ENABLED__?: unknown;
 };
 
 describe("TopNav", () => {
@@ -38,6 +39,7 @@ describe("TopNav", () => {
 		};
 		useAppDispatch.mockReturnValue(jest.fn());
 		useAppState.mockReturnValue(createInitialState());
+		delete globalWithStorage.__APP_DEBUG_PANEL_ENABLED__;
 	});
 
 	afterAll(() => {
@@ -101,5 +103,21 @@ describe("TopNav", () => {
 
 		expect(html).toContain(">Idle<");
 		expect(html).toContain("status-pill is-idle");
+	});
+
+	it("does not render the debug panel button by default", () => {
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).not.toContain("Open debug panel");
+		expect(html).not.toContain("bug_report");
+	});
+
+	it("renders the debug panel button when enabled by env", () => {
+		globalWithStorage.__APP_DEBUG_PANEL_ENABLED__ = "true";
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Open debug panel");
+		expect(html).toContain("bug_report");
 	});
 });

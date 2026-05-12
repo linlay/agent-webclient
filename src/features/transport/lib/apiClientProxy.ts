@@ -530,11 +530,7 @@ export function searchGlobal(
 export function createRemoteControlSession(
 	params: RemoteControlSessionRequest,
 ): Promise<ApiResponse<RemoteControlSessionResponse>> {
-	return routeRequest<RemoteControlSessionResponse>(
-		"/api/remote-control/sessions",
-		params,
-		() => createRemoteControlSessionHttp(params),
-	);
+	return createRemoteControlSessionHttp(params);
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {

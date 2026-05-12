@@ -11,7 +11,17 @@ function createNode(partial: Partial<TimelineNode> & Pick<TimelineNode, 'id' | '
   return partial as TimelineNode;
 }
 
+const globalWithFeatureFlags = globalThis as typeof globalThis & {
+  __APP_DEBUG_PANEL_ENABLED__?: unknown;
+  __APP_SETTINGS_MENU_ENABLED__?: unknown;
+};
+
 describe('slashCommands', () => {
+  beforeEach(() => {
+    delete globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__;
+    delete globalWithFeatureFlags.__APP_SETTINGS_MENU_ENABLED__;
+  });
+
   it('only opens for a standalone slash token', () => {
     expect(shouldShowSlashCommandPalette('/')).toBe(true);
     expect(shouldShowSlashCommandPalette('/re')).toBe(true);
@@ -20,12 +30,24 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(13);
+    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(11);
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
     expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember', 'remote-control']);
     expect(getFilteredSlashCommands('/remote').map((item) => item.id)).toEqual(['remote-control']);
     expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
+  });
+
+  it('filters debug and settings commands by feature flags', () => {
+    expect(getFilteredSlashCommands('/debug')).toEqual([]);
+    expect(getFilteredSlashCommands('/settings')).toEqual([]);
+
+    globalWithFeatureFlags.__APP_DEBUG_PANEL_ENABLED__ = 'true';
+    expect(getFilteredSlashCommands('/debug').map((item) => item.id)).toEqual(['debug']);
+    expect(getFilteredSlashCommands('/settings')).toEqual([]);
+
+    globalWithFeatureFlags.__APP_SETTINGS_MENU_ENABLED__ = 'true';
+    expect(getFilteredSlashCommands('/settings').map((item) => item.id)).toEqual(['settings']);
   });
 
   it('uses 对话 wording for the new command', () => {

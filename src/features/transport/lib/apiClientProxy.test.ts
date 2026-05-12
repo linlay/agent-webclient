@@ -376,43 +376,28 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.saveMemoryScope).not.toHaveBeenCalled();
 	});
 
-	it("routes remote-control session creation over ws when connected", async () => {
+	it("keeps remote-control session creation on the original http export", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
-
-		const connect = jest.fn().mockResolvedValue(undefined);
-		const request = jest.fn().mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { sessionId: "rc_1" },
-		});
-		mockGetWsClient.mockReturnValue({
-			connect,
-			updateOptions: jest.fn(),
-			request,
-		});
-		mockGetWsClientAccessToken.mockReturnValue("");
-
-		await proxy.createRemoteControlSession({
+		const params = {
 			agentKey: "agent-a",
 			chatId: "chat-a",
 			teamId: "team-a",
 			title: "Assist",
 			startTunnel: true,
+		};
+		mockApiClient.createRemoteControlSession.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { sessionId: "rc_1" },
 		});
 
-		expect(request).toHaveBeenCalledWith({
-			type: "/api/remote-control/sessions",
-			payload: {
-				agentKey: "agent-a",
-				chatId: "chat-a",
-				teamId: "team-a",
-				title: "Assist",
-				startTunnel: true,
-			},
+		await expect(proxy.createRemoteControlSession(params)).resolves.toMatchObject({
+			data: { sessionId: "rc_1" },
 		});
-		expect(mockApiClient.createRemoteControlSession).not.toHaveBeenCalled();
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.createRemoteControlSession).toHaveBeenCalledWith(params);
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {

@@ -6,6 +6,7 @@ import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPre
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
+import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 
 const RIGHT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:right-sidebar-width";
 const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
@@ -57,6 +58,7 @@ function persistRightSidebarWidth(width: number): void {
 export const RightSidebar: React.FC = () => {
   const state = useAppState();
   const preview = state.attachmentPreview;
+  const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
   const [activeTab, setActiveTab] =
     React.useState<RightSidebarTabKey>("overview");
@@ -69,6 +71,14 @@ export const RightSidebar: React.FC = () => {
       return;
     }
 
+    if (
+      state.rightSidebarOpenTab === "debug" &&
+      !debugPanelEnabled
+    ) {
+      setActiveTab("overview");
+      return;
+    }
+
     if (state.rightSidebarOpenTab === "preview" && !preview) {
       setActiveTab("overview");
       return;
@@ -77,15 +87,23 @@ export const RightSidebar: React.FC = () => {
     setActiveTab(state.rightSidebarOpenTab);
   }, [
     preview,
+    debugPanelEnabled,
     state.rightSidebarOpen,
     state.rightSidebarOpenTab,
   ]);
 
   React.useEffect(() => {
+    if (
+      activeTab === "debug" &&
+      !debugPanelEnabled
+    ) {
+      setActiveTab("overview");
+      return;
+    }
     if (activeTab === "preview" && !preview) {
       setActiveTab("overview");
     }
-  }, [activeTab, preview]);
+  }, [activeTab, debugPanelEnabled, preview]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -168,13 +186,16 @@ export const RightSidebar: React.FC = () => {
         icon: <MaterialIcon name="dashboard" />,
         children: <OverviewTab />,
       },
-      {
+    ];
+
+    if (debugPanelEnabled) {
+      items.push({
         key: "debug",
         label: "调试",
         icon: <MaterialIcon name="bug_report" />,
         children: <DebugTab />,
-      },
-    ];
+      });
+    }
 
     if (preview) {
       items.push({
@@ -186,7 +207,7 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [preview]);
+  }, [debugPanelEnabled, preview]);
 
   return (
     <aside
