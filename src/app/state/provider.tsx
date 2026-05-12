@@ -13,7 +13,8 @@ import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/api/appAuth";
-import { getSchedules, setAccessToken } from "@/shared/api/apiClient";
+import { setAccessToken } from "@/shared/api/apiClient";
+import { getSchedules } from "@/features/transport/lib/apiClientProxy";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	applyThemeModeToDocument,

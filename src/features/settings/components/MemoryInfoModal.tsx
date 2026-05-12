@@ -9,7 +9,7 @@ import {
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
-} from "@/shared/api/apiClient";
+} from "@/features/transport/lib/apiClientProxy";
 import type {
   MemoryConsoleTab,
   MemoryContextPreviewResponse,

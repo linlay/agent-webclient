@@ -28,6 +28,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		ApiError: MockApiError,
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
+			createRemoteControlSession: jest.fn(),
 			createSchedule: jest.fn(),
 			createQueryStream: jest.fn(),
 			deleteArchive: jest.fn(),
@@ -42,6 +43,11 @@ jest.mock("@/shared/api/apiClient", () => {
 		getArchives: jest.fn(),
 		getChat: jest.fn(),
 		getChats: jest.fn(),
+			getMemoryMeta: jest.fn(),
+			getMemoryRecord: jest.fn(),
+			getMemoryRecords: jest.fn(),
+			getMemoryScope: jest.fn(),
+			getMemoryScopes: jest.fn(),
 			getCurrentAccessToken: jest.fn(),
 			getSchedule: jest.fn(),
 			getScheduleExecutions: jest.fn(),
@@ -68,8 +74,10 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
+		previewMemoryContext: jest.fn(),
 		searchArchives: jest.fn(),
 		searchGlobal: jest.fn(),
+		saveMemoryScope: jest.fn(),
 		setAccessToken: jest.fn(),
 			steerChat: jest.fn(),
 			submitFeedback: jest.fn(),
@@ -78,6 +86,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			toggleSchedule: jest.fn(),
 			updateSchedule: jest.fn(),
 			uploadFile: jest.fn(),
+			validateMemoryScope: jest.fn(),
 	};
 });
 jest.mock("./wsClientSingleton", () => ({
@@ -93,6 +102,7 @@ let mockApiClient: {
 	) => Error;
 		archiveChats: jest.Mock;
 		buildResourceUrl: jest.Mock;
+		createRemoteControlSession: jest.Mock;
 		createSchedule: jest.Mock;
 		createQueryStream: jest.Mock;
 		deleteArchive: jest.Mock;
@@ -107,6 +117,11 @@ let mockApiClient: {
 	getArchives: jest.Mock;
 	getChat: jest.Mock;
 	getChats: jest.Mock;
+		getMemoryMeta: jest.Mock;
+		getMemoryRecord: jest.Mock;
+		getMemoryRecords: jest.Mock;
+		getMemoryScope: jest.Mock;
+		getMemoryScopes: jest.Mock;
 		getCurrentAccessToken: jest.Mock;
 		getSchedule: jest.Mock;
 		getScheduleExecutions: jest.Mock;
@@ -122,8 +137,10 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
+	previewMemoryContext: jest.Mock;
 	searchArchives: jest.Mock;
 	searchGlobal: jest.Mock;
+	saveMemoryScope: jest.Mock;
 	setAccessToken: jest.Mock;
 	steerChat: jest.Mock;
 		submitFeedback: jest.Mock;
@@ -132,6 +149,7 @@ let mockApiClient: {
 		toggleSchedule: jest.Mock;
 		updateSchedule: jest.Mock;
 		uploadFile: jest.Mock;
+		validateMemoryScope: jest.Mock;
 	};
 let WsClientDisconnectedError: typeof import("./wsClient").WsClientDisconnectedError;
 let WsClientRequestTimeoutError: typeof import("./wsClient").WsClientRequestTimeoutError;
@@ -246,6 +264,155 @@ describe("apiClientProxy", () => {
 			payload: { id: "daily-demo" },
 		});
 		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
+	});
+
+	it("routes memory console calls over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {},
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getMemoryRecords({
+			agentKey: "agent-a",
+			keyword: "bugfix",
+			limit: 15,
+		});
+		await proxy.getMemoryRecord("agent-a", "mem_101");
+		await proxy.getMemoryScopes("agent-a");
+		await proxy.getMemoryMeta();
+		await proxy.getMemoryScope("agent-a", "agent", "agent:agent-a");
+		await proxy.validateMemoryScope("agent-a", "agent", "# AGENT");
+		await proxy.previewMemoryContext({
+			chatId: "chat-preview",
+			message: "hello",
+		});
+		await proxy.saveMemoryScope({
+			agentKey: "agent-a",
+			scopeType: "agent",
+			scopeKey: "agent:agent-a",
+			mode: "records",
+			records: [
+				{
+					title: "Preference",
+					summary: "Prefer concise answers.",
+					category: "general",
+					importance: 8,
+					confidence: 0.95,
+				},
+			],
+			archiveMissing: true,
+		});
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/memory/records",
+			payload: { agentKey: "agent-a", keyword: "bugfix", limit: 15 },
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/memory/record",
+			payload: { agentKey: "agent-a", id: "mem_101" },
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/memory/scopes",
+			payload: { agentKey: "agent-a" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/memory/meta",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(5, {
+			type: "/api/memory/scope",
+			payload: {
+				agentKey: "agent-a",
+				scopeType: "agent",
+				scopeKey: "agent:agent-a",
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/memory/scope/validate",
+			payload: { agentKey: "agent-a", scopeType: "agent", markdown: "# AGENT" },
+		});
+		expect(request).toHaveBeenNthCalledWith(7, {
+			type: "/api/memory/context/preview",
+			payload: { chatId: "chat-preview", message: "hello" },
+		});
+		expect(request).toHaveBeenNthCalledWith(8, {
+			type: "/api/memory/scope",
+			payload: {
+				agentKey: "agent-a",
+				scopeType: "agent",
+				scopeKey: "agent:agent-a",
+				mode: "records",
+				records: [
+					{
+						title: "Preference",
+						summary: "Prefer concise answers.",
+						category: "general",
+						importance: 8,
+						confidence: 0.95,
+					},
+				],
+				archiveMissing: true,
+			},
+		});
+		expect(mockApiClient.getMemoryRecords).not.toHaveBeenCalled();
+		expect(mockApiClient.getMemoryRecord).not.toHaveBeenCalled();
+		expect(mockApiClient.getMemoryScopes).not.toHaveBeenCalled();
+		expect(mockApiClient.getMemoryMeta).not.toHaveBeenCalled();
+		expect(mockApiClient.getMemoryScope).not.toHaveBeenCalled();
+		expect(mockApiClient.validateMemoryScope).not.toHaveBeenCalled();
+		expect(mockApiClient.previewMemoryContext).not.toHaveBeenCalled();
+		expect(mockApiClient.saveMemoryScope).not.toHaveBeenCalled();
+	});
+
+	it("routes remote-control session creation over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { sessionId: "rc_1" },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.createRemoteControlSession({
+			agentKey: "agent-a",
+			chatId: "chat-a",
+			teamId: "team-a",
+			title: "Assist",
+			startTunnel: true,
+		});
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/remote-control/sessions",
+			payload: {
+				agentKey: "agent-a",
+				chatId: "chat-a",
+				teamId: "team-a",
+				title: "Assist",
+				startTunnel: true,
+			},
+		});
+		expect(mockApiClient.createRemoteControlSession).not.toHaveBeenCalled();
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {

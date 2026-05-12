@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import { getMemoryRecords } from "@/shared/api/apiClient";
+import { getMemoryRecords } from "@/features/transport/lib/apiClientProxy";
 import { useI18n } from "@/shared/i18n";
 import { resolveMemoryAgentContext } from "@/features/settings/lib/memoryInfo";
 import { toText } from "@/shared/utils/eventUtils";

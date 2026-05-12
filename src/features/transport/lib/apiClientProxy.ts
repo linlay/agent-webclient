@@ -20,10 +20,16 @@ import {
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
+	getMemoryMeta as getMemoryMetaHttp,
+	getMemoryRecord as getMemoryRecordHttp,
+	getMemoryRecords as getMemoryRecordsHttp,
+	getMemoryScope as getMemoryScopeHttp,
+	getMemoryScopes as getMemoryScopesHttp,
 	getSchedule as getScheduleHttp,
 	getScheduleExecutions as getScheduleExecutionsHttp,
 	getSchedules as getSchedulesHttp,
 	normalizeChatSummariesPayload,
+	previewMemoryContext as previewMemoryContextHttp,
 	getResourceText,
 	getSkills as getSkillsHttp,
 	getTeams as getTeamsHttp,
@@ -34,6 +40,7 @@ import {
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
 	rememberChat as rememberChatHttp,
+	saveMemoryScope as saveMemoryScopeHttp,
 	setAccessToken,
 	steerChat as steerChatHttp,
 	submitFeedback as submitFeedbackHttp,
@@ -42,6 +49,7 @@ import {
 	toggleSchedule as toggleScheduleHttp,
 	updateSchedule as updateScheduleHttp,
 	uploadFile,
+	validateMemoryScope as validateMemoryScopeHttp,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -54,6 +62,7 @@ import {
 	type CreateScheduleRequest,
 	type DeleteScheduleRequest,
 	type FeedbackParams,
+	type GetMemoryRecordsParams,
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
@@ -68,6 +77,17 @@ import {
 	type ToggleScheduleRequest,
 	type UpdateScheduleRequest,
 } from "@/shared/api/apiClient";
+import type {
+	MemoryContextPreviewResponse,
+	MemoryMeta,
+	MemoryRecordDetail,
+	MemoryRecordsPayload,
+	MemoryScopeDetail,
+	MemoryScopeSavePayload,
+	MemoryScopeSaveResult,
+	MemoryScopesResponse,
+	MemoryScopeValidationResult,
+} from "@/shared/api/memoryTypes";
 import {
 	getWsClient,
 	getWsClientAccessToken,
@@ -162,6 +182,14 @@ async function routeRequest<T>(
 		}
 		return fallback();
 	}
+}
+
+function compactPayload(params: Record<string, unknown>): Record<string, unknown> {
+	return Object.fromEntries(
+		Object.entries(params).filter(
+			([, value]) => value !== undefined && value !== null && value !== "",
+		),
+	);
 }
 
 export function getAgents(): Promise<ApiResponse> {
@@ -362,6 +390,90 @@ export function getScheduleExecutions(
 	);
 }
 
+export function getMemoryRecords(
+	params: GetMemoryRecordsParams,
+): Promise<ApiResponse<MemoryRecordsPayload>> {
+	return routeRequest<MemoryRecordsPayload>(
+		"/api/memory/records",
+		compactPayload(params as Record<string, unknown>),
+		() => getMemoryRecordsHttp(params),
+	);
+}
+
+export function getMemoryRecord(
+	agentKey: string | undefined,
+	id: string,
+): Promise<ApiResponse<MemoryRecordDetail>> {
+	return routeRequest<MemoryRecordDetail>(
+		"/api/memory/record",
+		compactPayload({ agentKey, id }),
+		() => getMemoryRecordHttp(agentKey, id),
+	);
+}
+
+export function getMemoryScopes(
+	agentKey: string,
+): Promise<ApiResponse<MemoryScopesResponse>> {
+	return routeRequest<MemoryScopesResponse>(
+		"/api/memory/scopes",
+		compactPayload({ agentKey }),
+		() => getMemoryScopesHttp(agentKey),
+	);
+}
+
+export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
+	return routeRequest<MemoryMeta>(
+		"/api/memory/meta",
+		undefined,
+		() => getMemoryMetaHttp(),
+	);
+}
+
+export function getMemoryScope(
+	agentKey: string,
+	scopeType: string,
+	scopeKey?: string,
+): Promise<ApiResponse<MemoryScopeDetail>> {
+	return routeRequest<MemoryScopeDetail>(
+		"/api/memory/scope",
+		compactPayload({ agentKey, scopeType, scopeKey }),
+		() => getMemoryScopeHttp(agentKey, scopeType, scopeKey),
+	);
+}
+
+export function validateMemoryScope(
+	agentKey: string,
+	scopeType: string,
+	markdown: string,
+): Promise<ApiResponse<MemoryScopeValidationResult>> {
+	return routeRequest<MemoryScopeValidationResult>(
+		"/api/memory/scope/validate",
+		{ agentKey, scopeType, markdown },
+		() => validateMemoryScopeHttp(agentKey, scopeType, markdown),
+	);
+}
+
+export function previewMemoryContext(params: {
+	chatId: string;
+	message: string;
+}): Promise<ApiResponse<MemoryContextPreviewResponse>> {
+	return routeRequest<MemoryContextPreviewResponse>(
+		"/api/memory/context/preview",
+		params,
+		() => previewMemoryContextHttp(params),
+	);
+}
+
+export function saveMemoryScope(
+	payload: MemoryScopeSavePayload,
+): Promise<ApiResponse<MemoryScopeSaveResult>> {
+	return routeRequest<MemoryScopeSaveResult>(
+		"/api/memory/scope",
+		payload,
+		() => saveMemoryScopeHttp(payload),
+	);
+}
+
 export function submitTool(params: {
 	runId: string;
 	toolId: string;
@@ -418,7 +530,11 @@ export function searchGlobal(
 export function createRemoteControlSession(
 	params: RemoteControlSessionRequest,
 ): Promise<ApiResponse<RemoteControlSessionResponse>> {
-	return createRemoteControlSessionHttp(params);
+	return routeRequest<RemoteControlSessionResponse>(
+		"/api/remote-control/sessions",
+		params,
+		() => createRemoteControlSessionHttp(params),
+	);
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
