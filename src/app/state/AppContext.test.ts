@@ -1,5 +1,5 @@
 import type { WorkerConversationRow } from '@/app/state/types';
-import { appReducer, createInitialState } from '@/app/state/AppContext';
+import { appReducer, applyActionToStateRef, createInitialState } from '@/app/state/AppContext';
 import * as transportModeModule from '@/features/transport/lib/transportMode';
 
 describe('appReducer conversation reset behavior', () => {
@@ -386,6 +386,33 @@ describe('appReducer conversation reset behavior', () => {
     });
 
     expect(next.composerDraft).toBe('当前输入内容');
+  });
+
+  it('keeps stateRef current through rapid stream event dispatches', () => {
+    const stateRef = {
+      current: createInitialState(),
+    };
+    const events = [
+      { type: 'content.delta', delta: 'A' },
+      { type: 'content.delta', delta: 'B' },
+      { type: 'content.end', text: 'AB' },
+      { type: 'run.complete', runId: 'run_1' },
+    ];
+
+    for (const event of events) {
+      applyActionToStateRef(stateRef, { type: 'PUSH_EVENT', event });
+    }
+
+    expect(stateRef.current.events.map((event) => event.type)).toEqual([
+      'content.delta',
+      'content.delta',
+      'content.end',
+      'run.complete',
+    ]);
+    expect(stateRef.current.events.at(-1)).toEqual({
+      type: 'run.complete',
+      runId: 'run_1',
+    });
   });
 
   it('normalizes theme updates through the reducer', () => {

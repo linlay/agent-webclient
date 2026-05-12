@@ -33,6 +33,13 @@ export interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+export function applyActionToStateRef(
+	stateRef: React.MutableRefObject<AppState>,
+	action: AppAction,
+): void {
+	stateRef.current = appReducer(stateRef.current, action);
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
@@ -76,6 +83,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 				clearTimeout(timer);
 			}
 		}
+		applyActionToStateRef(stateRef, action);
 		baseDispatch(action);
 	}, []);
 
