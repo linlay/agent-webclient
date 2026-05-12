@@ -18,16 +18,15 @@
 .bottom-dock-stack {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    position: relative;
 }
 
-.bottom-dock-artifact-rail {
-    position: relative;
+.bottom-dock-artifact-rail, .bottom-dock-plan-rail {
     z-index: 5;
-}
-
-.bottom-dock-plan-rail {
-    position: relative;
+    position: absolute;
+    top: -4px;
+    transform: translateY(-100%);
+    width: 100%;
 }
 
 .bottom-dock-tool-rail,
