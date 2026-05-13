@@ -96,6 +96,48 @@ describe("confirm dialog state helpers", () => {
     ).toBeNull();
   });
 
+  it("validates date and datetime answers with exact formats", () => {
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.Date,
+          question: "日期",
+        },
+        { question: "日期", answer: "2026-05-13" },
+      ),
+    ).toBeNull();
+
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.Date,
+          question: "日期",
+        },
+        { question: "日期", answer: "2026-02-30" },
+      ),
+    ).toBe("请选择有效日期，格式为 YYYY-MM-DD");
+
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.DateTime,
+          question: "时间",
+        },
+        { question: "时间", answer: "2026-05-13 09:30:45" },
+      ),
+    ).toBeNull();
+
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.DateTime,
+          question: "时间",
+        },
+        { question: "时间", answer: "2026-05-13T09:30:45" },
+      ),
+    ).toBe("请选择有效日期，格式为 YYYY-MM-DD HH:mm:ss");
+  });
+
   it("tracks select free text separately from option values", () => {
     const question: AIAwaitQuestion = {
       type: AIAwaitQuestionType.MultiSelect,

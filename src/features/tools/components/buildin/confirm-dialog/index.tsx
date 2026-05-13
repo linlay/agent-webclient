@@ -2,6 +2,7 @@ import {
   Button,
   Checkbox,
   CheckboxRef,
+  DatePicker,
   Flex,
   Form,
   Input,
@@ -19,6 +20,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import dayjs from "dayjs";
 import {
   AIAwaitQuestion,
   AIAwaitQuestionType,
@@ -39,6 +41,7 @@ import {
   buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
+  getAwaitingDateFormat,
   getAwaitingAnswerError,
   getAwaitingQuestionHeading,
   getAwaitingQuestionPlaceholder,
@@ -49,6 +52,7 @@ import {
   getSelectOptions,
   getSelectOptionValue,
   hasAwaitingQuestions,
+  isValidAwaitingDateAnswer,
   isMultiSelectQuestionType,
   isSelectQuestionType,
   isEditableKeyboardTarget,
@@ -536,6 +540,47 @@ const Question = forwardRef<
                 ? value.answer
                 : null;
             if (e.key === "Enter" && nextValue !== null) {
+              e.preventDefault();
+              onEnterDebounce();
+            }
+          }}
+        />
+      </Flex>
+    );
+  }
+
+  if (
+    data.type === AIAwaitQuestionType.Date
+    || data.type === AIAwaitQuestionType.DateTime
+  ) {
+    const format = getAwaitingDateFormat(data);
+    const answer =
+      typeof value?.answer === "string"
+      && isValidAwaitingDateAnswer(data, value.answer)
+        ? value.answer
+        : "";
+    return (
+      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+        {renderQuestionHeader()}
+        <DatePicker
+          className={Style.InputField}
+          style={{ width: "auto" }}
+          tabIndex={0}
+          placeholder={placeholder || format}
+          format={format}
+          showTime={
+            data.type === AIAwaitQuestionType.DateTime
+              ? { format: "HH:mm:ss" }
+              : false
+          }
+          value={answer ? dayjs(answer) : null}
+          onChange={(nextValue) => {
+            setAnswer({
+              answer: nextValue ? nextValue.format(format) : undefined,
+            });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && answer) {
               e.preventDefault();
               onEnterDebounce();
             }

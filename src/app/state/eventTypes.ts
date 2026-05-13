@@ -1,104 +1,106 @@
 export enum AIChatEventTypeEnum {
-  Start = 'chat.start',
-  Update = 'chat.update',
-  Created = 'chat.created',
-  Updated = 'chat.updated',
-  Read = 'chat.read',
-  Unread = 'chat.unread',
+  Start = "chat.start",
+  Update = "chat.update",
+  Created = "chat.created",
+  Updated = "chat.updated",
+  Read = "chat.read",
+  Unread = "chat.unread",
 }
 
 export enum AIRequestEventTypeEnum {
-  Query = 'request.query',
-  Steer = 'request.steer',
+  Query = "request.query",
+  Steer = "request.steer",
 }
 
 export enum AIRunEventTypeEnum {
-  Start = 'run.start',
-  Cancel = 'run.cancel',
-  Complete = 'run.complete',
-  Error = 'run.error',
+  Start = "run.start",
+  Cancel = "run.cancel",
+  Complete = "run.complete",
+  Error = "run.error",
 }
 
 export enum AIContentEventTypeEnum {
-  Start = 'content.start',
-  Delta = 'content.delta',
-  Snapshot = 'content.snapshot',
-  End = 'content.end',
+  Start = "content.start",
+  Delta = "content.delta",
+  Snapshot = "content.snapshot",
+  End = "content.end",
 }
 
 export enum AIReasoningEventTypeEnum {
-  Start = 'reasoning.start',
-  Delta = 'reasoning.delta',
-  End = 'reasoning.end',
-  Snapshot = 'reasoning.snapshot',
+  Start = "reasoning.start",
+  Delta = "reasoning.delta",
+  End = "reasoning.end",
+  Snapshot = "reasoning.snapshot",
 }
 
 export enum AIPlanEventTypeEnum {
-  Create = 'plan.create',
-  Update = 'plan.update',
+  Create = "plan.create",
+  Update = "plan.update",
 }
 
 export enum AITaskEventTypeEnum {
-  Start = 'task.start',
-  Complete = 'task.complete',
-  Fail = 'task.fail',
-  Cancel = 'task.cancel',
+  Start = "task.start",
+  Complete = "task.complete",
+  Fail = "task.fail",
+  Cancel = "task.cancel",
 }
 
 export enum AIToolEventTypeEnum {
-  Start = 'tool.start',
-  Args = 'tool.args',
-  Snapshot = 'tool.snapshot',
-  End = 'tool.end',
-  Result = 'tool.result',
+  Start = "tool.start",
+  Args = "tool.args",
+  Snapshot = "tool.snapshot",
+  End = "tool.end",
+  Result = "tool.result",
 }
 
 export enum AIActionEventTypeEnum {
-  Start = 'action.start',
-  Args = 'action.args',
-  End = 'action.end',
-  Result = 'action.result',
-  Snapshot = 'action.snapshot',
+  Start = "action.start",
+  Args = "action.args",
+  End = "action.end",
+  Result = "action.result",
+  Snapshot = "action.snapshot",
 }
 
 export enum AIArtifactEventTypeEnum {
-  Publish = 'artifact.publish',
+  Publish = "artifact.publish",
 }
 
 export enum AIAwaitEventTypeEnum {
-  Ask = 'awaiting.ask',
-  Payload = 'awaiting.payload',
-  Answer = 'awaiting.answer',
+  Ask = "awaiting.ask",
+  Payload = "awaiting.payload",
+  Answer = "awaiting.answer",
 }
 
 export enum AIPlanStatusEnum {
-  Init = 'init',
-  Running = 'running',
-  Completed = 'completed',
-  Failed = 'failed',
-  Canceled = 'canceled',
+  Init = "init",
+  Running = "running",
+  Completed = "completed",
+  Failed = "failed",
+  Canceled = "canceled",
 }
 
 export enum ViewportTypeEnum {
-  Builtin = 'builtin',
-  Qlc = 'qlc',
-  Html = 'html',
+  Builtin = "builtin",
+  Qlc = "qlc",
+  Html = "html",
 }
 
 export enum AIAwaitQuestionType {
-  Text = 'text',
-  Number = 'number',
-  Select = 'select',
-  MultiSelect = 'multi-select',
-  Password = 'password',
+  Text = "text",
+  Number = "number",
+  Select = "select",
+  MultiSelect = "multi-select",
+  Password = "password",
+  Date = "date",
+  DateTime = "datetime",
 }
 
-export type AIAwaitMode = 'question' | 'approval' | 'form';
+export type AIAwaitMode = "question" | "approval" | "form";
 export type AIAwaitApprovalDecision =
-  | 'approve'
-  | 'reject'
-  | 'approve_prefix_run'
-  | 'approve_always'; // legacy replay compatibility only
+  | "approve"
+  | "reject"
+  | "approve_prefix_run"
+  | "approve_always"; // legacy replay compatibility only
 
 export interface ResourceData {
   name?: string;
@@ -172,7 +174,7 @@ export interface AIAwaitApprovalSubmitParamData {
   reason?: string;
 }
 
-export type AIAwaitFormSubmitAction = 'submit' | 'reject' | 'cancel';
+export type AIAwaitFormSubmitAction = "submit" | "reject" | "cancel";
 
 export interface AIAwaitFormSubmitParamData {
   id: string;
@@ -316,14 +318,17 @@ export interface AIAwaitPayloadEvent extends AIBaseEvent {
 }
 export interface AIAwaitAnswerEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Answer;
-  status: 'answered' | 'error';
+  status: "answered" | "error";
   answers?: AIAwaitQuestionSubmitParamData[];
   approvals?: AIAwaitApprovalSubmitParamData[];
   forms?: AIAwaitFormSubmitParamData[];
   error?: AIAwaitAnswerError;
 }
 
-export type AIAwaitEvent = AIAwaitAskEvent | AIAwaitPayloadEvent | AIAwaitAnswerEvent;
+export type AIAwaitEvent =
+  | AIAwaitAskEvent
+  | AIAwaitPayloadEvent
+  | AIAwaitAnswerEvent;
 
 export type AIEvent =
   | AIChatEvent

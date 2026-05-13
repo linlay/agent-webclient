@@ -76,6 +76,56 @@ export function isMultiSelectQuestionType(question: AIAwaitQuestion): boolean {
   return question.type === AIAwaitQuestionType.MultiSelect;
 }
 
+export function getAwaitingDateFormat(question: AIAwaitQuestion): string {
+  return question.type === AIAwaitQuestionType.DateTime
+    ? "YYYY-MM-DD HH:mm:ss"
+    : "YYYY-MM-DD";
+}
+
+function isValidDateParts(year: number, month: number, day: number): boolean {
+  const next = new Date(year, month - 1, day);
+  return (
+    next.getFullYear() === year
+    && next.getMonth() === month - 1
+    && next.getDate() === day
+  );
+}
+
+export function isValidAwaitingDateAnswer(
+  question: AIAwaitQuestion,
+  answer: unknown,
+): boolean {
+  if (typeof answer !== "string") {
+    return false;
+  }
+
+  const format = getAwaitingDateFormat(question);
+  if (format === "YYYY-MM-DD") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(answer);
+    if (!match) {
+      return false;
+    }
+    return isValidDateParts(
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3]),
+    );
+  }
+
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2}) ([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.exec(
+      answer,
+    );
+  if (!match) {
+    return false;
+  }
+  return isValidDateParts(
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+  );
+}
+
 export function getSelectOptionValue(option: AIAwaitQuestionOption): string {
   return option.value ?? option.label;
 }
@@ -112,6 +162,11 @@ export function getAwaitingAnswerError(
       return typeof value?.answer === "number" && Number.isFinite(value.answer)
         ? null
         : "请输入有效数字";
+    case AIAwaitQuestionType.Date:
+    case AIAwaitQuestionType.DateTime:
+      return isValidAwaitingDateAnswer(question, value?.answer)
+        ? null
+        : `请选择有效日期，格式为 ${getAwaitingDateFormat(question)}`;
     default:
       return "当前题型暂不支持";
   }
