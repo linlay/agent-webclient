@@ -116,4 +116,33 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).toContain('&quot;applicant_id&quot;: &quot;E1001&quot;');
     expect(html).toContain('&quot;days&quot;: 2');
   });
+
+  it('renders approval decisions with Chinese labels while keeping reasons visible', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AwaitingAnswerBlock, {
+        node: {
+          id: 'node_5',
+          kind: 'awaiting.answer',
+          text: JSON.stringify({
+            status: 'answered',
+            items: [
+              { id: 'a1', title: '普通审批', decision: 'approve' },
+              { id: 'a2', title: '前缀放行', decision: 'approve_prefix_run' },
+              { id: 'a3', title: '目录放行', decision: 'approve_root_run' },
+              { id: 'a4', title: '拒绝审批', decision: 'reject', reason: '风险过高' },
+            ],
+          }),
+          expanded: true,
+          ts: 0,
+        } as any,
+      }),
+    );
+
+    expect(html).toContain('同意');
+    expect(html).toContain('同意（本次运行同前缀都放行）');
+    expect(html).toContain('同意（本次运行同目录都放行）');
+    expect(html).toContain('拒绝 · 风险过高');
+    expect(html).not.toContain('approve_prefix_run');
+    expect(html).not.toContain('approve_root_run');
+  });
 });

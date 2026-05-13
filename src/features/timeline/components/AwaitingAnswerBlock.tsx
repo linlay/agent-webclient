@@ -35,6 +35,21 @@ function formatUnknownJson(value: unknown): string {
   }
 }
 
+function formatDecisionLabel(raw: string): string {
+  switch (raw) {
+    case "approve":
+      return "同意";
+    case "approve_prefix_run":
+      return "同意（本次运行同前缀都放行）";
+    case "approve_root_run":
+      return "同意（本次运行同目录都放行）";
+    case "reject":
+      return "拒绝";
+    default:
+      return raw;
+  }
+}
+
 function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswerDisplayItem {
   const id = String(item.id || "").trim();
   const question = String(item.question || "").trim();
@@ -48,12 +63,13 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
 
   if (typeof item.decision === "string" && item.decision.trim()) {
     const reason = String(item.reason || "").trim();
+    const decisionLabel = formatDecisionLabel(item.decision);
     return {
       key: `${id}:${item.decision}`,
       title,
       value: reason
-        ? `${item.decision} · ${reason}`
-        : item.decision,
+        ? `${decisionLabel} · ${reason}`
+        : decisionLabel,
     };
   }
 
