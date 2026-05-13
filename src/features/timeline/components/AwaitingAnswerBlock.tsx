@@ -39,10 +39,8 @@ function formatDecisionLabel(raw: string): string {
   switch (raw) {
     case "approve":
       return "同意";
-    case "approve_prefix_run":
-      return "同意（本次运行同前缀都放行）";
-    case "approve_root_run":
-      return "同意（本次运行同目录都放行）";
+    case "approve_rule_run":
+      return "同意（本次运行同规则都放行）";
     case "reject":
       return "拒绝";
     default:
