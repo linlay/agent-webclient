@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
-import type { AppState } from "@/app/state/types";
+import type { AppState, RightSidebarTabKey } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
@@ -138,6 +138,18 @@ export const TopNav: React.FC = () => {
     state.settingsOpen,
   ]);
 
+  const toggleRightSidebar = (tab: RightSidebarTabKey) => {
+    if (state.rightSidebarOpen) {
+      dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+      return;
+    }
+
+    dispatch({
+      type: "OPEN_RIGHT_SIDEBAR",
+      tab,
+    });
+  };
+
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
@@ -261,12 +273,10 @@ export const TopNav: React.FC = () => {
                   ? t("topNav.debug.close")
                   : t("topNav.debug.open")
               }
-              onClick={() => {
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: "debug",
-                });
-              }}
+              active={
+                state.rightSidebarOpen && state.rightSidebarOpenTab === "debug"
+              }
+              onClick={() => toggleRightSidebar("debug")}
             >
               <MaterialIcon name="bug_report" />
             </UiButton>
@@ -300,18 +310,10 @@ export const TopNav: React.FC = () => {
             size="sm"
             variant="ghost"
             iconOnly
-            active={state.rightSidebarOpen}
-            onClick={() => {
-              if (state.rightSidebarOpen) {
-                dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-                return;
-              }
-
-              dispatch({
-                type: "OPEN_RIGHT_SIDEBAR",
-                tab: "overview",
-              });
-            }}
+            active={
+              state.rightSidebarOpen && state.rightSidebarOpenTab !== "debug"
+            }
+            onClick={() => toggleRightSidebar("overview")}
           >
             <MaterialIcon name="dock_to_left" />
           </UiButton>

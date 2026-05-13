@@ -8,6 +8,8 @@ import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 
+type RightSidebarTabsKey = Exclude<RightSidebarTabKey, "debug">;
+
 const RIGHT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:right-sidebar-width";
 const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
 const RIGHT_SIDEBAR_MIN_WIDTH = 280;
@@ -60,8 +62,18 @@ export const RightSidebar: React.FC = () => {
   const preview = state.attachmentPreview;
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
+  const initialPanel =
+    state.rightSidebarOpenTab === "debug" && debugPanelEnabled
+      ? "debug"
+      : state.rightSidebarOpenTab === "preview" && preview
+        ? "preview"
+        : "overview";
+  const [activePanel, setActivePanel] =
+    React.useState<RightSidebarTabKey>(initialPanel);
   const [activeTab, setActiveTab] =
-    React.useState<RightSidebarTabKey>("overview");
+    React.useState<RightSidebarTabsKey>(
+      initialPanel === "debug" ? "overview" : initialPanel,
+    );
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
@@ -75,16 +87,21 @@ export const RightSidebar: React.FC = () => {
       state.rightSidebarOpenTab === "debug" &&
       !debugPanelEnabled
     ) {
+      setActivePanel("overview");
       setActiveTab("overview");
       return;
     }
 
     if (state.rightSidebarOpenTab === "preview" && !preview) {
+      setActivePanel("overview");
       setActiveTab("overview");
       return;
     }
 
-    setActiveTab(state.rightSidebarOpenTab);
+    setActivePanel(state.rightSidebarOpenTab);
+    if (state.rightSidebarOpenTab !== "debug") {
+      setActiveTab(state.rightSidebarOpenTab);
+    }
   }, [
     preview,
     debugPanelEnabled,
@@ -94,16 +111,18 @@ export const RightSidebar: React.FC = () => {
 
   React.useEffect(() => {
     if (
-      activeTab === "debug" &&
+      activePanel === "debug" &&
       !debugPanelEnabled
     ) {
+      setActivePanel("overview");
       setActiveTab("overview");
       return;
     }
-    if (activeTab === "preview" && !preview) {
+    if (activePanel === "preview" && !preview) {
+      setActivePanel("overview");
       setActiveTab("overview");
     }
-  }, [activeTab, debugPanelEnabled, preview]);
+  }, [activePanel, debugPanelEnabled, preview]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -188,15 +207,6 @@ export const RightSidebar: React.FC = () => {
       },
     ];
 
-    if (debugPanelEnabled) {
-      items.push({
-        key: "debug",
-        label: "调试",
-        icon: <MaterialIcon name="bug_report" />,
-        children: <DebugTab />,
-      });
-    }
-
     if (preview) {
       items.push({
         key: "preview",
@@ -207,7 +217,13 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [debugPanelEnabled, preview]);
+  }, [preview]);
+
+  const handleTabChange = React.useCallback((key: string) => {
+    const nextTab = key as RightSidebarTabsKey;
+    setActiveTab(nextTab);
+    setActivePanel(nextTab);
+  }, []);
 
   return (
     <aside
@@ -227,13 +243,17 @@ export const RightSidebar: React.FC = () => {
         onPointerDown={handleResizePointerDown}
         onKeyDown={handleResizeKeyDown}
       />
-      <Tabs
-        className="right-sidebar-tabs"
-        size="small"
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key as RightSidebarTabKey)}
-        items={tabItems}
-      />
+      {activePanel === "debug" && debugPanelEnabled ? (
+        <DebugTab />
+      ) : (
+        <Tabs
+          className="right-sidebar-tabs"
+          size="small"
+          activeKey={activeTab}
+          onChange={handleTabChange}
+          items={tabItems}
+        />
+      )}
     </aside>
   );
 };
