@@ -99,7 +99,7 @@ export type AIAwaitMode = "question" | "approval" | "form";
 export type AIAwaitApprovalDecision =
   | "approve"
   | "reject"
-  | "approve_prefix_run"
+  | "approve_rule_run"
   | "approve_always"; // legacy replay compatibility only
 
 export interface ResourceData {

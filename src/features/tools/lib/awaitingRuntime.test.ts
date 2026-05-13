@@ -236,7 +236,7 @@ describe('reduceActiveAwaiting', () => {
           description: '清理线上 Redis 缓存',
           options: [
             { label: '同意', decision: 'approve' },
-            { label: '同意（本次运行同前缀都放行）', decision: 'approve_prefix_run' },
+            { label: '同意（本次运行同规则都放行）', decision: 'approve_rule_run' },
             { label: '拒绝', decision: 'reject' },
           ],
           allowFreeText: true,
@@ -261,7 +261,7 @@ describe('reduceActiveAwaiting', () => {
         description: '清理线上 Redis 缓存',
         options: [
           { label: '同意', decision: 'approve' },
-          { label: '同意（本次运行同前缀都放行）', decision: 'approve_prefix_run' },
+          { label: '同意（本次运行同规则都放行）', decision: 'approve_rule_run' },
           { label: '拒绝', decision: 'reject' },
         ],
         allowFreeText: true,

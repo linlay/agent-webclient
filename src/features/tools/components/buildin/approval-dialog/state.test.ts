@@ -13,8 +13,8 @@ describe("approval dialog state helpers", () => {
         description: "只本次放行这条命令",
       },
       {
-        label: "同意（本次运行同前缀都放行）",
-        decision: "approve_prefix_run",
+        label: "同意（本次运行同规则都放行）",
+        decision: "approve_rule_run",
         description: "本次 run 内同规则命令自动放行，不再重复询问",
       },
       {
@@ -42,7 +42,7 @@ describe("approval dialog state helpers", () => {
     expect(buildApprovalSubmitParams(
       approvals,
       {
-        tool_1: "approve_prefix_run",
+        tool_1: "approve_rule_run",
         tool_2: "reject",
       },
       {
@@ -52,7 +52,7 @@ describe("approval dialog state helpers", () => {
     )).toEqual([
       {
         id: "tool_1",
-        decision: "approve_prefix_run",
+        decision: "approve_rule_run",
       },
       {
         id: "tool_2",

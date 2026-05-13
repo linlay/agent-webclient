@@ -199,7 +199,7 @@ function normalizeApprovalSubmitParam(
   if (
     decision !== 'approve'
     && decision !== 'reject'
-    && decision !== 'approve_prefix_run'
+    && decision !== 'approve_rule_run'
     && decision !== 'approve_always'
   ) {
     return null;

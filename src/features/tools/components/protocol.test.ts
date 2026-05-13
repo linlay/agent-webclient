@@ -288,13 +288,13 @@ describe('awaiting protocol helpers', () => {
     expect(normalizeAwaitingSubmitParams([
       {
         id: 'a1',
-        decision: 'approve_prefix_run',
+        decision: 'approve_rule_run',
         reason: '缺少说明',
       },
     ], 'approval')).toEqual([
       {
         id: 'a1',
-        decision: 'approve_prefix_run',
+        decision: 'approve_rule_run',
         reason: '缺少说明',
       },
     ]);
