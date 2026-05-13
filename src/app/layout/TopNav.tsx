@@ -139,7 +139,7 @@ export const TopNav: React.FC = () => {
   ]);
 
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {
-    if (state.rightSidebarOpen) {
+    if (state.rightSidebarOpen && tab === state.rightSidebarOpenTab) {
       dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
       return;
     }
