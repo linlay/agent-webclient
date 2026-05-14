@@ -1,7 +1,5 @@
 import type {
   AgentEvent,
-  TaskGroupMeta,
-  TaskItemMeta,
   TimelineNode,
 } from '@/app/state/types';
 import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
@@ -206,35 +204,7 @@ describe('buildTimelineDisplayItems', () => {
     });
   });
 
-  it('keeps ordinary task nodes in the run mainline even when task metadata is present', () => {
-    const taskItemsById = new Map<string, TaskItemMeta>([
-      ['task_1', {
-        taskId: 'task_1',
-        taskName: 'Explore webclient task panel rendering',
-        taskGroupId: 'group_1',
-        runId: 'run_1',
-        status: 'completed',
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        error: '',
-      }],
-    ]);
-    const taskGroupsById = new Map<string, TaskGroupMeta>([
-      ['group_1', {
-        groupId: 'group_1',
-        runId: 'run_1',
-        title: 'Explore webclient task panel rendering',
-        status: 'completed',
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        childTaskIds: ['task_1'],
-      }],
-    ]);
-
+  it('groups task-owned reasoning/tool/content nodes into one task-group render entry', () => {
     const items = buildTimelineDisplayItems(
       [
         createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
@@ -246,165 +216,150 @@ describe('buildTimelineDisplayItems', () => {
         { type: 'request.query', timestamp: 100 },
         { type: 'run.complete', timestamp: 200 },
       ],
-      { taskItemsById, taskGroupsById, now: 200 },
+      new Map([
+        ['task_1', {
+          taskId: 'task_1',
+          taskName: 'Explore webclient task panel rendering',
+          taskGroupId: 'group_1',
+          runId: 'run_1',
+          status: 'completed',
+          startedAt: 110,
+          endedAt: 180,
+          durationMs: 70,
+          updatedAt: 180,
+          error: '',
+        }],
+      ]),
     );
 
-    expect(items[1].kind === 'run' ? items[1].sections : []).toEqual([
-      {
-        kind: 'mainline',
-        key: 'mainline_thinking_1',
-        renderEntries: [
-          { kind: 'node', key: 'node_thinking_1', node: expect.objectContaining({ id: 'thinking_1' }) },
-          { kind: 'node', key: 'node_tool_1', node: expect.objectContaining({ id: 'tool_1' }) },
-          { kind: 'node', key: 'node_content_1', node: expect.objectContaining({ id: 'content_1' }) },
-        ],
-      },
+    const entries = items[1].kind === 'run' ? items[1].renderEntries : [];
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      kind: 'task-group',
+      taskId: 'task_1',
+      taskName: 'Explore webclient task panel rendering',
+      status: 'completed',
+      durationMs: 70,
+      nodes: [
+        expect.objectContaining({ id: 'thinking_1' }),
+        expect.objectContaining({ id: 'tool_1' }),
+        expect.objectContaining({ id: 'content_1' }),
+      ],
+    });
+    expect(entries[0].kind === 'task-group' ? entries[0].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'node_thinking_1',
+      'node_tool_1',
+      'node_content_1',
     ]);
   });
 
-  it('builds a task group section for a single sub-agent task', () => {
-    const taskItemsById = new Map<string, TaskItemMeta>([
-      ['task_1', {
-        taskId: 'task_1',
-        taskName: 'Explore webclient task panel rendering',
-        taskGroupId: 'group_1',
-        subAgentKey: 'subagent_1',
-        runId: 'run_1',
-        status: 'completed',
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        error: '',
-      }],
-    ]);
-    const taskGroupsById = new Map<string, TaskGroupMeta>([
-      ['group_1', {
-        groupId: 'group_1',
-        runId: 'run_1',
-        title: 'Explore webclient task panel rendering',
-        status: 'completed',
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        childTaskIds: ['task_1'],
-      }],
-    ]);
+  it('keeps task-owned request.query nodes inside the task group', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_task_1', kind: 'message', role: 'user', text: 'task question', taskId: 'task_1', taskName: 'Task A', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'task answer', taskId: 'task_1', taskName: 'Task A', ts: 120 }),
+      ],
+      [{ type: 'run.complete', timestamp: 150 }],
+    );
 
+    expect(items).toHaveLength(1);
+    const entries = items[0].kind === 'run' ? items[0].renderEntries : [];
+    expect(entries[0]).toMatchObject({
+      kind: 'task-group',
+      taskId: 'task_1',
+      nodes: [
+        expect.objectContaining({ id: 'user_task_1' }),
+        expect.objectContaining({ id: 'content_1' }),
+      ],
+    });
+  });
+
+  it('preserves order across mixed task and non-task nodes', () => {
     const items = buildTimelineDisplayItems(
       [
         createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
-        createNode({ id: 'thinking_1', kind: 'thinking', text: 'plan', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 110 }),
-        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 120 }),
-        createNode({ id: 'content_1', kind: 'content', text: 'answer', taskId: 'task_1', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_1', subAgentKey: 'subagent_1', ts: 130 }),
+        createNode({ id: 'thinking_1', kind: 'thinking', text: 'plan', ts: 110 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Task A', taskGroupId: 'group_1', ts: 120 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'answer', ts: 130 }),
       ],
       [
         { type: 'request.query', timestamp: 100 },
         { type: 'run.complete', timestamp: 200 },
       ],
-      { taskItemsById, taskGroupsById, now: 200 },
     );
 
-    expect(items[1].kind === 'run' ? items[1].sections : []).toEqual([
-      {
-        kind: 'task-group',
-        key: 'task_group_group_1',
-        group: expect.objectContaining({
-          groupId: 'group_1',
-          title: 'Explore webclient task panel rendering',
-          childTasks: [
-            expect.objectContaining({
-              taskId: 'task_1',
-              subAgentKey: 'subagent_1',
-            }),
-          ],
-        }),
-      },
+    expect(items[1].kind === 'run' ? items[1].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'node_thinking_1',
+      'task_group_task_1_tool_1',
+      'node_content_1',
     ]);
   });
 
-  it('groups three parallel tasks under one section and preserves each child task card', () => {
-    const taskItemsById = new Map<string, TaskItemMeta>([
-      ['task_1', {
-        taskId: 'task_1',
-        taskName: 'Explore agentOrchestrator definition',
-        taskGroupId: 'group_parallel',
-        subAgentKey: 'subagent_1',
-        runId: 'run_1',
-        status: 'completed',
-        startedAt: 110,
-        endedAt: 190,
-        durationMs: 80,
-        updatedAt: 190,
-        error: '',
-      }],
-      ['task_2', {
-        taskId: 'task_2',
-        taskName: 'Explore _invoke_agent_ runtime orchestration',
-        taskGroupId: 'group_parallel',
-        subAgentKey: 'subagent_2',
-        runId: 'run_1',
-        status: 'completed',
-        startedAt: 115,
-        endedAt: 195,
-        durationMs: 80,
-        updatedAt: 195,
-        error: '',
-      }],
-      ['task_3', {
-        taskId: 'task_3',
-        taskName: 'Explore webclient task panel rendering',
-        taskGroupId: 'group_parallel',
-        subAgentKey: 'subagent_3',
-        runId: 'run_1',
-        status: 'running',
-        startedAt: 120,
-        endedAt: undefined,
-        durationMs: undefined,
-        updatedAt: 200,
-        error: '',
-      }],
-    ]);
-    const taskGroupsById = new Map<string, TaskGroupMeta>([
-      ['group_parallel', {
-        groupId: 'group_parallel',
-        runId: 'run_1',
-        title: 'Running 3 tasks...',
-        status: 'running',
-        startedAt: 110,
-        endedAt: undefined,
-        durationMs: undefined,
-        updatedAt: 200,
-        childTaskIds: ['task_1', 'task_2', 'task_3'],
-      }],
-    ]);
-
+  it('creates separate task groups when taskId changes', () => {
     const items = buildTimelineDisplayItems(
       [
         createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
-        createNode({ id: 'content_1', kind: 'content', text: 'A', taskId: 'task_1', taskName: 'Explore agentOrchestrator definition', taskGroupId: 'group_parallel', subAgentKey: 'subagent_1', ts: 130 }),
-        createNode({ id: 'content_2', kind: 'content', text: 'B', taskId: 'task_2', taskName: 'Explore _invoke_agent_ runtime orchestration', taskGroupId: 'group_parallel', subAgentKey: 'subagent_2', ts: 140 }),
-        createNode({ id: 'content_3', kind: 'content', text: 'C', taskId: 'task_3', taskName: 'Explore webclient task panel rendering', taskGroupId: 'group_parallel', subAgentKey: 'subagent_3', ts: 150 }),
+        createNode({ id: 'thinking_1', kind: 'thinking', taskId: 'task_1', taskName: 'Task A', ts: 110 }),
+        createNode({ id: 'thinking_2', kind: 'thinking', taskId: 'task_2', taskName: 'Task B', ts: 120 }),
       ],
-      [
-        { type: 'request.query', timestamp: 100 },
-        { type: 'run.complete', timestamp: 220 },
-      ],
-      { taskItemsById, taskGroupsById, now: 220 },
+      [{ type: 'request.query', timestamp: 100 }],
     );
 
-    expect(items[1].kind === 'run' ? items[1].sections[0] : null).toEqual({
-      kind: 'task-group',
-      key: 'task_group_group_parallel',
-      group: expect.objectContaining({
-        title: 'Running 3 tasks...',
-        childTasks: [
-          expect.objectContaining({ taskId: 'task_1' }),
-          expect.objectContaining({ taskId: 'task_2' }),
-          expect.objectContaining({ taskId: 'task_3' }),
+    expect(items[1].kind === 'run' ? items[1].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'task_group_task_1_thinking_1',
+      'task_group_task_2_thinking_2',
+    ]);
+  });
+
+  it('merges non-consecutive nodes with the same taskId into the first task group', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
+        createNode({ id: 'thinking_1', kind: 'thinking', taskId: 'task_1', taskName: 'Task A', ts: 110 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'between', ts: 120 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Task A', ts: 130 }),
+      ],
+      [{ type: 'request.query', timestamp: 100 }],
+    );
+
+    const entries = items[1].kind === 'run' ? items[1].renderEntries : [];
+    expect(entries.map((entry) => entry.key)).toEqual([
+      'task_group_task_1_thinking_1',
+      'node_content_1',
+    ]);
+    expect(entries[0].kind === 'task-group' ? entries[0].nodes.map((node) => node.id) : []).toEqual([
+      'thinking_1',
+      'tool_1',
+    ]);
+    expect(entries[0].kind === 'task-group' ? entries[0].renderEntries.map((entry) => entry.key) : []).toEqual([
+      'node_thinking_1',
+      'node_tool_1',
+    ]);
+  });
+
+  it('still merges matching tool nodes inside a task group', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
+        createNode({ id: 'tool_1', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Task A', ts: 110 }),
+        createNode({ id: 'tool_2', kind: 'tool', toolName: '_sandbox_bash_', toolLabel: '执行命令', taskId: 'task_1', taskName: 'Task A', ts: 120 }),
+      ],
+      [{ type: 'request.query', timestamp: 100 }],
+    );
+
+    const entries = items[1].kind === 'run' ? items[1].renderEntries : [];
+    expect(entries[0].kind === 'task-group' ? entries[0].renderEntries : []).toEqual([
+      {
+        kind: 'tool-group',
+        key: 'tool_group_tool_1',
+        toolName: '_sandbox_bash_',
+        toolLabel: '执行命令',
+        count: 2,
+        nodes: [
+          expect.objectContaining({ id: 'tool_1' }),
+          expect.objectContaining({ id: 'tool_2' }),
         ],
-      }),
-    });
+      },
+    ]);
   });
 });

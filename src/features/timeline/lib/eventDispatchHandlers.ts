@@ -90,18 +90,6 @@ export function applyLiveEventCommand(input: {
 			cache.taskItemsById.set(command.taskId, command.task);
 			dispatch({ type: "SET_TASK_ITEM_META", taskId: command.taskId, task: command.task });
 			return;
-		case "SET_TASK_GROUP_META":
-			cache.taskGroupsById.set(command.groupId, command.group);
-			dispatch({ type: "SET_TASK_GROUP_META", groupId: command.groupId, group: command.group });
-			return;
-		case "SET_AGENT_GROUP_ADD_TASK":
-			cache.agentGroupsByGroupId.set(command.groupId, command.group);
-			cache.groupIdByMainToolId.set(command.group.mainToolId, command.groupId);
-			for (const taskId of command.group.taskIds) {
-				cache.groupIdByTaskId.set(taskId, command.groupId);
-			}
-			dispatch({ type: "SET_AGENT_GROUP_ADD_TASK", groupId: command.groupId, group: command.group });
-			return;
 		case "ADD_ACTIVE_TASK_ID":
 			cache.activeTaskIds.add(command.taskId);
 			dispatch({ type: "ADD_ACTIVE_TASK_ID", taskId: command.taskId });
@@ -126,6 +114,10 @@ export function applyLiveEventCommand(input: {
 				text: command.text,
 				attachments: command.attachments,
 				ts: command.ts,
+				taskId: command.taskId,
+				taskName: command.taskName,
+				taskGroupId: command.taskGroupId,
+				subAgentKey: command.subAgentKey,
 			});
 			cache.nodeText.set(command.nodeId, command.text);
 			dispatch({
@@ -140,6 +132,10 @@ export function applyLiveEventCommand(input: {
 					text: command.text,
 					attachments: command.attachments,
 					ts: command.ts,
+					taskId: command.taskId,
+					taskName: command.taskName,
+					taskGroupId: command.taskGroupId,
+					subAgentKey: command.subAgentKey,
 				},
 			});
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: command.nodeId });

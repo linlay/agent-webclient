@@ -1,8 +1,6 @@
 import type {
 	ActiveAwaiting,
-	AgentGroup,
 	AppState,
-	TaskGroupMeta,
 	TaskItemMeta,
 	TimelineNode,
 	ToolState,
@@ -21,11 +19,7 @@ export interface LocalCache {
 	toolNodeById: Map<string, string>;
 	toolStateById: Map<string, ToolState>;
 	taskItemsById: Map<string, TaskItemMeta>;
-	taskGroupsById: Map<string, TaskGroupMeta>;
 	activeTaskIds: Set<string>;
-	agentGroupsByGroupId: Map<string, AgentGroup>;
-	groupIdByTaskId: Map<string, string>;
-	groupIdByMainToolId: Map<string, string>;
 	nodeById: Map<string, TimelineNode>;
 	nodeText: Map<string, string>;
 	counter: number;
@@ -44,11 +38,7 @@ export function createLocalCache(): LocalCache {
 		toolNodeById: new Map(),
 		toolStateById: new Map(),
 		taskItemsById: new Map(),
-		taskGroupsById: new Map(),
 		activeTaskIds: new Set(),
-		agentGroupsByGroupId: new Map(),
-		groupIdByTaskId: new Map(),
-		groupIdByMainToolId: new Map(),
 		nodeById: new Map(),
 		nodeText: new Map(),
 		counter: 0,
@@ -73,11 +63,7 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 		toolNodeById: new Map(state.toolNodeById),
 		toolStateById: new Map(state.toolStates),
 		taskItemsById: new Map(state.taskItemsById),
-		taskGroupsById: new Map(state.taskGroupsById),
 		activeTaskIds: new Set(state.activeTaskIds),
-		agentGroupsByGroupId: new Map(state.agentGroupsByGroupId),
-		groupIdByTaskId: new Map(state.groupIdByTaskId),
-		groupIdByMainToolId: new Map(state.groupIdByMainToolId),
 		nodeById: new Map(state.timelineNodes),
 		nodeText,
 		counter: state.timelineCounter,
@@ -143,8 +129,6 @@ export function shouldSyncLiveCache(
 		hasStateAheadNodeMap(cache.reasoningNodeById, state.reasoningNodeById) ||
 		hasStateAheadNodeMap(cache.toolNodeById, state.toolNodeById) ||
 		hasStateAheadObjectMap(cache.taskItemsById, state.taskItemsById) ||
-		hasStateAheadObjectMap(cache.taskGroupsById, state.taskGroupsById) ||
-		hasStateAheadObjectMap(cache.agentGroupsByGroupId, state.agentGroupsByGroupId) ||
 		hasStateAheadNodeText(cache, state)
 	);
 }
@@ -167,8 +151,6 @@ export function createLiveProcessorState(
 		runId: cache.runId || toText(state.runId),
 		currentRunningPlanTaskId: state.planCurrentRunningTaskId,
 		getTaskItem: (taskId) => cache.taskItemsById.get(taskId) ?? state.taskItemsById.get(taskId),
-		getTaskGroup: (groupId) => cache.taskGroupsById.get(groupId) ?? state.taskGroupsById.get(groupId),
-		getAgentGroup: (groupId) => cache.agentGroupsByGroupId.get(groupId) ?? state.agentGroupsByGroupId.get(groupId),
 		getActiveTaskIds: () => Array.from(cache.activeTaskIds.size > 0 ? cache.activeTaskIds : state.activeTaskIds),
 		getPlanTaskDescription: (taskId) =>
 			state.plan?.plan.find((item) => item.taskId === taskId)?.description,

@@ -26,7 +26,6 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		taskItemsById: new Map(),
-		taskGroupsById: new Map(),
 		planCurrentRunningTaskId: "",
 		planLastTouchedTaskId: "",
 		toolStates: new Map(),

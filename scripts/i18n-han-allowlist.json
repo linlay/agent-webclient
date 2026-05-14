@@ -23,7 +23,6 @@
   "src/features/timeline/components/ContentBlock.tsx",
   "src/features/timeline/components/ConversationStage.tsx",
   "src/features/timeline/components/FrontendToolOverlay.tsx",
-  "src/features/timeline/components/TaskGroupSection.tsx",
   "src/features/timeline/components/ThinkingBlock.tsx",
   "src/features/timeline/components/TimelineRow.tsx",
   "src/features/timeline/components/ToolPill.tsx",

@@ -70,26 +70,6 @@ export interface TaskItemMeta {
 	error: string;
 }
 
-export interface TaskGroupMeta {
-	groupId: string;
-	runId: string;
-	title: string;
-	explicitTitle?: string;
-	status: string;
-	startedAt?: number;
-	endedAt?: number;
-	durationMs?: number;
-	updatedAt: number;
-	childTaskIds: string[];
-}
-
-export interface AgentGroup {
-	groupId: string;
-	mainToolId: string;
-	taskIds: string[];
-	createdAt: number;
-}
-
 export interface ActiveFrontendTool {
 	key: string;
 	runId: string;

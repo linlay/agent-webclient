@@ -93,9 +93,9 @@ export const ComposerArea: React.FC = () => {
   );
   const isTimelineEmpty = useMemo(() => {
     return (
-      buildTimelineDisplayItems(timelineEntries, state.events).length === 0
+      buildTimelineDisplayItems(timelineEntries, state.events, state.taskItemsById).length === 0
     );
-  }, [state.events, timelineEntries]);
+  }, [state.events, state.taskItemsById, timelineEntries]);
   const isBlankConversation =
     isTimelineEmpty && !String(state.chatId || "").trim();
 

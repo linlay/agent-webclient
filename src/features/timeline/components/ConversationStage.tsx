@@ -10,9 +10,10 @@ import {
   TimelineRow,
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
-import { TaskGroupSection } from "@/features/timeline/components/TaskGroupSection";
-import { AgentGroupCard } from "@/features/timeline/components/AgentGroupCard";
-import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
+import {
+  buildTimelineDisplayItems,
+  type TimelineRenderEntry,
+} from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -46,6 +47,21 @@ function formatResponseDuration(durationMs?: number): string {
   return `${hours}小时${remainMinutes}分`;
 }
 
+function formatTaskStatus(status: string): string {
+  switch (status) {
+    case "running":
+      return "进行中";
+    case "completed":
+      return "已完成";
+    case "failed":
+      return "失败";
+    case "canceled":
+      return "已取消";
+    default:
+      return status || "任务";
+  }
+}
+
 export const ConversationStage: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -53,6 +69,7 @@ export const ConversationStage: React.FC = () => {
   const autoScrollEnabledRef = useRef(true);
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
+  const [expandedTaskGroups, setExpandedTaskGroups] = useState<Record<string, boolean>>({});
   const currentWorker = resolveCurrentWorkerSummary(state);
 
   const isNearBottom = (el: HTMLDivElement, threshold = 24): boolean => {
@@ -71,16 +88,8 @@ export const ConversationStage: React.FC = () => {
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
   }, [state.timelineOrder, state.timelineNodes]);
   const displayItems = useMemo(() => {
-    return buildTimelineDisplayItems(timelineEntries, state.events, {
-      taskItemsById: state.taskItemsById,
-      taskGroupsById: state.taskGroupsById,
-    });
-  }, [
-    timelineEntries,
-    state.events,
-    state.taskItemsById,
-    state.taskGroupsById,
-  ]);
+    return buildTimelineDisplayItems(timelineEntries, state.events, state.taskItemsById);
+  }, [timelineEntries, state.events, state.taskItemsById]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -159,15 +168,52 @@ export const ConversationStage: React.FC = () => {
     [state.streaming],
   );
 
-  const renderEntry = useCallback((entry: any) => {
+  const toggleTaskGroup = useCallback((key: string) => {
+    setExpandedTaskGroups((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, []);
+
+  const renderEntry = useCallback((entry: TimelineRenderEntry) => {
     if (entry.kind === "node") {
-      if (entry.node.kind === "agent-group" && entry.node.groupId) {
-        return <AgentGroupCard key={entry.key} groupId={entry.node.groupId} />;
-      }
+      if (entry.node.kind === "agent-group") return null;
       return <TimelineRow key={entry.key} node={entry.node} />;
     }
+    if (entry.kind === "task-group") {
+      const expanded = Boolean(expandedTaskGroups[entry.key]);
+      const taskDuration = formatResponseDuration(entry.durationMs);
+      const statusText = formatTaskStatus(entry.status);
+      return (
+        <section key={entry.key} className="timeline-task-group">
+          <button
+            type="button"
+            className={`timeline-task-group-header ${expanded ? "is-expanded" : ""}`.trim()}
+            aria-expanded={expanded}
+            onClick={() => toggleTaskGroup(entry.key)}
+          >
+            <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+            <span className="timeline-task-group-title">{entry.taskName || entry.taskId}</span>
+            <span className={`timeline-task-group-status is-${entry.status || "unknown"}`.trim()}>
+              {statusText}
+            </span>
+            {taskDuration && (
+              <span className="timeline-task-group-duration">{taskDuration}</span>
+            )}
+          </button>
+          {entry.error && (
+            <div className="timeline-task-group-error">{entry.error}</div>
+          )}
+          {expanded && (
+            <div className="timeline-task-group-body">
+              {entry.renderEntries.map((childEntry) => renderEntry(childEntry))}
+            </div>
+          )}
+        </section>
+      );
+    }
     return <TimelineRow key={entry.key} toolGroup={entry} />;
-  }, []);
+  }, [expandedTaskGroups, toggleTaskGroup]);
 
   useEffect(() => {
     return () => {
@@ -280,27 +326,9 @@ export const ConversationStage: React.FC = () => {
                   return (
                     <section key={item.key} className="timeline-run-group">
                       <div className="timeline-run-items">
-                        {item.sections.length > 0
-                          ? item.sections.map((section) =>
-                              section.kind === "mainline" ? (
-                                <div
-                                  key={section.key}
-                                  className="timeline-run-mainline"
-                                >
-                                  {section.renderEntries.map((entry) =>
-                                    renderEntry(entry),
-                                  )}
-                                </div>
-                              ) : (
-                                <TaskGroupSection
-                                  key={section.key}
-                                  group={section.group}
-                                />
-                              ),
-                            )
-                          : item.renderEntries.map((entry) =>
-                              renderEntry(entry),
-                            )}
+                        {item.renderEntries.map((entry) =>
+                          renderEntry(entry),
+                        )}
                       </div>
                       {isCompleted && (
                         <div className="timeline-run-meta">
@@ -383,15 +411,7 @@ export const ConversationStage: React.FC = () => {
                   );
                 }
 
-                if (item.node.kind === "agent-group" && item.node.groupId) {
-                  return (
-                    <AgentGroupCard
-                      key={item.key}
-                      groupId={item.node.groupId}
-                    />
-                  );
-                }
-                return <TimelineRow key={item.key} node={item.node} />;
+                return renderEntry(item.renderEntry);
               })}
             </div>
           )}

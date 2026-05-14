@@ -1,12 +1,10 @@
 import type {
-  AgentGroup,
   ActiveAwaiting,
   AgentEvent,
   PublishedArtifact,
   TimelineNode,
   Plan,
   PlanRuntime,
-  TaskGroupMeta,
   TaskItemMeta,
   ToolState,
   TtsVoiceBlock,
@@ -35,11 +33,7 @@ export interface ReplayState {
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
-  taskGroupsById: Map<string, TaskGroupMeta>;
   activeTaskIds: Set<string>;
-  agentGroupsByGroupId: Map<string, AgentGroup>;
-  groupIdByTaskId: Map<string, string>;
-  groupIdByMainToolId: Map<string, string>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 }
@@ -64,11 +58,7 @@ export function createReplayState(): ReplayState {
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
-    taskGroupsById: new Map(),
     activeTaskIds: new Set(),
-    agentGroupsByGroupId: new Map(),
-    groupIdByTaskId: new Map(),
-    groupIdByMainToolId: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -144,8 +134,6 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
     runId: rs.runId,
     currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
     getTaskItem: (taskId) => rs.taskItemsById.get(taskId),
-    getTaskGroup: (groupId) => rs.taskGroupsById.get(groupId),
-    getAgentGroup: (groupId) => rs.agentGroupsByGroupId.get(groupId),
     getActiveTaskIds: () => Array.from(rs.activeTaskIds),
     getPlanTaskDescription: (taskId) =>
       rs.plan?.plan.find((item) => item.taskId === taskId)?.description,
@@ -235,16 +223,6 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
     case 'SET_TASK_ITEM_META':
       rs.taskItemsById.set(command.taskId, command.task);
       return;
-    case 'SET_TASK_GROUP_META':
-      rs.taskGroupsById.set(command.groupId, command.group);
-      return;
-    case 'SET_AGENT_GROUP_ADD_TASK':
-      rs.agentGroupsByGroupId.set(command.groupId, command.group);
-      rs.groupIdByMainToolId.set(command.group.mainToolId, command.groupId);
-      for (const taskId of command.group.taskIds) {
-        rs.groupIdByTaskId.set(taskId, command.groupId);
-      }
-      return;
     case 'ADD_ACTIVE_TASK_ID':
       rs.activeTaskIds.add(command.taskId);
       return;
@@ -266,6 +244,10 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         steerId: command.steerId,
         text: command.text,
         attachments: command.attachments,
+        taskId: command.taskId,
+        taskName: command.taskName,
+        taskGroupId: command.taskGroupId,
+        subAgentKey: command.subAgentKey,
         ts: command.ts,
       });
       rs.timelineOrder.push(command.nodeId);

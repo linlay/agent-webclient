@@ -1,8 +1,6 @@
 import type {
-  AgentGroup,
   AgentEvent,
   PublishedArtifact,
-  TaskGroupMeta,
   TaskItemMeta,
   TimelineNode,
   ToolState,
@@ -28,43 +26,8 @@ export function readTaskGroupId(event: AgentEvent): string {
   return toText(raw.groupId) || toText(raw.taskGroupId);
 }
 
-export function readTaskGroupTitle(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>).taskGroupTitle);
-}
-
 export function readSubAgentKey(event: AgentEvent): string {
   return toText((event as Record<string, unknown>).subAgentKey).trim();
-}
-
-function normalizeTaskStatus(status: string): string {
-  const value = toText(status).trim().toLowerCase();
-  if (value === "complete" || value === "completed" || value === "done") {
-    return "completed";
-  }
-  if (value === "fail" || value === "failed" || value === "error") {
-    return "failed";
-  }
-  if (value === "cancel" || value === "canceled" || value === "cancelled") {
-    return "canceled";
-  }
-  if (value === "running" || value === "in_progress") {
-    return "running";
-  }
-  return value || "pending";
-}
-
-function buildTaskGroupTitle(input: {
-  explicitTitle: string;
-  childTaskNames: string[];
-}): string {
-  if (input.explicitTitle) {
-    return input.explicitTitle;
-  }
-  const names = input.childTaskNames.filter(Boolean);
-  if (names.length <= 1) {
-    return names[0] || "Task";
-  }
-  return `Running ${names.length} tasks...`;
 }
 
 function computeTaskDurationMs(
@@ -191,96 +154,6 @@ export function buildNextTaskItem(input: {
     durationMs: computeTaskDurationMs(startedAt, endedAt),
     updatedAt,
     error: status === "failed" ? toText(event.error) || existing?.error || "" : "",
-  };
-}
-
-export function buildNextTaskGroup(input: {
-  event: AgentEvent;
-  state: EventProcessorState;
-  groupId: string;
-  explicitTitle: string;
-  nextTask: TaskItemMeta;
-  existing?: TaskGroupMeta;
-}): TaskGroupMeta {
-  const { event, state, groupId, explicitTitle, nextTask, existing } = input;
-  const childTaskIdSet = new Set(existing?.childTaskIds || []);
-  childTaskIdSet.add(nextTask.taskId);
-  const childTaskIds = Array.from(childTaskIdSet);
-  const childTasks = childTaskIds
-    .map((taskId) =>
-      taskId === nextTask.taskId ? nextTask : state.getTaskItem(taskId),
-    )
-    .filter((task): task is TaskItemMeta => Boolean(task));
-
-  const startedAtCandidates = childTasks
-    .map((task) => task.startedAt)
-    .filter((value): value is number => Number.isFinite(value));
-  const endedAtCandidates = childTasks
-    .map((task) => task.endedAt)
-    .filter((value): value is number => Number.isFinite(value));
-  const startedAt =
-    startedAtCandidates.length > 0 ? Math.min(...startedAtCandidates) : undefined;
-  const hasRunning = childTasks.some(
-    (task) => normalizeTaskStatus(task.status) === "running",
-  );
-  const hasFailed = childTasks.some(
-    (task) => normalizeTaskStatus(task.status) === "failed",
-  );
-  const hasCompleted = childTasks.some(
-    (task) => normalizeTaskStatus(task.status) === "completed",
-  );
-  const hasCanceled = childTasks.some(
-    (task) => normalizeTaskStatus(task.status) === "canceled",
-  );
-  const endedAt =
-    !hasRunning && endedAtCandidates.length > 0
-      ? Math.max(...endedAtCandidates)
-      : undefined;
-
-  let status = "pending";
-  if (hasRunning) {
-    status = "running";
-  } else if (hasFailed) {
-    status = "failed";
-  } else if (hasCompleted) {
-    status = "completed";
-  } else if (hasCanceled) {
-    status = "canceled";
-  }
-
-  return {
-    groupId,
-    runId: toText(event.runId) || existing?.runId || nextTask.runId,
-    title: buildTaskGroupTitle({
-      explicitTitle: explicitTitle || existing?.explicitTitle || "",
-      childTaskNames: childTasks.map((task) => task.taskName),
-    }),
-    explicitTitle: explicitTitle || existing?.explicitTitle || "",
-    status,
-    startedAt,
-    endedAt,
-    durationMs: computeTaskDurationMs(startedAt, endedAt),
-    updatedAt: nextTask.updatedAt,
-    childTaskIds,
-  };
-}
-
-export function buildNextAgentGroup(input: {
-  groupId: string;
-  mainToolId: string;
-  taskId: string;
-  createdAt: number;
-  existing?: AgentGroup;
-}): AgentGroup {
-  const taskIds = input.existing?.taskIds ? input.existing.taskIds.slice() : [];
-  if (!taskIds.includes(input.taskId)) {
-    taskIds.push(input.taskId);
-  }
-  return {
-    groupId: input.groupId,
-    mainToolId: input.mainToolId || input.existing?.mainToolId || "",
-    taskIds,
-    createdAt: input.existing?.createdAt || input.createdAt,
   };
 }
 
@@ -537,4 +410,3 @@ export function buildToolTimelineNode(input: {
     ts,
   };
 }
-

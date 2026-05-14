@@ -1,9 +1,7 @@
 import type {
-  AgentGroup,
   AgentEvent,
   Plan,
   PlanRuntime,
-  TaskGroupMeta,
   TaskItemMeta,
   TimelineNode,
   ToolState,
@@ -42,8 +40,6 @@ type TestState = {
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
-  taskGroupsById: Map<string, TaskGroupMeta>;
-  agentGroupsByGroupId: Map<string, AgentGroup>;
   planCurrentRunningTaskId: string;
   planLastTouchedTaskId: string;
 };
@@ -64,8 +60,6 @@ function createState(): TestState {
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
-    taskGroupsById: new Map(),
-    agentGroupsByGroupId: new Map(),
     planCurrentRunningTaskId: '',
     planLastTouchedTaskId: '',
   };
@@ -86,8 +80,6 @@ function buildProcessorState(state: TestState): EventProcessorState {
     runId: state.runId,
     currentRunningPlanTaskId: state.planCurrentRunningTaskId,
     getTaskItem: (taskId) => state.taskItemsById.get(taskId),
-    getTaskGroup: (groupId) => state.taskGroupsById.get(groupId),
-    getAgentGroup: (groupId) => state.agentGroupsByGroupId.get(groupId),
     getActiveTaskIds: () =>
       Array.from(state.taskItemsById.values())
         .filter((task) => task.status === 'running')
@@ -153,12 +145,6 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
       case 'SET_TASK_ITEM_META':
         state.taskItemsById.set(command.taskId, command.task);
         break;
-      case 'SET_TASK_GROUP_META':
-        state.taskGroupsById.set(command.groupId, command.group);
-        break;
-      case 'SET_AGENT_GROUP_ADD_TASK':
-        state.agentGroupsByGroupId.set(command.groupId, command.group);
-        break;
       case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
         state.planCurrentRunningTaskId = command.taskId;
         break;
@@ -173,6 +159,11 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           messageVariant: command.variant,
           steerId: command.steerId,
           text: command.text,
+          attachments: command.attachments,
+          taskId: command.taskId,
+          taskName: command.taskName,
+          taskGroupId: command.taskGroupId,
+          subAgentKey: command.subAgentKey,
           ts: command.ts,
         });
         state.timelineOrder.push(command.nodeId);
@@ -295,6 +286,36 @@ describe('processEvent', () => {
         text: 'hello from query',
       }),
     ]);
+  });
+
+  it('attaches task metadata to replay request.query nodes when taskId is present', () => {
+    const state = createState();
+    state.taskItemsById.set('task_1', {
+      taskId: 'task_1',
+      taskName: 'Replay task',
+      taskGroupId: 'task_group_task_1',
+      subAgentKey: '',
+      runId: 'run_1',
+      status: 'running',
+      startedAt: 90,
+      updatedAt: 90,
+      error: '',
+    });
+
+    processAndApply(state, {
+      type: 'request.query',
+      requestId: 'req_task',
+      taskId: 'task_1',
+      message: 'hello task',
+      timestamp: 100,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('user_req_task')).toMatchObject({
+      taskId: 'task_1',
+      taskName: 'Replay task',
+      taskGroupId: 'task_group_task_1',
+      subAgentKey: undefined,
+    });
   });
 
   it('collects published artifacts for dock rendering', () => {
@@ -449,11 +470,11 @@ describe('processEvent', () => {
     }, 'replay', false);
 
     expect(state.timelineOrder).toEqual(['awaiting_answer_run_1_await_1']);
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toEqual({
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toMatchObject({
       id: 'awaiting_answer_run_1_await_1',
       kind: 'awaiting-answer',
       awaitingId: 'await_1',
-      title: 'Answers submitted',
+      title: '已提交回答',
       text: '{\n  "status": "answered",\n  "items": [\n    {\n      "id": "q1",\n      "question": "继续执行吗？",\n      "answer": "继续"\n    }\n  ]\n}',
       status: 'completed',
       expanded: false,
@@ -564,7 +585,7 @@ describe('processEvent', () => {
       id: 'awaiting_answer_run_1_await_1',
       kind: 'awaiting-answer',
       awaitingId: 'await_1',
-      title: 'Awaiting timed out',
+      title: '等待已超时',
       text: '{\n  "status": "error",\n  "error": {\n    "code": "timeout",\n    "message": "等待项已超时"\n  }\n}',
       status: 'completed',
       expanded: false,
@@ -583,7 +604,7 @@ describe('processEvent', () => {
       timestamp: 224,
     } as any, 'replay', false);
 
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.title).toBe('Answers submitted');
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.title).toBe('已提交回答');
     expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text).toBe('{\n  "approved": true,\n  "comment": "继续"\n}');
   });
 
@@ -624,7 +645,7 @@ describe('processEvent', () => {
     }, 'replay', false);
 
     expect(state.timelineNodes.get('tool_0')?.argsText).toContain('[incomplete tool args]');
-    expect(state.timelineNodes.get('tool_0')?.status).toBe('completed');
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
   });
 
   it('hydrates tool.snapshot from snapshot payload and links a later tool.result', () => {
@@ -652,7 +673,7 @@ describe('processEvent', () => {
       toolLabel: '日期时间',
       description: '获取当前或偏移后的日期时间',
       argsText: '{\n  "offset": "+2D"\n}',
-      status: 'completed',
+      status: 'success',
       result: {
         text: '{"date":"2026-03-22"}',
         isCode: false,
@@ -689,7 +710,7 @@ describe('processEvent', () => {
       toolLabel: '日期时间',
       description: '获取当前时间',
       argsText: '{\n  "offset": "+2D"\n}',
-      status: 'completed',
+      status: 'success',
       result: {
         text: '{"date":"2026-03-22"}',
         isCode: false,
@@ -759,23 +780,16 @@ describe('processEvent', () => {
       endedAt: 220,
       durationMs: 120,
     });
-    expect(state.taskGroupsById.get('task_group_task_1')).toMatchObject({
-      groupId: 'task_group_task_1',
-      title: 'Explore agentOrchestrator definition',
-      childTaskIds: ['task_1'],
-      status: 'completed',
-    });
     expect(state.timelineNodes.get('content_0')).toMatchObject({
       taskId: 'task_1',
       taskName: 'Explore agentOrchestrator definition',
       taskGroupId: 'task_group_task_1',
       subAgentKey: undefined,
     });
-    expect(state.agentGroupsByGroupId.size).toBe(0);
     expect(state.timelineNodes.has('agent_group_task_group_task_1')).toBe(false);
   });
 
-  it('creates an agent-group timeline node only for tasks with subAgentKey', () => {
+  it('tracks sub-agent tasks without creating an agent-group timeline node', () => {
     const state = createState();
 
     processAndApply(state, {
@@ -797,15 +811,7 @@ describe('processEvent', () => {
       subAgentKey: 'subagent_1',
       status: 'completed',
     });
-    expect(state.agentGroupsByGroupId.get('task_group_task_child')).toMatchObject({
-      groupId: 'task_group_task_child',
-      taskIds: ['task_child'],
-    });
-    expect(state.timelineNodes.get('agent_group_task_group_task_child')).toMatchObject({
-      kind: 'agent-group',
-      groupId: 'task_group_task_child',
-      status: 'completed',
-    });
+    expect(state.timelineNodes.has('agent_group_task_group_task_child')).toBe(false);
   });
 
   it('auto-assigns visible nodes to the only running task when events omit taskId', () => {
@@ -859,7 +865,6 @@ describe('processEvent', () => {
       taskName: undefined,
       taskGroupId: undefined,
     });
-    expect(state.taskGroupsById.get('task_group_task_1')?.title).toBe('Running 2 tasks...');
     expect(state.taskItemsById.get('task_2')?.taskGroupId).toBe('task_group_task_1');
   });
 });

@@ -4,7 +4,6 @@ import type {
 	ActiveFrontendTool,
 	Agent,
 	AgentEvent,
-	AgentGroup,
 	AppState,
 	Chat,
 	Message,
@@ -13,7 +12,6 @@ import type {
 	Plan,
 	PlanRuntime,
 	PublishedArtifact,
-	TaskGroupMeta,
 	TaskItemMeta,
 	Team,
 	TimelineNode,
@@ -71,9 +69,6 @@ export type AppAction =
 	| { type: "SET_PLAN_EXPANDED"; expanded: boolean }
 	| { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
 	| { type: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }
-	| { type: "SET_TASK_GROUP_META"; groupId: string; group: TaskGroupMeta }
-	| { type: "SET_AGENT_GROUP_ADD_TASK"; groupId: string; group: AgentGroup }
-	| { type: "TOGGLE_AGENT_GROUP_EXPANDED"; groupId: string }
 	| { type: "ADD_ACTIVE_TASK_ID"; taskId: string }
 	| { type: "REMOVE_ACTIVE_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }

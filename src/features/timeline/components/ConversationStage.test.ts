@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import type { TaskGroupMeta, TaskItemMeta, TimelineNode } from "@/app/state/types";
+import type { TaskItemMeta, TimelineNode } from "@/app/state/types";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 
 jest.mock("@/app/state/AppContext", () => {
@@ -29,24 +29,6 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
       props.node?.text || "timeline-row",
     ),
   formatTimelineTime: () => ({ short: "", full: "" }),
-}));
-
-jest.mock("@/features/timeline/components/TaskGroupSection", () => ({
-  TaskGroupSection: (props: { group: { title: string } }) =>
-    React.createElement(
-      "section",
-      { className: "timeline-task-group" },
-      React.createElement(
-        "button",
-        { type: "button", className: "timeline-task-group-header", "aria-expanded": false },
-        props.group.title,
-      ),
-      React.createElement("div", { className: "timeline-task-group-body" }, props.group.title),
-    ),
-}));
-
-jest.mock("@/features/timeline/components/AgentGroupCard", () => ({
-  AgentGroupCard: () => React.createElement("section", { className: "agent-group-card" }, "Running 1 agents"),
 }));
 
 const { useAppState, useAppDispatch } = jest.requireMock(
@@ -88,7 +70,7 @@ describe("ConversationStage", () => {
     delete globalWithStorage.localStorage;
   });
 
-  it("does not render task group UI for ordinary main-agent tasks", () => {
+  it("renders task group header and keeps task body collapsed by default", () => {
     const state = createInitialState();
     const nodes: TimelineNode[] = [
       { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
@@ -118,20 +100,6 @@ describe("ConversationStage", () => {
         error: "",
       }],
     ]);
-    const taskGroupsById = new Map<string, TaskGroupMeta>([
-      ["group_1", {
-        groupId: "group_1",
-        runId: "run_1",
-        title: "Main agent task",
-        status: "completed",
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        childTaskIds: ["task_1"],
-      }],
-    ]);
-
     useAppState.mockReturnValue({
       ...state,
       events: [
@@ -141,18 +109,21 @@ describe("ConversationStage", () => {
       timelineNodes: createTimelineMap(nodes),
       timelineOrder: nodes.map((node) => node.id),
       taskItemsById,
-      taskGroupsById,
     });
 
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
-    expect(html).toContain("answer");
+    expect(html).toContain("timeline-task-group-header");
+    expect(html).toContain("Main agent task");
+    expect(html).toContain("已完成");
+    expect(html).toContain("70毫秒");
+    expect(html).toContain("aria-expanded=\"false\"");
+    expect(html).not.toContain("answer");
     expect(html).not.toContain("Running 1 agents");
-    expect(html).not.toContain("timeline-task-group-header");
     expect(html).not.toContain("timeline-task-group-body");
   });
 
-  it("renders task group UI for sub-agent tasks", () => {
+  it("renders sub-agent task nodes as collapsed task groups", () => {
     const state = createInitialState();
     const nodes: TimelineNode[] = [
       { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
@@ -182,20 +153,6 @@ describe("ConversationStage", () => {
         error: "",
       }],
     ]);
-    const taskGroupsById = new Map<string, TaskGroupMeta>([
-      ["group_1", {
-        groupId: "group_1",
-        runId: "run_1",
-        title: "Sub agent task",
-        status: "completed",
-        startedAt: 110,
-        endedAt: 180,
-        durationMs: 70,
-        updatedAt: 180,
-        childTaskIds: ["task_1"],
-      }],
-    ]);
-
     useAppState.mockReturnValue({
       ...state,
       events: [
@@ -205,13 +162,14 @@ describe("ConversationStage", () => {
       timelineNodes: createTimelineMap(nodes),
       timelineOrder: nodes.map((node) => node.id),
       taskItemsById,
-      taskGroupsById,
     });
 
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
     expect(html).toContain("timeline-task-group-header");
     expect(html).toContain("Sub agent task");
+    expect(html).toContain("已完成");
+    expect(html).not.toContain("child answer");
     expect(html).not.toContain("Running 1 agents");
   });
 });

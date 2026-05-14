@@ -38,34 +38,6 @@ export function reduceTimelineState(
 				...state,
 				taskItemsById: setMapValue(state.taskItemsById, action.taskId, action.task),
 			};
-		case "SET_TASK_GROUP_META":
-			return {
-				...state,
-				taskGroupsById: setMapValue(state.taskGroupsById, action.groupId, action.group),
-			};
-		case "SET_AGENT_GROUP_ADD_TASK": {
-			const agentGroupsByGroupId = new Map(state.agentGroupsByGroupId);
-			agentGroupsByGroupId.set(action.groupId, action.group);
-			const groupIdByTaskId = new Map(state.groupIdByTaskId);
-			for (const taskId of action.group.taskIds) {
-				groupIdByTaskId.set(taskId, action.groupId);
-			}
-			const groupIdByMainToolId = new Map(state.groupIdByMainToolId);
-			if (action.group.mainToolId) {
-				groupIdByMainToolId.set(action.group.mainToolId, action.groupId);
-			}
-			return { ...state, agentGroupsByGroupId, groupIdByTaskId, groupIdByMainToolId };
-		}
-		case "TOGGLE_AGENT_GROUP_EXPANDED": {
-			const nodeId = `agent_group_${action.groupId}`;
-			const existing = state.timelineNodes.get(nodeId);
-			if (!existing || existing.kind !== "agent-group") {
-				return state;
-			}
-			const timelineNodes = new Map(state.timelineNodes);
-			timelineNodes.set(nodeId, { ...existing, expanded: !existing.expanded });
-			return { ...state, timelineNodes };
-		}
 		case "ADD_ACTIVE_TASK_ID":
 			return { ...state, activeTaskIds: addSetValue(state.activeTaskIds, action.taskId) };
 		case "REMOVE_ACTIVE_TASK_ID":

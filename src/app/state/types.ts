@@ -21,11 +21,9 @@ import type {
 	ActionState,
 	ActiveAwaiting,
 	ActiveFrontendTool,
-	AgentGroup,
 	PendingTool,
 	Plan,
 	PlanRuntime,
-	TaskGroupMeta,
 	TaskItemMeta,
 	ToolState,
 } from "@/app/state/toolTypes";
@@ -105,11 +103,7 @@ export interface AppState {
 	plan: Plan | null;
 	planRuntimeByTaskId: Map<string, PlanRuntime>;
 	taskItemsById: Map<string, TaskItemMeta>;
-	taskGroupsById: Map<string, TaskGroupMeta>;
 	activeTaskIds: Set<string>;
-	agentGroupsByGroupId: Map<string, AgentGroup>;
-	groupIdByTaskId: Map<string, string>;
-	groupIdByMainToolId: Map<string, string>;
 	planCurrentRunningTaskId: string;
 	planLastTouchedTaskId: string;
 	toolStates: Map<string, ToolState>;

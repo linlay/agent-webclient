@@ -608,163 +608,82 @@
     gap: 8px;
 }
 
-.timeline-run-mainline {
+.timeline-task-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.timeline-task-group {
     margin-left: 24px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: 18px;
-    background: linear-gradient(180deg,
-            color-mix(in srgb, var(--bg-elev-2) 96%, transparent),
-            color-mix(in srgb, var(--bg-elev-1) 98%, transparent));
-    box-shadow: 0 12px 24px color-mix(in srgb, var(--line-soft) 12%, transparent);
-    overflow: hidden;
 }
 
 .timeline-task-group-header {
-    width: 100%;
+    appearance: none;
+    border: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--bg-elev-1) 86%, transparent);
+    color: var(--ink-1);
+    border-radius: 8px;
+    min-height: 32px;
+    padding: 5px 8px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
+    gap: 8px;
     text-align: left;
+    cursor: pointer;
+    max-width: 100%;
 }
 
 .timeline-task-group-header:hover {
-    background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
 }
 
-.timeline-task-group-header-copy {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.timeline-task-group-header .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--ink-muted);
+    flex: 0 0 auto;
 }
 
 .timeline-task-group-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink-1);
-    line-height: 1.4;
-}
-
-.timeline-task-group-header-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--ink-muted);
-    flex: 0 0 auto;
-}
-
-.timeline-task-group-duration,
-.timeline-task-card-duration {
-    font:
-        600 10px/1 "IBM Plex Mono",
-        monospace;
-    color: var(--ink-muted);
-    white-space: nowrap;
-}
-
-.timeline-task-group-chevron .material-symbols-rounded {
-    font-size: 18px;
-}
-
-.timeline-task-group-body {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 0 14px 14px;
-}
-
-.timeline-task-card-title-row {
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1 1 auto;
-}
-
-.timeline-task-card-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--ink-muted) 70%, transparent);
-    flex: 0 0 auto;
-}
-
-.timeline-task-card-status-dot[data-task-status="running"] {
-    background: var(--accent-electric);
-}
-
-.timeline-task-card-status-dot[data-task-status="completed"] {
-    background: var(--accent-lime);
-}
-
-.timeline-task-card-status-dot[data-task-status="failed"] {
-    background: var(--accent-danger);
-}
-
-.timeline-task-card-status-dot[data-task-status="canceled"] {
-    background: var(--accent-warn);
-}
-
-.timeline-task-card-title {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 12px;
-    font-weight: 700;
-    color: var(--ink-1);
+    font-weight: 600;
 }
 
-.timeline-task-summary-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.timeline-task-summary-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 9px 10px;
-    border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 84%, transparent);
-    background: color-mix(in srgb, var(--bg-base) 90%, var(--bg-elev-2));
-}
-
-.timeline-task-summary-copy {
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.timeline-task-card-summary {
-    font-size: 11px;
-    line-height: 1.45;
+.timeline-task-group-status,
+.timeline-task-group-duration {
+    flex: 0 0 auto;
     color: var(--ink-muted);
+    font-size: 11px;
+    line-height: 1;
+}
+
+.timeline-task-group-status.is-failed {
+    color: color-mix(in srgb, var(--accent-danger) 82%, var(--ink-1));
+}
+
+.timeline-task-group-status.is-completed {
+    color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-1));
+}
+
+.timeline-task-group-error {
+    margin-left: 34px;
+    color: color-mix(in srgb, var(--accent-danger) 82%, var(--ink-1));
+    font-size: 12px;
+    line-height: 1.45;
     word-break: break-word;
 }
 
-.timeline-task-group-entries {
+.timeline-task-group-body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-top: 4px;
-    border-top: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
+}
+
+.timeline-run-mainline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .timeline-run-time {
@@ -950,12 +869,6 @@ html[data-theme="dark"] .floating-plan.is-expanded .plan-list {
 
 html[data-theme="dark"] .timeline-run-group::before {
     background: color-mix(in srgb, var(--line-strong) 68%, transparent);
-}
-
-html[data-theme="dark"] .timeline-task-group {
-    background: linear-gradient(180deg,
-            color-mix(in srgb, var(--bg-elev-2) 96%, transparent),
-            color-mix(in srgb, var(--bg-elev-1) 92%, transparent));
 }
 
 html[data-theme="dark"] .timeline-user-bubble {

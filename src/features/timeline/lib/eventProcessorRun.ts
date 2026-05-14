@@ -7,6 +7,7 @@ import type {
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
+import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
 
 export function processRunEvent(
   event: AgentEvent,
@@ -25,6 +26,7 @@ export function processRunEvent(
     if (!text && attachments.length === 0) return commands;
     const counter = state.nextCounter();
     const suffix = toText(event.requestId) || String(counter);
+    const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
       nodeId: `user_${suffix}`,
@@ -32,6 +34,7 @@ export function processRunEvent(
       ts: event.timestamp || Date.now(),
       variant: "default",
       attachments: attachments.length > 0 ? attachments : undefined,
+      ...(taskBinding.taskId ? taskBinding : {}),
     });
     return commands;
   }

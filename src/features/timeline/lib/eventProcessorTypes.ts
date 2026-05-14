@@ -1,9 +1,7 @@
 import type {
-	AgentGroup,
 	Plan,
 	PlanRuntime,
 	PublishedArtifact,
-	TaskGroupMeta,
 	TaskItemMeta,
 	TimelineNode,
 	ToolState,
@@ -23,8 +21,6 @@ export interface EventProcessorState {
 	runId: string;
 	currentRunningPlanTaskId?: string;
 	getTaskItem(taskId: string): TaskItemMeta | undefined;
-	getTaskGroup(groupId: string): TaskGroupMeta | undefined;
-	getAgentGroup?(groupId: string): AgentGroup | undefined;
 	getActiveTaskIds(): string[];
 	getPlanTaskDescription?(taskId: string): string | undefined;
 	getPlanId?(): string | undefined;
@@ -50,8 +46,6 @@ export type EventCommand =
 	| { cmd: "SET_PLAN"; plan: Plan | null; resetRuntime: boolean }
 	| { cmd: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { cmd: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }
-	| { cmd: "SET_TASK_GROUP_META"; groupId: string; group: TaskGroupMeta }
-	| { cmd: "SET_AGENT_GROUP_ADD_TASK"; groupId: string; group: AgentGroup }
 	| { cmd: "ADD_ACTIVE_TASK_ID"; taskId: string }
 	| { cmd: "REMOVE_ACTIVE_TASK_ID"; taskId: string }
 	| { cmd: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }
@@ -64,5 +58,9 @@ export type EventCommand =
 			variant: "default" | "steer" | "remember" | "learn";
 			attachments?: TimelineNode["attachments"];
 			steerId?: string;
+			taskId?: string;
+			taskName?: string;
+			taskGroupId?: string;
+			subAgentKey?: string;
 	  }
 	| { cmd: "SYSTEM_ERROR"; nodeId: string; text: string; ts: number };
