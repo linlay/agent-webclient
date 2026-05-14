@@ -78,8 +78,8 @@ make release-program
 
 Program Bundle 约束：
 
-- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.js`、`backend/package.json`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
-- Desktop 内运行时会通过 `.env` 中的 `NODE_BIN` 使用 Electron 自带 Node；独立部署时回退到系统 Node.js 18+
+- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.cjs`、`backend/package.json`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
+- Program Bundle 运行时依赖宿主机 `PATH` 中的 Node.js 18+
 - 版本号来自根目录 [`VERSION`](./VERSION)，格式固定为 `vX.Y.Z`
 
 ## 3. 配置说明
@@ -146,7 +146,7 @@ cp .env.example .env
 - `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
 - `.env` 中的 `WS_BASE_URL` 指向可访问的主 WebSocket 上游；如与 `BASE_URL` 相同可不设置。
 - `.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
-- 已安装 Node.js 18+，或者由 Desktop 自动注入 `NODE_BIN`。
+- 已安装 Node.js 18+。
 - `PORT` 未与宿主机其他服务冲突，默认值为 `11948`。
 
 启动后可通过 `./stop.sh` 停止服务。
@@ -189,7 +189,7 @@ cp .env.example .env
 建议按以下顺序验证：
 
 1. `make release`
-确认生成对应平台压缩包，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.js`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
+确认生成对应平台压缩包，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.cjs`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
 
 2. `make release-program`
 确认行为与 `make release` 一致。

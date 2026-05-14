@@ -260,10 +260,6 @@ ${error_log_json}
         "key": "PORT",
         "value": "{{serviceDefaultPort}}",
         "onlyIfDefault": true
-      },
-      {
-        "key": "NODE_BIN",
-        "value": "{{processExecPath}}"
       }
     ]
   }

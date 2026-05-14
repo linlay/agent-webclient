@@ -68,21 +68,12 @@ function Import-ProgramEnv {
 }
 
 function Resolve-NodeBin {
-  if ($env:NODE_BIN) {
-    if (-not (Test-Path -LiteralPath $env:NODE_BIN -PathType Leaf)) {
-      Fail-Program "NODE_BIN not found: $env:NODE_BIN"
-    }
-    $env:ELECTRON_RUN_AS_NODE = '1'
-    return $env:NODE_BIN
-  }
-
   try {
     $nodeCommand = Get-Command node -ErrorAction Stop
   } catch {
-    Fail-Program 'node runtime not found; install Node.js 18+ or set NODE_BIN in .env'
+    Fail-Program 'node runtime not found; install Node.js 18+'
   }
 
-  Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
   return $nodeCommand.Source
 }
 

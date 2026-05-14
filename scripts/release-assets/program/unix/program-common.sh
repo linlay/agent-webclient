@@ -13,7 +13,6 @@ RUN_DIR="$BUNDLE_ROOT/run"
 PID_FILE="$RUN_DIR/$APP_NAME.pid"
 LOG_FILE="$RUN_DIR/$APP_NAME.log"
 NODE_CMD=""
-PROGRAM_USE_ELECTRON_NODE=0
 
 program_die() {
   echo "[program] $*" >&2
@@ -52,25 +51,12 @@ program_load_env() {
 }
 
 resolve_node_bin() {
-  if [[ -n "${NODE_BIN:-}" ]]; then
-    [[ -x "$NODE_BIN" ]] || program_die "NODE_BIN is not executable: $NODE_BIN"
-    NODE_CMD="$NODE_BIN"
-    PROGRAM_USE_ELECTRON_NODE=1
-    return
-  fi
-
   NODE_CMD="$(command -v node 2>/dev/null || true)"
-  [[ -n "$NODE_CMD" ]] || program_die "node runtime not found; install Node.js 18+ or set NODE_BIN in .env"
-  PROGRAM_USE_ELECTRON_NODE=0
+  [[ -n "$NODE_CMD" ]] || program_die "node runtime not found; install Node.js 18+"
 }
 
 program_prepare_node_command() {
   resolve_node_bin
-  if [[ "$PROGRAM_USE_ELECTRON_NODE" == "1" ]]; then
-    export ELECTRON_RUN_AS_NODE=1
-    return
-  fi
-  unset ELECTRON_RUN_AS_NODE || true
 }
 
 program_prepare_runtime_dirs() {
