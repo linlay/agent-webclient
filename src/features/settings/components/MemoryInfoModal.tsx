@@ -129,16 +129,21 @@ interface MemoryPreviewPanelProps {
   onPreview: () => void;
 }
 
-export interface MemoryInfoModalViewProps {
-  open: boolean;
+export interface MemoryInfoConsoleViewProps {
   title: string;
   subtitle: string;
   activeTab: MemoryConsoleTab;
   onTabChange: (tab: MemoryConsoleTab) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  cardClassName?: string;
   recordsPanel: MemoryRecordsPanelProps;
   preferencesPanel: MemoryPreferencesPanelProps;
   previewPanel: MemoryPreviewPanelProps;
+}
+
+export interface MemoryInfoModalViewProps extends MemoryInfoConsoleViewProps {
+  open: boolean;
+  onClose: () => void;
 }
 
 const PREFERENCE_SCOPE_ORDER: MemoryPreferenceScopeType[] = [
@@ -1413,19 +1418,88 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
   );
 };
 
-export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
-  open,
+export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
   title,
   subtitle,
   activeTab,
   onTabChange,
   onClose,
+  cardClassName = "",
   recordsPanel,
   preferencesPanel,
   previewPanel,
 }) => {
   const { t } = useI18n();
 
+  return (
+    <div
+      className={`memory-info-card ${cardClassName}`.trim()}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && onClose) {
+          event.preventDefault();
+          onClose();
+        }
+      }}
+      tabIndex={-1}
+    >
+      <div className="settings-head memory-info-head">
+        <div>
+          <h3>{title}</h3>
+          <p className="memory-info-subtitle">{subtitle}</p>
+        </div>
+        {onClose ? (
+          <UiButton variant="ghost" size="sm" onClick={onClose}>
+            {t("memoryInfo.actions.close")}
+          </UiButton>
+        ) : null}
+      </div>
+
+      <div className="memory-console-tabs settings-segmented">
+        <UiButton
+          variant="ghost"
+          size="sm"
+          className={`settings-segmented-btn ${activeTab === "preferences" ? "is-active" : ""}`}
+          active={activeTab === "preferences"}
+          onClick={() => onTabChange("preferences")}
+        >
+          {t("memoryPreferences.tab")}
+        </UiButton>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          className={`settings-segmented-btn ${activeTab === "preview" ? "is-active" : ""}`}
+          active={activeTab === "preview"}
+          onClick={() => onTabChange("preview")}
+        >
+          {t("memoryPreview.tab")}
+        </UiButton>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          className={`settings-segmented-btn ${activeTab === "records" ? "is-active" : ""}`}
+          active={activeTab === "records"}
+          onClick={() => onTabChange("records")}
+        >
+          {t("memoryInfo.tab")}
+        </UiButton>
+      </div>
+
+      {activeTab === "preferences" ? (
+        <MemoryPreferencesPanelView {...preferencesPanel} />
+      ) : activeTab === "preview" ? (
+        <MemoryPreviewPanelView {...previewPanel} />
+      ) : (
+        <MemoryRecordsPanelView {...recordsPanel} />
+      )}
+    </div>
+  );
+};
+
+export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
+  open,
+  onClose,
+  ...consoleProps
+}) => {
   if (!open) {
     return null;
   }
@@ -1440,64 +1514,11 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
         }
       }}
     >
-      <div
-        className="modal-card memory-info-card"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            onClose();
-          }
-        }}
-        tabIndex={-1}
-      >
-        <div className="settings-head memory-info-head">
-          <div>
-            <h3>{title}</h3>
-            <p className="memory-info-subtitle">{subtitle}</p>
-          </div>
-          <UiButton variant="ghost" size="sm" onClick={onClose}>
-            {t("memoryInfo.actions.close")}
-          </UiButton>
-        </div>
-
-        <div className="memory-console-tabs settings-segmented">
-          <UiButton
-            variant="ghost"
-            size="sm"
-            className={`settings-segmented-btn ${activeTab === "preferences" ? "is-active" : ""}`}
-            active={activeTab === "preferences"}
-            onClick={() => onTabChange("preferences")}
-          >
-            {t("memoryPreferences.tab")}
-          </UiButton>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            className={`settings-segmented-btn ${activeTab === "preview" ? "is-active" : ""}`}
-            active={activeTab === "preview"}
-            onClick={() => onTabChange("preview")}
-          >
-            {t("memoryPreview.tab")}
-          </UiButton>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            className={`settings-segmented-btn ${activeTab === "records" ? "is-active" : ""}`}
-            active={activeTab === "records"}
-            onClick={() => onTabChange("records")}
-          >
-            {t("memoryInfo.tab")}
-          </UiButton>
-        </div>
-
-        {activeTab === "preferences" ? (
-          <MemoryPreferencesPanelView {...preferencesPanel} />
-        ) : activeTab === "preview" ? (
-          <MemoryPreviewPanelView {...previewPanel} />
-        ) : (
-          <MemoryRecordsPanelView {...recordsPanel} />
-        )}
-      </div>
+      <MemoryInfoConsoleView
+        {...consoleProps}
+        cardClassName="modal-card"
+        onClose={onClose}
+      />
     </div>
   );
 };
@@ -1522,7 +1543,17 @@ function createEmptyPreferenceStateUpdates() {
   };
 }
 
-export const MemoryInfoModal: React.FC = () => {
+interface MemoryInfoConsoleProps {
+  open?: boolean;
+  onClose?: () => void;
+  surface?: "modal" | "page";
+}
+
+export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
+  open = true,
+  onClose,
+  surface = "page",
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
@@ -1594,8 +1625,8 @@ export const MemoryInfoModal: React.FC = () => {
   const previewTeamId = toText(currentChat?.teamId) || toText(previewContext.teamId);
 
   const closeModal = useCallback(() => {
-    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: false });
-  }, [dispatch]);
+    onClose?.();
+  }, [onClose]);
 
   const updateFilter = useCallback(
     (field: MemoryInfoFilterField, value: string) => {
@@ -2273,7 +2304,7 @@ export const MemoryInfoModal: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (state.memoryInfoOpen) {
+    if (open) {
       return;
     }
     listRequestSeqRef.current += 1;
@@ -2283,17 +2314,17 @@ export const MemoryInfoModal: React.FC = () => {
     metaLoadAttemptedRef.current = false;
     previewAutoTriggeredRef.current = false;
     preferencesLoadSignatureRef.current = "";
-  }, [state.memoryInfoOpen]);
+  }, [open]);
 
   useEffect(() => {
-    if (!state.memoryInfoOpen) {
+    if (!open) {
       return;
     }
     void loadMemoryMeta();
-  }, [loadMemoryMeta, state.memoryInfoOpen]);
+  }, [loadMemoryMeta, open]);
 
   useEffect(() => {
-    if (!state.memoryInfoOpen || !agentContext.agentKey) {
+    if (!open || !agentContext.agentKey) {
       return;
     }
     if (state.memoryConsoleTab !== "preferences") {
@@ -2309,11 +2340,11 @@ export const MemoryInfoModal: React.FC = () => {
     agentContext.agentKey,
     loadPreferenceScopes,
     state.memoryConsoleTab,
-    state.memoryInfoOpen,
+    open,
   ]);
 
   useEffect(() => {
-    if (!state.memoryInfoOpen || state.memoryConsoleTab !== "preview") {
+    if (!open || state.memoryConsoleTab !== "preview") {
       return;
     }
     if (state.memoryPreviewDraft || !state.composerDraft) {
@@ -2327,12 +2358,12 @@ export const MemoryInfoModal: React.FC = () => {
     dispatch,
     state.composerDraft,
     state.memoryConsoleTab,
-    state.memoryInfoOpen,
+    open,
     state.memoryPreviewDraft,
   ]);
 
   useEffect(() => {
-    if (!state.memoryInfoOpen || state.memoryConsoleTab !== "preview") {
+    if (!open || state.memoryConsoleTab !== "preview") {
       return;
     }
     if (previewAutoTriggeredRef.current) {
@@ -2352,7 +2383,7 @@ export const MemoryInfoModal: React.FC = () => {
     previewChatId,
     runMemoryPreview,
     state.memoryConsoleTab,
-    state.memoryInfoOpen,
+    open,
     state.memoryPreviewDraft,
   ]);
 
@@ -2362,100 +2393,134 @@ export const MemoryInfoModal: React.FC = () => {
       })
     : t("memoryInfo.subtitleEmpty");
 
+  const consoleProps: MemoryInfoConsoleViewProps = {
+    title: t("memoryInfo.title"),
+    subtitle,
+    activeTab: state.memoryConsoleTab,
+    onTabChange: (tab) => dispatch({ type: "SET_MEMORY_CONSOLE_TAB", tab }),
+    onClose: surface === "modal" ? closeModal : undefined,
+    recordsPanel: {
+      agentKey: agentContext.agentKey,
+      loading: state.memoryInfoLoading,
+      error: state.memoryInfoError,
+      memoryMeta: state.memoryMeta,
+      records: state.memoryInfoRecords,
+      selectedRecordId: state.memoryInfoSelectedRecordId,
+      detail: state.memoryInfoDetail,
+      detailLoading: state.memoryInfoDetailLoading,
+      detailError: state.memoryInfoDetailError,
+      filters: state.memoryInfoFilters,
+      missingAgent: false,
+      onQuery: () => {
+        void loadRecords();
+      },
+      onRefresh: () => {
+        void loadRecords();
+      },
+      onSelectRecord: (id) => {
+        dispatch({ type: "SET_MEMORY_INFO_SELECTED_RECORD_ID", id });
+        const record = state.memoryInfoRecords.find((item) => item.id === id);
+        void loadDetail(
+          id,
+          record?.agentKey || agentContext.agentKey || undefined,
+        );
+      },
+      onFilterChange: updateFilter,
+    },
+    preferencesPanel: {
+      agentKey: agentContext.agentKey,
+      missingAgent: !agentContext.agentKey,
+      scopes: state.memoryPreferenceScopes,
+      activeScopeType: state.memoryPreferenceActiveScopeType,
+      activeScopeKey: state.memoryPreferenceActiveScopeKey,
+      label: state.memoryPreferenceLabel,
+      fileName: state.memoryPreferenceFileName,
+      meta: state.memoryPreferenceMeta,
+      memoryMeta: state.memoryMeta,
+      loading: state.memoryPreferenceLoading,
+      error: state.memoryPreferenceError,
+      mode: state.memoryPreferenceMode,
+      markdownDraft: state.memoryPreferenceMarkdownDraft,
+      recordsDraft: state.memoryPreferenceRecordsDraft,
+      selectedRecordId: state.memoryPreferenceSelectedRecordId,
+      dirty: state.memoryPreferenceDirty,
+      saving: state.memoryPreferenceSaving,
+      saveSummary: state.memoryPreferenceSaveSummary,
+      validation: state.memoryPreferenceValidation,
+      editorRefs: {
+        title: preferenceTitleInputRef,
+        summary: preferenceSummaryTextareaRef,
+        category: preferenceCategoryInputRef,
+        importance: preferenceImportanceInputRef,
+        confidence: preferenceConfidenceInputRef,
+        tags: preferenceTagsInputRef,
+        markdown: preferenceMarkdownTextareaRef,
+      },
+      onScopeSelect: handlePreferenceScopeSelect,
+      onModeChange: handlePreferenceModeChange,
+      onMarkdownChange: handlePreferenceMarkdownChange,
+      onRecordFieldChange: handlePreferenceRecordFieldChange,
+      onSelectRecord: (id) =>
+        dispatch({ type: "SET_MEMORY_PREFERENCE_SELECTED_RECORD_ID", id }),
+      onNewRecord: handlePreferenceNewRecord,
+      onDeleteRecord: handlePreferenceDeleteRecord,
+      onValidate: () => {
+        void handlePreferenceValidate();
+      },
+      onSave: () => {
+        void handlePreferenceSave();
+      },
+    },
+    previewPanel: {
+      agentKey: agentContext.agentKey,
+      chatId: previewChatId,
+      teamId: previewTeamId,
+      draft: state.memoryPreviewDraft,
+      loading: state.memoryPreviewLoading,
+      error: state.memoryPreviewError,
+      result: state.memoryPreviewResult,
+      promptLayer: state.memoryPreviewPromptLayer,
+      onDraftChange: (draft) =>
+        dispatch({ type: "SET_MEMORY_PREVIEW_DRAFT", draft }),
+      onPromptLayerChange: (layer) =>
+        dispatch({ type: "SET_MEMORY_PREVIEW_PROMPT_LAYER", layer }),
+      onPreview: () => {
+        void runMemoryPreview();
+      },
+    },
+  };
+
+  if (!open) {
+    return null;
+  }
+
+  if (surface === "modal") {
+    return (
+      <MemoryInfoModalView
+        {...consoleProps}
+        open={open}
+        onClose={closeModal}
+      />
+    );
+  }
+
   return (
-    <MemoryInfoModalView
+    <MemoryInfoConsoleView
+      {...consoleProps}
+      cardClassName="memory-info-page-card"
+    />
+  );
+};
+
+export const MemoryInfoModal: React.FC = () => {
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+
+  return (
+    <MemoryInfoConsole
       open={state.memoryInfoOpen}
-      title={t("memoryInfo.title")}
-      subtitle={subtitle}
-      activeTab={state.memoryConsoleTab}
-      onTabChange={(tab) => dispatch({ type: "SET_MEMORY_CONSOLE_TAB", tab })}
-      onClose={closeModal}
-      recordsPanel={{
-        agentKey: agentContext.agentKey,
-        loading: state.memoryInfoLoading,
-        error: state.memoryInfoError,
-        memoryMeta: state.memoryMeta,
-        records: state.memoryInfoRecords,
-        selectedRecordId: state.memoryInfoSelectedRecordId,
-        detail: state.memoryInfoDetail,
-        detailLoading: state.memoryInfoDetailLoading,
-        detailError: state.memoryInfoDetailError,
-        filters: state.memoryInfoFilters,
-        missingAgent: false,
-        onQuery: () => {
-          void loadRecords();
-        },
-        onRefresh: () => {
-          void loadRecords();
-        },
-        onSelectRecord: (id) => {
-          dispatch({ type: "SET_MEMORY_INFO_SELECTED_RECORD_ID", id });
-          const record = state.memoryInfoRecords.find((item) => item.id === id);
-          void loadDetail(id, record?.agentKey || agentContext.agentKey || undefined);
-        },
-        onFilterChange: updateFilter,
-      }}
-      preferencesPanel={{
-        agentKey: agentContext.agentKey,
-        missingAgent: !agentContext.agentKey,
-        scopes: state.memoryPreferenceScopes,
-        activeScopeType: state.memoryPreferenceActiveScopeType,
-        activeScopeKey: state.memoryPreferenceActiveScopeKey,
-        label: state.memoryPreferenceLabel,
-        fileName: state.memoryPreferenceFileName,
-        meta: state.memoryPreferenceMeta,
-        memoryMeta: state.memoryMeta,
-        loading: state.memoryPreferenceLoading,
-        error: state.memoryPreferenceError,
-        mode: state.memoryPreferenceMode,
-        markdownDraft: state.memoryPreferenceMarkdownDraft,
-        recordsDraft: state.memoryPreferenceRecordsDraft,
-        selectedRecordId: state.memoryPreferenceSelectedRecordId,
-        dirty: state.memoryPreferenceDirty,
-        saving: state.memoryPreferenceSaving,
-        saveSummary: state.memoryPreferenceSaveSummary,
-        validation: state.memoryPreferenceValidation,
-        editorRefs: {
-          title: preferenceTitleInputRef,
-          summary: preferenceSummaryTextareaRef,
-          category: preferenceCategoryInputRef,
-          importance: preferenceImportanceInputRef,
-          confidence: preferenceConfidenceInputRef,
-          tags: preferenceTagsInputRef,
-          markdown: preferenceMarkdownTextareaRef,
-        },
-        onScopeSelect: handlePreferenceScopeSelect,
-        onModeChange: handlePreferenceModeChange,
-        onMarkdownChange: handlePreferenceMarkdownChange,
-        onRecordFieldChange: handlePreferenceRecordFieldChange,
-        onSelectRecord: (id) =>
-          dispatch({ type: "SET_MEMORY_PREFERENCE_SELECTED_RECORD_ID", id }),
-        onNewRecord: handlePreferenceNewRecord,
-        onDeleteRecord: handlePreferenceDeleteRecord,
-        onValidate: () => {
-          void handlePreferenceValidate();
-        },
-        onSave: () => {
-          void handlePreferenceSave();
-        },
-      }}
-      previewPanel={{
-        agentKey: agentContext.agentKey,
-        chatId: previewChatId,
-        teamId: previewTeamId,
-        draft: state.memoryPreviewDraft,
-        loading: state.memoryPreviewLoading,
-        error: state.memoryPreviewError,
-        result: state.memoryPreviewResult,
-        promptLayer: state.memoryPreviewPromptLayer,
-        onDraftChange: (draft) =>
-          dispatch({ type: "SET_MEMORY_PREVIEW_DRAFT", draft }),
-        onPromptLayerChange: (layer) =>
-          dispatch({ type: "SET_MEMORY_PREVIEW_PROMPT_LAYER", layer }),
-        onPreview: () => {
-          void runMemoryPreview();
-        },
-      }}
+      surface="modal"
+      onClose={() => dispatch({ type: "SET_MEMORY_INFO_OPEN", open: false })}
     />
   );
 };

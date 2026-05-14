@@ -10,7 +10,9 @@ export const SchedulesPage = () => {
     [state],
   );
   return (
-    <div style={{padding: 20}}>
+    <div
+      style={{ padding: 20, background: "var(--bg-elev-2)", height: "100vh", overflow: "auto" }}
+    >
       <ScheduleModal
         currentWorker={currentWorker}
         agents={state.agents}

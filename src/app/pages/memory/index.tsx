@@ -1,12 +1,12 @@
-import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
-import { useAppDispatch } from "@/app/state/AppContext";
-import { useEffect } from "react";
+import { MemoryInfoConsole } from "@/features/settings/components/MemoryInfoModal";
+import { useMemoryRecordsInitialization } from "@/features/settings/hooks/useMemoryRecordsInitialization";
 
 export const MemoryPage = () => {
-  const dispatch = useAppDispatch();
-  useEffect(() => {
-    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true });
-  }, [dispatch]);
+  useMemoryRecordsInitialization();
 
-  return <MemoryInfoModal />;
+  return (
+    <main className="memory-info-page">
+      <MemoryInfoConsole surface="page" />
+    </main>
+  );
 };
