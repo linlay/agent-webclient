@@ -23,6 +23,7 @@ export type TimelineRenderEntry =
     key: string;
     taskId: string;
     taskName: string;
+    subAgentKey?: string;
     status: string;
     durationMs?: number;
     error: string;
@@ -163,6 +164,7 @@ function buildRenderEntries(
       key: `task_group_${taskId}_${node.id}`,
       taskId,
       taskName: task?.taskName || node.taskName || taskId,
+      subAgentKey: task?.subAgentKey || node.subAgentKey || undefined,
       status: task?.status || 'running',
       durationMs: task?.durationMs,
       error: task?.error || '',

@@ -20,7 +20,9 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
+import { AgentIcon } from "@/shared/icons/agent";
 import { Button, Flex, Form, Input, message, Popover } from "antd";
+import type { Agent } from "@/app/state/types";
 
 function formatResponseDuration(durationMs?: number): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
@@ -60,6 +62,24 @@ function formatTaskStatus(status: string): string {
     default:
       return status || "任务";
   }
+}
+
+function resolveTaskGroupAgent(
+  entry: Extract<TimelineRenderEntry, { kind: "task-group" }>,
+  agents: Agent[],
+  currentWorker: ReturnType<typeof resolveCurrentWorkerSummary>,
+): Agent | null {
+  const fallbackAgentKey =
+    currentWorker?.type === "agent" ? currentWorker.sourceId : "";
+  const agentKey = String(entry.subAgentKey || fallbackAgentKey || "").trim();
+  if (!agentKey) return null;
+
+  return (
+    agents.find((agent) => String(agent?.key || "").trim() === agentKey) || {
+      key: agentKey,
+      name: agentKey,
+    }
+  );
 }
 
 export const ConversationStage: React.FC = () => {
@@ -184,6 +204,7 @@ export const ConversationStage: React.FC = () => {
       const expanded = Boolean(expandedTaskGroups[entry.key]);
       const taskDuration = formatResponseDuration(entry.durationMs);
       const statusText = formatTaskStatus(entry.status);
+      const taskAgent = resolveTaskGroupAgent(entry, state.agents, currentWorker);
       return (
         <section key={entry.key} className="timeline-task-group">
           <button
@@ -192,14 +213,39 @@ export const ConversationStage: React.FC = () => {
             aria-expanded={expanded}
             onClick={() => toggleTaskGroup(entry.key)}
           >
-            <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+            {taskAgent && (
+              <span className="timeline-task-group-agent">
+                <AgentIcon
+                  icon={taskAgent.icon}
+                  type="agent"
+                  props={{
+                    icon: {
+                      className: "timeline-task-group-agent-avatar",
+                      width: 20,
+                      height: 20,
+                    },
+                    avatar: {
+                      className: "timeline-task-group-agent-avatar",
+                      size: 20,
+                    },
+                  }}
+                />
+                <span className="timeline-task-group-agent-name">
+                  {taskAgent.name || taskAgent.key}
+                </span>
+              </span>
+            )}
             <span className="timeline-task-group-title">{entry.taskName || entry.taskId}</span>
-            <span className={`timeline-task-group-status is-${entry.status || "unknown"}`.trim()}>
-              {statusText}
-            </span>
+            <span
+              className={`timeline-task-group-status tool-status-dot is-${entry.status || "unknown"}`.trim()}
+              data-tool-status={entry.status || "unknown"}
+              aria-label={statusText}
+              title={statusText}
+            />
             {taskDuration && (
               <span className="timeline-task-group-duration">{taskDuration}</span>
             )}
+            <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
           </button>
           {entry.error && (
             <div className="timeline-task-group-error">{entry.error}</div>
@@ -213,7 +259,7 @@ export const ConversationStage: React.FC = () => {
       );
     }
     return <TimelineRow key={entry.key} toolGroup={entry} />;
-  }, [expandedTaskGroups, toggleTaskGroup]);
+  }, [currentWorker, expandedTaskGroups, state.agents, toggleTaskGroup]);
 
   useEffect(() => {
     return () => {
