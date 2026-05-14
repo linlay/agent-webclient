@@ -1,0 +1,403 @@
+/* ========================================
+   Copilot Sidebar Mode
+   ======================================== */
+.layout-copilot {
+    width: min(100vw, 360px);
+    max-width: 360px;
+    height: 100dvh;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg-base);
+}
+
+.layout-copilot .copilot-topbar {
+    grid-row: 1;
+    min-width: 0;
+}
+
+.layout-copilot .conversation-stage {
+    grid-row: 2;
+    min-width: 0;
+}
+
+.layout-copilot .bottom-dock {
+    grid-row: 3;
+    min-width: 0;
+}
+
+.copilot-topbar {
+    position: relative;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    background: color-mix(in srgb, var(--bg-card) 96%, var(--bg-base));
+    box-shadow: var(--shadow-soft);
+}
+
+.copilot-title-block {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.copilot-worker-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 1.25;
+    color: var(--ink-1);
+}
+
+.copilot-title-block .status-pill {
+    flex: 0 0 auto;
+    padding: 5px 9px 5px 22px;
+    font-size: 10px;
+    border-radius: 8px;
+}
+
+.copilot-title-block .status-pill::before {
+    left: 9px;
+    width: 7px;
+    height: 7px;
+}
+
+.copilot-topbar-actions {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.copilot-action-btn.ui-btn {
+    width: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    border-radius: 8px;
+    padding: 0;
+    color: var(--ink-2);
+    background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
+}
+
+.copilot-action-btn .material-symbols-rounded {
+    font-size: 17px;
+}
+
+.copilot-action-btn.current-worker-tool-voice.is-call {
+    color: #2f7c49;
+}
+
+.copilot-action-btn.current-worker-tool-voice.is-hangup {
+    border-color: color-mix(in srgb, #f06b67 44%, var(--line-soft));
+    background: color-mix(in srgb, #fff0ef 86%, var(--bg-elev-2));
+    color: #d53f3f;
+}
+
+.copilot-action-btn.is-muted {
+    border-color: color-mix(in srgb, #ff945f 38%, var(--line-soft));
+    background: color-mix(in srgb, #fff0e6 84%, var(--bg-elev-2));
+    color: #cf5f18;
+}
+
+.layout-copilot .messages-scroll {
+    padding: 12px 10px 14px;
+}
+
+.layout-copilot .timeline-stack {
+    max-width: none;
+}
+
+.layout-copilot .timeline-empty {
+    max-width: 260px;
+    font-size: 17px;
+    line-height: 1.35;
+}
+
+.layout-copilot .timeline-lane,
+.layout-copilot .timeline-run-items {
+    gap: 8px;
+}
+
+.layout-copilot .timeline-row-user {
+    max-width: 92%;
+    padding-left: 8px;
+}
+
+.layout-copilot .timeline-row-flow {
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 8px;
+}
+
+.layout-copilot .timeline-marker,
+.layout-copilot .node-icon {
+    width: 14px;
+}
+
+.layout-copilot .node-icon .material-symbols-rounded {
+    font-size: 16px;
+}
+
+.layout-copilot .timeline-text {
+    font-size: 12px;
+    line-height: 1.56;
+}
+
+.layout-copilot .timeline-user-bubble {
+    padding: 8px 11px;
+    border-radius: 12px;
+    border-top-right-radius: 7px;
+}
+
+.layout-copilot .timeline-run-meta,
+.layout-copilot .timeline-task-group {
+    margin-left: 20px;
+}
+
+.layout-copilot .timeline-task-group-header {
+    min-height: 30px;
+    gap: 6px;
+    padding: 4px 7px;
+}
+
+.layout-copilot .timeline-task-group-agent {
+    max-width: 86px;
+}
+
+.layout-copilot .timeline-task-group-title {
+    font-size: 11px;
+}
+
+.layout-copilot .timeline-task-group-duration {
+    display: none;
+}
+
+.layout-copilot .timeline-meta-row,
+.layout-copilot .timeline-run-meta {
+    gap: 6px;
+}
+
+.layout-copilot .timeline-markdown table,
+.layout-copilot .timeline-markdown pre {
+    font-size: 11px;
+}
+
+.layout-copilot .bottom-dock {
+    position: relative;
+    bottom: auto;
+    z-index: 22;
+    padding: 6px 8px 10px;
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    background: color-mix(in srgb, var(--bg-base) 94%, transparent);
+}
+
+.layout-copilot .bottom-dock-inner {
+    max-width: none;
+}
+
+.layout-copilot .bottom-dock-stack,
+.layout-copilot .composer-stack {
+    gap: 8px;
+}
+
+.layout-copilot .composer-layout {
+    gap: 8px;
+}
+
+.layout-copilot .composer-pill {
+    --composer-main-min-height: 78px;
+    border-radius: 10px;
+    padding: 5px 5px 5px 10px;
+}
+
+.layout-copilot .composer-pill textarea {
+    font-size: 12px;
+}
+
+.layout-copilot .composer-control-row,
+.layout-copilot .composer-actions {
+    gap: 5px;
+}
+
+.layout-copilot .composer-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.layout-copilot .composer-control-field {
+    gap: 6px;
+}
+
+.layout-copilot .composer-wonders-header {
+    display: none;
+}
+
+.layout-copilot .composer-wonders-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+
+.layout-copilot .composer-wonder-card {
+    border-radius: 8px;
+    padding: 9px 10px;
+    gap: 5px;
+}
+
+.layout-copilot .composer-wonder-text {
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.layout-copilot .floating-plan .plan-header {
+    min-height: 38px;
+    border-radius: 10px;
+    padding: 7px 9px;
+}
+
+.layout-copilot .plan-title {
+    font-size: 11px;
+}
+
+.layout-copilot .plan-header-badges {
+    gap: 4px;
+    overflow: hidden;
+}
+
+.layout-copilot .floating-plan.is-expanded .plan-list {
+    max-height: min(240px, calc(100dvh - 220px));
+}
+
+.layout-copilot .artifact-item {
+    flex-basis: 180px;
+    min-width: 180px;
+}
+
+.layout-copilot .frontend-tool-container {
+    border-radius: 10px;
+}
+
+.layout-copilot .frontend-tool-header {
+    padding: 7px 10px;
+}
+
+.layout-copilot .frontend-tool-frame {
+    height: min(320px, 44vh);
+}
+
+.copilot-side-panel {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 45;
+    width: min(100vw, 360px);
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    background: var(--bg-elev-2);
+    box-shadow: var(--shadow-strong);
+}
+
+.copilot-side-panel-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+}
+
+.copilot-side-panel-head strong {
+    font-size: 14px;
+}
+
+.copilot-side-panel-body {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+}
+
+.layout-copilot .right-sidebar-overview,
+.layout-copilot .attachment-preview-panel,
+.layout-copilot .debug-tab {
+    height: 100%;
+}
+
+.layout-copilot .modal {
+    inset: 0 auto 0 0;
+    width: min(100vw, 360px);
+    max-width: 360px;
+    place-items: end stretch;
+}
+
+.layout-copilot .modal-card,
+.layout-copilot .settings-card,
+.layout-copilot .command-modal-card,
+.layout-copilot .command-modal-card.is-schedule-console,
+.layout-copilot .memory-info-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(86dvh, 760px);
+    border-radius: 14px 14px 0 0;
+    padding: 16px;
+}
+
+.layout-copilot .command-modal-head {
+    gap: 10px;
+}
+
+.layout-copilot .command-modal-head h3 {
+    font-size: 16px;
+}
+
+.layout-copilot .command-detail-grid,
+.layout-copilot .schedule-console-body,
+.layout-copilot .schedule-form-grid,
+.layout-copilot .settings-preferences-grid,
+.layout-copilot .settings-grid,
+.layout-copilot .settings-numeric-grid,
+.layout-copilot .memory-info-layout,
+.layout-copilot .archive-modal-layout {
+    grid-template-columns: 1fr;
+}
+
+.layout-copilot .command-scope-group,
+.layout-copilot .settings-segmented,
+.layout-copilot .schedule-console-toolbar,
+.layout-copilot .schedule-detail-actions,
+.layout-copilot .schedule-save-actions {
+    flex-wrap: wrap;
+}
+
+.layout-copilot .command-list-head {
+    align-items: flex-start;
+}
+
+.layout-copilot .command-list-head strong,
+.layout-copilot .command-list-preview {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.layout-copilot .settings-segmented-btn.ui-btn {
+    min-width: 0;
+}
+
+html[data-theme="dark"] .copilot-topbar,
+html[data-theme="dark"] .layout-copilot .bottom-dock {
+    background: color-mix(in srgb, var(--bg-base) 94%, transparent);
+}
+
+html[data-theme="dark"] .copilot-side-panel {
+    background: var(--bg-base);
+}

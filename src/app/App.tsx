@@ -3,13 +3,14 @@ import { ConfigProvider, theme as antdTheme } from "antd";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
+import { CopilotShell } from "@/app/layout/CopilotShell";
 import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 
-const ThemedAppShell: React.FC = () => {
+const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { themeMode } = useAppState();
   const isDark = themeMode === "dark";
 
@@ -62,16 +63,32 @@ const ThemedAppShell: React.FC = () => {
             },
       }}
     >
-      <AppShell />
+      {children}
     </ConfigProvider>
   );
 };
+
+const ThemedAppShell: React.FC = () => (
+  <ThemedShell>
+    <AppShell />
+  </ThemedShell>
+);
+
+const ThemedCopilotShell: React.FC = () => (
+  <ThemedShell>
+    <CopilotShell />
+  </ThemedShell>
+);
 
 const router = createBrowserRouter(
   [
     {
       path: "/",
       element: <ThemedAppShell />,
+    },
+    {
+      path: "/copilot",
+      element: <ThemedCopilotShell />,
     },
     {
       path: "/schedules",

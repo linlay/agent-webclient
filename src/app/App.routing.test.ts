@@ -25,6 +25,10 @@ jest.mock("@/app/layout/AppShell", () => ({
   AppShell: () => null,
 }));
 
+jest.mock("@/app/layout/CopilotShell", () => ({
+  CopilotShell: () => null,
+}));
+
 jest.mock("@/shared/i18n", () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -35,6 +39,10 @@ jest.mock("./pages/schedules", () => ({
 
 jest.mock("./pages/memory", () => ({
   MemoryPage: () => null,
+}));
+
+jest.mock("./pages/agents", () => ({
+  AgentsPage: () => null,
 }));
 
 describe("App routing", () => {
@@ -50,5 +58,17 @@ describe("App routing", () => {
     expect(createBrowserRouterMock.mock.calls[0][1]).toEqual({
       basename: APP_UI_BASE,
     });
+  });
+
+  it("registers the Copilot sidebar route", async () => {
+    await import("./App");
+
+    const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{
+      path: string;
+    }>;
+
+    expect(routes.map((route) => route.path)).toEqual(
+      expect.arrayContaining(["/", "/copilot", "/schedules", "/memory", "/agents"]),
+    );
   });
 });
