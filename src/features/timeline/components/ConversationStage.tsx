@@ -82,7 +82,13 @@ function resolveTaskGroupAgent(
   );
 }
 
-export const ConversationStage: React.FC = () => {
+interface ConversationStageProps {
+  showEmptyState?: boolean;
+}
+
+export const ConversationStage: React.FC<ConversationStageProps> = ({
+  showEmptyState = true,
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -295,14 +301,16 @@ export const ConversationStage: React.FC = () => {
     <div className="conversation-stage">
       <div className="messages-scroll" ref={scrollRef} id="messages">
         <div
-          className={`timeline-stack ${displayItems.length === 0 ? "is-empty" : ""}`}
+          className={`timeline-stack ${displayItems.length === 0 && showEmptyState ? "is-empty" : ""}`}
         >
           {displayItems.length === 0 ? (
-            <div className="timeline-empty">
-              {currentWorker?.displayName
-                ? `与 ${currentWorker?.displayName} 对话`
-                : "今天有什么可以帮您"}
-            </div>
+            showEmptyState ? (
+              <div className="timeline-empty">
+                {currentWorker?.displayName
+                  ? `与 ${currentWorker?.displayName} 对话`
+                  : "今天有什么可以帮您"}
+              </div>
+            ) : null
           ) : (
             <div className="timeline-lane">
               {displayItems.map((item) => {

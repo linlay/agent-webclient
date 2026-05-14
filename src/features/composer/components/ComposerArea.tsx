@@ -28,7 +28,17 @@ import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { useI18n } from "@/shared/i18n";
 
-export const ComposerArea: React.FC = () => {
+interface ComposerAreaProps {
+  emptyInputMinRows?: number;
+  inputMaxRows?: number;
+  showWonders?: boolean;
+}
+
+export const ComposerArea: React.FC<ComposerAreaProps> = ({
+  emptyInputMinRows = 5,
+  inputMaxRows = 10,
+  showWonders = true,
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
@@ -275,7 +285,7 @@ export const ComposerArea: React.FC = () => {
   const { sampledWonders } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
-    isBlankConversation,
+    isBlankConversation: showWonders && isBlankConversation,
   });
 
   const hasPendingSteers = state.pendingSteers.length > 0;
@@ -461,6 +471,8 @@ export const ComposerArea: React.FC = () => {
                   voiceError={state.voiceChat.error}
                   partialUserText={state.voiceChat.partialUserText}
                   partialAssistantText={state.voiceChat.partialAssistantText}
+                  emptyInputMinRows={emptyInputMinRows}
+                  inputMaxRows={inputMaxRows}
                   onInputChange={(next) => {
                     setInputValue(next);
                     setSlashDismissed(false);
@@ -503,7 +515,7 @@ export const ComposerArea: React.FC = () => {
                 />
                 {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
               </div>
-              {isBlankConversation && sampledWonders.length > 0 && (
+              {showWonders && isBlankConversation && sampledWonders.length > 0 && (
                 <ComposerWonders sampledWonders={sampledWonders} />
               )}
             </div>

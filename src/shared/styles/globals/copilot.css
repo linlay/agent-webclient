@@ -34,20 +34,28 @@
     position: relative;
     z-index: 30;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 10px 8px;
+    align-items: stretch;
+    padding: 8px 8px;
     border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
     background: color-mix(in srgb, var(--bg-card) 96%, var(--bg-base));
     box-shadow: var(--shadow-soft);
 }
 
-.copilot-title-block {
+.copilot-topbar-row {
     min-width: 0;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
+}
+
+.copilot-title-block {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .copilot-worker-name {
@@ -60,8 +68,13 @@
     color: var(--ink-1);
 }
 
+.copilot-worker-switch-btn.ui-btn {
+    flex: 0 0 auto;
+}
+
 .copilot-title-block .status-pill {
     flex: 0 0 auto;
+    margin-left: 2px;
     padding: 5px 9px 5px 22px;
     font-size: 10px;
     border-radius: 8px;
@@ -74,6 +87,7 @@
 }
 
 .copilot-topbar-actions {
+    flex: 0 0 auto;
     min-width: 0;
     display: flex;
     align-items: center;
@@ -92,22 +106,6 @@
 
 .copilot-action-btn .material-symbols-rounded {
     font-size: 17px;
-}
-
-.copilot-action-btn.current-worker-tool-voice.is-call {
-    color: #2f7c49;
-}
-
-.copilot-action-btn.current-worker-tool-voice.is-hangup {
-    border-color: color-mix(in srgb, #f06b67 44%, var(--line-soft));
-    background: color-mix(in srgb, #fff0ef 86%, var(--bg-elev-2));
-    color: #d53f3f;
-}
-
-.copilot-action-btn.is-muted {
-    border-color: color-mix(in srgb, #ff945f 38%, var(--line-soft));
-    background: color-mix(in srgb, #fff0e6 84%, var(--bg-elev-2));
-    color: #cf5f18;
 }
 
 .layout-copilot .messages-scroll {

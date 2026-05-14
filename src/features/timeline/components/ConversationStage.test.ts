@@ -179,4 +179,21 @@ describe("ConversationStage", () => {
     expect(html).not.toContain("child answer");
     expect(html).not.toContain("Running 1 agents");
   });
+
+  it("can hide the empty-state prompt for compact shells", () => {
+    const state = createInitialState();
+    useAppState.mockReturnValue({
+      ...state,
+      timelineNodes: new Map(),
+      timelineOrder: [],
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(ConversationStage, { showEmptyState: false }),
+    );
+
+    expect(html).toContain("timeline-stack");
+    expect(html).not.toContain("timeline-empty");
+    expect(html).not.toContain("今天有什么可以帮您");
+  });
 });

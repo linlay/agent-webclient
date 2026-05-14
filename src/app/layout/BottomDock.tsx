@@ -5,8 +5,13 @@ import { PlanPanel } from "@/features/plan/components/PlanPanel";
 import { FrontendToolContainer } from "@/features/tools/components/FrontendToolContainer";
 import { ArtifactPanel } from "@/features/artifacts/components/ArtifactPanel";
 
-export const BottomDock: React.FC = () => {
+interface BottomDockProps {
+	mode?: "desktop" | "copilot";
+}
+
+export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 	const state = useAppState();
+	const isCopilot = mode === "copilot";
 
 	return (
 		<div className="bottom-dock">
@@ -26,7 +31,11 @@ export const BottomDock: React.FC = () => {
 						</div>
 					)}
 					<div className="bottom-dock-composer-rail">
-						<ComposerArea />
+						<ComposerArea
+							emptyInputMinRows={isCopilot ? 1 : undefined}
+							inputMaxRows={isCopilot ? 6 : undefined}
+							showWonders={!isCopilot}
+						/>
 					</div>
 				</div>
 			</div>

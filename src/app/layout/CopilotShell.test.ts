@@ -13,13 +13,24 @@ jest.mock("@/app/layout/hooks/useAppRuntimes", () => ({
 }));
 
 jest.mock("@/features/timeline/components/ConversationStage", () => ({
-  ConversationStage: () =>
-    React.createElement("main", { className: "conversation-stage" }, "stage"),
+  ConversationStage: (props: { showEmptyState?: boolean }) =>
+    React.createElement(
+      "main",
+      {
+        className: "conversation-stage",
+        "data-show-empty-state": String(props.showEmptyState),
+      },
+      "stage",
+    ),
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
-  BottomDock: () =>
-    React.createElement("footer", { className: "bottom-dock" }, "dock"),
+  BottomDock: (props: { mode?: string }) =>
+    React.createElement(
+      "footer",
+      { className: "bottom-dock", "data-mode": props.mode || "" },
+      "dock",
+    ),
 }));
 
 jest.mock("@/app/layout/LeftSidebar", () => ({
@@ -167,8 +178,26 @@ describe("CopilotShell", () => {
     expect(html).toContain("copilot-topbar");
     expect(html).toContain("conversation-stage");
     expect(html).toContain("bottom-dock");
+    expect(html).toContain('data-show-empty-state="false"');
+    expect(html).toContain('data-mode="copilot"');
     expect(html).toContain("command-modal");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a single-line top bar without voice or mute controls", () => {
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).toContain("copilot-topbar-row");
+    expect(html).toContain("copilot-title-block");
+    expect(html).toContain("copilot-worker-switch-btn");
+    expect(html).toContain("swap_horiz");
+    expect(html).toContain("edit_square");
+    expect(html).toContain("history");
+    expect(html).toContain("settings");
+    expect(html).not.toContain(">call<");
+    expect(html).not.toContain(">call_end<");
+    expect(html).not.toContain("volume_up");
+    expect(html).not.toContain("volume_off");
   });
 
   it("does not render desktop-only shell chrome", () => {

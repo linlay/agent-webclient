@@ -14,6 +14,8 @@ interface ComposerInputProps {
   voiceError: string;
   partialUserText: string;
   partialAssistantText: string;
+  emptyInputMinRows?: number;
+  inputMaxRows?: number;
   onInputChange: (value: string) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -49,6 +51,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   voiceError,
   partialUserText,
   partialAssistantText,
+  emptyInputMinRows = 5,
+  inputMaxRows = 10,
   onInputChange,
   onKeyDown,
   onPaste,
@@ -139,8 +143,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                 : t("composer.input.placeholder.default")
             }
             autoSize={{
-              minRows: isTimelineEmpty ? 5 : 1,
-              maxRows: 10,
+              minRows: isTimelineEmpty ? emptyInputMinRows : 1,
+              maxRows: inputMaxRows,
             }}
             disabled={isFrontendActive}
             value={inputValue}
