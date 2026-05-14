@@ -7,6 +7,7 @@ import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
+import { AgentsPage } from "./pages/agents";
 
 const ThemedAppShell: React.FC = () => {
   const { themeMode } = useAppState();
@@ -66,22 +67,29 @@ const ThemedAppShell: React.FC = () => {
   );
 };
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <ThemedAppShell />,
+    },
+    {
+      path: "/schedules",
+      element: <SchedulesPage />,
+    },
+    {
+      path: "/memory",
+      element: <MemoryPage />,
+    },
+    {
+      path: "/agents",
+      element: <AgentsPage />,
+    },
+  ],
   {
-    path: "/",
-    element: <ThemedAppShell />,
+    basename: APP_UI_BASE,
   },
-  {
-    path: "/schedules",
-    element: <SchedulesPage />,
-  },
-  {
-    path: "/memory",
-    element: <MemoryPage />,
-  },
-], {
-  basename: APP_UI_BASE,
-});
+);
 
 interface AppProps {
   i18n?: Omit<I18nProviderProps, "children">;

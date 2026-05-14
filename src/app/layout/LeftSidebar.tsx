@@ -7,6 +7,7 @@ import {
   CollapseProps,
   Flex,
   Input,
+  Modal,
   Popover,
   Spin,
 } from "antd";
@@ -34,6 +35,7 @@ import {
   searchGlobal,
 } from "@/features/transport/lib/apiClientProxy";
 import type { WorkerConversationRow } from "@/app/state/types";
+import { AgentList } from "@/features/workers/components/AgentList";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -45,6 +47,7 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
+  const [modal, contextHolder] = Modal.useModal();
   const { t } = useI18n();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const navigation = selectNavigationState(state);
@@ -319,9 +322,10 @@ export const LeftSidebar: React.FC = () => {
         className={`sidebar left-sidebar ${state.leftDrawerOpen ? "is-open" : ""}`}
         id="left-sidebar"
       >
+        {contextHolder}
         {state.leftDrawerOpen && (
           <>
-            <Flex className="left-sidebar-buttons" gap={2}>
+            <Flex className="left-sidebar-buttons">
               <UiButton
                 size="sm"
                 variant="ghost"
@@ -349,6 +353,32 @@ export const LeftSidebar: React.FC = () => {
                 <Flex gap={4} align="center">
                   <span>记忆</span>
                   <Badge count={state.memoryInfoRecords?.length || 0} />
+                </Flex>
+              </UiButton>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  modal.confirm({
+                    title: t("agents.page.title"),
+                    icon: null,
+                    footer: null,
+                    closable: true,
+                    maskClosable: true,
+                    content: (
+                      <AgentList
+                        agents={state.agents}
+                        selectedAgentKey={state.pendingNewChatAgentKey}
+                      />
+                    ),
+                    width: '80vw',
+                  });
+                }}
+              >
+                <MaterialIcon name="robot" />
+                <Flex gap={4} align="center">
+                  <span>智能体</span>
+                  <Badge count={state.agents?.length || 0} />
                 </Flex>
               </UiButton>
             </Flex>

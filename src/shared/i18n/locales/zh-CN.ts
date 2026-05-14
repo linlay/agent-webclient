@@ -1,6 +1,12 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages: I18nMessages = {
+  "agents.list.conversationCount": "{count} 个会话",
+  "agents.list.empty": "暂无 Agents",
+  "agents.list.searchPlaceholder": "搜索 Agent 名称 / key / 职责...",
+  "agents.list.unreadCount": "{count} 未读",
+  "agents.page.count": "{count} 个可用 Agent",
+  "agents.page.title": "Agents",
   "api.downloadFailedWithStatus": "下载失败 ({status})",
   "api.fileDownloadUnsupported": "当前环境不支持文件下载",
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",

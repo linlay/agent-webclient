@@ -1,6 +1,12 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages: I18nMessages = {
+  "agents.list.conversationCount": "{count} conversations",
+  "agents.list.empty": "No agents",
+  "agents.list.searchPlaceholder": "Search agent name / key / role...",
+  "agents.list.unreadCount": "{count} unread",
+  "agents.page.count": "{count} available agents",
+  "agents.page.title": "Agents",
   "api.downloadFailedWithStatus": "Download failed ({status})",
   "api.fileDownloadUnsupported": "File download is not supported in this environment",
   "api.loadResourceTextFailedWithStatus": "Failed to load resource text ({status})",
