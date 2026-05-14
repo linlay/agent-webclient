@@ -17,6 +17,10 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: () => null,
 }));
 
+jest.mock("@/shared/icons/agent", () => ({
+  AgentIcon: () => React.createElement("span", { className: "agent-icon" }, "agent-icon"),
+}));
+
 jest.mock("@/features/timeline/components/TimelineRow", () => ({
   TimelineRow: (props: { node?: { text?: string; id?: string }; toolGroup?: { key?: string } }) =>
     React.createElement(
@@ -155,6 +159,7 @@ describe("ConversationStage", () => {
     ]);
     useAppState.mockReturnValue({
       ...state,
+      agents: [{ key: "subagent_1", name: "小智" }],
       events: [
         { type: "request.query", timestamp: 100 },
         { type: "run.complete", timestamp: 200 },
@@ -167,6 +172,8 @@ describe("ConversationStage", () => {
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
     expect(html).toContain("timeline-task-group-header");
+    expect(html).toContain("agent-icon");
+    expect(html).toContain("小智");
     expect(html).toContain("Sub agent task");
     expect(html).toContain("已完成");
     expect(html).not.toContain("child answer");

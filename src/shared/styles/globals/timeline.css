@@ -641,6 +641,28 @@
     flex: 0 0 auto;
 }
 
+.timeline-task-group-agent {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 160px;
+}
+
+.timeline-task-group-agent-avatar {
+    flex: 0 0 auto;
+}
+
+.timeline-task-group-agent-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .timeline-task-group-title {
     min-width: 0;
     overflow: hidden;
@@ -650,20 +672,46 @@
     font-weight: 600;
 }
 
-.timeline-task-group-status,
 .timeline-task-group-duration {
-    flex: 0 0 auto;
+    flex: 1 0 auto;
     color: var(--ink-muted);
     font-size: 11px;
     line-height: 1;
 }
 
-.timeline-task-group-status.is-failed {
-    color: color-mix(in srgb, var(--accent-danger) 82%, var(--ink-1));
+@keyframes timeline-task-status-flash {
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0;
+    }
 }
 
-.timeline-task-group-status.is-completed {
-    color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-1));
+.timeline-task-group .timeline-task-group-status {
+    flex: 0 0 auto;
+}
+
+.timeline-task-group .timeline-task-group-status.is-running {
+    animation: timeline-task-status-flash 1s infinite;
+    background: var(--accent-electric);
+}
+
+.timeline-task-group .timeline-task-group-status.is-completed {
+    background: var(--accent-lime);
+}
+
+.timeline-task-group .timeline-task-group-status.is-failed {
+    background: var(--accent-danger);
+}
+
+.timeline-task-group .timeline-task-group-status.is-canceled {
+    background: var(--accent-warn);
 }
 
 .timeline-task-group-error {
