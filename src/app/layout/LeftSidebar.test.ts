@@ -67,6 +67,7 @@ jest.mock("antd", () => {
           children,
         )
       : null;
+  Modal.useModal = () => [{ confirm: jest.fn() }, null];
 
   const Popover = ({ children, content, classNames }: any) =>
     React.createElement(
@@ -325,10 +326,24 @@ describe("LeftSidebar", () => {
     expect(html).toContain("settings-summary-chip");
   });
 
-  it("renders automation as the schedule console entry without a hardcoded count", () => {
+  it("does not render quick actions by default", () => {
+    const html = renderSidebar();
+
+    expect(html).not.toContain("left-sidebar-buttons");
+    expect(html).not.toContain("自动化");
+    expect(html).not.toContain("记忆");
+  });
+
+  it("renders quick actions when enabled by env", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      QUICK_ACTIONS_ENABLED: "true",
+    };
+
     const html = renderSidebar();
 
     expect(html).toContain("自动化");
+    expect(html).toContain("记忆");
+    expect(html).toContain("智能体");
     expect(html).not.toContain('data-badge-count="6"');
   });
 

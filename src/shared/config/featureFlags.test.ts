@@ -1,5 +1,6 @@
 import {
   isDebugPanelEnabled,
+  isQuickActionsEnabled,
   isSettingsMenuEnabled,
   parseFeatureFlag,
 } from "@/shared/config/featureFlags";
@@ -48,5 +49,19 @@ describe("featureFlags", () => {
       SETTINGS_MENU_ENABLED: "false",
     };
     expect(isSettingsMenuEnabled()).toBe(false);
+  });
+
+  it("reads the quick actions flag from runtime config", () => {
+    expect(isQuickActionsEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      QUICK_ACTIONS_ENABLED: "true",
+    };
+    expect(isQuickActionsEnabled()).toBe(true);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      QUICK_ACTIONS_ENABLED: "false",
+    };
+    expect(isQuickActionsEnabled()).toBe(false);
   });
 });

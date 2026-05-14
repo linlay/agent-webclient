@@ -21,7 +21,10 @@ import {
   SidebarSettingsMenu,
   type SidebarSettingsMenuAction,
 } from "@/features/settings/components/SidebarSettingsMenu";
-import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
+import {
+  isQuickActionsEnabled,
+  isSettingsMenuEnabled,
+} from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
@@ -50,6 +53,7 @@ export const LeftSidebar: React.FC = () => {
   const [modal, contextHolder] = Modal.useModal();
   const { t } = useI18n();
   const settingsMenuEnabled = isSettingsMenuEnabled();
+  const quickActionsEnabled = isQuickActionsEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
@@ -325,63 +329,65 @@ export const LeftSidebar: React.FC = () => {
         {contextHolder}
         {state.leftDrawerOpen && (
           <>
-            <Flex className="left-sidebar-buttons">
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  dispatch({
-                    type: "OPEN_COMMAND_MODAL",
-                    modal: { type: "schedule" },
-                  });
-                }}
-              >
-                <MaterialIcon name="schedule" />
-                <Flex gap={4} align="center">
-                  <span>自动化</span>
-                  <Badge count={state.schedules?.length} />
-                </Flex>
-              </UiButton>
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
-                }
-              >
-                <MaterialIcon name="neurology" />
-                <Flex gap={4} align="center">
-                  <span>记忆</span>
-                  <Badge count={state.memoryInfoRecords?.length || 0} />
-                </Flex>
-              </UiButton>
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  modal.confirm({
-                    title: t("agents.page.title"),
-                    icon: null,
-                    footer: null,
-                    closable: true,
-                    maskClosable: true,
-                    content: (
-                      <AgentList
-                        agents={state.agents}
-                        selectedAgentKey={state.pendingNewChatAgentKey}
-                      />
-                    ),
-                    width: '80vw',
-                  });
-                }}
-              >
-                <MaterialIcon name="robot" />
-                <Flex gap={4} align="center">
-                  <span>智能体</span>
-                  <Badge count={state.agents?.length || 0} />
-                </Flex>
-              </UiButton>
-            </Flex>
+            {quickActionsEnabled ? (
+              <Flex className="left-sidebar-buttons">
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    dispatch({
+                      type: "OPEN_COMMAND_MODAL",
+                      modal: { type: "schedule" },
+                    });
+                  }}
+                >
+                  <MaterialIcon name="schedule" />
+                  <Flex gap={4} align="center">
+                    <span>自动化</span>
+                    <Badge count={state.schedules?.length} />
+                  </Flex>
+                </UiButton>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
+                  }
+                >
+                  <MaterialIcon name="neurology" />
+                  <Flex gap={4} align="center">
+                    <span>记忆</span>
+                    <Badge count={state.memoryInfoRecords?.length || 0} />
+                  </Flex>
+                </UiButton>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    modal.confirm({
+                      title: t("agents.page.title"),
+                      icon: null,
+                      footer: null,
+                      closable: true,
+                      maskClosable: true,
+                      content: (
+                        <AgentList
+                          agents={state.agents}
+                          selectedAgentKey={state.pendingNewChatAgentKey}
+                        />
+                      ),
+                      width: "80vw",
+                    });
+                  }}
+                >
+                  <MaterialIcon name="robot" />
+                  <Flex gap={4} align="center">
+                    <span>智能体</span>
+                    <Badge count={state.agents?.length || 0} />
+                  </Flex>
+                </UiButton>
+              </Flex>
+            ) : null}
             <Flex gap={2} style={{ padding: "0 6px" }}>
               <Input
                 variant="filled"

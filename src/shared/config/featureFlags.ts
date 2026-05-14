@@ -13,3 +13,7 @@ export function isDebugPanelEnabled(): boolean {
 export function isSettingsMenuEnabled(): boolean {
   return parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
 }
+
+export function isQuickActionsEnabled(): boolean {
+  return parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
+}
