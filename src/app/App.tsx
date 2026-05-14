@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
+import { APP_UI_BASE } from "@/shared/utils/routing";
 import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
 
@@ -78,7 +79,9 @@ const router = createBrowserRouter([
     path: "/memory",
     element: <MemoryPage />,
   },
-]);
+], {
+  basename: APP_UI_BASE,
+});
 
 interface AppProps {
   i18n?: Omit<I18nProviderProps, "children">;
