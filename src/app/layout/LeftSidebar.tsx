@@ -561,7 +561,7 @@ export const LeftSidebar: React.FC = () => {
             }
           >
             <UiButton
-              className="icon-btn sidebar-settings-trigger"
+              className="icon-btn"
               id="settings-btn"
               variant="ghost"
               aria-label={t("leftSidebar.openSettingsMenu")}

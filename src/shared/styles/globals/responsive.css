@@ -7,19 +7,14 @@
 }
 
 #settings-btn {
-    margin: 4px;
-    justify-content: flex-start;
+    margin: 0 6px;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 #settings-btn>.ui-btn-label {
     width: 100%;
     justify-content: space-between;
-}
-
-.sidebar-settings-trigger {
-    width: calc(100% - 8px);
-    justify-content: space-between !important;
-    gap: 10px;
 }
 
 .settings-trigger-summary {
