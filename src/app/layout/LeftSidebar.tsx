@@ -329,7 +329,7 @@ export const LeftSidebar: React.FC = () => {
         {contextHolder}
         {state.leftDrawerOpen && (
           <>
-            {quickActionsEnabled ? (
+            {quickActionsEnabled && (
               <Flex className="left-sidebar-buttons">
                 <UiButton
                   size="sm"
@@ -387,7 +387,7 @@ export const LeftSidebar: React.FC = () => {
                   </Flex>
                 </UiButton>
               </Flex>
-            ) : null}
+            )}
             <Flex gap={2} style={{ padding: "0 6px" }}>
               <Input
                 variant="filled"

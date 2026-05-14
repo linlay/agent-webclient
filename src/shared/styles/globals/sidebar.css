@@ -10,6 +10,7 @@
     grid-column: 1;
     transform: none !important;
     position: relative !important;
+    padding-top: 6px;
 }
 
 .sidebar {
@@ -622,7 +623,7 @@
 }
 
 .left-sidebar-buttons {
-    padding: 6px;
+    padding: 0 6px 6px;
 }
 .left-sidebar-buttons .ui-btn.ui-btn-sm{
     padding: 6px;
