@@ -7,9 +7,9 @@ export function parseFeatureFlag(value: unknown): boolean {
 }
 
 export function isDebugPanelEnabled(): boolean {
-  return parseFeatureFlag(readRuntimeConfigValue("APP_DEBUG_PANEL_ENABLED"));
+  return parseFeatureFlag(readRuntimeConfigValue("DEBUG_PANEL_ENABLED"));
 }
 
 export function isSettingsMenuEnabled(): boolean {
-  return parseFeatureFlag(readRuntimeConfigValue("APP_SETTINGS_MENU_ENABLED"));
+  return parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
 }

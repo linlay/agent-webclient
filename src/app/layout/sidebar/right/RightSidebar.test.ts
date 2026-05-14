@@ -92,7 +92,7 @@ describe("RightSidebar", () => {
 
   it("renders the debug panel outside the tab list when enabled by env", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_DEBUG_PANEL_ENABLED: "true",
+      DEBUG_PANEL_ENABLED: "true",
     };
 
     const html = renderToStaticMarkup(React.createElement(RightSidebar));

@@ -4,7 +4,6 @@ describe('webpack devServer proxy', () => {
   function loadApiProxyRule() {
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
       VOICE_BASE_URL: 'http://voice.example.com',
     };
@@ -30,7 +29,6 @@ describe('webpack devServer proxy', () => {
   it('enables websocket proxying for voice endpoint', () => {
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
       VOICE_BASE_URL: 'http://voice.example.com',
     };
@@ -53,7 +51,6 @@ describe('webpack devServer proxy', () => {
   it('enables websocket proxying for query websocket endpoint', () => {
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
       VOICE_BASE_URL: 'http://voice.example.com',
     };
@@ -73,7 +70,6 @@ describe('webpack devServer proxy', () => {
   it('uses WS_BASE_URL for query websocket endpoint when configured', () => {
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
       WS_BASE_URL: 'http://ws.example.com',
       VOICE_BASE_URL: 'http://voice.example.com',
@@ -94,7 +90,6 @@ describe('webpack devServer proxy', () => {
   it('moves webpack hmr websocket off /ws', () => {
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'development',
       BASE_URL: 'http://backend.example.com',
       VOICE_BASE_URL: 'http://voice.example.com',
     };
@@ -105,6 +100,21 @@ describe('webpack devServer proxy', () => {
 
     expect(config.devServer?.client?.webSocketURL?.pathname).toBe('/__webpack_hmr');
     expect(config.devServer?.webSocketServer?.options?.path).toBe('/__webpack_hmr');
+  });
+
+  it('derives webpack mode from argv mode without NODE_ENV', () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: undefined,
+      BASE_URL: 'http://backend.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+
+    expect(configFactory({}, { mode: 'development' }).mode).toBe('development');
+    expect(configFactory({}, { mode: 'production' }).mode).toBe('production');
   });
 
   it('does not rewrite query errors into SSE success responses', () => {

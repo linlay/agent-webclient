@@ -312,7 +312,7 @@ describe("LeftSidebar", () => {
 
   it("renders compact transport and theme summaries on the settings trigger when enabled by env", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_SETTINGS_MENU_ENABLED: "true",
+      SETTINGS_MENU_ENABLED: "true",
     };
 
     const html = renderSidebar();

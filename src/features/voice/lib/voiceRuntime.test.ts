@@ -3,6 +3,10 @@ import type { AppState, TtsVoiceBlock } from "@/app/state/types";
 import { setAccessToken } from "@/shared/api/apiClient";
 import { initVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
 class MockWebSocket {
 	static instances: MockWebSocket[] = [];
 	static CONNECTING = 0;
@@ -191,6 +195,7 @@ describe("voiceRuntime v2 protocol", () => {
 		HangingWebSocket.instances = [];
 		jest.useRealTimers();
 		setAccessToken("");
+		delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
 		if (originalWindow) {
 			(globalThis as unknown as { window?: Window & typeof globalThis }).window =
 				originalWindow;
@@ -326,6 +331,9 @@ describe("voiceRuntime v2 protocol", () => {
 			pathname: "/appagent",
 			storedToken: "bridge-token",
 		});
+		globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			DESKTOP_APP: "true",
+		};
 
 		const runtime = initVoiceRuntime({
 			getState: () =>

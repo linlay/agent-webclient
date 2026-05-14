@@ -16,13 +16,14 @@ const allowedHosts = allowedHostsEnv === 'all'
     .filter(Boolean);
 
 const runtimeConfigEnvKeys = [
-  'APP_DEBUG_PANEL_ENABLED',
-  'APP_SETTINGS_MENU_ENABLED',
-  'APP_VOICE_ASR_CLIENT_GATE_ENABLED',
-  'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
-  'APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
-  'APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS',
-  'APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS',
+  'DESKTOP_APP',
+  'DEBUG_PANEL_ENABLED',
+  'SETTINGS_MENU_ENABLED',
+  'VOICE_ASR_CLIENT_GATE_ENABLED',
+  'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
+  'VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
+  'VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS',
+  'VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS',
 ];
 
 function parseEnvFileContent(content) {
@@ -89,7 +90,7 @@ module.exports = (env, argv) => {
 
   return {
     entry: './src/app/index.tsx',
-    mode: process.env.NODE_ENV === 'development' ? 'development' : 'production',
+    mode: isProd ? 'production' : 'development',
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: isProd ? 'js/[name].[contenthash:8].js' : 'js/[name].js',

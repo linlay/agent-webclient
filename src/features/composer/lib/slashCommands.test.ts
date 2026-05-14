@@ -41,14 +41,14 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_DEBUG_PANEL_ENABLED: 'true',
+      DEBUG_PANEL_ENABLED: 'true',
     };
     expect(getFilteredSlashCommands('/debug').map((item) => item.id)).toEqual(['debug']);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_DEBUG_PANEL_ENABLED: 'true',
-      APP_SETTINGS_MENU_ENABLED: 'true',
+      DEBUG_PANEL_ENABLED: 'true',
+      SETTINGS_MENU_ENABLED: 'true',
     };
     expect(getFilteredSlashCommands('/settings').map((item) => item.id)).toEqual(['settings']);
   });

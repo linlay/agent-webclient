@@ -12,6 +12,10 @@ type MockStorage = {
   dump: () => Record<string, string>;
 };
 
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
 function createMockStorage(initial: Record<string, string> = {}): MockStorage {
   const values = new Map(Object.entries(initial));
   return {
@@ -50,7 +54,7 @@ function installWindow(options: {
 
   const mockWindow = {
     location: {
-      pathname: options.pathname ?? '/appagent',
+      pathname: options.pathname ?? '/',
       search: options.search ?? '',
     },
     parent,
@@ -71,6 +75,9 @@ function installWindow(options: {
   };
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
+  globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+    DESKTOP_APP: 'true',
+  };
 
   return {
     parent,
@@ -94,6 +101,7 @@ describe('appAuth', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     if (originalWindow) {
       (globalThis as unknown as { window?: Window & typeof globalThis }).window =
         originalWindow;

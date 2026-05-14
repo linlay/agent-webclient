@@ -114,7 +114,7 @@ describe("TopNav", () => {
 
 	it("renders the debug panel button when enabled by env", () => {
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-			APP_DEBUG_PANEL_ENABLED: "true",
+			DEBUG_PANEL_ENABLED: "true",
 		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));

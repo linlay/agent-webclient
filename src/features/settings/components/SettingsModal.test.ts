@@ -31,6 +31,9 @@ const { useAppState, useAppDispatch } = jest.requireMock(
 const globalWithWindow = globalThis as typeof globalThis & {
   window?: { location?: { search?: string } };
 };
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
 const globalWithStorage = globalThis as typeof globalThis & {
   localStorage?: {
     getItem: jest.Mock;
@@ -64,6 +67,7 @@ describe("SettingsModal", () => {
 
   beforeEach(() => {
     useAppDispatch.mockReturnValue(jest.fn());
+    delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     delete globalWithWindow.window;
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
@@ -111,8 +115,11 @@ describe("SettingsModal", () => {
   it("keeps the remaining controls in the preferences grid for desktop app mode", () => {
     globalWithWindow.window = {
       location: {
-        search: "?desktopApp=1",
+        search: "",
       },
+    };
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: "true",
     };
 
     const html = renderSettingsModal();

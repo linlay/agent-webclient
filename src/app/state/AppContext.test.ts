@@ -2,6 +2,10 @@ import type { WorkerConversationRow } from '@/app/state/types';
 import { appReducer, applyActionToStateRef, createInitialState } from '@/app/state/AppContext';
 import * as transportModeModule from '@/features/transport/lib/transportMode';
 
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
 describe('appReducer conversation reset behavior', () => {
   const originalWindow = globalThis.window;
 
@@ -27,6 +31,7 @@ describe('appReducer conversation reset behavior', () => {
   });
 
   afterEach(() => {
+    delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     if (originalWindow) {
       (globalThis as unknown as { window?: Window & typeof globalThis }).window =
         originalWindow;
@@ -45,7 +50,8 @@ describe('appReducer conversation reset behavior', () => {
     (globalThis as unknown as { window?: Window & typeof globalThis }).window =
       {
         location: {
-          pathname: '/appagent',
+          pathname: '/',
+          search: '',
         },
         sessionStorage: {
           getItem: (key: string) =>
@@ -54,6 +60,9 @@ describe('appReducer conversation reset behavior', () => {
           removeItem: () => undefined,
         },
       } as Window & typeof globalThis;
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: 'true',
+    };
 
     const state = createInitialState();
 
@@ -100,9 +109,12 @@ describe('appReducer conversation reset behavior', () => {
       {
         location: {
           pathname: '/appagent',
-          search: '?desktopApp=1&hostTheme=dark',
+          search: '?hostTheme=dark',
         },
       } as Window & typeof globalThis;
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: 'true',
+    };
     Object.defineProperty(globalThis, 'document', {
       configurable: true,
       value: {

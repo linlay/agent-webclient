@@ -220,9 +220,9 @@ describe('backend/server', () => {
     fs.writeFileSync(
       path.join(rootDir, '.env'),
       [
-        'APP_DEBUG_PANEL_ENABLED=false',
-        'APP_SETTINGS_MENU_ENABLED=true',
-        'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.015',
+        'DEBUG_PANEL_ENABLED=false',
+        'SETTINGS_MENU_ENABLED=true',
+        'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.015',
       ].join('\n'),
       'utf8',
     );
@@ -234,25 +234,25 @@ describe('backend/server', () => {
     try {
       await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
         statusCode: 200,
-        body: expect.stringContaining('"APP_DEBUG_PANEL_ENABLED":"false"'),
+        body: expect.stringContaining('"DEBUG_PANEL_ENABLED":"false"'),
       });
 
       fs.writeFileSync(
         path.join(rootDir, '.env'),
         [
-          'APP_DEBUG_PANEL_ENABLED=true',
-          'APP_SETTINGS_MENU_ENABLED=true',
-          'APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.02',
+          'DEBUG_PANEL_ENABLED=true',
+          'SETTINGS_MENU_ENABLED=true',
+          'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.02',
         ].join('\n'),
         'utf8',
       );
 
       await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
         statusCode: 200,
-        body: expect.stringContaining('"APP_DEBUG_PANEL_ENABLED":"true"'),
+        body: expect.stringContaining('"DEBUG_PANEL_ENABLED":"true"'),
       });
       await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
-        body: expect.stringContaining('"APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD":"0.02"'),
+        body: expect.stringContaining('"VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD":"0.02"'),
       });
     } finally {
       await closeServer(server);

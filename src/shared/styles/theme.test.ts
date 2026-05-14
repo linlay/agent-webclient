@@ -29,7 +29,7 @@ describe("theme helpers", () => {
 			configurable: true,
 			value: {
 				location: {
-					search: "?desktopApp=1&hostTheme=dark",
+					search: "?hostTheme=dark",
 				},
 			},
 		});
@@ -57,7 +57,7 @@ describe("theme helpers", () => {
 			configurable: true,
 			value: {
 				location: {
-					search: "?desktopApp=1",
+					search: "",
 				},
 			},
 		});

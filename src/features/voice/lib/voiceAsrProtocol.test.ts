@@ -74,11 +74,11 @@ describe("voiceAsrProtocol helpers", () => {
 
 	it("reads client gate defaults from runtime env values", () => {
 		globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-			APP_VOICE_ASR_CLIENT_GATE_ENABLED: "false",
-			APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
-			APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS: "150",
-			APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS: "700",
-			APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS: "280",
+			VOICE_ASR_CLIENT_GATE_ENABLED: "false",
+			VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
+			VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS: "150",
+			VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS: "700",
+			VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS: "280",
 		};
 
 		expect(resolveVoiceClientGateEnvDefaults()).toEqual({
@@ -92,7 +92,7 @@ describe("voiceAsrProtocol helpers", () => {
 
 	it("merges env defaults with backend client gate settings", () => {
 		globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-			APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
+			VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD: "0.015",
 		};
 
 		expect(

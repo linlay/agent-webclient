@@ -43,7 +43,7 @@ describe("App routing", () => {
     createBrowserRouterMock.mockClear();
   });
 
-  it("mounts the Desktop app routes below the appagent basename", async () => {
+  it("mounts the Desktop app routes at the root basename", async () => {
     await import("./App");
 
     expect(createBrowserRouterMock).toHaveBeenCalledTimes(1);

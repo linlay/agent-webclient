@@ -26,12 +26,12 @@ describe("featureFlags", () => {
     expect(isDebugPanelEnabled()).toBe(false);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_DEBUG_PANEL_ENABLED: "true",
+      DEBUG_PANEL_ENABLED: "true",
     };
     expect(isDebugPanelEnabled()).toBe(true);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_DEBUG_PANEL_ENABLED: " false ",
+      DEBUG_PANEL_ENABLED: " false ",
     };
     expect(isDebugPanelEnabled()).toBe(false);
   });
@@ -40,12 +40,12 @@ describe("featureFlags", () => {
     expect(isSettingsMenuEnabled()).toBe(false);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_SETTINGS_MENU_ENABLED: true,
+      SETTINGS_MENU_ENABLED: true,
     };
     expect(isSettingsMenuEnabled()).toBe(true);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      APP_SETTINGS_MENU_ENABLED: "false",
+      SETTINGS_MENU_ENABLED: "false",
     };
     expect(isSettingsMenuEnabled()).toBe(false);
   });

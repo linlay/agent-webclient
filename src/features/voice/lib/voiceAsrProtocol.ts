@@ -109,19 +109,19 @@ export function resolveVoiceClientGateEnvDefaults(): VoiceClientGateConfig {
 	return normalizeVoiceClientGateConfig(
 		{
 			enabled: parseVoiceEnvBoolean(
-				"APP_VOICE_ASR_CLIENT_GATE_ENABLED",
+				"VOICE_ASR_CLIENT_GATE_ENABLED",
 			),
 			rmsThreshold: parseVoiceEnvNumber(
-				"APP_VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
+				"VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
 			),
 			openHoldMs: parseVoiceEnvNumber(
-				"APP_VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",
+				"VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",
 			),
 			closeHoldMs: parseVoiceEnvNumber(
-				"APP_VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS",
+				"VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS",
 			),
 			preRollMs: parseVoiceEnvNumber(
-				"APP_VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS",
+				"VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS",
 			),
 		},
 		DEFAULT_VOICE_CLIENT_GATE,

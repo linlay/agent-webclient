@@ -183,10 +183,7 @@ write_program_manifest() {
     "directAccess": true,
     "hostManaged": false,
     "hideFromNav": true,
-    "embedPath": "/appagent",
-    "embedParams": {
-      "desktopApp": "1"
-    }
+    "embedPath": "/"
   },
   "backend": {
     "entry": "$backend_entry"

@@ -26,7 +26,6 @@ cp .env.example .env
 - `BASE_URL`：runner HTTP API 基地址
 - `WS_BASE_URL`：可选的主 WebSocket 上游基地址，未设置时默认继承 `BASE_URL`
 - `VOICE_BASE_URL`：语音 WebSocket 服务基地址
-- `NODE_ENV`：本地默认保持 `development`
 
 ### 安装依赖
 ```bash

@@ -97,6 +97,7 @@ function createMockStorage(initial: Record<string, string> = {}): MockStorage {
 
 function installWindow(options: {
   pathname?: string;
+  search?: string;
   storedToken?: string;
 } = {}) {
   const listeners = new Set<(event: MessageEvent) => void>();
@@ -109,7 +110,10 @@ function installWindow(options: {
     postMessage: jest.fn(),
   };
   const mockWindow = {
-    location: { pathname: options.pathname ?? '/appagent' },
+    location: {
+      pathname: options.pathname ?? '/',
+      search: options.search ?? '',
+    },
     parent,
     sessionStorage,
     addEventListener: jest.fn((type: string, listener: EventListener) => {
@@ -127,6 +131,11 @@ function installWindow(options: {
   };
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
+  (globalThis as typeof globalThis & {
+    __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+  }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+    DESKTOP_APP: 'true',
+  };
 
   return {
     parent,
@@ -160,6 +169,9 @@ describe('apiClient query payloads', () => {
   });
 
   afterEach(() => {
+    delete (globalThis as typeof globalThis & {
+      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     if (originalWindow) {
       (globalThis as unknown as { window?: Window & typeof globalThis }).window =
         originalWindow;

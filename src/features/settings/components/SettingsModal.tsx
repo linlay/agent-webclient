@@ -8,7 +8,7 @@ import type {
   VoiceClientGateConfig,
 } from "@/app/state/types";
 import { getCurrentAccessToken, setAccessToken } from "@/shared/api/apiClient";
-import { isAppMode } from "@/shared/utils/routing";
+import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
 import {
   normalizeVoiceClientGateConfig,
 } from "@/features/voice/lib/voiceAsrProtocol";
@@ -33,9 +33,7 @@ export const SettingsModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
   const appMode = isAppMode();
-  const isDesktopApp =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("desktopApp") === "1";
+  const isDesktopApp = isDesktopAppMode();
   const [tokenInput, setTokenInput] = useState(
     appMode ? getCurrentAccessToken() || state.accessToken : state.accessToken,
   );
