@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import React, { useMemo, useState } from "react";
+import { useAppState } from "@/app/state/AppContext";
 import type { PublishedArtifact } from "@/app/state/types";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -43,21 +43,42 @@ export function buildArtifactSummaryView(
   };
 }
 
+function handleFloatingArtifactWheel(event: React.WheelEvent<HTMLDivElement>) {
+  const panel = event.currentTarget;
+  const maxScrollLeft = panel.scrollWidth - panel.clientWidth;
+  if (maxScrollLeft <= 0) return;
+
+  const scrollDelta = event.deltaY || event.deltaX;
+  if (scrollDelta === 0) return;
+
+  const scrollLeft = panel.scrollLeft;
+  if (
+    (scrollDelta < 0 && scrollLeft <= 0) ||
+    (scrollDelta > 0 && scrollLeft >= maxScrollLeft)
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  panel.scrollLeft =
+    scrollDelta < 0
+      ? Math.max(0, scrollLeft + scrollDelta)
+      : Math.min(maxScrollLeft, scrollLeft + scrollDelta);
+}
+
 export const ArtifactPanel: React.FC = () => {
   const state = useAppState();
   const summary = useMemo(
     () => buildArtifactSummaryView(state.artifacts),
     [state.artifacts],
   );
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   if (state.artifacts.length === 0) return null;
 
   return isCollapsed ? (
-    <div className="floating-artifact" ref={panelRef}>
-      <ul className="artifact-list" ref={listRef}>
+    <div className="floating-artifact" onWheel={handleFloatingArtifactWheel}>
+      <ul className="artifact-list">
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
           return (
