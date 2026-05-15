@@ -79,13 +79,16 @@
 }
 
 .worker-collapse .ant-collapse-item {
-    border-radius: 8px;
+    border-radius: 8px !important;
     overflow: hidden;
 }
 
-.worker-collapse .ant-collapse-item.ant-collapse-item-active,
-.worker-collapse .ant-collapse-item:hover {
-    border-radius: 8px;
+.worker-collapse .ant-collapse-item.ant-collapse-item-active{
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--line-soft);
+    background: var(--bg-input);
+}
+.worker-collapse .ant-collapse-item:hover:not(.ant-collapse-item-active) {
     background: var(--bg-hover);
 }
 

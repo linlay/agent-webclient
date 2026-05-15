@@ -213,9 +213,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       const taskAgent = resolveTaskGroupAgent(entry, state.agents, currentWorker);
       return (
         <section key={entry.key} className="timeline-task-group">
-          <button
-            type="button"
+          <Flex
             className={`timeline-task-group-header ${expanded ? "is-expanded" : ""}`.trim()}
+            align="center"
+            gap={8}
             aria-expanded={expanded}
             onClick={() => toggleTaskGroup(entry.key)}
           >
@@ -252,7 +253,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               <span className="timeline-task-group-duration">{taskDuration}</span>
             )}
             <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-          </button>
+          </Flex>
           {entry.error && (
             <div className="timeline-task-group-error">{entry.error}</div>
           )}

@@ -612,33 +612,26 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-left: 24px;
 }
 
 .timeline-task-group-header {
     appearance: none;
-    border: 1px solid var(--line-soft);
-    background: color-mix(in srgb, var(--bg-elev-1) 86%, transparent);
-    color: var(--ink-1);
-    border-radius: 8px;
-    min-height: 32px;
-    padding: 5px 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-align: left;
+    padding: 5px 0;
     cursor: pointer;
-    max-width: 100%;
 }
 
-.timeline-task-group-header:hover {
-    background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
+.timeline-task-group-header:hover .material-symbols-rounded {
+    opacity: 1;
+}
+
+.timeline-task-group-header.is-expanded .material-symbols-rounded {
+    opacity: 1;
 }
 
 .timeline-task-group-header .material-symbols-rounded {
     font-size: 18px;
-    color: var(--ink-muted);
     flex: 0 0 auto;
+    opacity: 0;
 }
 
 .timeline-task-group-agent {
@@ -673,7 +666,7 @@
 }
 
 .timeline-task-group-duration {
-    flex: 1 0 auto;
+    flex: 0 0 auto;
     color: var(--ink-muted);
     font-size: 11px;
     line-height: 1;
@@ -1220,6 +1213,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     color: inherit;
     font-size: inherit;
 }
-.ant-badge .ant-badge-multiple-words{
+
+.ant-badge .ant-badge-multiple-words {
     padding: 0 4px;
 }
