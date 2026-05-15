@@ -15,20 +15,13 @@
 }
 
 .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    z-index: 40;
     width: var(--left-sidebar-width);
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     overflow: hidden;
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    border-radius: 10px;
-    box-shadow: var(--shadow-soft);
+    background: var(--bg-elev-1);
 }
 
 .right-sidebar {
@@ -36,6 +29,7 @@
     right: 0;
     left: auto;
     transform: translateX(100%);
+    border-radius: 10px;
 }
 
 .right-sidebar-resize-handle {
@@ -626,7 +620,8 @@
 .left-sidebar-buttons {
     padding: 0 6px;
 }
-.left-sidebar-buttons .ui-btn.ui-btn-sm{
+
+.left-sidebar-buttons .ui-btn.ui-btn-sm {
     padding: 6px;
 }
 

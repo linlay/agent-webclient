@@ -874,24 +874,12 @@
     overflow-y: hidden;
 }
 
-html[data-theme="dark"] .app-shell {
-    background: var(--bg-base);
-}
-
-html[data-theme="dark"] .top-nav {
-    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
-    border-bottom-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
-    box-shadow: none;
-}
-
 html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .current-worker-card,
 html[data-theme="dark"] .status-pill {
     box-shadow: none;
 }
 
-html[data-theme="dark"] .icon-btn,
-html[data-theme="dark"] .current-worker-card,
 html[data-theme="dark"] .status-pill,
 html[data-theme="dark"] .chat-item,
 html[data-theme="dark"] .composer-pill,
@@ -1009,11 +997,6 @@ html[data-theme="dark"] .timeline-markdown code:not(pre code) {
 
 html[data-theme="dark"] .timeline-markdown a {
     color: var(--accent-strong);
-}
-
-html[data-theme="dark"] .sidebar,
-html[data-theme="dark"] .right-sidebar {
-    background: color-mix(in srgb, var(--bg-elev-2) 100%, var(--bg-elev-1));
 }
 
 html[data-theme="dark"] .worker-chat-float-btn:hover {

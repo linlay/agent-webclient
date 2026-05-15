@@ -2,7 +2,7 @@
    CSS Custom Properties — Theme System
    ======================================== */
 :root {
-    --bg-base: #f2f3f5;
+    --bg-base: #fff;
     --bg-elev-1: #f7f8fa;
     --bg-elev-2: #ffffff;
     --bg-input: #f7f8fa;
@@ -50,7 +50,7 @@
 }
 
 html[data-theme="dark"] {
-    --bg-base: #0d0e10;
+    --bg-base: #000;
     --bg-elev-1: #111214;
     --bg-elev-2: #252627;
     --bg-input: #111214;

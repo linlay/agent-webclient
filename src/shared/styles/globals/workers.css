@@ -85,8 +85,7 @@
 
 .worker-collapse .ant-collapse-item.ant-collapse-item-active{
     box-shadow: var(--shadow-soft);
-    border: 1px solid var(--line-soft);
-    background: var(--bg-input);
+    background: var(--bg-card);
 }
 .worker-collapse .ant-collapse-item:hover:not(.ant-collapse-item-active) {
     background: var(--bg-hover);

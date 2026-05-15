@@ -2,8 +2,9 @@
    Responsive Layout
    ======================================== */
 .layout-desktop-fixed .left-sidebar {
-    position: relative;
     min-width: 0;
+    grid-column: 1;
+    grid-row: 1 / -1;
 }
 
 #settings-btn {
@@ -160,6 +161,8 @@ html[data-theme="dark"] .sidebar-settings-menu {
 .layout-desktop-fixed .right-sidebar {
     transform: translateX(0);
     position: relative;
+    grid-column: 3;
+    grid-row: 1 / -1;
 }
 
 .layout-desktop-fixed {
@@ -179,7 +182,7 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 .layout-desktop-fixed .top-nav {
-    grid-column: 1 / -1;
+    grid-column: 2 / 3;
 }
 
 .layout-desktop-fixed .bottom-dock {
@@ -197,20 +200,10 @@ html[data-theme="dark"] .sidebar-settings-menu {
     grid-row: 2;
 }
 
-.layout-desktop-fixed .left-sidebar {
-    grid-column: 1;
-    grid-row: 2 / -1;
-}
-
 .layout-desktop-fixed.left-drawer-open .left-sidebar {
     width: var(--left-sidebar-width);
     min-width: var(--left-sidebar-width);
     pointer-events: auto;
-}
-
-.layout-desktop-fixed .right-sidebar {
-    grid-column: 3;
-    grid-row: 2 / -1;
 }
 
 .layout-desktop-fixed.desktop-debug-disabled {

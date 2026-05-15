@@ -316,6 +316,9 @@ export const LeftSidebar: React.FC = () => {
       state.wsStatus,
     ],
   );
+  const handleStartNewConversation = () => {
+    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  };
 
   return (
     <>
@@ -325,6 +328,48 @@ export const LeftSidebar: React.FC = () => {
       >
         {state.leftDrawerOpen && (
           <>
+            <Flex align="center" gap={12} style={{ padding: "4px 12px 0" }}>
+              <div className="brand-cluster">
+                <div className="brand-mark">
+                  <UiButton
+                    id="open-left-drawer-btn"
+                    className="icon-btn"
+                    size="sm"
+                    iconOnly
+                    aria-label={t("topNav.openDrawer")}
+                    variant="primary"
+                    onClick={() =>
+                      dispatch({
+                        type: "SET_LEFT_DRAWER_OPEN",
+                        open: !state.leftDrawerOpen,
+                      })
+                    }
+                  >
+                    <MaterialIcon
+                      name="dock_to_right"
+                      className="brand-logo-icon"
+                    />
+                    <span className="brand-logo-text">Z</span>
+                  </UiButton>
+                  <div className="brand-text">
+                    <strong>AGENT</strong>
+                    <span>Webclient</span>
+                  </div>
+                </div>
+              </div>
+              <UiButton
+                id="top-nav-new-chat-btn"
+                className="icon-btn top-nav-new-chat-btn"
+                size="sm"
+                aria-label={t("topNav.newConversation")}
+                title={t("topNav.newConversation")}
+                variant="ghost"
+                iconOnly
+                onClick={handleStartNewConversation}
+              >
+                <MaterialIcon name="edit_square" />
+              </UiButton>
+            </Flex>
             {quickActionsEnabled && (
               <Flex className="left-sidebar-buttons">
                 <UiButton

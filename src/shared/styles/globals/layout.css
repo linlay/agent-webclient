@@ -7,7 +7,7 @@
     grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100vh;
     overflow: hidden;
-    padding: 5px;
+    background-color: var(--bg-base);
 }
 
 .app-shell.terminal-dock-open {
@@ -26,30 +26,17 @@
    Top Navigation
    ======================================== */
 .top-nav {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    animation: fade-slide-in 0.45s ease both;
     grid-row: 1;
-    grid-column: 2 / -1;
-    margin-bottom: 10px;
-}
-
-.layout-desktop-fixed .top-nav {
-    z-index: 50;
+    padding-right: 6px;
 }
 
 .top-nav-inner {
     min-height: var(--top-nav-height);
     width: 100%;
-    padding-right: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: var(--bg-card);
-    box-shadow: var(--shadow-soft);
-    border-radius: 10px;
 }
 
 .nav-group {
@@ -61,6 +48,7 @@
     justify-content: space-between;
     padding-left: 12px;
     gap: 12px;
+    min-width: 150px;
 }
 
 .nav-center {
