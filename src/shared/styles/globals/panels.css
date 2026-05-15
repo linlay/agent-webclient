@@ -60,12 +60,6 @@
             rgba(214, 220, 229, 0.92));
 }
 
-.artifact-actions {
-    position: sticky;
-    right: 0;
-    backdrop-filter: blur(10px);
-    color: var(--text-muted);
-}
 .artifact-actions .ui-btn.ui-btn-ghost{
     color: var(--text-muted);
 }
