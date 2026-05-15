@@ -517,9 +517,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       <span className="agent-console-list-item-main">
                         <span className="agent-console-list-item-head">
                           <strong>{name}</strong>
-                          {agent?.stats?.unreadCount ? (
-                            <UiTag tone="accent">{agent.stats.unreadCount} 未读</UiTag>
-                          ) : null}
                         </span>
                         <span className="agent-console-list-item-meta">
                           {role}

@@ -229,7 +229,7 @@
 .chat-item:hover,
 .ui-list-item.is-selected,
 .chat-item.is-active {
-    background-color: var(--bg-base);
+    background-color: var(--bg-hover);
 }
 
 .ui-list-item.is-loading,

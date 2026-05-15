@@ -1,5 +1,5 @@
 import React from "react";
-import { Flex, Input } from "antd";
+import { Flex, Input, Tag, Tooltip } from "antd";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
@@ -86,25 +86,49 @@ export const HistoryModal: React.FC<{
               aria-selected={index === historyIndex}
               onClick={() => onSelect(index)}
             >
-              <Flex justify="space-between" align="center" gap={10}>
-                <Flex align="center" gap={6}>
-                  {isChatUnread(chat) ? (
-                    <span className="chat-unread-dot is-unread" />
-                  ) : null}
+              <Flex
+                justify="space-between"
+                align="center"
+                gap={10}
+                style={{ height: 40 }}
+              >
+                <Flex align="center" gap={6} style={{ overflow: "hidden" }}>
                   <span className="history-list-title">
                     {chat.chatName || chat.chatId}
                   </span>
+                  {isChatUnread(chat) ? <Tag color="blue">未读</Tag> : null}
                 </Flex>
-                <Flex align="center" gap={10} className="history-list-actions">
+                <Flex align="center" className="history-list-actions">
                   <span className="history-list-action-time">
                     {formatChatTimeLabel(chat.updatedAt)}
                   </span>
-                  <ChatActionsMenu
+                  <Tooltip title="导出">
+                    <UiButton size="sm" variant="ghost" iconOnly>
+                      <MaterialIcon
+                        name="download"
+                        style={{ color: "var(--accent)" }}
+                      />
+                    </UiButton>
+                  </Tooltip>
+                  <Tooltip title="归档">
+                    <UiButton size="sm" variant="ghost" iconOnly>
+                      <MaterialIcon name="inventory_2" />
+                    </UiButton>
+                  </Tooltip>
+                  <Tooltip title="删除">
+                    <UiButton size="sm" variant="ghost" iconOnly>
+                      <MaterialIcon
+                        name="delete"
+                        style={{ color: "var(--accent-danger)" }}
+                      />
+                    </UiButton>
+                  </Tooltip>
+                  {/* <ChatActionsMenu
                     chatId={chat.chatId}
                     chatName={chat.chatName || chat.chatId}
                     onArchived={onChatDeleted}
                     onDeleted={onChatDeleted}
-                  />
+                  /> */}
                 </Flex>
               </Flex>
               <div className="command-list-preview">
