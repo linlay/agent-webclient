@@ -38,16 +38,6 @@ export const HistoryModal: React.FC<{
 
   return (
     <div className="command-modal-section">
-      {unreadCount > 0 && onMarkAllRead && (
-        <UiButton
-          className="command-history-action"
-          variant="ghost"
-          size="sm"
-          onClick={onMarkAllRead}
-        >
-          一键已读
-        </UiButton>
-      )}
       <div className="command-history-toolbar">
         <Input
           prefix={
@@ -61,6 +51,18 @@ export const HistoryModal: React.FC<{
           value={historySearch}
           onChange={(event) => onHistorySearchChange(event.target.value)}
         />
+        {unreadCount > 0 && onMarkAllRead && (
+          <div className="command-history-toolbar-actions">
+            <UiButton
+              className="command-history-action"
+              variant="ghost"
+              size="sm"
+              onClick={onMarkAllRead}
+            >
+              一键已读
+            </UiButton>
+          </div>
+        )}
       </div>
       {historyRows.length === 0 ? (
         <div className="command-empty-state">当前对象暂无匹配历史对话。</div>
@@ -89,7 +91,9 @@ export const HistoryModal: React.FC<{
                   {isChatUnread(chat) ? (
                     <span className="chat-unread-dot is-unread" />
                   ) : null}
-                  <span>{chat.chatName || chat.chatId}</span>
+                  <span className="history-list-title">
+                    {chat.chatName || chat.chatId}
+                  </span>
                 </Flex>
                 <Flex align="center" gap={10} className="history-list-actions">
                   <span className="history-list-action-time">

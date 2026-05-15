@@ -169,7 +169,7 @@ export const CopilotShell: React.FC = () => {
       {state.archiveOpen ? <ArchiveModal /> : null}
       {state.memoryInfoOpen ? <MemoryInfoModal /> : null}
       {state.settingsOpen && <SettingsModal />}
-      <CommandModal />
+      <CommandModal variant="copilot" />
       <ActionModal />
       <EventPopover />
       <FireworksCanvas />

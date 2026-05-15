@@ -387,6 +387,51 @@
     overflow-wrap: anywhere;
 }
 
+.layout-copilot .command-switch-compact .command-list-item {
+    padding: 9px 10px;
+}
+
+.layout-copilot .command-switch-compact .command-list-head {
+    align-items: center;
+    gap: 8px;
+}
+
+.layout-copilot .command-switch-compact .command-list-head strong {
+    white-space: nowrap;
+}
+
+.layout-copilot .command-switch-compact .command-list-meta {
+    font-size: 12px;
+}
+
+.layout-copilot .command-switch-worker-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.layout-copilot .history-list-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.layout-copilot .history-list-container .command-list-preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: initial;
+    overflow-wrap: anywhere;
+}
+
+.layout-copilot .command-history-toolbar-actions {
+    margin-left: auto;
+}
+
 .layout-copilot .settings-segmented-btn.ui-btn {
     min-width: 0;
 }

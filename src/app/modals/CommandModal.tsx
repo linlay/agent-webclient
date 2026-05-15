@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { WorkerConversationRow } from "@/app/state/types";
+import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
 import {
   buildCurrentWorkerDetailView,
   buildWorkerSwitchRows,
@@ -39,7 +39,13 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   );
 }
 
-export const CommandModal: React.FC = () => {
+interface CommandModalProps {
+  variant?: "default" | "copilot";
+}
+
+export const CommandModal: React.FC<CommandModalProps> = ({
+  variant = "default",
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +77,16 @@ export const CommandModal: React.FC = () => {
       buildWorkerSwitchRows(state.workerRows, modal.scope, modal.searchText),
     [modal.scope, modal.searchText, state.workerRows],
   );
+  const workerIconsByKey = useMemo(() => {
+    const icons = new Map<string, Agent["icon"] | Team["icon"]>();
+    for (const agent of state.agents) {
+      icons.set(`agent:${agent.key}`, agent.icon);
+    }
+    for (const team of state.teams) {
+      icons.set(`team:${team.teamId}`, team.icon);
+    }
+    return icons;
+  }, [state.agents, state.teams]);
 
   const workerChatsByKey = useMemo(() => {
     const chatsByKey = new Map<string, WorkerConversationRow[]>();
@@ -529,6 +545,8 @@ export const CommandModal: React.FC = () => {
             searchText={modal.searchText}
             switchRows={switchRows}
             switchIndex={switchIndex}
+            variant={variant === "copilot" ? "copilot" : "default"}
+            workerIconsByKey={workerIconsByKey}
             searchInputRef={searchInputRef}
             switchListRef={switchListRef}
             switchItemRefs={switchItemRefs}

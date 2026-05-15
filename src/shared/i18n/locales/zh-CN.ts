@@ -121,7 +121,7 @@ export const zhCNMessages: I18nMessages = {
   "chatActions.export": "导出",
   "commandModal.close": "关闭",
   "commandModal.detail.title": "当前详情",
-  "commandModal.history.title": "历史会话",
+  "commandModal.history.title": "历史对话",
   "commandModal.schedule.title": "计划任务",
   "commandModal.switch.title": "切换{agentLabel}",
   "detail.label.model": "模型",

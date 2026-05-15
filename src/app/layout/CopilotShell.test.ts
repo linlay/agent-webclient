@@ -98,8 +98,15 @@ jest.mock("@/features/settings/components/ArchiveModal", () => ({
 }));
 
 jest.mock("@/app/modals/CommandModal", () => ({
-  CommandModal: () =>
-    React.createElement("div", { className: "command-modal" }, "command"),
+  CommandModal: (props: { variant?: string }) =>
+    React.createElement(
+      "div",
+      {
+        className: "command-modal",
+        "data-variant": props.variant || "default",
+      },
+      "command",
+    ),
 }));
 
 jest.mock("@/app/modals/ActionModal", () => ({
@@ -181,6 +188,7 @@ describe("CopilotShell", () => {
     expect(html).toContain('data-show-empty-state="false"');
     expect(html).toContain('data-mode="copilot"');
     expect(html).toContain("command-modal");
+    expect(html).toContain('data-variant="copilot"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });
 

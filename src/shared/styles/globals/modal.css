@@ -115,10 +115,20 @@
     min-width: 0;
 }
 
+.command-history-toolbar .ant-input-affix-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.command-history-toolbar-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+}
+
 .command-history-action {
-    position: absolute;
-    top: 13px;
-    right: 45px;
+    flex: 0 0 auto;
+    white-space: nowrap;
     color: var(--accent-electric) !important;
 }
 
@@ -376,6 +386,37 @@
             var(--line-soft));
     color: var(--accent-electric-strong);
     background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+}
+
+.command-switch-compact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
+}
+
+.command-switch-worker-icon {
+    flex: 0 0 auto;
+}
+
+.command-switch-compact-main {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: grid;
+    gap: 4px;
+}
+
+.command-switch-compact .command-list-head {
+    justify-content: flex-start;
+}
+
+.command-switch-compact .command-list-head strong,
+.history-list-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .command-detail-grid {
