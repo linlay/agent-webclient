@@ -158,12 +158,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   });
 
   useEffect(() => {
-    setTimeout(() => {
-      const questionRef = questionsRef.current[curIndex];
-      questionRef?.getElements()?.[0]?.focus();
-    }, 300);
-  }, [curIndex]);
-  useEffect(() => {
     callbackRef.current = {
       onSubmit,
     };
@@ -431,7 +425,7 @@ const Question = forwardRef<
   const options = getSelectOptions(data);
   const freeTextAnswer = getSelectFreeTextAnswer(data, value);
   const selectedOptionAnswers = getSelectedOptionAnswers(data, value);
-  const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
+  const onEnterDebounce = useCallback(debounce(onEnter, 150), [onEnter]);
 
   useImperativeHandle(
     ref,
