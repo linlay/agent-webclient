@@ -347,7 +347,7 @@
     max-width: 100%;
     max-height: min(86dvh, 760px);
     border-radius: 14px 14px 0 0;
-    padding: 16px;
+    padding: 10px 4px;
 }
 
 .layout-copilot .command-modal-head {
@@ -416,6 +416,15 @@
     white-space: nowrap;
     font-size: 13px;
     line-height: 1.35;
+}
+.layout-copilot .history-list-action-time {
+    font-size: 13px;
+}
+.layout-copilot .command-modal-head {
+    display: none;
+}
+.layout-copilot .command-modal-section {
+    gap: 10px;
 }
 
 .layout-copilot .history-list-container .command-list-preview {

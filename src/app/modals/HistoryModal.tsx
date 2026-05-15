@@ -90,7 +90,7 @@ export const HistoryModal: React.FC<{
                 justify="space-between"
                 align="center"
                 gap={10}
-                style={{ height: 40 }}
+                style={{ height: 28 }}
               >
                 <Flex align="center" gap={6} style={{ overflow: "hidden" }}>
                   <span className="history-list-title">

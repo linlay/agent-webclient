@@ -522,3 +522,22 @@ textarea {
         transform: translateX(4px);
     }
 }
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-soft);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--line);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
