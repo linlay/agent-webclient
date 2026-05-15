@@ -96,7 +96,8 @@ describe('AwaitingHtmlContainer', () => {
     );
 
     expect(html).toContain('提交');
-    expect(html).not.toContain('驳回</button>');
+    expect(html).toContain('拒绝');
+    expect(html).not.toContain('驳回');
   });
 
   it('renders the form title as the only main header text', () => {
@@ -123,9 +124,9 @@ describe('AwaitingHtmlContainer', () => {
       '<span class="awaiting-panel-submit-lead">同意</span>',
     );
     expect(html).toContain(
-      '<span class="awaiting-panel-submit-tail">，可以修改表单内容并提交</span>',
+      '<span class="awaiting-panel-submit-tail">可以修改表单内容并提交</span>',
     );
-    expect(html).toContain('placeholder="请输入驳回理由，可以修改表单内容"');
+    expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {
@@ -247,7 +248,7 @@ describe('AwaitingHtmlContainer', () => {
     ], [
       {
         id: 'travel_form',
-        decision: 'submit',
+        decision: 'approve',
         form: {
           employee_id: 'E3003',
         },
@@ -295,7 +296,7 @@ describe('AwaitingHtmlContainer', () => {
     }), [
       {
         id: 'travel_form',
-        decision: 'submit',
+        decision: 'approve',
         form: {
           employee_id: 'E3003',
         },
@@ -306,14 +307,14 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          decision: 'submit',
+          decision: 'approve',
           form: {
             employee_id: 'E1001',
           },
         },
         {
           id: 'travel_form',
-          decision: 'submit',
+          decision: 'approve',
           form: {
             employee_id: 'E3003',
           },
@@ -466,7 +467,7 @@ describe('AwaitingHtmlContainer', () => {
     });
   });
 
-  it('builds cancel payloads that mark every form as cancelled', () => {
+  it('builds close payloads that reject every form', () => {
     expect(buildCancelAwaitingSubmitPayload(createActiveAwaiting({
       forms: [
         {
@@ -492,11 +493,11 @@ describe('AwaitingHtmlContainer', () => {
       params: [
         {
           id: 'leave_form',
-          decision: 'cancel',
+          decision: 'reject',
         },
         {
           id: 'travel_form',
-          decision: 'cancel',
+          decision: 'reject',
         },
       ],
     });

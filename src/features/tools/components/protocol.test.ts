@@ -302,14 +302,14 @@ describe('awaiting protocol helpers', () => {
     expect(normalizeAwaitingSubmitParams([
       {
         id: 'f1',
-        decision: 'submit',
+        decision: 'approve',
         form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        decision: 'cancel',
+        decision: 'reject',
       },
       {
         id: 'f3',
@@ -322,14 +322,14 @@ describe('awaiting protocol helpers', () => {
     ], 'form')).toEqual([
       {
         id: 'f1',
-        decision: 'submit',
+        decision: 'approve',
         form: {
           amount: 80,
         },
       },
       {
         id: 'f2',
-        decision: 'cancel',
+        decision: 'reject',
       },
       {
         id: 'f3',
@@ -362,7 +362,7 @@ describe('awaiting protocol helpers', () => {
       params: [
         {
           id: 'leave_form',
-          decision: 'submit',
+          decision: 'approve',
           form: {
             approved: true,
           },
@@ -383,10 +383,38 @@ describe('awaiting protocol helpers', () => {
     ], 'form')).toEqual([
       {
         id: 'f1',
+        decision: 'approve',
+        form: {
+          amount: 80,
+        },
+      },
+    ]);
+  });
+
+  it('normalizes legacy form submit and cancel decisions', () => {
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'f1',
         decision: 'submit',
         form: {
           amount: 80,
         },
+      },
+      {
+        id: 'f2',
+        decision: 'cancel',
+      },
+    ], 'form')).toEqual([
+      {
+        id: 'f1',
+        decision: 'approve',
+        form: {
+          amount: 80,
+        },
+      },
+      {
+        id: 'f2',
+        decision: 'reject',
       },
     ]);
   });

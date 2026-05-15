@@ -174,7 +174,7 @@ export interface AIAwaitApprovalSubmitParamData {
   reason?: string;
 }
 
-export type AIAwaitFormSubmitAction = "submit" | "reject" | "cancel";
+export type AIAwaitFormSubmitAction = "approve" | "reject";
 
 export interface AIAwaitFormSubmitParamData {
   id: string;
