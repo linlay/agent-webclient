@@ -6,6 +6,23 @@ import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
+const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
+
+function collectText(value: React.ReactNode): string {
+  if (value === null || value === undefined || typeof value === "boolean") {
+    return "";
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(collectText).join("");
+  }
+  if (React.isValidElement(value)) {
+    return collectText(value.props.children);
+  }
+  return "";
+}
 
 jest.mock("antd", () => {
   const React = require("react");
@@ -95,6 +112,28 @@ jest.mock("antd", () => {
     Typography: {
       Text: ({ children }: any) => React.createElement("span", null, children),
     },
+  };
+});
+
+jest.mock("@/shared/ui/UiButton", () => {
+  const React = require("react");
+  return {
+    UiButton: React.forwardRef(
+      ({ children, className = "", iconOnly, loading, ...props }: any, ref: any) => {
+        uiButtonProps.push({ ...props, className, text: collectText(children) });
+        return React.createElement(
+          "button",
+          {
+            ref,
+            type: props.type || "button",
+            className,
+            disabled: props.disabled || loading,
+            ...props,
+          },
+          children,
+        );
+      },
+    ),
   };
 });
 
@@ -250,6 +289,7 @@ describe("LeftSidebar", () => {
 
   beforeEach(() => {
     antdButtonProps.length = 0;
+    uiButtonProps.length = 0;
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -345,6 +385,42 @@ describe("LeftSidebar", () => {
     expect(html).toContain("记忆");
     expect(html).toContain("智能体");
     expect(html).not.toContain('data-badge-count="6"');
+  });
+
+  it("opens the agent console from the quick action", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      QUICK_ACTIONS_ENABLED: "true",
+    };
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    useAppContext.mockReturnValue({
+      state: {
+        ...state,
+        leftDrawerOpen: true,
+        agents: Array.from({ length: 20 }, (_, index) => ({
+          key: `agent_${index}`,
+          name: `Agent ${index}`,
+        })),
+      },
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    renderSidebar();
+
+    const agentsButton = uiButtonProps.find((props) => props.text.includes("智能体"));
+    expect(agentsButton).toBeTruthy();
+    expect(typeof agentsButton?.onClick).toBe("function");
+
+    (agentsButton?.onClick as () => void)();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_COMMAND_MODAL",
+      modal: { type: "agents" },
+    });
   });
 
   it("renders collapsed worker entries with names, popover header, and total history count", () => {

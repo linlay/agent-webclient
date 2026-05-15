@@ -7,7 +7,6 @@ import {
   CollapseProps,
   Flex,
   Input,
-  Modal,
   Popover,
   Spin,
 } from "antd";
@@ -38,7 +37,6 @@ import {
   searchGlobal,
 } from "@/features/transport/lib/apiClientProxy";
 import type { WorkerConversationRow } from "@/app/state/types";
-import { AgentList } from "@/features/workers/components/AgentList";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -50,7 +48,6 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef } = useAppContext();
-  const [modal, contextHolder] = Modal.useModal();
   const { t } = useI18n();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
@@ -326,7 +323,6 @@ export const LeftSidebar: React.FC = () => {
         className={`sidebar left-sidebar ${state.leftDrawerOpen ? "is-open" : ""}`}
         id="left-sidebar"
       >
-        {contextHolder}
         {state.leftDrawerOpen && (
           <>
             {quickActionsEnabled && (
@@ -364,19 +360,9 @@ export const LeftSidebar: React.FC = () => {
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    modal.confirm({
-                      title: t("agents.page.title"),
-                      icon: null,
-                      footer: null,
-                      closable: true,
-                      maskClosable: true,
-                      content: (
-                        <AgentList
-                          agents={state.agents}
-                          selectedAgentKey={state.pendingNewChatAgentKey}
-                        />
-                      ),
-                      width: "80vw",
+                    dispatch({
+                      type: "OPEN_COMMAND_MODAL",
+                      modal: { type: "agents" },
                     });
                   }}
                 >
