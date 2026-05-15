@@ -760,6 +760,203 @@
     white-space: nowrap;
 }
 
+.agent-console {
+    overflow: hidden;
+}
+
+.agent-console-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-console-detail select {
+    width: 100%;
+    min-height: 32px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
+    color: var(--ink-1);
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+.agent-console-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 42%, var(--line-soft));
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    color: var(--accent-danger);
+    font-size: 12px;
+}
+
+.agent-console-body {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(480px, 1.55fr);
+    gap: 16px;
+    overflow: hidden;
+}
+
+.agent-console-list,
+.agent-console-detail {
+    min-height: 0;
+    overflow: auto;
+}
+
+.agent-console-count {
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.agent-console-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.agent-console-list-item {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--ink-1);
+    padding: 8px 10px;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.agent-console-list-item:hover,
+.agent-console-list-item.is-active {
+    border-color: color-mix(in srgb, var(--accent-soft) 58%, var(--line-soft));
+    background: var(--bg-hover);
+}
+
+.agent-console-list-item-icon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent-soft) 22%, var(--bg-input));
+    color: var(--accent-electric);
+}
+
+.agent-console-list-item-main {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.agent-console-list-item-head {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.agent-console-list-item-head strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.agent-console-list-item-meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.agent-detail-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.agent-detail-head > div:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.agent-detail-head strong {
+    font-size: 14px;
+}
+
+.agent-detail-head span {
+    font-size: 11px;
+    color: var(--ink-muted);
+    overflow-wrap: anywhere;
+}
+
+.agent-detail-actions,
+.agent-save-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.agent-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.agent-form-grid .field-group {
+    margin-bottom: 0;
+}
+
+.agent-config-box {
+    margin: 14px 0 0;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    padding: 12px;
+}
+
+.agent-config-box legend {
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-muted);
+}
+
+.agent-config-box .field-group:last-child {
+    margin-bottom: 0;
+}
+
+.agent-mono-textarea {
+    font-family: "IBM Plex Mono", monospace;
+}
+
+.agent-prompt-textarea {
+    min-height: 120px;
+}
+
+.agent-save-actions {
+    margin-top: 12px;
+}
+
 @media (max-width: 860px) {
     .schedule-console-toolbar {
         grid-template-columns: 1fr 1fr;
@@ -783,6 +980,27 @@
     }
 
     .schedule-execution-row {
+        grid-template-columns: 1fr;
+    }
+
+    .agent-console-toolbar {
+        grid-template-columns: 1fr auto auto;
+    }
+
+    .agent-console-toolbar .ant-input-affix-wrapper {
+        grid-column: 1 / -1;
+    }
+
+    .agent-console-body {
+        grid-template-columns: 1fr;
+        overflow: auto;
+    }
+
+    .agent-console-list {
+        max-height: 260px;
+    }
+
+    .agent-form-grid {
         grid-template-columns: 1fr;
     }
 }

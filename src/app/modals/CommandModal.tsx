@@ -11,6 +11,7 @@ import { DetailModal } from "@/app/modals/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { ScheduleModal } from "@/app/modals/ScheduleModal";
 import { SWITCH_SCOPES, SwitchModal } from "@/app/modals/SwitchModal";
+import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import {
   markChatRead,
   searchGlobal,
@@ -298,7 +299,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   }
 
   const subtitle =
-    modal.type === "schedule"
+    modal.type === "schedule" || modal.type === "agents"
       ? ""
       : currentWorker
         ? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
@@ -313,7 +314,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     >
       <div
 	        ref={cardRef}
-	        className={`modal-card command-modal-card ${modal.type === "schedule" ? "is-schedule-console" : ""}`}
+	        className={`modal-card command-modal-card ${modal.type === "schedule" || modal.type === "agents" ? "is-schedule-console" : ""}`}
         tabIndex={-1}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -490,7 +491,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             return;
           }
 
-          if (modal.type === "schedule") return;
+          if (modal.type === "schedule" || modal.type === "agents") return;
         }}
       >
         <CommandModalHeader
@@ -587,6 +588,8 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             teams={state.teams}
           />
         )}
+
+        {modal.type === "agents" && <AgentConsole embedded />}
       </div>
     </div>
   );

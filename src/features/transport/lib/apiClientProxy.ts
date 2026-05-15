@@ -2,9 +2,11 @@ import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
+	createAgent as createAgentHttp,
 	createQueryStream,
 	createRemoteControlSession as createRemoteControlSessionHttp,
 	createSchedule as createScheduleHttp,
+	deleteAgent as deleteAgentHttp,
 	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
 	deleteSchedule as deleteScheduleHttp,
@@ -47,9 +49,11 @@ import {
 	submitAwaiting as submitAwaitingHttp,
 	submitTool as submitToolHttp,
 	toggleSchedule as toggleScheduleHttp,
+	updateAgent as updateAgentHttp,
 	updateSchedule as updateScheduleHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
+	type AgentDetailResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -59,7 +63,10 @@ import {
 	type ArchivesResponse,
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
+	type CreateAgentRequest,
 	type CreateScheduleRequest,
+	type DeleteAgentRequest,
+	type DeleteAgentResponse,
 	type DeleteScheduleRequest,
 	type FeedbackParams,
 	type GetMemoryRecordsParams,
@@ -75,6 +82,7 @@ import {
 	type ScheduleListRequest,
 	type ScheduleListResponse,
 	type ToggleScheduleRequest,
+	type UpdateAgentRequest,
 	type UpdateScheduleRequest,
 } from "@/shared/api/apiClient";
 import type {
@@ -198,6 +206,36 @@ export function getAgents(): Promise<ApiResponse> {
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
 	return routeRequest("/api/agent", { agentKey }, () => getAgentHttp(agentKey));
+}
+
+export function createAgent(
+	params: CreateAgentRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return routeRequest<AgentDetailResponse>(
+		"/api/agent-create",
+		params,
+		() => createAgentHttp(params),
+	);
+}
+
+export function updateAgent(
+	params: UpdateAgentRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return routeRequest<AgentDetailResponse>(
+		"/api/agent-update",
+		params,
+		() => updateAgentHttp(params),
+	);
+}
+
+export function deleteAgent(
+	params: DeleteAgentRequest,
+): Promise<ApiResponse<DeleteAgentResponse>> {
+	return routeRequest<DeleteAgentResponse>(
+		"/api/agent-delete",
+		params,
+		() => deleteAgentHttp(params),
+	);
 }
 
 export function getTeams(): Promise<ApiResponse> {

@@ -102,6 +102,10 @@ const router = createBrowserRouter(
       path: "/agents",
       element: <AgentsPage />,
     },
+    {
+      path: "/agents/:agentKey",
+      element: <AgentsPage />,
+    },
   ],
   {
     basename: APP_UI_BASE,

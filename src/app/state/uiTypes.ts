@@ -55,6 +55,7 @@ export type CommandModalType =
 	| "switch"
 	| "detail"
 	| "schedule"
+	| "agents"
 	| null;
 export type CommandModalScope = "all" | "agent" | "team";
 export type CommandModalFocusArea = "search" | "list";

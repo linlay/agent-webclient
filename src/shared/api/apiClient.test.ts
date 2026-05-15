@@ -4,10 +4,12 @@ import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
   archiveChats,
+  createAgent,
   createSchedule,
   createRequestId,
   createQueryStream,
   deleteArchive,
+  deleteAgent,
   deleteChat,
   deleteSchedule,
   downloadResource,
@@ -43,6 +45,7 @@ import {
   steerChat,
   submitFeedback,
   toggleSchedule,
+  updateAgent,
   updateSchedule,
   uploadFile,
 } from '@/shared/api/apiClient';
@@ -299,6 +302,62 @@ describe('apiClient query payloads', () => {
       { url: '/api/schedule-toggle', body: { id: 'daily-demo', enabled: false } },
       { url: '/api/schedule-executions', body: { id: 'daily-demo', limit: 20 } },
       { url: '/api/schedule-delete', body: { id: 'daily-demo' } },
+    ]);
+  });
+
+  it('sends agent management requests as JSON posts', async () => {
+    await createAgent({
+      key: 'editable-agent',
+      definition: {
+        key: 'editable-agent',
+        name: 'Editable Agent',
+        mode: 'REACT',
+      },
+      soulPrompt: 'Soul v1',
+      agentsPrompt: 'Agents v1',
+    });
+    await updateAgent({
+      key: 'editable-agent',
+      definition: {
+        key: 'editable-agent',
+        name: 'Editable Agent',
+        mode: 'REACT',
+        description: 'updated',
+      },
+    });
+    await deleteAgent({ key: 'editable-agent' });
+
+    const calls = fetchMock.mock.calls.map(([url, options]) => ({
+      url,
+      body: JSON.parse(String((options as RequestInit).body || '{}')),
+    }));
+    expect(calls).toEqual([
+      {
+        url: '/api/agent-create',
+        body: {
+          key: 'editable-agent',
+          definition: {
+            key: 'editable-agent',
+            name: 'Editable Agent',
+            mode: 'REACT',
+          },
+          soulPrompt: 'Soul v1',
+          agentsPrompt: 'Agents v1',
+        },
+      },
+      {
+        url: '/api/agent-update',
+        body: {
+          key: 'editable-agent',
+          definition: {
+            key: 'editable-agent',
+            name: 'Editable Agent',
+            mode: 'REACT',
+            description: 'updated',
+          },
+        },
+      },
+      { url: '/api/agent-delete', body: { key: 'editable-agent' } },
     ]);
   });
 

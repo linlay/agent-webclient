@@ -705,6 +705,20 @@ describe('appReducer conversation reset behavior', () => {
     });
   });
 
+  it('opens the agent management command modal', () => {
+    const opened = appReducer(createInitialState(), {
+      type: 'OPEN_COMMAND_MODAL',
+      modal: {
+        type: 'agents',
+      },
+    });
+
+    expect(opened.commandModal).toMatchObject({
+      open: true,
+      type: 'agents',
+    });
+  });
+
   it('shows, tracks timer, and hides command status overlay', () => {
     const baseState = createInitialState();
 

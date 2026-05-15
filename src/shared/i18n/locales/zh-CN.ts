@@ -420,6 +420,8 @@ export const zhCNMessages: I18nMessages = {
   "slash.command.debug.label": "调试面板",
   "slash.command.detail.description": "查看当前{agentLabel}或{teamLabel}的模型、技能、工具和元数据",
   "slash.command.detail.label": "当前详情",
+  "slash.command.agents.description": "管理智能体定义、能力和提示词",
+  "slash.command.agents.label": "智能体管理",
   "slash.command.history.description": "查看当前{agentLabel}或{teamLabel}的历史会话",
   "slash.command.history.label": "历史会话",
   "slash.command.learn.description": "提炼当前会话中的经验、规则与做法，并提交到学习接口",

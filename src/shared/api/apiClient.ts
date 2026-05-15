@@ -187,6 +187,54 @@ export interface ScheduleExecutionsRequest {
   offset?: number;
 }
 
+export interface AgentSource {
+  kind: string;
+  path: string;
+  agentDir?: string;
+}
+
+export interface AgentDetailResponse {
+  key: string;
+  name: string;
+  icon?: unknown;
+  description?: string;
+  role?: string;
+  wonders?: string[];
+  model: string;
+  mode: string;
+  tools: string[];
+  skills: string[];
+  controls: Array<Record<string, unknown>>;
+  meta: Record<string, unknown>;
+  definition?: Record<string, unknown>;
+  soulPrompt?: string;
+  agentsPrompt?: string;
+  source?: AgentSource;
+}
+
+export interface CreateAgentRequest {
+  key: string;
+  definition: Record<string, unknown>;
+  soulPrompt?: string;
+  agentsPrompt?: string;
+}
+
+export interface UpdateAgentRequest {
+  key: string;
+  definition: Record<string, unknown>;
+  soulPrompt?: string;
+  agentsPrompt?: string;
+}
+
+export interface DeleteAgentRequest {
+  key: string;
+}
+
+export interface DeleteAgentResponse {
+  key: string;
+  deleted: boolean;
+}
+
 export interface ArchiveChatsRequest {
   chatIds: string[];
 }
@@ -754,6 +802,24 @@ export function getAgents(): Promise<ApiResponse> {
 export function getAgent(agentKey: string): Promise<ApiResponse> {
   const query = toQueryString({ agentKey });
   return requestJson(query ? `/api/agent?${query}` : "/api/agent");
+}
+
+export function createAgent(
+  params: CreateAgentRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+  return postJson<AgentDetailResponse>("/api/agent-create", params);
+}
+
+export function updateAgent(
+  params: UpdateAgentRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+  return postJson<AgentDetailResponse>("/api/agent-update", params);
+}
+
+export function deleteAgent(
+  params: DeleteAgentRequest,
+): Promise<ApiResponse<DeleteAgentResponse>> {
+  return postJson<DeleteAgentResponse>("/api/agent-delete", params);
 }
 
 export function getTeams(): Promise<ApiResponse> {

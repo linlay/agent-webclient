@@ -68,7 +68,7 @@ describe("App routing", () => {
     }>;
 
     expect(routes.map((route) => route.path)).toEqual(
-      expect.arrayContaining(["/", "/copilot", "/schedules", "/memory", "/agents"]),
+      expect.arrayContaining(["/", "/copilot", "/schedules", "/memory", "/agents", "/agents/:agentKey"]),
     );
   });
 });

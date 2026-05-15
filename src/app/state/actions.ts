@@ -197,7 +197,7 @@ export type AppAction =
 	| {
 			type: "OPEN_COMMAND_MODAL";
 			modal: {
-				type: "history" | "switch" | "detail" | "schedule";
+				type: "history" | "switch" | "detail" | "schedule" | "agents";
 				searchText?: string;
 				historySearch?: string;
 				activeIndex?: number;

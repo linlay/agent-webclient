@@ -418,6 +418,8 @@ export const enUSMessages: I18nMessages = {
   "slash.command.debug.label": "Debug panel",
   "slash.command.detail.description": "Inspect the model, skills, tools, and metadata of the current {agentLabel} or {teamLabel}",
   "slash.command.detail.label": "Current details",
+  "slash.command.agents.description": "Manage agent definitions, capabilities, and prompts",
+  "slash.command.agents.label": "Manage agents",
   "slash.command.history.description": "View recent conversations for the current {agentLabel} or {teamLabel}",
   "slash.command.history.label": "Conversation history",
   "slash.command.learn.description": "Extract reusable lessons, rules, and practices from the current conversation and submit them to the learning endpoint",

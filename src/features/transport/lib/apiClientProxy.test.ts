@@ -25,12 +25,14 @@ jest.mock("@/shared/api/apiClient", () => {
 	}
 
 	return {
-		ApiError: MockApiError,
+			ApiError: MockApiError,
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
+			createAgent: jest.fn(),
 			createRemoteControlSession: jest.fn(),
 			createSchedule: jest.fn(),
 			createQueryStream: jest.fn(),
+			deleteAgent: jest.fn(),
 			deleteArchive: jest.fn(),
 			deleteChat: jest.fn(),
 			deleteSchedule: jest.fn(),
@@ -84,6 +86,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			submitAwaiting: jest.fn(),
 			submitTool: jest.fn(),
 			toggleSchedule: jest.fn(),
+			updateAgent: jest.fn(),
 			updateSchedule: jest.fn(),
 			uploadFile: jest.fn(),
 			validateMemoryScope: jest.fn(),
@@ -102,10 +105,12 @@ let mockApiClient: {
 	) => Error;
 		archiveChats: jest.Mock;
 		buildResourceUrl: jest.Mock;
+		createAgent: jest.Mock;
 		createRemoteControlSession: jest.Mock;
 		createSchedule: jest.Mock;
 		createQueryStream: jest.Mock;
 		deleteArchive: jest.Mock;
+		deleteAgent: jest.Mock;
 		deleteChat: jest.Mock;
 		deleteSchedule: jest.Mock;
 	downloadChatExport: jest.Mock;
@@ -147,6 +152,7 @@ let mockApiClient: {
 		submitAwaiting: jest.Mock;
 		submitTool: jest.Mock;
 		toggleSchedule: jest.Mock;
+		updateAgent: jest.Mock;
 		updateSchedule: jest.Mock;
 		uploadFile: jest.Mock;
 		validateMemoryScope: jest.Mock;
@@ -264,6 +270,55 @@ describe("apiClientProxy", () => {
 			payload: { id: "daily-demo" },
 		});
 		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
+	});
+
+	it("routes agent management calls over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.createAgent({
+			key: "editable-agent",
+			definition: { key: "editable-agent", name: "Editable Agent" },
+		});
+		await proxy.updateAgent({
+			key: "editable-agent",
+			definition: { key: "editable-agent", name: "Updated Agent" },
+		});
+		await proxy.deleteAgent({ key: "editable-agent" });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/agent-create",
+			payload: {
+				key: "editable-agent",
+				definition: { key: "editable-agent", name: "Editable Agent" },
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/agent-update",
+			payload: {
+				key: "editable-agent",
+				definition: { key: "editable-agent", name: "Updated Agent" },
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/agent-delete",
+			payload: { key: "editable-agent" },
+		});
+		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
 	});
 
 	it("routes memory console calls over ws when connected", async () => {
@@ -941,6 +996,46 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.toggleSchedule).toHaveBeenCalledWith({
 			id: "daily-demo",
 			enabled: false,
+		});
+	});
+
+	it("routes agent management over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.createAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+		mockApiClient.deleteAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent", deleted: true },
+		});
+
+		await expect(
+			proxy.createAgent({
+				key: "editable-agent",
+				definition: { key: "editable-agent", name: "Editable Agent" },
+			}),
+		).resolves.toMatchObject({
+			data: { key: "editable-agent" },
+		});
+		await expect(
+			proxy.deleteAgent({ key: "editable-agent" }),
+		).resolves.toMatchObject({
+			data: { key: "editable-agent", deleted: true },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.createAgent).toHaveBeenCalledWith({
+			key: "editable-agent",
+			definition: { key: "editable-agent", name: "Editable Agent" },
+		});
+		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({
+			key: "editable-agent",
 		});
 	});
 
