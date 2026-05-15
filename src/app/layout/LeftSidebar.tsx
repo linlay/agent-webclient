@@ -341,7 +341,7 @@ export const LeftSidebar: React.FC = () => {
                     onClick={() =>
                       dispatch({
                         type: "SET_LEFT_DRAWER_OPEN",
-                        open: !state.leftDrawerOpen,
+                        open: false,
                       })
                     }
                   >
@@ -489,7 +489,20 @@ export const LeftSidebar: React.FC = () => {
                   onChange={handleWorkerCollapseChange}
                 />
               ) : (
-                <Flex vertical gap={10}>
+                <Flex vertical gap={10} align="center">
+                  <UiButton
+                    size="sm"
+                    iconOnly
+                    variant="ghost"
+                    onClick={() =>
+                      dispatch({
+                        type: "SET_LEFT_DRAWER_OPEN",
+                        open: true,
+                      })
+                    }
+                  >
+                    <MaterialIcon name="dock_to_right" />
+                  </UiButton>
                   {filteredWorkerRows?.map((item) => {
                     const unreadCount =
                       workerUnreadCountByKey.get(item.key) || 0;
