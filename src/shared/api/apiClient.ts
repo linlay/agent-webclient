@@ -649,6 +649,30 @@ export function createRequestId(prefix = "req"): string {
   return createCompactId(prefix);
 }
 
+function readBrowserPathname(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return String(window.location?.pathname || '').trim();
+}
+
+function withDesktopQueryContext(params: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!isAppMode()) {
+    return params;
+  }
+
+  const next = isObjectRecord(params) ? { ...params } : {};
+  const route = readBrowserPathname();
+  const existingDesktop = isObjectRecord(next.desktop) ? next.desktop : {};
+  next.desktop = {
+    source: route === '/copilot' ? 'copilot' : 'agent-webclient',
+    action: 'chat',
+    route,
+    ...existingDesktop,
+  };
+  return next;
+}
+
 export function buildResourceUrl(file: string): string {
   return `/api/resource?file=${encodeURIComponent(file)}`;
 }
@@ -1388,7 +1412,8 @@ export function createQueryStream(
   if (options.chatId) body.chatId = options.chatId;
   if (options.role) body.role = options.role;
   if (options.references !== undefined) body.references = options.references;
-  if (options.params !== undefined) body.params = options.params;
+  const params = withDesktopQueryContext(options.params);
+  if (params !== undefined) body.params = params;
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
 

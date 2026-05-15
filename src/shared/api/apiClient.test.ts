@@ -237,6 +237,33 @@ describe('apiClient query payloads', () => {
     });
   });
 
+  it('adds desktop context for query streams in desktop app mode', async () => {
+    installWindow({
+      pathname: '/copilot',
+      storedToken: 'desktop-token',
+    });
+
+    await createQueryStream({
+      requestId: 'req_desktop',
+      message: '当前页面是什么',
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_desktop',
+      planningMode: false,
+      message: '当前页面是什么',
+      params: {
+        desktop: {
+          source: 'copilot',
+          action: 'chat',
+          route: '/copilot',
+        },
+      },
+    });
+  });
+
   it('keeps uploaded references in query streams when present', async () => {
     await createQueryStream({
       requestId: 'req_3',
