@@ -15,7 +15,7 @@
     width: min(440px, calc(100vw - 32px));
     border: 1px solid var(--line-soft);
     border-radius: 14px;
-    background: var(--bg-elev-2);
+    background: var(--bg-base);
     padding: 22px;
     box-shadow: var(--shadow-strong);
 }
@@ -74,6 +74,7 @@
 
 .history-list-action-time {
     color: var(--text-muted);
+    font-size: 12px;
 }
 
 .history-list-actions button {
@@ -422,7 +423,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 16px;
+    font-size: 13px;
 }
 
 .command-detail-grid {

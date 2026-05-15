@@ -2,9 +2,9 @@
    CSS Custom Properties — Theme System
    ======================================== */
 :root {
-    --bg-base: #fff;
-    --bg-elev-1: #f7f8fa;
-    --bg-elev-2: #ffffff;
+    --bg-base: #ffffff;
+    --bg-elev-1: #f8f8f8;
+    --bg-elev-2: #fafafa;
     --bg-input: #f7f8fa;
     --bg-hover: rgba(0, 0, 0, 0.04);
     --ink-1: #1d2129;
@@ -36,7 +36,7 @@
     --top-nav-height: 42px;
 
     --bg-page: var(--bg-base);
-    --bg-card: color-mix(in srgb, var(--bg-elev-2) 80%, transparent);
+    --bg-card: color-mix(in srgb, var(--bg-elev-2) 100%, transparent);
     --text-main: var(--ink-1);
     --text-sub: var(--ink-2);
     --text-muted: var(--ink-muted);
@@ -50,9 +50,9 @@
 }
 
 html[data-theme="dark"] {
-    --bg-base: #000;
-    --bg-elev-1: #111214;
-    --bg-elev-2: #252627;
+    --bg-base: #181818;
+    --bg-elev-1: #242424;
+    --bg-elev-2: #202020;
     --bg-input: #111214;
     --bg-hover: rgba(255, 255, 255, 0.1);
     --ink-1: #f2f3f5;

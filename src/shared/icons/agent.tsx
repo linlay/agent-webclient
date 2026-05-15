@@ -595,8 +595,8 @@ const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
     >
       <defs>
         <linearGradient id="g16" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FDE047"></stop>
-          <stop offset="100%" stopColor="#A16207"></stop>
+          <stop offset="0%" stopColor="#FBBF24"></stop>
+          <stop offset="100%" stopColor="#D97706"></stop>
         </linearGradient>
       </defs>
 
@@ -606,7 +606,6 @@ const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         r="12"
         fill="url(#g16)"
         opacity="0.5"
-        style={{ mixBlendMode: "multiply" }}
       ></circle>
       <circle
         cx="30"
@@ -614,7 +613,6 @@ const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         r="12"
         fill="url(#g16)"
         opacity="0.7"
-        style={{ mixBlendMode: "multiply" }}
       ></circle>
       <circle
         cx="24"
@@ -622,7 +620,6 @@ const Aura: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
         r="12"
         fill="url(#g16)"
         opacity="0.9"
-        style={{ mixBlendMode: "multiply" }}
       ></circle>
       <circle
         cx="24"
