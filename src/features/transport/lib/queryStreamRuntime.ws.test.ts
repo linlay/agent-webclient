@@ -3,6 +3,7 @@ import {
 	ensureAccessToken,
 	getCurrentAccessToken,
 } from "@/shared/api/apiClient";
+import { buildDesktopQueryContext } from "@/shared/api/desktopQueryContext";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	getWsClient,
@@ -21,6 +22,10 @@ jest.mock("@/shared/api/apiClient", () => ({
 	getCurrentAccessToken: jest.fn(),
 }));
 
+jest.mock("@/shared/api/desktopQueryContext", () => ({
+	buildDesktopQueryContext: jest.fn((params: unknown) => params),
+}));
+
 jest.mock("@/shared/utils/routing", () => ({
 	isAppMode: jest.fn(),
 }));
@@ -31,6 +36,7 @@ describe("executeQueryStreamWs", () => {
 	const initWsClientMock = initWsClient as jest.MockedFunction<typeof initWsClient>;
 	const ensureAccessTokenMock = ensureAccessToken as jest.MockedFunction<typeof ensureAccessToken>;
 	const getCurrentAccessTokenMock = getCurrentAccessToken as jest.MockedFunction<typeof getCurrentAccessToken>;
+	const buildDesktopQueryContextMock = buildDesktopQueryContext as jest.MockedFunction<typeof buildDesktopQueryContext>;
 	const isAppModeMock = isAppMode as jest.MockedFunction<typeof isAppMode>;
 
 	beforeEach(() => {
@@ -39,10 +45,12 @@ describe("executeQueryStreamWs", () => {
 		initWsClientMock.mockReset();
 		ensureAccessTokenMock.mockReset();
 		getCurrentAccessTokenMock.mockReset();
+		buildDesktopQueryContextMock.mockReset();
 		isAppModeMock.mockReset();
 		ensureAccessTokenMock.mockResolvedValue("");
 		getCurrentAccessTokenMock.mockReturnValue("");
 		getWsClientAccessTokenMock.mockReturnValue("");
+		buildDesktopQueryContextMock.mockImplementation((params) => params);
 		isAppModeMock.mockReturnValue(false);
 	});
 
@@ -106,6 +114,62 @@ describe("executeQueryStreamWs", () => {
 				payload: expect.objectContaining({
 					requestId: "req_1",
 					message: "hello",
+				}),
+			}),
+		);
+	});
+
+	it("sends the unified desktop query context through websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: {
+			payload: { params?: Record<string, unknown> };
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		buildDesktopQueryContextMock.mockReturnValue({
+			desktop: {
+				source: "copilot",
+				route: "/settings?section=navigation",
+				pageKey: "native:/settings?section=navigation",
+			},
+		});
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_desktop_ws",
+				message: "hello",
+				params: {
+					desktop: {
+						source: "stale",
+					},
+				},
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		expect(buildDesktopQueryContextMock).toHaveBeenCalledWith({
+			desktop: {
+				source: "stale",
+			},
+		});
+		expect(streamMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				payload: expect.objectContaining({
+					params: {
+						desktop: {
+							source: "copilot",
+							route: "/settings?section=navigation",
+							pageKey: "native:/settings?section=navigation",
+						},
+					},
 				}),
 			}),
 		);
