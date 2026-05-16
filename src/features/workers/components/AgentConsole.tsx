@@ -1,33 +1,43 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Input, Spin } from "antd";
+import { Input, Select, Spin } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
   createAgent,
   deleteAgent,
   getAgent,
+  getAgentEditorOptions,
   getAgents,
+  getSkills,
+  getTools,
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
-import type { AgentDetailResponse } from "@/shared/api/apiClient";
+import type {
+  AgentDetailResponse,
+  AgentEditorOptionsResponse,
+} from "@/shared/api/apiClient";
+import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiInput } from "@/shared/ui/UiInput";
-import { UiTag } from "@/shared/ui/UiTag";
 
 type AgentFormMode = "create" | "edit";
+type IconKind = "none" | "builtin" | "image";
 
 interface AgentFormState {
   key: string;
   name: string;
+  iconKind: IconKind;
+  iconName: string;
+  iconImage: string;
   role: string;
   description: string;
   mode: string;
   modelKey: string;
-  toolsText: string;
-  skillsText: string;
-  wondersText: string;
-  contextTagsText: string;
+  tools: string[];
+  skills: string[];
+  wonders: string[];
+  contextTags: string[];
   controlsText: string;
   runtimeConfigText: string;
   memoryConfigText: string;
@@ -46,14 +56,17 @@ interface AgentConsoleProps {
 const EMPTY_FORM: AgentFormState = {
   key: "",
   name: "",
+  iconKind: "none",
+  iconName: "",
+  iconImage: "",
   role: "",
   description: "",
   mode: "REACT",
   modelKey: "",
-  toolsText: "",
-  skillsText: "",
-  wondersText: "",
-  contextTagsText: "",
+  tools: [],
+  skills: [],
+  wonders: [],
+  contextTags: [],
   controlsText: "[]",
   runtimeConfigText: "",
   memoryConfigText: "",
@@ -76,17 +89,6 @@ function textListFromUnknown(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map((item) => toText(item)).filter(Boolean)
     : [];
-}
-
-function listToText(value: unknown): string {
-  return textListFromUnknown(value).join("\n");
-}
-
-function textToList(value: string): string[] {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function stringifyJson(value: unknown, fallback = ""): string {
@@ -116,6 +118,43 @@ function parseJsonField(
   }
 }
 
+function normalizeModeForForm(value: unknown): string {
+  switch (toText(value).toUpperCase()) {
+    case "PROXY":
+    case "ACP-PROXY":
+    case "ACP_PROXY":
+      return "PROXY";
+    case "PLAN-EXECUTE":
+    case "PLAN_EXECUTE":
+      return "PLAN_EXECUTE";
+    case "ONESHOT":
+    case "":
+      return "REACT";
+    default:
+      return toText(value).toUpperCase();
+  }
+}
+
+function iconFieldsFromValue(value: unknown): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage"> {
+  if (typeof value === "string" && value.trim()) {
+    return { iconKind: "image", iconName: "", iconImage: value.trim() };
+  }
+  const record = asRecord(value);
+  const name = toText(record.name);
+  if (name) return { iconKind: "builtin", iconName: name, iconImage: "" };
+  return { iconKind: "none", iconName: "", iconImage: "" };
+}
+
+function buildIconValue(form: AgentFormState): unknown {
+  if (form.iconKind === "image") return form.iconImage.trim() || undefined;
+  if (form.iconKind === "builtin") return form.iconName.trim() ? { name: form.iconName.trim() } : undefined;
+  return undefined;
+}
+
+function optionLabel(item: Record<string, unknown>): string {
+  return toText(item.label) || toText(item.name) || toText(item.key);
+}
+
 function resolveModelKey(detail: AgentDetailResponse, definition: Record<string, unknown>): string {
   const modelConfig = asRecord(definition.modelConfig);
   const meta = asRecord(detail.meta);
@@ -126,9 +165,10 @@ function fallbackDefinition(detail: AgentDetailResponse): Record<string, unknown
   const definition: Record<string, unknown> = {
     key: detail.key,
     name: detail.name,
+    icon: detail.icon,
     role: detail.role || "",
     description: detail.description || "",
-    mode: detail.mode || "REACT",
+    mode: normalizeModeForForm(detail.mode),
   };
   const meta = asRecord(detail.meta);
   const modelKey = toText(meta.modelKey) || toText(detail.model);
@@ -146,18 +186,18 @@ function formFromDetail(detail: AgentDetailResponse): AgentFormState {
   const toolConfig = asRecord(definition.toolConfig);
   const skillConfig = asRecord(definition.skillConfig);
   const contextConfig = asRecord(definition.contextConfig);
-
   return {
     key: toText(definition.key) || detail.key,
     name: toText(definition.name) || detail.name || detail.key,
+    ...iconFieldsFromValue(definition.icon ?? detail.icon),
     role: toText(definition.role) || detail.role || "",
     description: toText(definition.description) || detail.description || "",
-    mode: toText(definition.mode) || detail.mode || "REACT",
+    mode: normalizeModeForForm(toText(definition.mode) || detail.mode || "REACT"),
     modelKey: toText(modelConfig.modelKey) || resolveModelKey(detail, definition),
-    toolsText: listToText(toolConfig.tools || detail.tools),
-    skillsText: listToText(skillConfig.skills || detail.skills),
-    wondersText: listToText(definition.wonders || detail.wonders),
-    contextTagsText: listToText(contextConfig.tags || definition.contextTags),
+    tools: textListFromUnknown(toolConfig.tools || detail.tools),
+    skills: textListFromUnknown(skillConfig.skills || detail.skills),
+    wonders: textListFromUnknown(definition.wonders || detail.wonders),
+    contextTags: textListFromUnknown(contextConfig.tags || definition.contextTags),
     controlsText: stringifyJson(definition.controls || detail.controls || [], "[]"),
     runtimeConfigText: stringifyJson(definition.runtimeConfig),
     memoryConfigText: stringifyJson(definition.memoryConfig),
@@ -167,37 +207,34 @@ function formFromDetail(detail: AgentDetailResponse): AgentFormState {
   };
 }
 
-function buildDefinition(
-  form: AgentFormState,
-  baseDefinition: Record<string, unknown>,
-): Record<string, unknown> {
+function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>): Record<string, unknown> {
   const definition = { ...baseDefinition };
   definition.key = form.key.trim();
   definition.name = form.name.trim();
+  const icon = buildIconValue(form);
+  if (icon) definition.icon = icon;
+  else delete definition.icon;
   definition.role = form.role.trim();
   definition.description = form.description.trim();
-  definition.mode = form.mode.trim() || "REACT";
+  definition.mode = normalizeModeForForm(form.mode);
 
   const modelKey = form.modelKey.trim();
-  if (modelKey) {
-    definition.modelConfig = { ...asRecord(definition.modelConfig), modelKey };
-  } else {
-    delete definition.modelConfig;
-  }
+  if (modelKey) definition.modelConfig = { ...asRecord(definition.modelConfig), modelKey };
+  else delete definition.modelConfig;
 
-  const tools = textToList(form.toolsText);
+  const tools = form.tools.map((item) => item.trim()).filter(Boolean);
   if (tools.length > 0) definition.toolConfig = { ...asRecord(definition.toolConfig), tools };
   else delete definition.toolConfig;
 
-  const skills = textToList(form.skillsText);
+  const skills = form.skills.map((item) => item.trim()).filter(Boolean);
   if (skills.length > 0) definition.skillConfig = { ...asRecord(definition.skillConfig), skills };
   else delete definition.skillConfig;
 
-  const wonders = textToList(form.wondersText);
+  const wonders = form.wonders.map((item) => item.trim()).filter(Boolean);
   if (wonders.length > 0) definition.wonders = wonders;
   else delete definition.wonders;
 
-  const contextTags = textToList(form.contextTagsText);
+  const contextTags = form.contextTags.map((item) => item.trim()).filter(Boolean);
   if (contextTags.length > 0) {
     definition.contextConfig = { ...asRecord(definition.contextConfig), tags: contextTags };
     delete definition.contextTags;
@@ -209,40 +246,31 @@ function buildDefinition(
     delete definition.contextTags;
   }
 
-  const controls = parseJsonField("Controls", form.controlsText, {
-    expectArray: true,
-  });
-  definition.controls = controls;
-
+  definition.controls = parseJsonField("Controls", form.controlsText, { expectArray: true });
   for (const [key, label, value] of [
     ["runtimeConfig", "Runtime Config", form.runtimeConfigText],
     ["memoryConfig", "Memory Config", form.memoryConfigText],
-    ["proxyConfig", "Proxy Config", form.proxyConfigText],
   ] as const) {
     const parsed = parseJsonField(label, value);
     if (parsed === undefined) delete definition[key];
     else definition[key] = parsed;
   }
-
+  if (definition.mode === "PROXY") {
+    definition.proxyConfig = parseJsonField("Proxy Config", form.proxyConfigText, { allowEmpty: false });
+  } else {
+    delete definition.proxyConfig;
+  }
   return definition;
 }
 
 function buildAgentSearchText(agent: Agent): string {
-  return [
-    agent.key,
-    agent.name,
-    agent.role,
-    agent.description,
-    ...(Array.isArray(agent.wonders) ? agent.wonders : []),
-  ]
+  return [agent.key, agent.name, agent.role, agent.description, ...(Array.isArray(agent.wonders) ? agent.wonders : [])]
     .map((item) => toText(item).toLowerCase())
     .join(" ");
 }
 
 function compareAgents(a: Agent, b: Agent): number {
-  return (toText(a.name) || toText(a.key)).localeCompare(
-    toText(b.name) || toText(b.key),
-  );
+  return (toText(a.name) || toText(a.key)).localeCompare(toText(b.name) || toText(b.key));
 }
 
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
@@ -260,6 +288,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [detail, setDetail] = useState<AgentDetailResponse | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [editorOptions, setEditorOptions] = useState<AgentEditorOptionsResponse | null>(null);
+  const [toolOptions, setToolOptions] = useState<Array<{ key: string; label: string }>>([]);
+  const [skillOptions, setSkillOptions] = useState<Array<{ key: string; label: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -269,18 +301,39 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const filteredAgents = useMemo(() => {
     const query = searchText.trim().toLowerCase();
     const agents = Array.isArray(state.agents) ? state.agents : [];
-    return agents
-      .filter((agent) => !query || buildAgentSearchText(agent).includes(query))
-      .slice()
-      .sort(compareAgents);
+    return agents.filter((agent) => !query || buildAgentSearchText(agent).includes(query)).slice().sort(compareAgents);
   }, [searchText, state.agents]);
 
   const selectedSummary = useMemo(
-    () =>
-      state.agents.find((agent) => toText(agent.key) === effectiveSelectedKey) ||
-      null,
+    () => state.agents.find((agent) => toText(agent.key) === effectiveSelectedKey) || null,
     [effectiveSelectedKey, state.agents],
   );
+
+  const modeOptions = useMemo(
+    () =>
+      (editorOptions?.modes?.length
+        ? editorOptions.modes
+        : [
+            { key: "REACT", label: "REACT" },
+            { key: "PLAN_EXECUTE", label: "PLAN-EXECUTE" },
+            { key: "PROXY", label: "ACP-PROXY" },
+          ]
+      ).map((item) => ({ value: item.key, label: item.label })),
+    [editorOptions],
+  );
+  const modelOptions = useMemo(
+    () => (editorOptions?.models || []).map((item) => ({ value: item.key, label: item.modelId ? `${item.key} · ${item.modelId}` : item.key })),
+    [editorOptions],
+  );
+  const contextTagOptions = useMemo(
+    () => (editorOptions?.contextTags || []).map((item) => ({ value: item.key, label: item.label || item.key })),
+    [editorOptions],
+  );
+  const selectedIconValue = useMemo(() => {
+    if (form.iconKind === "image") return form.iconImage;
+    if (form.iconKind === "builtin" && form.iconName) return { name: form.iconName };
+    return undefined;
+  }, [form.iconImage, form.iconKind, form.iconName]);
 
   const selectAgent = useCallback(
     (agentKey: string) => {
@@ -308,15 +361,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setError("");
       try {
         const response = await getAgents();
-        const agents = Array.isArray(response.data)
-          ? (response.data as Agent[])
-          : [];
+        const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });
         const normalizedPreferred = preferredKey.trim();
-        const nextKey =
-          normalizedPreferred && agents.some((agent) => toText(agent.key) === normalizedPreferred)
-            ? normalizedPreferred
-            : agents[0]?.key || "";
+        const nextKey = normalizedPreferred && agents.some((agent) => toText(agent.key) === normalizedPreferred)
+          ? normalizedPreferred
+          : agents[0]?.key || "";
         if (!selectedAgentKey && nextKey && !didInitialSelectRef.current) {
           didInitialSelectRef.current = true;
           setInternalSelectedKey(nextKey);
@@ -329,6 +379,36 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     },
     [dispatch, selectedAgentKey],
   );
+
+  const loadEditorOptions = useCallback(async () => {
+    setLoadingOptions(true);
+    try {
+      const [optionsResponse, toolsResponse, skillsResponse] = await Promise.all([getAgentEditorOptions(), getTools(), getSkills()]);
+      setEditorOptions((optionsResponse.data || null) as AgentEditorOptionsResponse | null);
+      setToolOptions(
+        (Array.isArray(toolsResponse.data) ? toolsResponse.data : [])
+          .map((item) => {
+            const record = asRecord(item);
+            const key = toText(record.key) || toText(record.name);
+            return key ? { key, label: optionLabel(record) || key } : null;
+          })
+          .filter((item): item is { key: string; label: string } => Boolean(item)),
+      );
+      setSkillOptions(
+        (Array.isArray(skillsResponse.data) ? skillsResponse.data : [])
+          .map((item) => {
+            const record = asRecord(item);
+            const key = toText(record.key);
+            return key ? { key, label: optionLabel(record) || key } : null;
+          })
+          .filter((item): item is { key: string; label: string } => Boolean(item)),
+      );
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setLoadingOptions(false);
+    }
+  }, []);
 
   const loadDetail = useCallback(async (agentKey: string) => {
     const key = agentKey.trim();
@@ -358,9 +438,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [loadAgents, selectedAgentKey]);
 
   useEffect(() => {
-    if (selectedAgentKey) {
-      setInternalSelectedKey(selectedAgentKey);
-    }
+    void loadEditorOptions();
+  }, [loadEditorOptions]);
+
+  useEffect(() => {
+    if (selectedAgentKey) setInternalSelectedKey(selectedAgentKey);
   }, [selectedAgentKey]);
 
   useEffect(() => {
@@ -389,21 +471,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setError("");
     setFormError("");
     try {
-      const baseDefinition =
-        formMode === "edit" && detail
-          ? detail.definition || fallbackDefinition(detail)
-          : {};
+      const baseDefinition = formMode === "edit" && detail ? detail.definition || fallbackDefinition(detail) : {};
       const definition = buildDefinition(form, baseDefinition);
-      const payload = {
-        key: form.key.trim(),
-        definition,
-        soulPrompt: form.soulPrompt,
-        agentsPrompt: form.agentsPrompt,
-      };
-      const response =
-        formMode === "create"
-          ? await createAgent(payload)
-          : await updateAgent(payload);
+      const response = formMode === "create"
+        ? await createAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt })
+        : await updateAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt });
       const saved = response.data;
       const savedKey = saved.key || form.key.trim();
       setDetail(saved);
@@ -433,11 +505,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       const remaining = state.agents.filter((agent) => toText(agent.key) !== key);
       dispatch({ type: "SET_AGENTS", agents: remaining });
       const nextKey = remaining[0]?.key || "";
-      if (nextKey) {
-        selectAgent(nextKey);
-      } else {
-        startCreate();
-      }
+      if (nextKey) selectAgent(nextKey);
+      else startCreate();
     } catch (error) {
       setFormError((error as Error).message);
     } finally {
@@ -445,29 +514,28 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     }
   };
 
+  const setMode = (mode: string) => {
+    if (mode === "PROXY" && !form.proxyConfigText.trim()) {
+      updateForm({
+        mode,
+        proxyConfigText: JSON.stringify({ baseUrl: "", timeoutMs: editorOptions?.proxyConfigSchema?.defaultTimeoutMs || 300000 }, null, 2),
+      });
+      return;
+    }
+    updateForm({ mode });
+  };
+
   return (
     <div className={`command-modal-section agent-console ${embedded ? "is-embedded" : ""}`}>
       <div className="agent-console-toolbar">
         <Input
-          prefix={
-            <MaterialIcon
-              name="search"
-              style={{ color: "var(--text-muted)" }}
-            />
-          }
+          prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
           variant="filled"
           placeholder="搜索智能体..."
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
-        <UiButton
-          size="sm"
-          variant="ghost"
-          iconOnly
-          onClick={() => loadAgents(effectiveSelectedKey)}
-          disabled={loadingList || saving}
-          aria-label="刷新智能体"
-        >
+        <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label="刷新智能体">
           <MaterialIcon name="refresh" />
         </UiButton>
         <UiButton size="sm" variant="primary" onClick={startCreate}>
@@ -479,24 +547,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       {error && (
         <div className="agent-console-error">
           <span>{error}</span>
-          <UiButton size="sm" variant="ghost" onClick={() => loadAgents()}>
-            重试
-          </UiButton>
+          <UiButton size="sm" variant="ghost" onClick={() => loadAgents()}>重试</UiButton>
         </div>
       )}
 
       <div className="agent-console-body">
         <div className="agent-console-list">
-          <div className="agent-console-count">
-            智能体 {state.agents.length} 个
-          </div>
+          <div className="agent-console-count">智能体 {state.agents.length} 个</div>
           <Spin spinning={loadingList}>
             {filteredAgents.length === 0 ? (
               <div className="command-empty-state">
                 暂无匹配智能体。
-                <UiButton size="sm" variant="primary" onClick={startCreate}>
-                  新建智能体
-                </UiButton>
+                <UiButton size="sm" variant="primary" onClick={startCreate}>新建智能体</UiButton>
               </div>
             ) : (
               <div className="agent-console-list-items">
@@ -512,16 +574,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       onClick={() => selectAgent(agentKey)}
                     >
                       <span className="agent-console-list-item-icon">
-                        <MaterialIcon name="smart_toy" />
+                        <AgentIcon
+                          icon={agent.icon}
+                          type="agent"
+                          props={{
+                            icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
+                            avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
+                          }}
+                        />
                       </span>
                       <span className="agent-console-list-item-main">
-                        <span className="agent-console-list-item-head">
-                          <strong>{name}</strong>
-                        </span>
-                        <span className="agent-console-list-item-meta">
-                          {role}
-                          {agentKey ? ` · ${agentKey}` : ""}
-                        </span>
+                        <span className="agent-console-list-item-head"><strong>{name}</strong></span>
+                        <span className="agent-console-list-item-meta">{role}{agentKey ? ` · ${agentKey}` : ""}</span>
                       </span>
                     </button>
                   );
@@ -535,25 +599,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           <Spin spinning={loadingDetail}>
             <div className="agent-detail-head">
               <div>
-                <strong>
-                  {formMode === "create"
-                    ? "新建智能体"
-                    : selectedSummary?.name || form.name || form.key || "编辑智能体"}
-                </strong>
-                <span>
-                  {formMode === "create"
-                    ? "保存后写入后端 agent 配置"
-                    : detail?.source?.path || form.key}
-                </span>
+                <strong>{formMode === "create" ? "新建智能体" : selectedSummary?.name || form.name || form.key || "编辑智能体"}</strong>
+                <span>{formMode === "create" ? "保存后写入后端 agent 配置" : detail?.source?.path || form.key}</span>
               </div>
               {formMode === "edit" && (
                 <div className="agent-detail-actions">
-                  <UiButton
-                    size="sm"
-                    variant="danger"
-                    onClick={confirmDelete}
-                    disabled={saving}
-                  >
+                  <UiButton size="sm" variant="danger" onClick={confirmDelete} disabled={saving}>
                     <MaterialIcon name="delete" />
                     <span>{pendingDeleteKey === form.key ? "确认删除" : "删除"}</span>
                   </UiButton>
@@ -564,75 +615,61 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <div className="agent-form-grid">
               <div className="field-group">
                 <label htmlFor="agent-key-input">Key</label>
-                <UiInput
-                  id="agent-key-input"
-                  inputSize="md"
-                  value={form.key}
-                  disabled={formMode === "edit"}
-                  onChange={(event) => updateForm({ key: event.target.value })}
-                />
+                <UiInput id="agent-key-input" inputSize="md" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-name-input">名称</label>
-                <UiInput
-                  id="agent-name-input"
-                  inputSize="md"
-                  value={form.name}
-                  onChange={(event) => updateForm({ name: event.target.value })}
-                />
+                <UiInput id="agent-name-input" inputSize="md" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-role-input">角色</label>
-                <UiInput
-                  id="agent-role-input"
-                  inputSize="md"
-                  value={form.role}
-                  onChange={(event) => updateForm({ role: event.target.value })}
-                />
+                <UiInput id="agent-role-input" inputSize="md" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-mode-input">模式</label>
-                <select
-                  id="agent-mode-input"
-                  value={form.mode}
-                  onChange={(event) => updateForm({ mode: event.target.value })}
-                >
-                  <option value="REACT">REACT</option>
-                  <option value="ONESHOT">ONESHOT</option>
-                  <option value="PLAN_EXECUTE">PLAN_EXECUTE</option>
-                  <option value="PROXY">PROXY</option>
-                </select>
+                <Select id="agent-mode-input" value={form.mode} options={modeOptions} onChange={setMode} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-model-input">Model Key</label>
-                <UiInput
-                  id="agent-model-input"
-                  inputSize="md"
-                  value={form.modelKey}
-                  onChange={(event) => updateForm({ modelKey: event.target.value })}
-                />
+                <Select id="agent-model-input" showSearch allowClear loading={loadingOptions} value={form.modelKey || undefined} options={modelOptions} optionFilterProp="label" onChange={(value) => updateForm({ modelKey: value || "" })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-tags-input">Context Tags</label>
-                <UiInput
-                  id="agent-tags-input"
-                  inputSize="md"
-                  placeholder="system, session, owner"
-                  value={form.contextTagsText}
-                  onChange={(event) => updateForm({ contextTagsText: event.target.value })}
-                />
+                <Select id="agent-tags-input" mode="multiple" allowClear loading={loadingOptions} value={form.contextTags} options={contextTagOptions} onChange={(value) => updateForm({ contextTags: value })} />
               </div>
+              <div className="field-group">
+                <label htmlFor="agent-icon-kind-input">Icon</label>
+                <div className="agent-icon-editor">
+                  <span className="agent-icon-preview"><AgentIcon icon={selectedIconValue as any} type="agent" /></span>
+                  <Select
+                    id="agent-icon-kind-input"
+                    value={form.iconKind}
+                    options={[
+                      { value: "none", label: "Default" },
+                      { value: "builtin", label: "Built-in" },
+                      { value: "image", label: "JPG / PNG" },
+                    ]}
+                    onChange={(value: IconKind) => updateForm({ iconKind: value })}
+                  />
+                </div>
+              </div>
+              {form.iconKind === "builtin" && (
+                <div className="field-group">
+                  <label htmlFor="agent-icon-name-input">Icon Name</label>
+                  <Select id="agent-icon-name-input" showSearch allowClear value={form.iconName || undefined} options={AGENT_ICON_NAMES.map((name) => ({ value: name, label: name }))} onChange={(value) => updateForm({ iconName: value || "" })} />
+                </div>
+              )}
+              {form.iconKind === "image" && (
+                <div className="field-group">
+                  <label htmlFor="agent-icon-image-input">Icon Image</label>
+                  <UiInput id="agent-icon-image-input" inputSize="md" placeholder="/assets/agent.png 或 https://..." value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
+                </div>
+              )}
             </div>
 
             <div className="field-group">
               <label htmlFor="agent-description-input">描述</label>
-              <textarea
-                id="agent-description-input"
-                className="settings-textarea"
-                rows={2}
-                value={form.description}
-                onChange={(event) => updateForm({ description: event.target.value })}
-              />
+              <textarea id="agent-description-input" className="settings-textarea" rows={2} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
             </div>
 
             <fieldset className="agent-config-box">
@@ -640,36 +677,57 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <div className="agent-form-grid">
                 <div className="field-group">
                   <label htmlFor="agent-tools-input">Tools</label>
-                  <textarea
+                  <Select
                     id="agent-tools-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={4}
-                    placeholder="bash&#10;datetime"
-                    value={form.toolsText}
-                    onChange={(event) => updateForm({ toolsText: event.target.value })}
+                    mode="multiple"
+                    showSearch
+                    allowClear
+                    loading={loadingOptions}
+                    value={form.tools}
+                    options={toolOptions.map((item) => ({ value: item.key, label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`}` }))}
+                    optionFilterProp="label"
+                    onChange={(value) => updateForm({ tools: value })}
                   />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-skills-input">Skills</label>
-                  <textarea
+                  <Select
                     id="agent-skills-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={4}
-                    placeholder="skill-key"
-                    value={form.skillsText}
-                    onChange={(event) => updateForm({ skillsText: event.target.value })}
+                    mode="multiple"
+                    showSearch
+                    allowClear
+                    loading={loadingOptions}
+                    value={form.skills}
+                    options={skillOptions.map((item) => ({ value: item.key, label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`}` }))}
+                    optionFilterProp="label"
+                    onChange={(value) => updateForm({ skills: value })}
                   />
                 </div>
               </div>
               <div className="field-group">
-                <label htmlFor="agent-wonders-input">Wonders</label>
-                <textarea
-                  id="agent-wonders-input"
-                  className="settings-textarea"
-                  rows={3}
-                  value={form.wondersText}
-                  onChange={(event) => updateForm({ wondersText: event.target.value })}
-                />
+                <label>Wonders</label>
+                <div className="agent-wonders-editor">
+                  {(form.wonders.length > 0 ? form.wonders : [""]).map((wonder, index) => (
+                    <div className="agent-wonder-row" key={index}>
+                      <UiInput
+                        inputSize="md"
+                        value={wonder}
+                        onChange={(event) => {
+                          const next = form.wonders.length > 0 ? [...form.wonders] : [""];
+                          next[index] = event.target.value;
+                          updateForm({ wonders: next });
+                        }}
+                      />
+                      <UiButton size="sm" variant="ghost" iconOnly aria-label="删除推荐问题" onClick={() => updateForm({ wonders: form.wonders.filter((_, itemIndex) => itemIndex !== index) })}>
+                        <MaterialIcon name="close" />
+                      </UiButton>
+                    </div>
+                  ))}
+                  <UiButton size="sm" variant="ghost" onClick={() => updateForm({ wonders: [...form.wonders, ""] })}>
+                    <MaterialIcon name="add" />
+                    <span>添加</span>
+                  </UiButton>
+                </div>
               </div>
             </fieldset>
 
@@ -678,45 +736,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <div className="agent-form-grid">
                 <div className="field-group">
                   <label htmlFor="agent-controls-input">Controls</label>
-                  <textarea
-                    id="agent-controls-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={5}
-                    value={form.controlsText}
-                    onChange={(event) => updateForm({ controlsText: event.target.value })}
-                  />
+                  <textarea id="agent-controls-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-runtime-input">Runtime Config</label>
-                  <textarea
-                    id="agent-runtime-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={5}
-                    placeholder='{"environmentId":"shell","level":"RUN"}'
-                    value={form.runtimeConfigText}
-                    onChange={(event) => updateForm({ runtimeConfigText: event.target.value })}
-                  />
+                  <textarea id="agent-runtime-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-memory-input">Memory Config</label>
-                  <textarea
-                    id="agent-memory-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={5}
-                    value={form.memoryConfigText}
-                    onChange={(event) => updateForm({ memoryConfigText: event.target.value })}
-                  />
+                  <textarea id="agent-memory-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
                 </div>
-                <div className="field-group">
-                  <label htmlFor="agent-proxy-input">Proxy Config</label>
-                  <textarea
-                    id="agent-proxy-input"
-                    className="settings-textarea agent-mono-textarea"
-                    rows={5}
-                    value={form.proxyConfigText}
-                    onChange={(event) => updateForm({ proxyConfigText: event.target.value })}
-                  />
-                </div>
+                {form.mode === "PROXY" && (
+                  <div className="field-group">
+                    <label htmlFor="agent-proxy-input">ACP-PROXY Config</label>
+                    <textarea id="agent-proxy-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
+                  </div>
+                )}
               </div>
             </fieldset>
 
@@ -724,35 +759,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <legend>Prompt</legend>
               <div className="field-group">
                 <label htmlFor="agent-soul-input">SOUL.md</label>
-                <textarea
-                  id="agent-soul-input"
-                  className="settings-textarea agent-prompt-textarea"
-                  rows={5}
-                  value={form.soulPrompt}
-                  onChange={(event) => updateForm({ soulPrompt: event.target.value })}
-                />
+                <textarea id="agent-soul-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-agents-input">AGENTS.md</label>
-                <textarea
-                  id="agent-agents-input"
-                  className="settings-textarea agent-prompt-textarea"
-                  rows={5}
-                  value={form.agentsPrompt}
-                  onChange={(event) => updateForm({ agentsPrompt: event.target.value })}
-                />
+                <textarea id="agent-agents-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
               </div>
             </fieldset>
 
             {formError && <div className="settings-error">{formError}</div>}
 
             <div className="agent-save-actions">
-              <UiButton
-                size="sm"
-                variant="primary"
-                onClick={saveForm}
-                disabled={saving}
-              >
+              <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving}>
                 <MaterialIcon name="save" />
                 <span>{formMode === "create" ? "创建智能体" : "保存修改"}</span>
               </UiButton>

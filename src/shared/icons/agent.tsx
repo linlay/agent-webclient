@@ -774,7 +774,7 @@ const Zenith: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
 };
 
 interface AgentIconProps {
-  icon?: {
+  icon?: string | {
     color?: string;
     name?: string;
   };
@@ -786,7 +786,23 @@ interface AgentIconProps {
 }
 export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
   const render = useCallback(() => {
-    const name = icon?.name;
+    if (typeof icon === "string" && /\.(png|jpe?g)(?:[?#].*)?$/i.test(icon.trim())) {
+      return (
+        <img
+          src={icon.trim()}
+          alt=""
+          {...(props?.icon as React.ImgHTMLAttributes<HTMLImageElement>)}
+          style={{
+            width: props?.icon?.width || 32,
+            height: props?.icon?.height || 32,
+            borderRadius: 8,
+            objectFit: "cover",
+            ...(props?.icon?.style as React.CSSProperties),
+          }}
+        />
+      );
+    }
+    const name = typeof icon === "object" ? icon?.name : "";
     const Icon = IconMap[name as keyof typeof IconMap];
     if (Icon) {
       return <Icon width={32} height={32} {...props?.icon} />;
@@ -796,7 +812,7 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
         icon={type === "team" ? <TeamOutlined /> : <UserOutlined />}
         {...props?.avatar}
         style={{
-          background: icon?.color,
+          background: typeof icon === "object" ? icon?.color : undefined,
           ...props?.avatar?.style,
         }}
       />
@@ -804,6 +820,28 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
   }, [icon]);
   return render();
 };
+export const AGENT_ICON_NAMES = [
+  "ledger",
+  "equity",
+  "vault",
+  "pulse",
+  "nexus",
+  "quantum",
+  "yield",
+  "oracle",
+  "vertex",
+  "matrix",
+  "flux",
+  "apex",
+  "cipher",
+  "prism",
+  "horizon",
+  "aura",
+  "node",
+  "echo",
+  "nova",
+  "zenith",
+] as const;
 const IconMap = {
   ledger: Ledger,
   equity: Equity,

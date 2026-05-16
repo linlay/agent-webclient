@@ -26,7 +26,7 @@ export interface Agent {
 	wonders?: string[];
 	controls?: AgentControl[];
 	stats?: AgentStats;
-	icon?: {
+	icon?: string | {
 		color?: string;
 		name?: string;
 	}

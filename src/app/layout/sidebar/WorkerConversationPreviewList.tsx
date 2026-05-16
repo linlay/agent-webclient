@@ -7,7 +7,7 @@ import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 
-type AgentIconConfig = {
+type AgentIconConfig = string | {
   color?: string;
   name?: string;
 };

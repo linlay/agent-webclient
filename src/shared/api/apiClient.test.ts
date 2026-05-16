@@ -17,6 +17,7 @@ import {
   extractUploadReferences,
   getArchive,
   getAgent,
+  getAgentEditorOptions,
   getAgents,
   getArchives,
   getChats,
@@ -386,6 +387,15 @@ describe('apiClient query payloads', () => {
       },
       { url: '/api/agent-delete', body: { key: 'editable-agent' } },
     ]);
+  });
+
+  it('loads agent editor options', async () => {
+    await getAgentEditorOptions();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/agent-editor-options',
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 
   it('keeps runId for interrupt and steer requests', async () => {

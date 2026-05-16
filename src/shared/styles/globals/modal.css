@@ -790,6 +790,10 @@
     padding: 6px 8px;
 }
 
+.agent-console-detail .ant-select {
+    width: 100%;
+}
+
 .agent-console-error {
     display: flex;
     align-items: center;
@@ -857,6 +861,11 @@
     justify-content: center;
     background: color-mix(in srgb, var(--accent-soft) 22%, var(--bg-input));
     color: var(--accent-electric);
+    overflow: hidden;
+}
+
+.agent-console-list-item-svg {
+    display: block;
 }
 
 .agent-console-list-item-main {
@@ -951,6 +960,33 @@
 
 .agent-config-box .field-group:last-child {
     margin-bottom: 0;
+}
+
+.agent-icon-editor,
+.agent-wonder-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-icon-preview {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.agent-wonders-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.agent-wonder-row {
+    grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .agent-mono-textarea {

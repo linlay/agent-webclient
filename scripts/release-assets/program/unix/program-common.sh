@@ -9,9 +9,10 @@ ENV_EXAMPLE_FILE="$BUNDLE_ROOT/.env.example"
 ENV_FILE="${SERVICE_CONFIG_DIR:-$BUNDLE_ROOT}/.env"
 BACKEND_ENTRY="$BUNDLE_ROOT/backend/server.cjs"
 DIST_DIR="$BUNDLE_ROOT/frontend/dist"
-RUN_DIR="$BUNDLE_ROOT/run"
+RUN_DIR="${SERVICE_STATE_DIR:-$BUNDLE_ROOT/run}"
+LOG_DIR="${SERVICE_LOG_DIR:-$RUN_DIR}"
 PID_FILE="$RUN_DIR/$APP_NAME.pid"
-LOG_FILE="$RUN_DIR/$APP_NAME.log"
+LOG_FILE="$LOG_DIR/$APP_NAME.log"
 NODE_CMD=""
 
 program_die() {
@@ -37,6 +38,13 @@ program_validate_bundle() {
   program_require_file "$DIST_DIR/index.html"
 }
 
+program_initialize_config() {
+  mkdir -p "$(dirname "$ENV_FILE")"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    cp "$ENV_EXAMPLE_FILE" "$ENV_FILE"
+  fi
+}
+
 program_load_env() {
   [[ -f "$ENV_FILE" ]] || program_die "missing .env (copy from .env.example first)"
   set -a
@@ -60,7 +68,7 @@ program_prepare_node_command() {
 }
 
 program_prepare_runtime_dirs() {
-  mkdir -p "$RUN_DIR"
+  mkdir -p "$RUN_DIR" "$LOG_DIR"
 }
 
 program_read_pid() {

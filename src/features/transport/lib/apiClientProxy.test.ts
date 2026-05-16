@@ -40,6 +40,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
+		getAgentEditorOptions: jest.fn(),
 		getAgents: jest.fn(),
 		getArchive: jest.fn(),
 		getArchives: jest.fn(),
@@ -117,6 +118,7 @@ let mockApiClient: {
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
+	getAgentEditorOptions: jest.Mock;
 	getAgents: jest.Mock;
 	getArchive: jest.Mock;
 	getArchives: jest.Mock;
@@ -299,6 +301,7 @@ describe("apiClientProxy", () => {
 			definition: { key: "editable-agent", name: "Updated Agent" },
 		});
 		await proxy.deleteAgent({ key: "editable-agent" });
+		await proxy.getAgentEditorOptions();
 
 		expect(request).toHaveBeenNthCalledWith(1, {
 			type: "/api/agent-create",
@@ -317,6 +320,10 @@ describe("apiClientProxy", () => {
 		expect(request).toHaveBeenNthCalledWith(3, {
 			type: "/api/agent-delete",
 			payload: { key: "editable-agent" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/agent-editor-options",
+			payload: undefined,
 		});
 		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
 	});
@@ -1014,6 +1021,12 @@ describe("apiClientProxy", () => {
 			msg: "ok",
 			data: { key: "editable-agent", deleted: true },
 		});
+		mockApiClient.getAgentEditorOptions.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { modes: [{ key: "PROXY", label: "ACP-PROXY" }] },
+		});
 
 		await expect(
 			proxy.createAgent({
@@ -1028,6 +1041,9 @@ describe("apiClientProxy", () => {
 		).resolves.toMatchObject({
 			data: { key: "editable-agent", deleted: true },
 		});
+		await expect(proxy.getAgentEditorOptions()).resolves.toMatchObject({
+			data: { modes: [{ key: "PROXY", label: "ACP-PROXY" }] },
+		});
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.createAgent).toHaveBeenCalledWith({
@@ -1037,6 +1053,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({
 			key: "editable-agent",
 		});
+		expect(mockApiClient.getAgentEditorOptions).toHaveBeenCalledTimes(1);
 	});
 
 	it("routes submit requests over http when sse mode is selected", async () => {

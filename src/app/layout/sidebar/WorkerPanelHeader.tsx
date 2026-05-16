@@ -6,7 +6,7 @@ import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
-type AgentIconConfig = {
+type AgentIconConfig = string | {
   color?: string;
   name?: string;
 };

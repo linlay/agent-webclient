@@ -8,10 +8,11 @@ $Script:EnvExampleFile = Join-Path $Script:BundleRoot '.env.example'
 $Script:EnvFile = Join-Path $(if ($env:SERVICE_CONFIG_DIR) { $env:SERVICE_CONFIG_DIR } else { $Script:BundleRoot }) '.env'
 $Script:BackendEntry = Join-Path (Join-Path $Script:BundleRoot 'backend') 'server.cjs'
 $Script:DistDir = Join-Path (Join-Path $Script:BundleRoot 'frontend') 'dist'
-$Script:RunDir = Join-Path $Script:BundleRoot 'run'
+$Script:RunDir = if ($env:SERVICE_STATE_DIR) { $env:SERVICE_STATE_DIR } else { Join-Path $Script:BundleRoot 'run' }
+$Script:LogDir = if ($env:SERVICE_LOG_DIR) { $env:SERVICE_LOG_DIR } else { $Script:RunDir }
 $Script:PidFile = Join-Path $Script:RunDir 'agent-webclient.pid'
-$Script:LogFile = Join-Path $Script:RunDir 'agent-webclient.log'
-$Script:ErrorLogFile = Join-Path $Script:RunDir 'agent-webclient.stderr.log'
+$Script:LogFile = Join-Path $Script:LogDir 'agent-webclient.log'
+$Script:ErrorLogFile = Join-Path $Script:LogDir 'agent-webclient.stderr.log'
 
 function Fail-Program([string]$Message) {
   throw "[program] $Message"
@@ -33,6 +34,13 @@ function Test-ProgramBundle {
   $indexPath = Join-Path $Script:DistDir 'index.html'
   if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
     Fail-Program "required file not found: $indexPath"
+  }
+}
+
+function Initialize-ProgramConfig {
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Script:EnvFile) | Out-Null
+  if (-not (Test-Path -LiteralPath $Script:EnvFile -PathType Leaf)) {
+    Copy-Item -LiteralPath $Script:EnvExampleFile -Destination $Script:EnvFile
   }
 }
 
@@ -78,7 +86,7 @@ function Resolve-NodeBin {
 }
 
 function Initialize-ProgramRuntime {
-  New-Item -ItemType Directory -Force -Path $Script:RunDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $Script:RunDir, $Script:LogDir | Out-Null
 }
 
 function Clear-StaleProgramPid {

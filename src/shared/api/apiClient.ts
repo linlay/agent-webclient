@@ -235,6 +235,39 @@ export interface DeleteAgentResponse {
   deleted: boolean;
 }
 
+export interface AgentEditorOption {
+  key: string;
+  label: string;
+}
+
+export interface AgentEditorModelOption {
+  key: string;
+  provider?: string;
+  modelId?: string;
+  protocol?: string;
+  isVision: boolean;
+  contextWindow?: number;
+}
+
+export interface AgentEditorProxyConfigField {
+  key: string;
+  label: string;
+  type: string;
+  required?: boolean;
+}
+
+export interface AgentEditorProxyConfigSchema {
+  fields: AgentEditorProxyConfigField[];
+  defaultTimeoutMs: number;
+}
+
+export interface AgentEditorOptionsResponse {
+  models: AgentEditorModelOption[];
+  contextTags: AgentEditorOption[];
+  modes: AgentEditorOption[];
+  proxyConfigSchema: AgentEditorProxyConfigSchema;
+}
+
 export interface ArchiveChatsRequest {
   chatIds: string[];
 }
@@ -844,6 +877,10 @@ export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
   return postJson<DeleteAgentResponse>("/api/agent-delete", params);
+}
+
+export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
+  return requestJson<AgentEditorOptionsResponse>("/api/agent-editor-options");
 }
 
 export function getTeams(): Promise<ApiResponse> {

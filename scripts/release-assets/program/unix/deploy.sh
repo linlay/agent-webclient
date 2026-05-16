@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$SCRIPT_DIR"
 program_validate_bundle
+program_initialize_config
 program_prepare_runtime_dirs
 
 echo "[program-deploy] bundle validated"

@@ -18,6 +18,7 @@ import {
 	searchGlobal as searchGlobalHttp,
 	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
+	getAgentEditorOptions as getAgentEditorOptionsHttp,
 	getAgents as getAgentsHttp,
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
@@ -54,6 +55,7 @@ import {
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AgentDetailResponse,
+	type AgentEditorOptionsResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -235,6 +237,14 @@ export function deleteAgent(
 		"/api/agent-delete",
 		params,
 		() => deleteAgentHttp(params),
+	);
+}
+
+export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
+	return routeRequest<AgentEditorOptionsResponse>(
+		"/api/agent-editor-options",
+		undefined,
+		() => getAgentEditorOptionsHttp(),
 	);
 }
 

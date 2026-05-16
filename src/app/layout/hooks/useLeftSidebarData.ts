@@ -4,7 +4,7 @@ import { buildWorkerConversationRows } from "@/features/workers/lib/workerConver
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";
 
-type AgentIconConfig = {
+type AgentIconConfig = string | {
   color?: string;
   name?: string;
 };
@@ -148,4 +148,3 @@ export function useLeftSidebarData({
     filteredHistoryRows,
   };
 }
-
