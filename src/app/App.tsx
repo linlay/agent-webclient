@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
+import { initializeDesktopQueryContextBridge } from "@/shared/api/desktopQueryContext";
 import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { SchedulesPage } from "./pages/schedules";
@@ -123,6 +124,10 @@ const App: React.FC<AppProps> = ({ i18n }) => {
     persistLocale: false,
     ...(i18n || {}),
   };
+
+  useEffect(() => {
+    initializeDesktopQueryContextBridge();
+  }, []);
 
   return (
     <I18nProvider {...mergedI18n}>

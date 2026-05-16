@@ -6,6 +6,7 @@ import {
 	ensureAccessToken,
 	getCurrentAccessToken,
 } from "@/shared/api/apiClient";
+import { buildDesktopQueryContext } from "@/shared/api/desktopQueryContext";
 import {
 	isWsConnectionFailure,
 	toWsConnectionError,
@@ -107,6 +108,7 @@ export async function executeQueryStreamWs(
 			}
 
 			const startStream = (client: QueryWsClient) => {
+				const queryParams = buildDesktopQueryContext(params.params);
 				client.stream({
 					type: "/api/query",
 					payload: {
@@ -120,7 +122,7 @@ export async function executeQueryStreamWs(
 						...(params.references !== undefined
 							? { references: params.references }
 							: {}),
-						...(params.params !== undefined ? { params: params.params } : {}),
+						...(queryParams !== undefined ? { params: queryParams } : {}),
 						...(params.scene ? { scene: params.scene } : {}),
 						...(params.stream !== undefined ? { stream: params.stream } : {}),
 					},

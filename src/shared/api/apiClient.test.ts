@@ -1,5 +1,9 @@
 import { Blob } from 'buffer';
 import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/appAuth';
+import {
+  initializeDesktopQueryContextBridge,
+  resetDesktopQueryContextBridgeForTests,
+} from '@/shared/api/desktopQueryContext';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
@@ -155,6 +159,7 @@ describe('apiClient query payloads', () => {
   const originalWindow = globalThis.window;
 
   beforeEach(() => {
+    resetDesktopQueryContextBridgeForTests();
     resetCompactIdStateForTests();
     jest.restoreAllMocks();
     global.Blob = Blob as unknown as typeof global.Blob;
@@ -172,6 +177,7 @@ describe('apiClient query payloads', () => {
   });
 
   afterEach(() => {
+    resetDesktopQueryContextBridgeForTests();
     delete (globalThis as typeof globalThis & {
       __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
     }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
@@ -257,8 +263,59 @@ describe('apiClient query payloads', () => {
       params: {
         desktop: {
           source: 'copilot',
-          action: 'chat',
           route: '/copilot',
+        },
+      },
+    });
+  });
+
+  it('uses the latest host desktop snapshot for query streams in desktop app mode', async () => {
+    const { dispatchMessage, parent } = installWindow({
+      pathname: '/copilot',
+      storedToken: 'desktop-token',
+    });
+    initializeDesktopQueryContextBridge();
+    dispatchMessage({
+      source: parent as unknown as MessageEventSource,
+      data: {
+        type: 'desktopContextChanged',
+        desktop: {
+          route: '/settings?section=navigation',
+          pageKey: 'native:/settings?section=navigation',
+          pageKind: 'native',
+          snapshotVersion: 7,
+          snapshotAt: '2026-05-16T12:00:00.000Z',
+          pageContext: {
+            title: '设置',
+            url: 'desktop://settings/navigation',
+          },
+        },
+      },
+    } as MessageEvent);
+
+    await createQueryStream({
+      requestId: 'req_desktop_snapshot',
+      message: '当前页面是什么',
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_desktop_snapshot',
+      planningMode: false,
+      message: '当前页面是什么',
+      params: {
+        desktop: {
+          source: 'copilot',
+          route: '/settings?section=navigation',
+          pageKey: 'native:/settings?section=navigation',
+          pageKind: 'native',
+          snapshotVersion: 7,
+          snapshotAt: '2026-05-16T12:00:00.000Z',
+          pageContext: {
+            title: '设置',
+            url: 'desktop://settings/navigation',
+          },
         },
       },
     });
