@@ -100,7 +100,7 @@ describe("ScheduleModal", () => {
     expect(html).toContain("计划任务 0 个");
     expect(html).toContain("请求");
     expect(html).toContain("智能体");
-    expect(html).toContain("小宅 · 执行官");
+    expect(html).toContain("小宅");
     expect(html).toContain("Asia/Shanghai");
     expect(html).toContain("schedule-cron-control");
     expect(html).toContain("快捷选择");

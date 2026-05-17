@@ -170,7 +170,7 @@ write_program_manifest() {
 {
   "kind": "builtin",
   "id": "$APP_NAME",
-  "name": "小宅助理",
+  "name": "智能助理",
   "version": "$VERSION",
   "description": "独立进程模式的 AGENT Web 客户端，负责静态资源托管并代理 API 请求。",
   "platform": {
