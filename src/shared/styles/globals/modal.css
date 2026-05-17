@@ -900,8 +900,21 @@
     font-size: 13px;
 }
 
+.agent-console-list-item-head span {
+    flex: 0 1 auto;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted);
+}
+
 .agent-console-list-item-meta {
     font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.agent-console-list-item-meta span {
+    font-size: 11px;
+    font-weight: 500;
     color: var(--ink-muted);
 }
 

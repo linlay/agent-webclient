@@ -159,20 +159,54 @@ function countListItems(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
 }
 
-function resolveListItemCount(primary: unknown, fallback: unknown): number {
-  return Array.isArray(primary) ? primary.length : countListItems(fallback);
+function resolveFirstListItemCount(...values: unknown[]): number {
+  const matched = values.find((value) => Array.isArray(value));
+  return countListItems(matched);
 }
 
-function buildAgentListSummary(agent: Agent) {
+function buildAgentListSummary(agent: Agent, detailFallback?: AgentDetailResponse | null, formFallback?: AgentFormState) {
+  const definition = asRecord(agent.definition);
+  const detailDefinition = asRecord(detailFallback?.definition);
   const meta = asRecord(agent.meta);
+  const detailMeta = asRecord(detailFallback?.meta);
   const modelConfig = asRecord(agent.modelConfig);
+  const definitionModelConfig = asRecord(definition.modelConfig);
+  const detailDefinitionModelConfig = asRecord(detailDefinition.modelConfig);
   const toolConfig = asRecord(agent.toolConfig);
+  const definitionToolConfig = asRecord(definition.toolConfig);
+  const detailDefinitionToolConfig = asRecord(detailDefinition.toolConfig);
   const skillConfig = asRecord(agent.skillConfig);
+  const definitionSkillConfig = asRecord(definition.skillConfig);
+  const detailDefinitionSkillConfig = asRecord(detailDefinition.skillConfig);
   return {
-    mode: toText(agent.mode) || "--",
-    modelKey: toText(agent.modelKey) || toText(meta.modelKey) || toText(modelConfig.modelKey) || toText(agent.model) || "--",
-    toolsCount: resolveListItemCount(agent.tools, toolConfig.tools),
-    skillsCount: resolveListItemCount(agent.skills, skillConfig.skills),
+    mode: toText(agent.mode) || toText(definition.mode) || toText(detailFallback?.mode) || toText(detailDefinition.mode) || formFallback?.mode || "--",
+    modelKey:
+      toText(agent.modelKey) ||
+      toText(meta.modelKey) ||
+      toText(modelConfig.modelKey) ||
+      toText(definitionModelConfig.modelKey) ||
+      toText(detailMeta.modelKey) ||
+      toText(detailDefinitionModelConfig.modelKey) ||
+      toText(detailFallback?.model) ||
+      toText(agent.model) ||
+      formFallback?.modelKey ||
+      "--",
+    toolsCount: resolveFirstListItemCount(
+      agent.tools,
+      toolConfig.tools,
+      definitionToolConfig.tools,
+      detailFallback?.tools,
+      detailDefinitionToolConfig.tools,
+      formFallback?.tools,
+    ),
+    skillsCount: resolveFirstListItemCount(
+      agent.skills,
+      skillConfig.skills,
+      definitionSkillConfig.skills,
+      detailFallback?.skills,
+      detailDefinitionSkillConfig.skills,
+      formFallback?.skills,
+    ),
   };
 }
 
@@ -307,6 +341,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [form, setForm] = useState<AgentFormState>(EMPTY_FORM);
   const [detail, setDetail] = useState<AgentDetailResponse | null>(null);
+  const [listDetailsByKey, setListDetailsByKey] = useState<Record<string, AgentDetailResponse>>({});
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -384,6 +419,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         const response = await getAgents();
         const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });
+        const detailResults = await Promise.allSettled(
+          agents
+            .map((agent) => toText(agent.key))
+            .filter(Boolean)
+            .map(async (key) => {
+              const detailResponse = await getAgent(key);
+              return [key, detailResponse.data as AgentDetailResponse] as const;
+            }),
+        );
+        const nextDetailsByKey: Record<string, AgentDetailResponse> = {};
+        for (const result of detailResults) {
+          if (result.status === "fulfilled") {
+            nextDetailsByKey[result.value[0]] = result.value[1];
+          }
+        }
+        setListDetailsByKey(nextDetailsByKey);
         const normalizedPreferred = preferredKey.trim();
         const nextKey = normalizedPreferred && agents.some((agent) => toText(agent.key) === normalizedPreferred)
           ? normalizedPreferred
@@ -442,6 +493,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       const response = await getAgent(key);
       const nextDetail = response.data as AgentDetailResponse;
       setDetail(nextDetail);
+      setListDetailsByKey((current) => ({ ...current, [key]: nextDetail }));
       setForm(formFromDetail(nextDetail));
       setFormMode("edit");
     } catch (error) {
@@ -587,7 +639,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   const agentKey = toText(agent.key);
                   const name = toText(agent.name) || agentKey;
                   const role = toText(agent.role) || "--";
-                  const summary = buildAgentListSummary(agent);
+                  const listDetail = agentKey ? listDetailsByKey[agentKey] || null : null;
+                  const summary = buildAgentListSummary(agent, listDetail, agentKey === form.key ? form : undefined);
                   return (
                     <button
                       type="button"
@@ -616,7 +669,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         </span>
                         <span className="agent-console-list-item-row agent-console-list-item-meta">
                           <span>{summary.modelKey}</span>
-                          <span>工具 {summary.toolsCount} · skills {summary.skillsCount}</span>
+                          <span>工具 {summary.toolsCount} · 技能 {summary.skillsCount}</span>
                         </span>
                       </span>
                     </button>
