@@ -809,7 +809,7 @@
 .agent-console-body {
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(280px, 0.85fr) minmax(480px, 1.55fr);
+    grid-template-columns: minmax(280px, 0.52fr) minmax(480px, 1.55fr);
     gap: 16px;
     overflow: hidden;
 }
@@ -876,7 +876,7 @@
     gap: 4px;
 }
 
-.agent-console-list-item-head {
+.agent-console-list-item-row {
     min-width: 0;
     display: flex;
     align-items: center;
@@ -884,19 +884,23 @@
     gap: 8px;
 }
 
+.agent-console-list-item-row span,
 .agent-console-list-item-head strong {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.agent-console-list-item-head {
+    color: var(--ink-1);
+}
+
+.agent-console-list-item-head strong {
     font-size: 13px;
 }
 
 .agent-console-list-item-meta {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-size: 11px;
     color: var(--ink-muted);
 }

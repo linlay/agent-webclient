@@ -155,6 +155,27 @@ function optionLabel(item: Record<string, unknown>): string {
   return toText(item.label) || toText(item.name) || toText(item.key);
 }
 
+function countListItems(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function resolveListItemCount(primary: unknown, fallback: unknown): number {
+  return Array.isArray(primary) ? primary.length : countListItems(fallback);
+}
+
+function buildAgentListSummary(agent: Agent) {
+  const meta = asRecord(agent.meta);
+  const modelConfig = asRecord(agent.modelConfig);
+  const toolConfig = asRecord(agent.toolConfig);
+  const skillConfig = asRecord(agent.skillConfig);
+  return {
+    mode: toText(agent.mode) || "--",
+    modelKey: toText(agent.modelKey) || toText(meta.modelKey) || toText(modelConfig.modelKey) || toText(agent.model) || "--",
+    toolsCount: resolveListItemCount(agent.tools, toolConfig.tools),
+    skillsCount: resolveListItemCount(agent.skills, skillConfig.skills),
+  };
+}
+
 function resolveModelKey(detail: AgentDetailResponse, definition: Record<string, unknown>): string {
   const modelConfig = asRecord(definition.modelConfig);
   const meta = asRecord(detail.meta);
@@ -566,6 +587,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   const agentKey = toText(agent.key);
                   const name = toText(agent.name) || agentKey;
                   const role = toText(agent.role) || "--";
+                  const summary = buildAgentListSummary(agent);
                   return (
                     <button
                       type="button"
@@ -584,8 +606,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         />
                       </span>
                       <span className="agent-console-list-item-main">
-                        <span className="agent-console-list-item-head"><strong>{name}</strong></span>
-                        <span className="agent-console-list-item-meta">{role}{agentKey ? ` · ${agentKey}` : ""}</span>
+                        <span className="agent-console-list-item-row agent-console-list-item-head">
+                          <strong>{name}</strong>
+                          <span>{agentKey || "--"}</span>
+                        </span>
+                        <span className="agent-console-list-item-row agent-console-list-item-meta">
+                          <span>{role}</span>
+                          <span>{summary.mode}</span>
+                        </span>
+                        <span className="agent-console-list-item-row agent-console-list-item-meta">
+                          <span>{summary.modelKey}</span>
+                          <span>工具 {summary.toolsCount} · skills {summary.skillsCount}</span>
+                        </span>
                       </span>
                     </button>
                   );
