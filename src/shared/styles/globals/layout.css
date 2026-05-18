@@ -63,22 +63,17 @@
     gap: 10px;
 }
 
+.brand-logo{
+    background-color: var(--accent);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 8px;
+}
+
 .brand-cluster {
     display: flex;
     align-items: center;
     gap: 16px;
-}
-
-#open-left-drawer-btn:hover .brand-logo-icon {
-    display: block;
-}
-
-#open-left-drawer-btn:hover .brand-logo-text {
-    display: none;
-}
-
-.brand-logo-icon {
-    display: none;
 }
 
 .brand-text {

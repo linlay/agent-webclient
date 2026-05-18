@@ -328,47 +328,48 @@ export const LeftSidebar: React.FC = () => {
       >
         {state.leftDrawerOpen && (
           <>
-            <Flex align="center" gap={12} style={{ padding: "4px 12px 0" }}>
+            <Flex
+              align="center"
+              justify="space-between"
+              gap={12}
+              style={{ padding: "4px 12px 0" }}
+            >
               <div className="brand-cluster">
                 <div className="brand-mark">
-                  <UiButton
-                    id="open-left-drawer-btn"
-                    className="icon-btn"
-                    size="sm"
-                    iconOnly
-                    aria-label={t("topNav.openDrawer")}
-                    variant="primary"
-                    onClick={() =>
-                      dispatch({
-                        type: "SET_LEFT_DRAWER_OPEN",
-                        open: false,
-                      })
-                    }
-                  >
-                    <MaterialIcon
-                      name="dock_to_right"
-                      className="brand-logo-icon"
-                    />
-                    <span className="brand-logo-text">Z</span>
-                  </UiButton>
+                  <div className="brand-logo">Z</div>
                   <div className="brand-text">
                     <strong>AGENT</strong>
                     <span>Webclient</span>
                   </div>
                 </div>
               </div>
-              <UiButton
-                id="top-nav-new-chat-btn"
-                className="icon-btn top-nav-new-chat-btn"
-                size="sm"
-                aria-label={t("topNav.newConversation")}
-                title={t("topNav.newConversation")}
-                variant="ghost"
-                iconOnly
-                onClick={handleStartNewConversation}
-              >
-                <MaterialIcon name="edit_square" />
-              </UiButton>
+              <Flex>
+                <UiButton
+                  id="top-nav-new-chat-btn"
+                  className="icon-btn top-nav-new-chat-btn"
+                  size="sm"
+                  aria-label={t("topNav.newConversation")}
+                  title={t("topNav.newConversation")}
+                  variant="ghost"
+                  iconOnly
+                  onClick={handleStartNewConversation}
+                >
+                  <MaterialIcon name="edit_square" />
+                </UiButton>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  iconOnly
+                  onClick={() =>
+                    dispatch({
+                      type: "SET_LEFT_DRAWER_OPEN",
+                      open: false,
+                    })
+                  }
+                >
+                  <MaterialIcon name="dock_to_right" />
+                </UiButton>
+              </Flex>
             </Flex>
             {quickActionsEnabled && (
               <Flex className="left-sidebar-buttons">
@@ -543,7 +544,7 @@ export const LeftSidebar: React.FC = () => {
                           className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
                           onClick={() => handleSelectWorker(item.key)}
                         >
-                          <Badge dot={unreadCount > 0}>
+                          <Badge dot={unreadCount > 0} color="var(--accent)">
                             <AgentIcon
                               icon={workerIconsByKey.get(item.key)}
                               type={item.type}
