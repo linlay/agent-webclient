@@ -9,6 +9,7 @@ import {
 export type AttachmentPreviewKind =
 	| "image"
 	| "pdf"
+	| "html"
 	| "text"
 	| "audio"
 	| "video"
@@ -84,11 +85,21 @@ export function getAttachmentPreviewKind(
 		return "image";
 	}
 
-	const mimeType = normalizeText(attachment.mimeType);
+	const mimeType = normalizeText(attachment.mimeType).split(";", 1)[0].trim();
 	const extension = getAttachmentExtension(attachment.name);
 
 	if (mimeType === "application/pdf" || extension === "pdf") {
 		return "pdf";
+	}
+
+	if (
+		mimeType === "text/html" ||
+		mimeType === "application/xhtml+xml" ||
+		extension === "html" ||
+		extension === "htm" ||
+		extension === "xhtml"
+	) {
+		return "html";
 	}
 
 	if (mimeType.startsWith("audio/") || audioExtensions.has(extension)) {

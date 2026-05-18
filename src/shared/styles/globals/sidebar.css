@@ -563,9 +563,7 @@
     width: 100%;
     flex: 1;
     min-height: 480px;
-    border: 1px solid var(--line-soft);
-    border-radius: 14px;
-    background: #fff;
+    border: 0;
 }
 
 .attachment-preview-text {

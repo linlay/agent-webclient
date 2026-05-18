@@ -32,6 +32,14 @@ describe("attachmentPreview", () => {
 
 		expect(
 			getAttachmentPreviewKind({
+				name: "report.html",
+				mimeType: "text/html; charset=utf-8",
+				url: "/resource/report.html",
+			}),
+		).toBe("html");
+
+		expect(
+			getAttachmentPreviewKind({
 				name: "clip.mp3",
 				mimeType: "audio/mpeg",
 				url: "/resource/clip.mp3",

@@ -4,7 +4,7 @@ import { downloadResource, getResourceText } from "@/shared/api/apiClient";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { UiButton } from "@/shared/ui/UiButton";
 
-const textPreviewKinds = new Set(["text", "pdf"]);
+const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
 export const AttachmentPreviewPanel: React.FC = () => {
   const state = useAppState();
@@ -131,6 +131,15 @@ export const AttachmentPreviewPanel: React.FC = () => {
             className="attachment-preview-frame"
             src={preview.url}
             title={preview.name}
+          />
+        ) : null}
+
+        {preview.kind === "html" ? (
+          <iframe
+            className="attachment-preview-frame"
+            src={preview.url}
+            title={preview.name}
+            sandbox="allow-forms allow-modals allow-popups allow-scripts"
           />
         ) : null}
 
