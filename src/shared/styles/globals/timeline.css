@@ -85,97 +85,9 @@
 }
 
 .timeline-user-attachments.is-multi {
-    gap: 0;
-}
-
-.timeline-user-attachment-group {
-    position: relative;
-    overflow: visible;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0;
-    z-index: 1;
-}
-
-.timeline-user-attachment-group-top {
-    display: flex;
-    align-items: stretch;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.timeline-user-attachment-more {
-    border: 1px solid rgba(222, 226, 232, 0.92);
-    box-shadow:
-        0 10px 24px rgba(17, 39, 76, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.92);
-    min-width: 70px;
-    cursor: pointer;
-    appearance: none;
-    padding: 0 15px;
-    border-radius: 20px;
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 0.98),
-            rgba(248, 249, 251, 0.96));
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: color-mix(in srgb, var(--ink-muted) 86%, #5c6470 14%);
-    transition:
-        border-color 0.18s ease,
-        background 0.18s ease,
-        transform 0.18s ease;
-}
-
-.timeline-user-attachment-more:hover {
-    border-color: rgba(206, 211, 219, 0.96);
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 1),
-            rgba(245, 246, 249, 0.98));
-}
-
-.timeline-user-attachment-more.is-open {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 18%,
-            rgba(206, 211, 219, 0.96));
-    color: color-mix(in srgb, var(--ink-1) 76%, var(--accent-electric));
-    transform: translateY(1px);
-}
-
-.timeline-user-attachment-more:focus-visible {
-    outline: 0;
-    box-shadow:
-        0 10px 24px rgba(17, 39, 76, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.92),
-        0 0 0 3px color-mix(in srgb, var(--accent-soft) 30%, transparent);
-}
-
-.timeline-user-attachment-popover {
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 34px;
-    width: min(100%, 288px);
-    padding-top: 10px;
-    z-index: 12;
-}
-
-.timeline-user-attachment-popover-list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px;
-    border-radius: 18px;
-    border: 1px solid rgba(222, 226, 232, 0.92);
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 0.99),
-            rgba(248, 249, 251, 0.97));
-    box-shadow:
-        0 18px 34px rgba(17, 39, 76, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 8px;
 }
 
 .attachment-card {
@@ -311,20 +223,6 @@
 
 .attachment-card-trailing .material-symbols-rounded {
     font-size: 17px;
-}
-
-.timeline-user-attachment-hint {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-        transform 0.18s ease,
-        color 0.18s ease;
-}
-
-.timeline-user-attachment-hint.is-open {
-    color: color-mix(in srgb, var(--ink-1) 72%, var(--accent-electric));
-    transform: translateX(1px);
 }
 
 .attachment-card-compact .attachment-card-file-shell {

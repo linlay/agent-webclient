@@ -133,120 +133,6 @@ function getTimelineAttachmentSubtitle(
 		.join(" · ");
 }
 
-interface TimelineAttachmentGroupProps {
-	attachments: NonNullable<TimelineNode["attachments"]>;
-}
-
-const TimelineAttachmentGroup: React.FC<TimelineAttachmentGroupProps> = ({
-	attachments,
-}) => {
-	const groupRef = React.useRef<HTMLDivElement>(null);
-	const popoverId = React.useId();
-	const [expanded, setExpanded] = React.useState(false);
-	const leadAttachment = attachments[0];
-	const remainingAttachments = attachments.slice(1);
-
-	React.useEffect(() => {
-		if (!expanded) {
-			return;
-		}
-
-		const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-			const target = event.target;
-			if (
-				groupRef.current &&
-				target instanceof Node &&
-				!groupRef.current.contains(target)
-			) {
-				setExpanded(false);
-			}
-		};
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				setExpanded(false);
-			}
-		};
-
-		document.addEventListener("mousedown", handlePointerDown);
-		document.addEventListener("touchstart", handlePointerDown);
-		window.addEventListener("keydown", handleKeyDown);
-		return () => {
-			document.removeEventListener("mousedown", handlePointerDown);
-			document.removeEventListener("touchstart", handlePointerDown);
-			window.removeEventListener("keydown", handleKeyDown);
-		};
-	}, [expanded]);
-
-	if (!leadAttachment) {
-		return null;
-	}
-
-	return (
-		<div className="timeline-user-attachment-group" ref={groupRef}>
-			<div className="timeline-user-attachment-group-top">
-				<AttachmentCard
-					attachment={leadAttachment}
-					variant="timeline"
-					density="compact"
-					displayMode="file"
-					subtitle={getTimelineAttachmentSubtitle(
-						leadAttachment,
-						true,
-					)}
-					trailingNode={
-						remainingAttachments.length > 0 ? (
-							<span
-								className={`timeline-user-attachment-hint ${expanded ? "is-open" : ""}`.trim()}
-								aria-hidden="true"
-							>
-								<MaterialIcon name="subdirectory_arrow_right" />
-							</span>
-						) : null
-					}
-				/>
-				{remainingAttachments.length > 0 ? (
-					<button
-						type="button"
-						className={`timeline-user-attachment-more ${expanded ? "is-open" : ""}`.trim()}
-						aria-expanded={expanded}
-						aria-controls={popoverId}
-						aria-label={`查看剩余 ${remainingAttachments.length} 个附件`}
-						title={`查看剩余 ${remainingAttachments.length} 个附件`}
-						onClick={() => setExpanded((current) => !current)}
-					>
-						+{remainingAttachments.length}
-					</button>
-				) : null}
-			</div>
-			{expanded && remainingAttachments.length > 0 ? (
-				<div
-					className="timeline-user-attachment-popover"
-					id={popoverId}
-					role="dialog"
-					aria-label="剩余附件"
-				>
-					<div className="timeline-user-attachment-popover-list">
-						{remainingAttachments.map((attachment, index) => (
-							<AttachmentCard
-								key={`${attachment.name}_${index + 1}`}
-								attachment={attachment}
-								variant="timeline"
-								density="compact"
-								displayMode="file"
-								subtitle={getTimelineAttachmentSubtitle(
-									attachment,
-									true,
-								)}
-							/>
-						))}
-					</div>
-				</div>
-			) : null}
-		</div>
-	);
-};
-
 const NodeIcon: React.FC<{
 	kind: string;
 	role?: string;
@@ -349,22 +235,25 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 						<div
 							className={`timeline-user-attachments ${hasMultipleAttachments ? "is-multi" : ""}`.trim()}
 						>
-							{hasMultipleAttachments ? (
-								<TimelineAttachmentGroup
-									attachments={attachmentItems}
+							{attachmentItems.map((attachment, index) => (
+								<AttachmentCard
+									key={`${attachment.name}_${index}`}
+									attachment={attachment}
+									variant="timeline"
+									density={
+										hasMultipleAttachments
+											? "compact"
+											: "default"
+									}
+									displayMode={
+										hasMultipleAttachments ? "file" : "auto"
+									}
+									subtitle={getTimelineAttachmentSubtitle(
+										attachment,
+										hasMultipleAttachments,
+									)}
 								/>
-							) : (
-								attachmentItems.map((attachment, index) => (
-									<AttachmentCard
-										key={`${attachment.name}_${index}`}
-										attachment={attachment}
-										variant="timeline"
-										subtitle={getTimelineAttachmentSubtitle(
-											attachment,
-										)}
-									/>
-								))
-							)}
+							))}
 						</div>
 					)}
 					{hasText && <UserBubble text={node.text || ""} />}

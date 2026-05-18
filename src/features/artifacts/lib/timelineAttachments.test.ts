@@ -23,4 +23,42 @@ describe('normalizeTimelineAttachments', () => {
       },
     ]);
   });
+
+  it('keeps the latest attachment when names are duplicated', () => {
+    expect(
+      normalizeTimelineAttachments([
+        {
+          type: 'file',
+          name: 'notes.md',
+          size: 10,
+          url: '/old-notes',
+        },
+        {
+          type: 'image',
+          name: 'preview.png',
+          size: 20,
+          url: '/preview',
+        },
+        {
+          type: 'file',
+          name: 'notes.md',
+          size: 30,
+          url: '/latest-notes',
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'image',
+        name: 'preview.png',
+        size: 20,
+        url: '/preview',
+      },
+      {
+        type: 'file',
+        name: 'notes.md',
+        size: 30,
+        url: '/latest-notes',
+      },
+    ]);
+  });
 });

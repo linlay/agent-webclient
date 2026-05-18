@@ -9,7 +9,7 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
     return [];
   }
 
-  return items.reduce<TimelineAttachment[]>((acc, item) => {
+  const attachments = items.reduce<TimelineAttachment[]>((acc, item) => {
     if (!isObjectRecord(item)) {
       return acc;
     }
@@ -41,4 +41,17 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
     });
     return acc;
   }, []);
+
+  const seenNames = new Set<string>();
+  const latestAttachments: TimelineAttachment[] = [];
+  for (let index = attachments.length - 1; index >= 0; index -= 1) {
+    const attachment = attachments[index];
+    if (seenNames.has(attachment.name)) {
+      continue;
+    }
+    seenNames.add(attachment.name);
+    latestAttachments.push(attachment);
+  }
+
+  return latestAttachments.reverse();
 }

@@ -105,6 +105,33 @@ export function createPendingComposerAttachments(
 	}));
 }
 
+function getAttachmentNameKey(name: string): string {
+	return String(name || "").trim();
+}
+
+export function keepLatestFilesByName(files: File[]): File[] {
+	const seen = new Set<string>();
+	const latestFiles: File[] = [];
+
+	for (let index = files.length - 1; index >= 0; index -= 1) {
+		const file = files[index];
+		const nameKey = getAttachmentNameKey(file.name);
+		if (!nameKey || seen.has(nameKey)) {
+			continue;
+		}
+		seen.add(nameKey);
+		latestFiles.push(file);
+	}
+
+	return latestFiles.reverse();
+}
+
+export function getComposerAttachmentNameKey(
+	attachment: Pick<ComposerAttachment, "name">,
+): string {
+	return getAttachmentNameKey(attachment.name);
+}
+
 export async function uploadComposerAttachments(input: {
 	files: File[];
 	nextAttachments: ComposerAttachment[];
@@ -120,6 +147,7 @@ export async function uploadComposerAttachments(input: {
 	dispatch: Dispatch<AppAction>;
 	setAttachments: Dispatch<SetStateAction<ComposerAttachment[]>>;
 	setAttachmentChatId: Dispatch<SetStateAction<string>>;
+	isLatestAttachment?: (attachment: ComposerAttachment) => boolean;
 }): Promise<void> {
 	const {
 		files,
@@ -129,6 +157,7 @@ export async function uploadComposerAttachments(input: {
 		dispatch,
 		setAttachments,
 		setAttachmentChatId,
+		isLatestAttachment,
 	} = input;
 
 	let nextChatId = String(state.chatId || attachmentChatId || "").trim();
@@ -141,6 +170,9 @@ export async function uploadComposerAttachments(input: {
 				requestId: attachment.id,
 				chatId: nextChatId || undefined,
 			});
+			if (isLatestAttachment && !isLatestAttachment(attachment)) {
+				continue;
+			}
 			const responseChatId = extractUploadChatId(response.data);
 			if (responseChatId) {
 				nextChatId = responseChatId;

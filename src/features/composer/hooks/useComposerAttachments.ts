@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  ChangeEvent,
-  ClipboardEvent,
-  Dispatch,
-  DragEvent,
-} from "react";
+import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
 import {
   type ComposerAttachment,
   createPendingComposerAttachments,
+  getComposerAttachmentNameKey,
+  keepLatestFilesByName,
   revokeAttachmentPreviewUrl,
   uploadComposerAttachments,
 } from "@/features/composer/lib/composerAttachments";
@@ -34,11 +31,24 @@ export interface ComposerAttachmentScrollState {
   canScrollRight: boolean;
 }
 
+function addTimestampToFilename(filename: string) {
+  // 找到最后一个 . 的位置（分割文件名和后缀）
+  const dotIndex = filename.lastIndexOf(".");
+  if (dotIndex === -1) return filename; // 无后缀直接返回
+
+  const name = filename.slice(0, dotIndex);
+  const ext = filename.slice(dotIndex);
+  const timestamp = Date.now(); // 13位时间戳
+
+  return `${name}_${timestamp}${ext}`;
+}
+
 export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const { dispatch, isFrontendActive, isVoiceMode, state } = input;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentViewportRef = useRef<HTMLDivElement>(null);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
+  const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [attachmentChatId, setAttachmentChatId] = useState("");
   const [attachmentScrollState, setAttachmentScrollState] =
@@ -115,6 +125,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     attachmentsRef.current.forEach((attachment) => {
       revokeAttachmentPreviewUrl(attachment.previewUrl);
     });
+    latestAttachmentIdByNameRef.current.clear();
     setAttachments([]);
     setAttachmentChatId("");
     setAttachmentScrollState({
@@ -138,6 +149,13 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         );
         if (removedAttachment) {
           revokeAttachmentPreviewUrl(removedAttachment.previewUrl);
+          const nameKey = getComposerAttachmentNameKey(removedAttachment);
+          if (
+            latestAttachmentIdByNameRef.current.get(nameKey) ===
+            removedAttachment.id
+          ) {
+            latestAttachmentIdByNameRef.current.delete(nameKey);
+          }
         }
         const next = current.filter(
           (attachment) => attachment.id !== attachmentId,
@@ -162,13 +180,38 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         return false;
       }
 
-      const nextAttachments = createPendingComposerAttachments(files);
+      const latestFiles = keepLatestFilesByName(files);
+      if (latestFiles.length === 0) {
+        return false;
+      }
 
-      setAttachments((current) => [...current, ...nextAttachments]);
+      const nextAttachments = createPendingComposerAttachments(latestFiles);
+      const replacementNames = new Set(
+        nextAttachments.map(getComposerAttachmentNameKey),
+      );
+      nextAttachments.forEach((attachment) => {
+        latestAttachmentIdByNameRef.current.set(
+          getComposerAttachmentNameKey(attachment),
+          attachment.id,
+        );
+      });
+
+      setAttachments((current) => {
+        const retainedAttachments = current.filter((attachment) => {
+          const shouldReplace = replacementNames.has(
+            getComposerAttachmentNameKey(attachment),
+          );
+          if (shouldReplace) {
+            revokeAttachmentPreviewUrl(attachment.previewUrl);
+          }
+          return !shouldReplace;
+        });
+        return [...retainedAttachments, ...nextAttachments];
+      });
 
       void (async () => {
         await uploadComposerAttachments({
-          files,
+          files: latestFiles,
           nextAttachments,
           attachmentChatId,
           state: {
@@ -181,6 +224,10 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
           dispatch,
           setAttachments,
           setAttachmentChatId,
+          isLatestAttachment: (attachment) =>
+            latestAttachmentIdByNameRef.current.get(
+              getComposerAttachmentNameKey(attachment),
+            ) === attachment.id,
         });
       })();
 
@@ -211,11 +258,12 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const handleFilePaste = useCallback(
     (event: ClipboardEvent<HTMLElement>) => {
-      const files = Array.from(event.clipboardData?.files || []);
+      const files = Array.from(event.clipboardData?.files || [])?.map(
+        (file) => new File([file], addTimestampToFilename(file.name)),
+      );
       if (files.length === 0) {
         return;
       }
-
       event.preventDefault();
       uploadFiles(files);
     },
