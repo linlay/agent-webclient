@@ -47,9 +47,9 @@ export const OverviewTab: React.FC = () => {
 
 	return (
 		<div className="right-sidebar-overview">
-			<OverviewSection title="产出物" count={artifacts.length}>
+			<OverviewSection title="产物" count={artifacts.length}>
 				{artifacts.length === 0 ? (
-					<div className="right-sidebar-empty">暂无产出物</div>
+					<div className="right-sidebar-empty">暂无产物</div>
 				) : (
 					<ul className="artifact-drawer-list right-sidebar-artifact-list">
 						{artifacts.map((item) => (

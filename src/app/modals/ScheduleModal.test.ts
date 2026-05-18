@@ -11,9 +11,30 @@ jest.mock("@/app/state/AppContext", () => ({
 
 jest.mock("antd", () => {
   const React = require("react");
+  const Input = ({ prefix, ...props }: any) =>
+    React.createElement(
+      "div",
+      { className: "mock-input" },
+      prefix,
+      React.createElement("input", props),
+    );
+  Input.TextArea = (props: any) => React.createElement("textarea", props);
   return {
-    Input: ({ prefix, ...props }: any) =>
-      React.createElement("div", { className: "mock-input" }, prefix, React.createElement("input", props)),
+    Checkbox: ({ children, ...props }: any) =>
+      React.createElement("label", null, React.createElement("input", { type: "checkbox", ...props }), children),
+    Input,
+    Select: ({ options = [], ...props }: any) =>
+      React.createElement(
+        "select",
+        props,
+        options.map((option: any) =>
+          React.createElement(
+            "option",
+            { key: option.value, value: option.value },
+            option.label,
+          ),
+        ),
+      ),
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Tooltip: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Input, Spin, Tooltip } from "antd";
+import { Checkbox, Input, Select, Spin, Tooltip } from "antd";
 import type { Agent, Team } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -22,7 +22,6 @@ import type {
 } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiInput } from "@/shared/ui/UiInput";
 import { UiTag } from "@/shared/ui/UiTag";
 
 type ScheduleStatusFilter = "all" | "enabled" | "disabled";
@@ -607,27 +606,20 @@ export const ScheduleModal: React.FC<{
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
-        <select
+        <Select
           value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(event.target.value as ScheduleStatusFilter)
-          }
-        >
-          <option value="all">全部状态</option>
-          <option value="enabled">已启用</option>
-          <option value="disabled">已停用</option>
-        </select>
-        <select
+          onChange={(value) => setStatusFilter(value)}
+          options={[
+            { value: "all", label: "全部状态" },
+            { value: "enabled", label: "已启用" },
+            { value: "disabled", label: "已停用" },
+          ]}
+        />
+        <Select
           value={workerFilter}
-          onChange={(event) => setWorkerFilter(event.target.value)}
-        >
-          <option value="">全部对象</option>
-          {workerOptions.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => setWorkerFilter(value)}
+          options={[{ value: "", label: "全部对象" }, ...workerOptions]}
+        />
         <UiButton
           size="sm"
           variant="ghost"
@@ -756,9 +748,8 @@ export const ScheduleModal: React.FC<{
           <div className="schedule-form-grid">
             <div className="field-group">
               <label htmlFor="schedule-name-input">名称</label>
-              <UiInput
+              <Input
                 id="schedule-name-input"
-                inputSize="md"
                 value={form.name}
                 onChange={(event) => updateForm({ name: event.target.value })}
               />
@@ -766,79 +757,61 @@ export const ScheduleModal: React.FC<{
             <div className="field-group">
               <label htmlFor="schedule-cron-input">Cron</label>
               <div className="schedule-cron-control">
-                <UiInput
+                <Input
                   id="schedule-cron-input"
-                  inputSize="md"
                   value={form.cron}
                   onChange={(event) => updateForm({ cron: event.target.value })}
                 />
-                <select
+                <Select
                   aria-label="Cron 快捷选择"
                   value={
                     CRON_PRESETS.some((preset) => preset.value === form.cron)
                       ? form.cron
                       : ""
                   }
-                  onChange={(event) => {
-                    if (event.target.value)
-                      updateForm({ cron: event.target.value });
+                  onChange={(value) => {
+                    if (value) updateForm({ cron: value });
                   }}
-                >
-                  <option value="">快捷选择</option>
-                  {CRON_PRESETS.map((preset) => (
-                    <option key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
+                  options={[{ value: "", label: "快捷选择" }, ...CRON_PRESETS]}
+                />
               </div>
             </div>
             <div className="field-group">
               <label htmlFor="schedule-agent-input">智能体</label>
-              <select
+              <Select
                 id="schedule-agent-input"
                 value={form.agentKey}
-                onChange={(event) =>
-                  updateForm({ agentKey: event.target.value })
-                }
-              >
-                <option value="">请选择智能体</option>
-                {agentOptions.map((agent) => (
-                  <option key={agent.value} value={agent.value}>
-                    {agent.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => updateForm({ agentKey: value })}
+                options={[{ value: "", label: "请选择智能体" }, ...agentOptions]}
+              />
             </div>
             <div className="field-group">
               <label htmlFor="schedule-team-input">TeamID</label>
-              <UiInput
+              <Input
                 id="schedule-team-input"
-                inputSize="md"
                 value={form.teamId}
                 onChange={(event) => updateForm({ teamId: event.target.value })}
               />
             </div>
             <div className="field-group">
               <label htmlFor="schedule-zone-input">时区</label>
-              <select
+              <Select
                 id="schedule-zone-input"
                 value={form.zoneId}
-                onChange={(event) => updateForm({ zoneId: event.target.value })}
-              >
-                <option value="">默认时区</option>
-                {zoneOptions.map((zoneId) => (
-                  <option key={zoneId} value={zoneId}>
-                    {zoneId}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => updateForm({ zoneId: value })}
+                options={[
+                  { value: "", label: "默认时区" },
+                  ...zoneOptions.map((zoneId) => ({
+                    value: zoneId,
+                    label: zoneId,
+                  })),
+                ]}
+              />
             </div>
             <div className="field-group">
               <label htmlFor="schedule-runs-input">剩余次数</label>
-              <UiInput
+              <Input
                 id="schedule-runs-input"
-                inputSize="md"
                 type="number"
                 min="1"
                 placeholder="留空表示无限次"
@@ -852,7 +825,7 @@ export const ScheduleModal: React.FC<{
 
           <div className="field-group">
             <label htmlFor="schedule-description-input">描述</label>
-            <textarea
+            <Input.TextArea
               id="schedule-description-input"
               className="settings-textarea"
               rows={2}
@@ -867,7 +840,7 @@ export const ScheduleModal: React.FC<{
             <legend>请求</legend>
             <div className="field-group">
               <label htmlFor="schedule-message-input">任务消息</label>
-              <textarea
+              <Input.TextArea
                 id="schedule-message-input"
                 className="settings-textarea"
                 rows={4}
@@ -881,9 +854,8 @@ export const ScheduleModal: React.FC<{
             <div className="schedule-form-grid">
               <div className="field-group">
                 <label htmlFor="schedule-chat-input">会话ID</label>
-                <UiInput
+                <Input
                   id="schedule-chat-input"
-                  inputSize="md"
                   value={form.chatId}
                   onChange={(event) =>
                     updateForm({ chatId: event.target.value })
@@ -892,40 +864,38 @@ export const ScheduleModal: React.FC<{
               </div>
               <div className="field-group">
                 <label htmlFor="schedule-role-input">角色</label>
-                <UiInput
+                <Input
                   id="schedule-role-input"
-                  inputSize="md"
                   value={form.role}
                   onChange={(event) => updateForm({ role: event.target.value })}
                 />
               </div>
               <div className="field-group">
                 <label htmlFor="schedule-hidden-select">是否隐藏</label>
-                <select
+                <Select
                   id="schedule-hidden-select"
                   value={form.hidden}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     updateForm({
-                      hidden: event.target.value as ScheduleFormState["hidden"],
+                      hidden: value,
                     })
                   }
-                >
-                  <option value="">不传</option>
-                  <option value="true">是</option>
-                  <option value="false">否</option>
-                </select>
+                  options={[
+                    { value: "", label: "不传" },
+                    { value: "true", label: "是" },
+                    { value: "false", label: "否" },
+                  ]}
+                />
               </div>
               <div className="field-group schedule-enabled-field">
-                <label style={{whiteSpace: 'nowrap'}}>
-                  <input
-                    type="checkbox"
-                    checked={form.enabled}
-                    onChange={(event) =>
-                      updateForm({ enabled: event.target.checked })
-                    }
-                  />
+                <Checkbox
+                  checked={form.enabled}
+                  onChange={(event) =>
+                    updateForm({ enabled: event.target.checked })
+                  }
+                >
                   启用任务
-                </label>
+                </Checkbox>
               </div>
             </div>
 
@@ -936,7 +906,7 @@ export const ScheduleModal: React.FC<{
                   <MaterialIcon name="help" />
                 </Tooltip>
               </label>
-              <textarea
+              <Input.TextArea
                 id="schedule-params-input"
                 className="settings-textarea schedule-mono-textarea"
                 rows={3}

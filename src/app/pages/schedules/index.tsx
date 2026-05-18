@@ -11,7 +11,7 @@ export const SchedulesPage = () => {
   );
   return (
     <div
-      style={{ padding: 20, background: "var(--bg-elev-2)", height: "100vh", overflow: "auto" }}
+      style={{ padding: 10, background: "var(--bg-elev-2)", height: "100vh", overflow: "auto" }}
     >
       <ScheduleModal
         currentWorker={currentWorker}

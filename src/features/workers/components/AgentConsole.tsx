@@ -19,7 +19,6 @@ import type {
 import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiInput } from "@/shared/ui/UiInput";
 
 type AgentFormMode = "create" | "edit";
 type IconKind = "none" | "builtin" | "image";
@@ -700,15 +699,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <div className="agent-form-grid">
               <div className="field-group">
                 <label htmlFor="agent-key-input">Key</label>
-                <UiInput id="agent-key-input" inputSize="md" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
+                <Input id="agent-key-input" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-name-input">名称</label>
-                <UiInput id="agent-name-input" inputSize="md" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
+                <Input id="agent-name-input" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-role-input">角色</label>
-                <UiInput id="agent-role-input" inputSize="md" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
+                <Input id="agent-role-input" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-mode-input">模式</label>
@@ -747,14 +746,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               {form.iconKind === "image" && (
                 <div className="field-group">
                   <label htmlFor="agent-icon-image-input">Icon Image</label>
-                  <UiInput id="agent-icon-image-input" inputSize="md" placeholder="/assets/agent.png 或 https://..." value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
+                  <Input id="agent-icon-image-input" placeholder="/assets/agent.png 或 https://..." value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
                 </div>
               )}
             </div>
 
             <div className="field-group">
               <label htmlFor="agent-description-input">描述</label>
-              <textarea id="agent-description-input" className="settings-textarea" rows={2} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
+              <Input.TextArea id="agent-description-input" rows={3} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
             </div>
 
             <fieldset className="agent-config-box">
@@ -794,8 +793,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <div className="agent-wonders-editor">
                   {(form.wonders.length > 0 ? form.wonders : [""]).map((wonder, index) => (
                     <div className="agent-wonder-row" key={index}>
-                      <UiInput
-                        inputSize="md"
+                      <Input
                         value={wonder}
                         onChange={(event) => {
                           const next = form.wonders.length > 0 ? [...form.wonders] : [""];
@@ -821,20 +819,20 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <div className="agent-form-grid">
                 <div className="field-group">
                   <label htmlFor="agent-controls-input">Controls</label>
-                  <textarea id="agent-controls-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
+                  <Input.TextArea id="agent-controls-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-runtime-input">Runtime Config</label>
-                  <textarea id="agent-runtime-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
+                  <Input.TextArea id="agent-runtime-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-memory-input">Memory Config</label>
-                  <textarea id="agent-memory-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
+                  <Input.TextArea id="agent-memory-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
                 </div>
                 {form.mode === "PROXY" && (
                   <div className="field-group">
                     <label htmlFor="agent-proxy-input">ACP-PROXY Config</label>
-                    <textarea id="agent-proxy-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
+                    <Input.TextArea id="agent-proxy-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
                   </div>
                 )}
               </div>
@@ -844,11 +842,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <legend>Prompt</legend>
               <div className="field-group">
                 <label htmlFor="agent-soul-input">SOUL.md</label>
-                <textarea id="agent-soul-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
+                <Input.TextArea id="agent-soul-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-agents-input">AGENTS.md</label>
-                <textarea id="agent-agents-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
+                <Input.TextArea id="agent-agents-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
               </div>
             </fieldset>
 

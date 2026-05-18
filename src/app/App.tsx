@@ -69,27 +69,15 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const ThemedAppShell: React.FC = () => (
-  <ThemedShell>
-    <AppShell />
-  </ThemedShell>
-);
-
-const ThemedCopilotShell: React.FC = () => (
-  <ThemedShell>
-    <CopilotShell />
-  </ThemedShell>
-);
-
 const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <ThemedAppShell />,
+      element: <AppShell />,
     },
     {
       path: "/copilot",
-      element: <ThemedCopilotShell />,
+      element: <CopilotShell />,
     },
     {
       path: "/schedules",
@@ -132,7 +120,9 @@ const App: React.FC<AppProps> = ({ i18n }) => {
   return (
     <I18nProvider {...mergedI18n}>
       <AppProvider>
-        <RouterProvider router={router} />
+        <ThemedShell>
+          <RouterProvider router={router} />
+        </ThemedShell>
       </AppProvider>
     </I18nProvider>
   );

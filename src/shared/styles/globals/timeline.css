@@ -923,9 +923,7 @@ html[data-theme="dark"] .composer-pill {
 
 html[data-theme="dark"] .composer-control-input,
 html[data-theme="dark"] .ui-input,
-html[data-theme="dark"] .awaiting-free-text,
-html[data-theme="dark"] .settings-textarea,
-html[data-theme="dark"] .field-group textarea {
+html[data-theme="dark"] .awaiting-free-text {
     background: color-mix(in srgb,
             var(--bg-elev-1) 96%,
             var(--bg-elev-2)) !important;
