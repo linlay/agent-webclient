@@ -1,38 +1,49 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, {
+  useMemo,
+  useCallback,
+  useState,
+} from "react";
 import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
 import { buildResourceUrl, downloadResource } from "@/shared/api/apiClient";
+import { MarkdownCode } from "./markdown-code";
 
 interface MarkdownContentProps {
-	content: string;
+  content: string;
 }
+
+
+type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
+  domNode?: unknown;
+};
+
 
 /**
  * Extracts the filename from a resource URL query string.
  * e.g. "/api/resource?file=chat_123%2Fjoke_01.md&download=true" → "joke_01.md"
  */
 function extractFilenameFromResourceUrl(href: string): string {
-	try {
-		const url = new URL(href, window.location.origin);
-		const file = url.searchParams.get("file") || "";
-		const segments = file.split("/");
-		return segments[segments.length - 1] || "download";
-	} catch {
-		return "download";
-	}
+  try {
+    const url = new URL(href, window.location.origin);
+    const file = url.searchParams.get("file") || "";
+    const segments = file.split("/");
+    return segments[segments.length - 1] || "download";
+  } catch {
+    return "download";
+  }
 }
 
 /**
  * Returns true when the href points to the local resource API endpoint.
  */
 function isResourceUrl(href: string): boolean {
-	if (!href) return false;
-	try {
-		const url = new URL(href, window.location.origin);
-		return url.pathname === "/api/resource";
-	} catch {
-		return href.startsWith("/api/resource");
-	}
+  if (!href) return false;
+  try {
+    const url = new URL(href, window.location.origin);
+    return url.pathname === "/api/resource";
+  } catch {
+    return href.startsWith("/api/resource");
+  }
 }
 
 /**
@@ -41,35 +52,54 @@ function isResourceUrl(href: string): boolean {
  * of letting the browser navigate directly (which causes 401).
  */
 const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
-	props,
+  props,
 ) => {
-	const { href, children, ...rest } = props;
-	const [downloading, setDownloading] = useState(false);
+  const { href, children, ...rest } = props;
+  const [downloading, setDownloading] = useState(false);
 
-	const handleClick = useCallback(
-		(e: React.MouseEvent<HTMLAnchorElement>) => {
-			if (!href || !isResourceUrl(href) || downloading) return;
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!href || !isResourceUrl(href) || downloading) return;
 
-			e.preventDefault();
-			setDownloading(true);
+      e.preventDefault();
+      setDownloading(true);
 
-			const filename = extractFilenameFromResourceUrl(href);
-			void downloadResource(href, { filename })
-				.catch((error: unknown) => {
-					console.error("Resource download failed:", error);
-				})
-				.finally(() => {
-					setDownloading(false);
-				});
-		},
-		[href, downloading],
-	);
+      const filename = extractFilenameFromResourceUrl(href);
+      void downloadResource(href, { filename })
+        .catch((error: unknown) => {
+          console.error("Resource download failed:", error);
+        })
+        .finally(() => {
+          setDownloading(false);
+        });
+    },
+    [href, downloading],
+  );
 
-	return (
-		<a {...rest} href={href} onClick={handleClick}>
-			{downloading ? "下载中…" : children}
-		</a>
-	);
+  return (
+    <a {...rest} href={href} onClick={handleClick}>
+      {downloading ? "下载中…" : children}
+    </a>
+  );
+};
+
+
+const MarkdownPre: React.FC<MarkdownPreProps> = ({
+  children,
+  domNode: _domNode,
+  ...rest
+}) => {
+  const childArray = React.Children.toArray(children);
+  const onlyChild = childArray.length === 1 ? childArray[0] : null;
+  if (
+    React.isValidElement(onlyChild) 
+		&&
+    onlyChild.type === MarkdownCode
+  ) {
+    return <>{onlyChild}</>;
+  }
+
+  return <pre {...rest}>{children}</pre>;
 };
 
 /**
@@ -84,48 +114,49 @@ const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
  * - Authenticated resource downloads (via custom anchor component)
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
-	content,
+  content,
 }) => {
-	const markdownConfig = useMemo(
-		() => ({
-			gfm: true,
-			breaks: true,
-			extensions: Latex(),
-		}),
-		[],
-	);
+  const markdownConfig = useMemo(
+    () => ({
+      gfm: true,
+      breaks: true,
+      extensions: Latex(),
+    }),
+    [],
+  );
 
-	const markdownComponents = useMemo(
-		() =>
-			({
-				a: AuthAnchor,
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			}) as any,
-		[],
-	);
+  const markdownComponents = useMemo(
+    () =>
+      ({
+        a: AuthAnchor,
+        code: MarkdownCode,
+        pre: MarkdownPre,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
+    [],
+  );
 
-	const processedContent = useMemo(() => {
-		if (!content) return "";
+  const processedContent = useMemo(() => {
+    if (!content) return "";
 
-		/* Rewrite non-http image src to go through API proxy */
-		return content.replace(
-			/!\[([^\]]*)\]\((?!https?:\/\/)([^)\s]+)\)/g,
-			(match, alt, src) => {
-				if (src.startsWith("data:") || src.startsWith("blob:"))
-					return match;
-				const proxiedSrc = buildResourceUrl(src);
-				return `![${alt}](${proxiedSrc})`;
-			},
-		);
-	}, [content]);
+    /* Rewrite non-http image src to go through API proxy */
+    return content.replace(
+      /!\[([^\]]*)\]\((?!https?:\/\/)([^)\s]+)\)/g,
+      (match, alt, src) => {
+        if (src.startsWith("data:") || src.startsWith("blob:")) return match;
+        const proxiedSrc = buildResourceUrl(src);
+        return `![${alt}](${proxiedSrc})`;
+      },
+    );
+  }, [content]);
 
-	if (!processedContent) {
-		return null;
-	}
+  if (!processedContent) {
+    return null;
+  }
 
-	return (
-		<Markdown config={markdownConfig} components={markdownComponents}>
-			{processedContent}
-		</Markdown>
-	);
+  return (
+    <Markdown config={markdownConfig} components={markdownComponents}>
+      {processedContent}
+    </Markdown>
+  );
 };

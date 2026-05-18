@@ -869,6 +869,21 @@
     border: 1px solid var(--line-soft);
 }
 
+.timeline-markdown .markdown-echarts {
+    width: 100%;
+    min-height: 180px;
+}
+
+.timeline-markdown .markdown-echarts-error {
+    display: flex;
+    min-height: 120px;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    color: var(--danger-strong);
+    background: color-mix(in srgb, var(--danger-soft) 18%, var(--bg-elev-2));
+}
+
 .timeline-markdown .katex-display {
     overflow-x: auto;
     overflow-y: hidden;
@@ -980,6 +995,11 @@ html[data-theme="dark"] .timeline-markdown th,
 html[data-theme="dark"] .timeline-markdown td,
 html[data-theme="dark"] .timeline-markdown img {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] .timeline-markdown .markdown-echarts {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: rgba(255, 255, 255, 0.035);
 }
 
 html[data-theme="dark"] .timeline-markdown thead th {

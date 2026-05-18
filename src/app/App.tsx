@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { ConfigProvider, theme as antdTheme } from "antd";
+import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
@@ -64,7 +64,7 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             },
       }}
     >
-      {children}
+      <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   );
 };
