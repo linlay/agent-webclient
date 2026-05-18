@@ -116,7 +116,7 @@ function buildSecWebSocketAccept(key) {
     .digest('base64');
 }
 
-function openRawUpgrade(url) {
+function openRawUpgrade(url, extraHeaders = []) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const key = crypto.randomBytes(16).toString('base64');
@@ -128,6 +128,7 @@ function openRawUpgrade(url) {
       `Sec-WebSocket-Key: ${key}`,
       'Sec-WebSocket-Version: 13',
       'Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits',
+      ...extraHeaders,
       '',
       '',
     ].join('\r\n');
@@ -485,6 +486,94 @@ describe('backend/server', () => {
     upstreamWss.close();
     await closeServer(server);
     await closeServer(upstreamServer);
+  }, 10_000);
+
+  test('blocks unauthenticated /ws upgrades in desktop app mode before proxying upstream', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+    fs.writeFileSync(path.join(rootDir, '.env'), 'DESKTOP_APP=true\n', 'utf8');
+
+    let upstreamUpgradeCount = 0;
+    const upstreamServer = http.createServer();
+    upstreamServer.on('upgrade', (_req, socket) => {
+      upstreamUpgradeCount += 1;
+      socket.write('HTTP/1.1 500 Unexpected Proxy\r\nContent-Length: 0\r\n\r\n');
+      socket.end();
+    });
+
+    const upstreamPort = await listen(upstreamServer);
+    const logger = { error: jest.fn(), warn: jest.fn() };
+    const config = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: 'http://127.0.0.1:1',
+        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: 'http://127.0.0.1:1',
+      },
+      appRoot: rootDir,
+    });
+    const { server } = createServer(config, { logger });
+    const proxyPort = await listen(server);
+
+    try {
+      const rawResponse = await openRawUpgrade(`ws://127.0.0.1:${proxyPort}/ws`);
+      const text = rawResponse.toString('latin1');
+      expect(text).toContain('HTTP/1.1 401 Unauthorized');
+      expect(text).toContain('unauthorized');
+      expect(upstreamUpgradeCount).toBe(0);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('blocked unauthenticated /ws upgrade'),
+      );
+    } finally {
+      await closeServer(server);
+      await closeServer(upstreamServer);
+    }
+  }, 10_000);
+
+  test('allows bearer websocket subprotocols in desktop app mode', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+    fs.writeFileSync(path.join(rootDir, '.env'), 'DESKTOP_APP=true\n', 'utf8');
+
+    let upstreamPath = '';
+    let upstreamProtocol = '';
+    const upstreamServer = http.createServer();
+    upstreamServer.on('upgrade', (req, socket) => {
+      upstreamPath = req.url;
+      upstreamProtocol = String(req.headers['sec-websocket-protocol'] || '');
+      socket.write('HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n');
+      socket.end();
+    });
+
+    const upstreamPort = await listen(upstreamServer);
+    const config = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: 'http://127.0.0.1:1',
+        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: 'http://127.0.0.1:1',
+      },
+      appRoot: rootDir,
+    });
+    const { server } = createServer(config, {
+      logger: { error: jest.fn(), warn: jest.fn() },
+    });
+    const proxyPort = await listen(server);
+
+    try {
+      const rawResponse = await openRawUpgrade(
+        `ws://127.0.0.1:${proxyPort}/ws`,
+        ['Sec-WebSocket-Protocol: bearer.token_abc'],
+      );
+      expect(rawResponse.toString('latin1')).toContain('HTTP/1.1 401 Unauthorized');
+      expect(upstreamPath).toBe('/ws');
+      expect(upstreamProtocol).toBe('bearer.token_abc');
+    } finally {
+      await closeServer(server);
+      await closeServer(upstreamServer);
+    }
   }, 10_000);
 
   test('forwards upstream websocket authorization failures to the client', async () => {

@@ -1,4 +1,9 @@
 import { isAppMode } from '@/shared/utils/routing';
+import {
+  hasDesktopHostBridge,
+  isDesktopHostMessageEvent,
+  postDesktopHostMessage,
+} from '@/shared/api/desktopHostBridge';
 
 export const AGENT_APP_ACCESS_TOKEN_STORAGE_KEY = 'agent-webclient.appAccessToken';
 export const AGENT_APP_AUTH_CONTEXT_STORAGE_KEY = 'agent-webclient.appAuthContext';
@@ -173,8 +178,7 @@ export async function refreshAppAccessToken(
   if (
     typeof window === 'undefined' ||
     !isAppMode() ||
-    !window.parent ||
-    window.parent === window
+    !hasDesktopHostBridge()
   ) {
     const fallbackToken = getAppAccessToken();
     writeStoredToken(fallbackToken);
@@ -218,7 +222,7 @@ export async function refreshAppAccessToken(
     };
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.source !== window.parent) {
+      if (!isDesktopHostMessageEvent(event)) {
         return;
       }
 
@@ -246,9 +250,7 @@ export async function refreshAppAccessToken(
 
     window.addEventListener('message', handleMessage as EventListener);
 
-    try {
-      window.parent.postMessage(requestMessage, '*');
-    } catch {
+    if (!postDesktopHostMessage(requestMessage)) {
       cleanup(timeoutId);
       finish(null);
     }

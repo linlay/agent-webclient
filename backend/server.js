@@ -28,6 +28,10 @@ function parseRequestPath(urlValue) {
   return new URL(String(urlValue || '/'), 'http://127.0.0.1').pathname;
 }
 
+function parseRequestUrl(urlValue) {
+  return new URL(String(urlValue || '/'), 'http://127.0.0.1');
+}
+
 function parseEnvFileContent(content) {
   const values = {};
   String(content || '')
@@ -75,6 +79,46 @@ function resolveRuntimeConfig(config, options = {}) {
     runtimeConfig[key] = String(env[key] == null ? '' : env[key]).trim();
     return runtimeConfig;
   }, {});
+}
+
+function isDesktopAppRuntime(config) {
+  const desktopAppValue = resolveRuntimeConfig(config).DESKTOP_APP;
+  return typeof desktopAppValue === 'string'
+    && desktopAppValue.trim().toLowerCase() === 'true';
+}
+
+function hasBearerWebSocketProtocol(req) {
+  const rawProtocol = String(req?.headers?.['sec-websocket-protocol'] || '');
+  return rawProtocol
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .some((item) => item.startsWith('bearer.') || item.startsWith('bearer '));
+}
+
+function hasWebSocketAccessToken(req) {
+  try {
+    const url = parseRequestUrl(req?.url);
+    return Boolean(
+      url.searchParams.get('token')?.trim()
+        || url.searchParams.get('access_token')?.trim()
+        || hasBearerWebSocketProtocol(req)
+    );
+  } catch {
+    return hasBearerWebSocketProtocol(req);
+  }
+}
+
+function rejectUnauthenticatedWebSocketUpgrade(req, socket, logger) {
+  logger.warn?.(`[backend] blocked unauthenticated /ws upgrade: ${req?.url || '/ws'}`);
+  if (socket && typeof socket.write === 'function' && !socket.destroyed) {
+    try {
+      socket.end('HTTP/1.1 401 Unauthorized\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 12\r\n\r\nunauthorized');
+      return;
+    } catch {
+      // Ignore socket write failures before closing the unauthenticated upgrade.
+    }
+  }
+  socket?.destroy?.();
 }
 
 function createRuntimeConfigScript(runtimeConfig) {
@@ -362,6 +406,10 @@ function createServer(config, options = {}) {
       return;
     }
     if (requestPath === '/ws') {
+      if (isDesktopAppRuntime(config) && !hasWebSocketAccessToken(req)) {
+        rejectUnauthenticatedWebSocketUpgrade(req, socket, logger);
+        return;
+      }
       wsProxy.upgrade(req, socket, head);
       return;
     }
@@ -415,6 +463,7 @@ module.exports = {
   createServer,
   createWebSocketProxy,
   createRuntimeConfigScript,
+  hasWebSocketAccessToken,
   isSseQueryRequest,
   loadConfig,
   parseRequestPath,

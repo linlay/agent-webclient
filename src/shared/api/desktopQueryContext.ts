@@ -1,4 +1,8 @@
 import { isAppMode } from "@/shared/utils/routing";
+import {
+  hasDesktopHostBridge,
+  isDesktopHostMessageEvent,
+} from "@/shared/api/desktopHostBridge";
 
 type DesktopPageKind = "native" | "webview" | "iframe";
 
@@ -85,14 +89,13 @@ export function initializeDesktopQueryContextBridge(): void {
     desktopContextListenerInstalled ||
     typeof window === "undefined" ||
     !isAppMode() ||
-    !window.parent ||
-    window.parent === window
+    !hasDesktopHostBridge()
   ) {
     return;
   }
 
   desktopContextMessageListener = (event: MessageEvent) => {
-    if (event.source !== window.parent) {
+    if (!isDesktopHostMessageEvent(event)) {
       return;
     }
     const payload = event.data as DesktopContextChangedMessage | null;

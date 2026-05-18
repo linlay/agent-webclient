@@ -39,13 +39,14 @@ function createInitialVoiceChatState(): VoiceChatState {
 }
 
 export function createInitialState(): AppState {
-	const storedToken = isAppMode()
+	const appMode = isAppMode();
+	const storedToken = appMode
 		? getAppAccessToken() || ""
 		: typeof localStorage !== "undefined"
 			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
 			: "";
 	const themeMode = resolveInitialThemeMode();
-	const transportMode = readStoredTransportMode() || "ws";
+	const transportMode = appMode ? "ws" : readStoredTransportMode() || "ws";
 
 	return {
 		agents: [],

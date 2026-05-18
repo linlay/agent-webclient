@@ -1,4 +1,5 @@
 import { isAppMode } from "@/shared/utils/routing";
+import { hasDesktopHostBridge, postDesktopHostMessage } from "@/shared/api/desktopHostBridge";
 
 const AGENT_APP_CLIPBOARD_REQUEST_TYPE = "zenmind:agent-app-clipboard:request";
 const AGENT_APP_CLIPBOARD_RESPONSE_TYPE = "zenmind:agent-app-clipboard:response";
@@ -25,8 +26,7 @@ async function copyViaDesktopBridge(text: string): Promise<boolean> {
   if (
     typeof window === "undefined" ||
     !isAppMode() ||
-    !window.parent ||
-    window.parent === window
+    !hasDesktopHostBridge()
   ) {
     return false;
   }
@@ -69,9 +69,7 @@ async function copyViaDesktopBridge(text: string): Promise<boolean> {
 
     window.addEventListener("message", handleMessage as EventListener);
 
-    try {
-      window.parent.postMessage(requestMessage, "*");
-    } catch {
+    if (!postDesktopHostMessage(requestMessage)) {
       cleanup(timeoutId);
       resolve(false);
     }

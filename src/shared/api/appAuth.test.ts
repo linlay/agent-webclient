@@ -36,6 +36,7 @@ function installWindow(options: {
   storedToken?: string;
   storedAuthContext?: string;
   globalToken?: string;
+  webviewBridge?: boolean;
 } = {}) {
   const listeners = new Set<(event: MessageEvent) => void>();
   const sessionStorage = createMockStorage(
@@ -52,12 +53,13 @@ function installWindow(options: {
     postMessage: jest.fn(),
   };
 
-  const mockWindow = {
+  const mockWindow: any = {
     location: {
       pathname: options.pathname ?? '/',
       search: options.search ?? '',
     },
     parent,
+    postMessage: jest.fn(),
     sessionStorage,
     addEventListener: jest.fn((type: string, listener: EventListener) => {
       if (type === 'message') {
@@ -72,7 +74,11 @@ function installWindow(options: {
     setTimeout,
     clearTimeout,
     __AGENT_APP_ACCESS_TOKEN: options.globalToken,
+    __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: options.webviewBridge ? true : undefined,
   };
+  if (options.webviewBridge) {
+    mockWindow.parent = mockWindow;
+  }
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
   globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
@@ -80,7 +86,7 @@ function installWindow(options: {
   };
 
   return {
-    parent,
+    parent: options.webviewBridge ? mockWindow : parent,
     sessionStorage,
     dispatchMessage: (event: MessageEvent) => {
       for (const listener of listeners) {
@@ -178,6 +184,38 @@ describe('appAuth', () => {
     expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe('token-from-host');
   });
 
+  it('requests a missing token through the webview host bridge when parent is self', async () => {
+    const { parent, sessionStorage, dispatchMessage } = installWindow({
+      webviewBridge: true,
+    });
+
+    (parent.postMessage as jest.Mock).mockImplementation((payload: { requestId: string }) => {
+      queueMicrotask(() => {
+        dispatchMessage({
+          source: parent,
+          data: {
+            type: 'zenmind:agent-app-auth:response',
+            requestId: payload.requestId,
+            token: 'webview-token-from-host',
+          },
+        } as MessageEvent);
+      });
+    });
+
+    await expect(refreshAppAccessToken('missing')).resolves.toBe('webview-token-from-host');
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'zenmind:agent-app-auth:request',
+        action: 'getAccessToken',
+        reason: 'missing',
+      }),
+      '*',
+    );
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'webview-token-from-host',
+    );
+  });
+
   it('uses refreshAccessToken for unauthorized refreshes and clears stale stored tokens on timeout', async () => {
     jest.useFakeTimers();
     const { parent, sessionStorage } = installWindow({ storedToken: 'stale-token' });
@@ -196,6 +234,39 @@ describe('appAuth', () => {
     jest.advanceTimersByTime(10_000);
     await expect(promise).resolves.toBeNull();
     expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
+  });
+
+  it('uses refreshAccessToken through the webview host bridge instead of falling back to empty', async () => {
+    const { parent, sessionStorage, dispatchMessage } = installWindow({
+      webviewBridge: true,
+      storedToken: 'stale-token',
+    });
+
+    (parent.postMessage as jest.Mock).mockImplementation((payload: { requestId: string }) => {
+      queueMicrotask(() => {
+        dispatchMessage({
+          source: parent,
+          data: {
+            type: 'zenmind:agent-app-auth:response',
+            requestId: payload.requestId,
+            token: 'fresh-webview-token',
+          },
+        } as MessageEvent);
+      });
+    });
+
+    await expect(refreshAppAccessToken('unauthorized')).resolves.toBe('fresh-webview-token');
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'zenmind:agent-app-auth:request',
+        action: 'refreshAccessToken',
+        reason: 'unauthorized',
+      }),
+      '*',
+    );
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'fresh-webview-token',
+    );
   });
 
   it('shares one matching in-flight bridge refresh request', async () => {

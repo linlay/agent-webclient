@@ -98,7 +98,10 @@ describe("WsClient", () => {
 	let clients: WsClient[] = [];
 
 	const createClient = (options?: ConstructorParameters<typeof WsClient>[0]) => {
-		const client = new WsClient(options);
+		const clientOptions = options && Object.prototype.hasOwnProperty.call(options, "accessToken")
+			? options
+			: { accessToken: "token_default", ...options };
+		const client = new WsClient(clientOptions);
 		clients.push(client);
 		return client;
 	};
@@ -207,6 +210,40 @@ describe("WsClient", () => {
 			code: 0,
 			data: { items: ["agent-a"] },
 		});
+	});
+
+	it("refreshes a missing token before opening a websocket", async () => {
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_from_refresh");
+		const client = createClient({
+			accessToken: "",
+			resolveAccessToken,
+		});
+
+		const promise = client.connect();
+		await flushMicrotasks();
+		await waitForSocketCount(1);
+
+		expect(resolveAccessToken).toHaveBeenCalledWith("missing");
+		const socket = MockWebSocket.instances[0];
+		expect(socket.url).toBe("ws://localhost:3000/ws?token=token_from_refresh");
+		socket.open();
+		await expect(promise).resolves.toBeUndefined();
+	});
+
+	it("does not open a naked websocket when missing token refresh returns empty", async () => {
+		const resolveAccessToken = jest.fn().mockResolvedValue("");
+		const client = createClient({
+			accessToken: "",
+			resolveAccessToken,
+		});
+
+		const promise = client.connect();
+		await flushMicrotasks();
+
+		await expect(promise).rejects.toThrow(/access token|令牌/i);
+		expect(resolveAccessToken).toHaveBeenCalledWith("missing");
+		expect(MockWebSocket.instances).toHaveLength(0);
+		expect(client.getStatus()).toBe("error");
 	});
 
 	it("routes stream frames and completes on done", async () => {
@@ -556,7 +593,7 @@ describe("WsClient", () => {
 		await flushMicrotasks();
 	});
 
-	it("does not keep retrying with a stale token when unauthorized refresh returns empty", async () => {
+	it("does not reconnect with a naked websocket URL when unauthorized refresh returns empty", async () => {
 		jest.useFakeTimers();
 		const changedTokens: string[] = [];
 		const resolveAccessToken = jest.fn().mockResolvedValue("");
@@ -575,11 +612,12 @@ describe("WsClient", () => {
 
 		firstSocket.close(1006, "Invalid frame header");
 		jest.advanceTimersByTime(1_000);
-		await waitForSocketCount(2);
+		await flushMicrotasks();
 
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
 		expect(changedTokens).toEqual([""]);
-		expect(MockWebSocket.instances[1].url).toBe("ws://localhost:3000/ws");
+		expect(MockWebSocket.instances).toHaveLength(1);
+		expect(client.getStatus()).toBe("error");
 	});
 
 	it("refreshes the token immediately when the close reason points to auth", async () => {

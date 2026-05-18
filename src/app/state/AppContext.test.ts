@@ -141,6 +141,31 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.wsErrorMessage).toBe('');
   });
 
+  it('ignores stored sse transport mode in desktop app mode', () => {
+    jest
+      .spyOn(transportModeModule, 'readStoredTransportMode')
+      .mockReturnValue('sse');
+    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
+      {
+        location: {
+          pathname: '/',
+          search: '',
+        },
+        sessionStorage: {
+          getItem: () => null,
+          setItem: () => undefined,
+          removeItem: () => undefined,
+        },
+      } as Window & typeof globalThis;
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: 'true',
+    };
+
+    const state = createInitialState();
+
+    expect(state.transportMode).toBe('ws');
+  });
+
   it('defaults the initial transport mode to ws when nothing is stored', () => {
     jest
       .spyOn(transportModeModule, 'readStoredTransportMode')

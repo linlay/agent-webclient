@@ -595,6 +595,32 @@ export class WsClient {
 		this.lastSeenAt = Date.now();
 
 		this.connectPromise = new Promise<void>((resolve, reject) => {
+			if (!this.accessToken) {
+				void this.refreshAccessToken("missing")
+					.then((token) => {
+						if (!token) {
+							this.connectPromise = null;
+							this.setStatus("error");
+							reject(
+								toWsConnectionError(new Error("Missing access token"), {
+									hasAccessToken: false,
+								}),
+							);
+							return;
+						}
+						this.connectPromise = null;
+						void this.ensureConnected(signal, allowHandshakeRefresh)
+							.then(resolve)
+							.catch(reject);
+					})
+					.catch((error) => {
+						this.connectPromise = null;
+						this.setStatus("error");
+						reject(error);
+					});
+				return;
+			}
+
 			const socket = new WebSocket(buildWsUrl(this.accessToken));
 			this.socket = socket;
 			let didRetryHandshakeRefresh = false;
@@ -958,7 +984,11 @@ export class WsClient {
 					return;
 				}
 				if (shouldRefreshToken) {
-					await this.refreshAccessToken("unauthorized");
+					const refreshedToken = await this.refreshAccessToken("unauthorized");
+					if (!refreshedToken) {
+						this.setStatus("error");
+						return;
+					}
 				}
 				if (this.lifecycleVersion !== lifecycleVersion || this.expectedClose) {
 					return;
