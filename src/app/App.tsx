@@ -11,6 +11,20 @@ import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 
+const defaultDocumentTitle =
+  typeof document === "undefined" ? "" : document.title;
+
+const DocumentTitleRoute: React.FC<{
+  title?: string;
+  children: React.ReactNode;
+}> = ({ title, children }) => {
+  useEffect(() => {
+    document.title = title || defaultDocumentTitle;
+  }, [title]);
+
+  return <>{children}</>;
+};
+
 const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { themeMode } = useAppState();
   const isDark = themeMode === "dark";
@@ -73,27 +87,51 @@ const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <AppShell />,
+      element: (
+        <DocumentTitleRoute>
+          <AppShell />
+        </DocumentTitleRoute>
+      ),
     },
     {
       path: "/copilot",
-      element: <CopilotShell />,
+      element: (
+        <DocumentTitleRoute>
+          <CopilotShell />
+        </DocumentTitleRoute>
+      ),
     },
     {
       path: "/schedules",
-      element: <SchedulesPage />,
+      element: (
+        <DocumentTitleRoute title="自动化">
+          <SchedulesPage />
+        </DocumentTitleRoute>
+      ),
     },
     {
       path: "/memory",
-      element: <MemoryPage />,
+      element: (
+        <DocumentTitleRoute title="记忆">
+          <MemoryPage />
+        </DocumentTitleRoute>
+      ),
     },
     {
       path: "/agents",
-      element: <AgentsPage />,
+      element: (
+        <DocumentTitleRoute title="智能体">
+          <AgentsPage />
+        </DocumentTitleRoute>
+      ),
     },
     {
       path: "/agents/:agentKey",
-      element: <AgentsPage />,
+      element: (
+        <DocumentTitleRoute title="智能体">
+          <AgentsPage />
+        </DocumentTitleRoute>
+      ),
     },
   ],
   {
