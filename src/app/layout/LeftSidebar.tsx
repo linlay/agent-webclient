@@ -567,7 +567,7 @@ export const LeftSidebar: React.FC = () => {
                           className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
                           onClick={() => handleSelectWorker(item.key)}
                         >
-                          <Badge dot={unreadCount > 0} color="var(--accent)">
+                          <Badge dot={unreadCount > 0}>
                             <AgentIcon
                               icon={workerIconsByKey.get(item.key)}
                               type={item.type}

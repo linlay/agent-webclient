@@ -16,6 +16,7 @@ import { CommandModal } from "@/app/modals/CommandModal";
 import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock } from "./TerminalDock";
+import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   const normalizedAgentKey = String(agentKey || "").trim();
@@ -42,7 +43,9 @@ function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
 }
 
 function normalizeRouteTheme(value: string): "light" | "dark" | "" {
-  const theme = String(value || "").trim().toLowerCase();
+  const theme = String(value || "")
+    .trim()
+    .toLowerCase();
   return theme === "light" || theme === "dark" ? theme : "";
 }
 
@@ -132,9 +135,19 @@ export const AgentChatShell: React.FC = () => {
     );
   }, [agentKey, chatId, dispatch]);
 
+  const timelineEntries = useMemo(() => {
+    return state.timelineOrder
+      .map((id) => state.timelineNodes.get(id))
+      .filter((node): node is NonNullable<typeof node> => Boolean(node));
+  }, [state.timelineOrder, state.timelineNodes]);
+  const isTimelineEmpty = useMemo(() => {
+    return (
+      buildTimelineDisplayItems(timelineEntries, state.events).length === 0
+    );
+  }, [timelineEntries, state.events]);
   return (
     <div
-      className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""}`.trim()}
+      className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
       id="app"
     >
       <TopNav />
