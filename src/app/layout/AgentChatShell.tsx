@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
@@ -41,14 +41,29 @@ function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   ];
 }
 
+function normalizeRouteTheme(value: string): "light" | "dark" | "" {
+  const theme = String(value || "").trim().toLowerCase();
+  return theme === "light" || theme === "dark" ? theme : "";
+}
+
 export const AgentChatShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const params = useParams<{ agentKey?: string }>();
+  const [searchParams] = useSearchParams();
   const lastInitializedAgentKeyRef = useRef("");
+  const lastLoadedChatKeyRef = useRef("");
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
+  );
+  const chatId = useMemo(
+    () => String(searchParams.get("chatId") || "").trim(),
+    [searchParams],
+  );
+  const routeThemeMode = useMemo(
+    () => normalizeRouteTheme(searchParams.get("theme") || ""),
+    [searchParams],
   );
 
   useAppRuntimes();
@@ -65,12 +80,47 @@ export const AgentChatShell: React.FC = () => {
   }, [agentKey, dispatch, state.agents]);
 
   useEffect(() => {
-    if (!agentKey || lastInitializedAgentKeyRef.current === agentKey) {
+    if (!routeThemeMode || state.themeMode === routeThemeMode) {
       return;
     }
 
-    lastInitializedAgentKeyRef.current = agentKey;
+    dispatch({ type: "SET_THEME_MODE", themeMode: routeThemeMode });
+  }, [dispatch, routeThemeMode, state.themeMode]);
 
+  useEffect(() => {
+    if (!agentKey) {
+      return;
+    }
+
+    const workerKey = `agent:${agentKey}`;
+    dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
+    dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+    dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
+    dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
+
+    if (chatId) {
+      const routeKey = `${agentKey}\u0000${chatId}`;
+      if (lastLoadedChatKeyRef.current === routeKey) {
+        return;
+      }
+      lastLoadedChatKeyRef.current = routeKey;
+      lastInitializedAgentKeyRef.current = "";
+      window.dispatchEvent(
+        new CustomEvent("agent:load-chat", {
+          detail: {
+            chatId,
+            focusComposerOnComplete: true,
+          },
+        }),
+      );
+      return;
+    }
+
+    if (lastInitializedAgentKeyRef.current === agentKey) {
+      return;
+    }
+    lastInitializedAgentKeyRef.current = agentKey;
+    lastLoadedChatKeyRef.current = "";
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
         detail: {
@@ -80,7 +130,7 @@ export const AgentChatShell: React.FC = () => {
         },
       }),
     );
-  }, [agentKey]);
+  }, [agentKey, chatId, dispatch]);
 
   return (
     <div

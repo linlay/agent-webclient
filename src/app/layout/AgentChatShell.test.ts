@@ -5,6 +5,7 @@ import { AgentChatShell } from "@/app/layout/AgentChatShell";
 
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
+  useSearchParams: jest.fn(),
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -85,8 +86,9 @@ jest.mock("@/app/effects/FireworksCanvas", () => ({
     React.createElement("canvas", { className: "fireworks-canvas" }),
 }));
 
-const { useParams } = jest.requireMock("react-router-dom") as {
+const { useParams, useSearchParams } = jest.requireMock("react-router-dom") as {
   useParams: jest.Mock;
+  useSearchParams: jest.Mock;
 };
 
 const { useAppState, useAppDispatch } = jest.requireMock(
@@ -145,6 +147,7 @@ describe("AgentChatShell", () => {
       removeItem: jest.fn(),
     };
     useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useSearchParams.mockReturnValue([new URLSearchParams("")]);
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
@@ -206,6 +209,89 @@ describe("AgentChatShell", () => {
         },
       }),
     );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("loads a chat when chatId is present in the query string", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CONVERSATION_MODE",
+      mode: "worker",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+      agentKey: "demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:load-chat",
+        detail: {
+          chatId: "chat-123",
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("applies route theme query parameters", () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("theme=dark")]);
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_THEME_MODE",
+      themeMode: "dark",
+    });
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("ignores themeMode as a route-level theme alias", () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("themeMode=dark")]);
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "SET_THEME_MODE",
+      themeMode: "dark",
+    });
 
     useEffectSpy.mockRestore();
   });
