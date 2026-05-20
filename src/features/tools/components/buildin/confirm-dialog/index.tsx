@@ -42,7 +42,6 @@ import {
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
   getAwaitingDateFormat,
-  getAwaitingAnswerError,
   getAwaitingQuestionHeading,
   getAwaitingQuestionPlaceholder,
   getAwaitingQuestionPrompt,
@@ -98,12 +97,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     return pending.finally(() => setLoading(false));
   }, []);
 
-  const doSubmit = useCallback(
-    (payload: AIAwaitSubmitPayloadData) => {
-      void submitPayload(payload);
-    },
-    [submitPayload],
-  );
+  const doSubmit = useCallback(() => {
+    void submitPayload(form.getFieldsValue());
+  }, [submitPayload]);
 
   const doIgnore = useCallback(() => {
     callbackRef.current?.onSubmit?.({
@@ -277,22 +273,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                   <Form.Item
                     {...field}
                     className={Style.FormItem}
-                    rules={[
-                      {
-                        validator: async (
-                          _,
-                          value: AIAwaitQuestionSubmitParamData,
-                        ) => {
-                          const error = getAwaitingAnswerError(
-                            questions[field.name],
-                            value,
-                          );
-                          if (error) {
-                            throw new Error(error);
-                          }
-                        },
-                      },
-                    ]}
                   >
                     <Question
                       ref={(ref) => {
@@ -305,7 +285,11 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                         void moveForward();
                       }}
                       pagnation={
-                        <Flex className={Style.HeaderSide} align="center" gap={12}>
+                        <Flex
+                          className={Style.HeaderSide}
+                          align="center"
+                          gap={12}
+                        >
                           {timeoutCountdown.label && (
                             <Flex className={Style.TimeoutRow}>
                               {timeoutExpired && loading
@@ -333,7 +317,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                                 size="small"
                                 type="text"
                                 disabled={curIndex >= questions.length - 1}
-                                icon={<RightOutlined style={{ fontSize: 12 }} />}
+                                icon={
+                                  <RightOutlined style={{ fontSize: 12 }} />
+                                }
                                 onClick={() => setCurIndex(curIndex + 1)}
                               />
                             </Flex>
@@ -375,9 +361,11 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           <Button
             type="primary"
             shape="round"
-            htmlType="submit"
             size="small"
             loading={loading}
+            onClick={() => {
+              void doSubmit();
+            }}
           >
             <span>提交</span>
             <EnterOutlined />
@@ -475,6 +463,7 @@ const Question = forwardRef<
         {renderQuestionHeader()}
         <Input
           className={Style.InputField}
+          ref={(ref) => ref?.focus()}
           tabIndex={0}
           placeholder={placeholder}
           value={typeof value?.answer === "string" ? value.answer : ""}
@@ -494,6 +483,7 @@ const Question = forwardRef<
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
         {renderQuestionHeader()}
         <Input.Password
+          ref={(ref) => ref?.focus()}
           className={Style.InputField}
           tabIndex={0}
           placeholder={placeholder}
@@ -514,6 +504,7 @@ const Question = forwardRef<
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
         {renderQuestionHeader()}
         <InputNumber
+          ref={(ref) => ref?.focus()}
           className={Style.InputField}
           style={{ width: "100%" }}
           tabIndex={0}
@@ -544,19 +535,20 @@ const Question = forwardRef<
   }
 
   if (
-    data.type === AIAwaitQuestionType.Date
-    || data.type === AIAwaitQuestionType.DateTime
+    data.type === AIAwaitQuestionType.Date ||
+    data.type === AIAwaitQuestionType.DateTime
   ) {
     const format = getAwaitingDateFormat(data);
     const answer =
-      typeof value?.answer === "string"
-      && isValidAwaitingDateAnswer(data, value.answer)
+      typeof value?.answer === "string" &&
+      isValidAwaitingDateAnswer(data, value.answer)
         ? value.answer
         : "";
     return (
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
         {renderQuestionHeader()}
         <DatePicker
+          ref={(ref) => ref?.focus()}
           className={Style.InputField}
           style={{ width: "auto" }}
           tabIndex={0}

@@ -140,38 +140,6 @@ export function getSelectOptionValues(question: AIAwaitQuestion): string[] {
   return getSelectOptions(question).map(getSelectOptionValue);
 }
 
-export function getAwaitingAnswerError(
-  question: AIAwaitQuestion,
-  value: AIAwaitQuestionSubmitParamData | undefined,
-): string | null {
-  switch (question.type) {
-    case AIAwaitQuestionType.MultiSelect:
-      return Array.isArray(value?.answers) && value.answers.some((item) => item.trim())
-        ? null
-        : "请至少选择一个选项";
-    case AIAwaitQuestionType.Select:
-      return typeof value?.answer === "string" && value.answer.trim()
-        ? null
-        : "请选择或输入一个答案";
-    case AIAwaitQuestionType.Text:
-    case AIAwaitQuestionType.Password:
-      return typeof value?.answer === "string" && value.answer.trim()
-        ? null
-        : "请输入内容";
-    case AIAwaitQuestionType.Number:
-      return typeof value?.answer === "number" && Number.isFinite(value.answer)
-        ? null
-        : "请输入有效数字";
-    case AIAwaitQuestionType.Date:
-    case AIAwaitQuestionType.DateTime:
-      return isValidAwaitingDateAnswer(question, value?.answer)
-        ? null
-        : `请选择有效日期，格式为 ${getAwaitingDateFormat(question)}`;
-    default:
-      return "当前题型暂不支持";
-  }
-}
-
 export function getSelectFreeTextAnswer(
   question: AIAwaitQuestion,
   value: AIAwaitQuestionSubmitParamData | undefined,

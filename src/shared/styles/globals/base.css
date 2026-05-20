@@ -523,21 +523,29 @@ textarea {
     }
 }
 
+.ant-badge .ant-badge-count {
+    box-shadow: none;
+}
+
 /* 滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+    width: 6px;
+    height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--line-soft);
-  border-radius: 3px;
+    background: var(--line-soft);
+    border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--line);
+    background: var(--line);
 }
+
 ::-webkit-scrollbar-button {
-  display: none;
+    display: none;
 }
