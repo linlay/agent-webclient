@@ -51,6 +51,7 @@ export type AppAction =
 	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
 	| { type: "CHAT_DELETED"; chatId: string }
 	| { type: "CHAT_ARCHIVED"; chatId: string }
+	| { type: "CHAT_RENAMED"; chatId: string; chatName: string }
 	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }

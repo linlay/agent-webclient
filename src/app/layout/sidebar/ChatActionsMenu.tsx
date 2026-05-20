@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Dropdown, Modal, type MenuProps } from "antd";
+import { Button, Dropdown, Input, Modal, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
@@ -7,6 +7,7 @@ import {
 	archiveChats,
 	deleteChat,
 	downloadChatExport,
+	renameChat,
 } from "@/features/transport/lib/apiClientProxy";
 
 export const ChatActionsMenu: React.FC<{
@@ -28,6 +29,55 @@ export const ChatActionsMenu: React.FC<{
 		dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
 		window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
 		window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+	};
+
+	const handleRename = () => {
+		if (!normalizedChatId || pending) return;
+		let nextName = String(chatName || "").trim();
+		Modal.confirm({
+			title: t("chatActions.rename.title"),
+			content: (
+				<Input
+					autoFocus
+					defaultValue={nextName}
+					maxLength={120}
+					placeholder={t("chatActions.rename.placeholder")}
+					onChange={(event) => {
+						nextName = event.target.value;
+					}}
+				/>
+			),
+			okText: t("chatActions.rename.ok"),
+			cancelText: t("chatActions.cancel"),
+			onOk: async () => {
+				const chatName = nextName.trim();
+				if (!chatName) {
+					throw new Error(t("chatActions.rename.required"));
+				}
+				setPending(true);
+				try {
+					const response = await renameChat({
+						chatId: normalizedChatId,
+						chatName,
+					});
+					const renamedName =
+						String(response.data?.chatName || "").trim() || chatName;
+					dispatch({
+						type: "CHAT_RENAMED",
+						chatId: normalizedChatId,
+						chatName: renamedName,
+					});
+				} catch (error) {
+					dispatch({
+						type: "APPEND_DEBUG",
+						line: `[rename chat error] ${(error as Error).message}`,
+					});
+					throw error;
+				} finally {
+					setPending(false);
+				}
+			},
+		});
 	};
 
 	const handleDelete = () => {
@@ -110,6 +160,12 @@ export const ChatActionsMenu: React.FC<{
 			icon: <MaterialIcon name="download" />,
 			label: t("chatActions.export"),
 			onClick: () => void handleExport(),
+		},
+		{
+			key: "rename",
+			icon: <MaterialIcon name="edit" />,
+			label: t("chatActions.rename.menu"),
+			onClick: handleRename,
 		},
 		{
 			key: "archive",

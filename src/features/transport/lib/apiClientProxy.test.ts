@@ -77,6 +77,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		rememberChat: jest.fn(),
+		renameChat: jest.fn(),
 		previewMemoryContext: jest.fn(),
 		searchArchives: jest.fn(),
 		searchGlobal: jest.fn(),
@@ -144,6 +145,7 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	rememberChat: jest.Mock;
+	renameChat: jest.Mock;
 	previewMemoryContext: jest.Mock;
 	searchArchives: jest.Mock;
 	searchGlobal: jest.Mock;
@@ -246,7 +248,7 @@ describe("apiClientProxy", () => {
 			payload: {},
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/schedule-create",
+			type: "/api/schedule/create",
 			payload: {
 				name: "Daily Demo",
 				description: "Demo",
@@ -256,19 +258,19 @@ describe("apiClientProxy", () => {
 			},
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/schedule-update",
+			type: "/api/schedule/update",
 			payload: { id: "daily-demo", cron: "0 18 * * 1-5" },
 		});
 		expect(request).toHaveBeenNthCalledWith(4, {
-			type: "/api/schedule-toggle",
+			type: "/api/schedule/toggle",
 			payload: { id: "daily-demo", enabled: false },
 		});
 		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/schedule-executions",
+			type: "/api/schedule/executions",
 			payload: { id: "daily-demo", limit: 20 },
 		});
 		expect(request).toHaveBeenNthCalledWith(6, {
-			type: "/api/schedule-delete",
+			type: "/api/schedule/delete",
 			payload: { id: "daily-demo" },
 		});
 		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
@@ -304,25 +306,25 @@ describe("apiClientProxy", () => {
 		await proxy.getAgentEditorOptions();
 
 		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/agent-create",
+			type: "/api/agent/create",
 			payload: {
 				key: "editable-agent",
 				definition: { key: "editable-agent", name: "Editable Agent" },
 			},
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/agent-update",
+			type: "/api/agent/update",
 			payload: {
 				key: "editable-agent",
 				definition: { key: "editable-agent", name: "Updated Agent" },
 			},
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/agent-delete",
+			type: "/api/agent/delete",
 			payload: { key: "editable-agent" },
 		});
 		expect(request).toHaveBeenNthCalledWith(4, {
-			type: "/api/agent-editor-options",
+			type: "/api/agent/editor-options",
 			payload: undefined,
 		});
 		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
@@ -378,15 +380,15 @@ describe("apiClientProxy", () => {
 		});
 
 		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/memory/records",
+			type: "/api/memory/record/list",
 			payload: { agentKey: "agent-a", keyword: "bugfix", limit: 15 },
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/memory/record",
-			payload: { agentKey: "agent-a", id: "mem_101" },
+			type: "/api/memory/record/detail",
+			payload: { agentKey: "agent-a", recordId: "mem_101" },
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/memory/scopes",
+			type: "/api/memory/scope/list",
 			payload: { agentKey: "agent-a" },
 		});
 		expect(request).toHaveBeenNthCalledWith(4, {
@@ -394,7 +396,7 @@ describe("apiClientProxy", () => {
 			payload: undefined,
 		});
 		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/memory/scope",
+			type: "/api/memory/scope/detail",
 			payload: {
 				agentKey: "agent-a",
 				scopeType: "agent",
@@ -406,11 +408,11 @@ describe("apiClientProxy", () => {
 			payload: { agentKey: "agent-a", scopeType: "agent", markdown: "# AGENT" },
 		});
 		expect(request).toHaveBeenNthCalledWith(7, {
-			type: "/api/memory/context/preview",
+			type: "/api/memory/context-preview",
 			payload: { chatId: "chat-preview", message: "hello" },
 		});
 		expect(request).toHaveBeenNthCalledWith(8, {
-			type: "/api/memory/scope",
+			type: "/api/memory/scope/save",
 			payload: {
 				agentKey: "agent-a",
 				scopeType: "agent",
@@ -754,6 +756,7 @@ describe("apiClientProxy", () => {
 			type: "thumbs_down",
 		});
 		await proxy.deleteChat({ chatId: "chat_1" });
+		await proxy.renameChat({ chatId: "chat_1", chatName: "Renamed chat" });
 		await proxy.searchGlobal({ query: "needle", agentKey: "agent_a", limit: 5 });
 		await proxy.markChatRead({ agentKey: "agent_a" });
 		await proxy.archiveChats({ chatIds: ["chat_1"] });
@@ -767,39 +770,44 @@ describe("apiClientProxy", () => {
 			payload: { chatId: "chat_1", runId: "run_1", type: "thumbs_down" },
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/chat-delete",
+			type: "/api/chat/delete",
 			payload: { chatId: "chat_1" },
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/chat/rename",
+			payload: { chatId: "chat_1", chatName: "Renamed chat" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
 			type: "/api/search",
 			payload: { query: "needle", agentKey: "agent_a", limit: 5 },
 		});
-		expect(request).toHaveBeenNthCalledWith(4, {
+		expect(request).toHaveBeenNthCalledWith(5, {
 			type: "/api/read",
 			payload: { agentKey: "agent_a" },
 		});
-		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/chat-archive",
+		expect(request).toHaveBeenNthCalledWith(6, {
+			type: "/api/chat/archive",
 			payload: { chatIds: ["chat_1"] },
 		});
-		expect(request).toHaveBeenNthCalledWith(6, {
+		expect(request).toHaveBeenNthCalledWith(7, {
 			type: "/api/archives",
 			payload: { agentKey: "agent_a", limit: 10, offset: 20 },
 		});
-		expect(request).toHaveBeenNthCalledWith(7, {
+		expect(request).toHaveBeenNthCalledWith(8, {
 			type: "/api/archive",
 			payload: { chatId: "chat_1", includeRawMessages: true },
 		});
-		expect(request).toHaveBeenNthCalledWith(8, {
-			type: "/api/archive-search",
+		expect(request).toHaveBeenNthCalledWith(9, {
+			type: "/api/archive/search",
 			payload: { query: "old", agentKey: "agent_a", limit: 6 },
 		});
-		expect(request).toHaveBeenNthCalledWith(9, {
-			type: "/api/archive-delete",
+		expect(request).toHaveBeenNthCalledWith(10, {
+			type: "/api/archive/delete",
 			payload: { chatId: "chat_1" },
 		});
 		expect(mockApiClient.submitFeedback).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteChat).not.toHaveBeenCalled();
+		expect(mockApiClient.renameChat).not.toHaveBeenCalled();
 		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
 		expect(mockApiClient.archiveChats).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteArchive).not.toHaveBeenCalled();

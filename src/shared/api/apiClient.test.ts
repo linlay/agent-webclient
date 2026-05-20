@@ -44,6 +44,7 @@ import {
   learnChat,
   markChatRead,
   rememberChat,
+  renameChat,
   searchArchives,
   searchGlobal,
   setAccessToken,
@@ -366,7 +367,7 @@ describe('apiClient query payloads', () => {
       { url: '/api/schedules', body: {} },
       { url: '/api/schedule', body: { id: 'daily-demo' } },
       {
-        url: '/api/schedule-create',
+        url: '/api/schedule/create',
         body: {
           name: 'Daily Demo',
           description: 'Demo schedule',
@@ -377,16 +378,16 @@ describe('apiClient query payloads', () => {
         },
       },
       {
-        url: '/api/schedule-update',
+        url: '/api/schedule/update',
         body: {
           id: 'daily-demo',
           cron: '0 18 * * 1-5',
           query: { message: 'updated' },
         },
       },
-      { url: '/api/schedule-toggle', body: { id: 'daily-demo', enabled: false } },
-      { url: '/api/schedule-executions', body: { id: 'daily-demo', limit: 20 } },
-      { url: '/api/schedule-delete', body: { id: 'daily-demo' } },
+      { url: '/api/schedule/toggle', body: { id: 'daily-demo', enabled: false } },
+      { url: '/api/schedule/executions', body: { id: 'daily-demo', limit: 20 } },
+      { url: '/api/schedule/delete', body: { id: 'daily-demo' } },
     ]);
   });
 
@@ -418,7 +419,7 @@ describe('apiClient query payloads', () => {
     }));
     expect(calls).toEqual([
       {
-        url: '/api/agent-create',
+        url: '/api/agent/create',
         body: {
           key: 'editable-agent',
           definition: {
@@ -431,7 +432,7 @@ describe('apiClient query payloads', () => {
         },
       },
       {
-        url: '/api/agent-update',
+        url: '/api/agent/update',
         body: {
           key: 'editable-agent',
           definition: {
@@ -442,7 +443,7 @@ describe('apiClient query payloads', () => {
           },
         },
       },
-      { url: '/api/agent-delete', body: { key: 'editable-agent' } },
+      { url: '/api/agent/delete', body: { key: 'editable-agent' } },
     ]);
   });
 
@@ -450,7 +451,7 @@ describe('apiClient query payloads', () => {
     await getAgentEditorOptions();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/agent-editor-options',
+      '/api/agent/editor-options',
       expect.objectContaining({ method: 'GET' }),
     );
   });
@@ -513,6 +514,7 @@ describe('apiClient query payloads', () => {
       comment: 'bad',
     });
     await deleteChat({ chatId: 'chat_1' });
+    await renameChat({ chatId: 'chat_1', chatName: ' Renamed chat ' });
     await searchGlobal({
       query: 'needle',
       agentKey: 'agent_a',
@@ -527,12 +529,15 @@ describe('apiClient query payloads', () => {
       type: 'thumbs_down',
       comment: 'bad',
     });
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/chat-delete');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/chat/delete?chatId=chat_1');
     expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
-      chatId: 'chat_1',
     });
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/search');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/chat/rename?chatId=chat_1');
     expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
+      chatName: ' Renamed chat ',
+    });
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/search');
+    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
       query: 'needle',
       agentKey: 'agent_a',
       teamId: 'team_a',
@@ -547,21 +552,20 @@ describe('apiClient query payloads', () => {
     await searchArchives({ query: 'needle', agentKey: 'agent_a', limit: 5 });
     await deleteArchive({ chatId: 'chat_1' });
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat-archive');
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat/archive');
     expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
       chatIds: ['chat_1', 'chat_2'],
     });
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/archives?agentKey=agent_a&limit=20&offset=40');
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/archive?chatId=chat_1&includeRawMessages=true');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/archive-search');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/archive/search');
     expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
       query: 'needle',
       agentKey: 'agent_a',
       limit: 5,
     });
-    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe('/api/archive-delete');
+    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe('/api/archive/delete?chatId=chat_1');
     expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
-      chatId: 'chat_1',
     });
   });
 
@@ -629,10 +633,10 @@ describe('apiClient query payloads', () => {
     await getMemoryRecord('agent-a', 'mem_101');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/memory/records?agentKey=agent-a&keyword=bugfix&kind=fact&scopeType=agent&status=active&category=general&limit=15',
+      '/api/memory/record/list?agentKey=agent-a&keyword=bugfix&kind=fact&scopeType=agent&status=active&category=general&limit=15',
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/memory/record?agentKey=agent-a&id=mem_101',
+      '/api/memory/record/detail?agentKey=agent-a&recordId=mem_101',
     );
   });
 
@@ -665,13 +669,13 @@ describe('apiClient query payloads', () => {
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scopes?agentKey=agent-a',
+      '/api/memory/scope/list?agentKey=agent-a',
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
       '/api/memory/meta',
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
+      '/api/memory/scope/detail?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
     );
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
       '/api/memory/scope/validate',
@@ -682,14 +686,14 @@ describe('apiClient query payloads', () => {
       markdown: '# AGENT',
     });
     expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe(
-      '/api/memory/context/preview',
+      '/api/memory/context-preview',
     );
     expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
       chatId: 'chat-preview',
       message: 'desktop builtin 发布流程',
     });
     expect((fetchMock.mock.calls[5] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope',
+      '/api/memory/scope/save',
     );
     expect(JSON.parse(String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body))).toEqual({
       agentKey: 'agent-a',

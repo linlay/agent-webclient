@@ -43,6 +43,7 @@ import {
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
 	rememberChat as rememberChatHttp,
+	renameChat as renameChatHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
 	setAccessToken,
 	steerChat as steerChatHttp,
@@ -76,6 +77,8 @@ import {
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
 	type QueryLikeParams,
+	type RenameChatRequest,
+	type RenameChatResponse,
 	type RemoteControlSessionRequest,
 	type RemoteControlSessionResponse,
 	type ScheduleDetailResponse,
@@ -214,7 +217,7 @@ export function createAgent(
 	params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return routeRequest<AgentDetailResponse>(
-		"/api/agent-create",
+		"/api/agent/create",
 		params,
 		() => createAgentHttp(params),
 	);
@@ -224,7 +227,7 @@ export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return routeRequest<AgentDetailResponse>(
-		"/api/agent-update",
+		"/api/agent/update",
 		params,
 		() => updateAgentHttp(params),
 	);
@@ -234,7 +237,7 @@ export function deleteAgent(
 	params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
 	return routeRequest<DeleteAgentResponse>(
-		"/api/agent-delete",
+		"/api/agent/delete",
 		params,
 		() => deleteAgentHttp(params),
 	);
@@ -242,7 +245,7 @@ export function deleteAgent(
 
 export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
 	return routeRequest<AgentEditorOptionsResponse>(
-		"/api/agent-editor-options",
+		"/api/agent/editor-options",
 		undefined,
 		() => getAgentEditorOptionsHttp(),
 	);
@@ -302,7 +305,7 @@ export function archiveChats(
 	params: ArchiveChatsRequest,
 ): Promise<ApiResponse<ArchiveChatsResponse>> {
 	return routeRequest<ArchiveChatsResponse>(
-		"/api/chat-archive",
+		"/api/chat/archive",
 		params,
 		() => archiveChatsHttp(params),
 		{
@@ -340,7 +343,7 @@ export function searchArchives(
 	params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
 	return routeRequest<ArchiveSearchResponse>(
-		"/api/archive-search",
+		"/api/archive/search",
 		params,
 		() => searchArchivesHttp(params),
 	);
@@ -350,7 +353,7 @@ export function deleteArchive(params: {
 	chatId: string;
 }): Promise<ApiResponse<ArchiveDeleteResponse>> {
 	return routeRequest<ArchiveDeleteResponse>(
-		"/api/archive-delete",
+		"/api/archive/delete",
 		params,
 		() => deleteArchiveHttp(params),
 		{
@@ -392,7 +395,7 @@ export function createSchedule(
 	params: CreateScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
 	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule-create",
+		"/api/schedule/create",
 		params,
 		() => createScheduleHttp(params),
 	);
@@ -402,7 +405,7 @@ export function updateSchedule(
 	params: UpdateScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
 	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule-update",
+		"/api/schedule/update",
 		params,
 		() => updateScheduleHttp(params),
 	);
@@ -412,7 +415,7 @@ export function deleteSchedule(
 	params: DeleteScheduleRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
 	return routeRequest<{ id: string; deleted: boolean }>(
-		"/api/schedule-delete",
+		"/api/schedule/delete",
 		params,
 		() => deleteScheduleHttp(params),
 	);
@@ -422,7 +425,7 @@ export function toggleSchedule(
 	params: ToggleScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
 	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule-toggle",
+		"/api/schedule/toggle",
 		params,
 		() => toggleScheduleHttp(params),
 	);
@@ -432,7 +435,7 @@ export function getScheduleExecutions(
 	params: ScheduleExecutionsRequest,
 ): Promise<ApiResponse<ScheduleExecutionListResponse>> {
 	return routeRequest<ScheduleExecutionListResponse>(
-		"/api/schedule-executions",
+		"/api/schedule/executions",
 		params,
 		() => getScheduleExecutionsHttp(params),
 	);
@@ -442,7 +445,7 @@ export function getMemoryRecords(
 	params: GetMemoryRecordsParams,
 ): Promise<ApiResponse<MemoryRecordsPayload>> {
 	return routeRequest<MemoryRecordsPayload>(
-		"/api/memory/records",
+		"/api/memory/record/list",
 		compactPayload(params as Record<string, unknown>),
 		() => getMemoryRecordsHttp(params),
 	);
@@ -453,8 +456,8 @@ export function getMemoryRecord(
 	id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
 	return routeRequest<MemoryRecordDetail>(
-		"/api/memory/record",
-		compactPayload({ agentKey, id }),
+		"/api/memory/record/detail",
+		compactPayload({ agentKey, recordId: id }),
 		() => getMemoryRecordHttp(agentKey, id),
 	);
 }
@@ -463,7 +466,7 @@ export function getMemoryScopes(
 	agentKey: string,
 ): Promise<ApiResponse<MemoryScopesResponse>> {
 	return routeRequest<MemoryScopesResponse>(
-		"/api/memory/scopes",
+		"/api/memory/scope/list",
 		compactPayload({ agentKey }),
 		() => getMemoryScopesHttp(agentKey),
 	);
@@ -483,7 +486,7 @@ export function getMemoryScope(
 	scopeKey?: string,
 ): Promise<ApiResponse<MemoryScopeDetail>> {
 	return routeRequest<MemoryScopeDetail>(
-		"/api/memory/scope",
+		"/api/memory/scope/detail",
 		compactPayload({ agentKey, scopeType, scopeKey }),
 		() => getMemoryScopeHttp(agentKey, scopeType, scopeKey),
 	);
@@ -506,7 +509,7 @@ export function previewMemoryContext(params: {
 	message: string;
 }): Promise<ApiResponse<MemoryContextPreviewResponse>> {
 	return routeRequest<MemoryContextPreviewResponse>(
-		"/api/memory/context/preview",
+		"/api/memory/context-preview",
 		params,
 		() => previewMemoryContextHttp(params),
 	);
@@ -516,7 +519,7 @@ export function saveMemoryScope(
 	payload: MemoryScopeSavePayload,
 ): Promise<ApiResponse<MemoryScopeSaveResult>> {
 	return routeRequest<MemoryScopeSaveResult>(
-		"/api/memory/scope",
+		"/api/memory/scope/save",
 		payload,
 		() => saveMemoryScopeHttp(payload),
 	);
@@ -559,10 +562,24 @@ export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
 }
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
-	return routeRequest("/api/chat-delete", params, () => deleteChatHttp(params), {
+	return routeRequest("/api/chat/delete", params, () => deleteChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
+}
+
+export function renameChat(
+	params: RenameChatRequest,
+): Promise<ApiResponse<RenameChatResponse>> {
+	return routeRequest<RenameChatResponse>(
+		"/api/chat/rename",
+		params,
+		() => renameChatHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
 }
 
 export function searchGlobal(

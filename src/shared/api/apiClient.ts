@@ -273,6 +273,17 @@ export interface ArchiveChatsRequest {
   chatIds: string[];
 }
 
+export interface RenameChatRequest {
+  chatId: string;
+  chatName: string;
+}
+
+export interface RenameChatResponse {
+  chatId: string;
+  chatName: string;
+  updated: boolean;
+}
+
 export interface ArchiveChatResult {
   chatId: string;
   success: boolean;
@@ -841,23 +852,23 @@ export function getAgent(agentKey: string): Promise<ApiResponse> {
 export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent-create", params);
+  return postJson<AgentDetailResponse>("/api/agent/create", params);
 }
 
 export function updateAgent(
   params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent-update", params);
+  return postJson<AgentDetailResponse>("/api/agent/update", params);
 }
 
 export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
-  return postJson<DeleteAgentResponse>("/api/agent-delete", params);
+  return postJson<DeleteAgentResponse>("/api/agent/delete", params);
 }
 
 export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
-  return requestJson<AgentEditorOptionsResponse>("/api/agent-editor-options");
+  return requestJson<AgentEditorOptionsResponse>("/api/agent/editor-options");
 }
 
 export function getTeams(): Promise<ApiResponse> {
@@ -902,7 +913,7 @@ export function getChat(
 export function archiveChats(
   params: ArchiveChatsRequest,
 ): Promise<ApiResponse<ArchiveChatsResponse>> {
-  return postJson<ArchiveChatsResponse>("/api/chat-archive", {
+  return postJson<ArchiveChatsResponse>("/api/chat/archive", {
     chatIds: params.chatIds,
   });
 }
@@ -932,7 +943,7 @@ export function getArchive(
 export function searchArchives(
   params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
-  return postJson<ArchiveSearchResponse>("/api/archive-search", {
+  return postJson<ArchiveSearchResponse>("/api/archive/search", {
     query: params.query,
     agentKey: params.agentKey,
     limit: params.limit,
@@ -942,8 +953,10 @@ export function searchArchives(
 export function deleteArchive(params: {
   chatId: string;
 }): Promise<ApiResponse<ArchiveDeleteResponse>> {
-  return postJson<ArchiveDeleteResponse>("/api/archive-delete", {
-    chatId: params.chatId,
+  const query = toQueryString({ chatId: params.chatId });
+  return requestJson<ArchiveDeleteResponse>(`/api/archive/delete?${query}`, {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 }
 
@@ -980,31 +993,31 @@ export function getSchedule(
 export function createSchedule(
   params: CreateScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule-create", params);
+  return postJson<ScheduleDetailResponse>("/api/schedule/create", params);
 }
 
 export function updateSchedule(
   params: UpdateScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule-update", params);
+  return postJson<ScheduleDetailResponse>("/api/schedule/update", params);
 }
 
 export function deleteSchedule(
   params: DeleteScheduleRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
-  return postJson<{ id: string; deleted: boolean }>("/api/schedule-delete", params);
+  return postJson<{ id: string; deleted: boolean }>("/api/schedule/delete", params);
 }
 
 export function toggleSchedule(
   params: ToggleScheduleRequest,
 ): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule-toggle", params);
+  return postJson<ScheduleDetailResponse>("/api/schedule/toggle", params);
 }
 
 export function getScheduleExecutions(
   params: ScheduleExecutionsRequest,
 ): Promise<ApiResponse<ScheduleExecutionListResponse>> {
-  return postJson<ScheduleExecutionListResponse>("/api/schedule-executions", params);
+  return postJson<ScheduleExecutionListResponse>("/api/schedule/executions", params);
 }
 
 export interface GetMemoryRecordsParams {
@@ -1033,22 +1046,22 @@ export function getMemoryRecords(
     cursor: params.cursor,
     chatId: params.chatId,
   });
-  return requestJson<MemoryRecordsPayload>(`/api/memory/records?${query}`);
+  return requestJson<MemoryRecordsPayload>(`/api/memory/record/list?${query}`);
 }
 
 export function getMemoryRecord(
   agentKey: string | undefined,
   id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
-  const query = toQueryString({ agentKey, id });
-  return requestJson<MemoryRecordDetail>(`/api/memory/record?${query}`);
+  const query = toQueryString({ agentKey, recordId: id });
+  return requestJson<MemoryRecordDetail>(`/api/memory/record/detail?${query}`);
 }
 
 export function getMemoryScopes(
   agentKey: string,
 ): Promise<ApiResponse<MemoryScopesResponse>> {
   const query = toQueryString({ agentKey });
-  return requestJson<MemoryScopesResponse>(`/api/memory/scopes?${query}`);
+  return requestJson<MemoryScopesResponse>(`/api/memory/scope/list?${query}`);
 }
 
 export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
@@ -1061,7 +1074,7 @@ export function getMemoryScope(
   scopeKey?: string,
 ): Promise<ApiResponse<MemoryScopeDetail>> {
   const query = toQueryString({ agentKey, scopeType, scopeKey });
-  return requestJson<MemoryScopeDetail>(`/api/memory/scope?${query}`);
+  return requestJson<MemoryScopeDetail>(`/api/memory/scope/detail?${query}`);
 }
 
 export function validateMemoryScope(
@@ -1083,7 +1096,7 @@ export function previewMemoryContext(params: {
   chatId: string;
   message: string;
 }): Promise<ApiResponse<MemoryContextPreviewResponse>> {
-  return requestJson<MemoryContextPreviewResponse>("/api/memory/context/preview", {
+  return requestJson<MemoryContextPreviewResponse>("/api/memory/context-preview", {
     method: "POST",
     body: JSON.stringify({
       chatId: params.chatId,
@@ -1095,8 +1108,8 @@ export function previewMemoryContext(params: {
 export function saveMemoryScope(
   payload: MemoryScopeSavePayload,
 ): Promise<ApiResponse<MemoryScopeSaveResult>> {
-  return requestJson<MemoryScopeSaveResult>("/api/memory/scope", {
-    method: "PUT",
+  return requestJson<MemoryScopeSaveResult>("/api/memory/scope/save", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }
@@ -1255,9 +1268,20 @@ export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
 }
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
-  return requestJson("/api/chat-delete", {
+  const query = toQueryString({ chatId: params.chatId });
+  return requestJson(`/api/chat/delete?${query}`, {
     method: "POST",
-    body: JSON.stringify({ chatId: params.chatId }),
+    body: JSON.stringify({}),
+  });
+}
+
+export function renameChat(
+  params: RenameChatRequest,
+): Promise<ApiResponse<RenameChatResponse>> {
+  const query = toQueryString({ chatId: params.chatId });
+  return requestJson<RenameChatResponse>(`/api/chat/rename?${query}`, {
+    method: "POST",
+    body: JSON.stringify({ chatName: params.chatName }),
   });
 }
 

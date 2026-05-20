@@ -50,6 +50,22 @@ export function reduceNavigationState(
 				),
 			};
 		}
+		case "CHAT_RENAMED": {
+			const chatId = String(action.chatId || "").trim();
+			const chatName = String(action.chatName || "").trim();
+			if (!chatId || !chatName) {
+				return state;
+			}
+			const renameChat = <T extends { chatId?: string; chatName?: string }>(
+				chat: T,
+			): T =>
+				String(chat.chatId || "") === chatId ? { ...chat, chatName } : chat;
+			return {
+				...state,
+				chats: state.chats.map(renameChat),
+				workerRelatedChats: state.workerRelatedChats.map(renameChat),
+			};
+		}
 		case "MARK_AGENT_CHATS_READ": {
 			const agentKey = String(action.agentKey || "").trim();
 			if (!agentKey) {
