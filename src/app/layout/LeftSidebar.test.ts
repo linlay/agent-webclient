@@ -95,6 +95,7 @@ jest.mock("antd", () => {
     );
 
   const Spin = ({ children }: any) => React.createElement(React.Fragment, null, children);
+  const Tag = ({ children }: any) => React.createElement("span", null, children);
   const Tooltip = ({ children }: any) =>
     React.createElement(React.Fragment, null, children);
 
@@ -108,12 +109,23 @@ jest.mock("antd", () => {
     Modal,
     Popover,
     Spin,
+    Tag,
     Tooltip,
     Typography: {
       Text: ({ children }: any) => React.createElement("span", null, children),
     },
   };
 });
+
+jest.mock("antd/es/app/useApp", () => ({
+  __esModule: true,
+  default: () => ({
+    message: {
+      error: jest.fn(),
+      success: jest.fn(),
+    },
+  }),
+}));
 
 jest.mock("@/shared/ui/UiButton", () => {
   const React = require("react");
@@ -433,6 +445,20 @@ describe("LeftSidebar", () => {
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
     expect(html).toContain("查看更多（共 6 条，未读 3 条）");
+  });
+
+  it("shows more history from agent stats when only five chats are preloaded", () => {
+    const state = createWorkerState();
+    state.chats = state.chats.slice(0, 5);
+    state.agents[0].stats = {
+      totalCount: 12,
+      unreadCount: 3,
+    };
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("查看更多（共 12 条，未读 3 条）");
   });
 
   it("renders unread badges for worker and chat rows", () => {

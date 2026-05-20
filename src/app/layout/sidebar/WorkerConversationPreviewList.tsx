@@ -18,6 +18,7 @@ export const WorkerConversationPreviewList: React.FC<{
   activeChatId: string;
   icon?: AgentIconConfig;
   showHeader?: boolean;
+  totalChatCount?: number;
   getWorkerChatLoading: (chatId: string) => boolean;
   onSelectChat: (chatId: string) => void;
   onOpenHistory: (event: React.MouseEvent<Element>, workerKey: string) => void;
@@ -32,6 +33,7 @@ export const WorkerConversationPreviewList: React.FC<{
   activeChatId,
   icon,
   showHeader = false,
+  totalChatCount,
   getWorkerChatLoading,
   onSelectChat,
   onOpenHistory,
@@ -40,6 +42,10 @@ export const WorkerConversationPreviewList: React.FC<{
 }) => {
   const { t } = useI18n();
   const recentChats = chats.slice(0, 5);
+  const showMoreCount = Math.max(
+    Number.isFinite(Number(totalChatCount)) ? Number(totalChatCount) : 0,
+    chats.length,
+  );
   const unreadCount = chats.reduce(
     (count, chat) => count + (isChatUnread(chat) ? 1 : 0),
     0,
@@ -108,13 +114,13 @@ export const WorkerConversationPreviewList: React.FC<{
           />
         ))
       )}
-      {chats.length > 5 && (
+      {showMoreCount > 5 && (
         <div
           className="worker-chat-more"
           onClick={(e) => onOpenHistory(e, row.key)}
         >
           {t("leftSidebar.showMore", {
-            count: chats.length,
+            count: showMoreCount,
             unreadSuffix,
           })}
         </div>

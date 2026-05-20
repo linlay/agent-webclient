@@ -120,6 +120,23 @@ export function useLeftSidebarData({
     return unreadCounts;
   }, [agents, chats, workerRows]);
 
+  const workerTotalCountByKey = useMemo(() => {
+    const totalCounts = new Map<string, number>();
+    for (const agent of agents) {
+      const agentKey = String(agent?.key || "").trim();
+      if (!agentKey) continue;
+      const totalCount = Number(agent?.stats?.totalCount);
+      if (Number.isFinite(totalCount)) {
+        totalCounts.set(`agent:${agentKey}`, totalCount);
+      }
+    }
+    for (const row of workerRows) {
+      if (totalCounts.has(row.key)) continue;
+      totalCounts.set(row.key, workerChatsByKey.get(row.key)?.length || 0);
+    }
+    return totalCounts;
+  }, [agents, workerChatsByKey, workerRows]);
+
   const historyRows = useMemo(
     () => workerChatsByKey.get(historyWorkerKey) || [],
     [historyWorkerKey, workerChatsByKey],
@@ -144,6 +161,7 @@ export function useLeftSidebarData({
     workerIconsByKey,
     workerChatsByKey,
     workerUnreadCountByKey,
+    workerTotalCountByKey,
     historyRows,
     filteredHistoryRows,
   };

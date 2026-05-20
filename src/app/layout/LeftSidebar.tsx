@@ -33,10 +33,12 @@ import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import {
+  getChats,
   markChatRead,
   searchGlobal,
 } from "@/features/transport/lib/apiClientProxy";
-import type { WorkerConversationRow } from "@/app/state/types";
+import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
+import type { Chat, WorkerConversationRow } from "@/app/state/types";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -47,7 +49,7 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 }
 
 export const LeftSidebar: React.FC = () => {
-  const { state, dispatch, querySessionsRef } = useAppContext();
+  const { state, dispatch, querySessionsRef, stateRef } = useAppContext();
   const { t } = useI18n();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
@@ -70,6 +72,7 @@ export const LeftSidebar: React.FC = () => {
     workerIconsByKey,
     workerChatsByKey,
     workerUnreadCountByKey,
+    workerTotalCountByKey,
     filteredHistoryRows,
   } = useLeftSidebarData({
     agents: state.agents,
@@ -214,6 +217,24 @@ export const LeftSidebar: React.FC = () => {
     setHistoryWorkerKey(workerKey);
     setHistorySearch("");
     setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
+
+    const worker =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    if (!worker || worker.type !== "agent") return;
+
+    void getChats({ agentKey: worker.sourceId })
+      .then((response) => {
+        const fetchedChats = (Array.isArray(response.data) ? response.data : []) as Chat[];
+        const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
+        dispatch({ type: "SET_CHATS", chats });
+      })
+      .catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[loadChats error] ${(error as Error).message}`,
+        });
+      });
   };
 
   const handleMarkWorkerAllRead = async (
@@ -290,6 +311,7 @@ export const LeftSidebar: React.FC = () => {
             chats={rawChats}
             activeChatId={state.chatId}
             icon={icon}
+            totalChatCount={workerTotalCountByKey.get(row.key)}
             getWorkerChatLoading={getWorkerChatLoading}
             onSelectChat={handleSelectChat}
             onOpenHistory={handleOpenHistory}
@@ -529,6 +551,7 @@ export const LeftSidebar: React.FC = () => {
                             activeChatId={state.chatId}
                             icon={workerIconsByKey.get(item.key)}
                             showHeader
+                            totalChatCount={workerTotalCountByKey.get(item.key)}
                             getWorkerChatLoading={getWorkerChatLoading}
                             onSelectChat={handleSelectChat}
                             onOpenHistory={handleOpenHistory}

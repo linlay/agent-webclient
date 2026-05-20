@@ -1,5 +1,9 @@
 import type { Agent, Chat, Team } from '@/app/state/types';
-import { refreshWorkerDataWithCoordinator } from '@/features/workers/lib/workerDataCoordinator';
+import {
+  extractChatsFromAgents,
+  refreshWorkerDataFromAgentsWithChats,
+  refreshWorkerDataWithCoordinator,
+} from '@/features/workers/lib/workerDataCoordinator';
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
@@ -120,6 +124,72 @@ describe('refreshWorkerDataWithCoordinator', () => {
         { chatId: 'chat-old', chatName: 'Old Chat' },
       ],
       workerSelectionKey: 'team:team-old',
+      workerPriorityKey: 'agent:agent-old',
+    });
+  });
+});
+
+describe('refreshWorkerDataFromAgentsWithChats', () => {
+  const currentTeams: Team[] = [{ teamId: 'team-old', name: 'Old Team' } as Team];
+  const currentChats: Chat[] = [{ chatId: 'chat-old', chatName: 'Old Chat' } as Chat];
+
+  it('extracts agent chats and fills missing agentKey from the parent agent', () => {
+    expect(
+      extractChatsFromAgents([
+        {
+          key: 'agent-a',
+          name: 'Agent A',
+          chats: [
+            { chatId: 'chat-a', chatName: 'Chat A' },
+            { chatId: '', chatName: 'Missing id' },
+          ],
+        } as Agent,
+      ]),
+    ).toEqual([
+      { chatId: 'chat-a', chatName: 'Chat A', agentKey: 'agent-a' },
+    ]);
+  });
+
+  it('refreshes from agents only, merges chats, preserves current teams, and rebuilds once', async () => {
+    const applyAgents = jest.fn();
+    const applyChats = jest.fn();
+    const rebuildWorkerRows = jest.fn();
+
+    const agents = [
+      {
+        key: 'agent-new',
+        name: 'New Agent',
+        chats: [{ chatId: 'chat-new', chatName: 'New Chat' }],
+      } as Agent,
+    ];
+
+    await refreshWorkerDataFromAgentsWithChats({
+      fetchAgents: jest.fn().mockResolvedValue(agents),
+      getSnapshot: () => ({
+        agents: [],
+        teams: currentTeams,
+        chats: currentChats,
+        workerSelectionKey: 'agent:agent-new',
+        workerPriorityKey: 'agent:agent-old',
+      }),
+      applyAgents,
+      applyChats,
+      rebuildWorkerRows,
+      appendDebug: jest.fn(),
+    });
+
+    const expectedChats = [
+      { chatId: 'chat-new', chatName: 'New Chat', agentKey: 'agent-new' },
+      { chatId: 'chat-old', chatName: 'Old Chat' },
+    ];
+    expect(applyAgents).toHaveBeenCalledWith(agents);
+    expect(applyChats).toHaveBeenCalledWith(expectedChats);
+    expect(rebuildWorkerRows).toHaveBeenCalledTimes(1);
+    expect(rebuildWorkerRows).toHaveBeenCalledWith({
+      agents,
+      teams: currentTeams,
+      chats: expectedChats,
+      workerSelectionKey: 'agent:agent-new',
       workerPriorityKey: 'agent:agent-old',
     });
   });

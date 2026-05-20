@@ -23,6 +23,15 @@ interface WorkerRefreshCoordinatorOptions {
   appendDebug: (line: string) => void;
 }
 
+interface WorkerRefreshFromAgentsOptions {
+  fetchAgents: () => Promise<Agent[]>;
+  getSnapshot: () => WorkerDataSnapshot;
+  applyAgents: (agents: Agent[]) => void;
+  applyChats: (chats: Chat[]) => void;
+  rebuildWorkerRows: (overrides: WorkerRefreshOverrides) => void;
+  appendDebug: (line: string) => void;
+}
+
 type SettledListResult<T> = PromiseSettledResult<T[]>;
 
 function settledValueOrFallback<T>(
@@ -35,6 +44,49 @@ function settledValueOrFallback<T>(
   }
   onRejected(result.reason instanceof Error ? result.reason.message : String(result.reason || 'unknown error'));
   return fallback;
+}
+
+export function extractChatsFromAgents(agents: Agent[]): Chat[] {
+  const chats: Chat[] = [];
+  for (const agent of Array.isArray(agents) ? agents : []) {
+    const agentKey = String(agent?.key || '').trim();
+    const agentChats = Array.isArray(agent?.chats) ? agent.chats : [];
+    for (const rawChat of agentChats) {
+      if (!rawChat || typeof rawChat !== 'object') continue;
+      const chat = rawChat as Chat;
+      const chatId = String(chat.chatId || '').trim();
+      if (!chatId) continue;
+      chats.push({
+        ...chat,
+        chatId,
+        agentKey: String(chat.agentKey || chat.firstAgentKey || '').trim() || agentKey || undefined,
+      });
+    }
+  }
+  return chats;
+}
+
+export async function refreshWorkerDataFromAgentsWithChats(
+  options: WorkerRefreshFromAgentsOptions,
+): Promise<void> {
+  try {
+    const agents = await options.fetchAgents();
+    const current = options.getSnapshot();
+    const fetchedChats = extractChatsFromAgents(agents);
+    const nextChats = mergeFetchedChats(current.chats, fetchedChats);
+
+    options.applyAgents(Array.isArray(agents) ? agents : []);
+    options.applyChats(nextChats);
+    options.rebuildWorkerRows({
+      agents: Array.isArray(agents) ? agents : [],
+      teams: current.teams,
+      chats: nextChats,
+      workerSelectionKey: current.workerSelectionKey,
+      workerPriorityKey: current.workerPriorityKey,
+    });
+  } catch (error) {
+    options.appendDebug(`[loadAgents error] ${error instanceof Error ? error.message : String(error || 'unknown error')}`);
+  }
 }
 
 export async function refreshWorkerDataWithCoordinator(

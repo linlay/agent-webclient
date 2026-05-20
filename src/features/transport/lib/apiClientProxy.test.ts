@@ -212,6 +212,33 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
+	it("routes agents includeChats over ws payload", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAgents({ includeChats: 5 });
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/agents",
+			payload: { includeChats: 5 },
+		});
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
 	it("routes schedule management calls over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
@@ -541,10 +568,10 @@ describe("apiClientProxy", () => {
 			data: ["http-agents"],
 		});
 
-		await expect(proxy.getAgents()).resolves.toMatchObject({
+		await expect(proxy.getAgents({ includeChats: 5 })).resolves.toMatchObject({
 			data: ["http-agents"],
 		});
-		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.getAgents).toHaveBeenCalledWith({ includeChats: 5 });
 	});
 
 	it("falls back to http when teams websocket connect fails", async () => {
@@ -589,10 +616,10 @@ describe("apiClientProxy", () => {
 			data: [{ chatId: "chat_http", awaiting: { awaitingId: "await_http" } }],
 		});
 
-		await expect(proxy.getChats()).resolves.toMatchObject({
+		await expect(proxy.getChats({ agentKey: "agent-a" })).resolves.toMatchObject({
 			data: [{ chatId: "chat_http", hasPendingAwaiting: true }],
 		});
-		expect(mockApiClient.getChats).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.getChats).toHaveBeenCalledWith({ agentKey: "agent-a" });
 	});
 
 	it("normalizes chat summaries returned from ws /api/chats responses", async () => {
@@ -623,13 +650,17 @@ describe("apiClientProxy", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await expect(proxy.getChats()).resolves.toMatchObject({
+		await expect(proxy.getChats({ agentKey: "agent-a" })).resolves.toMatchObject({
 			data: [
 				{
 					chatId: "chat_1",
 					hasPendingAwaiting: true,
 				},
 			],
+		});
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chats",
+			payload: { agentKey: "agent-a" },
 		});
 		expect(mockApiClient.normalizeChatSummariesPayload).toHaveBeenCalledWith([
 			{

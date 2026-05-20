@@ -72,6 +72,8 @@ import {
 	type DeleteAgentResponse,
 	type DeleteScheduleRequest,
 	type FeedbackParams,
+	type GetAgentsOptions,
+	type GetChatsOptions,
 	type GetMemoryRecordsParams,
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
@@ -205,8 +207,13 @@ function compactPayload(params: Record<string, unknown>): Record<string, unknown
 	);
 }
 
-export function getAgents(): Promise<ApiResponse> {
-	return routeRequest("/api/agents", undefined, () => getAgentsHttp());
+export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
+	const payload = compactPayload({ includeChats: options.includeChats });
+	return routeRequest(
+		"/api/agents",
+		Object.keys(payload).length > 0 ? payload : undefined,
+		() => getAgentsHttp(options),
+	);
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
@@ -279,8 +286,13 @@ export function getTool(toolName: string): Promise<ApiResponse> {
 	return routeRequest("/api/tool", { toolName }, () => getToolHttp(toolName));
 }
 
-export async function getChats(): Promise<ApiResponse> {
-	const response = await routeRequest("/api/chats", undefined, () => getChatsHttp());
+export async function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
+	const payload = compactPayload({ agentKey: options.agentKey });
+	const response = await routeRequest(
+		"/api/chats",
+		Object.keys(payload).length > 0 ? payload : undefined,
+		() => getChatsHttp(options),
+	);
 	return {
 		...response,
 		data: normalizeChatSummariesPayload(response.data),

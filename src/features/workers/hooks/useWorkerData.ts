@@ -5,7 +5,7 @@ import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '@/featu
 import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
 import { isAppMode } from '@/shared/utils/routing';
 import {
-  refreshWorkerDataWithCoordinator,
+  refreshWorkerDataFromAgentsWithChats,
   type WorkerDataSnapshot,
   type WorkerRefreshOverrides,
 } from '@/features/workers/lib/workerDataCoordinator';
@@ -15,6 +15,8 @@ import {
   mergeFetchedChats,
 } from '@/features/chats/lib/chatSummary';
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
+
+const INITIAL_AGENT_CHAT_LIMIT = 5;
 
 export function shouldStartInitialWorkerRefresh(input: {
   hasStarted: boolean;
@@ -162,25 +164,14 @@ export function useWorkerData(input: {
 
   const refreshWorkerData = useCallback(async () => {
     await runWithSidebarLoading(async () => {
-      await refreshWorkerDataWithCoordinator({
+      await refreshWorkerDataFromAgentsWithChats({
         fetchAgents: async () => {
-          const response = await getAgents();
+          const response = await getAgents({ includeChats: INITIAL_AGENT_CHAT_LIMIT });
           return (response.data as Agent[]) || [];
-        },
-        fetchTeams: async () => {
-          const response = await getTeams();
-          return (response.data as Team[]) || [];
-        },
-        fetchChats: async () => {
-          const response = await getChats();
-          return (response.data as Chat[]) || [];
         },
         getSnapshot: getWorkerDataSnapshot,
         applyAgents: (agents) => {
           dispatch({ type: 'SET_AGENTS', agents });
-        },
-        applyTeams: (teams) => {
-          dispatch({ type: 'SET_TEAMS', teams });
         },
         applyChats: (chats) => {
           dispatch({ type: 'SET_CHATS', chats });

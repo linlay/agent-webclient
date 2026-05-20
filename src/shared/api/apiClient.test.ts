@@ -725,6 +725,20 @@ describe('apiClient query payloads', () => {
     });
   });
 
+  it('keeps getAgents queryless by default and supports includeChats', async () => {
+    await getAgents();
+    await getAgents({ includeChats: 5 });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
+  });
+
+  it('supports filtering getChats by agentKey', async () => {
+    await getChats({ agentKey: 'agent-a' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chats?agentKey=agent-a');
+  });
+
   it('requests a bridge token when app mode starts without one', async () => {
     const { parent, dispatchMessage } = installWindow();
 

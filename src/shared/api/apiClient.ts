@@ -51,6 +51,14 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
+export interface GetAgentsOptions {
+  includeChats?: number;
+}
+
+export interface GetChatsOptions {
+  agentKey?: string;
+}
+
 export interface RemoteControlSessionRequest {
   agentKey: string;
   chatId: string;
@@ -840,8 +848,9 @@ export function extractUploadReferences(data: unknown): unknown[] {
   return [];
 }
 
-export function getAgents(): Promise<ApiResponse> {
-  return requestJson("/api/agents");
+export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
+  const query = toQueryString({ includeChats: options.includeChats });
+  return requestJson(query ? `/api/agents?${query}` : "/api/agents");
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
@@ -892,8 +901,9 @@ export function getTool(toolName: string): Promise<ApiResponse> {
   return requestJson(query ? `/api/tool?${query}` : "/api/tool");
 }
 
-export function getChats(): Promise<ApiResponse> {
-  return requestJson("/api/chats").then((response) => ({
+export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
+  const query = toQueryString({ agentKey: options.agentKey });
+  return requestJson(query ? `/api/chats?${query}` : "/api/chats").then((response) => ({
     ...response,
     data: normalizeChatSummariesPayload(response.data),
   }));
