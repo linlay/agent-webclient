@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
@@ -17,6 +17,10 @@ import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock } from "./TerminalDock";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
+import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
+import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
+import { getChats } from "@/features/transport/lib/apiClientProxy";
+import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   const normalizedAgentKey = String(agentKey || "").trim();
@@ -54,8 +58,19 @@ export const AgentChatShell: React.FC = () => {
   const dispatch = useAppDispatch();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
+  const [historyWorkerKey, setHistoryWorkerKey] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [remoteHistoryRows, setRemoteHistoryRows] = useState<
+    WorkerConversationRow[] | null
+  >(null);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const historyInputRef = useRef<HTMLInputElement>(null);
+  const historyListRef = useRef<HTMLDivElement>(null);
+  const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
+  const lastOpenedHistoryRouteKeyRef = useRef("");
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -68,8 +83,32 @@ export const AgentChatShell: React.FC = () => {
     () => normalizeRouteTheme(searchParams.get("theme") || ""),
     [searchParams],
   );
+  const routeHistoryRequested = useMemo(
+    () => String(searchParams.get("history") || "").trim() === "1",
+    [searchParams],
+  );
+  const {
+    filteredHistoryRows,
+    workerChatsByKey,
+  } = useLeftSidebarData({
+    agents: state.agents,
+    chatFilter: state.chatFilter,
+    chats: state.chats,
+    historySearch,
+    historyWorkerKey,
+    teams: state.teams,
+    workerRows: state.workerRows,
+  });
+  const historyWorker =
+    state.workerIndexByKey.get(historyWorkerKey) ||
+    state.workerRows.find((row) => row.key === historyWorkerKey) ||
+    null;
 
   useAppRuntimes();
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (!agentKey) {
@@ -119,6 +158,13 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
+    if (routeHistoryRequested) {
+      lastInitializedAgentKeyRef.current = "";
+      lastLoadedChatKeyRef.current = "";
+      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
+      return;
+    }
+
     if (lastInitializedAgentKeyRef.current === agentKey) {
       return;
     }
@@ -133,7 +179,84 @@ export const AgentChatShell: React.FC = () => {
         },
       }),
     );
-  }, [agentKey, chatId, dispatch]);
+  }, [agentKey, chatId, dispatch, routeHistoryRequested]);
+
+  const openRouteHistoryForWorker = useCallback((workerKey: string) => {
+    const normalizedWorkerKey = String(workerKey || "").trim();
+    if (!normalizedWorkerKey) return;
+    const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
+    const currentChatIndex = workerChats.findIndex(
+      (row) => String(row.chatId || "") === String(stateRef.current.chatId || ""),
+    );
+    setHistoryWorkerKey(normalizedWorkerKey);
+    setHistorySearch("");
+    setRemoteHistoryRows(null);
+    setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
+
+    const worker =
+      stateRef.current.workerIndexByKey.get(normalizedWorkerKey) ||
+      stateRef.current.workerRows.find((item) => item.key === normalizedWorkerKey);
+    if (!worker || worker.type !== "agent") return;
+
+    void getChats({ agentKey: worker.sourceId })
+      .then((response) => {
+        const fetchedChats = (Array.isArray(response.data) ? response.data : []) as Chat[];
+        const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
+        dispatch({ type: "SET_CHATS", chats });
+      })
+      .catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[loadChats error] ${(error as Error).message}`,
+        });
+      });
+  }, [dispatch, workerChatsByKey]);
+
+  useEffect(() => {
+    if (!routeHistoryRequested || !agentKey) return;
+    const workerKey = `agent:${agentKey}`;
+    const routeKey = `${agentKey}\u0000${chatId}\u0000history`;
+    if (lastOpenedHistoryRouteKeyRef.current === routeKey) return;
+    if (!state.workerIndexByKey.has(workerKey)) return;
+
+    lastOpenedHistoryRouteKeyRef.current = routeKey;
+    window.dispatchEvent(
+      new CustomEvent("agent:open-worker-history", {
+        detail: { workerKey, agentKey },
+      }),
+    );
+    openRouteHistoryForWorker(workerKey);
+  }, [
+    agentKey,
+    chatId,
+    openRouteHistoryForWorker,
+    routeHistoryRequested,
+    state.workerIndexByKey,
+  ]);
+
+  useEffect(() => {
+    if (!historyWorkerKey) return;
+    historyInputRef.current?.focus();
+    historyInputRef.current?.select();
+  }, [historyWorkerKey]);
+
+  const handleCloseHistory = () => {
+    setHistoryWorkerKey("");
+    setHistorySearch("");
+    setHistoryIndex(0);
+    setRemoteHistoryRows(null);
+  };
+
+  const handleSelectHistoryChat = (selectedChatId: string) => {
+    window.dispatchEvent(
+      new CustomEvent("agent:load-chat", {
+        detail: {
+          chatId: selectedChatId,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+  };
 
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
@@ -163,6 +286,33 @@ export const AgentChatShell: React.FC = () => {
       <ActionModal />
       <EventPopover />
       <FireworksCanvas />
+      <SidebarHistorySection
+        open={Boolean(historyWorkerKey)}
+        historyWorker={historyWorker}
+        historyRows={remoteHistoryRows ?? filteredHistoryRows}
+        historyIndex={historyIndex}
+        historySearch={historySearch}
+        historyInputRef={historyInputRef}
+        historyListRef={historyListRef}
+        historyItemRefs={historyItemRefs}
+        onClose={handleCloseHistory}
+        onHistorySearchChange={(value) => {
+          setHistorySearch(value);
+          setHistoryIndex(0);
+          if (!value.trim()) {
+            setRemoteHistoryRows(null);
+          }
+        }}
+        onActivateIndex={setHistoryIndex}
+        onSelectChat={handleSelectHistoryChat}
+        onChatDeleted={(deletedChatId) => {
+          setRemoteHistoryRows((rows) =>
+            rows
+              ? rows.filter((row) => String(row.chatId || "") !== deletedChatId)
+              : rows,
+          );
+        }}
+      />
     </div>
   );
 };

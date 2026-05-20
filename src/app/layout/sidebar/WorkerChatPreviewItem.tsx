@@ -6,8 +6,6 @@ import type { WorkerConversationRow } from "@/app/state/types";
 import { UnreadDot } from "./UnreadDot";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import { Loading3QuartersOutlined, LoadingOutlined } from "@ant-design/icons";
-import { Spin } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 export const WorkerChatPreviewItem: React.FC<{
@@ -34,16 +32,18 @@ export const WorkerChatPreviewItem: React.FC<{
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
-        <span className="worker-chat-name">
-          {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
-        </span>
-        {chat.hasPendingAwaiting && (
-          <span className="chat-awaiting-status">
-            {t("leftSidebar.awaitingApproval")}
+        <span className="worker-chat-item-main">
+          <span className="worker-chat-name">
+            {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
           </span>
-        )}
+          {chat.hasPendingAwaiting && (
+            <span className="chat-awaiting-status">
+              {t("leftSidebar.awaitingApproval")}
+            </span>
+          )}
+        </span>
         {/* 显示优先级：hover > loading > unread > time */}
-        <div data-action={action}>
+        <span className="worker-chat-action" data-action={action}>
           <MaterialIcon
             name="progress_activity"
             className="worker-chat-loading"
@@ -53,7 +53,7 @@ export const WorkerChatPreviewItem: React.FC<{
             {formatChatTimeLabel(chat.updatedAt)}
           </span>
           <ChatActionsMenu chatId={chat.chatId} chatName={chat.chatName} />
-        </div>
+        </span>
       </div>
     </UiListItem>
   );

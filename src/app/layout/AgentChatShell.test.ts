@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
+import type { Chat, WorkerRow } from "@/app/state/types";
 
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
@@ -34,6 +35,24 @@ jest.mock("@/app/layout/BottomDock", () => ({
 jest.mock("@/app/layout/LeftSidebar", () => ({
   LeftSidebar: () =>
     React.createElement("aside", { className: "left-sidebar" }, "left"),
+}));
+
+jest.mock("@/app/layout/sidebar/SidebarHistorySection", () => ({
+  SidebarHistorySection: ({ open, historyRows }: any) =>
+    open
+      ? React.createElement(
+          "section",
+          {
+            className: "worker-history-modal",
+            "data-history-count": historyRows.length,
+          },
+          "history",
+        )
+      : null,
+}));
+
+jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+  getChats: jest.fn(() => Promise.resolve({ data: [] })),
 }));
 
 jest.mock("@/app/layout/sidebar/right/RightSidebar", () => ({
@@ -252,6 +271,79 @@ describe("AgentChatShell", () => {
         type: "agent:start-new-conversation",
       }),
     );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("opens route history when history=1 is present without starting a blank conversation", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    const state = createInitialState();
+    const workerRow: WorkerRow = {
+      key: "agent:demo-agent",
+      type: "agent",
+      sourceId: "demo-agent",
+      displayName: "Demo Agent",
+      role: "Worker",
+      teamAgentLabels: [],
+      latestChatId: "chat-1",
+      latestRunId: "run-1",
+      latestUpdatedAt: 1000,
+      latestChatName: "Chat 1",
+      latestRunContent: "Preview",
+      hasHistory: true,
+      latestRunSortValue: 1000,
+      searchText: "demo agent",
+    };
+    const chat: Chat = {
+      chatId: "chat-1",
+      chatName: "Chat 1",
+      agentKey: "demo-agent",
+      firstAgentKey: "demo-agent",
+      updatedAt: 1000,
+      lastRunId: "run-1",
+      lastRunContent: "Preview",
+    };
+    useSearchParams.mockReturnValue([new URLSearchParams("history=1")]);
+    useAppState.mockReturnValue({
+      ...state,
+      agents: [{ key: "demo-agent", name: "Demo Agent" }],
+      chats: [chat],
+      workerRows: [workerRow],
+      workerIndexByKey: new Map([[workerRow.key, workerRow]]),
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CONVERSATION_MODE",
+      mode: "worker",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:open-worker-history",
+        detail: {
+          workerKey: "agent:demo-agent",
+          agentKey: "demo-agent",
+        },
+      }),
+    );
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
+    );
+    expect(html).toContain("worker-history-modal");
 
     useEffectSpy.mockRestore();
   });

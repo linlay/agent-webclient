@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   Badge,
@@ -169,7 +169,7 @@ export const LeftSidebar: React.FC = () => {
   const handleSelectWorker = (workerKey: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:select-worker", {
-        detail: { workerKey },
+        detail: { workerKey, focusComposerOnComplete: true },
       }),
     );
   };
@@ -207,20 +207,18 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const handleOpenHistory = (
-    event: React.MouseEvent<Element>,
-    workerKey: string,
-  ) => {
-    event.stopPropagation();
-    const workerChats = workerChatsByKey.get(workerKey) || [];
+  const openHistoryForWorker = useCallback((workerKey: string) => {
+    const normalizedWorkerKey = String(workerKey || "").trim();
+    if (!normalizedWorkerKey) return;
+    const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
     const currentChatIndex = findChatIndex(workerChats, state.chatId);
-    setHistoryWorkerKey(workerKey);
+    setHistoryWorkerKey(normalizedWorkerKey);
     setHistorySearch("");
     setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
 
     const worker =
-      state.workerIndexByKey.get(workerKey) ||
-      state.workerRows.find((item) => item.key === workerKey);
+      state.workerIndexByKey.get(normalizedWorkerKey) ||
+      state.workerRows.find((item) => item.key === normalizedWorkerKey);
     if (!worker || worker.type !== "agent") return;
 
     void getChats({ agentKey: worker.sourceId })
@@ -235,7 +233,31 @@ export const LeftSidebar: React.FC = () => {
           line: `[loadChats error] ${(error as Error).message}`,
         });
       });
+  }, [dispatch, state.chatId, state.workerIndexByKey, state.workerRows, stateRef, workerChatsByKey]);
+
+  const handleOpenHistory = (
+    event: React.MouseEvent<Element>,
+    workerKey: string,
+  ) => {
+    event.stopPropagation();
+    openHistoryForWorker(workerKey);
   };
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        workerKey?: unknown;
+        agentKey?: unknown;
+      };
+      const agentKey = String(detail.agentKey || "").trim();
+      const workerKey = String(
+        detail.workerKey || (agentKey ? `agent:${agentKey}` : ""),
+      ).trim();
+      openHistoryForWorker(workerKey);
+    };
+    window.addEventListener("agent:open-worker-history", handler);
+    return () => window.removeEventListener("agent:open-worker-history", handler);
+  }, [openHistoryForWorker]);
 
   const handleMarkWorkerAllRead = async (
     event: React.MouseEvent<HTMLElement>,

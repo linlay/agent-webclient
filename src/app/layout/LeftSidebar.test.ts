@@ -189,6 +189,8 @@ describe("LeftSidebar", () => {
   const globalWithWindow = globalThis as typeof globalThis & {
     window?: {
       dispatchEvent: jest.Mock;
+      addEventListener: jest.Mock;
+      removeEventListener: jest.Mock;
       location: {
         pathname: string;
       };
@@ -309,6 +311,8 @@ describe("LeftSidebar", () => {
     };
     globalWithWindow.window = {
       dispatchEvent: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
       location: {
         pathname: "/",
       },
@@ -496,6 +500,7 @@ describe("LeftSidebar", () => {
     expect(workerSelectionEvents).toHaveLength(1);
     expect(workerSelectionEvents[0].detail).toEqual({
       workerKey: "agent:worker_a",
+      focusComposerOnComplete: true,
     });
   });
 
@@ -520,7 +525,8 @@ describe("LeftSidebar", () => {
       '<span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain(
-      '<span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><div data-action="time">',
+      '<span class="worker-chat-item-main"><span class="worker-chat-name">Latest reply 6</span><span class="chat-awaiting-status">等待审批</span></span><span class="worker-chat-action" data-action="time">',
     );
+    expect(html).toContain("worker-chat-action");
   });
 });
