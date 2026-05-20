@@ -47,6 +47,30 @@ export function getAutoReadTriggerKey(
   ].join('|');
 }
 
+export interface StartNewConversationDetail {
+  agentKey?: unknown;
+  preserveWorkerContext?: unknown;
+  focusComposerOnComplete?: unknown;
+}
+
+export function normalizeStartNewConversationDetail(
+  detail: StartNewConversationDetail | null | undefined,
+  currentConversationMode: string,
+): {
+  agentKey: string;
+  preserveWorkerContext: boolean;
+  focusComposerOnComplete: boolean;
+} {
+  const agentKey = String(detail?.agentKey || '').trim();
+  return {
+    agentKey,
+    preserveWorkerContext: Boolean(detail?.preserveWorkerContext)
+      || Boolean(agentKey)
+      || currentConversationMode === 'worker',
+    focusComposerOnComplete: Boolean(detail?.focusComposerOnComplete),
+  };
+}
+
 function normalizeChatPlan(value: unknown): Plan | null | undefined {
   if (value === undefined) return undefined;
   if (value == null) return null;
@@ -503,15 +527,25 @@ export function useChatActions() {
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const focusComposerOnComplete = Boolean((event as CustomEvent).detail?.focusComposerOnComplete);
+      const detail = normalizeStartNewConversationDetail(
+        ((event as CustomEvent).detail || {}) as StartNewConversationDetail,
+        stateRef.current.conversationMode,
+      );
+      if (detail.agentKey) {
+        const workerKey = `agent:${detail.agentKey}`;
+        dispatch({ type: 'SET_CONVERSATION_MODE', mode: 'worker' });
+        dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
+        dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey });
+        dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: detail.agentKey });
+      }
       activateBlankConversation({
-        preserveWorkerContext: stateRef.current.conversationMode === 'worker',
-        focusComposerOnComplete,
+        preserveWorkerContext: detail.preserveWorkerContext,
+        focusComposerOnComplete: detail.focusComposerOnComplete,
       });
     };
     window.addEventListener('agent:start-new-conversation', handler);
     return () => window.removeEventListener('agent:start-new-conversation', handler);
-  }, [activateBlankConversation, stateRef]);
+  }, [activateBlankConversation, dispatch, stateRef]);
 
   const workerData = useWorkerData({ loadChat, selectWorkerConversation });
 

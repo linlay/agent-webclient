@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
+import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import { initializeDesktopQueryContextBridge } from "@/shared/api/desktopQueryContext";
 import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 import { APP_UI_BASE } from "@/shared/utils/routing";
@@ -130,6 +131,14 @@ const router = createBrowserRouter(
       element: (
         <DocumentTitleRoute title="智能体">
           <AgentsPage />
+        </DocumentTitleRoute>
+      ),
+    },
+    {
+      path: "/agent/:agentKey",
+      element: (
+        <DocumentTitleRoute title="智能体">
+          <AgentChatShell />
         </DocumentTitleRoute>
       ),
     },

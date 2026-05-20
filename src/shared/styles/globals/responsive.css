@@ -230,6 +230,22 @@ html[data-theme="dark"] .sidebar-settings-menu {
     grid-template-columns: var(--left-sidebar-width) 1fr var(--right-sidebar-width);
 }
 
+.layout-agent-route,
+.layout-agent-route.left-drawer-open,
+.layout-agent-route.desktop-debug-enabled,
+.layout-agent-route.desktop-debug-enabled.left-drawer-open {
+    grid-template-columns: 0 minmax(0, 1fr) var(--right-sidebar-width);
+}
+
+.layout-agent-route.desktop-debug-disabled,
+.layout-agent-route.desktop-debug-disabled.left-drawer-open {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.layout-agent-route .left-sidebar {
+    display: none;
+}
+
 .layout-desktop-fixed .drawer-close {
     display: none;
 }

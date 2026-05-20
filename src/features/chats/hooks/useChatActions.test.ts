@@ -3,6 +3,7 @@ import {
   createReplayState,
   getAutoReadTriggerKey,
   normalizeChatArtifactItems,
+  normalizeStartNewConversationDetail,
   replayEvent,
   setReplayArtifacts,
   setReplayPlan,
@@ -10,6 +11,32 @@ import {
 } from '@/features/chats/hooks/useChatActions';
 
 describe('replayEvent tool migration', () => {
+  it('normalizes agent route new-conversation events as preserved worker sessions', () => {
+    expect(
+      normalizeStartNewConversationDetail({
+        agentKey: 'demo-agent',
+        focusComposerOnComplete: true,
+      }, 'chat'),
+    ).toEqual({
+      agentKey: 'demo-agent',
+      preserveWorkerContext: true,
+      focusComposerOnComplete: true,
+    });
+  });
+
+  it('keeps legacy new-conversation events scoped to the current mode', () => {
+    expect(normalizeStartNewConversationDetail({}, 'chat')).toEqual({
+      agentKey: '',
+      preserveWorkerContext: false,
+      focusComposerOnComplete: false,
+    });
+    expect(normalizeStartNewConversationDetail({}, 'worker')).toEqual({
+      agentKey: '',
+      preserveWorkerContext: true,
+      focusComposerOnComplete: false,
+    });
+  });
+
   it('marks only unread chats for auto-read on load', () => {
     expect(
       shouldAutoMarkChatRead({

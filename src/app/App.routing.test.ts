@@ -29,6 +29,10 @@ jest.mock("@/app/layout/CopilotShell", () => ({
   CopilotShell: () => null,
 }));
 
+jest.mock("@/app/layout/AgentChatShell", () => ({
+  AgentChatShell: () => null,
+}));
+
 jest.mock("@/shared/i18n", () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -68,7 +72,15 @@ describe("App routing", () => {
     }>;
 
     expect(routes.map((route) => route.path)).toEqual(
-      expect.arrayContaining(["/", "/copilot", "/schedules", "/memory", "/agents", "/agents/:agentKey"]),
+      expect.arrayContaining([
+        "/",
+        "/copilot",
+        "/schedules",
+        "/memory",
+        "/agents",
+        "/agents/:agentKey",
+        "/agent/:agentKey",
+      ]),
     );
   });
 });
