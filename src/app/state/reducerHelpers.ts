@@ -58,6 +58,7 @@ export function buildConversationResetState(
 		messagesById: new Map(),
 		messageOrder: [],
 		events: [],
+		debugEvents: [],
 		artifacts: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),

@@ -88,6 +88,10 @@ describe('conversation session restore', () => {
       'content.start',
       'content.delta',
     ]);
+    expect(restored.debugEvents.map((event) => event.type)).toEqual([
+      'request.query',
+      'run.start',
+    ]);
   });
 
   it('merges pending raw/debug buffers and clears render caches for restored state', () => {
@@ -123,6 +127,12 @@ describe('conversation session restore', () => {
 
     expect(restored.streaming).toBe(false);
     expect(restored.abortController).toBeNull();
+    expect(restored.debugEvents.map((event) => event.type)).toEqual([
+      'run.complete',
+    ]);
+    expect(updates.debugEvents?.map((event) => event.type)).toEqual([
+      'run.complete',
+    ]);
     expect(restored.debugLines).toEqual(['before', 'after']);
     expect(updates.timelineDomCache).toEqual(new Map());
     expect(updates.renderQueue).toMatchObject({

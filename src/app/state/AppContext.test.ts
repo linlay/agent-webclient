@@ -1,5 +1,6 @@
 import type { WorkerConversationRow } from '@/app/state/types';
 import { appReducer, applyActionToStateRef, createInitialState } from '@/app/state/AppContext';
+import { MAX_EVENTS } from '@/app/state/constants';
 import * as transportModeModule from '@/features/transport/lib/transportMode';
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
@@ -450,6 +451,66 @@ describe('appReducer conversation reset behavior', () => {
       type: 'run.complete',
       runId: 'run_1',
     });
+    expect(stateRef.current.debugEvents.map((event) => event.type)).toEqual([
+      'run.complete',
+    ]);
+  });
+
+  it('keeps debug events capped by visible events when delta logs are disabled', () => {
+    const stateRef = {
+      current: createInitialState(),
+    };
+
+    applyActionToStateRef(stateRef, {
+      type: 'PUSH_EVENT',
+      event: { type: 'run.start', runId: 'run_1' },
+    });
+    applyActionToStateRef(stateRef, {
+      type: 'PUSH_EVENT',
+      event: { type: 'reasoning.snapshot', reasoningId: 'reasoning_1', text: 'done' },
+    });
+    for (let index = 0; index < MAX_EVENTS + 25; index += 1) {
+      applyActionToStateRef(stateRef, {
+        type: 'PUSH_EVENT',
+        event: {
+          type: 'reasoning.delta',
+          reasoningId: 'reasoning_1',
+          delta: String(index),
+        },
+      });
+    }
+
+    expect(stateRef.current.events.length).toBeLessThanOrEqual(MAX_EVENTS + 1);
+    expect(stateRef.current.events.at(-1)?.type).toBe('reasoning.delta');
+    expect(stateRef.current.debugEvents.map((event) => event.type)).toEqual([
+      'run.start',
+      'reasoning.snapshot',
+    ]);
+  });
+
+  it('stores delta debug events when delta logs are enabled', () => {
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DELTA_LOGS_ENABLED: 'true',
+    };
+    const state = appReducer(createInitialState(), {
+      type: 'PUSH_EVENT',
+      event: { type: 'reasoning.delta', reasoningId: 'reasoning_1', delta: 'x' },
+    });
+
+    expect(state.events.map((event) => event.type)).toEqual(['reasoning.delta']);
+    expect(state.debugEvents.map((event) => event.type)).toEqual(['reasoning.delta']);
+  });
+
+  it('clears raw and debug event logs together', () => {
+    const populated = appReducer(createInitialState(), {
+      type: 'PUSH_EVENT',
+      event: { type: 'run.complete', runId: 'run_1' },
+    });
+
+    const cleared = appReducer(populated, { type: 'CLEAR_EVENTS' });
+
+    expect(cleared.events).toEqual([]);
+    expect(cleared.debugEvents).toEqual([]);
   });
 
   it('normalizes theme updates through the reducer', () => {

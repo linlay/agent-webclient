@@ -439,6 +439,7 @@ export function useChatActions() {
             activeReasoningKey: rs.activeReasoningKey,
             activeAwaiting: rs.activeAwaiting,
             events: rs.events,
+            debugEvents: rs.debugEvents,
             artifacts: rs.artifacts,
             plan: rs.plan,
             planRuntimeByTaskId: rs.planRuntimeByTaskId,

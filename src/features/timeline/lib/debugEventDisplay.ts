@@ -127,6 +127,20 @@ export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
   return !deltaLogEventTypes.has(String(event.type || '').toLowerCase());
 }
 
+export function appendVisibleDebugEvent(
+  events: AgentEvent[],
+  event: AgentEvent,
+  maxEvents: number,
+): AgentEvent[] {
+  if (!shouldDisplayDebugEvent(event)) {
+    return events;
+  }
+  if (events.length >= maxEvents) {
+    return [...events.slice(-Math.floor(maxEvents * 0.8)), event];
+  }
+  return [...events, event];
+}
+
 export function getEventRowGroupClass(eventType: string): string {
   const group = classifyEventGroup(eventType);
   return group ? `event-group-${group}` : 'event-group-unrecognized';

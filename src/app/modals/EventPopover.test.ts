@@ -141,7 +141,7 @@ describe("EventPopover collect controls", () => {
       ...state,
       eventPopoverIndex: 0,
       eventPopoverEventRef: event,
-      events: [
+      debugEvents: [
         { type: "reasoning.start", reasoningId: "r1" },
         event,
       ],
@@ -149,12 +149,40 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="收集事件快照"');
-    expect(html).toContain('aria-label="打开复制菜单"');
-    expect(html).toContain('aria-label="关闭事件详情"');
+    expect(html).toContain('aria-label="Collect event snapshot"');
+    expect(html).toContain('aria-label="Open copy menu"');
+    expect(html).toContain('aria-label="Close event details"');
     expect(html).toContain(
-      `时间: ${formatReadableTimestamp(1776518171300)}`,
+      `Time: ${formatReadableTimestamp(1776518171300)}`,
     );
+  });
+
+  it("collects related events from debugEvents instead of raw events", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "reasoning.delta",
+      reasoningId: "r1",
+      timestamp: 1776518171300,
+      delta: "visible",
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 1,
+      eventPopoverEventRef: event,
+      events: [
+        { type: "reasoning.delta", reasoningId: "other", delta: "raw" },
+      ],
+      debugEvents: [
+        { type: "reasoning.start", reasoningId: "r1" },
+        event,
+      ],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain("reasoningId: r1 · 2/2");
+    expect(html).toContain('aria-label="Collect event snapshot"');
+    expect(html).not.toContain("other");
   });
 
   it("does not render collect button for non-collectible events", () => {
@@ -173,9 +201,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="打开复制菜单"');
-    expect(html).toContain('aria-label="关闭事件详情"');
-    expect(html).not.toContain('aria-label="收集事件快照"');
+    expect(html).toContain('aria-label="Open copy menu"');
+    expect(html).toContain('aria-label="Close event details"');
+    expect(html).not.toContain('aria-label="Collect event snapshot"');
   });
 
   it("renders a copy menu trigger for debug.preCall instead of flat copy buttons", () => {
@@ -200,7 +228,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).toContain('aria-label="Open copy menu"');
     expect(html).not.toContain('aria-label="复制 systemPrompt"');
     expect(html).not.toContain('aria-label="复制 tools"');
   });
@@ -235,7 +263,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="查看注入 Prompt"');
+    expect(html).toContain('aria-label="View injected prompt"');
   });
 });
 

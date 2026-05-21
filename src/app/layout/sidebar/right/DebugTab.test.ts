@@ -1,13 +1,51 @@
 import type { AgentEvent } from "@/app/state/types";
-import { buildDebugEventGroups } from "@/app/layout/sidebar/right/DebugTab";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createInitialState } from "@/app/state/AppContext";
+import { DebugTab, buildDebugEventGroups } from "@/app/layout/sidebar/right/DebugTab";
+
+jest.mock("@/app/state/AppContext", () => {
+	const actual = jest.requireActual("@/app/state/AppContext");
+	return {
+		...actual,
+		useAppState: jest.fn(),
+		useAppDispatch: jest.fn(),
+	};
+});
+
+const { useAppState, useAppDispatch } = jest.requireMock(
+	"@/app/state/AppContext",
+) as {
+	useAppState: jest.Mock;
+	useAppDispatch: jest.Mock;
+};
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
 	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
+const globalWithStorage = globalThis as typeof globalThis & {
+	localStorage?: {
+		getItem: jest.Mock;
+		setItem: jest.Mock;
+		removeItem: jest.Mock;
+	};
+};
 
 describe("buildDebugEventGroups", () => {
+	const originalLocalStorage = globalWithStorage.localStorage;
+
 	beforeEach(() => {
 		delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+		globalWithStorage.localStorage = {
+			getItem: jest.fn(() => null),
+			setItem: jest.fn(),
+			removeItem: jest.fn(),
+		};
+		useAppDispatch.mockReturnValue(jest.fn());
+	});
+
+	afterEach(() => {
+		globalWithStorage.localStorage = originalLocalStorage;
 	});
 
 	it("keeps displayed events in the all bucket and their classified buckets", () => {
@@ -95,5 +133,25 @@ describe("buildDebugEventGroups", () => {
 			"tool.args",
 			"content.snapshot",
 		]);
+	});
+
+	it("renders from debugEvents even when raw events only contain filtered deltas", () => {
+		useAppState.mockReturnValue({
+			...createInitialState(),
+			events: [
+				{ type: "reasoning.delta", reasoningId: "reasoning_1", delta: "x" },
+			],
+			debugEvents: [
+				{ type: "run.start", runId: "run_1" },
+				{ type: "reasoning.snapshot", reasoningId: "reasoning_1", text: "done" },
+			],
+		});
+
+		const html = renderToStaticMarkup(React.createElement(DebugTab));
+
+		expect(html).toContain("run.start");
+		expect(html).toContain("reasoning.snapshot");
+		expect(html).not.toContain("reasoning.delta");
+		expect(html).not.toContain("暂无事件");
 	});
 });

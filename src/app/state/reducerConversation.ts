@@ -1,6 +1,7 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
+import { appendVisibleDebugEvent } from "@/features/timeline/lib/debugEventDisplay";
 import {
 	addSetValue,
 	removeSetValue,
@@ -28,10 +29,15 @@ export function reduceConversationState(
 				state.events.length >= MAX_EVENTS
 					? [...state.events.slice(-Math.floor(MAX_EVENTS * 0.8)), action.event]
 					: [...state.events, action.event];
-			return { ...state, events };
+			const debugEvents = appendVisibleDebugEvent(
+				state.debugEvents,
+				action.event,
+				MAX_EVENTS,
+			);
+			return { ...state, events, debugEvents };
 		}
 		case "CLEAR_EVENTS":
-			return { ...state, events: [] };
+			return { ...state, events: [], debugEvents: [] };
 		case "APPEND_DEBUG": {
 			const debugLines =
 				state.debugLines.length >= MAX_DEBUG_LINES

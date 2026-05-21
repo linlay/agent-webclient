@@ -98,6 +98,7 @@ export interface AppState {
 	messagesById: Map<string, Message>;
 	messageOrder: string[];
 	events: AgentEvent[];
+	debugEvents: AgentEvent[];
 	debugLines: string[];
 	artifacts: PublishedArtifact[];
 	plan: Plan | null;

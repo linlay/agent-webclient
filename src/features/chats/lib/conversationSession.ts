@@ -17,6 +17,8 @@ import type {
 import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import { createReplayState, replayEvent, type ReplayState } from '@/features/chats/lib/conversationReplay';
 import { toText } from '@/shared/utils/eventUtils';
+import { MAX_EVENTS } from '@/app/state/constants';
+import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDisplay';
 
 export interface ConversationSnapshot {
   chatId: string;
@@ -27,6 +29,7 @@ export interface ConversationSnapshot {
   messagesById: Map<string, Message>;
   messageOrder: string[];
   events: AgentEvent[];
+  debugEvents: AgentEvent[];
   debugLines: string[];
   artifacts: PublishedArtifact[];
   plan: Plan | null;
@@ -179,6 +182,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     messagesById: cloneMap(state.messagesById),
     messageOrder: state.messageOrder.slice(),
     events: state.events.slice(),
+    debugEvents: state.debugEvents.slice(),
     debugLines: state.debugLines.slice(),
     artifacts: cloneArtifacts(state.artifacts),
     plan: state.plan
@@ -220,6 +224,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     messagesById: cloneMap(snapshot.messagesById),
     messageOrder: snapshot.messageOrder.slice(),
     events: snapshot.events.slice(),
+    debugEvents: snapshot.debugEvents.slice(),
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
     plan: snapshot.plan
@@ -264,6 +269,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.runId = snapshot.runId;
   rs.activeAwaiting = cloneActiveAwaiting(snapshot.activeAwaiting);
   rs.events = snapshot.events.slice();
+  rs.debugEvents = snapshot.debugEvents.slice();
   rs.debugLines = snapshot.debugLines.slice();
   rs.artifacts = cloneArtifacts(snapshot.artifacts);
   rs.plan = snapshot.plan
@@ -297,6 +303,7 @@ function applyReplayStateToSnapshot(
   next.activeReasoningKey = rs.activeReasoningKey;
   next.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
   next.events = rs.events;
+  next.debugEvents = rs.debugEvents;
   next.artifacts = rs.artifacts;
   next.plan = rs.plan;
   next.planRuntimeByTaskId = rs.planRuntimeByTaskId;
@@ -317,6 +324,7 @@ export function applyPendingSessionUpdates(
   for (const event of pendingEvents) {
     if (toText(event.type) === 'request.query') {
       rs.events.push(event);
+      rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS);
       rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
       if (event.chatId) {
         rs.chatId = String(event.chatId);
@@ -357,6 +365,7 @@ export function buildConversationStateUpdates(
     messagesById: cloneMap(snapshot.messagesById),
     messageOrder: snapshot.messageOrder.slice(),
     events: snapshot.events.slice(),
+    debugEvents: snapshot.debugEvents.slice(),
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
     plan: snapshot.plan

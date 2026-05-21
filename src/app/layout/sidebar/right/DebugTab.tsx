@@ -109,8 +109,8 @@ export const DebugTab: React.FC = () => {
 	);
 
 	const eventsByTab = React.useMemo(
-		() => buildDebugEventGroups(state.events),
-		[state.events],
+		() => buildDebugEventGroups(state.debugEvents),
+		[state.debugEvents],
 	);
 
 	const tabItems = React.useMemo(
@@ -148,7 +148,7 @@ export const DebugTab: React.FC = () => {
 	return (
 		<div className="debug-panel">
 			<div className="list" id="events-list">
-				{state.events.length === 0 ? (
+				{state.debugEvents.length === 0 ? (
 					<div className="status-line">暂无事件</div>
 				) : (
 					<Tabs

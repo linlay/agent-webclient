@@ -13,6 +13,8 @@ import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/
 import { parseContentSegments } from '@/features/timeline/lib/contentSegments';
 import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
+import { MAX_EVENTS } from '@/app/state/constants';
+import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDisplay';
 
 export interface ReplayState {
   timelineNodes: Map<string, TimelineNode>;
@@ -28,6 +30,7 @@ export interface ReplayState {
   runId: string;
   activeAwaiting: ActiveAwaiting | null;
   events: AgentEvent[];
+  debugEvents: AgentEvent[];
   debugLines: string[];
   artifacts: PublishedArtifact[];
   plan: Plan | null;
@@ -53,6 +56,7 @@ export function createReplayState(): ReplayState {
     runId: '',
     activeAwaiting: null,
     events: [],
+    debugEvents: [],
     debugLines: [],
     artifacts: [],
     plan: null,
@@ -267,6 +271,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
 
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   rs.events.push(event);
+  rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS);
   rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',

@@ -79,7 +79,7 @@ export const EventPopover: React.FC = () => {
 			return [{ event, index: state.eventPopoverIndex }];
 		}
 
-		const matches = state.events.flatMap((candidate, index) => {
+		const matches = state.debugEvents.flatMap((candidate, index) => {
 			const candidateGroupMeta = resolveEventGroupMeta(candidate);
 			if (
 				!candidateGroupMeta ||
@@ -96,7 +96,7 @@ export const EventPopover: React.FC = () => {
 		return matches.length > 0
 			? matches
 			: [{ event, index: state.eventPopoverIndex }];
-	}, [event, groupMeta, state.eventPopoverIndex, state.events]);
+	}, [event, groupMeta, state.eventPopoverIndex, state.debugEvents]);
 	const activeRelatedIndex = useMemo(() => {
 		if (!event) return -1;
 

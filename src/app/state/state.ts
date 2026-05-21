@@ -65,6 +65,7 @@ export function createInitialState(): AppState {
 		messagesById: new Map(),
 		messageOrder: [],
 		events: [],
+		debugEvents: [],
 		debugLines: [],
 		artifacts: [],
 		plan: null,

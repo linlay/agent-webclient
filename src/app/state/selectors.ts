@@ -40,6 +40,7 @@ export function selectConversationState(state: AppState) {
     messagesById: state.messagesById,
     messageOrder: state.messageOrder,
     events: state.events,
+    debugEvents: state.debugEvents,
     debugLines: state.debugLines,
     inputMode: state.inputMode,
     voiceChat: state.voiceChat,
