@@ -1,6 +1,11 @@
 import React, { useEffect } from "react";
 import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Outlet,
+  RouterProvider,
+  useNavigate,
+} from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
@@ -12,9 +17,96 @@ import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 
+type DesktopRouteChangedPayload = {
+  type?: unknown;
+  pathname?: unknown;
+  search?: unknown;
+  hash?: unknown;
+};
+
+function normalizeRoutePart(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildDesktopRouteTarget(
+  payload: DesktopRouteChangedPayload,
+): string | null {
+  const rawPathname = normalizeRoutePart(payload.pathname);
+  if (!rawPathname) {
+    return null;
+  }
+
+  let pathnameWithoutQuery = rawPathname;
+  let queryFromPath = "";
+  let hashFromPath = "";
+  const hashIndex = pathnameWithoutQuery.indexOf("#");
+  if (hashIndex >= 0) {
+    hashFromPath = pathnameWithoutQuery.slice(hashIndex + 1);
+    pathnameWithoutQuery = pathnameWithoutQuery.slice(0, hashIndex);
+  }
+  const queryIndex = pathnameWithoutQuery.indexOf("?");
+  if (queryIndex >= 0) {
+    queryFromPath = pathnameWithoutQuery.slice(queryIndex + 1);
+    pathnameWithoutQuery = pathnameWithoutQuery.slice(0, queryIndex);
+  }
+
+  const pathname = pathnameWithoutQuery.startsWith("/")
+    ? pathnameWithoutQuery || "/"
+    : `/${pathnameWithoutQuery}`;
+  const rawSearch = normalizeRoutePart(payload.search) || queryFromPath;
+  const rawHash = normalizeRoutePart(payload.hash) || hashFromPath;
+  const search = rawSearch
+    ? rawSearch.startsWith("?")
+      ? rawSearch
+      : `?${rawSearch}`
+    : "";
+  const hash = rawHash
+    ? rawHash.startsWith("#")
+      ? rawHash
+      : `#${rawHash}`
+    : "";
+
+  return `${pathname}${search}${hash}`;
+}
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
 
+const BaseShell = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handleServiceWebviewDeliver = (event: Event) => {
+      const payload =
+        ((event as CustomEvent<DesktopRouteChangedPayload | undefined>)
+          .detail as DesktopRouteChangedPayload | undefined) || {};
+      if (payload.type !== "desktopRouteChanged") {
+        return;
+      }
+
+      const target = buildDesktopRouteTarget(payload);
+      if (!target) {
+        return;
+      }
+      const cur = `${location.pathname}${location.search}${location.hash}`;
+      if (cur === target) {
+        return;
+      }
+      console.log(222, target);
+      navigate(target, { replace: true });
+    };
+
+    window.addEventListener(
+      "zenmind:service-webview:deliver",
+      handleServiceWebviewDeliver,
+    );
+    return () => {
+      window.removeEventListener(
+        "zenmind:service-webview:deliver",
+        handleServiceWebviewDeliver,
+      );
+    };
+  }, []);
+  return <Outlet />;
+};
 const DocumentTitleRoute: React.FC<{
   title?: string;
   children: React.ReactNode;
@@ -88,59 +180,65 @@ const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: (
-        <DocumentTitleRoute>
-          <AppShell />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/copilot",
-      element: (
-        <DocumentTitleRoute>
-          <CopilotShell />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/schedules",
-      element: (
-        <DocumentTitleRoute title="自动化">
-          <SchedulesPage />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/memory",
-      element: (
-        <DocumentTitleRoute title="记忆">
-          <MemoryPage />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/agents",
-      element: (
-        <DocumentTitleRoute title="智能体">
-          <AgentsPage />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/agents/:agentKey",
-      element: (
-        <DocumentTitleRoute title="智能体">
-          <AgentsPage />
-        </DocumentTitleRoute>
-      ),
-    },
-    {
-      path: "/agent/:agentKey",
-      element: (
-        <DocumentTitleRoute title="智能体">
-          <AgentChatShell />
-        </DocumentTitleRoute>
-      ),
+      element: <BaseShell />,
+      children: [
+        {
+          path: "/",
+          element: (
+            <DocumentTitleRoute>
+              <AppShell />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/copilot",
+          element: (
+            <DocumentTitleRoute>
+              <CopilotShell />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/schedules",
+          element: (
+            <DocumentTitleRoute title="自动化">
+              <SchedulesPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/memory",
+          element: (
+            <DocumentTitleRoute title="记忆">
+              <MemoryPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/agents",
+          element: (
+            <DocumentTitleRoute title="智能体">
+              <AgentsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/agents/:agentKey",
+          element: (
+            <DocumentTitleRoute title="智能体">
+              <AgentsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/agent/:agentKey",
+          element: (
+            <DocumentTitleRoute title="智能体">
+              <AgentChatShell />
+            </DocumentTitleRoute>
+          ),
+        },
+      ],
     },
   ],
   {
