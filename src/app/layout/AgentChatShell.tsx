@@ -19,8 +19,9 @@ import { TerminalDock } from "./TerminalDock";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
-import { getChats } from "@/features/transport/lib/apiClientProxy";
+import { getAgent, getChats } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
+import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   const normalizedAgentKey = String(agentKey || "").trim();
@@ -53,6 +54,36 @@ function normalizeRouteTheme(value: string): "light" | "dark" | "" {
   return theme === "light" || theme === "dark" ? theme : "";
 }
 
+function isRouteAgentResolved(agent: Agent | undefined, agentKey: string): boolean {
+  if (!agent) {
+    return false;
+  }
+
+  const key = String(agent.key || "").trim();
+  if (key !== agentKey) {
+    return false;
+  }
+
+  const name = String(agent.name || "").trim();
+  const role = String(agent.role || "").trim();
+  const hasFetchedFields = Object.keys(agent).some(
+    (field) => !["key", "name", "role"].includes(field),
+  );
+
+  return hasFetchedFields || name !== agentKey || role !== "--";
+}
+
+const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => (
+  <main className="agent-route-loading-page" aria-busy="true">
+    <div className="agent-route-loading-card">
+      <div className="agent-route-loading-spinner" aria-hidden="true" />
+      <div className="agent-route-loading-copy">
+        <strong>{title}</strong>
+      </div>
+    </div>
+  </main>
+);
+
 export const AgentChatShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -71,6 +102,8 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const lastOpenedHistoryRouteKeyRef = useRef("");
+  const agentLoadRequestKeyRef = useRef("");
+  const [loadedRouteAgentKey, setLoadedRouteAgentKey] = useState("");
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -87,6 +120,20 @@ export const AgentChatShell: React.FC = () => {
     () => String(searchParams.get("history") || "").trim() === "1",
     [searchParams],
   );
+  const routeAgent = useMemo(
+    () =>
+      state.agents.find(
+        (agent) => String(agent?.key || "").trim() === agentKey,
+      ),
+    [agentKey, state.agents],
+  );
+  const routeAgentResolved = useMemo(
+    () => isRouteAgentResolved(routeAgent, agentKey),
+    [agentKey, routeAgent],
+  );
+  const routeAgentReady =
+    !agentKey || routeAgentResolved || loadedRouteAgentKey === agentKey;
+  const routeChatReady = !chatId || String(state.chatId || "") === chatId;
   const {
     filteredHistoryRows,
     workerChatsByKey,
@@ -122,6 +169,65 @@ export const AgentChatShell: React.FC = () => {
   }, [agentKey, dispatch, state.agents]);
 
   useEffect(() => {
+    if (!agentKey) {
+      agentLoadRequestKeyRef.current = "";
+      setLoadedRouteAgentKey("");
+      return;
+    }
+
+    if (routeAgentResolved) {
+      agentLoadRequestKeyRef.current = "";
+      return;
+    }
+
+    if (agentLoadRequestKeyRef.current === agentKey) {
+      return;
+    }
+
+    let cancelled = false;
+    agentLoadRequestKeyRef.current = agentKey;
+    setLoadedRouteAgentKey((current) => (current ? "" : current));
+
+    void getAgent(agentKey)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+
+        const payload = (response.data || {}) as Partial<Agent>;
+        const resolvedAgentKey =
+          String(payload.key || agentKey).trim() || agentKey;
+        const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
+          ...payload,
+          key: resolvedAgentKey,
+        });
+
+        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
+        setLoadedRouteAgentKey(agentKey);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[loadAgent error] ${(error as Error).message}`,
+        });
+        setLoadedRouteAgentKey(agentKey);
+      })
+      .finally(() => {
+        if (agentLoadRequestKeyRef.current === agentKey) {
+          agentLoadRequestKeyRef.current = "";
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agentKey, dispatch, routeAgentResolved]);
+
+  useEffect(() => {
     if (!routeThemeMode || state.themeMode === routeThemeMode) {
       return;
     }
@@ -130,7 +236,7 @@ export const AgentChatShell: React.FC = () => {
   }, [dispatch, routeThemeMode, state.themeMode]);
 
   useEffect(() => {
-    if (!agentKey) {
+    if (!agentKey || !routeAgentReady) {
       return;
     }
 
@@ -179,7 +285,7 @@ export const AgentChatShell: React.FC = () => {
         },
       }),
     );
-  }, [agentKey, chatId, dispatch, routeHistoryRequested]);
+  }, [agentKey, chatId, dispatch, routeAgentReady, routeHistoryRequested]);
 
   const openRouteHistoryForWorker = useCallback((workerKey: string) => {
     const normalizedWorkerKey = String(workerKey || "").trim();
@@ -213,7 +319,7 @@ export const AgentChatShell: React.FC = () => {
   }, [dispatch, workerChatsByKey]);
 
   useEffect(() => {
-    if (!routeHistoryRequested || !agentKey) return;
+    if (!routeHistoryRequested || !agentKey || !routeAgentReady) return;
     const workerKey = `agent:${agentKey}`;
     const routeKey = `${agentKey}\u0000${chatId}\u0000history`;
     if (lastOpenedHistoryRouteKeyRef.current === routeKey) return;
@@ -230,6 +336,7 @@ export const AgentChatShell: React.FC = () => {
     agentKey,
     chatId,
     openRouteHistoryForWorker,
+    routeAgentReady,
     routeHistoryRequested,
     state.workerIndexByKey,
   ]);
@@ -268,6 +375,15 @@ export const AgentChatShell: React.FC = () => {
       buildTimelineDisplayItems(timelineEntries, state.events).length === 0
     );
   }, [timelineEntries, state.events]);
+
+  if (!routeAgentReady) {
+    return <AgentRouteLoadingPage title="正在加载智能体" />;
+  }
+
+  if (!routeChatReady) {
+    return <AgentRouteLoadingPage title="正在加载会话" />;
+  }
+
   return (
     <div
       className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
