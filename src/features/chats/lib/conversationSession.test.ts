@@ -142,6 +142,69 @@ describe('conversation session restore', () => {
     });
   });
 
+  it('restores pending streamed tool events as debug snapshots', () => {
+    const snapshot = snapshotConversationState({
+      ...createInitialState(),
+      chatId: 'chat_1',
+      runId: 'run_1',
+      requestId: 'req_1',
+      streaming: true,
+    });
+    const session = createLiveQuerySession({
+      requestId: 'req_1',
+      chatId: 'chat_1',
+    });
+    session.runId = 'run_1';
+    session.streaming = false;
+    session.bufferedEvents = [
+      {
+        type: 'tool.start',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        runId: 'run_1',
+        timestamp: 100,
+      },
+      {
+        type: 'tool.args',
+        toolId: 'tool_1',
+        delta: '{"foo":"bar"}',
+        timestamp: 101,
+      },
+      {
+        type: 'tool.end',
+        toolId: 'tool_1',
+        timestamp: 102,
+      },
+      {
+        type: 'tool.result',
+        toolId: 'tool_1',
+        result: 'ok',
+        timestamp: 103,
+      },
+    ];
+
+    const restored = applyPendingSessionUpdates(snapshot, session);
+
+    expect(restored.events.map((event) => event.type)).toEqual([
+      'tool.start',
+      'tool.args',
+      'tool.end',
+      'tool.result',
+    ]);
+    expect(restored.debugEvents.map((event) => event.type)).toEqual([
+      'tool.snapshot',
+      'tool.result',
+    ]);
+    expect(restored.debugEvents[0]).toMatchObject({
+      type: 'tool.snapshot',
+      toolId: 'tool_1',
+      toolName: 'demo.run',
+      runId: 'run_1',
+      arguments: '{"foo":"bar"}',
+      timestamp: 102,
+    });
+  });
+
   it('marks applied counts from buffer lengths to prevent double-replay when events are truncated', () => {
     const session = createLiveQuerySession({
       requestId: 'req_1',

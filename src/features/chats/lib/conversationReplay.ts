@@ -271,7 +271,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
 
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   rs.events.push(event);
-  rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS);
+  rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
   rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',

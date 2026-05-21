@@ -1,4 +1,5 @@
 import {
+  appendVisibleDebugEvent,
   classifyEventGroup,
   getEventId,
   getEventRowGroupClass,
@@ -6,6 +7,7 @@ import {
   resolveDebugEventTarget,
   shouldDisplayDebugEvent,
 } from '@/features/timeline/lib/debugEventDisplay';
+import type { AgentEvent } from '@/app/state/types';
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
@@ -101,6 +103,121 @@ describe('shouldDisplayDebugEvent', () => {
         type: 'run.complete',
       }),
     ).toBe(true);
+  });
+
+  it('collapses streamed tool events into a snapshot when delta logs are disabled', () => {
+    const rawEvents = [
+      {
+        type: 'tool.start',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        toolLabel: 'Demo',
+        toolType: 'shell',
+        viewportKey: 'viewport_demo',
+        toolDescription: 'Run demo',
+        runId: 'run_1',
+        taskId: 'task_1',
+        timestamp: 10,
+      },
+      {
+        type: 'tool.args',
+        toolId: 'tool_1',
+        delta: '{"foo"',
+        timestamp: 11,
+      },
+      {
+        type: 'tool.args',
+        toolId: 'tool_1',
+        delta: ':"bar"}',
+        timestamp: 12,
+      },
+      {
+        type: 'tool.end',
+        toolId: 'tool_1',
+        timestamp: 13,
+      },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents).toEqual([
+      expect.objectContaining({
+        type: 'tool.snapshot',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        toolLabel: 'Demo',
+        toolType: 'shell',
+        viewportKey: 'viewport_demo',
+        toolDescription: 'Run demo',
+        runId: 'run_1',
+        taskId: 'task_1',
+        arguments: '{"foo":"bar"}',
+        timestamp: 13,
+      }),
+    ]);
+  });
+
+  it('keeps tool result visible after the synthesized tool snapshot', () => {
+    const rawEvents = [
+      { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
+      { type: 'tool.args', toolId: 'tool_1', delta: '{"foo":"bar"}' },
+      { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
+      { type: 'tool.result', toolId: 'tool_1', result: 'ok', timestamp: 14 },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents.map((event) => event.type)).toEqual([
+      'tool.snapshot',
+      'tool.result',
+    ]);
+  });
+
+  it('keeps streamed tool events uncollapsed when delta logs are enabled', () => {
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DELTA_LOGS_ENABLED: 'true',
+    };
+    const rawEvents = [
+      { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
+      { type: 'tool.args', toolId: 'tool_1', delta: '{"foo":"bar"}' },
+      { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents.map((event) => event.type)).toEqual([
+      'tool.start',
+      'tool.args',
+      'tool.end',
+    ]);
+  });
+
+  it('does not synthesize another snapshot when one is already present', () => {
+    const rawEvents = [
+      { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
+      { type: 'tool.snapshot', toolId: 'tool_1', arguments: '{"foo":"bar"}' },
+      { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents.map((event) => event.type)).toEqual(['tool.snapshot']);
   });
 });
 

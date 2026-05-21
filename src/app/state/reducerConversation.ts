@@ -33,6 +33,7 @@ export function reduceConversationState(
 				state.debugEvents,
 				action.event,
 				MAX_EVENTS,
+				events,
 			);
 			return { ...state, events, debugEvents };
 		}

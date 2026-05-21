@@ -324,7 +324,7 @@ export function applyPendingSessionUpdates(
   for (const event of pendingEvents) {
     if (toText(event.type) === 'request.query') {
       rs.events.push(event);
-      rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS);
+      rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
       rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
       if (event.chatId) {
         rs.chatId = String(event.chatId);

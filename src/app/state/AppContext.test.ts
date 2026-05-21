@@ -488,6 +488,49 @@ describe('appReducer conversation reset behavior', () => {
     ]);
   });
 
+  it('synthesizes tool snapshot debug events when delta logs are disabled', () => {
+    const stateRef = {
+      current: createInitialState(),
+    };
+
+    [
+      {
+        type: 'tool.start',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        toolLabel: 'Demo',
+        runId: 'run_1',
+      },
+      { type: 'tool.args', toolId: 'tool_1', delta: '{"foo"' },
+      { type: 'tool.args', toolId: 'tool_1', delta: ':"bar"}' },
+      { type: 'tool.end', toolId: 'tool_1', timestamp: 20 },
+      { type: 'tool.result', toolId: 'tool_1', result: 'ok', timestamp: 21 },
+    ].forEach((event) => {
+      applyActionToStateRef(stateRef, { type: 'PUSH_EVENT', event });
+    });
+
+    expect(stateRef.current.events.map((event) => event.type)).toEqual([
+      'tool.start',
+      'tool.args',
+      'tool.args',
+      'tool.end',
+      'tool.result',
+    ]);
+    expect(stateRef.current.debugEvents.map((event) => event.type)).toEqual([
+      'tool.snapshot',
+      'tool.result',
+    ]);
+    expect(stateRef.current.debugEvents[0]).toMatchObject({
+      type: 'tool.snapshot',
+      toolId: 'tool_1',
+      toolName: 'demo.run',
+      toolLabel: 'Demo',
+      runId: 'run_1',
+      arguments: '{"foo":"bar"}',
+      timestamp: 20,
+    });
+  });
+
   it('stores delta debug events when delta logs are enabled', () => {
     globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DELTA_LOGS_ENABLED: 'true',

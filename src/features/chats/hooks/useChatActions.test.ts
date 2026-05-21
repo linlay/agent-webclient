@@ -132,6 +132,54 @@ describe('replayEvent tool migration', () => {
     });
   });
 
+  it('replays streamed tool events into synthesized debug snapshots', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'tool_debug',
+      toolName: 'demo.run',
+      runId: 'run_1',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.args',
+      toolId: 'tool_debug',
+      delta: '{"foo":"bar"}',
+      timestamp: 110,
+    });
+    replayEvent(state, {
+      type: 'tool.end',
+      toolId: 'tool_debug',
+      timestamp: 120,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_debug',
+      result: 'ok',
+      timestamp: 130,
+    });
+
+    expect(state.events.map((event) => event.type)).toEqual([
+      'tool.start',
+      'tool.args',
+      'tool.end',
+      'tool.result',
+    ]);
+    expect(state.debugEvents.map((event) => event.type)).toEqual([
+      'tool.snapshot',
+      'tool.result',
+    ]);
+    expect(state.debugEvents[0]).toMatchObject({
+      type: 'tool.snapshot',
+      toolId: 'tool_debug',
+      toolName: 'demo.run',
+      runId: 'run_1',
+      arguments: '{"foo":"bar"}',
+      timestamp: 120,
+    });
+  });
+
   it('preserves toolName when later tool events omit it', () => {
     const state = createReplayState();
 

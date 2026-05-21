@@ -1,4 +1,5 @@
 import type { AgentEvent } from '@/app/state/types';
+import { AIToolEventTypeEnum } from '@/app/state/eventTypes';
 import type { TimelineNode } from '@/app/state/types';
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
@@ -17,6 +18,12 @@ const deltaLogEventTypes = new Set([
   'action.start',
   'action.args',
   'action.end',
+]);
+
+const toolSnapshotPassthroughTypes = new Set([
+  'tool.start',
+  'tool.args',
+  'tool.end',
 ]);
 
 export type DebugEventGroup =
@@ -50,6 +57,127 @@ function safeStr(v: unknown): string {
   if (typeof v === 'string') return v;
   if (v === null || v === undefined) return '';
   return String(v);
+}
+
+function readEventArgumentsText(event: AgentEvent): string {
+  const raw = (event as Record<string, unknown>).arguments;
+  if (raw === null || raw === undefined) {
+    return '';
+  }
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  try {
+    return JSON.stringify(raw, null, 2);
+  } catch {
+    return safeStr(raw);
+  }
+}
+
+function pickEventValue(
+  events: AgentEvent[],
+  keys: string[],
+): unknown {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const raw = events[index] as Record<string, unknown>;
+    for (const key of keys) {
+      const value = raw[key];
+      if (value !== null && value !== undefined && safeStr(value).trim()) {
+        return value;
+      }
+    }
+  }
+  return undefined;
+}
+
+function hasToolSnapshotForTool(
+  events: AgentEvent[],
+  toolId: string,
+): boolean {
+  return events.some((event) => {
+    if (String(event.type || '').toLowerCase() !== 'tool.snapshot') {
+      return false;
+    }
+    return safeStr(event.toolId) === toolId;
+  });
+}
+
+function buildToolSnapshotFromRawEvents(
+  event: AgentEvent,
+  rawEvents: AgentEvent[],
+): AgentEvent | null {
+  const toolId = safeStr(event.toolId).trim();
+  if (!toolId || String(event.type || '').toLowerCase() !== 'tool.end') {
+    return null;
+  }
+  if (hasToolSnapshotForTool(rawEvents, toolId)) {
+    return null;
+  }
+
+  const relatedEvents = rawEvents.filter((candidate) => {
+    const type = String(candidate.type || '').toLowerCase();
+    return safeStr(candidate.toolId) === toolId && toolSnapshotPassthroughTypes.has(type);
+  });
+  if (relatedEvents.length === 0) {
+    return null;
+  }
+
+  const argsText = relatedEvents
+    .map((candidate) => {
+      const type = String(candidate.type || '').toLowerCase();
+      if (type === 'tool.args') {
+        return safeStr(candidate.delta);
+      }
+      return readEventArgumentsText(candidate);
+    })
+    .filter((text) => text.length > 0)
+    .join('');
+
+  const snapshot: AgentEvent = {
+    ...event,
+    type: AIToolEventTypeEnum.Snapshot,
+    toolId,
+  };
+  if (argsText) {
+    (snapshot as Record<string, unknown>).arguments = argsText;
+  }
+
+  const carryKeys = [
+    'toolName',
+    'toolLabel',
+    'toolType',
+    'viewportKey',
+    'toolTimeout',
+    'runId',
+    'chatId',
+    'requestId',
+    'taskId',
+    'taskName',
+    'taskGroupId',
+    'groupId',
+    'subAgentKey',
+  ];
+  for (const key of carryKeys) {
+    const existingValue = (snapshot as Record<string, unknown>)[key];
+    if (
+      existingValue !== null &&
+      existingValue !== undefined &&
+      safeStr(existingValue).trim()
+    ) {
+      continue;
+    }
+    const value = pickEventValue(relatedEvents, [key]);
+    if (value !== undefined) {
+      (snapshot as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  const description = pickEventValue(relatedEvents, ['toolDescription', 'description']);
+  if (description !== undefined) {
+    (snapshot as Record<string, unknown>).toolDescription = description;
+  }
+
+  return snapshot;
 }
 
 function findClosestTimelineNodeId(
@@ -131,14 +259,23 @@ export function appendVisibleDebugEvent(
   events: AgentEvent[],
   event: AgentEvent,
   maxEvents: number,
+  rawEvents: AgentEvent[] = [event],
 ): AgentEvent[] {
-  if (!shouldDisplayDebugEvent(event)) {
+  let visibleEvent = event;
+  if (!isDeltaLogsEnabled() && String(event.type || '').toLowerCase() === 'tool.end') {
+    const snapshot = buildToolSnapshotFromRawEvents(event, rawEvents);
+    if (snapshot) {
+      visibleEvent = snapshot;
+    }
+  }
+
+  if (!shouldDisplayDebugEvent(visibleEvent)) {
     return events;
   }
   if (events.length >= maxEvents) {
-    return [...events.slice(-Math.floor(maxEvents * 0.8)), event];
+    return [...events.slice(-Math.floor(maxEvents * 0.8)), visibleEvent];
   }
-  return [...events, event];
+  return [...events, visibleEvent];
 }
 
 export function getEventRowGroupClass(eventType: string): string {
