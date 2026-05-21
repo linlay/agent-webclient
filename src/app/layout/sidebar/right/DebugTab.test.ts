@@ -81,6 +81,8 @@ describe("buildDebugEventGroups", () => {
 			{ type: "content.snapshot", timestamp: 4, contentId: "content_1", text: "hi" },
 			{ type: "reasoning.delta", timestamp: 5, reasoningId: "reasoning_1", delta: "think" },
 			{ type: "reasoning.snapshot", timestamp: 6, reasoningId: "reasoning_1", text: "think" },
+			{ type: "planning.delta", timestamp: 6.5, planningId: "planning_1", delta: "plan" },
+			{ type: "planning.snapshot", timestamp: 6.7, planningId: "planning_1", text: "plan" },
 			{ type: "tool.args", timestamp: 7, toolId: "tool_1", delta: "{\"q\":1}" },
 			{ type: "tool.snapshot", timestamp: 8, toolId: "tool_1", arguments: "{\"q\":1}" },
 			{ type: "tool.result", timestamp: 9, toolId: "tool_1", result: "ok" },
@@ -94,6 +96,7 @@ describe("buildDebugEventGroups", () => {
 		expect(groups.get("all")?.map(({ event }) => event.type)).toEqual([
 			"content.snapshot",
 			"reasoning.snapshot",
+			"planning.snapshot",
 			"tool.snapshot",
 			"tool.result",
 			"action.snapshot",
@@ -104,6 +107,9 @@ describe("buildDebugEventGroups", () => {
 		]);
 		expect(groups.get("reasoning")?.map(({ event }) => event.type)).toEqual([
 			"reasoning.snapshot",
+		]);
+		expect(groups.get("planning")?.map(({ event }) => event.type)).toEqual([
+			"planning.snapshot",
 		]);
 		expect(groups.get("tool")?.map(({ event }) => event.type)).toEqual([
 			"tool.snapshot",
@@ -121,8 +127,9 @@ describe("buildDebugEventGroups", () => {
 		const events = [
 			{ type: "content.delta", timestamp: 1, contentId: "content_1", delta: "hi" },
 			{ type: "reasoning.delta", timestamp: 2, reasoningId: "reasoning_1", delta: "think" },
-			{ type: "tool.args", timestamp: 3, toolId: "tool_1", delta: "{\"q\":1}" },
-			{ type: "content.snapshot", timestamp: 4, contentId: "content_1", text: "hi" },
+			{ type: "planning.delta", timestamp: 3, planningId: "planning_1", delta: "plan" },
+			{ type: "tool.args", timestamp: 4, toolId: "tool_1", delta: "{\"q\":1}" },
+			{ type: "content.snapshot", timestamp: 5, contentId: "content_1", text: "hi" },
 		] as AgentEvent[];
 
 		const groups = buildDebugEventGroups(events);
@@ -130,6 +137,7 @@ describe("buildDebugEventGroups", () => {
 		expect(groups.get("all")?.map(({ event }) => event.type)).toEqual([
 			"content.delta",
 			"reasoning.delta",
+			"planning.delta",
 			"tool.args",
 			"content.snapshot",
 		]);

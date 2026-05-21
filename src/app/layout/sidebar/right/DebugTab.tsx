@@ -28,6 +28,7 @@ export const DEBUG_EVENT_TABS: Array<{
 	{ key: "awaiting", label: "awaiting", color: "#D2B395" },
 	{ key: "memory", label: "memory", color: "#7091B6" },
 	{ key: "reasoning", label: "reasoning", color: "#7AB9A8" },
+	{ key: "planning", label: "planning", color: "#8B9AD8" },
 	{ key: "content", label: "content", color: "#5AA79D" },
 	{ key: "tool", label: "tool", color: "#D6A05E" },
 	{ key: "action", label: "action", color: "#CA9168" },

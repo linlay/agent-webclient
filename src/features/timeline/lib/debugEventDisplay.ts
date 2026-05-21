@@ -1,5 +1,10 @@
 import type { AgentEvent } from '@/app/state/types';
-import { AIToolEventTypeEnum } from '@/app/state/eventTypes';
+import {
+  AIContentEventTypeEnum,
+  AIPlanningEventTypeEnum,
+  AIReasoningEventTypeEnum,
+  AIToolEventTypeEnum,
+} from '@/app/state/eventTypes';
 import type { TimelineNode } from '@/app/state/types';
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
@@ -12,6 +17,9 @@ const deltaLogEventTypes = new Set([
   'reasoning.start',
   'reasoning.delta',
   'reasoning.end',
+  'planning.start',
+  'planning.delta',
+  'planning.end',
   'tool.start',
   'tool.args',
   'tool.end',
@@ -26,6 +34,22 @@ const toolSnapshotPassthroughTypes = new Set([
   'tool.end',
 ]);
 
+type StreamFamily = 'content' | 'reasoning' | 'planning' | 'tool';
+
+const streamEndTypes: Record<StreamFamily, string> = {
+  content: 'content.end',
+  reasoning: 'reasoning.end',
+  planning: 'planning.end',
+  tool: 'tool.end',
+};
+
+const streamSnapshotTypes: Record<StreamFamily, string> = {
+  content: AIContentEventTypeEnum.Snapshot,
+  reasoning: AIReasoningEventTypeEnum.Snapshot,
+  planning: AIPlanningEventTypeEnum.Snapshot,
+  tool: AIToolEventTypeEnum.Snapshot,
+};
+
 export type DebugEventGroup =
   | 'request'
   | 'chat'
@@ -34,6 +58,7 @@ export type DebugEventGroup =
   | 'memory'
   | 'content'
   | 'reasoning'
+  | 'planning'
   | 'tool'
   | 'action'
   | 'plan'
@@ -90,16 +115,153 @@ function pickEventValue(
   return undefined;
 }
 
-function hasToolSnapshotForTool(
+function getStreamFamily(type: string): StreamFamily | '' {
+  const normalized = String(type || '').toLowerCase();
+  if (normalized.startsWith('content.')) return 'content';
+  if (normalized.startsWith('reasoning.')) return 'reasoning';
+  if (normalized.startsWith('planning.')) return 'planning';
+  if (normalized.startsWith('tool.')) return 'tool';
+  return '';
+}
+
+function getStreamId(event: AgentEvent, family: StreamFamily): string {
+  if (family === 'content') {
+    return safeStr(event.contentId).trim();
+  }
+  if (family === 'reasoning') {
+    return safeStr(event.reasoningId).trim();
+  }
+  if (family === 'planning') {
+    return (
+      safeStr(event.planningId).trim() ||
+      safeStr((event as Record<string, unknown>).planningKey).trim() ||
+      safeStr(event.planId).trim()
+    );
+  }
+  return safeStr(event.toolId).trim();
+}
+
+function hasSnapshotForStream(
   events: AgentEvent[],
-  toolId: string,
+  family: StreamFamily,
+  streamId: string,
 ): boolean {
+  const snapshotType = streamSnapshotTypes[family];
   return events.some((event) => {
-    if (String(event.type || '').toLowerCase() !== 'tool.snapshot') {
+    if (String(event.type || '').toLowerCase() !== snapshotType) {
       return false;
     }
-    return safeStr(event.toolId) === toolId;
+    return streamId ? getStreamId(event, family) === streamId : true;
   });
+}
+
+function collectRelatedStreamEvents(
+  event: AgentEvent,
+  rawEvents: AgentEvent[],
+  family: StreamFamily,
+): AgentEvent[] {
+  const streamId = getStreamId(event, family);
+  if (streamId) {
+    return rawEvents.filter((candidate) => {
+      const type = String(candidate.type || '').toLowerCase();
+      return getStreamFamily(type) === family && getStreamId(candidate, family) === streamId;
+    });
+  }
+
+  const related: AgentEvent[] = [];
+  for (let index = rawEvents.length - 1; index >= 0; index -= 1) {
+    const candidate = rawEvents[index];
+    const type = String(candidate.type || '').toLowerCase();
+    if (getStreamFamily(type) !== family) {
+      continue;
+    }
+    if (type === streamSnapshotTypes[family]) {
+      break;
+    }
+    related.unshift(candidate);
+    if (type.endsWith('.start')) {
+      break;
+    }
+  }
+  return related;
+}
+
+function fillSnapshotFields(
+  snapshot: AgentEvent,
+  relatedEvents: AgentEvent[],
+  keys: string[],
+): void {
+  for (const key of keys) {
+    const existingValue = (snapshot as Record<string, unknown>)[key];
+    if (
+      existingValue !== null &&
+      existingValue !== undefined &&
+      safeStr(existingValue).trim()
+    ) {
+      continue;
+    }
+    const value = pickEventValue(relatedEvents, [key]);
+    if (value !== undefined) {
+      (snapshot as Record<string, unknown>)[key] = value;
+    }
+  }
+}
+
+function buildTextSnapshotFromRawEvents(
+  event: AgentEvent,
+  rawEvents: AgentEvent[],
+  family: Exclude<StreamFamily, 'tool'>,
+): AgentEvent | null {
+  const streamId = getStreamId(event, family);
+  if (String(event.type || '').toLowerCase() !== streamEndTypes[family]) {
+    return null;
+  }
+  if (hasSnapshotForStream(rawEvents, family, streamId)) {
+    return null;
+  }
+
+  const relatedEvents = collectRelatedStreamEvents(event, rawEvents, family);
+  if (relatedEvents.length === 0) {
+    return null;
+  }
+
+  const streamText = relatedEvents
+    .map((candidate) => {
+      const type = String(candidate.type || '').toLowerCase();
+      if (type.endsWith('.delta')) {
+        return safeStr(candidate.delta);
+      }
+      if (type.endsWith('.start')) {
+        return safeStr(candidate.text);
+      }
+      return '';
+    })
+    .join('');
+  const text = safeStr(event.text) || streamText;
+
+  const snapshot: AgentEvent = { ...event };
+  (snapshot as Record<string, unknown>).type = streamSnapshotTypes[family];
+  if (text) {
+    snapshot.text = text;
+  } else {
+    delete snapshot.text;
+  }
+
+  fillSnapshotFields(snapshot, relatedEvents, [
+    family === 'content' ? 'contentId' : family === 'reasoning' ? 'reasoningId' : 'planningId',
+    family === 'reasoning' ? 'reasoningLabel' : 'planningLabel',
+    'planId',
+    'runId',
+    'chatId',
+    'requestId',
+    'taskId',
+    'taskName',
+    'taskGroupId',
+    'groupId',
+    'subAgentKey',
+  ].filter(Boolean) as string[]);
+
+  return snapshot;
 }
 
 function buildToolSnapshotFromRawEvents(
@@ -110,14 +272,13 @@ function buildToolSnapshotFromRawEvents(
   if (!toolId || String(event.type || '').toLowerCase() !== 'tool.end') {
     return null;
   }
-  if (hasToolSnapshotForTool(rawEvents, toolId)) {
+  if (hasSnapshotForStream(rawEvents, 'tool', toolId)) {
     return null;
   }
 
-  const relatedEvents = rawEvents.filter((candidate) => {
-    const type = String(candidate.type || '').toLowerCase();
-    return safeStr(candidate.toolId) === toolId && toolSnapshotPassthroughTypes.has(type);
-  });
+  const relatedEvents = collectRelatedStreamEvents(event, rawEvents, 'tool').filter((candidate) =>
+    toolSnapshotPassthroughTypes.has(String(candidate.type || '').toLowerCase()),
+  );
   if (relatedEvents.length === 0) {
     return null;
   }
@@ -142,7 +303,7 @@ function buildToolSnapshotFromRawEvents(
     (snapshot as Record<string, unknown>).arguments = argsText;
   }
 
-  const carryKeys = [
+  fillSnapshotFields(snapshot, relatedEvents, [
     'toolName',
     'toolLabel',
     'toolType',
@@ -156,21 +317,7 @@ function buildToolSnapshotFromRawEvents(
     'taskGroupId',
     'groupId',
     'subAgentKey',
-  ];
-  for (const key of carryKeys) {
-    const existingValue = (snapshot as Record<string, unknown>)[key];
-    if (
-      existingValue !== null &&
-      existingValue !== undefined &&
-      safeStr(existingValue).trim()
-    ) {
-      continue;
-    }
-    const value = pickEventValue(relatedEvents, [key]);
-    if (value !== undefined) {
-      (snapshot as Record<string, unknown>)[key] = value;
-    }
-  }
+  ]);
 
   const description = pickEventValue(relatedEvents, ['toolDescription', 'description']);
   if (description !== undefined) {
@@ -178,6 +325,26 @@ function buildToolSnapshotFromRawEvents(
   }
 
   return snapshot;
+}
+
+function buildSnapshotFromRawEvents(
+  event: AgentEvent,
+  rawEvents: AgentEvent[],
+): AgentEvent | null {
+  const type = String(event.type || '').toLowerCase();
+  if (type === 'content.end') {
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'content');
+  }
+  if (type === 'reasoning.end') {
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'reasoning');
+  }
+  if (type === 'planning.end') {
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'planning');
+  }
+  if (type === 'tool.end') {
+    return buildToolSnapshotFromRawEvents(event, rawEvents);
+  }
+  return null;
 }
 
 function findClosestTimelineNodeId(
@@ -228,6 +395,7 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
   if (type.startsWith('memory.')) return 'memory';
   if (type.startsWith('content.')) return 'content';
   if (type.startsWith('reasoning.')) return 'reasoning';
+  if (type.startsWith('planning.')) return 'planning';
   if (type.startsWith('tool.')) return 'tool';
   if (type.startsWith('action.')) return 'action';
   if (type.startsWith('plan.')) return 'plan';
@@ -262,8 +430,8 @@ export function appendVisibleDebugEvent(
   rawEvents: AgentEvent[] = [event],
 ): AgentEvent[] {
   let visibleEvent = event;
-  if (!isDeltaLogsEnabled() && String(event.type || '').toLowerCase() === 'tool.end') {
-    const snapshot = buildToolSnapshotFromRawEvents(event, rawEvents);
+  if (!isDeltaLogsEnabled()) {
+    const snapshot = buildSnapshotFromRawEvents(event, rawEvents);
     if (snapshot) {
       visibleEvent = snapshot;
     }
@@ -294,6 +462,7 @@ export function getEventId(event: AgentEvent): string {
     'awaitingId',
     'contentId',
     'reasoningId',
+    'planningId',
     'toolId',
     'actionId',
     'planId',

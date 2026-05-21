@@ -180,6 +180,33 @@ describe('replayEvent tool migration', () => {
     });
   });
 
+  it('replays streamed text events into synthesized debug snapshots', () => {
+    const state = createReplayState();
+
+    [
+      { type: 'content.start', contentId: 'content_debug', text: 'A', runId: 'run_1' },
+      { type: 'content.delta', contentId: 'content_debug', delta: 'B' },
+      { type: 'content.end', contentId: 'content_debug', timestamp: 120 },
+      { type: 'reasoning.start', reasoningId: 'reasoning_debug', reasoningLabel: 'Think', text: 'C', runId: 'run_1' },
+      { type: 'reasoning.delta', reasoningId: 'reasoning_debug', delta: 'D' },
+      { type: 'reasoning.end', reasoningId: 'reasoning_debug', timestamp: 121 },
+      { type: 'planning.start', planningId: 'planning_debug', planningLabel: 'Plan', text: 'E', runId: 'run_1' },
+      { type: 'planning.delta', planningId: 'planning_debug', delta: 'F' },
+      { type: 'planning.end', planningId: 'planning_debug', timestamp: 122 },
+    ].forEach((event) => replayEvent(state, event));
+
+    expect(state.debugEvents.map((event) => event.type)).toEqual([
+      'content.snapshot',
+      'reasoning.snapshot',
+      'planning.snapshot',
+    ]);
+    expect(state.debugEvents).toEqual([
+      expect.objectContaining({ type: 'content.snapshot', text: 'AB' }),
+      expect.objectContaining({ type: 'reasoning.snapshot', reasoningLabel: 'Think', text: 'CD' }),
+      expect.objectContaining({ type: 'planning.snapshot', planningLabel: 'Plan', text: 'EF' }),
+    ]);
+  });
+
   it('preserves toolName when later tool events omit it', () => {
     const state = createReplayState();
 

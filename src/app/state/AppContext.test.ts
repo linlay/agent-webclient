@@ -452,8 +452,13 @@ describe('appReducer conversation reset behavior', () => {
       runId: 'run_1',
     });
     expect(stateRef.current.debugEvents.map((event) => event.type)).toEqual([
+      'content.snapshot',
       'run.complete',
     ]);
+    expect(stateRef.current.debugEvents[0]).toMatchObject({
+      type: 'content.snapshot',
+      text: 'AB',
+    });
   });
 
   it('keeps debug events capped by visible events when delta logs are disabled', () => {
@@ -529,6 +534,37 @@ describe('appReducer conversation reset behavior', () => {
       arguments: '{"foo":"bar"}',
       timestamp: 20,
     });
+  });
+
+  it('synthesizes text stream snapshot debug events when delta logs are disabled', () => {
+    const stateRef = {
+      current: createInitialState(),
+    };
+
+    [
+      { type: 'content.start', contentId: 'content_1', text: 'A', runId: 'run_1' },
+      { type: 'content.delta', contentId: 'content_1', delta: 'B' },
+      { type: 'content.end', contentId: 'content_1', timestamp: 20 },
+      { type: 'reasoning.start', reasoningId: 'reasoning_1', reasoningLabel: 'Think', text: 'C', runId: 'run_1' },
+      { type: 'reasoning.delta', reasoningId: 'reasoning_1', delta: 'D' },
+      { type: 'reasoning.end', reasoningId: 'reasoning_1', timestamp: 21 },
+      { type: 'planning.start', planningId: 'planning_1', planningLabel: 'Plan', text: 'E', runId: 'run_1' },
+      { type: 'planning.delta', planningId: 'planning_1', delta: 'F' },
+      { type: 'planning.end', planningId: 'planning_1', timestamp: 22 },
+    ].forEach((event) => {
+      applyActionToStateRef(stateRef, { type: 'PUSH_EVENT', event });
+    });
+
+    expect(stateRef.current.debugEvents.map((event) => event.type)).toEqual([
+      'content.snapshot',
+      'reasoning.snapshot',
+      'planning.snapshot',
+    ]);
+    expect(stateRef.current.debugEvents).toEqual([
+      expect.objectContaining({ type: 'content.snapshot', text: 'AB' }),
+      expect.objectContaining({ type: 'reasoning.snapshot', reasoningLabel: 'Think', text: 'CD' }),
+      expect.objectContaining({ type: 'planning.snapshot', planningLabel: 'Plan', text: 'EF' }),
+    ]);
   });
 
   it('stores delta debug events when delta logs are enabled', () => {

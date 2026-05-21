@@ -71,6 +71,9 @@ describe("EventPopover collect controls", () => {
     expect(canCollectEvent("reasoning.start")).toBe(true);
     expect(canCollectEvent("reasoning.delta")).toBe(true);
     expect(canCollectEvent("reasoning.end")).toBe(true);
+    expect(canCollectEvent("planning.start")).toBe(true);
+    expect(canCollectEvent("planning.delta")).toBe(true);
+    expect(canCollectEvent("planning.end")).toBe(true);
     expect(canCollectEvent("content.start")).toBe(true);
     expect(canCollectEvent("content.delta")).toBe(true);
     expect(canCollectEvent("content.end")).toBe(true);
@@ -82,6 +85,7 @@ describe("EventPopover collect controls", () => {
     expect(canCollectEvent("action.end")).toBe(true);
 
     expect(canCollectEvent("content.snapshot")).toBe(false);
+    expect(canCollectEvent("planning.snapshot")).toBe(false);
     expect(canCollectEvent("tool.result")).toBe(false);
     expect(canCollectEvent("run.start")).toBe(false);
     expect(canCollectEvent("action.snapshot")).toBe(false);
@@ -126,6 +130,34 @@ describe("EventPopover collect controls", () => {
       family: "artifact",
       idKey: "runId",
       idValue: "run_1",
+    });
+  });
+
+  it("groups planning events by planningId", () => {
+    const event: AgentEvent = {
+      type: "planning.delta",
+      planningId: "planning_1",
+      runId: "run_1",
+    };
+
+    expect(resolveEventGroupMeta(event)).toEqual({
+      family: "planning",
+      idKey: "planningId",
+      idValue: "planning_1",
+    });
+  });
+
+  it("falls back to planId for planning event grouping", () => {
+    const event: AgentEvent = {
+      type: "planning.delta",
+      planId: "plan_1",
+      runId: "run_1",
+    };
+
+    expect(resolveEventGroupMeta(event)).toEqual({
+      family: "planning",
+      idKey: "planningId",
+      idValue: "plan_1",
     });
   });
 
@@ -339,6 +371,48 @@ describe("EventPopover collected snapshot shape", () => {
         seq: 21,
         timestamp: 123456,
         text: "hello world",
+      }),
+    );
+  });
+
+  it("builds a planning snapshot from grouped planning events", () => {
+    const currentEvent: AgentEvent = {
+      type: "planning.start",
+      planningId: "planning_1",
+      planningLabel: "Plan",
+      runId: "run_1",
+      seq: 31,
+    };
+    const relatedEvents = [
+      createEntry(currentEvent, 0),
+      createEntry(
+        {
+          type: "planning.delta",
+          planningId: "planning_1",
+          delta: "先看日志。",
+        },
+        1,
+      ),
+      createEntry(
+        {
+          type: "planning.end",
+          planningId: "planning_1",
+          seq: 33,
+          timestamp: 1776518171301,
+        },
+        2,
+      ),
+    ];
+
+    expect(buildCollectedSnapshot(currentEvent, relatedEvents)).toEqual(
+      expect.objectContaining({
+        type: "planning.snapshot",
+        planningId: "planning_1",
+        planningLabel: "Plan",
+        runId: "run_1",
+        seq: 33,
+        timestamp: 1776518171301,
+        text: "先看日志。",
       }),
     );
   });

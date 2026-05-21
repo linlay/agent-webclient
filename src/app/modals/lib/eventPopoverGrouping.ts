@@ -8,6 +8,9 @@ const COLLECTIBLE_EVENT_TYPES = new Set([
 	"reasoning.start",
 	"reasoning.delta",
 	"reasoning.end",
+	"planning.start",
+	"planning.delta",
+	"planning.end",
 	"content.start",
 	"content.delta",
 	"content.end",
@@ -20,10 +23,11 @@ const COLLECTIBLE_EVENT_TYPES = new Set([
 ] as const);
 
 const COLLECTIBLE_GROUP_EVENT_TYPES: Record<
-	"reasoning" | "content" | "tool" | "action",
+	"reasoning" | "planning" | "content" | "tool" | "action",
 	Set<string>
 > = {
 	reasoning: new Set(["reasoning.start", "reasoning.delta", "reasoning.end"]),
+	planning: new Set(["planning.start", "planning.delta", "planning.end"]),
 	content: new Set(["content.start", "content.delta", "content.end"]),
 	tool: new Set(["tool.start", "tool.args", "tool.end"]),
 	action: new Set(["action.start", "action.args", "action.end"]),
@@ -35,6 +39,7 @@ const EVENT_GROUP_CONFIG = [
 	{ prefix: "run.", idKey: "runId", family: "run" },
 	{ prefix: "content.", idKey: "contentId", family: "content" },
 	{ prefix: "reasoning.", idKey: "reasoningId", family: "reasoning" },
+	{ prefix: "planning.", idKey: "planningId", family: "planning" },
 	{ prefix: "plan.", idKey: "planId", family: "plan" },
 	{ prefix: "task.", idKey: "taskId", family: "task" },
 	{ prefix: "tool.", idKey: "toolId", family: "tool" },
@@ -83,7 +88,12 @@ export function resolveEventGroupMeta(
 	);
 	if (!config) return null;
 
-	const idValue = readEventIdValue(event, config.idKey);
+	const idValue =
+		config.family === "planning"
+			? readEventIdValue(event, config.idKey) ||
+				readStringValue((event as Record<string, unknown>).planningKey) ||
+				readStringValue(event.planId)
+			: readEventIdValue(event, config.idKey);
 	if (!idValue) return null;
 
 	return {
@@ -118,6 +128,7 @@ export function getCollectibleRelatedEvents(
 export function mapCollectedSnapshotType(type: string): string {
 	const normalized = String(type || "").toLowerCase();
 	if (normalized.startsWith("reasoning.")) return "reasoning.snapshot";
+	if (normalized.startsWith("planning.")) return "planning.snapshot";
 	if (normalized.startsWith("content.")) return "content.snapshot";
 	if (normalized.startsWith("tool.")) return "tool.snapshot";
 	if (normalized.startsWith("action.")) return "action.snapshot";
@@ -196,6 +207,7 @@ function isCollectibleFamily(
 ): family is CollectibleFamily {
 	return (
 		family === "reasoning" ||
+		family === "planning" ||
 		family === "content" ||
 		family === "tool" ||
 		family === "action"

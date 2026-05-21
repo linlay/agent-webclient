@@ -33,6 +33,13 @@ export enum AIReasoningEventTypeEnum {
   Snapshot = "reasoning.snapshot",
 }
 
+export enum AIPlanningEventTypeEnum {
+  Start = "planning.start",
+  Delta = "planning.delta",
+  End = "planning.end",
+  Snapshot = "planning.snapshot",
+}
+
 export enum AIPlanEventTypeEnum {
   Create = "plan.create",
   Update = "plan.update",
@@ -207,6 +214,7 @@ export interface AIEventCommonFields {
   steerId?: string;
   contentId?: string;
   reasoningId?: string;
+  planningId?: string;
   toolId?: string;
   actionId?: string;
   planId?: string;
@@ -283,6 +291,12 @@ export interface AIReasoningEvent extends AIBaseTaskEvent {
   reasoningLabel?: string;
 }
 
+export interface AIPlanningEvent extends AIBaseTaskEvent {
+  type: AIPlanningEventTypeEnum;
+  planningId?: string;
+  planningLabel?: string;
+}
+
 export interface AIPlanEvent extends AIBaseEvent {
   type: AIPlanEventTypeEnum;
   plan?: AIPlan[];
@@ -336,6 +350,7 @@ export type AIEvent =
   | AIRunEvent
   | AIContentEvent
   | AIReasoningEvent
+  | AIPlanningEvent
   | AIPlanEvent
   | AITaskEvent
   | AIToolEvent

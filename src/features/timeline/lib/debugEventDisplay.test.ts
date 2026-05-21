@@ -27,9 +27,10 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('memory.context')).toBe('memory');
     expect(classifyEventGroup('content.delta')).toBe('content');
     expect(classifyEventGroup('reasoning.snapshot')).toBe('reasoning');
+    expect(classifyEventGroup('planning.snapshot')).toBe('planning');
+    expect(classifyEventGroup('plan.update')).toBe('plan');
     expect(classifyEventGroup('tool.result')).toBe('tool');
     expect(classifyEventGroup('action.start')).toBe('action');
-    expect(classifyEventGroup('plan.update')).toBe('plan');
     expect(classifyEventGroup('task.start')).toBe('task');
     expect(classifyEventGroup('artifact.publish')).toBe('artifact');
   });
@@ -161,6 +162,128 @@ describe('shouldDisplayDebugEvent', () => {
     ]);
   });
 
+  it('collapses streamed content events into a snapshot when delta logs are disabled', () => {
+    const rawEvents = [
+      {
+        type: 'content.start',
+        contentId: 'content_1',
+        text: 'Hello',
+        runId: 'run_1',
+        timestamp: 10,
+      },
+      {
+        type: 'content.delta',
+        contentId: 'content_1',
+        delta: ' world',
+        timestamp: 11,
+      },
+      {
+        type: 'content.end',
+        contentId: 'content_1',
+        text: 'Final text',
+        timestamp: 12,
+      },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents).toEqual([
+      expect.objectContaining({
+        type: 'content.snapshot',
+        contentId: 'content_1',
+        runId: 'run_1',
+        text: 'Final text',
+        timestamp: 12,
+      }),
+    ]);
+  });
+
+  it('collapses streamed reasoning events into a snapshot when delta logs are disabled', () => {
+    const rawEvents = [
+      {
+        type: 'reasoning.start',
+        reasoningId: 'reasoning_1',
+        reasoningLabel: 'Thinking',
+        text: 'A',
+        runId: 'run_1',
+        timestamp: 10,
+      },
+      {
+        type: 'reasoning.delta',
+        reasoningId: 'reasoning_1',
+        delta: 'B',
+        timestamp: 11,
+      },
+      {
+        type: 'reasoning.end',
+        reasoningId: 'reasoning_1',
+        timestamp: 12,
+      },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents).toEqual([
+      expect.objectContaining({
+        type: 'reasoning.snapshot',
+        reasoningId: 'reasoning_1',
+        reasoningLabel: 'Thinking',
+        runId: 'run_1',
+        text: 'AB',
+        timestamp: 12,
+      }),
+    ]);
+  });
+
+  it('collapses streamed planning events into a snapshot when delta logs are disabled', () => {
+    const rawEvents = [
+      {
+        type: 'planning.start',
+        planningId: 'planning_1',
+        planningLabel: 'Plan',
+        text: 'Step',
+        runId: 'run_1',
+        timestamp: 10,
+      },
+      {
+        type: 'planning.delta',
+        planningId: 'planning_1',
+        delta: ' one',
+        timestamp: 11,
+      },
+      {
+        type: 'planning.end',
+        planningId: 'planning_1',
+        timestamp: 12,
+      },
+    ];
+
+    const debugEvents = rawEvents.reduce(
+      (events, event, index) =>
+        appendVisibleDebugEvent(events, event, 100, rawEvents.slice(0, index + 1)),
+      [] as AgentEvent[],
+    );
+
+    expect(debugEvents).toEqual([
+      expect.objectContaining({
+        type: 'planning.snapshot',
+        planningId: 'planning_1',
+        planningLabel: 'Plan',
+        runId: 'run_1',
+        text: 'Step one',
+        timestamp: 12,
+      }),
+    ]);
+  });
+
   it('keeps tool result visible after the synthesized tool snapshot', () => {
     const rawEvents = [
       { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
@@ -181,11 +304,20 @@ describe('shouldDisplayDebugEvent', () => {
     ]);
   });
 
-  it('keeps streamed tool events uncollapsed when delta logs are enabled', () => {
+  it('keeps streamed events uncollapsed when delta logs are enabled', () => {
     globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DELTA_LOGS_ENABLED: 'true',
     };
     const rawEvents = [
+      { type: 'content.start', contentId: 'content_1', text: 'hi' },
+      { type: 'content.delta', contentId: 'content_1', delta: '!' },
+      { type: 'content.end', contentId: 'content_1' },
+      { type: 'reasoning.start', reasoningId: 'reasoning_1', text: 'think' },
+      { type: 'reasoning.delta', reasoningId: 'reasoning_1', delta: 'ing' },
+      { type: 'reasoning.end', reasoningId: 'reasoning_1' },
+      { type: 'planning.start', planningId: 'planning_1', text: 'plan' },
+      { type: 'planning.delta', planningId: 'planning_1', delta: 'ning' },
+      { type: 'planning.end', planningId: 'planning_1' },
       { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
       { type: 'tool.args', toolId: 'tool_1', delta: '{"foo":"bar"}' },
       { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
@@ -198,6 +330,15 @@ describe('shouldDisplayDebugEvent', () => {
     );
 
     expect(debugEvents.map((event) => event.type)).toEqual([
+      'content.start',
+      'content.delta',
+      'content.end',
+      'reasoning.start',
+      'reasoning.delta',
+      'reasoning.end',
+      'planning.start',
+      'planning.delta',
+      'planning.end',
       'tool.start',
       'tool.args',
       'tool.end',
