@@ -7,6 +7,14 @@ import {
   shouldDisplayDebugEvent,
 } from '@/features/timeline/lib/debugEventDisplay';
 
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
+beforeEach(() => {
+  delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+});
+
 describe('classifyEventGroup', () => {
   it('maps event types into dedicated debug color groups', () => {
     expect(classifyEventGroup('request.query')).toBe('request');
@@ -61,10 +69,28 @@ describe('shouldDisplayDebugEvent', () => {
     expect(shouldDisplayDebugEvent(event)).toBe(false);
   });
 
-  it('keeps unmarked websocket stream events visible in the debug panel', () => {
+  it('keeps non-delta stream events visible in the debug panel', () => {
     expect(
       shouldDisplayDebugEvent({
         type: 'request.query',
+      }),
+    ).toBe(true);
+  });
+
+  it('hides stream delta events unless delta logs are enabled', () => {
+    expect(
+      shouldDisplayDebugEvent({
+        type: 'content.delta',
+      }),
+    ).toBe(false);
+
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DELTA_LOGS_ENABLED: 'true',
+    };
+
+    expect(
+      shouldDisplayDebugEvent({
+        type: 'content.delta',
       }),
     ).toBe(true);
   });

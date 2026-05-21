@@ -1,8 +1,23 @@
 import type { AgentEvent } from '@/app/state/types';
 import type { TimelineNode } from '@/app/state/types';
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
+import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
 
 const hiddenDebugEvents = new WeakSet<AgentEvent>();
+const deltaLogEventTypes = new Set([
+  'content.start',
+  'content.delta',
+  'content.end',
+  'reasoning.start',
+  'reasoning.delta',
+  'reasoning.end',
+  'tool.start',
+  'tool.args',
+  'tool.end',
+  'action.start',
+  'action.args',
+  'action.end',
+]);
 
 export type DebugEventGroup =
   | 'request'
@@ -103,7 +118,13 @@ export function markDebugEventHidden(event: AgentEvent): void {
 }
 
 export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
-  return !hiddenDebugEvents.has(event);
+  if (hiddenDebugEvents.has(event)) {
+    return false;
+  }
+  if (isDeltaLogsEnabled()) {
+    return true;
+  }
+  return !deltaLogEventTypes.has(String(event.type || '').toLowerCase());
 }
 
 export function getEventRowGroupClass(eventType: string): string {

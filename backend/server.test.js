@@ -222,6 +222,7 @@ describe('backend/server', () => {
       path.join(rootDir, '.env'),
       [
         'DEBUG_PANEL_ENABLED=false',
+        'DELTA_LOGS_ENABLED=false',
         'SETTINGS_MENU_ENABLED=true',
         'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.015',
       ].join('\n'),
@@ -237,11 +238,15 @@ describe('backend/server', () => {
         statusCode: 200,
         body: expect.stringContaining('"DEBUG_PANEL_ENABLED":"false"'),
       });
+      await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
+        body: expect.stringContaining('"DELTA_LOGS_ENABLED":"false"'),
+      });
 
       fs.writeFileSync(
         path.join(rootDir, '.env'),
         [
           'DEBUG_PANEL_ENABLED=true',
+          'DELTA_LOGS_ENABLED=true',
           'SETTINGS_MENU_ENABLED=true',
           'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD=0.02',
         ].join('\n'),
@@ -251,6 +256,9 @@ describe('backend/server', () => {
       await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
         statusCode: 200,
         body: expect.stringContaining('"DEBUG_PANEL_ENABLED":"true"'),
+      });
+      await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
+        body: expect.stringContaining('"DELTA_LOGS_ENABLED":"true"'),
       });
       await expect(httpGetBody(`http://127.0.0.1:${port}/runtime-config.js`)).resolves.toMatchObject({
         body: expect.stringContaining('"VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD":"0.02"'),

@@ -10,6 +10,10 @@ export function isDebugPanelEnabled(): boolean {
   return parseFeatureFlag(readRuntimeConfigValue("DEBUG_PANEL_ENABLED"));
 }
 
+export function isDeltaLogsEnabled(): boolean {
+  return parseFeatureFlag(readRuntimeConfigValue("DELTA_LOGS_ENABLED"));
+}
+
 export function isSettingsMenuEnabled(): boolean {
   return parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
 }

@@ -1,4 +1,5 @@
 import {
+  isDeltaLogsEnabled,
   isDebugPanelEnabled,
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
@@ -35,6 +36,20 @@ describe("featureFlags", () => {
       DEBUG_PANEL_ENABLED: " false ",
     };
     expect(isDebugPanelEnabled()).toBe(false);
+  });
+
+  it("reads the delta logs flag from runtime config", () => {
+    expect(isDeltaLogsEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DELTA_LOGS_ENABLED: "true",
+    };
+    expect(isDeltaLogsEnabled()).toBe(true);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DELTA_LOGS_ENABLED: "false",
+    };
+    expect(isDeltaLogsEnabled()).toBe(false);
   });
 
   it("reads the settings menu flag from runtime config", () => {
