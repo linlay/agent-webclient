@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Flex, Input, Tag, Tooltip } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
@@ -39,6 +39,7 @@ export const HistoryModal: React.FC<{
   onChatDeleted,
 }) => {
   const { modal } = useApp();
+  const inputRef = useRef<InputRef>(null);
   const { state, dispatch } = useAppContext();
   const [pending, setPending] = useState(false);
   const unreadCount = historyRows.reduce(
@@ -46,6 +47,9 @@ export const HistoryModal: React.FC<{
     0,
   );
 
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
   const handleExport = async (chatId: string) => {
     if (!chatId || pending) return;
     setPending(true);
@@ -131,6 +135,7 @@ export const HistoryModal: React.FC<{
     <div className="command-modal-section">
       <div className="command-history-toolbar">
         <Input
+          ref={inputRef}
           prefix={
             <MaterialIcon
               name="search"
