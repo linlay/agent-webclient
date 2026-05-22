@@ -7,6 +7,7 @@ import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
 import { buildResourceUrl, downloadResource } from "@/shared/api/apiClient";
 import { MarkdownCode } from "./markdown-code";
+import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 
 interface MarkdownContentProps {
   content: string;
@@ -139,8 +140,10 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   const processedContent = useMemo(() => {
     if (!content) return "";
 
+    const withoutEmptyTables = removeEmptyMarkdownTables(content);
+
     /* Rewrite non-http image src to go through API proxy */
-    return content.replace(
+    return withoutEmptyTables.replace(
       /!\[([^\]]*)\]\((?!https?:\/\/)([^)\s]+)\)/g,
       (match, alt, src) => {
         if (src.startsWith("data:") || src.startsWith("blob:")) return match;
