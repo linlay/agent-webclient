@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
@@ -54,7 +60,10 @@ function normalizeRouteTheme(value: string): "light" | "dark" | "" {
   return theme === "light" || theme === "dark" ? theme : "";
 }
 
-function isRouteAgentResolved(agent: Agent | undefined, agentKey: string): boolean {
+function isRouteAgentResolved(
+  agent: Agent | undefined,
+  agentKey: string,
+): boolean {
   if (!agent) {
     return false;
   }
@@ -73,16 +82,24 @@ function isRouteAgentResolved(agent: Agent | undefined, agentKey: string): boole
   return hasFetchedFields || name !== agentKey || role !== "--";
 }
 
-const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => (
-  <main className="agent-route-loading-page" aria-busy="true">
-    <div className="agent-route-loading-card">
-      <div className="agent-route-loading-spinner" aria-hidden="true" />
-      <div className="agent-route-loading-copy">
-        <strong>{title}</strong>
+const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    setTimeout(() => {
+      setShow(true);
+    }, 500);
+  }, []);
+  return show ? (
+    <main className="agent-route-loading-page" aria-busy="true">
+      <div className="agent-route-loading-card">
+        <div className="agent-route-loading-spinner" aria-hidden="true" />
+        <div className="agent-route-loading-copy">
+          <strong>{title}</strong>
+        </div>
       </div>
-    </div>
-  </main>
-);
+    </main>
+  ) : null;
+};
 
 export const AgentChatShell: React.FC = () => {
   const state = useAppState();
@@ -134,10 +151,7 @@ export const AgentChatShell: React.FC = () => {
   const routeAgentReady =
     !agentKey || routeAgentResolved || loadedRouteAgentKey === agentKey;
   const routeChatReady = !chatId || String(state.chatId || "") === chatId;
-  const {
-    filteredHistoryRows,
-    workerChatsByKey,
-  } = useLeftSidebarData({
+  const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
     agents: state.agents,
     chatFilter: state.chatFilter,
     chats: state.chats,
@@ -287,36 +301,44 @@ export const AgentChatShell: React.FC = () => {
     );
   }, [agentKey, chatId, dispatch, routeAgentReady, routeHistoryRequested]);
 
-  const openRouteHistoryForWorker = useCallback((workerKey: string) => {
-    const normalizedWorkerKey = String(workerKey || "").trim();
-    if (!normalizedWorkerKey) return;
-    const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
-    const currentChatIndex = workerChats.findIndex(
-      (row) => String(row.chatId || "") === String(stateRef.current.chatId || ""),
-    );
-    setHistoryWorkerKey(normalizedWorkerKey);
-    setHistorySearch("");
-    setRemoteHistoryRows(null);
-    setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
+  const openRouteHistoryForWorker = useCallback(
+    (workerKey: string) => {
+      const normalizedWorkerKey = String(workerKey || "").trim();
+      if (!normalizedWorkerKey) return;
+      const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
+      const currentChatIndex = workerChats.findIndex(
+        (row) =>
+          String(row.chatId || "") === String(stateRef.current.chatId || ""),
+      );
+      setHistoryWorkerKey(normalizedWorkerKey);
+      setHistorySearch("");
+      setRemoteHistoryRows(null);
+      setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
 
-    const worker =
-      stateRef.current.workerIndexByKey.get(normalizedWorkerKey) ||
-      stateRef.current.workerRows.find((item) => item.key === normalizedWorkerKey);
-    if (!worker || worker.type !== "agent") return;
+      const worker =
+        stateRef.current.workerIndexByKey.get(normalizedWorkerKey) ||
+        stateRef.current.workerRows.find(
+          (item) => item.key === normalizedWorkerKey,
+        );
+      if (!worker || worker.type !== "agent") return;
 
-    void getChats({ agentKey: worker.sourceId })
-      .then((response) => {
-        const fetchedChats = (Array.isArray(response.data) ? response.data : []) as Chat[];
-        const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
-        dispatch({ type: "SET_CHATS", chats });
-      })
-      .catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[loadChats error] ${(error as Error).message}`,
+      void getChats({ agentKey: worker.sourceId })
+        .then((response) => {
+          const fetchedChats = (
+            Array.isArray(response.data) ? response.data : []
+          ) as Chat[];
+          const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
+          dispatch({ type: "SET_CHATS", chats });
+        })
+        .catch((error) => {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[loadChats error] ${(error as Error).message}`,
+          });
         });
-      });
-  }, [dispatch, workerChatsByKey]);
+    },
+    [dispatch, workerChatsByKey],
+  );
 
   useEffect(() => {
     if (!routeHistoryRequested || !agentKey || !routeAgentReady) return;
