@@ -6,7 +6,8 @@ export type TimelineNodeKind =
 	| "awaiting-answer"
 	| "tool"
 	| "content"
-	| "agent-group";
+	| "agent-group"
+	| "planning";
 export type TimelineRole = "user" | "assistant" | "system" | "";
 
 export interface ToolResultPayload {

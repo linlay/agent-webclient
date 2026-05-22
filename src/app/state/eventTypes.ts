@@ -294,7 +294,7 @@ export interface AIReasoningEvent extends AIBaseTaskEvent {
 export interface AIPlanningEvent extends AIBaseTaskEvent {
   type: AIPlanningEventTypeEnum;
   planningId?: string;
-  planningLabel?: string;
+  markdown?: string;
 }
 
 export interface AIPlanEvent extends AIBaseEvent {

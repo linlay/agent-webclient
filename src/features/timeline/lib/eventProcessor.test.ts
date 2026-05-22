@@ -451,6 +451,40 @@ describe('processEvent', () => {
     expect(node?.reasoningLabel).toBe('分析问题');
   });
 
+  it('creates timeline nodes for streamed planning events', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'planning.start',
+      planningId: 'planning_1',
+      planningLabel: '制定计划',
+      text: '先确认',
+      timestamp: 100,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.delta',
+      planningId: 'planning_1',
+      delta: '需求',
+      timestamp: 110,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.end',
+      planningId: 'planning_1',
+      timestamp: 120,
+    }, 'replay', false);
+
+    expect(state.timelineOrder).toEqual(['planning_0']);
+    expect(state.reasoningNodeById.get('planning:planning_1')).toBe('planning_0');
+    expect(state.timelineNodes.get('planning_0')).toMatchObject({
+      kind: 'thinking',
+      reasoningLabel: '制定计划',
+      text: '先确认需求',
+      status: 'completed',
+      expanded: false,
+      ts: 120,
+    });
+  });
+
   it('creates awaiting answer nodes for timeline display', () => {
     const state = createState();
 

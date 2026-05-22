@@ -8,6 +8,7 @@ import { toText } from "@/shared/utils/eventUtils";
 import { processRunEvent } from "@/features/timeline/lib/eventProcessorRun";
 import { processContentEvent } from "@/features/timeline/lib/eventProcessorContent";
 import { processReasoningEvent } from "@/features/timeline/lib/eventProcessorReasoning";
+import { processPlanningEvent } from "@/features/timeline/lib/eventProcessorPlanning";
 import { processToolEvent } from "@/features/timeline/lib/eventProcessorTool";
 import { processPlanEvent } from "@/features/timeline/lib/eventProcessorPlan";
 
@@ -55,6 +56,15 @@ export function processEvent(
   }
 
   if (
+    type === "planning.start" ||
+    type === "planning.delta" ||
+    type === "planning.end" ||
+    type === "planning.snapshot"
+  ) {
+    return processPlanningEvent(event, state, config);
+  }
+
+  if (
     type === "tool.start" ||
     type === "tool.snapshot" ||
     type === "tool.args" ||
@@ -79,4 +89,3 @@ export function processEvent(
 
   return [];
 }
-
