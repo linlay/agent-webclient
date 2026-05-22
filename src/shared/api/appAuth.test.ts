@@ -73,6 +73,8 @@ function installWindow(options: {
     }),
     setTimeout,
     clearTimeout,
+    setInterval,
+    clearInterval,
     __AGENT_APP_ACCESS_TOKEN: options.globalToken,
     __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: options.webviewBridge ? true : undefined,
   };
@@ -216,6 +218,30 @@ describe('appAuth', () => {
     );
   });
 
+  it('uses a host-seeded token even when the bridge response requestId differs', async () => {
+    jest.useFakeTimers();
+    const { parent, sessionStorage } = installWindow({
+      webviewBridge: true,
+    });
+
+    (parent.postMessage as jest.Mock).mockImplementation(() => {
+      setTimeout(() => {
+        sessionStorage.setItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY, 'seeded-token');
+        (globalThis.window as typeof globalThis.window & {
+          __AGENT_APP_ACCESS_TOKEN?: string;
+        }).__AGENT_APP_ACCESS_TOKEN = 'seeded-token';
+      }, 25);
+    });
+
+    const promise = refreshAppAccessToken('missing');
+
+    jest.advanceTimersByTime(50);
+    await Promise.resolve();
+
+    await expect(promise).resolves.toBe('seeded-token');
+    expect(parent.postMessage).toHaveBeenCalledTimes(1);
+  });
+
   it('uses refreshAccessToken for unauthorized refreshes and clears stale stored tokens on timeout', async () => {
     jest.useFakeTimers();
     const { parent, sessionStorage } = installWindow({ storedToken: 'stale-token' });
@@ -334,7 +360,7 @@ describe('appAuth', () => {
     );
 
     jest.advanceTimersByTime(40);
-    await expect(missing).resolves.toBe('old-missing-token');
+    await expect(missing).resolves.toBe('fresh-unauthorized-token');
     expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
       'fresh-unauthorized-token',
     );

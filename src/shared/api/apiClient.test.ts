@@ -286,6 +286,7 @@ describe('apiClient query payloads', () => {
           route: '/settings?section=navigation',
           pageKey: 'native:/settings?section=navigation',
           pageKind: 'native',
+          permissionMode: 'page_control',
           snapshotVersion: 7,
           snapshotAt: '2026-05-16T12:00:00.000Z',
           pageContext: {
@@ -313,6 +314,7 @@ describe('apiClient query payloads', () => {
           route: '/settings?section=navigation',
           pageKey: 'native:/settings?section=navigation',
           pageKind: 'native',
+          permissionMode: 'page_control',
           snapshotVersion: 7,
           snapshotAt: '2026-05-16T12:00:00.000Z',
           pageContext: {

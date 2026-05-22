@@ -21,7 +21,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
 import { AgentIcon } from "@/shared/icons/agent";
-import { Button, Flex, Form, Input, message, Popover } from "antd";
+import { Button, Dropdown, Flex, Form, Input, message, Popover } from "antd";
 import type { Agent } from "@/app/state/types";
 
 function formatResponseDuration(durationMs?: number): string {
@@ -95,7 +95,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const autoScrollEnabledRef = useRef(true);
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
-  const [expandedTaskGroups, setExpandedTaskGroups] = useState<Record<string, boolean>>({});
+  const [expandedTaskGroups, setExpandedTaskGroups] = useState<
+    Record<string, boolean>
+  >({});
   const currentWorker = resolveCurrentWorkerSummary(state);
 
   const isNearBottom = (el: HTMLDivElement, threshold = 24): boolean => {
@@ -114,7 +116,11 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
   }, [state.timelineOrder, state.timelineNodes]);
   const displayItems = useMemo(() => {
-    return buildTimelineDisplayItems(timelineEntries, state.events, state.taskItemsById);
+    return buildTimelineDisplayItems(
+      timelineEntries,
+      state.events,
+      state.taskItemsById,
+    );
   }, [timelineEntries, state.events, state.taskItemsById]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
@@ -194,6 +200,34 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     [state.streaming],
   );
 
+  const handleResendInNewChat = useCallback(
+    (text: string) => {
+      const messageText = text.trim();
+      if (state.streaming || !messageText) return;
+
+      const workerDetail: Record<string, string | boolean> = {
+        preserveWorkerContext: true,
+      };
+      const sendDetail: Record<string, string> = { message: messageText };
+      if (currentWorker?.type === "agent" && currentWorker.sourceId) {
+        workerDetail.agentKey = currentWorker.sourceId;
+        sendDetail.agentKey = currentWorker.sourceId;
+      } else if (currentWorker?.type === "team" && currentWorker.sourceId) {
+        sendDetail.teamId = currentWorker.sourceId;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("agent:start-new-conversation", {
+          detail: workerDetail,
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("agent:send-message", { detail: sendDetail }),
+      );
+    },
+    [currentWorker, state.streaming],
+  );
+
   const toggleTaskGroup = useCallback((key: string) => {
     setExpandedTaskGroups((current) => ({
       ...current,
@@ -201,72 +235,85 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     }));
   }, []);
 
-  const renderEntry = useCallback((entry: TimelineRenderEntry) => {
-    if (entry.kind === "node") {
-      if (entry.node.kind === "agent-group") return null;
-      return <TimelineRow key={entry.key} node={entry.node} />;
-    }
-    if (entry.kind === "task-group") {
-      const expanded = Boolean(expandedTaskGroups[entry.key]);
-      const taskDuration = formatResponseDuration(entry.durationMs);
-      const statusText = formatTaskStatus(entry.status);
-      const taskAgent = resolveTaskGroupAgent(entry, state.agents, currentWorker);
-      return (
-        <section key={entry.key} className="timeline-task-group">
-          <Flex
-            className={`timeline-task-group-header ${expanded ? "is-expanded" : ""}`.trim()}
-            align="center"
-            gap={8}
-            aria-expanded={expanded}
-            onClick={() => toggleTaskGroup(entry.key)}
-          >
-            {taskAgent && (
-              <span className="timeline-task-group-agent">
-                <AgentIcon
-                  icon={taskAgent.icon}
-                  type="agent"
-                  props={{
-                    icon: {
-                      className: "timeline-task-group-agent-avatar",
-                      width: 20,
-                      height: 20,
-                    },
-                    avatar: {
-                      className: "timeline-task-group-agent-avatar",
-                      size: 20,
-                    },
-                  }}
-                />
-                <span className="timeline-task-group-agent-name">
-                  {taskAgent.name || taskAgent.key}
+  const renderEntry = useCallback(
+    (entry: TimelineRenderEntry) => {
+      if (entry.kind === "node") {
+        if (entry.node.kind === "agent-group") return null;
+        return <TimelineRow key={entry.key} node={entry.node} />;
+      }
+      if (entry.kind === "task-group") {
+        const expanded = Boolean(expandedTaskGroups[entry.key]);
+        const taskDuration = formatResponseDuration(entry.durationMs);
+        const statusText = formatTaskStatus(entry.status);
+        const taskAgent = resolveTaskGroupAgent(
+          entry,
+          state.agents,
+          currentWorker,
+        );
+        return (
+          <section key={entry.key} className="timeline-task-group">
+            <Flex
+              className={`timeline-task-group-header ${expanded ? "is-expanded" : ""}`.trim()}
+              align="center"
+              gap={8}
+              aria-expanded={expanded}
+              onClick={() => toggleTaskGroup(entry.key)}
+            >
+              {taskAgent && (
+                <span className="timeline-task-group-agent">
+                  <AgentIcon
+                    icon={taskAgent.icon}
+                    type="agent"
+                    props={{
+                      icon: {
+                        className: "timeline-task-group-agent-avatar",
+                        width: 20,
+                        height: 20,
+                      },
+                      avatar: {
+                        className: "timeline-task-group-agent-avatar",
+                        size: 20,
+                      },
+                    }}
+                  />
+                  <span className="timeline-task-group-agent-name">
+                    {taskAgent.name || taskAgent.key}
+                  </span>
                 </span>
+              )}
+              <span className="timeline-task-group-title">
+                {entry.taskName || entry.taskId}
               </span>
+              <span
+                className={`timeline-task-group-status tool-status-dot is-${entry.status || "unknown"}`.trim()}
+                data-tool-status={entry.status || "unknown"}
+                aria-label={statusText}
+                title={statusText}
+              />
+              {taskDuration && (
+                <span className="timeline-task-group-duration">
+                  {taskDuration}
+                </span>
+              )}
+              <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+            </Flex>
+            {entry.error && (
+              <div className="timeline-task-group-error">{entry.error}</div>
             )}
-            <span className="timeline-task-group-title">{entry.taskName || entry.taskId}</span>
-            <span
-              className={`timeline-task-group-status tool-status-dot is-${entry.status || "unknown"}`.trim()}
-              data-tool-status={entry.status || "unknown"}
-              aria-label={statusText}
-              title={statusText}
-            />
-            {taskDuration && (
-              <span className="timeline-task-group-duration">{taskDuration}</span>
+            {expanded && (
+              <div className="timeline-task-group-body">
+                {entry.renderEntries.map((childEntry) =>
+                  renderEntry(childEntry),
+                )}
+              </div>
             )}
-            <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-          </Flex>
-          {entry.error && (
-            <div className="timeline-task-group-error">{entry.error}</div>
-          )}
-          {expanded && (
-            <div className="timeline-task-group-body">
-              {entry.renderEntries.map((childEntry) => renderEntry(childEntry))}
-            </div>
-          )}
-        </section>
-      );
-    }
-    return <TimelineRow key={entry.key} toolGroup={entry} />;
-  }, [currentWorker, expandedTaskGroups, state.agents, toggleTaskGroup]);
+          </section>
+        );
+      }
+      return <TimelineRow key={entry.key} toolGroup={entry} />;
+    },
+    [currentWorker, expandedTaskGroups, state.agents, toggleTaskGroup],
+  );
 
   useEffect(() => {
     return () => {
@@ -339,18 +386,42 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             >
                               <MaterialIcon name="content_copy" />
                             </UiButton>
-                            <UiButton
-                              className="timeline-meta-btn"
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              disabled={state.streaming}
-                              title="重问"
-                              aria-label="重问"
-                              onClick={() => handleResend(item.node.text || "")}
+                            <Dropdown
+                              placement="bottomRight"
+                              menu={{
+                                onClick: (info) => {
+                                  if (info.key === "resend") {
+                                    handleResend(item.node.text || "");
+                                  } else if (info.key === "resendInNewChat") {
+                                    handleResendInNewChat(item.node.text || "");
+                                  }
+                                },
+                                items: [
+                                  {
+                                    key: "resend",
+                                    icon: <MaterialIcon name="refresh" />,
+                                    label: "重问",
+                                  },
+                                  {
+                                    key: "resendInNewChat",
+                                    icon: <MaterialIcon name="open_in_new" />,
+                                    label: "新对话重问",
+                                  },
+                                ],
+                              }}
                             >
-                              <MaterialIcon name="refresh" />
-                            </UiButton>
+                              <UiButton
+                                className="timeline-meta-btn"
+                                variant="ghost"
+                                size="sm"
+                                iconOnly
+                                disabled={state.streaming}
+                                title="重问"
+                                aria-label="重问"
+                              >
+                                <MaterialIcon name="refresh" />
+                              </UiButton>
+                            </Dropdown>
                           </div>
                           {queryTime.short && (
                             <div
@@ -381,9 +452,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   return (
                     <section key={item.key} className="timeline-run-group">
                       <div className="timeline-run-items">
-                        {item.renderEntries.map((entry) =>
-                          renderEntry(entry),
-                        )}
+                        {item.renderEntries.map((entry) => renderEntry(entry))}
                       </div>
                       {isCompleted && (
                         <div className="timeline-run-meta">
@@ -424,7 +493,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             ) : (
                               <Popover
                                 destroyOnHidden
-                                trigger={['click']}
+                                trigger={["click"]}
                                 content={
                                   <FeedbackModal
                                     onFinish={() => {

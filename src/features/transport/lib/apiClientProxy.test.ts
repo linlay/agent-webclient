@@ -649,6 +649,25 @@ describe("apiClientProxy", () => {
 		]);
 	});
 
+	it("loads chat history over http to avoid ws request latency in direct routes", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+		mockApiClient.getChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", events: [] },
+		});
+
+		await expect(proxy.getChat("chat_1", false)).resolves.toMatchObject({
+			data: { chatId: "chat_1", events: [] },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockGetWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
+	});
+
 	it("routes markChatRead over ws without falling back to http", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");

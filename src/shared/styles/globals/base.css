@@ -525,6 +525,20 @@ textarea {
     box-shadow: none;
 }
 
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item {
+    padding: 4px 8px;
+}
+
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-icon {
+    font-size: 14px;
+}
+
+.ant-dropdown .ant-dropdown-menu {
+
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--line-soft);
+}
+
 /* 滚动条 */
 ::-webkit-scrollbar {
     width: 6px;
