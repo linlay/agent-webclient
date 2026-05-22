@@ -33,12 +33,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onTogglePlanningMode,
 }) => {
   const { t } = useI18n();
-  const {
-    openFilePicker,
-    interruptCurrentRun,
-    toggleSpeechInput,
-    handleSend,
-  } = useComposerContext();
+  const { openFilePicker, interruptCurrentRun, toggleSpeechInput, handleSend } =
+    useComposerContext();
 
   return (
     <div className="composer-control-row">
@@ -64,6 +60,17 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         >
           <MaterialIcon name="add" />
         </UiButton>
+        {planningMode && (
+          <UiButton
+            className="plan-toggle-btn"
+            variant="ghost"
+            size="sm"
+            onClick={onTogglePlanningMode}
+          >
+            <MaterialIcon name="assignment" />
+            <span>{t("composer.actions.plan")}</span>
+          </UiButton>
+        )}
         <ControlsForm
           disabled={isFrontendActive || isStreaming}
           onChange={onControlParamsChange}
@@ -87,16 +94,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           </UiButton>
         ) : !isVoiceMode ? (
           <>
-            {planningMode && (
-              <UiButton
-                className={`plan-toggle-btn ${planningMode ? "is-active" : ""}`}
-                variant="ghost"
-                size="sm"
-                onClick={onTogglePlanningMode}
-              >
-                {t("composer.actions.plan")}
-              </UiButton>
-            )}
             <UiButton
               className={`voice-btn ${speechListening ? "is-listening" : ""}`}
               variant="secondary"

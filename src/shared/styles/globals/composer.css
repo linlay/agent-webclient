@@ -340,29 +340,11 @@
     white-space: nowrap;
 }
 
-.plan-toggle-btn {
-    min-height: 32px !important;
-    padding: 0 9px !important;
-    border-radius: 8px !important;
+.plan-toggle-btn.ui-btn.ui-btn-ghost {
     color: var(--accent-electric-strong);
-    border: 1px solid color-mix(in srgb, var(--accent-electric) 24%, var(--line-soft));
-    background: color-mix(in srgb, var(--accent-soft) 14%, var(--bg-elev-2));
-    font-size: 11px;
+    background: var(--accent-soft);
     font-weight: 700;
-    flex: 0 0 auto;
-    align-self: center;
-}
-
-.plan-toggle-btn:hover {
-    color: var(--accent-electric);
-    background: color-mix(in srgb, var(--accent-soft) 24%, var(--bg-elev-2));
-}
-
-.plan-toggle-btn.is-active {
-    color: #fff;
-    border-color: color-mix(in srgb, var(--accent-electric) 72%, transparent);
-    background: linear-gradient(135deg, #2d7cff, #1758d5);
-    box-shadow: 0 6px 14px rgba(23, 88, 213, 0.2);
+    position: relative;
 }
 
 .composer-plus-btn {
