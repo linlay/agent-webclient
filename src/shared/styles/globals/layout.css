@@ -294,17 +294,14 @@
 }
 
 .status-pill.is-running {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 42%,
-            var(--line-soft));
     color: var(--accent-electric-strong);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 80%, transparent);
 }
 
 .status-pill.is-running::before {
     background: var(--accent-electric);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-soft) 55%, transparent);
-    animation: status-pulse 1.35s ease-in-out infinite;
+    animation-name: flash;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
 }
 
 .status-pill.is-error {
