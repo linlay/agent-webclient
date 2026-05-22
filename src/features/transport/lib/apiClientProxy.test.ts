@@ -649,23 +649,34 @@ describe("apiClientProxy", () => {
 		]);
 	});
 
-	it("loads chat history over http to avoid ws request latency in direct routes", async () => {
+	it("routes chat history loads over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
-		mockApiClient.getChat.mockResolvedValue({
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
 			status: 200,
 			code: 0,
 			msg: "ok",
 			data: { chatId: "chat_1", events: [] },
 		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await expect(proxy.getChat("chat_1", false)).resolves.toMatchObject({
+		await expect(proxy.getChat("chat_1", true)).resolves.toMatchObject({
 			data: { chatId: "chat_1", events: [] },
 		});
 
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockGetWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat",
+			payload: { chatId: "chat_1", includeRawMessages: true },
+		});
+		expect(mockApiClient.getChat).not.toHaveBeenCalled();
 	});
 
 	it("routes markChatRead over ws without falling back to http", async () => {
@@ -1003,6 +1014,24 @@ describe("apiClientProxy", () => {
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
+	});
+
+	it("routes getChat over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_1", events: [] },
+		});
+
+		await expect(proxy.getChat("chat_1", false)).resolves.toMatchObject({
+			data: { chatId: "chat_1", events: [] },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
 	});
 
 	it("routes schedule management over http when sse mode is selected", async () => {

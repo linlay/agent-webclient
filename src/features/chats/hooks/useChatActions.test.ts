@@ -59,11 +59,17 @@ const globalWithBrowserApis = globalThis as typeof globalThis & {
       search: string;
     };
   };
+  localStorage?: {
+    getItem: jest.Mock;
+    setItem: jest.Mock;
+    removeItem: jest.Mock;
+  };
   CustomEvent?: typeof CustomEvent;
 };
 
 describe('replayEvent tool migration', () => {
   const originalWindow = globalWithBrowserApis.window;
+  const originalLocalStorage = globalWithBrowserApis.localStorage;
   const originalCustomEvent = globalWithBrowserApis.CustomEvent;
 
   beforeEach(() => {
@@ -81,6 +87,11 @@ describe('replayEvent tool migration', () => {
         search: '',
       },
     };
+    globalWithBrowserApis.localStorage = {
+      getItem: jest.fn(() => null),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+    };
     globalWithBrowserApis.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
       detail: T;
 
@@ -96,6 +107,11 @@ describe('replayEvent tool migration', () => {
       globalWithBrowserApis.window = originalWindow;
     } else {
       delete globalWithBrowserApis.window;
+    }
+    if (originalLocalStorage) {
+      globalWithBrowserApis.localStorage = originalLocalStorage;
+    } else {
+      delete globalWithBrowserApis.localStorage;
     }
     if (originalCustomEvent) {
       globalWithBrowserApis.CustomEvent = originalCustomEvent;

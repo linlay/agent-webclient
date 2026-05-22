@@ -300,7 +300,14 @@ export function getChat(
 	chatId: string,
 	includeRawMessages = false,
 ): Promise<ApiResponse> {
-	return getChatHttp(chatId, includeRawMessages);
+	return routeRequest(
+		"/api/chat",
+		compactPayload({
+			chatId,
+			includeRawMessages: includeRawMessages ? true : undefined,
+		}),
+		() => getChatHttp(chatId, includeRawMessages),
+	);
 }
 
 export function archiveChats(
