@@ -28,6 +28,7 @@ interface AppAuthResponseMessage {
 const APP_AUTH_REQUEST_TYPE = 'zenmind:agent-app-auth:request';
 const APP_AUTH_RESPONSE_TYPE = 'zenmind:agent-app-auth:response';
 const APP_AUTH_TIMEOUT_MS = 10_000;
+const APP_AUTH_SEEDED_TOKEN_POLL_MS = 25;
 const APP_AUTH_TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 let tokenRefreshPromise: Promise<string | null> | null = null;
@@ -210,6 +211,7 @@ export async function refreshAppAccessToken(
 
     const cleanup = (timeoutId: number) => {
       window.clearTimeout(timeoutId);
+      window.clearInterval(seedPollId);
       window.removeEventListener('message', handleMessage as EventListener);
     };
 
@@ -220,6 +222,18 @@ export async function refreshAppAccessToken(
       }
       resolve(normalized);
     };
+
+    const seedPollId = window.setInterval(() => {
+      if (reason === 'unauthorized') {
+        return;
+      }
+      const seededToken = getAppAccessToken();
+      if (!seededToken) {
+        return;
+      }
+      cleanup(timeoutId);
+      finish(seededToken);
+    }, APP_AUTH_SEEDED_TOKEN_POLL_MS);
 
     const handleMessage = (event: MessageEvent) => {
       if (!isDesktopHostMessageEvent(event)) {

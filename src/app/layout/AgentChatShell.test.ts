@@ -23,8 +23,15 @@ jest.mock("@/app/layout/TopNav", () => ({
 }));
 
 jest.mock("@/features/timeline/components/ConversationStage", () => ({
-  ConversationStage: () =>
-    React.createElement("main", { className: "conversation-stage" }, "stage"),
+  ConversationStage: ({ showEmptyState }: { showEmptyState?: boolean }) =>
+    React.createElement(
+      "main",
+      {
+        className: "conversation-stage",
+        "data-show-empty-state": String(showEmptyState ?? true),
+      },
+      "stage",
+    ),
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
@@ -215,6 +222,7 @@ describe("AgentChatShell", () => {
     expect(html).toContain("layout-agent-route");
     expect(html).toContain("top-nav");
     expect(html).toContain("conversation-stage");
+    expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
     expect(html).toContain("right-sidebar");
     expect(html).not.toContain("left-sidebar");
@@ -301,6 +309,43 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("does not block a direct chat route while the route agent detail is unresolved", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
+    useAppState.mockReturnValue(createInitialState());
+    useAppDispatch.mockReturnValue(dispatch);
+
+    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CONVERSATION_MODE",
+      mode: "worker",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:load-chat",
+        detail: {
+          chatId: "chat-123",
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+    expect(html).not.toContain("正在加载智能体");
+    expect(html).toContain("正在加载会话");
+
+    useEffectSpy.mockRestore();
+  });
+
   it("renders the chat layout after the route chat is loaded", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
@@ -313,6 +358,7 @@ describe("AgentChatShell", () => {
 
     expect(html).toContain("layout-agent-route");
     expect(html).toContain("conversation-stage");
+    expect(html).toContain('data-show-empty-state="false"');
     expect(html).not.toContain("agent-route-loading-page");
   });
 

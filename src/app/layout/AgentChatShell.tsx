@@ -83,13 +83,7 @@ function isRouteAgentResolved(
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    setTimeout(() => {
-      setShow(true);
-    }, 500);
-  }, []);
-  return show ? (
+  return (
     <main className="agent-route-loading-page" aria-busy="true">
       <div className="agent-route-loading-card">
         <div className="agent-route-loading-spinner" aria-hidden="true" />
@@ -98,7 +92,7 @@ const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
         </div>
       </div>
     </main>
-  ) : null;
+  );
 };
 
 export const AgentChatShell: React.FC = () => {
@@ -149,7 +143,11 @@ export const AgentChatShell: React.FC = () => {
     [agentKey, routeAgent],
   );
   const routeAgentReady =
-    !agentKey || routeAgentResolved || loadedRouteAgentKey === agentKey;
+    !agentKey ||
+    Boolean(chatId) ||
+    Boolean(routeAgent) ||
+    routeAgentResolved ||
+    loadedRouteAgentKey === agentKey;
   const routeChatReady = !chatId || String(state.chatId || "") === chatId;
   const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
     agents: state.agents,
@@ -412,7 +410,7 @@ export const AgentChatShell: React.FC = () => {
       id="app"
     >
       <TopNav />
-      <ConversationStage />
+      <ConversationStage showEmptyState={!chatId} />
       <RightSidebar />
       <BottomDock />
       {state.terminalDockOpen ? <TerminalDock /> : null}

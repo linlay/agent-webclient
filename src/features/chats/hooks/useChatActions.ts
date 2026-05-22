@@ -421,34 +421,36 @@ export function useChatActions() {
           });
         }
 
-        applyLoadedChatState(chatId);
+        flushSync(() => {
+          applyLoadedChatState(chatId);
 
-        /* Dispatch the complete replay result as a single batch update */
-        dispatch({
-          type: 'BATCH_UPDATE',
-          updates: {
-            chatId: rs.chatId,
-            runId: rs.runId,
-            timelineNodes: rs.timelineNodes,
-            timelineOrder: rs.timelineOrder,
-            contentNodeById: rs.contentNodeById,
-            reasoningNodeById: rs.reasoningNodeById,
-            toolNodeById: rs.toolNodeById,
-            toolStates: rs.toolStates,
-            timelineCounter: rs.timelineCounter,
-            activeReasoningKey: rs.activeReasoningKey,
-            activeAwaiting: rs.activeAwaiting,
-            events: rs.events,
-            debugEvents: rs.debugEvents,
-            artifacts: rs.artifacts,
-            plan: rs.plan,
-            planRuntimeByTaskId: rs.planRuntimeByTaskId,
-            taskItemsById: rs.taskItemsById,
-            activeTaskIds: rs.activeTaskIds,
-            planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
-            planLastTouchedTaskId: rs.planLastTouchedTaskId,
-            downvotedRunKeys,
-          },
+          /* Dispatch the complete replay result as a single batch update */
+          dispatch({
+            type: 'BATCH_UPDATE',
+            updates: {
+              chatId: rs.chatId,
+              runId: rs.runId,
+              timelineNodes: rs.timelineNodes,
+              timelineOrder: rs.timelineOrder,
+              contentNodeById: rs.contentNodeById,
+              reasoningNodeById: rs.reasoningNodeById,
+              toolNodeById: rs.toolNodeById,
+              toolStates: rs.toolStates,
+              timelineCounter: rs.timelineCounter,
+              activeReasoningKey: rs.activeReasoningKey,
+              activeAwaiting: rs.activeAwaiting,
+              events: rs.events,
+              debugEvents: rs.debugEvents,
+              artifacts: rs.artifacts,
+              plan: rs.plan,
+              planRuntimeByTaskId: rs.planRuntimeByTaskId,
+              taskItemsById: rs.taskItemsById,
+              activeTaskIds: rs.activeTaskIds,
+              planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
+              planLastTouchedTaskId: rs.planLastTouchedTaskId,
+              downvotedRunKeys,
+            },
+          });
         });
 
         /* Set agent for this chat */

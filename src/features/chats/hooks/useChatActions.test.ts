@@ -1,3 +1,6 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createInitialState } from '@/app/state/state';
 import type { Agent, Chat, Team } from '@/app/state/types';
 import {
   createReplayState,
@@ -8,9 +11,148 @@ import {
   setReplayArtifacts,
   setReplayPlan,
   shouldAutoMarkChatRead,
+  useChatActions,
 } from '@/features/chats/hooks/useChatActions';
 
+let mockInsideFlushSync = false;
+
+jest.mock('react-dom', () => ({
+  flushSync: jest.fn((callback: () => void) => {
+    mockInsideFlushSync = true;
+    try {
+      callback();
+    } finally {
+      mockInsideFlushSync = false;
+    }
+  }),
+}));
+
+jest.mock('@/app/state/AppContext', () => ({
+  useAppContext: jest.fn(),
+}));
+
+jest.mock('@/features/transport/lib/apiClientProxy', () => ({
+  getChat: jest.fn(),
+  markChatRead: jest.fn(),
+}));
+
+jest.mock('@/features/workers/hooks/useWorkerData', () => ({
+  useWorkerData: jest.fn(() => ({})),
+}));
+
+const { useAppContext } = jest.requireMock('@/app/state/AppContext') as {
+  useAppContext: jest.Mock;
+};
+
+const { getChat } = jest.requireMock('@/features/transport/lib/apiClientProxy') as {
+  getChat: jest.Mock;
+};
+
+const globalWithBrowserApis = globalThis as typeof globalThis & {
+  window?: {
+    dispatchEvent: jest.Mock;
+    requestAnimationFrame: jest.Mock;
+    clearTimeout: jest.Mock;
+    location: {
+      pathname: string;
+      search: string;
+    };
+  };
+  CustomEvent?: typeof CustomEvent;
+};
+
 describe('replayEvent tool migration', () => {
+  const originalWindow = globalWithBrowserApis.window;
+  const originalCustomEvent = globalWithBrowserApis.CustomEvent;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockInsideFlushSync = false;
+    globalWithBrowserApis.window = {
+      dispatchEvent: jest.fn(() => true),
+      requestAnimationFrame: jest.fn((callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      }),
+      clearTimeout: jest.fn(),
+      location: {
+        pathname: '/',
+        search: '',
+      },
+    };
+    globalWithBrowserApis.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
+      detail: T;
+
+      constructor(type: string, init?: CustomEventInit<T>) {
+        super(type);
+        this.detail = init?.detail as T;
+      }
+    } as typeof CustomEvent;
+  });
+
+  afterAll(() => {
+    if (originalWindow) {
+      globalWithBrowserApis.window = originalWindow;
+    } else {
+      delete globalWithBrowserApis.window;
+    }
+    if (originalCustomEvent) {
+      globalWithBrowserApis.CustomEvent = originalCustomEvent;
+    } else {
+      delete globalWithBrowserApis.CustomEvent;
+    }
+  });
+
+  it('commits loaded chat id and replayed timeline state atomically', async () => {
+    const state = createInitialState();
+    const dispatchRecords: Array<{ type: string; insideFlushSync: boolean }> = [];
+    const dispatch = jest.fn((action: { type: string }) => {
+      dispatchRecords.push({
+        type: action.type,
+        insideFlushSync: mockInsideFlushSync,
+      });
+    });
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_1',
+            chatId: 'chat-1',
+            message: 'hello',
+            timestamp: 100,
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat-1');
+
+    expect(dispatchRecords).toEqual(
+      expect.arrayContaining([
+        { type: 'SET_CHAT_ID', insideFlushSync: true },
+        { type: 'RESET_CONVERSATION', insideFlushSync: true },
+        { type: 'BATCH_UPDATE', insideFlushSync: true },
+      ]),
+    );
+  });
+
   it('normalizes agent route new-conversation events as preserved worker sessions', () => {
     expect(
       normalizeStartNewConversationDetail({
