@@ -57,34 +57,25 @@ export const useDesktopRouteChange = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleServiceWebviewDeliver = (event: Event) => {
-      const payload =
-        ((event as CustomEvent<DesktopRouteChangedPayload | undefined>)
-          .detail as DesktopRouteChangedPayload | undefined) || {};
-      if (payload.type !== "desktopRouteChanged") {
-        return;
-      }
-
+    const electronAPI = (window as any).electronAPI;
+    if (!electronAPI) return;
+    const handleServiceWebviewDeliver = (
+      payload: DesktopRouteChangedPayload,
+    ) => {
+      if (payload.type !== "desktopRouteChanged") return;
       const target = buildDesktopRouteTarget(payload);
-      if (!target) {
-        return;
-      }
+      if (!target) return;
       const cur = `${location.pathname}${location.search}${location.hash}`;
-      if (cur === target) {
-        return;
-      }
+      if (cur === target) return;
       navigate(target, { replace: true });
     };
 
-    window.addEventListener(
-      "zenmind:service-webview:deliver",
-      handleServiceWebviewDeliver,
+    // 监听 主进程 发送的 消息
+    electronAPI.onFromMain(
+      "zenmind:service-webview:route",
+      (_: any, payload: DesktopRouteChangedPayload) => {
+        handleServiceWebviewDeliver(payload);
+      },
     );
-    return () => {
-      window.removeEventListener(
-        "zenmind:service-webview:deliver",
-        handleServiceWebviewDeliver,
-      );
-    };
   }, []);
-}
+};
