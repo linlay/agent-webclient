@@ -32,8 +32,8 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
     expect(getFilteredSlashCommands('/agents')).toEqual([]);
-    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember', 'remote-control']);
-    expect(getFilteredSlashCommands('/remote').map((item) => item.id)).toEqual(['remote-control']);
+    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('/remote')).toEqual([]);
     expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
   });
 
@@ -87,7 +87,6 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
-    expect(isSlashCommandDisabled('remote-control', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
   });
 

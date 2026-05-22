@@ -433,8 +433,6 @@ export const enUSMessages: I18nMessages = {
   "slash.command.plan.label": "Planning mode",
   "slash.command.redo.description": "Resend the latest query in the current conversation",
   "slash.command.redo.label": "Resend last query",
-  "slash.command.remoteControl.description": "Create a public phone URL and QR code for the current conversation",
-  "slash.command.remoteControl.label": "Mobile remote",
   "slash.command.remember.description": "Store long-term preferences, facts, or constraints through the memory endpoint",
   "slash.command.remember.label": "Save memory",
   "slash.command.schedule.description": "Prefill a scheduled-task draft for the current {agentLabel} or {teamLabel}",

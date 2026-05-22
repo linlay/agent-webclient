@@ -180,8 +180,6 @@ export const zhCNMessages: I18nMessages = {
   "leftSidebar.historyTitle": "历史会话",
   "leftSidebar.historyTitleWithWorker": "{workerTypeLabel}历史会话 · {displayName}",
   "leftSidebar.latestConversationNoReply": "最新会话无答复",
-  "slash.command.remoteControl.label": "手机远控",
-  "slash.command.remoteControl.description": "生成公网访问地址和二维码，用手机继续当前会话",
   "leftSidebar.loading": "加载中...",
   "leftSidebar.markAllRead": "全部已读",
   "leftSidebar.newConversation": "新建会话",
