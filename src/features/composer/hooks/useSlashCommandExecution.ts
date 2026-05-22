@@ -151,12 +151,6 @@ export function useSlashCommandExecution(input: {
 						modal: { type: "schedule" },
 					});
 					return;
-				case "agents":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "agents" },
-					});
-					return;
 				case "detail":
 					dispatch({
 						type: "OPEN_COMMAND_MODAL",

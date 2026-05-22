@@ -14,7 +14,6 @@ export type SlashCommandId =
   | 'stop'
   | 'remote-control'
   | 'schedule'
-  | 'agents'
   | 'detail'
   | 'history'
   | 'switch';
@@ -79,13 +78,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.schedule.label',
     descriptionKey: 'slash.command.schedule.description',
     keywords: ['schedule', 'task', 'plan', 'cron'],
-  },
-  {
-    id: 'agents',
-    command: '/agents',
-    labelKey: 'slash.command.agents.label',
-    descriptionKey: 'slash.command.agents.description',
-    keywords: ['agents', 'agent', 'manage', 'config'],
   },
   {
     id: 'detail',
@@ -216,9 +208,6 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'schedule' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;
-  }
-  if (commandId === 'agents') {
-    return availability.commandModalOpen;
   }
   if (commandId === 'history') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;
