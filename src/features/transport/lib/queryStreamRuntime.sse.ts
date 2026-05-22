@@ -3,12 +3,20 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import {
   ApiError,
+  createAttachStream,
   createQueryStream,
+  type AttachStreamParams,
   type QueryStreamParams,
 } from "@/shared/api/apiClient";
 
 export interface ExecuteQueryStreamSseOptions {
   params: QueryStreamParams;
+  dispatch: Dispatch<AppAction>;
+  handleEvent: (event: AgentEvent) => void;
+}
+
+export interface ExecuteAttachRunSseOptions {
+  params: AttachStreamParams;
   dispatch: Dispatch<AppAction>;
   handleEvent: (event: AgentEvent) => void;
 }
@@ -200,5 +208,40 @@ export async function executeQueryStreamSse(
     }
     dispatch({ type: "SET_STREAMING", streaming: false });
     dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+  }
+}
+
+export async function executeAttachRunSse(
+  options: ExecuteAttachRunSseOptions,
+): Promise<void> {
+  const { dispatch, handleEvent, params } = options;
+  const abortController = new AbortController();
+  const externalSignal = params.signal;
+  const forwardAbort = () => abortController.abort();
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      abortController.abort();
+    } else {
+      externalSignal.addEventListener("abort", forwardAbort, {
+        once: true,
+      });
+    }
+  }
+
+  try {
+    const response = await createAttachStream({
+      ...params,
+      signal: abortController.signal,
+    });
+    await consumeSseStream(response, dispatch, handleEvent);
+  } catch (error) {
+    if ((error as Error).name !== "AbortError") {
+      throw error;
+    }
+  } finally {
+    if (externalSignal) {
+      externalSignal.removeEventListener("abort", forwardAbort);
+    }
   }
 }

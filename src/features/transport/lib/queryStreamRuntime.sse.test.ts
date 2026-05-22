@@ -1,13 +1,18 @@
 import {
   ApiError,
+  createAttachStream,
   createQueryStream,
 } from "@/shared/api/apiClient";
-import { executeQueryStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
+import {
+  executeAttachRunSse,
+  executeQueryStreamSse,
+} from "@/features/transport/lib/queryStreamRuntime.sse";
 
 jest.mock("@/shared/api/apiClient", () => {
   const actual = jest.requireActual("@/shared/api/apiClient");
   return {
     ...actual,
+    createAttachStream: jest.fn(),
     createQueryStream: jest.fn(),
   };
 });
@@ -34,9 +39,12 @@ function createSseResponse(chunks: string[], status = 200): Response {
 describe("executeQueryStreamSse", () => {
   const createQueryStreamMock =
     createQueryStream as jest.MockedFunction<typeof createQueryStream>;
+  const createAttachStreamMock =
+    createAttachStream as jest.MockedFunction<typeof createAttachStream>;
 
   beforeEach(() => {
     createQueryStreamMock.mockReset();
+    createAttachStreamMock.mockReset();
   });
 
   it("dispatches lifecycle actions and forwards parsed events", async () => {
@@ -153,6 +161,88 @@ describe("executeQueryStreamSse", () => {
       expect.objectContaining({
         type: "APPEND_DEBUG",
         line: expect.stringContaining("[sse] Failed to parse event:"),
+      }),
+    );
+  });
+
+  it("attaches to a run with runId and lastSeq and forwards parsed events", async () => {
+    const dispatch = jest.fn();
+    const handleEvent = jest.fn();
+    createAttachStreamMock.mockResolvedValue(
+      createSseResponse([
+        'event: message\ndata: {"type":"content.delta","text":"hi","runId":"run_1"}\n\n',
+        'data: {"type":"run.complete","runId":"run_1"}\n\n',
+      ]),
+    );
+
+    await executeAttachRunSse({
+      params: {
+        runId: "run_1",
+        lastSeq: 7,
+      },
+      dispatch,
+      handleEvent,
+    });
+
+    expect(createAttachStreamMock).toHaveBeenCalledWith({
+      runId: "run_1",
+      lastSeq: 7,
+      signal: expect.any(AbortSignal),
+    });
+    expect(handleEvent).toHaveBeenNthCalledWith(1, {
+      type: "content.delta",
+      text: "hi",
+      runId: "run_1",
+    });
+    expect(handleEvent).toHaveBeenNthCalledWith(2, {
+      type: "run.complete",
+      runId: "run_1",
+    });
+  });
+
+  it("treats attach [DONE] as normal completion", async () => {
+    const handleEvent = jest.fn();
+    createAttachStreamMock.mockResolvedValue(
+      createSseResponse(['data: {"type":"content.delta","text":"hi"}\n\n', "data: [DONE]\n\n"]),
+    );
+
+    await executeAttachRunSse({
+      params: {
+        runId: "run_done",
+      },
+      dispatch: jest.fn(),
+      handleEvent,
+    });
+
+    expect(handleEvent).toHaveBeenCalledTimes(1);
+    expect(handleEvent).toHaveBeenCalledWith({
+      type: "content.delta",
+      text: "hi",
+    });
+  });
+
+  it("throws ApiError for expired attach sequence windows", async () => {
+    createAttachStreamMock.mockResolvedValue(
+      new Response(JSON.stringify({ msg: "sequence expired", code: "SEQ_EXPIRED" }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      executeAttachRunSse({
+        params: {
+          runId: "run_expired",
+          lastSeq: 99,
+        },
+        dispatch: jest.fn(),
+        handleEvent: jest.fn(),
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining<ApiError>({
+        message: "sequence expired",
+        status: 409,
+        code: "SEQ_EXPIRED",
       }),
     );
   });

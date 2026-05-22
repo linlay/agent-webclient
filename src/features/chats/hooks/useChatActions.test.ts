@@ -2,6 +2,7 @@ import type { Agent, Chat, Team } from '@/app/state/types';
 import {
   createReplayState,
   getAutoReadTriggerKey,
+  normalizeAttachLastSeq,
   normalizeChatArtifactItems,
   normalizeStartNewConversationDetail,
   replayEvent,
@@ -85,6 +86,14 @@ describe('replayEvent tool migration', () => {
         },
       }),
     ).toBe('');
+  });
+
+  it('normalizes activeRun.lastSeq for attach-run dispatches', () => {
+    expect(normalizeAttachLastSeq(12)).toBe(12);
+    expect(normalizeAttachLastSeq('8')).toBe(8);
+    expect(normalizeAttachLastSeq(undefined)).toBe(0);
+    expect(normalizeAttachLastSeq(-1)).toBe(0);
+    expect(normalizeAttachLastSeq(Number.NaN)).toBe(0);
   });
 
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {

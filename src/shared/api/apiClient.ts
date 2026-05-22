@@ -1414,6 +1414,12 @@ export interface QueryStreamParams {
   signal?: AbortSignal;
 }
 
+export interface AttachStreamParams {
+  runId: string;
+  lastSeq?: number;
+  signal?: AbortSignal;
+}
+
 export function createQueryStream(
   options: QueryStreamParams,
 ): Promise<Response> {
@@ -1440,6 +1446,27 @@ export function createQueryStream(
       'Cache-Control': 'no-cache',
     },
     body: JSON.stringify(body),
+    signal: options.signal,
+  });
+}
+
+export function createAttachStream(
+  options: AttachStreamParams,
+): Promise<Response> {
+  const runId = String(options.runId || '').trim();
+  const lastSeq = Number(options.lastSeq ?? 0);
+  const query = new URLSearchParams({
+    runId,
+    lastSeq: String(Number.isFinite(lastSeq) && lastSeq >= 0 ? lastSeq : 0),
+  });
+
+  return requestWithAuth(`/api/attach?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    },
+    jsonContentType: false,
     signal: options.signal,
   });
 }

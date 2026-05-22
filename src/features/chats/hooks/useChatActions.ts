@@ -134,6 +134,11 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): voi
   );
 }
 
+export function normalizeAttachLastSeq(value: unknown): number {
+  const next = Number(value ?? 0);
+  return Number.isFinite(next) && next >= 0 ? next : 0;
+}
+
 export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] | undefined {
   if (value === undefined) return undefined;
   if (value == null) return [];
@@ -465,7 +470,11 @@ export function useChatActions() {
           : null;
         const activeRunId = String(activeRun?.runId || '').trim();
         if (activeRunId) {
-          dispatchAttachRunEvent(chatId, activeRunId, 0);
+          dispatchAttachRunEvent(
+            chatId,
+            activeRunId,
+            normalizeAttachLastSeq(activeRun?.lastSeq),
+          );
         }
         if (focusComposerOnComplete) {
           focusComposerSoon();

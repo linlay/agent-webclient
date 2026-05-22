@@ -8,6 +8,7 @@ import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
   archiveChats,
+  createAttachStream,
   createAgent,
   createSchedule,
   createRequestId,
@@ -828,6 +829,23 @@ describe('apiClient query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
       Authorization: 'Bearer bridge-token-sse',
+      Accept: 'text/event-stream',
+    });
+  });
+
+  it('creates authenticated attach streams with runId and lastSeq query params', async () => {
+    installWindow({ storedToken: 'bridge-token-attach' });
+
+    await createAttachStream({
+      runId: 'run id/1',
+      lastSeq: 12,
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/attach?runId=run+id%2F1&lastSeq=12');
+    expect(options.method).toBe('GET');
+    expect(options.headers).toMatchObject({
+      Authorization: 'Bearer bridge-token-attach',
       Accept: 'text/event-stream',
     });
   });
