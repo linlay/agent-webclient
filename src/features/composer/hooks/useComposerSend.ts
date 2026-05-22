@@ -16,7 +16,6 @@ import {
   resolvePreferredTeamId,
 } from "@/features/composer/lib/queryRouting";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
-import type { RemoteControlCommandContext } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
   SlashCommandAvailability,
   SlashCommandId,
@@ -47,7 +46,6 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
-    remoteControlContext: RemoteControlCommandContext;
     state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
     toggleVoiceMode: () => void;
   };
@@ -315,7 +313,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     resetForNewConversation,
     dispatch,
     toggleVoiceMode: executeSlashCommandInput.toggleVoiceMode,
-    interruptCurrentRun,
     submitRememberCommand: () =>
       submitBackgroundCommand("remember", {
         pending: backgroundCommandText.rememberPending,
@@ -326,7 +323,6 @@ export function useComposerSend(input: UseComposerSendInput) {
         pending: backgroundCommandText.learnPending,
         error: backgroundCommandText.learnError,
       }),
-    remoteControlContext: executeSlashCommandInput.remoteControlContext,
     setInputValue,
     setSlashDismissed,
     state: executeSlashCommandInput.state,
@@ -346,10 +342,6 @@ export function useComposerSend(input: UseComposerSendInput) {
 
     const message = inputValue.trim();
     if (!message && sendReferences.length === 0) return;
-    if (/^\/remote[\s-]+control$/i.test(message)) {
-      void executeSlashCommand("remote-control");
-      return;
-    }
     if (hasUploadingAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;

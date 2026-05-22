@@ -64,27 +64,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
-  const remoteControlContext = useMemo(() => {
-    const chatId = String(state.chatId || "").trim();
-    const currentChat = state.chats.find((chat) => chat.chatId === chatId);
-    const agentKey = String(
-      currentChat?.agentKey
-        || currentChat?.firstAgentKey
-        || (currentWorker?.type === "agent" ? currentWorker.sourceId : "")
-        || "",
-    ).trim();
-    const teamId = String(
-      currentChat?.teamId
-        || (currentWorker?.type === "team" ? currentWorker.sourceId : "")
-        || "",
-    ).trim();
-    return {
-      agentKey,
-      chatId,
-      teamId,
-      title: currentWorker?.displayName || "",
-    };
-  }, [currentWorker, state.chatId, state.chats]);
   const currentAgentKey = useMemo(() => {
     if (currentWorker?.type !== "agent") {
       return "";
@@ -193,6 +172,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     voiceModeAvailable,
   ]);
 
+  const togglePlanningMode = useCallback(() => {
+    dispatch({
+      type: "SET_PLANNING_MODE",
+      enabled: !state.planningMode,
+    });
+  }, [dispatch, state.planningMode]);
+
   const {
     speechSupported,
     speechListening,
@@ -258,7 +244,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       setInputValue,
       setSlashDismissed,
       slashAvailability,
-      remoteControlContext,
       state: {
         rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
@@ -309,6 +294,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch,
     executeSlashCommand,
     handleSend,
+    onTogglePlanningMode: togglePlanningMode,
     isComposingRef,
     isVoiceMode,
     mentionActiveIndex: state.mentionActiveIndex,
@@ -506,12 +492,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   speechStatus={speechStatus}
                   sendDisabled={sendDisabled}
                   onControlParamsChange={setControlParams}
-                  onTogglePlanningMode={() =>
-                    dispatch({
-                      type: "SET_PLANNING_MODE",
-                      enabled: !state.planningMode,
-                    })
-                  }
+                  onTogglePlanningMode={togglePlanningMode}
                 />
                 {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
               </div>

@@ -259,7 +259,10 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const handleFilePaste = useCallback(
     (event: ClipboardEvent<HTMLElement>) => {
       const files = Array.from(event.clipboardData?.files || [])?.map(
-        (file) => new File([file], addTimestampToFilename(file.name)),
+        (file) =>
+          new File([file], addTimestampToFilename(file.name), {
+            type: file.type,
+          }),
       );
       if (files.length === 0) {
         return;

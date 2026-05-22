@@ -29,7 +29,6 @@ jest.mock("@/shared/api/apiClient", () => {
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
 			createAgent: jest.fn(),
-			createRemoteControlSession: jest.fn(),
 			createSchedule: jest.fn(),
 			createQueryStream: jest.fn(),
 			deleteAgent: jest.fn(),
@@ -108,7 +107,6 @@ let mockApiClient: {
 		archiveChats: jest.Mock;
 		buildResourceUrl: jest.Mock;
 		createAgent: jest.Mock;
-		createRemoteControlSession: jest.Mock;
 		createSchedule: jest.Mock;
 		createQueryStream: jest.Mock;
 		deleteArchive: jest.Mock;
@@ -465,30 +463,6 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.validateMemoryScope).not.toHaveBeenCalled();
 		expect(mockApiClient.previewMemoryContext).not.toHaveBeenCalled();
 		expect(mockApiClient.saveMemoryScope).not.toHaveBeenCalled();
-	});
-
-	it("keeps remote-control session creation on the original http export", async () => {
-		const proxy = await import("./apiClientProxy");
-		proxy.setTransportModeProvider(() => "ws");
-		const params = {
-			agentKey: "agent-a",
-			chatId: "chat-a",
-			teamId: "team-a",
-			title: "Assist",
-			startTunnel: true,
-		};
-		mockApiClient.createRemoteControlSession.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { sessionId: "rc_1" },
-		});
-
-		await expect(proxy.createRemoteControlSession(params)).resolves.toMatchObject({
-			data: { sessionId: "rc_1" },
-		});
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.createRemoteControlSession).toHaveBeenCalledWith(params);
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {

@@ -11,10 +11,7 @@ export type SlashCommandId =
   | 'voice'
   | 'settings'
   | 'plan'
-  | 'stop'
-  | 'remote-control'
   | 'schedule'
-  | 'agents'
   | 'detail'
   | 'history'
   | 'switch';
@@ -81,13 +78,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     keywords: ['schedule', 'task', 'plan', 'cron'],
   },
   {
-    id: 'agents',
-    command: '/agents',
-    labelKey: 'slash.command.agents.label',
-    descriptionKey: 'slash.command.agents.description',
-    keywords: ['agents', 'agent', 'manage', 'config'],
-  },
-  {
     id: 'detail',
     command: '/detail',
     labelKey: 'slash.command.detail.label',
@@ -135,20 +125,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.plan.label',
     descriptionKey: 'slash.command.plan.description',
     keywords: ['plan', 'planning'],
-  },
-  {
-    id: 'stop',
-    command: '/stop',
-    labelKey: 'slash.command.stop.label',
-    descriptionKey: 'slash.command.stop.description',
-    keywords: ['stop', 'interrupt', 'abort', 'cancel'],
-  },
-  {
-    id: 'remote-control',
-    command: '/remote-control',
-    labelKey: 'slash.command.remoteControl.label',
-    descriptionKey: 'slash.command.remoteControl.description',
-    keywords: ['remote', 'control', 'mobile', 'phone', 'qr', 'qrcode'],
   },
 ];
 
@@ -208,17 +184,8 @@ export function isSlashCommandDisabled(
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
   }
-  if (commandId === 'stop') {
-    return !availability.streaming;
-  }
-  if (commandId === 'remote-control') {
-    return !availability.hasActiveChat || !availability.hasCurrentWorker || availability.commandModalOpen;
-  }
   if (commandId === 'schedule' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;
-  }
-  if (commandId === 'agents') {
-    return availability.commandModalOpen;
   }
   if (commandId === 'history') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;
