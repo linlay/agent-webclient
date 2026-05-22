@@ -258,6 +258,9 @@
    Status Pill
    ======================================== */
 .status-pill {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
     border-radius: 10px;
     position: relative;
     padding: 6px 11px 6px 24px;
@@ -265,6 +268,9 @@
         600 11px/1.25 "IBM Plex Mono",
         monospace;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    word-break: keep-all;
+    writing-mode: horizontal-tb;
     color: var(--ink-2);
 }
 

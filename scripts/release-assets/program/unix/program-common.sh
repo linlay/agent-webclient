@@ -97,7 +97,7 @@ program_start_backend_daemon() {
   program_clear_stale_pid
   program_prepare_node_command
   : >"$LOG_FILE"
-  nohup "$NODE_CMD" "$BACKEND_ENTRY" >>"$LOG_FILE" 2>&1 &
+  nohup "$NODE_CMD" "$BACKEND_ENTRY" </dev/null >>"$LOG_FILE" 2>&1 &
   pid=$!
   printf '%s\n' "$pid" >"$PID_FILE"
   sleep 1

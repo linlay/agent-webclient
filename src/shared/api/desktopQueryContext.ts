@@ -5,11 +5,13 @@ import {
 } from "@/shared/api/desktopHostBridge";
 
 type DesktopPageKind = "native" | "webview" | "iframe";
+type DesktopPermissionMode = "default" | "page_control" | "full_access";
 
 type DesktopQuerySnapshot = {
   route: string;
   pageKey?: string;
   pageKind?: DesktopPageKind;
+  permissionMode?: DesktopPermissionMode;
   surfaceId?: string;
   webContentsId?: number;
   frameMatchUrl?: string;
@@ -52,6 +54,12 @@ function normalizeOptionalNumber(value: unknown) {
     : undefined;
 }
 
+function normalizeOptionalPermissionMode(value: unknown): DesktopPermissionMode | undefined {
+  return value === "default" || value === "page_control" || value === "full_access"
+    ? value
+    : undefined;
+}
+
 function normalizeDesktopSnapshot(value: unknown): DesktopQuerySnapshot | null {
   if (!isObjectRecord(value)) {
     return null;
@@ -70,6 +78,9 @@ function normalizeDesktopSnapshot(value: unknown): DesktopQuerySnapshot | null {
     ...(normalizeOptionalString(value.pageKey) ? { pageKey: normalizeOptionalString(value.pageKey) } : {}),
     ...(value.pageKind === "native" || value.pageKind === "webview" || value.pageKind === "iframe"
       ? { pageKind: value.pageKind }
+      : {}),
+    ...(normalizeOptionalPermissionMode(value.permissionMode)
+      ? { permissionMode: normalizeOptionalPermissionMode(value.permissionMode) }
       : {}),
     ...(normalizeOptionalString(value.surfaceId) ? { surfaceId: normalizeOptionalString(value.surfaceId) } : {}),
     ...(normalizeOptionalNumber(value.webContentsId) !== undefined
@@ -126,6 +137,7 @@ export function buildDesktopQueryContext(
     route: _ignoredRoute,
     pageKey: _ignoredPageKey,
     pageKind: _ignoredPageKind,
+    permissionMode: _ignoredPermissionMode,
     surfaceId: _ignoredSurfaceId,
     webContentsId: _ignoredWebContentsId,
     frameMatchUrl: _ignoredFrameMatchUrl,
@@ -143,6 +155,7 @@ export function buildDesktopQueryContext(
     route: snapshot?.route || readBrowserPathname(),
     ...(snapshot?.pageKey ? { pageKey: snapshot.pageKey } : {}),
     ...(snapshot?.pageKind ? { pageKind: snapshot.pageKind } : {}),
+    ...(snapshot?.permissionMode ? { permissionMode: snapshot.permissionMode } : {}),
     ...(snapshot?.surfaceId ? { surfaceId: snapshot.surfaceId } : {}),
     ...(typeof snapshot?.webContentsId === "number" ? { webContentsId: snapshot.webContentsId } : {}),
     ...(snapshot?.frameMatchUrl ? { frameMatchUrl: snapshot.frameMatchUrl } : {}),
