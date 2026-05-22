@@ -75,7 +75,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     command: '/schedule',
     labelKey: 'slash.command.schedule.label',
     descriptionKey: 'slash.command.schedule.description',
-    keywords: ['schedule', 'task', 'plan', 'cron'],
+    keywords: ['schedule', 'task', 'cron'],
   },
   {
     id: 'detail',
