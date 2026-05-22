@@ -4,7 +4,6 @@ import {
   createBrowserRouter,
   Outlet,
   RouterProvider,
-  useNavigate,
 } from "react-router-dom";
 import { AppProvider, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
@@ -16,95 +15,13 @@ import { APP_UI_BASE } from "@/shared/utils/routing";
 import { SchedulesPage } from "./pages/schedules";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
+import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 
-type DesktopRouteChangedPayload = {
-  type?: unknown;
-  pathname?: unknown;
-  search?: unknown;
-  hash?: unknown;
-};
-
-function normalizeRoutePart(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function buildDesktopRouteTarget(
-  payload: DesktopRouteChangedPayload,
-): string | null {
-  const rawPathname = normalizeRoutePart(payload.pathname);
-  if (!rawPathname) {
-    return null;
-  }
-
-  let pathnameWithoutQuery = rawPathname;
-  let queryFromPath = "";
-  let hashFromPath = "";
-  const hashIndex = pathnameWithoutQuery.indexOf("#");
-  if (hashIndex >= 0) {
-    hashFromPath = pathnameWithoutQuery.slice(hashIndex + 1);
-    pathnameWithoutQuery = pathnameWithoutQuery.slice(0, hashIndex);
-  }
-  const queryIndex = pathnameWithoutQuery.indexOf("?");
-  if (queryIndex >= 0) {
-    queryFromPath = pathnameWithoutQuery.slice(queryIndex + 1);
-    pathnameWithoutQuery = pathnameWithoutQuery.slice(0, queryIndex);
-  }
-
-  const pathname = pathnameWithoutQuery.startsWith("/")
-    ? pathnameWithoutQuery || "/"
-    : `/${pathnameWithoutQuery}`;
-  const rawSearch = normalizeRoutePart(payload.search) || queryFromPath;
-  const rawHash = normalizeRoutePart(payload.hash) || hashFromPath;
-  const search = rawSearch
-    ? rawSearch.startsWith("?")
-      ? rawSearch
-      : `?${rawSearch}`
-    : "";
-  const hash = rawHash
-    ? rawHash.startsWith("#")
-      ? rawHash
-      : `#${rawHash}`
-    : "";
-
-  return `${pathname}${search}${hash}`;
-}
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
 
 const BaseShell = () => {
-  const navigate = useNavigate();
-  useEffect(() => {
-    const handleServiceWebviewDeliver = (event: Event) => {
-      const payload =
-        ((event as CustomEvent<DesktopRouteChangedPayload | undefined>)
-          .detail as DesktopRouteChangedPayload | undefined) || {};
-      if (payload.type !== "desktopRouteChanged") {
-        return;
-      }
-
-      const target = buildDesktopRouteTarget(payload);
-      if (!target) {
-        return;
-      }
-      const cur = `${location.pathname}${location.search}${location.hash}`;
-      if (cur === target) {
-        return;
-      }
-      console.log(222, target);
-      navigate(target, { replace: true });
-    };
-
-    window.addEventListener(
-      "zenmind:service-webview:deliver",
-      handleServiceWebviewDeliver,
-    );
-    return () => {
-      window.removeEventListener(
-        "zenmind:service-webview:deliver",
-        handleServiceWebviewDeliver,
-      );
-    };
-  }, []);
+  useDesktopRouteChange();
   return <Outlet />;
 };
 const DocumentTitleRoute: React.FC<{
