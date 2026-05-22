@@ -441,8 +441,6 @@ export const enUSMessages: I18nMessages = {
   "slash.command.schedule.label": "Scheduled task",
   "slash.command.settings.description": "Open the settings dialog",
   "slash.command.settings.label": "Settings",
-  "slash.command.stop.description": "Interrupt the current streaming run",
-  "slash.command.stop.label": "Stop run",
   "slash.command.switch.description": "Search and switch the current {agentLabel} or {teamLabel}",
   "slash.command.switch.label": "Switch {agentLabel}",
   "slash.command.voice.description": "Switch between text input and turn-based voice chat",

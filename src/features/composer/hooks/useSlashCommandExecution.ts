@@ -18,7 +18,6 @@ export function useSlashCommandExecution(input: {
 	resetForNewConversation: () => void;
 	dispatch: (action: AppAction) => void;
 	toggleVoiceMode: () => void;
-	interruptCurrentRun: () => Promise<void>;
 	submitRememberCommand: () => Promise<void>;
 	submitLearnCommand: () => Promise<void>;
 	remoteControlContext: RemoteControlCommandContext;
@@ -33,7 +32,6 @@ export function useSlashCommandExecution(input: {
 		resetForNewConversation,
 		dispatch,
 		toggleVoiceMode,
-		interruptCurrentRun,
 		submitRememberCommand,
 		submitLearnCommand,
 		remoteControlContext,
@@ -198,14 +196,11 @@ export function useSlashCommandExecution(input: {
 						enabled: !state.planningMode,
 					});
 					return;
-				case "stop":
-					await interruptCurrentRun();
 			}
 		},
 		[
 			closeMention,
 			dispatch,
-			interruptCurrentRun,
 			latestQueryText,
 			resetForNewConversation,
 			setInputValue,

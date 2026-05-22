@@ -28,7 +28,7 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(11);
+    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(10);
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
     expect(getFilteredSlashCommands('/agents')).toEqual([]);
@@ -85,7 +85,6 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('remember', availability)).toBe(true);
     expect(isSlashCommandDisabled('learn', availability)).toBe(true);
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
-    expect(isSlashCommandDisabled('stop', availability)).toBe(false);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
     expect(isSlashCommandDisabled('remote-control', availability)).toBe(true);

@@ -441,8 +441,6 @@ export const zhCNMessages: I18nMessages = {
   "slash.command.schedule.label": "计划任务",
   "slash.command.settings.description": "打开设置窗口",
   "slash.command.settings.label": "设置",
-  "slash.command.stop.description": "中断当前 streaming run",
-  "slash.command.stop.label": "停止运行",
   "slash.command.switch.description": "搜索并切换当前{agentLabel}或{teamLabel}",
   "slash.command.switch.label": "切换{agentLabel}",
   "slash.command.voice.description": "在文字输入与一问一答语聊模式之间切换",

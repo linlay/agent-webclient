@@ -315,7 +315,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     resetForNewConversation,
     dispatch,
     toggleVoiceMode: executeSlashCommandInput.toggleVoiceMode,
-    interruptCurrentRun,
     submitRememberCommand: () =>
       submitBackgroundCommand("remember", {
         pending: backgroundCommandText.rememberPending,
