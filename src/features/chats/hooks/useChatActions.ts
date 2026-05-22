@@ -134,9 +134,22 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): voi
   );
 }
 
-export function normalizeAttachLastSeq(value: unknown): number {
-  const next = Number(value ?? 0);
-  return Number.isFinite(next) && next >= 0 ? next : 0;
+export function resolveAttachLastSeq(events: unknown[], activeRunId: string): number {
+  const runId = String(activeRunId || '').trim();
+  let maxSeq = 0;
+
+  for (const rawEvent of events) {
+    if (!isObjectRecord(rawEvent)) continue;
+    const seq = Number(rawEvent.seq);
+    if (!Number.isFinite(seq) || seq < 0) continue;
+
+    const eventRunId = String(rawEvent.runId || '').trim();
+    if (runId && eventRunId && eventRunId !== runId) continue;
+
+    maxSeq = Math.max(maxSeq, seq);
+  }
+
+  return maxSeq;
 }
 
 export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] | undefined {
@@ -473,7 +486,7 @@ export function useChatActions() {
           dispatchAttachRunEvent(
             chatId,
             activeRunId,
-            normalizeAttachLastSeq(activeRun?.lastSeq),
+            resolveAttachLastSeq(events, activeRunId),
           );
         }
         if (focusComposerOnComplete) {

@@ -2,10 +2,10 @@ import type { Agent, Chat, Team } from '@/app/state/types';
 import {
   createReplayState,
   getAutoReadTriggerKey,
-  normalizeAttachLastSeq,
   normalizeChatArtifactItems,
   normalizeStartNewConversationDetail,
   replayEvent,
+  resolveAttachLastSeq,
   setReplayArtifacts,
   setReplayPlan,
   shouldAutoMarkChatRead,
@@ -88,12 +88,32 @@ describe('replayEvent tool migration', () => {
     ).toBe('');
   });
 
-  it('normalizes activeRun.lastSeq for attach-run dispatches', () => {
-    expect(normalizeAttachLastSeq(12)).toBe(12);
-    expect(normalizeAttachLastSeq('8')).toBe(8);
-    expect(normalizeAttachLastSeq(undefined)).toBe(0);
-    expect(normalizeAttachLastSeq(-1)).toBe(0);
-    expect(normalizeAttachLastSeq(Number.NaN)).toBe(0);
+  it('resolves attach lastSeq from replayed chat events instead of activeRun.lastSeq', () => {
+    expect(
+      resolveAttachLastSeq([
+        { seq: 1, type: 'chat.start' },
+        { seq: 2, type: 'run.start', runId: 'run_1' },
+        { seq: 3, type: 'request.query', runId: 'run_1' },
+      ], 'run_1'),
+    ).toBe(3);
+
+    expect(resolveAttachLastSeq([], 'run_1')).toBe(0);
+    expect(
+      resolveAttachLastSeq([
+        { seq: -1, runId: 'run_1' },
+        { seq: Number.NaN, runId: 'run_1' },
+        { type: 'content.delta', runId: 'run_1' },
+      ], 'run_1'),
+    ).toBe(0);
+
+    expect(
+      resolveAttachLastSeq([
+        { seq: 1, runId: 'run_old' },
+        { seq: 2, runId: 'run_1' },
+        { seq: 7, runId: 'run_old' },
+        { seq: 5, runId: 'run_1' },
+      ], 'run_1'),
+    ).toBe(5);
   });
 
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
