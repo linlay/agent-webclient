@@ -172,6 +172,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     voiceModeAvailable,
   ]);
 
+  const togglePlanningMode = useCallback(() => {
+    dispatch({
+      type: "SET_PLANNING_MODE",
+      enabled: !state.planningMode,
+    });
+  }, [dispatch, state.planningMode]);
+
   const {
     speechSupported,
     speechListening,
@@ -287,6 +294,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch,
     executeSlashCommand,
     handleSend,
+    onTogglePlanningMode: togglePlanningMode,
     isComposingRef,
     isVoiceMode,
     mentionActiveIndex: state.mentionActiveIndex,
@@ -484,12 +492,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   speechStatus={speechStatus}
                   sendDisabled={sendDisabled}
                   onControlParamsChange={setControlParams}
-                  onTogglePlanningMode={() =>
-                    dispatch({
-                      type: "SET_PLANNING_MODE",
-                      enabled: !state.planningMode,
-                    })
-                  }
+                  onTogglePlanningMode={togglePlanningMode}
                 />
                 {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
               </div>

@@ -9,6 +9,7 @@ export function useComposerKeyboard({
   dispatch,
   executeSlashCommand,
   handleSend,
+  onTogglePlanningMode,
   isComposingRef,
   isVoiceMode,
   mentionActiveIndex,
@@ -25,6 +26,7 @@ export function useComposerKeyboard({
   dispatch: Dispatch<AppAction>;
   executeSlashCommand: (commandId: SlashCommandId) => Promise<void>;
   handleSend: () => void;
+  onTogglePlanningMode: () => void;
   isComposingRef: RefObject<boolean>;
   isVoiceMode: boolean;
   mentionActiveIndex: number;
@@ -44,6 +46,12 @@ export function useComposerKeyboard({
         return;
       }
       if (isImeEnterConfirming(event, Boolean(isComposingRef.current))) {
+        return;
+      }
+
+      if (event.key === "Tab" && event.shiftKey) {
+        event.preventDefault();
+        onTogglePlanningMode();
         return;
       }
 
@@ -116,6 +124,7 @@ export function useComposerKeyboard({
       dispatch,
       executeSlashCommand,
       handleSend,
+      onTogglePlanningMode,
       isComposingRef,
       isVoiceMode,
       mentionActiveIndex,
