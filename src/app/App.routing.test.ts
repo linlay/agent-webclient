@@ -37,8 +37,8 @@ jest.mock("@/shared/i18n", () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-jest.mock("./pages/schedules", () => ({
-  SchedulesPage: () => null,
+jest.mock("./pages/automations", () => ({
+  AutomationsPage: () => null,
 }));
 
 jest.mock("./pages/memory", () => ({
@@ -69,13 +69,15 @@ describe("App routing", () => {
 
     const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{
       path: string;
+      children?: Array<{ path: string }>;
     }>;
+    const childRoutes = routes.flatMap((route) => route.children || [route]);
 
-    expect(routes.map((route) => route.path)).toEqual(
+    expect(childRoutes.map((route) => route.path)).toEqual(
       expect.arrayContaining([
         "/",
         "/copilot",
-        "/schedules",
+        "/automations",
         "/memory",
         "/agents",
         "/agents/:agentKey",

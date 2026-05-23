@@ -12,7 +12,7 @@ import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import { initializeDesktopQueryContextBridge } from "@/shared/api/desktopQueryContext";
 import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
 import { APP_UI_BASE } from "@/shared/utils/routing";
-import { SchedulesPage } from "./pages/schedules";
+import { AutomationsPage } from "./pages/automations";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
@@ -116,10 +116,10 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/schedules",
+          path: "/automations",
           element: (
             <DocumentTitleRoute title="自动化">
-              <SchedulesPage />
+              <AutomationsPage />
             </DocumentTitleRoute>
           ),
         },

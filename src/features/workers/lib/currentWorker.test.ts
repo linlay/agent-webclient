@@ -2,7 +2,7 @@ import type { AppState, WorkerRow } from '@/app/state/types';
 import { createInitialState } from '@/app/state/AppContext';
 import {
   buildCurrentWorkerDetailView,
-  buildScheduleDraft,
+  buildAutomationDraft,
   buildWorkerSwitchRows,
   resolveCurrentWorkerSummary,
 } from '@/features/workers/lib/currentWorker';
@@ -89,7 +89,7 @@ describe('currentWorker helpers', () => {
         name: 'Ops Team',
         role: 'Dispatch',
         modelName: 'gpt-4.1-mini',
-        skills: ['triage', 'schedule'],
+        skills: ['triage', 'automation'],
         tools: [{ toolName: 'calendar' }],
         members: [{ agentKey: 'alice' }, { key: 'bob' }],
       }],
@@ -105,7 +105,7 @@ describe('currentWorker helpers', () => {
       identifierLabel: 'teamId',
       identifierValue: 'ops',
       model: 'gpt-4.1-mini',
-      skills: ['triage', 'schedule'],
+      skills: ['triage', 'automation'],
       tools: ['calendar'],
       members: ['alice', 'bob'],
     });
@@ -136,7 +136,7 @@ describe('currentWorker helpers', () => {
     expect(buildWorkerSwitchRows(rows, 'all', 'ops')[0]?.key).toBe('team:ops');
   });
 
-  it('builds a schedule draft with worker context baked in', () => {
+  it('builds an automation draft with worker context baked in', () => {
     const row = createWorkerRow({
       key: 'agent:alice',
       type: 'agent',
@@ -153,7 +153,7 @@ describe('currentWorker helpers', () => {
     const summary = resolveCurrentWorkerSummary(state);
     expect(summary).not.toBeNull();
 
-    const draft = buildScheduleDraft(summary!, '每天整理日报', '工作日 18:00');
+    const draft = buildAutomationDraft(summary!, '每天整理日报', '工作日 18:00');
 
     expect(draft).toContain('对象名称: Alice');
     expect(draft).toContain('对象标识: agentKey=alice');

@@ -39,13 +39,13 @@ import type {
 	MemoryRecordDetail,
 	MemoryRecordListItem,
 } from "@/shared/api/memoryTypes";
-import type { ScheduleSummaryResponse } from "@/shared/api/apiClient";
+import type { AutomationSummaryResponse } from "@/shared/api/apiClient";
 
 export type AppAction =
 	| { type: "SET_AGENTS"; agents: Agent[] }
 	| { type: "SET_TEAMS"; teams: Team[] }
 	| { type: "SET_CHATS"; chats: Chat[] }
-	| { type: "SET_SCHEDULES"; schedules: ScheduleSummaryResponse[] }
+	| { type: "SET_AUTOMATIONS"; automations: AutomationSummaryResponse[] }
 	| { type: "START_SIDEBAR_REQUEST" }
 	| { type: "FINISH_SIDEBAR_REQUEST" }
 	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
@@ -198,14 +198,14 @@ export type AppAction =
 	| {
 			type: "OPEN_COMMAND_MODAL";
 			modal: {
-				type: "history" | "switch" | "detail" | "schedule" | "agents";
+				type: "history" | "switch" | "detail" | "automation" | "agents";
 				searchText?: string;
 				historySearch?: string;
 				activeIndex?: number;
 				scope?: "all" | "agent" | "team";
 				focusArea?: "search" | "list";
-				scheduleTask?: string;
-				scheduleRule?: string;
+				automationTask?: string;
+				automationRule?: string;
 			};
 	  }
 	| { type: "PATCH_COMMAND_MODAL"; modal: Partial<AppState["commandModal"]> }

@@ -11,7 +11,7 @@ export type SlashCommandId =
   | 'voice'
   | 'settings'
   | 'plan'
-  | 'schedule'
+  | 'automation'
   | 'detail'
   | 'history'
   | 'switch';
@@ -71,11 +71,11 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     keywords: ['learn', 'lesson', 'rule', 'practice'],
   },
   {
-    id: 'schedule',
-    command: '/schedule',
-    labelKey: 'slash.command.schedule.label',
-    descriptionKey: 'slash.command.schedule.description',
-    keywords: ['schedule', 'task', 'cron'],
+    id: 'automation',
+    command: '/automation',
+    labelKey: 'slash.command.automation.label',
+    descriptionKey: 'slash.command.automation.description',
+    keywords: ['automation', 'task', 'cron'],
   },
   {
     id: 'detail',
@@ -184,7 +184,7 @@ export function isSlashCommandDisabled(
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
   }
-  if (commandId === 'schedule' || commandId === 'detail') {
+  if (commandId === 'automation' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;
   }
   if (commandId === 'history') {

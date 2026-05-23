@@ -50,10 +50,10 @@ export function useSlashCommandExecution(input: {
 				case "learn":
 					await submitLearnCommand();
 					return;
-				case "schedule":
+				case "automation":
 					dispatch({
 						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "schedule" },
+						modal: { type: "automation" },
 					});
 					return;
 				case "detail":

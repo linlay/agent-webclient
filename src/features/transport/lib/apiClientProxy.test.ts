@@ -29,12 +29,12 @@ jest.mock("@/shared/api/apiClient", () => {
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
 			createAgent: jest.fn(),
-			createSchedule: jest.fn(),
+			createAutomation: jest.fn(),
 			createQueryStream: jest.fn(),
 			deleteAgent: jest.fn(),
 			deleteArchive: jest.fn(),
 			deleteChat: jest.fn(),
-			deleteSchedule: jest.fn(),
+			deleteAutomation: jest.fn(),
 		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
@@ -51,9 +51,9 @@ jest.mock("@/shared/api/apiClient", () => {
 			getMemoryScope: jest.fn(),
 			getMemoryScopes: jest.fn(),
 			getCurrentAccessToken: jest.fn(),
-			getSchedule: jest.fn(),
-			getScheduleExecutions: jest.fn(),
-			getSchedules: jest.fn(),
+			getAutomation: jest.fn(),
+			getAutomationExecutions: jest.fn(),
+			getAutomations: jest.fn(),
 			normalizeChatSummariesPayload: jest.fn((data: unknown) =>
 			Array.isArray(data)
 				? data.map((item) =>
@@ -86,9 +86,9 @@ jest.mock("@/shared/api/apiClient", () => {
 			submitFeedback: jest.fn(),
 			submitAwaiting: jest.fn(),
 			submitTool: jest.fn(),
-			toggleSchedule: jest.fn(),
+			toggleAutomation: jest.fn(),
 			updateAgent: jest.fn(),
-			updateSchedule: jest.fn(),
+			updateAutomation: jest.fn(),
 			uploadFile: jest.fn(),
 			validateMemoryScope: jest.fn(),
 	};
@@ -107,12 +107,12 @@ let mockApiClient: {
 		archiveChats: jest.Mock;
 		buildResourceUrl: jest.Mock;
 		createAgent: jest.Mock;
-		createSchedule: jest.Mock;
+		createAutomation: jest.Mock;
 		createQueryStream: jest.Mock;
 		deleteArchive: jest.Mock;
 		deleteAgent: jest.Mock;
 		deleteChat: jest.Mock;
-		deleteSchedule: jest.Mock;
+		deleteAutomation: jest.Mock;
 	downloadChatExport: jest.Mock;
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
@@ -129,9 +129,9 @@ let mockApiClient: {
 		getMemoryScope: jest.Mock;
 		getMemoryScopes: jest.Mock;
 		getCurrentAccessToken: jest.Mock;
-		getSchedule: jest.Mock;
-		getScheduleExecutions: jest.Mock;
-		getSchedules: jest.Mock;
+		getAutomation: jest.Mock;
+		getAutomationExecutions: jest.Mock;
+		getAutomations: jest.Mock;
 		normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
 	getSkills: jest.Mock;
@@ -153,9 +153,9 @@ let mockApiClient: {
 		submitFeedback: jest.Mock;
 		submitAwaiting: jest.Mock;
 		submitTool: jest.Mock;
-		toggleSchedule: jest.Mock;
+		toggleAutomation: jest.Mock;
 		updateAgent: jest.Mock;
-		updateSchedule: jest.Mock;
+		updateAutomation: jest.Mock;
 		uploadFile: jest.Mock;
 		validateMemoryScope: jest.Mock;
 	};
@@ -237,7 +237,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
-	it("routes schedule management calls over ws when connected", async () => {
+	it("routes automation management calls over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -255,25 +255,25 @@ describe("apiClientProxy", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await proxy.getSchedules();
-		await proxy.createSchedule({
+		await proxy.getAutomations();
+		await proxy.createAutomation({
 			name: "Daily Demo",
 			description: "Demo",
 			cron: "0 9 * * *",
 			agentKey: "demo-agent",
 			query: { message: "hello" },
 		});
-		await proxy.updateSchedule({ id: "daily-demo", cron: "0 18 * * 1-5" });
-		await proxy.toggleSchedule({ id: "daily-demo", enabled: false });
-		await proxy.getScheduleExecutions({ id: "daily-demo", limit: 20 });
-		await proxy.deleteSchedule({ id: "daily-demo" });
+		await proxy.updateAutomation({ id: "daily-demo", cron: "0 18 * * 1-5" });
+		await proxy.toggleAutomation({ id: "daily-demo", enabled: false });
+		await proxy.getAutomationExecutions({ id: "daily-demo", limit: 20 });
+		await proxy.deleteAutomation({ id: "daily-demo" });
 
 		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/schedules",
+			type: "/api/automations",
 			payload: {},
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/schedule/create",
+			type: "/api/automation/create",
 			payload: {
 				name: "Daily Demo",
 				description: "Demo",
@@ -283,22 +283,22 @@ describe("apiClientProxy", () => {
 			},
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/schedule/update",
+			type: "/api/automation/update",
 			payload: { id: "daily-demo", cron: "0 18 * * 1-5" },
 		});
 		expect(request).toHaveBeenNthCalledWith(4, {
-			type: "/api/schedule/toggle",
+			type: "/api/automation/toggle",
 			payload: { id: "daily-demo", enabled: false },
 		});
 		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/schedule/executions",
+			type: "/api/automation/executions",
 			payload: { id: "daily-demo", limit: 20 },
 		});
 		expect(request).toHaveBeenNthCalledWith(6, {
-			type: "/api/schedule/delete",
+			type: "/api/automation/delete",
 			payload: { id: "daily-demo" },
 		});
-		expect(mockApiClient.getSchedules).not.toHaveBeenCalled();
+		expect(mockApiClient.getAutomations).not.toHaveBeenCalled();
 	});
 
 	it("routes agent management calls over ws when connected", async () => {
@@ -1034,34 +1034,34 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
 	});
 
-	it("routes schedule management over http when sse mode is selected", async () => {
+	it("routes automation management over http when sse mode is selected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getSchedules.mockResolvedValue({
+		mockApiClient.getAutomations.mockResolvedValue({
 			status: 200,
 			code: 0,
 			msg: "ok",
 			data: { items: [], total: 0 },
 		});
-		mockApiClient.toggleSchedule.mockResolvedValue({
+		mockApiClient.toggleAutomation.mockResolvedValue({
 			status: 200,
 			code: 0,
 			msg: "ok",
 			data: { id: "daily-demo", enabled: false },
 		});
 
-		await expect(proxy.getSchedules()).resolves.toMatchObject({
+		await expect(proxy.getAutomations()).resolves.toMatchObject({
 			data: { items: [], total: 0 },
 		});
 		await expect(
-			proxy.toggleSchedule({ id: "daily-demo", enabled: false }),
+			proxy.toggleAutomation({ id: "daily-demo", enabled: false }),
 		).resolves.toMatchObject({
 			data: { id: "daily-demo", enabled: false },
 		});
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getSchedules).toHaveBeenCalledWith({});
-		expect(mockApiClient.toggleSchedule).toHaveBeenCalledWith({
+		expect(mockApiClient.getAutomations).toHaveBeenCalledWith({});
+		expect(mockApiClient.toggleAutomation).toHaveBeenCalledWith({
 			id: "daily-demo",
 			enabled: false,
 		});

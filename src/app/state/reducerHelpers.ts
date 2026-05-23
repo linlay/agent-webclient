@@ -137,8 +137,8 @@ export function buildConversationResetState(
 			activeIndex: 0,
 			scope: "all",
 			focusArea: "search",
-			scheduleTask: "",
-			scheduleRule: "",
+			automationTask: "",
+			automationRule: "",
 		},
 	};
 }

@@ -253,16 +253,16 @@ export function buildWorkerSwitchRows(
   });
 }
 
-export function buildScheduleDraft(summary: CurrentWorkerSummary, task: string, scheduleRule: string): string {
+export function buildAutomationDraft(summary: CurrentWorkerSummary, task: string, automationRule: string): string {
   const kindLabel = summary.type === 'team' ? '小组' : '员工';
   const roleText = toText(summary.role);
   return [
-    `请为当前${kindLabel}制定计划任务。`,
+    `请为当前${kindLabel}制定自动化。`,
     `对象名称: ${summary.displayName}`,
     `对象标识: ${summary.type === 'team' ? 'teamId' : 'agentKey'}=${summary.sourceId}`,
     `对象角色: ${roleText || '--'}`,
     `任务内容: ${toText(task)}`,
-    `执行时间/规则: ${toText(scheduleRule)}`,
+    `执行时间/规则: ${toText(automationRule)}`,
     '请先确认时间、触发方式与执行范围，再开始安排。',
   ].join('\n');
 }

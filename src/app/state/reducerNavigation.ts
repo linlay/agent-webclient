@@ -19,8 +19,8 @@ export function reduceNavigationState(
 			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return { ...state, chats: action.chats };
-		case "SET_SCHEDULES":
-			return { ...state, schedules: action.schedules };
+		case "SET_AUTOMATIONS":
+			return { ...state, automations: action.automations };
 		case "START_SIDEBAR_REQUEST":
 			return {
 				...state,

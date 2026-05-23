@@ -341,7 +341,7 @@
 .layout-copilot .modal-card,
 .layout-copilot .settings-card,
 .layout-copilot .command-modal-card,
-.layout-copilot .command-modal-card.is-schedule-console,
+.layout-copilot .command-modal-card.is-automation-console,
 .layout-copilot .memory-info-card {
     width: 100%;
     max-width: 100%;
@@ -359,8 +359,8 @@
 }
 
 .layout-copilot .command-detail-grid,
-.layout-copilot .schedule-console-body,
-.layout-copilot .schedule-form-grid,
+.layout-copilot .automation-console-body,
+.layout-copilot .automation-form-grid,
 .layout-copilot .settings-preferences-grid,
 .layout-copilot .settings-grid,
 .layout-copilot .settings-numeric-grid,
@@ -371,9 +371,9 @@
 
 .layout-copilot .command-scope-group,
 .layout-copilot .settings-segmented,
-.layout-copilot .schedule-console-toolbar,
-.layout-copilot .schedule-detail-actions,
-.layout-copilot .schedule-save-actions {
+.layout-copilot .automation-console-toolbar,
+.layout-copilot .automation-detail-actions,
+.layout-copilot .automation-save-actions {
     flex-wrap: wrap;
 }
 

@@ -4,11 +4,11 @@ import {
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
 	createQueryStream,
-	createSchedule as createScheduleHttp,
+	createAutomation as createAutomationHttp,
 	deleteAgent as deleteAgentHttp,
 	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
-	deleteSchedule as deleteScheduleHttp,
+	deleteAutomation as deleteAutomationHttp,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
@@ -27,9 +27,9 @@ import {
 	getMemoryRecords as getMemoryRecordsHttp,
 	getMemoryScope as getMemoryScopeHttp,
 	getMemoryScopes as getMemoryScopesHttp,
-	getSchedule as getScheduleHttp,
-	getScheduleExecutions as getScheduleExecutionsHttp,
-	getSchedules as getSchedulesHttp,
+	getAutomation as getAutomationHttp,
+	getAutomationExecutions as getAutomationExecutionsHttp,
+	getAutomations as getAutomationsHttp,
 	normalizeChatSummariesPayload,
 	previewMemoryContext as previewMemoryContextHttp,
 	getResourceText,
@@ -49,9 +49,9 @@ import {
 	submitFeedback as submitFeedbackHttp,
 	submitAwaiting as submitAwaitingHttp,
 	submitTool as submitToolHttp,
-	toggleSchedule as toggleScheduleHttp,
+	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
-	updateSchedule as updateScheduleHttp,
+	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AgentDetailResponse,
@@ -66,10 +66,10 @@ import {
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
 	type CreateAgentRequest,
-	type CreateScheduleRequest,
+	type CreateAutomationRequest,
 	type DeleteAgentRequest,
 	type DeleteAgentResponse,
-	type DeleteScheduleRequest,
+	type DeleteAutomationRequest,
 	type FeedbackParams,
 	type GetAgentsOptions,
 	type GetChatsOptions,
@@ -80,14 +80,14 @@ import {
 	type QueryLikeParams,
 	type RenameChatRequest,
 	type RenameChatResponse,
-	type ScheduleDetailResponse,
-	type ScheduleExecutionListResponse,
-	type ScheduleExecutionsRequest,
-	type ScheduleListRequest,
-	type ScheduleListResponse,
-	type ToggleScheduleRequest,
+	type AutomationDetailResponse,
+	type AutomationExecutionListResponse,
+	type AutomationExecutionsRequest,
+	type AutomationListRequest,
+	type AutomationListResponse,
+	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
-	type UpdateScheduleRequest,
+	type UpdateAutomationRequest,
 } from "@/shared/api/apiClient";
 import type {
 	MemoryContextPreviewResponse,
@@ -380,73 +380,73 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 	);
 }
 
-export function getSchedules(
-	params: ScheduleListRequest = {},
-): Promise<ApiResponse<ScheduleListResponse>> {
-	return routeRequest<ScheduleListResponse>(
-		"/api/schedules",
+export function getAutomations(
+	params: AutomationListRequest = {},
+): Promise<ApiResponse<AutomationListResponse>> {
+	return routeRequest<AutomationListResponse>(
+		"/api/automations",
 		params,
-		() => getSchedulesHttp(params),
+		() => getAutomationsHttp(params),
 	);
 }
 
-export function getSchedule(
+export function getAutomation(
 	id: string,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule",
+): Promise<ApiResponse<AutomationDetailResponse>> {
+	return routeRequest<AutomationDetailResponse>(
+		"/api/automation",
 		{ id },
-		() => getScheduleHttp(id),
+		() => getAutomationHttp(id),
 	);
 }
 
-export function createSchedule(
-	params: CreateScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule/create",
+export function createAutomation(
+	params: CreateAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+	return routeRequest<AutomationDetailResponse>(
+		"/api/automation/create",
 		params,
-		() => createScheduleHttp(params),
+		() => createAutomationHttp(params),
 	);
 }
 
-export function updateSchedule(
-	params: UpdateScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule/update",
+export function updateAutomation(
+	params: UpdateAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+	return routeRequest<AutomationDetailResponse>(
+		"/api/automation/update",
 		params,
-		() => updateScheduleHttp(params),
+		() => updateAutomationHttp(params),
 	);
 }
 
-export function deleteSchedule(
-	params: DeleteScheduleRequest,
+export function deleteAutomation(
+	params: DeleteAutomationRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
 	return routeRequest<{ id: string; deleted: boolean }>(
-		"/api/schedule/delete",
+		"/api/automation/delete",
 		params,
-		() => deleteScheduleHttp(params),
+		() => deleteAutomationHttp(params),
 	);
 }
 
-export function toggleSchedule(
-	params: ToggleScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-	return routeRequest<ScheduleDetailResponse>(
-		"/api/schedule/toggle",
+export function toggleAutomation(
+	params: ToggleAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+	return routeRequest<AutomationDetailResponse>(
+		"/api/automation/toggle",
 		params,
-		() => toggleScheduleHttp(params),
+		() => toggleAutomationHttp(params),
 	);
 }
 
-export function getScheduleExecutions(
-	params: ScheduleExecutionsRequest,
-): Promise<ApiResponse<ScheduleExecutionListResponse>> {
-	return routeRequest<ScheduleExecutionListResponse>(
-		"/api/schedule/executions",
+export function getAutomationExecutions(
+	params: AutomationExecutionsRequest,
+): Promise<ApiResponse<AutomationExecutionListResponse>> {
+	return routeRequest<AutomationExecutionListResponse>(
+		"/api/automation/executions",
 		params,
-		() => getScheduleExecutionsHttp(params),
+		() => getAutomationExecutionsHttp(params),
 	);
 }
 

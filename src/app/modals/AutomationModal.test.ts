@@ -1,12 +1,12 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ScheduleModal, scheduleSourcePath } from "@/app/modals/ScheduleModal";
+import { AutomationModal, automationSourcePath } from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { getSchedules } from "@/features/transport/lib/apiClientProxy";
+import { getAutomations } from "@/features/transport/lib/apiClientProxy";
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: jest.fn(() => jest.fn()),
-  useAppState: jest.fn(() => ({ schedules: [] })),
+  useAppState: jest.fn(() => ({ automations: [] })),
 }));
 
 jest.mock("antd", () => {
@@ -41,16 +41,16 @@ jest.mock("antd", () => {
 });
 
 jest.mock("@/features/transport/lib/apiClientProxy", () => ({
-  createSchedule: jest.fn(),
-  deleteSchedule: jest.fn(),
-  getSchedule: jest.fn(),
-  getScheduleExecutions: jest.fn(),
-  getSchedules: jest.fn(),
-  toggleSchedule: jest.fn(),
-  updateSchedule: jest.fn(),
+  createAutomation: jest.fn(),
+  deleteAutomation: jest.fn(),
+  getAutomation: jest.fn(),
+  getAutomationExecutions: jest.fn(),
+  getAutomations: jest.fn(),
+  toggleAutomation: jest.fn(),
+  updateAutomation: jest.fn(),
 }));
 
-const mockedGetSchedules = getSchedules as jest.Mock;
+const mockedGetAutomations = getAutomations as jest.Mock;
 
 function createCurrentWorker(): CurrentWorkerSummary {
   return {
@@ -82,9 +82,9 @@ function createCurrentWorker(): CurrentWorkerSummary {
   };
 }
 
-describe("ScheduleModal", () => {
+describe("AutomationModal", () => {
   beforeEach(() => {
-    mockedGetSchedules.mockResolvedValue({
+    mockedGetAutomations.mockResolvedValue({
       status: 200,
       code: 0,
       msg: "ok",
@@ -98,7 +98,7 @@ describe("ScheduleModal", () => {
             agentKey: "agent-a",
             enabled: true,
             sourceFile:
-              "/Users/linlay/Project/zenmind/zenmind-env/schedules/gitpull_zenmind_20260429_2146.yml",
+              "/Users/linlay/Project/zenmind/zenmind-env/automations/gitpull_zenmind_20260429_2146.yml",
           },
         ],
         total: 1,
@@ -106,9 +106,9 @@ describe("ScheduleModal", () => {
     });
   });
 
-  it("renders the schedule console with create defaults from the current worker", () => {
+  it("renders the automation console with create defaults from the current worker", () => {
     const html = renderToStaticMarkup(
-      React.createElement(ScheduleModal, {
+      React.createElement(AutomationModal, {
         currentWorker: createCurrentWorker(),
         agents: [
           { key: "agent-a", name: "小宅", role: "执行官" },
@@ -118,20 +118,20 @@ describe("ScheduleModal", () => {
       }),
     );
 
-    expect(html).toContain("计划任务 0 个");
+    expect(html).toContain("自动化 0 个");
     expect(html).toContain("请求");
     expect(html).toContain("智能体");
     expect(html).toContain("小宅");
     expect(html).toContain("Asia/Shanghai");
-    expect(html).toContain("schedule-cron-control");
+    expect(html).toContain("automation-cron-control");
     expect(html).toContain("快捷选择");
     expect(html).toContain("value=\"team-a\"");
     expect(html).toContain("每天 09:00");
-    expect(html).toContain("创建任务");
+    expect(html).toContain("创建自动化");
   });
 
-  it("normalizes schedule source files to display filenames", () => {
-    const schedule = {
+  it("normalizes automation source files to display filenames", () => {
+    const automation = {
       id: "gitpull_zenmind_20260429_2146",
       name: "令宿 - 全量拉取 zenmind 子项目",
       description: "pull",
@@ -139,10 +139,10 @@ describe("ScheduleModal", () => {
       agentKey: "agent-a",
       enabled: true,
       sourceFile:
-        "/Users/linlay/Project/zenmind/zenmind-env/schedules/gitpull_zenmind_20260429_2146.yml",
+        "/Users/linlay/Project/zenmind/zenmind-env/automations/gitpull_zenmind_20260429_2146.yml",
     };
 
-    expect(scheduleSourcePath(schedule)).toBe("gitpull_zenmind_20260429_2146.yml");
-    expect(scheduleSourcePath({ ...schedule, sourceFile: "" })).toBe("gitpull_zenmind_20260429_2146");
+    expect(automationSourcePath(automation)).toBe("gitpull_zenmind_20260429_2146.yml");
+    expect(automationSourcePath({ ...automation, sourceFile: "" })).toBe("gitpull_zenmind_20260429_2146");
   });
 });

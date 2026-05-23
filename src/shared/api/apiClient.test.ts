@@ -10,13 +10,13 @@ import {
   archiveChats,
   createAttachStream,
   createAgent,
-  createSchedule,
+  createAutomation,
   createRequestId,
   createQueryStream,
   deleteArchive,
   deleteAgent,
   deleteChat,
-  deleteSchedule,
+  deleteAutomation,
   downloadResource,
   extractUploadChatId,
   extractUploadReferences,
@@ -31,9 +31,9 @@ import {
   getMemoryMeta,
   getMemoryScope,
   getMemoryScopes,
-  getSchedule,
-  getScheduleExecutions,
-  getSchedules,
+  getAutomation,
+  getAutomationExecutions,
+  getAutomations,
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
@@ -51,9 +51,9 @@ import {
   setAccessToken,
   steerChat,
   submitFeedback,
-  toggleSchedule,
+  toggleAutomation,
   updateAgent,
-  updateSchedule,
+  updateAutomation,
   uploadFile,
 } from '@/shared/api/apiClient';
 
@@ -138,6 +138,8 @@ function installWindow(options: {
     }),
     setTimeout,
     clearTimeout,
+    setInterval,
+    clearInterval,
   };
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
@@ -342,38 +344,38 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('sends schedule management requests as JSON posts', async () => {
-    await getSchedules();
-    await getSchedule('daily-demo');
-    await createSchedule({
+  it('sends automation management requests as JSON posts', async () => {
+    await getAutomations();
+    await getAutomation('daily-demo');
+    await createAutomation({
       name: 'Daily Demo',
-      description: 'Demo schedule',
+      description: 'Demo automation',
       cron: '0 9 * * *',
       agentKey: 'demo-agent',
       enabled: true,
       query: { message: 'hello', role: 'user' },
     });
-    await updateSchedule({
+    await updateAutomation({
       id: 'daily-demo',
       cron: '0 18 * * 1-5',
       query: { message: 'updated' },
     });
-    await toggleSchedule({ id: 'daily-demo', enabled: false });
-    await getScheduleExecutions({ id: 'daily-demo', limit: 20 });
-    await deleteSchedule({ id: 'daily-demo' });
+    await toggleAutomation({ id: 'daily-demo', enabled: false });
+    await getAutomationExecutions({ id: 'daily-demo', limit: 20 });
+    await deleteAutomation({ id: 'daily-demo' });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
       body: JSON.parse(String((options as RequestInit).body || '{}')),
     }));
     expect(calls).toEqual([
-      { url: '/api/schedules', body: {} },
-      { url: '/api/schedule', body: { id: 'daily-demo' } },
+      { url: '/api/automations', body: {} },
+      { url: '/api/automation', body: { id: 'daily-demo' } },
       {
-        url: '/api/schedule/create',
+        url: '/api/automation/create',
         body: {
           name: 'Daily Demo',
-          description: 'Demo schedule',
+          description: 'Demo automation',
           cron: '0 9 * * *',
           agentKey: 'demo-agent',
           enabled: true,
@@ -381,16 +383,16 @@ describe('apiClient query payloads', () => {
         },
       },
       {
-        url: '/api/schedule/update',
+        url: '/api/automation/update',
         body: {
           id: 'daily-demo',
           cron: '0 18 * * 1-5',
           query: { message: 'updated' },
         },
       },
-      { url: '/api/schedule/toggle', body: { id: 'daily-demo', enabled: false } },
-      { url: '/api/schedule/executions', body: { id: 'daily-demo', limit: 20 } },
-      { url: '/api/schedule/delete', body: { id: 'daily-demo' } },
+      { url: '/api/automation/toggle', body: { id: 'daily-demo', enabled: false } },
+      { url: '/api/automation/executions', body: { id: 'daily-demo', limit: 20 } },
+      { url: '/api/automation/delete', body: { id: 'daily-demo' } },
     ]);
   });
 

@@ -59,21 +59,21 @@ export interface GetChatsOptions {
   agentKey?: string;
 }
 
-export interface ScheduleListRequest {
+export interface AutomationListRequest {
   tag?: string;
 }
 
-export interface ScheduleListResponse {
-  items: ScheduleSummaryResponse[];
+export interface AutomationListResponse {
+  items: AutomationSummaryResponse[];
   total: number;
 }
 
-export interface ScheduleExecutionListResponse {
-  items: ScheduleExecutionResponse[];
+export interface AutomationExecutionListResponse {
+  items: AutomationExecutionResponse[];
   total: number;
 }
 
-export interface ScheduleSummaryResponse {
+export interface AutomationSummaryResponse {
   id: string;
   name: string;
   description: string;
@@ -85,14 +85,14 @@ export interface ScheduleSummaryResponse {
   sourceFile?: string;
   remainingRuns?: number;
   nextFireTime?: string;
-  lastExecution?: ScheduleExecutionBrief;
+  lastExecution?: AutomationExecutionBrief;
 }
 
-export interface ScheduleDetailResponse extends ScheduleSummaryResponse {
-  query: ScheduleQueryResponse;
+export interface AutomationDetailResponse extends AutomationSummaryResponse {
+  query: AutomationQueryResponse;
 }
 
-export interface ScheduleQueryResponse {
+export interface AutomationQueryResponse {
   message: string;
   chatId?: string;
   role?: string;
@@ -100,7 +100,7 @@ export interface ScheduleQueryResponse {
   hidden?: boolean;
 }
 
-export interface ScheduleExecutionBrief {
+export interface AutomationExecutionBrief {
   id: string;
   status: string;
   startedAt: number;
@@ -108,10 +108,10 @@ export interface ScheduleExecutionBrief {
   error?: string;
 }
 
-export interface ScheduleExecutionResponse {
+export interface AutomationExecutionResponse {
   id: string;
-  scheduleId: string;
-  scheduleName: string;
+  automationId: string;
+  automationName: string;
   sourceFile: string;
   agentKey: string;
   teamId: string;
@@ -122,7 +122,7 @@ export interface ScheduleExecutionResponse {
   durationMs?: number;
 }
 
-export interface ScheduleQueryRequest {
+export interface AutomationQueryRequest {
   message: string;
   chatId?: string;
   role?: string;
@@ -130,7 +130,7 @@ export interface ScheduleQueryRequest {
   hidden?: boolean;
 }
 
-export interface CreateScheduleRequest {
+export interface CreateAutomationRequest {
   name: string;
   description: string;
   cron: string;
@@ -139,10 +139,10 @@ export interface CreateScheduleRequest {
   teamId?: string;
   zoneId?: string;
   remainingRuns?: number;
-  query: ScheduleQueryRequest;
+  query: AutomationQueryRequest;
 }
 
-export interface UpdateScheduleRequest {
+export interface UpdateAutomationRequest {
   id: string;
   name?: string;
   description?: string;
@@ -152,19 +152,19 @@ export interface UpdateScheduleRequest {
   zoneId?: string;
   enabled?: boolean;
   remainingRuns?: number;
-  query?: ScheduleQueryRequest;
+  query?: AutomationQueryRequest;
 }
 
-export interface ToggleScheduleRequest {
+export interface ToggleAutomationRequest {
   id: string;
   enabled: boolean;
 }
 
-export interface DeleteScheduleRequest {
+export interface DeleteAutomationRequest {
   id: string;
 }
 
-export interface ScheduleExecutionsRequest {
+export interface AutomationExecutionsRequest {
   id: string;
   limit?: number;
   offset?: number;
@@ -956,46 +956,46 @@ function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
   });
 }
 
-export function getSchedules(
-  params: ScheduleListRequest = {},
-): Promise<ApiResponse<ScheduleListResponse>> {
-  return postJson<ScheduleListResponse>("/api/schedules", params);
+export function getAutomations(
+  params: AutomationListRequest = {},
+): Promise<ApiResponse<AutomationListResponse>> {
+  return postJson<AutomationListResponse>("/api/automations", params);
 }
 
-export function getSchedule(
+export function getAutomation(
   id: string,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule", { id });
+): Promise<ApiResponse<AutomationDetailResponse>> {
+  return postJson<AutomationDetailResponse>("/api/automation", { id });
 }
 
-export function createSchedule(
-  params: CreateScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule/create", params);
+export function createAutomation(
+  params: CreateAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+  return postJson<AutomationDetailResponse>("/api/automation/create", params);
 }
 
-export function updateSchedule(
-  params: UpdateScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule/update", params);
+export function updateAutomation(
+  params: UpdateAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+  return postJson<AutomationDetailResponse>("/api/automation/update", params);
 }
 
-export function deleteSchedule(
-  params: DeleteScheduleRequest,
+export function deleteAutomation(
+  params: DeleteAutomationRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
-  return postJson<{ id: string; deleted: boolean }>("/api/schedule/delete", params);
+  return postJson<{ id: string; deleted: boolean }>("/api/automation/delete", params);
 }
 
-export function toggleSchedule(
-  params: ToggleScheduleRequest,
-): Promise<ApiResponse<ScheduleDetailResponse>> {
-  return postJson<ScheduleDetailResponse>("/api/schedule/toggle", params);
+export function toggleAutomation(
+  params: ToggleAutomationRequest,
+): Promise<ApiResponse<AutomationDetailResponse>> {
+  return postJson<AutomationDetailResponse>("/api/automation/toggle", params);
 }
 
-export function getScheduleExecutions(
-  params: ScheduleExecutionsRequest,
-): Promise<ApiResponse<ScheduleExecutionListResponse>> {
-  return postJson<ScheduleExecutionListResponse>("/api/schedule/executions", params);
+export function getAutomationExecutions(
+  params: AutomationExecutionsRequest,
+): Promise<ApiResponse<AutomationExecutionListResponse>> {
+  return postJson<AutomationExecutionListResponse>("/api/automation/executions", params);
 }
 
 export interface GetMemoryRecordsParams {

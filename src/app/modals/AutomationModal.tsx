@@ -4,30 +4,30 @@ import type { Agent, Team } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
-  createSchedule,
-  deleteSchedule,
-  getSchedule,
-  getScheduleExecutions,
-  getSchedules,
-  toggleSchedule,
-  updateSchedule,
+  createAutomation,
+  deleteAutomation,
+  getAutomation,
+  getAutomationExecutions,
+  getAutomations,
+  toggleAutomation,
+  updateAutomation,
 } from "@/features/transport/lib/apiClientProxy";
 import type {
-  CreateScheduleRequest,
-  ScheduleDetailResponse,
-  ScheduleExecutionResponse,
-  ScheduleQueryRequest,
-  ScheduleSummaryResponse,
-  UpdateScheduleRequest,
+  CreateAutomationRequest,
+  AutomationDetailResponse,
+  AutomationExecutionResponse,
+  AutomationQueryRequest,
+  AutomationSummaryResponse,
+  UpdateAutomationRequest,
 } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 
-type ScheduleStatusFilter = "all" | "enabled" | "disabled";
-type ScheduleFormMode = "create" | "edit";
+type AutomationStatusFilter = "all" | "enabled" | "disabled";
+type AutomationFormMode = "create" | "edit";
 
-interface ScheduleFormState {
+interface AutomationFormState {
   id: string;
   name: string;
   description: string;
@@ -44,7 +44,7 @@ interface ScheduleFormState {
   paramsText: string;
 }
 
-const EMPTY_FORM: ScheduleFormState = {
+const EMPTY_FORM: AutomationFormState = {
   id: "",
   name: "",
   description: "",
@@ -131,7 +131,7 @@ function resolveDefaultAgentKey(
 
 function createInitialForm(
   currentWorker: CurrentWorkerSummary | null,
-): ScheduleFormState {
+): AutomationFormState {
   return {
     ...EMPTY_FORM,
     agentKey: resolveDefaultAgentKey(currentWorker),
@@ -139,28 +139,28 @@ function createInitialForm(
   };
 }
 
-function formFromSchedule(schedule: ScheduleDetailResponse): ScheduleFormState {
-  const params = schedule.query?.params;
+function formFromAutomation(automation: AutomationDetailResponse): AutomationFormState {
+  const params = automation.query?.params;
   return {
-    id: schedule.id,
-    name: schedule.name || "",
-    description: schedule.description || "",
-    cron: schedule.cron || "",
-    agentKey: schedule.agentKey || "",
-    teamId: schedule.teamId || "",
-    zoneId: schedule.zoneId || "",
+    id: automation.id,
+    name: automation.name || "",
+    description: automation.description || "",
+    cron: automation.cron || "",
+    agentKey: automation.agentKey || "",
+    teamId: automation.teamId || "",
+    zoneId: automation.zoneId || "",
     remainingRuns:
-      schedule.remainingRuns === undefined || schedule.remainingRuns === null
+      automation.remainingRuns === undefined || automation.remainingRuns === null
         ? ""
-        : String(schedule.remainingRuns),
-    enabled: Boolean(schedule.enabled),
-    message: schedule.query?.message || "",
-    chatId: schedule.query?.chatId || "",
-    role: schedule.query?.role || "user",
+        : String(automation.remainingRuns),
+    enabled: Boolean(automation.enabled),
+    message: automation.query?.message || "",
+    chatId: automation.query?.chatId || "",
+    role: automation.query?.role || "user",
     hidden:
-      schedule.query?.hidden === true
+      automation.query?.hidden === true
         ? "true"
-        : schedule.query?.hidden === false
+        : automation.query?.hidden === false
           ? "false"
           : "",
     paramsText:
@@ -188,25 +188,25 @@ function toDurationLabel(value?: number | null): string {
   return `${(value / 1000).toFixed(1)}s`;
 }
 
-export function scheduleSourcePath(schedule: ScheduleSummaryResponse): string {
-  const source = String(schedule.sourceFile || "").trim();
-  if (!source) return schedule.id;
+export function automationSourcePath(automation: AutomationSummaryResponse): string {
+  const source = String(automation.sourceFile || "").trim();
+  if (!source) return automation.id;
   const normalized = source.replace(/\\/g, "/");
   const filename = normalized.split("/").filter(Boolean).pop();
-  return filename || schedule.id;
+  return filename || automation.id;
 }
 
-function scheduleListMeta(schedule: ScheduleSummaryResponse): string {
-  const lastStatus = schedule.lastExecution?.status || "--";
+function automationListMeta(automation: AutomationSummaryResponse): string {
+  const lastStatus = automation.lastExecution?.status || "--";
   return [
-    schedule.cron || "--",
-    `下次 ${toTimeLabel(schedule.nextFireTime)}`,
+    automation.cron || "--",
+    `下次 ${toTimeLabel(automation.nextFireTime)}`,
     `最近 ${lastStatus}`,
   ].join(" · ");
 }
 
-function buildQuery(form: ScheduleFormState): ScheduleQueryRequest {
-  const query: ScheduleQueryRequest = {
+function buildQuery(form: AutomationFormState): AutomationQueryRequest {
+  const query: AutomationQueryRequest = {
     message: form.message.trim(),
     role: form.role.trim() || "user",
   };
@@ -221,7 +221,7 @@ function buildQuery(form: ScheduleFormState): ScheduleQueryRequest {
   return query;
 }
 
-function buildCreatePayload(form: ScheduleFormState): CreateScheduleRequest {
+function buildCreatePayload(form: AutomationFormState): CreateAutomationRequest {
   return compactPayload({
     name: form.name.trim(),
     description: form.description.trim(),
@@ -234,10 +234,10 @@ function buildCreatePayload(form: ScheduleFormState): CreateScheduleRequest {
       ? Number(form.remainingRuns.trim())
       : undefined,
     query: buildQuery(form),
-  }) as CreateScheduleRequest;
+  }) as CreateAutomationRequest;
 }
 
-function buildUpdatePayload(form: ScheduleFormState): UpdateScheduleRequest {
+function buildUpdatePayload(form: AutomationFormState): UpdateAutomationRequest {
   return compactPayload({
     id: form.id,
     name: form.name.trim(),
@@ -251,16 +251,16 @@ function buildUpdatePayload(form: ScheduleFormState): UpdateScheduleRequest {
       ? Number(form.remainingRuns.trim())
       : undefined,
     query: buildQuery(form),
-  }) as UpdateScheduleRequest;
+  }) as UpdateAutomationRequest;
 }
 
-function validateForm(form: ScheduleFormState): string {
-  if (!form.name.trim()) return "请填写任务名称。";
-  if (!form.description.trim()) return "请填写任务描述。";
+function validateForm(form: AutomationFormState): string {
+  if (!form.name.trim()) return "请填写自动化名称。";
+  if (!form.description.trim()) return "请填写自动化描述。";
   if (!form.cron.trim()) return "请填写 cron。";
   if (!isFiveFieldCron(form.cron)) return "cron 必须是传统 5 段格式。";
   if (!form.agentKey.trim()) return "请填写 AgentKey。";
-  if (!form.message.trim()) return "请填写任务消息。";
+  if (!form.message.trim()) return "请填写自动化消息。";
   if (form.remainingRuns.trim()) {
     const runs = Number(form.remainingRuns.trim());
     if (!Number.isInteger(runs) || runs <= 0) {
@@ -280,21 +280,21 @@ function validateForm(form: ScheduleFormState): string {
   return "";
 }
 
-export const ScheduleModal: React.FC<{
+export const AutomationModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
   teams: Team[];
 }> = ({ currentWorker, agents, teams }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const schedules = state.schedules;
+  const automations = state.automations;
   const [selectedId, setSelectedId] = useState("");
-  const [executions, setExecutions] = useState<ScheduleExecutionResponse[]>([]);
+  const [executions, setExecutions] = useState<AutomationExecutionResponse[]>([]);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ScheduleStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<AutomationStatusFilter>("all");
   const [workerFilter, setWorkerFilter] = useState("");
-  const [formMode, setFormMode] = useState<ScheduleFormMode>("create");
-  const [form, setForm] = useState<ScheduleFormState>(() =>
+  const [formMode, setFormMode] = useState<AutomationFormMode>("create");
+  const [form, setForm] = useState<AutomationFormState>(() =>
     createInitialForm(currentWorker),
   );
   const [loading, setLoading] = useState(false);
@@ -303,11 +303,11 @@ export const ScheduleModal: React.FC<{
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState("");
-  const didAutoSelectInitialScheduleRef = useRef(false);
+  const didAutoSelectInitialAutomationRef = useRef(false);
 
   const workerOptions = useMemo(() => {
     const values = new Map<string, string>();
-    for (const item of schedules) {
+    for (const item of automations) {
       if (item.agentKey)
         values.set(`agent:${item.agentKey}`, `Agent · ${item.agentKey}`);
       if (item.teamId)
@@ -317,7 +317,7 @@ export const ScheduleModal: React.FC<{
       value,
       label,
     }));
-  }, [schedules]);
+  }, [automations]);
 
   const agentOptions = useMemo(() => {
     const options = new Map<string, string>();
@@ -369,20 +369,20 @@ export const ScheduleModal: React.FC<{
     return values;
   }, [agents, teams]);
 
-  const getScheduleWorkerName = useCallback(
-    (schedule: ScheduleSummaryResponse): string => {
-      const teamId = String(schedule.teamId || "").trim();
+  const getAutomationWorkerName = useCallback(
+    (automation: AutomationSummaryResponse): string => {
+      const teamId = String(automation.teamId || "").trim();
       if (teamId) return workerNameByKey.get(`team:${teamId}`) || teamId;
-      const agentKey = String(schedule.agentKey || "").trim();
+      const agentKey = String(automation.agentKey || "").trim();
       if (agentKey) return workerNameByKey.get(`agent:${agentKey}`) || agentKey;
       return "--";
     },
     [workerNameByKey],
   );
 
-  const filteredSchedules = useMemo(() => {
+  const filteredAutomations = useMemo(() => {
     const query = searchText.trim().toLowerCase();
-    return schedules.filter((item) => {
+    return automations.filter((item) => {
       if (statusFilter === "enabled" && !item.enabled) return false;
       if (statusFilter === "disabled" && item.enabled) return false;
       if (
@@ -409,11 +409,11 @@ export const ScheduleModal: React.FC<{
         .toLowerCase()
         .includes(query);
     });
-  }, [schedules, searchText, statusFilter, workerFilter]);
+  }, [automations, searchText, statusFilter, workerFilter]);
 
   const selectedSummary = useMemo(
-    () => schedules.find((item) => item.id === selectedId) || null,
-    [schedules, selectedId],
+    () => automations.find((item) => item.id === selectedId) || null,
+    [automations, selectedId],
   );
 
   const loadExecutions = useCallback(async (id: string) => {
@@ -424,7 +424,7 @@ export const ScheduleModal: React.FC<{
     }
     setExecutionsLoading(true);
     try {
-      const response = await getScheduleExecutions({
+      const response = await getAutomationExecutions({
         id: normalizedId,
         limit: 20,
       });
@@ -446,7 +446,7 @@ export const ScheduleModal: React.FC<{
     setPendingDeleteId("");
   }, [currentWorker]);
 
-  const selectSchedule = useCallback(
+  const selectAutomation = useCallback(
     async (id: string) => {
       const normalizedId = String(id || "").trim();
       if (!normalizedId) {
@@ -458,8 +458,8 @@ export const ScheduleModal: React.FC<{
       setFormError("");
       setPendingDeleteId("");
       try {
-        const response = await getSchedule(normalizedId);
-        setForm(formFromSchedule(response.data));
+        const response = await getAutomation(normalizedId);
+        setForm(formFromAutomation(response.data));
         await loadExecutions(normalizedId);
       } catch (error) {
         setError((error as Error).message);
@@ -468,20 +468,20 @@ export const ScheduleModal: React.FC<{
     [loadExecutions, startCreate],
   );
 
-  const loadSchedules = useCallback(
+  const loadAutomations = useCallback(
     async (preferredId = "") => {
       setLoading(true);
       setError("");
       try {
-        const response = await getSchedules();
+        const response = await getAutomations();
         const items = response.data.items || [];
-        dispatch({ type: "SET_SCHEDULES", schedules: items });
+        dispatch({ type: "SET_AUTOMATIONS", automations: items });
         const nextId =
           preferredId && items.some((item) => item.id === preferredId)
             ? preferredId
             : items[0]?.id || "";
         if (nextId) {
-          await selectSchedule(nextId);
+          await selectAutomation(nextId);
         } else {
           startCreate();
         }
@@ -491,23 +491,23 @@ export const ScheduleModal: React.FC<{
         setLoading(false);
       }
     },
-    [dispatch, selectSchedule, startCreate],
+    [dispatch, selectAutomation, startCreate],
   );
 
   useEffect(() => {
     if (
-      didAutoSelectInitialScheduleRef.current ||
+      didAutoSelectInitialAutomationRef.current ||
       selectedId ||
       formMode !== "create" ||
-      schedules.length === 0
+      automations.length === 0
     ) {
       return;
     }
-    didAutoSelectInitialScheduleRef.current = true;
-    void selectSchedule(schedules[0].id);
-  }, [formMode, schedules, selectSchedule, selectedId]);
+    didAutoSelectInitialAutomationRef.current = true;
+    void selectAutomation(automations[0].id);
+  }, [formMode, automations, selectAutomation, selectedId]);
 
-  const updateForm = (patch: Partial<ScheduleFormState>) => {
+  const updateForm = (patch: Partial<AutomationFormState>) => {
     setForm((current) => ({ ...current, ...patch }));
     setFormError("");
   };
@@ -524,9 +524,9 @@ export const ScheduleModal: React.FC<{
     try {
       const response =
         formMode === "create"
-          ? await createSchedule(buildCreatePayload(form))
-          : await updateSchedule(buildUpdatePayload(form));
-      await loadSchedules(response.data.id);
+          ? await createAutomation(buildCreatePayload(form))
+          : await updateAutomation(buildUpdatePayload(form));
+      await loadAutomations(response.data.id);
     } catch (error) {
       setFormError((error as Error).message);
     } finally {
@@ -534,18 +534,18 @@ export const ScheduleModal: React.FC<{
     }
   };
 
-  const toggleSelected = async (item: ScheduleSummaryResponse) => {
+  const toggleSelected = async (item: AutomationSummaryResponse) => {
     setSaving(true);
     setError("");
     try {
-      const response = await toggleSchedule({
+      const response = await toggleAutomation({
         id: item.id,
         enabled: !item.enabled,
       });
       const detail = response.data;
       dispatch({
-        type: "SET_SCHEDULES",
-        schedules: schedules.map((row) =>
+        type: "SET_AUTOMATIONS",
+        automations: automations.map((row) =>
           row.id === detail.id
             ? {
                 ...row,
@@ -555,7 +555,7 @@ export const ScheduleModal: React.FC<{
         ),
       });
       if (selectedId === detail.id) {
-        setForm(formFromSchedule(detail));
+        setForm(formFromAutomation(detail));
       }
     } catch (error) {
       setError((error as Error).message);
@@ -564,7 +564,7 @@ export const ScheduleModal: React.FC<{
     }
   };
 
-  const confirmDelete = async (item: ScheduleSummaryResponse) => {
+  const confirmDelete = async (item: AutomationSummaryResponse) => {
     if (pendingDeleteId !== item.id) {
       setPendingDeleteId(item.id);
       return;
@@ -572,14 +572,14 @@ export const ScheduleModal: React.FC<{
     setSaving(true);
     setError("");
     try {
-      await deleteSchedule({ id: item.id });
-      const remaining = schedules.filter((row) => row.id !== item.id);
-      dispatch({ type: "SET_SCHEDULES", schedules: remaining });
+      await deleteAutomation({ id: item.id });
+      const remaining = automations.filter((row) => row.id !== item.id);
+      dispatch({ type: "SET_AUTOMATIONS", automations: remaining });
       setPendingDeleteId("");
       if (selectedId === item.id) {
         const nextId = remaining[0]?.id || "";
         if (nextId) {
-          await selectSchedule(nextId);
+          await selectAutomation(nextId);
         } else {
           startCreate();
         }
@@ -592,8 +592,8 @@ export const ScheduleModal: React.FC<{
   };
 
   return (
-    <div className="command-modal-section schedule-console">
-      <div className="schedule-console-toolbar">
+    <div className="command-modal-section automation-console">
+      <div className="automation-console-toolbar">
         <Input
           prefix={
             <MaterialIcon
@@ -602,7 +602,7 @@ export const ScheduleModal: React.FC<{
             />
           }
           variant="filled"
-          placeholder="搜索计划任务..."
+          placeholder="搜索自动化..."
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
@@ -624,7 +624,7 @@ export const ScheduleModal: React.FC<{
           size="sm"
           variant="ghost"
           iconOnly
-          onClick={() => loadSchedules(selectedId)}
+          onClick={() => loadAutomations(selectedId)}
           disabled={loading || saving}
         >
           <MaterialIcon name="refresh" />
@@ -636,47 +636,47 @@ export const ScheduleModal: React.FC<{
       </div>
 
       {error && (
-        <div className="schedule-console-error">
+        <div className="automation-console-error">
           <span>{error}</span>
           <UiButton
             size="sm"
             variant="ghost"
-            onClick={() => loadSchedules(selectedId)}
+            onClick={() => loadAutomations(selectedId)}
           >
             重试
           </UiButton>
         </div>
       )}
 
-      <div className="schedule-console-body">
-        <div className="schedule-console-list">
-          <div className="schedule-console-count">
-            计划任务 {schedules.length} 个
+      <div className="automation-console-body">
+        <div className="automation-console-list">
+          <div className="automation-console-count">
+            自动化 {automations.length} 个
           </div>
           <Spin spinning={loading}>
-            {filteredSchedules.length === 0 ? (
+            {filteredAutomations.length === 0 ? (
               <div className="command-empty-state">
-                暂无匹配计划任务。
+                暂无匹配自动化。
                 <UiButton size="sm" variant="primary" onClick={startCreate}>
-                  新建任务
+                  新建自动化
                 </UiButton>
               </div>
             ) : (
-              <div className="schedule-list-items">
-                {filteredSchedules.map((item) => (
+              <div className="automation-list-items">
+                {filteredAutomations.map((item) => (
                   <button
                     type="button"
                     key={item.id}
-                    className={`schedule-list-item ${item.id === selectedId ? "is-active" : ""}`}
-                    onClick={() => selectSchedule(item.id)}
+                    className={`automation-list-item ${item.id === selectedId ? "is-active" : ""}`}
+                    onClick={() => selectAutomation(item.id)}
                   >
-                    <span className="schedule-list-item-head">
+                    <span className="automation-list-item-head">
                       <span
-                        className="schedule-list-item-title"
-                        title={`${getScheduleWorkerName(item)} ${item.name || item.id}`}
+                        className="automation-list-item-title"
+                        title={`${getAutomationWorkerName(item)} ${item.name || item.id}`}
                       >
-                        <span className="schedule-list-item-owner">
-                          [{getScheduleWorkerName(item)}]
+                        <span className="automation-list-item-owner">
+                          [{getAutomationWorkerName(item)}]
                         </span>
                         <strong>{item.name || item.id}</strong>
                       </span>
@@ -685,10 +685,10 @@ export const ScheduleModal: React.FC<{
                       </UiTag>
                     </span>
                     <span
-                      className="schedule-list-item-meta"
-                      title={scheduleListMeta(item)}
+                      className="automation-list-item-meta"
+                      title={automationListMeta(item)}
                     >
-                      {scheduleListMeta(item)}
+                      {automationListMeta(item)}
                     </span>
                   </button>
                 ))}
@@ -697,24 +697,24 @@ export const ScheduleModal: React.FC<{
           </Spin>
         </div>
 
-        <div className="schedule-console-detail">
-          <div className="schedule-detail-head">
+        <div className="automation-console-detail">
+          <div className="automation-detail-head">
             <div>
               <strong>
                 {formMode === "create"
-                  ? "新建计划任务"
-                  : selectedSummary?.name || "编辑计划任务"}
+                  ? "新建自动化"
+                  : selectedSummary?.name || "编辑自动化"}
               </strong>
               <span>
                 {formMode === "create"
-                  ? "保存后立即写入后端 schedule 配置"
+                  ? "保存后立即写入后端 automation 配置"
                   : selectedSummary
-                    ? scheduleSourcePath(selectedSummary)
+                    ? automationSourcePath(selectedSummary)
                     : selectedId}
               </span>
             </div>
             {selectedSummary && (
-              <div className="schedule-detail-actions">
+              <div className="automation-detail-actions">
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -745,20 +745,20 @@ export const ScheduleModal: React.FC<{
             )}
           </div>
 
-          <div className="schedule-form-grid">
+          <div className="automation-form-grid">
             <div className="field-group">
-              <label htmlFor="schedule-name-input">名称</label>
+              <label htmlFor="automation-name-input">名称</label>
               <Input
-                id="schedule-name-input"
+                id="automation-name-input"
                 value={form.name}
                 onChange={(event) => updateForm({ name: event.target.value })}
               />
             </div>
             <div className="field-group">
-              <label htmlFor="schedule-cron-input">Cron</label>
-              <div className="schedule-cron-control">
+              <label htmlFor="automation-cron-input">Cron</label>
+              <div className="automation-cron-control">
                 <Input
-                  id="schedule-cron-input"
+                  id="automation-cron-input"
                   value={form.cron}
                   onChange={(event) => updateForm({ cron: event.target.value })}
                 />
@@ -777,26 +777,26 @@ export const ScheduleModal: React.FC<{
               </div>
             </div>
             <div className="field-group">
-              <label htmlFor="schedule-agent-input">智能体</label>
+              <label htmlFor="automation-agent-input">智能体</label>
               <Select
-                id="schedule-agent-input"
+                id="automation-agent-input"
                 value={form.agentKey}
                 onChange={(value) => updateForm({ agentKey: value })}
                 options={[{ value: "", label: "请选择智能体" }, ...agentOptions]}
               />
             </div>
             <div className="field-group">
-              <label htmlFor="schedule-team-input">TeamID</label>
+              <label htmlFor="automation-team-input">TeamID</label>
               <Input
-                id="schedule-team-input"
+                id="automation-team-input"
                 value={form.teamId}
                 onChange={(event) => updateForm({ teamId: event.target.value })}
               />
             </div>
             <div className="field-group">
-              <label htmlFor="schedule-zone-input">时区</label>
+              <label htmlFor="automation-zone-input">时区</label>
               <Select
-                id="schedule-zone-input"
+                id="automation-zone-input"
                 value={form.zoneId}
                 onChange={(value) => updateForm({ zoneId: value })}
                 options={[
@@ -809,9 +809,9 @@ export const ScheduleModal: React.FC<{
               />
             </div>
             <div className="field-group">
-              <label htmlFor="schedule-runs-input">剩余次数</label>
+              <label htmlFor="automation-runs-input">剩余次数</label>
               <Input
-                id="schedule-runs-input"
+                id="automation-runs-input"
                 type="number"
                 min="1"
                 placeholder="留空表示无限次"
@@ -824,9 +824,9 @@ export const ScheduleModal: React.FC<{
           </div>
 
           <div className="field-group">
-            <label htmlFor="schedule-description-input">描述</label>
+            <label htmlFor="automation-description-input">描述</label>
             <Input.TextArea
-              id="schedule-description-input"
+              id="automation-description-input"
               className="settings-textarea"
               rows={2}
               value={form.description}
@@ -836,12 +836,12 @@ export const ScheduleModal: React.FC<{
             />
           </div>
 
-          <fieldset className="schedule-request-box">
+          <fieldset className="automation-request-box">
             <legend>请求</legend>
             <div className="field-group">
-              <label htmlFor="schedule-message-input">任务消息</label>
+              <label htmlFor="automation-message-input">自动化消息</label>
               <Input.TextArea
-                id="schedule-message-input"
+                id="automation-message-input"
                 className="settings-textarea"
                 rows={4}
                 value={form.message}
@@ -851,11 +851,11 @@ export const ScheduleModal: React.FC<{
               />
             </div>
 
-            <div className="schedule-form-grid">
+            <div className="automation-form-grid">
               <div className="field-group">
-                <label htmlFor="schedule-chat-input">会话ID</label>
+                <label htmlFor="automation-chat-input">会话ID</label>
                 <Input
-                  id="schedule-chat-input"
+                  id="automation-chat-input"
                   value={form.chatId}
                   onChange={(event) =>
                     updateForm({ chatId: event.target.value })
@@ -863,17 +863,17 @@ export const ScheduleModal: React.FC<{
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="schedule-role-input">角色</label>
+                <label htmlFor="automation-role-input">角色</label>
                 <Input
-                  id="schedule-role-input"
+                  id="automation-role-input"
                   value={form.role}
                   onChange={(event) => updateForm({ role: event.target.value })}
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="schedule-hidden-select">是否隐藏</label>
+                <label htmlFor="automation-hidden-select">是否隐藏</label>
                 <Select
-                  id="schedule-hidden-select"
+                  id="automation-hidden-select"
                   value={form.hidden}
                   onChange={(value) =>
                     updateForm({
@@ -887,28 +887,28 @@ export const ScheduleModal: React.FC<{
                   ]}
                 />
               </div>
-              <div className="field-group schedule-enabled-field">
+              <div className="field-group automation-enabled-field">
                 <Checkbox
                   checked={form.enabled}
                   onChange={(event) =>
                     updateForm({ enabled: event.target.checked })
                   }
                 >
-                  启用任务
+                  启用自动化
                 </Checkbox>
               </div>
             </div>
 
             <div className="field-group" style={{ marginTop: 10 }}>
-              <label htmlFor="schedule-params-input">
+              <label htmlFor="automation-params-input">
                 <span>参数</span>
                 <Tooltip title="JSON格式" arrow={false}>
                   <MaterialIcon name="help" />
                 </Tooltip>
               </label>
               <Input.TextArea
-                id="schedule-params-input"
-                className="settings-textarea schedule-mono-textarea"
+                id="automation-params-input"
+                className="settings-textarea automation-mono-textarea"
                 rows={3}
                 placeholder='{"kind":"daily"}'
                 value={form.paramsText}
@@ -921,7 +921,7 @@ export const ScheduleModal: React.FC<{
 
           {formError && <div className="settings-error">{formError}</div>}
 
-          <div className="schedule-save-actions">
+          <div className="automation-save-actions">
             <UiButton
               size="sm"
               variant="primary"
@@ -929,7 +929,7 @@ export const ScheduleModal: React.FC<{
               disabled={saving}
             >
               <MaterialIcon name="save" />
-              <span>{formMode === "create" ? "创建任务" : "保存修改"}</span>
+              <span>{formMode === "create" ? "创建自动化" : "保存修改"}</span>
             </UiButton>
             {formMode === "edit" && (
               <UiButton
@@ -943,8 +943,8 @@ export const ScheduleModal: React.FC<{
             )}
           </div>
 
-          <div className="schedule-executions">
-            <div className="schedule-executions-head">
+          <div className="automation-executions">
+            <div className="automation-executions-head">
               <strong>执行记录</strong>
               <UiButton
                 size="sm"
@@ -959,14 +959,14 @@ export const ScheduleModal: React.FC<{
             <Spin spinning={executionsLoading}>
               {!selectedId ? (
                 <div className="command-empty-state">
-                  保存或选择任务后查看执行记录。
+                  保存或选择自动化后查看执行记录。
                 </div>
               ) : executions.length === 0 ? (
                 <div className="command-empty-state">暂无执行记录。</div>
               ) : (
-                <div className="schedule-execution-list">
+                <div className="automation-execution-list">
                   {executions.map((item) => (
-                    <div className="schedule-execution-row" key={item.id}>
+                    <div className="automation-execution-row" key={item.id}>
                       <span>{item.status}</span>
                       <span>{toTimeLabel(item.startedAt)}</span>
                       <span>{toDurationLabel(item.durationMs)}</span>

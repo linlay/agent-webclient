@@ -223,8 +223,8 @@ export function reduceUiState(
 					activeIndex: action.modal.activeIndex ?? 0,
 					scope: action.modal.scope ?? "all",
 					focusArea: action.modal.focusArea ?? "search",
-					scheduleTask: action.modal.scheduleTask ?? "",
-					scheduleRule: action.modal.scheduleRule ?? "",
+					automationTask: action.modal.automationTask ?? "",
+					automationRule: action.modal.automationRule ?? "",
 				},
 			};
 		case "PATCH_COMMAND_MODAL":
@@ -249,8 +249,8 @@ export function reduceUiState(
 					activeIndex: 0,
 					scope: "all",
 					focusArea: "search",
-					scheduleTask: "",
-					scheduleRule: "",
+					automationTask: "",
+					automationRule: "",
 				},
 			};
 		case "SET_EVENT_POPOVER":

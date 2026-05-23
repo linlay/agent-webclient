@@ -52,7 +52,7 @@ export function createInitialState(): AppState {
 		agents: [],
 		teams: [],
 		chats: [],
-		schedules: [],
+		automations: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
 		pendingNewChatAgentKey: "",
@@ -185,8 +185,8 @@ export function createInitialState(): AppState {
 			activeIndex: 0,
 			scope: "all",
 			focusArea: "search",
-			scheduleTask: "",
-			scheduleRule: "",
+			automationTask: "",
+			automationRule: "",
 		},
 	};
 }

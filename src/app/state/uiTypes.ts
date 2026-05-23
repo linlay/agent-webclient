@@ -54,7 +54,7 @@ export type CommandModalType =
 	| "history"
 	| "switch"
 	| "detail"
-	| "schedule"
+	| "automation"
 	| "agents"
 	| null;
 export type CommandModalScope = "all" | "agent" | "team";
@@ -68,8 +68,8 @@ export interface CommandModalState {
 	activeIndex: number;
 	scope: CommandModalScope;
 	focusArea: CommandModalFocusArea;
-	scheduleTask: string;
-	scheduleRule: string;
+	automationTask: string;
+	automationRule: string;
 }
 
 export interface RenderQueue {

@@ -9,7 +9,7 @@ import {
 import { CommandModalHeader } from "@/app/modals/CommandModalHeader";
 import { DetailModal } from "@/app/modals/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
-import { ScheduleModal } from "@/app/modals/ScheduleModal";
+import { AutomationModal } from "@/app/modals/AutomationModal";
 import { SWITCH_SCOPES, SwitchModal } from "@/app/modals/SwitchModal";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import {
@@ -191,7 +191,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       historyInputRef.current?.select();
       return;
     }
-    if (modal.type === "schedule") {
+    if (modal.type === "automation") {
       closeButtonRef.current?.focus();
       return;
     }
@@ -299,7 +299,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   }
 
   const subtitle =
-    modal.type === "schedule" || modal.type === "agents"
+    modal.type === "automation" || modal.type === "agents"
       ? ""
       : currentWorker
         ? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
@@ -314,7 +314,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     >
       <div
 	        ref={cardRef}
-	        className={`modal-card command-modal-card ${modal.type === "schedule" || modal.type === "agents" ? "is-schedule-console" : ""}`}
+	        className={`modal-card command-modal-card ${modal.type === "automation" || modal.type === "agents" ? "is-automation-console" : ""}`}
         tabIndex={-1}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -491,7 +491,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             return;
           }
 
-          if (modal.type === "schedule" || modal.type === "agents") return;
+          if (modal.type === "automation" || modal.type === "agents") return;
         }}
       >
         <CommandModalHeader
@@ -581,8 +581,8 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           <DetailModal detailView={detailView} />
         )}
 
-        {modal.type === "schedule" && (
-          <ScheduleModal
+        {modal.type === "automation" && (
+          <AutomationModal
             currentWorker={currentWorker}
             agents={state.agents}
             teams={state.teams}

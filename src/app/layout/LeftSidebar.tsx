@@ -423,14 +423,14 @@ export const LeftSidebar: React.FC = () => {
                   onClick={() => {
                     dispatch({
                       type: "OPEN_COMMAND_MODAL",
-                      modal: { type: "schedule" },
+                      modal: { type: "automation" },
                     });
                   }}
                 >
-                  <MaterialIcon name="schedule" />
+                  <MaterialIcon name="automation" />
                   <Flex gap={4} align="center">
                     <span>自动化</span>
-                    <Badge count={state.schedules?.length} />
+                    <Badge count={state.automations?.length} />
                   </Flex>
                 </UiButton>
                 <UiButton
