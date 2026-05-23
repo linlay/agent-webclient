@@ -208,7 +208,13 @@ export function useAgentEventHandler() {
       dispatch({ type: 'PUSH_EVENT', event });
       dispatch({ type: 'APPEND_DEBUG', line: `[${new Date().toLocaleTimeString()}] ${type}` });
 
-      const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event);
+      const awaitingFallbackAgentKey =
+        cache.agentKey
+        || toText(state.chatAgentById.get(cache.chatId || toText(state.chatId)))
+        || resolveSelectedWorkerContext(state).agentKey;
+      const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event, {
+        agentKey: awaitingFallbackAgentKey,
+      });
       if (nextAwaiting !== cache.activeAwaiting) {
         cache.activeAwaiting = nextAwaiting;
         dispatch({ type: 'SET_ACTIVE_AWAITING', awaiting: nextAwaiting });

@@ -326,6 +326,7 @@ function isLegacyHtmlAsk(event: AgentEvent): boolean {
 export function reduceActiveAwaiting(
   current: ActiveAwaiting | null,
   event: AgentEvent,
+  fallback: { agentKey?: string } = {},
 ): ActiveAwaiting | null {
   const type = toText(event.type);
   const eventAgentKey = toText(event.agentKey);
@@ -355,6 +356,10 @@ export function reduceActiveAwaiting(
     const createdAt =
       readAwaitingCreatedAt(event)
       ?? (current?.key === key ? current.createdAt ?? null : null);
+    const agentKey =
+      eventAgentKey
+      || (current?.key === key ? current.agentKey : '')
+      || toText(fallback.agentKey);
 
     if (nextMode === 'question' || isLegacyQuestionAsk(event)) {
       const nextQuestions = normalizeQuestions(event.questions);
@@ -365,7 +370,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
-        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
+        agentKey,
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'question',
@@ -389,7 +394,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
-        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
+        agentKey,
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'approval',
@@ -428,7 +433,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
-        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
+        agentKey,
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'form',

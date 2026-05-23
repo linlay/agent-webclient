@@ -48,6 +48,33 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
+  it('inherits agentKey for awaiting.ask when the event omits it', () => {
+    const asked = reduceActiveAwaiting(
+      null,
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        mode: 'question',
+        questions: [
+          {
+            id: 'q1',
+            type: 'select',
+            question: '继续执行吗？',
+          },
+        ],
+      },
+      { agentKey: 'context-agent' },
+    );
+
+    expect(asked).toMatchObject({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      agentKey: 'context-agent',
+      mode: 'question',
+    });
+  });
+
   it('normalizes multi-select questions without legacy multiple flags', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
