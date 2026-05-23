@@ -59,6 +59,13 @@ program_load_env() {
 }
 
 resolve_node_bin() {
+  if [[ -n "${NODE_BIN:-}" && -f "$NODE_BIN" ]]; then
+    if [[ "$NODE_BIN" =~ electron|zenmind && -z "${ELECTRON_RUN_AS_NODE:-}" ]]; then
+      export ELECTRON_RUN_AS_NODE="1"
+    fi
+    NODE_CMD="$NODE_BIN"
+    return
+  fi
   NODE_CMD="$(command -v node 2>/dev/null || true)"
   [[ -n "$NODE_CMD" ]] || program_die "node runtime not found; install Node.js 18+"
 }

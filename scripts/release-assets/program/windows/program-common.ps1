@@ -76,6 +76,12 @@ function Import-ProgramEnv {
 }
 
 function Resolve-NodeBin {
+  if ($env:NODE_BIN -and (Test-Path -LiteralPath $env:NODE_BIN -PathType Leaf)) {
+    if ($env:NODE_BIN -match 'electron|zenmind' -and -not $env:ELECTRON_RUN_AS_NODE) {
+      $env:ELECTRON_RUN_AS_NODE = "1"
+    }
+    return $env:NODE_BIN
+  }
   try {
     $nodeCommand = Get-Command node -ErrorAction Stop
   } catch {
