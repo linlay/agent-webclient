@@ -548,6 +548,7 @@ export class WsClient {
 
 	attachRun(
 		runId: string,
+		agentKey: string,
 		lastSeq: number,
 		onEvent: (event: AgentEvent) => void,
 		onDone?: (reason: string, lastSeq: number) => void,
@@ -558,6 +559,7 @@ export class WsClient {
 			type: "/api/attach",
 			payload: {
 				runId,
+				agentKey,
 				lastSeq,
 			},
 			signal,

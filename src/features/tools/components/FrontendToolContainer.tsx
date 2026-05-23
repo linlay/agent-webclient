@@ -99,6 +99,11 @@ export const FrontendToolContainer: React.FC = () => {
 			if (data.type === "frontend_submit") {
 				setStatusText("提交中...");
 				setStatusTone("normal");
+				if (!active.agentKey) {
+					setStatusText("提交失败：agentKey is required");
+					setStatusTone("err");
+					return;
+				}
 				try {
 					const params =
 						data.params && typeof data.params === "object"
@@ -106,6 +111,7 @@ export const FrontendToolContainer: React.FC = () => {
 							: {};
 					const response = await submitTool({
 						runId: active.runId,
+						agentKey: active.agentKey,
 						toolId: active.toolId,
 						params: params as Record<string, unknown>,
 					});

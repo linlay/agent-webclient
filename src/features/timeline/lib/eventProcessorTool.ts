@@ -74,6 +74,7 @@ export function processToolEvent(
       state: {
         toolId,
         argsBuffer,
+        agentKey: toText(event.agentKey) || existingToolState?.agentKey || state.agentKey || "",
         toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
         toolName: pickToolName(existingToolState?.toolName, event.toolName),
         toolType: event.toolType || existingToolState?.toolType || "",
@@ -105,6 +106,7 @@ export function processToolEvent(
     const nextToolState: ToolState = {
       toolId,
       argsBuffer: nextArgsBuffer,
+      agentKey: toText(event.agentKey) || existingToolState?.agentKey || state.agentKey || "",
       toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
       toolName: pickToolName(existingToolState?.toolName, event.toolName),
       toolType: event.toolType || existingToolState?.toolType || "",
@@ -242,4 +244,3 @@ export function processToolEvent(
 
   return commands;
 }
-

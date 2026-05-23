@@ -46,6 +46,7 @@ function createActiveAwaiting(
     key: 'run_1#await_1',
     awaitingId: 'await_1',
     runId: 'run_1',
+    agentKey: 'demo-agent',
     timeout: 60,
     viewportKey: 'leave_form',
     viewportType: ViewportTypeEnum.Html,

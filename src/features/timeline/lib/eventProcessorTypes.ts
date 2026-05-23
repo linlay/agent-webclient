@@ -19,6 +19,7 @@ export interface EventProcessorState {
 	activeReasoningKey: string;
 	chatId: string;
 	runId: string;
+	agentKey?: string;
 	currentRunningPlanTaskId?: string;
 	getTaskItem(taskId: string): TaskItemMeta | undefined;
 	getActiveTaskIds(): string[];

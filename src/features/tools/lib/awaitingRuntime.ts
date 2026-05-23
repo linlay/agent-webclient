@@ -328,6 +328,7 @@ export function reduceActiveAwaiting(
   event: AgentEvent,
 ): ActiveAwaiting | null {
   const type = toText(event.type);
+  const eventAgentKey = toText(event.agentKey);
 
   if (
     type === 'request.query'
@@ -364,6 +365,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
+        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'question',
@@ -387,6 +389,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
+        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'approval',
@@ -425,6 +428,7 @@ export function reduceActiveAwaiting(
         key,
         awaitingId,
         runId,
+        agentKey: eventAgentKey || (current?.key === key ? current.agentKey : ''),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'form',

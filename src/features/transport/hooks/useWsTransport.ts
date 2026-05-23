@@ -223,7 +223,7 @@ function dispatchLoadChatEvent(chatId: string): void {
 	);
 }
 
-function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): void {
+function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agentKey = ""): void {
 	if (
 		typeof window === "undefined"
 		|| typeof window.dispatchEvent !== "function"
@@ -233,7 +233,7 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): voi
 	}
 	window.dispatchEvent(
 		new CustomEvent("agent:attach-run", {
-			detail: { chatId, runId, lastSeq },
+			detail: { chatId, runId, lastSeq, agentKey },
 		}),
 	);
 }
@@ -242,9 +242,23 @@ type ActiveAttachState = {
 	requestId: string;
 	runId: string;
 	chatId: string;
+	agentKey: string;
 	controller: AbortController;
 	abort: () => void;
 };
+
+function resolveAttachAgentKey(state: AppState, chatId: string, detail?: Record<string, unknown>): string {
+	const explicitAgentKey = toText(detail?.agentKey);
+	if (explicitAgentKey) {
+		return explicitAgentKey;
+	}
+	const chat = state.chats.find((item) => toText(item?.chatId) === chatId);
+	return (
+		toText(chat?.agentKey)
+		|| toText(chat?.firstAgentKey)
+		|| toText(state.chatAgentById.get(chatId))
+	);
+}
 
 interface RegisterAttachRunListenerOptions {
 	dispatch: WsTransportDispatch;
@@ -344,13 +358,21 @@ export function registerAttachRunListener(
 		const detail = (event as CustomEvent).detail as Record<string, unknown> | undefined;
 		const runId = String(detail?.runId || "").trim();
 		const chatId = String(detail?.chatId || "").trim();
+		const agentKey = resolveAttachAgentKey(options.stateRef.current, chatId, detail);
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
 			return;
 		}
+		if (!agentKey) {
+			options.dispatch({
+				type: "APPEND_DEBUG",
+				line: `[ws attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
+			});
+			return;
+		}
 		const current = options.activeAttachRef.current;
-		if (current && current.runId === runId && current.chatId === chatId) {
+		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
 			return;
 		}
 
@@ -383,6 +405,7 @@ export function registerAttachRunListener(
 		};
 		const stream = wsClient.attachRun(
 			runId,
+			agentKey,
 			lastSeq,
 			attachHandleEvent,
 			(_reason, _lastSeq) => {
@@ -395,6 +418,7 @@ export function registerAttachRunListener(
 			chatId,
 		});
 		session.runId = runId;
+		session.agentKey = agentKey;
 		session.streaming = true;
 		session.abortController = controller;
 		options.querySessionsRef.current.set(stream.requestId, session);
@@ -404,6 +428,7 @@ export function registerAttachRunListener(
 			requestId: stream.requestId,
 			runId,
 			chatId,
+			agentKey,
 			controller,
 			abort: stream.abort,
 		};
@@ -542,8 +567,9 @@ function buildWsClient(
 				}
 				if (isActiveChat) {
 					const runId = String(liveEvent.runId || "").trim();
+					const agentKey = String(liveEvent.agentKey || "").trim();
 					if (runId) {
-						dispatchAttachRunEvent(eventChatId, runId, 0);
+						dispatchAttachRunEvent(eventChatId, runId, 0, agentKey);
 					}
 				}
 				return;

@@ -601,11 +601,11 @@ describe("connectWsTransport", () => {
 		const dispatchEvent = jest.fn();
 		class MockCustomEvent {
 			type: string;
-			detail: { chatId: string; runId: string; lastSeq: number };
+			detail: { chatId: string; runId: string; agentKey: string; lastSeq: number };
 
-			constructor(type: string, init?: { detail?: { chatId: string; runId: string; lastSeq: number } }) {
+			constructor(type: string, init?: { detail?: { chatId: string; runId: string; agentKey?: string; lastSeq: number } }) {
 				this.type = type;
-				this.detail = init?.detail || { chatId: "", runId: "", lastSeq: 0 };
+				this.detail = { chatId: "", runId: "", agentKey: "", lastSeq: 0, ...(init?.detail || {}) };
 			}
 		}
 		Object.defineProperty(globalThis, "window", {
@@ -636,6 +636,7 @@ describe("connectWsTransport", () => {
 			payload: {
 				chatId: "chat_active",
 				runId: "run_active",
+				agentKey: "agent_alpha",
 			},
 		});
 
@@ -645,6 +646,7 @@ describe("connectWsTransport", () => {
 				detail: {
 					chatId: "chat_active",
 					runId: "run_active",
+					agentKey: "agent_alpha",
 					lastSeq: 0,
 				},
 			}),
@@ -704,6 +706,7 @@ describe("connectWsTransport", () => {
 		const attachRun = jest.fn(
 			(
 				runId: string,
+				_agentKey: string,
 				lastSeq: number,
 				_onEvent: (event: AgentEvent) => void,
 				onDone?: (reason: string, lastSeq: number) => void,
@@ -733,10 +736,10 @@ describe("connectWsTransport", () => {
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 
 		expect(attachRun).toHaveBeenCalledTimes(1);
@@ -821,6 +824,7 @@ describe("connectWsTransport", () => {
 		const attachRun = jest.fn(
 			(
 				_runId: string,
+				_agentKey: string,
 				_lastSeq: number,
 				onEvent: (event: AgentEvent) => void,
 			) => {
@@ -847,7 +851,7 @@ describe("connectWsTransport", () => {
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		attachedOnEvent?.({
 			type: "request.query",
@@ -928,6 +932,7 @@ describe("connectWsTransport", () => {
 		const attachRun = jest.fn(
 			(
 				_runId: string,
+				_agentKey: string,
 				_lastSeq: number,
 				_onEvent: (event: AgentEvent) => void,
 				onDone?: (reason: string, lastSeq: number) => void,
@@ -956,10 +961,10 @@ describe("connectWsTransport", () => {
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_2", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 
 		expect(attaches).toHaveLength(2);

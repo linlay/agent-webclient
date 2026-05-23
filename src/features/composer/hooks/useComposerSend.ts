@@ -191,10 +191,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     const requestId = createRequestId("req");
     const agentKey = resolveCurrentAgentKey();
     const teamId = resolveCurrentTeamId();
-    if (!chatId || !runId) {
+    if (!chatId || !runId || !agentKey) {
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[interrupt] skipped: missing chatId/runId (chatId=${chatId || "-"}, runId=${runId || "-"})`,
+        line: `[interrupt] skipped: missing chatId/runId/agentKey (chatId=${chatId || "-"}, runId=${runId || "-"}, agentKey=${agentKey || "-"})`,
       });
       return;
     }
@@ -481,10 +481,10 @@ export function useComposerSend(input: UseComposerSendInput) {
         : createRequestId("steer");
     const agentKey = resolveCurrentAgentKey();
     const teamId = resolveCurrentTeamId();
-    if (!chatId || !runId) {
+    if (!chatId || !runId || !agentKey) {
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[steer] skipped: missing chatId/runId (chatId=${chatId || "-"}, runId=${runId || "-"})`,
+        line: `[steer] skipped: missing chatId/runId/agentKey (chatId=${chatId || "-"}, runId=${runId || "-"}, agentKey=${agentKey || "-"})`,
       });
       restoreSteerDraftToComposer(message);
       void antdMessage.warning(t("composer.steer.unavailable"));

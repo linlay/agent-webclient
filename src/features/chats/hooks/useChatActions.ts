@@ -119,7 +119,7 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   };
 }
 
-function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): void {
+function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agentKey = ''): void {
   if (
     typeof window === 'undefined'
     || typeof window.dispatchEvent !== 'function'
@@ -129,7 +129,7 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0): voi
   }
   window.dispatchEvent(
     new CustomEvent('agent:attach-run', {
-      detail: { chatId, runId, lastSeq },
+      detail: { chatId, runId, lastSeq, agentKey },
     }),
   );
 }
@@ -485,10 +485,14 @@ export function useChatActions() {
           : null;
         const activeRunId = String(activeRun?.runId || '').trim();
         if (activeRunId) {
+          const activeRunAgentKey = String(
+            activeRun?.agentKey || chatData?.firstAgentKey || chatData?.agentKey || '',
+          ).trim();
           dispatchAttachRunEvent(
             chatId,
             activeRunId,
             resolveAttachLastSeq(events, activeRunId),
+            activeRunAgentKey,
           );
         }
         if (focusComposerOnComplete) {

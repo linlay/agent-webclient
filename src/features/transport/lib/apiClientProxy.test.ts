@@ -1136,6 +1136,7 @@ describe("apiClientProxy", () => {
 		await expect(
 			proxy.submitTool({
 				runId: "run_1",
+				agentKey: "demo-agent",
 				toolId: "tool_1",
 				params: { city: "beijing" },
 			}),
@@ -1143,6 +1144,7 @@ describe("apiClientProxy", () => {
 		await expect(
 			proxy.submitAwaiting({
 				runId: "run_1",
+				agentKey: "demo-agent",
 				awaitingId: "await_1",
 				params: [],
 			}),
@@ -1151,11 +1153,13 @@ describe("apiClientProxy", () => {
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.submitTool).toHaveBeenCalledWith({
 			runId: "run_1",
+			agentKey: "demo-agent",
 			toolId: "tool_1",
 			params: { city: "beijing" },
 		});
 		expect(mockApiClient.submitAwaiting).toHaveBeenCalledWith({
 			runId: "run_1",
+			agentKey: "demo-agent",
 			awaitingId: "await_1",
 			params: [],
 		});

@@ -396,6 +396,7 @@ export function useAgentEventHandler() {
               tool: {
                 key: `${nextToolState.runId || ''}#${toolId}`,
                 runId: nextToolState.runId || '',
+                agentKey: nextToolState.agentKey || toText(event.agentKey) || '',
                 toolId,
                 viewportKey: nextToolState.viewportKey,
                 toolType,

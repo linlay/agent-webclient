@@ -50,7 +50,9 @@ import {
   searchGlobal,
   setAccessToken,
   steerChat,
+  submitAwaiting,
   submitFeedback,
+  submitTool,
   toggleAutomation,
   updateAgent,
   updateAutomation,
@@ -466,12 +468,14 @@ describe('apiClient query payloads', () => {
       requestId: 'req_interrupt',
       chatId: 'chat_1',
       runId: 'run_1',
+      agentKey: 'demo-agent',
       message: '',
     });
     await steerChat({
       requestId: 'req_steer',
       chatId: 'chat_1',
       runId: 'run_1',
+      agentKey: 'demo-agent',
       steerId: '550e8400-e29b-41d4-a716-446655440000',
       message: '再试一次',
     });
@@ -483,8 +487,34 @@ describe('apiClient query payloads', () => {
     const steerPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
 
     expect(interruptPayload.runId).toBe('run_1');
+    expect(interruptPayload.agentKey).toBe('demo-agent');
     expect(steerPayload.runId).toBe('run_1');
+    expect(steerPayload.agentKey).toBe('demo-agent');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('posts agentKey for run submit requests', async () => {
+    await submitTool({
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      toolId: 'tool_1',
+      params: { city: 'beijing' },
+    });
+    await submitAwaiting({
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      awaitingId: 'await_1',
+      params: [],
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/submit');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/submit');
+
+    const toolPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const awaitingPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+
+    expect(toolPayload.agentKey).toBe('demo-agent');
+    expect(awaitingPayload.agentKey).toBe('demo-agent');
   });
 
   it('posts chatId and runId for markChatRead', async () => {
@@ -842,11 +872,12 @@ describe('apiClient query payloads', () => {
 
     await createAttachStream({
       runId: 'run id/1',
+      agentKey: 'demo-agent',
       lastSeq: 12,
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/attach?runId=run+id%2F1&lastSeq=12');
+    expect(url).toBe('/api/attach?runId=run+id%2F1&agentKey=demo-agent&lastSeq=12');
     expect(options.method).toBe('GET');
     expect(options.headers).toMatchObject({
       Authorization: 'Bearer bridge-token-attach',

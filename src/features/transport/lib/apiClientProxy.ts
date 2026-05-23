@@ -536,6 +536,7 @@ export function saveMemoryScope(
 
 export function submitTool(params: {
 	runId: string;
+	agentKey: string;
 	toolId: string;
 	params: Record<string, unknown>;
 }): Promise<ApiResponse> {
@@ -547,6 +548,7 @@ export function submitTool(params: {
 
 export function submitAwaiting(params: {
 	runId: string;
+	agentKey: string;
 	awaitingId: string;
 	params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {

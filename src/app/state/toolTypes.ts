@@ -8,6 +8,7 @@ import { ViewportTypeEnum } from "@/app/state/eventTypes";
 export interface ToolState {
 	toolId: string;
 	argsBuffer: string;
+	agentKey: string;
 	toolLabel?: string;
 	toolName: string;
 	toolType: string;
@@ -73,6 +74,7 @@ export interface TaskItemMeta {
 export interface ActiveFrontendTool {
 	key: string;
 	runId: string;
+	agentKey: string;
 	toolId: string;
 	viewportKey: string;
 	toolType: string;
@@ -90,6 +92,7 @@ interface ActiveAwaitingBase {
 	key: string;
 	awaitingId: string;
 	runId: string;
+	agentKey: string;
 	timeout: number | null;
 	createdAt?: number | null;
 	resolvedByOther?: boolean;

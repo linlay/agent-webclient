@@ -1112,6 +1112,7 @@ export async function getVoiceVoicesFlexible(path = '/api/voice/tts/voices'): Pr
 
 export function submitTool(params: {
   runId: string;
+  agentKey: string;
   toolId: string;
   params: Record<string, unknown>;
 }): Promise<ApiResponse> {
@@ -1119,6 +1120,7 @@ export function submitTool(params: {
     method: "POST",
     body: JSON.stringify({
       runId: params.runId,
+      agentKey: params.agentKey,
       toolId: params.toolId,
       params: params.params,
     }),
@@ -1127,6 +1129,7 @@ export function submitTool(params: {
 
 export function submitAwaiting(params: {
   runId: string;
+  agentKey: string;
   awaitingId: string;
   params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
@@ -1134,6 +1137,7 @@ export function submitAwaiting(params: {
     method: "POST",
     body: JSON.stringify({
       runId: params.runId,
+      agentKey: params.agentKey,
       awaitingId: params.awaitingId,
       params: params.params,
     }),
@@ -1416,6 +1420,7 @@ export interface QueryStreamParams {
 
 export interface AttachStreamParams {
   runId: string;
+  agentKey: string;
   lastSeq?: number;
   signal?: AbortSignal;
 }
@@ -1454,9 +1459,11 @@ export function createAttachStream(
   options: AttachStreamParams,
 ): Promise<Response> {
   const runId = String(options.runId || '').trim();
+  const agentKey = String(options.agentKey || '').trim();
   const lastSeq = Number(options.lastSeq ?? 0);
   const query = new URLSearchParams({
     runId,
+    agentKey,
     lastSeq: String(Number.isFinite(lastSeq) && lastSeq >= 0 ? lastSeq : 0),
   });
 

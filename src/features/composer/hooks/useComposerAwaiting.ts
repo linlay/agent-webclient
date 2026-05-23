@@ -41,9 +41,13 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
       if (!activeAwaiting) return;
+      if (!activeAwaiting.agentKey) {
+        return new Error("agentKey is required");
+      }
       try {
         const response = await submitAwaiting({
           runId: payload.runId,
+          agentKey: activeAwaiting.agentKey,
           awaitingId: payload.awaitingId,
           params: payload.params,
         });

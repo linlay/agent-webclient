@@ -23,6 +23,7 @@ type ActiveSseAttachState = {
 	requestId: string;
 	runId: string;
 	chatId: string;
+	agentKey: string;
 	controller: AbortController;
 	abort: () => void;
 };
@@ -60,6 +61,19 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 	if (nextTeamId) {
 		session.teamId = nextTeamId;
 	}
+}
+
+function resolveAttachAgentKey(state: AppState, chatId: string, detail?: Record<string, unknown>): string {
+	const explicitAgentKey = toText(detail?.agentKey);
+	if (explicitAgentKey) {
+		return explicitAgentKey;
+	}
+	const chat = state.chats.find((item) => toText(item?.chatId) === chatId);
+	return (
+		toText(chat?.agentKey)
+		|| toText(chat?.firstAgentKey)
+		|| toText(state.chatAgentById.get(chatId))
+	);
 }
 
 function renderAttachedRequestQuery(
@@ -127,14 +141,22 @@ export function registerSseAttachRunListener(
 		const detail = (event as CustomEvent).detail as Record<string, unknown> | undefined;
 		const runId = String(detail?.runId || "").trim();
 		const chatId = String(detail?.chatId || "").trim();
+		const agentKey = resolveAttachAgentKey(options.stateRef.current, chatId, detail);
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
 			return;
 		}
+		if (!agentKey) {
+			options.dispatch({
+				type: "APPEND_DEBUG",
+				line: `[sse attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
+			});
+			return;
+		}
 
 		const current = options.activeAttachRef.current;
-		if (current && current.runId === runId && current.chatId === chatId) {
+		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
 			return;
 		}
 
@@ -147,6 +169,7 @@ export function registerSseAttachRunListener(
 			chatId,
 		});
 		session.runId = runId;
+		session.agentKey = agentKey;
 		session.streaming = true;
 		session.abortController = controller;
 		options.querySessionsRef.current.set(requestId, session);
@@ -156,6 +179,7 @@ export function registerSseAttachRunListener(
 			requestId,
 			runId,
 			chatId,
+			agentKey,
 			controller,
 			abort: () => controller.abort(),
 		};
@@ -188,6 +212,7 @@ export function registerSseAttachRunListener(
 		void executeAttachRunSseImpl({
 			params: {
 				runId,
+				agentKey,
 				lastSeq,
 				signal: controller.signal,
 			},

@@ -60,10 +60,11 @@
 - `GET /api/chat`
 - `GET /api/viewport`
 - `GET /api/data`
-- `POST /api/query`：对话流入口
-- `POST /api/submit`
-- `POST /api/interrupt`
-- `POST /api/steer`
+- `POST /api/query`：对话流入口；`agentKey` / `teamId` 是可选路由提示，缺省时由后端按现有上下文推导
+- `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
+- `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
+- `POST /api/interrupt`：Run 中断；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
+- `POST /api/steer`：Run steering；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `GET /api/voice/ws`：语音 / TTS WebSocket
 - `GET /ws`：部分实时流式能力的 WebSocket 通道
 

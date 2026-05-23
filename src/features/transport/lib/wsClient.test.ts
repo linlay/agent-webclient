@@ -335,6 +335,7 @@ describe("WsClient", () => {
 
 		const attach = client.attachRun(
 			"run_attach",
+			"demo-agent",
 			0,
 			jest.fn(),
 			onDone,
@@ -348,13 +349,14 @@ describe("WsClient", () => {
 		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as {
 			id: string;
 			type: string;
-			payload: { runId: string; lastSeq: number };
+			payload: { runId: string; agentKey: string; lastSeq: number };
 		};
 		expect(attach.requestId).toBe(sentFrame.id);
 		expect(sentFrame).toMatchObject({
 			type: "/api/attach",
 			payload: {
 				runId: "run_attach",
+				agentKey: "demo-agent",
 				lastSeq: 0,
 			},
 		});

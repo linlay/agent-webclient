@@ -20,6 +20,7 @@ function createQuestionAwaiting(
     key: 'run_1#await_1',
     awaitingId: 'await_1',
     runId: 'run_1',
+    agentKey: 'demo-agent',
     timeout: 60,
     mode: 'question',
     questions: [],
@@ -34,6 +35,7 @@ function createFormAwaiting(
     key: 'run_1#await_1',
     awaitingId: 'await_1',
     runId: 'run_1',
+    agentKey: 'demo-agent',
     timeout: 60,
     mode: 'form',
     forms: [

@@ -137,16 +137,17 @@ describe("registerSseAttachRunListener", () => {
 		});
 
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 5 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 5 },
 		}) as unknown as Event);
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 5 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 5 },
 		}) as unknown as Event);
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledTimes(1);
 		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({
 			params: expect.objectContaining({
 				runId: "run_1",
+				agentKey: "agent_alpha",
 				lastSeq: 5,
 				signal: expect.any(AbortSignal),
 			}),
@@ -201,7 +202,7 @@ describe("registerSseAttachRunListener", () => {
 		});
 
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		attachedOnEvent?.({
 			type: "request.query",
@@ -256,10 +257,10 @@ describe("registerSseAttachRunListener", () => {
 		});
 
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_2", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledTimes(2);
@@ -289,7 +290,7 @@ describe("registerSseAttachRunListener", () => {
 		});
 
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
 		}) as unknown as Event);
 		attachedOnEvent?.({
 			type: "run.complete",
