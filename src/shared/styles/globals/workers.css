@@ -190,6 +190,10 @@
     color: var(--text-muted);
 }
 
+.worker-panel-new .material-symbols-rounded {
+    font-size: 16px;
+}
+
 .worker-panel-time {
     display: inline-flex;
     align-items: center;

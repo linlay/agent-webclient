@@ -91,7 +91,7 @@ export const WorkerConversationPreviewList: React.FC<{
               <Button
                 className="worker-panel-new worker-popover-new"
                 type="text"
-                icon={<MaterialIcon name="add" />}
+                icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
