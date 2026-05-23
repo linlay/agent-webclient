@@ -1,10 +1,76 @@
 import { useEffect, useId, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { MaterialIcon } from "../MaterialIcon";
+import { UiButton } from "../UiButton";
 
 type RenderState =
   | { status: "empty" }
   | { status: "loading" }
   | { status: "ready"; svg: string }
   | { status: "error"; message: string };
+
+type ReadyRenderState = Extract<RenderState, { status: "ready" }>;
+type VisibleRenderState =
+  | RenderState
+  | { status: "ready"; svg: string; stale: boolean };
+
+export const MERMAID_ZOOM_DEFAULT = 1;
+export const MERMAID_ZOOM_MIN = 0.5;
+export const MERMAID_ZOOM_MAX = 3;
+const MERMAID_ZOOM_STEP = 0.25;
+const MERMAID_STREAM_RENDER_DELAY_MS = 400;
+
+type MermaidZoomAction = "in" | "out" | "reset";
+
+type MermaidDragState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  scrollLeft: number;
+  scrollTop: number;
+  dragged: boolean;
+};
+
+export function getNextMermaidZoom(
+  currentZoom: number,
+  action: MermaidZoomAction,
+): number {
+  if (action === "reset") return MERMAID_ZOOM_DEFAULT;
+  const nextZoom =
+    currentZoom + (action === "in" ? MERMAID_ZOOM_STEP : -MERMAID_ZOOM_STEP);
+  return Math.min(MERMAID_ZOOM_MAX, Math.max(MERMAID_ZOOM_MIN, nextZoom));
+}
+
+export function isMermaidDragDistance(
+  startX: number,
+  startY: number,
+  currentX: number,
+  currentY: number,
+): boolean {
+  return Math.hypot(currentX - startX, currentY - startY) > 4;
+}
+
+export function getMermaidRenderDelay(
+  streamStatus?: "loading" | "done",
+): number {
+  return streamStatus === "loading" ? MERMAID_STREAM_RENDER_DELAY_MS : 0;
+}
+
+export function getVisibleMermaidRenderState(
+  state: RenderState,
+  lastReadyState: ReadyRenderState | null,
+  streamStatus?: "loading" | "done",
+): VisibleRenderState {
+  if (state.status === "ready") return state;
+  if (
+    streamStatus === "loading" &&
+    state.status !== "empty" &&
+    lastReadyState
+  ) {
+    return { ...lastReadyState, stale: true };
+  }
+  return state;
+}
 
 export function getMermaidRenderConfig(theme: "default" | "dark") {
   return {
@@ -33,8 +99,74 @@ export const MarkdownMermaid: React.FC<{
     `markdown-mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
   );
   const renderCount = useRef(0);
+  const dragState = useRef<MermaidDragState | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const lastReadyState = useRef<ReadyRenderState | null>(null);
   const [state, setState] = useState<RenderState>({ status: "loading" });
   const [theme, setTheme] = useState<"default" | "dark">(getMermaidTheme);
+  const [zoom, setZoom] = useState(MERMAID_ZOOM_DEFAULT);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const updateZoom = (action: MermaidZoomAction) => {
+    setZoom((currentZoom) => getNextMermaidZoom(currentZoom, action));
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!viewportRef.current || event.button !== 0) return;
+    const viewport = viewportRef.current;
+    dragState.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: viewport.scrollLeft,
+      scrollTop: viewport.scrollTop,
+      dragged: false,
+    };
+    viewport.setPointerCapture(event.pointerId);
+    setIsDragging(false);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const currentDrag = dragState.current;
+    if (!currentDrag || !viewportRef.current) return;
+    const viewport = viewportRef.current;
+    const deltaX = event.clientX - currentDrag.startX;
+    const deltaY = event.clientY - currentDrag.startY;
+
+    if (
+      !currentDrag.dragged &&
+      isMermaidDragDistance(
+        currentDrag.startX,
+        currentDrag.startY,
+        event.clientX,
+        event.clientY,
+      )
+    ) {
+      currentDrag.dragged = true;
+      setIsDragging(true);
+    }
+
+    if (!currentDrag.dragged) return;
+    viewport.scrollLeft = currentDrag.scrollLeft - deltaX;
+    viewport.scrollTop = currentDrag.scrollTop - deltaY;
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const currentDrag = dragState.current;
+    if (!currentDrag || !viewportRef.current) return;
+    const didDrag = currentDrag.dragged;
+    viewportRef.current.releasePointerCapture(currentDrag.pointerId);
+    dragState.current = null;
+    setIsDragging(false);
+    if (!didDrag) updateZoom("in");
+  };
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragState.current || !viewportRef.current) return;
+    viewportRef.current.releasePointerCapture(event.pointerId);
+    dragState.current = null;
+    setIsDragging(false);
+  };
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -52,64 +184,150 @@ export const MarkdownMermaid: React.FC<{
   useEffect(() => {
     const source = code.trim();
     if (!source) {
+      lastReadyState.current = null;
       setState({ status: "empty" });
       return;
     }
 
     let disposed = false;
+    const renderDelay = getMermaidRenderDelay(streamStatus);
     setState({ status: "loading" });
 
-    void import("mermaid")
-      .then(async (module) => {
-        if (disposed) return;
+    const renderTimer = window.setTimeout(() => {
+      void import("mermaid")
+        .then(async (module) => {
+          if (disposed) return;
 
-        const mermaid = module.default;
-        mermaid.initialize(getMermaidRenderConfig(theme));
-        const parseResult = await mermaid.parse(source, {
-          suppressErrors: true,
+          const mermaid = module.default;
+          mermaid.initialize(getMermaidRenderConfig(theme));
+          const parseResult = await mermaid.parse(source, {
+            suppressErrors: true,
+          });
+          if (!parseResult) {
+            throw new Error("Mermaid 语法解析失败。");
+          }
+
+          renderCount.current += 1;
+          const result = await mermaid.render(
+            `${renderBaseId.current}-${renderCount.current}`,
+            source,
+          );
+
+          if (!disposed) {
+            const readyState: ReadyRenderState = {
+              status: "ready",
+              svg: result.svg,
+            };
+            lastReadyState.current = readyState;
+            setState(readyState);
+          }
+        })
+        .catch((error: unknown) => {
+          if (disposed) return;
+          if (streamStatus === "loading") {
+            setState({ status: "loading" });
+            return;
+          }
+          setState({
+            status: "error",
+            message:
+              error instanceof Error ? error.message : "Mermaid 图表渲染失败。",
+          });
         });
-        if (!parseResult) {
-          throw new Error("Mermaid 语法解析失败。");
-        }
-
-        renderCount.current += 1;
-        const result = await mermaid.render(
-          `${renderBaseId.current}-${renderCount.current}`,
-          source,
-        );
-
-        if (!disposed) {
-          setState({ status: "ready", svg: result.svg });
-        }
-      })
-      .catch((error: unknown) => {
-        if (disposed) return;
-        setState({
-          status: "error",
-          message:
-            error instanceof Error ? error.message : "Mermaid 图表渲染失败。",
-        });
-      });
+    }, renderDelay);
 
     return () => {
       disposed = true;
+      window.clearTimeout(renderTimer);
     };
-  }, [code, theme]);
+  }, [code, streamStatus, theme]);
 
-  if (state.status === "ready") {
+  const visibleState = getVisibleMermaidRenderState(
+    state,
+    lastReadyState.current,
+    streamStatus,
+  );
+
+  if (visibleState.status === "ready") {
     return (
       <div
-        className="markdown-mermaid"
-        dangerouslySetInnerHTML={{ __html: state.svg }}
-      />
+        className={`markdown-mermaid ${"stale" in visibleState ? "is-stale" : ""}`.trim()}
+      >
+        <div className="markdown-mermaid-toolbar">
+          {"stale" in visibleState && (
+            <span className="markdown-mermaid-render-status">更新中…</span>
+          )}
+          <span className="markdown-mermaid-zoom">{Math.round(zoom * 100)}%</span>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="缩小 Mermaid 图"
+            title="缩小"
+            disabled={zoom <= MERMAID_ZOOM_MIN}
+            onClick={() => updateZoom("out")}
+          >
+            <MaterialIcon name="zoom_out" />
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="重置 Mermaid 图缩放"
+            title="重置"
+            disabled={zoom === MERMAID_ZOOM_DEFAULT}
+            onClick={() => updateZoom("reset")}
+          >
+            <MaterialIcon name="fit_screen" />
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="放大 Mermaid 图"
+            title="放大"
+            disabled={zoom >= MERMAID_ZOOM_MAX}
+            onClick={() => updateZoom("in")}
+          >
+            <MaterialIcon name="zoom_in" />
+          </UiButton>
+        </div>
+        <div
+          ref={viewportRef}
+          className={`markdown-mermaid-viewport ${isDragging ? "is-dragging" : ""}`}
+          role="button"
+          tabIndex={0}
+          aria-label="点击放大 Mermaid 图，拖动平移 Mermaid 图"
+          title="点击放大"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            updateZoom("in");
+          }}
+        >
+          <span
+            className="markdown-mermaid-svg"
+            style={
+              {
+                "--mermaid-zoom": String(zoom),
+              } as CSSProperties
+            }
+            dangerouslySetInnerHTML={{ __html: visibleState.svg }}
+          />
+        </div>
+      </div>
     );
   }
 
   const text =
-    state.status === "empty" || streamStatus === "loading"
+    visibleState.status === "empty" || streamStatus === "loading"
       ? "Mermaid 图表接收中…"
-      : state.status === "error"
-        ? `Mermaid 图表渲染失败：${state.message}`
+      : visibleState.status === "error"
+        ? `Mermaid 图表渲染失败：${visibleState.message}`
         : "Mermaid 图表渲染中…";
 
   return <div className="markdown-mermaid markdown-mermaid-status">{text}</div>;

@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -31,6 +30,12 @@ function isMermaidLanguage(lang?: string): boolean {
   return language === "mermaid" || language === "mmd" || language === "mermind";
 }
 
+function getDefaultActiveKey(language: string): string {
+  return isEChartsLanguage(language) || isMermaidLanguage(language)
+    ? ""
+    : language;
+}
+
 function textFromReactNode(node: React.ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
     return String(node);
@@ -56,7 +61,9 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
   const dispatch = useAppDispatch();
   const url = useRef("");
   const language = useMemo(() => lang || "plaintext", [lang]);
-  const [activeKey, setActiveKey] = useState(language);
+  const [activeKey, setActiveKey] = useState(() =>
+    getDefaultActiveKey(language),
+  );
   const text = useMemo(() => textFromReactNode(children), [children]);
   const onCopy = useCallback(
     (e: React.MouseEvent) => {
@@ -114,15 +121,6 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
       </Tooltip>
     );
   }, [language, onCopy]);
-
-  useEffect(() => {
-    if (
-      streamStatus === "done" &&
-      (isEChartsLanguage(language) || isMermaidLanguage(language))
-    ) {
-      setActiveKey("");
-    }
-  }, [streamStatus]);
 
   return block ? (
     <Flex vertical gap={10}>
