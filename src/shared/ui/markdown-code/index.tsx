@@ -1,11 +1,11 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { MarkdownECharts } from "./MarkdownECharts";
+import { MarkdownMermaid } from "./MarkdownMermaid";
 import { App, Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "../UiButton";
 import { MaterialIcon } from "../MaterialIcon";
@@ -23,6 +23,17 @@ type MarkdownCodeProps = React.HTMLAttributes<HTMLElement> & {
 function isEChartsLanguage(lang?: string): boolean {
   const language = (lang || "").trim().split(/\s+/)[0]?.toLowerCase();
   return language === "echart" || language === "echarts";
+}
+
+function isMermaidLanguage(lang?: string): boolean {
+  const language = (lang || "").trim().split(/\s+/)[0]?.toLowerCase();
+  return language === "mermaid" || language === "mmd" || language === "mermind";
+}
+
+function getDefaultActiveKey(language: string): string {
+  return isEChartsLanguage(language) || isMermaidLanguage(language)
+    ? ""
+    : language;
 }
 
 function textFromReactNode(node: React.ReactNode): string {
@@ -50,7 +61,9 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
   const dispatch = useAppDispatch();
   const url = useRef("");
   const language = useMemo(() => lang || "plaintext", [lang]);
-  const [activeKey, setActiveKey] = useState(language);
+  const [activeKey, setActiveKey] = useState(() =>
+    getDefaultActiveKey(language),
+  );
   const text = useMemo(() => textFromReactNode(children), [children]);
   const onCopy = useCallback(
     (e: React.MouseEvent) => {
@@ -109,16 +122,13 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
     );
   }, [language, onCopy]);
 
-  useEffect(() => {
-    if (streamStatus === "done" && language.includes("echart")) {
-      setActiveKey("");
-    }
-  }, [streamStatus]);
-
   return block ? (
     <Flex vertical gap={10}>
       {isEChartsLanguage(language) && (
         <MarkdownECharts code={text} streamStatus={streamStatus} />
+      )}
+      {isMermaidLanguage(language) && (
+        <MarkdownMermaid code={text} streamStatus={streamStatus} />
       )}
       <Collapse
         className={Style.Collapse}
