@@ -33,8 +33,7 @@ import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import {
-  createCoderProject,
-  createCoderProjectFromBrowserFolder,
+  createAgent,
   getChats,
   getAgents,
   markChatRead,
@@ -54,6 +53,41 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   return rows.findIndex(
     (row) => String(row.chatId || "").trim() === normalizedChatId,
   );
+}
+
+function workspaceNameFromPath(path: string): string {
+  const normalized = String(path || "").trim();
+  return normalized.split(/[\\/]+/).filter(Boolean).pop() || "project";
+}
+
+function coderAgentKeyFromWorkspace(path: string): string {
+  const base = workspaceNameFromPath(path)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `coder-${base || "project"}`;
+}
+
+function buildCoderAgentCreateRequest(workspaceDir: string) {
+  const key = coderAgentKeyFromWorkspace(workspaceDir);
+  const name = key;
+  return {
+    key,
+    definition: {
+      key,
+      name,
+      mode: "CODER",
+      workspace: {
+        root: workspaceDir,
+      },
+      runtimeConfig: {
+        workspaceRoot: workspaceDir,
+      },
+      visibility: {
+        scopes: ["nav", "copilot"],
+      },
+    },
+  };
 }
 
 export const LeftSidebar: React.FC = () => {
@@ -306,7 +340,8 @@ export const LeftSidebar: React.FC = () => {
       });
       return;
     }
-    void openWorkspaceDirectory(workspaceDir)
+    const agentKey = String(row?.sourceId || "").trim();
+    void openWorkspaceDirectory(workspaceDir, agentKey)
       .then((opened) => {
         if (!opened) {
           dispatch({
@@ -418,16 +453,12 @@ export const LeftSidebar: React.FC = () => {
           type: "APPEND_DEBUG",
           line: `[new project] ${t("leftSidebar.importingProject")}`,
         });
-        const response =
-          selection.kind === "desktop-directory"
-            ? await createCoderProject({ workspaceDir: selection.workspaceDir })
-            : await createCoderProjectFromBrowserFolder({
-                projectName: selection.projectName,
-                files: selection.files,
-              });
+        const response = await createAgent(
+          buildCoderAgentCreateRequest(selection.workspaceDir),
+        );
         const createdKey = String(response.data?.key || "").trim();
         try {
-          const agentsResponse = await getAgents({ includeChats: 5 });
+          const agentsResponse = await getAgents({ includeChats: 5, scope: "nav" });
           const agents = Array.isArray(agentsResponse.data)
             ? (agentsResponse.data as AppState["agents"])
             : [];

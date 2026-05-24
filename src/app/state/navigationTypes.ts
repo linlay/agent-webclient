@@ -23,6 +23,7 @@ export interface Agent {
 	key: string;
 	name: string;
 	type?: "agent" | "coder";
+	mode?: string;
 	workspaceDir?: string;
 	workspaceName?: string;
 	source?: {

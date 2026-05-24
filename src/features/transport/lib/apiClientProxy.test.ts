@@ -75,6 +75,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		interruptChat: jest.fn(),
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
+		openAgentWorkspace: jest.fn(),
 		rememberChat: jest.fn(),
 		renameChat: jest.fn(),
 		previewMemoryContext: jest.fn(),
@@ -142,6 +143,7 @@ let mockApiClient: {
 	interruptChat: jest.Mock;
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
+	openAgentWorkspace: jest.Mock;
 	rememberChat: jest.Mock;
 	renameChat: jest.Mock;
 	previewMemoryContext: jest.Mock;

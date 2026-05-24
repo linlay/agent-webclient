@@ -10,8 +10,6 @@ import {
   archiveChats,
   createAttachStream,
   createAgent,
-  createCoderProjectFromBrowserFolder,
-  createCoderProject,
   createAutomation,
   createRequestId,
   createQueryStream,
@@ -46,6 +44,7 @@ import {
   interruptChat,
   learnChat,
   markChatRead,
+  openAgentWorkspace,
   rememberChat,
   renameChat,
   searchArchives,
@@ -425,7 +424,7 @@ describe('apiClient query payloads', () => {
       },
     });
     await deleteAgent({ key: 'editable-agent' });
-    await createCoderProject({ workspaceDir: '/Users/demo/Project/agent-coder' });
+    await openAgentWorkspace({ agentKey: 'editable-agent' });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
@@ -459,43 +458,10 @@ describe('apiClient query payloads', () => {
       },
       { url: '/api/agent/delete', body: { key: 'editable-agent' } },
       {
-        url: '/api/agent/create-coder-project',
-        body: { workspaceDir: '/Users/demo/Project/agent-coder' },
+        url: '/api/agent/open-workspace',
+        body: { agentKey: 'editable-agent' },
       },
     ]);
-  });
-
-  it('uploads browser folder coder projects as multipart form data', async () => {
-    await createCoderProjectFromBrowserFolder({
-      projectName: 'agent-coder',
-      files: [
-        {
-          file: new File(['hello'], 'README.md', { type: 'text/markdown' }),
-          relativePath: 'agent-coder/README.md',
-        },
-        {
-          file: new File(['skip'], 'skip.txt'),
-          relativePath: '',
-        },
-        {
-          file: new File(['console.log(1)'], 'index.ts', { type: 'text/typescript' }),
-          relativePath: 'agent-coder/src/index.ts',
-        },
-      ],
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/agent/create-coder-project-from-browser-folder');
-    expect(options.method).toBe('POST');
-    expect(options.headers).toEqual({});
-    expect(options.body).toBeInstanceOf(FormData);
-    const formData = options.body as FormData;
-    expect(formData.get('projectName')).toBe('agent-coder');
-    expect(formData.getAll('relativePaths[]')).toEqual([
-      'agent-coder/README.md',
-      'agent-coder/src/index.ts',
-    ]);
-    expect(formData.getAll('files[]')).toHaveLength(2);
   });
 
   it('loads agent editor options', async () => {
@@ -804,12 +770,14 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('keeps getAgents queryless by default and supports includeChats', async () => {
+  it('keeps getAgents queryless by default and supports includeChats and scope', async () => {
     await getAgents();
     await getAgents({ includeChats: 5 });
+    await getAgents({ includeChats: 5, scope: 'copilot' });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&scope=copilot');
   });
 
   it('supports filtering getChats by agentKey', async () => {

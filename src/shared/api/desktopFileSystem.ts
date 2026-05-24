@@ -2,6 +2,7 @@ import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
 } from "@/shared/api/desktopHostBridge";
+import { openAgentWorkspace } from "@/shared/api/apiClient";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 const SELECT_DIRECTORY_REQUEST_TYPE = "zenmind:desktop-dialog:select-directory";
@@ -16,12 +17,8 @@ export type ProjectFolderSelection =
       workspaceDir: string;
     }
   | {
-      kind: "browser-folder";
-      projectName: string;
-      files: Array<{
-        file: File;
-        relativePath: string;
-      }>;
+      kind: "browser-directory-path";
+      workspaceDir: string;
     };
 
 export class ProjectFolderSelectionError extends Error {
@@ -138,117 +135,20 @@ export function selectWorkspaceDirectory(): Promise<string | null> {
   });
 }
 
-function readFileRelativePath(file: File): string {
-  return normalizePath((file as File & { webkitRelativePath?: string }).webkitRelativePath) ||
-    normalizePath(file.name);
-}
-
-function readProjectName(files: File[]): string {
-  for (const file of files) {
-    const relativePath = readFileRelativePath(file);
-    const firstSegment = relativePath.split(/[\\/]+/).filter(Boolean)[0];
-    if (firstSegment) return firstSegment;
-  }
-  return "";
-}
-
 function selectBrowserProjectFolder(): Promise<ProjectFolderSelection | null> {
-  if (typeof document === "undefined") {
+  if (typeof window === "undefined" || typeof window.prompt !== "function") {
     return Promise.reject(
       new ProjectFolderSelectionError(
         "unsupported",
-        "browser folder selection is not supported in this environment",
+        "browser workspace path input is not supported in this environment",
       ),
     );
   }
-
-  return new Promise<ProjectFolderSelection | null>((resolve, reject) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.multiple = true;
-    if (!("webkitdirectory" in input) && !("directory" in input)) {
-      reject(
-        new ProjectFolderSelectionError(
-          "unsupported",
-          "browser folder selection is not supported in this browser",
-        ),
-      );
-      return;
-    }
-    input.style.position = "fixed";
-    input.style.left = "-9999px";
-    input.style.top = "0";
-    input.style.opacity = "0";
-    input.setAttribute("webkitdirectory", "");
-    input.setAttribute("directory", "");
-
-    const cleanup = () => {
-      input.removeEventListener("change", handleChange);
-      input.removeEventListener("cancel", handleCancel);
-      if (input.parentNode) {
-        input.parentNode.removeChild(input);
-      }
-    };
-
-    const handleCancel = () => {
-      cleanup();
-      resolve(null);
-    };
-
-    const handleChange = () => {
-      const fileList = input.files ? Array.from(input.files) : [];
-      cleanup();
-      const entries = fileList
-        .map((file) => ({
-          file,
-          relativePath: readFileRelativePath(file),
-        }))
-        .filter((entry) => entry.relativePath);
-
-      if (entries.length === 0) {
-        reject(
-          new ProjectFolderSelectionError(
-            "empty",
-            "selected folder is empty or the browser did not expose readable files",
-          ),
-        );
-        return;
-      }
-
-      const projectName = readProjectName(fileList);
-      if (!projectName) {
-        reject(
-          new ProjectFolderSelectionError(
-            "empty",
-            "selected folder did not include a project name",
-          ),
-        );
-        return;
-      }
-
-      resolve({
-        kind: "browser-folder",
-        projectName,
-        files: entries,
-      });
-    };
-
-    input.addEventListener("change", handleChange);
-    input.addEventListener("cancel", handleCancel);
-    document.body.appendChild(input);
-
-    try {
-      input.click();
-    } catch (error) {
-      cleanup();
-      reject(
-        new ProjectFolderSelectionError(
-          "unsupported",
-          (error as Error).message || "browser folder selection failed",
-        ),
-      );
-    }
-  });
+  const workspaceDir = normalizePath(
+    window.prompt("请输入本机项目目录的绝对路径", ""),
+  );
+  if (!workspaceDir) return Promise.resolve(null);
+  return Promise.resolve({ kind: "browser-directory-path", workspaceDir });
 }
 
 export async function selectProjectFolder(): Promise<ProjectFolderSelection | null> {
@@ -259,10 +159,18 @@ export async function selectProjectFolder(): Promise<ProjectFolderSelection | nu
   return selectBrowserProjectFolder();
 }
 
-export function openWorkspaceDirectory(path: string): Promise<boolean> {
+export async function openWorkspaceDirectory(path: string, agentKey?: string): Promise<boolean> {
   const normalizedPath = normalizePath(path);
-  if (!normalizedPath || !canUseDesktopFileSystemBridge()) {
-    return Promise.resolve(false);
+  const normalizedAgentKey = normalizePath(agentKey);
+  if (!normalizedPath && !normalizedAgentKey) {
+    return false;
+  }
+  if (!canUseDesktopFileSystemBridge()) {
+    const response = await openAgentWorkspace({
+      agentKey: normalizedAgentKey || undefined,
+      workspaceDir: normalizedAgentKey ? undefined : normalizedPath,
+    });
+    return Boolean(response.data?.opened);
   }
 
   return new Promise<boolean>((resolve, reject) => {

@@ -3,8 +3,6 @@ import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
-	createCoderProjectFromBrowserFolder as createCoderProjectFromBrowserFolderHttp,
-	createCoderProject as createCoderProjectHttp,
 	createQueryStream,
 	createAutomation as createAutomationHttp,
 	deleteAgent as deleteAgentHttp,
@@ -43,6 +41,7 @@ import {
 	interruptChat as interruptChatHttp,
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
+	openAgentWorkspace as openAgentWorkspaceHttp,
 	rememberChat as rememberChatHttp,
 	renameChat as renameChatHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
@@ -68,8 +67,6 @@ import {
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
 	type CreateAgentRequest,
-	type CreateCoderProjectFromBrowserFolderRequest,
-	type CreateCoderProjectRequest,
 	type CreateAutomationRequest,
 	type DeleteAgentRequest,
 	type DeleteAgentResponse,
@@ -81,6 +78,8 @@ import {
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
+	type OpenAgentWorkspaceRequest,
+	type OpenAgentWorkspaceResponse,
 	type QueryLikeParams,
 	type RenameChatRequest,
 	type RenameChatResponse,
@@ -209,7 +208,7 @@ function compactPayload(params: Record<string, unknown>): Record<string, unknown
 }
 
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
-	const payload = compactPayload({ includeChats: options.includeChats });
+	const payload = compactPayload({ includeChats: options.includeChats, scope: options.scope });
 	return routeRequest(
 		"/api/agents",
 		Object.keys(payload).length > 0 ? payload : undefined,
@@ -231,22 +230,6 @@ export function createAgent(
 	);
 }
 
-export function createCoderProject(
-	params: CreateCoderProjectRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-	return routeRequest<AgentDetailResponse>(
-		"/api/agent/create-coder-project",
-		params,
-		() => createCoderProjectHttp(params),
-	);
-}
-
-export function createCoderProjectFromBrowserFolder(
-	params: CreateCoderProjectFromBrowserFolderRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-	return createCoderProjectFromBrowserFolderHttp(params);
-}
-
 export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
@@ -265,6 +248,12 @@ export function deleteAgent(
 		params,
 		() => deleteAgentHttp(params),
 	);
+}
+
+export function openAgentWorkspace(
+	params: OpenAgentWorkspaceRequest,
+): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
+	return openAgentWorkspaceHttp(params);
 }
 
 export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {

@@ -53,6 +53,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface GetAgentsOptions {
   includeChats?: number;
+  scope?: "nav" | "copilot";
 }
 
 export interface GetChatsOptions {
@@ -205,21 +206,6 @@ export interface CreateAgentRequest {
   agentsPrompt?: string;
 }
 
-export interface CreateCoderProjectRequest {
-  workspaceDir: string;
-}
-
-export interface BrowserFolderFileEntry {
-  file: File;
-  relativePath: string;
-}
-
-export interface CreateCoderProjectFromBrowserFolderRequest {
-  projectName: string;
-  files: BrowserFolderFileEntry[];
-  signal?: AbortSignal;
-}
-
 export interface UpdateAgentRequest {
   key: string;
   definition: Record<string, unknown>;
@@ -234,6 +220,18 @@ export interface DeleteAgentRequest {
 export interface DeleteAgentResponse {
   key: string;
   deleted: boolean;
+}
+
+export interface OpenAgentWorkspaceRequest {
+  key?: string;
+  agentKey?: string;
+  workspaceDir?: string;
+}
+
+export interface OpenAgentWorkspaceResponse {
+  agentKey?: string;
+  workspaceDir: string;
+  opened: boolean;
 }
 
 export interface AgentEditorOption {
@@ -841,7 +839,7 @@ export function extractUploadReferences(data: unknown): unknown[] {
 }
 
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
-  const query = toQueryString({ includeChats: options.includeChats });
+  const query = toQueryString({ includeChats: options.includeChats, scope: options.scope });
   return requestJson(query ? `/api/agents?${query}` : "/api/agents");
 }
 
@@ -856,31 +854,6 @@ export function createAgent(
   return postJson<AgentDetailResponse>("/api/agent/create", params);
 }
 
-export function createCoderProject(
-  params: CreateCoderProjectRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent/create-coder-project", params);
-}
-
-export function createCoderProjectFromBrowserFolder(
-  params: CreateCoderProjectFromBrowserFolderRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  const formData = new FormData();
-  formData.append("projectName", params.projectName.trim());
-  for (const entry of params.files) {
-    const relativePath = String(entry.relativePath || "").trim();
-    if (!relativePath) continue;
-    formData.append("files[]", entry.file, entry.file.name || relativePath.split(/[\\/]+/).pop() || "file");
-    formData.append("relativePaths[]", relativePath);
-  }
-  return requestJson<AgentDetailResponse>("/api/agent/create-coder-project-from-browser-folder", {
-    method: "POST",
-    body: formData,
-    signal: params.signal,
-    jsonContentType: false,
-  });
-}
-
 export function updateAgent(
   params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
@@ -891,6 +864,12 @@ export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
   return postJson<DeleteAgentResponse>("/api/agent/delete", params);
+}
+
+export function openAgentWorkspace(
+  params: OpenAgentWorkspaceRequest,
+): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
+  return postJson<OpenAgentWorkspaceResponse>("/api/agent/open-workspace", params);
 }
 
 export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {

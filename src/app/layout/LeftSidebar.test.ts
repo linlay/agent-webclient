@@ -189,8 +189,7 @@ jest.mock("@/shared/api/desktopFileSystem", () => ({
 }));
 
 jest.mock("@/features/transport/lib/apiClientProxy", () => ({
-  createCoderProject: jest.fn(),
-  createCoderProjectFromBrowserFolder: jest.fn(),
+  createAgent: jest.fn(),
   getAgents: jest.fn(),
   getChats: jest.fn(),
   markChatRead: jest.fn(),
@@ -208,12 +207,10 @@ const {
   openWorkspaceDirectory: jest.Mock;
 };
 const {
-  createCoderProject,
-  createCoderProjectFromBrowserFolder,
+  createAgent,
   getAgents,
 } = jest.requireMock("@/features/transport/lib/apiClientProxy") as {
-  createCoderProject: jest.Mock;
-  createCoderProjectFromBrowserFolder: jest.Mock;
+  createAgent: jest.Mock;
   getAgents: jest.Mock;
 };
 
@@ -359,8 +356,7 @@ describe("LeftSidebar", () => {
     dropdownMenuProps.length = 0;
     selectProjectFolder.mockReset();
     openWorkspaceDirectory.mockReset();
-    createCoderProject.mockReset();
-    createCoderProjectFromBrowserFolder.mockReset();
+    createAgent.mockReset();
     getAgents.mockReset();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
@@ -510,7 +506,7 @@ describe("LeftSidebar", () => {
       kind: "desktop-directory",
       workspaceDir: createdAgent.workspaceDir,
     });
-    createCoderProject.mockResolvedValue({ data: createdAgent });
+    createAgent.mockResolvedValue({ data: createdAgent });
     getAgents.mockResolvedValue({ data: [createdAgent] });
     useAppContext.mockReturnValue({
       state: {
@@ -538,11 +534,24 @@ describe("LeftSidebar", () => {
     await Promise.resolve();
 
     expect(selectProjectFolder).toHaveBeenCalledTimes(1);
-    expect(createCoderProject).toHaveBeenCalledWith({
-      workspaceDir: "/Users/demo/Project/agent-coder",
+    expect(createAgent).toHaveBeenCalledWith({
+      key: "coder-agent-coder",
+      definition: {
+        key: "coder-agent-coder",
+        name: "coder-agent-coder",
+        mode: "CODER",
+        workspace: {
+          root: "/Users/demo/Project/agent-coder",
+        },
+        runtimeConfig: {
+          workspaceRoot: "/Users/demo/Project/agent-coder",
+        },
+        visibility: {
+          scopes: ["nav", "copilot"],
+        },
+      },
     });
-    expect(createCoderProjectFromBrowserFolder).not.toHaveBeenCalled();
-    expect(getAgents).toHaveBeenCalledWith({ includeChats: 5 });
+    expect(getAgents).toHaveBeenCalledWith({ includeChats: 5, scope: "nav" });
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_AGENTS",
       agents: [createdAgent],
@@ -553,23 +562,20 @@ describe("LeftSidebar", () => {
     });
   });
 
-  it("creates a coder project from a browser folder selection", async () => {
+  it("creates a coder project from a browser path selection", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
-    const file = new File(["hello"], "README.md", { type: "text/markdown" });
     const createdAgent = {
       key: "browser-coder",
       name: "browser-coder",
       type: "coder",
-      workspaceName: "browser-coder",
-      source: { kind: "browser-folder" },
+      workspaceDir: "/Users/demo/Project/browser-coder",
     };
     selectProjectFolder.mockResolvedValue({
-      kind: "browser-folder",
-      projectName: "browser-coder",
-      files: [{ file, relativePath: "browser-coder/README.md" }],
+      kind: "browser-directory-path",
+      workspaceDir: "/Users/demo/Project/browser-coder",
     });
-    createCoderProjectFromBrowserFolder.mockResolvedValue({ data: createdAgent });
+    createAgent.mockResolvedValue({ data: createdAgent });
     getAgents.mockResolvedValue({ data: [createdAgent] });
     useAppContext.mockReturnValue({
       state: {
@@ -592,10 +598,14 @@ describe("LeftSidebar", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(createCoderProject).not.toHaveBeenCalled();
-    expect(createCoderProjectFromBrowserFolder).toHaveBeenCalledWith({
-      projectName: "browser-coder",
-      files: [{ file, relativePath: "browser-coder/README.md" }],
+    expect(createAgent).toHaveBeenCalledWith({
+      key: "coder-browser-coder",
+      definition: expect.objectContaining({
+        key: "coder-browser-coder",
+        mode: "CODER",
+        workspace: { root: "/Users/demo/Project/browser-coder" },
+        runtimeConfig: { workspaceRoot: "/Users/demo/Project/browser-coder" },
+      }),
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
@@ -626,8 +636,7 @@ describe("LeftSidebar", () => {
     (button?.onClick as () => void)();
     await Promise.resolve();
 
-    expect(createCoderProject).not.toHaveBeenCalled();
-    expect(createCoderProjectFromBrowserFolder).not.toHaveBeenCalled();
+    expect(createAgent).not.toHaveBeenCalled();
     expect(dispatch).toHaveBeenCalledWith({
       type: "APPEND_DEBUG",
       line: "[new project] 已取消选择项目文件夹",
@@ -675,6 +684,7 @@ describe("LeftSidebar", () => {
 
     expect(openWorkspaceDirectory).toHaveBeenCalledWith(
       "/Users/demo/Project/agent-coder",
+      "worker_a",
     );
   });
 

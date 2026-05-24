@@ -415,7 +415,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setLoadingList(true);
       setError("");
       try {
-        const response = await getAgents();
+        const response = await getAgents({ scope: "nav" });
         const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });
         const detailResults = await Promise.allSettled(

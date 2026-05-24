@@ -20,8 +20,9 @@ function normalizeUpdatedAt(updatedAt: unknown): number {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-function normalizeAgentType(type: unknown): 'agent' | 'coder' {
-  return type === 'coder' ? 'coder' : 'agent';
+function normalizeAgentType(type: unknown, mode?: unknown): 'agent' | 'coder' {
+  if (type === 'coder') return 'coder';
+  return toText(mode).toUpperCase() === 'CODER' ? 'coder' : 'agent';
 }
 
 function normalizeSourceKind(source: unknown): string {
@@ -103,7 +104,7 @@ function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<W
     workersByKey.set(`agent:${agentKey}`, {
       key: `agent:${agentKey}`,
       type: 'agent',
-      agentType: normalizeAgentType(agent?.type),
+      agentType: normalizeAgentType(agent?.type, agent?.mode),
       sourceId: agentKey,
       displayName: toDisplayName(agent?.name, agentKey),
       role: toText(agent?.role),

@@ -84,7 +84,7 @@ describe('buildWorkerRows', () => {
         {
           key: 'agent-coder',
           name: 'agent-coder',
-          type: 'coder',
+          mode: 'CODER',
           workspaceDir: '/Users/demo/Project/agent-coder',
         } as Agent,
       ],

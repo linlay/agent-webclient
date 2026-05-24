@@ -338,7 +338,7 @@ function resolveFrontendRequest(config, requestPath) {
     }
   }
 
-  if (path.extname(normalizedPath)) {
+  if (path.extname(normalizedPath) && !isSpaRoutePath(normalizedPath)) {
     return { type: 'notFound' };
   }
 
@@ -346,6 +346,18 @@ function resolveFrontendRequest(config, requestPath) {
     type: 'file',
     filePath: config.indexFile,
   };
+}
+
+function isSpaRoutePath(requestPath) {
+  return [
+    '/agent/',
+    '/agents/',
+    '/automations',
+    '/copilot',
+    '/memory',
+  ].some((routePath) =>
+    requestPath === routePath || requestPath.startsWith(routePath),
+  );
 }
 
 function createApp(config, options = {}) {

@@ -118,63 +118,27 @@ describe("desktopFileSystem project folder selection", () => {
     await expect(selectProjectFolder()).rejects.toThrow("已取消选择目录。");
   });
 
-  it("uses a browser webkitdirectory input outside desktop app mode", async () => {
-    const file = new File(["hello"], "README.md", { type: "text/markdown" });
-    Object.defineProperty(file, "webkitRelativePath", {
-      value: "agent-coder/README.md",
-    });
-    let createdInput: HTMLInputElement | null = null;
-    const appendChild = jest.fn();
-    const removeChild = jest.fn();
-    const createElement = jest.fn(() => {
-      const listeners = new Map<string, EventListener>();
-      const attributes = new Map<string, string>();
-      const input = {
-        type: "",
-        multiple: false,
-        webkitdirectory: false,
-        style: {},
-        files: [file],
-        parentNode: null,
-        setAttribute: jest.fn((name: string, value: string) => {
-          attributes.set(name, value);
-        }),
-        getAttribute: jest.fn((name: string) => attributes.get(name) ?? null),
-        addEventListener: jest.fn((type: string, listener: EventListener) => {
-          listeners.set(type, listener);
-        }),
-        removeEventListener: jest.fn((type: string) => {
-          listeners.delete(type);
-        }),
-        click: jest.fn(() => {
-          listeners.get("change")?.(new Event("change"));
-        }),
-      } as unknown as HTMLInputElement;
-      createdInput = input;
-      return input;
-    });
-    (globalThis as unknown as { document?: Partial<Document> }).document = {
-      createElement,
-      body: {
-        appendChild,
-        removeChild,
-      },
-    } as Partial<Document> as Document;
+  it("prompts for a browser workspace path outside desktop app mode", async () => {
+    const mockWindow: any = {
+      location: { pathname: "/", search: "" },
+      prompt: jest.fn(() => "/Users/demo/Project/agent-coder"),
+    };
+    (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
     globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DESKTOP_APP: "false",
     };
 
     await expect(selectProjectFolder()).resolves.toEqual({
-      kind: "browser-folder",
-      projectName: "agent-coder",
-      files: [{ file, relativePath: "agent-coder/README.md" }],
+      kind: "browser-directory-path",
+      workspaceDir: "/Users/demo/Project/agent-coder",
     });
-    expect(createdInput?.getAttribute("webkitdirectory")).toBe("");
-    expect(appendChild).toHaveBeenCalled();
+    expect(mockWindow.prompt).toHaveBeenCalled();
   });
 
-  it("throws unsupported when no document is available for browser selection", async () => {
-    delete (globalThis as Record<string, unknown>).document;
+  it("throws unsupported when no prompt is available for browser selection", async () => {
+    (globalThis as unknown as { window?: { location: { pathname: string; search: string } } }).window = {
+      location: { pathname: "/", search: "" },
+    };
     globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DESKTOP_APP: "false",
     };

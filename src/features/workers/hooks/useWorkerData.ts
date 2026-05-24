@@ -18,6 +18,13 @@ import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 
+function currentAgentListScope(): "nav" | "copilot" {
+  if (typeof window !== "undefined" && window.location.pathname === "/copilot") {
+    return "copilot";
+  }
+  return "nav";
+}
+
 export function shouldStartInitialWorkerRefresh(input: {
   hasStarted: boolean;
   appMode: boolean;
@@ -126,7 +133,7 @@ export function useWorkerData(input: {
   const loadAgents = useCallback(async () => {
     await runWithSidebarLoading(async () => {
       try {
-        const response = await getAgents();
+        const response = await getAgents({ scope: currentAgentListScope() });
         const agents = (response.data as Agent[]) || [];        
         dispatch({ type: 'SET_AGENTS', agents });
         rebuildWorkerRowsFromState({ agents });
@@ -166,7 +173,7 @@ export function useWorkerData(input: {
     await runWithSidebarLoading(async () => {
       await refreshWorkerDataFromAgentsWithChats({
         fetchAgents: async () => {
-          const response = await getAgents({ includeChats: INITIAL_AGENT_CHAT_LIMIT });
+          const response = await getAgents({ includeChats: INITIAL_AGENT_CHAT_LIMIT, scope: currentAgentListScope() });
           return (response.data as Agent[]) || [];
         },
         getSnapshot: getWorkerDataSnapshot,

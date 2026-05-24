@@ -280,6 +280,43 @@ describe('backend/server', () => {
     expect(fs.readFileSync(response.filePath, 'utf8')).toContain('spa shell');
   });
 
+  test('falls back to index.html for dotted agents routes', () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
+    const response = resolveFrontendRequest(config, '/agents/viewport.demo');
+
+    expect(response.type).toBe('file');
+    expect(fs.readFileSync(response.filePath, 'utf8')).toContain('spa shell');
+  });
+
+  test('falls back to index.html for dotted agent chat routes', () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
+    const response = resolveFrontendRequest(config, '/agent/viewport.demo');
+
+    expect(response.type).toBe('file');
+    expect(fs.readFileSync(response.filePath, 'utf8')).toContain('spa shell');
+  });
+
+  test('serves existing static files before dotted SPA route fallback', () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+    writeFrontendFile(rootDir, 'agents/viewport.demo', 'static agent asset');
+
+    const config = loadConfig({ env: { PORT: '0' }, appRoot: rootDir });
+    const response = resolveFrontendRequest(config, '/agents/viewport.demo');
+
+    expect(response.type).toBe('file');
+    expect(fs.readFileSync(response.filePath, 'utf8')).toBe('static agent asset');
+  });
+
   test('returns 404 for missing asset paths with file extensions', () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);

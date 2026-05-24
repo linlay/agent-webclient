@@ -180,7 +180,9 @@ module.exports = (env, argv) => {
           pathname: '/__webpack_hmr',
         },
       },
-      historyApiFallback: true,
+      historyApiFallback: {
+        disableDotRule: true,
+      },
       webSocketServer: {
         type: 'ws',
         options: {

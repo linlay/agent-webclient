@@ -102,6 +102,20 @@ describe('webpack devServer proxy', () => {
     expect(config.devServer?.webSocketServer?.options?.path).toBe('/__webpack_hmr');
   });
 
+  it('allows dotted SPA routes in dev-server history fallback', () => {
+    process.env = {
+      ...originalEnv,
+      BASE_URL: 'http://backend.example.com',
+      VOICE_BASE_URL: 'http://voice.example.com',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'development' });
+
+    expect(config.devServer?.historyApiFallback?.disableDotRule).toBe(true);
+  });
+
   it('derives webpack mode from argv mode without NODE_ENV', () => {
     process.env = {
       ...originalEnv,
