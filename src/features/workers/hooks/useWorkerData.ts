@@ -7,6 +7,7 @@ import { isAppMode } from '@/shared/utils/routing';
 import {
   refreshWorkerDataFromAgentsWithChats,
   type WorkerDataSnapshot,
+  type WorkerRowBuildOptions,
   type WorkerRefreshOverrides,
 } from '@/features/workers/lib/workerDataCoordinator';
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
@@ -18,11 +19,22 @@ import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 
-function currentAgentListScope(): "nav" | "copilot" {
-  if (typeof window !== "undefined" && window.location.pathname === "/copilot") {
-    return "copilot";
-  }
-  return "nav";
+export function resolveAgentListScope(pathname: string): 'nav' | 'copilot' {
+  return pathname === '/copilot' ? 'copilot' : 'nav';
+}
+
+export function buildAgentListRequestOptions(
+  pathname: string,
+  includeChats?: number,
+): { includeChats?: number; scope: 'nav' | 'copilot' } {
+  return {
+    includeChats,
+    scope: resolveAgentListScope(pathname),
+  };
+}
+
+function currentPathname(): string {
+  return typeof window === 'undefined' ? '' : window.location.pathname;
 }
 
 export function shouldStartInitialWorkerRefresh(input: {
@@ -87,7 +99,7 @@ export function useWorkerData(input: {
     return rows[0]?.key || '';
   }, [findDefaultTeamWorkerKey, stateRef]);
 
-  const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides = {}) => {
+  const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides & WorkerRowBuildOptions = {}) => {
     const current = stateRef.current;
     const agents = overrides.agents ?? current.agents;
     const teams = overrides.teams ?? current.teams;
@@ -97,6 +109,7 @@ export function useWorkerData(input: {
       teams,
       chats,
       workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
+      allowUnknownAgentRows: overrides.allowUnknownAgentRows ?? false,
     });
     const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
     if (workerSelectionKey) {
@@ -133,10 +146,10 @@ export function useWorkerData(input: {
   const loadAgents = useCallback(async () => {
     await runWithSidebarLoading(async () => {
       try {
-        const response = await getAgents({ scope: currentAgentListScope() });
-        const agents = (response.data as Agent[]) || [];        
+        const response = await getAgents(buildAgentListRequestOptions(currentPathname()));
+        const agents = (response.data as Agent[]) || [];
         dispatch({ type: 'SET_AGENTS', agents });
-        rebuildWorkerRowsFromState({ agents });
+        rebuildWorkerRowsFromState({ agents, allowUnknownAgentRows: false });
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
       }
@@ -173,7 +186,9 @@ export function useWorkerData(input: {
     await runWithSidebarLoading(async () => {
       await refreshWorkerDataFromAgentsWithChats({
         fetchAgents: async () => {
-          const response = await getAgents({ includeChats: INITIAL_AGENT_CHAT_LIMIT, scope: currentAgentListScope() });
+          const response = await getAgents(
+            buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
+          );
           return (response.data as Agent[]) || [];
         },
         getSnapshot: getWorkerDataSnapshot,
@@ -183,7 +198,12 @@ export function useWorkerData(input: {
         applyChats: (chats) => {
           dispatch({ type: 'SET_CHATS', chats });
         },
-        rebuildWorkerRows: rebuildWorkerRowsFromState,
+        rebuildWorkerRows: (overrides) => {
+          rebuildWorkerRowsFromState({
+            ...overrides,
+            allowUnknownAgentRows: false,
+          });
+        },
         appendDebug: (line) => {
           dispatch({ type: 'APPEND_DEBUG', line });
         },

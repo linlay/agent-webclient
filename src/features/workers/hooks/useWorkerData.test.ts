@@ -1,4 +1,36 @@
-import { shouldStartInitialWorkerRefresh } from '@/features/workers/hooks/useWorkerData';
+import {
+  buildAgentListRequestOptions,
+  resolveAgentListScope,
+  shouldStartInitialWorkerRefresh,
+} from '@/features/workers/hooks/useWorkerData';
+
+describe('resolveAgentListScope', () => {
+  it('uses the copilot agent scope on the Copilot route', () => {
+    expect(resolveAgentListScope('/copilot')).toBe('copilot');
+  });
+
+  it('uses the nav agent scope on normal routes', () => {
+    expect(resolveAgentListScope('/')).toBe('nav');
+    expect(resolveAgentListScope('/agents')).toBe('nav');
+    expect(resolveAgentListScope('/agent/demo')).toBe('nav');
+  });
+});
+
+describe('buildAgentListRequestOptions', () => {
+  it('builds Copilot scoped includeChats requests for initial refresh', () => {
+    expect(buildAgentListRequestOptions('/copilot', 5)).toEqual({
+      includeChats: 5,
+      scope: 'copilot',
+    });
+  });
+
+  it('builds nav scoped requests for normal navigation refreshes', () => {
+    expect(buildAgentListRequestOptions('/')).toEqual({
+      includeChats: undefined,
+      scope: 'nav',
+    });
+  });
+});
 
 describe('shouldStartInitialWorkerRefresh', () => {
   it('starts immediately for standalone pages once the first refresh has not started', () => {

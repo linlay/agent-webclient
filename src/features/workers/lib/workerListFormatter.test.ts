@@ -78,6 +78,51 @@ describe('buildWorkerRows', () => {
     expect(rows).toEqual([]);
   });
 
+  it('keeps chat-derived unknown agent rows by default for compatibility', () => {
+    const rows = buildWorkerRows({
+      agents: [],
+      teams: [],
+      chats: [
+        {
+          chatId: 'chat_hidden',
+          chatName: 'Hidden chat',
+          agentKey: 'agent-hidden',
+          lastRunId: 'a1',
+          updatedAt: 100,
+        } as Chat,
+      ],
+    });
+
+    expect(rows.map((row) => row.key)).toEqual(['agent:agent-hidden']);
+  });
+
+  it('omits chat-derived unknown agent rows when scoped agent lists hide them', () => {
+    const rows = buildWorkerRows({
+      agents: [{ key: 'agent-visible', name: 'Visible' } as Agent],
+      teams: [],
+      chats: [
+        {
+          chatId: 'chat_visible',
+          chatName: 'Visible chat',
+          agentKey: 'agent-visible',
+          lastRunId: 'a1',
+          updatedAt: 200,
+        } as Chat,
+        {
+          chatId: 'chat_hidden',
+          chatName: 'Hidden chat',
+          agentKey: 'agent-hidden',
+          lastRunId: 'a1',
+          updatedAt: 300,
+        } as Chat,
+      ],
+      allowUnknownAgentRows: false,
+    });
+
+    expect(rows.map((row) => row.key)).toEqual(['agent:agent-visible']);
+    expect(rows.some((row) => row.key === 'agent:agent-hidden')).toBe(false);
+  });
+
   it('carries coder workspace metadata into worker rows and search text', () => {
     const rows = buildWorkerRows({
       agents: [

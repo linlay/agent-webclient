@@ -165,9 +165,16 @@ function compareWorkerRows(a: WorkerRow, b: WorkerRow): number {
   return a.key.localeCompare(b.key);
 }
 
-export function buildWorkerRows(input: { agents: Agent[]; teams: Team[]; chats: Chat[]; workerPriorityKey?: string }): WorkerRow[] {
+export function buildWorkerRows(input: {
+  agents: Agent[];
+  teams: Team[];
+  chats: Chat[];
+  workerPriorityKey?: string;
+  allowUnknownAgentRows?: boolean;
+}): WorkerRow[] {
   const latestByWorker = toLatestChatMap(input.chats);
   const workersByKey = createBaseWorkerMap(input.agents, input.teams);
+  const allowUnknownAgentRows = input.allowUnknownAgentRows ?? true;
 
   for (const [workerKey, chat] of latestByWorker.entries()) {
     if (workersByKey.has(workerKey)) continue;
@@ -185,7 +192,7 @@ export function buildWorkerRows(input: { agents: Agent[]; teams: Team[]; chats: 
       continue;
     }
 
-    if (workerKey.startsWith('agent:')) {
+    if (workerKey.startsWith('agent:') && allowUnknownAgentRows) {
       const agentKey = workerKey.slice('agent:'.length);
       workersByKey.set(workerKey, {
         key: workerKey,

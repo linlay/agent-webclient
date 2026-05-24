@@ -471,6 +471,7 @@ export const LeftSidebar: React.FC = () => {
                 teams: stateRef.current.teams,
                 chats: stateRef.current.chats,
                 workerPriorityKey: `agent:${createdKey}`,
+                allowUnknownAgentRows: false,
               }),
             });
           }

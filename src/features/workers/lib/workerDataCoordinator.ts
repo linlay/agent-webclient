@@ -10,6 +10,9 @@ export type WorkerDataSnapshot = {
 };
 
 export type WorkerRefreshOverrides = Partial<WorkerDataSnapshot>;
+export type WorkerRowBuildOptions = {
+  allowUnknownAgentRows?: boolean;
+};
 
 interface WorkerRefreshCoordinatorOptions {
   fetchAgents: () => Promise<Agent[]>;
@@ -19,7 +22,7 @@ interface WorkerRefreshCoordinatorOptions {
   applyAgents: (agents: Agent[]) => void;
   applyTeams: (teams: Team[]) => void;
   applyChats: (chats: Chat[]) => void;
-  rebuildWorkerRows: (overrides: WorkerRefreshOverrides) => void;
+  rebuildWorkerRows: (overrides: WorkerRefreshOverrides & WorkerRowBuildOptions) => void;
   appendDebug: (line: string) => void;
 }
 
@@ -28,7 +31,7 @@ interface WorkerRefreshFromAgentsOptions {
   getSnapshot: () => WorkerDataSnapshot;
   applyAgents: (agents: Agent[]) => void;
   applyChats: (chats: Chat[]) => void;
-  rebuildWorkerRows: (overrides: WorkerRefreshOverrides) => void;
+  rebuildWorkerRows: (overrides: WorkerRefreshOverrides & WorkerRowBuildOptions) => void;
   appendDebug: (line: string) => void;
 }
 
