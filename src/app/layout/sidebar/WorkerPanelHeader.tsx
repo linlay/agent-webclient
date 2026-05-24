@@ -1,5 +1,6 @@
 import React from "react";
-import { Badge, Button, Flex, Tooltip, Typography } from "antd";
+import { Badge, Button, Dropdown, Flex, Tooltip, Typography } from "antd";
+import type { MenuProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
@@ -10,6 +11,15 @@ type AgentIconConfig = string | {
   color?: string;
   name?: string;
 };
+
+function workspaceDisplayName(row: WorkerRow): string {
+  const workspaceName = String(row.workspaceName || "").trim();
+  if (workspaceName) return workspaceName;
+  const workspaceDir = row.workspaceDir;
+  const normalized = String(workspaceDir || "").trim();
+  if (!normalized) return "";
+  return normalized.split(/[\\/]+/).filter(Boolean).pop() || normalized;
+}
 
 export const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
@@ -22,6 +32,7 @@ export const WorkerPanelHeader: React.FC<{
     workerKey: string,
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
+  onOpenWorkspace?: (workerKey: string) => void;
 }> = ({
   row,
   isActive,
@@ -30,13 +41,29 @@ export const WorkerPanelHeader: React.FC<{
   unreadCount = 0,
   onStartNewConversation,
   onMarkAllRead,
+  onOpenWorkspace,
 }) => {
   const { t } = useI18n();
+  const workspaceName = workspaceDisplayName(row);
+  const subtitle = row.agentType === "coder" ? workspaceName : row.role;
+  const canOpenWorkspace = Boolean(row.workspaceDir);
+  const workspaceUnavailableTitle =
+    row.workspaceSourceKind === "browser-folder"
+      ? t("leftSidebar.browserWorkspaceOpenUnavailable")
+      : t("leftSidebar.workspaceUnavailable");
   const preview = lastChat
     ? lastChat?.lastRunContent ||
       lastChat?.chatName ||
       t("leftSidebar.latestConversationNoReply")
     : t("leftSidebar.noHistory");
+  const actionMenuItems: MenuProps["items"] = [
+    {
+      key: "openWorkspace",
+      icon: <MaterialIcon name="folder_open" />,
+      label: t("leftSidebar.openWorkspace"),
+      disabled: !canOpenWorkspace,
+    },
+  ];
 
   return (
     <div
@@ -60,7 +87,11 @@ export const WorkerPanelHeader: React.FC<{
         <Flex align="center" className="worker-panel-header-body">
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
-            <span className="worker-panel-role">{row.role || "--"}</span>
+            {subtitle && (
+              <span className="worker-panel-role" title={row.agentType === "coder" ? row.workspaceDir || row.workspaceName : undefined}>
+                {subtitle}
+              </span>
+            )}
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
           <Flex gap={6}>
@@ -82,6 +113,27 @@ export const WorkerPanelHeader: React.FC<{
                 onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: actionMenuItems,
+                onClick: ({ domEvent, key }) => {
+                  domEvent.stopPropagation();
+                  if (key === "openWorkspace" && row.workspaceDir) {
+                    onOpenWorkspace?.(row.key);
+                  }
+                },
+              }}
+            >
+              <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
+                <Button
+                  className="worker-panel-new"
+                  type="text"
+                  icon={<MaterialIcon name="more_horiz" />}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              </Tooltip>
+            </Dropdown>
           </Flex>
         </Flex>
         <Flex align="center" className="worker-panel-preview" gap={4}>

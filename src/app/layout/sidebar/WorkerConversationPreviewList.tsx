@@ -1,5 +1,6 @@
 import React from "react";
-import { Button, Flex, Tooltip } from "antd";
+import { Button, Dropdown, Flex, Tooltip } from "antd";
+import type { MenuProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
@@ -27,6 +28,7 @@ export const WorkerConversationPreviewList: React.FC<{
     workerKey: string,
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
+  onOpenWorkspace?: (workerKey: string) => void;
 }> = ({
   row,
   chats,
@@ -39,6 +41,7 @@ export const WorkerConversationPreviewList: React.FC<{
   onOpenHistory,
   onStartNewConversation,
   onMarkAllRead,
+  onOpenWorkspace,
 }) => {
   const { t } = useI18n();
   const recentChats = chats.slice(0, 5);
@@ -54,6 +57,19 @@ export const WorkerConversationPreviewList: React.FC<{
     unreadCount > 0
       ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
       : "";
+  const canOpenWorkspace = Boolean(row.workspaceDir);
+  const workspaceUnavailableTitle =
+    row.workspaceSourceKind === "browser-folder"
+      ? t("leftSidebar.browserWorkspaceOpenUnavailable")
+      : t("leftSidebar.workspaceUnavailable");
+  const actionMenuItems: MenuProps["items"] = [
+    {
+      key: "openWorkspace",
+      icon: <MaterialIcon name="folder_open" />,
+      label: t("leftSidebar.openWorkspace"),
+      disabled: !canOpenWorkspace,
+    },
+  ];
 
   return (
     <div className="worker-chat-preview-list">
@@ -95,6 +111,27 @@ export const WorkerConversationPreviewList: React.FC<{
                 onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: actionMenuItems,
+                onClick: ({ domEvent, key }) => {
+                  domEvent.stopPropagation();
+                  if (key === "openWorkspace" && row.workspaceDir) {
+                    onOpenWorkspace?.(row.key);
+                  }
+                },
+              }}
+            >
+              <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
+                <Button
+                  className="worker-panel-new worker-popover-new"
+                  type="text"
+                  icon={<MaterialIcon name="more_horiz" />}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              </Tooltip>
+            </Dropdown>
           </Flex>
         </div>
       )}

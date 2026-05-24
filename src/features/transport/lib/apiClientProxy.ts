@@ -3,6 +3,8 @@ import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
+	createCoderProjectFromBrowserFolder as createCoderProjectFromBrowserFolderHttp,
+	createCoderProject as createCoderProjectHttp,
 	createQueryStream,
 	createAutomation as createAutomationHttp,
 	deleteAgent as deleteAgentHttp,
@@ -66,6 +68,8 @@ import {
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
 	type CreateAgentRequest,
+	type CreateCoderProjectFromBrowserFolderRequest,
+	type CreateCoderProjectRequest,
 	type CreateAutomationRequest,
 	type DeleteAgentRequest,
 	type DeleteAgentResponse,
@@ -225,6 +229,22 @@ export function createAgent(
 		params,
 		() => createAgentHttp(params),
 	);
+}
+
+export function createCoderProject(
+	params: CreateCoderProjectRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return routeRequest<AgentDetailResponse>(
+		"/api/agent/create-coder-project",
+		params,
+		() => createCoderProjectHttp(params),
+	);
+}
+
+export function createCoderProjectFromBrowserFolder(
+	params: CreateCoderProjectFromBrowserFolderRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return createCoderProjectFromBrowserFolderHttp(params);
 }
 
 export function updateAgent(

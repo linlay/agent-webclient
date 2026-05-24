@@ -22,6 +22,15 @@ export interface ChatReadState {
 export interface Agent {
 	key: string;
 	name: string;
+	type?: "agent" | "coder";
+	workspaceDir?: string;
+	workspaceName?: string;
+	source?: {
+		kind?: string;
+		path?: string;
+		agentDir?: string;
+		[key: string]: unknown;
+	};
 	role?: string;
 	wonders?: string[];
 	controls?: AgentControl[];
@@ -73,9 +82,13 @@ export type ConversationMode = "chat" | "worker";
 export interface WorkerRow {
 	key: string;
 	type: "agent" | "team";
+	agentType?: "agent" | "coder";
 	sourceId: string;
 	displayName: string;
 	role: string;
+	workspaceDir?: string;
+	workspaceName?: string;
+	workspaceSourceKind?: string;
 	teamAgentLabels: string[];
 	latestChatId: string;
 	latestRunId: string;

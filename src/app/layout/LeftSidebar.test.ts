@@ -7,6 +7,7 @@ import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
 const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
+const dropdownMenuProps: Array<Record<string, unknown>> = [];
 
 function collectText(value: React.ReactNode): string {
   if (value === null || value === undefined || typeof value === "boolean") {
@@ -51,8 +52,29 @@ jest.mock("antd", () => {
       ),
     );
 
-  const Dropdown = ({ children }: any) =>
-    React.createElement(React.Fragment, null, children);
+  const Dropdown = ({ children, menu }: any) =>
+    {
+      dropdownMenuProps.push(menu);
+      return React.createElement(
+        "div",
+        { className: "mock-dropdown" },
+        children,
+        menu?.items?.map((item: any) =>
+          React.createElement(
+            "button",
+            {
+              key: item.key,
+              type: "button",
+              disabled: item.disabled,
+              onClick: (event: any) =>
+                menu.onClick?.({ key: item.key, domEvent: event }),
+            },
+            item.icon,
+            item.label,
+          ),
+        ),
+      );
+    };
 
   const Flex = ({ children, className, style }: any) =>
     React.createElement("div", { className, style }, children);
@@ -161,8 +183,38 @@ jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", null, "agent-icon"),
 }));
 
+jest.mock("@/shared/api/desktopFileSystem", () => ({
+  selectProjectFolder: jest.fn(),
+  openWorkspaceDirectory: jest.fn(),
+}));
+
+jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+  createCoderProject: jest.fn(),
+  createCoderProjectFromBrowserFolder: jest.fn(),
+  getAgents: jest.fn(),
+  getChats: jest.fn(),
+  markChatRead: jest.fn(),
+  searchGlobal: jest.fn(),
+}));
+
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
+};
+const {
+  selectProjectFolder,
+  openWorkspaceDirectory,
+} = jest.requireMock("@/shared/api/desktopFileSystem") as {
+  selectProjectFolder: jest.Mock;
+  openWorkspaceDirectory: jest.Mock;
+};
+const {
+  createCoderProject,
+  createCoderProjectFromBrowserFolder,
+  getAgents,
+} = jest.requireMock("@/features/transport/lib/apiClientProxy") as {
+  createCoderProject: jest.Mock;
+  createCoderProjectFromBrowserFolder: jest.Mock;
+  getAgents: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
@@ -304,6 +356,12 @@ describe("LeftSidebar", () => {
   beforeEach(() => {
     antdButtonProps.length = 0;
     uiButtonProps.length = 0;
+    dropdownMenuProps.length = 0;
+    selectProjectFolder.mockReset();
+    openWorkspaceDirectory.mockReset();
+    createCoderProject.mockReset();
+    createCoderProjectFromBrowserFolder.mockReset();
+    getAgents.mockReset();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -439,6 +497,143 @@ describe("LeftSidebar", () => {
     });
   });
 
+  it("renders the top action as new project and creates a coder project from a selected folder", async () => {
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    const createdAgent = {
+      key: "agent-coder",
+      name: "agent-coder",
+      type: "coder",
+      workspaceDir: "/Users/demo/Project/agent-coder",
+    };
+    selectProjectFolder.mockResolvedValue({
+      kind: "desktop-directory",
+      workspaceDir: createdAgent.workspaceDir,
+    });
+    createCoderProject.mockResolvedValue({ data: createdAgent });
+    getAgents.mockResolvedValue({ data: [createdAgent] });
+    useAppContext.mockReturnValue({
+      state: {
+        ...state,
+        leftDrawerOpen: true,
+        conversationMode: "worker",
+      },
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    const html = renderSidebar();
+
+    expect(html).toContain('aria-label="新建项目"');
+    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    expect(button).toBeTruthy();
+    expect(typeof button?.onClick).toBe("function");
+
+    (button?.onClick as () => void)();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
+    expect(createCoderProject).toHaveBeenCalledWith({
+      workspaceDir: "/Users/demo/Project/agent-coder",
+    });
+    expect(createCoderProjectFromBrowserFolder).not.toHaveBeenCalled();
+    expect(getAgents).toHaveBeenCalledWith({ includeChats: 5 });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [createdAgent],
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:agent-coder",
+    });
+  });
+
+  it("creates a coder project from a browser folder selection", async () => {
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    const file = new File(["hello"], "README.md", { type: "text/markdown" });
+    const createdAgent = {
+      key: "browser-coder",
+      name: "browser-coder",
+      type: "coder",
+      workspaceName: "browser-coder",
+      source: { kind: "browser-folder" },
+    };
+    selectProjectFolder.mockResolvedValue({
+      kind: "browser-folder",
+      projectName: "browser-coder",
+      files: [{ file, relativePath: "browser-coder/README.md" }],
+    });
+    createCoderProjectFromBrowserFolder.mockResolvedValue({ data: createdAgent });
+    getAgents.mockResolvedValue({ data: [createdAgent] });
+    useAppContext.mockReturnValue({
+      state: {
+        ...state,
+        leftDrawerOpen: true,
+        conversationMode: "worker",
+      },
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    renderSidebar();
+
+    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    (button?.onClick as () => void)();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(createCoderProject).not.toHaveBeenCalled();
+    expect(createCoderProjectFromBrowserFolder).toHaveBeenCalledWith({
+      projectName: "browser-coder",
+      files: [{ file, relativePath: "browser-coder/README.md" }],
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:browser-coder",
+    });
+  });
+
+  it("does not create a coder project when folder selection is canceled", async () => {
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    selectProjectFolder.mockResolvedValue(null);
+    useAppContext.mockReturnValue({
+      state: {
+        ...state,
+        leftDrawerOpen: true,
+        conversationMode: "worker",
+      },
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    renderSidebar();
+
+    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    (button?.onClick as () => void)();
+    await Promise.resolve();
+
+    expect(createCoderProject).not.toHaveBeenCalled();
+    expect(createCoderProjectFromBrowserFolder).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[new project] 已取消选择项目文件夹",
+    });
+  });
+
   it("renders collapsed worker entries with names, popover header, and total history count", () => {
     mockState(createWorkerState());
 
@@ -449,6 +644,70 @@ describe("LeftSidebar", () => {
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
     expect(html).toContain("查看更多（共 6 条，未读 3 条）");
+  });
+
+  it("renders and opens a worker workspace action when workspaceDir is available", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "coder";
+    state.workerRows[0].role = "";
+    state.workerRows[0].workspaceDir = "/Users/demo/Project/agent-coder";
+    state.agents[0].type = "coder";
+    state.agents[0].workspaceDir = "/Users/demo/Project/agent-coder";
+    openWorkspaceDirectory.mockResolvedValue(true);
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("打开工作目录");
+    expect(html).toContain("agent-coder");
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
+    ) as { onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void } | undefined;
+    expect(menu?.onClick).toBeTruthy();
+
+    menu?.onClick?.({
+      key: "openWorkspace",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+    await Promise.resolve();
+
+    expect(openWorkspaceDirectory).toHaveBeenCalledWith(
+      "/Users/demo/Project/agent-coder",
+    );
+  });
+
+  it("shows browser folder coder workspace names without enabling local open", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "coder";
+    state.workerRows[0].role = "";
+    state.workerRows[0].workspaceDir = undefined;
+    state.workerRows[0].workspaceName = "browser-coder";
+    state.workerRows[0].workspaceSourceKind = "browser-folder";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("browser-coder");
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
+    ) as { items?: Array<{ key?: string; disabled?: boolean }> } | undefined;
+    expect(menu?.items?.find((item) => item.key === "openWorkspace")?.disabled).toBe(true);
+  });
+
+  it("hides empty agent roles instead of rendering a placeholder", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].role = "";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).not.toContain("worker-panel-role");
+    expect(html).not.toContain("&quot;--&quot;");
   });
 
   it("shows more history from agent stats when only five chats are preloaded", () => {

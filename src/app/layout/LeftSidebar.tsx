@@ -33,12 +33,20 @@ import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import {
+  createCoderProject,
+  createCoderProjectFromBrowserFolder,
   getChats,
+  getAgents,
   markChatRead,
   searchGlobal,
 } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
-import type { Chat, WorkerConversationRow } from "@/app/state/types";
+import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
+import {
+  openWorkspaceDirectory,
+  selectProjectFolder,
+} from "@/shared/api/desktopFileSystem";
+import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -282,6 +290,39 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
+  const handleOpenWorkspace = (workerKey: string) => {
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    const workspaceDir = String(row?.workspaceDir || "").trim();
+    if (!workspaceDir) {
+      const message =
+        row?.workspaceSourceKind === "browser-folder"
+          ? t("leftSidebar.browserWorkspaceOpenUnavailable")
+          : t("leftSidebar.workspaceUnavailable");
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[workspace] ${message}`,
+      });
+      return;
+    }
+    void openWorkspaceDirectory(workspaceDir)
+      .then((opened) => {
+        if (!opened) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[workspace] ${t("leftSidebar.workspaceUnavailable")}: ${workspaceDir}`,
+          });
+        }
+      })
+      .catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[workspace open error] ${(error as Error).message}`,
+        });
+      });
+  };
+
   const handleCloseHistory = () => {
     setHistoryWorkerKey("");
     setHistorySearch("");
@@ -325,6 +366,7 @@ export const LeftSidebar: React.FC = () => {
             unreadCount={unreadCount}
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
+            onOpenWorkspace={handleOpenWorkspace}
           />
         ),
         children: (
@@ -339,6 +381,7 @@ export const LeftSidebar: React.FC = () => {
             onOpenHistory={handleOpenHistory}
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
+            onOpenWorkspace={handleOpenWorkspace}
           />
         ),
       };
@@ -360,8 +403,72 @@ export const LeftSidebar: React.FC = () => {
       state.wsStatus,
     ],
   );
-  const handleStartNewConversation = () => {
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  const handleStartNewProject = () => {
+    void selectProjectFolder()
+      .then(async (selection) => {
+        if (!selection) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[new project] ${t("leftSidebar.projectFolderSelectionCanceled")}`,
+          });
+          return;
+        }
+
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[new project] ${t("leftSidebar.importingProject")}`,
+        });
+        const response =
+          selection.kind === "desktop-directory"
+            ? await createCoderProject({ workspaceDir: selection.workspaceDir })
+            : await createCoderProjectFromBrowserFolder({
+                projectName: selection.projectName,
+                files: selection.files,
+              });
+        const createdKey = String(response.data?.key || "").trim();
+        try {
+          const agentsResponse = await getAgents({ includeChats: 5 });
+          const agents = Array.isArray(agentsResponse.data)
+            ? (agentsResponse.data as AppState["agents"])
+            : [];
+          dispatch({ type: "SET_AGENTS", agents });
+          if (createdKey) {
+            dispatch({
+              type: "SET_WORKER_ROWS",
+              rows: buildWorkerRows({
+                agents,
+                teams: stateRef.current.teams,
+                chats: stateRef.current.chats,
+                workerPriorityKey: `agent:${createdKey}`,
+              }),
+            });
+          }
+        } catch (error) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[loadAgents error] ${(error as Error).message}`,
+          });
+        }
+
+        if (createdKey) {
+          const workerKey = `agent:${createdKey}`;
+          flushSync(() => {
+            dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+            dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: [] });
+            dispatch({
+              type: "SET_WORKER_CHAT_PANEL_COLLAPSED",
+              collapsed: true,
+            });
+          });
+        }
+        window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+      })
+      .catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[new project error] ${(error as Error).message}`,
+        });
+      });
   };
 
   return (
@@ -392,13 +499,13 @@ export const LeftSidebar: React.FC = () => {
                   id="top-nav-new-chat-btn"
                   className="icon-btn top-nav-new-chat-btn"
                   size="sm"
-                  aria-label={t("topNav.newConversation")}
-                  title={t("topNav.newConversation")}
+                  aria-label={t("topNav.newProject")}
+                  title={t("topNav.newProject")}
                   variant="ghost"
                   iconOnly
-                  onClick={handleStartNewConversation}
+                  onClick={handleStartNewProject}
                 >
-                  <MaterialIcon name="edit_square" />
+                  <MaterialIcon name="create_new_folder" />
                 </UiButton>
                 <UiButton
                   size="sm"
@@ -581,6 +688,7 @@ export const LeftSidebar: React.FC = () => {
                               handleStartNewConversationForWorker
                             }
                             onMarkAllRead={handleMarkWorkerAllRead}
+                            onOpenWorkspace={handleOpenWorkspace}
                           />
                         }
                       >

@@ -172,13 +172,16 @@ export interface AutomationExecutionsRequest {
 
 export interface AgentSource {
   kind: string;
-  path: string;
+  path?: string;
   agentDir?: string;
 }
 
 export interface AgentDetailResponse {
   key: string;
   name: string;
+  type?: "agent" | "coder";
+  workspaceDir?: string;
+  workspaceName?: string;
   icon?: unknown;
   description?: string;
   role?: string;
@@ -200,6 +203,21 @@ export interface CreateAgentRequest {
   definition: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;
+}
+
+export interface CreateCoderProjectRequest {
+  workspaceDir: string;
+}
+
+export interface BrowserFolderFileEntry {
+  file: File;
+  relativePath: string;
+}
+
+export interface CreateCoderProjectFromBrowserFolderRequest {
+  projectName: string;
+  files: BrowserFolderFileEntry[];
+  signal?: AbortSignal;
 }
 
 export interface UpdateAgentRequest {
@@ -836,6 +854,31 @@ export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
   return postJson<AgentDetailResponse>("/api/agent/create", params);
+}
+
+export function createCoderProject(
+  params: CreateCoderProjectRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+  return postJson<AgentDetailResponse>("/api/agent/create-coder-project", params);
+}
+
+export function createCoderProjectFromBrowserFolder(
+  params: CreateCoderProjectFromBrowserFolderRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+  const formData = new FormData();
+  formData.append("projectName", params.projectName.trim());
+  for (const entry of params.files) {
+    const relativePath = String(entry.relativePath || "").trim();
+    if (!relativePath) continue;
+    formData.append("files[]", entry.file, entry.file.name || relativePath.split(/[\\/]+/).pop() || "file");
+    formData.append("relativePaths[]", relativePath);
+  }
+  return requestJson<AgentDetailResponse>("/api/agent/create-coder-project-from-browser-folder", {
+    method: "POST",
+    body: formData,
+    signal: params.signal,
+    jsonContentType: false,
+  });
 }
 
 export function updateAgent(

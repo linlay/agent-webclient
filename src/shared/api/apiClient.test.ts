@@ -10,6 +10,8 @@ import {
   archiveChats,
   createAttachStream,
   createAgent,
+  createCoderProjectFromBrowserFolder,
+  createCoderProject,
   createAutomation,
   createRequestId,
   createQueryStream,
@@ -74,6 +76,10 @@ class MockFormData {
 
   get(name: string): unknown {
     return this.values.get(name)?.[0] ?? null;
+  }
+
+  getAll(name: string): unknown[] {
+    return this.values.get(name) || [];
   }
 }
 
@@ -419,6 +425,7 @@ describe('apiClient query payloads', () => {
       },
     });
     await deleteAgent({ key: 'editable-agent' });
+    await createCoderProject({ workspaceDir: '/Users/demo/Project/agent-coder' });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
@@ -451,7 +458,44 @@ describe('apiClient query payloads', () => {
         },
       },
       { url: '/api/agent/delete', body: { key: 'editable-agent' } },
+      {
+        url: '/api/agent/create-coder-project',
+        body: { workspaceDir: '/Users/demo/Project/agent-coder' },
+      },
     ]);
+  });
+
+  it('uploads browser folder coder projects as multipart form data', async () => {
+    await createCoderProjectFromBrowserFolder({
+      projectName: 'agent-coder',
+      files: [
+        {
+          file: new File(['hello'], 'README.md', { type: 'text/markdown' }),
+          relativePath: 'agent-coder/README.md',
+        },
+        {
+          file: new File(['skip'], 'skip.txt'),
+          relativePath: '',
+        },
+        {
+          file: new File(['console.log(1)'], 'index.ts', { type: 'text/typescript' }),
+          relativePath: 'agent-coder/src/index.ts',
+        },
+      ],
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/agent/create-coder-project-from-browser-folder');
+    expect(options.method).toBe('POST');
+    expect(options.headers).toEqual({});
+    expect(options.body).toBeInstanceOf(FormData);
+    const formData = options.body as FormData;
+    expect(formData.get('projectName')).toBe('agent-coder');
+    expect(formData.getAll('relativePaths[]')).toEqual([
+      'agent-coder/README.md',
+      'agent-coder/src/index.ts',
+    ]);
+    expect(formData.getAll('files[]')).toHaveLength(2);
   });
 
   it('loads agent editor options', async () => {

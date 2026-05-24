@@ -20,6 +20,16 @@ function normalizeUpdatedAt(updatedAt: unknown): number {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
+function normalizeAgentType(type: unknown): 'agent' | 'coder' {
+  return type === 'coder' ? 'coder' : 'agent';
+}
+
+function normalizeSourceKind(source: unknown): string {
+  return source && typeof source === 'object' && !Array.isArray(source)
+    ? toText((source as { kind?: unknown }).kind)
+    : '';
+}
+
 function createAgentNameMap(agents: Agent[]): Map<string, string> {
   const nameByKey = new Map<string, string>();
   for (const agent of Array.isArray(agents) ? agents : []) {
@@ -93,9 +103,13 @@ function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<W
     workersByKey.set(`agent:${agentKey}`, {
       key: `agent:${agentKey}`,
       type: 'agent',
+      agentType: normalizeAgentType(agent?.type),
       sourceId: agentKey,
       displayName: toDisplayName(agent?.name, agentKey),
-      role: toText(agent?.role) || '--',
+      role: toText(agent?.role),
+      workspaceDir: toText(agent?.workspaceDir) || undefined,
+      workspaceName: toText(agent?.workspaceName) || undefined,
+      workspaceSourceKind: normalizeSourceKind(agent?.source) || undefined,
       teamAgentLabels: [],
     });
   }
@@ -107,6 +121,10 @@ function buildSearchText(row: WorkerRow): string {
   return [
     row.displayName,
     row.role,
+    row.agentType,
+    row.workspaceDir,
+    row.workspaceName,
+    row.workspaceSourceKind,
     row.sourceId,
     row.latestChatId,
     row.latestChatName,
@@ -171,9 +189,10 @@ export function buildWorkerRows(input: { agents: Agent[]; teams: Team[]; chats: 
       workersByKey.set(workerKey, {
         key: workerKey,
         type: 'agent',
+        agentType: 'agent',
         sourceId: agentKey,
         displayName: agentKey,
-        role: '--',
+        role: '',
         teamAgentLabels: [],
       });
     }

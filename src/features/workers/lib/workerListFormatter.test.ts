@@ -77,4 +77,53 @@ describe('buildWorkerRows', () => {
 
     expect(rows).toEqual([]);
   });
+
+  it('carries coder workspace metadata into worker rows and search text', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-coder',
+          name: 'agent-coder',
+          type: 'coder',
+          workspaceDir: '/Users/demo/Project/agent-coder',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-coder',
+      agentType: 'coder',
+      role: '',
+      workspaceDir: '/Users/demo/Project/agent-coder',
+    });
+    expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
+  });
+
+  it('carries browser folder metadata without requiring a workspaceDir', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'browser-coder',
+          name: 'Browser Coder',
+          type: 'coder',
+          workspaceName: 'browser-coder',
+          source: { kind: 'browser-folder' },
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows[0]).toMatchObject({
+      key: 'agent:browser-coder',
+      agentType: 'coder',
+      workspaceName: 'browser-coder',
+      workspaceSourceKind: 'browser-folder',
+    });
+    expect(rows[0].workspaceDir).toBeUndefined();
+    expect(rows[0].searchText).toContain('browser-coder');
+  });
 });
