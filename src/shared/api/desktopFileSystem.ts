@@ -79,7 +79,12 @@ function normalizePath(value: unknown): string {
 
 export function selectWorkspaceDirectory(): Promise<string | null> {
   if (!canUseDesktopFileSystemBridge()) {
-    return Promise.resolve(null);
+    return Promise.reject(
+      new ProjectFolderSelectionError(
+        "unsupported",
+        "desktop directory selection bridge is not available",
+      ),
+    );
   }
 
   return new Promise<string | null>((resolve, reject) => {
@@ -108,26 +113,27 @@ export function selectWorkspaceDirectory(): Promise<string | null> {
       cleanup(timeoutId);
       if (!payload.ok) {
         const message = normalizePath(payload.message);
-        if (message) {
-          reject(new Error(message));
-          return;
-        }
-        resolve(null);
+        reject(new Error(message || "desktop directory selection failed"));
         return;
       }
-      resolve(normalizePath(payload.path) || null);
+      const selectedPath = normalizePath(payload.path);
+      if (!selectedPath) {
+        reject(new Error("desktop directory selection returned empty path"));
+        return;
+      }
+      resolve(selectedPath);
     };
 
     const timeoutId = window.setTimeout(() => {
       cleanup(timeoutId);
-      resolve(null);
+      reject(new Error("desktop directory selection timed out"));
     }, DESKTOP_FILE_SYSTEM_TIMEOUT_MS);
 
     window.addEventListener("message", handleMessage as EventListener);
 
     if (!postDesktopHostMessage(requestMessage)) {
       cleanup(timeoutId);
-      resolve(null);
+      reject(new Error("desktop directory selection request failed"));
     }
   });
 }
@@ -292,14 +298,14 @@ export function openWorkspaceDirectory(path: string): Promise<boolean> {
 
     const timeoutId = window.setTimeout(() => {
       cleanup(timeoutId);
-      resolve(false);
+      reject(new Error("desktop open path request timed out"));
     }, DESKTOP_FILE_SYSTEM_TIMEOUT_MS);
 
     window.addEventListener("message", handleMessage as EventListener);
 
     if (!postDesktopHostMessage(requestMessage)) {
       cleanup(timeoutId);
-      resolve(false);
+      reject(new Error("desktop open path request failed"));
     }
   });
 }

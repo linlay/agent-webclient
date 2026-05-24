@@ -75,6 +75,49 @@ describe("desktopFileSystem project folder selection", () => {
     );
   });
 
+  it("rejects desktop bridge failures instead of treating them as cancel", async () => {
+    const listeners = new Set<(event: MessageEvent) => void>();
+    const mockWindow: any = {
+      location: { pathname: "/", search: "" },
+      parent: null,
+      postMessage: jest.fn((payload: { requestId: string }) => {
+        queueMicrotask(() => {
+          for (const listener of listeners) {
+            listener({
+              source: mockWindow,
+              data: {
+                type: "zenmind:desktop-dialog:select-directory:response",
+                requestId: payload.requestId,
+                ok: false,
+                message: "已取消选择目录。",
+              },
+            } as MessageEvent);
+          }
+        });
+      }),
+      addEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.add(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
+      removeEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.delete(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
+      setTimeout,
+      clearTimeout,
+      __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: true,
+    };
+    mockWindow.parent = mockWindow;
+    (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: "true",
+    };
+
+    await expect(selectProjectFolder()).rejects.toThrow("已取消选择目录。");
+  });
+
   it("uses a browser webkitdirectory input outside desktop app mode", async () => {
     const file = new File(["hello"], "README.md", { type: "text/markdown" });
     Object.defineProperty(file, "webkitRelativePath", {
