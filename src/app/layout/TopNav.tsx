@@ -71,6 +71,10 @@ function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | nu
   );
 }
 
+export function resolveNextUsagePopoverOpen(isOpen: boolean): boolean {
+  return !isOpen;
+}
+
 function getReasoningTokens(stats?: AIUsageStats): unknown {
   return stats?.completionTokensDetails?.reasoningTokens;
 }
@@ -109,20 +113,77 @@ function buildUsageMetrics(t: (key: string) => string, stats?: AIUsageStats): Us
       label: t("topNav.usage.metric.cacheMiss"),
       value: stats?.promptCacheMissTokens,
     },
-    {
-      key: "llmCalls",
-      label: t("topNav.usage.metric.llmCalls"),
-      value: stats?.llmChatCompletionCount,
-    },
   ];
 }
+
+function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): number | null {
+  const currentSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
+  const maxSize = readUsageNumber(snapshot?.contextWindow?.maxSize);
+  if (currentSize == null || maxSize == null || maxSize <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((currentSize / maxSize) * 100)));
+}
+
+const UsageContextWindow: React.FC<{
+  snapshot: AIUsageSnapshotEvent;
+  t: (key: string, values?: Record<string, string>) => string;
+}> = ({ snapshot, t }) => {
+  const percent = resolveContextPercent(snapshot);
+  const progressValue = percent ?? 0;
+
+  return (
+    <div className="usage-context-window">
+      <div
+        className="usage-context-ring"
+        style={{ "--usage-context-percent": `${progressValue}%` } as React.CSSProperties}
+        aria-label={t("topNav.usage.contextWindow")}
+      >
+        <span>{percent == null ? "--%" : `${percent}%`}</span>
+      </div>
+      <div className="usage-context-copy">
+        <span>{t("topNav.usage.contextWindow")}</span>
+        <strong>
+          {formatUsageNumber(snapshot.contextWindow?.currentSize)}
+          {" / "}
+          {formatUsageNumber(snapshot.contextWindow?.maxSize)}
+        </strong>
+        <small>
+          {t("topNav.usage.estimatedNext", {
+            value: formatUsageNumber(snapshot.contextWindow?.estimatedNextCallSize),
+          })}
+        </small>
+      </div>
+    </div>
+  );
+};
+
+const UsageTriggerRing: React.FC<{
+  snapshot: AIUsageSnapshotEvent | null;
+  label: string;
+}> = ({ snapshot, label }) => {
+  const percent = resolveContextPercent(snapshot);
+  const progressValue = percent ?? 0;
+
+  return (
+    <span
+      className="usage-trigger-ring"
+      style={{ "--usage-context-percent": `${progressValue}%` } as React.CSSProperties}
+      aria-label={label}
+    >
+      <span>{percent == null ? "--" : `${percent}%`}</span>
+    </span>
+  );
+};
 
 const UsageSection: React.FC<{
   title: string;
   metrics: UsageMetric[];
-}> = ({ title, metrics }) => (
+  aside?: React.ReactNode;
+}> = ({ title, metrics, aside }) => (
   <section className="usage-popover-section">
-    <h3>{title}</h3>
+    <div className="usage-popover-section-title">
+      <h3>{title}</h3>
+      {aside}
+    </div>
     <dl className="usage-metric-grid">
       {metrics.map((metric) => (
         <div className="usage-metric" key={metric.key}>
@@ -132,6 +193,16 @@ const UsageSection: React.FC<{
       ))}
     </dl>
   </section>
+);
+
+const UsageLlmCalls: React.FC<{
+  label: string;
+  value: unknown;
+}> = ({ label, value }) => (
+  <span className="usage-section-llm-calls">
+    {label}
+    <strong>{formatUsageNumber(value)}</strong>
+  </span>
 );
 
 export const TopNav: React.FC = () => {
@@ -164,9 +235,7 @@ export const TopNav: React.FC = () => {
   const usageTriggerLabel =
     usageTotal == null
       ? t("topNav.usage.waitingShort")
-      : t("topNav.usage.totalShort", {
-          total: formatCompactUsageNumber(usageTotal),
-        });
+      : formatCompactUsageNumber(usageTotal);
 
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
@@ -199,10 +268,13 @@ export const TopNav: React.FC = () => {
     });
   }, [conversation.inputMode, dispatch]);
 
-  const handleOpenUsagePopover = React.useCallback(() => {
+  const handleToggleUsagePopover = React.useCallback(() => {
     if (!showUsageControl) return;
-    dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: true });
-  }, [dispatch, showUsageControl]);
+    dispatch({
+      type: "SET_USAGE_POPOVER_OPEN",
+      open: resolveNextUsagePopoverOpen(state.usagePopoverOpen),
+    });
+  }, [dispatch, showUsageControl, state.usagePopoverOpen]);
 
   const handleCloseUsagePopover = React.useCallback(() => {
     dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: false });
@@ -283,9 +355,12 @@ export const TopNav: React.FC = () => {
                   active={state.usagePopoverOpen}
                   aria-label={t("topNav.usage.open")}
                   title={t("topNav.usage.open")}
-                  onClick={handleOpenUsagePopover}
+                  onClick={handleToggleUsagePopover}
                 >
-                  <MaterialIcon name="monitoring" />
+                  <UsageTriggerRing
+                    snapshot={usageSnapshot}
+                    label={t("topNav.usage.contextWindow")}
+                  />
                   <span className="usage-trigger-total">{usageTriggerLabel}</span>
                 </UiButton>
                 {state.usagePopoverOpen ? (
@@ -310,26 +385,12 @@ export const TopNav: React.FC = () => {
                         title={t("topNav.usage.close")}
                         onClick={handleCloseUsagePopover}
                       >
-                        <MaterialIcon name="close" />
+                        <span className="usage-popover-close-glyph" aria-hidden="true" />
                       </UiButton>
                     </div>
                     {usageSnapshot ? (
                       <>
-                        <div className="usage-context-window">
-                          <span>{t("topNav.usage.contextWindow")}</span>
-                          <strong>
-                            {formatUsageNumber(usageSnapshot.contextWindow?.currentSize)}
-                            {" / "}
-                            {formatUsageNumber(usageSnapshot.contextWindow?.maxSize)}
-                          </strong>
-                          <small>
-                            {t("topNav.usage.estimatedNext", {
-                              value: formatUsageNumber(
-                                usageSnapshot.contextWindow?.estimatedNextCallSize,
-                              ),
-                            })}
-                          </small>
-                        </div>
+                        <UsageContextWindow snapshot={usageSnapshot} t={t} />
                         <UsageSection
                           title={t("topNav.usage.section.current")}
                           metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
@@ -337,10 +398,22 @@ export const TopNav: React.FC = () => {
                         <UsageSection
                           title={t("topNav.usage.section.run")}
                           metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
+                          aside={
+                            <UsageLlmCalls
+                              label={t("topNav.usage.metric.llmCalls")}
+                              value={usageSnapshot.usage?.run?.llmChatCompletionCount}
+                            />
+                          }
                         />
                         <UsageSection
                           title={t("topNav.usage.section.chat")}
                           metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
+                          aside={
+                            <UsageLlmCalls
+                              label={t("topNav.usage.metric.llmCalls")}
+                              value={usageSnapshot.usage?.chat?.llmChatCompletionCount}
+                            />
+                          }
                         />
                       </>
                     ) : (

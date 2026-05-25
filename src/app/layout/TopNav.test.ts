@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import { TopNav } from "@/app/layout/TopNav";
+import { resolveNextUsagePopoverOpen, TopNav } from "@/app/layout/TopNav";
 
 jest.mock("@/app/state/AppContext", () => {
 	const actual = jest.requireActual("@/app/state/AppContext");
@@ -96,6 +96,10 @@ describe("TopNav", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				model: { key: "deepseek-chat" },
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+				},
 				usage: {
 					run: {
 						totalTokens: 1234,
@@ -107,8 +111,15 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Open usage stats");
-		expect(html).toContain("1.2K tokens");
+		expect(html).toContain(">50%</span>");
+		expect(html).toContain("1.2K");
+		expect(html).not.toContain("1.2K tokens");
 		expect(html).not.toContain("Current call");
+	});
+
+	it("toggles the usage popover state from the usage entry", () => {
+		expect(resolveNextUsagePopoverOpen(false)).toBe(true);
+		expect(resolveNextUsagePopoverOpen(true)).toBe(false);
 	});
 
 	it("renders usage popover details when opened", () => {
@@ -142,11 +153,21 @@ describe("TopNav", () => {
 						promptTokens: 300,
 						completionTokens: 70,
 						totalTokens: 370,
+						promptTokensDetails: { cachedTokens: 80 },
+						completionTokensDetails: { reasoningTokens: 17 },
+						promptCacheHitTokens: 81,
+						promptCacheMissTokens: 219,
+						llmChatCompletionCount: 3,
 					},
 					chat: {
 						promptTokens: 800,
 						completionTokens: 200,
 						totalTokens: 1000,
+						promptTokensDetails: { cachedTokens: 280 },
+						completionTokensDetails: { reasoningTokens: 27 },
+						promptCacheHitTokens: 281,
+						promptCacheMissTokens: 519,
+						llmChatCompletionCount: 8,
 					},
 				},
 			},
@@ -157,16 +178,22 @@ describe("TopNav", () => {
 		expect(html).toContain("Usage stats");
 		expect(html).toContain("deepseek-chat");
 		expect(html).toContain("Context window");
+		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");
 		expect(html).toContain("Estimated next call 8,000");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Current run");
 		expect(html).toContain("Current chat");
+		expect(html).toContain("Prompt");
+		expect(html).toContain("Completion");
+		expect(html).toContain("Total");
+		expect(html).toContain("Reasoning");
 		expect(html).toContain("Cache hit");
 		expect(html).toContain("Cache miss");
-		expect(html).toContain("LLM calls");
+		expect(html.match(/LLM calls/g)).toHaveLength(2);
 		expect(html).toContain("Close usage stats");
+		expect(html).not.toContain(">close<");
 	});
 
 	it("renders run errors when websocket transport is not in an error state", () => {
