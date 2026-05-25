@@ -20,6 +20,7 @@ import {
   scheduleReasoningAutoCollapseTimer,
 } from '@/features/timeline/lib/reasoningAutoCollapse';
 import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
+import { isVoiceEnabled } from '@/shared/config/featureFlags';
 import { stripSpecialBlocksFromText } from '@/features/timeline/lib/contentSegments';
 import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import {
@@ -281,7 +282,10 @@ export function useAgentEventHandler() {
       if (type === 'run.error' || type === 'run.complete' || type === 'run.cancel') {
         upsertLiveChatSummary({ event, cache, state });
         dispatch({ type: 'SET_STREAMING', streaming: false });
+        const voiceEnabled = isVoiceEnabled();
         const isActiveVoiceRequest =
+          voiceEnabled
+          &&
           state.inputMode === 'voice'
           && Boolean(state.voiceChat.activeRequestId)
           && state.voiceChat.activeRequestId === state.requestId;
@@ -306,7 +310,10 @@ export function useAgentEventHandler() {
         const voiceStatus = type === 'content.end' || type === 'content.snapshot' ? 'completed' : 'running';
         const activeVoiceRequestId = String(state.voiceChat.activeRequestId || '').trim();
         const activeVoiceContentId = String(state.voiceChat.activeAssistantContentId || '').trim();
+        const voiceEnabled = isVoiceEnabled();
         const isVoiceRequestActive =
+          voiceEnabled
+          &&
           state.inputMode === 'voice'
           && Boolean(activeVoiceRequestId)
           && activeVoiceRequestId === state.requestId;
@@ -358,7 +365,7 @@ export function useAgentEventHandler() {
                 });
               });
           }
-        } else {
+        } else if (voiceEnabled) {
           getVoiceRuntime()?.processTtsVoiceBlocks(contentId, text, voiceStatus, 'live');
         }
 

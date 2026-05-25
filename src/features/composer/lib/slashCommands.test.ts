@@ -17,7 +17,9 @@ const globalWithFeatureFlags = globalThis as typeof globalThis & {
 
 describe('slashCommands', () => {
   beforeEach(() => {
-    delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: 'true',
+    };
   });
 
   it('only opens for a standalone slash token', () => {
@@ -43,6 +45,7 @@ describe('slashCommands', () => {
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DEBUG_PANEL_ENABLED: 'true',
+      VOICE_ENABLED: 'true',
     };
     expect(getFilteredSlashCommands('/debug').map((item) => item.id)).toEqual(['debug']);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
@@ -50,8 +53,16 @@ describe('slashCommands', () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DEBUG_PANEL_ENABLED: 'true',
       SETTINGS_MENU_ENABLED: 'true',
+      VOICE_ENABLED: 'true',
     };
     expect(getFilteredSlashCommands('/settings').map((item) => item.id)).toEqual(['settings']);
+  });
+
+  it('filters the voice command by the voice runtime flag', () => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: 'false',
+    };
+    expect(getFilteredSlashCommands('/voice')).toEqual([]);
   });
 
   it('uses 对话 wording for the new command', () => {

@@ -12,6 +12,7 @@ import {
 } from "@/features/voice/lib/voiceAudioCapture";
 import { QA_ASR_TASK_ID } from "@/features/voice/lib/voiceChatRuntimeUtils";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { t } from "@/shared/i18n";
 import type { VoiceChatRuntimeController } from "@/features/voice/hooks/useVoiceChatRuntimeController";
 
@@ -169,6 +170,12 @@ export function useVoiceChatLifecycle({
 	}, [controller, state.audioMuted]);
 
 	useEffect(() => {
+		if (!isVoiceEnabled()) {
+			if (state.inputMode === "voice") {
+				dispatch({ type: "SET_INPUT_MODE", mode: "text" });
+			}
+			return;
+		}
 		const voiceEligible =
 			Boolean(currentWorker) &&
 			currentWorker?.type === "agent" &&

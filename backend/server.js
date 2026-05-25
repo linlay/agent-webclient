@@ -76,10 +76,12 @@ function resolveRuntimeConfig(config, options = {}) {
     ...fileEnv,
   };
 
-  return RUNTIME_CONFIG_ENV_KEYS.reduce((runtimeConfig, key) => {
+  const runtimeConfig = RUNTIME_CONFIG_ENV_KEYS.reduce((runtimeConfig, key) => {
     runtimeConfig[key] = String(env[key] == null ? '' : env[key]).trim();
     return runtimeConfig;
   }, {});
+  runtimeConfig.VOICE_ENABLED = String(Boolean(config.voiceBaseUrl));
+  return runtimeConfig;
 }
 
 function isDesktopAppRuntime(config) {
@@ -162,17 +164,14 @@ function loadConfig(options = {}) {
   const appRoot = options.appRoot || path.resolve(__dirname, '..');
   const port = String(env.PORT || DEFAULT_PORT).trim() || DEFAULT_PORT;
   const baseUrl = new URL(String(env.BASE_URL || DEFAULT_BASE_URL).trim() || DEFAULT_BASE_URL);
-  const wsBaseUrl = new URL(String(env.WS_BASE_URL || baseUrl.toString()).trim() || baseUrl.toString());
-  const voiceBaseUrl = new URL(
-    String(env.VOICE_BASE_URL || baseUrl.toString()).trim() || baseUrl.toString(),
-  );
+  const voiceBaseUrlValue = String(env.VOICE_BASE_URL || '').trim();
+  const voiceBaseUrl = voiceBaseUrlValue ? new URL(voiceBaseUrlValue) : null;
   const frontend = resolveFrontendDist(appRoot);
 
   return {
     appRoot,
     port,
     baseUrl,
-    wsBaseUrl,
     voiceBaseUrl,
     frontendDist: frontend.frontendDist,
     indexFile: frontend.indexFile,
@@ -365,7 +364,9 @@ function createApp(config, options = {}) {
   const app = express();
   const devCorsMiddleware = createDevCorsMiddleware();
   const apiProxy = createApiProxy(config.baseUrl, logger);
-  const voiceProxy = createProxy(config.voiceBaseUrl, logger);
+  const voiceProxy = config.voiceBaseUrl
+    ? createProxy(config.voiceBaseUrl, logger)
+    : null;
 
   app.disable('x-powered-by');
   app.use(devCorsMiddleware);
@@ -374,7 +375,13 @@ function createApp(config, options = {}) {
     res.setHeader('Cache-Control', 'no-store');
     res.end(createRuntimeConfigScript(resolveRuntimeConfig(config)));
   });
-  app.use('/api/voice', voiceProxy);
+  if (voiceProxy) {
+    app.use('/api/voice', voiceProxy);
+  } else {
+    app.use('/api/voice', (_req, res) => {
+      res.status(404).json({ error: 'voice disabled' });
+    });
+  }
   app.use('/api', apiProxy);
   app.use(express.static(config.frontendDist, { fallthrough: true }));
   app.use((req, res) => {
@@ -403,15 +410,21 @@ function createServer(config, options = {}) {
   const logger = options.logger || console;
   const { app } = createApp(config, { logger });
   const apiWsProxy = createWebSocketProxy(config.baseUrl, logger);
-  const voiceWsProxy = createWebSocketProxy(config.voiceBaseUrl, logger);
-  const wsProxy = createWebSocketProxy(config.wsBaseUrl || config.baseUrl, logger);
+  const voiceWsProxy = config.voiceBaseUrl
+    ? createWebSocketProxy(config.voiceBaseUrl, logger)
+    : null;
+  const wsProxy = createWebSocketProxy(config.baseUrl, logger);
   const server = http.createServer(app);
 
   server.on('upgrade', (req, socket, head) => {
     const requestPath = parseRequestPath(req.url);
 
     if (requestPath.startsWith('/api/voice')) {
-      voiceWsProxy.upgrade(req, socket, head);
+      if (voiceWsProxy) {
+        voiceWsProxy.upgrade(req, socket, head);
+        return;
+      }
+      socket.destroy();
       return;
     }
     if (requestPath.startsWith('/api')) {

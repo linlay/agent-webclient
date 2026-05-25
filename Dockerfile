@@ -12,7 +12,9 @@ RUN apk add --no-cache gettext
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf.template
+COPY scripts/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
+RUN chmod +x /usr/local/bin/nginx-entrypoint.sh
 
 EXPOSE 80
 
-CMD ["/bin/sh", "-c", "WS_BASE_URL=\"${WS_BASE_URL:-$BASE_URL}\"; export WS_BASE_URL; envsubst '$$BASE_URL $$WS_BASE_URL $$VOICE_BASE_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/usr/local/bin/nginx-entrypoint.sh"]

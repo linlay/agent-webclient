@@ -21,8 +21,7 @@ set -a
 set +a
 
 [[ -n "${BASE_URL:-}" ]] || die "BASE_URL is required in .env"
-WS_BASE_URL="${WS_BASE_URL:-$BASE_URL}"
-[[ -n "${VOICE_BASE_URL:-}" ]] || die "VOICE_BASE_URL is required in .env"
+VOICE_BASE_URL="${VOICE_BASE_URL:-}"
 
 WEBCLIENT_VERSION="${WEBCLIENT_VERSION:-latest}"
 IMAGE_REF="agent-webclient:$WEBCLIENT_VERSION"
@@ -41,7 +40,7 @@ load_image() {
 
 load_image "$IMAGE_REF" "$IMAGE_TAR"
 
-export WEBCLIENT_VERSION WS_BASE_URL
+export WEBCLIENT_VERSION VOICE_BASE_URL
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo "[start] started agent-webclient $WEBCLIENT_VERSION"

@@ -13,6 +13,7 @@ import {
   normalizeVoiceClientGateConfig,
 } from "@/features/voice/lib/voiceAsrProtocol";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import {
   commitClientGateDraft,
@@ -34,6 +35,7 @@ export const SettingsModal: React.FC = () => {
   const { t } = useI18n();
   const appMode = isAppMode();
   const isDesktopApp = isDesktopAppMode();
+  const voiceEnabled = isVoiceEnabled();
   const [tokenInput, setTokenInput] = useState(
     appMode ? getCurrentAccessToken() || state.accessToken : state.accessToken,
   );
@@ -345,41 +347,45 @@ export const SettingsModal: React.FC = () => {
           </UiButton>
         </div>
 
-        <SettingsClientGate
-          clientGate={state.voiceChat.clientGate}
-          clientGateDrafts={clientGateDrafts}
-          onEnabledChange={(enabled) => patchClientGate({ enabled })}
-          onDraftChange={handleClientGateDraftChange}
-          onFieldFocus={handleClientGateFieldFocus}
-          onFieldCommit={handleClientGateFieldCommit}
-          onFieldKeyDown={handleClientGateFieldKeyDown}
-        />
+        {voiceEnabled ? (
+          <>
+            <SettingsClientGate
+              clientGate={state.voiceChat.clientGate}
+              clientGateDrafts={clientGateDrafts}
+              onEnabledChange={(enabled) => patchClientGate({ enabled })}
+              onDraftChange={handleClientGateDraftChange}
+              onFieldFocus={handleClientGateFieldFocus}
+              onFieldCommit={handleClientGateFieldCommit}
+              onFieldKeyDown={handleClientGateFieldKeyDown}
+            />
 
-        <SettingsTtsDebug
-          settingsOpen={state.settingsOpen}
-          ttsDebugStatus={state.ttsDebugStatus}
-          onSend={(text) => void handleTtsDebugSend(text)}
-          onStop={handleTtsDebugStop}
-        />
+            <SettingsTtsDebug
+              settingsOpen={state.settingsOpen}
+              ttsDebugStatus={state.ttsDebugStatus}
+              onSend={(text) => void handleTtsDebugSend(text)}
+              onStop={handleTtsDebugStop}
+            />
 
-        <SettingsAsrDebug
-          appMode={appMode}
-          accessToken={
-            appMode
-              ? getCurrentAccessToken() || state.accessToken
-              : state.accessToken
-          }
-          chatId={state.chatId}
-          speechRate={state.voiceChat.speechRate}
-          capabilities={state.voiceChat.capabilities}
-          clientGate={state.voiceChat.clientGate}
-          clientGateCustomized={state.voiceChat.clientGateCustomized}
-          onAccessTokenResolved={(token) =>
-            dispatch({ type: "SET_ACCESS_TOKEN", token })
-          }
-          onPatchVoiceChat={handlePatchVoiceChat}
-          onDispatch={dispatch}
-        />
+            <SettingsAsrDebug
+              appMode={appMode}
+              accessToken={
+                appMode
+                  ? getCurrentAccessToken() || state.accessToken
+                  : state.accessToken
+              }
+              chatId={state.chatId}
+              speechRate={state.voiceChat.speechRate}
+              capabilities={state.voiceChat.capabilities}
+              clientGate={state.voiceChat.clientGate}
+              clientGateCustomized={state.voiceChat.clientGateCustomized}
+              onAccessTokenResolved={(token) =>
+                dispatch({ type: "SET_ACCESS_TOKEN", token })
+              }
+              onPatchVoiceChat={handlePatchVoiceChat}
+              onDispatch={dispatch}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   );

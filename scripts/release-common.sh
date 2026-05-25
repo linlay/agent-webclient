@@ -243,17 +243,6 @@ ${error_log_json}
         ]
       },
       {
-        "key": "WS_BASE_URL",
-        "fromService": "agent-platform",
-        "template": "http://127.0.0.1:{{port}}",
-        "onlyIfDefault": true,
-        "defaults": [
-          "",
-          "http://127.0.0.1:11949",
-          "http://localhost:11949"
-        ]
-      },
-      {
         "key": "PORT",
         "value": "{{serviceDefaultPort}}",
         "onlyIfDefault": true

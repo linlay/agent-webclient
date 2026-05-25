@@ -92,6 +92,7 @@ cp -R "$REPO_ROOT/dist" "$BUILD_CONTEXT_DIR/dist"
 rm -rf "$BUILD_CONTEXT_DIR/dist/bundle"
 rm -rf "$BUILD_CONTEXT_DIR/dist/release"
 cp "$REPO_ROOT/nginx.conf" "$BUILD_CONTEXT_DIR/nginx.conf"
+cp "$REPO_ROOT/scripts/nginx-entrypoint.sh" "$BUILD_CONTEXT_DIR/nginx-entrypoint.sh"
 cp "$RELEASE_ASSETS_DIR/Dockerfile.release" "$BUILD_CONTEXT_DIR/Dockerfile.release"
 
 echo "[release-image] building image..."

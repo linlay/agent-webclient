@@ -3,6 +3,7 @@ import {
   isDebugPanelEnabled,
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
+  isVoiceEnabled,
   parseFeatureFlag,
 } from "@/shared/config/featureFlags";
 
@@ -78,5 +79,19 @@ describe("featureFlags", () => {
       QUICK_ACTIONS_ENABLED: "false",
     };
     expect(isQuickActionsEnabled()).toBe(false);
+  });
+
+  it("reads the voice flag from runtime config", () => {
+    expect(isVoiceEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: "true",
+    };
+    expect(isVoiceEnabled()).toBe(true);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: "false",
+    };
+    expect(isVoiceEnabled()).toBe(false);
   });
 });

@@ -26,6 +26,7 @@ import { useComposerMention } from "@/features/composer/hooks/useComposerMention
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {
@@ -59,7 +60,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [dispatch, inputValue, state.composerDraft]);
 
   const isFrontendActive = !!state.activeFrontendTool;
-  const isVoiceMode = state.inputMode === "voice";
+  const voiceEnabled = isVoiceEnabled();
+  const isVoiceMode = voiceEnabled && state.inputMode === "voice";
   const currentWorker = useMemo(
     () => resolveCurrentWorkerSummary(state),
     [state],
@@ -70,7 +72,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  const voiceModeAvailable = currentWorker?.type === "agent";
+  const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -87,6 +89,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [state.events, state.taskItemsById, timelineEntries]);
   const isBlankConversation =
     isTimelineEmpty && !String(state.chatId || "").trim();
+
+  useEffect(() => {
+    if (!voiceEnabled && state.inputMode === "voice") {
+      dispatch({ type: "SET_INPUT_MODE", mode: "text" });
+    }
+  }, [dispatch, state.inputMode, voiceEnabled]);
 
   const {
     clearActiveAwaiting,
@@ -281,6 +289,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     !isAwaitingActive &&
     (hasSteerDraft || hasPendingSteers);
   const showSpeechHint =
+    voiceEnabled &&
     !isVoiceMode &&
     (!speechSupported || speechState === "error" || speechState === "unsupported");
   const sendDisabled =
@@ -486,6 +495,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isVoiceMode={isVoiceMode}
                   isStreaming={state.streaming}
                   planningMode={state.planningMode}
+                  voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
                   speechListening={speechListening}
                   speechSupported={speechSupported}

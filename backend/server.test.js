@@ -335,33 +335,32 @@ describe('backend/server', () => {
     expect(() => loadConfig({ env: { PORT: '0' }, appRoot: rootDir })).toThrow(/index\.html/);
   });
 
-  test('loads WS_BASE_URL independently while defaulting to BASE_URL', () => {
+  test('loads BASE_URL for api and websocket upstreams while voice remains optional', () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);
     writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
 
-    const defaultConfig = loadConfig({
+    const voiceDisabledConfig = loadConfig({
       env: {
         PORT: '0',
         BASE_URL: 'http://base.example.com',
-        VOICE_BASE_URL: 'http://voice.example.com',
+        VOICE_BASE_URL: '',
       },
       appRoot: rootDir,
     });
-    expect(defaultConfig.wsBaseUrl.toString()).toBe('http://base.example.com/');
+    expect(voiceDisabledConfig.baseUrl.toString()).toBe('http://base.example.com/');
+    expect(voiceDisabledConfig.voiceBaseUrl).toBeNull();
 
-    const explicitConfig = loadConfig({
+    const voiceEnabledConfig = loadConfig({
       env: {
         PORT: '0',
         BASE_URL: 'http://base.example.com',
-        WS_BASE_URL: 'http://ws.example.com',
         VOICE_BASE_URL: 'http://voice.example.com',
       },
       appRoot: rootDir,
     });
-    expect(explicitConfig.baseUrl.toString()).toBe('http://base.example.com/');
-    expect(explicitConfig.wsBaseUrl.toString()).toBe('http://ws.example.com/');
-    expect(explicitConfig.voiceBaseUrl.toString()).toBe('http://voice.example.com/');
+    expect(voiceEnabledConfig.baseUrl.toString()).toBe('http://base.example.com/');
+    expect(voiceEnabledConfig.voiceBaseUrl?.toString()).toBe('http://voice.example.com/');
   });
 
   test('responds to allowed dev-origin preflight requests with CORS headers', async () => {
@@ -430,7 +429,7 @@ describe('backend/server', () => {
     expect(res.headers['access-control-allow-headers']).toBeUndefined();
   });
 
-  test('keeps api and voice http upstreams separate from WS_BASE_URL', async () => {
+  test('keeps api and voice http upstreams separate when voice is configured', async () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);
     writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
@@ -449,7 +448,6 @@ describe('backend/server', () => {
       env: {
         PORT: '0',
         BASE_URL: `http://127.0.0.1:${apiPort}`,
-        WS_BASE_URL: 'http://127.0.0.1:1',
         VOICE_BASE_URL: `http://127.0.0.1:${voicePort}`,
       },
       appRoot: rootDir,
@@ -476,7 +474,42 @@ describe('backend/server', () => {
     }
   }, 10_000);
 
-  test('tunnels websocket upgrade bytes to the configured ws base url', async () => {
+  test('returns 404 for voice http routes when voice is not configured', async () => {
+    const rootDir = makeTempRoot();
+    tempRoots.push(rootDir);
+    writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
+
+    const apiServer = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(`api:${req.url}`);
+    });
+    const apiPort = await listen(apiServer);
+    const config = loadConfig({
+      env: {
+        PORT: '0',
+        BASE_URL: `http://127.0.0.1:${apiPort}`,
+        VOICE_BASE_URL: '',
+      },
+      appRoot: rootDir,
+    });
+
+    const { server } = createServer(config, {
+      logger: { error: jest.fn() },
+    });
+    const proxyPort = await listen(server);
+
+    try {
+      await expect(httpGetBody(`http://127.0.0.1:${proxyPort}/api/voice/ping`)).resolves.toEqual({
+        statusCode: 404,
+        body: '{"error":"voice disabled"}',
+      });
+    } finally {
+      await closeServer(server);
+      await closeServer(apiServer);
+    }
+  }, 10_000);
+
+  test('tunnels websocket upgrade bytes to BASE_URL', async () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);
     writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
@@ -498,9 +531,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -552,9 +584,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -596,9 +627,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -644,9 +674,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -685,9 +714,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -740,9 +768,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -763,49 +790,41 @@ describe('backend/server', () => {
     }
   }, 10_000);
 
-  test('keeps /api http proxy from also handling /ws upgrades after api traffic', async () => {
+  test('proxies /api http traffic and /ws upgrades through BASE_URL', async () => {
     const rootDir = makeTempRoot();
     tempRoots.push(rootDir);
     writeFrontendFile(rootDir, 'index.html', '<html><body>spa shell</body></html>');
 
-    const apiServer = http.createServer((req, res) => {
+    const upstreamServer = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end(`api:${req.url}`);
     });
-    const upstreamServer = net.createServer((socket) => {
-      let rawRequest = '';
-      socket.on('data', (chunk) => {
-        rawRequest += chunk.toString('latin1');
-        if (!rawRequest.includes('\r\n\r\n')) {
-          return;
-        }
-        const keyMatch = rawRequest.match(/^Sec-WebSocket-Key:\s*(.+)$/im);
-        const accept = buildSecWebSocketAccept((keyMatch?.[1] || '').trim());
-        socket.write(Buffer.concat([
-          Buffer.from([
-            'HTTP/1.1 101 Switching Protocols',
-            'Upgrade: websocket',
-            'Connection: Upgrade',
-            `Sec-WebSocket-Accept: ${accept}`,
-            '',
-            '',
-          ].join('\r\n'), 'latin1'),
-          buildRawWebSocketFrame('ready'),
-        ]));
-      });
+    upstreamServer.on('upgrade', (req, socket) => {
+      const keyMatch = String(req.headers['sec-websocket-key'] || '').trim();
+      const accept = buildSecWebSocketAccept(keyMatch);
+      socket.write(Buffer.concat([
+        Buffer.from([
+          'HTTP/1.1 101 Switching Protocols',
+          'Upgrade: websocket',
+          'Connection: Upgrade',
+          `Sec-WebSocket-Accept: ${accept}`,
+          '',
+          '',
+        ].join('\r\n'), 'latin1'),
+        buildRawWebSocketFrame('ready'),
+      ]));
+      socket.end();
       socket.on('error', () => {
         // The raw client closes after reading enough bytes for the assertion.
       });
     });
 
-    const apiPort = await listen(apiServer);
     const upstreamPort = await listen(upstreamServer);
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: `http://127.0.0.1:${apiPort}`,
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: '',
       },
       appRoot: rootDir,
     });
@@ -826,7 +845,6 @@ describe('backend/server', () => {
       expect((text.match(/ready/g) || [])).toHaveLength(1);
     } finally {
       await closeServer(server);
-      await closeServer(apiServer);
       await closeServer(upstreamServer);
     }
   }, 10_000);
@@ -878,9 +896,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });
@@ -1012,9 +1029,8 @@ describe('backend/server', () => {
     const config = loadConfig({
       env: {
         PORT: '0',
-        BASE_URL: 'http://127.0.0.1:1',
-        WS_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
-        VOICE_BASE_URL: 'http://127.0.0.1:1',
+        BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+        VOICE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       },
       appRoot: rootDir,
     });

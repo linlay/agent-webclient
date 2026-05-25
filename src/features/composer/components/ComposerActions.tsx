@@ -10,6 +10,7 @@ interface ComposerActionsProps {
   isVoiceMode: boolean;
   isStreaming: boolean;
   planningMode: boolean;
+  voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
   speechListening: boolean;
   speechSupported: boolean;
@@ -24,6 +25,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   isVoiceMode,
   isStreaming,
   planningMode,
+  voiceEnabled,
   hasUploadingAttachments,
   speechListening,
   speechSupported,
@@ -94,28 +96,30 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           </UiButton>
         ) : !isVoiceMode ? (
           <>
-            <UiButton
-              className={`voice-btn ${speechListening ? "is-listening" : ""}`}
-              variant="secondary"
-              size="sm"
-              iconOnly
-              disabled={isFrontendActive}
-              onClick={toggleSpeechInput}
-              aria-label={
-                !speechSupported
-                  ? t("composer.actions.voiceUnavailable")
-                  : speechListening
-                    ? t("composer.actions.stopVoiceInput")
-                    : t("composer.actions.voiceInput")
-              }
-              title={
-                isFrontendActive
-                  ? t("composer.actions.voiceInputDisabled.frontendActive")
-                  : speechStatus
-              }
-            >
-              <MaterialIcon name="mic" />
-            </UiButton>
+            {voiceEnabled ? (
+              <UiButton
+                className={`voice-btn ${speechListening ? "is-listening" : ""}`}
+                variant="secondary"
+                size="sm"
+                iconOnly
+                disabled={isFrontendActive}
+                onClick={toggleSpeechInput}
+                aria-label={
+                  !speechSupported
+                    ? t("composer.actions.voiceUnavailable")
+                    : speechListening
+                      ? t("composer.actions.stopVoiceInput")
+                      : t("composer.actions.voiceInput")
+                }
+                title={
+                  isFrontendActive
+                    ? t("composer.actions.voiceInputDisabled.frontendActive")
+                    : speechStatus
+                }
+              >
+                <MaterialIcon name="mic" />
+              </UiButton>
+            ) : null}
             <UiButton
               className="send-btn"
               id="send-btn"

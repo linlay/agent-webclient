@@ -5,7 +5,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
-const wsTarget = String(process.env.WS_BASE_URL || '').trim() || apiTarget;
 const voiceTarget = String(process.env.VOICE_BASE_URL || '').trim();
 const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
 const allowedHosts = allowedHostsEnv === 'all'
@@ -65,10 +64,12 @@ function resolveRuntimeConfig() {
     ...process.env,
     ...readRuntimeEnvFile(),
   };
-  return runtimeConfigEnvKeys.reduce((config, key) => {
+  const config = runtimeConfigEnvKeys.reduce((config, key) => {
     config[key] = String(env[key] == null ? '' : env[key]).trim();
     return config;
   }, {});
+  config.VOICE_ENABLED = String(Boolean(String(env.VOICE_BASE_URL || '').trim()));
+  return config;
 }
 
 function createRuntimeConfigScript() {
@@ -86,9 +87,22 @@ module.exports = (env, argv) => {
   if (!isProd && !apiTarget) {
     throw new Error('BASE_URL is required for development. Copy .env.example to .env and set BASE_URL.');
   }
-  if (!isProd && !voiceTarget) {
-    throw new Error('VOICE_BASE_URL is required for development. Copy .env.example to .env and set VOICE_BASE_URL.');
-  }
+  const voiceProxyRules = voiceTarget
+    ? [
+      {
+        context: ['/api/voice/ws'],
+        target: voiceTarget,
+        changeOrigin: true,
+        ws: true,
+      },
+      {
+        context: ['/api/voice'],
+        target: voiceTarget,
+        changeOrigin: true,
+        ws: false,
+      },
+    ]
+    : [];
 
   return {
     entry: './src/app/index.tsx',
@@ -192,22 +206,11 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/ws'],
-          target: wsTarget,
+          target: apiTarget,
           changeOrigin: true,
           ws: true,
         },
-        {
-          context: ['/api/voice/ws'],
-          target: voiceTarget,
-          changeOrigin: true,
-          ws: true,
-        },
-        {
-          context: ['/api/voice'],
-          target: voiceTarget,
-          changeOrigin: true,
-          ws: false,
-        },
+        ...voiceProxyRules,
         {
           context: ['/api'],
           target: apiTarget,

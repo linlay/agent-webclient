@@ -3,7 +3,7 @@ import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
 import type { AppState, RightSidebarTabKey } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
+import { isDebugPanelEnabled, isVoiceEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -47,8 +47,9 @@ export const TopNav: React.FC = () => {
   const conversation = selectConversationState(state);
   const { statusClass, statusText } = resolveTopNavStatus(state);
   const currentWorker = resolveCurrentWorkerSummary(state);
-  const voiceModeAvailable = currentWorker?.type === "agent";
-  const showMuteControl = voiceModeAvailable || ui.audioMuted;
+  const voiceEnabled = isVoiceEnabled();
+  const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
+  const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const isMacPlatform = React.useMemo(
     () =>

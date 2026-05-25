@@ -5,6 +5,7 @@ import { stripPendingSpecialFenceTail } from "@/features/timeline/lib/contentSeg
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { MarkdownContent } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -14,6 +15,7 @@ interface ContentBlockProps {
 
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const dispatch = useAppDispatch();
+	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
 
@@ -59,6 +61,9 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				}
 
 				if (segment.kind === "ttsVoice") {
+					if (!voiceEnabled) {
+						return null;
+					}
 					const signature = segment.signature || "";
 					const voiceBlock = node.ttsVoiceBlocks?.[signature];
 					const expanded = Boolean(voiceBlock?.expanded);

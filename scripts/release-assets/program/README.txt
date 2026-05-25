@@ -15,4 +15,4 @@ Contents:
 
 Runtime notes:
 - Hosts should provide Node.js 18+ in `PATH`.
-- `BASE_URL` points to the runner HTTP API, optional `WS_BASE_URL` points to the main WebSocket upstream and defaults to `BASE_URL`, and `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream.
+- `BASE_URL` points to the runner HTTP API and main `/ws` upstream. Optional `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream; leave it empty to hide voice features.

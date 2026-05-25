@@ -67,24 +67,22 @@ describe('webpack devServer proxy', () => {
     expect(queryWsRule.ws).toBe(true);
   });
 
-  it('uses WS_BASE_URL for query websocket endpoint when configured', () => {
+  it('omits voice proxy rules when VOICE_BASE_URL is empty', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      WS_BASE_URL: 'http://ws.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
+      VOICE_BASE_URL: '',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const configFactory = require('../webpack.config.js');
     const config = configFactory({}, { mode: 'development' });
     const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
-    const queryWsRule = proxyRules.find((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/ws'));
 
-    expect(queryWsRule).toBeTruthy();
-    expect(queryWsRule.target).toBe('http://ws.example.com');
-    expect(queryWsRule.ws).toBe(true);
+    expect(proxyRules.some((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/api/voice/ws'))).toBe(false);
+    expect(proxyRules.some((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/api/voice'))).toBe(false);
   });
 
   it('moves webpack hmr websocket off /ws', () => {

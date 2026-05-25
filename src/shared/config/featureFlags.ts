@@ -21,3 +21,7 @@ export function isSettingsMenuEnabled(): boolean {
 export function isQuickActionsEnabled(): boolean {
   return parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
 }
+
+export function isVoiceEnabled(): boolean {
+  return parseFeatureFlag(readRuntimeConfigValue("VOICE_ENABLED"));
+}
