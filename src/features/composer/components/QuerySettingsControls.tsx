@@ -281,8 +281,7 @@ export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> 
     return pendingCoderModelOptionsPromise;
   }
 
-  const response = await getModelOptions();
-  pendingCoderModelOptionsPromise = Promise.resolve(response)
+  pendingCoderModelOptionsPromise = getModelOptions()
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
@@ -325,6 +324,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortOption[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelOptionsStatus, setModelOptionsStatus] = useState<ModelOptionsStatus>("idle");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
@@ -353,11 +353,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       );
       return;
     }
-    if (modelOptionsStatus === "failed" || modelOptionsStatus === "empty" || modelsLoading) {
-      return;
-    }
     let cancelled = false;
     setModelsLoading(true);
+    setModelOptionsStatus("idle");
     void loadCoderModelOptions()
       .then((options) => {
         if (cancelled) return;
@@ -380,7 +378,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [agentKey, isCoderAgent, modelOptionsStatus, modelsLoading]);
+  }, [agentKey, isCoderAgent, loadAttempt]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(
@@ -458,6 +456,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       return;
     }
     setModelOptionsStatus("idle");
+    setLoadAttempt((attempt) => attempt + 1);
   };
 
   return (

@@ -2,6 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   buildModelMenuItems,
+  clearCoderModelOptionsCacheForTest,
+  getCachedCoderModelOptions,
   loadCoderModelOptions,
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
@@ -57,6 +59,7 @@ const { getModelOptions } = jest.requireMock(
 
 describe("QuerySettingsControls", () => {
   beforeEach(() => {
+    clearCoderModelOptionsCacheForTest();
     getModelOptions.mockReset();
     resolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
@@ -121,6 +124,74 @@ describe("QuerySettingsControls", () => {
       reasoningEfforts: [{ key: "NONE", label: "NONE" }],
     });
     expect(getModelOptions).toHaveBeenCalledWith();
+  });
+
+  it("returns cached model options after the first successful load", async () => {
+    getModelOptions.mockResolvedValue({
+      data: {
+        models: [{ key: "cached-model", modelId: "qwen3-cached" }],
+        reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+      },
+    });
+
+    await expect(loadCoderModelOptions()).resolves.toMatchObject({
+      models: [{ key: "cached-model" }],
+      reasoningEfforts: [{ key: "MEDIUM" }],
+    });
+    await expect(loadCoderModelOptions()).resolves.toMatchObject({
+      models: [{ key: "cached-model" }],
+      reasoningEfforts: [{ key: "MEDIUM" }],
+    });
+
+    expect(getModelOptions).toHaveBeenCalledTimes(1);
+    expect(getCachedCoderModelOptions()).toMatchObject({
+      models: [{ key: "cached-model" }],
+      reasoningEfforts: [{ key: "MEDIUM" }],
+    });
+  });
+
+  it("coalesces concurrent model option loads into one request", async () => {
+    getModelOptions.mockResolvedValue({
+      data: {
+        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        reasoningEfforts: [{ key: "LOW", label: "LOW" }],
+      },
+    });
+
+    const first = loadCoderModelOptions();
+    const second = loadCoderModelOptions();
+
+    expect(getModelOptions).toHaveBeenCalledTimes(1);
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      {
+        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        reasoningEfforts: [{ key: "LOW", label: "LOW" }],
+      },
+      {
+        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        reasoningEfforts: [{ key: "LOW", label: "LOW" }],
+      },
+    ]);
+  });
+
+  it("does not cache failed model option loads", async () => {
+    getModelOptions
+      .mockRejectedValueOnce(new Error("network timeout"))
+      .mockResolvedValueOnce({
+        data: {
+          models: [{ key: "retry-model", modelId: "qwen3-retry" }],
+          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+        },
+      });
+
+    await expect(loadCoderModelOptions()).rejects.toThrow("network timeout");
+    expect(getCachedCoderModelOptions()).toBeNull();
+
+    await expect(loadCoderModelOptions()).resolves.toMatchObject({
+      models: [{ key: "retry-model" }],
+      reasoningEfforts: [{ key: "HIGH" }],
+    });
+    expect(getModelOptions).toHaveBeenCalledTimes(2);
   });
 
   it("normalizes standard, nested, and bare model option payloads", () => {
