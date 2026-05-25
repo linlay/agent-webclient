@@ -203,13 +203,18 @@ export async function uploadComposerAttachments(input: {
 				throw new Error("上传成功，但接口未返回可用的文件引用");
 			}
 			const [normalizedAttachment] = normalizeTimelineAttachments(references);
+			const attachmentType = getAttachmentKind({
+				name: normalizedAttachment?.name || attachment.name,
+				mimeType: normalizedAttachment?.mimeType || attachment.mimeType,
+				type: normalizedAttachment?.type || attachment.type,
+			});
 			setAttachments((current) =>
 				current.map((item) =>
 					item.id === attachment.id
 						? {
 								...item,
 								size: normalizedAttachment?.size ?? item.size,
-								type: normalizedAttachment?.type || item.type,
+								type: attachmentType,
 								mimeType: normalizedAttachment?.mimeType || item.mimeType,
 								resourceUrl: normalizedAttachment?.url || item.resourceUrl,
 								status: "ready",
