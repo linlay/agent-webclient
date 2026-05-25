@@ -73,6 +73,15 @@ function getModelKey(value: unknown): string {
   return toConfigText(value.key) || toConfigText(value.modelKey) || toConfigText(value.id);
 }
 
+function getModelDisplayName(model: CoderModelOption): string {
+  const key = String(model.key || "").trim();
+  return (
+    toConfigText(model.name)
+    || toConfigText(model.label)
+    || (model.modelId ? `${key} · ${model.modelId}` : key)
+  );
+}
+
 function normalizeReasoningEffort(value: unknown): QueryReasoningEffort | undefined {
   const text = toConfigText(value).toUpperCase();
   if (text === "NONE" || text === "LOW" || text === "MEDIUM" || text === "HIGH") {
@@ -183,7 +192,7 @@ export function buildModelMenuItems({
     ...(modelStatusItem ? [modelStatusItem] : []),
     ...models.map((model) => {
       const key = String(model.key || "").trim();
-      const label = model.modelId ? `${key} · ${model.modelId}` : key;
+      const label = getModelDisplayName(model);
       return {
         key: `model:${encodeURIComponent(key)}`,
         label: (
@@ -452,7 +461,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     for (const model of models) {
       const key = String(model.key || "").trim();
       if (!key) continue;
-      labels.set(key, model.modelId ? `${key} · ${model.modelId}` : key);
+      labels.set(key, getModelDisplayName(model));
     }
     return labels;
   }, [models]);

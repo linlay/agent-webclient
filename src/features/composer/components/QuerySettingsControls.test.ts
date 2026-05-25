@@ -320,6 +320,7 @@ describe("QuerySettingsControls", () => {
       models: [
         {
           key: "babelark-qwen3_5-plus",
+          name: "Qwen Coder Plus",
           provider: "babelark",
           modelId: "qwen3.5-plus",
           protocol: "OPENAI",
@@ -333,7 +334,7 @@ describe("QuerySettingsControls", () => {
         reasoningEffort: "HIGH",
       },
       selectedModelKey: "babelark-qwen3_5-plus",
-      selectedModelLabel: "babelark-qwen3_5-plus · qwen3.5-plus",
+      selectedModelLabel: "Qwen Coder Plus",
       selectedReasoningEffort: "HIGH",
       t: (key) => {
         const messages: Record<string, string> = {
@@ -381,11 +382,43 @@ describe("QuerySettingsControls", () => {
     expect(modelChildren.map((item) => item.key)).toEqual([
       "model:babelark-qwen3_5-plus",
     ]);
-    expect(modelSubmenuHtml).toContain("模型 · babelark-qwen3_5-plus · qwen3.5-plus");
+    expect(modelSubmenuHtml).toContain("模型 · Qwen Coder Plus");
     expect(modelHtml).not.toContain("默认模型");
-    expect(modelHtml).toContain("babelark-qwen3_5-plus · qwen3.5-plus");
+    expect(modelHtml).toContain("Qwen Coder Plus");
+    expect(modelHtml).not.toContain("babelark-qwen3_5-plus");
+    expect(modelHtml).not.toContain("qwen3.5-plus");
     expect(reasoningHtml).not.toContain("默认思考");
     expect(reasoningHtml).toContain("高");
+  });
+
+  it("falls back to key and modelId when a model name is missing", () => {
+    const items = buildModelMenuItems({
+      models: [
+        {
+          key: "legacy-coder",
+          modelId: "qwen3-legacy",
+          isReasoner: true,
+          isVision: false,
+        },
+      ],
+      reasoningEfforts: [],
+      modelOverride: { key: "legacy-coder" },
+      selectedModelKey: "legacy-coder",
+      selectedModelLabel: "legacy-coder · qwen3-legacy",
+      t: (key) => {
+        const messages: Record<string, string> = {
+          "composer.query.model.group": "模型",
+          "composer.query.reasoning.group": "思考深度",
+        };
+        return messages[key] || key;
+      },
+    }) as Array<{ key: string; children?: Array<{ key: string; label: React.ReactNode }> }>;
+    const modelSubmenu = items[1];
+    const modelHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, modelSubmenu.children?.[0]?.label),
+    );
+
+    expect(modelHtml).toContain("legacy-coder · qwen3-legacy");
   });
 
   it("retries model loading when the menu opens after an empty or failed load", () => {
