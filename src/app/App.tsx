@@ -1,16 +1,28 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
 import {
   createBrowserRouter,
+  useLocation,
   Outlet,
   RouterProvider,
 } from "react-router-dom";
-import { AppProvider, useAppState } from "@/app/state/AppContext";
+import { AppProvider, useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import { initializeDesktopQueryContextBridge } from "@/shared/api/desktopQueryContext";
-import { I18nProvider, type I18nProviderProps } from "@/shared/i18n";
+import {
+  I18nProvider,
+  readUrlLocale,
+  resolveInitialLocale,
+  type I18nProviderProps,
+  useI18n,
+} from "@/shared/i18n";
+import {
+  readHostThemeMode,
+  readStoredThemeMode,
+  readUrlThemeMode,
+} from "@/shared/styles/theme";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { AutomationsPage } from "./pages/automations";
 import { MemoryPage } from "./pages/memory";
@@ -22,15 +34,47 @@ const defaultDocumentTitle =
 
 const BaseShell = () => {
   useDesktopRouteChange();
+  const location = useLocation();
+  const dispatch = useAppDispatch();
+  const { locale, setLocale } = useI18n();
+  const hadRouteThemeOverrideRef = useRef(false);
+
+  useEffect(() => {
+    const routeThemeMode = readUrlThemeMode(location.search);
+    if (routeThemeMode) {
+      hadRouteThemeOverrideRef.current = true;
+      dispatch({ type: "SET_THEME_MODE", themeMode: routeThemeMode });
+      return;
+    }
+
+    if (!hadRouteThemeOverrideRef.current) {
+      return;
+    }
+
+    hadRouteThemeOverrideRef.current = false;
+    const nextThemeMode = readHostThemeMode() || readStoredThemeMode() || "light";
+    dispatch({ type: "SET_THEME_MODE", themeMode: nextThemeMode });
+  }, [dispatch, location.search]);
+
+  useEffect(() => {
+    const routeLocale = readUrlLocale(location.search);
+    const nextLocale = routeLocale || resolveInitialLocale();
+    if (nextLocale !== locale) {
+      setLocale(nextLocale, { persist: false });
+    }
+  }, [locale, location.search, setLocale]);
+
   return <Outlet />;
 };
 const DocumentTitleRoute: React.FC<{
   title?: string;
+  titleKey?: string;
   children: React.ReactNode;
-}> = ({ title, children }) => {
+}> = ({ title, titleKey, children }) => {
+  const { t } = useI18n();
   useEffect(() => {
-    document.title = title || defaultDocumentTitle;
-  }, [title]);
+    document.title = titleKey ? t(titleKey) : title || defaultDocumentTitle;
+  }, [t, title, titleKey]);
 
   return <>{children}</>;
 };
@@ -118,7 +162,7 @@ const router = createBrowserRouter(
         {
           path: "/automations",
           element: (
-            <DocumentTitleRoute title="自动化">
+            <DocumentTitleRoute titleKey="route.title.automations">
               <AutomationsPage />
             </DocumentTitleRoute>
           ),
@@ -126,7 +170,7 @@ const router = createBrowserRouter(
         {
           path: "/memory",
           element: (
-            <DocumentTitleRoute title="记忆">
+            <DocumentTitleRoute titleKey="route.title.memory">
               <MemoryPage />
             </DocumentTitleRoute>
           ),
@@ -134,7 +178,7 @@ const router = createBrowserRouter(
         {
           path: "/agents",
           element: (
-            <DocumentTitleRoute title="智能体">
+            <DocumentTitleRoute titleKey="route.title.agents">
               <AgentsPage />
             </DocumentTitleRoute>
           ),
@@ -142,7 +186,7 @@ const router = createBrowserRouter(
         {
           path: "/agents/:agentKey",
           element: (
-            <DocumentTitleRoute title="智能体">
+            <DocumentTitleRoute titleKey="route.title.agents">
               <AgentsPage />
             </DocumentTitleRoute>
           ),
@@ -150,7 +194,7 @@ const router = createBrowserRouter(
         {
           path: "/agent/:agentKey",
           element: (
-            <DocumentTitleRoute title="智能体">
+            <DocumentTitleRoute titleKey="route.title.agent">
               <AgentChatShell />
             </DocumentTitleRoute>
           ),
@@ -169,9 +213,7 @@ interface AppProps {
 
 const App: React.FC<AppProps> = ({ i18n }) => {
   const mergedI18n: Omit<I18nProviderProps, "children"> = {
-    locale: "zh-CN",
     fallbackLocale: "zh-CN",
-    persistLocale: false,
     ...(i18n || {}),
   };
 

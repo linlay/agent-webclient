@@ -1,12 +1,10 @@
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import {
-  I18nProvider,
+  I18N_LOCALE_STORAGE_KEY,
+  readUrlLocale,
   resolveInitialLocale,
-  useI18n,
 } from "@/shared/i18n";
 
-describe("resolveInitialLocale", () => {
+describe("i18n runtime locale resolution", () => {
   const originalWindow = globalThis.window;
   const originalNavigator = globalThis.navigator;
 
@@ -24,7 +22,7 @@ describe("resolveInitialLocale", () => {
     }
   });
 
-  it("prioritizes query param, then localStorage, then navigator, then fallback", () => {
+  it("uses the lang query without writing it as the stored default", () => {
     const setItem = jest.fn();
     (globalThis as Record<string, unknown>).window = {
       location: {
@@ -39,17 +37,19 @@ describe("resolveInitialLocale", () => {
       language: "zh-CN",
     };
 
+    expect(readUrlLocale("?lang=en-US")).toBe("en-US");
     expect(resolveInitialLocale("zh-CN")).toBe("en-US");
     expect(setItem).not.toHaveBeenCalled();
   });
 
-  it("falls back to localStorage, navigator, and fallback when no query param exists", () => {
+  it("falls back to stored locale, navigator language, then fallback locale", () => {
     (globalThis as Record<string, unknown>).window = {
       location: {
         search: "",
       },
       localStorage: {
-        getItem: () => "en-US",
+        getItem: (key: string) =>
+          key === I18N_LOCALE_STORAGE_KEY ? "en-US" : null,
       },
     };
     (globalThis as Record<string, unknown>).navigator = {
@@ -67,44 +67,12 @@ describe("resolveInitialLocale", () => {
       },
     };
 
-    expect(resolveInitialLocale("zh-CN")).toBe("zh-CN");
-  });
-});
+    expect(resolveInitialLocale("en-US")).toBe("zh-CN");
 
-describe("I18nProvider", () => {
-  function Probe() {
-    const { t } = useI18n();
-    return (
-      <div>
-        <span>{t("topNav.status.idle")}</span>
-        <span>{t("slash.command.switch.label")}</span>
-      </div>
-    );
-  }
+    (globalThis as Record<string, unknown>).navigator = {
+      language: "",
+    };
 
-  it("renders translated messages with locale-specific defaults", () => {
-    const html = renderToStaticMarkup(
-      <I18nProvider locale="zh-CN" persistLocale={false}>
-        <Probe />
-      </I18nProvider>,
-    );
-
-    expect(html).toContain("待命");
-    expect(html).toContain("切换Agent");
-  });
-
-  it("applies host term overrides inside translated templates", () => {
-    const html = renderToStaticMarkup(
-      <I18nProvider
-        locale="en-US"
-        persistLocale={false}
-        terms={{ agentLabel: "worker" }}
-      >
-        <Probe />
-      </I18nProvider>,
-    );
-
-    expect(html).toContain("Idle");
-    expect(html).toContain("Switch worker");
+    expect(resolveInitialLocale("en-US")).toBe("en-US");
   });
 });

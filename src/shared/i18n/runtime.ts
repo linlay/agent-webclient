@@ -62,14 +62,48 @@ export function normalizeLocale(
   return prefixMatch || DEFAULT_LOCALE;
 }
 
+export function readLocaleParam(
+  value: unknown,
+  locales: Partial<I18nLocaleMap> = DEFAULT_LOCALES,
+): Locale | null {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const available = Object.keys(locales) as Locale[];
+  if (available.includes(normalized as Locale)) {
+    return normalized as Locale;
+  }
+
+  const normalizedLower = normalized.toLowerCase();
+  return (
+    available.find((locale) =>
+      locale.toLowerCase().startsWith(normalizedLower.split("-")[0] || ""),
+    ) || null
+  );
+}
+
+export function readUrlLocale(
+  search: string = typeof window !== "undefined" ? window.location.search : "",
+  locales: Partial<I18nLocaleMap> = DEFAULT_LOCALES,
+): Locale | null {
+  try {
+    const queryLocale = new URLSearchParams(search || "").get("lang");
+    return readLocaleParam(queryLocale, locales);
+  } catch (_error) {
+    return null;
+  }
+}
+
 export function resolveInitialLocale(
   fallbackLocale: Locale = DEFAULT_LOCALE,
   locales: Partial<I18nLocaleMap> = DEFAULT_LOCALES,
 ): Locale {
   if (typeof window !== "undefined") {
-    const queryLocale = new URLSearchParams(window.location.search).get("lang");
+    const queryLocale = readUrlLocale(window.location.search, locales);
     if (queryLocale) {
-      return normalizeLocale(queryLocale, locales);
+      return queryLocale;
     }
 
     const storedLocale = window.localStorage?.getItem(I18N_LOCALE_STORAGE_KEY);

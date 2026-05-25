@@ -2,6 +2,11 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { EventPopover, __TEST_ONLY__ } from "@/app/modals/EventPopover";
+import {
+  configureI18nRuntime,
+  DEFAULT_LOCALES,
+  getDefaultTermsForLocale,
+} from "@/shared/i18n";
 import type { AgentEvent } from "@/app/state/types";
 
 const {
@@ -572,6 +577,15 @@ describe("EventPopover collected snapshot shape", () => {
 });
 
 describe("EventPopover display and copy helpers", () => {
+  beforeEach(() => {
+    configureI18nRuntime({
+      locale: "zh-CN",
+      fallbackLocale: "zh-CN",
+      locales: DEFAULT_LOCALES,
+      terms: getDefaultTermsForLocale("zh-CN"),
+    });
+  });
+
   it("formats readable timestamps and falls back to --", () => {
     expect(formatReadableTimestamp(1776518171300)).toMatch(
       /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/,

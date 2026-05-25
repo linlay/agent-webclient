@@ -28,6 +28,7 @@ import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
+import { useI18n } from "@/shared/i18n";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   const normalizedAgentKey = String(agentKey || "").trim();
@@ -51,13 +52,6 @@ function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
       role: "--",
     },
   ];
-}
-
-function normalizeRouteTheme(value: string): "light" | "dark" | "" {
-  const theme = String(value || "")
-    .trim()
-    .toLowerCase();
-  return theme === "light" || theme === "dark" ? theme : "";
 }
 
 function isRouteAgentResolved(
@@ -98,6 +92,7 @@ const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
 export const AgentChatShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
@@ -121,10 +116,6 @@ export const AgentChatShell: React.FC = () => {
   );
   const chatId = useMemo(
     () => String(searchParams.get("chatId") || "").trim(),
-    [searchParams],
-  );
-  const routeThemeMode = useMemo(
-    () => normalizeRouteTheme(searchParams.get("theme") || ""),
     [searchParams],
   );
   const routeHistoryRequested = useMemo(
@@ -238,14 +229,6 @@ export const AgentChatShell: React.FC = () => {
       cancelled = true;
     };
   }, [agentKey, dispatch, routeAgentResolved]);
-
-  useEffect(() => {
-    if (!routeThemeMode || state.themeMode === routeThemeMode) {
-      return;
-    }
-
-    dispatch({ type: "SET_THEME_MODE", themeMode: routeThemeMode });
-  }, [dispatch, routeThemeMode, state.themeMode]);
 
   useEffect(() => {
     if (!agentKey || !routeAgentReady) {
@@ -397,11 +380,11 @@ export const AgentChatShell: React.FC = () => {
   }, [timelineEntries, state.events]);
 
   if (!routeAgentReady) {
-    return <AgentRouteLoadingPage title="正在加载智能体" />;
+    return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }
 
   if (!routeChatReady) {
-    return <AgentRouteLoadingPage title="正在加载会话" />;
+    return <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} />;
   }
 
   return (

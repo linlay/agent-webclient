@@ -2,7 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { SettingsModal, formatWsStatusText } from "@/features/settings/components/SettingsModal";
-import { I18nProvider } from "@/shared/i18n";
+import {
+  configureI18nRuntime,
+  DEFAULT_LOCALES,
+  getDefaultTermsForLocale,
+  I18nProvider,
+} from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -43,6 +48,15 @@ const globalWithStorage = globalThis as typeof globalThis & {
 };
 
 describe("formatWsStatusText", () => {
+  beforeEach(() => {
+    configureI18nRuntime({
+      locale: "en-US",
+      fallbackLocale: "en-US",
+      locales: DEFAULT_LOCALES,
+      terms: getDefaultTermsForLocale("en-US"),
+    });
+  });
+
   it("shows the detailed websocket error when available", () => {
     expect(
       formatWsStatusText(
@@ -107,6 +121,9 @@ describe("SettingsModal", () => {
     expect(html).toContain("settings-preferences-grid");
     expect(html).toContain("Conversation mode");
     expect(html).toContain("Theme");
+    expect(html).toContain("Language");
+    expect(html).toContain("Chinese");
+    expect(html).toContain("English");
     expect(html).toContain("Transport mode");
     expect(html).toContain("SSE");
     expect(html).toContain("WebSocket");
@@ -126,8 +143,23 @@ describe("SettingsModal", () => {
 
     expect(html).toContain("settings-preferences-grid");
     expect(html).toContain("Conversation mode");
+    expect(html).toContain("Language");
     expect(html).toContain("Transport mode");
     expect(html).not.toContain("Theme");
+  });
+
+  it("renders the language control in Chinese", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(I18nProvider, {
+        locale: "zh-CN",
+        fallbackLocale: "zh-CN",
+        children: React.createElement(SettingsModal),
+      }),
+    );
+
+    expect(html).toContain("默认语言");
+    expect(html).toContain("中文");
+    expect(html).toContain("English");
   });
 
   it("shows sse-specific transport guidance when sse is selected", () => {

@@ -52,6 +52,34 @@ describe("theme helpers", () => {
 		expect(resolveInitialThemeMode()).toBe("dark");
 	});
 
+	it("prefers the route theme query over host theme, stored theme, and html attribute", () => {
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: {
+				location: {
+					search: "?theme=light&hostTheme=dark",
+				},
+			},
+		});
+		Object.defineProperty(globalThis, "localStorage", {
+			configurable: true,
+			value: {
+				getItem: (key: string) =>
+					key === THEME_STORAGE_KEY ? "dark" : null,
+			},
+		});
+		Object.defineProperty(globalThis, "document", {
+			configurable: true,
+			value: {
+				documentElement: {
+					getAttribute: () => "dark",
+				},
+			},
+		});
+
+		expect(resolveInitialThemeMode()).toBe("light");
+	});
+
 	it("falls back to the stored theme when no host theme is provided", () => {
 		Object.defineProperty(globalThis, "window", {
 			configurable: true,

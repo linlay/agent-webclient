@@ -18,7 +18,6 @@ import { getAutomations } from "@/features/transport/lib/apiClientProxy";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	applyThemeModeToDocument,
-	writeStoredThemeMode,
 } from "@/shared/styles/theme";
 import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
 
@@ -101,7 +100,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	useEffect(() => {
 		applyThemeModeToDocument(state.themeMode);
-		writeStoredThemeMode(state.themeMode);
 	}, [state.themeMode]);
 
 	useEffect(() => {

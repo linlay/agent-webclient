@@ -32,7 +32,7 @@ export interface I18nContextValue {
   locale: Locale;
   fallbackLocale: Locale;
   terms: I18nTerms;
-  setLocale: (locale: Locale) => void;
+  setLocale: (locale: Locale, options?: { persist?: boolean }) => void;
   t: (key: string, params?: TranslateParams) => string;
 }
 
@@ -56,7 +56,22 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
       }),
     [fallbackLocale, locale, locales, terms],
   );
-  const [currentLocale, setCurrentLocale] = useState<Locale>(initialConfig.locale);
+  const [currentLocale, setCurrentLocale] = useState<Locale>(
+    initialConfig.locale,
+  );
+  const handleSetLocale = React.useCallback(
+    (nextLocale: Locale, options: { persist?: boolean } = {}) => {
+      if (
+        persistLocale &&
+        options.persist !== false &&
+        typeof window !== "undefined"
+      ) {
+        window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
+      }
+      setCurrentLocale(nextLocale);
+    },
+    [persistLocale],
+  );
 
   const value = useMemo<I18nContextValue>(() => {
     const nextTerms = resolveI18nTerms(currentLocale, terms);
@@ -71,10 +86,16 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
       locale: config.locale,
       fallbackLocale: config.fallbackLocale,
       terms: config.terms,
-      setLocale: setCurrentLocale,
+      setLocale: handleSetLocale,
       t: (key, params) => translateMessage(key, params, config),
     };
-  }, [currentLocale, initialConfig.fallbackLocale, initialConfig.locales, terms]);
+  }, [
+    currentLocale,
+    handleSetLocale,
+    initialConfig.fallbackLocale,
+    initialConfig.locales,
+    terms,
+  ]);
 
   useEffect(() => {
     configureI18nRuntime({
@@ -86,11 +107,11 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
   }, [initialConfig.locales, value.fallbackLocale, value.locale, value.terms]);
 
   useEffect(() => {
-    if (!persistLocale || typeof window === "undefined") {
+    if (typeof document === "undefined") {
       return;
     }
-    window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, value.locale);
-  }, [persistLocale, value.locale]);
+    document.documentElement.lang = value.locale;
+  }, [value.locale]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
@@ -106,7 +127,10 @@ export function useI18n(): I18nContextValue {
     locale: config.locale,
     fallbackLocale: config.fallbackLocale,
     terms: config.terms,
-    setLocale: (nextLocale) => {
+    setLocale: (nextLocale, options = {}) => {
+      if (options.persist !== false && typeof window !== "undefined") {
+        window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
+      }
       configureI18nRuntime({
         locale: nextLocale,
         terms: resolveI18nTerms(nextLocale),

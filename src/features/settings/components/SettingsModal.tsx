@@ -22,6 +22,8 @@ import {
   type ClientGateDraftField,
 } from "@/features/settings/lib/settingsClientGateDrafts";
 import { useI18n } from "@/shared/i18n";
+import type { Locale } from "@/shared/i18n";
+import { writeStoredThemeMode } from "@/shared/styles/theme";
 import { SettingsTransport } from "@/features/settings/components/SettingsTransport";
 import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
@@ -32,7 +34,7 @@ export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 export const SettingsModal: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const { t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const appMode = isAppMode();
   const isDesktopApp = isDesktopAppMode();
   const voiceEnabled = isVoiceEnabled();
@@ -118,9 +120,17 @@ export const SettingsModal: React.FC = () => {
 
   const handleThemeChange = useCallback(
     (themeMode: ThemeMode) => {
+      writeStoredThemeMode(themeMode);
       dispatch({ type: "SET_THEME_MODE", themeMode });
     },
     [dispatch],
+  );
+
+  const handleLanguageChange = useCallback(
+    (nextLocale: Locale) => {
+      setLocale(nextLocale);
+    },
+    [setLocale],
   );
 
   const handleConversationModeChange = useCallback((mode: ConversationMode) => {
@@ -298,6 +308,39 @@ export const SettingsModal: React.FC = () => {
               <p className="settings-hint">{t("settings.theme.hint")}</p>
             </div>
           )}
+
+          <div className="field-group">
+            <label>{t("settings.language.label")}</label>
+            <div
+              className="settings-segmented"
+              role="tablist"
+              aria-label={t("settings.language.label")}
+            >
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${locale === "zh-CN" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={locale === "zh-CN"}
+                active={locale === "zh-CN"}
+                onClick={() => handleLanguageChange("zh-CN")}
+              >
+                {t("settings.language.zhCN")}
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${locale === "en-US" ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={locale === "en-US"}
+                active={locale === "en-US"}
+                onClick={() => handleLanguageChange("en-US")}
+              >
+                {t("settings.language.enUS")}
+              </UiButton>
+            </div>
+            <p className="settings-hint">{t("settings.language.hint")}</p>
+          </div>
 
           <SettingsTransport
             transportMode={state.transportMode}

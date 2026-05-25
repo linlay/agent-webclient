@@ -568,7 +568,7 @@ export const LeftSidebar: React.FC = () => {
                 >
                   <MaterialIcon name="automation" />
                   <Flex gap={4} align="center">
-                    <span>自动化</span>
+                    <span>{t("leftSidebar.quickActions.automation")}</span>
                     <Badge count={state.automations?.length} />
                   </Flex>
                 </UiButton>
@@ -581,7 +581,7 @@ export const LeftSidebar: React.FC = () => {
                 >
                   <MaterialIcon name="neurology" />
                   <Flex gap={4} align="center">
-                    <span>记忆</span>
+                    <span>{t("leftSidebar.quickActions.memory")}</span>
                     <Badge count={state.memoryInfoRecords?.length || 0} />
                   </Flex>
                 </UiButton>
@@ -597,7 +597,7 @@ export const LeftSidebar: React.FC = () => {
                 >
                   <MaterialIcon name="robot" />
                   <Flex gap={4} align="center">
-                    <span>智能体</span>
+                    <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
                   </Flex>
                 </UiButton>

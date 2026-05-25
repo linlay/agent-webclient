@@ -18,6 +18,7 @@ import { Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
 import useApp from "antd/es/app/useApp";
+import { useI18n, type Locale } from "@/shared/i18n";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -31,20 +32,24 @@ interface TimelineRowProps {
   metaNode?: React.ReactNode;
 }
 
-const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
+function createTimeFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-});
+  });
+}
 
-const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
+function createDateTimeFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-});
+  });
+}
 
 function isSameDay(a: Date, b: Date): boolean {
   return (
@@ -65,7 +70,11 @@ function isYesterday(target: Date, now: Date): boolean {
   );
 }
 
-export function formatTimelineTime(ts?: number): {
+export function formatTimelineTime(
+  ts?: number,
+  locale: Locale = "zh-CN",
+  labels?: { today: string; yesterday: string },
+): {
   short: string;
   full: string;
 } {
@@ -75,6 +84,13 @@ export function formatTimelineTime(ts?: number): {
   const now = new Date();
   const diffMs = now.getTime() - target.getTime();
   const dayCrossed = !isSameDay(target, now);
+  const timeFormatter = createTimeFormatter(locale);
+  const dateTimeFormatter = createDateTimeFormatter(locale);
+  const relativeLabels =
+    labels ||
+    (locale === "en-US"
+      ? { today: "Today", yesterday: "Yesterday" }
+      : { today: "今天", yesterday: "昨天" });
   const hhmm = timeFormatter.format(target);
   const full = dateTimeFormatter.format(target);
 
@@ -83,11 +99,11 @@ export function formatTimelineTime(ts?: number): {
   }
 
   if (diffMs >= 0 && dayCrossed && isYesterday(target, now)) {
-    return { short: `昨天 ${hhmm}`, full };
+    return { short: `${relativeLabels.yesterday} ${hhmm}`, full };
   }
 
   if (diffMs >= 0 && !dayCrossed) {
-    return { short: `今天 ${hhmm}`, full };
+    return { short: `${relativeLabels.today} ${hhmm}`, full };
   }
 
   return {
@@ -198,13 +214,17 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   metaNode,
 }) => {
   const { message } = useApp();
+  const { locale, t } = useI18n();
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
     node?.taskId || toolGroup?.nodes.find((item) => item.taskId)?.taskId;
   const anchorNodeId = node?.id || toolGroup?.nodes[0]?.id || undefined;
 
-  const time = formatTimelineTime(timeTarget.ts);
+  const time = formatTimelineTime(timeTarget.ts, locale, {
+    today: t("timeline.time.today"),
+    yesterday: t("timeline.time.yesterday"),
+  });
   const timeNode =
     metaNode ||
     (showTime && time.short ? (

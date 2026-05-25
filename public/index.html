@@ -13,6 +13,12 @@
 	<script>
 		(() => {
 			try {
+				const params = new URLSearchParams(window.location.search || "");
+				const routeTheme = params.get("theme");
+				if (routeTheme === "dark" || routeTheme === "light") {
+					document.documentElement.setAttribute("data-theme", routeTheme);
+					return;
+				}
 				const storedTheme = localStorage.getItem("agent-webclient.themeMode");
 				if (storedTheme === "dark" || storedTheme === "light") {
 					document.documentElement.setAttribute("data-theme", storedTheme);

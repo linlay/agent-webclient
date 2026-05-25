@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { t } from "@/shared/i18n";
+import { useI18n } from "@/shared/i18n";
 
 export type SpeechRecognitionLike = {
 	lang: string;
@@ -45,6 +45,7 @@ export function useSpeechInput(input: {
 	setSlashDismissed: (dismissed: boolean) => void;
 	updateMentionSuggestions: (value: string) => void;
 }) {
+	const { locale, t } = useI18n();
 	const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 	const speechBaseValueRef = useRef("");
 	const speechFinalBufferRef = useRef("");
@@ -59,7 +60,7 @@ export function useSpeechInput(input: {
 	const mergeSpeechText = useCallback((base: string, append: string) => {
 		if (!append) return base;
 		return `${base}${append}`;
-	}, []);
+	}, [t]);
 
 	useEffect(() => {
 		const supported = Boolean(getSpeechConstructor());
@@ -97,7 +98,7 @@ export function useSpeechInput(input: {
 
 		if (!speechRecognitionRef.current) {
 			const recognition = new ctor();
-			recognition.lang = "zh-CN";
+			recognition.lang = locale;
 			recognition.continuous = true;
 			recognition.interimResults = true;
 			recognition.onstart = () => {
@@ -147,13 +148,14 @@ export function useSpeechInput(input: {
 
 		speechBaseValueRef.current = input.inputValue;
 		speechFinalBufferRef.current = "";
+		speechRecognitionRef.current.lang = locale;
 		try {
 			speechRecognitionRef.current.start();
 		} catch {
 			setSpeechState("error");
 			setSpeechStatus(t("composer.speech.retry"));
 		}
-	}, [input, mergeSpeechText]);
+	}, [input, locale, mergeSpeechText, t]);
 
 	const toggleSpeechInput = useCallback(() => {
 		if (speechListeningRef.current) {

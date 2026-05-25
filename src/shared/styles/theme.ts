@@ -6,6 +6,25 @@ export function normalizeThemeMode(value: unknown): ThemeMode {
 	return value === "dark" ? "dark" : "light";
 }
 
+export function readThemeParam(value: unknown): ThemeMode | null {
+	const normalized = String(value || "").trim().toLowerCase();
+	if (normalized === "dark" || normalized === "light") {
+		return normalized;
+	}
+	return null;
+}
+
+export function readUrlThemeMode(
+	search: string = typeof window !== "undefined" ? window.location.search : "",
+): ThemeMode | null {
+	try {
+		const params = new URLSearchParams(search || "");
+		return readThemeParam(params.get("theme"));
+	} catch (_error) {
+		return null;
+	}
+}
+
 export function readHostThemeMode(): ThemeMode | null {
 	if (typeof window === "undefined") {
 		return null;
@@ -61,6 +80,11 @@ export function applyThemeModeToDocument(themeMode: ThemeMode): void {
 }
 
 export function resolveInitialThemeMode(): ThemeMode {
+	const urlThemeMode = readUrlThemeMode();
+	if (urlThemeMode) {
+		return urlThemeMode;
+	}
+
 	const hostThemeMode = readHostThemeMode();
 	if (hostThemeMode) {
 		return hostThemeMode;

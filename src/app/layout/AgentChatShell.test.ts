@@ -206,7 +206,7 @@ describe("AgentChatShell", () => {
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
     expect(html).toContain("agent-route-loading-page");
-    expect(html).toContain("正在加载智能体");
+    expect(html).toContain("Loading agent");
     expect(html).not.toContain("conversation-stage");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });
@@ -303,7 +303,7 @@ describe("AgentChatShell", () => {
       }),
     );
     expect(html).toContain("agent-route-loading-page");
-    expect(html).toContain("正在加载会话");
+    expect(html).toContain("Loading conversation");
     expect(html).not.toContain("conversation-stage");
 
     useEffectSpy.mockRestore();
@@ -340,8 +340,8 @@ describe("AgentChatShell", () => {
         },
       }),
     );
-    expect(html).not.toContain("正在加载智能体");
-    expect(html).toContain("正在加载会话");
+    expect(html).not.toContain("Loading agent");
+    expect(html).toContain("Loading conversation");
 
     useEffectSpy.mockRestore();
   });
@@ -435,7 +435,7 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("applies route theme query parameters", () => {
+  it("leaves route theme query parameters to the base shell", () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
@@ -451,7 +451,7 @@ describe("AgentChatShell", () => {
 
     renderToStaticMarkup(React.createElement(AgentChatShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_THEME_MODE",
       themeMode: "dark",
     });
