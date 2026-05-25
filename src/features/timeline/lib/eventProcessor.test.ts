@@ -682,6 +682,82 @@ describe('processEvent', () => {
     expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
   });
 
+  it('marks tool.result as failed when object result has non-zero camelCase exitCode', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_exit_object',
+      result: {
+        exitCode: 1,
+        stdout: 'The build failed. Fix the build errors and run again.',
+        stderr: '',
+      },
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('failed');
+  });
+
+  it('marks tool.result as failed when JSON string result has non-zero camelCase exitCode', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_exit_json_camel',
+      result: JSON.stringify({
+        exitCode: 1,
+        stdout: 'The build failed. Fix the build errors and run again.',
+        stderr: '',
+      }),
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('failed');
+  });
+
+  it('marks tool.result as failed when JSON string result has non-zero snake_case exit_code', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_exit_json_snake',
+      result: JSON.stringify({
+        exit_code: 1,
+        stdout: 'The build failed. Fix the build errors and run again.',
+        stderr: '',
+      }),
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('failed');
+  });
+
+  it('keeps tool.result successful when structured exitCode is zero', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_exit_zero',
+      result: JSON.stringify({
+        exitCode: 0,
+        stdout: 'ok',
+        stderr: '',
+      }),
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+  });
+
+  it('does not infer tool.result failure from non-JSON text mentioning exitCode', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_exit_text',
+      result: 'exitCode: -1',
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+  });
+
   it('hydrates tool.snapshot from snapshot payload and links a later tool.result', () => {
     const state = createState();
 

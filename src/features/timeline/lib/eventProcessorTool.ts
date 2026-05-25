@@ -18,6 +18,44 @@ import {
   resolveFinalToolArgsText,
 } from "@/features/timeline/lib/eventProcessorShared";
 
+function readStructuredExitCode(value: unknown): number | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const rawExitCode = record.exitCode ?? record.exit_code;
+  if (typeof rawExitCode === "number" && Number.isFinite(rawExitCode)) {
+    return rawExitCode;
+  }
+  if (typeof rawExitCode === "string" && rawExitCode.trim()) {
+    const parsed = Number(rawExitCode);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function parseResultJSON(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function isToolResultFailure(event: AgentEvent, resultValue: unknown): boolean {
+  if (event.error) {
+    return true;
+  }
+  const candidate =
+    typeof resultValue === "string" ? parseResultJSON(resultValue) : resultValue;
+  const exitCode = readStructuredExitCode(candidate);
+  return exitCode !== null && exitCode !== 0;
+}
+
 export function processToolEvent(
   event: AgentEvent,
   state: EventProcessorState,
@@ -180,7 +218,7 @@ export function processToolEvent(
         existing,
         existingToolState,
         argsText,
-        status: event.error ? "failed" : "success",
+        status: isToolResultFailure(event, resultValue) ? "failed" : "success",
         result: { text: resultText, isCode: typeof resultValue !== "string" },
         ts: existing?.ts || event.timestamp || Date.now(),
         state,
