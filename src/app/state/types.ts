@@ -53,6 +53,7 @@ import type {
 	WsConnectionStatus,
 } from "@/app/state/voiceTypes";
 import type { AutomationSummaryResponse } from "@/shared/api/apiClient";
+import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 
 export type { ThemeMode } from "@/shared/styles/theme";
 export type { TransportMode } from "@/features/transport/lib/transportMode";
@@ -69,10 +70,13 @@ export type {
 	AIAwaitQuestionSubmitParamData,
 	AIAwaitSubmitParamData,
 	AIAwaitSubmitPayloadData,
+	AIUsageSnapshotEvent,
+	AIUsageStats,
 } from "@/app/state/eventTypes";
 export {
 	AIAwaitEventTypeEnum,
 	AIAwaitQuestionType,
+	AIUsageEventTypeEnum,
 	ViewportTypeEnum,
 } from "@/app/state/eventTypes";
 export type * from "@/app/state/timelineTypes";
@@ -189,6 +193,8 @@ export interface AppState {
 	audioMuted: boolean;
 	ttsDebugStatus: string;
 	planningMode: boolean;
+	usageSnapshot: AIUsageSnapshotEvent | null;
+	usagePopoverOpen: boolean;
 	inputMode: InputMode;
 	voiceChat: VoiceChatState;
 	composerDraft: string;

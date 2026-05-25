@@ -161,6 +161,8 @@ export function createInitialState(): AppState {
 		audioMuted: false,
 		ttsDebugStatus: "idle",
 		planningMode: false,
+		usageSnapshot: null,
+		usagePopoverOpen: false,
 		inputMode: "text",
 		voiceChat: createInitialVoiceChatState(),
 		composerDraft: "",

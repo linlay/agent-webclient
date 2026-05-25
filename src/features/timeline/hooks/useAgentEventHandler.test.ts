@@ -429,6 +429,34 @@ describe('shouldSyncLiveCache', () => {
   });
 });
 
+describe('usage snapshot events', () => {
+  it('do not generate timeline commands', () => {
+    const state = createInitialState();
+    const commands = processEvent(
+      {
+        type: 'usage.snapshot',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        model: { key: 'deepseek-chat' },
+        usage: {
+          current: {
+            promptTokens: 10,
+            completionTokens: 5,
+            totalTokens: 15,
+          },
+        },
+      } as AgentEvent,
+      createLiveProcessorState(createLocalCacheFromState(state), state),
+      {
+        mode: 'live',
+        reasoningExpandedDefault: true,
+      },
+    );
+
+    expect(commands).toEqual([]);
+  });
+});
+
 describe('createLiveProcessorState', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {

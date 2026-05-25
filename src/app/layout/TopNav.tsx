@@ -1,7 +1,12 @@
 import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
-import type { AppState, RightSidebarTabKey } from "@/app/state/types";
+import type {
+  AIUsageSnapshotEvent,
+  AIUsageStats,
+  AppState,
+  RightSidebarTabKey,
+} from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { isDebugPanelEnabled, isVoiceEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
@@ -39,6 +44,96 @@ export function resolveTopNavStatus(
   };
 }
 
+function readUsageNumber(value: unknown): number | null {
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function formatUsageNumber(value: unknown): string {
+  const numberValue = readUsageNumber(value);
+  return numberValue == null ? "-" : numberValue.toLocaleString();
+}
+
+function formatCompactUsageNumber(value: unknown): string {
+  const numberValue = readUsageNumber(value);
+  if (numberValue == null) return "-";
+  if (numberValue >= 1_000_000) return `${(numberValue / 1_000_000).toFixed(1)}M`;
+  if (numberValue >= 1_000) return `${(numberValue / 1_000).toFixed(1)}K`;
+  return numberValue.toLocaleString();
+}
+
+function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | null {
+  if (!snapshot?.usage) return null;
+  return (
+    readUsageNumber(snapshot.usage.run?.totalTokens)
+    ?? readUsageNumber(snapshot.usage.current?.totalTokens)
+    ?? readUsageNumber(snapshot.usage.chat?.totalTokens)
+  );
+}
+
+function getReasoningTokens(stats?: AIUsageStats): unknown {
+  return stats?.completionTokensDetails?.reasoningTokens;
+}
+
+function getCachedTokens(stats?: AIUsageStats): unknown {
+  return stats?.promptTokensDetails?.cachedTokens;
+}
+
+interface UsageMetric {
+  key: string;
+  label: string;
+  value: unknown;
+}
+
+function buildUsageMetrics(t: (key: string) => string, stats?: AIUsageStats): UsageMetric[] {
+  return [
+    { key: "prompt", label: t("topNav.usage.metric.prompt"), value: stats?.promptTokens },
+    {
+      key: "completion",
+      label: t("topNav.usage.metric.completion"),
+      value: stats?.completionTokens,
+    },
+    { key: "total", label: t("topNav.usage.metric.total"), value: stats?.totalTokens },
+    {
+      key: "reasoning",
+      label: t("topNav.usage.metric.reasoning"),
+      value: getReasoningTokens(stats),
+    },
+    {
+      key: "cacheHit",
+      label: t("topNav.usage.metric.cacheHit"),
+      value: stats?.promptCacheHitTokens ?? getCachedTokens(stats),
+    },
+    {
+      key: "cacheMiss",
+      label: t("topNav.usage.metric.cacheMiss"),
+      value: stats?.promptCacheMissTokens,
+    },
+    {
+      key: "llmCalls",
+      label: t("topNav.usage.metric.llmCalls"),
+      value: stats?.llmChatCompletionCount,
+    },
+  ];
+}
+
+const UsageSection: React.FC<{
+  title: string;
+  metrics: UsageMetric[];
+}> = ({ title, metrics }) => (
+  <section className="usage-popover-section">
+    <h3>{title}</h3>
+    <dl className="usage-metric-grid">
+      {metrics.map((metric) => (
+        <div className="usage-metric" key={metric.key}>
+          <dt>{metric.label}</dt>
+          <dd>{formatUsageNumber(metric.value)}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+);
+
 export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -63,6 +158,15 @@ export const TopNav: React.FC = () => {
     : "Control+Shift+Space";
   const voiceToggleDisabled =
     !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
+  const usageSnapshot = state.usageSnapshot;
+  const showUsageControl = Boolean(usageSnapshot) || state.streaming;
+  const usageTotal = resolveDisplayTotal(usageSnapshot);
+  const usageTriggerLabel =
+    usageTotal == null
+      ? t("topNav.usage.waitingShort")
+      : t("topNav.usage.totalShort", {
+          total: formatCompactUsageNumber(usageTotal),
+        });
 
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
@@ -94,6 +198,15 @@ export const TopNav: React.FC = () => {
       mode: "text",
     });
   }, [conversation.inputMode, dispatch]);
+
+  const handleOpenUsagePopover = React.useCallback(() => {
+    if (!showUsageControl) return;
+    dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: true });
+  }, [dispatch, showUsageControl]);
+
+  const handleCloseUsagePopover = React.useCallback(() => {
+    dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: false });
+  }, [dispatch]);
 
   React.useEffect(() => {
     if (state.settingsOpen || state.commandModal.open) return;
@@ -161,6 +274,84 @@ export const TopNav: React.FC = () => {
             <span className={`status-pill ${statusClass}`} id="api-status">
               {t(statusText)}
             </span>
+            {showUsageControl ? (
+              <div className="usage-popover-anchor">
+                <UiButton
+                  className="usage-trigger"
+                  variant="ghost"
+                  size="sm"
+                  active={state.usagePopoverOpen}
+                  aria-label={t("topNav.usage.open")}
+                  title={t("topNav.usage.open")}
+                  onClick={handleOpenUsagePopover}
+                >
+                  <MaterialIcon name="monitoring" />
+                  <span className="usage-trigger-total">{usageTriggerLabel}</span>
+                </UiButton>
+                {state.usagePopoverOpen ? (
+                  <div
+                    className="usage-popover"
+                    role="dialog"
+                    aria-label={t("topNav.usage.title")}
+                  >
+                    <div className="usage-popover-header">
+                      <div>
+                        <strong>{t("topNav.usage.title")}</strong>
+                        <span>
+                          {usageSnapshot?.model?.key || t("topNav.usage.modelUnknown")}
+                        </span>
+                      </div>
+                      <UiButton
+                        className="usage-popover-close"
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        aria-label={t("topNav.usage.close")}
+                        title={t("topNav.usage.close")}
+                        onClick={handleCloseUsagePopover}
+                      >
+                        <MaterialIcon name="close" />
+                      </UiButton>
+                    </div>
+                    {usageSnapshot ? (
+                      <>
+                        <div className="usage-context-window">
+                          <span>{t("topNav.usage.contextWindow")}</span>
+                          <strong>
+                            {formatUsageNumber(usageSnapshot.contextWindow?.currentSize)}
+                            {" / "}
+                            {formatUsageNumber(usageSnapshot.contextWindow?.maxSize)}
+                          </strong>
+                          <small>
+                            {t("topNav.usage.estimatedNext", {
+                              value: formatUsageNumber(
+                                usageSnapshot.contextWindow?.estimatedNextCallSize,
+                              ),
+                            })}
+                          </small>
+                        </div>
+                        <UsageSection
+                          title={t("topNav.usage.section.current")}
+                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
+                        />
+                        <UsageSection
+                          title={t("topNav.usage.section.run")}
+                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
+                        />
+                        <UsageSection
+                          title={t("topNav.usage.section.chat")}
+                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
+                        />
+                      </>
+                    ) : (
+                      <p className="usage-popover-empty">
+                        {t("topNav.usage.waiting")}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/state/AppContext';
 import type {
   AgentEvent,
+  AIUsageSnapshotEvent,
   AppState,
   UiTimerHandle,
 } from '@/app/state/types';
@@ -208,6 +209,11 @@ export function useAgentEventHandler() {
 
       dispatch({ type: 'PUSH_EVENT', event });
       dispatch({ type: 'APPEND_DEBUG', line: `[${new Date().toLocaleTimeString()}] ${type}` });
+
+      if (type === 'usage.snapshot') {
+        dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: event as AIUsageSnapshotEvent });
+        return;
+      }
 
       const awaitingFallbackAgentKey =
         cache.agentKey

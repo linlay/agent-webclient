@@ -21,7 +21,16 @@ export function reduceConversationState(
 		case "SET_REQUEST_ID":
 			return { ...state, requestId: action.requestId };
 		case "SET_STREAMING":
-			return { ...state, streaming: action.streaming };
+			return {
+				...state,
+				streaming: action.streaming,
+				...(action.streaming
+					? {
+							usageSnapshot: null,
+							usagePopoverOpen: false,
+						}
+					: {}),
+			};
 		case "SET_ABORT_CONTROLLER":
 			return { ...state, abortController: action.controller };
 		case "PUSH_EVENT": {

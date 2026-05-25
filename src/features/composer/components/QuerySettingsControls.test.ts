@@ -202,7 +202,7 @@ describe("QuerySettingsControls", () => {
   it("normalizes standard, nested, and bare model option payloads", () => {
     const payload = {
       models: [
-        { key: "coder-model", modelId: "qwen3-coder", isReasoner: true, isVision: false },
+        { key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder", isReasoner: true, isVision: false },
         { key: "", modelId: "ignored", isReasoner: true, isVision: false },
       ],
       reasoningEfforts: [
@@ -214,21 +214,21 @@ describe("QuerySettingsControls", () => {
     };
 
     expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
-      models: [{ key: "coder-model" }],
+      models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
-      models: [{ key: "coder-model" }],
+      models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
-      models: [{ key: "coder-model" }],
+      models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
@@ -282,14 +282,14 @@ describe("QuerySettingsControls", () => {
     getModelOptions.mockResolvedValue({
       data: {
         data: {
-          models: [{ key: "nested-model", modelId: "qwen3-nested" }],
+          models: [{ key: "nested-model", name: "Nested Model", modelId: "qwen3-nested" }],
           reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
         },
       },
     });
 
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
-      models: [{ key: "nested-model", modelId: "qwen3-nested" }],
+      models: [{ key: "nested-model", name: "Nested Model", modelId: "qwen3-nested" }],
       reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
     });
   });

@@ -241,7 +241,6 @@ export interface AgentEditorOption {
 export interface AgentEditorModelOption {
   key: string;
   name?: string;
-  label?: string;
   provider?: string;
   modelId?: string;
   protocol?: string;

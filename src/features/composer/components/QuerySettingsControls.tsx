@@ -32,6 +32,12 @@ const ACCESS_LEVELS: QueryAccessLevel[] = [
   "full_access",
 ];
 
+const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, string> = {
+  default: "front_hand",
+  auto_approve: "verified_user",
+  full_access: "gpp_maybe",
+};
+
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
 type LoadedCoderModelOptions = {
@@ -77,7 +83,6 @@ function getModelDisplayName(model: CoderModelOption): string {
   const key = String(model.key || "").trim();
   return (
     toConfigText(model.name)
-    || toConfigText(model.label)
     || (model.modelId ? `${key} · ${model.modelId}` : key)
   );
 }
@@ -447,9 +452,14 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       ACCESS_LEVELS.map((value) => ({
         key: value,
         label: (
-          <span className="query-settings-menu-item">
-            <span>{t(`composer.query.access.${value}`)}</span>
-            {value === accessLevel ? <MaterialIcon name="check" /> : null}
+          <span className="query-settings-menu-item query-access-menu-item">
+            <span className="query-settings-menu-leading">
+              <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
+              <span>{t(`composer.query.access.${value}`)}</span>
+            </span>
+            <span className="query-settings-menu-check">
+              {value === accessLevel ? <MaterialIcon name="check" /> : null}
+            </span>
           </span>
         ),
       })),
@@ -599,7 +609,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           title={t("composer.query.access.title")}
           onClick={(event) => event.preventDefault()}
         >
-          <MaterialIcon name="security" />
+          <MaterialIcon name={ACCESS_LEVEL_ICON[accessLevel]} />
           <span>{accessLabel}</span>
           <MaterialIcon name="expand_more" />
         </UiButton>

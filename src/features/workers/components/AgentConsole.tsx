@@ -377,7 +377,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [editorOptions],
   );
   const modelOptions = useMemo(
-    () => (editorOptions?.models || []).map((item) => ({ value: item.key, label: item.modelId ? `${item.key} · ${item.modelId}` : item.key })),
+    () => (editorOptions?.models || []).map((item) => {
+      const name = String(item.name || "").trim();
+      const key = String(item.key || "").trim();
+      return { value: item.key, label: name || (item.modelId ? key + " · " + item.modelId : key) };
+    }),
     [editorOptions],
   );
   const contextTagOptions = useMemo(

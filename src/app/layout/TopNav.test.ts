@@ -80,6 +80,95 @@ describe("TopNav", () => {
 		expect(html).toContain("status-pill is-running");
 	});
 
+	it("does not render usage stats when there is no usage snapshot and not streaming", () => {
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).not.toContain("Usage stats");
+		expect(html).not.toContain("Open usage stats");
+	});
+
+	it("renders usage entry with total tokens from the latest snapshot", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				model: { key: "deepseek-chat" },
+				usage: {
+					run: {
+						totalTokens: 1234,
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Open usage stats");
+		expect(html).toContain("1.2K tokens");
+		expect(html).not.toContain("Current call");
+	});
+
+	it("renders usage popover details when opened", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				taskId: "task_1",
+				model: { key: "deepseek-chat" },
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+					estimatedNextCallSize: 8000,
+				},
+				usage: {
+					current: {
+						promptTokens: 100,
+						completionTokens: 20,
+						totalTokens: 120,
+						promptTokensDetails: { cachedTokens: 30 },
+						completionTokensDetails: { reasoningTokens: 7 },
+						promptCacheHitTokens: 31,
+						promptCacheMissTokens: 69,
+						llmChatCompletionCount: 1,
+					},
+					run: {
+						promptTokens: 300,
+						completionTokens: 70,
+						totalTokens: 370,
+					},
+					chat: {
+						promptTokens: 800,
+						completionTokens: 200,
+						totalTokens: 1000,
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Usage stats");
+		expect(html).toContain("deepseek-chat");
+		expect(html).toContain("Context window");
+		expect(html).toContain("64,000");
+		expect(html).toContain("128,000");
+		expect(html).toContain("Estimated next call 8,000");
+		expect(html).toContain("Current call");
+		expect(html).toContain("Current run");
+		expect(html).toContain("Current chat");
+		expect(html).toContain("Cache hit");
+		expect(html).toContain("Cache miss");
+		expect(html).toContain("LLM calls");
+		expect(html).toContain("Close usage stats");
+	});
+
 	it("renders run errors when websocket transport is not in an error state", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({

@@ -173,6 +173,10 @@ export function reduceUiState(
 			};
 		case "SET_PLANNING_MODE":
 			return { ...state, planningMode: action.enabled };
+		case "SET_USAGE_SNAPSHOT":
+			return { ...state, usageSnapshot: action.snapshot };
+		case "SET_USAGE_POPOVER_OPEN":
+			return { ...state, usagePopoverOpen: action.open };
 		case "SET_MENTION_OPEN":
 			return { ...state, mentionOpen: action.open };
 		case "SET_MENTION_SUGGESTIONS":

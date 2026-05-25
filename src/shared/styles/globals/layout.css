@@ -184,6 +184,7 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
+    position: relative;
 }
 
 .current-worker-card.has-one-tool {
@@ -248,6 +249,172 @@
     border-color: color-mix(in srgb, #ff945f 38%, var(--line-soft));
     background: color-mix(in srgb, #fff0e6 84%, var(--bg-elev-2));
     color: #cf5f18;
+}
+
+.usage-popover-anchor {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.usage-trigger.ui-btn {
+    min-height: 30px;
+    padding: 0 9px;
+    border-radius: 8px;
+    color: var(--ink-2);
+}
+
+.usage-trigger.ui-btn.is-active,
+.usage-trigger.ui-btn:hover:not(:disabled) {
+    color: var(--accent-electric-strong);
+    background: color-mix(in srgb, var(--accent-soft) 78%, var(--bg-elev-2));
+}
+
+.usage-trigger .ui-btn-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.usage-trigger .material-symbols-rounded {
+    font-size: 17px;
+}
+
+.usage-trigger-total {
+    font:
+        600 11px/1.2 "IBM Plex Mono",
+        monospace;
+    white-space: nowrap;
+}
+
+.usage-popover {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(70vh, 620px);
+    overflow: auto;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+    color: var(--ink-1);
+}
+
+.usage-popover-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.usage-popover-header div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.usage-popover-header strong {
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.usage-popover-header span {
+    max-width: 240px;
+    overflow: hidden;
+    color: var(--ink-muted);
+    font:
+        500 11px/1.25 "IBM Plex Mono",
+        monospace;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.usage-popover-close.ui-btn.is-icon-only {
+    width: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+.usage-context-window {
+    display: grid;
+    gap: 4px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent-soft) 58%, transparent);
+}
+
+.usage-context-window span {
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
+.usage-context-window strong {
+    font:
+        700 13px/1.2 "IBM Plex Mono",
+        monospace;
+}
+
+.usage-context-window small {
+    color: var(--ink-2);
+    font-size: 11px;
+}
+
+.usage-popover-section {
+    margin-top: 12px;
+}
+
+.usage-popover-section h3 {
+    margin: 0 0 7px;
+    color: var(--ink-2);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.usage-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+}
+
+.usage-metric {
+    min-width: 0;
+    padding: 7px 8px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--bg-elev) 68%, transparent);
+}
+
+.usage-metric dt {
+    margin: 0 0 3px;
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.usage-metric dd {
+    margin: 0;
+    color: var(--ink-1);
+    font:
+        700 12px/1.2 "IBM Plex Mono",
+        monospace;
+    overflow-wrap: anywhere;
+}
+
+.usage-popover-empty {
+    margin: 10px 0 2px;
+    color: var(--ink-muted);
+    font-size: 12px;
 }
 
 .inline-icon {

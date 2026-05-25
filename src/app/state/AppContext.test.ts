@@ -592,6 +592,74 @@ describe('appReducer conversation reset behavior', () => {
     expect(cleared.debugEvents).toEqual([]);
   });
 
+  it('stores usage snapshots and popover state through the reducer', () => {
+    const snapshot = {
+      type: 'usage.snapshot',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      model: { key: 'deepseek-chat' },
+      usage: {
+        current: {
+          promptTokens: 10,
+          completionTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    } as const;
+
+    const withSnapshot = appReducer(createInitialState(), {
+      type: 'SET_USAGE_SNAPSHOT',
+      snapshot,
+    });
+    const opened = appReducer(withSnapshot, {
+      type: 'SET_USAGE_POPOVER_OPEN',
+      open: true,
+    });
+
+    expect(withSnapshot.usageSnapshot).toBe(snapshot);
+    expect(opened.usagePopoverOpen).toBe(true);
+  });
+
+  it('clears usage snapshots and popover state when resetting the conversation', () => {
+    const populated = {
+      ...createInitialState(),
+      usageSnapshot: {
+        type: 'usage.snapshot',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        usage: { run: { totalTokens: 42 } },
+      } as any,
+      usagePopoverOpen: true,
+    };
+
+    const reset = appReducer(populated, { type: 'RESET_ACTIVE_CONVERSATION' });
+
+    expect(reset.usageSnapshot).toBeNull();
+    expect(reset.usagePopoverOpen).toBe(false);
+  });
+
+  it('clears stale usage snapshots when a new stream starts', () => {
+    const populated = {
+      ...createInitialState(),
+      usageSnapshot: {
+        type: 'usage.snapshot',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        usage: { run: { totalTokens: 42 } },
+      } as any,
+      usagePopoverOpen: true,
+    };
+
+    const next = appReducer(populated, {
+      type: 'SET_STREAMING',
+      streaming: true,
+    });
+
+    expect(next.streaming).toBe(true);
+    expect(next.usageSnapshot).toBeNull();
+    expect(next.usagePopoverOpen).toBe(false);
+  });
+
   it('normalizes theme updates through the reducer', () => {
     const baseState = createInitialState();
 

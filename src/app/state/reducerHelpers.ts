@@ -94,6 +94,8 @@ export function buildConversationResetState(
 		activeReasoningKey: "",
 		activeFrontendTool: null,
 		activeAwaiting: null,
+		usageSnapshot: null,
+		usagePopoverOpen: false,
 		rightSidebarOpenTab: null,
 		attachmentPreview: null,
 		inputMode: "text",

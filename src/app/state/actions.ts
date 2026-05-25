@@ -22,6 +22,7 @@ import type {
 	WorkerConversationRow,
 	WorkerRow,
 } from "@/app/state/types";
+import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import type {
@@ -162,6 +163,8 @@ export type AppAction =
 	| { type: "SET_AUDIO_MUTED"; muted: boolean }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
 	| { type: "SET_PLANNING_MODE"; enabled: boolean }
+	| { type: "SET_USAGE_SNAPSHOT"; snapshot: AIUsageSnapshotEvent | null }
+	| { type: "SET_USAGE_POPOVER_OPEN"; open: boolean }
 	| { type: "SET_INPUT_MODE"; mode: AppState["inputMode"] }
 	| { type: "PATCH_VOICE_CHAT"; patch: Partial<VoiceChatState> }
 	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }

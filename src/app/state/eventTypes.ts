@@ -19,6 +19,10 @@ export enum AIRunEventTypeEnum {
   Error = "run.error",
 }
 
+export enum AIUsageEventTypeEnum {
+  Snapshot = "usage.snapshot",
+}
+
 export enum AIContentEventTypeEnum {
   Start = "content.start",
   Delta = "content.delta",
@@ -127,6 +131,43 @@ export interface AIPlan {
   taskId: string;
   description?: string;
   status?: AIPlanStatusEnum | string;
+}
+
+export interface AIUsageTokenDetails {
+  cachedTokens?: number;
+  reasoningTokens?: number;
+  [key: string]: unknown;
+}
+
+export interface AIUsageStats {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  promptTokensDetails?: AIUsageTokenDetails;
+  completionTokensDetails?: AIUsageTokenDetails;
+  promptCacheHitTokens?: number;
+  promptCacheMissTokens?: number;
+  llmChatCompletionCount?: number;
+  [key: string]: unknown;
+}
+
+export interface AIUsageSnapshotPayload {
+  current?: AIUsageStats;
+  run?: AIUsageStats;
+  chat?: AIUsageStats;
+  [key: string]: unknown;
+}
+
+export interface AIUsageContextWindow {
+  maxSize?: number;
+  currentSize?: number;
+  estimatedNextCallSize?: number;
+  [key: string]: unknown;
+}
+
+export interface AIUsageModel {
+  key?: string;
+  [key: string]: unknown;
 }
 
 export interface AIAwaitQuestionOption {
@@ -282,6 +323,13 @@ export interface AIRunEvent extends AIBaseEvent {
   type: AIRunEventTypeEnum;
 }
 
+export interface AIUsageSnapshotEvent extends AIBaseEvent {
+  type: AIUsageEventTypeEnum.Snapshot;
+  model?: AIUsageModel;
+  contextWindow?: AIUsageContextWindow;
+  usage?: AIUsageSnapshotPayload;
+}
+
 export interface AIContentEvent extends AIBaseTaskEvent {
   type: AIContentEventTypeEnum;
 }
@@ -348,6 +396,7 @@ export type AIEvent =
   | AIChatEvent
   | AIRequestEvent
   | AIRunEvent
+  | AIUsageSnapshotEvent
   | AIContentEvent
   | AIReasoningEvent
   | AIPlanningEvent
