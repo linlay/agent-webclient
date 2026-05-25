@@ -266,13 +266,11 @@ export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsR
 	);
 }
 
-export function getModelOptions(
-	agentKey: string,
-): Promise<ApiResponse<CoderModelOptionsResponse>> {
+export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
 	return routeRequest<CoderModelOptionsResponse>(
 		"/api/model-options",
-		{ agentKey },
-		() => getModelOptionsHttp(agentKey),
+		undefined,
+		() => getModelOptionsHttp(),
 	);
 }
 

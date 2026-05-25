@@ -894,11 +894,8 @@ export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsR
   return requestJson<AgentEditorOptionsResponse>("/api/agent/editor-options");
 }
 
-export function getModelOptions(
-  agentKey: string,
-): Promise<ApiResponse<CoderModelOptionsResponse>> {
-  const query = toQueryString({ agentKey });
-  return requestJson<CoderModelOptionsResponse>(`/api/model-options?${query}`);
+export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
+  return requestJson<CoderModelOptionsResponse>("/api/model-options");
 }
 
 export function getTeams(): Promise<ApiResponse> {
