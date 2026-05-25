@@ -7,6 +7,7 @@ import {
   loadCoderModelOptions,
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
+  resolveCoderAgentDefaultModelOverride,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
 } from "@/features/composer/components/QuerySettingsControls";
@@ -94,7 +95,7 @@ describe("QuerySettingsControls", () => {
         onModelOverrideChange: jest.fn(),
       }),
     );
-    expect(coderHtml).toContain("默认模型");
+    expect(coderHtml).toContain("正在加载模型");
 
     resolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
@@ -108,7 +109,7 @@ describe("QuerySettingsControls", () => {
         onModelOverrideChange: jest.fn(),
       }),
     );
-    expect(nonCoderHtml).not.toContain("默认模型");
+    expect(nonCoderHtml).not.toContain("正在加载模型");
   });
 
   it("loads global CODER model options", async () => {
@@ -116,12 +117,16 @@ describe("QuerySettingsControls", () => {
       data: {
         models: [{ key: "coder-model", modelId: "qwen3-coder" }],
         reasoningEfforts: [{ key: "NONE", label: "NONE" }],
+        defaultModelKey: "coder-model",
+        defaultReasoningEffort: "NONE",
       },
     });
 
-    await expect(loadCoderModelOptions()).resolves.toEqual({
+    await expect(loadCoderModelOptions()).resolves.toMatchObject({
       models: [{ key: "coder-model", modelId: "qwen3-coder" }],
       reasoningEfforts: [{ key: "NONE", label: "NONE" }],
+      defaultModelKey: "coder-model",
+      defaultReasoningEffort: "NONE",
     });
     expect(getModelOptions).toHaveBeenCalledWith();
   });
@@ -162,7 +167,7 @@ describe("QuerySettingsControls", () => {
     const second = loadCoderModelOptions();
 
     expect(getModelOptions).toHaveBeenCalledTimes(1);
-    await expect(Promise.all([first, second])).resolves.toEqual([
+    await expect(Promise.all([first, second])).resolves.toMatchObject([
       {
         models: [{ key: "shared-model", modelId: "qwen3-shared" }],
         reasoningEfforts: [{ key: "LOW", label: "LOW" }],
@@ -204,22 +209,72 @@ describe("QuerySettingsControls", () => {
         { key: "NONE", label: "NONE" },
         { key: "", label: "ignored" },
       ],
+      defaultModelKey: "default-coder-model",
+      defaultReasoningEffort: "HIGH",
     };
 
     expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
       models: [{ key: "coder-model" }],
       reasoningEfforts: [{ key: "NONE" }],
+      defaultModelKey: "default-coder-model",
+      defaultReasoningEffort: "HIGH",
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
       models: [{ key: "coder-model" }],
       reasoningEfforts: [{ key: "NONE" }],
+      defaultModelKey: "default-coder-model",
+      defaultReasoningEffort: "HIGH",
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
       models: [{ key: "coder-model" }],
       reasoningEfforts: [{ key: "NONE" }],
+      defaultModelKey: "default-coder-model",
+      defaultReasoningEffort: "HIGH",
       recognized: true,
+    });
+  });
+
+  it("uses agent model defaults before API defaults", () => {
+    expect(
+      resolveCoderAgentDefaultModelOverride(
+        {
+          raw: {
+            mode: "CODER",
+            meta: {
+              modelKey: "agent-model",
+              reasoningEffort: "LOW",
+            },
+          },
+        },
+        {
+          defaultModelKey: "api-model",
+          defaultReasoningEffort: "HIGH",
+        },
+      ),
+    ).toEqual({
+      key: "agent-model",
+      reasoningEffort: "LOW",
+    });
+  });
+
+  it("falls back to API model defaults when the agent has none", () => {
+    expect(
+      resolveCoderAgentDefaultModelOverride(
+        {
+          raw: {
+            mode: "CODER",
+          },
+        },
+        {
+          defaultModelKey: "api-model",
+          defaultReasoningEffort: "MEDIUM",
+        },
+      ),
+    ).toEqual({
+      key: "api-model",
+      reasoningEffort: "MEDIUM",
     });
   });
 
@@ -251,13 +306,13 @@ describe("QuerySettingsControls", () => {
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
         accessLevel: "default",
-        modelOverride: { reasoningEffort: "NONE" },
+        modelOverride: { key: "coder-model", reasoningEffort: "NONE" },
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
       }),
     );
 
-    expect(html).toContain("默认模型 / 关闭");
+    expect(html).toContain("coder-model / 关闭");
   });
 
   it("puts reasoning options at the top level and model options in a submenu", () => {
@@ -273,16 +328,19 @@ describe("QuerySettingsControls", () => {
         },
       ],
       reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
-      modelOverride: {},
-      selectedModelLabel: "默认模型",
+      modelOverride: {
+        key: "babelark-qwen3_5-plus",
+        reasoningEffort: "HIGH",
+      },
+      selectedModelKey: "babelark-qwen3_5-plus",
+      selectedModelLabel: "babelark-qwen3_5-plus · qwen3.5-plus",
+      selectedReasoningEffort: "HIGH",
       t: (key) => {
         const messages: Record<string, string> = {
-          "composer.query.model.default": "默认模型",
           "composer.query.model.empty": "暂无可选模型",
           "composer.query.model.group": "模型",
           "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
           "composer.query.model.loading": "正在加载模型...",
-          "composer.query.reasoning.default": "默认思考",
           "composer.query.reasoning.group": "思考深度",
           "composer.query.reasoning.HIGH": "高",
           "composer.query.reasoning.empty": "暂无可选思考深度",
@@ -318,17 +376,15 @@ describe("QuerySettingsControls", () => {
 
     expect(items.map((item) => item.key)).toEqual(["reasoning", "model-submenu"]);
     expect(reasoningChildren.map((item) => item.key)).toEqual([
-      "reasoning:",
       "reasoning:HIGH",
     ]);
     expect(modelChildren.map((item) => item.key)).toEqual([
-      "model:",
       "model:babelark-qwen3_5-plus",
     ]);
-    expect(modelSubmenuHtml).toContain("模型 · 默认模型");
-    expect(modelHtml).toContain("默认模型");
+    expect(modelSubmenuHtml).toContain("模型 · babelark-qwen3_5-plus · qwen3.5-plus");
+    expect(modelHtml).not.toContain("默认模型");
     expect(modelHtml).toContain("babelark-qwen3_5-plus · qwen3.5-plus");
-    expect(reasoningHtml).toContain("默认思考");
+    expect(reasoningHtml).not.toContain("默认思考");
     expect(reasoningHtml).toContain("高");
   });
 
@@ -384,12 +440,10 @@ describe("QuerySettingsControls", () => {
   it("shows loading, empty, and failed states inside the model submenu", () => {
     const t = (key: string) => {
       const messages: Record<string, string> = {
-        "composer.query.model.default": "默认模型",
         "composer.query.model.empty": "暂无可选模型",
         "composer.query.model.group": "模型",
         "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
         "composer.query.model.loading": "正在加载模型...",
-        "composer.query.reasoning.default": "默认思考",
         "composer.query.reasoning.empty": "暂无可选思考深度",
         "composer.query.reasoning.group": "思考深度",
       };
@@ -419,23 +473,29 @@ describe("QuerySettingsControls", () => {
     const emptyModelSubmenu = emptyItems.find((item) => item.key === "model-submenu");
     const loadingModelSubmenu = loadingItems.find((item) => item.key === "model-submenu");
     const failedModelSubmenu = failedItems.find((item) => item.key === "model-submenu");
+    const emptyModelChildren = emptyModelSubmenu?.children || [];
+    const loadingModelChildren = loadingModelSubmenu?.children || [];
+    const failedModelChildren = failedModelSubmenu?.children || [];
 
     const emptyHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, (emptyModelSubmenu?.children || []).map((child, index) =>
+      React.createElement(React.Fragment, null, emptyModelChildren.map((child, index) =>
           React.createElement(React.Fragment, { key: index }, child.label),
       )),
     );
     const loadingHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, (loadingModelSubmenu?.children || []).map((child, index) =>
+      React.createElement(React.Fragment, null, loadingModelChildren.map((child, index) =>
           React.createElement(React.Fragment, { key: index }, child.label),
       )),
     );
     const failedHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, (failedModelSubmenu?.children || []).map((child, index) =>
+      React.createElement(React.Fragment, null, failedModelChildren.map((child, index) =>
           React.createElement(React.Fragment, { key: index }, child.label),
       )),
     );
 
+    expect(emptyModelChildren.map((item) => item.key)).toEqual(["model-status:empty"]);
+    expect(loadingModelChildren.map((item) => item.key)).toEqual(["model-status:loading"]);
+    expect(failedModelChildren.map((item) => item.key)).toEqual(["model-status:failed"]);
     expect(loadingHtml).toContain("正在加载模型...");
     expect(emptyHtml).toContain("暂无可选模型");
     expect(failedHtml).toContain("模型加载失败，重新打开可重试");
