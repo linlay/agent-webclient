@@ -29,12 +29,34 @@ const ACCESS_LEVELS: QueryAccessLevel[] = [
   "full_access",
 ];
 
+type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
+
 function isCoderMode(value: unknown): boolean {
   return String(value || "").trim().toUpperCase() === "CODER";
 }
 
 function toText(value: unknown): string {
   return String(value || "").trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function filterModelOptions(value: unknown): CoderModelOption[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is CoderModelOption =>
+      isRecord(item) && Boolean(toText(item.key)),
+    )
+    : [];
+}
+
+function filterReasoningOptions(value: unknown): ReasoningEffortOption[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is ReasoningEffortOption =>
+      isRecord(item) && Boolean(toText(item.key)),
+    )
+    : [];
 }
 
 export function shouldClearModelOverride(
@@ -49,6 +71,7 @@ export function shouldRetryModelOptionsOnOpen({
   isCoderAgent,
   agentKey,
   modelsLoading,
+  status,
   models,
   reasoningEfforts,
 }: {
@@ -56,6 +79,7 @@ export function shouldRetryModelOptionsOnOpen({
   isCoderAgent: boolean;
   agentKey: string;
   modelsLoading: boolean;
+  status: ModelOptionsStatus;
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
 }): boolean {
@@ -64,6 +88,7 @@ export function shouldRetryModelOptionsOnOpen({
     && isCoderAgent
     && agentKey
     && !modelsLoading
+    && status !== "empty"
     && models.length === 0
     && reasoningEfforts.length === 0,
   );
@@ -73,13 +98,68 @@ export function buildModelMenuItems({
   models,
   reasoningEfforts,
   modelOverride,
+  modelsLoading = false,
+  status = "idle",
   t,
 }: {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
   modelOverride: QueryModelOverride;
+  modelsLoading?: boolean;
+  status?: ModelOptionsStatus;
   t: (key: string) => string;
 }): MenuProps["items"] {
+  const modelStatusItem = (() => {
+    if (models.length > 0) return null;
+    if (modelsLoading) {
+      return {
+        key: "model-status:loading",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.model.loading")}</span>,
+      };
+    }
+    if (status === "failed") {
+      return {
+        key: "model-status:failed",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.model.loadFailed")}</span>,
+      };
+    }
+    if (status === "empty") {
+      return {
+        key: "model-status:empty",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.model.empty")}</span>,
+      };
+    }
+    return null;
+  })();
+  const reasoningStatusItem = (() => {
+    if (reasoningEfforts.length > 0) return null;
+    if (modelsLoading) {
+      return {
+        key: "reasoning-status:loading",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.model.loading")}</span>,
+      };
+    }
+    if (status === "failed") {
+      return {
+        key: "reasoning-status:failed",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.model.loadFailed")}</span>,
+      };
+    }
+    if (status === "empty") {
+      return {
+        key: "reasoning-status:empty",
+        disabled: true,
+        label: <span className="query-settings-menu-item">{t("composer.query.reasoning.empty")}</span>,
+      };
+    }
+    return null;
+  })();
+
   return [
     {
       key: "models",
@@ -95,6 +175,7 @@ export function buildModelMenuItems({
             </span>
           ),
         },
+        ...(modelStatusItem ? [modelStatusItem] : []),
         ...models.map((model) => {
           const key = String(model.key || "").trim();
           const label = model.modelId ? `${key} · ${model.modelId}` : key;
@@ -126,6 +207,7 @@ export function buildModelMenuItems({
             </span>
           ),
         },
+        ...(reasoningStatusItem ? [reasoningStatusItem] : []),
         ...reasoningEfforts.map((option) => ({
           key: `reasoning:${option.key}`,
           label: (
@@ -144,16 +226,48 @@ export function buildModelMenuItems({
   ];
 }
 
+export function normalizeCoderModelOptionsResponse(response: unknown): {
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+  recognized: boolean;
+} {
+  const topLevel = isRecord(response) ? response : {};
+  const data = isRecord(topLevel.data) ? topLevel.data : null;
+  const nestedData = data && isRecord(data.data) ? data.data : null;
+  const candidates = [data, nestedData, isRecord(response) ? response : null].filter(
+    (candidate): candidate is Record<string, unknown> => Boolean(candidate),
+  );
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate.models) && !Array.isArray(candidate.reasoningEfforts)) {
+      continue;
+    }
+    return {
+      models: filterModelOptions(candidate.models),
+      reasoningEfforts: filterReasoningOptions(candidate.reasoningEfforts),
+      recognized: true,
+    };
+  }
+
+  return {
+    models: [],
+    reasoningEfforts: [],
+    recognized: false,
+  };
+}
+
 export async function loadCoderModelOptions(): Promise<{
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
 }> {
   const response = await getModelOptions();
+  const options = normalizeCoderModelOptionsResponse(response);
+  if (!options.recognized) {
+    console.warn("[QuerySettingsControls] Unrecognized model options response", response);
+  }
   return {
-    models: Array.isArray(response.data?.models) ? response.data.models : [],
-    reasoningEfforts: Array.isArray(response.data?.reasoningEfforts)
-      ? response.data.reasoningEfforts
-      : [],
+    models: options.models,
+    reasoningEfforts: options.reasoningEfforts,
   };
 }
 
@@ -183,6 +297,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [loadedAgentKey, setLoadedAgentKey] = useState("");
   const [failedAgentKey, setFailedAgentKey] = useState("");
   const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelOptionsStatus, setModelOptionsStatus] = useState<ModelOptionsStatus>("idle");
 
   useEffect(() => {
     if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
@@ -198,6 +313,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       setLoadedAgentKey("");
       setFailedAgentKey("");
       setModelsLoading(false);
+      setModelOptionsStatus("idle");
       return;
     }
     if (loadedAgentKey === agentKey || failedAgentKey === agentKey || modelsLoading) {
@@ -212,12 +328,16 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         setReasoningEfforts(options.reasoningEfforts);
         setLoadedAgentKey(agentKey);
         setFailedAgentKey("");
+        setModelOptionsStatus(
+          options.models.length > 0 || options.reasoningEfforts.length > 0 ? "loaded" : "empty",
+        );
       })
       .catch(() => {
         if (cancelled) return;
         setModels([]);
         setReasoningEfforts([]);
         setFailedAgentKey(agentKey);
+        setModelOptionsStatus("failed");
       })
       .finally(() => {
         if (cancelled) return;
@@ -261,8 +381,15 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     : t("composer.query.reasoning.default");
 
   const modelItems = useMemo<MenuProps["items"]>(
-    () => buildModelMenuItems({ models, reasoningEfforts, modelOverride, t }),
-    [modelOverride, models, reasoningEfforts, t],
+    () => buildModelMenuItems({
+      models,
+      reasoningEfforts,
+      modelOverride,
+      modelsLoading,
+      status: modelOptionsStatus,
+      t,
+    }),
+    [modelOverride, modelOptionsStatus, models, modelsLoading, reasoningEfforts, t],
   );
 
   const onModelMenuClick: MenuProps["onClick"] = ({ key }) => {
@@ -290,6 +417,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       isCoderAgent,
       agentKey,
       modelsLoading,
+      status: modelOptionsStatus,
       models,
       reasoningEfforts,
     })) {
@@ -297,6 +425,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     }
     setLoadedAgentKey("");
     setFailedAgentKey("");
+    setModelOptionsStatus("idle");
   };
 
   return (

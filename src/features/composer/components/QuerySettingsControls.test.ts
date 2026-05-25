@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   buildModelMenuItems,
   loadCoderModelOptions,
+  normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
@@ -27,12 +28,16 @@ jest.mock("@/shared/i18n", () => ({
         "composer.query.access.default": "默认权限",
         "composer.query.access.title": "设置本次运行权限",
         "composer.query.model.default": "默认模型",
+        "composer.query.model.empty": "暂无可选模型",
         "composer.query.model.group": "模型",
+        "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
+        "composer.query.model.loading": "正在加载模型...",
         "composer.query.model.title": "选择模型和思考深度",
         "composer.query.reasoning.group": "思考深度",
         "composer.query.reasoning.HIGH": "高",
         "composer.query.reasoning.NONE": "关闭",
         "composer.query.reasoning.default": "默认思考",
+        "composer.query.reasoning.empty": "暂无可选思考深度",
       };
       return messages[key] || key;
     },
@@ -118,6 +123,51 @@ describe("QuerySettingsControls", () => {
     expect(getModelOptions).toHaveBeenCalledWith();
   });
 
+  it("normalizes standard, nested, and bare model option payloads", () => {
+    const payload = {
+      models: [
+        { key: "coder-model", modelId: "qwen3-coder", isReasoner: true, isVision: false },
+        { key: "", modelId: "ignored", isReasoner: true, isVision: false },
+      ],
+      reasoningEfforts: [
+        { key: "NONE", label: "NONE" },
+        { key: "", label: "ignored" },
+      ],
+    };
+
+    expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
+      models: [{ key: "coder-model" }],
+      reasoningEfforts: [{ key: "NONE" }],
+      recognized: true,
+    });
+    expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
+      models: [{ key: "coder-model" }],
+      reasoningEfforts: [{ key: "NONE" }],
+      recognized: true,
+    });
+    expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
+      models: [{ key: "coder-model" }],
+      reasoningEfforts: [{ key: "NONE" }],
+      recognized: true,
+    });
+  });
+
+  it("loads nested model options returned by a wrapped response", async () => {
+    getModelOptions.mockResolvedValue({
+      data: {
+        data: {
+          models: [{ key: "nested-model", modelId: "qwen3-nested" }],
+          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+        },
+      },
+    });
+
+    await expect(loadCoderModelOptions()).resolves.toMatchObject({
+      models: [{ key: "nested-model", modelId: "qwen3-nested" }],
+      reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+    });
+  });
+
   it("renders selected NONE reasoning label", () => {
     resolveCurrentWorkerSummary.mockReturnValue({
       key: "coder-agent",
@@ -156,10 +206,14 @@ describe("QuerySettingsControls", () => {
       t: (key) => {
         const messages: Record<string, string> = {
           "composer.query.model.default": "默认模型",
+          "composer.query.model.empty": "暂无可选模型",
           "composer.query.model.group": "模型",
+          "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
+          "composer.query.model.loading": "正在加载模型...",
           "composer.query.reasoning.default": "默认思考",
           "composer.query.reasoning.group": "思考深度",
           "composer.query.reasoning.HIGH": "高",
+          "composer.query.reasoning.empty": "暂无可选思考深度",
         };
         return messages[key] || key;
       },
@@ -207,6 +261,7 @@ describe("QuerySettingsControls", () => {
         isCoderAgent: true,
         agentKey: "agent:coder",
         modelsLoading: false,
+        status: "failed",
         models: [],
         reasoningEfforts: [],
       }),
@@ -218,6 +273,7 @@ describe("QuerySettingsControls", () => {
         isCoderAgent: true,
         agentKey: "agent:coder",
         modelsLoading: false,
+        status: "loaded",
         models: [
           {
             key: "coder-model",
@@ -231,6 +287,68 @@ describe("QuerySettingsControls", () => {
         reasoningEfforts: [],
       }),
     ).toBe(false);
+  });
+
+  it("does not retry successful empty model responses on every menu open", () => {
+    expect(
+      shouldRetryModelOptionsOnOpen({
+        open: true,
+        isCoderAgent: true,
+        agentKey: "agent:coder",
+        modelsLoading: false,
+        status: "empty",
+        models: [],
+        reasoningEfforts: [],
+      }),
+    ).toBe(false);
+  });
+
+  it("shows empty and failed menu states instead of silently showing defaults only", () => {
+    const t = (key: string) => {
+      const messages: Record<string, string> = {
+        "composer.query.model.default": "默认模型",
+        "composer.query.model.empty": "暂无可选模型",
+        "composer.query.model.group": "模型",
+        "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
+        "composer.query.reasoning.default": "默认思考",
+        "composer.query.reasoning.empty": "暂无可选思考深度",
+        "composer.query.reasoning.group": "思考深度",
+      };
+      return messages[key] || key;
+    };
+    const emptyItems = buildModelMenuItems({
+      models: [],
+      reasoningEfforts: [],
+      modelOverride: {},
+      status: "empty",
+      t,
+    }) as Array<{ children?: Array<{ label: React.ReactNode }> }>;
+    const failedItems = buildModelMenuItems({
+      models: [],
+      reasoningEfforts: [],
+      modelOverride: {},
+      status: "failed",
+      t,
+    }) as Array<{ children?: Array<{ label: React.ReactNode }> }>;
+
+    const emptyHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, emptyItems.flatMap((item) =>
+        (item.children || []).map((child, index) =>
+          React.createElement(React.Fragment, { key: index }, child.label),
+        ),
+      )),
+    );
+    const failedHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, failedItems.flatMap((item) =>
+        (item.children || []).map((child, index) =>
+          React.createElement(React.Fragment, { key: index }, child.label),
+        ),
+      )),
+    );
+
+    expect(emptyHtml).toContain("暂无可选模型");
+    expect(emptyHtml).toContain("暂无可选思考深度");
+    expect(failedHtml).toContain("模型加载失败，重新打开可重试");
   });
 
   it("clears model overrides outside CODER agents", () => {
