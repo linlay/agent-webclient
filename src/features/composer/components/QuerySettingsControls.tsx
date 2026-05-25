@@ -37,6 +37,113 @@ function toText(value: unknown): string {
   return String(value || "").trim();
 }
 
+export function shouldClearModelOverride(
+  isCoderAgent: boolean,
+  modelOverride: QueryModelOverride,
+): boolean {
+  return !isCoderAgent && Boolean(modelOverride.key || modelOverride.reasoningEffort);
+}
+
+export function shouldRetryModelOptionsOnOpen({
+  open,
+  isCoderAgent,
+  agentKey,
+  modelsLoading,
+  models,
+  reasoningEfforts,
+}: {
+  open: boolean;
+  isCoderAgent: boolean;
+  agentKey: string;
+  modelsLoading: boolean;
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+}): boolean {
+  return Boolean(
+    open
+    && isCoderAgent
+    && agentKey
+    && !modelsLoading
+    && models.length === 0
+    && reasoningEfforts.length === 0,
+  );
+}
+
+export function buildModelMenuItems({
+  models,
+  reasoningEfforts,
+  modelOverride,
+  t,
+}: {
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+  modelOverride: QueryModelOverride;
+  t: (key: string) => string;
+}): MenuProps["items"] {
+  return [
+    {
+      key: "models",
+      type: "group",
+      label: t("composer.query.model.group"),
+      children: [
+        {
+          key: "model:",
+          label: (
+            <span className="query-settings-menu-item">
+              <span>{t("composer.query.model.default")}</span>
+              {!modelOverride.key ? <MaterialIcon name="check" /> : null}
+            </span>
+          ),
+        },
+        ...models.map((model) => {
+          const key = String(model.key || "").trim();
+          const label = model.modelId ? `${key} · ${model.modelId}` : key;
+          return {
+            key: `model:${encodeURIComponent(key)}`,
+            label: (
+              <span className="query-settings-menu-item">
+                <span>{label}</span>
+                {modelOverride.key === key ? <MaterialIcon name="check" /> : null}
+              </span>
+            ),
+          };
+        }),
+      ],
+    },
+    {
+      key: "reasoning",
+      type: "group",
+      label: t("composer.query.reasoning.group"),
+      children: [
+        {
+          key: "reasoning:",
+          label: (
+            <span className="query-settings-menu-item">
+              <span>{t("composer.query.reasoning.default")}</span>
+              {!modelOverride.reasoningEffort ? (
+                <MaterialIcon name="check" />
+              ) : null}
+            </span>
+          ),
+        },
+        ...reasoningEfforts.map((option) => ({
+          key: `reasoning:${option.key}`,
+          label: (
+            <span className="query-settings-menu-item">
+              <span>
+                {t(`composer.query.reasoning.${option.key}`) || option.label}
+              </span>
+              {modelOverride.reasoningEffort === option.key ? (
+                <MaterialIcon name="check" />
+              ) : null}
+            </span>
+          ),
+        })),
+      ],
+    },
+  ];
+}
+
 export async function loadCoderModelOptions(): Promise<{
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
@@ -74,10 +181,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [models, setModels] = useState<CoderModelOption[]>([]);
   const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortOption[]>([]);
   const [loadedAgentKey, setLoadedAgentKey] = useState("");
+  const [failedAgentKey, setFailedAgentKey] = useState("");
   const [modelsLoading, setModelsLoading] = useState(false);
 
   useEffect(() => {
-    if (isCoderAgent || !modelOverride.key && !modelOverride.reasoningEffort) {
+    if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
       return;
     }
     onModelOverrideChange({});
@@ -88,10 +196,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       setModels([]);
       setReasoningEfforts([]);
       setLoadedAgentKey("");
+      setFailedAgentKey("");
       setModelsLoading(false);
       return;
     }
-    if (loadedAgentKey === agentKey || modelsLoading) {
+    if (loadedAgentKey === agentKey || failedAgentKey === agentKey || modelsLoading) {
       return;
     }
     let cancelled = false;
@@ -102,12 +211,13 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         setModels(options.models);
         setReasoningEfforts(options.reasoningEfforts);
         setLoadedAgentKey(agentKey);
+        setFailedAgentKey("");
       })
       .catch(() => {
         if (cancelled) return;
         setModels([]);
         setReasoningEfforts([]);
-        setLoadedAgentKey(agentKey);
+        setFailedAgentKey(agentKey);
       })
       .finally(() => {
         if (cancelled) return;
@@ -116,7 +226,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [agentKey, isCoderAgent, loadedAgentKey, modelsLoading]);
+  }, [agentKey, failedAgentKey, isCoderAgent, loadedAgentKey, modelsLoading]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(
@@ -151,68 +261,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     : t("composer.query.reasoning.default");
 
   const modelItems = useMemo<MenuProps["items"]>(
-    () => [
-      {
-        key: "models",
-        type: "group",
-        label: t("composer.query.model.group"),
-        children: [
-          {
-            key: "model:",
-            label: (
-              <span className="query-settings-menu-item">
-                <span>{t("composer.query.model.default")}</span>
-                {!modelOverride.key ? <MaterialIcon name="check" /> : null}
-              </span>
-            ),
-          },
-          ...models.map((model) => {
-            const key = String(model.key || "").trim();
-            const label = model.modelId ? `${key} · ${model.modelId}` : key;
-            return {
-              key: `model:${encodeURIComponent(key)}`,
-              label: (
-                <span className="query-settings-menu-item">
-                  <span>{label}</span>
-                  {modelOverride.key === key ? <MaterialIcon name="check" /> : null}
-                </span>
-              ),
-            };
-          }),
-        ],
-      },
-      {
-        key: "reasoning",
-        type: "group",
-        label: t("composer.query.reasoning.group"),
-        children: [
-          {
-            key: "reasoning:",
-            label: (
-              <span className="query-settings-menu-item">
-                <span>{t("composer.query.reasoning.default")}</span>
-                {!modelOverride.reasoningEffort ? (
-                  <MaterialIcon name="check" />
-                ) : null}
-              </span>
-            ),
-          },
-          ...reasoningEfforts.map((option) => ({
-            key: `reasoning:${option.key}`,
-            label: (
-              <span className="query-settings-menu-item">
-                <span>
-                  {t(`composer.query.reasoning.${option.key}`) || option.label}
-                </span>
-                {modelOverride.reasoningEffort === option.key ? (
-                  <MaterialIcon name="check" />
-                ) : null}
-              </span>
-            ),
-          })),
-        ],
-      },
-    ],
+    () => buildModelMenuItems({ models, reasoningEfforts, modelOverride, t }),
     [modelOverride, models, reasoningEfforts, t],
   );
 
@@ -233,6 +282,21 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         reasoningEffort: effort || undefined,
       });
     }
+  };
+
+  const onModelMenuOpenChange = (open: boolean) => {
+    if (!shouldRetryModelOptionsOnOpen({
+      open,
+      isCoderAgent,
+      agentKey,
+      modelsLoading,
+      models,
+      reasoningEfforts,
+    })) {
+      return;
+    }
+    setLoadedAgentKey("");
+    setFailedAgentKey("");
   };
 
   return (
@@ -265,6 +329,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             items: modelItems,
             onClick: onModelMenuClick,
           }}
+          onOpenChange={onModelMenuOpenChange}
           placement="topRight"
           trigger={["click"]}
         >
