@@ -57,6 +57,9 @@ const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
 ) => {
   const { href, children, ...rest } = props;
   const [downloading, setDownloading] = useState(false);
+  const downloadFilename = href && isResourceUrl(href)
+    ? extractFilenameFromResourceUrl(href)
+    : undefined;
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -78,7 +81,12 @@ const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
   );
 
   return (
-    <a {...rest} href={href} onClick={handleClick}>
+    <a
+      {...rest}
+      href={href}
+      download={downloadFilename || rest.download}
+      onClick={handleClick}
+    >
       {downloading ? "下载中…" : children}
     </a>
   );

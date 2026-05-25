@@ -6,6 +6,7 @@ import {
   buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
+  findAwaitingAnswerError,
   getAwaitingAnswerError,
   getAwaitingQuestionHeading,
   getAwaitingQuestionPlaceholder,
@@ -136,6 +137,47 @@ describe("confirm dialog state helpers", () => {
         { question: "时间", answer: "2026-05-13T09:30:45" },
       ),
     ).toBe("请选择有效日期，格式为 YYYY-MM-DD HH:mm:ss");
+  });
+
+  it("validates select answers and reports the first unanswered question", () => {
+    const questions: AIAwaitQuestion[] = [
+      {
+        id: "env",
+        type: AIAwaitQuestionType.MultiSelect,
+        question: "环境",
+        options: [{ label: "dev" }],
+      },
+      {
+        id: "confirm",
+        type: AIAwaitQuestionType.Select,
+        question: "继续吗？",
+        options: [{ label: "继续" }],
+      },
+    ];
+
+    expect(getAwaitingAnswerError(questions[0], { id: "env" })).toBe(
+      "请至少选择一个选项",
+    );
+    expect(
+      getAwaitingAnswerError(questions[0], {
+        id: "env",
+        answers: ["dev"],
+      }),
+    ).toBeNull();
+    expect(
+      findAwaitingAnswerError(questions, [
+        {
+          id: "env",
+          answers: ["dev"],
+        },
+        {
+          id: "confirm",
+        },
+      ]),
+    ).toEqual({
+      index: 1,
+      message: "请选择一个选项",
+    });
   });
 
   it("tracks select free text separately from option values", () => {

@@ -71,4 +71,59 @@ describe("composerAttachments", () => {
 		expect(setAttachmentChatId).not.toHaveBeenCalled();
 		expect(setAttachments).not.toHaveBeenCalled();
 	});
+
+	it("keeps uploaded images as image attachments when the backend returns file type", async () => {
+		const imageAttachment = {
+			id: "upload_img",
+			name: "photo.png",
+			size: 3,
+			type: "image",
+			mimeType: "image/png",
+			resourceUrl: "",
+			previewUrl: "blob:photo",
+			status: "uploading" as const,
+			error: "",
+			references: [],
+		};
+		const setAttachments = jest.fn((updater) => {
+			const next = updater([imageAttachment]);
+			expect(next[0]).toMatchObject({
+				type: "image",
+				mimeType: "image/png",
+				resourceUrl: "/api/resource?file=chat_1%2Fphoto.png",
+				status: "ready",
+			});
+		});
+		(uploadFile as jest.Mock).mockResolvedValueOnce({
+			data: {
+				chatId: "chat_1",
+				references: [
+					{
+						name: "photo.png",
+						type: "file",
+						mimeType: "image/png",
+						url: "/api/resource?file=chat_1%2Fphoto.png",
+					},
+				],
+			},
+		});
+
+		await uploadComposerAttachments({
+			files: [fileNamed("photo.png")],
+			nextAttachments: [imageAttachment],
+			attachmentChatId: "",
+			state: {
+				chatId: "chat_1",
+				chatAgentById: {},
+				pendingNewChatAgentKey: "",
+				workerSelectionKey: "",
+				workerIndexByKey: {},
+			},
+			dispatch: jest.fn(),
+			setAttachments,
+			setAttachmentChatId: jest.fn(),
+		});
+
+		expect(setAttachments).toHaveBeenCalledTimes(1);
+	});
 });

@@ -179,6 +179,73 @@ export function getSelectGroupValue(
   return selected;
 }
 
+function hasTextAnswer(value: AIAwaitQuestionSubmitParamData | undefined): boolean {
+  return typeof value?.answer === "string" && value.answer.trim().length > 0;
+}
+
+export function getAwaitingAnswerError(
+  question: AIAwaitQuestion,
+  value: AIAwaitQuestionSubmitParamData | undefined,
+): string | null {
+  if (
+    question.type === AIAwaitQuestionType.Text ||
+    question.type === AIAwaitQuestionType.Password
+  ) {
+    return hasTextAnswer(value) ? null : "请输入内容";
+  }
+
+  if (question.type === AIAwaitQuestionType.Number) {
+    return typeof value?.answer === "number" && Number.isFinite(value.answer)
+      ? null
+      : "请输入数字";
+  }
+
+  if (
+    question.type === AIAwaitQuestionType.Date ||
+    question.type === AIAwaitQuestionType.DateTime
+  ) {
+    return isValidAwaitingDateAnswer(question, value?.answer)
+      ? null
+      : `请选择有效日期，格式为 ${getAwaitingDateFormat(question)}`;
+  }
+
+  if (question.type === AIAwaitQuestionType.MultiSelect) {
+    const answers = buildQuestionSubmitParams(
+      [question],
+      value ? [value] : [],
+    )[0]?.answers;
+    return Array.isArray(answers) && answers.length > 0
+      ? null
+      : "请至少选择一个选项";
+  }
+
+  if (question.type === AIAwaitQuestionType.Select) {
+    return hasTextAnswer(value) ? null : "请选择一个选项";
+  }
+
+  return null;
+}
+
+export function findAwaitingAnswerError(
+  questions: AIAwaitQuestion[] | null | undefined,
+  params: AIAwaitQuestionSubmitParamData[] | null | undefined,
+): { index: number; message: string } | null {
+  const normalizedQuestions = Array.isArray(questions) ? questions : [];
+  const normalizedParams = Array.isArray(params) ? params : [];
+
+  for (let index = 0; index < normalizedQuestions.length; index += 1) {
+    const message = getAwaitingAnswerError(
+      normalizedQuestions[index],
+      normalizedParams[index],
+    );
+    if (message) {
+      return { index, message };
+    }
+  }
+
+  return null;
+}
+
 export function buildQuestionSubmitParams(
   questions: AIAwaitQuestion[] | null | undefined,
   params: AIAwaitQuestionSubmitParamData[] | null | undefined,

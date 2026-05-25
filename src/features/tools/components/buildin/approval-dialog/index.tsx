@@ -550,7 +550,18 @@ const ApprovalQuestion = forwardRef<
               value={reason}
               tabIndex={0}
               onChange={(e) => {
-                onReasonChange(e.target.value);
+                const nextReason = e.target.value;
+                onReasonChange(nextReason);
+                if (nextReason.trim() && !decision) {
+                  onDecisionChange("reject");
+                }
+              }}
+              onPressEnter={(e) => {
+                const nextReason = e.currentTarget.value.trim();
+                if (!nextReason) {
+                  return;
+                }
+                onEnter(decision || "reject");
               }}
               style={{ padding: 0 }}
             />

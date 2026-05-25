@@ -41,6 +41,7 @@ import {
   buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
+  findAwaitingAnswerError,
   getAwaitingDateFormat,
   getAwaitingQuestionHeading,
   getAwaitingQuestionPlaceholder,
@@ -98,8 +99,22 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   }, []);
 
   const doSubmit = useCallback(() => {
-    void submitPayload(form.getFieldsValue());
-  }, [submitPayload]);
+    const params = form.getFieldValue("params") as
+      | AIAwaitQuestionSubmitParamData[]
+      | undefined;
+    const error = findAwaitingAnswerError(questions, params);
+    if (error) {
+      setCurIndex(error.index);
+      void message.warning(error.message);
+      return;
+    }
+
+    void submitPayload({
+      runId: data?.runId || "",
+      awaitingId: data?.awaitingId || "",
+      params: buildQuestionSubmitParams(questions, params),
+    });
+  }, [data?.awaitingId, data?.runId, form, questions, submitPayload]);
 
   const doIgnore = useCallback(() => {
     callbackRef.current?.onSubmit?.({
@@ -109,22 +124,29 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     });
   }, [data?.awaitingId, data?.runId]);
 
-  const moveForward = useCallback(async () => {
+  const moveForward = useCallback(() => {
     if (questions.length === 0) {
       return;
     }
 
-    try {
-      await form.validateFields([["params", curIndex]]);
-      if (curIndex >= questions.length - 1) {
-        form.submit();
-        return;
-      }
-      setCurIndex((prev) => Math.min(questions.length - 1, prev + 1));
-    } catch {
-      // Form validation already renders the inline error.
+    const params = form.getFieldValue("params") as
+      | AIAwaitQuestionSubmitParamData[]
+      | undefined;
+    const error = findAwaitingAnswerError(
+      [questions[curIndex]],
+      params ? [params[curIndex]] : undefined,
+    );
+    if (error) {
+      void message.warning(error.message);
+      return;
     }
-  }, [curIndex, form, questions.length]);
+
+    if (curIndex >= questions.length - 1) {
+      doSubmit();
+      return;
+    }
+    setCurIndex((prev) => Math.min(questions.length - 1, prev + 1));
+  }, [curIndex, doSubmit, form, questions]);
 
   useKeyboard({
     enabled: currentQuestion ? isSelectQuestionType(currentQuestion) : false,

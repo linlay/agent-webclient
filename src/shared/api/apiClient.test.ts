@@ -18,6 +18,7 @@ import {
   deleteChat,
   deleteAutomation,
   downloadResource,
+  downloadChatExport,
   extractUploadChatId,
   extractUploadReferences,
   getArchive,
@@ -1082,6 +1083,49 @@ describe('apiClient query payloads', () => {
       status: 403,
       code: 40301,
     });
+  });
+
+  it('recovers legacy utf8 filenames from chat export content disposition', async () => {
+    const createObjectURL = jest.fn(() => 'blob:chat-export');
+    const revokeObjectURL = jest.fn();
+    const click = jest.fn();
+    const appendChild = jest.fn();
+    const removeChild = jest.fn();
+    const anchor = {
+      click,
+      href: '',
+      download: '',
+      rel: '',
+    };
+
+    global.document = {
+      body: {
+        appendChild,
+        removeChild,
+      },
+      createElement: jest.fn(() => anchor),
+    } as unknown as Document;
+    global.URL = {
+      createObjectURL,
+      revokeObjectURL,
+    } as unknown as typeof global.URL;
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (key: string) =>
+          key.toLowerCase() === 'content-disposition'
+            ? 'attachment; filename="ä½ å¥½.md"'
+            : null,
+      },
+      blob: async () => new Blob(['demo']),
+    });
+
+    await downloadChatExport('chat_1');
+
+    expect(anchor.download).toBe('你好.md');
+    expect(click).toHaveBeenCalledTimes(1);
   });
 
   it('uploads files with a single multipart request', async () => {
