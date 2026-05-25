@@ -31,6 +31,14 @@ const ACCESS_LEVELS: QueryAccessLevel[] = [
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
+type LoadedCoderModelOptions = {
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+};
+
+let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
+let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null = null;
+
 function isCoderMode(value: unknown): boolean {
   return String(value || "").trim().toUpperCase() === "CODER";
 }
@@ -256,19 +264,40 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
   };
 }
 
-export async function loadCoderModelOptions(): Promise<{
-  models: CoderModelOption[];
-  reasoningEfforts: ReasoningEffortOption[];
-}> {
-  const response = await getModelOptions();
-  const options = normalizeCoderModelOptionsResponse(response);
-  if (!options.recognized) {
-    console.warn("[QuerySettingsControls] Unrecognized model options response", response);
+export function clearCoderModelOptionsCacheForTest(): void {
+  cachedCoderModelOptions = null;
+  pendingCoderModelOptionsPromise = null;
+}
+
+export function getCachedCoderModelOptions(): LoadedCoderModelOptions | null {
+  return cachedCoderModelOptions;
+}
+
+export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> {
+  if (cachedCoderModelOptions) {
+    return cachedCoderModelOptions;
   }
-  return {
-    models: options.models,
-    reasoningEfforts: options.reasoningEfforts,
-  };
+  if (pendingCoderModelOptionsPromise) {
+    return pendingCoderModelOptionsPromise;
+  }
+
+  const response = await getModelOptions();
+  pendingCoderModelOptionsPromise = Promise.resolve(response)
+    .then((rawResponse) => {
+      const options = normalizeCoderModelOptionsResponse(rawResponse);
+      if (!options.recognized) {
+        console.warn("[QuerySettingsControls] Unrecognized model options response", rawResponse);
+      }
+      cachedCoderModelOptions = {
+        models: options.models,
+        reasoningEfforts: options.reasoningEfforts,
+      };
+      return cachedCoderModelOptions;
+    })
+    .finally(() => {
+      pendingCoderModelOptionsPromise = null;
+    });
+  return pendingCoderModelOptionsPromise;
 }
 
 export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
@@ -294,8 +323,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       : "";
   const [models, setModels] = useState<CoderModelOption[]>([]);
   const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortOption[]>([]);
-  const [loadedAgentKey, setLoadedAgentKey] = useState("");
-  const [failedAgentKey, setFailedAgentKey] = useState("");
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelOptionsStatus, setModelOptionsStatus] = useState<ModelOptionsStatus>("idle");
 
@@ -310,13 +337,23 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (!isCoderAgent || !agentKey) {
       setModels([]);
       setReasoningEfforts([]);
-      setLoadedAgentKey("");
-      setFailedAgentKey("");
       setModelsLoading(false);
       setModelOptionsStatus("idle");
       return;
     }
-    if (loadedAgentKey === agentKey || failedAgentKey === agentKey || modelsLoading) {
+    const cachedOptions = getCachedCoderModelOptions();
+    if (cachedOptions) {
+      setModels(cachedOptions.models);
+      setReasoningEfforts(cachedOptions.reasoningEfforts);
+      setModelsLoading(false);
+      setModelOptionsStatus(
+        cachedOptions.models.length > 0 || cachedOptions.reasoningEfforts.length > 0
+          ? "loaded"
+          : "empty",
+      );
+      return;
+    }
+    if (modelOptionsStatus === "failed" || modelOptionsStatus === "empty" || modelsLoading) {
       return;
     }
     let cancelled = false;
@@ -326,8 +363,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         if (cancelled) return;
         setModels(options.models);
         setReasoningEfforts(options.reasoningEfforts);
-        setLoadedAgentKey(agentKey);
-        setFailedAgentKey("");
         setModelOptionsStatus(
           options.models.length > 0 || options.reasoningEfforts.length > 0 ? "loaded" : "empty",
         );
@@ -336,7 +371,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         if (cancelled) return;
         setModels([]);
         setReasoningEfforts([]);
-        setFailedAgentKey(agentKey);
         setModelOptionsStatus("failed");
       })
       .finally(() => {
@@ -346,7 +380,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [agentKey, failedAgentKey, isCoderAgent, loadedAgentKey, modelsLoading]);
+  }, [agentKey, isCoderAgent, modelOptionsStatus, modelsLoading]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(
@@ -423,8 +457,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     })) {
       return;
     }
-    setLoadedAgentKey("");
-    setFailedAgentKey("");
     setModelOptionsStatus("idle");
   };
 
