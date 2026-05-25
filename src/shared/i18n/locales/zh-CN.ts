@@ -43,7 +43,7 @@ export const zhCNMessages: I18nMessages = {
   "composer.query.reasoning.HIGH": "高",
   "composer.query.reasoning.LOW": "低",
   "composer.query.reasoning.MEDIUM": "中",
-  "composer.query.reasoning.XHIGH": "超高",
+  "composer.query.reasoning.NONE": "关闭",
   "composer.query.reasoning.default": "默认思考",
   "composer.query.reasoning.group": "思考深度",
   "composer.speech.error": "语音识别错误：{detail}",

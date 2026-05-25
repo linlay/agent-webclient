@@ -3,12 +3,13 @@ import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { getAgentEditorOptions } from "@/features/transport/lib/apiClientProxy";
+import { getModelOptions } from "@/features/transport/lib/apiClientProxy";
 import type {
-  AgentEditorModelOption,
+  CoderModelOption,
   QueryAccessLevel,
   QueryModelOverride,
   QueryReasoningEffort,
+  ReasoningEffortOption,
 } from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -28,15 +29,25 @@ const ACCESS_LEVELS: QueryAccessLevel[] = [
   "full_access",
 ];
 
-const REASONING_EFFORTS: QueryReasoningEffort[] = [
-  "LOW",
-  "MEDIUM",
-  "HIGH",
-  "XHIGH",
-];
-
 function isCoderMode(value: unknown): boolean {
   return String(value || "").trim().toUpperCase() === "CODER";
+}
+
+function toText(value: unknown): string {
+  return String(value || "").trim();
+}
+
+export async function loadCoderModelOptions(agentKey: string): Promise<{
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+}> {
+  const response = await getModelOptions(agentKey);
+  return {
+    models: Array.isArray(response.data?.models) ? response.data.models : [],
+    reasoningEfforts: Array.isArray(response.data?.reasoningEfforts)
+      ? response.data.reasoningEfforts
+      : [],
+  };
 }
 
 export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
@@ -52,8 +63,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const isCoderAgent =
     currentWorker?.type === "agent" &&
     (isCoderMode(currentWorker.raw?.mode) || currentWorker.row?.agentType === "coder");
-  const [models, setModels] = useState<AgentEditorModelOption[]>([]);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const agentKey =
+    currentWorker?.type === "agent"
+      ? toText(currentWorker.key)
+        || toText(currentWorker.sourceId)
+        || toText(currentWorker.row?.sourceId)
+        || toText(currentWorker.row?.key)
+        || toText(currentWorker.raw?.key)
+      : "";
+  const [models, setModels] = useState<CoderModelOption[]>([]);
+  const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortOption[]>([]);
+  const [loadedAgentKey, setLoadedAgentKey] = useState("");
   const [modelsLoading, setModelsLoading] = useState(false);
 
   useEffect(() => {
@@ -64,20 +84,30 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   }, [isCoderAgent, modelOverride, onModelOverrideChange]);
 
   useEffect(() => {
-    if (!isCoderAgent || modelsLoaded || modelsLoading) {
+    if (!isCoderAgent || !agentKey) {
+      setModels([]);
+      setReasoningEfforts([]);
+      setLoadedAgentKey("");
+      setModelsLoading(false);
+      return;
+    }
+    if (loadedAgentKey === agentKey || modelsLoading) {
       return;
     }
     let cancelled = false;
     setModelsLoading(true);
-    void getAgentEditorOptions()
-      .then((response) => {
+    void loadCoderModelOptions(agentKey)
+      .then((options) => {
         if (cancelled) return;
-        setModels(Array.isArray(response.data?.models) ? response.data.models : []);
-        setModelsLoaded(true);
+        setModels(options.models);
+        setReasoningEfforts(options.reasoningEfforts);
+        setLoadedAgentKey(agentKey);
       })
       .catch(() => {
         if (cancelled) return;
-        setModelsLoaded(true);
+        setModels([]);
+        setReasoningEfforts([]);
+        setLoadedAgentKey(agentKey);
       })
       .finally(() => {
         if (cancelled) return;
@@ -86,7 +116,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isCoderAgent, modelsLoaded, modelsLoading]);
+  }, [agentKey, isCoderAgent, loadedAgentKey, modelsLoading]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(
@@ -167,12 +197,14 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
               </span>
             ),
           },
-          ...REASONING_EFFORTS.map((effort) => ({
-            key: `reasoning:${effort}`,
+          ...reasoningEfforts.map((option) => ({
+            key: `reasoning:${option.key}`,
             label: (
               <span className="query-settings-menu-item">
-                <span>{t(`composer.query.reasoning.${effort}`)}</span>
-                {modelOverride.reasoningEffort === effort ? (
+                <span>
+                  {t(`composer.query.reasoning.${option.key}`) || option.label}
+                </span>
+                {modelOverride.reasoningEffort === option.key ? (
                   <MaterialIcon name="check" />
                 ) : null}
               </span>
@@ -181,7 +213,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         ],
       },
     ],
-    [modelOverride, models, t],
+    [modelOverride, models, reasoningEfforts, t],
   );
 
   const onModelMenuClick: MenuProps["onClick"] = ({ key }) => {
@@ -237,11 +269,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           trigger={["click"]}
         >
           <UiButton
-            className="query-settings-btn query-model-btn"
+            className={`query-settings-btn query-model-btn ${modelsLoading ? "is-loading" : ""}`.trim()}
             variant="secondary"
             size="sm"
             disabled={disabled}
-            loading={modelsLoading}
             title={t("composer.query.model.title")}
             onClick={(event) => event.preventDefault()}
           >

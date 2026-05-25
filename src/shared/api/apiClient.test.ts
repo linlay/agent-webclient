@@ -32,6 +32,7 @@ import {
   getMemoryMeta,
   getMemoryScope,
   getMemoryScopes,
+  getModelOptions,
   getAutomation,
   getAutomationExecutions,
   getAutomations,
@@ -478,6 +479,15 @@ describe('apiClient query payloads', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/agent/editor-options',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
+  it('loads coder model options for an agent', async () => {
+    await getModelOptions('mock-agent');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/model-options?agentKey=mock-agent',
       expect.objectContaining({ method: 'GET' }),
     );
   });

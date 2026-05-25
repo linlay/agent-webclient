@@ -43,7 +43,7 @@ export const enUSMessages: I18nMessages = {
   "composer.query.reasoning.HIGH": "High",
   "composer.query.reasoning.LOW": "Low",
   "composer.query.reasoning.MEDIUM": "Medium",
-  "composer.query.reasoning.XHIGH": "Extra high",
+  "composer.query.reasoning.NONE": "Off",
   "composer.query.reasoning.default": "Default reasoning",
   "composer.query.reasoning.group": "Reasoning effort",
   "composer.speech.error": "Speech recognition error: {detail}",

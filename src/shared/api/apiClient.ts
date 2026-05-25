@@ -247,6 +247,22 @@ export interface AgentEditorModelOption {
   contextWindow?: number;
 }
 
+export interface CoderModelOption extends AgentEditorModelOption {
+  isReasoner: boolean;
+}
+
+export interface ReasoningEffortOption {
+  key: QueryReasoningEffort;
+  label: string;
+}
+
+export interface CoderModelOptionsResponse {
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+  defaultModelKey?: string;
+  defaultReasoningEffort: QueryReasoningEffort;
+}
+
 export interface AgentEditorProxyConfigField {
   key: string;
   label: string;
@@ -878,6 +894,13 @@ export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsR
   return requestJson<AgentEditorOptionsResponse>("/api/agent/editor-options");
 }
 
+export function getModelOptions(
+  agentKey: string,
+): Promise<ApiResponse<CoderModelOptionsResponse>> {
+  const query = toQueryString({ agentKey });
+  return requestJson<CoderModelOptionsResponse>(`/api/model-options?${query}`);
+}
+
 export function getTeams(): Promise<ApiResponse> {
   return requestJson("/api/teams");
 }
@@ -1233,7 +1256,7 @@ export interface QueryLikeParams {
 }
 
 export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
-export type QueryReasoningEffort = "LOW" | "MEDIUM" | "HIGH" | "XHIGH";
+export type QueryReasoningEffort = "NONE" | "LOW" | "MEDIUM" | "HIGH";
 
 export interface QueryModelOverride {
   key?: string;

@@ -456,6 +456,10 @@
     max-width: 280px;
 }
 
+.query-model-btn.ui-btn.is-loading {
+    pointer-events: auto;
+}
+
 .query-settings-menu-item {
     display: inline-flex;
     align-items: center;

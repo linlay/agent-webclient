@@ -113,7 +113,7 @@ function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undef
     reasoningEffort === 'LOW' ||
     reasoningEffort === 'MEDIUM' ||
     reasoningEffort === 'HIGH' ||
-    reasoningEffort === 'XHIGH'
+    reasoningEffort === 'NONE'
   ) {
     model.reasoningEffort = reasoningEffort;
   }

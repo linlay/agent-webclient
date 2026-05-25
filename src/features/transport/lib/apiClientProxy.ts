@@ -27,6 +27,7 @@ import {
 	getMemoryRecords as getMemoryRecordsHttp,
 	getMemoryScope as getMemoryScopeHttp,
 	getMemoryScopes as getMemoryScopesHttp,
+	getModelOptions as getModelOptionsHttp,
 	getAutomation as getAutomationHttp,
 	getAutomationExecutions as getAutomationExecutionsHttp,
 	getAutomations as getAutomationsHttp,
@@ -88,6 +89,7 @@ import {
 	type AutomationExecutionsRequest,
 	type AutomationListRequest,
 	type AutomationListResponse,
+	type CoderModelOptionsResponse,
 	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
 	type UpdateAutomationRequest,
@@ -261,6 +263,16 @@ export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsR
 		"/api/agent/editor-options",
 		undefined,
 		() => getAgentEditorOptionsHttp(),
+	);
+}
+
+export function getModelOptions(
+	agentKey: string,
+): Promise<ApiResponse<CoderModelOptionsResponse>> {
+	return routeRequest<CoderModelOptionsResponse>(
+		"/api/model-options",
+		{ agentKey },
+		() => getModelOptionsHttp(agentKey),
 	);
 }
 
