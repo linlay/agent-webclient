@@ -260,7 +260,7 @@ describe("QuerySettingsControls", () => {
     expect(html).toContain("默认模型 / 关闭");
   });
 
-  it("builds menu items from returned model options", () => {
+  it("puts reasoning options at the top level and model options in a submenu", () => {
     const items = buildModelMenuItems({
       models: [
         {
@@ -274,6 +274,7 @@ describe("QuerySettingsControls", () => {
       ],
       reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
       modelOverride: {},
+      selectedModelLabel: "默认模型",
       t: (key) => {
         const messages: Record<string, string> = {
           "composer.query.model.default": "默认模型",
@@ -288,10 +289,11 @@ describe("QuerySettingsControls", () => {
         };
         return messages[key] || key;
       },
-    }) as Array<{ children?: Array<{ key: string; label: React.ReactNode }> }>;
+    }) as Array<{ key: string; children?: Array<{ key: string; label: React.ReactNode }>; label?: React.ReactNode }>;
 
-    const modelChildren = items[0].children || [];
-    const reasoningChildren = items[1].children || [];
+    const reasoningChildren = items[0].children || [];
+    const modelSubmenu = items[1];
+    const modelChildren = modelSubmenu.children || [];
     const modelHtml = renderToStaticMarkup(
       React.createElement(
         React.Fragment,
@@ -300,6 +302,9 @@ describe("QuerySettingsControls", () => {
           React.createElement(React.Fragment, { key: item.key }, item.label),
         ),
       ),
+    );
+    const modelSubmenuHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, modelSubmenu.label),
     );
     const reasoningHtml = renderToStaticMarkup(
       React.createElement(
@@ -311,14 +316,16 @@ describe("QuerySettingsControls", () => {
       ),
     );
 
-    expect(modelChildren.map((item) => item.key)).toEqual([
-      "model:",
-      "model:babelark-qwen3_5-plus",
-    ]);
+    expect(items.map((item) => item.key)).toEqual(["reasoning", "model-submenu"]);
     expect(reasoningChildren.map((item) => item.key)).toEqual([
       "reasoning:",
       "reasoning:HIGH",
     ]);
+    expect(modelChildren.map((item) => item.key)).toEqual([
+      "model:",
+      "model:babelark-qwen3_5-plus",
+    ]);
+    expect(modelSubmenuHtml).toContain("模型 · 默认模型");
     expect(modelHtml).toContain("默认模型");
     expect(modelHtml).toContain("babelark-qwen3_5-plus · qwen3.5-plus");
     expect(reasoningHtml).toContain("默认思考");
@@ -374,13 +381,14 @@ describe("QuerySettingsControls", () => {
     ).toBe(false);
   });
 
-  it("shows empty and failed menu states instead of silently showing defaults only", () => {
+  it("shows loading, empty, and failed states inside the model submenu", () => {
     const t = (key: string) => {
       const messages: Record<string, string> = {
         "composer.query.model.default": "默认模型",
         "composer.query.model.empty": "暂无可选模型",
         "composer.query.model.group": "模型",
         "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
+        "composer.query.model.loading": "正在加载模型...",
         "composer.query.reasoning.default": "默认思考",
         "composer.query.reasoning.empty": "暂无可选思考深度",
         "composer.query.reasoning.group": "思考深度",
@@ -393,32 +401,43 @@ describe("QuerySettingsControls", () => {
       modelOverride: {},
       status: "empty",
       t,
-    }) as Array<{ children?: Array<{ label: React.ReactNode }> }>;
+    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
+    const loadingItems = buildModelMenuItems({
+      models: [],
+      reasoningEfforts: [],
+      modelOverride: {},
+      modelsLoading: true,
+      t,
+    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
     const failedItems = buildModelMenuItems({
       models: [],
       reasoningEfforts: [],
       modelOverride: {},
       status: "failed",
       t,
-    }) as Array<{ children?: Array<{ label: React.ReactNode }> }>;
+    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
+    const emptyModelSubmenu = emptyItems.find((item) => item.key === "model-submenu");
+    const loadingModelSubmenu = loadingItems.find((item) => item.key === "model-submenu");
+    const failedModelSubmenu = failedItems.find((item) => item.key === "model-submenu");
 
     const emptyHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, emptyItems.flatMap((item) =>
-        (item.children || []).map((child, index) =>
+      React.createElement(React.Fragment, null, (emptyModelSubmenu?.children || []).map((child, index) =>
           React.createElement(React.Fragment, { key: index }, child.label),
-        ),
+      )),
+    );
+    const loadingHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, (loadingModelSubmenu?.children || []).map((child, index) =>
+          React.createElement(React.Fragment, { key: index }, child.label),
       )),
     );
     const failedHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, failedItems.flatMap((item) =>
-        (item.children || []).map((child, index) =>
+      React.createElement(React.Fragment, null, (failedModelSubmenu?.children || []).map((child, index) =>
           React.createElement(React.Fragment, { key: index }, child.label),
-        ),
       )),
     );
 
+    expect(loadingHtml).toContain("正在加载模型...");
     expect(emptyHtml).toContain("暂无可选模型");
-    expect(emptyHtml).toContain("暂无可选思考深度");
     expect(failedHtml).toContain("模型加载失败，重新打开可重试");
   });
 

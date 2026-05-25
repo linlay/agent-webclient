@@ -106,6 +106,7 @@ export function buildModelMenuItems({
   models,
   reasoningEfforts,
   modelOverride,
+  selectedModelLabel,
   modelsLoading = false,
   status = "idle",
   t,
@@ -113,6 +114,7 @@ export function buildModelMenuItems({
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
   modelOverride: QueryModelOverride;
+  selectedModelLabel?: string;
   modelsLoading?: boolean;
   status?: ModelOptionsStatus;
   t: (key: string) => string;
@@ -142,63 +144,37 @@ export function buildModelMenuItems({
     }
     return null;
   })();
-  const reasoningStatusItem = (() => {
-    if (reasoningEfforts.length > 0) return null;
-    if (modelsLoading) {
+
+  const modelMenuChildren = [
+    {
+      key: "model:",
+      label: (
+        <span className="query-settings-menu-item">
+          <span>{t("composer.query.model.default")}</span>
+          {!modelOverride.key ? <MaterialIcon name="check" /> : null}
+        </span>
+      ),
+    },
+    ...(modelStatusItem ? [modelStatusItem] : []),
+    ...models.map((model) => {
+      const key = String(model.key || "").trim();
+      const label = model.modelId ? `${key} · ${model.modelId}` : key;
       return {
-        key: "reasoning-status:loading",
-        disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.model.loading")}</span>,
+        key: `model:${encodeURIComponent(key)}`,
+        label: (
+          <span className="query-settings-menu-item">
+            <span>{label}</span>
+            {modelOverride.key === key ? <MaterialIcon name="check" /> : null}
+          </span>
+        ),
       };
-    }
-    if (status === "failed") {
-      return {
-        key: "reasoning-status:failed",
-        disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.model.loadFailed")}</span>,
-      };
-    }
-    if (status === "empty") {
-      return {
-        key: "reasoning-status:empty",
-        disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.reasoning.empty")}</span>,
-      };
-    }
-    return null;
-  })();
+    }),
+  ];
+  const resolvedSelectedModelLabel = selectedModelLabel || (
+    modelOverride.key || t("composer.query.model.default")
+  );
 
   return [
-    {
-      key: "models",
-      type: "group",
-      label: t("composer.query.model.group"),
-      children: [
-        {
-          key: "model:",
-          label: (
-            <span className="query-settings-menu-item">
-              <span>{t("composer.query.model.default")}</span>
-              {!modelOverride.key ? <MaterialIcon name="check" /> : null}
-            </span>
-          ),
-        },
-        ...(modelStatusItem ? [modelStatusItem] : []),
-        ...models.map((model) => {
-          const key = String(model.key || "").trim();
-          const label = model.modelId ? `${key} · ${model.modelId}` : key;
-          return {
-            key: `model:${encodeURIComponent(key)}`,
-            label: (
-              <span className="query-settings-menu-item">
-                <span>{label}</span>
-                {modelOverride.key === key ? <MaterialIcon name="check" /> : null}
-              </span>
-            ),
-          };
-        }),
-      ],
-    },
     {
       key: "reasoning",
       type: "group",
@@ -215,7 +191,6 @@ export function buildModelMenuItems({
             </span>
           ),
         },
-        ...(reasoningStatusItem ? [reasoningStatusItem] : []),
         ...reasoningEfforts.map((option) => ({
           key: `reasoning:${option.key}`,
           label: (
@@ -230,6 +205,17 @@ export function buildModelMenuItems({
           ),
         })),
       ],
+    },
+    {
+      key: "model-submenu",
+      label: (
+        <span className="query-settings-menu-item">
+          <span>
+            {t("composer.query.model.group")} · {resolvedSelectedModelLabel}
+          </span>
+        </span>
+      ),
+      children: modelMenuChildren,
     },
   ];
 }
@@ -417,6 +403,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       models,
       reasoningEfforts,
       modelOverride,
+      selectedModelLabel,
       modelsLoading,
       status: modelOptionsStatus,
       t,
