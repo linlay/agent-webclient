@@ -327,7 +327,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .usage-popover-header div {
@@ -338,25 +338,25 @@
 }
 
 .usage-popover-header strong {
-    font-size: 12px;
-    line-height: 1.25;
+    font-size: 11px;
+    line-height: 1.15;
 }
 
 .usage-popover-header span {
-    max-width: 300px;
+    max-width: 340px;
     overflow: hidden;
     color: var(--ink-muted);
     font:
-        500 10px/1.25 "IBM Plex Mono",
+        500 9px/1.15 "IBM Plex Mono",
         monospace;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .usage-popover-close.ui-btn.is-icon-only {
-    width: 24px;
-    min-width: 24px;
-    min-height: 24px;
+    width: 20px;
+    min-width: 20px;
+    min-height: 20px;
     padding: 0;
     border-radius: 7px;
 }
@@ -364,7 +364,7 @@
 .usage-popover-close-glyph::before {
     content: "close";
     font-family: "Material Symbols Rounded";
-    font-size: 17px;
+    font-size: 15px;
     font-weight: normal;
     font-style: normal;
     line-height: 1;
@@ -380,15 +380,15 @@
 .usage-context-window {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 7px;
+    padding: 4px 6px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--accent-soft) 58%, transparent);
 }
 
 .usage-context-ring {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     flex: 0 0 auto;
     display: grid;
     place-items: center;
@@ -404,31 +404,39 @@
 .usage-context-ring span {
     color: var(--ink-1);
     font:
-        700 8px/1 "IBM Plex Mono",
+        700 7px/1 "IBM Plex Mono",
         monospace;
 }
 
 .usage-context-copy {
     min-width: 0;
-    display: grid;
-    gap: 1px;
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .usage-context-copy span {
+    flex: 0 0 auto;
     color: var(--ink-muted);
-    font-size: 10px;
+    font-size: 9px;
+    line-height: 1.1;
 }
 
 .usage-context-copy strong {
+    flex: 0 0 auto;
     font:
-        700 11px/1.15 "IBM Plex Mono",
+        700 10px/1.1 "IBM Plex Mono",
         monospace;
     overflow-wrap: anywhere;
 }
 
 .usage-context-copy small {
+    flex: 0 0 auto;
     color: var(--ink-2);
-    font-size: 10px;
+    font-size: 9px;
+    line-height: 1.1;
 }
 
 .usage-popover-section {

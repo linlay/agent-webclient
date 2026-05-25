@@ -181,6 +181,7 @@ describe("TopNav", () => {
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");
+		expect(html).toContain("64,000 / 128,000");
 		expect(html).toContain("Estimated next call 8,000");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Current run");
