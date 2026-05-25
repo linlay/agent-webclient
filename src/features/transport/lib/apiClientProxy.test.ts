@@ -333,7 +333,7 @@ describe("apiClientProxy", () => {
 		});
 		await proxy.deleteAgent({ key: "editable-agent" });
 		await proxy.getAgentEditorOptions();
-		await proxy.getModelOptions("editable-agent");
+		await proxy.getModelOptions();
 
 		expect(request).toHaveBeenNthCalledWith(1, {
 			type: "/api/agent/create",
@@ -359,7 +359,7 @@ describe("apiClientProxy", () => {
 		});
 		expect(request).toHaveBeenNthCalledWith(5, {
 			type: "/api/model-options",
-			payload: { agentKey: "editable-agent" },
+			payload: undefined,
 		});
 		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
 	});
@@ -1120,7 +1120,7 @@ describe("apiClientProxy", () => {
 		await expect(proxy.getAgentEditorOptions()).resolves.toMatchObject({
 			data: { modes: [{ key: "PROXY", label: "ACP-PROXY" }] },
 		});
-		await expect(proxy.getModelOptions("editable-agent")).resolves.toMatchObject({
+		await expect(proxy.getModelOptions()).resolves.toMatchObject({
 			data: { models: [{ key: "coder-model" }] },
 		});
 
@@ -1133,7 +1133,7 @@ describe("apiClientProxy", () => {
 			key: "editable-agent",
 		});
 		expect(mockApiClient.getAgentEditorOptions).toHaveBeenCalledTimes(1);
-		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith("editable-agent");
+		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith();
 	});
 
 	it("routes submit requests over http when sse mode is selected", async () => {

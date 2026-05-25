@@ -37,11 +37,11 @@ function toText(value: unknown): string {
   return String(value || "").trim();
 }
 
-export async function loadCoderModelOptions(agentKey: string): Promise<{
+export async function loadCoderModelOptions(): Promise<{
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
 }> {
-  const response = await getModelOptions(agentKey);
+  const response = await getModelOptions();
   return {
     models: Array.isArray(response.data?.models) ? response.data.models : [],
     reasoningEfforts: Array.isArray(response.data?.reasoningEfforts)
@@ -96,7 +96,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     }
     let cancelled = false;
     setModelsLoading(true);
-    void loadCoderModelOptions(agentKey)
+    void loadCoderModelOptions()
       .then((options) => {
         if (cancelled) return;
         setModels(options.models);

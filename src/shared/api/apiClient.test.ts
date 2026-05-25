@@ -483,11 +483,11 @@ describe('apiClient query payloads', () => {
     );
   });
 
-  it('loads coder model options for an agent', async () => {
-    await getModelOptions('mock-agent');
+  it('loads global model options', async () => {
+    await getModelOptions();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/model-options?agentKey=mock-agent',
+      '/api/model-options',
       expect.objectContaining({ method: 'GET' }),
     );
   });

@@ -97,7 +97,7 @@ describe("QuerySettingsControls", () => {
     expect(nonCoderHtml).not.toContain("默认模型");
   });
 
-  it("loads CODER model options from the agent-specific endpoint", async () => {
+  it("loads global CODER model options", async () => {
     getModelOptions.mockResolvedValue({
       data: {
         models: [{ key: "coder-model", modelId: "qwen3-coder" }],
@@ -105,11 +105,11 @@ describe("QuerySettingsControls", () => {
       },
     });
 
-    await expect(loadCoderModelOptions("coder-agent")).resolves.toEqual({
+    await expect(loadCoderModelOptions()).resolves.toEqual({
       models: [{ key: "coder-model", modelId: "qwen3-coder" }],
       reasoningEfforts: [{ key: "NONE", label: "NONE" }],
     });
-    expect(getModelOptions).toHaveBeenCalledWith("coder-agent");
+    expect(getModelOptions).toHaveBeenCalledWith();
   });
 
   it("renders selected NONE reasoning label", () => {
