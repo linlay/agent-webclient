@@ -132,7 +132,10 @@ describe("desktopFileSystem project folder selection", () => {
       kind: "browser-directory-path",
       workspaceDir: "/Users/demo/Project/agent-coder",
     });
-    expect(mockWindow.prompt).toHaveBeenCalled();
+    expect(mockWindow.prompt).toHaveBeenCalledWith(
+      "由于浏览器限制，需要输入项目的绝对路径",
+      "",
+    );
   });
 
   it("throws unsupported when no prompt is available for browser selection", async () => {

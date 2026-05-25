@@ -417,6 +417,58 @@
     align-self: center;
 }
 
+.query-settings-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.query-settings-btn.ui-btn {
+    min-height: 32px;
+    max-width: 220px;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.query-settings-btn .ui-btn-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.query-settings-btn .ui-btn-label > span:not(.material-symbols-rounded) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.query-settings-btn .material-symbols-rounded {
+    flex: 0 0 auto;
+    font-size: 17px;
+}
+
+.query-model-btn.ui-btn {
+    max-width: 280px;
+}
+
+.query-settings-menu-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 150px;
+}
+
+.query-settings-menu-item .material-symbols-rounded {
+    color: var(--ink-1);
+    font-size: 18px;
+}
+
 .composer-mode-shell {
     width: 100%;
 }

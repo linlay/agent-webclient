@@ -4,7 +4,11 @@ import { message as antdMessage } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
-import { createRequestId } from "@/shared/api/apiClient";
+import {
+  createRequestId,
+  type QueryAccessLevel,
+  type QueryModelOverride,
+} from "@/shared/api/apiClient";
 import {
   interruptChat,
   learnChat,
@@ -36,6 +40,7 @@ type ComposerSendAttachmentMeta = {
 
 interface UseComposerSendInput {
   attachmentChatId: string;
+  accessLevel: QueryAccessLevel;
   clearComposerAttachments: () => void;
   closeMention: () => void;
   controlParams: Record<string, unknown>;
@@ -59,6 +64,7 @@ interface UseComposerSendInput {
   inputValue: string;
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
+  modelOverride: QueryModelOverride;
   selectSlashCommand: () => { id: SlashCommandId } | null;
   showSlashPalette: boolean;
   sendAttachmentMeta: ComposerSendAttachmentMeta[];
@@ -98,6 +104,7 @@ function appendTextBlock(base: string, extra: string): string {
 export function useComposerSend(input: UseComposerSendInput) {
   const {
     attachmentChatId,
+    accessLevel,
     clearComposerAttachments,
     closeMention,
     controlParams,
@@ -108,6 +115,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    modelOverride,
     selectSlashCommand,
     showSlashPalette,
     sendAttachmentMeta,
@@ -411,12 +419,15 @@ export function useComposerSend(input: UseComposerSendInput) {
           teamId: teamId || undefined,
           references: sendReferences,
           attachments: sendAttachmentMeta,
+          accessLevel,
+          model: modelOverride,
           params: controlParams,
         },
       }),
     );
   }, [
     attachmentChatId,
+    accessLevel,
     clearComposerAttachments,
     closeMention,
     controlParams,
@@ -426,6 +437,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    modelOverride,
     resolveCurrentRunId,
     selectSlashCommand,
     sendAttachmentMeta,

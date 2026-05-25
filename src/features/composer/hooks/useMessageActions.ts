@@ -5,6 +5,8 @@ import type { TimelineAttachment } from '@/app/state/types';
 import { useAgentEventHandler } from '@/features/timeline/hooks/useAgentEventHandler';
 import {
   createRequestId,
+  type QueryAccessLevel,
+  type QueryModelOverride,
   setAccessToken,
 } from '@/shared/api/apiClient';
 import { AIRunEventTypeEnum } from '@/app/state/eventTypes';
@@ -37,6 +39,8 @@ interface SendMessageEventDetail {
   agentKey?: unknown;
   teamId?: unknown;
   params?: unknown;
+  accessLevel?: unknown;
+  model?: unknown;
 }
 
 function isTerminalRunEventType(type: string): boolean {
@@ -88,6 +92,34 @@ export function resolveQueryStreamExecutor(transportMode: 'sse' | 'ws') {
     : executeQueryStreamWs;
 }
 
+function normalizeQueryAccessLevel(value: unknown): QueryAccessLevel | undefined {
+  return value === 'default' || value === 'auto_approve' || value === 'full_access'
+    ? value
+    : undefined;
+}
+
+function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  const key = String(record.key || '').trim();
+  const reasoningEffort = String(record.reasoningEffort || '').trim();
+  const model: QueryModelOverride = {};
+  if (key) {
+    model.key = key;
+  }
+  if (
+    reasoningEffort === 'LOW' ||
+    reasoningEffort === 'MEDIUM' ||
+    reasoningEffort === 'HIGH' ||
+    reasoningEffort === 'XHIGH'
+  ) {
+    model.reasoningEffort = reasoningEffort;
+  }
+  return model.key || model.reasoningEffort ? model : undefined;
+}
+
 /**
  * useMessageActions — handles sending messages and processing the query stream.
  * Replaces the original messageActions.js.
@@ -114,6 +146,8 @@ export function useMessageActions() {
       references: unknown[] = [],
       attachments: TimelineAttachment[] = [],
       params: Record<string, unknown> = {},
+      accessLevel?: QueryAccessLevel,
+      model?: QueryModelOverride,
       preferredChatId = '',
       preferredAgentKey = '',
       preferredTeamId = '',
@@ -391,6 +425,8 @@ export function useMessageActions() {
             teamId: selectedTeamId || undefined,
             chatId: chatId || undefined,
             references: normalizedReferences.length > 0 ? normalizedReferences : undefined,
+            accessLevel,
+            model,
             params: Object.keys(params).length > 0 ? params : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
             signal: abortController.signal,
@@ -465,11 +501,23 @@ export function useMessageActions() {
         detail.params && typeof detail.params === 'object' && !Array.isArray(detail.params)
           ? (detail.params as Record<string, unknown>)
           : {};
+      const accessLevel = normalizeQueryAccessLevel(detail.accessLevel);
+      const model = normalizeQueryModelOverride(detail.model);
       const chatId = String(detail.chatId || '').trim();
       const agentKey = String(detail.agentKey || '').trim();
       const teamId = String(detail.teamId || '').trim();
       if (message || references.length > 0) {
-        void sendMessage(message, references, attachments, params, chatId, agentKey, teamId);
+        void sendMessage(
+          message,
+          references,
+          attachments,
+          params,
+          accessLevel,
+          model,
+          chatId,
+          agentKey,
+          teamId,
+        );
       }
     };
     window.addEventListener('agent:send-message', handler);

@@ -3,10 +3,10 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import type { QueryStreamParams } from "@/shared/api/apiClient";
 import {
+	compactQueryModelOverride,
 	ensureAccessToken,
 	getCurrentAccessToken,
 } from "@/shared/api/apiClient";
-import { buildDesktopQueryContext } from "@/shared/api/desktopQueryContext";
 import {
 	isWsConnectionFailure,
 	toWsConnectionError,
@@ -108,7 +108,7 @@ export async function executeQueryStreamWs(
 			}
 
 			const startStream = (client: QueryWsClient) => {
-				const queryParams = buildDesktopQueryContext(params.params);
+				const model = compactQueryModelOverride(params.model);
 				client.stream({
 					type: "/api/query",
 					payload: {
@@ -118,11 +118,13 @@ export async function executeQueryStreamWs(
 						...(params.agentKey ? { agentKey: params.agentKey } : {}),
 						...(params.teamId ? { teamId: params.teamId } : {}),
 						...(params.chatId ? { chatId: params.chatId } : {}),
+						...(params.accessLevel ? { accessLevel: params.accessLevel } : {}),
+						...(model ? { model } : {}),
 						...(params.role ? { role: params.role } : {}),
 						...(params.references !== undefined
 							? { references: params.references }
 							: {}),
-						...(queryParams !== undefined ? { params: queryParams } : {}),
+						...(params.params !== undefined ? { params: params.params } : {}),
 						...(params.scene ? { scene: params.scene } : {}),
 						...(params.stream !== undefined ? { stream: params.stream } : {}),
 					},

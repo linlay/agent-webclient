@@ -145,7 +145,7 @@ function selectBrowserProjectFolder(): Promise<ProjectFolderSelection | null> {
     );
   }
   const workspaceDir = normalizePath(
-    window.prompt("请输入本机项目目录的绝对路径", ""),
+    window.prompt("由于浏览器限制，需要输入项目的绝对路径", ""),
   );
   if (!workspaceDir) return Promise.resolve(null);
   return Promise.resolve({ kind: "browser-directory-path", workspaceDir });

@@ -7,7 +7,6 @@ import {
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
 } from '@/shared/api/appAuth';
-import { buildDesktopQueryContext } from '@/shared/api/desktopQueryContext';
 import type {
   MemoryScopeDetail,
   MemoryContextPreviewResponse,
@@ -1230,6 +1229,14 @@ export interface QueryLikeParams {
   planningMode?: boolean;
 }
 
+export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
+export type QueryReasoningEffort = "LOW" | "MEDIUM" | "HIGH" | "XHIGH";
+
+export interface QueryModelOverride {
+  key?: string;
+  reasoningEffort?: QueryReasoningEffort;
+}
+
 export interface BackgroundCommandParams {
   requestId: string;
   chatId: string;
@@ -1429,6 +1436,8 @@ export interface QueryStreamParams {
   requestId: string;
   message: string;
   planningMode?: boolean;
+  accessLevel?: QueryAccessLevel;
+  model?: QueryModelOverride;
   agentKey?: string;
   teamId?: string;
   chatId?: string;
@@ -1459,10 +1468,12 @@ export function createQueryStream(
   if (options.agentKey) body.agentKey = options.agentKey;
   if (options.teamId) body.teamId = options.teamId;
   if (options.chatId) body.chatId = options.chatId;
+  if (options.accessLevel) body.accessLevel = options.accessLevel;
+  const model = compactQueryModelOverride(options.model);
+  if (model) body.model = model;
   if (options.role) body.role = options.role;
   if (options.references !== undefined) body.references = options.references;
-  const params = buildDesktopQueryContext(options.params);
-  if (params !== undefined) body.params = params;
+  if (options.params !== undefined) body.params = options.params;
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
 
@@ -1475,6 +1486,25 @@ export function createQueryStream(
     body: JSON.stringify(body),
     signal: options.signal,
   });
+}
+
+export function compactQueryModelOverride(
+  model: QueryModelOverride | undefined,
+): QueryModelOverride | null {
+  if (!model) {
+    return null;
+  }
+  const key = String(model.key || "").trim();
+  const reasoningEffort = String(model.reasoningEffort || "").trim() as
+    | QueryReasoningEffort
+    | "";
+  if (!key && !reasoningEffort) {
+    return null;
+  }
+  return {
+    ...(key ? { key } : {}),
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+  };
 }
 
 export function createAttachStream(

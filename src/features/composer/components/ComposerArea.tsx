@@ -27,6 +27,10 @@ import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
+import type {
+  QueryAccessLevel,
+  QueryModelOverride,
+} from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {
@@ -51,6 +55,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
+  const [accessLevel, setAccessLevel] =
+    useState<QueryAccessLevel>("default");
+  const [modelOverride, setModelOverride] = useState<QueryModelOverride>({});
 
   useEffect(() => {
     if (state.composerDraft === inputValue) {
@@ -236,6 +243,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     steerSubmitting,
   } = useComposerSend({
     attachmentChatId,
+    accessLevel,
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
       rememberError: t("composer.background.remember.error"),
@@ -262,6 +270,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    modelOverride,
     selectSlashCommand,
     sendAttachmentMeta,
     sendReferences,
@@ -491,9 +500,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   textareaRef={textareaRef}
                 />
                 <ComposerActions
+                  accessLevel={accessLevel}
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}
                   isStreaming={state.streaming}
+                  modelOverride={modelOverride}
                   planningMode={state.planningMode}
                   voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
@@ -501,7 +512,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   speechSupported={speechSupported}
                   speechStatus={speechStatus}
                   sendDisabled={sendDisabled}
+                  onAccessLevelChange={setAccessLevel}
                   onControlParamsChange={setControlParams}
+                  onModelOverrideChange={setModelOverride}
                   onTogglePlanningMode={togglePlanningMode}
                 />
                 {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}

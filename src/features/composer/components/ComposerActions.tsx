@@ -1,14 +1,21 @@
 import React from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
+import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
+import type {
+  QueryAccessLevel,
+  QueryModelOverride,
+} from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
 interface ComposerActionsProps {
+  accessLevel: QueryAccessLevel;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
   isStreaming: boolean;
+  modelOverride: QueryModelOverride;
   planningMode: boolean;
   voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
@@ -16,14 +23,18 @@ interface ComposerActionsProps {
   speechSupported: boolean;
   speechStatus: string;
   sendDisabled: boolean;
+  onAccessLevelChange: (value: QueryAccessLevel) => void;
   onControlParamsChange: (params: Record<string, unknown>) => void;
+  onModelOverrideChange: (value: QueryModelOverride) => void;
   onTogglePlanningMode: () => void;
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
+  accessLevel,
   isFrontendActive,
   isVoiceMode,
   isStreaming,
+  modelOverride,
   planningMode,
   voiceEnabled,
   hasUploadingAttachments,
@@ -31,7 +42,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   speechSupported,
   speechStatus,
   sendDisabled,
+  onAccessLevelChange,
   onControlParamsChange,
+  onModelOverrideChange,
   onTogglePlanningMode,
 }) => {
   const { t } = useI18n();
@@ -96,6 +109,13 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           </UiButton>
         ) : !isVoiceMode ? (
           <>
+            <QuerySettingsControls
+              accessLevel={accessLevel}
+              disabled={isFrontendActive}
+              modelOverride={modelOverride}
+              onAccessLevelChange={onAccessLevelChange}
+              onModelOverrideChange={onModelOverrideChange}
+            />
             {voiceEnabled ? (
               <UiButton
                 className={`voice-btn ${speechListening ? "is-listening" : ""}`}

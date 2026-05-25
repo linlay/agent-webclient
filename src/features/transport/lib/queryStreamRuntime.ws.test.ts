@@ -3,7 +3,6 @@ import {
 	ensureAccessToken,
 	getCurrentAccessToken,
 } from "@/shared/api/apiClient";
-import { buildDesktopQueryContext } from "@/shared/api/desktopQueryContext";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	getWsClient,
@@ -18,12 +17,20 @@ jest.mock("./wsClientSingleton", () => ({
 }));
 
 jest.mock("@/shared/api/apiClient", () => ({
+	compactQueryModelOverride: jest.fn((model: unknown) => {
+		if (!model || typeof model !== "object") return null;
+		const record = model as Record<string, unknown>;
+		const key = String(record.key || "").trim();
+		const reasoningEffort = String(record.reasoningEffort || "").trim();
+		return key || reasoningEffort
+			? {
+					...(key ? { key } : {}),
+					...(reasoningEffort ? { reasoningEffort } : {}),
+				}
+			: null;
+	}),
 	ensureAccessToken: jest.fn(),
 	getCurrentAccessToken: jest.fn(),
-}));
-
-jest.mock("@/shared/api/desktopQueryContext", () => ({
-	buildDesktopQueryContext: jest.fn((params: unknown) => params),
 }));
 
 jest.mock("@/shared/utils/routing", () => ({
@@ -36,7 +43,6 @@ describe("executeQueryStreamWs", () => {
 	const initWsClientMock = initWsClient as jest.MockedFunction<typeof initWsClient>;
 	const ensureAccessTokenMock = ensureAccessToken as jest.MockedFunction<typeof ensureAccessToken>;
 	const getCurrentAccessTokenMock = getCurrentAccessToken as jest.MockedFunction<typeof getCurrentAccessToken>;
-	const buildDesktopQueryContextMock = buildDesktopQueryContext as jest.MockedFunction<typeof buildDesktopQueryContext>;
 	const isAppModeMock = isAppMode as jest.MockedFunction<typeof isAppMode>;
 
 	beforeEach(() => {
@@ -45,12 +51,10 @@ describe("executeQueryStreamWs", () => {
 		initWsClientMock.mockReset();
 		ensureAccessTokenMock.mockReset();
 		getCurrentAccessTokenMock.mockReset();
-		buildDesktopQueryContextMock.mockReset();
 		isAppModeMock.mockReset();
 		ensureAccessTokenMock.mockResolvedValue("");
 		getCurrentAccessTokenMock.mockReturnValue("");
 		getWsClientAccessTokenMock.mockReturnValue("");
-		buildDesktopQueryContextMock.mockImplementation((params) => params);
 		isAppModeMock.mockReturnValue(false);
 	});
 
@@ -119,7 +123,7 @@ describe("executeQueryStreamWs", () => {
 		);
 	});
 
-	it("sends the unified desktop query context through websocket payloads", async () => {
+	it("passes business params unchanged through websocket payloads", async () => {
 		const dispatch = jest.fn();
 		const handleEvent = jest.fn();
 		const streamMock = jest.fn((options: {
@@ -130,13 +134,6 @@ describe("executeQueryStreamWs", () => {
 			return { abort: jest.fn() };
 		});
 
-		buildDesktopQueryContextMock.mockReturnValue({
-			desktop: {
-				source: "copilot",
-				route: "/settings?section=navigation",
-				pageKey: "native:/settings?section=navigation",
-			},
-		});
 		getWsClientMock.mockReturnValue({
 			stream: streamMock,
 		} as never);
@@ -146,29 +143,60 @@ describe("executeQueryStreamWs", () => {
 				requestId: "req_desktop_ws",
 				message: "hello",
 				params: {
-					desktop: {
-						source: "stale",
-					},
+					city: "beijing",
 				},
 			},
 			dispatch,
 			handleEvent,
 		});
 
-		expect(buildDesktopQueryContextMock).toHaveBeenCalledWith({
-			desktop: {
-				source: "stale",
-			},
-		});
 		expect(streamMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				payload: expect.objectContaining({
 					params: {
-						desktop: {
-							source: "copilot",
-							route: "/settings?section=navigation",
-							pageKey: "native:/settings?section=navigation",
-						},
+						city: "beijing",
+					},
+				}),
+			}),
+		);
+	});
+
+	it("sends access level and model overrides through websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: {
+			payload: Record<string, unknown>;
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_access_model_ws",
+				message: "hello",
+				accessLevel: "full_access",
+				model: {
+					key: "gpt-5.5",
+					reasoningEffort: "XHIGH",
+				},
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		expect(streamMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				payload: expect.objectContaining({
+					requestId: "req_access_model_ws",
+					accessLevel: "full_access",
+					model: {
+						key: "gpt-5.5",
+						reasoningEffort: "XHIGH",
 					},
 				}),
 			}),

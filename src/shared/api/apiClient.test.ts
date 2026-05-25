@@ -255,7 +255,7 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('adds desktop context for query streams in desktop app mode', async () => {
+  it('keeps query params empty in desktop app mode when no business params are provided', async () => {
     installWindow({
       pathname: '/copilot',
       storedToken: 'desktop-token',
@@ -272,16 +272,10 @@ describe('apiClient query payloads', () => {
       requestId: 'req_desktop',
       planningMode: false,
       message: '当前页面是什么',
-      params: {
-        desktop: {
-          source: 'copilot',
-          route: '/copilot',
-        },
-      },
     });
   });
 
-  it('uses the latest host desktop snapshot for query streams in desktop app mode', async () => {
+  it('passes business params unchanged in desktop app mode', async () => {
     const { dispatchMessage, parent } = installWindow({
       pathname: '/copilot',
       storedToken: 'desktop-token',
@@ -309,6 +303,7 @@ describe('apiClient query payloads', () => {
     await createQueryStream({
       requestId: 'req_desktop_snapshot',
       message: '当前页面是什么',
+      params: { city: 'beijing' },
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -317,21 +312,34 @@ describe('apiClient query payloads', () => {
       requestId: 'req_desktop_snapshot',
       planningMode: false,
       message: '当前页面是什么',
-      params: {
-        desktop: {
-          source: 'copilot',
-          route: '/settings?section=navigation',
-          pageKey: 'native:/settings?section=navigation',
-          pageKind: 'native',
-          permissionMode: 'page_control',
-          snapshotVersion: 7,
-          snapshotAt: '2026-05-16T12:00:00.000Z',
-          pageContext: {
-            title: '设置',
-            url: 'desktop://settings/navigation',
-          },
-        },
+      params: { city: 'beijing' },
+    });
+  });
+
+  it('sends access level and model overrides at the query top level', async () => {
+    await createQueryStream({
+      requestId: 'req_access_model',
+      message: '继续',
+      accessLevel: 'auto_approve',
+      model: {
+        key: 'gpt-5.5',
+        reasoningEffort: 'HIGH',
       },
+      params: { city: 'beijing' },
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_access_model',
+      planningMode: false,
+      message: '继续',
+      accessLevel: 'auto_approve',
+      model: {
+        key: 'gpt-5.5',
+        reasoningEffort: 'HIGH',
+      },
+      params: { city: 'beijing' },
     });
   });
 
