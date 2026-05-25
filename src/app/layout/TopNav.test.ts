@@ -117,6 +117,44 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Current call");
 	});
 
+	it("renders historical chat-only usage snapshots", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					chat: {
+						promptTokens: 900,
+						completionTokens: 300,
+						totalTokens: 1200,
+						promptTokensDetails: { cachedTokens: 400 },
+						completionTokensDetails: { reasoningTokens: 33 },
+						promptCacheHitTokens: 401,
+						promptCacheMissTokens: 499,
+						llmChatCompletionCount: 6,
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("1.2K");
+		expect(html).not.toContain("1.2K tokens");
+		expect(html).toContain("Current call");
+		expect(html).toContain("Current chat");
+		expect(html).toContain("1,200");
+		expect(html).toContain("401");
+		expect(html).toContain("499");
+		expect(html).toContain("33");
+		expect(html.match(/LLM calls/g)).toHaveLength(2);
+		expect(html).not.toContain("Current call</h3><span class=\"usage-section-llm-calls\"");
+	});
+
 	it("toggles the usage popover state from the usage entry", () => {
 		expect(resolveNextUsagePopoverOpen(false)).toBe(true);
 		expect(resolveNextUsagePopoverOpen(true)).toBe(false);

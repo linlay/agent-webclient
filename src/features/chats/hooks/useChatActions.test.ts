@@ -120,6 +120,27 @@ describe('replayEvent tool migration', () => {
     }
   });
 
+  function renderChatActions(state = createInitialState()) {
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    return { actions, dispatch };
+  }
+
   it('commits loaded chat id and replayed timeline state atomically', async () => {
     const state = createInitialState();
     const dispatchRecords: Array<{ type: string; insideFlushSync: boolean }> = [];
@@ -167,6 +188,159 @@ describe('replayEvent tool migration', () => {
         { type: 'RESET_CONVERSATION', insideFlushSync: true },
         { type: 'BATCH_UPDATE', insideFlushSync: true },
       ]),
+    );
+  });
+
+  it('hydrates usage snapshot from /api/chat top-level usage without current call usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          modelKey: 'deepseek-chat',
+          usage: {
+            promptTokens: 30,
+            completionTokens: 12,
+            totalTokens: 42,
+            promptCacheHitTokens: 10,
+            promptCacheMissTokens: 20,
+            llmChatCompletionCount: 2,
+          },
+        },
+        runs: [],
+        usage: {
+          promptTokens: 100,
+          completionTokens: 40,
+          totalTokens: 140,
+          promptTokensDetails: { cachedTokens: 35 },
+          completionTokensDetails: { reasoningTokens: 9 },
+          promptCacheHitTokens: 36,
+          promptCacheMissTokens: 64,
+          llmChatCompletionCount: 5,
+        },
+        contextWindow: {
+          maxSize: 128000,
+          currentSize: 64000,
+          estimatedNextCallSize: 8000,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-usage');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_USAGE_SNAPSHOT',
+      snapshot: {
+        type: 'usage.snapshot',
+        chatId: 'chat-usage',
+        runId: 'run_active',
+        model: { key: 'deepseek-chat' },
+        contextWindow: {
+          maxSize: 128000,
+          currentSize: 64000,
+          estimatedNextCallSize: 8000,
+        },
+        usage: {
+          run: {
+            promptTokens: 30,
+            completionTokens: 12,
+            totalTokens: 42,
+            promptCacheHitTokens: 10,
+            promptCacheMissTokens: 20,
+            llmChatCompletionCount: 2,
+          },
+          chat: {
+            promptTokens: 100,
+            completionTokens: 40,
+            totalTokens: 140,
+            promptTokensDetails: { cachedTokens: 35 },
+            completionTokensDetails: { reasoningTokens: 9 },
+            promptCacheHitTokens: 36,
+            promptCacheMissTokens: 64,
+            llmChatCompletionCount: 5,
+          },
+        },
+      },
+    });
+    const usageAction = dispatch.mock.calls.find(([action]) => action.type === 'SET_USAGE_SNAPSHOT')?.[0];
+    expect(usageAction.snapshot.usage.current).toBeUndefined();
+  });
+
+  it('skips loaded chat usage snapshots when usage is not meaningful', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          totalTokens: 0,
+          llmChatCompletionCount: 0,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-empty-usage');
+
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }),
+    );
+  });
+
+  it('uses the latest run usage when activeRun has no meaningful usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          modelKey: 'active-model',
+          usage: { totalTokens: 0, llmChatCompletionCount: 0 },
+        },
+        runs: [
+          {
+            runId: 'run_old',
+            modelKey: 'old-model',
+            usage: { totalTokens: 10, llmChatCompletionCount: 1 },
+          },
+          {
+            runId: 'run_latest',
+            model: { key: 'latest-model' },
+            usage: {
+              promptTokens: 70,
+              completionTokens: 20,
+              totalTokens: 90,
+              llmChatCompletionCount: 3,
+            },
+          },
+        ],
+        usage: {
+          promptTokens: 200,
+          completionTokens: 80,
+          totalTokens: 280,
+          llmChatCompletionCount: 4,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-run-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          runId: 'run_active',
+          model: { key: 'active-model' },
+          usage: expect.objectContaining({
+            run: {
+              promptTokens: 70,
+              completionTokens: 20,
+              totalTokens: 90,
+              llmChatCompletionCount: 3,
+            },
+          }),
+        }),
+      }),
     );
   });
 

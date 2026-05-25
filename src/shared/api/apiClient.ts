@@ -326,11 +326,7 @@ export interface ArchivedSummaryResponse {
   lastRunContent?: string;
   snippet?: string;
   hasAttachments?: boolean;
-  usage?: {
-    promptTokens?: number;
-    completionTokens?: number;
-    totalTokens?: number;
-  };
+  usage?: ChatUsageData;
 }
 
 export interface ArchivesResponse {
@@ -354,6 +350,7 @@ export interface ArchiveSearchResult {
   archivedAt: number;
   snippet: string;
   score: number;
+  usage?: ChatUsageData;
 }
 
 export interface ArchiveSearchResponse {
@@ -370,12 +367,24 @@ export interface ArchiveDetailResponse {
   runs?: unknown[];
   plan?: unknown;
   artifact?: unknown;
-  usage?: {
-    promptTokens?: number;
-    completionTokens?: number;
-    totalTokens?: number;
-  };
+  usage?: ChatUsageData;
   resourceTicket?: string;
+}
+
+export interface ChatUsageTokenDetails {
+  cachedTokens?: number;
+  reasoningTokens?: number;
+}
+
+export interface ChatUsageData {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  promptTokensDetails?: ChatUsageTokenDetails;
+  completionTokensDetails?: ChatUsageTokenDetails;
+  promptCacheHitTokens?: number;
+  promptCacheMissTokens?: number;
+  llmChatCompletionCount?: number;
 }
 
 export interface ArchiveDeleteResponse {

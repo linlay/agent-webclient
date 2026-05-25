@@ -2,7 +2,17 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getChat, markChatRead } from '@/features/transport/lib/apiClientProxy';
-import type { ArtifactFile, Chat, AgentEvent, Plan, PublishedArtifact, WorkerRow } from '@/app/state/types';
+import type {
+  ArtifactFile,
+  Chat,
+  AgentEvent,
+  Plan,
+  PublishedArtifact,
+  WorkerRow,
+  AIUsageSnapshotEvent,
+  AIUsageStats,
+} from '@/app/state/types';
+import { AIUsageEventTypeEnum } from '@/app/state/types';
 import { normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
@@ -163,6 +173,148 @@ export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] 
   return value.items
     .map((item) => normalizeArtifactFile(item as ArtifactFile))
     .filter((item): item is PublishedArtifact => Boolean(item));
+}
+
+function readUsageNumber(value: unknown): number | undefined {
+  const next = Number(value);
+  return Number.isFinite(next) && next >= 0 ? next : undefined;
+}
+
+function normalizeUsageTokenDetails(value: unknown): AIUsageStats['promptTokensDetails'] | undefined {
+  if (!isObjectRecord(value)) {
+    return undefined;
+  }
+
+  const cachedTokens = readUsageNumber(value.cachedTokens);
+  const reasoningTokens = readUsageNumber(value.reasoningTokens);
+  const details: NonNullable<AIUsageStats['promptTokensDetails']> = {};
+  if (cachedTokens !== undefined) {
+    details.cachedTokens = cachedTokens;
+  }
+  if (reasoningTokens !== undefined) {
+    details.reasoningTokens = reasoningTokens;
+  }
+
+  return Object.keys(details).length > 0 ? details : undefined;
+}
+
+export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | null {
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+
+  const stats: AIUsageStats = {};
+  const numericKeys = [
+    'promptTokens',
+    'completionTokens',
+    'totalTokens',
+    'promptCacheHitTokens',
+    'promptCacheMissTokens',
+    'llmChatCompletionCount',
+  ] as const;
+
+  for (const key of numericKeys) {
+    const next = readUsageNumber(value[key]);
+    if (next !== undefined) {
+      stats[key] = next;
+    }
+  }
+
+  const promptTokensDetails = normalizeUsageTokenDetails(value.promptTokensDetails);
+  if (promptTokensDetails) {
+    stats.promptTokensDetails = promptTokensDetails;
+  }
+
+  const completionTokensDetails = normalizeUsageTokenDetails(value.completionTokensDetails);
+  if (completionTokensDetails) {
+    stats.completionTokensDetails = completionTokensDetails;
+  }
+
+  const totalTokens = stats.totalTokens ?? 0;
+  const llmChatCompletionCount = stats.llmChatCompletionCount ?? 0;
+  return totalTokens > 0 || llmChatCompletionCount > 0 ? stats : null;
+}
+
+function normalizeLoadedChatContextWindow(value: unknown): AIUsageSnapshotEvent['contextWindow'] | undefined {
+  if (!isObjectRecord(value)) {
+    return undefined;
+  }
+
+  const contextWindow: NonNullable<AIUsageSnapshotEvent['contextWindow']> = {};
+  const maxSize = readUsageNumber(value.maxSize);
+  const currentSize = readUsageNumber(value.currentSize);
+  const estimatedNextCallSize = readUsageNumber(value.estimatedNextCallSize);
+  if (maxSize !== undefined) {
+    contextWindow.maxSize = maxSize;
+  }
+  if (currentSize !== undefined) {
+    contextWindow.currentSize = currentSize;
+  }
+  if (estimatedNextCallSize !== undefined) {
+    contextWindow.estimatedNextCallSize = estimatedNextCallSize;
+  }
+
+  return Object.keys(contextWindow).length > 0 ? contextWindow : undefined;
+}
+
+function getRunId(value: unknown): string {
+  return isObjectRecord(value) ? String(value.runId || '').trim() : '';
+}
+
+function getModelKey(value: unknown): string {
+  if (!isObjectRecord(value)) {
+    return '';
+  }
+
+  const model = value.model;
+  if (isObjectRecord(model)) {
+    const key = String(model.key || model.modelKey || '').trim();
+    if (key) {
+      return key;
+    }
+  }
+  if (typeof model === 'string') {
+    const key = model.trim();
+    if (key) {
+      return key;
+    }
+  }
+
+  return String(value.modelKey || '').trim();
+}
+
+export function buildLoadedChatUsageSnapshot(
+  chatId: string,
+  chatData: Record<string, unknown>,
+): AIUsageSnapshotEvent | null {
+  const chatUsage = normalizeLoadedChatUsageStats(chatData.usage);
+  if (!chatUsage) {
+    return null;
+  }
+
+  const runs = Array.isArray(chatData.runs) ? chatData.runs.filter(isObjectRecord) : [];
+  const activeRun = isObjectRecord(chatData.activeRun) ? chatData.activeRun : null;
+  const latestRun = runs.slice().reverse().find((run) => getRunId(run));
+  const runWithUsage =
+    (activeRun && normalizeLoadedChatUsageStats(activeRun.usage) ? activeRun : null)
+    || runs.slice().reverse().find((run) => Boolean(normalizeLoadedChatUsageStats(run.usage)))
+    || null;
+  const runUsage = runWithUsage ? normalizeLoadedChatUsageStats(runWithUsage.usage) : null;
+  const runId = getRunId(activeRun) || getRunId(runWithUsage) || getRunId(latestRun) || '';
+  const modelKey = getModelKey(activeRun) || getModelKey(runWithUsage) || getModelKey(latestRun);
+  const contextWindow = normalizeLoadedChatContextWindow(chatData.contextWindow);
+
+  return {
+    type: AIUsageEventTypeEnum.Snapshot,
+    chatId,
+    runId,
+    ...(modelKey ? { model: { key: modelKey } } : {}),
+    ...(contextWindow ? { contextWindow } : {}),
+    usage: {
+      ...(runUsage ? { run: runUsage } : {}),
+      chat: chatUsage,
+    },
+  };
 }
 
 /**
@@ -403,6 +555,7 @@ export function useChatActions() {
 
         const chatData = response.data as Record<string, unknown>;
         const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
+        const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
         const downvotedRunKeys = new Set<string>();
@@ -470,6 +623,9 @@ export function useChatActions() {
             },
           });
         });
+        if (usageSnapshot) {
+          dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: usageSnapshot });
+        }
 
         /* Set agent for this chat */
         const agentKey = String(chatData?.firstAgentKey || chatData?.agentKey || '');
