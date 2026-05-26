@@ -55,6 +55,16 @@ export interface GetAgentsOptions {
   scope?: "nav" | "copilot";
 }
 
+export interface AgentOrderResponse {
+  version: number;
+  order: string[];
+  updatedAt: number;
+}
+
+export interface UpdateAgentOrderRequest {
+  order: string[];
+}
+
 export interface GetChatsOptions {
   agentKey?: string;
 }
@@ -869,6 +879,19 @@ export function extractUploadReferences(data: unknown): unknown[] {
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
   const query = toQueryString({ includeChats: options.includeChats, scope: options.scope });
   return requestJson(query ? `/api/agents?${query}` : "/api/agents");
+}
+
+export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
+  return requestJson<AgentOrderResponse>("/api/agents/order");
+}
+
+export function putAgentOrder(
+  params: UpdateAgentOrderRequest,
+): Promise<ApiResponse<AgentOrderResponse>> {
+  return requestJson<AgentOrderResponse>("/api/agents/order", {
+    method: "PUT",
+    body: JSON.stringify(params ?? { order: [] }),
+  });
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {

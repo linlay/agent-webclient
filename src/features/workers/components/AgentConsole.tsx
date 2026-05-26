@@ -10,12 +10,18 @@ import {
   getAgents,
   getSkills,
   getTools,
+  putAgentOrder,
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import type {
   AgentDetailResponse,
   AgentEditorOptionsResponse,
 } from "@/shared/api/apiClient";
+import {
+  agentOrderPayload,
+  filterAgentsPreservingOrder,
+  moveAgentForDrop,
+} from "@/features/workers/lib/agentOrdering";
 import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -317,16 +323,6 @@ function buildDefinition(form: AgentFormState, baseDefinition: Record<string, un
   return definition;
 }
 
-function buildAgentSearchText(agent: Agent): string {
-  return [agent.key, agent.name, agent.role, agent.description, ...(Array.isArray(agent.wonders) ? agent.wonders : [])]
-    .map((item) => toText(item).toLowerCase())
-    .join(" ");
-}
-
-function compareAgents(a: Agent, b: Agent): number {
-  return (toText(a.name) || toText(a.key)).localeCompare(toText(b.name) || toText(b.key));
-}
-
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -348,15 +344,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [toolOptions, setToolOptions] = useState<Array<{ key: string; label: string }>>([]);
   const [skillOptions, setSkillOptions] = useState<Array<{ key: string; label: string }>>([]);
   const [saving, setSaving] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingDeleteKey, setPendingDeleteKey] = useState("");
+  const [draggingAgentKey, setDraggingAgentKey] = useState("");
   const didInitialSelectRef = useRef(false);
 
   const filteredAgents = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
     const agents = Array.isArray(state.agents) ? state.agents : [];
-    return agents.filter((agent) => !query || buildAgentSearchText(agent).includes(query)).slice().sort(compareAgents);
+    return filterAgentsPreservingOrder(agents, searchText);
   }, [searchText, state.agents]);
 
   const selectedSummary = useMemo(
@@ -453,6 +450,35 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       }
     },
     [dispatch, selectedAgentKey],
+  );
+
+  const saveAgentOrder = useCallback(
+    async (agents: Agent[], preferredKey = "") => {
+      setSavingOrder(true);
+      setError("");
+      try {
+        await putAgentOrder({ order: agentOrderPayload(agents) });
+        await loadAgents(preferredKey);
+      } catch (error) {
+        setError((error as Error).message);
+      } finally {
+        setSavingOrder(false);
+      }
+    },
+    [loadAgents],
+  );
+
+  const dropAgentOn = useCallback(
+    async (targetKey: string) => {
+      const sourceKey = draggingAgentKey;
+      setDraggingAgentKey("");
+      if (!sourceKey || !targetKey || sourceKey === targetKey || savingOrder) return;
+      const nextAgents = moveAgentForDrop(state.agents, sourceKey, targetKey);
+      if (nextAgents === state.agents) return;
+      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+      await saveAgentOrder(nextAgents, sourceKey);
+    },
+    [dispatch, draggingAgentKey, saveAgentOrder, savingOrder, state.agents],
   );
 
   const loadEditorOptions = useCallback(async () => {
@@ -629,8 +655,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
       <div className="agent-console-body">
         <div className="agent-console-list">
-          <div className="agent-console-count">智能体 {state.agents.length} 个</div>
-          <Spin spinning={loadingList}>
+          <div className="agent-console-count">
+            <span>智能体 {state.agents.length} 个</span>
+            {savingOrder && <span>保存排序中...</span>}
+          </div>
+          <Spin spinning={loadingList || savingOrder}>
             {filteredAgents.length === 0 ? (
               <div className="command-empty-state">
                 暂无匹配智能体。
@@ -648,9 +677,28 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     <button
                       type="button"
                       key={agentKey || `${name}-${index}`}
-                      className={`agent-console-list-item ${agentKey === effectiveSelectedKey ? "is-active" : ""}`}
+                      className={`agent-console-list-item ${agentKey === effectiveSelectedKey ? "is-active" : ""} ${agentKey === draggingAgentKey ? "is-dragging" : ""}`}
+                      draggable={Boolean(agentKey) && !savingOrder}
+                      onDragStart={(event) => {
+                        setDraggingAgentKey(agentKey);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", agentKey);
+                      }}
+                      onDragOver={(event) => {
+                        if (!draggingAgentKey || draggingAgentKey === agentKey) return;
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        void dropAgentOn(agentKey);
+                      }}
+                      onDragEnd={() => setDraggingAgentKey("")}
                       onClick={() => selectAgent(agentKey)}
                     >
+                      <span className="agent-console-list-item-drag" aria-hidden="true">
+                        <MaterialIcon name="drag_indicator" />
+                      </span>
                       <span className="agent-console-list-item-icon">
                         <AgentIcon
                           icon={agent.icon}

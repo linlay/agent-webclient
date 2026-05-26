@@ -17,6 +17,7 @@ import {
 	searchGlobal as searchGlobalHttp,
 	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
+	getAgentOrder as getAgentOrderHttp,
 	getAgentEditorOptions as getAgentEditorOptionsHttp,
 	getAgents as getAgentsHttp,
 	getChat as getChatHttp,
@@ -53,11 +54,13 @@ import {
 	submitTool as submitToolHttp,
 	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
+	putAgentOrder as putAgentOrderHttp,
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AgentDetailResponse,
 	type AgentEditorOptionsResponse,
+	type AgentOrderResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -92,6 +95,7 @@ import {
 	type CoderModelOptionsResponse,
 	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
+	type UpdateAgentOrderRequest,
 	type UpdateAutomationRequest,
 } from "@/shared/api/apiClient";
 import type {
@@ -216,6 +220,16 @@ export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> 
 		Object.keys(payload).length > 0 ? payload : undefined,
 		() => getAgentsHttp(options),
 	);
+}
+
+export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
+	return routeRequest("/api/agents/order", undefined, () => getAgentOrderHttp());
+}
+
+export function putAgentOrder(
+	params: UpdateAgentOrderRequest,
+): Promise<ApiResponse<AgentOrderResponse>> {
+	return routeRequest("/api/agents/order", params, () => putAgentOrderHttp(params));
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {

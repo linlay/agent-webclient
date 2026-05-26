@@ -23,6 +23,7 @@ import {
   extractUploadReferences,
   getArchive,
   getAgent,
+  getAgentOrder,
   getAgentEditorOptions,
   getAgents,
   getArchives,
@@ -58,6 +59,7 @@ import {
   submitTool,
   toggleAutomation,
   updateAgent,
+  putAgentOrder,
   updateAutomation,
   uploadFile,
 } from '@/shared/api/apiClient';
@@ -797,6 +799,19 @@ describe('apiClient query payloads', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&scope=copilot');
+  });
+
+  it('supports reading and writing agent order', async () => {
+    await getAgentOrder();
+    await putAgentOrder({ order: ['agent-b', 'agent-a'] });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents/order');
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].method).toBe('GET');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents/order');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[1]).toMatchObject({
+      method: 'PUT',
+      body: JSON.stringify({ order: ['agent-b', 'agent-a'] }),
+    });
   });
 
   it('supports filtering getChats by agentKey', async () => {

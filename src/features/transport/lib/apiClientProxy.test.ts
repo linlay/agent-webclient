@@ -39,6 +39,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
+		getAgentOrder: jest.fn(),
 		getAgentEditorOptions: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
@@ -90,6 +91,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			submitTool: jest.fn(),
 			toggleAutomation: jest.fn(),
 			updateAgent: jest.fn(),
+			putAgentOrder: jest.fn(),
 			updateAutomation: jest.fn(),
 			uploadFile: jest.fn(),
 			validateMemoryScope: jest.fn(),
@@ -119,6 +121,7 @@ let mockApiClient: {
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
+	getAgentOrder: jest.Mock;
 	getAgentEditorOptions: jest.Mock;
 	getModelOptions: jest.Mock;
 	getAgents: jest.Mock;
@@ -159,6 +162,7 @@ let mockApiClient: {
 		submitTool: jest.Mock;
 		toggleAutomation: jest.Mock;
 		updateAgent: jest.Mock;
+		putAgentOrder: jest.Mock;
 		updateAutomation: jest.Mock;
 		uploadFile: jest.Mock;
 		validateMemoryScope: jest.Mock;
@@ -239,6 +243,47 @@ describe("apiClientProxy", () => {
 			payload: { includeChats: 5 },
 		});
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("routes agent order reads and writes over ws", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest
+			.fn()
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { version: 1, order: [], updatedAt: 0 },
+			})
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { version: 1, order: ["agent-b", "agent-a"], updatedAt: 1 },
+			});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAgentOrder();
+		await proxy.putAgentOrder({ order: ["agent-b", "agent-a"] });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/agents/order",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/agents/order",
+			payload: { order: ["agent-b", "agent-a"] },
+		});
+		expect(mockApiClient.getAgentOrder).not.toHaveBeenCalled();
+		expect(mockApiClient.putAgentOrder).not.toHaveBeenCalled();
 	});
 
 	it("routes automation management calls over ws when connected", async () => {

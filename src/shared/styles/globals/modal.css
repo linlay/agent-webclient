@@ -831,6 +831,10 @@
     margin-bottom: 8px;
     font-size: 12px;
     color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .agent-console-list-items {
@@ -852,10 +856,28 @@
     gap: 10px;
 }
 
+.agent-console-list-item[draggable="true"] {
+    cursor: grab;
+}
+
+.agent-console-list-item.is-dragging {
+    opacity: 0.55;
+}
+
 .agent-console-list-item:hover,
 .agent-console-list-item.is-active {
     border-color: color-mix(in srgb, var(--accent-soft) 58%, var(--line-soft));
     background: var(--bg-hover);
+}
+
+.agent-console-list-item-drag {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 32px;
+    color: var(--ink-subtle);
 }
 
 .agent-console-list-item-icon {
