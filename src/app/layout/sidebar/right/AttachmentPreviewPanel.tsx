@@ -3,6 +3,7 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { downloadResource, getResourceText } from "@/shared/api/apiClient";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { UiButton } from "@/shared/ui/UiButton";
+import { Image } from "antd";
 
 const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
@@ -118,7 +119,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
 
       <div className="attachment-preview-body">
         {preview.kind === "image" ? (
-          <img
+          <Image
             className="attachment-preview-image"
             src={preview.url}
             alt={preview.name}
