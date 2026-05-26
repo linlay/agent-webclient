@@ -97,7 +97,9 @@ function getModelDisplayName(model: CoderModelOption): string {
 }
 
 function normalizeModelIdentityText(value: unknown): string {
-  return toConfigText(value).toLowerCase().replace(/[\s._-]+/g, "");
+  return toConfigText(value)
+    .toLowerCase()
+    .replace(/[\s._-]+/g, "");
 }
 
 function getModelIdentityFamily(value: string): "deepseek" | "qwen" | "" {
@@ -106,15 +108,13 @@ function getModelIdentityFamily(value: string): "deepseek" | "qwen" | "" {
   return "";
 }
 
-export function getModelIdentityMismatchWarning(model: CoderModelOption): string {
+export function getModelIdentityMismatchWarning(
+  model: CoderModelOption,
+): string {
   const displayText = normalizeModelIdentityText(model.name);
   if (!displayText) return "";
 
-  const technicalText = [
-    model.key,
-    model.modelId,
-    model.provider,
-  ]
+  const technicalText = [model.key, model.modelId, model.provider]
     .map(normalizeModelIdentityText)
     .filter(Boolean)
     .join(" ");
@@ -136,7 +136,9 @@ export function getModelIdentityMismatchWarning(model: CoderModelOption): string
     .join(" / ")}" is ${technicalFamily}`;
 }
 
-function normalizeReasoningEffort(value: unknown): QueryReasoningEffort | undefined {
+function normalizeReasoningEffort(
+  value: unknown,
+): QueryReasoningEffort | undefined {
   const text = toConfigText(value).toUpperCase();
   if (
     text === "NONE" ||
@@ -270,14 +272,11 @@ export function buildModelMenuItems({
       const label = getModelDisplayName(model);
       return {
         key: `model:${encodeURIComponent(key)}`,
-        label: (
-          <span className="query-settings-menu-item">
-            <span>{label}</span>
-            {(selectedModelKey || modelOverride.key) === key ? (
-              <MaterialIcon name="check" />
-            ) : null}
-          </span>
-        ),
+        label: <span className="query-settings-menu-item">{label}</span>,
+        extra:
+          (selectedModelKey || modelOverride.key) === key ? (
+            <MaterialIcon name="check" />
+          ) : null,
       };
     }),
   ];
@@ -293,27 +292,32 @@ export function buildModelMenuItems({
         key: `reasoning:${option.key}`,
         label: (
           <span className="query-settings-menu-item">
-            <span>
-              {t(`composer.query.reasoning.${option.key}`) || option.label}
-            </span>
-            {(selectedReasoningEffort || modelOverride.reasoningEffort) ===
-            option.key ? (
-              <MaterialIcon name="check" />
-            ) : null}
+            {t(`composer.query.reasoning.${option.key}`) || option.label}
           </span>
         ),
+        extra:
+          (selectedReasoningEffort || modelOverride.reasoningEffort) ===
+          option.key ? (
+            <MaterialIcon name="check" />
+          ) : null,
       })),
     },
     {
       key: "model-submenu",
+      popupClassName: "query-settings-submenu",
       label: (
         <span className="query-settings-menu-item">
-          <span>
-            {t("composer.query.model.group")} · {resolvedSelectedModelLabel}
-          </span>
+          <span>{resolvedSelectedModelLabel}</span>
         </span>
       ),
-      children: modelMenuChildren,
+      children: [
+        {
+          key: "models",
+          label: t("composer.query.model.group"),
+          type: "group",
+          children: modelMenuChildren,
+        },
+      ],
     },
   ];
 }
@@ -703,7 +707,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     <div className="query-settings-controls">
       <Dropdown
         menu={{
-          className: 'query-settings-menu',
+          className: "query-settings-menu",
           items: accessItems,
           onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel),
           selectedKeys: [accessLevel],
@@ -727,6 +731,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       {isCoderAgent ? (
         <Dropdown
           menu={{
+            className: "query-settings-menu",
             items: modelItems,
             onClick: onModelMenuClick,
           }}
@@ -736,16 +741,16 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         >
           <UiButton
             className={`query-settings-btn query-model-btn ${modelsLoading ? "is-loading" : ""}`.trim()}
-            variant="secondary"
+            variant="ghost"
             size="sm"
             disabled={disabled}
             title={t("composer.query.model.title")}
             onClick={(event) => event.preventDefault()}
           >
-            <MaterialIcon name="psychology" />
-            <span>
-              {selectedModelLabel} / {selectedReasoningLabel}
+            <span style={{ color: "var(--text-main)" }}>
+              {selectedModelLabel}
             </span>
+            <span>{selectedReasoningLabel}</span>
             <MaterialIcon name="expand_more" />
           </UiButton>
         </Dropdown>
