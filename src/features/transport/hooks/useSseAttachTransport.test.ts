@@ -183,6 +183,44 @@ describe("registerSseAttachRunListener", () => {
 		cleanup();
 	});
 
+	it("resolves attach agentKey from run identity before chat fallback", () => {
+		const executeAttachRunSseImpl = jest.fn(() => new Promise<void>(() => undefined));
+		const cleanup = registerSseAttachRunListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatAgentById: new Map([["chat_1", "agent_chat"]]),
+					runAgentById: new Map([["run_1", "agent_run"]]),
+					currentRunAgentKey: "agent_current",
+				}),
+			},
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef: { current: new Map() },
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			executeAttachRunSseImpl,
+			createRequestIdImpl: () => "attach_1",
+		});
+
+		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+		}) as unknown as Event);
+
+		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({
+			params: expect.objectContaining({
+				agentKey: "agent_run",
+			}),
+		}));
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_RUN_AGENT_BY_ID",
+			runId: "run_1",
+			agentKey: "agent_run",
+		});
+
+		cleanup();
+	});
+
 	it("renders request.query from attached streams", () => {
 		let attachedOnEvent: ((event: AgentEvent) => void) | null = null;
 		const executeAttachRunSseImpl = jest.fn((options) => {

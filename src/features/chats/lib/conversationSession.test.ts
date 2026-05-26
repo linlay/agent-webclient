@@ -94,6 +94,57 @@ describe('conversation session restore', () => {
     ]);
   });
 
+  it('restores run agent identity from buffered events', () => {
+    const snapshot = snapshotConversationState({
+      ...createInitialState(),
+      chatId: 'chat_1',
+      runId: '',
+      chatAgentById: new Map([['chat_1', 'agent_chat']]),
+    });
+    const session = createLiveQuerySession({
+      requestId: 'req_1',
+      chatId: 'chat_1',
+      agentKey: 'agent_run',
+    });
+    session.bufferedEvents = [
+      {
+        type: 'request.query',
+        requestId: 'req_1',
+        chatId: 'chat_1',
+        agentKey: 'agent_run',
+        message: 'hello',
+        timestamp: 100,
+      },
+      {
+        type: 'run.start',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        agentKey: 'agent_run',
+        timestamp: 101,
+      },
+      {
+        type: 'awaiting.ask',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        mode: 'question',
+        questions: [{ id: 'q1', type: 'text', question: 'Continue?' }],
+        timestamp: 102,
+      },
+    ] as AgentEvent[];
+
+    const restored = applyPendingSessionUpdates(snapshot, session);
+
+    expect(restored.runId).toBe('run_1');
+    expect(restored.runAgentById.get('run_1')).toBe('agent_run');
+    expect(restored.currentRunAgentKey).toBe('agent_run');
+    expect(restored.activeAwaiting).toMatchObject({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      agentKey: 'agent_run',
+    });
+  });
+
   it('merges pending raw/debug buffers and clears render caches for restored state', () => {
     const baseState = createInitialState();
     const snapshot = snapshotConversationState({

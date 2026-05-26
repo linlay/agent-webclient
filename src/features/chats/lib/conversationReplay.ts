@@ -10,6 +10,7 @@ import type {
   TtsVoiceBlock,
 } from '@/app/state/types';
 import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
+import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
 import { parseContentSegments } from '@/features/timeline/lib/contentSegments';
 import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
@@ -28,6 +29,8 @@ export interface ReplayState {
   activeReasoningKey: string;
   chatId: string;
   runId: string;
+  runAgentById: Map<string, string>;
+  currentRunAgentKey: string;
   activeAwaiting: ActiveAwaiting | null;
   events: AgentEvent[];
   debugEvents: AgentEvent[];
@@ -54,6 +57,8 @@ export function createReplayState(): ReplayState {
     activeReasoningKey: '',
     chatId: '',
     runId: '',
+    runAgentById: new Map(),
+    currentRunAgentKey: '',
     activeAwaiting: null,
     events: [],
     debugEvents: [],
@@ -270,9 +275,18 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
 }
 
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
+  const binding = readRunAgentKeyFromEvent(event);
+  if (binding) {
+    rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
+    if (!rs.runId || rs.runId === binding.runId) {
+      rs.currentRunAgentKey = binding.agentKey;
+    }
+  }
   rs.events.push(event);
   rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
-  rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
+  rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
+    agentKey: rs.currentRunAgentKey,
+  });
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',
     reasoningExpandedDefault: false,

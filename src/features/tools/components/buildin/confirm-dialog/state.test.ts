@@ -13,6 +13,7 @@ import {
   getAwaitingQuestionPrompt,
   getSelectFreeTextAnswer,
   getSelectGroupValue,
+  getSelectOptionTooltip,
   hasAwaitingQuestions,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
@@ -203,6 +204,29 @@ describe("confirm dialog state helpers", () => {
         answers: ["dev", "custom-env"],
       }),
     ).toBe("custom-env");
+  });
+
+  it("prefers option preview HTML over description tooltip text", () => {
+    expect(
+      getSelectOptionTooltip({
+        label: "几何极简",
+        description: "锐利边缘、扁平色块、高密度信息",
+        previewHtml: " <div>preview</div> ",
+      }),
+    ).toEqual({
+      kind: "preview",
+      html: "<div>preview</div>",
+    });
+
+    expect(
+      getSelectOptionTooltip({
+        label: "有机亲和",
+        description: "圆润边角、柔和渐变、留白舒适",
+      }),
+    ).toEqual({
+      kind: "description",
+      text: "圆润边角、柔和渐变、留白舒适",
+    });
   });
 
   it("detects editable targets so keyboard shortcuts do not hijack input fields", () => {

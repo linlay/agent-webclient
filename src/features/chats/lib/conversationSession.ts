@@ -16,6 +16,7 @@ import type {
 } from '@/app/state/types';
 import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import { createReplayState, replayEvent, type ReplayState } from '@/features/chats/lib/conversationReplay';
+import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
 import { toText } from '@/shared/utils/eventUtils';
 import { MAX_EVENTS } from '@/app/state/constants';
 import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDisplay';
@@ -23,6 +24,8 @@ import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDispl
 export interface ConversationSnapshot {
   chatId: string;
   runId: string;
+  runAgentById: Map<string, string>;
+  currentRunAgentKey: string;
   requestId: string;
   streaming: boolean;
   abortController: AbortController | null;
@@ -176,6 +179,8 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
   return {
     chatId: String(state.chatId || '').trim(),
     runId: String(state.runId || '').trim(),
+    runAgentById: cloneMap(state.runAgentById),
+    currentRunAgentKey: String(state.currentRunAgentKey || '').trim(),
     requestId: String(state.requestId || '').trim(),
     streaming: Boolean(state.streaming),
     abortController: state.abortController,
@@ -222,6 +227,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
   return {
     ...snapshot,
     messagesById: cloneMap(snapshot.messagesById),
+    runAgentById: cloneMap(snapshot.runAgentById),
     messageOrder: snapshot.messageOrder.slice(),
     events: snapshot.events.slice(),
     debugEvents: snapshot.debugEvents.slice(),
@@ -267,6 +273,8 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.activeReasoningKey = snapshot.activeReasoningKey;
   rs.chatId = snapshot.chatId;
   rs.runId = snapshot.runId;
+  rs.runAgentById = cloneMap(snapshot.runAgentById);
+  rs.currentRunAgentKey = snapshot.currentRunAgentKey;
   rs.activeAwaiting = cloneActiveAwaiting(snapshot.activeAwaiting);
   rs.events = snapshot.events.slice();
   rs.debugEvents = snapshot.debugEvents.slice();
@@ -293,6 +301,8 @@ function applyReplayStateToSnapshot(
   const next = cloneConversationSnapshot(snapshot);
   next.chatId = rs.chatId;
   next.runId = rs.runId;
+  next.runAgentById = cloneMap(rs.runAgentById);
+  next.currentRunAgentKey = rs.currentRunAgentKey;
   next.timelineNodes = rs.timelineNodes;
   next.timelineOrder = rs.timelineOrder;
   next.contentNodeById = rs.contentNodeById;
@@ -322,10 +332,19 @@ export function applyPendingSessionUpdates(
   const pendingEvents = session.bufferedEvents.slice(session.appliedEventCount);
 
   for (const event of pendingEvents) {
+    const binding = readRunAgentKeyFromEvent(event);
+    if (binding) {
+      rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
+      if (!rs.runId || rs.runId === binding.runId) {
+        rs.currentRunAgentKey = binding.agentKey;
+      }
+    }
     if (toText(event.type) === 'request.query') {
       rs.events.push(event);
       rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
-      rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event);
+      rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
+        agentKey: rs.currentRunAgentKey,
+      });
       if (event.chatId) {
         rs.chatId = String(event.chatId);
       }
@@ -343,6 +362,15 @@ export function applyPendingSessionUpdates(
   const next = applyReplayStateToSnapshot(snapshot, rs);
   next.chatId = session.chatId || next.chatId;
   next.runId = session.runId || next.runId;
+  next.runAgentById = cloneMap(rs.runAgentById);
+  if (session.runId) {
+    next.currentRunAgentKey =
+      next.runAgentById.get(session.runId) || session.agentKey || next.currentRunAgentKey;
+  }
+  if (session.runId && session.agentKey) {
+    next.runAgentById = bindRunAgentKey(next.runAgentById, session.runId, session.agentKey);
+    next.currentRunAgentKey = session.agentKey;
+  }
   next.requestId = session.requestId;
   next.streaming = Boolean(session.streaming);
   next.abortController = session.abortController;
@@ -359,6 +387,8 @@ export function buildConversationStateUpdates(
   return {
     chatId: snapshot.chatId,
     runId: snapshot.runId,
+    runAgentById: cloneMap(snapshot.runAgentById),
+    currentRunAgentKey: snapshot.currentRunAgentKey,
     requestId: snapshot.requestId,
     streaming: snapshot.streaming,
     abortController: snapshot.abortController,

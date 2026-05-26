@@ -48,6 +48,7 @@ import {
   getAwaitingQuestionPrompt,
   getSelectFreeTextAnswer,
   getSelectGroupValue,
+  getSelectOptionTooltip,
   getSelectedOptionAnswers,
   getSelectOptions,
   getSelectOptionValue,
@@ -412,6 +413,32 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
 
 export const ConfirmDialog = QuestionDialog;
 
+function SelectOptionTooltipTitle({
+  option,
+}: {
+  option: NonNullable<AIAwaitQuestion["options"]>[number];
+}) {
+  const tooltip = getSelectOptionTooltip(option);
+  if (!tooltip) {
+    return null;
+  }
+
+  if (tooltip.kind === "preview") {
+    return (
+      <div className={Style.OptionPreview}>
+        <iframe
+          title={`${option.label} preview`}
+          className={Style.OptionPreviewFrame}
+          srcDoc={tooltip.html}
+          sandbox=""
+        />
+      </div>
+    );
+  }
+
+  return <>{tooltip.text}</>;
+}
+
 interface QuestionRef {
   check: (i: number) => void;
   getElements: () => NodeListOf<HTMLElement> | undefined;
@@ -625,6 +652,7 @@ const Question = forwardRef<
       >
         {options.map((option, i) => {
           const optionValue = getSelectOptionValue(option);
+          const tooltip = getSelectOptionTooltip(option);
           return (
             <Checkbox
               key={optionValue}
@@ -646,8 +674,13 @@ const Question = forwardRef<
               >
                 <span>{i + 1}.</span>
                 <span className={Style.Info}>{option.label}</span>
-                {option.description && (
-                  <Tooltip title={option.description}>
+                {tooltip && (
+                  <Tooltip
+                    title={<SelectOptionTooltipTitle option={option} />}
+                    overlayInnerStyle={
+                      tooltip.kind === "preview" ? { padding: 0 } : undefined
+                    }
+                  >
                     <InfoCircleOutlined />
                   </Tooltip>
                 )}

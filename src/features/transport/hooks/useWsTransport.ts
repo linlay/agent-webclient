@@ -31,6 +31,7 @@ import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/chats/lib/conversationSession";
+import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import {
 	readEventTeamId,
@@ -247,17 +248,21 @@ type ActiveAttachState = {
 	abort: () => void;
 };
 
-function resolveAttachAgentKey(state: AppState, chatId: string, detail?: Record<string, unknown>): string {
-	const explicitAgentKey = toText(detail?.agentKey);
-	if (explicitAgentKey) {
-		return explicitAgentKey;
-	}
-	const chat = state.chats.find((item) => toText(item?.chatId) === chatId);
-	return (
-		toText(chat?.agentKey)
-		|| toText(chat?.firstAgentKey)
-		|| toText(state.chatAgentById.get(chatId))
-	);
+function resolveAttachAgentKey(
+	state: AppState,
+	chatId: string,
+	runId: string,
+	detail?: Record<string, unknown>,
+): string {
+	return resolveRunAgentKey({
+		runId,
+		agentKey: detail?.agentKey,
+		currentRunAgentKey: state.currentRunAgentKey,
+		runAgentById: state.runAgentById,
+		chatId,
+		chatAgentById: state.chatAgentById,
+		chats: state.chats,
+	});
 }
 
 interface RegisterAttachRunListenerOptions {
@@ -358,7 +363,7 @@ export function registerAttachRunListener(
 		const detail = (event as CustomEvent).detail as Record<string, unknown> | undefined;
 		const runId = String(detail?.runId || "").trim();
 		const chatId = String(detail?.chatId || "").trim();
-		const agentKey = resolveAttachAgentKey(options.stateRef.current, chatId, detail);
+		const agentKey = resolveAttachAgentKey(options.stateRef.current, chatId, runId, detail);
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
@@ -433,6 +438,8 @@ export function registerAttachRunListener(
 			abort: stream.abort,
 		};
 		options.dispatch({ type: "SET_RUN_ID", runId });
+		options.dispatch({ type: "SET_RUN_AGENT_BY_ID", runId, agentKey });
+		options.dispatch({ type: "SET_CURRENT_RUN_AGENT_KEY", agentKey });
 		options.dispatch({ type: "SET_REQUEST_ID", requestId: stream.requestId });
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });

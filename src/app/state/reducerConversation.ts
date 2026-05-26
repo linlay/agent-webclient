@@ -1,6 +1,7 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
+import { bindRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/timeline/lib/debugEventDisplay";
 import {
 	addSetValue,
@@ -16,8 +17,35 @@ export function reduceConversationState(
 	switch (action.type) {
 		case "SET_CHAT_ID":
 			return { ...state, chatId: action.chatId };
-		case "SET_RUN_ID":
-			return { ...state, runId: action.runId };
+		case "SET_RUN_ID": {
+			const runId = String(action.runId || "").trim();
+			return {
+				...state,
+				runId,
+				currentRunAgentKey: runId
+					? state.runAgentById.get(runId) || ""
+					: "",
+			};
+		}
+		case "SET_RUN_AGENT_BY_ID": {
+			const runId = String(action.runId || "").trim();
+			const agentKey = String(action.agentKey || "").trim();
+			if (!runId || !agentKey) {
+				return state;
+			}
+			const runAgentById = bindRunAgentKey(state.runAgentById, runId, agentKey);
+			return {
+				...state,
+				runAgentById,
+				currentRunAgentKey:
+					state.runId === runId ? agentKey : state.currentRunAgentKey,
+			};
+		}
+		case "SET_CURRENT_RUN_AGENT_KEY":
+			return {
+				...state,
+				currentRunAgentKey: String(action.agentKey || "").trim(),
+			};
 		case "SET_REQUEST_ID":
 			return { ...state, requestId: action.requestId };
 		case "SET_STREAMING":

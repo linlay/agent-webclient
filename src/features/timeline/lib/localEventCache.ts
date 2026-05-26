@@ -71,7 +71,10 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 		activeAwaiting: state.activeAwaiting,
 		chatId,
 		runId: toText(state.runId),
-		agentKey: chatId ? toText(state.chatAgentById.get(chatId)) : "",
+		agentKey:
+			toText(state.currentRunAgentKey)
+			|| toText(state.runAgentById.get(toText(state.runId)))
+			|| (chatId ? toText(state.chatAgentById.get(chatId)) : ""),
 		teamId: "",
 	};
 }
@@ -149,7 +152,11 @@ export function createLiveProcessorState(
 		activeReasoningKey: cache.activeReasoningKey || state.activeReasoningKey,
 		chatId: cache.chatId || toText(state.chatId),
 		runId: cache.runId || toText(state.runId),
-		agentKey: cache.agentKey || toText(state.chatAgentById.get(cache.chatId || state.chatId)),
+		agentKey:
+			cache.agentKey
+			|| toText(state.currentRunAgentKey)
+			|| toText(state.runAgentById.get(cache.runId || state.runId))
+			|| toText(state.chatAgentById.get(cache.chatId || state.chatId)),
 		currentRunningPlanTaskId: state.planCurrentRunningTaskId,
 		getTaskItem: (taskId) => cache.taskItemsById.get(taskId) ?? state.taskItemsById.get(taskId),
 		getActiveTaskIds: () => Array.from(cache.activeTaskIds.size > 0 ? cache.activeTaskIds : state.activeTaskIds),

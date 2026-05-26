@@ -165,7 +165,13 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
                   && typeof option === 'object'
                   && !Array.isArray(option),
               )
-              .map((option) => ({ ...option }))
+              .map((option) => ({
+                label: toText(option.label),
+                description: toText(option.description) || undefined,
+                previewHtml: toText(option.previewHtml) || undefined,
+                value: toText(option.value) || undefined,
+              }))
+              .filter((option) => Boolean(option.label))
           : [];
         normalized.allowFreeText =
           typeof question.allowFreeText === 'boolean'

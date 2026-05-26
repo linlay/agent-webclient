@@ -56,6 +56,8 @@ export type AppAction =
 	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
 	| { type: "SET_CHAT_ID"; chatId: string }
 	| { type: "SET_RUN_ID"; runId: string }
+	| { type: "SET_RUN_AGENT_BY_ID"; runId: string; agentKey: string }
+	| { type: "SET_CURRENT_RUN_AGENT_KEY"; agentKey: string }
 	| { type: "SET_REQUEST_ID"; requestId: string }
 	| { type: "SET_STREAMING"; streaming: boolean }
 	| { type: "SET_ABORT_CONTROLLER"; controller: AbortController | null }

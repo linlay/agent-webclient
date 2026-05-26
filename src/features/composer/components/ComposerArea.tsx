@@ -111,6 +111,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   } = useComposerAwaiting({
     activeAwaiting: state.activeAwaiting,
     dispatch,
+    state,
   });
 
   const {

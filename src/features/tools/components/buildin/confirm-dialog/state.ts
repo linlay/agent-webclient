@@ -130,6 +130,31 @@ export function getSelectOptionValue(option: AIAwaitQuestionOption): string {
   return option.value ?? option.label;
 }
 
+export function getSelectOptionTooltip(
+  option: AIAwaitQuestionOption,
+):
+  | { kind: "preview"; html: string }
+  | { kind: "description"; text: string }
+  | null {
+  const previewHtml = option.previewHtml?.trim();
+  if (previewHtml) {
+    return {
+      kind: "preview",
+      html: previewHtml,
+    };
+  }
+
+  const description = option.description?.trim();
+  if (description) {
+    return {
+      kind: "description",
+      text: description,
+    };
+  }
+
+  return null;
+}
+
 export function getSelectOptions(
   question: AIAwaitQuestion,
 ): AIAwaitQuestionOption[] {

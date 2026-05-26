@@ -26,6 +26,7 @@ describe('reduceActiveAwaiting', () => {
             {
               label: '继续',
               description: '允许继续执行',
+              previewHtml: '<div>继续预览</div>',
               value: 'continue',
             },
           ],
@@ -45,6 +46,14 @@ describe('reduceActiveAwaiting', () => {
     expect(asked?.questions[0]).toMatchObject({
       id: 'q1',
       question: '继续执行吗？',
+      options: [
+        {
+          label: '继续',
+          description: '允许继续执行',
+          previewHtml: '<div>继续预览</div>',
+          value: 'continue',
+        },
+      ],
     });
   });
 

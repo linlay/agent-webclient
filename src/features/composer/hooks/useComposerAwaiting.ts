@@ -8,6 +8,7 @@ import type {
   FormActiveAwaiting,
 } from "@/app/state/types";
 import { submitAwaiting } from "@/features/transport/lib/apiClientProxy";
+import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { useI18n } from "@/shared/i18n";
 
 type FormActiveAwaitingPatch = Pick<
@@ -22,10 +23,34 @@ export type FormActiveAwaitingPatchPayload = Partial<FormActiveAwaitingPatch> & 
 interface UseComposerAwaitingInput {
   activeAwaiting: AppState["activeAwaiting"];
   dispatch: Dispatch<AppAction>;
+  state: Pick<
+    AppState,
+    | "currentRunAgentKey"
+    | "runAgentById"
+    | "chatId"
+    | "chatAgentById"
+    | "chats"
+  >;
+}
+
+export function resolveAwaitingSubmitAgentKey(input: {
+  activeAwaiting: AppState["activeAwaiting"];
+  state: UseComposerAwaitingInput["state"];
+  runId: string;
+}): string {
+  return resolveRunAgentKey({
+    runId: input.runId,
+    agentKey: input.activeAwaiting?.agentKey,
+    currentRunAgentKey: input.state.currentRunAgentKey,
+    runAgentById: input.state.runAgentById,
+    chatId: input.state.chatId,
+    chatAgentById: input.state.chatAgentById,
+    chats: input.state.chats,
+  });
 }
 
 export function useComposerAwaiting(input: UseComposerAwaitingInput) {
-  const { activeAwaiting, dispatch } = input;
+  const { activeAwaiting, dispatch, state } = input;
   const { t } = useI18n();
   const isAwaitingActive = !!activeAwaiting;
 
@@ -42,9 +67,22 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
     async (payload: AIAwaitSubmitPayloadData) => {
       if (!activeAwaiting) return;
       try {
+        const agentKey = resolveAwaitingSubmitAgentKey({
+          activeAwaiting,
+          state,
+          runId: payload.runId,
+        });
+        if (!agentKey) {
+          const error = new Error("agentKey is required for awaiting submit");
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[awaiting] submit skipped: missing agentKey (awaitingId=${payload.awaitingId}, runId=${payload.runId})`,
+          });
+          return error;
+        }
         const response = await submitAwaiting({
           runId: payload.runId,
-          agentKey: activeAwaiting.agentKey || "",
+          agentKey,
           awaitingId: payload.awaitingId,
           params: payload.params,
         });
@@ -89,7 +127,17 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
         return error;
       }
     },
-    [activeAwaiting, clearActiveAwaiting, dispatch, t],
+    [
+      activeAwaiting,
+      clearActiveAwaiting,
+      dispatch,
+      state.chatAgentById,
+      state.chatId,
+      state.chats,
+      state.currentRunAgentKey,
+      state.runAgentById,
+      t,
+    ],
   );
 
   const handlePatchActiveAwaiting = useCallback(

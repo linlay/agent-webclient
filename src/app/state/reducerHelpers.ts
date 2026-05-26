@@ -52,6 +52,7 @@ export function buildConversationResetState(
 	return {
 		...state,
 		runId: "",
+		currentRunAgentKey: "",
 		requestId: "",
 		streaming: false,
 		abortController: null,

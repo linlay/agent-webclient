@@ -19,6 +19,7 @@ import {
   resolvePreferredAgentKey,
   resolvePreferredTeamId,
 } from "@/features/composer/lib/queryRouting";
+import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
   SlashCommandAvailability,
@@ -77,10 +78,13 @@ interface UseComposerSendInput {
     | "abortController"
     | "chatAgentById"
     | "chatId"
+    | "chats"
+    | "currentRunAgentKey"
     | "rightSidebarOpen"
     | "events"
     | "pendingNewChatAgentKey"
     | "planningMode"
+    | "runAgentById"
     | "runId"
     | "steerDraft"
     | "streaming"
@@ -153,19 +157,32 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [state.events, state.runId]);
 
   const resolveCurrentAgentKey = useCallback(() => {
-    return resolvePreferredAgentKey({
+    const runId = resolveCurrentRunId();
+    return resolveRunAgentKey({
+      runId,
+      currentRunAgentKey: state.currentRunAgentKey,
+      runAgentById: state.runAgentById,
       chatId: state.chatId,
       chatAgentById: state.chatAgentById,
-      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-      workerSelectionKey: state.workerSelectionKey,
-      workerIndexByKey: state.workerIndexByKey,
+      chats: state.chats,
+      fallbackAgentKey: resolvePreferredAgentKey({
+        chatId: state.chatId,
+        chatAgentById: state.chatAgentById,
+        pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+        workerSelectionKey: state.workerSelectionKey,
+        workerIndexByKey: state.workerIndexByKey,
+      }),
     });
   }, [
     state.chatAgentById,
     state.chatId,
+    state.chats,
+    state.currentRunAgentKey,
     state.pendingNewChatAgentKey,
+    state.runAgentById,
     state.workerIndexByKey,
     state.workerSelectionKey,
+    resolveCurrentRunId,
   ]);
 
   const resolveCurrentTeamId = useCallback(() => {

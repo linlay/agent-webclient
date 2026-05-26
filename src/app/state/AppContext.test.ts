@@ -177,6 +177,34 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.transportMode).toBe('ws');
   });
 
+  it('tracks agentKey by active run without mutating chat-level routing', () => {
+    const withChatAgent = appReducer(createInitialState(), {
+      type: 'SET_CHAT_AGENT_BY_ID',
+      chatId: 'chat_1',
+      agentKey: 'agent_chat',
+    });
+    const withRunAgent = appReducer(withChatAgent, {
+      type: 'SET_RUN_AGENT_BY_ID',
+      runId: 'run_1',
+      agentKey: 'agent_run',
+    });
+    const activeRun = appReducer(withRunAgent, {
+      type: 'SET_RUN_ID',
+      runId: 'run_1',
+    });
+
+    expect(activeRun.chatAgentById.get('chat_1')).toBe('agent_chat');
+    expect(activeRun.runAgentById.get('run_1')).toBe('agent_run');
+    expect(activeRun.currentRunAgentKey).toBe('agent_run');
+
+    const otherRun = appReducer(activeRun, {
+      type: 'SET_RUN_ID',
+      runId: 'run_2',
+    });
+    expect(otherRun.currentRunAgentKey).toBe('');
+    expect(otherRun.chatAgentById.get('chat_1')).toBe('agent_chat');
+  });
+
   it('opens the left drawer by default', () => {
     (globalThis as unknown as { window?: Window & typeof globalThis }).window =
       {

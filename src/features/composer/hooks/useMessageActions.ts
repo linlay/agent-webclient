@@ -27,6 +27,7 @@ import {
   markSessionSnapshotApplied,
   type LiveQuerySession,
 } from '@/features/chats/lib/conversationSession';
+import { readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
 import type { AgentEvent } from '@/app/state/types';
 import { readEventTeamId, readRequestQueryText } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
@@ -317,6 +318,20 @@ export function useMessageActions() {
         const nextAgentKey = toText(event.agentKey);
         if (nextAgentKey) {
           session.agentKey = nextAgentKey;
+        }
+        const binding = readRunAgentKeyFromEvent(event);
+        if (binding) {
+          dispatch({
+            type: 'SET_RUN_AGENT_BY_ID',
+            runId: binding.runId,
+            agentKey: binding.agentKey,
+          });
+          if (!stateRef.current.runId || stateRef.current.runId === binding.runId) {
+            dispatch({
+              type: 'SET_CURRENT_RUN_AGENT_KEY',
+              agentKey: binding.agentKey,
+            });
+          }
         }
         const nextTeamId = readEventTeamId(event);
         if (nextTeamId) {

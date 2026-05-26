@@ -173,6 +173,7 @@ export interface AIUsageModel {
 export interface AIAwaitQuestionOption {
   label: string;
   description?: string;
+  previewHtml?: string;
   value?: string;
 }
 

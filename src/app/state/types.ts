@@ -92,6 +92,8 @@ export interface AppState {
 	automations: AutomationSummaryResponse[];
 	sidebarPendingRequestCount: number;
 	chatAgentById: Map<string, string>;
+	runAgentById: Map<string, string>;
+	currentRunAgentKey: string;
 	pendingNewChatAgentKey: string;
 	workerPriorityKey: string;
 	chatId: string;

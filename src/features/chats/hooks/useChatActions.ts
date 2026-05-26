@@ -644,6 +644,17 @@ export function useChatActions() {
           const activeRunAgentKey = String(
             activeRun?.agentKey || chatData?.firstAgentKey || chatData?.agentKey || '',
           ).trim();
+          if (activeRunAgentKey) {
+            dispatch({
+              type: 'SET_RUN_AGENT_BY_ID',
+              runId: activeRunId,
+              agentKey: activeRunAgentKey,
+            });
+            dispatch({
+              type: 'SET_CURRENT_RUN_AGENT_KEY',
+              agentKey: activeRunAgentKey,
+            });
+          }
           dispatchAttachRunEvent(
             chatId,
             activeRunId,

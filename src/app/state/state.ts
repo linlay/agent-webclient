@@ -55,6 +55,8 @@ export function createInitialState(): AppState {
 		automations: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
+		runAgentById: new Map(),
+		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",
 		workerPriorityKey: "",
 		chatId: "",

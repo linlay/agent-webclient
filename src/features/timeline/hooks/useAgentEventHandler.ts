@@ -25,6 +25,10 @@ import { isVoiceEnabled } from '@/shared/config/featureFlags';
 import { stripSpecialBlocksFromText } from '@/features/timeline/lib/contentSegments';
 import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import {
+  readRunAgentKeyFromEvent,
+  resolveRunAgentKey,
+} from '@/features/chats/lib/runAgentIdentity';
+import {
   createLiveProcessorState,
   createLocalCache,
   createLocalCacheFromState,
@@ -210,15 +214,44 @@ export function useAgentEventHandler() {
       dispatch({ type: 'PUSH_EVENT', event });
       dispatch({ type: 'APPEND_DEBUG', line: `[${new Date().toLocaleTimeString()}] ${type}` });
 
+      const runAgentBinding = readRunAgentKeyFromEvent(event);
+      if (runAgentBinding) {
+        const previousAgentKey = state.runAgentById.get(runAgentBinding.runId);
+        if (previousAgentKey && previousAgentKey !== runAgentBinding.agentKey) {
+          dispatch({
+            type: 'APPEND_DEBUG',
+            line: `[run-agent] runId=${runAgentBinding.runId} agentKey changed ${previousAgentKey} -> ${runAgentBinding.agentKey}`,
+          });
+        }
+        dispatch({
+          type: 'SET_RUN_AGENT_BY_ID',
+          runId: runAgentBinding.runId,
+          agentKey: runAgentBinding.agentKey,
+        });
+        if (!cache.runId || cache.runId === runAgentBinding.runId || toText(state.runId) === runAgentBinding.runId) {
+          dispatch({
+            type: 'SET_CURRENT_RUN_AGENT_KEY',
+            agentKey: runAgentBinding.agentKey,
+          });
+          cache.agentKey = runAgentBinding.agentKey;
+        }
+      }
+
       if (type === 'usage.snapshot') {
         dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: event as AIUsageSnapshotEvent });
         return;
       }
 
       const awaitingFallbackAgentKey =
-        cache.agentKey
-        || toText(state.chatAgentById.get(cache.chatId || toText(state.chatId)))
-        || resolveSelectedWorkerContext(state).agentKey;
+        resolveRunAgentKey({
+          runId: toText(event.runId) || cache.runId || state.runId,
+          currentRunAgentKey: state.currentRunAgentKey || cache.agentKey,
+          runAgentById: state.runAgentById,
+          chatId: cache.chatId || toText(state.chatId),
+          chatAgentById: state.chatAgentById,
+          chats: state.chats,
+          fallbackAgentKey: resolveSelectedWorkerContext(state).agentKey,
+        });
       const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event, {
         agentKey: awaitingFallbackAgentKey,
       });
@@ -276,7 +309,16 @@ export function useAgentEventHandler() {
       if (type === 'run.start') {
         cache.chatId = toText(event.chatId) || cache.chatId || toText(state.chatId);
         cache.runId = toText(event.runId) || cache.runId;
-        cache.agentKey = toText(event.agentKey) || cache.agentKey || resolveSelectedWorkerContext(state).agentKey;
+        cache.agentKey = resolveRunAgentKey({
+          runId: cache.runId,
+          agentKey: event.agentKey,
+          currentRunAgentKey: state.currentRunAgentKey || cache.agentKey,
+          runAgentById: state.runAgentById,
+          chatId: cache.chatId || state.chatId,
+          chatAgentById: state.chatAgentById,
+          chats: state.chats,
+          fallbackAgentKey: resolveSelectedWorkerContext(state).agentKey,
+        });
         cache.teamId = readEventTeamId(event) || cache.teamId || resolveSelectedWorkerContext(state).teamId;
         if (event.agentKey) {
           dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey: `agent:${String(event.agentKey)}` });

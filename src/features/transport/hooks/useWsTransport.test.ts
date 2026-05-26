@@ -776,6 +776,86 @@ describe("connectWsTransport", () => {
 		cleanup();
 	});
 
+	it("registerAttachRunListener resolves agentKey from run identity before chat fallback", () => {
+		class MockWindow {
+			private listeners = new Map<string, Set<(event: Event) => void>>();
+			addEventListener(type: string, listener: (event: Event) => void): void {
+				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
+				current.add(listener);
+				this.listeners.set(type, current);
+			}
+			removeEventListener(type: string, listener: (event: Event) => void): void {
+				this.listeners.get(type)?.delete(listener);
+			}
+			dispatchEvent(event: Event): boolean {
+				for (const listener of this.listeners.get(event.type) || []) {
+					listener(event);
+				}
+				return true;
+			}
+		}
+		class MockCustomEvent {
+			type: string;
+			detail: Record<string, unknown>;
+			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
+				this.type = type;
+				this.detail = init?.detail || {};
+			}
+		}
+		const mockWindow = new MockWindow();
+		Object.defineProperty(globalThis, "window", {
+			value: mockWindow,
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+		const attachRun = jest.fn(() => ({
+			requestId: "attach_1",
+			abort: jest.fn(),
+		}));
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					transportMode: "ws",
+					chatAgentById: new Map([["chat_1", "agent_chat"]]),
+					runAgentById: new Map([["run_1", "agent_run"]]),
+					currentRunAgentKey: "agent_current",
+				}),
+			},
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef: { current: new Map() },
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => ({ attachRun }) as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+		}) as unknown as Event);
+
+		expect(attachRun).toHaveBeenCalledWith(
+			"run_1",
+			"agent_run",
+			0,
+			expect.any(Function),
+			expect.any(Function),
+			expect.any(AbortSignal),
+		);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_RUN_AGENT_BY_ID",
+			runId: "run_1",
+			agentKey: "agent_run",
+		});
+
+		cleanup();
+	});
+
 	it("registerAttachRunListener renders request.query from attached streams", () => {
 		class MockWindow {
 			private listeners = new Map<string, Set<(event: Event) => void>>();
