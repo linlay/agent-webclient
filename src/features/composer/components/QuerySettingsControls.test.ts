@@ -4,6 +4,7 @@ import {
   buildModelMenuItems,
   clearCoderModelOptionsCacheForTest,
   getCachedCoderModelOptions,
+  getModelIdentityMismatchWarning,
   loadCoderModelOptions,
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
@@ -66,6 +67,10 @@ describe("QuerySettingsControls", () => {
       type: "agent",
       raw: { mode: "REACT" },
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("shows the access selector for every agent", () => {
@@ -236,6 +241,55 @@ describe("QuerySettingsControls", () => {
     });
   });
 
+  it("warns when model display identity conflicts with technical identifiers", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const mismatchModel = {
+      key: "babelark-qwen3_5-397b-a17b",
+      name: "DeepSeek V4 Pro",
+      provider: "babelark",
+      modelId: "qwen3.5-397b-a17b",
+      isReasoner: true,
+      isVision: true,
+    };
+
+    expect(getModelIdentityMismatchWarning(mismatchModel)).toContain(
+      "display name \"DeepSeek V4 Pro\" is deepseek",
+    );
+    normalizeCoderModelOptionsResponse({
+      data: {
+        models: [mismatchModel],
+        reasoningEfforts: [],
+      },
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Model option identity mismatch"),
+      mismatchModel,
+    );
+  });
+
+  it("does not warn when model display identity matches technical identifiers", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const matchedModel = {
+      key: "deepseek-v4-pro",
+      name: "DeepSeek V4 Pro",
+      provider: "deepseek",
+      modelId: "deepseek-v4-pro",
+      isReasoner: true,
+      isVision: true,
+    };
+
+    expect(getModelIdentityMismatchWarning(matchedModel)).toBe("");
+    normalizeCoderModelOptionsResponse({
+      data: {
+        models: [matchedModel],
+        reasoningEfforts: [],
+      },
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("uses agent model defaults before API defaults", () => {
     expect(
       resolveCoderAgentDefaultModelOverride(
@@ -313,6 +367,38 @@ describe("QuerySettingsControls", () => {
     );
 
     expect(html).toContain("coder-model / 关闭");
+  });
+
+  it("does not display an unsynced default model as the selected model", () => {
+    const items = buildModelMenuItems({
+      models: [
+        {
+          key: "deepseek-v4-pro",
+          name: "DeepSeek V4 Pro",
+          provider: "deepseek",
+          modelId: "deepseek-v4-pro",
+          isReasoner: true,
+          isVision: true,
+        },
+      ],
+      reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+      modelOverride: {},
+      selectedModelKey: "",
+      selectedModelLabel: "正在加载模型...",
+      t: (key) => {
+        const messages: Record<string, string> = {
+          "composer.query.model.group": "模型",
+          "composer.query.reasoning.group": "思考深度",
+        };
+        return messages[key] || key;
+      },
+    }) as Array<{ key: string; label?: React.ReactNode }>;
+    const modelSubmenuHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, items[1].label),
+    );
+
+    expect(modelSubmenuHtml).toContain("正在加载模型");
+    expect(modelSubmenuHtml).not.toContain("DeepSeek V4 Pro");
   });
 
   it("puts reasoning options at the top level and model options in a submenu", () => {

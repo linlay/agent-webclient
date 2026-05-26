@@ -87,6 +87,46 @@ function getModelDisplayName(model: CoderModelOption): string {
   );
 }
 
+function normalizeModelIdentityText(value: unknown): string {
+  return toConfigText(value).toLowerCase().replace(/[\s._-]+/g, "");
+}
+
+function getModelIdentityFamily(value: string): "deepseek" | "qwen" | "" {
+  if (value.includes("deepseek")) return "deepseek";
+  if (value.includes("qwen")) return "qwen";
+  return "";
+}
+
+export function getModelIdentityMismatchWarning(model: CoderModelOption): string {
+  const displayText = normalizeModelIdentityText(model.name);
+  if (!displayText) return "";
+
+  const technicalText = [
+    model.key,
+    model.modelId,
+    model.provider,
+  ]
+    .map(normalizeModelIdentityText)
+    .filter(Boolean)
+    .join(" ");
+  if (!technicalText) return "";
+
+  const displayFamily = getModelIdentityFamily(displayText);
+  const technicalFamily = getModelIdentityFamily(technicalText);
+  if (!displayFamily || !technicalFamily || displayFamily === technicalFamily) {
+    return "";
+  }
+
+  return `[QuerySettingsControls] Model option identity mismatch: display name "${toConfigText(model.name)}" is ${displayFamily}, but key/modelId/provider "${[
+    model.key,
+    model.modelId,
+    model.provider,
+  ]
+    .map(toConfigText)
+    .filter(Boolean)
+    .join(" / ")}" is ${technicalFamily}`;
+}
+
 function normalizeReasoningEffort(value: unknown): QueryReasoningEffort | undefined {
   const text = toConfigText(value).toUpperCase();
   if (text === "NONE" || text === "LOW" || text === "MEDIUM" || text === "HIGH") {
@@ -264,8 +304,15 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
     if (!Array.isArray(candidate.models) && !Array.isArray(candidate.reasoningEfforts)) {
       continue;
     }
+    const models = filterModelOptions(candidate.models);
+    for (const model of models) {
+      const warning = getModelIdentityMismatchWarning(model);
+      if (warning) {
+        console.warn(warning, model);
+      }
+    }
     return {
-      models: filterModelOptions(candidate.models),
+      models,
       reasoningEfforts: filterReasoningOptions(candidate.reasoningEfforts),
       defaultModelKey: getModelKey(candidate.defaultModelKey),
       defaultReasoningEffort: normalizeReasoningEffort(candidate.defaultReasoningEffort),
@@ -518,9 +565,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     resolvedDefaultOverride,
   ]);
 
-  const selectedModelKey = modelOverride.key || resolvedDefaultOverride.key || "";
-  const selectedReasoningEffort =
-    modelOverride.reasoningEffort || resolvedDefaultOverride.reasoningEffort;
+  const selectedModelKey = modelOverride.key || "";
+  const selectedReasoningEffort = modelOverride.reasoningEffort;
   const selectedModelLabel = selectedModelKey
     ? modelLabelByKey.get(selectedModelKey) || selectedModelKey
     : t("composer.query.model.loading");
