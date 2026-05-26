@@ -429,8 +429,8 @@
     max-width: 220px;
     padding: 0 8px;
     border-radius: 8px;
-    font-size: 12px;
-    font-weight: 650;
+    font-size: 13px;
+    color: var(--text-muted);
 }
 
 .query-settings-btn .ui-btn-label {
@@ -449,7 +449,7 @@
 
 .query-settings-btn .material-symbols-rounded {
     flex: 0 0 auto;
-    font-size: 17px;
+    font-size: 14px;
 }
 
 .query-model-btn.ui-btn {
@@ -459,37 +459,33 @@
 .query-model-btn.ui-btn.is-loading {
     pointer-events: auto;
 }
-
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected:hover{
+    background-color: var(--colorFillSecondary);
+}
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected{
+    color: var(--text-main);
+    background-color: transparent;
+}
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item{
+    padding: 3px 6px;
+}
 .query-settings-menu-item {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    min-width: 150px;
+    font-size: 13px;
 }
 
 .query-settings-menu-leading {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     min-width: 0;
 }
 
-.query-settings-menu-check {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    flex: 0 0 18px;
-}
-
-.query-access-menu-item {
-    min-width: 174px;
-}
-
 .query-settings-menu-item .material-symbols-rounded {
-    color: var(--ink-1);
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .composer-mode-shell {

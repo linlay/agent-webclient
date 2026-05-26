@@ -48,10 +48,15 @@ type LoadedCoderModelOptions = {
 };
 
 let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
-let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null = null;
+let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null =
+  null;
 
 function isCoderMode(value: unknown): boolean {
-  return String(value || "").trim().toUpperCase() === "CODER";
+  return (
+    String(value || "")
+      .trim()
+      .toUpperCase() === "CODER"
+  );
 }
 
 function toText(value: unknown): string {
@@ -76,14 +81,18 @@ function getModelKey(value: unknown): string {
   const direct = toConfigText(value);
   if (direct) return direct;
   if (!isRecord(value)) return "";
-  return toConfigText(value.key) || toConfigText(value.modelKey) || toConfigText(value.id);
+  return (
+    toConfigText(value.key) ||
+    toConfigText(value.modelKey) ||
+    toConfigText(value.id)
+  );
 }
 
 function getModelDisplayName(model: CoderModelOption): string {
   const key = String(model.key || "").trim();
   return (
-    toConfigText(model.name)
-    || (model.modelId ? `${key} · ${model.modelId}` : key)
+    toConfigText(model.name) ||
+    (model.modelId ? `${key} · ${model.modelId}` : key)
   );
 }
 
@@ -129,7 +138,12 @@ export function getModelIdentityMismatchWarning(model: CoderModelOption): string
 
 function normalizeReasoningEffort(value: unknown): QueryReasoningEffort | undefined {
   const text = toConfigText(value).toUpperCase();
-  if (text === "NONE" || text === "LOW" || text === "MEDIUM" || text === "HIGH") {
+  if (
+    text === "NONE" ||
+    text === "LOW" ||
+    text === "MEDIUM" ||
+    text === "HIGH"
+  ) {
     return text;
   }
   return undefined;
@@ -137,17 +151,19 @@ function normalizeReasoningEffort(value: unknown): QueryReasoningEffort | undefi
 
 function filterModelOptions(value: unknown): CoderModelOption[] {
   return Array.isArray(value)
-    ? value.filter((item): item is CoderModelOption =>
-      isRecord(item) && Boolean(toText(item.key)),
-    )
+    ? value.filter(
+        (item): item is CoderModelOption =>
+          isRecord(item) && Boolean(toText(item.key)),
+      )
     : [];
 }
 
 function filterReasoningOptions(value: unknown): ReasoningEffortOption[] {
   return Array.isArray(value)
-    ? value.filter((item): item is ReasoningEffortOption =>
-      isRecord(item) && Boolean(toText(item.key)),
-    )
+    ? value.filter(
+        (item): item is ReasoningEffortOption =>
+          isRecord(item) && Boolean(toText(item.key)),
+      )
     : [];
 }
 
@@ -155,7 +171,9 @@ export function shouldClearModelOverride(
   isCoderAgent: boolean,
   modelOverride: QueryModelOverride,
 ): boolean {
-  return !isCoderAgent && Boolean(modelOverride.key || modelOverride.reasoningEffort);
+  return (
+    !isCoderAgent && Boolean(modelOverride.key || modelOverride.reasoningEffort)
+  );
 }
 
 export function shouldRetryModelOptionsOnOpen({
@@ -176,13 +194,13 @@ export function shouldRetryModelOptionsOnOpen({
   reasoningEfforts: ReasoningEffortOption[];
 }): boolean {
   return Boolean(
-    open
-    && isCoderAgent
-    && agentKey
-    && !modelsLoading
-    && status !== "empty"
-    && models.length === 0
-    && reasoningEfforts.length === 0,
+    open &&
+    isCoderAgent &&
+    agentKey &&
+    !modelsLoading &&
+    status !== "empty" &&
+    models.length === 0 &&
+    reasoningEfforts.length === 0,
   );
 }
 
@@ -213,21 +231,33 @@ export function buildModelMenuItems({
       return {
         key: "model-status:loading",
         disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.model.loading")}</span>,
+        label: (
+          <span className="query-settings-menu-item">
+            {t("composer.query.model.loading")}
+          </span>
+        ),
       };
     }
     if (status === "failed") {
       return {
         key: "model-status:failed",
         disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.model.loadFailed")}</span>,
+        label: (
+          <span className="query-settings-menu-item">
+            {t("composer.query.model.loadFailed")}
+          </span>
+        ),
       };
     }
     if (status === "empty") {
       return {
         key: "model-status:empty",
         disabled: true,
-        label: <span className="query-settings-menu-item">{t("composer.query.model.empty")}</span>,
+        label: (
+          <span className="query-settings-menu-item">
+            {t("composer.query.model.empty")}
+          </span>
+        ),
       };
     }
     return null;
@@ -251,7 +281,8 @@ export function buildModelMenuItems({
       };
     }),
   ];
-  const resolvedSelectedModelLabel = selectedModelLabel || selectedModelKey || modelOverride.key || "";
+  const resolvedSelectedModelLabel =
+    selectedModelLabel || selectedModelKey || modelOverride.key || "";
 
   return [
     {
@@ -265,7 +296,8 @@ export function buildModelMenuItems({
             <span>
               {t(`composer.query.reasoning.${option.key}`) || option.label}
             </span>
-            {(selectedReasoningEffort || modelOverride.reasoningEffort) === option.key ? (
+            {(selectedReasoningEffort || modelOverride.reasoningEffort) ===
+            option.key ? (
               <MaterialIcon name="check" />
             ) : null}
           </span>
@@ -296,12 +328,19 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
   const topLevel = isRecord(response) ? response : {};
   const data = isRecord(topLevel.data) ? topLevel.data : null;
   const nestedData = data && isRecord(data.data) ? data.data : null;
-  const candidates = [data, nestedData, isRecord(response) ? response : null].filter(
-    (candidate): candidate is Record<string, unknown> => Boolean(candidate),
+  const candidates = [
+    data,
+    nestedData,
+    isRecord(response) ? response : null,
+  ].filter((candidate): candidate is Record<string, unknown> =>
+    Boolean(candidate),
   );
 
   for (const candidate of candidates) {
-    if (!Array.isArray(candidate.models) && !Array.isArray(candidate.reasoningEfforts)) {
+    if (
+      !Array.isArray(candidate.models) &&
+      !Array.isArray(candidate.reasoningEfforts)
+    ) {
       continue;
     }
     const models = filterModelOptions(candidate.models);
@@ -315,7 +354,9 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
       models,
       reasoningEfforts: filterReasoningOptions(candidate.reasoningEfforts),
       defaultModelKey: getModelKey(candidate.defaultModelKey),
-      defaultReasoningEffort: normalizeReasoningEffort(candidate.defaultReasoningEffort),
+      defaultReasoningEffort: normalizeReasoningEffort(
+        candidate.defaultReasoningEffort,
+      ),
       recognized: true,
     };
   }
@@ -329,7 +370,13 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
 
 export function resolveCoderAgentDefaultModelOverride(
   currentWorker: Pick<CurrentWorkerSummary, "raw"> | null | undefined,
-  options: Pick<LoadedCoderModelOptions, "defaultModelKey" | "defaultReasoningEffort"> | null | undefined,
+  options:
+    | Pick<
+        LoadedCoderModelOptions,
+        "defaultModelKey" | "defaultReasoningEffort"
+      >
+    | null
+    | undefined,
 ): QueryModelOverride {
   const raw = getRecord(currentWorker?.raw);
   const meta = getRecord(raw.meta);
@@ -338,18 +385,18 @@ export function resolveCoderAgentDefaultModelOverride(
   const definitionModelConfig = getRecord(definition.modelConfig);
 
   const key =
-    getModelKey(raw.modelKey)
-    || getModelKey(meta.modelKey)
-    || getModelKey(modelConfig.modelKey)
-    || getModelKey(definitionModelConfig.modelKey)
-    || getModelKey(raw.model)
-    || getModelKey(options?.defaultModelKey);
+    getModelKey(raw.modelKey) ||
+    getModelKey(meta.modelKey) ||
+    getModelKey(modelConfig.modelKey) ||
+    getModelKey(definitionModelConfig.modelKey) ||
+    getModelKey(raw.model) ||
+    getModelKey(options?.defaultModelKey);
   const reasoningEffort =
-    normalizeReasoningEffort(raw.reasoningEffort)
-    || normalizeReasoningEffort(meta.reasoningEffort)
-    || normalizeReasoningEffort(modelConfig.reasoningEffort)
-    || normalizeReasoningEffort(definitionModelConfig.reasoningEffort)
-    || normalizeReasoningEffort(options?.defaultReasoningEffort);
+    normalizeReasoningEffort(raw.reasoningEffort) ||
+    normalizeReasoningEffort(meta.reasoningEffort) ||
+    normalizeReasoningEffort(modelConfig.reasoningEffort) ||
+    normalizeReasoningEffort(definitionModelConfig.reasoningEffort) ||
+    normalizeReasoningEffort(options?.defaultReasoningEffort);
 
   return {
     ...(key ? { key } : {}),
@@ -378,7 +425,10 @@ export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> 
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
-        console.warn("[QuerySettingsControls] Unrecognized model options response", rawResponse);
+        console.warn(
+          "[QuerySettingsControls] Unrecognized model options response",
+          rawResponse,
+        );
       }
       cachedCoderModelOptions = {
         models: options.models,
@@ -406,23 +456,26 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCoderAgent =
     currentWorker?.type === "agent" &&
-    (isCoderMode(currentWorker.raw?.mode) || currentWorker.row?.agentType === "coder");
+    (isCoderMode(currentWorker.raw?.mode) ||
+      currentWorker.row?.agentType === "coder");
   const agentKey =
     currentWorker?.type === "agent"
-      ? toText(currentWorker.key)
-        || toText(currentWorker.sourceId)
-        || toText(currentWorker.row?.sourceId)
-        || toText(currentWorker.row?.key)
-        || toText(currentWorker.raw?.key)
+      ? toText(currentWorker.key) ||
+        toText(currentWorker.sourceId) ||
+        toText(currentWorker.row?.sourceId) ||
+        toText(currentWorker.row?.key) ||
+        toText(currentWorker.raw?.key)
       : "";
   const [models, setModels] = useState<CoderModelOption[]>([]);
-  const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortOption[]>([]);
-  const [modelDefaults, setModelDefaults] = useState<Pick<
-    LoadedCoderModelOptions,
-    "defaultModelKey" | "defaultReasoningEffort"
-  >>({});
+  const [reasoningEfforts, setReasoningEfforts] = useState<
+    ReasoningEffortOption[]
+  >([]);
+  const [modelDefaults, setModelDefaults] = useState<
+    Pick<LoadedCoderModelOptions, "defaultModelKey" | "defaultReasoningEffort">
+  >({});
   const [modelsLoading, setModelsLoading] = useState(false);
-  const [modelOptionsStatus, setModelOptionsStatus] = useState<ModelOptionsStatus>("idle");
+  const [modelOptionsStatus, setModelOptionsStatus] =
+    useState<ModelOptionsStatus>("idle");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const appliedDefaultRef = useRef<{
     agentKey: string;
@@ -455,7 +508,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       });
       setModelsLoading(false);
       setModelOptionsStatus(
-        cachedOptions.models.length > 0 || cachedOptions.reasoningEfforts.length > 0
+        cachedOptions.models.length > 0 ||
+          cachedOptions.reasoningEfforts.length > 0
           ? "loaded"
           : "empty",
       );
@@ -474,7 +528,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           defaultReasoningEffort: options.defaultReasoningEffort,
         });
         setModelOptionsStatus(
-          options.models.length > 0 || options.reasoningEfforts.length > 0 ? "loaded" : "empty",
+          options.models.length > 0 || options.reasoningEfforts.length > 0
+            ? "loaded"
+            : "empty",
         );
       })
       .catch(() => {
@@ -499,14 +555,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       ACCESS_LEVELS.map((value) => ({
         key: value,
         label: (
-          <span className="query-settings-menu-item query-access-menu-item">
+          <span className="query-settings-menu-item">
             <span className="query-settings-menu-leading">
               <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
               <span>{t(`composer.query.access.${value}`)}</span>
             </span>
-            <span className="query-settings-menu-check">
-              {value === accessLevel ? <MaterialIcon name="check" /> : null}
-            </span>
+            {value === accessLevel ? <MaterialIcon name="check" /> : null}
           </span>
         ),
       })),
@@ -530,19 +584,23 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
 
   useEffect(() => {
     if (!isCoderAgent || !agentKey) return;
-    if (!resolvedDefaultOverride.key && !resolvedDefaultOverride.reasoningEffort) return;
+    if (
+      !resolvedDefaultOverride.key &&
+      !resolvedDefaultOverride.reasoningEffort
+    )
+      return;
 
     const previous = appliedDefaultRef.current;
     const currentMatchesPrevious =
-      previous?.agentKey === agentKey
-      && modelOverride.key === previous.value.key
-      && modelOverride.reasoningEffort === previous.value.reasoningEffort;
+      previous?.agentKey === agentKey &&
+      modelOverride.key === previous.value.key &&
+      modelOverride.reasoningEffort === previous.value.reasoningEffort;
     if (previous?.agentKey === agentKey && !currentMatchesPrevious) {
       return;
     }
     if (
-      modelOverride.key === resolvedDefaultOverride.key
-      && modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
+      modelOverride.key === resolvedDefaultOverride.key &&
+      modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
     ) {
       appliedDefaultRef.current = {
         agentKey,
@@ -575,17 +633,18 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     : t("composer.query.model.loading");
 
   const modelItems = useMemo<MenuProps["items"]>(
-    () => buildModelMenuItems({
-      models,
-      reasoningEfforts,
-      modelOverride,
-      selectedModelLabel,
-      selectedModelKey,
-      selectedReasoningEffort,
-      modelsLoading,
-      status: modelOptionsStatus,
-      t,
-    }),
+    () =>
+      buildModelMenuItems({
+        models,
+        reasoningEfforts,
+        modelOverride,
+        selectedModelLabel,
+        selectedModelKey,
+        selectedReasoningEffort,
+        modelsLoading,
+        status: modelOptionsStatus,
+        t,
+      }),
     [
       modelOverride,
       modelOptionsStatus,
@@ -611,7 +670,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       return;
     }
     if (textKey.startsWith("reasoning:")) {
-      const effort = normalizeReasoningEffort(textKey.slice("reasoning:".length));
+      const effort = normalizeReasoningEffort(
+        textKey.slice("reasoning:".length),
+      );
       if (!effort) return;
       onModelOverrideChange({
         ...modelOverride,
@@ -621,15 +682,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   };
 
   const onModelMenuOpenChange = (open: boolean) => {
-    if (!shouldRetryModelOptionsOnOpen({
-      open,
-      isCoderAgent,
-      agentKey,
-      modelsLoading,
-      status: modelOptionsStatus,
-      models,
-      reasoningEfforts,
-    })) {
+    if (
+      !shouldRetryModelOptionsOnOpen({
+        open,
+        isCoderAgent,
+        agentKey,
+        modelsLoading,
+        status: modelOptionsStatus,
+        models,
+        reasoningEfforts,
+      })
+    ) {
       return;
     }
     setModelOptionsStatus("idle");
@@ -640,6 +703,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     <div className="query-settings-controls">
       <Dropdown
         menu={{
+          className: 'query-settings-menu',
           items: accessItems,
           onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel),
           selectedKeys: [accessLevel],
@@ -649,7 +713,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       >
         <UiButton
           className="query-settings-btn"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           disabled={disabled}
           title={t("composer.query.access.title")}
