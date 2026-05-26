@@ -395,6 +395,10 @@ export interface ChatUsageData {
   promptCacheHitTokens?: number;
   promptCacheMissTokens?: number;
   llmChatCompletionCount?: number;
+  current?: ChatUsageData;
+  run?: ChatUsageData;
+  lastRun?: ChatUsageData;
+  chat?: ChatUsageData;
 }
 
 export interface ArchiveDeleteResponse {

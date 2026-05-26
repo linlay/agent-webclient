@@ -267,6 +267,114 @@ describe('replayEvent tool migration', () => {
     expect(usageAction.snapshot.usage.current).toBeUndefined();
   });
 
+  it('hydrates usage snapshot from /api/chat nested lastRun and chat usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          { seq: 1, type: 'chat.start', chatId: 'chat-nested-usage' },
+          {
+            seq: 5,
+            type: 'usage.snapshot',
+            runId: 'run_from_event',
+            chatId: 'chat-nested-usage',
+            model: { key: 'deepseek-chat' },
+            contextWindow: {
+              currentSize: 6252,
+              estimatedNextCallSize: 6374,
+              maxSize: 128000,
+            },
+            usage: {
+              current: {
+                promptTokens: 6252,
+                completionTokens: 122,
+                totalTokens: 6374,
+                completionTokensDetails: {
+                  reasoningTokens: 85,
+                },
+              },
+            },
+          },
+        ],
+        runs: [
+          {
+            runId: 'run_from_runs',
+            usage: {
+              promptTokens: 1,
+              completionTokens: 1,
+              totalTokens: 2,
+            },
+          },
+        ],
+        usage: {
+          lastRun: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            llmChatCompletionCount: 1,
+          },
+          chat: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            llmChatCompletionCount: 1,
+          },
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-nested-usage');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_USAGE_SNAPSHOT',
+      snapshot: {
+        type: 'usage.snapshot',
+        chatId: 'chat-nested-usage',
+        runId: 'run_from_runs',
+        model: { key: 'deepseek-chat' },
+        contextWindow: {
+          maxSize: 128000,
+          currentSize: 6252,
+          estimatedNextCallSize: 6374,
+        },
+        usage: {
+          current: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+          },
+          run: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            llmChatCompletionCount: 1,
+          },
+          chat: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            llmChatCompletionCount: 1,
+          },
+        },
+      },
+    });
+  });
+
   it('skips loaded chat usage snapshots when usage is not meaningful', async () => {
     const { actions, dispatch } = renderChatActions();
     getChat.mockResolvedValue({

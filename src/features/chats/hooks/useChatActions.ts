@@ -235,6 +235,16 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
   return totalTokens > 0 || llmChatCompletionCount > 0 ? stats : null;
 }
 
+function getLatestUsageSnapshotEvent(events: unknown[]): AIUsageSnapshotEvent | null {
+  for (const event of events.slice().reverse()) {
+    if (!isObjectRecord(event)) continue;
+    if (event.type !== AIUsageEventTypeEnum.Snapshot) continue;
+    return event as AIUsageSnapshotEvent;
+  }
+
+  return null;
+}
+
 function normalizeLoadedChatContextWindow(value: unknown): AIUsageSnapshotEvent['contextWindow'] | undefined {
   if (!isObjectRecord(value)) {
     return undefined;
@@ -283,12 +293,42 @@ function getModelKey(value: unknown): string {
   return String(value.modelKey || '').trim();
 }
 
+function resolveLoadedChatUsagePayload(
+  chatData: Record<string, unknown>,
+  latestUsageEvent: AIUsageSnapshotEvent | null,
+): AIUsageSnapshotEvent['usage'] | null {
+  const usage = isObjectRecord(chatData.usage) ? chatData.usage : null;
+  const flatChatUsage = normalizeLoadedChatUsageStats(usage);
+  const nestedCurrentUsage = normalizeLoadedChatUsageStats(usage?.current);
+  const nestedRunUsage =
+    normalizeLoadedChatUsageStats(usage?.run)
+    || normalizeLoadedChatUsageStats(usage?.lastRun);
+  const nestedChatUsage = normalizeLoadedChatUsageStats(usage?.chat);
+  const eventCurrentUsage = normalizeLoadedChatUsageStats(latestUsageEvent?.usage?.current);
+
+  const current = nestedCurrentUsage || eventCurrentUsage || undefined;
+  const run = nestedRunUsage || undefined;
+  const chat = nestedChatUsage || flatChatUsage || undefined;
+
+  if (!current && !run && !chat) {
+    return null;
+  }
+
+  return {
+    ...(current ? { current } : {}),
+    ...(run ? { run } : {}),
+    ...(chat ? { chat } : {}),
+  };
+}
+
 export function buildLoadedChatUsageSnapshot(
   chatId: string,
   chatData: Record<string, unknown>,
 ): AIUsageSnapshotEvent | null {
-  const chatUsage = normalizeLoadedChatUsageStats(chatData.usage);
-  if (!chatUsage) {
+  const events = Array.isArray(chatData.events) ? chatData.events : [];
+  const latestUsageEvent = getLatestUsageSnapshotEvent(events);
+  const usage = resolveLoadedChatUsagePayload(chatData, latestUsageEvent);
+  if (!usage) {
     return null;
   }
 
@@ -300,9 +340,17 @@ export function buildLoadedChatUsageSnapshot(
     || runs.slice().reverse().find((run) => Boolean(normalizeLoadedChatUsageStats(run.usage)))
     || null;
   const runUsage = runWithUsage ? normalizeLoadedChatUsageStats(runWithUsage.usage) : null;
-  const runId = getRunId(activeRun) || getRunId(runWithUsage) || getRunId(latestRun) || '';
-  const modelKey = getModelKey(activeRun) || getModelKey(runWithUsage) || getModelKey(latestRun);
-  const contextWindow = normalizeLoadedChatContextWindow(chatData.contextWindow);
+  const runId = getRunId(activeRun)
+    || getRunId(runWithUsage)
+    || getRunId(latestRun)
+    || String(latestUsageEvent?.runId || '').trim();
+  const modelKey = getModelKey(activeRun)
+    || getModelKey(runWithUsage)
+    || getModelKey(latestRun)
+    || getModelKey(latestUsageEvent || undefined);
+  const contextWindow =
+    normalizeLoadedChatContextWindow(chatData.contextWindow)
+    || normalizeLoadedChatContextWindow(latestUsageEvent?.contextWindow);
 
   return {
     type: AIUsageEventTypeEnum.Snapshot,
@@ -311,8 +359,8 @@ export function buildLoadedChatUsageSnapshot(
     ...(modelKey ? { model: { key: modelKey } } : {}),
     ...(contextWindow ? { contextWindow } : {}),
     usage: {
-      ...(runUsage ? { run: runUsage } : {}),
-      chat: chatUsage,
+      ...usage,
+      ...(runUsage && !usage.run ? { run: runUsage } : {}),
     },
   };
 }
