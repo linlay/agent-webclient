@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppState } from "@/app/state/AppContext";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Tabs, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
@@ -7,6 +7,7 @@ import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
+import { UiButton } from "@/shared/ui/UiButton";
 
 type RightSidebarTabsKey = Exclude<RightSidebarTabKey, "debug">;
 
@@ -34,7 +35,9 @@ function readStoredRightSidebarWidth(): number {
   }
 
   try {
-    const stored = window.localStorage?.getItem(RIGHT_SIDEBAR_WIDTH_STORAGE_KEY);
+    const stored = window.localStorage?.getItem(
+      RIGHT_SIDEBAR_WIDTH_STORAGE_KEY,
+    );
     const parsed = stored ? Number.parseInt(stored, 10) : NaN;
     return Number.isFinite(parsed)
       ? clampRightSidebarWidth(parsed)
@@ -58,6 +61,7 @@ function persistRightSidebarWidth(width: number): void {
 }
 
 export const RightSidebar: React.FC = () => {
+  const dispatch = useAppDispatch();
   const state = useAppState();
   const preview = state.attachmentPreview;
   const debugPanelEnabled = isDebugPanelEnabled();
@@ -70,10 +74,9 @@ export const RightSidebar: React.FC = () => {
         : "overview";
   const [activePanel, setActivePanel] =
     React.useState<RightSidebarTabKey>(initialPanel);
-  const [activeTab, setActiveTab] =
-    React.useState<RightSidebarTabsKey>(
-      initialPanel === "debug" ? "overview" : initialPanel,
-    );
+  const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
+    initialPanel === "debug" ? "overview" : initialPanel,
+  );
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
@@ -83,10 +86,7 @@ export const RightSidebar: React.FC = () => {
       return;
     }
 
-    if (
-      state.rightSidebarOpenTab === "debug" &&
-      !debugPanelEnabled
-    ) {
+    if (state.rightSidebarOpenTab === "debug" && !debugPanelEnabled) {
       setActivePanel("overview");
       setActiveTab("overview");
       return;
@@ -110,10 +110,7 @@ export const RightSidebar: React.FC = () => {
   ]);
 
   React.useEffect(() => {
-    if (
-      activePanel === "debug" &&
-      !debugPanelEnabled
-    ) {
+    if (activePanel === "debug" && !debugPanelEnabled) {
       setActivePanel("overview");
       setActiveTab("overview");
       return;
@@ -162,7 +159,9 @@ export const RightSidebar: React.FC = () => {
       const finishResize = (upEvent: PointerEvent) => {
         handle.releasePointerCapture(upEvent.pointerId);
         document.body.classList.remove("right-sidebar-resizing");
-        const nextWidth = updateSidebarWidth(window.innerWidth - upEvent.clientX);
+        const nextWidth = updateSidebarWidth(
+          window.innerWidth - upEvent.clientX,
+        );
         persistRightSidebarWidth(nextWidth);
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", finishResize);
@@ -252,6 +251,17 @@ export const RightSidebar: React.FC = () => {
           activeKey={activeTab}
           onChange={handleTabChange}
           items={tabItems}
+          tabBarExtraContent={
+            <UiButton
+              className="icon-btn"
+              size="sm"
+              variant="ghost"
+              iconOnly
+              onClick={() => dispatch({ type: "CLOSE_RIGHT_SIDEBAR" })}
+            >
+              <MaterialIcon name="close" />
+            </UiButton>
+          }
         />
       )}
     </aside>

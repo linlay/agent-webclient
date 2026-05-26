@@ -6,7 +6,11 @@ import {
   Outlet,
   RouterProvider,
 } from "react-router-dom";
-import { AppProvider, useAppDispatch, useAppState } from "@/app/state/AppContext";
+import {
+  AppProvider,
+  useAppDispatch,
+  useAppState,
+} from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
@@ -28,6 +32,7 @@ import { AutomationsPage } from "./pages/automations";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
+import zhCN from "antd/locale/zh_CN";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -52,7 +57,8 @@ const BaseShell = () => {
     }
 
     hadRouteThemeOverrideRef.current = false;
-    const nextThemeMode = readHostThemeMode() || readStoredThemeMode() || "light";
+    const nextThemeMode =
+      readHostThemeMode() || readStoredThemeMode() || "light";
     dispatch({ type: "SET_THEME_MODE", themeMode: nextThemeMode });
   }, [dispatch, location.search]);
 
@@ -85,6 +91,7 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         algorithm: isDark
           ? antdTheme.darkAlgorithm

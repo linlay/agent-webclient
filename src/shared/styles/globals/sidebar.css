@@ -399,7 +399,7 @@
 
 .right-sidebar-tabs>.ant-tabs-nav {
     margin: 0;
-    padding: 0 12px;
+    padding: 0 4px 0 12px;
 }
 
 .right-sidebar-tabs.ant-tabs-top>.ant-tabs-nav::before {
@@ -548,7 +548,6 @@
     gap: 10px;
 }
 
-.attachment-preview-image,
 .attachment-preview-video {
     display: block;
     width: 100%;
