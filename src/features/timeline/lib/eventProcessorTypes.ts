@@ -56,7 +56,7 @@ export type EventCommand =
 			nodeId: string;
 			text: string;
 			ts: number;
-			variant: "default" | "steer" | "remember" | "learn";
+			variant: "default" | "steer" | "remember" | "learn" | "compact";
 			attachments?: TimelineNode["attachments"];
 			steerId?: string;
 			taskId?: string;
@@ -64,4 +64,5 @@ export type EventCommand =
 			taskGroupId?: string;
 			subAgentKey?: string;
 	  }
-	| { cmd: "SYSTEM_ERROR"; nodeId: string; text: string; ts: number };
+	| { cmd: "SYSTEM_ERROR"; nodeId: string; text: string; ts: number }
+	| { cmd: "SYSTEM_MESSAGE"; nodeId: string; text: string; ts: number };

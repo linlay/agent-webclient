@@ -4,6 +4,7 @@ import type {
   ActiveFrontendTool,
   AgentEvent,
   AppState,
+  AIUsageSnapshotEvent,
   Message,
   PendingSteer,
   PendingTool,
@@ -55,6 +56,7 @@ export interface ConversationSnapshot {
   activeReasoningKey: string;
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
+  usageSnapshot: AIUsageSnapshotEvent | null;
   steerDraft: string;
   pendingSteers: PendingSteer[];
   downvotedRunKeys: Set<string>;
@@ -217,6 +219,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     activeReasoningKey: String(state.activeReasoningKey || '').trim(),
     activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
+    usageSnapshot: state.usageSnapshot,
     steerDraft: String(state.steerDraft || ''),
     pendingSteers: state.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(state.downvotedRunKeys),
@@ -256,6 +259,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     timelineNodeByMessageId: cloneMap(snapshot.timelineNodeByMessageId),
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
+    usageSnapshot: snapshot.usageSnapshot,
     pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };
@@ -429,6 +433,7 @@ export function buildConversationStateUpdates(
     activeReasoningKey: snapshot.activeReasoningKey,
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
+    usageSnapshot: snapshot.usageSnapshot,
     artifactExpanded: false,
     artifactManualOverride: null,
     artifactAutoCollapseTimer: null,

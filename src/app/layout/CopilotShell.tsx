@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
@@ -20,6 +21,10 @@ import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+
+function normalizeRouteValue(value: string | null) {
+  return String(value || "").trim();
+}
 
 const CopilotTopBar: React.FC = () => {
   const state = useAppState();
@@ -156,8 +161,62 @@ const CopilotSidePanel: React.FC = () => {
 
 export const CopilotShell: React.FC = () => {
   const state = useAppState();
+  const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
+  const lastRouteTargetKeyRef = useRef("");
+  const routeAgentKey = useMemo(
+    () => normalizeRouteValue(searchParams.get("agentKey")),
+    [searchParams],
+  );
+  const routeChatId = useMemo(
+    () => normalizeRouteValue(searchParams.get("chatId")),
+    [searchParams],
+  );
 
   useAppRuntimes();
+
+  useEffect(() => {
+    if (!routeAgentKey && !routeChatId) {
+      lastRouteTargetKeyRef.current = "";
+      return;
+    }
+
+    const routeTargetKey = `${routeAgentKey}\u0000${routeChatId}`;
+    if (lastRouteTargetKeyRef.current === routeTargetKey) {
+      return;
+    }
+    lastRouteTargetKeyRef.current = routeTargetKey;
+
+    if (routeAgentKey) {
+      const workerKey = `agent:${routeAgentKey}`;
+      dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
+      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+      dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
+      dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey: routeAgentKey });
+    }
+
+    if (routeChatId) {
+      window.dispatchEvent(
+        new CustomEvent("agent:load-chat", {
+          detail: {
+            chatId: routeChatId,
+            focusComposerOnComplete: true,
+          },
+        }),
+      );
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("agent:start-new-conversation", {
+        detail: {
+          agentKey: routeAgentKey,
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+  }, [dispatch, routeAgentKey, routeChatId]);
 
   return (
     <div className="app-shell layout-copilot" id="app">

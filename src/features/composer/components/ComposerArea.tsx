@@ -250,6 +250,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       rememberError: t("composer.background.remember.error"),
       learnPending: t("composer.background.learn.pending"),
       learnError: t("composer.background.learn.error"),
+      compactPending: t("composer.background.compact.pending"),
+      compactError: t("composer.background.compact.error"),
     },
     clearComposerAttachments,
     closeMention,

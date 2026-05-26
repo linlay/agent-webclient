@@ -87,7 +87,7 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Open usage stats");
 	});
 
-	it("renders usage entry with total tokens from the latest snapshot", () => {
+	it("renders usage entry with context window size from the latest snapshot", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
@@ -112,8 +112,8 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Open usage stats");
 		expect(html).toContain(">50%</span>");
-		expect(html).toContain('aria-label="1.2K"');
-		expect(html).not.toContain("1.2K tokens");
+		expect(html).toContain('aria-label="64.0K"');
+		expect(html).not.toContain("1.2K");
 		expect(html).not.toContain("Current call");
 	});
 
@@ -140,7 +140,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain('aria-label="6.7K"');
+		expect(html).toContain('aria-label="64.0K"');
 		expect(html).toContain(">50%</span>");
 		expect(html).not.toContain('aria-label="Usage"');
 	});

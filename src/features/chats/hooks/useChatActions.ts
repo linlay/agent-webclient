@@ -257,6 +257,79 @@ function normalizeLoadedChatContextWindow(value: unknown): AIUsageSnapshotEvent[
   return Object.keys(contextWindow).length > 0 ? contextWindow : undefined;
 }
 
+interface LoadedUsageSnapshotResult {
+  snapshot: AIUsageSnapshotEvent;
+  index: number;
+}
+
+function latestLoadedUsageSnapshotFromEvents(
+  chatId: string,
+  events: unknown,
+): LoadedUsageSnapshotResult | null {
+  if (!Array.isArray(events)) {
+    return null;
+  }
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (!isObjectRecord(event) || event.type !== AIUsageEventTypeEnum.Snapshot) {
+      continue;
+    }
+    const snapshot = event as unknown as AIUsageSnapshotEvent;
+    if (!snapshot.contextWindow && !snapshot.usage) {
+      continue;
+    }
+    return {
+      snapshot: {
+        ...snapshot,
+        type: AIUsageEventTypeEnum.Snapshot,
+        chatId: String(snapshot.chatId || chatId),
+      },
+      index,
+    };
+  }
+
+  return null;
+}
+
+function latestCompactPostTokensAfterSnapshot(
+  events: unknown,
+  snapshot: LoadedUsageSnapshotResult,
+): number | undefined {
+  if (!Array.isArray(events)) {
+    return undefined;
+  }
+
+  const snapshotTimestamp = readUsageNumber(snapshot.snapshot.timestamp);
+  let bestRank = -1;
+  let bestTokens: number | undefined;
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    if (!isObjectRecord(event) || event.type !== 'context.compact.complete') {
+      continue;
+    }
+    const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
+    if (postTokens === undefined) {
+      continue;
+    }
+    const eventTimestamp = readUsageNumber(event.timestamp);
+    const isAfterSnapshot =
+      snapshotTimestamp !== undefined && eventTimestamp !== undefined
+        ? eventTimestamp > snapshotTimestamp
+        : index > snapshot.index;
+    if (!isAfterSnapshot) {
+      continue;
+    }
+    const rank = eventTimestamp ?? index;
+    if (rank >= bestRank) {
+      bestRank = rank;
+      bestTokens = postTokens;
+    }
+  }
+
+  return bestTokens;
+}
+
 function getRunId(value: unknown): string {
   return isObjectRecord(value) ? String(value.runId || '').trim() : '';
 }
@@ -287,7 +360,26 @@ export function buildLoadedChatUsageSnapshot(
   chatId: string,
   chatData: Record<string, unknown>,
 ): AIUsageSnapshotEvent | null {
+  const eventSnapshot = latestLoadedUsageSnapshotFromEvents(chatId, chatData.events);
   const chatUsage = normalizeLoadedChatUsageStats(chatData.usage);
+  if (eventSnapshot) {
+    const compactPostTokens = latestCompactPostTokensAfterSnapshot(chatData.events, eventSnapshot);
+    const contextWindow = compactPostTokens === undefined
+      ? eventSnapshot.snapshot.contextWindow
+      : {
+        ...(eventSnapshot.snapshot.contextWindow || {}),
+        currentSize: compactPostTokens,
+        estimatedNextCallSize: compactPostTokens,
+      };
+    return {
+      ...eventSnapshot.snapshot,
+      ...(contextWindow ? { contextWindow } : {}),
+      usage: {
+        ...(eventSnapshot.snapshot.usage || {}),
+        ...(chatUsage ? { chat: chatUsage } : {}),
+      },
+    };
+  }
   if (!chatUsage) {
     return null;
   }

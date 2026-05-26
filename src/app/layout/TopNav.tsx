@@ -63,6 +63,8 @@ function formatCompactUsageNumber(value: unknown): string {
 }
 
 function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | null {
+  const contextSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
+  if (contextSize != null) return contextSize;
   if (!snapshot?.usage) return null;
   return (
     readUsageNumber(snapshot.usage.run?.totalTokens)
@@ -114,6 +116,21 @@ function buildUsageMetrics(t: (key: string) => string, stats?: AIUsageStats): Us
       value: stats?.promptCacheMissTokens,
     },
   ];
+}
+
+function resolveLatestCompactUsage(events: AppState["events"]): AIUsageStats | null {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index] as Record<string, unknown>;
+    if (event.type !== "context.compact.complete") {
+      continue;
+    }
+    const usage = event.compactionUsage;
+    if (!usage || typeof usage !== "object") {
+      return null;
+    }
+    return usage as AIUsageStats;
+  }
+  return null;
 }
 
 function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): number | null {
@@ -269,7 +286,8 @@ export const TopNav: React.FC = () => {
   const voiceToggleDisabled =
     !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
   const usageSnapshot = state.usageSnapshot;
-  const showUsageControl = Boolean(usageSnapshot) || state.streaming;
+  const compactUsage = resolveLatestCompactUsage(state.events);
+  const showUsageControl = Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
   const usageTriggerLabel =
     usageTotal == null
@@ -427,33 +445,49 @@ export const TopNav: React.FC = () => {
                         <span className="usage-popover-close-glyph" aria-hidden="true" />
                       </UiButton>
                     </div>
-                    {usageSnapshot ? (
+                    {usageSnapshot || compactUsage ? (
                       <>
-                        <UsageContextWindow snapshot={usageSnapshot} t={t} />
-                        <UsageSection
-                          title={t("topNav.usage.section.current")}
-                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
-                        />
-                        <UsageSection
-                          title={t("topNav.usage.section.run")}
-                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
-                          aside={
-                            <UsageLlmCalls
-                              label={t("topNav.usage.metric.llmCalls")}
-                              value={usageSnapshot.usage?.run?.llmChatCompletionCount}
+                        {usageSnapshot ? (
+                          <>
+                            <UsageContextWindow snapshot={usageSnapshot} t={t} />
+                            <UsageSection
+                              title={t("topNav.usage.section.current")}
+                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
                             />
-                          }
-                        />
-                        <UsageSection
-                          title={t("topNav.usage.section.chat")}
-                          metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
-                          aside={
-                            <UsageLlmCalls
-                              label={t("topNav.usage.metric.llmCalls")}
-                              value={usageSnapshot.usage?.chat?.llmChatCompletionCount}
+                            <UsageSection
+                              title={t("topNav.usage.section.run")}
+                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
+                              aside={
+                                <UsageLlmCalls
+                                  label={t("topNav.usage.metric.llmCalls")}
+                                  value={usageSnapshot.usage?.run?.llmChatCompletionCount}
+                                />
+                              }
                             />
-                          }
-                        />
+                            <UsageSection
+                              title={t("topNav.usage.section.chat")}
+                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
+                              aside={
+                                <UsageLlmCalls
+                                  label={t("topNav.usage.metric.llmCalls")}
+                                  value={usageSnapshot.usage?.chat?.llmChatCompletionCount}
+                                />
+                              }
+                            />
+                          </>
+                        ) : null}
+                        {compactUsage ? (
+                          <UsageSection
+                            title={t("topNav.usage.section.compact")}
+                            metrics={buildUsageMetrics(t, compactUsage)}
+                            aside={
+                              <UsageLlmCalls
+                                label={t("topNav.usage.metric.llmCalls")}
+                                value={compactUsage.llmChatCompletionCount}
+                              />
+                            }
+                          />
+                        ) : null}
                       </>
                     ) : (
                       <p className="usage-popover-empty">

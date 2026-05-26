@@ -73,6 +73,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		getTool: jest.fn(),
 		getTools: jest.fn(),
 		getViewport: jest.fn(),
+		compactChat: jest.fn(),
 		interruptChat: jest.fn(),
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
@@ -142,6 +143,7 @@ let mockApiClient: {
 	getTool: jest.Mock;
 	getTools: jest.Mock;
 	getViewport: jest.Mock;
+	compactChat: jest.Mock;
 	interruptChat: jest.Mock;
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
@@ -1238,6 +1240,12 @@ describe("apiClientProxy", () => {
 			msg: "ok",
 			data: { learned: true },
 		});
+		mockApiClient.compactChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { compacted: true },
+		});
 
 		const commandParams = {
 			requestId: "req_bg",
@@ -1250,10 +1258,14 @@ describe("apiClientProxy", () => {
 		await expect(proxy.learnChat(commandParams)).resolves.toMatchObject({
 			data: { learned: true },
 		});
+		await expect(proxy.compactChat(commandParams)).resolves.toMatchObject({
+			data: { compacted: true },
+		});
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.rememberChat).toHaveBeenCalledWith(commandParams);
 		expect(mockApiClient.learnChat).toHaveBeenCalledWith(commandParams);
+		expect(mockApiClient.compactChat).toHaveBeenCalledWith(commandParams);
 	});
 
 	it("routes archive requests over http when sse mode is selected", async () => {

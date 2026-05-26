@@ -193,6 +193,29 @@ describe('conversation session restore', () => {
     });
   });
 
+  it('preserves usage snapshot across conversation session restore', () => {
+    const usageSnapshot = {
+      type: 'usage.snapshot',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      contextWindow: {
+        maxSize: 128000,
+        currentSize: 1326,
+        estimatedNextCallSize: 1326,
+      },
+    } as const;
+    const snapshot = snapshotConversationState({
+      ...createInitialState(),
+      chatId: 'chat_1',
+      runId: 'run_1',
+      usageSnapshot,
+    });
+    const updates = buildConversationStateUpdates(snapshot);
+
+    expect(snapshot.usageSnapshot).toBe(usageSnapshot);
+    expect(updates.usageSnapshot).toBe(usageSnapshot);
+  });
+
   it('restores pending streamed tool events as debug snapshots', () => {
     const snapshot = snapshotConversationState({
       ...createInitialState(),

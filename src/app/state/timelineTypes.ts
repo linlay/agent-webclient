@@ -52,7 +52,7 @@ export interface TimelineNode {
 	id: string;
 	kind: TimelineNodeKind;
 	role?: TimelineRole;
-	messageVariant?: "default" | "steer" | "remember" | "learn";
+	messageVariant?: "default" | "steer" | "remember" | "learn" | "compact";
 	steerId?: string;
 	awaitingId?: string;
 	reasoningLabel?: string;
