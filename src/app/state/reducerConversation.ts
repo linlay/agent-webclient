@@ -52,12 +52,6 @@ export function reduceConversationState(
 			return {
 				...state,
 				streaming: action.streaming,
-				...(action.streaming
-					? {
-							usageSnapshot: null,
-							usagePopoverOpen: false,
-						}
-					: {}),
 			};
 		case "SET_ABORT_CONTROLLER":
 			return { ...state, abortController: action.controller };

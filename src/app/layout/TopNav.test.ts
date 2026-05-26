@@ -112,9 +112,37 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Open usage stats");
 		expect(html).toContain(">50%</span>");
-		expect(html).toContain("1.2K");
+		expect(html).toContain('aria-label="1.2K"');
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).not.toContain("Current call");
+	});
+
+	it("keeps the previous usage total visible while streaming", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			streaming: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+				},
+				usage: {
+					run: {
+						totalTokens: 6700,
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain('aria-label="6.7K"');
+		expect(html).toContain(">50%</span>");
+		expect(html).not.toContain('aria-label="Usage"');
 	});
 
 	it("renders historical chat-only usage snapshots", () => {
@@ -143,10 +171,10 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("1.2K");
+		expect(html).toContain('aria-label="1.2K"');
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).toContain("Current call");
-		expect(html).toContain("Current chat");
+		expect(html).toContain("Chat total");
 		expect(html).toContain("1,200");
 		expect(html).toContain("401");
 		expect(html).toContain("499");
@@ -222,8 +250,8 @@ describe("TopNav", () => {
 		expect(html).toContain("64,000 / 128,000");
 		expect(html).toContain("Estimated next call 8,000");
 		expect(html).toContain("Current call");
-		expect(html).toContain("Current run");
-		expect(html).toContain("Current chat");
+		expect(html).toContain("Latest run");
+		expect(html).toContain("Chat total");
 		expect(html).toContain("Prompt");
 		expect(html).toContain("Completion");
 		expect(html).toContain("Total");

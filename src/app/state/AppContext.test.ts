@@ -666,7 +666,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(reset.usagePopoverOpen).toBe(false);
   });
 
-  it('clears stale usage snapshots when a new stream starts', () => {
+  it('keeps usage snapshots and popover state when a new stream starts', () => {
     const populated = {
       ...createInitialState(),
       usageSnapshot: {
@@ -684,8 +684,8 @@ describe('appReducer conversation reset behavior', () => {
     });
 
     expect(next.streaming).toBe(true);
-    expect(next.usageSnapshot).toBeNull();
-    expect(next.usagePopoverOpen).toBe(false);
+    expect(next.usageSnapshot).toBe(populated.usageSnapshot);
+    expect(next.usagePopoverOpen).toBe(true);
   });
 
   it('normalizes theme updates through the reducer', () => {
