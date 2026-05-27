@@ -560,13 +560,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         key: value,
         label: (
           <span className="query-settings-menu-item">
-            <span className="query-settings-menu-leading">
-              <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
-              <span>{t(`composer.query.access.${value}`)}</span>
-            </span>
-            {value === accessLevel ? <MaterialIcon name="check" /> : null}
+            <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
+            <span>{t(`composer.query.access.${value}`)}</span>
           </span>
         ),
+        extra: value === accessLevel ? <MaterialIcon name="check" /> : null,
       })),
     [accessLevel, t],
   );

@@ -33,7 +33,7 @@ export const zhCNMessages: I18nMessages = {
   "composer.background.remember.pending": "正在记忆中...",
   "composer.input.placeholder.default": "回复消息...（Enter 发送，Shift+Enter 换行）",
   "composer.input.placeholder.frontendActive": "前端工具处理中，请在确认面板内提交",
-  "composer.query.access.auto_approve": "自动",
+  "composer.query.access.auto_approve": "自动批准",
   "composer.query.access.default": "默认权限",
   "composer.query.access.full_access": "完全访问权限",
   "composer.query.access.title": "设置本次运行权限",
