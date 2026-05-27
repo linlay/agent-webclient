@@ -55,6 +55,7 @@ import {
 	submitTool as submitToolHttp,
 	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
+	updateAgentModelConfig as updateAgentModelConfigHttp,
 	putAgentOrder as putAgentOrderHttp,
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
@@ -97,6 +98,7 @@ import {
 	type CompactChatResponse,
 	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
+	type UpdateAgentModelConfigRequest,
 	type UpdateAgentOrderRequest,
 	type UpdateAutomationRequest,
 } from "@/shared/api/apiClient";
@@ -255,6 +257,16 @@ export function updateAgent(
 		"/api/agent/update",
 		params,
 		() => updateAgentHttp(params),
+	);
+}
+
+export function updateAgentModelConfig(
+	params: UpdateAgentModelConfigRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return routeRequest<AgentDetailResponse>(
+		"/api/agent/model-config",
+		params,
+		() => updateAgentModelConfigHttp(params),
 	);
 }
 

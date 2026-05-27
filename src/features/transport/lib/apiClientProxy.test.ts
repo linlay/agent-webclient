@@ -92,6 +92,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			submitTool: jest.fn(),
 			toggleAutomation: jest.fn(),
 			updateAgent: jest.fn(),
+			updateAgentModelConfig: jest.fn(),
 			putAgentOrder: jest.fn(),
 			updateAutomation: jest.fn(),
 			uploadFile: jest.fn(),
@@ -164,6 +165,7 @@ let mockApiClient: {
 		submitTool: jest.Mock;
 		toggleAutomation: jest.Mock;
 		updateAgent: jest.Mock;
+		updateAgentModelConfig: jest.Mock;
 		putAgentOrder: jest.Mock;
 		updateAutomation: jest.Mock;
 		uploadFile: jest.Mock;
@@ -378,6 +380,11 @@ describe("apiClientProxy", () => {
 			key: "editable-agent",
 			definition: { key: "editable-agent", name: "Updated Agent" },
 		});
+		await proxy.updateAgentModelConfig({
+			agentKey: "editable-agent",
+			modelKey: "coder-model",
+			reasoningEffort: "HIGH",
+		});
 		await proxy.deleteAgent({ key: "editable-agent" });
 		await proxy.getAgentEditorOptions();
 		await proxy.getModelOptions();
@@ -397,14 +404,22 @@ describe("apiClientProxy", () => {
 			},
 		});
 		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/agent/model-config",
+			payload: {
+				agentKey: "editable-agent",
+				modelKey: "coder-model",
+				reasoningEffort: "HIGH",
+			},
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
 			type: "/api/agent/delete",
 			payload: { key: "editable-agent" },
 		});
-		expect(request).toHaveBeenNthCalledWith(4, {
+		expect(request).toHaveBeenNthCalledWith(5, {
 			type: "/api/agent/editor-options",
 			payload: undefined,
 		});
-		expect(request).toHaveBeenNthCalledWith(5, {
+		expect(request).toHaveBeenNthCalledWith(6, {
 			type: "/api/model-options",
 			payload: undefined,
 		});

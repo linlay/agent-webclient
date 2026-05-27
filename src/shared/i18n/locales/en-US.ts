@@ -44,6 +44,7 @@ export const enUSMessages: I18nMessages = {
   "composer.query.model.group": "Model",
   "composer.query.model.loadFailed": "Failed to load models. Reopen to retry",
   "composer.query.model.loading": "Loading models...",
+  "composer.query.model.saving": "Saving...",
   "composer.query.model.title": "Choose model and reasoning effort",
   "composer.query.reasoning.HIGH": "High",
   "composer.query.reasoning.LOW": "Low",

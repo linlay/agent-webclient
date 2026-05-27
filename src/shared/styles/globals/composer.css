@@ -459,6 +459,16 @@
 .query-model-btn.ui-btn.is-loading {
     pointer-events: auto;
 }
+
+.query-model-error {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--danger, #c2410c);
+}
+
 .query-settings-menu.ant-dropdown-menu{
     font-size: 13px;
     min-width: 160px;

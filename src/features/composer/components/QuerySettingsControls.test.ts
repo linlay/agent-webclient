@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   buildModelMenuItems,
+  buildPersistedModelConfigOverride,
   clearCoderModelOptionsCacheForTest,
   getCachedCoderModelOptions,
   getModelIdentityMismatchWarning,
@@ -14,7 +15,7 @@ import {
 } from "@/features/composer/components/QuerySettingsControls";
 
 jest.mock("@/app/state/AppContext", () => ({
-  useAppState: jest.fn(() => ({})),
+  useAppContext: jest.fn(() => ({ state: { agents: [] }, dispatch: jest.fn() })),
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
@@ -23,6 +24,7 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
 
 jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   getModelOptions: jest.fn(),
+  updateAgentModelConfig: jest.fn(),
 }));
 
 jest.mock("@/shared/i18n", () => ({
@@ -36,6 +38,7 @@ jest.mock("@/shared/i18n", () => ({
         "composer.query.model.group": "模型",
         "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
         "composer.query.model.loading": "正在加载模型...",
+        "composer.query.model.saving": "保存中...",
         "composer.query.model.title": "选择模型和思考深度",
         "composer.query.reasoning.group": "思考深度",
         "composer.query.reasoning.HIGH": "高",
@@ -53,10 +56,11 @@ const { resolveCurrentWorkerSummary } = jest.requireMock(
 ) as {
   resolveCurrentWorkerSummary: jest.Mock;
 };
-const { getModelOptions } = jest.requireMock(
+const { getModelOptions, updateAgentModelConfig } = jest.requireMock(
   "@/features/transport/lib/apiClientProxy",
 ) as {
   getModelOptions: jest.Mock;
+  updateAgentModelConfig: jest.Mock;
 };
 
 type TestMenuItem = {
@@ -74,6 +78,7 @@ describe("QuerySettingsControls", () => {
   beforeEach(() => {
     clearCoderModelOptionsCacheForTest();
     getModelOptions.mockReset();
+    updateAgentModelConfig.mockReset();
     resolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
       raw: { mode: "REACT" },
@@ -95,6 +100,24 @@ describe("QuerySettingsControls", () => {
     );
 
     expect(html).toContain("默认权限");
+  });
+
+  it("builds complete persisted model config payloads from partial menu changes", () => {
+    expect(
+      buildPersistedModelConfigOverride({
+        current: { key: "old-model", reasoningEffort: "LOW" },
+        patch: { key: "new-model" },
+        defaults: { defaultModelKey: "default-model", defaultReasoningEffort: "HIGH" },
+      }),
+    ).toEqual({ key: "new-model", reasoningEffort: "LOW" });
+
+    expect(
+      buildPersistedModelConfigOverride({
+        current: {},
+        patch: { reasoningEffort: "NONE" },
+        defaults: { defaultModelKey: "default-model", defaultReasoningEffort: "HIGH" },
+      }),
+    ).toEqual({ key: "default-model", reasoningEffort: "NONE" });
   });
 
   it("shows the model selector only for CODER agents", () => {

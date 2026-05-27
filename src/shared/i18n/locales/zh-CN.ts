@@ -44,6 +44,7 @@ export const zhCNMessages: I18nMessages = {
   "composer.query.model.group": "模型",
   "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
   "composer.query.model.loading": "正在加载模型...",
+  "composer.query.model.saving": "保存中...",
   "composer.query.model.title": "选择模型和思考深度",
   "composer.query.reasoning.HIGH": "高",
   "composer.query.reasoning.LOW": "低",

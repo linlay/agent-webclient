@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
-import { useAppState } from "@/app/state/AppContext";
+import { useAppContext } from "@/app/state/AppContext";
+import type { Agent } from "@/app/state/types";
 import {
   resolveCurrentWorkerSummary,
   type CurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
-import { getModelOptions } from "@/features/transport/lib/apiClientProxy";
+import {
+  getModelOptions,
+  updateAgentModelConfig,
+} from "@/features/transport/lib/apiClientProxy";
 import type {
+  AgentDetailResponse,
   CoderModelOption,
   QueryAccessLevel,
   QueryModelOverride,
@@ -75,6 +80,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function getRecord(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
+}
+
+function cloneRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? { ...value } : {};
 }
 
 function getModelKey(value: unknown): string {
@@ -448,6 +457,83 @@ export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> 
   return pendingCoderModelOptionsPromise;
 }
 
+export function buildPersistedModelConfigOverride({
+  current,
+  patch,
+  defaults,
+}: {
+  current: QueryModelOverride;
+  patch: QueryModelOverride;
+  defaults: Pick<
+    LoadedCoderModelOptions,
+    "defaultModelKey" | "defaultReasoningEffort"
+  >;
+}): QueryModelOverride {
+  const key = patch.key || current.key || defaults.defaultModelKey || "";
+  const reasoningEffort =
+    patch.reasoningEffort ||
+    current.reasoningEffort ||
+    defaults.defaultReasoningEffort ||
+    "MEDIUM";
+  return {
+    ...(key ? { key } : {}),
+    reasoningEffort,
+  };
+}
+
+function agentSummaryFromModelDetail(
+  existing: Agent | undefined,
+  detail: AgentDetailResponse,
+  modelOverride: QueryModelOverride,
+): Agent {
+  const definition = cloneRecord(detail.definition);
+  const definitionModelConfig = cloneRecord(definition.modelConfig);
+  const definitionReasoning = cloneRecord(definitionModelConfig.reasoning);
+  if (modelOverride.key) {
+    definitionModelConfig.modelKey = modelOverride.key;
+  }
+  if (modelOverride.reasoningEffort) {
+    definitionReasoning.enabled = modelOverride.reasoningEffort !== "NONE";
+    if (modelOverride.reasoningEffort === "NONE") {
+      delete definitionReasoning.effort;
+    } else {
+      definitionReasoning.effort = modelOverride.reasoningEffort;
+    }
+  }
+  if (Object.keys(definitionReasoning).length > 0) {
+    definitionModelConfig.reasoning = definitionReasoning;
+  }
+  if (Object.keys(definitionModelConfig).length > 0) {
+    definition.modelConfig = definitionModelConfig;
+  }
+  const meta = cloneRecord(detail.meta);
+  if (modelOverride.key) {
+    meta.modelKey = modelOverride.key;
+  }
+  if (modelOverride.reasoningEffort) {
+    meta.reasoningEffort = modelOverride.reasoningEffort;
+  }
+  return {
+    ...(existing || {}),
+    key: detail.key,
+    name: detail.name || existing?.name || detail.key,
+    type: detail.type || existing?.type,
+    mode: detail.mode || existing?.mode,
+    icon: detail.icon as Agent["icon"],
+    role: detail.role || existing?.role,
+    wonders: detail.wonders || existing?.wonders,
+    controls: (detail.controls as unknown as Agent["controls"]) || existing?.controls,
+    source: detail.source ? { ...detail.source } : existing?.source,
+    model: modelOverride.key || detail.model,
+    modelKey: modelOverride.key || detail.model,
+    defaultModelKey: modelOverride.key || detail.model,
+    defaultReasoningEffort: modelOverride.reasoningEffort,
+    definition,
+    modelConfig: definitionModelConfig,
+    meta,
+  };
+}
+
 export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   accessLevel,
   disabled = false,
@@ -455,7 +541,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   onAccessLevelChange,
   onModelOverrideChange,
 }) => {
-  const state = useAppState();
+  const { state, dispatch } = useAppContext();
   const { t } = useI18n();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCoderAgent =
@@ -481,6 +567,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [modelOptionsStatus, setModelOptionsStatus] =
     useState<ModelOptionsStatus>("idle");
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [modelConfigSaving, setModelConfigSaving] = useState(false);
+  const [modelConfigError, setModelConfigError] = useState("");
   const appliedDefaultRef = useRef<{
     agentKey: string;
     value: QueryModelOverride;
@@ -634,6 +722,43 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     ? t(`composer.query.reasoning.${selectedReasoningEffort}`)
     : t("composer.query.model.loading");
 
+  const persistModelConfig = async (nextOverride: QueryModelOverride) => {
+    const nextModelKey = String(nextOverride.key || "").trim();
+    if (!agentKey || !nextModelKey) return;
+    const nextReasoningEffort =
+      nextOverride.reasoningEffort || "MEDIUM";
+    const persistedOverride: QueryModelOverride = {
+      key: nextModelKey,
+      reasoningEffort: nextReasoningEffort,
+    };
+    setModelConfigSaving(true);
+    setModelConfigError("");
+    try {
+      const response = await updateAgentModelConfig({
+        agentKey,
+        modelKey: nextModelKey,
+        reasoningEffort: nextReasoningEffort,
+      });
+      const detail = response.data;
+      onModelOverrideChange(persistedOverride);
+      appliedDefaultRef.current = {
+        agentKey,
+        value: persistedOverride,
+      };
+      const nextAgents = state.agents.map((agent) =>
+        toText(agent.key) === toText(detail.key || agentKey)
+          ? agentSummaryFromModelDetail(agent, detail, persistedOverride)
+          : agent,
+      );
+      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+      window.dispatchEvent(new CustomEvent("agent:refresh-agents"));
+    } catch (error) {
+      setModelConfigError((error as Error).message);
+    } finally {
+      setModelConfigSaving(false);
+    }
+  };
+
   const modelItems = useMemo<MenuProps["items"]>(
     () =>
       buildModelMenuItems({
@@ -661,13 +786,22 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   );
 
   const onModelMenuClick: MenuProps["onClick"] = ({ key }) => {
+    if (modelConfigSaving) return;
     const textKey = String(key);
     if (textKey.startsWith("model:")) {
       const encoded = textKey.slice("model:".length);
       if (!encoded) return;
-      onModelOverrideChange({
-        ...modelOverride,
-        key: decodeURIComponent(encoded),
+      void persistModelConfig({
+        ...buildPersistedModelConfigOverride({
+          current: modelOverride,
+          patch: { key: decodeURIComponent(encoded) },
+          defaults: {
+            defaultModelKey: resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
+            defaultReasoningEffort:
+              resolvedDefaultOverride.reasoningEffort ||
+              modelDefaults.defaultReasoningEffort,
+          },
+        }),
       });
       return;
     }
@@ -676,9 +810,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         textKey.slice("reasoning:".length),
       );
       if (!effort) return;
-      onModelOverrideChange({
-        ...modelOverride,
-        reasoningEffort: effort,
+      void persistModelConfig({
+        ...buildPersistedModelConfigOverride({
+          current: modelOverride,
+          patch: { reasoningEffort: effort },
+          defaults: {
+            defaultModelKey: resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
+            defaultReasoningEffort:
+              resolvedDefaultOverride.reasoningEffort ||
+              modelDefaults.defaultReasoningEffort,
+          },
+        }),
       });
     }
   };
@@ -741,17 +883,20 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             className={`query-settings-btn query-model-btn ${modelsLoading ? "is-loading" : ""}`.trim()}
             variant="ghost"
             size="sm"
-            disabled={disabled}
-            title={t("composer.query.model.title")}
+            disabled={disabled || modelConfigSaving}
+            title={modelConfigError || t("composer.query.model.title")}
             onClick={(event) => event.preventDefault()}
           >
             <span style={{ color: "var(--text-main)" }}>
               {selectedModelLabel}
             </span>
-            <span>{selectedReasoningLabel}</span>
+            <span>{modelConfigSaving ? t("composer.query.model.saving") : selectedReasoningLabel}</span>
             <MaterialIcon name="expand_more" />
           </UiButton>
         </Dropdown>
+      ) : null}
+      {modelConfigError ? (
+        <span className="query-model-error">{modelConfigError}</span>
       ) : null}
     </div>
   );

@@ -60,6 +60,7 @@ import {
   submitTool,
   toggleAutomation,
   updateAgent,
+  updateAgentModelConfig,
   putAgentOrder,
   updateAutomation,
   uploadFile,
@@ -436,6 +437,11 @@ describe('apiClient query payloads', () => {
         description: 'updated',
       },
     });
+    await updateAgentModelConfig({
+      agentKey: 'editable-agent',
+      modelKey: 'coder-model',
+      reasoningEffort: 'HIGH',
+    });
     await deleteAgent({ key: 'editable-agent' });
     await openAgentWorkspace({ agentKey: 'editable-agent' });
 
@@ -467,6 +473,14 @@ describe('apiClient query payloads', () => {
             mode: 'REACT',
             description: 'updated',
           },
+        },
+      },
+      {
+        url: '/api/agent/model-config',
+        body: {
+          agentKey: 'editable-agent',
+          modelKey: 'coder-model',
+          reasoningEffort: 'HIGH',
         },
       },
       { url: '/api/agent/delete', body: { key: 'editable-agent' } },
