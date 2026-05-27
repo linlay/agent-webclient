@@ -23,6 +23,12 @@ export enum AIUsageEventTypeEnum {
   Snapshot = "usage.snapshot",
 }
 
+export enum AIContextEventTypeEnum {
+  CompactComplete = "context.compact.complete",
+  CompactFailed = "context.compact.failed",
+  CompactStart = "context.compact.start",
+}
+
 export enum AIContentEventTypeEnum {
   Start = "content.start",
   Delta = "content.delta",
@@ -331,6 +337,24 @@ export interface AIUsageSnapshotEvent extends AIBaseEvent {
   usage?: AIUsageSnapshotPayload;
 }
 
+export interface AIContextCompactEvent extends AIBaseEvent {
+  type: AIContextEventTypeEnum;
+  compactId?: string;
+  summarySource?: string;
+  generation?: number;
+  toolDigestCount?: number;
+  compactedRunCount?: number;
+  digestedRunIds?: string[];
+  originalMessages?: number;
+  projectedMessages?: number;
+  preCompactEstimatedTokens?: number;
+  postCompactEstimatedTokens?: number;
+  compressionRatio?: number;
+  elapsedMs?: number;
+  compactionUsage?: AIUsageStats;
+  cacheMetrics?: Record<string, unknown>;
+}
+
 export interface AIContentEvent extends AIBaseTaskEvent {
   type: AIContentEventTypeEnum;
 }
@@ -398,6 +422,7 @@ export type AIEvent =
   | AIRequestEvent
   | AIRunEvent
   | AIUsageSnapshotEvent
+  | AIContextCompactEvent
   | AIContentEvent
   | AIReasoningEvent
   | AIPlanningEvent

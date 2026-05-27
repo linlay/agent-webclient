@@ -96,6 +96,14 @@ export function readUrlLocale(
   }
 }
 
+function storeLocale(locale: Locale): void {
+  try {
+    window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // URL language should still apply when guest storage is unavailable.
+  }
+}
+
 export function resolveInitialLocale(
   fallbackLocale: Locale = DEFAULT_LOCALE,
   locales: Partial<I18nLocaleMap> = DEFAULT_LOCALES,
@@ -103,6 +111,7 @@ export function resolveInitialLocale(
   if (typeof window !== "undefined") {
     const queryLocale = readUrlLocale(window.location.search, locales);
     if (queryLocale) {
+      storeLocale(queryLocale);
       return queryLocale;
     }
 

@@ -3,13 +3,17 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { message as antdMessage } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState, AIUsageSnapshotEvent } from "@/app/state/types";
+import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/app/state/eventTypes";
+import type { AIContextCompactEvent } from "@/app/state/eventTypes";
 import {
   createRequestId,
+  type CompactChatResponse,
   type QueryAccessLevel,
   type QueryModelOverride,
 } from "@/shared/api/apiClient";
 import {
+  compactChat,
   interruptChat,
   learnChat,
   rememberChat,
@@ -60,6 +64,8 @@ interface UseComposerSendInput {
     rememberError: string;
     learnPending: string;
     learnError: string;
+    compactPending: string;
+    compactError: string;
   };
   hasUploadingAttachments: boolean;
   inputValue: string;
@@ -88,6 +94,7 @@ interface UseComposerSendInput {
     | "runId"
     | "steerDraft"
     | "streaming"
+    | "usageSnapshot"
     | "workerIndexByKey"
     | "workerSelectionKey"
   > & {
@@ -103,6 +110,103 @@ function appendTextBlock(base: string, extra: string): string {
   if (!nextExtra.trim()) return base;
   if (!base.trim()) return nextExtra;
   return `${base}${base.endsWith("\n") ? "" : "\n"}${nextExtra}`;
+}
+
+function compactTimelineText(data: CompactChatResponse): string {
+  if (!data.accepted || data.status === "skipped") {
+    return data.detail || "没有可压缩的历史上下文";
+  }
+  const source = data.summarySource === "deterministic_fallback" ? "规则兜底" : "模型";
+  const parts = ["已压缩上下文", `摘要来源：${source}`];
+  if (typeof data.originalMessages === "number" && data.originalMessages > 0) {
+    parts.push(`历史消息：${data.originalMessages}`);
+  }
+  if (typeof data.toolDigestCount === "number" && data.toolDigestCount > 0) {
+    parts.push(`工具结果摘要：${data.toolDigestCount}`);
+  }
+  if (typeof data.compressionRatio === "number" && data.compressionRatio > 0) {
+    parts.push(`压缩比：${Math.round(data.compressionRatio * 100)}%`);
+  }
+  return parts.join(" · ");
+}
+
+function readCompactNumber(value: unknown): number | null {
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function latestUsageSnapshotFromEvents(events: readonly unknown[]): AIUsageSnapshotEvent | null {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (!isObjectRecord(event) || event.type !== AIUsageEventTypeEnum.Snapshot) {
+      continue;
+    }
+    const snapshot = event as unknown as AIUsageSnapshotEvent;
+    if (snapshot.contextWindow || snapshot.usage) {
+      return snapshot;
+    }
+  }
+  return null;
+}
+
+export function buildCompactUsageSnapshot(
+  data: CompactChatResponse,
+  previous: AIUsageSnapshotEvent | null,
+): AIUsageSnapshotEvent | null {
+  if (!data.accepted || data.status === "skipped") {
+    return null;
+  }
+  const currentSize = readCompactNumber(data.postCompactEstimatedTokens);
+  if (currentSize == null) {
+    return null;
+  }
+  const previousContext = previous?.contextWindow || {};
+  return {
+    type: AIUsageEventTypeEnum.Snapshot,
+    chatId: data.chatId || previous?.chatId || "",
+    runId: previous?.runId || data.boundaryRunId || "",
+    ...(previous?.model ? { model: previous.model } : {}),
+    contextWindow: {
+      ...previousContext,
+      currentSize,
+      estimatedNextCallSize: currentSize,
+    },
+    ...(previous?.usage ? { usage: previous.usage } : {}),
+  };
+}
+
+function buildCompactCompleteEvent(
+  data: CompactChatResponse,
+  requestId: string,
+  chatId: string,
+): AIContextCompactEvent | null {
+  if (!data.accepted || data.status === "skipped") {
+    return null;
+  }
+  return {
+    type: AIContextEventTypeEnum.CompactComplete,
+    requestId: data.requestId || requestId,
+    chatId: data.chatId || chatId,
+    runId: data.boundaryRunId,
+    compactId: data.compactId,
+    summarySource: data.summarySource,
+    generation: data.generation,
+    toolDigestCount: data.toolDigestCount,
+    compactedRunCount: data.compactedRunCount,
+    digestedRunIds: data.digestedRunIds,
+    originalMessages: data.originalMessages,
+    projectedMessages: data.projectedMessages,
+    preCompactEstimatedTokens: data.preCompactEstimatedTokens,
+    postCompactEstimatedTokens: data.postCompactEstimatedTokens,
+    compressionRatio: data.compressionRatio,
+    elapsedMs: data.elapsedMs,
+    compactionUsage: data.compactionUsage as AIContextCompactEvent["compactionUsage"],
+    cacheMetrics: data.cacheMetrics,
+  };
 }
 
 export function useComposerSend(input: UseComposerSendInput) {
@@ -275,7 +379,7 @@ export function useComposerSend(input: UseComposerSendInput) {
 
   const triggerCommandStatusOverlay = useCallback(
     (
-      commandType: "remember" | "learn",
+      commandType: "remember" | "learn" | "compact",
       phase: "pending" | "success" | "error",
       text: string,
     ) => {
@@ -291,7 +395,7 @@ export function useComposerSend(input: UseComposerSendInput) {
 
   const submitBackgroundCommand = useCallback(
     async (
-      commandType: "remember" | "learn",
+      commandType: "remember" | "learn" | "compact",
       texts: { pending: string; error: string },
     ) => {
       const chatId = String(state.chatId || "").trim();
@@ -303,11 +407,45 @@ export function useComposerSend(input: UseComposerSendInput) {
       triggerCommandStatusOverlay(commandType, "pending", texts.pending);
 
       try {
-        const request = commandType === "remember" ? rememberChat : learnChat;
-        await request({
+        const request =
+          commandType === "remember"
+            ? rememberChat
+            : commandType === "learn"
+              ? learnChat
+              : compactChat;
+        const response = await request({
           requestId,
           chatId,
         });
+        if (commandType === "compact" && response.data) {
+          const compactData = response.data as CompactChatResponse;
+          const compactEvent = buildCompactCompleteEvent(compactData, requestId, chatId);
+          if (compactEvent) {
+            dispatch({ type: "PUSH_EVENT", event: compactEvent });
+          }
+          const usageSnapshot = buildCompactUsageSnapshot(
+            compactData,
+            state.usageSnapshot || latestUsageSnapshotFromEvents(state.events),
+          );
+          if (usageSnapshot) {
+            dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: usageSnapshot });
+          }
+          const nodeId = `compact_${compactData.compactId || requestId}`;
+          const text = compactTimelineText(compactData);
+          dispatch({
+            type: "SET_TIMELINE_NODE",
+            id: nodeId,
+            node: {
+              id: nodeId,
+              kind: "message",
+              role: "system",
+              messageVariant: "compact",
+              text,
+              ts: Date.now(),
+            },
+          });
+          dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });
+        }
         dispatch({
           type: "APPEND_DEBUG",
           line: `[${commandType}] submitted for chatId=${chatId}, requestId=${requestId}`,
@@ -347,6 +485,11 @@ export function useComposerSend(input: UseComposerSendInput) {
       submitBackgroundCommand("learn", {
         pending: backgroundCommandText.learnPending,
         error: backgroundCommandText.learnError,
+      }),
+    submitCompactCommand: () =>
+      submitBackgroundCommand("compact", {
+        pending: backgroundCommandText.compactPending,
+        error: backgroundCommandText.compactError,
       }),
     setInputValue,
     setSlashDismissed,

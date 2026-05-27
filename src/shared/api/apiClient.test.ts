@@ -9,6 +9,7 @@ import {
   buildResourceUrl,
   archiveChats,
   createAttachStream,
+  compactChat,
   createAgent,
   createAutomation,
   createRequestId,
@@ -635,7 +636,7 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('posts remember and learn commands to their dedicated endpoints', async () => {
+  it('posts remember, learn, and compact commands to their dedicated endpoints', async () => {
     await rememberChat({
       requestId: 'req_remember',
       chatId: 'chat_1',
@@ -644,12 +645,18 @@ describe('apiClient query payloads', () => {
       requestId: 'req_learn',
       chatId: 'chat_1',
     });
+    await compactChat({
+      requestId: 'req_compact',
+      chatId: 'chat_1',
+    });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/remember');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/learn');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/compact');
 
     const rememberPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
     const learnPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+    const compactPayload = JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body));
 
     expect(rememberPayload).toEqual({
       requestId: 'req_remember',
@@ -658,6 +665,11 @@ describe('apiClient query payloads', () => {
     expect(learnPayload).toEqual({
       requestId: 'req_learn',
       chatId: 'chat_1',
+    });
+    expect(compactPayload).toEqual({
+      requestId: 'req_compact',
+      chatId: 'chat_1',
+      trigger: 'manual',
     });
 
     expect(rememberPayload).not.toHaveProperty('message');
@@ -670,6 +682,11 @@ describe('apiClient query payloads', () => {
     expect(learnPayload).not.toHaveProperty('runId');
     expect(learnPayload).not.toHaveProperty('agentKey');
     expect(learnPayload).not.toHaveProperty('teamId');
+    expect(compactPayload).not.toHaveProperty('message');
+    expect(compactPayload).not.toHaveProperty('planningMode');
+    expect(compactPayload).not.toHaveProperty('runId');
+    expect(compactPayload).not.toHaveProperty('agentKey');
+    expect(compactPayload).not.toHaveProperty('teamId');
   });
 
   it('requests voice capabilities and voices from the voice api namespace', async () => {

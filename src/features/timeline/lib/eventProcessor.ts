@@ -31,7 +31,9 @@ export function processEvent(
     type === "run.start" ||
     type === "run.error" ||
     type === "run.complete" ||
-    type === "run.cancel"
+    type === "run.cancel" ||
+    type === "context.compact.complete" ||
+    type === "context.compact.failed"
   ) {
     return processRunEvent(event, state, config);
   }

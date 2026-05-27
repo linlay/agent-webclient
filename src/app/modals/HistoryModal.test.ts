@@ -15,8 +15,31 @@ jest.mock("antd", () => {
         prefix,
         React.createElement("input", props),
       ),
+    Tag: ({ children }: any) => React.createElement("span", null, children),
+    Tooltip: ({ children }: any) =>
+      React.createElement(React.Fragment, null, children),
   };
 });
+
+jest.mock("antd/es/app/useApp", () => ({
+  __esModule: true,
+  default: () => ({
+    message: {
+      error: jest.fn(),
+      success: jest.fn(),
+    },
+    modal: {
+      confirm: jest.fn(),
+    },
+  }),
+}));
+
+jest.mock("@/app/state/provider", () => ({
+  useAppContext: () => ({
+    state: { chatId: "" },
+    dispatch: jest.fn(),
+  }),
+}));
 
 jest.mock("@/app/layout/sidebar/ChatActionsMenu", () => {
   const React = require("react");

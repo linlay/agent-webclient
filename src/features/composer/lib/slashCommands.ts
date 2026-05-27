@@ -5,6 +5,7 @@ import { t } from '@/shared/i18n';
 export type SlashCommandId =
   | 'remember'
   | 'learn'
+  | 'compact'
   | 'new'
   | 'redo'
   | 'debug'
@@ -69,6 +70,13 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.learn.label',
     descriptionKey: 'slash.command.learn.description',
     keywords: ['learn', 'lesson', 'rule', 'practice'],
+  },
+  {
+    id: 'compact',
+    command: '/compact',
+    labelKey: 'slash.command.compact.label',
+    descriptionKey: 'slash.command.compact.description',
+    keywords: ['compact', 'context', 'summary', 'compress'],
   },
   {
     id: 'automation',
@@ -181,7 +189,7 @@ export function isSlashCommandDisabled(
   if (commandId === 'redo') {
     return availability.streaming || !availability.hasLatestQuery;
   }
-  if (commandId === 'remember' || commandId === 'learn') {
+  if (commandId === 'remember' || commandId === 'learn' || commandId === 'compact') {
     return availability.streaming || !availability.hasActiveChat || availability.commandModalOpen;
   }
   if (commandId === 'voice') {
@@ -206,8 +214,9 @@ export function getLatestQueryText(nodes: TimelineNode[]): string {
       node.kind === 'message'
       && node.role === 'user'
       && node.messageVariant !== 'steer'
-      && node.messageVariant !== 'remember'
-      && node.messageVariant !== 'learn'
+              && node.messageVariant !== 'remember'
+              && node.messageVariant !== 'learn'
+              && node.messageVariant !== 'compact'
     ) {
       return String(node.text || '').trim();
     }

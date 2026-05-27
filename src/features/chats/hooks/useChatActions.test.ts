@@ -267,6 +267,81 @@ describe('replayEvent tool migration', () => {
     expect(usageAction.snapshot.usage.current).toBeUndefined();
   });
 
+  it('hydrates context window from the latest usage snapshot event when switching chats', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'usage.snapshot',
+            chatId: 'chat-event-usage',
+            runId: 'run_latest',
+            model: { key: 'minimax' },
+            contextWindow: {
+              maxSize: 128000,
+              currentSize: 13157,
+              estimatedNextCallSize: 13367,
+            },
+            usage: {
+              current: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+              },
+              run: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+                llmChatCompletionCount: 1,
+              },
+              chat: {
+                promptTokens: 117392,
+                completionTokens: 11205,
+                totalTokens: 128597,
+                llmChatCompletionCount: 12,
+              },
+            },
+          },
+        ],
+        runs: [
+          {
+            runId: 'run_latest',
+            modelKey: 'minimax',
+            usage: {
+              promptTokens: 6400,
+              completionTokens: 200,
+              totalTokens: 6600,
+              llmChatCompletionCount: 1,
+            },
+          },
+        ],
+        usage: {
+          promptTokens: 117392,
+          completionTokens: 11205,
+          totalTokens: 128597,
+          llmChatCompletionCount: 12,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-event-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          runId: 'run_latest',
+          model: { key: 'minimax' },
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 13157,
+            estimatedNextCallSize: 13367,
+          },
+        }),
+      }),
+    );
+  });
+
   it('hydrates usage snapshot from /api/chat nested lastRun and chat usage', async () => {
     const { actions, dispatch } = renderChatActions();
     getChat.mockResolvedValue({
@@ -331,48 +406,109 @@ describe('replayEvent tool migration', () => {
 
     await actions?.loadChat('chat-nested-usage');
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'SET_USAGE_SNAPSHOT',
-      snapshot: {
-        type: 'usage.snapshot',
-        chatId: 'chat-nested-usage',
-        runId: 'run_from_runs',
-        model: { key: 'deepseek-chat' },
-        contextWindow: {
-          maxSize: 128000,
-          currentSize: 6252,
-          estimatedNextCallSize: 6374,
-        },
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          type: 'usage.snapshot',
+          chatId: 'chat-nested-usage',
+          runId: 'run_from_runs',
+          model: { key: 'deepseek-chat' },
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 6252,
+            estimatedNextCallSize: 6374,
+          },
+          usage: {
+            current: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+            },
+            run: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+              llmChatCompletionCount: 1,
+            },
+            chat: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+              llmChatCompletionCount: 1,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('applies latest compact estimate over older usage snapshot when switching chats', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'context.compact.complete',
+            chatId: 'chat-compacted',
+            compactId: 'compact-1',
+            timestamp: 200,
+            postCompactEstimatedTokens: 5396,
+          },
+          {
+            type: 'usage.snapshot',
+            chatId: 'chat-compacted',
+            runId: 'run_before_compact',
+            timestamp: 100,
+            model: { key: 'minimax' },
+            contextWindow: {
+              maxSize: 128000,
+              currentSize: 13157,
+              estimatedNextCallSize: 13367,
+            },
+            usage: {
+              run: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+                llmChatCompletionCount: 1,
+              },
+            },
+          },
+        ],
+        runs: [],
         usage: {
-          current: {
-            promptTokens: 6252,
-            completionTokens: 122,
-            totalTokens: 6374,
-            completionTokensDetails: {
-              reasoningTokens: 85,
-            },
-          },
-          run: {
-            promptTokens: 6252,
-            completionTokens: 122,
-            totalTokens: 6374,
-            completionTokensDetails: {
-              reasoningTokens: 85,
-            },
-            llmChatCompletionCount: 1,
-          },
-          chat: {
-            promptTokens: 6252,
-            completionTokens: 122,
-            totalTokens: 6374,
-            completionTokensDetails: {
-              reasoningTokens: 85,
-            },
-            llmChatCompletionCount: 1,
-          },
+          promptTokens: 117392,
+          completionTokens: 11205,
+          totalTokens: 128597,
+          llmChatCompletionCount: 12,
         },
       },
     });
+
+    await actions?.loadChat('chat-compacted');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 5396,
+            estimatedNextCallSize: 5396,
+          },
+        }),
+      }),
+    );
   });
 
   it('skips loaded chat usage snapshots when usage is not meaningful', async () => {

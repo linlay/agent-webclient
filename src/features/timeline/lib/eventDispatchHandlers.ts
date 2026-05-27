@@ -141,6 +141,7 @@ export function applyLiveEventCommand(input: {
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: command.nodeId });
 			return;
 		case "SYSTEM_ERROR":
+		case "SYSTEM_MESSAGE":
 			cache.nodeById.set(command.nodeId, {
 				id: command.nodeId,
 				kind: "message",

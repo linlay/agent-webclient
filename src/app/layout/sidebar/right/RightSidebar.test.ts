@@ -7,6 +7,7 @@ jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
   return {
     ...actual,
+    useAppDispatch: jest.fn(() => jest.fn()),
     useAppState: jest.fn(),
   };
 });
