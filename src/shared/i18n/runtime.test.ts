@@ -22,7 +22,7 @@ describe("i18n runtime locale resolution", () => {
     }
   });
 
-  it("uses the lang query without writing it as the stored default", () => {
+  it("uses the lang query and stores it as the next default", () => {
     const setItem = jest.fn();
     (globalThis as Record<string, unknown>).window = {
       location: {
@@ -39,7 +39,7 @@ describe("i18n runtime locale resolution", () => {
 
     expect(readUrlLocale("?lang=en-US")).toBe("en-US");
     expect(resolveInitialLocale("zh-CN")).toBe("en-US");
-    expect(setItem).not.toHaveBeenCalled();
+    expect(setItem).toHaveBeenCalledWith(I18N_LOCALE_STORAGE_KEY, "en-US");
   });
 
   it("falls back to stored locale, navigator language, then fallback locale", () => {
