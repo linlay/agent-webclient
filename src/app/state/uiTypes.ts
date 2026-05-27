@@ -39,7 +39,7 @@ export interface PendingSteer {
 	createdAt: number;
 }
 
-export type CommandStatusOverlayCommandType = "remember" | "learn" | null;
+export type CommandStatusOverlayCommandType = "remember" | "learn" | "compact" | null;
 export type CommandStatusOverlayPhase = "pending" | "success" | "error";
 
 export interface CommandStatusOverlayState {

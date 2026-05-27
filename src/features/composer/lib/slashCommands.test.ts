@@ -37,6 +37,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
     expect(getFilteredSlashCommands('/remote')).toEqual([]);
     expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
+    expect(getFilteredSlashCommands('/compact').map((item) => item.id)).toEqual(['compact']);
   });
 
   it('filters debug and settings commands by feature flags', () => {
@@ -95,6 +96,7 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('redo', availability)).toBe(true);
     expect(isSlashCommandDisabled('remember', availability)).toBe(true);
     expect(isSlashCommandDisabled('learn', availability)).toBe(true);
+    expect(isSlashCommandDisabled('compact', availability)).toBe(true);
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);

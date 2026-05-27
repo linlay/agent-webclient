@@ -40,6 +40,7 @@ import {
 	getTool as getToolHttp,
 	getTools as getToolsHttp,
 	getViewport as getViewportHttp,
+	compactChat as compactChatHttp,
 	interruptChat as interruptChatHttp,
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
@@ -93,6 +94,7 @@ import {
 	type AutomationListRequest,
 	type AutomationListResponse,
 	type CoderModelOptionsResponse,
+	type CompactChatResponse,
 	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
 	type UpdateAgentOrderRequest,
@@ -665,6 +667,16 @@ export function learnChat(params: {
 	chatId: string;
 }): Promise<ApiResponse> {
 	return routeRequest("/api/learn", params, () => learnChatHttp(params), {
+		fallbackOnConnectFailure: false,
+		fallbackOnRequestFailure: false,
+	});
+}
+
+export function compactChat(params: {
+	requestId: string;
+	chatId: string;
+}): Promise<ApiResponse<CompactChatResponse>> {
+	return routeRequest("/api/compact", params, () => compactChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});

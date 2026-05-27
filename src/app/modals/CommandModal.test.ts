@@ -11,6 +11,19 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: jest.fn(() => jest.fn()),
 }));
 
+jest.mock("antd/es/app/useApp", () => ({
+  __esModule: true,
+  default: () => ({
+    message: {
+      error: jest.fn(),
+      success: jest.fn(),
+    },
+    modal: {
+      confirm: jest.fn(),
+    },
+  }),
+}));
+
 jest.mock("@/app/modals/SwitchModal", () => {
   const React = require("react");
   return {
@@ -26,6 +39,13 @@ jest.mock("@/app/modals/SwitchModal", () => {
         "data-variant": props.variant,
       });
     },
+  };
+});
+
+jest.mock("@/features/workers/components/AgentConsole", () => {
+  const React = require("react");
+  return {
+    AgentConsole: () => React.createElement("div", null, "agent console"),
   };
 });
 

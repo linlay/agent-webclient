@@ -1302,6 +1302,31 @@ export interface BackgroundCommandParams {
   chatId: string;
 }
 
+export interface CompactChatResponse {
+  accepted: boolean;
+  status: string;
+  requestId?: string;
+  chatId: string;
+  compactId?: string;
+  summarySource?: string;
+  boundaryRunId?: string;
+  boundarySeq?: number;
+  generation?: number;
+  keptRunCount?: number;
+  compactedRunCount?: number;
+  toolDigestCount?: number;
+  digestedRunIds?: string[];
+  originalMessages?: number;
+  projectedMessages?: number;
+  preCompactEstimatedTokens?: number;
+  postCompactEstimatedTokens?: number;
+  compressionRatio?: number;
+  compactionUsage?: Record<string, unknown>;
+  cacheMetrics?: Record<string, unknown>;
+  elapsedMs?: number;
+  detail?: string;
+}
+
 export interface MarkChatReadParams {
   chatId?: string;
   runId?: string;
@@ -1509,6 +1534,19 @@ export function learnChat(
     body: JSON.stringify({
       requestId: params.requestId,
       chatId: params.chatId,
+    }),
+  });
+}
+
+export function compactChat(
+  params: BackgroundCommandParams,
+): Promise<ApiResponse<CompactChatResponse>> {
+  return requestJson("/api/compact", {
+    method: "POST",
+    body: JSON.stringify({
+      requestId: params.requestId,
+      chatId: params.chatId,
+      trigger: "manual",
     }),
   });
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Dropdown, Input, Modal, type MenuProps } from "antd";
+import { Button, Dropdown, Input, Modal, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
@@ -141,13 +141,15 @@ export const ChatActionsMenu: React.FC<{
 
 	const handleExport = async () => {
 		if (!normalizedChatId || pending) return;
-		setPending(true);
-		try {
-			await downloadChatExport(normalizedChatId);
-		} catch (error) {
-			dispatch({
-				type: "APPEND_DEBUG",
-				line: `[export chat error] ${(error as Error).message}`,
+	setPending(true);
+	try {
+		await downloadChatExport(normalizedChatId);
+		message.success("已导出到下载目录");
+	} catch (error) {
+		message.error("导出失败");
+		dispatch({
+			type: "APPEND_DEBUG",
+			line: `[export chat error] ${(error as Error).message}`,
 			});
 		} finally {
 			setPending(false);

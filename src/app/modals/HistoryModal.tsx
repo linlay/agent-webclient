@@ -38,7 +38,7 @@ export const HistoryModal: React.FC<{
   onMarkAllRead,
   onChatDeleted,
 }) => {
-  const { modal } = useApp();
+  const { modal, message } = useApp();
   const inputRef = useRef<InputRef>(null);
   const { state, dispatch } = useAppContext();
   const [pending, setPending] = useState(false);
@@ -55,7 +55,9 @@ export const HistoryModal: React.FC<{
     setPending(true);
     try {
       await downloadChatExport(chatId);
+      message.success("已导出到下载目录");
     } catch (error) {
+      message.error("导出失败");
       dispatch({
         type: "APPEND_DEBUG",
         line: `[export chat error] ${(error as Error).message}`,
@@ -203,6 +205,7 @@ export const HistoryModal: React.FC<{
                       size="sm"
                       variant="ghost"
                       iconOnly
+                      loading={pending}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleExport?.(chat.chatId);

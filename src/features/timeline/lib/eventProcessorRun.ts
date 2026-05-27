@@ -60,6 +60,44 @@ export function processRunEvent(
     return commands;
   }
 
+  if (type === "context.compact.complete") {
+    const compactId = toText(event.compactId) || String(config.mode === "replay" ? state.nextCounter() : Date.now());
+    const source = toText(event.summarySource) || "unknown";
+    const digestCount = Number((event as Record<string, unknown>).toolDigestCount ?? 0);
+    const originalMessages = Number((event as Record<string, unknown>).originalMessages ?? 0);
+    const compressionRatio = Number((event as Record<string, unknown>).compressionRatio ?? 0);
+    const textParts = [
+      "已压缩上下文",
+      source === "deterministic_fallback" ? "摘要来源：规则兜底" : "摘要来源：模型",
+    ];
+    if (Number.isFinite(originalMessages) && originalMessages > 0) {
+      textParts.push(`历史消息：${originalMessages}`);
+    }
+    if (Number.isFinite(digestCount) && digestCount > 0) {
+      textParts.push(`工具结果摘要：${digestCount}`);
+    }
+    if (Number.isFinite(compressionRatio) && compressionRatio > 0) {
+      textParts.push(`压缩比：${Math.round(compressionRatio * 100)}%`);
+    }
+    commands.push({
+      cmd: "SYSTEM_MESSAGE",
+      nodeId: `compact_${compactId}`,
+      text: textParts.join(" · "),
+      ts: event.timestamp || Date.now(),
+    });
+    return commands;
+  }
+
+  if (type === "context.compact.failed") {
+    commands.push({
+      cmd: "SYSTEM_ERROR",
+      nodeId: `compact_failed_${config.mode === "replay" ? state.nextCounter() : Date.now()}`,
+      text: `上下文压缩失败：${safeText((event as Record<string, unknown>).error) || "未知错误"}`,
+      ts: event.timestamp || Date.now(),
+    });
+    return commands;
+  }
+
   if (type === "run.start") {
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: event.runId });
     if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });

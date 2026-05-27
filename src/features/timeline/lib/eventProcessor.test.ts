@@ -476,7 +476,7 @@ describe('processEvent', () => {
     expect(state.timelineOrder).toEqual(['planning_0']);
     expect(state.reasoningNodeById.get('planning:planning_1')).toBe('planning_0');
     expect(state.timelineNodes.get('planning_0')).toMatchObject({
-      kind: 'thinking',
+      kind: 'planning',
       reasoningLabel: '制定计划',
       text: '先确认需求',
       status: 'completed',

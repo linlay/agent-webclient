@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 
+jest.mock("react-router-dom", () => ({
+  useSearchParams: jest.fn(),
+}));
+
 jest.mock("@/app/state/AppContext", () => ({
   useAppState: jest.fn(),
   useAppDispatch: jest.fn(),
@@ -148,7 +152,19 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
+const { useSearchParams } = jest.requireMock("react-router-dom") as {
+  useSearchParams: jest.Mock;
+};
+
 const globalWithStorage = globalThis as typeof globalThis & {
+  window?: {
+    dispatchEvent: jest.Mock;
+    location: {
+      pathname: string;
+      search: string;
+    };
+  };
+  CustomEvent?: typeof CustomEvent;
   localStorage?: {
     getItem: jest.Mock;
     setItem: jest.Mock;
@@ -157,20 +173,48 @@ const globalWithStorage = globalThis as typeof globalThis & {
 };
 
 describe("CopilotShell", () => {
+  const originalWindow = globalWithStorage.window;
+  const originalCustomEvent = globalWithStorage.CustomEvent;
   const originalLocalStorage = globalWithStorage.localStorage;
 
   beforeEach(() => {
+    globalWithStorage.window = {
+      dispatchEvent: jest.fn(() => true),
+      location: {
+        pathname: "/copilot",
+        search: "",
+      },
+    };
+    globalWithStorage.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
+      detail: T;
+
+      constructor(type: string, init?: CustomEventInit<T>) {
+        super(type);
+        this.detail = init?.detail as T;
+      }
+    } as typeof CustomEvent;
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
       removeItem: jest.fn(),
     };
+    useSearchParams.mockReturnValue([new URLSearchParams("")]);
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
   });
 
   afterAll(() => {
+    if (originalWindow) {
+      globalWithStorage.window = originalWindow;
+    } else {
+      delete globalWithStorage.window;
+    }
+    if (originalCustomEvent) {
+      globalWithStorage.CustomEvent = originalCustomEvent;
+    } else {
+      delete globalWithStorage.CustomEvent;
+    }
     if (originalLocalStorage) {
       globalWithStorage.localStorage = originalLocalStorage;
       return;
@@ -227,5 +271,81 @@ describe("CopilotShell", () => {
 
     expect(html).toContain("copilot-side-panel");
     expect(html).toContain("overview-tab");
+  });
+
+  it("starts the requested agent conversation from the copilot query", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("agentKey=demo-agent")]);
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CONVERSATION_MODE",
+      mode: "worker",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+      agentKey: "demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+        detail: {
+          agentKey: "demo-agent",
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("loads the requested chat from the copilot query", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("agentKey=demo-agent&chatId=chat-123"),
+    ]);
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:load-chat",
+        detail: {
+          chatId: "chat-123",
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
+    );
+
+    useEffectSpy.mockRestore();
   });
 });

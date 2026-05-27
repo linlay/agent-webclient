@@ -12,6 +12,7 @@ export function useSlashCommandExecution(input: {
 	toggleVoiceMode: () => void;
 	submitRememberCommand: () => Promise<void>;
 	submitLearnCommand: () => Promise<void>;
+	submitCompactCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
 	state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
@@ -25,6 +26,7 @@ export function useSlashCommandExecution(input: {
 		toggleVoiceMode,
 		submitRememberCommand,
 		submitLearnCommand,
+		submitCompactCommand,
 		setInputValue,
 		setSlashDismissed,
 		state,
@@ -49,6 +51,9 @@ export function useSlashCommandExecution(input: {
 					return;
 				case "learn":
 					await submitLearnCommand();
+					return;
+				case "compact":
+					await submitCompactCommand();
 					return;
 				case "automation":
 					dispatch({
@@ -115,6 +120,7 @@ export function useSlashCommandExecution(input: {
 			slashAvailability,
 			state,
 			submitLearnCommand,
+			submitCompactCommand,
 			submitRememberCommand,
 			toggleVoiceMode,
 		],
