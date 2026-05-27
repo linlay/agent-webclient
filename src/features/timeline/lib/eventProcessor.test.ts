@@ -485,6 +485,44 @@ describe('processEvent', () => {
     });
   });
 
+  it('preserves planning delta whitespace when building timeline text', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'planning.start',
+      planningId: 'planning_1',
+      planningLabel: '制定计划',
+      timestamp: 100,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.delta',
+      planningId: 'planning_1',
+      delta: '# Title\n',
+      timestamp: 110,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.delta',
+      planningId: 'planning_1',
+      delta: '\n## Summary',
+      timestamp: 120,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.delta',
+      planningId: 'planning_1',
+      delta: '\n\n正文',
+      timestamp: 130,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'planning.end',
+      planningId: 'planning_1',
+      timestamp: 140,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('planning_0')?.text).toBe(
+      '# Title\n\n## Summary\n\n正文',
+    );
+  });
+
   it('creates awaiting answer nodes for timeline display', () => {
     const state = createState();
 

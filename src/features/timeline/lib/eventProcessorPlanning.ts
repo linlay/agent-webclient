@@ -29,8 +29,12 @@ function readPlanningLabel(event: AgentEvent, fallback?: string): string {
   );
 }
 
+function readRawText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function readPlanningText(event: AgentEvent): string {
-  return toText(event.markdown) || toText(event.text);
+  return readRawText(event.text) || readRawText(event.markdown);
 }
 
 export function processPlanningEvent(
@@ -57,7 +61,7 @@ export function processPlanningEvent(
     });
 
     const existing = state.getTimelineNode(nodeId);
-    const delta = toText(event.delta);
+    const delta = readRawText(event.delta);
     const eventText = readPlanningText(event);
     const text = existing ? `${state.getNodeText(nodeId)}${delta}` : eventText || delta;
 

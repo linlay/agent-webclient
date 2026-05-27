@@ -527,16 +527,22 @@ describe('appReducer conversation reset behavior', () => {
     };
     const deltaParts = Array.from(
       { length: MAX_EVENTS + 25 },
-      (_, index) => `part-${index};`,
+      (_, index) =>
+        index === 0
+          ? '# Title\n'
+          : index === 1
+            ? '\n## Summary'
+            : index === 2
+              ? '\n\n正文 '
+              : `part-${index};`,
     );
-    const fullText = `intro;${deltaParts.join('')}`;
+    const fullText = deltaParts.join('');
     applyActionToStateRef(stateRef, {
       type: 'PUSH_EVENT',
       event: {
         type: 'planning.start',
         planningId: 'planning_1',
         planningLabel: 'Plan',
-        text: 'intro;',
         runId: 'run_1',
       },
     });
@@ -586,7 +592,8 @@ describe('appReducer conversation reset behavior', () => {
       text: fullText,
       timestamp: 22,
     });
-    expect(String(snapshot?.text || '').startsWith('intro;part-0;')).toBe(true);
+    expect(snapshot?.text).toContain('# Title\n\n## Summary\n\n正文 ');
+    expect(String(snapshot?.text || '').startsWith('# Title\n')).toBe(true);
   });
 
   it('synthesizes tool snapshot debug events when delta logs are disabled', () => {
