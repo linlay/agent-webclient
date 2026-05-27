@@ -147,6 +147,31 @@ describe('buildWorkerRows', () => {
     expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
   });
 
+  it('treats dynamic workspace roots as unavailable for local open', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'dynamic-coder',
+          name: 'Dynamic Coder',
+          mode: 'CODER',
+          workspaceDir: ' @chat ',
+          workspaceName: 'chat workspace',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows[0]).toMatchObject({
+      key: 'agent:dynamic-coder',
+      agentType: 'coder',
+      workspaceName: 'chat workspace',
+    });
+    expect(rows[0].workspaceDir).toBeUndefined();
+    expect(rows[0].searchText).toContain('chat workspace');
+    expect(rows[0].searchText).not.toContain('@chat');
+  });
+
   it('carries browser folder metadata without requiring a workspaceDir', () => {
     const rows = buildWorkerRows({
       agents: [

@@ -31,6 +31,12 @@ function normalizeSourceKind(source: unknown): string {
     : '';
 }
 
+function normalizeWorkspaceDir(workspaceDir: unknown): string | undefined {
+  const normalized = toText(workspaceDir);
+  if (!normalized || normalized.startsWith('@')) return undefined;
+  return normalized;
+}
+
 function createAgentNameMap(agents: Agent[]): Map<string, string> {
   const nameByKey = new Map<string, string>();
   for (const agent of Array.isArray(agents) ? agents : []) {
@@ -108,7 +114,7 @@ function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<W
       sourceId: agentKey,
       displayName: toDisplayName(agent?.name, agentKey),
       role: toText(agent?.role),
-      workspaceDir: toText(agent?.workspaceDir) || undefined,
+      workspaceDir: normalizeWorkspaceDir(agent?.workspaceDir),
       workspaceName: toText(agent?.workspaceName) || undefined,
       workspaceSourceKind: normalizeSourceKind(agent?.source) || undefined,
       teamAgentLabels: [],
