@@ -80,7 +80,7 @@ describe("ToolPill helpers", () => {
 				key: "tool_1",
 				title: "第 1 次",
 				status: "completed",
-				statusLabel: "完成",
+				statusLabel: "等待结果",
 				hasDetails: true,
 				description: "",
 				argsText: "echo 1",

@@ -4,6 +4,7 @@ import {
   buildModelMenuItems,
   clearCoderModelOptionsCacheForTest,
   getCachedCoderModelOptions,
+  getModelIdentityMismatchWarning,
   loadCoderModelOptions,
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
@@ -58,6 +59,17 @@ const { getModelOptions } = jest.requireMock(
   getModelOptions: jest.Mock;
 };
 
+type TestMenuItem = {
+  key: string;
+  children?: TestMenuItem[];
+  label?: React.ReactNode;
+};
+
+function getModelMenuChildren(items: TestMenuItem[]): TestMenuItem[] {
+  const modelSubmenu = items.find((item) => item.key === "model-submenu");
+  return modelSubmenu?.children?.[0]?.children || [];
+}
+
 describe("QuerySettingsControls", () => {
   beforeEach(() => {
     clearCoderModelOptionsCacheForTest();
@@ -66,6 +78,10 @@ describe("QuerySettingsControls", () => {
       type: "agent",
       raw: { mode: "REACT" },
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("shows the access selector for every agent", () => {
@@ -236,6 +252,55 @@ describe("QuerySettingsControls", () => {
     });
   });
 
+  it("warns when model display identity conflicts with technical identifiers", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const mismatchModel = {
+      key: "babelark-qwen3_5-397b-a17b",
+      name: "DeepSeek V4 Pro",
+      provider: "babelark",
+      modelId: "qwen3.5-397b-a17b",
+      isReasoner: true,
+      isVision: true,
+    };
+
+    expect(getModelIdentityMismatchWarning(mismatchModel)).toContain(
+      "display name \"DeepSeek V4 Pro\" is deepseek",
+    );
+    normalizeCoderModelOptionsResponse({
+      data: {
+        models: [mismatchModel],
+        reasoningEfforts: [],
+      },
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Model option identity mismatch"),
+      mismatchModel,
+    );
+  });
+
+  it("does not warn when model display identity matches technical identifiers", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const matchedModel = {
+      key: "deepseek-v4-pro",
+      name: "DeepSeek V4 Pro",
+      provider: "deepseek",
+      modelId: "deepseek-v4-pro",
+      isReasoner: true,
+      isVision: true,
+    };
+
+    expect(getModelIdentityMismatchWarning(matchedModel)).toBe("");
+    normalizeCoderModelOptionsResponse({
+      data: {
+        models: [matchedModel],
+        reasoningEfforts: [],
+      },
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("uses agent model defaults before API defaults", () => {
     expect(
       resolveCoderAgentDefaultModelOverride(
@@ -312,7 +377,40 @@ describe("QuerySettingsControls", () => {
       }),
     );
 
-    expect(html).toContain("coder-model / 关闭");
+    expect(html).toContain("coder-model");
+    expect(html).toContain("关闭");
+  });
+
+  it("does not display an unsynced default model as the selected model", () => {
+    const items = buildModelMenuItems({
+      models: [
+        {
+          key: "deepseek-v4-pro",
+          name: "DeepSeek V4 Pro",
+          provider: "deepseek",
+          modelId: "deepseek-v4-pro",
+          isReasoner: true,
+          isVision: true,
+        },
+      ],
+      reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+      modelOverride: {},
+      selectedModelKey: "",
+      selectedModelLabel: "正在加载模型...",
+      t: (key) => {
+        const messages: Record<string, string> = {
+          "composer.query.model.group": "模型",
+          "composer.query.reasoning.group": "思考深度",
+        };
+        return messages[key] || key;
+      },
+    }) as Array<{ key: string; label?: React.ReactNode }>;
+    const modelSubmenuHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, items[1].label),
+    );
+
+    expect(modelSubmenuHtml).toContain("正在加载模型");
+    expect(modelSubmenuHtml).not.toContain("DeepSeek V4 Pro");
   });
 
   it("puts reasoning options at the top level and model options in a submenu", () => {
@@ -348,11 +446,11 @@ describe("QuerySettingsControls", () => {
         };
         return messages[key] || key;
       },
-    }) as Array<{ key: string; children?: Array<{ key: string; label: React.ReactNode }>; label?: React.ReactNode }>;
+    }) as TestMenuItem[];
 
     const reasoningChildren = items[0].children || [];
     const modelSubmenu = items[1];
-    const modelChildren = modelSubmenu.children || [];
+    const modelChildren = getModelMenuChildren(items);
     const modelHtml = renderToStaticMarkup(
       React.createElement(
         React.Fragment,
@@ -382,7 +480,7 @@ describe("QuerySettingsControls", () => {
     expect(modelChildren.map((item) => item.key)).toEqual([
       "model:babelark-qwen3_5-plus",
     ]);
-    expect(modelSubmenuHtml).toContain("模型 · Qwen Coder Plus");
+    expect(modelSubmenuHtml).toContain("Qwen Coder Plus");
     expect(modelHtml).not.toContain("默认模型");
     expect(modelHtml).toContain("Qwen Coder Plus");
     expect(modelHtml).not.toContain("babelark-qwen3_5-plus");
@@ -412,10 +510,10 @@ describe("QuerySettingsControls", () => {
         };
         return messages[key] || key;
       },
-    }) as Array<{ key: string; children?: Array<{ key: string; label: React.ReactNode }> }>;
-    const modelSubmenu = items[1];
+    }) as TestMenuItem[];
+    const modelChildren = getModelMenuChildren(items);
     const modelHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, modelSubmenu.children?.[0]?.label),
+      React.createElement(React.Fragment, null, modelChildren[0]?.label),
     );
 
     expect(modelHtml).toContain("legacy-coder · qwen3-legacy");
@@ -488,27 +586,24 @@ describe("QuerySettingsControls", () => {
       modelOverride: {},
       status: "empty",
       t,
-    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
+    }) as TestMenuItem[];
     const loadingItems = buildModelMenuItems({
       models: [],
       reasoningEfforts: [],
       modelOverride: {},
       modelsLoading: true,
       t,
-    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
+    }) as TestMenuItem[];
     const failedItems = buildModelMenuItems({
       models: [],
       reasoningEfforts: [],
       modelOverride: {},
       status: "failed",
       t,
-    }) as Array<{ key: string; children?: Array<{ label: React.ReactNode }> }>;
-    const emptyModelSubmenu = emptyItems.find((item) => item.key === "model-submenu");
-    const loadingModelSubmenu = loadingItems.find((item) => item.key === "model-submenu");
-    const failedModelSubmenu = failedItems.find((item) => item.key === "model-submenu");
-    const emptyModelChildren = emptyModelSubmenu?.children || [];
-    const loadingModelChildren = loadingModelSubmenu?.children || [];
-    const failedModelChildren = failedModelSubmenu?.children || [];
+    }) as TestMenuItem[];
+    const emptyModelChildren = getModelMenuChildren(emptyItems);
+    const loadingModelChildren = getModelMenuChildren(loadingItems);
+    const failedModelChildren = getModelMenuChildren(failedItems);
 
     const emptyHtml = renderToStaticMarkup(
       React.createElement(React.Fragment, null, emptyModelChildren.map((child, index) =>

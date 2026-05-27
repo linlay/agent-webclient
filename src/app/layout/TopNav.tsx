@@ -8,7 +8,10 @@ import type {
   RightSidebarTabKey,
 } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { isDebugPanelEnabled, isVoiceEnabled } from "@/shared/config/featureFlags";
+import {
+  isDebugPanelEnabled,
+  isVoiceEnabled,
+} from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -57,7 +60,8 @@ function formatUsageNumber(value: unknown): string {
 function formatCompactUsageNumber(value: unknown): string {
   const numberValue = readUsageNumber(value);
   if (numberValue == null) return "-";
-  if (numberValue >= 1_000_000) return `${(numberValue / 1_000_000).toFixed(1)}M`;
+  if (numberValue >= 1_000_000)
+    return `${(numberValue / 1_000_000).toFixed(1)}M`;
   if (numberValue >= 1_000) return `${(numberValue / 1_000).toFixed(1)}K`;
   return numberValue.toLocaleString();
 }
@@ -67,9 +71,9 @@ function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | nu
   if (contextSize != null) return contextSize;
   if (!snapshot?.usage) return null;
   return (
-    readUsageNumber(snapshot.usage.run?.totalTokens)
-    ?? readUsageNumber(snapshot.usage.current?.totalTokens)
-    ?? readUsageNumber(snapshot.usage.chat?.totalTokens)
+    readUsageNumber(snapshot.usage.run?.totalTokens) ??
+    readUsageNumber(snapshot.usage.current?.totalTokens) ??
+    readUsageNumber(snapshot.usage.chat?.totalTokens)
   );
 }
 
@@ -91,15 +95,26 @@ interface UsageMetric {
   value: unknown;
 }
 
-function buildUsageMetrics(t: (key: string) => string, stats?: AIUsageStats): UsageMetric[] {
+function buildUsageMetrics(
+  t: (key: string) => string,
+  stats?: AIUsageStats,
+): UsageMetric[] {
   return [
-    { key: "prompt", label: t("topNav.usage.metric.prompt"), value: stats?.promptTokens },
+    {
+      key: "prompt",
+      label: t("topNav.usage.metric.prompt"),
+      value: stats?.promptTokens,
+    },
     {
       key: "completion",
       label: t("topNav.usage.metric.completion"),
       value: stats?.completionTokens,
     },
-    { key: "total", label: t("topNav.usage.metric.total"), value: stats?.totalTokens },
+    {
+      key: "total",
+      label: t("topNav.usage.metric.total"),
+      value: stats?.totalTokens,
+    },
     {
       key: "reasoning",
       label: t("topNav.usage.metric.reasoning"),
@@ -151,7 +166,11 @@ const UsageContextWindow: React.FC<{
     <div className="usage-context-window">
       <div
         className="usage-context-ring"
-        style={{ "--usage-context-percent": `${progressValue}%` } as React.CSSProperties}
+        style={
+          {
+            "--usage-context-percent": `${progressValue}%`,
+          } as React.CSSProperties
+        }
         aria-label={t("topNav.usage.contextWindow")}
       >
         <span>{percent == null ? "--%" : `${percent}%`}</span>
@@ -165,7 +184,9 @@ const UsageContextWindow: React.FC<{
         </strong>
         <small>
           {t("topNav.usage.estimatedNext", {
-            value: formatUsageNumber(snapshot.contextWindow?.estimatedNextCallSize),
+            value: formatUsageNumber(
+              snapshot.contextWindow?.estimatedNextCallSize,
+            ),
           })}
         </small>
       </div>
@@ -183,7 +204,11 @@ const UsageTriggerRing: React.FC<{
   return (
     <span
       className="usage-trigger-ring"
-      style={{ "--usage-context-percent": `${progressValue}%` } as React.CSSProperties}
+      style={
+        {
+          "--usage-context-percent": `${progressValue}%`,
+        } as React.CSSProperties
+      }
       aria-label={label}
     >
       <span>{percent == null ? "--" : `${percent}%`}</span>
@@ -289,11 +314,6 @@ export const TopNav: React.FC = () => {
   const compactUsage = resolveLatestCompactUsage(state.events);
   const showUsageControl = Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
-  const usageTriggerLabel =
-    usageTotal == null
-      ? t("topNav.usage.waitingShort")
-      : formatCompactUsageNumber(usageTotal);
-
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
     dispatch({
@@ -392,8 +412,7 @@ export const TopNav: React.FC = () => {
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
-        <div className="nav-group nav-left">
-        </div>
+        <div className="nav-group nav-left"></div>
 
         <div className="nav-group nav-center">
           <div className={`current-worker-card`} aria-live="polite">
@@ -418,7 +437,13 @@ export const TopNav: React.FC = () => {
                     snapshot={usageSnapshot}
                     label={t("topNav.usage.contextWindow")}
                   />
-                  <UsageRollingTotal label={usageTriggerLabel} />
+                  {usageTotal == null ? (
+                    t("topNav.usage.waitingShort")
+                  ) : (
+                    <UsageRollingTotal
+                      label={formatCompactUsageNumber(usageTotal)}
+                    />
+                  )}
                 </UiButton>
                 {state.usagePopoverOpen ? (
                   <div
@@ -430,7 +455,8 @@ export const TopNav: React.FC = () => {
                       <div>
                         <strong>{t("topNav.usage.title")}</strong>
                         <span>
-                          {usageSnapshot?.model?.key || t("topNav.usage.modelUnknown")}
+                          {usageSnapshot?.model?.key ||
+                            t("topNav.usage.modelUnknown")}
                         </span>
                       </div>
                       <UiButton
@@ -442,7 +468,10 @@ export const TopNav: React.FC = () => {
                         title={t("topNav.usage.close")}
                         onClick={handleCloseUsagePopover}
                       >
-                        <span className="usage-popover-close-glyph" aria-hidden="true" />
+                        <span
+                          className="usage-popover-close-glyph"
+                          aria-hidden="true"
+                        />
                       </UiButton>
                     </div>
                     {usageSnapshot || compactUsage ? (

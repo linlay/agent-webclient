@@ -27,16 +27,6 @@ function buildAgentSearchText(agent: Agent): string {
     .join(" ");
 }
 
-function compareAgents(a: Agent, b: Agent): number {
-  const unreadDiff =
-    toNumber(b?.stats?.unreadCount) - toNumber(a?.stats?.unreadCount);
-  if (unreadDiff !== 0) return unreadDiff;
-
-  return (toText(a?.name) || toText(a?.key)).localeCompare(
-    toText(b?.name) || toText(b?.key),
-  );
-}
-
 export interface AgentListProps {
   agents: Agent[];
   selectedAgentKey?: string;
@@ -69,7 +59,7 @@ export const AgentList: React.FC<AgentListProps> = ({
         )
       : normalizedAgents;
 
-    return visibleAgents.slice().sort(compareAgents);
+    return visibleAgents;
   }, [agents, search]);
 
   return (
