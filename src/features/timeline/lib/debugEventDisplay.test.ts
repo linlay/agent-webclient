@@ -284,6 +284,52 @@ describe('shouldDisplayDebugEvent', () => {
     ]);
   });
 
+  it('prefers accumulated timeline text when raw planning events were truncated', () => {
+    const rawEvents = [
+      {
+        type: 'planning.delta',
+        planningId: 'planning_1',
+        delta: 'tail',
+        timestamp: 11,
+      },
+      {
+        type: 'planning.end',
+        planningId: 'planning_1',
+        timestamp: 12,
+      },
+    ];
+
+    const debugEvents = appendVisibleDebugEvent(
+      [],
+      rawEvents[1],
+      100,
+      rawEvents,
+      {
+        reasoningNodeById: new Map([['planning:planning_1', 'planning_0']]),
+        timelineNodes: new Map([
+          [
+            'planning_0',
+            {
+              id: 'planning_0',
+              kind: 'planning',
+              text: 'full text from the beginning',
+              ts: 10,
+            },
+          ],
+        ]),
+      },
+    );
+
+    expect(debugEvents).toEqual([
+      expect.objectContaining({
+        type: 'planning.snapshot',
+        planningId: 'planning_1',
+        text: 'full text from the beginning',
+        timestamp: 12,
+      }),
+    ]);
+  });
+
   it('keeps tool result visible after the synthesized tool snapshot', () => {
     const rawEvents = [
       { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },

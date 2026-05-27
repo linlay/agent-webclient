@@ -65,6 +65,13 @@ export function reduceConversationState(
 				action.event,
 				MAX_EVENTS,
 				events,
+				{
+					contentNodeById: state.contentNodeById,
+					reasoningNodeById: state.reasoningNodeById,
+					timelineNodes: state.timelineNodes,
+					activeReasoningKey: state.activeReasoningKey,
+					runId: state.runId,
+				},
 			);
 			return { ...state, events, debugEvents };
 		}

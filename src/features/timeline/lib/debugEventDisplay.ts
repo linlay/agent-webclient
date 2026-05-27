@@ -78,10 +78,22 @@ export interface DebugEventTargetState {
   timelineOrder: string[];
 }
 
+export interface DebugSnapshotTextContext {
+  contentNodeById?: Map<string, string>;
+  reasoningNodeById?: Map<string, string>;
+  timelineNodes?: Map<string, TimelineNode>;
+  activeReasoningKey?: string;
+  runId?: string;
+}
+
 function safeStr(v: unknown): string {
   if (typeof v === 'string') return v;
   if (v === null || v === undefined) return '';
   return String(v);
+}
+
+function readEventText(event: AgentEvent): string {
+  return safeStr(event.text) || safeStr((event as Record<string, unknown>).markdown);
 }
 
 function readEventArgumentsText(event: AgentEvent): string {
@@ -207,10 +219,55 @@ function fillSnapshotFields(
   }
 }
 
+function readTimelineStreamNode(
+  event: AgentEvent,
+  family: Exclude<StreamFamily, 'tool'>,
+  context?: DebugSnapshotTextContext,
+): TimelineNode | undefined {
+  if (!context?.timelineNodes) {
+    return undefined;
+  }
+
+  const streamId = getStreamId(event, family);
+  if (family === 'content') {
+    const nodeId = streamId ? context.contentNodeById?.get(streamId) : undefined;
+    return nodeId ? context.timelineNodes.get(nodeId) : undefined;
+  }
+
+  if (family === 'reasoning') {
+    const reasoningKey = streamId || safeStr(context.activeReasoningKey).trim();
+    const nodeId = reasoningKey ? context.reasoningNodeById?.get(reasoningKey) : undefined;
+    return nodeId ? context.timelineNodes.get(nodeId) : undefined;
+  }
+
+  const planningId =
+    safeStr(event.planningId).trim() ||
+    safeStr((event as Record<string, unknown>).planningKey).trim();
+  const planId = safeStr(event.planId).trim();
+  const runId = safeStr(event.runId).trim() || safeStr(context.runId).trim();
+  const candidateKeys = [
+    planningId ? `planning:${planningId}` : '',
+    !planningId && planId ? `planning:${planId}` : '',
+    runId ? `planning_run:${runId}` : '',
+    streamId,
+  ].filter(Boolean);
+
+  for (const key of candidateKeys) {
+    const nodeId = context.reasoningNodeById?.get(key);
+    const node = nodeId ? context.timelineNodes.get(nodeId) : undefined;
+    if (node) {
+      return node;
+    }
+  }
+
+  return undefined;
+}
+
 function buildTextSnapshotFromRawEvents(
   event: AgentEvent,
   rawEvents: AgentEvent[],
   family: Exclude<StreamFamily, 'tool'>,
+  context?: DebugSnapshotTextContext,
 ): AgentEvent | null {
   const streamId = getStreamId(event, family);
   if (String(event.type || '').toLowerCase() !== streamEndTypes[family]) {
@@ -232,12 +289,13 @@ function buildTextSnapshotFromRawEvents(
         return safeStr(candidate.delta);
       }
       if (type.endsWith('.start')) {
-        return safeStr(candidate.text);
+        return readEventText(candidate);
       }
       return '';
     })
     .join('');
-  const text = safeStr(event.text) || streamText;
+  const timelineNode = readTimelineStreamNode(event, family, context);
+  const text = readEventText(event) || safeStr(timelineNode?.text) || streamText;
 
   const snapshot: AgentEvent = { ...event };
   (snapshot as Record<string, unknown>).type = streamSnapshotTypes[family];
@@ -260,6 +318,15 @@ function buildTextSnapshotFromRawEvents(
     'groupId',
     'subAgentKey',
   ].filter(Boolean) as string[]);
+
+  if (timelineNode?.reasoningLabel) {
+    if (family === 'reasoning' && !safeStr(snapshot.reasoningLabel).trim()) {
+      snapshot.reasoningLabel = timelineNode.reasoningLabel;
+    }
+    if (family === 'planning' && !safeStr(snapshot.planningLabel).trim()) {
+      snapshot.planningLabel = timelineNode.reasoningLabel;
+    }
+  }
 
   return snapshot;
 }
@@ -330,16 +397,17 @@ function buildToolSnapshotFromRawEvents(
 function buildSnapshotFromRawEvents(
   event: AgentEvent,
   rawEvents: AgentEvent[],
+  context?: DebugSnapshotTextContext,
 ): AgentEvent | null {
   const type = String(event.type || '').toLowerCase();
   if (type === 'content.end') {
-    return buildTextSnapshotFromRawEvents(event, rawEvents, 'content');
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'content', context);
   }
   if (type === 'reasoning.end') {
-    return buildTextSnapshotFromRawEvents(event, rawEvents, 'reasoning');
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'reasoning', context);
   }
   if (type === 'planning.end') {
-    return buildTextSnapshotFromRawEvents(event, rawEvents, 'planning');
+    return buildTextSnapshotFromRawEvents(event, rawEvents, 'planning', context);
   }
   if (type === 'tool.end') {
     return buildToolSnapshotFromRawEvents(event, rawEvents);
@@ -428,10 +496,11 @@ export function appendVisibleDebugEvent(
   event: AgentEvent,
   maxEvents: number,
   rawEvents: AgentEvent[] = [event],
+  context?: DebugSnapshotTextContext,
 ): AgentEvent[] {
   let visibleEvent = event;
   if (!isDeltaLogsEnabled()) {
-    const snapshot = buildSnapshotFromRawEvents(event, rawEvents);
+    const snapshot = buildSnapshotFromRawEvents(event, rawEvents, context);
     if (snapshot) {
       visibleEvent = snapshot;
     }

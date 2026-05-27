@@ -283,7 +283,19 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
     }
   }
   rs.events.push(event);
-  rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
+  rs.debugEvents = appendVisibleDebugEvent(
+    rs.debugEvents,
+    event,
+    MAX_EVENTS,
+    rs.events,
+    {
+      contentNodeById: rs.contentNodeById,
+      reasoningNodeById: rs.reasoningNodeById,
+      timelineNodes: rs.timelineNodes,
+      activeReasoningKey: rs.activeReasoningKey,
+      runId: rs.runId,
+    },
+  );
   rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
     agentKey: rs.currentRunAgentKey,
   });

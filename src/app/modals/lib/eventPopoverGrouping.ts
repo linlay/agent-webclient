@@ -148,12 +148,36 @@ export function buildCollectedSnapshot(
 	);
 	const lastEvent = relatedEvents[relatedEvents.length - 1]?.event || event;
 	const snapshotType = mapCollectedSnapshotType(String(event.type || ""));
+	const isTextStreamSnapshot =
+		snapshotType === "content.snapshot" ||
+		snapshotType === "reasoning.snapshot" ||
+		snapshotType === "planning.snapshot";
 	const textFromDelta = relatedEvents
 		.map((entry) => readStringValue(entry.event.delta))
 		.join("");
+	const textFromStream = isTextStreamSnapshot
+		? relatedEvents
+				.map((entry) => {
+					const type = String(entry.event.type || "").toLowerCase();
+					if (type.endsWith(".start")) {
+						return (
+							readStringValue(entry.event.text) ||
+							readStringValue((entry.event as Record<string, unknown>).markdown)
+						);
+					}
+					if (type.endsWith(".delta")) {
+						return readStringValue(entry.event.delta);
+					}
+					return "";
+				})
+				.join("")
+		: "";
 	const fallbackText = [...relatedEvents]
 		.reverse()
-		.map((entry) => readStringValue(entry.event.text))
+		.map((entry) =>
+			readStringValue(entry.event.text) ||
+			readStringValue((entry.event as Record<string, unknown>).markdown),
+		)
 		.find(Boolean);
 	const collectedArguments = (
 		snapshotType === "tool.snapshot" || snapshotType === "action.snapshot"
@@ -173,7 +197,9 @@ export function buildCollectedSnapshot(
 	const textValue =
 		snapshotType === "action.snapshot"
 			? readStringValue(lastEvent.text) || fallbackText
-			: textFromDelta || fallbackText || readStringValue(lastEvent.text);
+			: isTextStreamSnapshot
+				? textFromStream || fallbackText || readStringValue(lastEvent.text)
+				: textFromDelta || fallbackText || readStringValue(lastEvent.text);
 
 	const nextSnapshot: Record<string, unknown> = {
 		...mergedEvent,

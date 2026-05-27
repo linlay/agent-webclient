@@ -521,6 +521,74 @@ describe('appReducer conversation reset behavior', () => {
     ]);
   });
 
+  it('synthesizes long planning snapshots from timeline text after raw events are capped', () => {
+    const stateRef = {
+      current: createInitialState(),
+    };
+    const deltaParts = Array.from(
+      { length: MAX_EVENTS + 25 },
+      (_, index) => `part-${index};`,
+    );
+    const fullText = `intro;${deltaParts.join('')}`;
+    applyActionToStateRef(stateRef, {
+      type: 'PUSH_EVENT',
+      event: {
+        type: 'planning.start',
+        planningId: 'planning_1',
+        planningLabel: 'Plan',
+        text: 'intro;',
+        runId: 'run_1',
+      },
+    });
+    deltaParts.forEach((delta) => {
+      applyActionToStateRef(stateRef, {
+        type: 'PUSH_EVENT',
+        event: {
+          type: 'planning.delta',
+          planningId: 'planning_1',
+          delta,
+        },
+      });
+    });
+    stateRef.current.timelineNodes = new Map([
+      [
+        'planning_0',
+        {
+          id: 'planning_0',
+          kind: 'planning',
+          reasoningLabel: 'Plan',
+          text: fullText,
+          status: 'running',
+          ts: 1,
+        },
+      ],
+    ]);
+    stateRef.current.reasoningNodeById = new Map([
+      ['planning:planning_1', 'planning_0'],
+    ]);
+    applyActionToStateRef(stateRef, {
+      type: 'PUSH_EVENT',
+      event: {
+        type: 'planning.end',
+        planningId: 'planning_1',
+        timestamp: 22,
+      },
+    });
+
+    const snapshot = stateRef.current.debugEvents.find(
+      (event) => event.type === 'planning.snapshot',
+    );
+    expect(stateRef.current.events.length).toBeLessThanOrEqual(MAX_EVENTS + 1);
+    expect(snapshot).toMatchObject({
+      type: 'planning.snapshot',
+      planningId: 'planning_1',
+      planningLabel: 'Plan',
+      text: fullText,
+      timestamp: 22,
+    });
+    expect(String(snapshot?.text || '').startsWith('intro;part-0;')).toBe(true);
+  });
+
   it('synthesizes tool snapshot debug events when delta logs are disabled', () => {
     const stateRef = {
       current: createInitialState(),

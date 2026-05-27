@@ -385,6 +385,7 @@ describe("EventPopover collected snapshot shape", () => {
       type: "planning.start",
       planningId: "planning_1",
       planningLabel: "Plan",
+      text: "先",
       runId: "run_1",
       seq: 31,
     };
@@ -394,7 +395,7 @@ describe("EventPopover collected snapshot shape", () => {
         {
           type: "planning.delta",
           planningId: "planning_1",
-          delta: "先看日志。",
+          delta: "看日志。",
         },
         1,
       ),
