@@ -12,6 +12,7 @@ import {
   resolveCoderAgentDefaultModelOverride,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
+  toAgentConfigKey,
 } from "@/features/composer/components/QuerySettingsControls";
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -118,6 +119,12 @@ describe("QuerySettingsControls", () => {
         defaults: { defaultModelKey: "default-model", defaultReasoningEffort: "HIGH" },
       }),
     ).toEqual({ key: "default-model", reasoningEffort: "NONE" });
+  });
+
+  it("normalizes worker agent keys before model config persistence", () => {
+    expect(toAgentConfigKey("agent:coder")).toBe("coder");
+    expect(toAgentConfigKey("coder")).toBe("coder");
+    expect(toAgentConfigKey(" agent:coder ")).toBe("coder");
   });
 
   it("shows the model selector only for CODER agents", () => {

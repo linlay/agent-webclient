@@ -68,6 +68,11 @@ function toText(value: unknown): string {
   return String(value || "").trim();
 }
 
+export function toAgentConfigKey(value: unknown): string {
+  const key = toText(value);
+  return key.startsWith("agent:") ? key.slice("agent:".length).trim() : key;
+}
+
 function toConfigText(value: unknown): string {
   return typeof value === "string" || typeof value === "number"
     ? String(value).trim()
@@ -550,11 +555,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       currentWorker.row?.agentType === "coder");
   const agentKey =
     currentWorker?.type === "agent"
-      ? toText(currentWorker.key) ||
-        toText(currentWorker.sourceId) ||
-        toText(currentWorker.row?.sourceId) ||
-        toText(currentWorker.row?.key) ||
-        toText(currentWorker.raw?.key)
+      ? toAgentConfigKey(currentWorker.sourceId) ||
+        toAgentConfigKey(currentWorker.row?.sourceId) ||
+        toAgentConfigKey(currentWorker.raw?.key) ||
+        toAgentConfigKey(currentWorker.key) ||
+        toAgentConfigKey(currentWorker.row?.key)
       : "";
   const [models, setModels] = useState<CoderModelOption[]>([]);
   const [reasoningEfforts, setReasoningEfforts] = useState<
@@ -735,7 +740,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     setModelConfigError("");
     try {
       const response = await updateAgentModelConfig({
-        agentKey,
+        agentKey: toAgentConfigKey(agentKey),
         modelKey: nextModelKey,
         reasoningEffort: nextReasoningEffort,
       });
