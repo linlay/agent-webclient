@@ -394,7 +394,8 @@ export interface ArchiveDetailResponse {
 }
 
 export interface ChatUsageTokenDetails {
-  cachedTokens?: number;
+  cacheHitTokens?: number;
+  cacheMissTokens?: number;
   reasoningTokens?: number;
 }
 
@@ -404,8 +405,6 @@ export interface ChatUsageData {
   totalTokens?: number;
   promptTokensDetails?: ChatUsageTokenDetails;
   completionTokensDetails?: ChatUsageTokenDetails;
-  promptCacheHitTokens?: number;
-  promptCacheMissTokens?: number;
   llmChatCompletionCount?: number;
   current?: ChatUsageData;
   run?: ChatUsageData;

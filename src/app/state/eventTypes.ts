@@ -140,7 +140,8 @@ export interface AIPlan {
 }
 
 export interface AIUsageTokenDetails {
-  cachedTokens?: number;
+  cacheHitTokens?: number;
+  cacheMissTokens?: number;
   reasoningTokens?: number;
   [key: string]: unknown;
 }
@@ -151,8 +152,6 @@ export interface AIUsageStats {
   totalTokens?: number;
   promptTokensDetails?: AIUsageTokenDetails;
   completionTokensDetails?: AIUsageTokenDetails;
-  promptCacheHitTokens?: number;
-  promptCacheMissTokens?: number;
   llmChatCompletionCount?: number;
   [key: string]: unknown;
 }

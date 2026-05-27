@@ -159,10 +159,8 @@ describe("TopNav", () => {
 						promptTokens: 900,
 						completionTokens: 300,
 						totalTokens: 1200,
-						promptTokensDetails: { cachedTokens: 400 },
+						promptTokensDetails: { cacheHitTokens: 400, cacheMissTokens: 499 },
 						completionTokensDetails: { reasoningTokens: 33 },
-						promptCacheHitTokens: 401,
-						promptCacheMissTokens: 499,
 						llmChatCompletionCount: 6,
 					},
 				},
@@ -176,7 +174,7 @@ describe("TopNav", () => {
 		expect(html).toContain("Current call");
 		expect(html).toContain("Chat total");
 		expect(html).toContain("1,200");
-		expect(html).toContain("401");
+		expect(html).toContain("400");
 		expect(html).toContain("499");
 		expect(html).toContain("33");
 		expect(html.match(/LLM calls/g)).toHaveLength(2);
@@ -209,30 +207,24 @@ describe("TopNav", () => {
 						promptTokens: 100,
 						completionTokens: 20,
 						totalTokens: 120,
-						promptTokensDetails: { cachedTokens: 30 },
+						promptTokensDetails: { cacheHitTokens: 30, cacheMissTokens: 70 },
 						completionTokensDetails: { reasoningTokens: 7 },
-						promptCacheHitTokens: 31,
-						promptCacheMissTokens: 69,
 						llmChatCompletionCount: 1,
 					},
 					run: {
 						promptTokens: 300,
 						completionTokens: 70,
 						totalTokens: 370,
-						promptTokensDetails: { cachedTokens: 80 },
+						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 220 },
 						completionTokensDetails: { reasoningTokens: 17 },
-						promptCacheHitTokens: 81,
-						promptCacheMissTokens: 219,
 						llmChatCompletionCount: 3,
 					},
 					chat: {
 						promptTokens: 800,
 						completionTokens: 200,
 						totalTokens: 1000,
-						promptTokensDetails: { cachedTokens: 280 },
+						promptTokensDetails: { cacheHitTokens: 280, cacheMissTokens: 520 },
 						completionTokensDetails: { reasoningTokens: 27 },
-						promptCacheHitTokens: 281,
-						promptCacheMissTokens: 519,
 						llmChatCompletionCount: 8,
 					},
 				},

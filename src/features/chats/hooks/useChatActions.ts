@@ -185,11 +185,15 @@ function normalizeUsageTokenDetails(value: unknown): AIUsageStats['promptTokensD
     return undefined;
   }
 
-  const cachedTokens = readUsageNumber(value.cachedTokens);
+  const cacheHitTokens = readUsageNumber(value.cacheHitTokens);
+  const cacheMissTokens = readUsageNumber(value.cacheMissTokens);
   const reasoningTokens = readUsageNumber(value.reasoningTokens);
   const details: NonNullable<AIUsageStats['promptTokensDetails']> = {};
-  if (cachedTokens !== undefined) {
-    details.cachedTokens = cachedTokens;
+  if (cacheHitTokens !== undefined) {
+    details.cacheHitTokens = cacheHitTokens;
+  }
+  if (cacheMissTokens !== undefined) {
+    details.cacheMissTokens = cacheMissTokens;
   }
   if (reasoningTokens !== undefined) {
     details.reasoningTokens = reasoningTokens;
@@ -208,8 +212,6 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     'promptTokens',
     'completionTokens',
     'totalTokens',
-    'promptCacheHitTokens',
-    'promptCacheMissTokens',
     'llmChatCompletionCount',
   ] as const;
 

@@ -85,8 +85,12 @@ function getReasoningTokens(stats?: AIUsageStats): unknown {
   return stats?.completionTokensDetails?.reasoningTokens;
 }
 
-function getCachedTokens(stats?: AIUsageStats): unknown {
-  return stats?.promptTokensDetails?.cachedTokens;
+function getCacheHitTokens(stats?: AIUsageStats): unknown {
+  return stats?.promptTokensDetails?.cacheHitTokens;
+}
+
+function getCacheMissTokens(stats?: AIUsageStats): unknown {
+  return stats?.promptTokensDetails?.cacheMissTokens;
 }
 
 interface UsageMetric {
@@ -123,12 +127,12 @@ function buildUsageMetrics(
     {
       key: "cacheHit",
       label: t("topNav.usage.metric.cacheHit"),
-      value: stats?.promptCacheHitTokens ?? getCachedTokens(stats),
+      value: getCacheHitTokens(stats),
     },
     {
       key: "cacheMiss",
       label: t("topNav.usage.metric.cacheMiss"),
-      value: stats?.promptCacheMissTokens,
+      value: getCacheMissTokens(stats),
     },
   ];
 }
