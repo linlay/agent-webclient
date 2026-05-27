@@ -229,6 +229,11 @@ export interface UpdateAgentModelConfigRequest {
   reasoningEffort?: QueryReasoningEffort;
 }
 
+export interface AgentModelConfigResponse {
+  key: string;
+  modelConfig: Record<string, unknown>;
+}
+
 export interface DeleteAgentRequest {
   key: string;
 }
@@ -924,8 +929,8 @@ export function updateAgent(
 
 export function updateAgentModelConfig(
   params: UpdateAgentModelConfigRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent/model-config", params);
+): Promise<ApiResponse<AgentModelConfigResponse>> {
+  return postJson<AgentModelConfigResponse>("/api/agent/model-config", params);
 }
 
 export function deleteAgent(

@@ -1,6 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { Agent } from "@/app/state/types";
 import {
+  agentSummaryFromModelConfig,
   buildModelMenuItems,
   buildPersistedModelConfigOverride,
   clearCoderModelOptionsCacheForTest,
@@ -668,5 +670,58 @@ describe("QuerySettingsControls", () => {
     ).toBe(true);
     expect(shouldClearModelOverride(true, { key: "coder-model" })).toBe(false);
     expect(shouldClearModelOverride(false, {})).toBe(false);
+  });
+
+  it("merges compact model config responses into existing agent summaries", () => {
+    const existing: Agent = {
+      key: "coder-agent",
+      name: "Coder Agent",
+      mode: "CODER",
+      source: { kind: "directory", path: "/tmp/agent.yml" },
+      controls: [{ key: "planningMode", type: "switch", icon: null, label: "Planning" }],
+      definition: {
+        key: "coder-agent",
+        name: "Coder Agent",
+        mode: "CODER",
+        runtimeConfig: { workspaceRoot: "/workspace" },
+        modelConfig: { modelKey: "old-model" },
+      },
+      meta: { workspace: { root: "/workspace" }, modelKey: "old-model" },
+    };
+
+    const merged = agentSummaryFromModelConfig(
+      existing,
+      {
+        key: "coder-agent",
+        modelConfig: {
+          modelKey: "new-model",
+          reasoning: { enabled: true, effort: "HIGH" },
+        },
+      },
+      { key: "new-model", reasoningEffort: "HIGH" },
+    );
+
+    expect(merged.name).toBe("Coder Agent");
+    expect(merged.mode).toBe("CODER");
+    expect(merged.source).toEqual(existing.source);
+    expect(merged.controls).toEqual(existing.controls);
+    expect(merged.modelKey).toBe("new-model");
+    expect(merged.defaultModelKey).toBe("new-model");
+    expect(merged.defaultReasoningEffort).toBe("HIGH");
+    expect(merged.definition).toEqual({
+      key: "coder-agent",
+      name: "Coder Agent",
+      mode: "CODER",
+      runtimeConfig: { workspaceRoot: "/workspace" },
+      modelConfig: {
+        modelKey: "new-model",
+        reasoning: { enabled: true, effort: "HIGH" },
+      },
+    });
+    expect(merged.meta).toEqual({
+      workspace: { root: "/workspace" },
+      modelKey: "new-model",
+      reasoningEffort: "HIGH",
+    });
   });
 });

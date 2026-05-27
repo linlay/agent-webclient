@@ -62,6 +62,7 @@ import {
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AgentDetailResponse,
 	type AgentEditorOptionsResponse,
+	type AgentModelConfigResponse,
 	type AgentOrderResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
@@ -262,8 +263,8 @@ export function updateAgent(
 
 export function updateAgentModelConfig(
 	params: UpdateAgentModelConfigRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-	return routeRequest<AgentDetailResponse>(
+): Promise<ApiResponse<AgentModelConfigResponse>> {
+	return routeRequest<AgentModelConfigResponse>(
 		"/api/agent/model-config",
 		params,
 		() => updateAgentModelConfigHttp(params),

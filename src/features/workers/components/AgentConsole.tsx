@@ -58,6 +58,10 @@ interface AgentConsoleProps {
   embedded?: boolean;
 }
 
+export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
+  await putAgentOrder({ order: agentOrderPayload(agents) });
+}
+
 const EMPTY_FORM: AgentFormState = {
   key: "",
   name: "",
@@ -457,15 +461,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setSavingOrder(true);
       setError("");
       try {
-        await putAgentOrder({ order: agentOrderPayload(agents) });
-        await loadAgents(preferredKey);
+        await saveAgentOrderRequest(agents);
       } catch (error) {
         setError((error as Error).message);
       } finally {
         setSavingOrder(false);
       }
     },
-    [loadAgents],
+    [],
   );
 
   const dropAgentOn = useCallback(

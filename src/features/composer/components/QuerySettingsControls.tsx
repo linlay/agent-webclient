@@ -12,7 +12,7 @@ import {
   updateAgentModelConfig,
 } from "@/features/transport/lib/apiClientProxy";
 import type {
-  AgentDetailResponse,
+  AgentModelConfigResponse,
   CoderModelOption,
   QueryAccessLevel,
   QueryModelOverride,
@@ -486,52 +486,29 @@ export function buildPersistedModelConfigOverride({
   };
 }
 
-function agentSummaryFromModelDetail(
+export function agentSummaryFromModelConfig(
   existing: Agent | undefined,
-  detail: AgentDetailResponse,
+  response: AgentModelConfigResponse,
   modelOverride: QueryModelOverride,
 ): Agent {
-  const definition = cloneRecord(detail.definition);
-  const definitionModelConfig = cloneRecord(definition.modelConfig);
-  const definitionReasoning = cloneRecord(definitionModelConfig.reasoning);
-  if (modelOverride.key) {
-    definitionModelConfig.modelKey = modelOverride.key;
-  }
-  if (modelOverride.reasoningEffort) {
-    definitionReasoning.enabled = modelOverride.reasoningEffort !== "NONE";
-    if (modelOverride.reasoningEffort === "NONE") {
-      delete definitionReasoning.effort;
-    } else {
-      definitionReasoning.effort = modelOverride.reasoningEffort;
-    }
-  }
-  if (Object.keys(definitionReasoning).length > 0) {
-    definitionModelConfig.reasoning = definitionReasoning;
-  }
-  if (Object.keys(definitionModelConfig).length > 0) {
-    definition.modelConfig = definitionModelConfig;
-  }
-  const meta = cloneRecord(detail.meta);
-  if (modelOverride.key) {
-    meta.modelKey = modelOverride.key;
-  }
+  const key = response.key || existing?.key || "";
+  const definition = cloneRecord(existing?.definition);
+  const definitionModelConfig = cloneRecord(response.modelConfig);
+  definition.modelConfig = definitionModelConfig;
+  const meta = cloneRecord(existing?.meta);
+  const nextModelKey =
+    modelOverride.key || getModelKey(definitionModelConfig.modelKey) || "";
+  if (nextModelKey) meta.modelKey = nextModelKey;
   if (modelOverride.reasoningEffort) {
     meta.reasoningEffort = modelOverride.reasoningEffort;
   }
   return {
     ...(existing || {}),
-    key: detail.key,
-    name: detail.name || existing?.name || detail.key,
-    type: detail.type || existing?.type,
-    mode: detail.mode || existing?.mode,
-    icon: detail.icon as Agent["icon"],
-    role: detail.role || existing?.role,
-    wonders: detail.wonders || existing?.wonders,
-    controls: (detail.controls as unknown as Agent["controls"]) || existing?.controls,
-    source: detail.source ? { ...detail.source } : existing?.source,
-    model: modelOverride.key || detail.model,
-    modelKey: modelOverride.key || detail.model,
-    defaultModelKey: modelOverride.key || detail.model,
+    key,
+    name: existing?.name || key,
+    model: nextModelKey || existing?.model,
+    modelKey: nextModelKey || existing?.modelKey,
+    defaultModelKey: nextModelKey || existing?.defaultModelKey,
     defaultReasoningEffort: modelOverride.reasoningEffort,
     definition,
     modelConfig: definitionModelConfig,
@@ -752,11 +729,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       };
       const nextAgents = state.agents.map((agent) =>
         toText(agent.key) === toText(detail.key || agentKey)
-          ? agentSummaryFromModelDetail(agent, detail, persistedOverride)
+          ? agentSummaryFromModelConfig(agent, detail, persistedOverride)
           : agent,
       );
       dispatch({ type: "SET_AGENTS", agents: nextAgents });
-      window.dispatchEvent(new CustomEvent("agent:refresh-agents"));
     } catch (error) {
       setModelConfigError((error as Error).message);
     } finally {
