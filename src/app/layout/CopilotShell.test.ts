@@ -4,6 +4,8 @@ import { createInitialState } from "@/app/state/state";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 
 jest.mock("react-router-dom", () => ({
+  useLocation: jest.fn(),
+  useNavigate: jest.fn(),
   useParams: jest.fn(),
   useSearchParams: jest.fn(),
 }));
@@ -153,18 +155,27 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
-const { useParams, useSearchParams } = jest.requireMock("react-router-dom") as {
+const {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} = jest.requireMock("react-router-dom") as {
+  useLocation: jest.Mock;
+  useNavigate: jest.Mock;
   useParams: jest.Mock;
   useSearchParams: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
   window?: {
+    addEventListener: jest.Mock;
     dispatchEvent: jest.Mock;
     location: {
       pathname: string;
       search: string;
     };
+    removeEventListener: jest.Mock;
   };
   CustomEvent?: typeof CustomEvent;
   localStorage?: {
@@ -178,14 +189,17 @@ describe("CopilotShell", () => {
   const originalWindow = globalWithStorage.window;
   const originalCustomEvent = globalWithStorage.CustomEvent;
   const originalLocalStorage = globalWithStorage.localStorage;
+  const navigate = jest.fn();
 
   beforeEach(() => {
     globalWithStorage.window = {
+      addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
       location: {
         pathname: "/copilot",
         search: "",
       },
+      removeEventListener: jest.fn(),
     };
     globalWithStorage.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
       detail: T;
@@ -202,6 +216,9 @@ describe("CopilotShell", () => {
     };
     useSearchParams.mockReturnValue([new URLSearchParams("")]);
     useParams.mockReturnValue({});
+    useLocation.mockReturnValue({ pathname: "/copilot" });
+    useNavigate.mockReturnValue(navigate);
+    navigate.mockClear();
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
@@ -290,6 +307,7 @@ describe("CopilotShell", () => {
         { key: "first-agent", name: "First Agent" },
         { key: "second-agent", name: "Second Agent" },
       ],
+      workerSelectionKey: "agent:first-agent",
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -313,6 +331,98 @@ describe("CopilotShell", () => {
         },
       }),
     );
+    expect(navigate).not.toHaveBeenCalled();
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("updates the copilot URL when the user selects another agent on the bare route", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "second-agent", name: "Second Agent" },
+      ],
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const selectWorkerHandler = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:select-worker")?.[1];
+    selectWorkerHandler(
+      new CustomEvent("agent:select-worker", {
+        detail: { workerKey: "agent:second-agent" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith("/copilot/second-agent");
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("updates the copilot URL when the user selects another agent on an agent route", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/first-agent" });
+    useParams.mockReturnValue({ agentKey: "first-agent" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "second-agent", name: "Second Agent" },
+      ],
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const selectWorkerHandler = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:select-worker")?.[1];
+    selectWorkerHandler(
+      new CustomEvent("agent:select-worker", {
+        detail: { workerKey: "agent:second-agent" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith("/copilot/second-agent");
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("clears the copilot agent URL when the user selects a team", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/first-agent" });
+    useParams.mockReturnValue({ agentKey: "first-agent" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "second-agent", name: "Second Agent" },
+      ],
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const selectWorkerHandler = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:select-worker")?.[1];
+    selectWorkerHandler(
+      new CustomEvent("agent:select-worker", {
+        detail: { workerKey: "team:default" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith("/copilot");
 
     useEffectSpy.mockRestore();
   });

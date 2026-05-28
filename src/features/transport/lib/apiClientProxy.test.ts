@@ -426,6 +426,45 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
 	});
 
+	it("routes agent console option lookups over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAgentEditorOptions();
+		await proxy.getTools();
+		await proxy.getSkills();
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/agent/editor-options",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/tools",
+			payload: {},
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/skills",
+			payload: undefined,
+		});
+		expect(mockApiClient.getAgentEditorOptions).not.toHaveBeenCalled();
+		expect(mockApiClient.getTools).not.toHaveBeenCalled();
+		expect(mockApiClient.getSkills).not.toHaveBeenCalled();
+	});
+
 	it("routes memory console calls over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");

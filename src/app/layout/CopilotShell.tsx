@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
@@ -162,6 +162,8 @@ const CopilotSidePanel: React.FC = () => {
 export const CopilotShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const lastRouteTargetKeyRef = useRef("");
@@ -233,6 +235,28 @@ export const CopilotShell: React.FC = () => {
       }),
     );
   }, [dispatch, resolvedAgentKey, routeChatId]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        workerKey?: unknown;
+        agentKey?: unknown;
+      };
+      const explicitAgentKey = normalizeRouteValue(String(detail.agentKey || ""));
+      const workerKey = normalizeRouteValue(String(detail.workerKey || ""));
+      const nextPath = explicitAgentKey
+        ? `/copilot/${encodeURIComponent(explicitAgentKey)}`
+        : workerKey.startsWith("agent:")
+          ? `/copilot/${encodeURIComponent(workerKey.slice("agent:".length))}`
+          : "/copilot";
+
+      if (location.pathname !== nextPath) {
+        navigate(nextPath);
+      }
+    };
+    window.addEventListener("agent:select-worker", handler);
+    return () => window.removeEventListener("agent:select-worker", handler);
+  }, [location.pathname, navigate]);
 
   return (
     <div className="app-shell layout-copilot" id="app">

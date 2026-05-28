@@ -4,7 +4,6 @@ import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AgentEvent, AppState, Chat } from "@/app/state/types";
 import { ensureAccessToken } from "@/shared/api/apiClient";
-import { setTransportModeProvider } from "@/features/transport/lib/apiClientProxy";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
 import {
 	resolveChatSummaryPendingAwaiting,
@@ -742,13 +741,6 @@ export function useWsTransport() {
 	const stableHandleEvent = useCallback((event: AgentEvent) => {
 		handleEventRef.current(event);
 	}, []);
-
-	useEffect(() => {
-		setTransportModeProvider(() => stateRef.current.transportMode);
-		return () => {
-			setTransportModeProvider(() => "ws");
-		};
-	}, [state.transportMode, stateRef]);
 
 	useEffect(() => {
 		if (state.transportMode !== "ws") {

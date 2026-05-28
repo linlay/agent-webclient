@@ -19,6 +19,7 @@ import {
 	applyThemeModeToDocument,
 } from "@/shared/styles/theme";
 import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
+import { setTransportModeProvider } from "@/features/transport/lib/apiClientProxy";
 
 export interface AppContextValue {
 	state: AppState;
@@ -36,6 +37,12 @@ export function applyActionToStateRef(
 	action: AppAction,
 ): void {
 	stateRef.current = appReducer(stateRef.current, action);
+}
+
+export function syncTransportModeProvider(
+	stateRef: React.MutableRefObject<AppState>,
+): void {
+	setTransportModeProvider(() => stateRef.current.transportMode);
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -102,6 +109,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	useEffect(() => {
 		writeStoredTransportMode(state.transportMode);
+	}, [state.transportMode]);
+
+	useEffect(() => {
+		syncTransportModeProvider(stateRef);
 	}, [state.transportMode]);
 
 	useEffect(() => {

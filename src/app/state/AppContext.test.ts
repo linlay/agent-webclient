@@ -1,7 +1,22 @@
 import type { WorkerConversationRow } from '@/app/state/types';
-import { appReducer, applyActionToStateRef, createInitialState } from '@/app/state/AppContext';
+import {
+  appReducer,
+  applyActionToStateRef,
+  createInitialState,
+  syncTransportModeProvider,
+} from '@/app/state/AppContext';
 import { MAX_EVENTS } from '@/app/state/constants';
 import * as transportModeModule from '@/features/transport/lib/transportMode';
+
+jest.mock('@/features/transport/lib/apiClientProxy', () => ({
+  setTransportModeProvider: jest.fn(),
+}));
+
+const { setTransportModeProvider } = jest.requireMock(
+  '@/features/transport/lib/apiClientProxy',
+) as {
+  setTransportModeProvider: jest.Mock;
+};
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
@@ -11,6 +26,7 @@ describe('appReducer conversation reset behavior', () => {
   const originalWindow = globalThis.window;
 
   beforeEach(() => {
+    setTransportModeProvider.mockClear();
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
@@ -175,6 +191,27 @@ describe('appReducer conversation reset behavior', () => {
     const state = createInitialState();
 
     expect(state.transportMode).toBe('ws');
+  });
+
+  it('registers the API proxy transport provider from the current app state ref', () => {
+    const stateRef = {
+      current: {
+        ...createInitialState(),
+        transportMode: 'sse' as const,
+      },
+    };
+
+    syncTransportModeProvider(stateRef);
+
+    expect(setTransportModeProvider).toHaveBeenCalledTimes(1);
+    const provider = setTransportModeProvider.mock.calls[0][0] as () => 'sse' | 'ws';
+    expect(provider()).toBe('sse');
+
+    stateRef.current = {
+      ...stateRef.current,
+      transportMode: 'ws',
+    };
+    expect(provider()).toBe('ws');
   });
 
   it('tracks agentKey by active run without mutating chat-level routing', () => {
