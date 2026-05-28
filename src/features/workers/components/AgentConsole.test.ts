@@ -35,7 +35,10 @@ jest.mock("@/shared/ui/UiButton", () => ({
   UiButton: ({ children }: { children?: unknown }) => children || null,
 }));
 
-import { saveAgentOrderRequest } from "@/features/workers/components/AgentConsole";
+import {
+  buildAgentListSummary,
+  saveAgentOrderRequest,
+} from "@/features/workers/components/AgentConsole";
 
 const { getAgents, putAgentOrder } = jest.requireMock(
   "@/features/transport/lib/apiClientProxy",
@@ -71,5 +74,47 @@ describe("AgentConsole order persistence", () => {
     ).rejects.toBe(error);
 
     expect(getAgents).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildAgentListSummary", () => {
+  it("uses /api/agents meta fields for list summaries", () => {
+    expect(
+      buildAgentListSummary({
+        key: "agent-a",
+        name: "Agent A",
+        meta: {
+          mode: "REACT",
+          modelKey: "gpt-5",
+          toolsCount: 8,
+          skillsCount: 3,
+        },
+      }),
+    ).toEqual({
+      mode: "REACT",
+      modelKey: "gpt-5",
+      toolsCount: 8,
+      skillsCount: 3,
+    });
+  });
+
+  it("keeps compatibility with legacy meta arrays", () => {
+    expect(
+      buildAgentListSummary({
+        key: "agent-a",
+        name: "Agent A",
+        meta: {
+          mode: "PLAN_EXECUTE",
+          model: "legacy-model",
+          tools: ["bash", "file_read"],
+          skills: ["browser"],
+        },
+      }),
+    ).toEqual({
+      mode: "PLAN_EXECUTE",
+      modelKey: "legacy-model",
+      toolsCount: 2,
+      skillsCount: 1,
+    });
   });
 });
