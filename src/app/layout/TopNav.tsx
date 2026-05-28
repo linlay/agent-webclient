@@ -66,15 +66,19 @@ function formatCompactUsageNumber(value: unknown): string {
   return numberValue.toLocaleString();
 }
 
+function trimTrailingZeros(value: string): string {
+  return value.replace(/\.?0+$/, "");
+}
+
+function formatChatEstimatedCost(value: unknown): string {
+  const costCny = readUsageNumber(value);
+  if (costCny == null || costCny < 0) return "--";
+  if (costCny <= 0.1) return `${(costCny * 100).toFixed(2)} 分`;
+  return `${trimTrailingZeros(costCny.toFixed(3))} 元`;
+}
+
 function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | null {
-  const contextSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
-  if (contextSize != null) return contextSize;
-  if (!snapshot?.usage) return null;
-  return (
-    readUsageNumber(snapshot.usage.run?.totalTokens) ??
-    readUsageNumber(snapshot.usage.current?.totalTokens) ??
-    readUsageNumber(snapshot.usage.chat?.totalTokens)
-  );
+  return readUsageNumber(snapshot?.usage?.chat?.totalTokens);
 }
 
 export function resolveNextUsagePopoverOpen(isOpen: boolean): boolean {
@@ -173,6 +177,10 @@ function formatUsagePercent(value: number | null): string {
   return value == null ? "--%" : `${value.toFixed(2)}%`;
 }
 
+function resolveChatEstimatedCost(snapshot: AIUsageSnapshotEvent | null): unknown {
+  return snapshot?.usage?.chat?.estimatedCost?.total;
+}
+
 const UsageContextWindow: React.FC<{
   snapshot: AIUsageSnapshotEvent;
   t: (key: string, values?: Record<string, string>) => string;
@@ -181,6 +189,7 @@ const UsageContextWindow: React.FC<{
   const progressValue = percent ?? 0;
   const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
+  const estimatedCostLabel = formatChatEstimatedCost(resolveChatEstimatedCost(snapshot));
 
   return (
     <div className="usage-context-window">
@@ -212,9 +221,15 @@ const UsageContextWindow: React.FC<{
           </small>
         </div>
       </div>
-      <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.cacheHitRate")}>
-        <span>{t("topNav.usage.cacheHitRate")}:</span>
-        <strong>{cacheHitLabel}</strong>
+      <div className="usage-context-inline-stats">
+        <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.cacheHitRate")}>
+          <span>{t("topNav.usage.cacheHitRate")}:</span>
+          <strong>{cacheHitLabel}</strong>
+        </div>
+        <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.totalCost")}>
+          <span>{t("topNav.usage.totalCost")}:</span>
+          <strong>{estimatedCostLabel}</strong>
+        </div>
       </div>
     </div>
   );

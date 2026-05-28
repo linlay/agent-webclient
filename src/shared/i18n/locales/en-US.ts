@@ -529,6 +529,7 @@ export const enUSMessages: I18nMessages = {
   "topNav.usage.section.current": "Current call",
   "topNav.usage.section.run": "Latest run",
   "topNav.usage.title": "Usage stats",
+  "topNav.usage.totalCost": "Total cost",
   "topNav.usage.totalShort": "{total} tokens",
   "topNav.usage.waiting": "Waiting for usage stats...",
   "topNav.usage.waitingShort": "Usage",

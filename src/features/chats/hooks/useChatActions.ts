@@ -202,6 +202,27 @@ function normalizeUsageTokenDetails(value: unknown): AIUsageStats['promptTokensD
   return Object.keys(details).length > 0 ? details : undefined;
 }
 
+function normalizeUsageEstimatedCost(value: unknown): AIUsageStats['estimatedCost'] | undefined {
+  if (!isObjectRecord(value)) {
+    return undefined;
+  }
+
+  const cost: NonNullable<AIUsageStats['estimatedCost']> = {};
+  const currency = typeof value.currency === 'string' ? value.currency.trim() : '';
+  if (currency) {
+    cost.currency = currency;
+  }
+
+  for (const key of ['inputCacheHit', 'inputCacheMiss', 'output', 'total'] as const) {
+    const next = readUsageNumber(value[key]);
+    if (next !== undefined) {
+      cost[key] = next;
+    }
+  }
+
+  return Object.keys(cost).length > 0 ? cost : undefined;
+}
+
 export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | null {
   if (!isObjectRecord(value)) {
     return null;
@@ -232,9 +253,14 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     stats.completionTokensDetails = completionTokensDetails;
   }
 
+  const estimatedCost = normalizeUsageEstimatedCost(value.estimatedCost);
+  if (estimatedCost) {
+    stats.estimatedCost = estimatedCost;
+  }
+
   const totalTokens = stats.totalTokens ?? 0;
   const llmChatCompletionCount = stats.llmChatCompletionCount ?? 0;
-  return totalTokens > 0 || llmChatCompletionCount > 0 ? stats : null;
+  return totalTokens > 0 || llmChatCompletionCount > 0 || estimatedCost ? stats : null;
 }
 
 function getLatestUsageSnapshotEvent(events: unknown[]): AIUsageSnapshotEvent | null {

@@ -399,12 +399,22 @@ export interface ChatUsageTokenDetails {
   reasoningTokens?: number;
 }
 
+export interface ChatUsageEstimatedCost {
+  currency?: string;
+  inputCacheHit?: number;
+  inputCacheMiss?: number;
+  output?: number;
+  total?: number;
+  [key: string]: unknown;
+}
+
 export interface ChatUsageData {
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
   promptTokensDetails?: ChatUsageTokenDetails;
   completionTokensDetails?: ChatUsageTokenDetails;
+  estimatedCost?: ChatUsageEstimatedCost;
   llmChatCompletionCount?: number;
   current?: ChatUsageData;
   run?: ChatUsageData;

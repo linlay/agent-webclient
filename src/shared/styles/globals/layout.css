@@ -498,6 +498,13 @@
     line-height: 1.1;
 }
 
+.usage-context-inline-stats {
+    min-width: max-content;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
 .usage-cache-hit-inline {
     min-width: max-content;
     display: inline-flex;

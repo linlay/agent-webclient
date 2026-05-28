@@ -87,7 +87,7 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Open usage stats");
 	});
 
-	it("renders usage entry with context window size from the latest snapshot", () => {
+	it("renders usage entry with chat total from the latest snapshot", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
@@ -102,6 +102,7 @@ describe("TopNav", () => {
 				},
 				usage: {
 					chat: {
+						totalTokens: 3700,
 						promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 },
 					},
 					run: {
@@ -115,7 +116,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Open usage stats");
 		expect(html).toContain(">50%</span>");
-		expect(html).toContain('aria-label="64.0K"');
+		expect(html).toContain('aria-label="3.7K"');
 		expect(html).not.toContain("1.2K");
 		expect(html).not.toContain("Cache hit rate");
 		expect(html).not.toContain("Current call");
@@ -136,6 +137,7 @@ describe("TopNav", () => {
 				},
 				usage: {
 					chat: {
+						totalTokens: 3700,
 						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 20 },
 					},
 					run: {
@@ -147,7 +149,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain('aria-label="64.0K"');
+		expect(html).toContain('aria-label="3.7K"');
 		expect(html).toContain(">50%</span>");
 		expect(html).not.toContain('aria-label="Usage"');
 	});
@@ -167,6 +169,7 @@ describe("TopNav", () => {
 				},
 				usage: {
 					chat: {
+						totalTokens: 1,
 						promptTokensDetails: { cacheHitTokens: 0, cacheMissTokens: 0 },
 					},
 				},
@@ -178,6 +181,7 @@ describe("TopNav", () => {
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain('aria-label="Cache hit rate"');
 		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
 
 		useAppState.mockReturnValue({
 			...state,
@@ -191,7 +195,7 @@ describe("TopNav", () => {
 					currentSize: 64000,
 				},
 				usage: {
-					chat: {},
+					chat: { totalTokens: 1 },
 				},
 			},
 		});
@@ -220,6 +224,7 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 90, cacheMissTokens: 10 },
 					},
 					chat: {
+						totalTokens: 1,
 						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
 					},
 				},
@@ -231,6 +236,62 @@ describe("TopNav", () => {
 		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
 		expect(html).not.toContain('aria-label="99%"');
 		expect(html).not.toContain('aria-label="90%"');
+	});
+
+	it("renders chat estimated cost near the cache hit rate", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					chat: {
+						totalTokens: 1200,
+						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
+						estimatedCost: {
+							currency: "CNY",
+							inputCacheHit: 0.00007168,
+							inputCacheMiss: 0.000086,
+							output: 0.000122,
+							total: 0.00027968,
+						},
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
+		expect(html).toContain('aria-label="Total cost"');
+		expect(html).toContain("<span>Total cost:</span><strong>0.03 分</strong>");
+	});
+
+	it("renders chat estimated cost in yuan when it is over ten fen", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					chat: {
+						totalTokens: 1200,
+						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
+						estimatedCost: { currency: "CNY", total: 0.1234 },
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("<span>Total cost:</span><strong>0.123 元</strong>");
 	});
 
 	it("renders historical chat-only usage snapshots", () => {

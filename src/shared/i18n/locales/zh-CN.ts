@@ -529,6 +529,7 @@ export const zhCNMessages: I18nMessages = {
   "topNav.usage.section.current": "本次调用",
   "topNav.usage.section.run": "最新运行累计",
   "topNav.usage.title": "用量统计",
+  "topNav.usage.totalCost": "总花费",
   "topNav.usage.totalShort": "{total} tokens",
   "topNav.usage.waiting": "等待用量统计事件...",
   "topNav.usage.waitingShort": "用量",

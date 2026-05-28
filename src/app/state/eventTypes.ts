@@ -145,12 +145,22 @@ export interface AIUsageTokenDetails {
   [key: string]: unknown;
 }
 
+export interface AIUsageEstimatedCost {
+  currency?: string;
+  inputCacheHit?: number;
+  inputCacheMiss?: number;
+  output?: number;
+  total?: number;
+  [key: string]: unknown;
+}
+
 export interface AIUsageStats {
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
   promptTokensDetails?: AIUsageTokenDetails;
   completionTokensDetails?: AIUsageTokenDetails;
+  estimatedCost?: AIUsageEstimatedCost;
   llmChatCompletionCount?: number;
   [key: string]: unknown;
 }
