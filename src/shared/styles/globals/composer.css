@@ -340,11 +340,16 @@
     white-space: nowrap;
 }
 
-.plan-toggle-btn.ui-btn.ui-btn-ghost {
-    color: var(--accent-electric-strong);
-    background: var(--accent-soft);
-    font-weight: 700;
-    position: relative;
+.plan-toggle-btn .material-symbols-rounded {
+    font-size: 17px;
+}
+
+.plan-toggle-btn:hover .plan-toggle-icon {
+    display: none;
+}
+
+.plan-toggle-btn:not(:hover) .plan-toggle-close-icon {
+    display: none;
 }
 
 .composer-plus-btn {
@@ -440,7 +445,7 @@
     min-width: 0;
 }
 
-.query-settings-btn .ui-btn-label > span:not(.material-symbols-rounded) {
+.query-settings-btn .ui-btn-label>span:not(.material-symbols-rounded) {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -469,37 +474,46 @@
     color: var(--danger, #c2410c);
 }
 
-.query-settings-menu.ant-dropdown-menu{
+.query-settings-menu.ant-dropdown-menu {
     font-size: 13px;
     min-width: 160px;
 }
-.query-settings-menu.ant-dropdown-menu-submenu{
+
+.query-settings-menu.ant-dropdown-menu-submenu {
     font-size: 13px;
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected:hover{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected:hover {
     background-color: var(--colorFillSecondary);
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-selected {
     color: var(--text-main);
     background-color: transparent;
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-submenu-title{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-submenu-title {
     padding: 3px 6px;
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item {
     padding: 3px 6px;
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-group-title{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-group-title {
     padding: 2px 5px;
 }
-.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-group-list{
+
+.query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-group-list {
     margin: 0;
 }
-.query-settings-submenu.ant-dropdown-menu-submenu .ant-dropdown-menu .ant-dropdown-menu-item-group-list{
+
+.query-settings-submenu.ant-dropdown-menu-submenu .ant-dropdown-menu .ant-dropdown-menu-item-group-list {
     margin: 0;
     max-height: 40vh;
     overflow: auto;
 }
+
 .query-settings-menu-item {
     display: inline-flex;
     align-items: center;
