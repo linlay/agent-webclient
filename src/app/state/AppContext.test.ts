@@ -3,6 +3,7 @@ import {
   appReducer,
   applyActionToStateRef,
   createInitialState,
+  syncApiAccessToken,
   syncTransportModeProvider,
 } from '@/app/state/AppContext';
 import { MAX_EVENTS } from '@/app/state/constants';
@@ -12,10 +13,17 @@ jest.mock('@/features/transport/lib/apiClientProxy', () => ({
   setTransportModeProvider: jest.fn(),
 }));
 
+jest.mock('@/shared/api/apiClient', () => ({
+  setAccessToken: jest.fn(),
+}));
+
 const { setTransportModeProvider } = jest.requireMock(
   '@/features/transport/lib/apiClientProxy',
 ) as {
   setTransportModeProvider: jest.Mock;
+};
+const { setAccessToken } = jest.requireMock('@/shared/api/apiClient') as {
+  setAccessToken: jest.Mock;
 };
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
@@ -27,6 +35,7 @@ describe('appReducer conversation reset behavior', () => {
 
   beforeEach(() => {
     setTransportModeProvider.mockClear();
+    setAccessToken.mockClear();
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
@@ -212,6 +221,15 @@ describe('appReducer conversation reset behavior', () => {
       transportMode: 'ws',
     };
     expect(provider()).toBe('ws');
+  });
+
+  it('syncs the current app access token into the API client module', () => {
+    syncApiAccessToken({
+      ...createInitialState(),
+      accessToken: 'browser-token',
+    });
+
+    expect(setAccessToken).toHaveBeenCalledWith('browser-token');
   });
 
   it('tracks agentKey by active run without mutating chat-level routing', () => {

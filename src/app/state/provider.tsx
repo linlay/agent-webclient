@@ -45,6 +45,10 @@ export function syncTransportModeProvider(
 	setTransportModeProvider(() => stateRef.current.transportMode);
 }
 
+export function syncApiAccessToken(state: AppState): void {
+	setAccessToken(state.accessToken);
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
@@ -114,6 +118,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	useEffect(() => {
 		syncTransportModeProvider(stateRef);
 	}, [state.transportMode]);
+
+	useEffect(() => {
+		syncApiAccessToken(state);
+	}, [state.accessToken]);
 
 	useEffect(() => {
 		if (!isAppMode()) {
