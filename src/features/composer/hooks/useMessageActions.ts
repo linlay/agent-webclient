@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useAppContext } from '@/app/state/AppContext';
 import type { AppAction } from '@/app/state/AppContext';
 import type { TimelineAttachment } from '@/app/state/types';
+import { AIRunEventTypeEnum } from '@/app/state/types';
 import { useAgentEventHandler } from '@/features/timeline/hooks/useAgentEventHandler';
 import {
   createRequestId,
@@ -9,7 +10,6 @@ import {
   type QueryModelOverride,
   setAccessToken,
 } from '@/shared/api/apiClient';
-import { AIRunEventTypeEnum } from '@/app/state/eventTypes';
 import { parseLeadingAgentMention } from '@/features/composer/lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '@/features/composer/lib/mentionCandidates';
 import {

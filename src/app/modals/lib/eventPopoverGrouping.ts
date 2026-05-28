@@ -160,10 +160,7 @@ export function buildCollectedSnapshot(
 				.map((entry) => {
 					const type = String(entry.event.type || "").toLowerCase();
 					if (type.endsWith(".start")) {
-						return (
-							readStringValue(entry.event.text) ||
-							readStringValue((entry.event as Record<string, unknown>).markdown)
-						);
+						return readStringValue(entry.event.text);
 					}
 					if (type.endsWith(".delta")) {
 						return readStringValue(entry.event.delta);
@@ -174,10 +171,7 @@ export function buildCollectedSnapshot(
 		: "";
 	const fallbackText = [...relatedEvents]
 		.reverse()
-		.map((entry) =>
-			readStringValue(entry.event.text) ||
-			readStringValue((entry.event as Record<string, unknown>).markdown),
-		)
+		.map((entry) => readStringValue(entry.event.text))
 		.find(Boolean);
 	const collectedArguments = (
 		snapshotType === "tool.snapshot" || snapshotType === "action.snapshot"

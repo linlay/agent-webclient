@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getViewport } from "@/features/transport/lib/apiClientProxy";
-import { debounce } from "lodash";
-import { log } from "node:console";
+import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 
 interface ViewportEmbedProps {
   viewportKey: string;
@@ -153,14 +152,6 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
     </div>
   );
 };
-
-function safeJsonParse(text: string, fallback: unknown): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return fallback;
-  }
-}
 
 function resizeIframe(iframe: HTMLIFrameElement): void {
   try {

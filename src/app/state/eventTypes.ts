@@ -84,7 +84,6 @@ export enum AIArtifactEventTypeEnum {
 
 export enum AIAwaitEventTypeEnum {
   Ask = "awaiting.ask",
-  Payload = "awaiting.payload",
   Answer = "awaiting.answer",
 }
 
@@ -116,8 +115,7 @@ export type AIAwaitMode = "question" | "approval" | "form" | "plan";
 export type AIAwaitApprovalDecision =
   | "approve"
   | "reject"
-  | "approve_rule_run"
-  | "approve_always"; // legacy replay compatibility only
+  | "approve_rule_run";
 export type AIAwaitPlanDecision = "approve" | "reject";
 
 export interface ResourceData {
@@ -395,7 +393,6 @@ export interface AIReasoningEvent extends AIBaseTaskEvent {
 export interface AIPlanningEvent extends AIBaseTaskEvent {
   type: AIPlanningEventTypeEnum;
   planningId?: string;
-  markdown?: string;
 }
 
 export interface AIPlanEvent extends AIBaseEvent {
@@ -428,10 +425,6 @@ export interface AIAwaitAskEvent extends AIBaseEvent {
   plan?: AIAwaitPlan;
 }
 
-export interface AIAwaitPayloadEvent extends AIBaseEvent {
-  type: AIAwaitEventTypeEnum.Payload;
-  questions?: AIAwaitQuestion[];
-}
 export interface AIAwaitAnswerEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Answer;
   status: "answered" | "error";
@@ -444,7 +437,6 @@ export interface AIAwaitAnswerEvent extends AIBaseEvent {
 
 export type AIAwaitEvent =
   | AIAwaitAskEvent
-  | AIAwaitPayloadEvent
   | AIAwaitAnswerEvent;
 
 export type AIEvent =

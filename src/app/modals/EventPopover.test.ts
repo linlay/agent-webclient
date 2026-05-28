@@ -1302,19 +1302,20 @@ describe("EventPopover display and copy helpers", () => {
   it("builds awaiting copy menu items from structured payloads", () => {
     expect(
       buildEventCopyMenuItems(
-        {
-          type: "awaiting.payload",
-          awaitingId: "await_1",
-          questions: [{ id: "q1", question: "继续吗？", type: "text" as const }],
-        },
-        [],
-        '{"type":"awaiting.payload"}',
+	        {
+	          type: "awaiting.ask",
+	          awaitingId: "await_1",
+	          mode: "question",
+	          questions: [{ id: "q1", question: "继续吗？", type: "text" as const }],
+	        },
+	        [],
+	        '{"type":"awaiting.ask"}',
       ),
     ).toEqual([
       {
-        key: "eventJson",
-        label: "Copy all",
-        text: '{"type":"awaiting.payload"}',
+	        key: "eventJson",
+	        label: "Copy all",
+	        text: '{"type":"awaiting.ask"}',
       },
       {
         key: "awaitingId",

@@ -3,9 +3,12 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { message as antdMessage } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState, AIUsageSnapshotEvent } from "@/app/state/types";
-import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/app/state/eventTypes";
-import type { AIContextCompactEvent } from "@/app/state/eventTypes";
+import type {
+	AppState,
+	AIContextCompactEvent,
+	AIUsageSnapshotEvent,
+} from "@/app/state/types";
+import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/app/state/types";
 import {
   createRequestId,
   type CompactChatResponse,

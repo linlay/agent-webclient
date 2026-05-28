@@ -84,7 +84,7 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('normalizes multi-select questions without legacy multiple flags', () => {
+  it('normalizes multi-select questions without multiple flags', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_multi_1',
@@ -109,75 +109,6 @@ describe('reduceActiveAwaiting', () => {
       question: '请选择环境',
     });
     expect('multiple' in (asked?.questions[0] ?? {})).toBe(false);
-  });
-
-  it('keeps legacy question awaitings compatible when awaiting.ask omits mode', () => {
-    const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_legacy_1',
-      awaitingId: 'await_legacy_1',
-      timeout: 60,
-      questions: [
-        {
-          type: 'select',
-          question: '您希望我演示哪种提问式确认场景？',
-          options: [
-            {
-              label: '通用确认',
-              description: '日常事务确认',
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(asked).toMatchObject({
-      key: 'run_legacy_1#await_legacy_1',
-      runId: 'run_legacy_1',
-      awaitingId: 'await_legacy_1',
-      mode: 'question',
-      timeout: 60,
-    });
-    expect(asked?.questions[0]).toMatchObject({
-      id: '您希望我演示哪种提问式确认场景？',
-    });
-  });
-
-  it('hydrates legacy question awaitings from awaiting.payload only for replay compatibility', () => {
-    const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_legacy_2',
-      awaitingId: 'await_legacy_2',
-      timeout: 120000,
-    });
-
-    const hydrated = reduceActiveAwaiting(asked, {
-      type: 'awaiting.payload',
-      awaitingId: 'await_legacy_2',
-      questions: [
-        {
-          type: 'select',
-          question: '您希望我演示哪种提问式确认场景？',
-          options: [
-            {
-              label: '请假流程提问',
-              description: '演示请假申请所需字段收集',
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(asked).toMatchObject({
-      key: 'run_legacy_2#await_legacy_2',
-      mode: 'question',
-      timeout: 120000,
-      questions: [],
-    });
-    expect(hydrated?.questions).toHaveLength(1);
-    expect(hydrated?.questions[0]).toMatchObject({
-      id: '您希望我演示哪种提问式确认场景？',
-    });
   });
 
   it('keeps text, number and password question fields and assigns fallback ids when missing', () => {
@@ -419,46 +350,6 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('keeps legacy initialPayload form events compatible for replay', () => {
-    const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_legacy_form',
-      awaitingId: 'await_legacy_form',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-      mode: 'form',
-      forms: [
-        {
-          id: 'leave_form',
-          action: '提交请假申请',
-          title: 'mock 请假申请',
-          initialPayload: {
-            applicant_id: 'E1001',
-          },
-        },
-      ],
-    } as any);
-
-    expect(current).toMatchObject({
-      mode: 'form',
-      viewportKey: 'leave_form',
-    });
-    expect(current?.mode).toBe('form');
-    if (current?.mode !== 'form') {
-      throw new Error('expected form awaiting');
-    }
-    expect(current.forms).toEqual([
-      {
-        id: 'leave_form',
-        action: '提交请假申请',
-        title: 'mock 请假申请',
-        form: {
-          applicant_id: 'E1001',
-        },
-      },
-    ]);
-  });
-
   it('keeps html forms without action when form data is present', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
@@ -526,38 +417,7 @@ describe('reduceActiveAwaiting', () => {
     expect(current).toBeNull();
   });
 
-  it('keeps legacy html awaiting compatible by treating it as form', () => {
-    const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_7',
-      awaitingId: 'await_7',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
-      payload: {
-        applicant_id: 'E1001',
-      },
-    });
-
-    expect(asked).toMatchObject({
-      key: 'run_7#await_7',
-      mode: 'form',
-    });
-    expect(asked?.mode).toBe('form');
-  });
-
-  it('falls back to toolTimeout when awaiting.ask omits timeout', () => {
-    const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_1',
-      awaitingId: 'await_1',
-      mode: 'question',
-      toolTimeout: 120000,
-    });
-
-    expect(asked?.timeout).toBe(120000);
-  });
-
-  it('prefers timeout over toolTimeout when both are present', () => {
+  it('ignores toolTimeout when awaiting.ask provides timeout', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_1',
@@ -568,29 +428,6 @@ describe('reduceActiveAwaiting', () => {
     });
 
     expect(asked?.timeout).toBe(60);
-  });
-
-  it('ignores payloads that do not match the active awaiting id', () => {
-    const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
-      runId: 'run_1',
-      awaitingId: 'await_1',
-      mode: 'question',
-    });
-
-    const next = reduceActiveAwaiting(current, {
-      type: 'awaiting.payload',
-      awaitingId: 'await_2',
-      questions: [
-        {
-          type: 'select',
-          question: 'bad',
-          options: [],
-        },
-      ],
-    });
-
-    expect(next).toEqual(current);
   });
 
   it('marks awaiting as resolved when awaiting.answer matches the active dialog', () => {

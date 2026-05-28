@@ -1,7 +1,3 @@
-import type { Dispatch } from "react";
-import type { AppAction } from "@/app/state/AppContext";
-import type { AgentEvent } from "@/app/state/types";
-import type { QueryStreamParams } from "@/shared/api/apiClient";
 import {
 	compactQueryModelOverride,
 	ensureAccessToken,
@@ -17,12 +13,14 @@ import {
 	getWsClientAccessToken,
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
+import {
+	createStreamAbortScope,
+	startQueryStreamState,
+	stopQueryStreamState,
+	type ExecuteQueryStreamOptions,
+} from "@/features/transport/lib/queryStreamShared";
 
-export interface ExecuteQueryStreamWsOptions {
-	params: QueryStreamParams;
-	dispatch: Dispatch<AppAction>;
-	handleEvent: (event: AgentEvent) => void;
-}
+export type ExecuteQueryStreamWsOptions = ExecuteQueryStreamOptions;
 
 type QueryWsClient = NonNullable<ReturnType<typeof getWsClient>>;
 type TokenRefreshReason = Parameters<typeof ensureAccessToken>[0];
@@ -69,26 +67,9 @@ export async function executeQueryStreamWs(
 	const initialWsClient = wsClient;
 	const appMode = isAppMode();
 
-	const abortController = new AbortController();
-	const externalSignal = params.signal;
-	const forwardAbort = () => abortController.abort();
+	const { abortController, cleanup } = createStreamAbortScope(params.signal);
 
-	if (externalSignal) {
-		if (externalSignal.aborted) {
-			abortController.abort();
-		} else {
-			externalSignal.addEventListener("abort", forwardAbort, {
-				once: true,
-			});
-		}
-	}
-
-	dispatch({ type: "SET_REQUEST_ID", requestId: params.requestId });
-	dispatch({ type: "SET_STREAMING", streaming: true });
-	dispatch({
-		type: "SET_ABORT_CONTROLLER",
-		controller: abortController,
-	});
+	startQueryStreamState(dispatch, params.requestId, abortController);
 
 	try {
 		await new Promise<void>((resolve, reject) => {
@@ -199,10 +180,7 @@ export async function executeQueryStreamWs(
 			);
 		});
 	} finally {
-		if (externalSignal) {
-			externalSignal.removeEventListener("abort", forwardAbort);
-		}
-		dispatch({ type: "SET_STREAMING", streaming: false });
-		dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+		cleanup();
+		stopQueryStreamState(dispatch);
 	}
 }

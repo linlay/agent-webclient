@@ -34,7 +34,7 @@ function readRawText(value: unknown): string {
 }
 
 function readPlanningText(event: AgentEvent): string {
-  return readRawText(event.text) || readRawText(event.markdown);
+  return readRawText(event.text);
 }
 
 export function processPlanningEvent(

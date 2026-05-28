@@ -201,36 +201,15 @@ describe('shouldSyncLiveCache', () => {
     });
     expect(shouldSyncLiveCache(cache, state)).toBe(false);
 
-    const hydrated = reduceActiveAwaiting(cache.activeAwaiting, {
-      type: 'awaiting.payload',
-      awaitingId: 'await_1',
-      questions: [
-        {
-          id: 'continue',
-          type: 'select',
-          question: '继续执行吗？',
-          options: [
-            {
-              label: '继续',
-              description: '允许继续执行',
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(hydrated?.questions).toHaveLength(1);
-    expect(hydrated?.questions[0]).toMatchObject({
-      question: '继续执行吗？',
-    });
+    expect(cache.activeAwaiting?.questions).toHaveLength(0);
   });
 
-  it('keeps legacy awaiting.ask sessions authoritative when viewport fields are omitted', () => {
+  it('ignores awaiting.ask sessions when mode is omitted', () => {
     const baseState = createInitialState();
     const state = {
       ...baseState,
       chatId: 'chat_1',
-      runId: 'run_legacy_1',
+      runId: 'run_1',
       streaming: true,
       timelineOrder: ['message_1'],
       activeAwaiting: null,
@@ -239,8 +218,8 @@ describe('shouldSyncLiveCache', () => {
     const cache = createLocalCacheFromState(state);
     cache.activeAwaiting = reduceActiveAwaiting(cache.activeAwaiting, {
       type: 'awaiting.ask',
-      runId: 'run_legacy_1',
-      awaitingId: 'await_legacy_1',
+      runId: 'run_1',
+      awaitingId: 'await_1',
       questions: [
         {
           type: 'select',
@@ -255,11 +234,7 @@ describe('shouldSyncLiveCache', () => {
       ],
     });
 
-    expect(cache.activeAwaiting).toMatchObject({
-      awaitingId: 'await_legacy_1',
-      mode: 'question',
-    });
-    expect(cache.activeAwaiting?.questions).toHaveLength(1);
+    expect(cache.activeAwaiting).toBeNull();
     expect(shouldSyncLiveCache(cache, state)).toBe(false);
   });
 

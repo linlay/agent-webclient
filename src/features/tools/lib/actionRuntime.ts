@@ -4,18 +4,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export function safeJsonParse(text: unknown, fallback: Record<string, unknown> = {}): Record<string, unknown> {
-  if (typeof text !== 'string' || text.trim() === '') {
-    return fallback;
-  }
-  try {
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === 'object' ? parsed : fallback;
-  } catch (_error) {
-    return fallback;
-  }
-}
-
 export function normalizeActionArgs(actionName: string, rawArgs: Record<string, unknown> = {}): Record<string, unknown> {
   if (actionName === 'switch_theme') {
     const rawTheme = String(rawArgs.theme || '').toLowerCase();

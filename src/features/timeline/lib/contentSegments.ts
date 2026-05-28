@@ -1,4 +1,4 @@
-import { safeJsonParse } from '@/features/tools/lib/actionRuntime';
+import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { parseViewportBlocks } from '@/features/tools/lib/viewportParser';
 
 const SPECIAL_FENCE_HEADERS = ['```viewport', '```tts-voice'] as const;
@@ -159,7 +159,7 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
           signature: viewportSignature(contentId, parsed),
           key: parsed.key,
           payloadRaw: parsed.payloadRaw || '{}',
-          payload: parsed.payload ?? safeJsonParse(parsed.payloadRaw, {}),
+          payload: parsed.payload ?? safeJsonParse(parsed.payloadRaw, {}, isObjectJson),
         });
       } else {
         pushTextSegment(segments, rawBlock);

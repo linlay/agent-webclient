@@ -196,7 +196,7 @@ describe('AwaitingHtmlContainer', () => {
     const onErrorChange = jest.fn();
     reportInvalidAwaitingSubmitPayload('await_1', {
       type: 'frontend_awaiting_submit',
-      params: [{ decision: 'submit', form: 'bad' }],
+      params: [{ decision: 'approve', form: 'bad' }],
     }, onErrorChange);
 
     expect(console.warn).toHaveBeenCalledWith(

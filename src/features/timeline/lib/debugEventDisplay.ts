@@ -4,7 +4,7 @@ import {
   AIPlanningEventTypeEnum,
   AIReasoningEventTypeEnum,
   AIToolEventTypeEnum,
-} from '@/app/state/eventTypes';
+} from '@/app/state/types';
 import type { TimelineNode } from '@/app/state/types';
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
@@ -93,7 +93,7 @@ function safeStr(v: unknown): string {
 }
 
 function readEventText(event: AgentEvent): string {
-  return safeStr(event.text) || safeStr((event as Record<string, unknown>).markdown);
+  return safeStr(event.text);
 }
 
 function readEventArgumentsText(event: AgentEvent): string {

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { createActionRuntime, safeJsonParse, type ActionRuntime } from '@/features/tools/lib/actionRuntime';
+import { createActionRuntime, type ActionRuntime } from '@/features/tools/lib/actionRuntime';
+import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { useAppContext } from '@/app/state/AppContext';
 import type { AgentEvent } from '@/app/state/types';
 
@@ -202,7 +203,7 @@ export function useActionRuntime() {
         if (!current) {
           continue;
         }
-        const bufferedArgs = safeJsonParse(current.argsBuffer, {});
+        const bufferedArgs = safeJsonParse(current.argsBuffer, {}, isObjectJson);
         tryExecute(actionId, current.actionName, bufferedArgs);
       }
     }

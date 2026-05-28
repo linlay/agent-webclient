@@ -75,12 +75,19 @@ export type {
 	AIAwaitQuestionSubmitParamData,
 	AIAwaitSubmitParamData,
 	AIAwaitSubmitPayloadData,
+	AIContextCompactEvent,
 	AIUsageSnapshotEvent,
 	AIUsageStats,
 } from "@/app/state/eventTypes";
 export {
 	AIAwaitEventTypeEnum,
 	AIAwaitQuestionType,
+	AIContentEventTypeEnum,
+	AIContextEventTypeEnum,
+	AIPlanningEventTypeEnum,
+	AIReasoningEventTypeEnum,
+	AIRunEventTypeEnum,
+	AIToolEventTypeEnum,
 	AIUsageEventTypeEnum,
 	ViewportTypeEnum,
 } from "@/app/state/eventTypes";

@@ -2,64 +2,24 @@ import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import {
-  ApiError,
   createAttachStream,
   createQueryStream,
-  type AttachStreamParams,
-  type QueryStreamParams,
 } from "@/shared/api/apiClient";
+import {
+  createStreamAbortScope,
+  startQueryStreamState,
+  stopQueryStreamState,
+  toApiErrorFromText,
+  type ExecuteAttachRunOptions,
+  type ExecuteQueryStreamOptions,
+} from "@/features/transport/lib/queryStreamShared";
 
-export interface ExecuteQueryStreamSseOptions {
-  params: QueryStreamParams;
-  dispatch: Dispatch<AppAction>;
-  handleEvent: (event: AgentEvent) => void;
-}
-
-export interface ExecuteAttachRunSseOptions {
-  params: AttachStreamParams;
-  dispatch: Dispatch<AppAction>;
-  handleEvent: (event: AgentEvent) => void;
-}
+export type ExecuteQueryStreamSseOptions = ExecuteQueryStreamOptions;
+export type ExecuteAttachRunSseOptions = ExecuteAttachRunOptions;
 
 interface ParsedSseFrame {
   event?: string;
   data: string;
-}
-
-function toApiErrorFromText(
-  rawText: string,
-  status: number,
-  fallbackMessage: string,
-): ApiError {
-  const trimmed = String(rawText || "").trim();
-  if (!trimmed) {
-    return new ApiError(fallbackMessage, {
-      status,
-      data: rawText,
-    });
-  }
-
-  try {
-    const json = JSON.parse(trimmed) as Record<string, unknown>;
-    return new ApiError(
-      typeof json.msg === "string" && json.msg.trim()
-        ? json.msg.trim()
-        : fallbackMessage,
-      {
-        status,
-        code:
-          typeof json.code === "number" || typeof json.code === "string"
-            ? json.code
-            : null,
-        data: "data" in json ? json.data : json,
-      },
-    );
-  } catch {
-    return new ApiError(trimmed || fallbackMessage, {
-      status,
-      data: rawText,
-    });
-  }
 }
 
 function parseSseFrame(block: string): ParsedSseFrame | null {
@@ -171,26 +131,9 @@ export async function executeQueryStreamSse(
   options: ExecuteQueryStreamSseOptions,
 ): Promise<void> {
   const { dispatch, handleEvent, params } = options;
-  const abortController = new AbortController();
-  const externalSignal = params.signal;
-  const forwardAbort = () => abortController.abort();
+  const { abortController, cleanup } = createStreamAbortScope(params.signal);
 
-  if (externalSignal) {
-    if (externalSignal.aborted) {
-      abortController.abort();
-    } else {
-      externalSignal.addEventListener("abort", forwardAbort, {
-        once: true,
-      });
-    }
-  }
-
-  dispatch({ type: "SET_REQUEST_ID", requestId: params.requestId });
-  dispatch({ type: "SET_STREAMING", streaming: true });
-  dispatch({
-    type: "SET_ABORT_CONTROLLER",
-    controller: abortController,
-  });
+  startQueryStreamState(dispatch, params.requestId, abortController);
 
   try {
     const response = await createQueryStream({
@@ -203,11 +146,8 @@ export async function executeQueryStreamSse(
       throw error;
     }
   } finally {
-    if (externalSignal) {
-      externalSignal.removeEventListener("abort", forwardAbort);
-    }
-    dispatch({ type: "SET_STREAMING", streaming: false });
-    dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+    cleanup();
+    stopQueryStreamState(dispatch);
   }
 }
 
@@ -215,19 +155,7 @@ export async function executeAttachRunSse(
   options: ExecuteAttachRunSseOptions,
 ): Promise<void> {
   const { dispatch, handleEvent, params } = options;
-  const abortController = new AbortController();
-  const externalSignal = params.signal;
-  const forwardAbort = () => abortController.abort();
-
-  if (externalSignal) {
-    if (externalSignal.aborted) {
-      abortController.abort();
-    } else {
-      externalSignal.addEventListener("abort", forwardAbort, {
-        once: true,
-      });
-    }
-  }
+  const { abortController, cleanup } = createStreamAbortScope(params.signal);
 
   try {
     const response = await createAttachStream({
@@ -240,8 +168,6 @@ export async function executeAttachRunSse(
       throw error;
     }
   } finally {
-    if (externalSignal) {
-      externalSignal.removeEventListener("abort", forwardAbort);
-    }
+    cleanup();
   }
 }

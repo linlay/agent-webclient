@@ -173,47 +173,6 @@ describe('awaiting protocol helpers', () => {
     });
   });
 
-  it('keeps legacy initialPayload compatible when building iframe init data', () => {
-    const awaiting = createFormAwaiting({
-      forms: [
-        {
-          id: 'leave_form',
-          action: '提交请假申请',
-          title: 'mock 请假申请',
-        } as FormActiveAwaiting['forms'][number],
-      ],
-    });
-    (awaiting.forms[0] as FormActiveAwaiting['forms'][number] & {
-      initialPayload?: Record<string, unknown> | null;
-    }).initialPayload = { applicant_id: 'E1001' };
-
-    expect(buildAwaitingInitMessage(awaiting)).toEqual({
-      type: 'awaiting_init',
-      data: {
-        runId: 'run_1',
-        awaitingId: 'await_1',
-        viewportKey: 'leave_form',
-        mode: 'form',
-        timeout: 60,
-        activeFormIndex: 0,
-        activeFormId: 'leave_form',
-        forms: [
-          {
-            id: 'leave_form',
-            action: '提交请假申请',
-            title: 'mock 请假申请',
-            form: {
-              applicant_id: 'E1001',
-            },
-          },
-        ],
-        form: {
-          applicant_id: 'E1001',
-        },
-      },
-    });
-  });
-
   it('builds iframe data for the active form when multiple forms share one html', () => {
     const awaiting = createFormAwaiting({
       forms: [
@@ -412,11 +371,11 @@ describe('awaiting protocol helpers', () => {
     expect(readAwaitingSubmitPayload({
       type: 'frontend_awaiting_submit',
       params: [
-        {
-          id: 'leave_form',
-          decision: 'submit',
-          form: {
-            approved: true,
+	        {
+	          id: 'leave_form',
+	          decision: 'approve',
+	          form: {
+	            approved: true,
           },
         },
       ],
@@ -435,64 +394,16 @@ describe('awaiting protocol helpers', () => {
     });
   });
 
-  it('accepts legacy action keys for form submit payloads', () => {
-    expect(normalizeAwaitingSubmitParams([
-      {
-        id: 'f1',
-        action: 'submit',
-        form: {
-          amount: 80,
-        },
-      },
-    ], 'form')).toEqual([
-      {
-        id: 'f1',
-        decision: 'approve',
-        form: {
-          amount: 80,
-        },
-      },
-    ]);
-  });
-
-  it('normalizes legacy form submit and cancel decisions', () => {
-    expect(normalizeAwaitingSubmitParams([
-      {
-        id: 'f1',
-        decision: 'submit',
-        form: {
-          amount: 80,
-        },
-      },
-      {
-        id: 'f2',
-        decision: 'cancel',
-      },
-    ], 'form')).toEqual([
-      {
-        id: 'f1',
-        decision: 'approve',
-        form: {
-          amount: 80,
-        },
-      },
-      {
-        id: 'f2',
-        decision: 'reject',
-      },
-    ]);
-  });
-
   it('rejects malformed frontend awaiting submit payloads for forms', () => {
     const awaiting = createFormAwaiting();
 
     expect(readAwaitingSubmitPayload({
       type: 'frontend_awaiting_submit',
       params: [
-        {
-          id: 'leave_form',
-          decision: 'submit',
-          form: 'bad',
+	        {
+	          id: 'leave_form',
+	          decision: 'approve',
+	          form: 'bad',
         },
       ],
     }, awaiting)).toBeNull();

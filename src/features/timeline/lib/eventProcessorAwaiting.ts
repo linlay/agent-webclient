@@ -1,7 +1,6 @@
 import type { AgentEvent } from "@/app/state/types";
 import {
 	getAwaitingItemMeta,
-	getAwaitingQuestionMetaByQuestion,
 	maskAwaitingAnswerParams,
 } from "@/features/tools/lib/awaitingQuestionMeta";
 import { t } from "@/shared/i18n";
@@ -15,7 +14,6 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 	const approvals = rawRecord.approvals;
 	const forms = rawRecord.forms;
 	const plan = rawRecord.plan;
-	const legacyQuestions = rawRecord.questions;
 
 	if (Array.isArray(answers)) {
 		const normalizedAnswers =
@@ -80,31 +78,7 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 		};
 	}
 
-	if (Array.isArray(legacyQuestions) && runId && awaitingId) {
-		return legacyQuestions.map((item) => {
-			if (!item || typeof item !== "object") {
-				return item;
-			}
-			const legacyQuestion = toText((item as Record<string, unknown>).question);
-			const meta = legacyQuestion
-				? getAwaitingQuestionMetaByQuestion(runId, awaitingId, legacyQuestion)
-				: null;
-			if (meta?.type !== "password") {
-				return item;
-			}
-			return {
-				...item,
-				answer: "••••••",
-				answers: Array.isArray((item as Record<string, unknown>).answers)
-					? ((item as Record<string, unknown>).answers as unknown[]).map(
-							() => "••••••",
-					  )
-					: undefined,
-			};
-		});
-	}
-
-	return legacyQuestions ?? answers ?? approvals ?? forms ?? plan;
+	return answers ?? approvals ?? forms ?? plan;
 }
 
 export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
@@ -152,7 +126,6 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 		rawRecord.approvals,
 		rawRecord.forms,
 		rawRecord.plan,
-		rawRecord.questions,
 		event.message,
 	);
 }

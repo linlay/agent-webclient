@@ -47,15 +47,10 @@ function isModeWithBuiltinDialog(mode: AIAwaitMode | undefined): boolean {
   return mode === 'question' || mode === 'approval' || mode === 'plan';
 }
 
-type LegacyAwaitingForm = FormActiveAwaiting['forms'][number] & {
-  initialPayload?: Record<string, unknown> | null;
-};
-
 function cloneFormData(
-  form: LegacyAwaitingForm | undefined,
+  form: FormActiveAwaiting['forms'][number] | undefined,
 ): Record<string, unknown> | null {
-  const formData = form?.form ?? form?.initialPayload;
-  return formData ? { ...formData } : null;
+  return form?.form ? { ...form.form } : null;
 }
 
 function clampActiveFormIndex(
@@ -201,7 +196,6 @@ function normalizeApprovalSubmitParam(
     decision !== 'approve'
     && decision !== 'reject'
     && decision !== 'approve_rule_run'
-    && decision !== 'approve_always'
   ) {
     return null;
   }
@@ -217,16 +211,10 @@ function normalizeFormSubmitParam(
   item: Record<string, unknown>,
 ): AIAwaitFormSubmitParamData | null {
   const id = String(item.id || '').trim();
-  const rawDecision = String(item.decision || item.action || '').trim();
+  const decision = String(item.decision || '').trim();
   if (!id) {
     return null;
   }
-
-  const decision = rawDecision === 'submit'
-    ? 'approve'
-    : rawDecision === 'cancel'
-    ? 'reject'
-    : rawDecision;
   if (decision !== 'approve' && decision !== 'reject') {
     return null;
   }

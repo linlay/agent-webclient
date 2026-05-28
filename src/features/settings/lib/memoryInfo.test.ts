@@ -9,7 +9,33 @@ import {
   toScopeRecordInputs,
 } from "@/features/settings/lib/memoryInfo";
 
+const globalWithStorage = globalThis as typeof globalThis & {
+  localStorage?: {
+    getItem: jest.Mock;
+    setItem: jest.Mock;
+    removeItem: jest.Mock;
+  };
+};
+
 describe("resolveMemoryAgentContext", () => {
+  const originalLocalStorage = globalWithStorage.localStorage;
+
+  beforeEach(() => {
+    globalWithStorage.localStorage = {
+      getItem: jest.fn(() => null),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+    };
+  });
+
+  afterAll(() => {
+    if (originalLocalStorage) {
+      globalWithStorage.localStorage = originalLocalStorage;
+      return;
+    }
+    delete globalWithStorage.localStorage;
+  });
+
   it("prefers the currently selected agent worker", () => {
     const state = createInitialState();
     const nextState = {

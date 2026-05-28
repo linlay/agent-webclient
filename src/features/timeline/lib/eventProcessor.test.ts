@@ -613,10 +613,10 @@ describe('processEvent', () => {
       awaitingId: 'await_1',
       status: 'answered',
       approvals: [
-        {
-          id: 'approval_1',
-          decision: 'approved',
-          reason: '继续执行',
+	        {
+	          id: 'approval_1',
+	          decision: 'approve',
+	          reason: '继续执行',
         },
       ],
       timestamp: 222,
@@ -628,7 +628,7 @@ describe('processEvent', () => {
       items: [
         {
           id: 'approval_1',
-          decision: 'approved',
+	          decision: 'approve',
           reason: '继续执行',
           command: 'rm -rf /tmp/demo',
           ruleKey: 'dangerous-commands::rm',
@@ -663,21 +663,6 @@ describe('processEvent', () => {
       expanded: false,
       ts: 223,
     });
-  });
-
-  it('keeps legacy awaiting answer payloads on the fallback path', () => {
-    const state = createState();
-
-    processAndApply(state, {
-      type: 'awaiting.answer',
-      runId: 'run_1',
-      awaitingId: 'await_1',
-      answers: '{"approved":true,"comment":"继续"}',
-      timestamp: 224,
-    } as any, 'replay', false);
-
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.title).toBe('已提交回答');
-    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text).toBe('{\n  "approved": true,\n  "comment": "继续"\n}');
   });
 
   it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {

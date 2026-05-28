@@ -76,7 +76,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Running...");
+		expect(html).toContain("Running");
 		expect(html).toContain("status-pill is-running");
 	});
 

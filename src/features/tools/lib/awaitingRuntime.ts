@@ -144,7 +144,6 @@ function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
 function readAwaitingForm(
   value: unknown,
 ): Record<string, unknown> | null | undefined {
-  // Deprecated: only kept for legacy HTML awaiting event replay compatibility.
   if (value === undefined) {
     return undefined;
   }
@@ -217,12 +216,8 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
       (item): item is AIAwaitApproval =>
         Boolean(item) && typeof item === 'object' && !Array.isArray(item),
     )
-    .map((approval) => ({
-      id: toText(approval.id) || toText(approval.command),
-      command: toText(approval.command),
-      ruleKey: toText(approval.ruleKey) || undefined,
-      description: toText(approval.description) || undefined,
-      options: Array.isArray(approval.options)
+    .map((approval) => {
+      const options = Array.isArray(approval.options)
         ? approval.options
             .filter(
               (option) =>
@@ -235,15 +230,30 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
               decision: toText(option.decision),
               description: toText(option.description) || undefined,
             }))
-            .filter((option) => Boolean(option.label) && Boolean(option.decision))
-        : undefined,
-      allowFreeText:
-        typeof approval.allowFreeText === 'boolean'
-          ? approval.allowFreeText
-          : undefined,
-      freeTextPlaceholder:
-        toText(approval.freeTextPlaceholder) || undefined,
-    }))
+            .filter(
+              (option) =>
+                Boolean(option.label)
+                && (
+                  option.decision === 'approve'
+                  || option.decision === 'reject'
+                  || option.decision === 'approve_rule_run'
+                ),
+            )
+        : undefined;
+      return {
+        id: toText(approval.id) || toText(approval.command),
+        command: toText(approval.command),
+        ruleKey: toText(approval.ruleKey) || undefined,
+        description: toText(approval.description) || undefined,
+        options,
+        allowFreeText:
+          typeof approval.allowFreeText === 'boolean'
+            ? approval.allowFreeText
+            : undefined,
+        freeTextPlaceholder:
+          toText(approval.freeTextPlaceholder) || undefined,
+      };
+    })
     .filter((approval) => Boolean(approval.id) && Boolean(approval.command));
 }
 
@@ -271,18 +281,12 @@ function normalizeForms(
         Boolean(item) && typeof item === 'object' && !Array.isArray(item),
     )
     .map((form) => {
-      const legacyForm = form as AIAwaitForm & {
-        payload?: Record<string, unknown> | null;
-        initialPayload?: Record<string, unknown> | null;
-      };
       const action = toText(form.action) || fallbackAction;
       return {
         id: toText(form.id) || action,
         action: action || undefined,
         title: toText(form.title) || undefined,
-        form: readAwaitingForm(
-          legacyForm.form ?? legacyForm.payload ?? legacyForm.initialPayload,
-        ),
+        form: readAwaitingForm(form.form),
       };
     })
     .filter((form) => Boolean(form.id));
@@ -362,14 +366,7 @@ function normalizePlan(value: unknown): AIAwaitPlan | null {
 
 function readAwaitingTimeout(event: AgentEvent): number | null {
   const timeout = Number(event.timeout);
-  if (Number.isFinite(timeout)) {
-    return timeout;
-  }
-
-  const fallbackTimeout = Number(
-    (event as Record<string, unknown>).toolTimeout,
-  );
-  return Number.isFinite(fallbackTimeout) ? fallbackTimeout : null;
+  return Number.isFinite(timeout) ? timeout : null;
 }
 
 function readAwaitingCreatedAt(event: AgentEvent): number | null {
@@ -380,30 +377,6 @@ function readAwaitingCreatedAt(event: AgentEvent): number | null {
 
   const timestamp = Number(event.timestamp);
   return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
-}
-
-function isLegacyQuestionAsk(event: AgentEvent): boolean {
-  if (toText(event.type) !== AIAwaitEventTypeEnum.Ask || readAwaitingMode(event)) {
-    return false;
-  }
-
-  const viewportType = toText(event.viewportType);
-  if (viewportType === ViewportTypeEnum.Html) {
-    return false;
-  }
-
-  return !Array.isArray((event as Record<string, unknown>).approvals)
-    && !Array.isArray((event as Record<string, unknown>).forms);
-}
-
-function isLegacyHtmlAsk(event: AgentEvent): boolean {
-  // Deprecated: only kept for legacy HTML awaiting event replay compatibility.
-  return (
-    toText(event.type) === AIAwaitEventTypeEnum.Ask
-    && !readAwaitingMode(event)
-    && toText(event.viewportType) === ViewportTypeEnum.Html
-    && Boolean(toText(event.viewportKey))
-  );
 }
 
 export function reduceActiveAwaiting(
@@ -444,7 +417,7 @@ export function reduceActiveAwaiting(
       || (current?.key === key ? current.agentKey : '')
       || toText(fallback.agentKey);
 
-    if (nextMode === 'question' || isLegacyQuestionAsk(event)) {
+    if (nextMode === 'question') {
       const nextQuestions = normalizeQuestions(event.questions);
       if (nextQuestions.length > 0) {
         registerAwaitingQuestionMeta(runId, awaitingId, nextQuestions);
@@ -492,22 +465,13 @@ export function reduceActiveAwaiting(
       };
     }
 
-    if (nextMode === 'form' || isLegacyHtmlAsk(event)) {
+    if (nextMode === 'form') {
       const viewportKey = toText(event.viewportKey);
       const viewportType = toText(event.viewportType);
       if (!viewportKey || viewportType !== ViewportTypeEnum.Html) {
         return current;
       }
-      const nextForms = nextMode === 'form'
-        ? normalizeForms(event.forms)
-        : normalizeForms(
-            event.forms,
-            viewportKey,
-            readAwaitingForm(
-              (event as Record<string, unknown>).form
-              ?? (event as Record<string, unknown>).payload,
-            ) ?? null,
-          );
+      const nextForms = normalizeForms(event.forms);
       if (nextForms.length > 0) {
         registerAwaitingFormMeta(runId, awaitingId, nextForms);
       }
@@ -558,22 +522,6 @@ export function reduceActiveAwaiting(
     }
 
     return current;
-  }
-
-  if (type === AIAwaitEventTypeEnum.Payload) {
-    const awaitingId = toText(event.awaitingId);
-    if (!current || current.mode !== 'question' || !awaitingId || current.awaitingId !== awaitingId) {
-      return current;
-    }
-    const nextQuestions = normalizeQuestions(event.questions);
-    if (nextQuestions.length === 0) {
-      return current;
-    }
-    registerAwaitingQuestionMeta(current.runId, awaitingId, nextQuestions);
-    return {
-      ...current,
-      questions: nextQuestions,
-    };
   }
 
   if (type === AIAwaitEventTypeEnum.Answer) {

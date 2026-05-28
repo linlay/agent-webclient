@@ -38,7 +38,6 @@ export type AwaitingItemMeta =
 
 interface AwaitingQuestionMetaStore {
   byId: Map<string, AwaitingItemMeta>;
-  byQuestion: Map<string, AwaitingQuestionMeta>;
 }
 
 const awaitingQuestionMetaByKey = new Map<string, AwaitingQuestionMetaStore>();
@@ -68,7 +67,6 @@ export function registerAwaitingQuestionMeta(
 ): void {
   const key = buildAwaitingQuestionMetaKey(runId, awaitingId);
   const byId = new Map<string, AwaitingQuestionMeta>();
-  const byQuestion = new Map<string, AwaitingQuestionMeta>();
 
   for (const question of questions) {
     const id = question.id || question.question;
@@ -83,7 +81,6 @@ export function registerAwaitingQuestionMeta(
       type: question.type,
     };
     byId.set(id, meta);
-    byQuestion.set(question.question, meta);
   }
 
   if (byId.size === 0) {
@@ -91,10 +88,7 @@ export function registerAwaitingQuestionMeta(
     return;
   }
 
-  awaitingQuestionMetaByKey.set(key, {
-    byId,
-    byQuestion,
-  });
+  awaitingQuestionMetaByKey.set(key, { byId });
 }
 
 function getAwaitingMetaStore(
@@ -114,7 +108,6 @@ export function registerAwaitingApprovalMeta(
   const key = buildAwaitingQuestionMetaKey(runId, awaitingId);
   const existing = awaitingQuestionMetaByKey.get(key);
   const byId = existing?.byId ?? new Map<string, AwaitingItemMeta>();
-  const byQuestion = existing?.byQuestion ?? new Map<string, AwaitingQuestionMeta>();
 
   for (const approval of approvals) {
     if (!approval.id || !approval.command) {
@@ -129,7 +122,7 @@ export function registerAwaitingApprovalMeta(
     });
   }
 
-  awaitingQuestionMetaByKey.set(key, { byId, byQuestion });
+  awaitingQuestionMetaByKey.set(key, { byId });
 }
 
 export function registerAwaitingFormMeta(
@@ -140,7 +133,6 @@ export function registerAwaitingFormMeta(
   const key = buildAwaitingQuestionMetaKey(runId, awaitingId);
   const existing = awaitingQuestionMetaByKey.get(key);
   const byId = existing?.byId ?? new Map<string, AwaitingItemMeta>();
-  const byQuestion = existing?.byQuestion ?? new Map<string, AwaitingQuestionMeta>();
 
   for (const form of forms) {
     if (!form.id) {
@@ -154,7 +146,7 @@ export function registerAwaitingFormMeta(
     });
   }
 
-  awaitingQuestionMetaByKey.set(key, { byId, byQuestion });
+  awaitingQuestionMetaByKey.set(key, { byId });
 }
 
 export function getAwaitingItemMeta(
@@ -176,18 +168,6 @@ export function getAwaitingQuestionMeta(
 ): AwaitingQuestionMeta | null {
   const meta = getAwaitingItemMeta(runId, awaitingId, id);
   return meta?.kind === 'question' ? meta : null;
-}
-
-export function getAwaitingQuestionMetaByQuestion(
-  runId: string,
-  awaitingId: string,
-  question: string,
-): AwaitingQuestionMeta | null {
-  const metaStore = getAwaitingMetaStore(runId, awaitingId);
-  if (!metaStore) {
-    return null;
-  }
-  return metaStore.byQuestion.get(question) ?? null;
 }
 
 export function maskAwaitingAnswerParams(
