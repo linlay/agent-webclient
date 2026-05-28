@@ -399,6 +399,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         />
       );
     }
+    if (state.activeAwaiting.mode === "plan") {
+      return (
+        <Buildin.PlanDialog
+          data={state.activeAwaiting}
+          onSubmit={handleAwaitingSubmit}
+          onResolvedByOther={clearActiveAwaiting}
+        />
+      );
+    }
     if (state.activeAwaiting.mode === "question") {
       return (
         <Buildin.QuestionDialog

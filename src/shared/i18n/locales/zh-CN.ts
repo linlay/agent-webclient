@@ -163,7 +163,7 @@ export const zhCNMessages: I18nMessages = {
   "eventPopover.copy.all": "复制全部",
   "eventPopover.copy.allShort": "全部",
   "eventPopover.copy.arguments": "复制参数",
-  "eventPopover.copy.awaitingItems": "复制问题/审批/表单 JSON",
+  "eventPopover.copy.awaitingItems": "复制问题/审批/表单/计划 JSON",
   "eventPopover.copy.collectedSnapshot": "复制汇总快照 JSON",
   "eventPopover.copy.collectedText": "复制汇总文本",
   "eventPopover.copy.currentText": "复制当前文本",

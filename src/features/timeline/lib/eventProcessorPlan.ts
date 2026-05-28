@@ -17,7 +17,10 @@ export function processPlanEvent(
   const commands: EventCommand[] = [];
   const type = toText(event.type);
 
-  if ((type === "plan.create" || type === "plan.update") && event.plan) {
+  if (
+    (type === "plan.create" || type === "plan.update")
+    && Array.isArray(event.plan)
+  ) {
     const nextPlanId = String(event.planId || "plan");
     commands.push({
       cmd: "SET_PLAN",

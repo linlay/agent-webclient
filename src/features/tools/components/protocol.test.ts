@@ -57,10 +57,30 @@ function createFormAwaiting(
   };
 }
 
+function createPlanAwaiting(
+  patch: Partial<Extract<ActiveAwaiting, { mode: 'plan' }>> = {},
+): Extract<ActiveAwaiting, { mode: 'plan' }> {
+  return {
+    key: 'run_1#await_plan_1',
+    awaitingId: 'await_plan_1',
+    runId: 'run_1',
+    agentKey: 'demo-agent',
+    timeout: 0,
+    mode: 'plan',
+    plan: {
+      id: 'confirm',
+      planningId: 'run_1_planning_1',
+      title: '实施此计划？',
+    },
+    ...patch,
+  };
+}
+
 describe('awaiting protocol helpers', () => {
   it('selects builtin and html render modes from awaiting mode', () => {
     expect(getAwaitingRenderMode(null)).toBe('none');
     expect(getAwaitingRenderMode(createQuestionAwaiting())).toBe('builtin');
+    expect(getAwaitingRenderMode(createPlanAwaiting())).toBe('builtin');
     expect(getAwaitingRenderMode(createFormAwaiting())).toBe('html');
   });
 
@@ -303,6 +323,22 @@ describe('awaiting protocol helpers', () => {
 
     expect(normalizeAwaitingSubmitParams([
       {
+        id: 'confirm',
+        decision: 'reject',
+        reason: '请补充测试范围',
+        planningId: 'run_1_planning_1',
+      },
+    ], 'plan')).toEqual([
+      {
+        id: 'confirm',
+        decision: 'reject',
+        reason: '请补充测试范围',
+        planningId: 'run_1_planning_1',
+      },
+    ]);
+
+    expect(normalizeAwaitingSubmitParams([
+      {
         id: 'f1',
         decision: 'approve',
         form: {
@@ -342,6 +378,32 @@ describe('awaiting protocol helpers', () => {
         },
       },
     ]);
+  });
+
+  it('rejects malformed plan submit params', () => {
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'confirm',
+        decision: 'approve_rule_run',
+      },
+    ], 'plan')).toEqual([]);
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'confirm',
+        decision: 'approve',
+      },
+      {
+        id: 'confirm',
+        decision: 'reject',
+      },
+    ], 'plan')).toEqual([]);
+    expect(normalizeAwaitingSubmitParams([
+      {
+        id: 'confirm',
+        decision: 'approve',
+        form: {},
+      },
+    ], 'plan')).toEqual([]);
   });
 
   it('reads frontend awaiting submit payloads for form awaitings using active identifiers', () => {

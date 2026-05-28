@@ -51,7 +51,7 @@ export const defaultEventPopoverT: EventPopoverT = (key, params = {}) => {
 		"eventPopover.copy.collectedSnapshot": "Copy collected snapshot JSON",
 		"eventPopover.copy.arguments": "Copy arguments",
 		"eventPopover.copy.result": "Copy result",
-		"eventPopover.copy.awaitingItems": "Copy question/approval/form JSON",
+		"eventPopover.copy.awaitingItems": "Copy question/approval/form/plan JSON",
 		"eventPopover.copy.field": "Copy {field}",
 		"eventPopover.feedback.copied": "Copied {label}",
 		"eventPopover.feedback.copyFailed": "{label} copy failed",
@@ -352,6 +352,7 @@ function readAwaitingItemsForCopy(event: AgentEvent | null): string {
 		stringifyCopyValue(record.questions) ||
 		stringifyCopyValue(record.approvals) ||
 		stringifyCopyValue(record.forms) ||
+		stringifyCopyValue(record.plan) ||
 		stringifyCopyValue(record.answers)
 	);
 }

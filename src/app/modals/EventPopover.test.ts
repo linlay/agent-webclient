@@ -1323,7 +1323,7 @@ describe("EventPopover display and copy helpers", () => {
       },
       {
         key: "awaitingItems",
-        label: "Copy question/approval/form JSON",
+        label: "Copy question/approval/form/plan JSON",
         text: JSON.stringify(
           [{ id: "q1", question: "继续吗？", type: "text" }],
           null,

@@ -3,6 +3,7 @@ import type {
   AIAwaitApprovalSubmitParamData,
   AIAwaitFormSubmitParamData,
   AIAwaitMode,
+  AIAwaitPlanSubmitParamData,
   AIAwaitQuestionSubmitParamData,
   AIAwaitSubmitParamData,
   AIAwaitSubmitPayloadData,
@@ -43,7 +44,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isModeWithBuiltinDialog(mode: AIAwaitMode | undefined): boolean {
-  return mode === 'question' || mode === 'approval';
+  return mode === 'question' || mode === 'approval' || mode === 'plan';
 }
 
 type LegacyAwaitingForm = FormActiveAwaiting['forms'][number] & {
@@ -86,7 +87,7 @@ export function getAwaitingRenderMode(
     return 'html';
   }
 
-  if ('questions' in awaiting || 'approvals' in awaiting) {
+  if ('questions' in awaiting || 'approvals' in awaiting || 'plan' in awaiting) {
     return 'builtin';
   }
 
@@ -268,11 +269,42 @@ function normalizeFormSubmitParam(
   };
 }
 
+function normalizePlanSubmitParam(
+  item: Record<string, unknown>,
+): AIAwaitPlanSubmitParamData | null {
+  if (
+    'answer' in item
+    || 'answers' in item
+    || 'payload' in item
+    || 'form' in item
+  ) {
+    return null;
+  }
+
+  const decision = String(item.decision || '').trim();
+  if (decision !== 'approve' && decision !== 'reject') {
+    return null;
+  }
+
+  const id = String(item.id || '').trim();
+  const reason = String(item.reason || '').trim();
+  const planningId = String(item.planningId || '').trim();
+  return {
+    ...(id ? { id } : {}),
+    decision,
+    ...(reason ? { reason } : {}),
+    ...(planningId ? { planningId } : {}),
+  };
+}
+
 export function normalizeAwaitingSubmitParams(
   value: unknown,
   mode?: AIAwaitMode,
 ): AIAwaitSubmitParamData[] {
   if (!Array.isArray(value)) {
+    return [];
+  }
+  if (mode === 'plan' && value.length !== 1) {
     return [];
   }
 
@@ -288,9 +320,13 @@ export function normalizeAwaitingSubmitParams(
       if (mode === 'form') {
         return normalizeFormSubmitParam(item);
       }
+      if (mode === 'plan') {
+        return normalizePlanSubmitParam(item);
+      }
       return (
         normalizeApprovalSubmitParam(item)
         ?? normalizeFormSubmitParam(item)
+        ?? normalizePlanSubmitParam(item)
         ?? normalizeQuestionSubmitParam(item)
       );
     })

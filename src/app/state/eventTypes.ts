@@ -112,12 +112,13 @@ export enum AIAwaitQuestionType {
   DateTime = "datetime",
 }
 
-export type AIAwaitMode = "question" | "approval" | "form";
+export type AIAwaitMode = "question" | "approval" | "form" | "plan";
 export type AIAwaitApprovalDecision =
   | "approve"
   | "reject"
   | "approve_rule_run"
   | "approve_always"; // legacy replay compatibility only
+export type AIAwaitPlanDecision = "approve" | "reject";
 
 export interface ResourceData {
   name?: string;
@@ -188,6 +189,19 @@ export interface AIAwaitApprovalOption {
   decision: string;
 }
 
+export interface AIAwaitPlanInput {
+  type: "text";
+  placeholder?: string;
+  required?: boolean;
+}
+
+export interface AIAwaitPlanOption {
+  label: string;
+  description?: string;
+  decision: AIAwaitPlanDecision;
+  input?: AIAwaitPlanInput;
+}
+
 export interface AIAwaitQuestion {
   id: string;
   type: AIAwaitQuestionType;
@@ -216,6 +230,13 @@ export interface AIAwaitForm {
   title?: string;
 }
 
+export interface AIAwaitPlan {
+  id: string;
+  planningId?: string;
+  title?: string;
+  options?: AIAwaitPlanOption[];
+}
+
 export interface AIAwaitQuestionSubmitParamData {
   id: string;
   answer?: string | number;
@@ -237,6 +258,13 @@ export interface AIAwaitFormSubmitParamData {
   form?: Record<string, any> | null;
 }
 
+export interface AIAwaitPlanSubmitParamData {
+  id?: string;
+  decision: AIAwaitPlanDecision;
+  reason?: string;
+  planningId?: string;
+}
+
 export interface AIAwaitAnswerError {
   code: string;
   message: string;
@@ -245,7 +273,8 @@ export interface AIAwaitAnswerError {
 export type AIAwaitSubmitParamData =
   | AIAwaitQuestionSubmitParamData
   | AIAwaitApprovalSubmitParamData
-  | AIAwaitFormSubmitParamData;
+  | AIAwaitFormSubmitParamData
+  | AIAwaitPlanSubmitParamData;
 
 export interface AIAwaitSubmitPayloadData {
   params: AIAwaitSubmitParamData[];
@@ -277,7 +306,7 @@ export interface AIEventCommonFields {
   result?: unknown;
   approval?: Record<string, unknown>;
   output?: unknown;
-  plan?: AIPlan[];
+  plan?: AIPlan[] | AIAwaitPlan | AIAwaitPlanSubmitParamData;
   arguments?: unknown;
   toolLabel?: string;
   toolName?: string;
@@ -396,6 +425,7 @@ export interface AIAwaitAskEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Ask;
   approvals?: AIAwaitApproval[];
   forms?: AIAwaitForm[];
+  plan?: AIAwaitPlan;
 }
 
 export interface AIAwaitPayloadEvent extends AIBaseEvent {
@@ -408,6 +438,7 @@ export interface AIAwaitAnswerEvent extends AIBaseEvent {
   answers?: AIAwaitQuestionSubmitParamData[];
   approvals?: AIAwaitApprovalSubmitParamData[];
   forms?: AIAwaitFormSubmitParamData[];
+  plan?: AIAwaitPlanSubmitParamData;
   error?: AIAwaitAnswerError;
 }
 

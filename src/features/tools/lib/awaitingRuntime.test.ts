@@ -365,6 +365,60 @@ describe('reduceActiveAwaiting', () => {
     ]);
   });
 
+  it('opens plan awaitings from a single plan object', () => {
+    const asked = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_plan_1',
+      awaitingId: 'run_plan_1_coder_plan_confirm_1',
+      mode: 'plan',
+      viewportType: ViewportTypeEnum.Builtin,
+      viewportKey: 'plan',
+      timeout: 0,
+      plan: {
+        id: 'confirm',
+        planningId: 'run_plan_1_planning_1',
+        title: '实施此计划？',
+        options: [
+          { label: '是，实施此计划', decision: 'approve' },
+          {
+            label: '否，请告知如何调整',
+            decision: 'reject',
+            input: {
+              type: 'text',
+              placeholder: '请告知如何调整',
+              required: false,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(asked).toMatchObject({
+      key: 'run_plan_1#run_plan_1_coder_plan_confirm_1',
+      runId: 'run_plan_1',
+      awaitingId: 'run_plan_1_coder_plan_confirm_1',
+      timeout: 0,
+      mode: 'plan',
+      plan: {
+        id: 'confirm',
+        planningId: 'run_plan_1_planning_1',
+        title: '实施此计划？',
+        options: [
+          { label: '是，实施此计划', decision: 'approve' },
+          {
+            label: '否，请告知如何调整',
+            decision: 'reject',
+            input: {
+              type: 'text',
+              placeholder: '请告知如何调整',
+              required: false,
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('keeps legacy initialPayload form events compatible for replay', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',

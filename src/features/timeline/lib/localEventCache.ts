@@ -247,6 +247,9 @@ function normalizeAwaitingItemsSignature(
 	if (awaiting.mode === "approval") {
 		return awaiting.approvals?.length > 0 ? JSON.stringify(awaiting.approvals) : "";
 	}
+	if (awaiting.mode === "plan") {
+		return awaiting.plan ? JSON.stringify(awaiting.plan) : "";
+	}
 	return awaiting.forms?.length > 0 ? JSON.stringify(awaiting.forms) : "";
 }
 

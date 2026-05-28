@@ -1,6 +1,7 @@
 import type {
 	AIAwaitApproval,
 	AIAwaitForm,
+	AIAwaitPlan,
 	AIAwaitQuestion,
 } from "@/app/state/eventTypes";
 import { ViewportTypeEnum } from "@/app/state/eventTypes";
@@ -118,7 +119,13 @@ export interface FormActiveAwaiting extends ActiveAwaitingBase {
 	viewportHtml: string;
 }
 
+export interface PlanActiveAwaiting extends ActiveAwaitingBase {
+	mode: "plan";
+	plan: AIAwaitPlan;
+}
+
 export type ActiveAwaiting =
 	| QuestionActiveAwaiting
 	| ApprovalActiveAwaiting
-	| FormActiveAwaiting;
+	| FormActiveAwaiting
+	| PlanActiveAwaiting;

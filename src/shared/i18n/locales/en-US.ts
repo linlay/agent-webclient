@@ -163,7 +163,7 @@ export const enUSMessages: I18nMessages = {
   "eventPopover.copy.all": "Copy all",
   "eventPopover.copy.allShort": "All",
   "eventPopover.copy.arguments": "Copy arguments",
-  "eventPopover.copy.awaitingItems": "Copy question/approval/form JSON",
+  "eventPopover.copy.awaitingItems": "Copy question/approval/form/plan JSON",
   "eventPopover.copy.collectedSnapshot": "Copy collected snapshot JSON",
   "eventPopover.copy.collectedText": "Copy collected text",
   "eventPopover.copy.currentText": "Copy current text",

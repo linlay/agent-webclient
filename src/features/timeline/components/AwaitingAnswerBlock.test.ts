@@ -142,4 +142,29 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).toContain('拒绝 · 风险过高');
     expect(html).not.toContain('approve_rule_run');
   });
+
+  it('renders plan decisions from the single plan envelope', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AwaitingAnswerBlock, {
+        node: {
+          id: 'node_6',
+          kind: 'awaiting.answer',
+          text: JSON.stringify({
+            status: 'answered',
+            plan: {
+              id: 'confirm',
+              planningId: 'run_1_planning_1',
+              decision: 'reject',
+              reason: '请补充测试范围',
+            },
+          }),
+          expanded: true,
+          ts: 0,
+        } as any,
+      }),
+    );
+
+    expect(html).toContain('run_1_planning_1');
+    expect(html).toContain('拒绝 · 请补充测试范围');
+  });
 });

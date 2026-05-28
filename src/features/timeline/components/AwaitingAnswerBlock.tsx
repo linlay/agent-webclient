@@ -18,6 +18,7 @@ interface AwaitingAnswerDisplayItem {
 interface AwaitingAnswerEnvelope {
   status?: "answered" | "error";
   items?: Record<string, unknown>[];
+  plan?: Record<string, unknown>;
   error?: {
     code?: string;
     message?: string;
@@ -54,6 +55,7 @@ function formatAwaitingAnswerItem(item: Record<string, unknown>): AwaitingAnswer
   const title =
     question
     || String(item.title || "").trim()
+    || String(item.planningId || "").trim()
     || String(item.command || "").trim()
     || String(item.action || "").trim()
     || id
@@ -146,12 +148,16 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
             Boolean(item) && typeof item === "object" && !Array.isArray(item),
         )
       : undefined;
+    const plan = record.plan && typeof record.plan === "object" && !Array.isArray(record.plan)
+      ? record.plan as Record<string, unknown>
+      : undefined;
     const error = record.error && typeof record.error === "object" && !Array.isArray(record.error)
       ? record.error as AwaitingAnswerEnvelope["error"]
       : undefined;
     return {
       status,
       items,
+      plan,
       error,
     };
   } catch (error) {
@@ -175,6 +181,9 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
         title: "状态",
         value: errorMessage || errorCode || "等待异常",
       }];
+    }
+    if (envelope.plan) {
+      return [formatAwaitingAnswerItem(envelope.plan)];
     }
     return (envelope.items || []).map(formatAwaitingAnswerItem);
   }, [envelope]);

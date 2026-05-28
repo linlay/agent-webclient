@@ -11,6 +11,7 @@ jest.mock("@/app/state/AppContext", () => ({
 jest.mock("@/features/tools/components/buildin", () => ({
   Buildin: {
     ApprovalDialog: () => React.createElement("div", null, "approval"),
+    PlanDialog: () => React.createElement("div", null, "plan"),
     QuestionDialog: () => React.createElement("div", null, "question"),
   },
 }));

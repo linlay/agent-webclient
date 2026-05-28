@@ -4,6 +4,8 @@ import type {
   AIAwaitApproval,
   AIAwaitForm,
   AIAwaitMode,
+  AIAwaitPlan,
+  AIAwaitPlanDecision,
   AIAwaitQuestion,
   FormActiveAwaiting,
 } from '@/app/state/types';
@@ -53,6 +55,18 @@ function cloneForms(forms: AIAwaitForm[]): AIAwaitForm[] {
   }));
 }
 
+function clonePlan(plan: AIAwaitPlan): AIAwaitPlan {
+  return {
+    ...plan,
+    options: Array.isArray(plan.options)
+      ? plan.options.map((option) => ({
+          ...option,
+          input: option.input ? { ...option.input } : undefined,
+        }))
+      : undefined,
+  };
+}
+
 export function cloneActiveAwaiting(
   awaiting: ActiveAwaiting | null,
 ): ActiveAwaiting | null {
@@ -71,6 +85,13 @@ export function cloneActiveAwaiting(
     return {
       ...awaiting,
       approvals: cloneApprovals(awaiting.approvals),
+    };
+  }
+
+  if (awaiting.mode === 'plan') {
+    return {
+      ...awaiting,
+      plan: clonePlan(awaiting.plan),
     };
   }
 
@@ -115,7 +136,7 @@ function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
   }
 
   const mode = toText(event.mode);
-  return mode === 'question' || mode === 'approval' || mode === 'form'
+  return mode === 'question' || mode === 'approval' || mode === 'form' || mode === 'plan'
     ? mode
     : undefined;
 }
@@ -281,6 +302,62 @@ function normalizeForms(
       form: fallbackForm ?? null,
     },
   ];
+}
+
+function normalizePlan(value: unknown): AIAwaitPlan | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const plan = value as Record<string, unknown>;
+  const id = toText(plan.id);
+  if (!id) {
+    return null;
+  }
+
+  const normalized: AIAwaitPlan = {
+    id,
+    planningId: toText(plan.planningId) || undefined,
+    title: toText(plan.title) || undefined,
+    options: Array.isArray(plan.options)
+      ? plan.options
+          .filter(
+            (option) =>
+              Boolean(option)
+              && typeof option === 'object'
+              && !Array.isArray(option),
+          )
+          .map((option) => {
+            const item = option as Record<string, unknown>;
+            const input = item.input;
+            const normalizedInput =
+              input && typeof input === 'object' && !Array.isArray(input)
+                ? {
+                    type: toText((input as Record<string, unknown>).type) as 'text',
+                    placeholder:
+                      toText((input as Record<string, unknown>).placeholder)
+                      || undefined,
+                    required:
+                      typeof (input as Record<string, unknown>).required === 'boolean'
+                        ? Boolean((input as Record<string, unknown>).required)
+                        : undefined,
+                  }
+                : undefined;
+            return {
+              label: toText(item.label),
+              description: toText(item.description) || undefined,
+              decision: toText(item.decision) as AIAwaitPlanDecision,
+              input: normalizedInput?.type === 'text' ? normalizedInput : undefined,
+            };
+          })
+          .filter(
+            (option) =>
+              Boolean(option.label)
+              && (option.decision === 'approve' || option.decision === 'reject'),
+          )
+      : undefined,
+  };
+
+  return normalized;
 }
 
 function readAwaitingTimeout(event: AgentEvent): number | null {
@@ -452,6 +529,29 @@ export function reduceActiveAwaiting(
         viewportKey,
         viewportType: ViewportTypeEnum.Html,
         ...runtime,
+        resolvedByOther:
+          current?.key === key ? current.resolvedByOther : undefined,
+      };
+    }
+
+    if (nextMode === 'plan') {
+      const nextPlan = normalizePlan((event as Record<string, unknown>).plan);
+      if (!nextPlan && !(current?.key === key && current.mode === 'plan')) {
+        return current;
+      }
+      return {
+        key,
+        awaitingId,
+        runId,
+        agentKey,
+        timeout: readAwaitingTimeout(event),
+        createdAt,
+        mode: 'plan',
+        plan:
+          nextPlan
+          ?? (current?.key === key && current.mode === 'plan'
+            ? clonePlan(current.plan)
+            : { id: 'confirm' }),
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
       };

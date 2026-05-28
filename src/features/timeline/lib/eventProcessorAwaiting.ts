@@ -14,6 +14,7 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 	const answers = rawRecord.answers;
 	const approvals = rawRecord.approvals;
 	const forms = rawRecord.forms;
+	const plan = rawRecord.plan;
 	const legacyQuestions = rawRecord.questions;
 
 	if (Array.isArray(answers)) {
@@ -73,6 +74,12 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 		});
 	}
 
+	if (plan && typeof plan === "object" && !Array.isArray(plan)) {
+		return {
+			...plan,
+		};
+	}
+
 	if (Array.isArray(legacyQuestions) && runId && awaitingId) {
 		return legacyQuestions.map((item) => {
 			if (!item || typeof item !== "object") {
@@ -97,7 +104,7 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 		});
 	}
 
-	return legacyQuestions ?? answers ?? approvals ?? forms;
+	return legacyQuestions ?? answers ?? approvals ?? forms ?? plan;
 }
 
 export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
@@ -118,6 +125,16 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 		};
 	}
 	if (status === "answered") {
+		if (
+			rawRecord.plan
+			&& typeof rawRecord.plan === "object"
+			&& !Array.isArray(rawRecord.plan)
+		) {
+			return {
+				status: "answered",
+				plan: maskStructuredAwaitingAnswers(event),
+			};
+		}
 		return {
 			status: "answered",
 			items: maskStructuredAwaitingAnswers(event),
@@ -134,6 +151,7 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 		rawRecord.answers,
 		rawRecord.approvals,
 		rawRecord.forms,
+		rawRecord.plan,
 		rawRecord.questions,
 		event.message,
 	);
