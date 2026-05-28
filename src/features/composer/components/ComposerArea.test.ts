@@ -57,6 +57,11 @@ jest.mock("@/features/composer/components/ComposerActions", () => ({
     React.createElement("div", { className: "composer-actions" }),
 }));
 
+jest.mock("@/features/composer/components/QuerySettingsControls", () => ({
+  QuerySettingsControls: () =>
+    React.createElement("div", { className: "query-settings-controls" }, "权限"),
+}));
+
 jest.mock("@/features/composer/components/ComposerWonders", () => ({
   ComposerWonders: () =>
     React.createElement("div", { className: "composer-wonders" }, "wonder"),
@@ -108,12 +113,16 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
   }),
 }));
 
+const mockComposerAwaitingState = {
+  isAwaitingActive: false,
+};
+
 jest.mock("@/features/composer/hooks/useComposerAwaiting", () => ({
   useComposerAwaiting: () => ({
     clearActiveAwaiting: jest.fn(),
     handleAwaitingSubmit: jest.fn(),
     handlePatchActiveAwaiting: jest.fn(),
-    isAwaitingActive: false,
+    isAwaitingActive: mockComposerAwaitingState.isAwaitingActive,
   }),
 }));
 
@@ -203,6 +212,7 @@ describe("ComposerArea", () => {
       removeItem: jest.fn(),
     };
     mockComposerInputProps.length = 0;
+    mockComposerAwaitingState.isAwaitingActive = false;
     useAppDispatch.mockReturnValue(jest.fn());
     useAppState.mockReturnValue(createInitialState());
     useComposerWonders.mockClear();
@@ -229,5 +239,27 @@ describe("ComposerArea", () => {
     expect(mockComposerInputProps[0].emptyInputMinRows).toBe(1);
     expect(mockComposerInputProps[0].inputMaxRows).toBe(6);
     expect(useComposerWonders.mock.calls[0][0].isBlankConversation).toBe(false);
+  });
+
+  it("keeps runtime permission controls visible while awaiting approval", () => {
+    const state = createInitialState();
+    mockComposerAwaitingState.isAwaitingActive = true;
+    useAppState.mockReturnValue({
+      ...state,
+      runId: "run_1",
+      currentRunAgentKey: "agent_a",
+      activeAwaiting: {
+        mode: "approval",
+        runId: "run_1",
+        agentKey: "agent_a",
+        awaitingId: "await_1",
+        approvals: [],
+      },
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(html).toContain("query-settings-controls");
+    expect(html).toContain("approval");
   });
 });

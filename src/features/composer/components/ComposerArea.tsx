@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
+import { message as antdMessage } from "antd";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Buildin } from "@/features/tools/components/buildin";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
@@ -14,9 +15,13 @@ import { ComposerAttachments } from "@/features/composer/components/ComposerAtta
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
+import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
+import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
+import { resolveActiveRunId } from "@/features/composer/lib/steerSubmission";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
 import { useComposerAwaiting } from "@/features/composer/hooks/useComposerAwaiting";
@@ -31,6 +36,8 @@ import type {
   QueryAccessLevel,
   QueryModelOverride,
 } from "@/shared/api/apiClient";
+import { createRequestId } from "@/shared/api/apiClient";
+import { updateAccessLevel } from "@/features/transport/lib/apiClientProxy";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {
@@ -79,6 +86,54 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
+  const activeRunId = useMemo(
+    () => {
+      const resolvedRunId = resolveActiveRunId({
+        stateRunId: state.runId,
+        events: state.events,
+      });
+      if (resolvedRunId) {
+        return resolvedRunId;
+      }
+      return String(state.activeAwaiting?.runId || "").trim();
+    },
+    [state.activeAwaiting?.runId, state.events, state.runId],
+  );
+  const activeRunAgentKey = useMemo(() => {
+    if (!activeRunId) {
+      return "";
+    }
+    const awaitingAgentKey = String(state.activeAwaiting?.agentKey || "").trim();
+    if (awaitingAgentKey) {
+      return awaitingAgentKey;
+    }
+    return resolveRunAgentKey({
+      runId: activeRunId,
+      currentRunAgentKey: state.currentRunAgentKey,
+      runAgentById: state.runAgentById,
+      chatId: state.chatId,
+      chatAgentById: state.chatAgentById,
+      chats: state.chats,
+      fallbackAgentKey: resolvePreferredAgentKey({
+        chatId: state.chatId,
+        chatAgentById: state.chatAgentById,
+        pendingNewChatAgentKey: state.pendingNewChatAgentKey,
+        workerSelectionKey: state.workerSelectionKey,
+        workerIndexByKey: state.workerIndexByKey,
+      }),
+    });
+  }, [
+    activeRunId,
+    state.activeAwaiting?.agentKey,
+    state.chatAgentById,
+    state.chatId,
+    state.chats,
+    state.currentRunAgentKey,
+    state.pendingNewChatAgentKey,
+    state.runAgentById,
+    state.workerIndexByKey,
+    state.workerSelectionKey,
+  ]);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
@@ -287,6 +342,36 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateMentionSuggestions,
   });
 
+  const handleAccessLevelChange = useCallback(
+    (nextAccessLevel: QueryAccessLevel) => {
+      setAccessLevel(nextAccessLevel);
+      if (!activeRunId || !activeRunAgentKey) {
+        return;
+      }
+      void updateAccessLevel({
+        requestId: createRequestId("access"),
+        runId: activeRunId,
+        agentKey: activeRunAgentKey,
+        accessLevel: nextAccessLevel,
+        reason: "user toggled permission",
+      })
+        .then((response) => {
+          const data = response.data;
+          if (!data || data.accepted !== false) {
+            return;
+          }
+          const detail = String(data.detail || response.msg || "").trim();
+          void antdMessage.warning(detail || "当前运行不支持动态切换权限");
+        })
+        .catch((error) => {
+          const detail =
+            error instanceof Error ? error.message : "权限切换请求失败";
+          void antdMessage.error(detail);
+        });
+    },
+    [activeRunAgentKey, activeRunId],
+  );
+
   const { sampledWonders } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
@@ -378,43 +463,68 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ],
   );
 
+  const activeRunAccessControls = activeRunId ? (
+    <div className="composer-awaiting-access-row">
+      <QuerySettingsControls
+        accessLevel={accessLevel}
+        disabled={isFrontendActive}
+        modelOverride={modelOverride}
+        onAccessLevelChange={handleAccessLevelChange}
+        onModelOverrideChange={setModelOverride}
+        showModelSelector={false}
+      />
+    </div>
+  ) : null;
+
   if (isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
       return (
-        <AwaitingHtmlContainer
-          data={state.activeAwaiting}
-          onPatch={handlePatchActiveAwaiting}
-          onSubmit={handleAwaitingSubmit}
-          onClose={clearActiveAwaiting}
-          onResolvedByOther={clearActiveAwaiting}
-        />
+        <div className="composer-awaiting-shell">
+          {activeRunAccessControls}
+          <AwaitingHtmlContainer
+            data={state.activeAwaiting}
+            onPatch={handlePatchActiveAwaiting}
+            onSubmit={handleAwaitingSubmit}
+            onClose={clearActiveAwaiting}
+            onResolvedByOther={clearActiveAwaiting}
+          />
+        </div>
       );
     }
     if (state.activeAwaiting.mode === "approval") {
       return (
-        <Buildin.ApprovalDialog
-          data={state.activeAwaiting}
-          onSubmit={handleAwaitingSubmit}
-          onResolvedByOther={clearActiveAwaiting}
-        />
+        <div className="composer-awaiting-shell">
+          {activeRunAccessControls}
+          <Buildin.ApprovalDialog
+            data={state.activeAwaiting}
+            onSubmit={handleAwaitingSubmit}
+            onResolvedByOther={clearActiveAwaiting}
+          />
+        </div>
       );
     }
     if (state.activeAwaiting.mode === "plan") {
       return (
-        <Buildin.PlanDialog
-          data={state.activeAwaiting}
-          onSubmit={handleAwaitingSubmit}
-          onResolvedByOther={clearActiveAwaiting}
-        />
+        <div className="composer-awaiting-shell">
+          {activeRunAccessControls}
+          <Buildin.PlanDialog
+            data={state.activeAwaiting}
+            onSubmit={handleAwaitingSubmit}
+            onResolvedByOther={clearActiveAwaiting}
+          />
+        </div>
       );
     }
     if (state.activeAwaiting.mode === "question") {
       return (
-        <Buildin.QuestionDialog
-          data={state.activeAwaiting}
-          onSubmit={handleAwaitingSubmit}
-          onResolvedByOther={clearActiveAwaiting}
-        />
+        <div className="composer-awaiting-shell">
+          {activeRunAccessControls}
+          <Buildin.QuestionDialog
+            data={state.activeAwaiting}
+            onSubmit={handleAwaitingSubmit}
+            onResolvedByOther={clearActiveAwaiting}
+          />
+        </div>
       );
     }
     return null;
@@ -524,7 +634,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   speechSupported={speechSupported}
                   speechStatus={speechStatus}
                   sendDisabled={sendDisabled}
-                  onAccessLevelChange={setAccessLevel}
+                  onAccessLevelChange={handleAccessLevelChange}
                   onControlParamsChange={setControlParams}
                   onModelOverrideChange={setModelOverride}
                   onTogglePlanningMode={togglePlanningMode}

@@ -60,6 +60,7 @@ import {
   submitTool,
   toggleAutomation,
   updateAgent,
+  updateAccessLevel,
   updateAgentModelConfig,
   putAgentOrder,
   updateAutomation,
@@ -537,6 +538,27 @@ describe('apiClient query payloads', () => {
     expect(steerPayload.runId).toBe('run_1');
     expect(steerPayload.agentKey).toBe('demo-agent');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('posts access level updates for active runs', async () => {
+    await updateAccessLevel({
+      requestId: 'req_access',
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      accessLevel: 'auto_approve',
+      reason: 'user toggled permission',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/access-level');
+    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+
+    expect(payload).toEqual({
+      requestId: 'req_access',
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      accessLevel: 'auto_approve',
+      reason: 'user toggled permission',
+    });
   });
 
   it('posts agentKey for run submit requests', async () => {

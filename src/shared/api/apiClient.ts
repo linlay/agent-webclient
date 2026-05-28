@@ -1319,6 +1319,24 @@ export interface QueryLikeParams {
 export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
 export type QueryReasoningEffort = "NONE" | "LOW" | "MEDIUM" | "HIGH";
 
+export interface AccessLevelUpdateParams {
+  requestId: string;
+  runId: string;
+  agentKey: string;
+  accessLevel: QueryAccessLevel;
+  reason?: string;
+}
+
+export interface AccessLevelUpdateResponse {
+  accepted: boolean;
+  status: string;
+  runId: string;
+  previousAccessLevel?: QueryAccessLevel | string;
+  accessLevel: QueryAccessLevel | string;
+  version: number;
+  detail: string;
+}
+
 export interface QueryModelOverride {
   key?: string;
   reasoningEffort?: QueryReasoningEffort;
@@ -1521,6 +1539,21 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
       teamId: params.teamId,
       message: params.message,
       planningMode: params.planningMode ?? false,
+    }),
+  });
+}
+
+export function updateAccessLevel(
+  params: AccessLevelUpdateParams,
+): Promise<ApiResponse<AccessLevelUpdateResponse>> {
+  return requestJson("/api/access-level", {
+    method: "POST",
+    body: JSON.stringify({
+      requestId: params.requestId,
+      runId: params.runId,
+      agentKey: params.agentKey,
+      accessLevel: params.accessLevel,
+      reason: params.reason,
     }),
   });
 }

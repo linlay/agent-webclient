@@ -92,6 +92,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			submitTool: jest.fn(),
 			toggleAutomation: jest.fn(),
 			updateAgent: jest.fn(),
+			updateAccessLevel: jest.fn(),
 			updateAgentModelConfig: jest.fn(),
 			putAgentOrder: jest.fn(),
 			updateAutomation: jest.fn(),
@@ -165,6 +166,7 @@ let mockApiClient: {
 		submitTool: jest.Mock;
 		toggleAutomation: jest.Mock;
 		updateAgent: jest.Mock;
+		updateAccessLevel: jest.Mock;
 		updateAgentModelConfig: jest.Mock;
 		putAgentOrder: jest.Mock;
 		updateAutomation: jest.Mock;
@@ -823,6 +825,59 @@ describe("apiClientProxy", () => {
 			payload: { chatId: "chat_1", runId: "run_1" },
 		});
 		expect(mockApiClient.markChatRead).not.toHaveBeenCalled();
+	});
+
+	it("routes access level updates over ws without falling back to http", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				accepted: true,
+				status: "updated",
+				runId: "run_1",
+				previousAccessLevel: "default",
+				accessLevel: "auto_approve",
+				version: 2,
+				detail: "accessLevel updated",
+			},
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(
+			proxy.updateAccessLevel({
+				requestId: "req_access",
+				agentKey: "agent_a",
+				runId: "run_1",
+				accessLevel: "auto_approve",
+				reason: "user toggled permission",
+			}),
+		).resolves.toMatchObject({
+			data: {
+				accepted: true,
+				accessLevel: "auto_approve",
+			},
+		});
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/access-level",
+			payload: {
+				requestId: "req_access",
+				agentKey: "agent_a",
+				runId: "run_1",
+				accessLevel: "auto_approve",
+				reason: "user toggled permission",
+			},
+		});
+		expect(mockApiClient.updateAccessLevel).not.toHaveBeenCalled();
 	});
 
 	it("refreshes the app token once when a ws action connect fails", async () => {

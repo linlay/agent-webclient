@@ -106,18 +106,28 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         className={`composer-actions ${isVoiceMode ? "has-voice-controls" : ""}`.trim()}
       >
         {isStreaming ? (
-          <UiButton
-            className="interrupt-btn"
-            id="interrupt-btn"
-            variant="danger"
-            size="sm"
-            iconOnly
-            disabled={isFrontendActive}
-            onClick={() => void interruptCurrentRun()}
-            aria-label={t("composer.actions.interrupt")}
-          >
-            <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
-          </UiButton>
+          <>
+            <QuerySettingsControls
+              accessLevel={accessLevel}
+              disabled={isFrontendActive}
+              modelOverride={modelOverride}
+              onAccessLevelChange={onAccessLevelChange}
+              onModelOverrideChange={onModelOverrideChange}
+              showModelSelector={false}
+            />
+            <UiButton
+              className="interrupt-btn"
+              id="interrupt-btn"
+              variant="danger"
+              size="sm"
+              iconOnly
+              disabled={isFrontendActive}
+              onClick={() => void interruptCurrentRun()}
+              aria-label={t("composer.actions.interrupt")}
+            >
+              <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
+            </UiButton>
+          </>
         ) : !isVoiceMode ? (
           <>
             <QuerySettingsControls

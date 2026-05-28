@@ -160,6 +160,26 @@ describe("QuerySettingsControls", () => {
     expect(nonCoderHtml).not.toContain("正在加载模型");
   });
 
+  it("can hide the model selector while keeping access controls", () => {
+    resolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent",
+      raw: { mode: "CODER" },
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(QuerySettingsControls, {
+        accessLevel: "default",
+        modelOverride: {},
+        onAccessLevelChange: jest.fn(),
+        onModelOverrideChange: jest.fn(),
+        showModelSelector: false,
+      }),
+    );
+
+    expect(html).toContain("默认权限");
+    expect(html).not.toContain("正在加载模型");
+  });
+
   it("loads global CODER model options", async () => {
     getModelOptions.mockResolvedValue({
       data: {

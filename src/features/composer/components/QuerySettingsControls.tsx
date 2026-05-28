@@ -29,6 +29,7 @@ interface QuerySettingsControlsProps {
   modelOverride: QueryModelOverride;
   onAccessLevelChange: (value: QueryAccessLevel) => void;
   onModelOverrideChange: (value: QueryModelOverride) => void;
+  showModelSelector?: boolean;
 }
 
 const ACCESS_LEVELS: QueryAccessLevel[] = [
@@ -522,11 +523,13 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   modelOverride,
   onAccessLevelChange,
   onModelOverrideChange,
+  showModelSelector = true,
 }) => {
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCoderAgent =
+    showModelSelector &&
     currentWorker?.type === "agent" &&
     (isCoderMode(currentWorker.raw?.mode) ||
       currentWorker.row?.agentType === "coder");
@@ -557,11 +560,14 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   } | null>(null);
 
   useEffect(() => {
+    if (!showModelSelector) {
+      return;
+    }
     if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
       return;
     }
     onModelOverrideChange({});
-  }, [isCoderAgent, modelOverride, onModelOverrideChange]);
+  }, [isCoderAgent, modelOverride, onModelOverrideChange, showModelSelector]);
 
   useEffect(() => {
     if (!isCoderAgent || !agentKey) {

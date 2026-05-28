@@ -55,6 +55,7 @@ import {
 	submitTool as submitToolHttp,
 	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
+	updateAccessLevel as updateAccessLevelHttp,
 	updateAgentModelConfig as updateAgentModelConfigHttp,
 	putAgentOrder as putAgentOrderHttp,
 	updateAutomation as updateAutomationHttp,
@@ -64,6 +65,8 @@ import {
 	type AgentEditorOptionsResponse,
 	type AgentModelConfigResponse,
 	type AgentOrderResponse,
+	type AccessLevelUpdateParams,
+	type AccessLevelUpdateResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -656,6 +659,20 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
+}
+
+export function updateAccessLevel(
+	params: AccessLevelUpdateParams,
+): Promise<ApiResponse<AccessLevelUpdateResponse>> {
+	return routeRequest<AccessLevelUpdateResponse>(
+		"/api/access-level",
+		params,
+		() => updateAccessLevelHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
