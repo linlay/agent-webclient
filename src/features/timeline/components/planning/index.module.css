@@ -1,0 +1,12 @@
+.ExpandDiv {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-image: linear-gradient(180deg, transparent, var(--bg-base));
+  padding: 16px;
+
+  button {
+    border-radius: 20px;
+  }
+}

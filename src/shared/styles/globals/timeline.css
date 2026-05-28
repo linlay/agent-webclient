@@ -1231,4 +1231,5 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 .timeline-planning-collapse.ant-collapse .ant-collapse-content>.ant-collapse-content-box{
     padding: 0 16px 16px;
+    position: relative;
 }

@@ -19,6 +19,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
 import useApp from "antd/es/app/useApp";
 import { useI18n, type Locale } from "@/shared/i18n";
+import { Skeleton } from "@/shared/components/skeleton";
+import { PlanningTimeline } from "./planning";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -429,38 +431,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         <div className="timeline-marker">
           <MaterialIcon name="assignment" />
         </div>
-        <Collapse
-          defaultActiveKey="planning"
-          expandIconPosition="end"
-          className="timeline-planning-collapse"
-          ghost
-          items={[
-            {
-              key: "planning",
-              label: <strong>套餐</strong>,
-              extra: (
-                <Flex>
-                  <Tooltip title="复制">
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyText(node.text || "").then(() => {
-                          message.success("复制成功");
-                        });
-                      }}
-                    >
-                      <MaterialIcon name="content_copy" />
-                    </UiButton>
-                  </Tooltip>
-                </Flex>
-              ),
-              children: <ContentBlock node={node} />,
-            },
-          ]}
-        />
+        <PlanningTimeline node={node} />
       </div>
     );
   }
