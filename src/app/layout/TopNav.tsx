@@ -159,40 +159,62 @@ function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): number | 
   return Math.max(0, Math.min(100, Math.round((currentSize / maxSize) * 100)));
 }
 
+function resolveChatCacheHitPercent(snapshot: AIUsageSnapshotEvent | null): number | null {
+  const promptDetails = snapshot?.usage?.chat?.promptTokensDetails;
+  const hitTokens = readUsageNumber(promptDetails?.cacheHitTokens);
+  const missTokens = readUsageNumber(promptDetails?.cacheMissTokens);
+  if (hitTokens == null || missTokens == null) return null;
+  const totalTokens = hitTokens + missTokens;
+  if (totalTokens <= 0) return null;
+  return Math.max(0, Math.min(100, (hitTokens / totalTokens) * 100));
+}
+
+function formatUsagePercent(value: number | null): string {
+  return value == null ? "--%" : `${value.toFixed(2)}%`;
+}
+
 const UsageContextWindow: React.FC<{
   snapshot: AIUsageSnapshotEvent;
   t: (key: string, values?: Record<string, string>) => string;
 }> = ({ snapshot, t }) => {
   const percent = resolveContextPercent(snapshot);
   const progressValue = percent ?? 0;
+  const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
+  const cacheHitLabel = formatUsagePercent(cacheHitPercent);
 
   return (
     <div className="usage-context-window">
-      <div
-        className="usage-context-ring"
-        style={
-          {
-            "--usage-context-percent": `${progressValue}%`,
-          } as React.CSSProperties
-        }
-        aria-label={t("topNav.usage.contextWindow")}
-      >
-        <span>{percent == null ? "--%" : `${percent}%`}</span>
+      <div className="usage-context-metric">
+        <div
+          className="usage-context-ring"
+          style={
+            {
+              "--usage-context-percent": `${progressValue}%`,
+            } as React.CSSProperties
+          }
+          aria-label={t("topNav.usage.contextWindow")}
+        >
+          <span>{percent == null ? "--%" : `${percent}%`}</span>
+        </div>
+        <div className="usage-context-copy">
+          <span>{t("topNav.usage.contextWindow")}</span>
+          <strong>
+            {formatUsageNumber(snapshot.contextWindow?.currentSize)}
+            {" / "}
+            {formatUsageNumber(snapshot.contextWindow?.maxSize)}
+          </strong>
+          <small>
+            {t("topNav.usage.estimatedNext", {
+              value: formatUsageNumber(
+                snapshot.contextWindow?.estimatedNextCallSize,
+              ),
+            })}
+          </small>
+        </div>
       </div>
-      <div className="usage-context-copy">
-        <span>{t("topNav.usage.contextWindow")}</span>
-        <strong>
-          {formatUsageNumber(snapshot.contextWindow?.currentSize)}
-          {" / "}
-          {formatUsageNumber(snapshot.contextWindow?.maxSize)}
-        </strong>
-        <small>
-          {t("topNav.usage.estimatedNext", {
-            value: formatUsageNumber(
-              snapshot.contextWindow?.estimatedNextCallSize,
-            ),
-          })}
-        </small>
+      <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.cacheHitRate")}>
+        <span>{t("topNav.usage.cacheHitRate")}:</span>
+        <strong>{cacheHitLabel}</strong>
       </div>
     </div>
   );

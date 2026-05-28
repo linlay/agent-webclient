@@ -431,10 +431,18 @@
 .usage-context-window {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     padding: 4px 6px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--accent-soft) 58%, transparent);
+}
+
+.usage-context-metric {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 7px;
 }
 
 .usage-context-ring {
@@ -488,6 +496,24 @@
     color: var(--ink-2);
     font-size: 9px;
     line-height: 1.1;
+}
+
+.usage-cache-hit-inline {
+    min-width: max-content;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--ink-muted);
+    font-size: 9px;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.usage-cache-hit-inline strong {
+    color: var(--ink-1);
+    font:
+        700 10px/1.1 "IBM Plex Mono",
+        monospace;
 }
 
 .usage-popover-section {

@@ -512,6 +512,7 @@ export const enUSMessages: I18nMessages = {
   "topNav.terminal.close": "Close terminal panel",
   "topNav.terminal.open": "Open terminal panel",
   "topNav.usage.close": "Close usage stats",
+  "topNav.usage.cacheHitRate": "Cache hit rate",
   "topNav.usage.contextWindow": "Context window",
   "topNav.usage.estimatedNext": "Estimated next call {value}",
   "topNav.usage.metric.cacheHit": "Cache hit",

@@ -101,6 +101,9 @@ describe("TopNav", () => {
 					currentSize: 64000,
 				},
 				usage: {
+					chat: {
+						promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 },
+					},
 					run: {
 						totalTokens: 1234,
 					},
@@ -114,6 +117,7 @@ describe("TopNav", () => {
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain('aria-label="64.0K"');
 		expect(html).not.toContain("1.2K");
+		expect(html).not.toContain("Cache hit rate");
 		expect(html).not.toContain("Current call");
 	});
 
@@ -131,6 +135,9 @@ describe("TopNav", () => {
 					currentSize: 64000,
 				},
 				usage: {
+					chat: {
+						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 20 },
+					},
 					run: {
 						totalTokens: 6700,
 					},
@@ -143,6 +150,87 @@ describe("TopNav", () => {
 		expect(html).toContain('aria-label="64.0K"');
 		expect(html).toContain(">50%</span>");
 		expect(html).not.toContain('aria-label="Usage"');
+	});
+
+	it("renders an empty cache hit rate in the usage popover when chat cache tokens are zero or missing", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+				},
+				usage: {
+					chat: {
+						promptTokensDetails: { cacheHitTokens: 0, cacheMissTokens: 0 },
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain(">50%</span>");
+		expect(html).toContain('aria-label="Cache hit rate"');
+		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+				},
+				usage: {
+					chat: {},
+				},
+			},
+		});
+
+		const missingHtml = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(missingHtml).toContain(">50%</span>");
+		expect(missingHtml).toContain('aria-label="Cache hit rate"');
+		expect(missingHtml).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+	});
+
+	it("calculates popover cache hit rate from chat totals instead of current call or run totals", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					current: {
+						promptTokensDetails: { cacheHitTokens: 99, cacheMissTokens: 1 },
+					},
+					run: {
+						promptTokensDetails: { cacheHitTokens: 90, cacheMissTokens: 10 },
+					},
+					chat: {
+						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
+		expect(html).not.toContain('aria-label="99%"');
+		expect(html).not.toContain('aria-label="90%"');
 	});
 
 	it("renders historical chat-only usage snapshots", () => {
@@ -169,7 +257,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain('aria-label="1.2K"');
+		expect(html).toContain("<span>Cache hit rate:</span><strong>44.49%</strong>");
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Chat total");
