@@ -33,6 +33,7 @@ import {
 import type {
   AgentDetailResponse,
   AgentEditorOptionsResponse,
+  GetAgentsOptions,
 } from "@/shared/api/apiClient";
 import {
   agentOrderPayload,
@@ -73,6 +74,12 @@ interface AgentConsoleProps {
   onSelectAgentKey?: (agentKey: string) => void;
   onClearSelection?: () => void;
   embedded?: boolean;
+}
+
+export const AGENT_CONSOLE_LIST_OPTIONS: GetAgentsOptions = { scope: "nav" };
+
+export function agentConsoleListRequestOptions(): GetAgentsOptions {
+  return { ...AGENT_CONSOLE_LIST_OPTIONS };
 }
 
 export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
@@ -547,7 +554,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setLoadingList(true);
       setError("");
       try {
-        const response = await getAgents();
+        const response = await getAgents(agentConsoleListRequestOptions());
         if (listLoadSeqRef.current !== requestSeq) return;
         const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });

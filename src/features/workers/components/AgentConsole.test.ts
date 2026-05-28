@@ -36,6 +36,7 @@ jest.mock("@/shared/ui/UiButton", () => ({
 }));
 
 import {
+  agentConsoleListRequestOptions,
   buildAgentListSummary,
   saveAgentOrderRequest,
   shouldStartAgentConsoleBootstrap,
@@ -85,6 +86,12 @@ describe("shouldStartAgentConsoleBootstrap", () => {
     expect(shouldStartAgentConsoleBootstrap(bootstrapRef)).toBe(true);
     expect(bootstrapRef.current).toBe(true);
     expect(shouldStartAgentConsoleBootstrap(bootstrapRef)).toBe(false);
+  });
+});
+
+describe("agentConsoleListRequestOptions", () => {
+  it("loads the /agents page list with nav visibility scope", () => {
+    expect(agentConsoleListRequestOptions()).toEqual({ scope: "nav" });
   });
 });
 

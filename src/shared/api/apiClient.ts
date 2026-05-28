@@ -52,7 +52,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface GetAgentsOptions {
   includeChats?: number;
-  scope?: "nav" | "copilot";
+  scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
 }
 
 export interface AgentOrderResponse {
