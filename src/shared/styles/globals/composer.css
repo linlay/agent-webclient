@@ -121,10 +121,6 @@
     color: var(--ink-2);
 }
 
-.agent-chat-shell .composer-wonders-grid {
-    grid-template-columns: 1fr;
-}
-
 .composer-wonders-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -147,11 +143,6 @@
         box-shadow 0.18s ease;
 }
 
-.agent-chat-shell .composer-wonder-card {
-    padding: 8px;
-    box-shadow: none !important;
-}
-
 .composer-wonder-card:hover,
 .composer-wonder-card:focus-visible {
     transform: translateY(-1px);
@@ -170,13 +161,6 @@
     color: var(--ink-muted);
 }
 
-.agent-chat-shell .composer-wonder-text {
-    white-space: normal;
-    color: var(--text-muted);
-}
-.agent-chat-shell .composer-wonder-card:hover .composer-wonder-text {
-    color: var(--text-main);
-}
 .composer-wonder-text {
     font-size: 13px;
     line-height: 1.6;
