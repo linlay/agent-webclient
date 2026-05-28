@@ -146,13 +146,16 @@ export function buildDesktopQueryContext(
     pageContext: _ignoredPageContext,
     ...restDesktop
   } = existingDesktop;
-  const source = readBrowserPathname() === "/copilot" ? "copilot" : "agent-webclient";
+  const pathname = readBrowserPathname();
+  const source = pathname === "/copilot" || pathname.startsWith("/copilot/")
+    ? "copilot"
+    : "agent-webclient";
   const snapshot = latestDesktopSnapshot;
 
   next.desktop = {
     ...restDesktop,
     source,
-    route: snapshot?.route || readBrowserPathname(),
+    route: snapshot?.route || pathname,
     ...(snapshot?.pageKey ? { pageKey: snapshot.pageKey } : {}),
     ...(snapshot?.pageKind ? { pageKind: snapshot.pageKind } : {}),
     ...(snapshot?.permissionMode ? { permissionMode: snapshot.permissionMode } : {}),

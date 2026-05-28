@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
@@ -22,7 +22,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
-function normalizeRouteValue(value: string | null) {
+function normalizeRouteValue(value: string | null | undefined) {
   return String(value || "").trim();
 }
 
@@ -162,12 +162,28 @@ const CopilotSidePanel: React.FC = () => {
 export const CopilotShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const lastRouteTargetKeyRef = useRef("");
-  const routeAgentKey = useMemo(
-    () => normalizeRouteValue(searchParams.get("agentKey")),
-    [searchParams],
+  const requestedAgentKey = useMemo(
+    () =>
+      normalizeRouteValue(params.agentKey) ||
+      normalizeRouteValue(searchParams.get("agentKey")),
+    [params.agentKey, searchParams],
   );
+  const resolvedAgentKey = useMemo(() => {
+    const agents = Array.isArray(state.agents) ? state.agents : [];
+    if (agents.length === 0) return "";
+
+    if (requestedAgentKey) {
+      const matched = agents.find(
+        (agent) => normalizeRouteValue(agent?.key) === requestedAgentKey,
+      );
+      if (matched?.key) return normalizeRouteValue(matched.key);
+    }
+
+    return normalizeRouteValue(agents[0]?.key);
+  }, [requestedAgentKey, state.agents]);
   const routeChatId = useMemo(
     () => normalizeRouteValue(searchParams.get("chatId")),
     [searchParams],
@@ -176,23 +192,23 @@ export const CopilotShell: React.FC = () => {
   useAppRuntimes();
 
   useEffect(() => {
-    if (!routeAgentKey && !routeChatId) {
+    if (!resolvedAgentKey) {
       lastRouteTargetKeyRef.current = "";
       return;
     }
 
-    const routeTargetKey = `${routeAgentKey}\u0000${routeChatId}`;
+    const routeTargetKey = `${resolvedAgentKey}\u0000${routeChatId}`;
     if (lastRouteTargetKeyRef.current === routeTargetKey) {
       return;
     }
     lastRouteTargetKeyRef.current = routeTargetKey;
 
-    if (routeAgentKey) {
-      const workerKey = `agent:${routeAgentKey}`;
+    if (resolvedAgentKey) {
+      const workerKey = `agent:${resolvedAgentKey}`;
       dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
       dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
       dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
-      dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey: routeAgentKey });
+      dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey: resolvedAgentKey });
     }
 
     if (routeChatId) {
@@ -210,13 +226,13 @@ export const CopilotShell: React.FC = () => {
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
         detail: {
-          agentKey: routeAgentKey,
+          agentKey: resolvedAgentKey,
           preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
       }),
     );
-  }, [dispatch, routeAgentKey, routeChatId]);
+  }, [dispatch, resolvedAgentKey, routeChatId]);
 
   return (
     <div className="app-shell layout-copilot" id="app">

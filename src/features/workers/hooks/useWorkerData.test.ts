@@ -7,6 +7,7 @@ import {
 describe('resolveAgentListScope', () => {
   it('uses the copilot agent scope on the Copilot route', () => {
     expect(resolveAgentListScope('/copilot')).toBe('copilot');
+    expect(resolveAgentListScope('/copilot/demo')).toBe('copilot');
   });
 
   it('uses the nav agent scope on normal routes', () => {
@@ -17,10 +18,21 @@ describe('resolveAgentListScope', () => {
 });
 
 describe('buildAgentListRequestOptions', () => {
-  it('builds Copilot scoped includeChats requests for initial refresh', () => {
+  it('builds Copilot scoped requests without includeChats for initial refresh', () => {
     expect(buildAgentListRequestOptions('/copilot', 5)).toEqual({
-      includeChats: 5,
+      includeChats: undefined,
       scope: 'copilot',
+    });
+    expect(buildAgentListRequestOptions('/copilot/demo', 5)).toEqual({
+      includeChats: undefined,
+      scope: 'copilot',
+    });
+  });
+
+  it('keeps includeChats on normal initial refreshes', () => {
+    expect(buildAgentListRequestOptions('/', 5)).toEqual({
+      includeChats: 5,
+      scope: 'nav',
     });
   });
 

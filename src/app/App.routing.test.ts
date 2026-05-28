@@ -77,6 +77,7 @@ describe("App routing", () => {
       expect.arrayContaining([
         "/",
         "/copilot",
+        "/copilot/:agentKey",
         "/automations",
         "/schedules",
         "/memory",

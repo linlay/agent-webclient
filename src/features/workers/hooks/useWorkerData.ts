@@ -19,17 +19,22 @@ import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 
+function isCopilotPath(pathname: string): boolean {
+  return pathname === '/copilot' || pathname.startsWith('/copilot/');
+}
+
 export function resolveAgentListScope(pathname: string): 'nav' | 'copilot' {
-  return pathname === '/copilot' ? 'copilot' : 'nav';
+  return isCopilotPath(pathname) ? 'copilot' : 'nav';
 }
 
 export function buildAgentListRequestOptions(
   pathname: string,
   includeChats?: number,
 ): { includeChats?: number; scope: 'nav' | 'copilot' } {
+  const scope = resolveAgentListScope(pathname);
   return {
-    includeChats,
-    scope: resolveAgentListScope(pathname),
+    includeChats: scope === 'copilot' ? undefined : includeChats,
+    scope,
   };
 }
 
@@ -93,6 +98,10 @@ export function useWorkerData(input: {
     const current = String(stateRef.current.workerSelectionKey || '').trim();
     if (current && rows.some((row) => row.key === current)) {
       return current;
+    }
+    if (isCopilotPath(currentPathname())) {
+      const firstAgentKey = rows.find((row) => row.type === 'agent')?.key || '';
+      if (firstAgentKey) return firstAgentKey;
     }
     const defaultTeamKey = findDefaultTeamWorkerKey(rows);
     if (defaultTeamKey) return defaultTeamKey;

@@ -90,8 +90,8 @@ describe("shouldStartAgentConsoleBootstrap", () => {
 });
 
 describe("agentConsoleListRequestOptions", () => {
-  it("loads the /agents page list with nav visibility scope", () => {
-    expect(agentConsoleListRequestOptions()).toEqual({ scope: "nav" });
+  it("loads the /agents page list with all agents scope", () => {
+    expect(agentConsoleListRequestOptions()).toEqual({ scope: "all" });
   });
 });
 

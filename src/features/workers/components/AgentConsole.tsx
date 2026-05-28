@@ -76,7 +76,7 @@ interface AgentConsoleProps {
   embedded?: boolean;
 }
 
-export const AGENT_CONSOLE_LIST_OPTIONS: GetAgentsOptions = { scope: "nav" };
+export const AGENT_CONSOLE_LIST_OPTIONS: GetAgentsOptions = { scope: "all" };
 
 export function agentConsoleListRequestOptions(): GetAgentsOptions {
   return { ...AGENT_CONSOLE_LIST_OPTIONS };

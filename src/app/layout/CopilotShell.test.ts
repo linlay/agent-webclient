@@ -4,6 +4,7 @@ import { createInitialState } from "@/app/state/state";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 
 jest.mock("react-router-dom", () => ({
+  useParams: jest.fn(),
   useSearchParams: jest.fn(),
 }));
 
@@ -152,7 +153,8 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
-const { useSearchParams } = jest.requireMock("react-router-dom") as {
+const { useParams, useSearchParams } = jest.requireMock("react-router-dom") as {
+  useParams: jest.Mock;
   useSearchParams: jest.Mock;
 };
 
@@ -199,6 +201,7 @@ describe("CopilotShell", () => {
       removeItem: jest.fn(),
     };
     useSearchParams.mockReturnValue([new URLSearchParams("")]);
+    useParams.mockReturnValue({});
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
@@ -273,6 +276,127 @@ describe("CopilotShell", () => {
     expect(html).toContain("overview-tab");
   });
 
+  it("starts the first loaded agent conversation on the bare copilot route", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "second-agent", name: "Second Agent" },
+      ],
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:first-agent",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+      agentKey: "first-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+        detail: {
+          agentKey: "first-agent",
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("starts the requested agent conversation from the copilot path", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "demo-agent", name: "Demo Agent" },
+      ],
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+      agentKey: "demo-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+        detail: {
+          agentKey: "demo-agent",
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("falls back to the first loaded agent when the copilot path agent is missing", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useParams.mockReturnValue({ agentKey: "missing-agent" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "demo-agent", name: "Demo Agent" },
+      ],
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:first-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+        detail: {
+          agentKey: "first-agent",
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
   it("starts the requested agent conversation from the copilot query", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
@@ -282,6 +406,13 @@ describe("CopilotShell", () => {
         effect();
       });
     useSearchParams.mockReturnValue([new URLSearchParams("agentKey=demo-agent")]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "demo-agent", name: "Demo Agent" },
+      ],
+    });
     useAppDispatch.mockReturnValue(dispatch);
 
     renderToStaticMarkup(React.createElement(CopilotShell));
@@ -323,6 +454,13 @@ describe("CopilotShell", () => {
     useSearchParams.mockReturnValue([
       new URLSearchParams("agentKey=demo-agent&chatId=chat-123"),
     ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "demo-agent", name: "Demo Agent" },
+      ],
+    });
     useAppDispatch.mockReturnValue(dispatch);
 
     renderToStaticMarkup(React.createElement(CopilotShell));

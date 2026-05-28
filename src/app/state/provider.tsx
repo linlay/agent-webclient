@@ -14,7 +14,6 @@ import { createInitialState } from "@/app/state/state";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/api/appAuth";
 import { setAccessToken } from "@/shared/api/apiClient";
-import { getAutomations } from "@/features/transport/lib/apiClientProxy";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	applyThemeModeToDocument,
@@ -51,7 +50,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	const querySessionsRef = useRef(new Map<string, LiveQuerySession>());
 	const chatQuerySessionIndexRef = useRef(new Map<string, string>());
 	const activeQuerySessionRequestIdRef = useRef("");
-	const initialAutomationLoadStartedRef = useRef(false);
 	stateRef.current = state;
 
 	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
@@ -137,31 +135,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			cancelled = true;
 		};
 	}, [dispatch]);
-
-	useEffect(() => {
-		if (initialAutomationLoadStartedRef.current) {
-			return;
-		}
-		if (isAppMode() && !String(state.accessToken || "").trim()) {
-			return;
-		}
-
-		initialAutomationLoadStartedRef.current = true;
-		setAccessToken(stateRef.current.accessToken);
-		getAutomations()
-			.then((response) => {
-				dispatch({
-					type: "SET_AUTOMATIONS",
-					automations: response.data.items || [],
-				});
-			})
-			.catch((error) => {
-				dispatch({
-					type: "APPEND_DEBUG",
-					line: `[loadAutomations error] ${(error as Error).message}`,
-				});
-			});
-	}, [dispatch, state.accessToken]);
 
 	return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

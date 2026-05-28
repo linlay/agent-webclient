@@ -167,6 +167,14 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/copilot/:agentKey",
+          element: (
+            <DocumentTitleRoute>
+              <CopilotShell />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/automations",
           element: (
             <DocumentTitleRoute titleKey="route.title.automations">
