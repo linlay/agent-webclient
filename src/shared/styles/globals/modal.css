@@ -858,10 +858,20 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    cursor: pointer;
 }
 
-.agent-console-list-item[draggable="true"] {
+.agent-console-list-item:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 68%, transparent);
+    outline-offset: 2px;
+}
+
+.agent-console-list-item-icon.is-drag-handle {
     cursor: grab;
+}
+
+.agent-console-list-item-icon.is-drag-handle:active {
+    cursor: grabbing;
 }
 
 .agent-console-list-item.is-dragging {
@@ -872,16 +882,6 @@
 .agent-console-list-item.is-active {
     border-color: color-mix(in srgb, var(--accent-soft) 58%, var(--line-soft));
     background: var(--bg-hover);
-}
-
-.agent-console-list-item-drag {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 32px;
-    color: var(--ink-subtle);
 }
 
 .agent-console-list-item-icon {

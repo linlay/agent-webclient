@@ -1,4 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Input, Select, Spin } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
@@ -322,6 +339,97 @@ function buildDefinition(form: AgentFormState, baseDefinition: Record<string, un
   return definition;
 }
 
+interface SortableAgentListItemProps {
+  agent: Agent;
+  agentKey: string;
+  disabled: boolean;
+  isActive: boolean;
+  isDragging: boolean;
+  name: string;
+  role: string;
+  sortableId: string;
+  summary: ReturnType<typeof buildAgentListSummary>;
+  onSelect: (agentKey: string) => void;
+}
+
+const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
+  agent,
+  agentKey,
+  disabled,
+  isActive,
+  isDragging,
+  name,
+  role,
+  sortableId,
+  summary,
+  onSelect,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: sortableId,
+    disabled: disabled || !agentKey,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      role="button"
+      tabIndex={0}
+      className={`agent-console-list-item ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""}`}
+      onClick={() => onSelect(agentKey)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(agentKey);
+        }
+      }}
+    >
+      <span
+        ref={setActivatorNodeRef}
+        className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
+        aria-label={`拖拽排序 ${name}`}
+        {...attributes}
+        {...listeners}
+      >
+        <AgentIcon
+          icon={agent.icon}
+          type="agent"
+          props={{
+            icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
+            avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
+          }}
+        />
+      </span>
+      <span className="agent-console-list-item-main">
+        <span className="agent-console-list-item-row agent-console-list-item-head">
+          <strong>{name}</strong>
+          <span>{agentKey || "--"}</span>
+        </span>
+        <span className="agent-console-list-item-row agent-console-list-item-meta">
+          <span>{role}</span>
+          <span>{summary.mode}</span>
+        </span>
+        <span className="agent-console-list-item-row agent-console-list-item-meta">
+          <span>{summary.modelKey}</span>
+          <span>工具 {summary.toolsCount} · 技能 {summary.skillsCount}</span>
+        </span>
+      </span>
+    </div>
+  );
+};
+
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -348,11 +456,19 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [pendingDeleteKey, setPendingDeleteKey] = useState("");
   const [draggingAgentKey, setDraggingAgentKey] = useState("");
   const didInitialSelectRef = useRef(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const filteredAgents = useMemo(() => {
     const agents = Array.isArray(state.agents) ? state.agents : [];
     return filterAgentsPreservingOrder(agents, searchText);
   }, [searchText, state.agents]);
+  const filteredAgentSortableIds = useMemo(
+    () => filteredAgents.map((agent, index) => toText(agent.key) || `agent-console-empty-${index}`),
+    [filteredAgents],
+  );
 
   const selectedSummary = useMemo(
     () => state.agents.find((agent) => toText(agent.key) === effectiveSelectedKey) || null,
@@ -449,9 +565,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [],
   );
 
-  const dropAgentOn = useCallback(
-    async (targetKey: string) => {
-      const sourceKey = draggingAgentKey;
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setDraggingAgentKey(String(event.active.id));
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const sourceKey = String(event.active.id);
+      const targetKey = event.over ? String(event.over.id) : "";
       setDraggingAgentKey("");
       if (!sourceKey || !targetKey || sourceKey === targetKey || savingOrder) return;
       const nextAgents = moveAgentForDrop(state.agents, sourceKey, targetKey);
@@ -459,7 +580,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       dispatch({ type: "SET_AGENTS", agents: nextAgents });
       await saveAgentOrder(nextAgents, sourceKey);
     },
-    [dispatch, draggingAgentKey, saveAgentOrder, savingOrder, state.agents],
+    [dispatch, saveAgentOrder, savingOrder, state.agents],
   );
 
   const loadEditorOptions = useCallback(async () => {
@@ -646,66 +767,42 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <UiButton size="sm" variant="primary" onClick={startCreate}>新建智能体</UiButton>
               </div>
             ) : (
-              <div className="agent-console-list-items">
-                {filteredAgents.map((agent, index) => {
-                  const agentKey = toText(agent.key);
-                  const name = toText(agent.name) || agentKey;
-                  const role = toText(agent.role) || "--";
-                  const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
-                  return (
-                    <button
-                      type="button"
-                      key={agentKey || `${name}-${index}`}
-                      className={`agent-console-list-item ${agentKey === effectiveSelectedKey ? "is-active" : ""} ${agentKey === draggingAgentKey ? "is-dragging" : ""}`}
-                      draggable={Boolean(agentKey) && !savingOrder}
-                      onDragStart={(event) => {
-                        setDraggingAgentKey(agentKey);
-                        event.dataTransfer.effectAllowed = "move";
-                        event.dataTransfer.setData("text/plain", agentKey);
-                      }}
-                      onDragOver={(event) => {
-                        if (!draggingAgentKey || draggingAgentKey === agentKey) return;
-                        event.preventDefault();
-                        event.dataTransfer.dropEffect = "move";
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        void dropAgentOn(agentKey);
-                      }}
-                      onDragEnd={() => setDraggingAgentKey("")}
-                      onClick={() => selectAgent(agentKey)}
-                    >
-                      <span className="agent-console-list-item-drag" aria-hidden="true">
-                        <MaterialIcon name="drag_indicator" />
-                      </span>
-                      <span className="agent-console-list-item-icon">
-                        <AgentIcon
-                          icon={agent.icon}
-                          type="agent"
-                          props={{
-                            icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
-                            avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
-                          }}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragCancel={() => setDraggingAgentKey("")}
+                onDragEnd={(event) => {
+                  void handleDragEnd(event);
+                }}
+              >
+                <SortableContext items={filteredAgentSortableIds} strategy={verticalListSortingStrategy}>
+                  <div className="agent-console-list-items">
+                    {filteredAgents.map((agent, index) => {
+                      const agentKey = toText(agent.key);
+                      const name = toText(agent.name) || agentKey;
+                      const role = toText(agent.role) || "--";
+                      const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
+                      const sortableId = agentKey || `agent-console-empty-${index}`;
+                      return (
+                        <SortableAgentListItem
+                          key={sortableId}
+                          agent={agent}
+                          agentKey={agentKey}
+                          disabled={savingOrder}
+                          isActive={agentKey === effectiveSelectedKey}
+                          isDragging={agentKey === draggingAgentKey}
+                          name={name}
+                          role={role}
+                          sortableId={sortableId}
+                          summary={summary}
+                          onSelect={selectAgent}
                         />
-                      </span>
-                      <span className="agent-console-list-item-main">
-                        <span className="agent-console-list-item-row agent-console-list-item-head">
-                          <strong>{name}</strong>
-                          <span>{agentKey || "--"}</span>
-                        </span>
-                        <span className="agent-console-list-item-row agent-console-list-item-meta">
-                          <span>{role}</span>
-                          <span>{summary.mode}</span>
-                        </span>
-                        <span className="agent-console-list-item-row agent-console-list-item-meta">
-                          <span>{summary.modelKey}</span>
-                          <span>工具 {summary.toolsCount} · 技能 {summary.skillsCount}</span>
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </Spin>
         </div>
