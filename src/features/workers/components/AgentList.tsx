@@ -94,7 +94,7 @@ export const AgentList: React.FC<AgentListProps> = ({
           filteredAgents.map((agent, index) => {
             const agentKey = toText(agent.key);
             const agentName = toText(agent.name) || agentKey;
-            const role = toText(agent.role) || "--";
+            const role = toText(agent.role);
             const wonders = Array.isArray(agent.wonders) ? agent.wonders : [];
             const unreadCount = toNumber(agent?.stats?.unreadCount);
             const totalCount = toNumber(agent?.stats?.totalCount);
@@ -141,7 +141,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                     ) : null}
                   </div>
                   <div className="agent-list-item-meta">
-                    <span>{role}</span>
+                    {role ? <span>{role}</span> : null}
                     {agentKey ? <span>{agentKey}</span> : null}
                     {totalCount > 0 ? (
                       <span>

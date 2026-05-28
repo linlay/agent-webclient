@@ -659,9 +659,10 @@ describe("LeftSidebar", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.workerRows[0].agentType = "coder";
-    state.workerRows[0].role = "";
+    state.workerRows[0].role = "Code worker";
     state.workerRows[0].workspaceDir = "/Users/demo/Project/agent-coder";
     state.agents[0].type = "coder";
+    state.agents[0].role = "Code worker";
     state.agents[0].workspaceDir = "/Users/demo/Project/agent-coder";
     openWorkspaceDirectory.mockResolvedValue(true);
     mockState(state);
@@ -670,6 +671,7 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain("打开工作目录");
     expect(html).toContain("agent-coder");
+    expect(html).not.toContain("Code worker");
     const menu = dropdownMenuProps.find((props) =>
       Array.isArray(props.items) &&
       props.items.some((item: any) => item?.key === "openWorkspace"),
@@ -686,6 +688,19 @@ describe("LeftSidebar", () => {
       "/Users/demo/Project/agent-coder",
       "worker_a",
     );
+  });
+
+  it("renders react worker roles in the worker header", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "agent";
+    state.workerRows[0].role = "Operations assistant";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("worker-panel-role");
+    expect(html).toContain("Operations assistant");
   });
 
   it("shows browser folder coder workspace names without enabling local open", () => {

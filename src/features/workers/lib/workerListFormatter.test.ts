@@ -123,6 +123,29 @@ describe('buildWorkerRows', () => {
     expect(rows.some((row) => row.key === 'agent:agent-hidden')).toBe(false);
   });
 
+  it('carries react agent roles into worker rows and search text', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-react',
+          name: 'React Agent',
+          mode: 'REACT',
+          role: 'Operations assistant',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-react',
+      agentType: 'agent',
+      role: 'Operations assistant',
+    });
+    expect(rows[0].searchText).toContain('operations assistant');
+  });
+
   it('carries coder workspace metadata into worker rows and search text', () => {
     const rows = buildWorkerRows({
       agents: [
@@ -144,6 +167,32 @@ describe('buildWorkerRows', () => {
       role: '',
       workspaceDir: '/Users/demo/Project/agent-coder',
     });
+    expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
+  });
+
+  it('keeps coder roles searchable while preserving coder workspace metadata', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-coder',
+          name: 'agent-coder',
+          mode: 'CODER',
+          role: 'Code reviewer',
+          workspaceDir: '/Users/demo/Project/agent-coder',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-coder',
+      agentType: 'coder',
+      role: 'Code reviewer',
+      workspaceDir: '/Users/demo/Project/agent-coder',
+    });
+    expect(rows[0].searchText).toContain('code reviewer');
     expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
   });
 
