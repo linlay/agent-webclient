@@ -9,6 +9,7 @@ import type {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { Flex, Tooltip } from "antd";
 
 interface ComposerActionsProps {
   accessLevel: QueryAccessLevel;
@@ -76,15 +77,25 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           <MaterialIcon name="add" />
         </UiButton>
         {planningMode && (
-          <UiButton
-            className="plan-toggle-btn"
-            variant="ghost"
-            size="sm"
-            onClick={onTogglePlanningMode}
+          <Tooltip
+            title={
+              <Flex align="center" vertical style={{fontSize: 12}}>
+                <div>创建计划</div>
+                <div>shift + tab 切换</div>
+              </Flex>
+            }
           >
-            <MaterialIcon name="assignment" />
-            <span>{t("composer.actions.plan")}</span>
-          </UiButton>
+            <UiButton
+              className="plan-toggle-btn"
+              variant="ghost"
+              size="sm"
+              onClick={onTogglePlanningMode}
+            >
+              <MaterialIcon name="assignment" className="plan-toggle-icon" />
+              <MaterialIcon name="close" className="plan-toggle-close-icon" />
+              <span>{t("composer.actions.plan")}</span>
+            </UiButton>
+          </Tooltip>
         )}
         <ControlsForm
           disabled={isFrontendActive || isStreaming}

@@ -508,7 +508,7 @@ export const enUSMessages: I18nMessages = {
   "topNav.openDrawer": "Open conversation list",
   "topNav.status.error": "Run error",
   "topNav.status.idle": "Idle",
-  "topNav.status.running": "Running...",
+  "topNav.status.running": "Running",
   "topNav.terminal.close": "Close terminal panel",
   "topNav.terminal.open": "Open terminal panel",
   "topNav.usage.close": "Close usage stats",

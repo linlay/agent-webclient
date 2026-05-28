@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { flushSync } from "react-dom";
 import {
   Badge,
@@ -57,7 +63,12 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 
 function workspaceNameFromPath(path: string): string {
   const normalized = String(path || "").trim();
-  return normalized.split(/[\\/]+/).filter(Boolean).pop() || "project";
+  return (
+    normalized
+      .split(/[\\/]+/)
+      .filter(Boolean)
+      .pop() || "project"
+  );
 }
 
 function coderAgentKeyFromWorkspace(path: string): string {
@@ -249,33 +260,45 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const openHistoryForWorker = useCallback((workerKey: string) => {
-    const normalizedWorkerKey = String(workerKey || "").trim();
-    if (!normalizedWorkerKey) return;
-    const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
-    const currentChatIndex = findChatIndex(workerChats, state.chatId);
-    setHistoryWorkerKey(normalizedWorkerKey);
-    setHistorySearch("");
-    setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
+  const openHistoryForWorker = useCallback(
+    (workerKey: string) => {
+      const normalizedWorkerKey = String(workerKey || "").trim();
+      if (!normalizedWorkerKey) return;
+      const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
+      const currentChatIndex = findChatIndex(workerChats, state.chatId);
+      setHistoryWorkerKey(normalizedWorkerKey);
+      setHistorySearch("");
+      setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
 
-    const worker =
-      state.workerIndexByKey.get(normalizedWorkerKey) ||
-      state.workerRows.find((item) => item.key === normalizedWorkerKey);
-    if (!worker || worker.type !== "agent") return;
+      const worker =
+        state.workerIndexByKey.get(normalizedWorkerKey) ||
+        state.workerRows.find((item) => item.key === normalizedWorkerKey);
+      if (!worker || worker.type !== "agent") return;
 
-    void getChats({ agentKey: worker.sourceId })
-      .then((response) => {
-        const fetchedChats = (Array.isArray(response.data) ? response.data : []) as Chat[];
-        const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
-        dispatch({ type: "SET_CHATS", chats });
-      })
-      .catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[loadChats error] ${(error as Error).message}`,
+      void getChats({ agentKey: worker.sourceId })
+        .then((response) => {
+          const fetchedChats = (
+            Array.isArray(response.data) ? response.data : []
+          ) as Chat[];
+          const chats = mergeFetchedChats(stateRef.current.chats, fetchedChats);
+          dispatch({ type: "SET_CHATS", chats });
+        })
+        .catch((error) => {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[loadChats error] ${(error as Error).message}`,
+          });
         });
-      });
-  }, [dispatch, state.chatId, state.workerIndexByKey, state.workerRows, stateRef, workerChatsByKey]);
+    },
+    [
+      dispatch,
+      state.chatId,
+      state.workerIndexByKey,
+      state.workerRows,
+      stateRef,
+      workerChatsByKey,
+    ],
+  );
 
   const handleOpenHistory = (
     event: React.MouseEvent<Element>,
@@ -298,7 +321,8 @@ export const LeftSidebar: React.FC = () => {
       openHistoryForWorker(workerKey);
     };
     window.addEventListener("agent:open-worker-history", handler);
-    return () => window.removeEventListener("agent:open-worker-history", handler);
+    return () =>
+      window.removeEventListener("agent:open-worker-history", handler);
   }, [openHistoryForWorker]);
 
   const handleMarkWorkerAllRead = async (
@@ -458,7 +482,10 @@ export const LeftSidebar: React.FC = () => {
         );
         const createdKey = String(response.data?.key || "").trim();
         try {
-          const agentsResponse = await getAgents({ includeChats: 5, scope: "nav" });
+          const agentsResponse = await getAgents({
+            includeChats: 5,
+            scope: "nav",
+          });
           const agents = Array.isArray(agentsResponse.data)
             ? (agentsResponse.data as AppState["agents"])
             : [];
@@ -566,7 +593,7 @@ export const LeftSidebar: React.FC = () => {
                     });
                   }}
                 >
-                  <MaterialIcon name="automation" />
+                  <MaterialIcon name="schedule" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
                     <Badge count={state.automations?.length} />
@@ -579,7 +606,7 @@ export const LeftSidebar: React.FC = () => {
                     dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
                   }
                 >
-                  <MaterialIcon name="neurology" />
+                  <MaterialIcon name="psychology" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.memory")}</span>
                     <Badge count={state.memoryInfoRecords?.length || 0} />
@@ -595,7 +622,7 @@ export const LeftSidebar: React.FC = () => {
                     });
                   }}
                 >
-                  <MaterialIcon name="robot" />
+                  <MaterialIcon name="robot_2" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
@@ -729,26 +756,26 @@ export const LeftSidebar: React.FC = () => {
                           className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
                           onClick={() => handleSelectWorker(item.key)}
                         >
-                          <Badge dot={unreadCount > 0}>
-                            <AgentIcon
-                              icon={workerIconsByKey.get(item.key)}
-                              type={item.type}
-                              props={{
-                                icon: {
-                                  className: "worker-panel-icon",
-                                  width: 26,
-                                  height: 26,
-                                },
-                                avatar: {
-                                  className: "worker-panel-icon",
-                                  size: 26,
-                                },
-                              }}
-                            />
+                          <AgentIcon
+                            icon={workerIconsByKey.get(item.key)}
+                            type={item.type}
+                            props={{
+                              icon: {
+                                className: "worker-panel-icon",
+                                width: 26,
+                                height: 26,
+                              },
+                              avatar: {
+                                className: "worker-panel-icon",
+                                size: 26,
+                              },
+                            }}
+                          />
+                          <Badge dot={unreadCount > 0} offset={[5, 9]}>
+                            <span className="worker-collapsed-name">
+                              {item.displayName}
+                            </span>
                           </Badge>
-                          <span className="worker-collapsed-name">
-                            {item.displayName}
-                          </span>
                         </Button>
                       </Popover>
                     );
