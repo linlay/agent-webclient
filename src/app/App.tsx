@@ -175,6 +175,14 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/schedules",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.automations">
+              <AutomationsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/memory",
           element: (
             <DocumentTitleRoute titleKey="route.title.memory">

@@ -78,6 +78,7 @@ describe("App routing", () => {
         "/",
         "/copilot",
         "/automations",
+        "/schedules",
         "/memory",
         "/agents",
         "/agents/:agentKey",
