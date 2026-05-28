@@ -25,9 +25,8 @@ import { TerminalDock } from "./TerminalDock";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
-import { getAgent, getChats } from "@/features/transport/lib/apiClientProxy";
+import { getChats } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
-import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 import { useI18n } from "@/shared/i18n";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
@@ -52,28 +51,6 @@ function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
       role: "--",
     },
   ];
-}
-
-function isRouteAgentResolved(
-  agent: Agent | undefined,
-  agentKey: string,
-): boolean {
-  if (!agent) {
-    return false;
-  }
-
-  const key = String(agent.key || "").trim();
-  if (key !== agentKey) {
-    return false;
-  }
-
-  const name = String(agent.name || "").trim();
-  const role = String(agent.role || "").trim();
-  const hasFetchedFields = Object.keys(agent).some(
-    (field) => !["key", "name", "role"].includes(field),
-  );
-
-  return hasFetchedFields || name !== agentKey || role !== "--";
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
@@ -108,8 +85,6 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const lastOpenedHistoryRouteKeyRef = useRef("");
-  const agentLoadRequestKeyRef = useRef("");
-  const [loadedRouteAgentKey, setLoadedRouteAgentKey] = useState("");
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -129,16 +104,10 @@ export const AgentChatShell: React.FC = () => {
       ),
     [agentKey, state.agents],
   );
-  const routeAgentResolved = useMemo(
-    () => isRouteAgentResolved(routeAgent, agentKey),
-    [agentKey, routeAgent],
-  );
   const routeAgentReady =
     !agentKey ||
     Boolean(chatId) ||
-    Boolean(routeAgent) ||
-    routeAgentResolved ||
-    loadedRouteAgentKey === agentKey;
+    Boolean(routeAgent);
   const routeChatReady = !chatId || String(state.chatId || "") === chatId;
   const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
     agents: state.agents,
@@ -170,65 +139,6 @@ export const AgentChatShell: React.FC = () => {
       dispatch({ type: "SET_AGENTS", agents: nextAgents });
     }
   }, [agentKey, dispatch, state.agents]);
-
-  useEffect(() => {
-    if (!agentKey) {
-      agentLoadRequestKeyRef.current = "";
-      setLoadedRouteAgentKey("");
-      return;
-    }
-
-    if (routeAgentResolved) {
-      agentLoadRequestKeyRef.current = "";
-      return;
-    }
-
-    if (agentLoadRequestKeyRef.current === agentKey) {
-      return;
-    }
-
-    let cancelled = false;
-    agentLoadRequestKeyRef.current = agentKey;
-    setLoadedRouteAgentKey((current) => (current ? "" : current));
-
-    void getAgent(agentKey)
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-
-        const payload = (response.data || {}) as Partial<Agent>;
-        const resolvedAgentKey =
-          String(payload.key || agentKey).trim() || agentKey;
-        const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
-          ...payload,
-          key: resolvedAgentKey,
-        });
-
-        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
-        setLoadedRouteAgentKey(agentKey);
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[loadAgent error] ${(error as Error).message}`,
-        });
-        setLoadedRouteAgentKey(agentKey);
-      })
-      .finally(() => {
-        if (agentLoadRequestKeyRef.current === agentKey) {
-          agentLoadRequestKeyRef.current = "";
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [agentKey, dispatch, routeAgentResolved]);
 
   useEffect(() => {
     if (!agentKey || !routeAgentReady) {

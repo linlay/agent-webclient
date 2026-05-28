@@ -135,6 +135,12 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
+const { getAgent } = jest.requireMock(
+  "@/features/transport/lib/apiClientProxy",
+) as {
+  getAgent: jest.Mock;
+};
+
 const globalWithDom = globalThis as typeof globalThis & {
   window?: {
     dispatchEvent: jest.Mock;
@@ -182,6 +188,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    getAgent.mockClear();
   });
 
   afterAll(() => {
@@ -209,6 +216,27 @@ describe("AgentChatShell", () => {
     expect(html).toContain("Loading agent");
     expect(html).not.toContain("conversation-stage");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+  });
+
+  it("inserts a route agent placeholder without loading agent detail", () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useAppState.mockReturnValue(createInitialState());
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [{ key: "demo-agent", name: "demo-agent", role: "--" }],
+    });
+    expect(getAgent).not.toHaveBeenCalled();
+
+    useEffectSpy.mockRestore();
   });
 
   it("renders the desktop chat layout without the left sidebar once the route agent is ready", () => {
