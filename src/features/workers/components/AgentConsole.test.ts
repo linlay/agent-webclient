@@ -38,6 +38,7 @@ jest.mock("@/shared/ui/UiButton", () => ({
 import {
   buildAgentListSummary,
   saveAgentOrderRequest,
+  shouldStartAgentConsoleBootstrap,
 } from "@/features/workers/components/AgentConsole";
 
 const { getAgents, putAgentOrder } = jest.requireMock(
@@ -74,6 +75,16 @@ describe("AgentConsole order persistence", () => {
     ).rejects.toBe(error);
 
     expect(getAgents).not.toHaveBeenCalled();
+  });
+});
+
+describe("shouldStartAgentConsoleBootstrap", () => {
+  it("allows a bootstrap path to run once for a component instance", () => {
+    const bootstrapRef = { current: false };
+
+    expect(shouldStartAgentConsoleBootstrap(bootstrapRef)).toBe(true);
+    expect(bootstrapRef.current).toBe(true);
+    expect(shouldStartAgentConsoleBootstrap(bootstrapRef)).toBe(false);
   });
 });
 

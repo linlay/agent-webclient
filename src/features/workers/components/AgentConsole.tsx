@@ -231,6 +231,12 @@ export function buildAgentListSummary(agent: Agent, formFallback?: AgentFormStat
   };
 }
 
+export function shouldStartAgentConsoleBootstrap(ref: React.MutableRefObject<boolean>): boolean {
+  if (ref.current) return false;
+  ref.current = true;
+  return true;
+}
+
 function resolveModelKey(detail: AgentDetailResponse, definition: Record<string, unknown>): string {
   const modelConfig = asRecord(definition.modelConfig);
   const meta = asRecord(detail.meta);
@@ -456,6 +462,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [pendingDeleteKey, setPendingDeleteKey] = useState("");
   const [draggingAgentKey, setDraggingAgentKey] = useState("");
   const didInitialSelectRef = useRef(false);
+  const didBootstrapAgentsRef = useRef(false);
+  const didBootstrapOptionsRef = useRef(false);
+  const listLoadSeqRef = useRef(0);
+  const optionsLoadSeqRef = useRef(0);
+  const selectedAgentKeyRef = useRef(selectedAgentKey);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -505,6 +516,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     return undefined;
   }, [form.iconImage, form.iconKind, form.iconName]);
 
+  useEffect(() => {
+    selectedAgentKeyRef.current = selectedAgentKey;
+  }, [selectedAgentKey]);
+
   const selectAgent = useCallback(
     (agentKey: string) => {
       const key = agentKey.trim();
@@ -527,27 +542,33 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const loadAgents = useCallback(
     async (preferredKey = "") => {
+      const requestSeq = listLoadSeqRef.current + 1;
+      listLoadSeqRef.current = requestSeq;
       setLoadingList(true);
       setError("");
       try {
         const response = await getAgents();
+        if (listLoadSeqRef.current !== requestSeq) return;
         const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });
         const normalizedPreferred = preferredKey.trim();
         const nextKey = normalizedPreferred && agents.some((agent) => toText(agent.key) === normalizedPreferred)
           ? normalizedPreferred
           : agents[0]?.key || "";
-        if (!selectedAgentKey && nextKey && !didInitialSelectRef.current) {
+        if (!selectedAgentKeyRef.current && nextKey && !didInitialSelectRef.current) {
           didInitialSelectRef.current = true;
           setInternalSelectedKey(nextKey);
         }
       } catch (error) {
+        if (listLoadSeqRef.current !== requestSeq) return;
         setError((error as Error).message);
       } finally {
-        setLoadingList(false);
+        if (listLoadSeqRef.current === requestSeq) {
+          setLoadingList(false);
+        }
       }
     },
-    [dispatch, selectedAgentKey],
+    [dispatch],
   );
 
   const saveAgentOrder = useCallback(
@@ -584,9 +605,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const loadEditorOptions = useCallback(async () => {
+    const requestSeq = optionsLoadSeqRef.current + 1;
+    optionsLoadSeqRef.current = requestSeq;
     setLoadingOptions(true);
     try {
       const [optionsResponse, toolsResponse, skillsResponse] = await Promise.all([getAgentEditorOptions(), getTools(), getSkills()]);
+      if (optionsLoadSeqRef.current !== requestSeq) return;
       setEditorOptions((optionsResponse.data || null) as AgentEditorOptionsResponse | null);
       setToolOptions(
         (Array.isArray(toolsResponse.data) ? toolsResponse.data : [])
@@ -607,9 +631,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           .filter((item): item is { key: string; label: string } => Boolean(item)),
       );
     } catch (error) {
+      if (optionsLoadSeqRef.current !== requestSeq) return;
       setError((error as Error).message);
     } finally {
-      setLoadingOptions(false);
+      if (optionsLoadSeqRef.current === requestSeq) {
+        setLoadingOptions(false);
+      }
     }
   }, []);
 
@@ -637,10 +664,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!shouldStartAgentConsoleBootstrap(didBootstrapAgentsRef)) return;
     void loadAgents(selectedAgentKey);
   }, [loadAgents, selectedAgentKey]);
 
   useEffect(() => {
+    if (!shouldStartAgentConsoleBootstrap(didBootstrapOptionsRef)) return;
     void loadEditorOptions();
   }, [loadEditorOptions]);
 
