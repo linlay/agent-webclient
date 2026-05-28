@@ -566,7 +566,7 @@ export const LeftSidebar: React.FC = () => {
                     });
                   }}
                 >
-                  <MaterialIcon name="automation" />
+                  <MaterialIcon name="schedule" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
                     <Badge count={state.automations?.length} />
@@ -579,7 +579,7 @@ export const LeftSidebar: React.FC = () => {
                     dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
                   }
                 >
-                  <MaterialIcon name="neurology" />
+                  <MaterialIcon name="psychology" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.memory")}</span>
                     <Badge count={state.memoryInfoRecords?.length || 0} />
@@ -595,7 +595,7 @@ export const LeftSidebar: React.FC = () => {
                     });
                   }}
                 >
-                  <MaterialIcon name="robot" />
+                  <MaterialIcon name="robot_2" />
                   <Flex gap={4} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
