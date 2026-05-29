@@ -16,7 +16,6 @@ import { ComposerAttachments } from "@/features/composer/components/ComposerAtta
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
-import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
@@ -394,23 +393,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ],
   );
 
-  const activeRunAccessControls = activeRunId ? (
-    <div className="composer-awaiting-access-row">
-      <QuerySettingsControls
-        accessLevel={accessLevel}
-        disabled={isFrontendActive}
-        modelOverride={modelOverride}
-        onAccessLevelChange={handleAccessLevelChange}
-        onModelOverrideChange={setModelOverride}
-        showModelSelector={false}
-      />
-    </div>
-  ) : null;
-
   if (isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
       return (
-        <AwaitingShell accessControls={activeRunAccessControls}>
+        <AwaitingShell>
           <AwaitingHtmlContainer
             data={state.activeAwaiting}
             onPatch={handlePatchActiveAwaiting}
@@ -423,7 +409,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     if (state.activeAwaiting.mode === "approval") {
       return (
-        <AwaitingShell accessControls={activeRunAccessControls}>
+        <AwaitingShell>
           <Buildin.ApprovalDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
@@ -434,7 +420,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     if (state.activeAwaiting.mode === "plan") {
       return (
-        <AwaitingShell accessControls={activeRunAccessControls}>
+        <AwaitingShell>
           <Buildin.PlanDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
@@ -445,7 +431,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     if (state.activeAwaiting.mode === "question") {
       return (
-        <AwaitingShell accessControls={activeRunAccessControls}>
+        <AwaitingShell>
           <Buildin.QuestionDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
