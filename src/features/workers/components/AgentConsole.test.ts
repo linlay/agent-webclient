@@ -167,15 +167,14 @@ describe("AgentConsole i18n rendering", () => {
     );
 
     expect(html).toContain("Visibility");
-    expect(html).toContain("Budget runTimeoutMs");
-    expect(html).toContain("Budget maxSteps");
-    expect(html).toContain("Budget model.maxCalls");
-    expect(html).toContain("Budget tool.maxCalls");
+    expect(html).toContain("Budget");
+    expect(html).not.toContain("Budget runTimeoutMs");
+    expect(html).toContain("runTimeoutMs");
   });
 });
 
 describe("AgentConsole definition mapping", () => {
-  it("reads budget and visibility from the editable definition", () => {
+  it("reads budget text and visibility from the editable definition", () => {
     const form = formFromDetail({
       key: "agent-a",
       name: "Agent A",
@@ -202,10 +201,12 @@ describe("AgentConsole definition mapping", () => {
     });
 
     expect(form.visibilityScopes).toEqual(["invoke", "internal"]);
-    expect(form.runTimeoutMs).toBe("600000");
-    expect(form.maxSteps).toBe("240");
-    expect(form.modelMaxCalls).toBe("40");
-    expect(form.toolMaxCalls).toBe("200");
+    expect(form.budgetText).toBe(JSON.stringify({
+      runTimeoutMs: 600000,
+      maxSteps: 240,
+      model: { maxCalls: 40 },
+      tool: { maxCalls: 200 },
+    }, null, 2));
   });
 
   it("falls back to meta budget and visibility when definition omits them", () => {
@@ -228,11 +229,10 @@ describe("AgentConsole definition mapping", () => {
     });
 
     expect(form.visibilityScopes).toEqual(["copilot"]);
-    expect(form.maxSteps).toBe("18");
-    expect(form.toolMaxCalls).toBe("9");
+    expect(form.budgetText).toBe(JSON.stringify({ maxSteps: 18, tool: { maxCalls: 9 } }, null, 2));
   });
 
-  it("writes structured budget and visibility while preserving unknown budget keys", () => {
+  it("writes budget JSON and visibility", () => {
     const form = formFromDetail({
       key: "agent-a",
       name: "Agent A",
@@ -257,10 +257,13 @@ describe("AgentConsole definition mapping", () => {
       {
         ...form,
         visibilityScopes: ["nav", "invoke"],
-        runTimeoutMs: "1000",
-        maxSteps: "24",
-        modelMaxCalls: "8",
-        toolMaxCalls: "16",
+        budgetText: JSON.stringify({
+          tokenLimit: 123,
+          runTimeoutMs: 1000,
+          maxSteps: 24,
+          model: { coolDownMs: 50, maxCalls: 8 },
+          tool: { retry: 2, maxCalls: 16 },
+        }, null, 2),
       },
       {
         key: "agent-a",
@@ -284,7 +287,7 @@ describe("AgentConsole definition mapping", () => {
     });
   });
 
-  it("omits budget when common fields are blank and no unknown budget keys remain", () => {
+  it("omits budget when budget text is blank", () => {
     const form = formFromDetail({
       key: "agent-a",
       name: "Agent A",
@@ -309,10 +312,7 @@ describe("AgentConsole definition mapping", () => {
     const definition = buildDefinition(
       {
         ...form,
-        runTimeoutMs: "",
-        maxSteps: "",
-        modelMaxCalls: "",
-        toolMaxCalls: "",
+        budgetText: "",
       },
       {
         key: "agent-a",
@@ -328,6 +328,26 @@ describe("AgentConsole definition mapping", () => {
     );
 
     expect(definition.budget).toBeUndefined();
+  });
+
+  it("rejects invalid or non-object budget JSON", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+      },
+    });
+
+    expect(() => buildDefinition({ ...form, budgetText: "[" }, {}, translate)).toThrow();
+    expect(() => buildDefinition({ ...form, budgetText: "[]" }, {}, translate)).toThrow("agentConsole.error.jsonInvalid");
   });
 });
 
