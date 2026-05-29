@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { Avatar, AvatarProps } from "antd/es";
 import { TeamOutlined } from "@ant-design/icons";
 
-import agentBotIcon from "./agent-icons/agent-bot.svg";
+import defaultIcon from "./agent-icons/default.svg";
 import atlasIcon from "./agent-icons/atlas.svg";
 import canvasIcon from "./agent-icons/canvas.svg";
 import chatIcon from "./agent-icons/chat.svg";
@@ -169,7 +169,7 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
     if (iconUrl) {
       return renderIconImage(iconUrl, props?.icon, "builtin");
     }
-    return renderIconImage(agentBotIcon, props?.icon, "default");
+    return renderIconImage(defaultIcon, props?.icon, "default");
   }, [icon, props?.avatar, props?.icon, type]);
   return render();
 };
