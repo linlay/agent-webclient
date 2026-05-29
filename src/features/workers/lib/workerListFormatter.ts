@@ -3,6 +3,7 @@ import { toText } from '@/shared/utils/eventUtils';
 import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
 
 function toDisplayName(name: unknown, fallback: unknown): string {
+  if (name !== undefined && name !== null) return toText(name);
   const normalizedName = toText(name);
   if (normalizedName) return normalizedName;
   return toText(fallback) || 'n/a';

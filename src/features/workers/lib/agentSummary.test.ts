@@ -36,4 +36,11 @@ describe('agentSummary', () => {
       { key: 'bob', name: 'Bob', role: 'reviewer' },
     ]);
   });
+
+  it('preserves an explicitly empty agent name instead of falling back to key', () => {
+    expect(mergeAgentSummary(undefined, { key: 'agent-a', name: '' })).toEqual({
+      key: 'agent-a',
+      name: '',
+    });
+  });
 });

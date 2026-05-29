@@ -71,23 +71,14 @@ function workspaceNameFromPath(path: string): string {
   );
 }
 
-function coderAgentKeyFromWorkspace(path: string): string {
-  const base = workspaceNameFromPath(path)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `coder-${base || "project"}`;
-}
-
 function buildCoderAgentCreateRequest(workspaceDir: string) {
-  const key = coderAgentKeyFromWorkspace(workspaceDir);
-  const name = key;
   return {
-    key,
     definition: {
-      key,
-      name,
+      name: workspaceNameFromPath(workspaceDir),
       mode: "CODER",
+      icon: {
+        name: "folder",
+      },
       workspace: {
         root: workspaceDir,
       },

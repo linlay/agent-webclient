@@ -209,7 +209,7 @@ export interface AgentDetailResponse {
 }
 
 export interface CreateAgentRequest {
-  key: string;
+  key?: string;
   definition: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;

@@ -535,11 +535,12 @@ describe("LeftSidebar", () => {
 
     expect(selectProjectFolder).toHaveBeenCalledTimes(1);
     expect(createAgent).toHaveBeenCalledWith({
-      key: "coder-agent-coder",
       definition: {
-        key: "coder-agent-coder",
-        name: "coder-agent-coder",
+        name: "agent-coder",
         mode: "CODER",
+        icon: {
+          name: "folder",
+        },
         workspace: {
           root: "/Users/demo/Project/agent-coder",
         },
@@ -599,10 +600,10 @@ describe("LeftSidebar", () => {
     await Promise.resolve();
 
     expect(createAgent).toHaveBeenCalledWith({
-      key: "coder-browser-coder",
       definition: expect.objectContaining({
-        key: "coder-browser-coder",
+        name: "browser-coder",
         mode: "CODER",
+        icon: { name: "folder" },
         workspace: { root: "/Users/demo/Project/browser-coder" },
         runtimeConfig: { workspaceRoot: "/Users/demo/Project/browser-coder" },
       }),

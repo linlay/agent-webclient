@@ -10,10 +10,19 @@ export function mergeAgentSummary(
   existing: Agent | undefined,
   patch: AgentSummaryPatch,
 ): Agent {
+  const hasPatchName = hasOwn(patch, 'name') && patch.name !== undefined;
+  const hasExistingName = existing != null && hasOwn(existing, 'name') && existing.name !== undefined;
+  let name = patch.key;
+  if (hasExistingName) {
+    name = existing.name;
+  }
+  if (hasPatchName) {
+    name = patch.name as string;
+  }
   const next: Agent = {
     ...(existing || {}),
     key: patch.key,
-    name: patch.name || existing?.name || patch.key,
+    name,
   };
 
   for (const [key, value] of Object.entries(patch)) {

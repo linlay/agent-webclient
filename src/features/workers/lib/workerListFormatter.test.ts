@@ -146,6 +146,20 @@ describe('buildWorkerRows', () => {
     expect(rows[0].searchText).toContain('operations assistant');
   });
 
+  it('preserves explicitly empty agent names in worker rows', () => {
+    const rows = buildWorkerRows({
+      agents: [{ key: 'agent-a', name: '' } as Agent],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-a',
+      displayName: '',
+    });
+  });
+
   it('carries coder workspace metadata into worker rows and search text', () => {
     const rows = buildWorkerRows({
       agents: [
