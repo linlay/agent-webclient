@@ -20,9 +20,6 @@ export const WorkerChatPreviewItem: React.FC<{
     if (loading) {
       return "loading";
     }
-    if (isUnread) {
-      return "unread";
-    }
     return "time";
   }, [loading, isUnread]);
   return (
@@ -32,6 +29,7 @@ export const WorkerChatPreviewItem: React.FC<{
       onClick={onClick}
     >
       <div className="worker-chat-item-head">
+        <UnreadDot chat={chat} />
         <span className="worker-chat-item-main">
           <span className="worker-chat-name">
             {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
@@ -48,7 +46,6 @@ export const WorkerChatPreviewItem: React.FC<{
             name="progress_activity"
             className="worker-chat-loading"
           />
-          <UnreadDot chat={chat} />
           <span className="worker-panel-time-label">
             {formatChatTimeLabel(chat.updatedAt)}
           </span>
