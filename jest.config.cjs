@@ -6,5 +6,6 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.svg$': '<rootDir>/src/shared/icons/__mocks__/svgMock.ts',
   },
 };

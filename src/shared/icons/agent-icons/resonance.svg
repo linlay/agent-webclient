@@ -1,0 +1,8 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-resonance" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#C084FC"/><stop offset="100%" stop-color="#7E22CE"/></linearGradient></defs>
+  <rect x="10" y="16" width="4" height="16" rx="2" fill="url(#g-resonance)" opacity="0.4"/>
+  <rect x="18" y="10" width="4" height="28" rx="2" fill="url(#g-resonance)" opacity="0.7"/>
+  <rect x="26" y="6" width="4" height="36" rx="2" fill="url(#g-resonance)" opacity="0.9"/>
+  <rect x="34" y="14" width="4" height="20" rx="2" fill="url(#g-resonance)" opacity="0.5"/>
+  <path d="M6 24 Q 18 12, 26 24 T 42 24" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.8"/>
+</svg>

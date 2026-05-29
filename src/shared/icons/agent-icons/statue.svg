@@ -1,0 +1,9 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-statue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#94A3B8"/><stop offset="100%" stop-color="#475569"/></linearGradient></defs>
+  <path d="M12 36 L24 30 L36 36 L24 42 Z" fill="url(#g-statue)" opacity="0.8"/>
+  <path d="M12 36 V42 L24 48 V42 Z" fill="url(#g-statue)" opacity="0.9"/>
+  <path d="M24 42 L36 36 V42 L24 48 Z" fill="url(#g-statue)" opacity="0.6"/>
+  <path d="M18 30 L24 20 L30 30 Z" fill="url(#g-statue)" opacity="0.4"/>
+  <path d="M24 8 L30 16 L24 24 L18 16 Z" fill="url(#g-statue)" opacity="0.9"/>
+  <path d="M24 8 L24 24 L18 16 Z" fill="#FFFFFF" opacity="0.3"/>
+</svg>

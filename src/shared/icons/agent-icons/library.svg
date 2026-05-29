@@ -1,0 +1,12 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-library" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F472B6"/><stop offset="100%" stop-color="#DB2777"/></linearGradient></defs>
+  <path d="M8 34 L24 28 L40 34 L24 40 Z" fill="url(#g-library)" opacity="0.4"/>
+  <path d="M8 34 V38 L24 44 V40 Z" fill="url(#g-library)" opacity="0.8"/>
+  <path d="M24 40 L40 34 V38 L24 44 Z" fill="#FFFFFF" opacity="0.6"/>
+  <path d="M10 24 L26 18 L42 24 L26 30 Z" fill="url(#g-library)" opacity="0.7"/>
+  <path d="M10 24 V28 L26 34 V30 Z" fill="url(#g-library)" opacity="0.9"/>
+  <path d="M26 30 L42 24 V28 L26 34 Z" fill="#FFFFFF" opacity="0.6"/>
+  <path d="M12 14 L28 8 L44 14 L28 20 Z" fill="url(#g-library)" opacity="0.9"/>
+  <path d="M12 14 V18 L28 24 V20 Z" fill="url(#g-library)" opacity="0.9"/>
+  <path d="M28 20 L44 14 V18 L28 24 Z" fill="#FFFFFF" opacity="0.8"/>
+</svg>

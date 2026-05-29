@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-horizon" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#A3E635"/><stop offset="100%" stop-color="#4D7C0F"/></linearGradient></defs>
+  <circle cx="24" cy="18" r="12" fill="url(#g-horizon)" opacity="0.8"/>
+  <path d="M6 28 H42" stroke="url(#g-horizon)" stroke-width="3" opacity="0.9"/>
+  <path d="M24 28 L6 42 M24 28 L18 42 M24 28 L30 42 M24 28 L42 42" stroke="url(#g-horizon)" stroke-width="2" opacity="0.4"/>
+  <path d="M24 6 V10 M12 10 L15 13 M36 10 L33 13" stroke="url(#g-horizon)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+</svg>

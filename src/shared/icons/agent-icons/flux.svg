@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-flux" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#0284C7"/></linearGradient></defs>
+  <path d="M8 24 C 8 12, 24 12, 24 24 C 24 36, 40 36, 40 24" stroke="url(#g-flux)" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <path d="M8 24 C 8 36, 24 36, 24 24 C 24 12, 40 12, 40 24" stroke="url(#g-flux)" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <circle cx="16" cy="18" r="3" fill="#FFFFFF"/>
+  <circle cx="32" cy="30" r="3" fill="#FFFFFF" opacity="0.7"/>
+</svg>

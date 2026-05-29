@@ -963,7 +963,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     options={[
                       { value: "none", label: "Default" },
                       { value: "builtin", label: "Built-in" },
-                      { value: "image", label: "JPG / PNG" },
+                      { value: "image", label: "JPG / PNG / SVG" },
                     ]}
                     onChange={(value: IconKind) => updateForm({ iconKind: value })}
                   />

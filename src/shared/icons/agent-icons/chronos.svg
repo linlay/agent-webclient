@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-chronos" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FDE047"/><stop offset="100%" stop-color="#CA8A04"/></linearGradient></defs>
+  <circle cx="24" cy="24" r="18" stroke="url(#g-chronos)" stroke-width="3" fill="none" opacity="0.3"/>
+  <path d="M24 24 L24 6 A 18 18 0 0 1 38 32 Z" fill="url(#g-chronos)" opacity="0.6"/>
+  <path d="M24 24 L14 24" stroke="url(#g-chronos)" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="24" cy="24" r="3" fill="#FFFFFF"/>
+</svg>

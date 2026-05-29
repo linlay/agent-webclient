@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-focus" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#A78BFA"/><stop offset="100%" stop-color="#6D28D9"/></linearGradient></defs>
+  <path d="M10 28H38M10 34H38M16 22V40M32 22V40" stroke="url(#g-focus)" stroke-width="2" opacity="0.2"/>
+  <circle cx="20" cy="20" r="12" stroke="url(#g-focus)" stroke-width="4" fill="none" opacity="0.8"/>
+  <circle cx="20" cy="20" r="8" fill="url(#g-focus)" opacity="0.3"/>
+  <line x1="28" y1="28" x2="42" y2="42" stroke="url(#g-focus)" stroke-width="6" stroke-linecap="round"/>
+</svg>

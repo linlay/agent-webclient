@@ -1,0 +1,6 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-chime" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2DD4BF"/><stop offset="100%" stop-color="#0D9488"/></linearGradient></defs>
+  <path d="M24 6 C18 6, 14 12, 14 20 L12 30 H36 L34 20 C34 12, 30 6, 24 6 Z" fill="url(#g-chime)" opacity="0.4"/>
+  <circle cx="24" cy="36" r="4" fill="url(#g-chime)" opacity="0.9"/>
+  <path d="M8 26 A 18 18 0 0 0 40 26" stroke="url(#g-chime)" stroke-width="2" stroke-dasharray="4 4" fill="none" opacity="0.5"/>
+</svg>

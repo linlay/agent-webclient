@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-database" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#0891B2"/></linearGradient></defs>
+  <ellipse cx="24" cy="12" rx="16" ry="6" fill="url(#g-database)" opacity="0.9"/>
+  <path d="M8 12 V22 C8 25 15 28 24 28 C33 28 40 25 40 22 V12" fill="url(#g-database)" opacity="0.6"/>
+  <path d="M8 22 V32 C8 35 15 38 24 38 C33 38 40 35 40 32 V22" fill="url(#g-database)" opacity="0.3"/>
+  <line x1="24" y1="12" x2="24" y2="32" stroke="#FFFFFF" stroke-width="2" opacity="0.4"/>
+</svg>

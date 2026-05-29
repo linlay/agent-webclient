@@ -1,0 +1,6 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-portal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#818CF8"/><stop offset="100%" stop-color="#3730A3"/></linearGradient></defs>
+  <path d="M6 38 L24 30 L42 38 L24 46 Z" fill="url(#g-portal)" opacity="0.3"/>
+  <path d="M14 34 V14 L24 8 L34 14 V34" stroke="url(#g-portal)" stroke-width="4" fill="none" opacity="0.6"/>
+  <path d="M18 32 V16 L24 12 L30 16 V32 Z" fill="url(#g-portal)" opacity="0.9"/>
+</svg>

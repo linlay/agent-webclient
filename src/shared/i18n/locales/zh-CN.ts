@@ -33,7 +33,7 @@ export const zhCNMessages: I18nMessages = {
   "agentConsole.list.dragHandle": "拖拽排序 {name}",
   "agentConsole.list.savingOrder": "保存排序中...",
   "agentConsole.list.toolsSkills": "工具 {tools} · 技能 {skills}",
-  "agentConsole.placeholder.iconImage": "/assets/agent.png 或 https://...",
+  "agentConsole.placeholder.iconImage": "/assets/agent.svg 或 https://...",
   "agentConsole.searchPlaceholder": "搜索智能体...",
   "agentConsole.section.advancedConfig": "高级配置",
   "agentConsole.section.capabilities": "能力",

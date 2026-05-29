@@ -33,7 +33,7 @@ export const enUSMessages: I18nMessages = {
   "agentConsole.list.dragHandle": "Drag to reorder {name}",
   "agentConsole.list.savingOrder": "Saving order...",
   "agentConsole.list.toolsSkills": "Tools {tools} · Skills {skills}",
-  "agentConsole.placeholder.iconImage": "/assets/agent.png or https://...",
+  "agentConsole.placeholder.iconImage": "/assets/agent.svg or https://...",
   "agentConsole.searchPlaceholder": "Search agents...",
   "agentConsole.section.advancedConfig": "Advanced config",
   "agentConsole.section.capabilities": "Capabilities",

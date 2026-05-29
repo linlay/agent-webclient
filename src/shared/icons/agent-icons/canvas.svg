@@ -1,0 +1,8 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-canvas" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F87171"/><stop offset="100%" stop-color="#B91C1C"/></linearGradient></defs>
+  <path d="M8 36 C 16 20, 32 20, 40 36" stroke="url(#g-canvas)" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <circle cx="24" cy="22" r="3" fill="url(#g-canvas)"/>
+  <path d="M24 22 L16 10 L32 10 Z" fill="url(#g-canvas)" opacity="0.9"/>
+  <circle cx="16" cy="10" r="2" fill="#FFFFFF"/>
+  <circle cx="32" cy="10" r="2" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-atlas" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#0284C7"/></linearGradient></defs>
+  <circle cx="24" cy="24" r="18" stroke="url(#g-atlas)" stroke-width="3" fill="none" opacity="0.3"/>
+  <ellipse cx="24" cy="24" rx="18" ry="6" stroke="url(#g-atlas)" stroke-width="2" fill="none" opacity="0.6"/>
+  <ellipse cx="24" cy="24" rx="6" ry="18" stroke="url(#g-atlas)" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="24" cy="12" r="2" fill="#FFFFFF"/>
+  <circle cx="24" cy="36" r="2" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-cortex" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
+  <circle cx="24" cy="24" r="6" fill="url(#g-cortex)" opacity="0.9"/>
+  <line x1="24" y1="24" x2="12" y2="12" stroke="url(#g-cortex)" stroke-width="2" opacity="0.5"/>
+  <line x1="24" y1="24" x2="36" y2="12" stroke="url(#g-cortex)" stroke-width="2" opacity="0.5"/>
+  <line x1="24" y1="24" x2="12" y2="36" stroke="url(#g-cortex)" stroke-width="2" opacity="0.5"/>
+  <line x1="24" y1="24" x2="36" y2="36" stroke="url(#g-cortex)" stroke-width="2" opacity="0.5"/>
+  <circle cx="12" cy="12" r="4" fill="url(#g-cortex)" opacity="0.6"/>
+  <circle cx="36" cy="12" r="3" fill="url(#g-cortex)" opacity="0.4"/>
+  <circle cx="12" cy="36" r="3" fill="url(#g-cortex)" opacity="0.4"/>
+  <circle cx="36" cy="36" r="4" fill="url(#g-cortex)" opacity="0.6"/>
+</svg>

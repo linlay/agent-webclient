@@ -1,0 +1,6 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-spark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FCD34D"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs>
+  <path d="M24 10 L32 24 L24 38 L16 24 Z" fill="url(#g-spark)" opacity="0.8"/>
+  <path d="M24 14 L29 24 L24 34 L19 24 Z" fill="#FFFFFF" opacity="0.4"/>
+  <path d="M24 2 L26 8 H22 Z M24 46 L26 40 H22 Z M2 24 L8 22 V26 Z M46 24 L40 22 V26 Z" fill="url(#g-spark)" opacity="0.9"/>
+</svg>

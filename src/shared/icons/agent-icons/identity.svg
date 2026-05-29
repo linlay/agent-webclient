@@ -1,0 +1,6 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-identity" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F472B6"/><stop offset="100%" stop-color="#DB2777"/></linearGradient></defs>
+  <circle cx="24" cy="14" r="8" fill="url(#g-identity)" opacity="0.9"/>
+  <path d="M10 38 C10 30, 14 26, 24 26 C34 26, 38 30, 38 38 Z" fill="url(#g-identity)" opacity="0.4"/>
+  <path d="M16 28 L24 20 L32 28 Z" fill="#FFFFFF" opacity="0.3"/>
+</svg>
