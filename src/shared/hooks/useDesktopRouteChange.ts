@@ -1,18 +1,44 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-type DesktopRouteChangedPayload = {
+export type DesktopRouteChangedPayload = {
   type?: unknown;
   pathname?: unknown;
   search?: unknown;
   hash?: unknown;
 };
 
+type DesktopRouteSubscriber = (target: string) => void;
+
+type DesktopRouteBridge = {
+  listeners: Set<DesktopRouteSubscriber>;
+  listening: boolean;
+  unsubscribeFromMain: (() => void) | null;
+};
+
+type DesktopRouteElectronAPI = {
+  onFromMain?: (
+    channel: string,
+    callback: (event: unknown, payload: DesktopRouteChangedPayload) => void,
+  ) => unknown;
+};
+
+type DesktopRouteWindow = Window & typeof globalThis & {
+  electronAPI?: DesktopRouteElectronAPI;
+  [DESKTOP_ROUTE_BRIDGE_KEY]?: DesktopRouteBridge;
+};
+
+const DESKTOP_ROUTE_CHANGED_MESSAGE_TYPE = "desktopRouteChanged";
+const SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL = "zenmind:service-webview:route";
+const DESKTOP_ROUTE_BRIDGE_KEY = "__ZENMIND_AGENT_WEBCLIENT_DESKTOP_ROUTE_BRIDGE__";
+
+let fallbackBridge: DesktopRouteBridge | null = null;
+
 function normalizeRoutePart(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function buildDesktopRouteTarget(
+export function buildDesktopRouteTarget(
   payload: DesktopRouteChangedPayload,
 ): string | null {
   const rawPathname = normalizeRoutePart(payload.pathname);
@@ -53,29 +79,106 @@ function buildDesktopRouteTarget(
   return `${pathname}${search}${hash}`;
 }
 
+function createDesktopRouteBridge(): DesktopRouteBridge {
+  return {
+    listeners: new Set<DesktopRouteSubscriber>(),
+    listening: false,
+    unsubscribeFromMain: null,
+  };
+}
+
+function getDesktopRouteWindow(): DesktopRouteWindow | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window as DesktopRouteWindow;
+}
+
+function getDesktopRouteBridge(): DesktopRouteBridge {
+  const desktopWindow = getDesktopRouteWindow();
+  if (!desktopWindow) {
+    fallbackBridge ??= createDesktopRouteBridge();
+    return fallbackBridge;
+  }
+
+  desktopWindow[DESKTOP_ROUTE_BRIDGE_KEY] ??= createDesktopRouteBridge();
+  return desktopWindow[DESKTOP_ROUTE_BRIDGE_KEY];
+}
+
+function dispatchDesktopRoutePayload(payload: DesktopRouteChangedPayload): void {
+  if (payload.type !== DESKTOP_ROUTE_CHANGED_MESSAGE_TYPE) {
+    return;
+  }
+  const target = buildDesktopRouteTarget(payload);
+  if (!target) {
+    return;
+  }
+
+  for (const listener of Array.from(getDesktopRouteBridge().listeners)) {
+    listener(target);
+  }
+}
+
+function ensureDesktopRouteBridgeListening(): void {
+  const bridge = getDesktopRouteBridge();
+  if (bridge.listening) {
+    return;
+  }
+
+  const electronAPI = getDesktopRouteWindow()?.electronAPI;
+  if (typeof electronAPI?.onFromMain !== "function") {
+    return;
+  }
+
+  const maybeUnsubscribe = electronAPI.onFromMain(
+    SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL,
+    (_event, payload) => {
+      dispatchDesktopRoutePayload(payload);
+    },
+  );
+  bridge.listening = true;
+  bridge.unsubscribeFromMain =
+    typeof maybeUnsubscribe === "function"
+      ? () => {
+          (maybeUnsubscribe as () => void)();
+        }
+      : null;
+}
+
+export function subscribeDesktopRouteChanges(
+  listener: DesktopRouteSubscriber,
+): () => void {
+  const bridge = getDesktopRouteBridge();
+  bridge.listeners.add(listener);
+  ensureDesktopRouteBridgeListening();
+
+  return () => {
+    bridge.listeners.delete(listener);
+  };
+}
+
+export function resetDesktopRouteChangeBridgeForTests(): void {
+  const bridge = getDesktopRouteBridge();
+  bridge.listeners.clear();
+  bridge.listening = false;
+  bridge.unsubscribeFromMain?.();
+  bridge.unsubscribeFromMain = null;
+
+  const desktopWindow = getDesktopRouteWindow();
+  if (desktopWindow) {
+    delete desktopWindow[DESKTOP_ROUTE_BRIDGE_KEY];
+  }
+  fallbackBridge = null;
+}
+
 export const useDesktopRouteChange = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const electronAPI = (window as any).electronAPI;
-    if (!electronAPI) return;
-    const handleServiceWebviewDeliver = (
-      payload: DesktopRouteChangedPayload,
-    ) => {
-      if (payload.type !== "desktopRouteChanged") return;
-      const target = buildDesktopRouteTarget(payload);
-      if (!target) return;
-      const cur = `${location.pathname}${location.search}${location.hash}`;
+    return subscribeDesktopRouteChanges((target) => {
+      const cur = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       if (cur === target) return;
       navigate(target, { replace: true });
-    };
-
-    // 监听 主进程 发送的 消息
-    electronAPI.onFromMain(
-      "zenmind:service-webview:route",
-      (_: any, payload: DesktopRouteChangedPayload) => {
-        handleServiceWebviewDeliver(payload);
-      },
-    );
-  }, []);
+    });
+  }, [navigate]);
 };
