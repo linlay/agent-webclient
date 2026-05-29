@@ -301,6 +301,7 @@ export interface AgentEditorProxyConfigSchema {
 export interface AgentEditorOptionsResponse {
   models: AgentEditorModelOption[];
   contextTags: AgentEditorOption[];
+  visibilityScopes?: AgentEditorOption[];
   modes: AgentEditorOption[];
   proxyConfigSchema: AgentEditorProxyConfigSchema;
 }

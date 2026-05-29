@@ -66,7 +66,9 @@ jest.mock("@/shared/ui/UiButton", () => ({
 import {
   AgentConsole,
   agentConsoleListRequestOptions,
+  buildDefinition,
   buildAgentListSummary,
+  formFromDetail,
   saveAgentOrderRequest,
   shouldStartAgentConsoleBootstrap,
 } from "@/features/workers/components/AgentConsole";
@@ -77,6 +79,8 @@ const { getAgents, putAgentOrder } = jest.requireMock(
   getAgents: jest.Mock;
   putAgentOrder: jest.Mock;
 };
+
+const translate = (key: string) => key;
 
 describe("AgentConsole order persistence", () => {
   beforeEach(() => {
@@ -151,6 +155,179 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("Agents 0");
     expect(html).toContain("No matching agents.");
     expect(html).toContain("Create agent");
+  });
+
+  it("renders visibility and budget controls", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    expect(html).toContain("Visibility");
+    expect(html).toContain("Budget runTimeoutMs");
+    expect(html).toContain("Budget maxSteps");
+    expect(html).toContain("Budget model.maxCalls");
+    expect(html).toContain("Budget tool.maxCalls");
+  });
+});
+
+describe("AgentConsole definition mapping", () => {
+  it("reads budget and visibility from the editable definition", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {
+        visibility: { scopes: ["nav"] },
+        budget: { maxSteps: 12 },
+      },
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        visibility: { scopes: ["invoke", "internal"] },
+        budget: {
+          runTimeoutMs: 600000,
+          maxSteps: 240,
+          model: { maxCalls: 40 },
+          tool: { maxCalls: 200 },
+        },
+      },
+    });
+
+    expect(form.visibilityScopes).toEqual(["invoke", "internal"]);
+    expect(form.runTimeoutMs).toBe("600000");
+    expect(form.maxSteps).toBe("240");
+    expect(form.modelMaxCalls).toBe("40");
+    expect(form.toolMaxCalls).toBe("200");
+  });
+
+  it("falls back to meta budget and visibility when definition omits them", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {
+        visibility: { scopes: ["copilot"] },
+        budget: { maxSteps: 18, tool: { maxCalls: 9 } },
+      },
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+      },
+    });
+
+    expect(form.visibilityScopes).toEqual(["copilot"]);
+    expect(form.maxSteps).toBe("18");
+    expect(form.toolMaxCalls).toBe("9");
+  });
+
+  it("writes structured budget and visibility while preserving unknown budget keys", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        budget: {
+          tokenLimit: 123,
+          model: { coolDownMs: 50 },
+          tool: { retry: 2 },
+        },
+      },
+    });
+
+    const definition = buildDefinition(
+      {
+        ...form,
+        visibilityScopes: ["nav", "invoke"],
+        runTimeoutMs: "1000",
+        maxSteps: "24",
+        modelMaxCalls: "8",
+        toolMaxCalls: "16",
+      },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        budget: {
+          tokenLimit: 123,
+          model: { coolDownMs: 50 },
+          tool: { retry: 2 },
+        },
+      },
+      translate,
+    );
+
+    expect(definition.visibility).toEqual({ scopes: ["nav", "invoke"] });
+    expect(definition.budget).toEqual({
+      tokenLimit: 123,
+      runTimeoutMs: 1000,
+      maxSteps: 24,
+      model: { coolDownMs: 50, maxCalls: 8 },
+      tool: { retry: 2, maxCalls: 16 },
+    });
+  });
+
+  it("omits budget when common fields are blank and no unknown budget keys remain", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        budget: {
+          runTimeoutMs: 1000,
+          maxSteps: 24,
+          model: { maxCalls: 8 },
+          tool: { maxCalls: 16 },
+        },
+      },
+    });
+
+    const definition = buildDefinition(
+      {
+        ...form,
+        runTimeoutMs: "",
+        maxSteps: "",
+        modelMaxCalls: "",
+        toolMaxCalls: "",
+      },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        budget: {
+          runTimeoutMs: 1000,
+          maxSteps: 24,
+          model: { maxCalls: 8 },
+          tool: { maxCalls: 16 },
+        },
+      },
+      translate,
+    );
+
+    expect(definition.budget).toBeUndefined();
   });
 });
 

@@ -63,6 +63,11 @@ interface AgentFormState {
   skills: string[];
   wonders: string[];
   contextTags: string[];
+  visibilityScopes: string[];
+  runTimeoutMs: string;
+  maxSteps: string;
+  modelMaxCalls: string;
+  toolMaxCalls: string;
   controlsText: string;
   runtimeConfigText: string;
   memoryConfigText: string;
@@ -102,6 +107,11 @@ const EMPTY_FORM: AgentFormState = {
   skills: [],
   wonders: [],
   contextTags: [],
+  visibilityScopes: ["nav"],
+  runTimeoutMs: "",
+  maxSteps: "",
+  modelMaxCalls: "",
+  toolMaxCalls: "",
   controlsText: "[]",
   runtimeConfigText: "",
   memoryConfigText: "",
@@ -129,6 +139,22 @@ function textListFromUnknown(value: unknown): string[] {
 function stringifyJson(value: unknown, fallback = ""): string {
   if (value === undefined || value === null || value === "") return fallback;
   return JSON.stringify(value, null, 2);
+}
+
+function numberTextFromUnknown(value: unknown): string {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue) || numberValue < 0) return "";
+  return String(Math.trunc(numberValue));
+}
+
+function parseBudgetNumber(label: string, value: string): number | undefined {
+  const raw = value.trim();
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return parsed;
 }
 
 function parseJsonField(
@@ -267,21 +293,33 @@ function fallbackDefinition(detail: AgentDetailResponse): Record<string, unknown
     mode: normalizeModeForForm(detail.mode),
   };
   const meta = asRecord(detail.meta);
+  const visibility = asRecord(meta.visibility);
+  const budget = asRecord(meta.budget);
   const modelKey = toText(meta.modelKey) || toText(detail.model);
   if (modelKey) definition.modelConfig = { modelKey };
   if (Array.isArray(detail.tools)) definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills)) definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
   if (Array.isArray(detail.controls)) definition.controls = detail.controls;
+  if (Array.isArray(visibility.scopes)) definition.visibility = { scopes: visibility.scopes };
+  if (Object.keys(budget).length > 0) definition.budget = budget;
   return definition;
 }
 
-function formFromDetail(detail: AgentDetailResponse): AgentFormState {
+export function formFromDetail(detail: AgentDetailResponse): AgentFormState {
   const definition = detail.definition || fallbackDefinition(detail);
   const modelConfig = asRecord(definition.modelConfig);
   const toolConfig = asRecord(definition.toolConfig);
   const skillConfig = asRecord(definition.skillConfig);
   const contextConfig = asRecord(definition.contextConfig);
+  const meta = asRecord(detail.meta);
+  const definitionVisibility = asRecord(definition.visibility);
+  const metaVisibility = asRecord(meta.visibility);
+  const definitionBudget = asRecord(definition.budget);
+  const metaBudget = asRecord(meta.budget);
+  const budget = Object.keys(definitionBudget).length > 0 ? definitionBudget : metaBudget;
+  const modelBudget = asRecord(budget.model);
+  const toolBudget = asRecord(budget.tool);
   return {
     key: toText(definition.key) || detail.key,
     name: toText(definition.name) || detail.name || detail.key,
@@ -294,6 +332,16 @@ function formFromDetail(detail: AgentDetailResponse): AgentFormState {
     skills: textListFromUnknown(skillConfig.skills || detail.skills),
     wonders: textListFromUnknown(definition.wonders || detail.wonders),
     contextTags: textListFromUnknown(contextConfig.tags || definition.contextTags),
+    visibilityScopes: (() => {
+      const definitionScopes = textListFromUnknown(definitionVisibility.scopes);
+      if (definitionScopes.length > 0) return definitionScopes;
+      const metaScopes = textListFromUnknown(metaVisibility.scopes);
+      return metaScopes.length > 0 ? metaScopes : ["nav"];
+    })(),
+    runTimeoutMs: numberTextFromUnknown(budget.runTimeoutMs),
+    maxSteps: numberTextFromUnknown(budget.maxSteps),
+    modelMaxCalls: numberTextFromUnknown(modelBudget.maxCalls),
+    toolMaxCalls: numberTextFromUnknown(toolBudget.maxCalls),
     controlsText: stringifyJson(definition.controls || detail.controls || [], "[]"),
     runtimeConfigText: stringifyJson(definition.runtimeConfig),
     memoryConfigText: stringifyJson(definition.memoryConfig),
@@ -303,7 +351,7 @@ function formFromDetail(detail: AgentDetailResponse): AgentFormState {
   };
 }
 
-function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>, t: Translate): Record<string, unknown> {
+export function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>, t: Translate): Record<string, unknown> {
   const definition = { ...baseDefinition };
   definition.key = form.key.trim();
   definition.name = form.name.trim();
@@ -341,6 +389,35 @@ function buildDefinition(form: AgentFormState, baseDefinition: Record<string, un
     else delete definition.contextConfig;
     delete definition.contextTags;
   }
+
+  const visibilityScopes = form.visibilityScopes.map((item) => item.trim()).filter(Boolean);
+  if (visibilityScopes.length > 0) {
+    definition.visibility = { ...asRecord(definition.visibility), scopes: visibilityScopes };
+  } else {
+    delete definition.visibility;
+  }
+
+  const budget = asRecord(definition.budget);
+  const modelBudget = asRecord(budget.model);
+  const toolBudget = asRecord(budget.tool);
+  const runTimeoutMs = parseBudgetNumber("Budget runTimeoutMs", form.runTimeoutMs);
+  const maxSteps = parseBudgetNumber("Budget maxSteps", form.maxSteps);
+  const modelMaxCalls = parseBudgetNumber("Budget model.maxCalls", form.modelMaxCalls);
+  const toolMaxCalls = parseBudgetNumber("Budget tool.maxCalls", form.toolMaxCalls);
+  if (runTimeoutMs === undefined) delete budget.runTimeoutMs;
+  else budget.runTimeoutMs = runTimeoutMs;
+  if (maxSteps === undefined) delete budget.maxSteps;
+  else budget.maxSteps = maxSteps;
+  if (modelMaxCalls === undefined) delete modelBudget.maxCalls;
+  else modelBudget.maxCalls = modelMaxCalls;
+  if (toolMaxCalls === undefined) delete toolBudget.maxCalls;
+  else toolBudget.maxCalls = toolMaxCalls;
+  if (Object.keys(modelBudget).length > 0) budget.model = modelBudget;
+  else delete budget.model;
+  if (Object.keys(toolBudget).length > 0) budget.tool = toolBudget;
+  else delete budget.tool;
+  if (Object.keys(budget).length > 0) definition.budget = budget;
+  else delete definition.budget;
 
   definition.controls = parseJsonField("Controls", form.controlsText, t, { expectArray: true });
   for (const [key, label, value] of [
@@ -530,6 +607,19 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
   const contextTagOptions = useMemo(
     () => (editorOptions?.contextTags || []).map((item) => ({ value: item.key, label: item.label || item.key })),
+    [editorOptions],
+  );
+  const visibilityScopeOptions = useMemo(
+    () =>
+      (editorOptions?.visibilityScopes?.length
+        ? editorOptions.visibilityScopes
+        : [
+            { key: "nav", label: "nav" },
+            { key: "copilot", label: "copilot" },
+            { key: "invoke", label: "invoke" },
+            { key: "internal", label: "internal" },
+          ]
+      ).map((item) => ({ value: item.key, label: item.label || item.key })),
     [editorOptions],
   );
   const selectedIconValue = useMemo(() => {
@@ -1008,6 +1098,34 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <div className="field-group">
                   <label htmlFor="agent-memory-input">Memory Config</label>
                   <Input.TextArea id="agent-memory-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="agent-visibility-input">Visibility</label>
+                  <Select
+                    id="agent-visibility-input"
+                    mode="multiple"
+                    allowClear
+                    loading={loadingOptions}
+                    value={form.visibilityScopes}
+                    options={visibilityScopeOptions}
+                    onChange={(value) => updateForm({ visibilityScopes: value })}
+                  />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="agent-budget-timeout-input">Budget runTimeoutMs</label>
+                  <Input id="agent-budget-timeout-input" type="number" min={0} value={form.runTimeoutMs} onChange={(event) => updateForm({ runTimeoutMs: event.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="agent-budget-steps-input">Budget maxSteps</label>
+                  <Input id="agent-budget-steps-input" type="number" min={0} value={form.maxSteps} onChange={(event) => updateForm({ maxSteps: event.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="agent-budget-model-calls-input">Budget model.maxCalls</label>
+                  <Input id="agent-budget-model-calls-input" type="number" min={0} value={form.modelMaxCalls} onChange={(event) => updateForm({ modelMaxCalls: event.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="agent-budget-tool-calls-input">Budget tool.maxCalls</label>
+                  <Input id="agent-budget-tool-calls-input" type="number" min={0} value={form.toolMaxCalls} onChange={(event) => updateForm({ toolMaxCalls: event.target.value })} />
                 </div>
                 {form.mode === "PROXY" && (
                   <div className="field-group">

@@ -133,7 +133,7 @@ export const enUSMessages: I18nMessages = {
   "composer.background.remember.pending": "Saving memory...",
   "composer.input.placeholder.default": "Reply... (Enter to send, Shift+Enter for a new line)",
   "composer.input.placeholder.frontendActive": "A frontend tool is active. Submit from the confirmation panel.",
-  "composer.query.access.auto_approve": "Auto review",
+  "composer.query.access.auto_approve": "Auto approve",
   "composer.query.access.default": "Default access",
   "composer.query.access.full_access": "Full access",
   "composer.query.access.title": "Set access for this run",
