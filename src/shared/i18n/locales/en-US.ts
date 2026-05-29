@@ -686,6 +686,7 @@ export const enUSMessages: I18nMessages = {
   "topNav.usage.metric.llmCalls": "LLM calls",
   "topNav.usage.metric.prompt": "Prompt",
   "topNav.usage.metric.reasoning": "Reasoning",
+  "topNav.usage.metric.toolCalls": "Tool calls",
   "topNav.usage.metric.total": "Total",
   "topNav.usage.modelUnknown": "Unknown model",
   "topNav.usage.open": "Open usage stats",

@@ -234,6 +234,7 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     'completionTokens',
     'totalTokens',
     'llmChatCompletionCount',
+    'toolCallCount',
   ] as const;
 
   for (const key of numericKeys) {
@@ -260,7 +261,8 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
 
   const totalTokens = stats.totalTokens ?? 0;
   const llmChatCompletionCount = stats.llmChatCompletionCount ?? 0;
-  return totalTokens > 0 || llmChatCompletionCount > 0 || estimatedCost ? stats : null;
+  const toolCallCount = stats.toolCallCount ?? 0;
+  return totalTokens > 0 || llmChatCompletionCount > 0 || toolCallCount > 0 || estimatedCost ? stats : null;
 }
 
 function getLatestUsageSnapshotEvent(events: unknown[]): AIUsageSnapshotEvent | null {

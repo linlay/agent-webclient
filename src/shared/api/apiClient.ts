@@ -417,6 +417,7 @@ export interface ChatUsageData {
   completionTokensDetails?: ChatUsageTokenDetails;
   estimatedCost?: ChatUsageEstimatedCost;
   llmChatCompletionCount?: number;
+  toolCallCount?: number;
   current?: ChatUsageData;
   run?: ChatUsageData;
   lastRun?: ChatUsageData;

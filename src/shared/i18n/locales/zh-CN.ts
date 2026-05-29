@@ -686,6 +686,7 @@ export const zhCNMessages: I18nMessages = {
   "topNav.usage.metric.llmCalls": "LLM 调用",
   "topNav.usage.metric.prompt": "输入",
   "topNav.usage.metric.reasoning": "推理",
+  "topNav.usage.metric.toolCalls": "工具调用",
   "topNav.usage.metric.total": "总计",
   "topNav.usage.modelUnknown": "未知模型",
   "topNav.usage.open": "打开用量统计",

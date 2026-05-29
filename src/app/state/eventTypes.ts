@@ -162,6 +162,7 @@ export interface AIUsageStats {
   completionTokensDetails?: AIUsageTokenDetails;
   estimatedCost?: AIUsageEstimatedCost;
   llmChatCompletionCount?: number;
+  toolCallCount?: number;
   [key: string]: unknown;
 }
 

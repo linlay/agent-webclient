@@ -542,6 +542,15 @@
     font-weight: 700;
 }
 
+.usage-section-call-counts {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .usage-section-llm-calls {
     display: inline-flex;
     align-items: center;

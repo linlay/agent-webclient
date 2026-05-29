@@ -27,6 +27,14 @@ describe('compact usage snapshot helpers', () => {
           completionTokens: 210,
           totalTokens: 13367,
           llmChatCompletionCount: 1,
+          toolCallCount: 2,
+        },
+        chat: {
+          promptTokens: 53157,
+          completionTokens: 1210,
+          totalTokens: 54367,
+          llmChatCompletionCount: 4,
+          toolCallCount: 7,
         },
       },
     };

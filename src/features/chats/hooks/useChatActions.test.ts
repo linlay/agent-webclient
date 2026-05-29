@@ -207,6 +207,7 @@ describe('replayEvent tool migration', () => {
             promptCacheHitTokens: 999,
             promptCacheMissTokens: 999,
             llmChatCompletionCount: 2,
+            toolCallCount: 3,
           },
         },
         runs: [],
@@ -226,6 +227,7 @@ describe('replayEvent tool migration', () => {
           promptCacheHitTokens: 999,
           promptCacheMissTokens: 999,
           llmChatCompletionCount: 5,
+          toolCallCount: 8,
         },
         contextWindow: {
           maxSize: 128000,
@@ -256,6 +258,7 @@ describe('replayEvent tool migration', () => {
             totalTokens: 42,
             promptTokensDetails: { cacheHitTokens: 10, cacheMissTokens: 20 },
             llmChatCompletionCount: 2,
+            toolCallCount: 3,
           },
           chat: {
             promptTokens: 100,
@@ -271,6 +274,7 @@ describe('replayEvent tool migration', () => {
               total: 0.00027968,
             },
             llmChatCompletionCount: 5,
+            toolCallCount: 8,
           },
         },
       },
@@ -299,18 +303,21 @@ describe('replayEvent tool migration', () => {
                 promptTokens: 13157,
                 completionTokens: 210,
                 totalTokens: 13367,
+                toolCallCount: 2,
               },
               run: {
                 promptTokens: 13157,
                 completionTokens: 210,
                 totalTokens: 13367,
                 llmChatCompletionCount: 1,
+                toolCallCount: 2,
               },
               chat: {
                 promptTokens: 117392,
                 completionTokens: 11205,
                 totalTokens: 128597,
                 llmChatCompletionCount: 12,
+                toolCallCount: 15,
               },
             },
           },
@@ -324,6 +331,7 @@ describe('replayEvent tool migration', () => {
               completionTokens: 200,
               totalTokens: 6600,
               llmChatCompletionCount: 1,
+              toolCallCount: 4,
             },
           },
         ],
@@ -332,6 +340,7 @@ describe('replayEvent tool migration', () => {
           completionTokens: 11205,
           totalTokens: 128597,
           llmChatCompletionCount: 12,
+          toolCallCount: 15,
         },
       },
     });
@@ -402,6 +411,7 @@ describe('replayEvent tool migration', () => {
               reasoningTokens: 85,
             },
             llmChatCompletionCount: 1,
+            toolCallCount: 2,
           },
           chat: {
             promptTokens: 6252,
@@ -411,6 +421,7 @@ describe('replayEvent tool migration', () => {
               reasoningTokens: 85,
             },
             llmChatCompletionCount: 1,
+            toolCallCount: 3,
           },
         },
       },
@@ -448,6 +459,7 @@ describe('replayEvent tool migration', () => {
                 reasoningTokens: 85,
               },
               llmChatCompletionCount: 1,
+              toolCallCount: 2,
             },
             chat: {
               promptTokens: 6252,
@@ -457,6 +469,7 @@ describe('replayEvent tool migration', () => {
                 reasoningTokens: 85,
               },
               llmChatCompletionCount: 1,
+              toolCallCount: 3,
             },
           },
         }),
@@ -532,6 +545,7 @@ describe('replayEvent tool migration', () => {
         usage: {
           totalTokens: 0,
           llmChatCompletionCount: 0,
+          toolCallCount: 0,
         },
       },
     });
@@ -567,6 +581,7 @@ describe('replayEvent tool migration', () => {
               completionTokens: 20,
               totalTokens: 90,
               llmChatCompletionCount: 3,
+              toolCallCount: 6,
             },
           },
         ],
@@ -575,6 +590,7 @@ describe('replayEvent tool migration', () => {
           completionTokens: 80,
           totalTokens: 280,
           llmChatCompletionCount: 4,
+          toolCallCount: 9,
         },
       },
     });
@@ -593,8 +609,41 @@ describe('replayEvent tool migration', () => {
               completionTokens: 20,
               totalTokens: 90,
               llmChatCompletionCount: 3,
+              toolCallCount: 6,
             },
           }),
+        }),
+      }),
+    );
+  });
+
+  it('hydrates zero-token usage snapshots when tool calls are present', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          totalTokens: 0,
+          llmChatCompletionCount: 0,
+          toolCallCount: 2,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-tool-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          usage: {
+            chat: {
+              totalTokens: 0,
+              llmChatCompletionCount: 0,
+              toolCallCount: 2,
+            },
+          },
         }),
       }),
     );

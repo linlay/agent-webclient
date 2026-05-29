@@ -311,6 +311,7 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 400, cacheMissTokens: 499 },
 						completionTokensDetails: { reasoningTokens: 33 },
 						llmChatCompletionCount: 6,
+						toolCallCount: 9,
 					},
 				},
 			},
@@ -326,8 +327,37 @@ describe("TopNav", () => {
 		expect(html).toContain("400");
 		expect(html).toContain("499");
 		expect(html).toContain("33");
-		expect(html.match(/LLM calls/g)).toHaveLength(2);
-		expect(html).not.toContain("Current call</h3><span class=\"usage-section-llm-calls\"");
+		expect(html.match(/LLM calls/g)).toHaveLength(1);
+		expect(html.match(/Tool calls/g)).toHaveLength(1);
+		expect(html).not.toContain("Current call</h3><span class=\"usage-section-call-counts\"");
+	});
+
+	it("renders compact usage tool call counts", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			events: [
+				{
+					type: "context.compact.complete",
+					compactionUsage: {
+						promptTokens: 500,
+						completionTokens: 50,
+						totalTokens: 550,
+						llmChatCompletionCount: 2,
+						toolCallCount: 4,
+					},
+				},
+			] as any,
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Context compaction");
+		expect(html).toContain("LLM calls");
+		expect(html).toContain("Tool calls");
+		expect(html).toContain("<strong>2</strong>");
+		expect(html).toContain("<strong>4</strong>");
 	});
 
 	it("toggles the usage popover state from the usage entry", () => {
@@ -359,6 +389,7 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 30, cacheMissTokens: 70 },
 						completionTokensDetails: { reasoningTokens: 7 },
 						llmChatCompletionCount: 1,
+						toolCallCount: 2,
 					},
 					run: {
 						promptTokens: 300,
@@ -367,6 +398,7 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 220 },
 						completionTokensDetails: { reasoningTokens: 17 },
 						llmChatCompletionCount: 3,
+						toolCallCount: 4,
 					},
 					chat: {
 						promptTokens: 800,
@@ -375,6 +407,7 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 280, cacheMissTokens: 520 },
 						completionTokensDetails: { reasoningTokens: 27 },
 						llmChatCompletionCount: 8,
+						toolCallCount: 11,
 					},
 				},
 			},
@@ -399,7 +432,8 @@ describe("TopNav", () => {
 		expect(html).toContain("Reasoning");
 		expect(html).toContain("Cache hit");
 		expect(html).toContain("Cache miss");
-		expect(html.match(/LLM calls/g)).toHaveLength(2);
+		expect(html.match(/LLM calls/g)).toHaveLength(3);
+		expect(html.match(/Tool calls/g)).toHaveLength(3);
 		expect(html).toContain("Close usage stats");
 		expect(html).not.toContain(">close<");
 	});

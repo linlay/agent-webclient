@@ -317,15 +317,38 @@ const UsageSection: React.FC<{
   </section>
 );
 
-const UsageLlmCalls: React.FC<{
-  label: string;
-  value: unknown;
-}> = ({ label, value }) => (
-  <span className="usage-section-llm-calls">
-    {label}
-    <strong>{formatUsageNumber(value)}</strong>
-  </span>
-);
+const UsageCallCounts: React.FC<{
+  t: (key: string) => string;
+  stats?: AIUsageStats;
+}> = ({ t, stats }) => {
+  const counts = [
+    {
+      key: "llm",
+      label: t("topNav.usage.metric.llmCalls"),
+      value: stats?.llmChatCompletionCount,
+    },
+    {
+      key: "tool",
+      label: t("topNav.usage.metric.toolCalls"),
+      value: stats?.toolCallCount,
+    },
+  ].filter((count) => readUsageNumber(count.value) != null);
+
+  if (counts.length === 0) {
+    return null;
+  }
+
+  return (
+    <span className="usage-section-call-counts">
+      {counts.map((count) => (
+        <span className="usage-section-llm-calls" key={count.key}>
+          {count.label}
+          <strong>{formatUsageNumber(count.value)}</strong>
+        </span>
+      ))}
+    </span>
+  );
+};
 
 export const TopNav: React.FC = () => {
   const state = useAppState();
@@ -523,14 +546,20 @@ export const TopNav: React.FC = () => {
                             <UsageSection
                               title={t("topNav.usage.section.current")}
                               metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
+                              aside={
+                                <UsageCallCounts
+                                  t={t}
+                                  stats={usageSnapshot.usage?.current}
+                                />
+                              }
                             />
                             <UsageSection
                               title={t("topNav.usage.section.run")}
                               metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
                               aside={
-                                <UsageLlmCalls
-                                  label={t("topNav.usage.metric.llmCalls")}
-                                  value={usageSnapshot.usage?.run?.llmChatCompletionCount}
+                                <UsageCallCounts
+                                  t={t}
+                                  stats={usageSnapshot.usage?.run}
                                 />
                               }
                             />
@@ -538,9 +567,9 @@ export const TopNav: React.FC = () => {
                               title={t("topNav.usage.section.chat")}
                               metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
                               aside={
-                                <UsageLlmCalls
-                                  label={t("topNav.usage.metric.llmCalls")}
-                                  value={usageSnapshot.usage?.chat?.llmChatCompletionCount}
+                                <UsageCallCounts
+                                  t={t}
+                                  stats={usageSnapshot.usage?.chat}
                                 />
                               }
                             />
@@ -551,9 +580,9 @@ export const TopNav: React.FC = () => {
                             title={t("topNav.usage.section.compact")}
                             metrics={buildUsageMetrics(t, compactUsage)}
                             aside={
-                              <UsageLlmCalls
-                                label={t("topNav.usage.metric.llmCalls")}
-                                value={compactUsage.llmChatCompletionCount}
+                              <UsageCallCounts
+                                t={t}
+                                stats={compactUsage}
                               />
                             }
                           />
