@@ -87,4 +87,21 @@ describe("App routing", () => {
       ]),
     );
   });
+
+  it("registers localized document title keys for agents and automations", async () => {
+    await import("./App");
+
+    const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{
+      path: string;
+      children?: Array<{ path: string; element?: React.ReactElement }>;
+    }>;
+    const childRoutes = routes.flatMap((route) => route.children || [route]);
+
+    expect(childRoutes.find((route) => route.path === "/agents")?.element?.props.titleKey).toBe(
+      "route.title.agents",
+    );
+    expect(childRoutes.find((route) => route.path === "/automations")?.element?.props.titleKey).toBe(
+      "route.title.automations",
+    );
+  });
 });

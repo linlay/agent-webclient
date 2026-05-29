@@ -1,10 +1,38 @@
-jest.mock("antd", () => ({
-  Input: {
-    TextArea: () => null,
-  },
-  Select: () => null,
-  Spin: ({ children }: { children?: unknown }) => children || null,
-}));
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { I18nProvider } from "@/shared/i18n";
+
+jest.mock("antd", () => {
+  const React = require("react");
+  const Input = ({ prefix, ...props }: any) =>
+    React.createElement(
+      "div",
+      { className: "mock-input" },
+      prefix,
+      React.createElement("input", props),
+    );
+  Input.TextArea = (props: any) => React.createElement("textarea", props);
+  return {
+    Input,
+    Select: ({ allowClear, loading, mode, optionFilterProp, options = [], showSearch, value, ...props }: any) =>
+      React.createElement(
+        "select",
+        {
+          ...props,
+          multiple: mode === "multiple",
+          value: mode === "multiple" ? value || [] : value,
+        },
+        options.map((option: any) =>
+          React.createElement(
+            "option",
+            { key: option.value, value: option.value },
+            option.label,
+          ),
+        ),
+      ),
+    Spin: ({ children }: { children?: unknown }) => children || null,
+  };
+});
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(() => ({ state: { agents: [] }, dispatch: jest.fn() })),
@@ -36,6 +64,7 @@ jest.mock("@/shared/ui/UiButton", () => ({
 }));
 
 import {
+  AgentConsole,
   agentConsoleListRequestOptions,
   buildAgentListSummary,
   saveAgentOrderRequest,
@@ -92,6 +121,36 @@ describe("shouldStartAgentConsoleBootstrap", () => {
 describe("agentConsoleListRequestOptions", () => {
   it("loads the /agents page list with all agents scope", () => {
     expect(agentConsoleListRequestOptions()).toEqual({ scope: "all" });
+  });
+});
+
+describe("AgentConsole i18n rendering", () => {
+  it("renders the empty console in Chinese", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    expect(html).toContain("智能体 0 个");
+    expect(html).toContain("暂无匹配智能体。");
+    expect(html).toContain("创建智能体");
+  });
+
+  it("renders the empty console in English", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    expect(html).toContain("Agents 0");
+    expect(html).toContain("No matching agents.");
+    expect(html).toContain("Create agent");
   });
 });
 

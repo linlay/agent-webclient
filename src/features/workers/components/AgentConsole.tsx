@@ -43,9 +43,11 @@ import {
 import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useI18n, type I18nContextValue } from "@/shared/i18n";
 
 type AgentFormMode = "create" | "edit";
 type IconKind = "none" | "builtin" | "image";
+type Translate = I18nContextValue["t"];
 
 interface AgentFormState {
   key: string;
@@ -132,6 +134,7 @@ function stringifyJson(value: unknown, fallback = ""): string {
 function parseJsonField(
   label: string,
   value: string,
+  t: Translate,
   options: { allowEmpty?: boolean; expectArray?: boolean } = {},
 ): unknown {
   const raw = value.trim();
@@ -139,15 +142,19 @@ function parseJsonField(
   try {
     const parsed = JSON.parse(raw);
     if (options.expectArray && !Array.isArray(parsed)) {
-      throw new Error(`${label} 必须是 JSON 数组。`);
+      throw new Error(t("agentConsole.error.jsonArray", { label }));
     }
     if (!options.expectArray && (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))) {
-      throw new Error(`${label} 必须是 JSON 对象。`);
+      throw new Error(t("agentConsole.error.jsonObject", { label }));
     }
     return parsed;
   } catch (error) {
     const message = (error as Error).message;
-    throw new Error(message.startsWith(label) ? message : `${label} JSON 无效：${message}`);
+    throw new Error(
+      message.startsWith(label)
+        ? message
+        : t("agentConsole.error.jsonInvalid", { label, detail: message }),
+    );
   }
 }
 
@@ -296,7 +303,7 @@ function formFromDetail(detail: AgentDetailResponse): AgentFormState {
   };
 }
 
-function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>): Record<string, unknown> {
+function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>, t: Translate): Record<string, unknown> {
   const definition = { ...baseDefinition };
   definition.key = form.key.trim();
   definition.name = form.name.trim();
@@ -335,17 +342,17 @@ function buildDefinition(form: AgentFormState, baseDefinition: Record<string, un
     delete definition.contextTags;
   }
 
-  definition.controls = parseJsonField("Controls", form.controlsText, { expectArray: true });
+  definition.controls = parseJsonField("Controls", form.controlsText, t, { expectArray: true });
   for (const [key, label, value] of [
     ["runtimeConfig", "Runtime Config", form.runtimeConfigText],
     ["memoryConfig", "Memory Config", form.memoryConfigText],
   ] as const) {
-    const parsed = parseJsonField(label, value);
+    const parsed = parseJsonField(label, value, t);
     if (parsed === undefined) delete definition[key];
     else definition[key] = parsed;
   }
   if (definition.mode === "PROXY") {
-    definition.proxyConfig = parseJsonField("Proxy Config", form.proxyConfigText, { allowEmpty: false });
+    definition.proxyConfig = parseJsonField("Proxy Config", form.proxyConfigText, t, { allowEmpty: false });
   } else {
     delete definition.proxyConfig;
   }
@@ -362,6 +369,7 @@ interface SortableAgentListItemProps {
   role: string;
   sortableId: string;
   summary: ReturnType<typeof buildAgentListSummary>;
+  t: Translate;
   onSelect: (agentKey: string) => void;
 }
 
@@ -375,6 +383,7 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
   role,
   sortableId,
   summary,
+  t,
   onSelect,
 }) => {
   const {
@@ -412,7 +421,7 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
       <span
         ref={setActivatorNodeRef}
         className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
-        aria-label={`拖拽排序 ${name}`}
+        aria-label={t("agentConsole.list.dragHandle", { name })}
         {...attributes}
         {...listeners}
       >
@@ -436,7 +445,12 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
         </span>
         <span className="agent-console-list-item-row agent-console-list-item-meta">
           <span>{summary.modelKey}</span>
-          <span>工具 {summary.toolsCount} · 技能 {summary.skillsCount}</span>
+          <span>
+            {t("agentConsole.list.toolsSkills", {
+              tools: summary.toolsCount,
+              skills: summary.skillsCount,
+            })}
+          </span>
         </span>
       </span>
     </div>
@@ -449,6 +463,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   onClearSelection,
   embedded = false,
 }) => {
+  const { t } = useI18n();
   const { state, dispatch } = useAppContext();
   const [internalSelectedKey, setInternalSelectedKey] = useState("");
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
@@ -699,11 +714,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const saveForm = async () => {
     if (!form.key.trim()) {
-      setFormError("请填写 Agent Key。");
+      setFormError(t("agentConsole.error.keyRequired"));
       return;
     }
     if (!form.name.trim()) {
-      setFormError("请填写名称。");
+      setFormError(t("agentConsole.error.nameRequired"));
       return;
     }
     setSaving(true);
@@ -711,7 +726,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
     try {
       const baseDefinition = formMode === "edit" && detail ? detail.definition || fallbackDefinition(detail) : {};
-      const definition = buildDefinition(form, baseDefinition);
+      const definition = buildDefinition(form, baseDefinition, t);
       const response = formMode === "create"
         ? await createAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt })
         : await updateAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt });
@@ -770,37 +785,37 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         <Input
           prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
           variant="filled"
-          placeholder="搜索智能体..."
+          placeholder={t("agentConsole.searchPlaceholder")}
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
-        <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label="刷新智能体">
+        <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label={t("agentConsole.action.refresh")}>
           <MaterialIcon name="refresh" />
         </UiButton>
         <UiButton size="sm" variant="primary" onClick={startCreate}>
           <MaterialIcon name="add" />
-          <span>新建</span>
+          <span>{t("agentConsole.action.new")}</span>
         </UiButton>
       </div>
 
       {error && (
         <div className="agent-console-error">
           <span>{error}</span>
-          <UiButton size="sm" variant="ghost" onClick={() => loadAgents()}>重试</UiButton>
+          <UiButton size="sm" variant="ghost" onClick={() => loadAgents()}>{t("agentConsole.action.retry")}</UiButton>
         </div>
       )}
 
       <div className="agent-console-body">
         <div className="agent-console-list">
           <div className="agent-console-count">
-            <span>智能体 {state.agents.length} 个</span>
-            {savingOrder && <span>保存排序中...</span>}
+            <span>{t("agentConsole.list.count", { count: state.agents.length })}</span>
+            {savingOrder && <span>{t("agentConsole.list.savingOrder")}</span>}
           </div>
           <Spin spinning={loadingList || savingOrder}>
             {filteredAgents.length === 0 ? (
               <div className="command-empty-state">
-                暂无匹配智能体。
-                <UiButton size="sm" variant="primary" onClick={startCreate}>新建智能体</UiButton>
+                {t("agentConsole.empty")}
+                <UiButton size="sm" variant="primary" onClick={startCreate}>{t("agentConsole.action.create")}</UiButton>
               </div>
             ) : (
               <DndContext
@@ -832,6 +847,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                           role={role}
                           sortableId={sortableId}
                           summary={summary}
+                          t={t}
                           onSelect={selectAgent}
                         />
                       );
@@ -847,14 +863,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           <Spin spinning={loadingDetail}>
             <div className="agent-detail-head">
               <div>
-                <strong>{formMode === "create" ? "新建智能体" : selectedSummary?.name || form.name || form.key || "编辑智能体"}</strong>
-                <span>{formMode === "create" ? "保存后写入后端 agent 配置" : detail?.source?.path || form.key}</span>
+                <strong>{formMode === "create" ? t("agentConsole.detail.titleCreate") : selectedSummary?.name || form.name || form.key || t("agentConsole.detail.titleEdit")}</strong>
+                <span>{formMode === "create" ? t("agentConsole.detail.createSubtitle") : detail?.source?.path || form.key}</span>
               </div>
               {formMode === "edit" && (
                 <div className="agent-detail-actions">
                   <UiButton size="sm" variant="danger" onClick={confirmDelete} disabled={saving}>
                     <MaterialIcon name="delete" />
-                    <span>{pendingDeleteKey === form.key ? "确认删除" : "删除"}</span>
+                    <span>{pendingDeleteKey === form.key ? t("agentConsole.action.confirmDelete") : t("agentConsole.action.delete")}</span>
                   </UiButton>
                 </div>
               )}
@@ -866,15 +882,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <Input id="agent-key-input" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-name-input">名称</label>
+                <label htmlFor="agent-name-input">{t("agentConsole.field.name")}</label>
                 <Input id="agent-name-input" value={form.name} onChange={(event) => updateForm({ name: event.target.value })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-role-input">角色</label>
+                <label htmlFor="agent-role-input">{t("agentConsole.field.role")}</label>
                 <Input id="agent-role-input" value={form.role} onChange={(event) => updateForm({ role: event.target.value })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-mode-input">模式</label>
+                <label htmlFor="agent-mode-input">{t("agentConsole.field.mode")}</label>
                 <Select id="agent-mode-input" value={form.mode} options={modeOptions} onChange={setMode} />
               </div>
               <div className="field-group">
@@ -910,18 +926,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               {form.iconKind === "image" && (
                 <div className="field-group">
                   <label htmlFor="agent-icon-image-input">Icon Image</label>
-                  <Input id="agent-icon-image-input" placeholder="/assets/agent.png 或 https://..." value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
+                  <Input id="agent-icon-image-input" placeholder={t("agentConsole.placeholder.iconImage")} value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
                 </div>
               )}
             </div>
 
             <div className="field-group">
-              <label htmlFor="agent-description-input">描述</label>
+              <label htmlFor="agent-description-input">{t("agentConsole.field.description")}</label>
               <Input.TextArea id="agent-description-input" rows={3} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
             </div>
 
             <fieldset className="agent-config-box">
-              <legend>能力</legend>
+              <legend>{t("agentConsole.section.capabilities")}</legend>
               <div className="agent-form-grid">
                 <div className="field-group">
                   <label htmlFor="agent-tools-input">Tools</label>
@@ -965,21 +981,21 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                           updateForm({ wonders: next });
                         }}
                       />
-                      <UiButton size="sm" variant="ghost" iconOnly aria-label="删除推荐问题" onClick={() => updateForm({ wonders: form.wonders.filter((_, itemIndex) => itemIndex !== index) })}>
+                      <UiButton size="sm" variant="ghost" iconOnly aria-label={t("agentConsole.wonders.remove")} onClick={() => updateForm({ wonders: form.wonders.filter((_, itemIndex) => itemIndex !== index) })}>
                         <MaterialIcon name="close" />
                       </UiButton>
                     </div>
                   ))}
                   <UiButton size="sm" variant="ghost" onClick={() => updateForm({ wonders: [...form.wonders, ""] })}>
                     <MaterialIcon name="add" />
-                    <span>添加</span>
+                    <span>{t("agentConsole.action.add")}</span>
                   </UiButton>
                 </div>
               </div>
             </fieldset>
 
             <fieldset className="agent-config-box">
-              <legend>高级配置</legend>
+              <legend>{t("agentConsole.section.advancedConfig")}</legend>
               <div className="agent-form-grid">
                 <div className="field-group">
                   <label htmlFor="agent-controls-input">Controls</label>
@@ -1019,11 +1035,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <div className="agent-save-actions">
               <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving}>
                 <MaterialIcon name="save" />
-                <span>{formMode === "create" ? "创建智能体" : "保存修改"}</span>
+                <span>{formMode === "create" ? t("agentConsole.action.create") : t("agentConsole.action.saveChanges")}</span>
               </UiButton>
               {formMode === "edit" && (
                 <UiButton size="sm" variant="ghost" onClick={startCreate} disabled={saving}>
-                  取消编辑
+                  {t("agentConsole.action.cancelEdit")}
                 </UiButton>
               )}
             </div>

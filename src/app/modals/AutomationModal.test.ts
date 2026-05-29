@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AutomationModal, automationSourcePath } from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getAutomations } from "@/features/transport/lib/apiClientProxy";
+import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: jest.fn(() => jest.fn()),
@@ -82,6 +83,23 @@ function createCurrentWorker(): CurrentWorkerSummary {
   };
 }
 
+function renderAutomationModal(locale: Locale) {
+  return renderToStaticMarkup(
+    React.createElement(
+      I18nProvider,
+      { locale, persistLocale: false },
+      React.createElement(AutomationModal, {
+        currentWorker: createCurrentWorker(),
+        agents: [
+          { key: "agent-a", name: "小宅", role: "执行官" },
+          { key: "agent-b", name: "小智", role: "分析师" },
+        ],
+        teams: [{ teamId: "team-a", name: "Alpha Team" }],
+      }),
+    ),
+  );
+}
+
 describe("AutomationModal", () => {
   beforeEach(() => {
     mockedGetAutomations.mockResolvedValue({
@@ -107,16 +125,7 @@ describe("AutomationModal", () => {
   });
 
   it("renders the automation console with create defaults from the current worker", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(AutomationModal, {
-        currentWorker: createCurrentWorker(),
-        agents: [
-          { key: "agent-a", name: "小宅", role: "执行官" },
-          { key: "agent-b", name: "小智", role: "分析师" },
-        ],
-        teams: [{ teamId: "team-a", name: "Alpha Team" }],
-      }),
-    );
+    const html = renderAutomationModal("zh-CN");
 
     expect(html).toContain("自动化 0 个");
     expect(html).toContain("请求");
@@ -128,6 +137,16 @@ describe("AutomationModal", () => {
     expect(html).toContain("value=\"team-a\"");
     expect(html).toContain("每天 09:00");
     expect(html).toContain("创建自动化");
+  });
+
+  it("renders the automation console in English", () => {
+    const html = renderAutomationModal("en-US");
+
+    expect(html).toContain("Automations 0");
+    expect(html).toContain("Request");
+    expect(html).toContain("Agent");
+    expect(html).toContain("Quick presets");
+    expect(html).toContain("Create automation");
   });
 
   it("normalizes automation source files to display filenames", () => {

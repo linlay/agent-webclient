@@ -33,6 +33,7 @@ import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import zhCN from "antd/locale/zh_CN";
+import enUS from "antd/locale/en_US";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -87,11 +88,12 @@ const DocumentTitleRoute: React.FC<{
 
 const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { themeMode } = useAppState();
+  const { locale } = useI18n();
   const isDark = themeMode === "dark";
 
   return (
     <ConfigProvider
-      locale={zhCN}
+      locale={locale === "en-US" ? enUS : zhCN}
       theme={{
         algorithm: isDark
           ? antdTheme.darkAlgorithm

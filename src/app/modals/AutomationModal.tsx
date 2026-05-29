@@ -23,9 +23,11 @@ import type {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { useI18n, type I18nContextValue } from "@/shared/i18n";
 
 type AutomationStatusFilter = "all" | "enabled" | "disabled";
 type AutomationFormMode = "create" | "edit";
+type Translate = I18nContextValue["t"];
 
 interface AutomationFormState {
   id: string;
@@ -62,10 +64,10 @@ const EMPTY_FORM: AutomationFormState = {
 };
 
 const CRON_PRESETS = [
-  { label: "每天 09:00", value: "0 9 * * *" },
-  { label: "工作日 18:00", value: "0 18 * * 1-5" },
-  { label: "每 5 分钟", value: "*/5 * * * *" },
-  { label: "每小时", value: "0 * * * *" },
+  { labelKey: "automationConsole.cronPreset.dailyNine", value: "0 9 * * *" },
+  { labelKey: "automationConsole.cronPreset.weekdaySix", value: "0 18 * * 1-5" },
+  { labelKey: "automationConsole.cronPreset.everyFiveMinutes", value: "*/5 * * * *" },
+  { labelKey: "automationConsole.cronPreset.hourly", value: "0 * * * *" },
 ];
 
 const COMMON_ZONE_OPTIONS = [
@@ -174,12 +176,12 @@ function isFiveFieldCron(value: string): boolean {
   return value.trim().split(/\s+/).length === 5;
 }
 
-function toTimeLabel(value?: string | number | null): string {
+function toTimeLabel(value?: string | number | null, locale?: string): string {
   if (value === undefined || value === null || value === "") return "--";
   const date =
     typeof value === "number" ? new Date(value) : new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
 function toDurationLabel(value?: number | null): string {
@@ -196,12 +198,14 @@ export function automationSourcePath(automation: AutomationSummaryResponse): str
   return filename || automation.id;
 }
 
-function automationListMeta(automation: AutomationSummaryResponse): string {
+function automationListMeta(automation: AutomationSummaryResponse, t: Translate, locale: string): string {
   const lastStatus = automation.lastExecution?.status || "--";
   return [
     automation.cron || "--",
-    `下次 ${toTimeLabel(automation.nextFireTime)}`,
-    `最近 ${lastStatus}`,
+    t("automationConsole.list.nextFire", {
+      time: toTimeLabel(automation.nextFireTime, locale),
+    }),
+    t("automationConsole.list.lastStatus", { status: lastStatus }),
   ].join(" · ");
 }
 
@@ -254,27 +258,29 @@ function buildUpdatePayload(form: AutomationFormState): UpdateAutomationRequest 
   }) as UpdateAutomationRequest;
 }
 
-function validateForm(form: AutomationFormState): string {
-  if (!form.name.trim()) return "请填写自动化名称。";
-  if (!form.description.trim()) return "请填写自动化描述。";
-  if (!form.cron.trim()) return "请填写 cron。";
-  if (!isFiveFieldCron(form.cron)) return "cron 必须是传统 5 段格式。";
-  if (!form.agentKey.trim()) return "请填写 AgentKey。";
-  if (!form.message.trim()) return "请填写自动化消息。";
+function validateForm(form: AutomationFormState, t: Translate): string {
+  if (!form.name.trim()) return t("automationConsole.error.nameRequired");
+  if (!form.description.trim()) return t("automationConsole.error.descriptionRequired");
+  if (!form.cron.trim()) return t("automationConsole.error.cronRequired");
+  if (!isFiveFieldCron(form.cron)) return t("automationConsole.error.cronFormat");
+  if (!form.agentKey.trim()) return t("automationConsole.error.agentRequired");
+  if (!form.message.trim()) return t("automationConsole.error.messageRequired");
   if (form.remainingRuns.trim()) {
     const runs = Number(form.remainingRuns.trim());
     if (!Number.isInteger(runs) || runs <= 0) {
-      return "剩余次数必须是正整数。";
+      return t("automationConsole.error.remainingRunsPositive");
     }
   }
   if (form.paramsText.trim()) {
     try {
       const parsed = JSON.parse(form.paramsText);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return "Params 必须是 JSON 对象。";
+        return t("automationConsole.error.paramsObject");
       }
     } catch (error) {
-      return `Params JSON 无效：${(error as Error).message}`;
+      return t("automationConsole.error.paramsJsonInvalid", {
+        detail: (error as Error).message,
+      });
     }
   }
   return "";
@@ -285,6 +291,7 @@ export const AutomationModal: React.FC<{
   agents: Agent[];
   teams: Team[];
 }> = ({ currentWorker, agents, teams }) => {
+  const { locale, t } = useI18n();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const automations = state.automations;
@@ -309,15 +316,30 @@ export const AutomationModal: React.FC<{
     const values = new Map<string, string>();
     for (const item of automations) {
       if (item.agentKey)
-        values.set(`agent:${item.agentKey}`, `Agent · ${item.agentKey}`);
+        values.set(
+          `agent:${item.agentKey}`,
+          t("automationConsole.worker.agent", { id: item.agentKey }),
+        );
       if (item.teamId)
-        values.set(`team:${item.teamId}`, `Team · ${item.teamId}`);
+        values.set(
+          `team:${item.teamId}`,
+          t("automationConsole.worker.team", { id: item.teamId }),
+        );
     }
     return Array.from(values.entries()).map(([value, label]) => ({
       value,
       label,
     }));
-  }, [automations]);
+  }, [automations, t]);
+
+  const cronPresetOptions = useMemo(
+    () =>
+      CRON_PRESETS.map((preset) => ({
+        value: preset.value,
+        label: t(preset.labelKey),
+      })),
+    [t],
+  );
 
   const agentOptions = useMemo(() => {
     const options = new Map<string, string>();
@@ -347,9 +369,9 @@ export const AutomationModal: React.FC<{
       if (right === "Asia/Shanghai") return 1;
       if (left === "UTC") return -1;
       if (right === "UTC") return 1;
-      return left.localeCompare(right);
+      return left.localeCompare(right, locale);
     });
-  }, [form.zoneId]);
+  }, [form.zoneId, locale]);
 
   const workerNameByKey = useMemo(() => {
     const values = new Map<string, string>();
@@ -513,7 +535,7 @@ export const AutomationModal: React.FC<{
   };
 
   const saveForm = async () => {
-    const validation = validateForm(form);
+    const validation = validateForm(form, t);
     if (validation) {
       setFormError(validation);
       return;
@@ -602,7 +624,7 @@ export const AutomationModal: React.FC<{
             />
           }
           variant="filled"
-          placeholder="搜索自动化..."
+          placeholder={t("automationConsole.searchPlaceholder")}
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
         />
@@ -610,15 +632,15 @@ export const AutomationModal: React.FC<{
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
           options={[
-            { value: "all", label: "全部状态" },
-            { value: "enabled", label: "已启用" },
-            { value: "disabled", label: "已停用" },
+            { value: "all", label: t("automationConsole.filter.status.all") },
+            { value: "enabled", label: t("automationConsole.filter.status.enabled") },
+            { value: "disabled", label: t("automationConsole.filter.status.disabled") },
           ]}
         />
         <Select
           value={workerFilter}
           onChange={(value) => setWorkerFilter(value)}
-          options={[{ value: "", label: "全部对象" }, ...workerOptions]}
+          options={[{ value: "", label: t("automationConsole.filter.worker.all") }, ...workerOptions]}
         />
         <UiButton
           size="sm"
@@ -626,12 +648,13 @@ export const AutomationModal: React.FC<{
           iconOnly
           onClick={() => loadAutomations(selectedId)}
           disabled={loading || saving}
+          aria-label={t("automationConsole.action.refresh")}
         >
           <MaterialIcon name="refresh" />
         </UiButton>
         <UiButton size="sm" variant="primary" onClick={startCreate}>
           <MaterialIcon name="add" />
-          <span>新建</span>
+          <span>{t("automationConsole.action.new")}</span>
         </UiButton>
       </div>
 
@@ -643,7 +666,7 @@ export const AutomationModal: React.FC<{
             variant="ghost"
             onClick={() => loadAutomations(selectedId)}
           >
-            重试
+            {t("automationConsole.action.retry")}
           </UiButton>
         </div>
       )}
@@ -651,14 +674,14 @@ export const AutomationModal: React.FC<{
       <div className="automation-console-body">
         <div className="automation-console-list">
           <div className="automation-console-count">
-            自动化 {automations.length} 个
+            {t("automationConsole.list.count", { count: automations.length })}
           </div>
           <Spin spinning={loading}>
             {filteredAutomations.length === 0 ? (
               <div className="command-empty-state">
-                暂无匹配自动化。
+                {t("automationConsole.empty")}
                 <UiButton size="sm" variant="primary" onClick={startCreate}>
-                  新建自动化
+                  {t("automationConsole.action.create")}
                 </UiButton>
               </div>
             ) : (
@@ -681,14 +704,14 @@ export const AutomationModal: React.FC<{
                         <strong>{item.name || item.id}</strong>
                       </span>
                       <UiTag tone={item.enabled ? "accent" : "muted"}>
-                        {item.enabled ? "启用" : "停用"}
+                        {item.enabled ? t("automationConsole.status.enabled") : t("automationConsole.status.disabled")}
                       </UiTag>
                     </span>
                     <span
                       className="automation-list-item-meta"
-                      title={automationListMeta(item)}
+                      title={automationListMeta(item, t, locale)}
                     >
-                      {automationListMeta(item)}
+                      {automationListMeta(item, t, locale)}
                     </span>
                   </button>
                 ))}
@@ -702,12 +725,12 @@ export const AutomationModal: React.FC<{
             <div>
               <strong>
                 {formMode === "create"
-                  ? "新建自动化"
-                  : selectedSummary?.name || "编辑自动化"}
+                  ? t("automationConsole.detail.titleCreate")
+                  : selectedSummary?.name || t("automationConsole.detail.titleEdit")}
               </strong>
               <span>
                 {formMode === "create"
-                  ? "保存后立即写入后端 automation 配置"
+                  ? t("automationConsole.detail.createSubtitle")
                   : selectedSummary
                     ? automationSourcePath(selectedSummary)
                     : selectedId}
@@ -726,7 +749,7 @@ export const AutomationModal: React.FC<{
                       selectedSummary.enabled ? "pause_circle" : "play_circle"
                     }
                   />
-                  <span>{selectedSummary.enabled ? "停用" : "启用"}</span>
+                  <span>{selectedSummary.enabled ? t("automationConsole.action.disable") : t("automationConsole.action.enable")}</span>
                 </UiButton>
                 <UiButton
                   size="sm"
@@ -737,8 +760,8 @@ export const AutomationModal: React.FC<{
                   <MaterialIcon name="delete" />
                   <span>
                     {pendingDeleteId === selectedSummary.id
-                      ? "确认删除"
-                      : "删除"}
+                      ? t("automationConsole.action.confirmDelete")
+                      : t("automationConsole.action.delete")}
                   </span>
                 </UiButton>
               </div>
@@ -747,7 +770,7 @@ export const AutomationModal: React.FC<{
 
           <div className="automation-form-grid">
             <div className="field-group">
-              <label htmlFor="automation-name-input">名称</label>
+              <label htmlFor="automation-name-input">{t("automationConsole.field.name")}</label>
               <Input
                 id="automation-name-input"
                 value={form.name}
@@ -763,7 +786,7 @@ export const AutomationModal: React.FC<{
                   onChange={(event) => updateForm({ cron: event.target.value })}
                 />
                 <Select
-                  aria-label="Cron 快捷选择"
+                  aria-label={t("automationConsole.cronPreset.ariaLabel")}
                   value={
                     CRON_PRESETS.some((preset) => preset.value === form.cron)
                       ? form.cron
@@ -772,17 +795,17 @@ export const AutomationModal: React.FC<{
                   onChange={(value) => {
                     if (value) updateForm({ cron: value });
                   }}
-                  options={[{ value: "", label: "快捷选择" }, ...CRON_PRESETS]}
+                  options={[{ value: "", label: t("automationConsole.cronPreset.placeholder") }, ...cronPresetOptions]}
                 />
               </div>
             </div>
             <div className="field-group">
-              <label htmlFor="automation-agent-input">智能体</label>
+              <label htmlFor="automation-agent-input">{t("automationConsole.field.agent")}</label>
               <Select
                 id="automation-agent-input"
                 value={form.agentKey}
                 onChange={(value) => updateForm({ agentKey: value })}
-                options={[{ value: "", label: "请选择智能体" }, ...agentOptions]}
+                options={[{ value: "", label: t("automationConsole.field.agentPlaceholder") }, ...agentOptions]}
               />
             </div>
             <div className="field-group">
@@ -794,13 +817,13 @@ export const AutomationModal: React.FC<{
               />
             </div>
             <div className="field-group">
-              <label htmlFor="automation-zone-input">时区</label>
+              <label htmlFor="automation-zone-input">{t("automationConsole.field.timezone")}</label>
               <Select
                 id="automation-zone-input"
                 value={form.zoneId}
                 onChange={(value) => updateForm({ zoneId: value })}
                 options={[
-                  { value: "", label: "默认时区" },
+                  { value: "", label: t("automationConsole.field.defaultTimezone") },
                   ...zoneOptions.map((zoneId) => ({
                     value: zoneId,
                     label: zoneId,
@@ -809,12 +832,12 @@ export const AutomationModal: React.FC<{
               />
             </div>
             <div className="field-group">
-              <label htmlFor="automation-runs-input">剩余次数</label>
+              <label htmlFor="automation-runs-input">{t("automationConsole.field.remainingRuns")}</label>
               <Input
                 id="automation-runs-input"
                 type="number"
                 min="1"
-                placeholder="留空表示无限次"
+                placeholder={t("automationConsole.field.remainingRunsPlaceholder")}
                 value={form.remainingRuns}
                 onChange={(event) =>
                   updateForm({ remainingRuns: event.target.value })
@@ -824,7 +847,7 @@ export const AutomationModal: React.FC<{
           </div>
 
           <div className="field-group">
-            <label htmlFor="automation-description-input">描述</label>
+            <label htmlFor="automation-description-input">{t("automationConsole.field.description")}</label>
             <Input.TextArea
               id="automation-description-input"
               className="settings-textarea"
@@ -837,9 +860,9 @@ export const AutomationModal: React.FC<{
           </div>
 
           <fieldset className="automation-request-box">
-            <legend>请求</legend>
+            <legend>{t("automationConsole.section.request")}</legend>
             <div className="field-group">
-              <label htmlFor="automation-message-input">自动化消息</label>
+              <label htmlFor="automation-message-input">{t("automationConsole.field.message")}</label>
               <Input.TextArea
                 id="automation-message-input"
                 className="settings-textarea"
@@ -853,7 +876,7 @@ export const AutomationModal: React.FC<{
 
             <div className="automation-form-grid">
               <div className="field-group">
-                <label htmlFor="automation-chat-input">会话ID</label>
+                <label htmlFor="automation-chat-input">{t("automationConsole.field.chatId")}</label>
                 <Input
                   id="automation-chat-input"
                   value={form.chatId}
@@ -863,7 +886,7 @@ export const AutomationModal: React.FC<{
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="automation-role-input">角色</label>
+                <label htmlFor="automation-role-input">{t("automationConsole.field.role")}</label>
                 <Input
                   id="automation-role-input"
                   value={form.role}
@@ -871,7 +894,7 @@ export const AutomationModal: React.FC<{
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="automation-hidden-select">是否隐藏</label>
+                <label htmlFor="automation-hidden-select">{t("automationConsole.field.hidden")}</label>
                 <Select
                   id="automation-hidden-select"
                   value={form.hidden}
@@ -881,9 +904,9 @@ export const AutomationModal: React.FC<{
                     })
                   }
                   options={[
-                    { value: "", label: "不传" },
-                    { value: "true", label: "是" },
-                    { value: "false", label: "否" },
+                    { value: "", label: t("automationConsole.hidden.unset") },
+                    { value: "true", label: t("automationConsole.hidden.true") },
+                    { value: "false", label: t("automationConsole.hidden.false") },
                   ]}
                 />
               </div>
@@ -894,15 +917,15 @@ export const AutomationModal: React.FC<{
                     updateForm({ enabled: event.target.checked })
                   }
                 >
-                  启用自动化
+                  {t("automationConsole.field.enabled")}
                 </Checkbox>
               </div>
             </div>
 
             <div className="field-group" style={{ marginTop: 10 }}>
               <label htmlFor="automation-params-input">
-                <span>参数</span>
-                <Tooltip title="JSON格式" arrow={false}>
+                <span>{t("automationConsole.field.params")}</span>
+                <Tooltip title={t("automationConsole.field.paramsTooltip")} arrow={false}>
                   <MaterialIcon name="help" />
                 </Tooltip>
               </label>
@@ -929,7 +952,7 @@ export const AutomationModal: React.FC<{
               disabled={saving}
             >
               <MaterialIcon name="save" />
-              <span>{formMode === "create" ? "创建自动化" : "保存修改"}</span>
+              <span>{formMode === "create" ? t("automationConsole.action.create") : t("automationConsole.action.saveChanges")}</span>
             </UiButton>
             {formMode === "edit" && (
               <UiButton
@@ -938,14 +961,14 @@ export const AutomationModal: React.FC<{
                 onClick={startCreate}
                 disabled={saving}
               >
-                取消编辑
+                {t("automationConsole.action.cancelEdit")}
               </UiButton>
             )}
           </div>
 
           <div className="automation-executions">
             <div className="automation-executions-head">
-              <strong>执行记录</strong>
+              <strong>{t("automationConsole.executions.title")}</strong>
               <UiButton
                 size="sm"
                 variant="ghost"
@@ -953,22 +976,22 @@ export const AutomationModal: React.FC<{
                 disabled={!selectedId || executionsLoading}
               >
                 <MaterialIcon name="refresh" />
-                <span>刷新</span>
+                <span>{t("automationConsole.action.refresh")}</span>
               </UiButton>
             </div>
             <Spin spinning={executionsLoading}>
               {!selectedId ? (
                 <div className="command-empty-state">
-                  保存或选择自动化后查看执行记录。
+                  {t("automationConsole.executions.emptyNoSelection")}
                 </div>
               ) : executions.length === 0 ? (
-                <div className="command-empty-state">暂无执行记录。</div>
+                <div className="command-empty-state">{t("automationConsole.executions.empty")}</div>
               ) : (
                 <div className="automation-execution-list">
                   {executions.map((item) => (
                     <div className="automation-execution-row" key={item.id}>
                       <span>{item.status}</span>
-                      <span>{toTimeLabel(item.startedAt)}</span>
+                      <span>{toTimeLabel(item.startedAt, locale)}</span>
                       <span>{toDurationLabel(item.durationMs)}</span>
                       <span>{item.error || "--"}</span>
                     </div>
