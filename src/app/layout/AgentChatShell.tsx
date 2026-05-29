@@ -28,6 +28,7 @@ import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getChats } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
+import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
 
 function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
   const normalizedAgentKey = String(agentKey || "").trim();
@@ -230,6 +231,12 @@ export const AgentChatShell: React.FC = () => {
     },
     [dispatch, workerChatsByKey],
   );
+
+  useDesktopActionForAgentPage({
+    onOpenChatHistory: ({ workerKey }) => {
+      openRouteHistoryForWorker(workerKey);
+    },
+  });
 
   useEffect(() => {
     if (!routeHistoryRequested || !agentKey || !routeAgentReady) return;
