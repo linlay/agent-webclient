@@ -12,6 +12,7 @@ import {
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
   resolveCoderAgentDefaultModelOverride,
+  shouldApplyCoderDefaultModelOverride,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
   toAgentConfigKey,
@@ -376,6 +377,27 @@ describe("QuerySettingsControls", () => {
     });
   });
 
+  it("uses top-level agent default model fields before API defaults", () => {
+    expect(
+      resolveCoderAgentDefaultModelOverride(
+        {
+          raw: {
+            mode: "CODER",
+            defaultModelKey: "agent-default-model",
+            defaultReasoningEffort: "LOW",
+          },
+        },
+        {
+          defaultModelKey: "api-model",
+          defaultReasoningEffort: "HIGH",
+        },
+      ),
+    ).toEqual({
+      key: "agent-default-model",
+      reasoningEffort: "LOW",
+    });
+  });
+
   it("falls back to API model defaults when the agent has none", () => {
     expect(
       resolveCoderAgentDefaultModelOverride(
@@ -690,6 +712,51 @@ describe("QuerySettingsControls", () => {
     ).toBe(true);
     expect(shouldClearModelOverride(true, { key: "coder-model" })).toBe(false);
     expect(shouldClearModelOverride(false, {})).toBe(false);
+  });
+
+  it("reapplies the default model after a non-CODER switch clears the override", () => {
+    expect(
+      shouldApplyCoderDefaultModelOverride({
+        shouldShowModelControls: true,
+        agentKey: "coder-agent",
+        modelOverride: {},
+        resolvedDefaultOverride: {
+          key: "default-coder-model",
+          reasoningEffort: "HIGH",
+        },
+        previousAppliedDefault: {
+          agentKey: "coder-agent",
+          value: {
+            key: "default-coder-model",
+            reasoningEffort: "HIGH",
+          },
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("does not overwrite a manual model override for the current CODER agent", () => {
+    expect(
+      shouldApplyCoderDefaultModelOverride({
+        shouldShowModelControls: true,
+        agentKey: "coder-agent",
+        modelOverride: {
+          key: "manual-model",
+          reasoningEffort: "LOW",
+        },
+        resolvedDefaultOverride: {
+          key: "default-coder-model",
+          reasoningEffort: "HIGH",
+        },
+        previousAppliedDefault: {
+          agentKey: "coder-agent",
+          value: {
+            key: "default-coder-model",
+            reasoningEffort: "HIGH",
+          },
+        },
+      }),
+    ).toBe(false);
   });
 
   it("merges compact model config responses into existing agent summaries", () => {
