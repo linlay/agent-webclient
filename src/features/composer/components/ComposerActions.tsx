@@ -91,7 +91,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               size="sm"
               onClick={onTogglePlanningMode}
             >
-              <MaterialIcon name="assignment" className="plan-toggle-icon" />
+              <MaterialIcon name="checklist" className="plan-toggle-icon" />
               <MaterialIcon name="close" className="plan-toggle-close-icon" />
               <span>{t("composer.actions.plan")}</span>
             </UiButton>

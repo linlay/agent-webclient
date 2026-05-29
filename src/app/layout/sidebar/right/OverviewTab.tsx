@@ -3,6 +3,7 @@ import { useAppState } from "@/app/state/AppContext";
 import type { PublishedArtifact } from "@/app/state/types";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import { t } from "@/shared/i18n";
 
 export interface OverviewArtifactItem {
 	artifactId: string;
@@ -47,9 +48,14 @@ export const OverviewTab: React.FC = () => {
 
 	return (
 		<div className="right-sidebar-overview">
-			<OverviewSection title="产物" count={artifacts.length}>
+			<OverviewSection
+				title={t("rightSidebar.overview.artifacts.title")}
+				count={artifacts.length}
+			>
 				{artifacts.length === 0 ? (
-					<div className="right-sidebar-empty">暂无产物</div>
+					<div className="right-sidebar-empty">
+						{t("rightSidebar.overview.artifacts.empty")}
+					</div>
 				) : (
 					<ul className="artifact-drawer-list right-sidebar-artifact-list">
 						{artifacts.map((item) => (

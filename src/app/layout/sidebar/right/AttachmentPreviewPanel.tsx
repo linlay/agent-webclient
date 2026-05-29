@@ -2,6 +2,7 @@ import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { downloadResource, getResourceText } from "@/shared/api/apiClient";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
 
@@ -48,7 +49,11 @@ export const AttachmentPreviewPanel: React.FC = () => {
         if (controller.signal.aborted) {
           return;
         }
-        setTextError(error instanceof Error ? error.message : "预览加载失败");
+        setTextError(
+          error instanceof Error
+            ? error.message
+            : t("rightSidebar.preview.error.loadText"),
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -69,7 +74,9 @@ export const AttachmentPreviewPanel: React.FC = () => {
     void downloadResource(preview.downloadUrl, { filename: preview.name })
       .catch((error: unknown) => {
         setDownloadError(
-          error instanceof Error ? error.message : "附件下载失败",
+          error instanceof Error
+            ? error.message
+            : t("rightSidebar.preview.error.download"),
         );
       })
       .finally(() => {
@@ -104,16 +111,20 @@ export const AttachmentPreviewPanel: React.FC = () => {
           onClick={handleDownload}
           loading={downloading}
         >
-          下载
+          {t("rightSidebar.preview.actions.download")}
         </UiButton>
         <UiButton
           variant="secondary"
           size="sm"
           onClick={() =>
-            dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview", preview: null })
+            dispatch({
+              type: "OPEN_RIGHT_SIDEBAR",
+              tab: "overview",
+              preview: null,
+            })
           }
         >
-          关闭
+          {t("rightSidebar.preview.actions.close")}
         </UiButton>
       </div>
 
@@ -123,7 +134,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
             className="attachment-preview-image"
             src={preview.url}
             alt={preview.name}
-            onError={() => setMediaError("图片预览失败，请下载查看。")}
+            onError={() => setMediaError(t("rightSidebar.preview.error.image"))}
           />
         ) : null}
 
@@ -146,12 +157,14 @@ export const AttachmentPreviewPanel: React.FC = () => {
 
         {preview.kind === "text" ? (
           textLoading ? (
-            <div className="status-line">正在加载文本预览...</div>
+            <div className="status-line">
+              {t("rightSidebar.preview.text.loading")}
+            </div>
           ) : textError ? (
             <div className="status-line">{textError}</div>
           ) : (
             <pre className="attachment-preview-text">
-              {textContent || "文件内容为空"}
+              {textContent || t("rightSidebar.preview.text.empty")}
             </pre>
           )
         ) : null}
@@ -163,7 +176,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
               src={preview.url}
               controls
               preload="metadata"
-              onError={() => setMediaError("音频预览失败，请下载查看。")}
+              onError={() => setMediaError(t("rightSidebar.preview.error.audio"))}
             />
           </div>
         ) : null}
@@ -174,7 +187,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
             src={preview.url}
             controls
             preload="metadata"
-            onError={() => setMediaError("视频预览失败，请下载查看。")}
+            onError={() => setMediaError(t("rightSidebar.preview.error.video"))}
           />
         ) : null}
 
@@ -186,7 +199,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
 
       {textPreviewKinds.has(preview.kind) ? (
         <div className="attachment-preview-note">
-          部分文件的实际预览效果取决于浏览器和后端返回头设置。
+          {t("rightSidebar.preview.note")}
         </div>
       ) : null}
     </div>

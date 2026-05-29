@@ -21,6 +21,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
 import { AgentIcon } from "@/shared/icons/agent";
+import { useI18n } from "@/shared/i18n";
 import { Button, Dropdown, Flex, Form, Input, message, Popover } from "antd";
 import type { Agent } from "@/app/state/types";
 
@@ -89,6 +90,7 @@ interface ConversationStageProps {
 export const ConversationStage: React.FC<ConversationStageProps> = ({
   showEmptyState = true,
 }) => {
+  const { t } = useI18n();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -355,8 +357,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             showEmptyState ? (
               <div className="timeline-empty">
                 {currentWorker?.displayName
-                  ? `与 ${currentWorker?.displayName} 对话`
-                  : "今天有什么可以帮您"}
+                  ? t("timeline.empty.withWorker", {
+                      name: currentWorker.displayName,
+                    })
+                  : t("timeline.empty.default")}
               </div>
             ) : null
           ) : (

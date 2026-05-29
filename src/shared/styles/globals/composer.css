@@ -326,17 +326,18 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     flex: 1;
     overflow: auto;
     align-self: center;
     white-space: nowrap;
 }
 
-.plan-toggle-btn .material-symbols-rounded {
-    font-size: 17px;
+.plan-toggle-btn.ui-btn.ui-btn-ghost{
+    color: var(--text-muted);
 }
-
+.plan-toggle-btn.ui-btn.ui-btn-sm{
+    font-size: 13px;
+}
 .plan-toggle-btn:hover .plan-toggle-icon {
     display: none;
 }

@@ -8,6 +8,7 @@ import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useI18n } from "@/shared/i18n";
 
 type RightSidebarTabsKey = Exclude<RightSidebarTabKey, "debug">;
 
@@ -61,6 +62,7 @@ function persistRightSidebarWidth(width: number): void {
 }
 
 export const RightSidebar: React.FC = () => {
+  const { t } = useI18n();
   const dispatch = useAppDispatch();
   const state = useAppState();
   const preview = state.attachmentPreview;
@@ -200,7 +202,7 @@ export const RightSidebar: React.FC = () => {
     const items: NonNullable<TabsProps["items"]> = [
       {
         key: "overview",
-        label: "概览",
+        label: t("copilot.panel.overview"),
         icon: <MaterialIcon name="dashboard" />,
         children: <OverviewTab />,
       },
@@ -209,14 +211,14 @@ export const RightSidebar: React.FC = () => {
     if (preview) {
       items.push({
         key: "preview",
-        label: "预览",
+        label: t("copilot.panel.preview"),
         icon: <MaterialIcon name="visibility" />,
         children: <AttachmentPreviewPanel />,
       });
     }
 
     return items;
-  }, [preview]);
+  }, [preview, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
     const nextTab = key as RightSidebarTabsKey;
@@ -231,14 +233,14 @@ export const RightSidebar: React.FC = () => {
       <button
         type="button"
         className="right-sidebar-resize-handle"
-        aria-label="调整右侧栏宽度"
+        aria-label={t("rightSidebar.resize.ariaLabel")}
         aria-orientation="vertical"
         aria-valuemin={RIGHT_SIDEBAR_MIN_WIDTH}
         aria-valuemax={RIGHT_SIDEBAR_MAX_WIDTH}
         aria-valuenow={sidebarWidth}
         role="separator"
         tabIndex={desktopSidebarVisible ? 0 : -1}
-        title="拖拽调整右侧栏宽度"
+        title={t("rightSidebar.resize.title")}
         onPointerDown={handleResizePointerDown}
         onKeyDown={handleResizeKeyDown}
       />
@@ -258,6 +260,8 @@ export const RightSidebar: React.FC = () => {
               variant="ghost"
               iconOnly
               onClick={() => dispatch({ type: "CLOSE_RIGHT_SIDEBAR" })}
+              title={t("copilot.panel.close")}
+              aria-label={t("copilot.panel.close")}
             >
               <MaterialIcon name="close" />
             </UiButton>
