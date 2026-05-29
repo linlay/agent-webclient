@@ -5,6 +5,7 @@ node_modules/
 dist/
 .vite/
 pnpm-lock.yaml
+package-lock.json
 !backend/package-lock.json
 
 # Test & coverage

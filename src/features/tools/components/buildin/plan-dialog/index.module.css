@@ -1,0 +1,118 @@
+.ConfirmDialog {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 10px;
+  background: var(--bg-card);
+
+  .IgnoreButton {
+    color: var(--text-muted);
+
+    span:last-child {
+      margin-left: 4px;
+      background-color: var(--accent-soft, rgba(0, 0, 0, 0.06));
+      padding: 1px 8px;
+      border-radius: 10px;
+      color: var(--text-main);
+    }
+  }
+  button {
+    font-size: 12px;
+  }
+}
+
+.QuestionWrapper {
+  font-size: 12px;
+  .Question {
+    padding: 6px 10px;
+    gap: 16px;
+
+    :first-child {
+      flex: 1;
+    }
+  }
+
+  .QuestionText {
+    min-width: 0;
+  }
+
+  .QuestionHeading {
+    color: var(--text-main);
+    font-weight: bold;
+  }
+
+  .CheckboxGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    :global {
+      .Selected {
+        color: var(--colorTextSecondary);
+        background-color: var(--colorBgTextHover, rgba(0, 0, 0, 0.06));
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        display: none;
+      }
+
+      .ant-checkbox {
+        display: none;
+      }
+
+      .ant-checkbox-wrapper>:last-child {
+        flex: 1;
+      }
+
+      .ant-checkbox-wrapper-checked {
+        .Selected {
+          display: block;
+        }
+      }
+    }
+  }
+  .Option {
+    padding: 6px 0;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    flex: 1;
+
+    :global{
+      input{
+        font-size: 12px;
+      }
+    }
+
+    &:hover:not(&.FreeText),
+    &:focus-within:not(&.FreeText) {
+      background-color: var(--bg-hover);
+    }
+
+    .Info {
+      color: var(--text-main);
+    }
+  }
+
+  .CheckboxGroup :global(.Selected) {
+    color: var(--colorTextSecondary);
+    background-color: var(--bg-hover);
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: none;
+  }
+
+  .CheckboxGroup :global(.ant-checkbox) {
+    display: none;
+  }
+
+  .CheckboxGroup :global(.ant-checkbox-wrapper-checked .Selected) {
+    display: block;
+  }
+
+  .CheckboxGroup :global(.ant-checkbox-wrapper>:last-child) {
+    flex: 1;
+  }
+}

@@ -293,10 +293,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                 key: field.key.toString(),
                 label: field.name,
                 children: (
-                  <Form.Item
-                    {...field}
-                    className={Style.FormItem}
-                  >
+                  <Form.Item {...field} className={Style.FormItem}>
                     <Question
                       ref={(ref) => {
                         if (ref) {
@@ -677,9 +674,10 @@ const Question = forwardRef<
                 {tooltip && (
                   <Tooltip
                     title={<SelectOptionTooltipTitle option={option} />}
-                    overlayInnerStyle={
-                      tooltip.kind === "preview" ? { padding: 0 } : undefined
-                    }
+                    styles={{
+                      body:
+                        tooltip.kind === "preview" ? { padding: 0 } : undefined,
+                    }}
                   >
                     <InfoCircleOutlined />
                   </Tooltip>
