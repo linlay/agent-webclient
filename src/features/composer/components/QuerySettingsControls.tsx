@@ -529,10 +529,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const { t } = useI18n();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCoderAgent =
-    showModelSelector &&
     currentWorker?.type === "agent" &&
     (isCoderMode(currentWorker.raw?.mode) ||
       currentWorker.row?.agentType === "coder");
+  const shouldShowModelControls = showModelSelector && isCoderAgent;
   const agentKey =
     currentWorker?.type === "agent"
       ? toAgentConfigKey(currentWorker.sourceId) ||
@@ -570,7 +570,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   }, [isCoderAgent, modelOverride, onModelOverrideChange, showModelSelector]);
 
   useEffect(() => {
-    if (!isCoderAgent || !agentKey) {
+    if (!shouldShowModelControls || !agentKey) {
       setModels([]);
       setReasoningEfforts([]);
       setModelDefaults({});
@@ -627,7 +627,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [agentKey, isCoderAgent, loadAttempt]);
+  }, [agentKey, shouldShowModelControls, loadAttempt]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(
@@ -661,7 +661,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   );
 
   useEffect(() => {
-    if (!isCoderAgent || !agentKey) return;
+    if (!shouldShowModelControls || !agentKey) return;
     if (
       !resolvedDefaultOverride.key &&
       !resolvedDefaultOverride.reasoningEffort
@@ -694,11 +694,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     onModelOverrideChange(resolvedDefaultOverride);
   }, [
     agentKey,
-    isCoderAgent,
     modelOverride.key,
     modelOverride.reasoningEffort,
     onModelOverrideChange,
     resolvedDefaultOverride,
+    shouldShowModelControls,
   ]);
 
   const selectedModelKey = modelOverride.key || "";
@@ -816,7 +816,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (
       !shouldRetryModelOptionsOnOpen({
         open,
-        isCoderAgent,
+        isCoderAgent: shouldShowModelControls,
         agentKey,
         modelsLoading,
         status: modelOptionsStatus,
@@ -855,7 +855,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           <MaterialIcon name="expand_more" />
         </UiButton>
       </Dropdown>
-      {isCoderAgent ? (
+      {shouldShowModelControls ? (
         <Dropdown
           menu={{
             className: "query-settings-menu",
@@ -882,7 +882,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           </UiButton>
         </Dropdown>
       ) : null}
-      {modelConfigError ? (
+      {shouldShowModelControls && modelConfigError ? (
         <span className="query-model-error">{modelConfigError}</span>
       ) : null}
     </div>

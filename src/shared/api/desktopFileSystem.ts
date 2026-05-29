@@ -3,6 +3,7 @@ import {
   postDesktopHostMessage,
 } from "@/shared/api/desktopHostBridge";
 import { openAgentWorkspace } from "@/shared/api/apiClient";
+import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 const SELECT_DIRECTORY_REQUEST_TYPE = "zenmind:desktop-dialog:select-directory";
@@ -145,7 +146,7 @@ function selectBrowserProjectFolder(): Promise<ProjectFolderSelection | null> {
     );
   }
   const workspaceDir = normalizePath(
-    window.prompt("由于浏览器限制，需要输入项目的绝对路径", ""),
+    window.prompt(t("desktopFileSystem.browserPathPrompt"), ""),
   );
   if (!workspaceDir) return Promise.resolve(null);
   return Promise.resolve({ kind: "browser-directory-path", workspaceDir });

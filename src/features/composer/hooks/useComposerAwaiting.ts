@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { Dispatch } from "react";
-import { message } from "antd";
+import { App as AntdApp } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import type {
   AIAwaitSubmitPayloadData,
@@ -52,6 +52,7 @@ export function resolveAwaitingSubmitAgentKey(input: {
 export function useComposerAwaiting(input: UseComposerAwaitingInput) {
   const { activeAwaiting, dispatch, state } = input;
   const { t } = useI18n();
+  const { message } = AntdApp.useApp();
   const isAwaitingActive = !!activeAwaiting;
 
   const resetEventCache = useCallback(() => {
@@ -131,6 +132,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
       activeAwaiting,
       clearActiveAwaiting,
       dispatch,
+      message,
       state.chatAgentById,
       state.chatId,
       state.chats,

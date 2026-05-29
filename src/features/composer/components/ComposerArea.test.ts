@@ -3,6 +3,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { ComposerArea } from "@/features/composer/components/ComposerArea";
 
+const mockAntdMessage = {
+  warning: jest.fn(),
+  error: jest.fn(),
+};
+
+jest.mock("antd", () => ({
+  App: {
+    useApp: () => ({ message: mockAntdMessage }),
+  },
+}));
+
 jest.mock("@/app/state/AppContext", () => ({
   useAppState: jest.fn(),
   useAppDispatch: jest.fn(),

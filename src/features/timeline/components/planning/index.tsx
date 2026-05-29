@@ -8,12 +8,14 @@ import useApp from "antd/es/app/useApp";
 import { TimelineNode } from "@/app/state/timelineTypes";
 import Style from "./index.module.css";
 import { useState } from "react";
+import { useI18n } from "@/shared/i18n";
 
 interface PlanningTimelineProps {
   node: TimelineNode;
 }
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { message } = useApp();
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -27,13 +29,13 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
           key: "planning",
           label:
             node.status === "completed" ? (
-              "实施计划"
+              t("planningTimeline.implementPlan")
             ) : (
-              <Skeleton text="正在编写计划" active />
+              <Skeleton text={t("planningTimeline.writing")} active />
             ),
           extra: (
             <Flex>
-              <Tooltip title="复制">
+              <Tooltip title={t("planningTimeline.copy")}>
                 <UiButton
                   variant="ghost"
                   size="sm"
@@ -41,7 +43,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                   onClick={(e) => {
                     e.stopPropagation();
                     copyText(node.text || "").then(() => {
-                      message.success("复制成功");
+                      message.success(t("planningTimeline.copySuccess"));
                     });
                   }}
                 >
@@ -56,7 +58,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
               {!expanded && (
                 <Flex className={Style.ExpandDiv} justify="center">
                   <UiButton size="sm" variant="primary" onClick={() => setExpanded(true)}>
-                    展开计划
+                    {t("planningTimeline.expand")}
                   </UiButton>
                 </Flex>
               )}

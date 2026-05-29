@@ -141,15 +141,15 @@ export const ChatActionsMenu: React.FC<{
 
 	const handleExport = async () => {
 		if (!normalizedChatId || pending) return;
-	setPending(true);
-	try {
-		await downloadChatExport(normalizedChatId);
-		message.success("已导出到下载目录");
-	} catch (error) {
-		message.error("导出失败");
-		dispatch({
-			type: "APPEND_DEBUG",
-			line: `[export chat error] ${(error as Error).message}`,
+		setPending(true);
+		try {
+			await downloadChatExport(normalizedChatId);
+			message.success(t("chatActions.export.success"));
+		} catch (error) {
+			message.error(t("chatActions.export.failed"));
+			dispatch({
+				type: "APPEND_DEBUG",
+				line: `[export chat error] ${(error as Error).message}`,
 			});
 		} finally {
 			setPending(false);

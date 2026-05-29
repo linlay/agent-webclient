@@ -8,6 +8,7 @@ import type {
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
+import { t } from "@/shared/i18n";
 
 export function processRunEvent(
   event: AgentEvent,
@@ -67,17 +68,30 @@ export function processRunEvent(
     const originalMessages = Number((event as Record<string, unknown>).originalMessages ?? 0);
     const compressionRatio = Number((event as Record<string, unknown>).compressionRatio ?? 0);
     const textParts = [
-      "已压缩上下文",
-      source === "deterministic_fallback" ? "摘要来源：规则兜底" : "摘要来源：模型",
+      t("contextCompact.completed"),
+      t("contextCompact.summarySource", {
+        source:
+          source === "deterministic_fallback"
+            ? t("contextCompact.source.deterministicFallback")
+            : t("contextCompact.source.model"),
+      }),
     ];
     if (Number.isFinite(originalMessages) && originalMessages > 0) {
-      textParts.push(`历史消息：${originalMessages}`);
+      textParts.push(
+        t("contextCompact.originalMessages", { count: originalMessages }),
+      );
     }
     if (Number.isFinite(digestCount) && digestCount > 0) {
-      textParts.push(`工具结果摘要：${digestCount}`);
+      textParts.push(
+        t("contextCompact.toolDigestCount", { count: digestCount }),
+      );
     }
     if (Number.isFinite(compressionRatio) && compressionRatio > 0) {
-      textParts.push(`压缩比：${Math.round(compressionRatio * 100)}%`);
+      textParts.push(
+        t("contextCompact.compressionRatio", {
+          ratio: Math.round(compressionRatio * 100),
+        }),
+      );
     }
     commands.push({
       cmd: "SYSTEM_MESSAGE",
@@ -92,7 +106,11 @@ export function processRunEvent(
     commands.push({
       cmd: "SYSTEM_ERROR",
       nodeId: `compact_failed_${config.mode === "replay" ? state.nextCounter() : Date.now()}`,
-      text: `上下文压缩失败：${safeText((event as Record<string, unknown>).error) || "未知错误"}`,
+      text: t("contextCompact.failed", {
+        detail:
+          safeText((event as Record<string, unknown>).error) ||
+          t("contextCompact.unknownError"),
+      }),
       ts: event.timestamp || Date.now(),
     });
     return commands;

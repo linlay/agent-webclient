@@ -20,7 +20,6 @@
   "src/features/artifacts/lib/attachmentUtils.ts",
   "src/features/chats/hooks/useChatActions.ts",
   "src/features/chats/lib/chatListFormatter.ts",
-  "src/features/composer/components/ComposerArea.tsx",
   "src/features/composer/components/ControlsForm.tsx",
   "src/features/composer/components/SlashPalette.tsx",
   "src/features/composer/components/SteerBar.tsx",

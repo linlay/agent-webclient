@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import { message as antdMessage } from "antd";
+import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
 import type {
@@ -115,20 +115,37 @@ function appendTextBlock(base: string, extra: string): string {
   return `${base}${base.endsWith("\n") ? "" : "\n"}${nextExtra}`;
 }
 
-function compactTimelineText(data: CompactChatResponse): string {
+function compactTimelineText(
+  data: CompactChatResponse,
+  t: (key: string, params?: Record<string, unknown>) => string,
+): string {
   if (!data.accepted || data.status === "skipped") {
-    return data.detail || "没有可压缩的历史上下文";
+    return data.detail || t("contextCompact.noHistory");
   }
-  const source = data.summarySource === "deterministic_fallback" ? "规则兜底" : "模型";
-  const parts = ["已压缩上下文", `摘要来源：${source}`];
+  const source =
+    data.summarySource === "deterministic_fallback"
+      ? t("contextCompact.source.deterministicFallback")
+      : t("contextCompact.source.model");
+  const parts = [
+    t("contextCompact.completed"),
+    t("contextCompact.summarySource", { source }),
+  ];
   if (typeof data.originalMessages === "number" && data.originalMessages > 0) {
-    parts.push(`历史消息：${data.originalMessages}`);
+    parts.push(
+      t("contextCompact.originalMessages", { count: data.originalMessages }),
+    );
   }
   if (typeof data.toolDigestCount === "number" && data.toolDigestCount > 0) {
-    parts.push(`工具结果摘要：${data.toolDigestCount}`);
+    parts.push(
+      t("contextCompact.toolDigestCount", { count: data.toolDigestCount }),
+    );
   }
   if (typeof data.compressionRatio === "number" && data.compressionRatio > 0) {
-    parts.push(`压缩比：${Math.round(data.compressionRatio * 100)}%`);
+    parts.push(
+      t("contextCompact.compressionRatio", {
+        ratio: Math.round(data.compressionRatio * 100),
+      }),
+    );
   }
   return parts.join(" · ");
 }
@@ -240,6 +257,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     updateMentionSuggestions,
   } = input;
   const { t } = useI18n();
+  const { message: messageApi } = AntdApp.useApp();
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
@@ -434,7 +452,7 @@ export function useComposerSend(input: UseComposerSendInput) {
             dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: usageSnapshot });
           }
           const nodeId = `compact_${compactData.compactId || requestId}`;
-          const text = compactTimelineText(compactData);
+          const text = compactTimelineText(compactData, t);
           dispatch({
             type: "SET_TIMELINE_NODE",
             id: nodeId,
@@ -662,7 +680,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         line: `[steer] skipped: missing chatId/runId/agentKey (chatId=${chatId || "-"}, runId=${runId || "-"}, agentKey=${agentKey || "-"})`,
       });
       restoreSteerDraftToComposer(message);
-      void antdMessage.warning(t("composer.steer.unavailable"));
+      void messageApi.warning(t("composer.steer.unavailable"));
       return;
     }
 
@@ -698,7 +716,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           line: `[steer] rejected: status=${result.status || "-"}, detail=${result.detail || "-"}`,
         });
         restoreSteerDraftToComposer(message);
-        void antdMessage.warning(
+        void messageApi.warning(
           t("composer.steer.rejected", {
             detail: result.detail || result.status || "unmatched",
           }),
@@ -717,7 +735,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[steer] failed: ${(error as Error).message}`,
       });
-      void antdMessage.error(
+      void messageApi.error(
         t("composer.steer.failed", {
           detail: (error as Error).message,
         }),
@@ -731,6 +749,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     resolveCurrentRunId,
     resolveCurrentTeamId,
     restoreSteerDraftToComposer,
+    messageApi,
     state.chatId,
     state.planningMode,
     state.steerDraft,

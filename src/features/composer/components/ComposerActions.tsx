@@ -80,8 +80,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           <Tooltip
             title={
               <Flex align="center" vertical style={{fontSize: 12}}>
-                <div>创建计划</div>
-                <div>shift + tab 切换</div>
+                <div>{t("composer.tooltip.createPlan")}</div>
+                <div>{t("composer.tooltip.planShortcut")}</div>
               </Flex>
             }
           >

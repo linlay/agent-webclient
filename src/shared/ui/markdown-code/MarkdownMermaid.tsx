@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { MaterialIcon } from "../MaterialIcon";
 import { UiButton } from "../UiButton";
+import { useI18n } from "@/shared/i18n";
 
 type RenderState =
   | { status: "empty" }
@@ -94,6 +95,7 @@ export const MarkdownMermaid: React.FC<{
   code: string;
   streamStatus?: "loading" | "done";
 }> = ({ code, streamStatus }) => {
+  const { t } = useI18n();
   const reactId = useId();
   const renderBaseId = useRef(
     `markdown-mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
@@ -204,7 +206,7 @@ export const MarkdownMermaid: React.FC<{
             suppressErrors: true,
           });
           if (!parseResult) {
-            throw new Error("Mermaid 语法解析失败。");
+            throw new Error(t("mermaid.status.parseFailed"));
           }
 
           renderCount.current += 1;
@@ -231,7 +233,7 @@ export const MarkdownMermaid: React.FC<{
           setState({
             status: "error",
             message:
-              error instanceof Error ? error.message : "Mermaid 图表渲染失败。",
+              error instanceof Error ? error.message : t("mermaid.status.renderFailed"),
           });
         });
     }, renderDelay);
@@ -240,7 +242,7 @@ export const MarkdownMermaid: React.FC<{
       disposed = true;
       window.clearTimeout(renderTimer);
     };
-  }, [code, streamStatus, theme]);
+  }, [code, streamStatus, theme, t]);
 
   const visibleState = getVisibleMermaidRenderState(
     state,
@@ -255,15 +257,17 @@ export const MarkdownMermaid: React.FC<{
       >
         <div className="markdown-mermaid-toolbar">
           {"stale" in visibleState && (
-            <span className="markdown-mermaid-render-status">更新中…</span>
+            <span className="markdown-mermaid-render-status">
+              {t("mermaid.status.updating")}
+            </span>
           )}
           <span className="markdown-mermaid-zoom">{Math.round(zoom * 100)}%</span>
           <UiButton
             variant="ghost"
             size="sm"
             iconOnly
-            aria-label="缩小 Mermaid 图"
-            title="缩小"
+            aria-label={t("mermaid.zoom.outAria")}
+            title={t("mermaid.zoom.out")}
             disabled={zoom <= MERMAID_ZOOM_MIN}
             onClick={() => updateZoom("out")}
           >
@@ -273,8 +277,8 @@ export const MarkdownMermaid: React.FC<{
             variant="ghost"
             size="sm"
             iconOnly
-            aria-label="重置 Mermaid 图缩放"
-            title="重置"
+            aria-label={t("mermaid.zoom.resetAria")}
+            title={t("mermaid.zoom.reset")}
             disabled={zoom === MERMAID_ZOOM_DEFAULT}
             onClick={() => updateZoom("reset")}
           >
@@ -284,8 +288,8 @@ export const MarkdownMermaid: React.FC<{
             variant="ghost"
             size="sm"
             iconOnly
-            aria-label="放大 Mermaid 图"
-            title="放大"
+            aria-label={t("mermaid.zoom.inAria")}
+            title={t("mermaid.zoom.in")}
             disabled={zoom >= MERMAID_ZOOM_MAX}
             onClick={() => updateZoom("in")}
           >
@@ -297,8 +301,8 @@ export const MarkdownMermaid: React.FC<{
           className={`markdown-mermaid-viewport ${isDragging ? "is-dragging" : ""}`}
           role="button"
           tabIndex={0}
-          aria-label="点击放大 Mermaid 图，拖动平移 Mermaid 图"
-          title="点击放大"
+          aria-label={t("mermaid.viewport.ariaLabel")}
+          title={t("mermaid.viewport.title")}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -325,10 +329,12 @@ export const MarkdownMermaid: React.FC<{
 
   const text =
     visibleState.status === "empty" || streamStatus === "loading"
-      ? "Mermaid 图表接收中…"
+      ? t("mermaid.status.receiving")
       : visibleState.status === "error"
-        ? `Mermaid 图表渲染失败：${visibleState.message}`
-        : "Mermaid 图表渲染中…";
+        ? t("mermaid.status.failedWithDetail", {
+            detail: visibleState.message,
+          })
+        : t("mermaid.status.rendering");
 
   return <div className="markdown-mermaid markdown-mermaid-status">{text}</div>;
 };

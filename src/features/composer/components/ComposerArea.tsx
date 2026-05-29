@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { message as antdMessage } from "antd";
+import { App as AntdApp } from "antd";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Buildin } from "@/features/tools/components/buildin";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
+import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
 import { MentionSuggest } from "@/features/composer/components/MentionSuggest";
 import { SlashPalette } from "@/features/composer/components/SlashPalette";
 import { SteerBar } from "@/features/composer/components/SteerBar";
@@ -17,17 +18,16 @@ import { ComposerActions } from "@/features/composer/components/ComposerActions"
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
-import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
-import { resolveActiveRunId } from "@/features/composer/lib/steerSubmission";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
+import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
 import { useComposerAwaiting } from "@/features/composer/hooks/useComposerAwaiting";
 import { useComposerKeyboard } from "@/features/composer/hooks/useComposerKeyboard";
 import { useComposerLifecycle } from "@/features/composer/hooks/useComposerLifecycle";
 import { useComposerMention } from "@/features/composer/hooks/useComposerMention";
+import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAccessLevel";
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
@@ -36,8 +36,6 @@ import type {
   QueryAccessLevel,
   QueryModelOverride,
 } from "@/shared/api/apiClient";
-import { createRequestId } from "@/shared/api/apiClient";
-import { updateAccessLevel } from "@/features/transport/lib/apiClientProxy";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {
@@ -54,6 +52,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const { message } = AntdApp.useApp();
   const composerRef = useRef<HTMLDivElement>(null);
   const composerPillRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<TextAreaRef>(null);
@@ -86,54 +85,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  const activeRunId = useMemo(
-    () => {
-      const resolvedRunId = resolveActiveRunId({
-        stateRunId: state.runId,
-        events: state.events,
-      });
-      if (resolvedRunId) {
-        return resolvedRunId;
-      }
-      return String(state.activeAwaiting?.runId || "").trim();
-    },
-    [state.activeAwaiting?.runId, state.events, state.runId],
-  );
-  const activeRunAgentKey = useMemo(() => {
-    if (!activeRunId) {
-      return "";
-    }
-    const awaitingAgentKey = String(state.activeAwaiting?.agentKey || "").trim();
-    if (awaitingAgentKey) {
-      return awaitingAgentKey;
-    }
-    return resolveRunAgentKey({
-      runId: activeRunId,
-      currentRunAgentKey: state.currentRunAgentKey,
-      runAgentById: state.runAgentById,
-      chatId: state.chatId,
-      chatAgentById: state.chatAgentById,
-      chats: state.chats,
-      fallbackAgentKey: resolvePreferredAgentKey({
-        chatId: state.chatId,
-        chatAgentById: state.chatAgentById,
-        pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-        workerSelectionKey: state.workerSelectionKey,
-        workerIndexByKey: state.workerIndexByKey,
-      }),
-    });
-  }, [
-    activeRunId,
-    state.activeAwaiting?.agentKey,
-    state.chatAgentById,
-    state.chatId,
-    state.chats,
-    state.currentRunAgentKey,
-    state.pendingNewChatAgentKey,
-    state.runAgentById,
-    state.workerIndexByKey,
-    state.workerSelectionKey,
-  ]);
+  const { activeRunId, activeRunAgentKey } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
@@ -342,35 +294,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateMentionSuggestions,
   });
 
-  const handleAccessLevelChange = useCallback(
-    (nextAccessLevel: QueryAccessLevel) => {
-      setAccessLevel(nextAccessLevel);
-      if (!activeRunId || !activeRunAgentKey) {
-        return;
-      }
-      void updateAccessLevel({
-        requestId: createRequestId("access"),
-        runId: activeRunId,
-        agentKey: activeRunAgentKey,
-        accessLevel: nextAccessLevel,
-        reason: "user toggled permission",
-      })
-        .then((response) => {
-          const data = response.data;
-          if (!data || data.accepted !== false) {
-            return;
-          }
-          const detail = String(data.detail || response.msg || "").trim();
-          void antdMessage.warning(detail || "当前运行不支持动态切换权限");
-        })
-        .catch((error) => {
-          const detail =
-            error instanceof Error ? error.message : "权限切换请求失败";
-          void antdMessage.error(detail);
-        });
-    },
-    [activeRunAgentKey, activeRunId],
-  );
+  const handleAccessLevelChange = useRuntimeAccessLevel({
+    accessLevel,
+    activeRunId,
+    activeRunAgentKey,
+    setAccessLevel,
+    messageApi: message,
+    t,
+  });
 
   const { sampledWonders } = useComposerWonders({
     agents: state.agents,
@@ -479,8 +410,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   if (isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
       return (
-        <div className="composer-awaiting-shell">
-          {activeRunAccessControls}
+        <AwaitingShell accessControls={activeRunAccessControls}>
           <AwaitingHtmlContainer
             data={state.activeAwaiting}
             onPatch={handlePatchActiveAwaiting}
@@ -488,43 +418,40 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             onClose={clearActiveAwaiting}
             onResolvedByOther={clearActiveAwaiting}
           />
-        </div>
+        </AwaitingShell>
       );
     }
     if (state.activeAwaiting.mode === "approval") {
       return (
-        <div className="composer-awaiting-shell">
-          {activeRunAccessControls}
+        <AwaitingShell accessControls={activeRunAccessControls}>
           <Buildin.ApprovalDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
             onResolvedByOther={clearActiveAwaiting}
           />
-        </div>
+        </AwaitingShell>
       );
     }
     if (state.activeAwaiting.mode === "plan") {
       return (
-        <div className="composer-awaiting-shell">
-          {activeRunAccessControls}
+        <AwaitingShell accessControls={activeRunAccessControls}>
           <Buildin.PlanDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
             onResolvedByOther={clearActiveAwaiting}
           />
-        </div>
+        </AwaitingShell>
       );
     }
     if (state.activeAwaiting.mode === "question") {
       return (
-        <div className="composer-awaiting-shell">
-          {activeRunAccessControls}
+        <AwaitingShell accessControls={activeRunAccessControls}>
           <Buildin.QuestionDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
             onResolvedByOther={clearActiveAwaiting}
           />
-        </div>
+        </AwaitingShell>
       );
     }
     return null;
