@@ -10,6 +10,7 @@ import {
 	isErrorEventType,
 	shouldDisplayDebugEvent,
 } from "@/features/timeline/lib/debugEventDisplay";
+import { t } from "@/shared/i18n";
 import { Flex, Tabs, Tag } from "antd";
 
 function formatDebugTime(timestamp?: number): string {
@@ -18,23 +19,23 @@ function formatDebugTime(timestamp?: number): string {
 
 export const DEBUG_EVENT_TABS: Array<{
 	key: "all" | Exclude<DebugEventGroup, "">;
-	label: string;
+	labelKey: string;
 	color: string;
 }> = [
-	{ key: "all", label: "全部", color: "blue" },
-	{ key: "request", label: "request", color: "#5A86C8" },
-	{ key: "chat", label: "chat", color: "#6B92BF" },
-	{ key: "run", label: "run", color: "#4476AD" },
-	{ key: "awaiting", label: "awaiting", color: "#D2B395" },
-	{ key: "memory", label: "memory", color: "#7091B6" },
-	{ key: "reasoning", label: "reasoning", color: "#7AB9A8" },
-	{ key: "planning", label: "planning", color: "#8B9AD8" },
-	{ key: "content", label: "content", color: "#5AA79D" },
-	{ key: "tool", label: "tool", color: "#D6A05E" },
-	{ key: "action", label: "action", color: "#CA9168" },
-	{ key: "plan", label: "plan", color: "#8E82C4" },
-	{ key: "task", label: "task", color: "#A094D0" },
-	{ key: "artifact", label: "artifact", color: "#D98A42" },
+	{ key: "all", labelKey: "rightSidebar.debug.tabs.all", color: "blue" },
+	{ key: "request", labelKey: "rightSidebar.debug.tabs.request", color: "#5A86C8" },
+	{ key: "chat", labelKey: "rightSidebar.debug.tabs.chat", color: "#6B92BF" },
+	{ key: "run", labelKey: "rightSidebar.debug.tabs.run", color: "#4476AD" },
+	{ key: "awaiting", labelKey: "rightSidebar.debug.tabs.awaiting", color: "#D2B395" },
+	{ key: "memory", labelKey: "rightSidebar.debug.tabs.memory", color: "#7091B6" },
+	{ key: "reasoning", labelKey: "rightSidebar.debug.tabs.reasoning", color: "#7AB9A8" },
+	{ key: "planning", labelKey: "rightSidebar.debug.tabs.planning", color: "#8B9AD8" },
+	{ key: "content", labelKey: "rightSidebar.debug.tabs.content", color: "#5AA79D" },
+	{ key: "tool", labelKey: "rightSidebar.debug.tabs.tool", color: "#D6A05E" },
+	{ key: "action", labelKey: "rightSidebar.debug.tabs.action", color: "#CA9168" },
+	{ key: "plan", labelKey: "rightSidebar.debug.tabs.plan", color: "#8E82C4" },
+	{ key: "task", labelKey: "rightSidebar.debug.tabs.task", color: "#A094D0" },
+	{ key: "artifact", labelKey: "rightSidebar.debug.tabs.artifact", color: "#D98A42" },
 ];
 
 export type DebugTabKey = (typeof DEBUG_EVENT_TABS)[number]["key"];
@@ -124,7 +125,10 @@ export const DebugTab: React.FC = () => {
 				return [
 					{
 						key: tab.key,
-						label: `${tab.label} (${entries.length})`,
+						label: t("rightSidebar.debug.tabs.labelWithCount", {
+							label: t(tab.labelKey),
+							count: entries.length,
+						}),
 						color: tab.color,
 						children: (
 							<div className="debug-events-tab">
@@ -150,7 +154,7 @@ export const DebugTab: React.FC = () => {
 		<div className="debug-panel">
 			<div className="list" id="events-list">
 				{state.debugEvents.length === 0 ? (
-					<div className="status-line">暂无事件</div>
+					<div className="status-line">{t("rightSidebar.debug.empty")}</div>
 				) : (
 					<Tabs
 						size="small"
