@@ -8,6 +8,8 @@ import { I18nProvider } from "@/shared/i18n";
 const antdButtonProps: Array<Record<string, unknown>> = [];
 const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
 const dropdownMenuProps: Array<Record<string, unknown>> = [];
+const mockModalConfirm = jest.fn();
+const mockMessageSuccess = jest.fn();
 
 function collectText(value: React.ReactNode): string {
   if (value === null || value === undefined || typeof value === "boolean") {
@@ -106,6 +108,7 @@ jest.mock("antd", () => {
           children,
         )
       : null;
+  Modal.confirm = (...args: unknown[]) => mockModalConfirm(...args);
   Modal.useModal = () => [{ confirm: jest.fn() }, null];
 
   const Popover = ({ children, content, classNames }: any) =>
@@ -133,6 +136,10 @@ jest.mock("antd", () => {
     Spin,
     Tag,
     Tooltip,
+    message: {
+      success: (...args: unknown[]) => mockMessageSuccess(...args),
+      error: jest.fn(),
+    },
     Typography: {
       Text: ({ children }: any) => React.createElement("span", null, children),
     },
@@ -190,10 +197,13 @@ jest.mock("@/shared/api/desktopFileSystem", () => ({
 
 jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   createAgent: jest.fn(),
+  deleteAgent: jest.fn(),
+  getAgent: jest.fn(),
   getAgents: jest.fn(),
   getChats: jest.fn(),
   markChatRead: jest.fn(),
   searchGlobal: jest.fn(),
+  updateAgent: jest.fn(),
 }));
 
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
@@ -208,10 +218,16 @@ const {
 };
 const {
   createAgent,
+  deleteAgent,
+  getAgent,
   getAgents,
+  updateAgent,
 } = jest.requireMock("@/features/transport/lib/apiClientProxy") as {
   createAgent: jest.Mock;
+  deleteAgent: jest.Mock;
+  getAgent: jest.Mock;
   getAgents: jest.Mock;
+  updateAgent: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
@@ -240,8 +256,10 @@ describe("LeftSidebar", () => {
       dispatchEvent: jest.Mock;
       addEventListener: jest.Mock;
       removeEventListener: jest.Mock;
+      open: jest.Mock;
       location: {
         pathname: string;
+        search: string;
       };
     };
     CustomEvent?: typeof CustomEvent;
@@ -319,6 +337,21 @@ describe("LeftSidebar", () => {
     });
   }
 
+  function firstWorkerActionMenu(): {
+    items?: Array<{ key?: string; disabled?: boolean; danger?: boolean; label?: React.ReactNode }>;
+    onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void;
+  } | undefined {
+    return dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
+    ) as
+      | {
+          items?: Array<{ key?: string; disabled?: boolean; danger?: boolean; label?: React.ReactNode }>;
+          onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void;
+        }
+      | undefined;
+  }
+
   function createChatListState(): AppState {
     const state = createInitialState();
     return {
@@ -357,7 +390,12 @@ describe("LeftSidebar", () => {
     selectProjectFolder.mockReset();
     openWorkspaceDirectory.mockReset();
     createAgent.mockReset();
+    deleteAgent.mockReset();
+    getAgent.mockReset();
     getAgents.mockReset();
+    updateAgent.mockReset();
+    mockModalConfirm.mockReset();
+    mockMessageSuccess.mockReset();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -367,8 +405,10 @@ describe("LeftSidebar", () => {
       dispatchEvent: jest.fn(),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
+      open: jest.fn(),
       location: {
         pathname: "/",
+        search: "",
       },
     };
     globalWithWindow.CustomEvent = class CustomEventMock<T = unknown> extends Event {
@@ -687,6 +727,202 @@ describe("LeftSidebar", () => {
     expect(openWorkspaceDirectory).toHaveBeenCalledWith(
       "/Users/demo/Project/agent-coder",
       "worker_a",
+    );
+  });
+
+  it("renders agent action menu items without delete for non-coder agents", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "agent";
+    mockState(state);
+
+    const html = renderSidebar();
+    const menu = firstWorkerActionMenu();
+
+    expect(html).toContain("打开工作目录");
+    expect(menu?.items?.map((item) => item.key)).toEqual([
+      "openWorkspace",
+      "renameAgent",
+      "editAgent",
+    ]);
+    expect(html).toContain("修改名称");
+    expect(html).toContain("编辑智能体");
+    expect(html).not.toContain("删除智能体");
+  });
+
+  it("renders delete in the action menu for coder agents", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "coder";
+    mockState(state);
+
+    const html = renderSidebar();
+    const menu = firstWorkerActionMenu();
+
+    expect(html).toContain("删除智能体");
+    expect(menu?.items?.map((item) => item.key)).toEqual([
+      "openWorkspace",
+      "renameAgent",
+      "editAgent",
+      "deleteAgent",
+    ]);
+    expect(menu?.items?.find((item) => item.key === "deleteAgent")?.danger).toBe(true);
+  });
+
+  it("opens the agent editor in a new page with the current search string", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].sourceId = "worker/a";
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
+    mockState(state);
+
+    renderSidebar();
+    const menu = firstWorkerActionMenu();
+
+    menu?.onClick?.({
+      key: "editAgent",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/agents/worker%2Fa?lang=zh-CN",
+      "_blank",
+    );
+  });
+
+  it("renames an agent without dropping fallback definition fields", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state);
+    getAgent.mockResolvedValue({
+      data: {
+        key: "worker_a",
+        name: "Alpha Agent",
+        icon: { name: "smart_toy" },
+        role: "Builder",
+        description: "Builds things",
+        mode: "CODER",
+        model: "coder-model",
+        tools: ["shell"],
+        skills: ["typescript"],
+        wonders: ["focus"],
+        controls: [{ key: "approval" }],
+        meta: {
+          visibility: { scopes: ["nav", "copilot"] },
+          budget: { maxCalls: 10 },
+        },
+      },
+    });
+    updateAgent.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
+
+    renderSidebar();
+    const menu = firstWorkerActionMenu();
+    menu?.onClick?.({
+      key: "renameAgent",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+
+    expect(mockModalConfirm).toHaveBeenCalledTimes(1);
+    const confirmConfig = mockModalConfirm.mock.calls[0][0];
+    confirmConfig.content.props.onChange({
+      target: { value: "Beta Agent" },
+    });
+    await confirmConfig.onOk();
+
+    expect(getAgent).toHaveBeenCalledWith("worker_a");
+    expect(updateAgent).toHaveBeenCalledWith({
+      key: "worker_a",
+      definition: {
+        key: "worker_a",
+        name: "Beta Agent",
+        icon: { name: "smart_toy" },
+        role: "Builder",
+        description: "Builds things",
+        mode: "CODER",
+        modelConfig: { modelKey: "coder-model" },
+        toolConfig: { tools: ["shell"] },
+        skillConfig: { skills: ["typescript"] },
+        wonders: ["focus"],
+        controls: [{ key: "approval" }],
+        visibility: { scopes: ["nav", "copilot"] },
+        budget: { maxCalls: 10 },
+      },
+    });
+    expect(mockMessageSuccess).toHaveBeenCalledWith("名称已修改");
+    expect(globalWithWindow.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:refresh-worker-data" }),
+    );
+  });
+
+  it("keeps existing agent definition fields when renaming", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state);
+    getAgent.mockResolvedValue({
+      data: {
+        key: "worker_a",
+        name: "Alpha Agent",
+        model: "",
+        mode: "REACT",
+        tools: [],
+        skills: [],
+        controls: [],
+        meta: {},
+        definition: {
+          key: "worker_a",
+          name: "Alpha Agent",
+          mode: "REACT",
+          runtimeConfig: { workspaceRoot: "/tmp/demo" },
+          modelConfig: { modelKey: "react-model" },
+        },
+      },
+    });
+    updateAgent.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
+
+    renderSidebar();
+    firstWorkerActionMenu()?.onClick?.({
+      key: "renameAgent",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+
+    const confirmConfig = mockModalConfirm.mock.calls[0][0];
+    confirmConfig.content.props.onChange({
+      target: { value: "Beta Agent" },
+    });
+    await confirmConfig.onOk();
+
+    expect(updateAgent).toHaveBeenCalledWith({
+      key: "worker_a",
+      definition: {
+        key: "worker_a",
+        name: "Beta Agent",
+        mode: "REACT",
+        runtimeConfig: { workspaceRoot: "/tmp/demo" },
+        modelConfig: { modelKey: "react-model" },
+      },
+    });
+  });
+
+  it("deletes a coder agent after confirmation and refreshes worker data", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "coder";
+    mockState(state);
+    deleteAgent.mockResolvedValue({ data: { deleted: true } });
+
+    renderSidebar();
+    firstWorkerActionMenu()?.onClick?.({
+      key: "deleteAgent",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+
+    expect(mockModalConfirm).toHaveBeenCalledTimes(1);
+    const confirmConfig = mockModalConfirm.mock.calls[0][0];
+    await confirmConfig.onOk();
+
+    expect(deleteAgent).toHaveBeenCalledWith({ key: "worker_a" });
+    expect(globalWithWindow.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:refresh-worker-data" }),
     );
   });
 

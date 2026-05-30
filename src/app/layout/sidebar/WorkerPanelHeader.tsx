@@ -24,6 +24,9 @@ export const WorkerPanelHeader: React.FC<{
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
   onOpenWorkspace?: (workerKey: string) => void;
+  onRenameAgent?: (workerKey: string, agentKey: string, currentName: string) => void;
+  onEditAgent?: (agentKey: string) => void;
+  onDeleteAgent?: (workerKey: string, agentKey: string) => void;
 }> = ({
   row,
   isActive,
@@ -33,6 +36,9 @@ export const WorkerPanelHeader: React.FC<{
   onStartNewConversation,
   onMarkAllRead,
   onOpenWorkspace,
+  onRenameAgent,
+  onEditAgent,
+  onDeleteAgent,
 }) => {
   const { t } = useI18n();
   const subtitle = row.agentType === "coder" ? "" : row.role;
@@ -46,6 +52,8 @@ export const WorkerPanelHeader: React.FC<{
       lastChat?.chatName ||
       t("leftSidebar.latestConversationNoReply")
     : t("leftSidebar.noHistory");
+  const isAgent = row.type === "agent";
+  const isCoder = row.agentType === "coder";
   const actionMenuItems: MenuProps["items"] = [
     {
       key: "openWorkspace",
@@ -53,6 +61,34 @@ export const WorkerPanelHeader: React.FC<{
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
+    ...(isAgent && onRenameAgent
+      ? [
+          {
+            key: "renameAgent",
+            icon: <MaterialIcon name="edit" />,
+            label: t("leftSidebar.renameAgent"),
+          },
+        ]
+      : []),
+    ...(isAgent && onEditAgent
+      ? [
+          {
+            key: "editAgent",
+            icon: <MaterialIcon name="settings" />,
+            label: t("leftSidebar.editAgent"),
+          },
+        ]
+      : []),
+    ...(isAgent && isCoder && onDeleteAgent
+      ? [
+          {
+            key: "deleteAgent",
+            icon: <MaterialIcon name="delete" />,
+            label: t("leftSidebar.deleteAgent"),
+            danger: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -111,6 +147,12 @@ export const WorkerPanelHeader: React.FC<{
                   domEvent.stopPropagation();
                   if (key === "openWorkspace" && row.workspaceDir) {
                     onOpenWorkspace?.(row.key);
+                  } else if (key === "renameAgent") {
+                    onRenameAgent?.(row.key, row.sourceId, row.displayName);
+                  } else if (key === "editAgent") {
+                    onEditAgent?.(row.sourceId);
+                  } else if (key === "deleteAgent") {
+                    onDeleteAgent?.(row.key, row.sourceId);
                   }
                 },
               }}

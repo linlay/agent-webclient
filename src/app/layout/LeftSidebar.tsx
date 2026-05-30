@@ -13,6 +13,8 @@ import {
   CollapseProps,
   Flex,
   Input,
+  message,
+  Modal,
   Popover,
   Spin,
 } from "antd";
@@ -40,10 +42,13 @@ import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConver
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import {
   createAgent,
+  deleteAgent,
+  getAgent,
   getChats,
   getAgents,
   markChatRead,
   searchGlobal,
+  updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
@@ -52,6 +57,7 @@ import {
   selectProjectFolder,
 } from "@/shared/api/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
+import type { AgentDetailResponse } from "@/shared/api/apiClient";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -90,6 +96,44 @@ function buildCoderAgentCreateRequest(workspaceDir: string) {
       },
     },
   };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function normalizeAgentMode(mode: unknown): string {
+  const normalized = String(mode || "").trim().toUpperCase();
+  return normalized || "REACT";
+}
+
+function buildFallbackAgentDefinition(
+  detail: AgentDetailResponse,
+): Record<string, unknown> {
+  const definition: Record<string, unknown> = {
+    key: detail.key,
+    name: detail.name,
+    icon: detail.icon,
+    role: detail.role || "",
+    description: detail.description || "",
+    mode: normalizeAgentMode(detail.mode),
+  };
+  const meta = asRecord(detail.meta);
+  const visibility = asRecord(meta.visibility);
+  const budget = asRecord(meta.budget);
+  const modelKey = String(meta.modelKey || detail.model || "").trim();
+  if (modelKey) definition.modelConfig = { modelKey };
+  if (Array.isArray(detail.tools)) definition.toolConfig = { tools: detail.tools };
+  if (Array.isArray(detail.skills)) definition.skillConfig = { skills: detail.skills };
+  if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
+  if (Array.isArray(detail.controls)) definition.controls = detail.controls;
+  if (Array.isArray(visibility.scopes)) {
+    definition.visibility = { scopes: visibility.scopes };
+  }
+  if (Object.keys(budget).length > 0) definition.budget = budget;
+  return definition;
 }
 
 export const LeftSidebar: React.FC = () => {
@@ -373,6 +417,82 @@ export const LeftSidebar: React.FC = () => {
       });
   };
 
+  const handleRenameAgent = (
+    workerKey: string,
+    agentKey: string,
+    currentName: string,
+  ) => {
+    let nextName = currentName;
+    Modal.confirm({
+      title: t("leftSidebar.renameAgent"),
+      content: (
+        <Input
+          autoFocus
+          defaultValue={currentName}
+          maxLength={120}
+          placeholder={t("leftSidebar.renameAgentPlaceholder")}
+          onChange={(event) => {
+            nextName = event.target.value;
+          }}
+        />
+      ),
+      okText: t("leftSidebar.renameAgent"),
+      cancelText: t("chatActions.cancel"),
+      onOk: async () => {
+        const newName = nextName.trim();
+        if (!newName) return;
+        try {
+          const detail = await getAgent(agentKey);
+          const agentDetail = detail.data as AgentDetailResponse;
+          const definition = {
+            ...(agentDetail.definition || buildFallbackAgentDefinition(agentDetail)),
+            name: newName,
+          };
+          await updateAgent({ key: agentKey, definition });
+          message.success(t("leftSidebar.renameAgentSuccess"));
+          window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+        } catch (error) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[rename agent error] ${(error as Error).message}`,
+          });
+          throw error;
+        }
+      },
+    });
+  };
+
+  const handleEditAgent = (agentKey: string) => {
+    const routeSearch = window.location.search || "";
+    window.open(`/agents/${encodeURIComponent(agentKey)}${routeSearch}`, "_blank");
+  };
+
+  const handleDeleteAgent = (workerKey: string, agentKey: string) => {
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    const name = row?.displayName || agentKey;
+    Modal.confirm({
+      title: t("leftSidebar.deleteAgent"),
+      content: t("leftSidebar.deleteAgentConfirm", { name }),
+      okText: t("chatActions.delete.ok"),
+      okButtonProps: { danger: true },
+      cancelText: t("chatActions.cancel"),
+      onOk: async () => {
+        try {
+          await deleteAgent({ key: agentKey });
+          window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+        } catch (error) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[delete agent error] ${(error as Error).message}`,
+          });
+          throw error;
+        }
+      },
+    });
+  };
+
   const handleCloseHistory = () => {
     setHistoryWorkerKey("");
     setHistorySearch("");
@@ -417,6 +537,9 @@ export const LeftSidebar: React.FC = () => {
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
             onOpenWorkspace={handleOpenWorkspace}
+            onRenameAgent={handleRenameAgent}
+            onEditAgent={handleEditAgent}
+            onDeleteAgent={handleDeleteAgent}
           />
         ),
         children: (
@@ -432,6 +555,9 @@ export const LeftSidebar: React.FC = () => {
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
             onOpenWorkspace={handleOpenWorkspace}
+            onRenameAgent={handleRenameAgent}
+            onEditAgent={handleEditAgent}
+            onDeleteAgent={handleDeleteAgent}
           />
         ),
       };
@@ -739,6 +865,9 @@ export const LeftSidebar: React.FC = () => {
                             }
                             onMarkAllRead={handleMarkWorkerAllRead}
                             onOpenWorkspace={handleOpenWorkspace}
+                            onRenameAgent={handleRenameAgent}
+                            onEditAgent={handleEditAgent}
+                            onDeleteAgent={handleDeleteAgent}
                           />
                         }
                       >
