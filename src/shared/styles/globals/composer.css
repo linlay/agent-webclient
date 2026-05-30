@@ -416,12 +416,6 @@
     width: 100%;
 }
 
-.composer-awaiting-access-row {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0 4px;
-}
-
 .composer-actions {
     display: inline-flex;
     align-items: center;

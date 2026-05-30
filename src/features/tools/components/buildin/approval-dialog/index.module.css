@@ -26,21 +26,11 @@
       color: var(--text-main);
     }
   }
-
-  .FormItem {
-    margin-bottom: 0;
-  }
   button {
     font-size: 12px;
 
   }
 }
-
-.FooterRow {
-  justify-content: flex-end;
-  width: 100%;
-}
-
 .TimeoutRow {
   color: var(--text-muted);
   font-size: 12px;
@@ -72,9 +62,28 @@
     line-height: 1.5;
   }
 
-  .InputField {
-    margin: 0 10px 10px;
-    width: auto;
+  .ApprovalDetails {
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--bg-base);
+  }
+
+  .ApprovalMeta {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .ApprovalCommand {
+    color: var(--text-main);
+    font-weight: bold;
+    line-height: 1.5;
+    word-break: break-all;
+  }
+
+  .ApprovalReason {
+    resize: none;
   }
 
   .CheckboxGroup {
@@ -112,6 +121,7 @@
     border-radius: 10px;
     color: var(--text-muted);
     font-size: 12px;
+    flex: 1;
 
     :global{
       input{
@@ -154,21 +164,4 @@
   .CheckboxGroup :global(.ant-checkbox-wrapper>:last-child) {
     flex: 1;
   }
-}
-
-.OptionPreview {
-  width: min(340px, 80vw);
-  height: 200px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-card);
-}
-
-.OptionPreviewFrame {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: #fff;
 }

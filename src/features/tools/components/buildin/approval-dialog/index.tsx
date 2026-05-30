@@ -22,7 +22,6 @@ import type {
   ApprovalActiveAwaiting,
 } from "@/app/state/types";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
-import Style from "@/features/tools/components/buildin/confirm-dialog/index.module.css";
 import {
   clampAwaitingIndex,
   isEditableKeyboardTarget,
@@ -35,6 +34,7 @@ import {
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
+import Style from "./index.module.css";
 
 interface ApprovalDialogProps {
   data: ApprovalActiveAwaiting;
@@ -373,51 +373,53 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                   )}
                 </Flex>
               }
+              confirmSlot={
+                <Flex gap={10} align="center">
+                  <Button
+                    type="link"
+                    shape="round"
+                    className={Style.IgnoreButton}
+                    size="small"
+                    onClick={doIgnore}
+                    disabled={readOnly}
+                  >
+                    <span>{t("approvalDialog.action.ignore")}</span>
+                    <span>ESC</span>
+                  </Button>
+                  {curIndex < approvals.length - 1 && (
+                    <Button
+                      type="primary"
+                      shape="round"
+                      size="small"
+                      onClick={() => {
+                        void moveForward();
+                      }}
+                      disabled={readOnly || !currentDecision}
+                    >
+                      {t("approvalDialog.action.continue")}
+                    </Button>
+                  )}
+                  {curIndex >= approvals.length - 1 && (
+                    <Button
+                      type="primary"
+                      shape="round"
+                      size="small"
+                      onClick={() => {
+                        void submitDecision();
+                      }}
+                      loading={submitting}
+                      disabled={!canSubmit}
+                    >
+                      <span>{t("approvalDialog.action.submit")}</span>
+                      <EnterOutlined />
+                    </Button>
+                  )}
+                </Flex>
+              }
             />
           ),
         }))}
       />
-      <Flex gap={10} align="center" className={Style.FooterRow}>
-        <Button
-          type="link"
-          shape="round"
-          className={Style.IgnoreButton}
-          size="small"
-          onClick={doIgnore}
-          disabled={readOnly}
-        >
-          <span>{t("approvalDialog.action.ignore")}</span>
-          <span>ESC</span>
-        </Button>
-        {curIndex < approvals.length - 1 && (
-          <Button
-            type="primary"
-            shape="round"
-            size="small"
-            onClick={() => {
-              void moveForward();
-            }}
-            disabled={readOnly || !currentDecision}
-          >
-            {t("approvalDialog.action.continue")}
-          </Button>
-        )}
-        {curIndex >= approvals.length - 1 && (
-          <Button
-            type="primary"
-            shape="round"
-            size="small"
-            onClick={() => {
-              void submitDecision();
-            }}
-            loading={submitting}
-            disabled={!canSubmit}
-          >
-            <span>{t("approvalDialog.action.submit")}</span>
-            <EnterOutlined />
-          </Button>
-        )}
-      </Flex>
     </div>
   ) : (
     <Flex
@@ -447,6 +449,7 @@ const ApprovalQuestion = forwardRef<
     onReasonChange: (nextReason: string) => void;
     onEnter: (nextDecision?: AIAwaitApprovalDecision) => void;
     pagnation: React.ReactNode;
+    confirmSlot: React.ReactNode;
   }
 >(
   (
@@ -459,6 +462,7 @@ const ApprovalQuestion = forwardRef<
       onReasonChange,
       onEnter,
       pagnation,
+      confirmSlot,
     },
     ref,
   ) => {
@@ -512,37 +516,44 @@ const ApprovalQuestion = forwardRef<
           }}
         >
           {options?.map((option, index) => (
-            <Checkbox
-              key={`${approval.id}:${option.decision}`}
-              ref={(checkboxRef) => {
-                if (checkboxRef) {
-                  checkboxsRef.current[index] = checkboxRef;
-                }
-              }}
-              value={option.decision}
-              className={Style.Option}
-            >
-              <Flex
-                gap={10}
-                align="center"
-                tabIndex={0}
-                data-index={index}
-                style={{ outline: "none" }}
+            <Flex>
+              <Checkbox
+                key={`${approval.id}:${option.decision}`}
+                ref={(checkboxRef) => {
+                  if (checkboxRef) {
+                    checkboxsRef.current[index] = checkboxRef;
+                  }
+                }}
+                value={option.decision}
+                className={Style.Option}
               >
-                <span>{index + 1}.</span>
-                <span className={Style.Info}>{option.label}</span>
-                {option.description && (
-                  <span className={Style.ApprovalMeta}>
-                    {option.description}
+                <Flex
+                  gap={10}
+                  align="center"
+                  tabIndex={0}
+                  data-index={index}
+                  style={{ outline: "none" }}
+                >
+                  <span>{index + 1}.</span>
+                  <span className={Style.Info}>{option.label}</span>
+                  {option.description && (
+                    <span className={Style.ApprovalMeta}>
+                      {option.description}
+                    </span>
+                  )}
+                  <span className="Selected">
+                    {t("approvalDialog.selected")}
                   </span>
-                )}
-                <span className="Selected">{t("approvalDialog.selected")}</span>
-              </Flex>
-            </Checkbox>
+                </Flex>
+              </Checkbox>
+              {index === options.length - 1 &&
+                !approval.allowFreeText &&
+                confirmSlot}
+            </Flex>
           ))}
         </Checkbox.Group>
         {approval.allowFreeText && (
-          <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10}>
+          <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10} align="center">
             <span>{options?.length + 1}.</span>
             <Input
               variant="borderless"
@@ -565,6 +576,7 @@ const ApprovalQuestion = forwardRef<
               }}
               style={{ padding: 0 }}
             />
+            {confirmSlot}
           </Flex>
         )}
       </Flex>

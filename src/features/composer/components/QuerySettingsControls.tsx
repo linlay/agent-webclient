@@ -53,6 +53,11 @@ type LoadedCoderModelOptions = {
   defaultReasoningEffort?: QueryReasoningEffort;
 };
 
+type AppliedDefaultModelOverride = {
+  agentKey: string;
+  value: QueryModelOverride;
+};
+
 let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
 let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null =
   null;
@@ -190,6 +195,46 @@ export function shouldClearModelOverride(
 ): boolean {
   return (
     !isCoderAgent && Boolean(modelOverride.key || modelOverride.reasoningEffort)
+  );
+}
+
+export function shouldApplyCoderDefaultModelOverride({
+  shouldShowModelControls,
+  agentKey,
+  modelOverride,
+  resolvedDefaultOverride,
+  previousAppliedDefault,
+}: {
+  shouldShowModelControls: boolean;
+  agentKey: string;
+  modelOverride: QueryModelOverride;
+  resolvedDefaultOverride: QueryModelOverride;
+  previousAppliedDefault: AppliedDefaultModelOverride | null;
+}): boolean {
+  if (!shouldShowModelControls || !agentKey) return false;
+  if (!resolvedDefaultOverride.key && !resolvedDefaultOverride.reasoningEffort) {
+    return false;
+  }
+  if (
+    modelOverride.key === resolvedDefaultOverride.key &&
+    modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
+  ) {
+    return false;
+  }
+
+  const hasCurrentOverride = Boolean(
+    modelOverride.key || modelOverride.reasoningEffort,
+  );
+  const currentMatchesPrevious =
+    previousAppliedDefault?.agentKey === agentKey &&
+    modelOverride.key === previousAppliedDefault.value.key &&
+    modelOverride.reasoningEffort ===
+      previousAppliedDefault.value.reasoningEffort;
+
+  return !(
+    previousAppliedDefault?.agentKey === agentKey &&
+    !currentMatchesPrevious &&
+    hasCurrentOverride
   );
 }
 
@@ -405,6 +450,7 @@ export function resolveCoderAgentDefaultModelOverride(
 
   const key =
     getModelKey(raw.modelKey) ||
+    getModelKey(raw.defaultModelKey) ||
     getModelKey(meta.modelKey) ||
     getModelKey(modelConfig.modelKey) ||
     getModelKey(definitionModelConfig.modelKey) ||
@@ -412,6 +458,7 @@ export function resolveCoderAgentDefaultModelOverride(
     getModelKey(options?.defaultModelKey);
   const reasoningEffort =
     normalizeReasoningEffort(raw.reasoningEffort) ||
+    normalizeReasoningEffort(raw.defaultReasoningEffort) ||
     normalizeReasoningEffort(meta.reasoningEffort) ||
     normalizeReasoningEffort(modelConfig.reasoningEffort) ||
     normalizeReasoningEffort(definitionModelConfig.reasoningEffort) ||
@@ -554,10 +601,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [modelConfigSaving, setModelConfigSaving] = useState(false);
   const [modelConfigError, setModelConfigError] = useState("");
-  const appliedDefaultRef = useRef<{
-    agentKey: string;
-    value: QueryModelOverride;
-  } | null>(null);
+  const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
 
   useEffect(() => {
     if (!showModelSelector) {
@@ -566,6 +610,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
       return;
     }
+    appliedDefaultRef.current = null;
     onModelOverrideChange({});
   }, [isCoderAgent, modelOverride, onModelOverrideChange, showModelSelector]);
 
@@ -661,22 +706,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   );
 
   useEffect(() => {
-    if (!shouldShowModelControls || !agentKey) return;
     if (
-      !resolvedDefaultOverride.key &&
-      !resolvedDefaultOverride.reasoningEffort
-    )
-      return;
-
-    const previous = appliedDefaultRef.current;
-    const currentMatchesPrevious =
-      previous?.agentKey === agentKey &&
-      modelOverride.key === previous.value.key &&
-      modelOverride.reasoningEffort === previous.value.reasoningEffort;
-    if (previous?.agentKey === agentKey && !currentMatchesPrevious) {
-      return;
-    }
-    if (
+      shouldShowModelControls &&
+      agentKey &&
+      (resolvedDefaultOverride.key || resolvedDefaultOverride.reasoningEffort) &&
       modelOverride.key === resolvedDefaultOverride.key &&
       modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
     ) {
@@ -684,6 +717,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         agentKey,
         value: resolvedDefaultOverride,
       };
+      return;
+    }
+    if (
+      !shouldApplyCoderDefaultModelOverride({
+        shouldShowModelControls,
+        agentKey,
+        modelOverride,
+        resolvedDefaultOverride,
+        previousAppliedDefault: appliedDefaultRef.current,
+      })
+    ) {
       return;
     }
 
