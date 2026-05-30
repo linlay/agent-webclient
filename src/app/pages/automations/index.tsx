@@ -10,14 +10,12 @@ export const AutomationsPage = () => {
     [state],
   );
   return (
-    <div
-      style={{ padding: 10, background: "var(--bg-elev-2)", height: "100vh", overflow: "auto" }}
-    >
+    <main className="automations-page">
       <AutomationModal
         currentWorker={currentWorker}
         agents={state.agents}
         teams={state.teams}
       />
-    </div>
+    </main>
   );
 };
