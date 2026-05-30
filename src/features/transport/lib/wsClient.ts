@@ -311,6 +311,7 @@ export class WsClient {
 	private reconnectAttempt = 0;
 	private lastSeenAt = 0;
 	private expectedClose = false;
+	private disposed = false;
 	private status: WsConnectionStatus = "disconnected";
 	private readonly pendingRequests = new Map<string, PendingRequest>();
 	private readonly activeStreams = new Map<string, ActiveStream>();
@@ -353,6 +354,9 @@ export class WsClient {
 	}
 
 	updateOptions(options: Partial<WsClientOptions> = {}): void {
+		if (this.disposed) {
+			return;
+		}
 		if (options.accessToken !== undefined) {
 			this.accessToken = String(options.accessToken || "").trim();
 		}
@@ -371,7 +375,19 @@ export class WsClient {
 	}
 
 	connect(): Promise<void> {
+		if (this.disposed) {
+			return Promise.reject(this.createDisposedError());
+		}
 		return this.ensureConnected();
+	}
+
+	dispose(): void {
+		if (this.disposed) {
+			return;
+		}
+		this.disposed = true;
+		this.cleanupPending(this.createDisposedError());
+		this.disconnect();
 	}
 
 	disconnect(): void {
@@ -580,6 +596,9 @@ export class WsClient {
 		signal?: AbortSignal,
 		allowHandshakeRefresh = true,
 	): Promise<void> {
+		if (this.disposed) {
+			throw this.createDisposedError();
+		}
 		if (this.socket?.readyState === WebSocket.OPEN) {
 			return;
 		}
@@ -595,11 +614,27 @@ export class WsClient {
 		this.expectedClose = false;
 		this.setStatus("connecting");
 		this.lastSeenAt = Date.now();
+		const connectLifecycleVersion = this.lifecycleVersion;
+		const isActiveHandshake = () =>
+			!this.disposed && this.lifecycleVersion === connectLifecycleVersion;
+		const inactiveConnectionError = () =>
+			this.disposed
+				? this.createDisposedError()
+				: new WsClientDisconnectedError("WebSocket connection superseded");
 
-		this.connectPromise = new Promise<void>((resolve, reject) => {
+		const pendingConnectPromise = new Promise<void>((resolve, reject) => {
+			if (!isActiveHandshake()) {
+				reject(inactiveConnectionError());
+				return;
+			}
 			if (!this.accessToken) {
 				void this.refreshAccessToken("missing")
 					.then((token) => {
+						if (!isActiveHandshake()) {
+							this.connectPromise = null;
+							reject(inactiveConnectionError());
+							return;
+						}
 						if (!token) {
 							this.connectPromise = null;
 							this.setStatus("error");
@@ -617,7 +652,9 @@ export class WsClient {
 					})
 					.catch((error) => {
 						this.connectPromise = null;
-						this.setStatus("error");
+						if (!this.disposed) {
+							this.setStatus("error");
+						}
 						reject(error);
 					});
 				return;
@@ -629,14 +666,20 @@ export class WsClient {
 			let connectTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
 				connectTimer = null;
 				cleanupBeforeOpen();
-				this.connectPromise = null;
-				this.socket = null;
-				this.setStatus("error");
-				this.scheduleReconnect();
+				if (isActiveHandshake() && this.socket === socket) {
+					this.socket = null;
+					this.setStatus("error");
+					this.scheduleReconnect();
+				}
 				try {
 					socket.close(4001, "connect timeout");
 				} catch {
 					// Ignore close failures for sockets that never finished opening.
+				}
+				this.connectPromise = null;
+				if (!isActiveHandshake()) {
+					reject(inactiveConnectionError());
+					return;
 				}
 				reject(
 					toWsConnectionError(new Error("WebSocket connection failed"), {
@@ -654,6 +697,7 @@ export class WsClient {
 				socket.removeEventListener("error", handleError);
 				socket.removeEventListener("close", handleCloseBeforeOpen);
 			};
+			const isCurrentSocket = () => this.socket === socket;
 
 			const retryHandshakeWithFreshToken = async (): Promise<boolean> => {
 				if (
@@ -661,6 +705,7 @@ export class WsClient {
 					didRetryHandshakeRefresh ||
 					!this.resolveAccessToken ||
 					this.expectedClose ||
+					!isActiveHandshake() ||
 					signal?.aborted
 				) {
 					return false;
@@ -672,23 +717,56 @@ export class WsClient {
 				} catch {
 					return false;
 				}
+				if (!isActiveHandshake()) {
+					return false;
+				}
 				if (!this.accessToken || this.accessToken === previousToken) {
 					return false;
 				}
 				this.connectPromise = null;
 				this.socket = null;
 				this.setStatus("connecting");
-				await this.ensureConnected(signal, false);
+				try {
+					await this.ensureConnected(signal, false);
+				} catch {
+					return false;
+				}
 				return true;
 			};
 
 			const handleOpen = () => {
 				cleanupBeforeOpen();
+				if (!isActiveHandshake()) {
+					try {
+						socket.close(1000, "inactive ws connection");
+					} catch {
+						// Ignore close failures for sockets that are no longer active.
+					}
+					if (this.socket === socket) {
+						this.socket = null;
+					}
+					reject(inactiveConnectionError());
+					return;
+				}
+				if (!isCurrentSocket()) {
+					try {
+						socket.close(1000, "stale ws connection");
+					} catch {
+						// Ignore close failures for sockets that are no longer current.
+					}
+					if (this.socket?.readyState === WebSocket.OPEN) {
+						resolve();
+						return;
+					}
+					resolve();
+					return;
+				}
 				socket.addEventListener("message", this.handleMessage);
 				socket.addEventListener("close", this.handleClose);
 				socket.addEventListener("error", this.handleSocketError);
 				this.lastSeenAt = Date.now();
 				this.reconnectAttempt = 0;
+				this.clearReconnectTimer();
 				this.startHealthCheck();
 				this.setStatus("connected");
 				resolve();
@@ -696,13 +774,34 @@ export class WsClient {
 
 			const handleError = () => {
 				cleanupBeforeOpen();
-				this.connectPromise = null;
-				this.socket = null;
+				const wasCurrentSocket = isCurrentSocket();
+				if (wasCurrentSocket) {
+					this.socket = null;
+				}
 				void (async () => {
+					if (!isActiveHandshake()) {
+						this.connectPromise = null;
+						reject(inactiveConnectionError());
+						return;
+					}
+					if (!wasCurrentSocket) {
+						if (this.socket?.readyState === WebSocket.OPEN) {
+							resolve();
+							return;
+						}
+						resolve();
+						return;
+					}
 					if (await retryHandshakeWithFreshToken()) {
 						resolve();
 						return;
 					}
+					if (!isActiveHandshake()) {
+						this.connectPromise = null;
+						reject(inactiveConnectionError());
+						return;
+					}
+					this.connectPromise = null;
 					this.setStatus("error");
 					this.scheduleReconnect();
 					reject(
@@ -715,12 +814,31 @@ export class WsClient {
 
 			const handleCloseBeforeOpen = (event?: CloseEvent) => {
 				cleanupBeforeOpen();
-				this.connectPromise = null;
+				const wasCurrentSocket = isCurrentSocket();
 				void (async () => {
+					if (!isActiveHandshake()) {
+						this.connectPromise = null;
+						reject(inactiveConnectionError());
+						return;
+					}
+					if (!wasCurrentSocket) {
+						if (this.socket?.readyState === WebSocket.OPEN) {
+							resolve();
+							return;
+						}
+						resolve();
+						return;
+					}
 					if (!this.expectedClose && (await retryHandshakeWithFreshToken())) {
 						resolve();
 						return;
 					}
+					if (!isActiveHandshake()) {
+						this.connectPromise = null;
+						reject(inactiveConnectionError());
+						return;
+					}
+					this.connectPromise = null;
 					if (!this.expectedClose) {
 						this.setStatus("error");
 						this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
@@ -738,9 +856,14 @@ export class WsClient {
 			socket.addEventListener("open", handleOpen);
 			socket.addEventListener("error", handleError);
 			socket.addEventListener("close", handleCloseBeforeOpen);
-		}).finally(() => {
-			this.connectPromise = null;
 		});
+		let trackedConnectPromise: Promise<void> | null = null;
+		trackedConnectPromise = pendingConnectPromise.finally(() => {
+			if (trackedConnectPromise && this.connectPromise === trackedConnectPromise) {
+				this.connectPromise = null;
+			}
+		});
+		this.connectPromise = trackedConnectPromise;
 
 		return this.waitForConnection(signal);
 	}
@@ -855,7 +978,7 @@ export class WsClient {
 		this.socket = null;
 		this.connectPromise = null;
 
-		if (this.expectedClose) {
+		if (this.disposed || this.expectedClose) {
 			this.expectedClose = false;
 			this.setStatus("disconnected");
 			return;
@@ -867,6 +990,9 @@ export class WsClient {
 	};
 
 	private readonly handleSocketError = () => {
+		if (this.disposed) {
+			return;
+		}
 		if (this.status !== "connecting") {
 			this.setStatus("error");
 		}
@@ -880,10 +1006,17 @@ export class WsClient {
 	};
 
 	private sendFrame(frame: WsRequestFrame): void {
+		if (this.disposed) {
+			throw this.createDisposedError();
+		}
 		if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
 			throw new WsClientDisconnectedError("WebSocket transport is not connected");
 		}
 		this.socket.send(JSON.stringify(frame));
+	}
+
+	private createDisposedError(): WsClientDisconnectedError {
+		return new WsClientDisconnectedError("WebSocket client disposed");
 	}
 
 	private setStatus(status: WsConnectionStatus): void {
@@ -935,6 +1068,9 @@ export class WsClient {
 	private async refreshAccessToken(
 		reason: WsAccessTokenRefreshReason,
 	): Promise<string> {
+		if (this.disposed) {
+			throw this.createDisposedError();
+		}
 		if (!this.resolveAccessToken) {
 			return this.accessToken;
 		}
@@ -943,6 +1079,9 @@ export class WsClient {
 				this.resolveAccessToken(reason),
 			)
 				.then((token) => {
+					if (this.disposed) {
+						throw this.createDisposedError();
+					}
 					const normalized = String(token || "").trim();
 					if (normalized || reason === "unauthorized") {
 						this.accessToken = normalized;
@@ -958,7 +1097,7 @@ export class WsClient {
 	}
 
 	private scheduleReconnect(forceRefreshToken = false): void {
-		if (this.reconnectTimer || this.expectedClose) {
+		if (this.disposed || this.reconnectTimer || this.expectedClose) {
 			return;
 		}
 
@@ -985,6 +1124,9 @@ export class WsClient {
 				if (this.lifecycleVersion !== lifecycleVersion || this.expectedClose) {
 					return;
 				}
+				if (this.disposed) {
+					return;
+				}
 				if (shouldRefreshToken) {
 					const refreshedToken = await this.refreshAccessToken("unauthorized");
 					if (!refreshedToken) {
@@ -992,7 +1134,11 @@ export class WsClient {
 						return;
 					}
 				}
-				if (this.lifecycleVersion !== lifecycleVersion || this.expectedClose) {
+				if (
+					this.disposed ||
+					this.lifecycleVersion !== lifecycleVersion ||
+					this.expectedClose
+				) {
 					return;
 				}
 				await this.connect();

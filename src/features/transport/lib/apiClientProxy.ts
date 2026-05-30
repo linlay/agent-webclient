@@ -162,6 +162,25 @@ function resolveWsClient(accessToken: string): WsRequestClient {
 	return wsClient;
 }
 
+function resolveActiveWsClient(
+	accessToken: string,
+	wsClient: WsRequestClient,
+): { accessToken: string; wsClient: WsRequestClient } {
+	const currentClient = getWsClient();
+	const currentAccessToken = String(getWsClientAccessToken() || "").trim();
+	if (currentClient === wsClient) {
+		return {
+			accessToken: currentAccessToken || accessToken,
+			wsClient,
+		};
+	}
+
+	return {
+		accessToken,
+		wsClient: resolveWsClient(accessToken),
+	};
+}
+
 async function routeRequest<T>(
 	type: string,
 	payload: unknown,
@@ -176,16 +195,31 @@ async function routeRequest<T>(
 	}
 	let accessToken = await resolveWsAccessToken("missing");
 	let wsClient = resolveWsClient(accessToken);
+	const syncActiveWsClient = () => {
+		const active = resolveActiveWsClient(accessToken, wsClient);
+		accessToken = active.accessToken;
+		wsClient = active.wsClient;
+	};
+	const connectActiveWsClient = async () => {
+		syncActiveWsClient();
+		const connectingClient = wsClient;
+		await connectingClient.connect();
+		syncActiveWsClient();
+		if (wsClient !== connectingClient) {
+			await wsClient.connect();
+			syncActiveWsClient();
+		}
+	};
 
 	try {
-		await wsClient.connect();
+		await connectActiveWsClient();
 	} catch (error) {
 		const refreshedToken = await resolveWsAccessToken("unauthorized");
 		if (refreshedToken && refreshedToken !== accessToken) {
 			accessToken = refreshedToken;
 			wsClient = resolveWsClient(accessToken);
 			try {
-				await wsClient.connect();
+				await connectActiveWsClient();
 			} catch (refreshError) {
 				if (options.fallbackOnConnectFailure === false) {
 					throw refreshError;
@@ -196,11 +230,19 @@ async function routeRequest<T>(
 			if (options.fallbackOnConnectFailure === false) {
 				throw error;
 			}
-			return fallback();
+			// Brief cooldown then retry once to handle transient failures
+			// caused by concurrent WebSocket connect attempts.
+			await new Promise((r) => setTimeout(r, 200));
+			try {
+				await connectActiveWsClient();
+			} catch {
+				return fallback();
+			}
 		}
 	}
 
 	try {
+		syncActiveWsClient();
 		return await wsClient.request<T>({ type, payload });
 	} catch (error) {
 		if (

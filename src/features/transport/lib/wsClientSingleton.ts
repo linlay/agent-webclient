@@ -34,7 +34,7 @@ export function initWsClient(options: WsClientOptions = {}): WsClient {
 	}
 
 	if (wsClient) {
-		wsClient.disconnect();
+		wsClient.dispose();
 	}
 
 	wsClient = new WsClient(syncedOptions);
@@ -54,7 +54,7 @@ export function getWsClientAccessToken(): string {
 export function destroyWsClient(): void {
 	clearPendingDestroy();
 	if (wsClient) {
-		wsClient.disconnect();
+		wsClient.dispose();
 	}
 	wsClient = null;
 	wsClientAccessToken = "";

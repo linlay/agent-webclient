@@ -636,6 +636,51 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
+	it("uses the current singleton when the initial ws client is replaced before request", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		let currentSingleton: {
+			connect: jest.Mock;
+			updateOptions: jest.Mock;
+			request: jest.Mock;
+		};
+		const currentClient = {
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request: jest.fn().mockResolvedValue({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: ["current-ws"],
+			}),
+		};
+		const staleClient = {
+			connect: jest.fn().mockImplementation(async () => {
+				currentSingleton = currentClient;
+			}),
+			updateOptions: jest.fn(),
+			request: jest.fn(),
+		};
+		currentSingleton = staleClient;
+		mockGetWsClient.mockImplementation(() => currentSingleton);
+		mockGetWsClientAccessToken.mockReturnValue("token_1");
+		mockApiClient.getCurrentAccessToken.mockReturnValue("token_1");
+
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["current-ws"],
+		});
+
+		expect(staleClient.connect).toHaveBeenCalledTimes(1);
+		expect(currentClient.connect).toHaveBeenCalledTimes(1);
+		expect(staleClient.request).not.toHaveBeenCalled();
+		expect(currentClient.request).toHaveBeenCalledWith({
+			type: "/api/agents",
+			payload: undefined,
+		});
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
 	it("falls back to http when agents websocket connect fails", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");

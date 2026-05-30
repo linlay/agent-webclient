@@ -495,6 +495,47 @@ describe("WsClient", () => {
 		expect(client.getStatus()).toBe("disconnected");
 	});
 
+	it("does not reconnect after dispose", async () => {
+		const client = createClient({ accessToken: "token_a" });
+		const firstConnect = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await expect(firstConnect).resolves.toBeUndefined();
+
+		client.dispose();
+
+		await expect(client.connect()).rejects.toThrow(/disposed/i);
+		expect(MockWebSocket.instances).toHaveLength(1);
+		expect(client.getStatus()).toBe("disconnected");
+	});
+
+	it("does not revive a disposed client after handshake token refresh resolves", async () => {
+		let resolveToken: (token: string) => void = () => undefined;
+		const resolveAccessToken = jest.fn(
+			() => new Promise<string>((resolve) => {
+				resolveToken = resolve;
+			}),
+		);
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+		});
+
+		const connect = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.error();
+		await flushMicrotasks();
+
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+		client.dispose();
+		resolveToken("token_b");
+
+		await expect(connect).rejects.toThrow(/disposed/i);
+		await flushMicrotasks();
+		expect(MockWebSocket.instances).toHaveLength(1);
+		expect(client.getStatus()).toBe("disconnected");
+	});
+
 	it("surfaces a user-facing handshake error when the socket fails before opening", async () => {
 		const client = createClient({ accessToken: "token_a" });
 		const promise = client.connect();
@@ -647,6 +688,62 @@ describe("WsClient", () => {
 		);
 		MockWebSocket.instances[1].open();
 		await flushMicrotasks();
+	});
+
+	it("clears a pending reconnect timer after an explicit reconnect succeeds", async () => {
+		jest.useFakeTimers();
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_a");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+		});
+
+		const firstConnect = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		firstSocket.close(1008, "token expired");
+
+		await expect(firstConnect).rejects.toThrow(
+			/握手失败|handshake failed|disconnected/i,
+		);
+		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
+
+		const secondConnect = client.connect();
+		await waitForSocketCount(2);
+		const secondSocket = MockWebSocket.instances[1];
+		secondSocket.open();
+		await expect(secondConnect).resolves.toBeUndefined();
+
+		resolveAccessToken.mockClear();
+		jest.advanceTimersByTime(1_000);
+		await flushMicrotasks();
+
+		expect(resolveAccessToken).not.toHaveBeenCalled();
+		expect(MockWebSocket.instances).toHaveLength(2);
+		expect(client.getStatus()).toBe("connected");
+	});
+
+	it("closes a stale pre-open socket when a newer socket becomes current", async () => {
+		const client = createClient({ accessToken: "token_a" });
+		const staleConnect = client.connect();
+		const staleSocket = MockWebSocket.instances[0];
+
+		(client as unknown as { connectPromise: Promise<void> | null }).connectPromise =
+			null;
+		const currentConnect = client.connect();
+		await waitForSocketCount(2);
+		const currentSocket = MockWebSocket.instances[1];
+
+		currentSocket.open();
+		await expect(currentConnect).resolves.toBeUndefined();
+
+		staleSocket.open();
+		await expect(staleConnect).resolves.toBeUndefined();
+
+		expect(staleSocket.closeCalls).toBe(1);
+		expect(currentSocket.closeCalls).toBe(0);
+		expect(client.getStatus()).toBe("connected");
 	});
 
 	it("swallows reconnect handshake failures while preserving error state", async () => {

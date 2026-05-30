@@ -1,5 +1,6 @@
 const mockWsClientInstances: Array<{
 	disconnect: jest.Mock;
+	dispose: jest.Mock;
 	updateOptions: jest.Mock;
 	options: unknown;
 }> = [];
@@ -7,6 +8,7 @@ const mockWsClientInstances: Array<{
 const mockWsClientCtor = jest.fn().mockImplementation((options: unknown) => {
 	const instance = {
 		disconnect: jest.fn(),
+		dispose: jest.fn(),
 		updateOptions: jest.fn(),
 		options,
 	};
@@ -40,7 +42,7 @@ describe("wsClientSingleton", () => {
 		singleton.scheduleDestroyWsClient();
 		jest.runOnlyPendingTimers();
 
-		expect(mockWsClientInstances[0]?.disconnect).toHaveBeenCalledTimes(1);
+		expect(mockWsClientInstances[0]?.dispose).toHaveBeenCalledTimes(1);
 		expect(singleton.getWsClient()).toBeNull();
 	});
 
@@ -54,7 +56,7 @@ describe("wsClientSingleton", () => {
 		jest.runOnlyPendingTimers();
 
 		expect(secondClient).toBe(firstClient);
-		expect(mockWsClientInstances[0]?.disconnect).not.toHaveBeenCalled();
+		expect(mockWsClientInstances[0]?.dispose).not.toHaveBeenCalled();
 		expect(singleton.getWsClient()).toBe(firstClient);
 	});
 
@@ -67,8 +69,21 @@ describe("wsClientSingleton", () => {
 		expect(singleton.getWsClient()).toBe(client);
 		jest.runOnlyPendingTimers();
 
-		expect(mockWsClientInstances[0]?.disconnect).not.toHaveBeenCalled();
+		expect(mockWsClientInstances[0]?.dispose).not.toHaveBeenCalled();
 		expect(singleton.getWsClient()).toBe(client);
+	});
+
+	it("disposes the old singleton when the access token changes", async () => {
+		const singleton = await import("./wsClientSingleton");
+
+		const firstClient = singleton.initWsClient({ accessToken: "token_1" });
+		const secondClient = singleton.initWsClient({ accessToken: "token_2" });
+
+		expect(secondClient).not.toBe(firstClient);
+		expect(mockWsClientInstances[0]?.dispose).toHaveBeenCalledTimes(1);
+		expect(mockWsClientInstances[1]?.dispose).not.toHaveBeenCalled();
+		expect(singleton.getWsClient()).toBe(secondClient);
+		expect(singleton.getWsClientAccessToken()).toBe("token_2");
 	});
 
 	it("keeps the tracked singleton token in sync when the client refreshes it", async () => {
