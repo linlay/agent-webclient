@@ -12,15 +12,6 @@ type AgentIconConfig = string | {
   name?: string;
 };
 
-function workspaceDisplayName(row: WorkerRow): string {
-  const workspaceName = String(row.workspaceName || "").trim();
-  if (workspaceName) return workspaceName;
-  const workspaceDir = row.workspaceDir;
-  const normalized = String(workspaceDir || "").trim();
-  if (!normalized) return "";
-  return normalized.split(/[\\/]+/).filter(Boolean).pop() || normalized;
-}
-
 export const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
   isActive: boolean;
@@ -44,8 +35,7 @@ export const WorkerPanelHeader: React.FC<{
   onOpenWorkspace,
 }) => {
   const { t } = useI18n();
-  const workspaceName = workspaceDisplayName(row);
-  const subtitle = row.agentType === "coder" ? workspaceName : row.role;
+  const subtitle = row.agentType === "coder" ? "" : row.role;
   const canOpenWorkspace = Boolean(row.workspaceDir);
   const workspaceUnavailableTitle =
     row.workspaceSourceKind === "browser-folder"

@@ -671,7 +671,6 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain("打开工作目录");
-    expect(html).toContain("agent-coder");
     expect(html).not.toContain("Code worker");
     const menu = dropdownMenuProps.find((props) =>
       Array.isArray(props.items) &&
@@ -716,7 +715,6 @@ describe("LeftSidebar", () => {
 
     const html = renderSidebar();
 
-    expect(html).toContain("browser-coder");
     const menu = dropdownMenuProps.find((props) =>
       Array.isArray(props.items) &&
       props.items.some((item: any) => item?.key === "openWorkspace"),
