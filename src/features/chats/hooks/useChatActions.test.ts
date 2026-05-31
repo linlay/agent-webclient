@@ -8,7 +8,6 @@ import {
   normalizeChatArtifactItems,
   normalizeStartNewConversationDetail,
   replayEvent,
-  resolveAttachLastSeq,
   setReplayArtifacts,
   setReplayPlan,
   shouldAutoMarkChatRead,
@@ -725,32 +724,36 @@ describe('replayEvent tool migration', () => {
     ).toBe('');
   });
 
-  it('resolves attach lastSeq from replayed chat events instead of activeRun.lastSeq', () => {
-    expect(
-      resolveAttachLastSeq([
-        { seq: 1, type: 'chat.start' },
-        { seq: 2, type: 'run.start', runId: 'run_1' },
-        { seq: 3, type: 'request.query', runId: 'run_1' },
-      ], 'run_1'),
-    ).toBe(3);
+  it('attaches from activeRun.lastSeq instead of replayed chat event seq', async () => {
+    const { actions } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'askUser.demo',
+        events: [
+          { seq: 8, type: 'usage.snapshot', runId: 'run_1', chatId: 'chat-attach' },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          agentKey: 'askUser.demo',
+          lastSeq: 31,
+        },
+        runs: [],
+      },
+    });
 
-    expect(resolveAttachLastSeq([], 'run_1')).toBe(0);
-    expect(
-      resolveAttachLastSeq([
-        { seq: -1, runId: 'run_1' },
-        { seq: Number.NaN, runId: 'run_1' },
-        { type: 'content.delta', runId: 'run_1' },
-      ], 'run_1'),
-    ).toBe(0);
+    await actions?.loadChat('chat-attach');
 
-    expect(
-      resolveAttachLastSeq([
-        { seq: 1, runId: 'run_old' },
-        { seq: 2, runId: 'run_1' },
-        { seq: 7, runId: 'run_old' },
-        { seq: 5, runId: 'run_1' },
-      ], 'run_1'),
-    ).toBe(5);
+    expect(globalWithBrowserApis.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'agent:attach-run',
+        detail: {
+          chatId: 'chat-attach',
+          runId: 'run_1',
+          lastSeq: 31,
+          agentKey: 'askUser.demo',
+        },
+      }),
+    );
   });
 
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
