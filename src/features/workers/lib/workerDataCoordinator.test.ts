@@ -150,6 +150,79 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
     ]);
   });
 
+  it('marks nested agent chats with awaiting as pending while preserving awaiting summary', () => {
+    const awaiting = {
+      awaitingId: 'await_1',
+      runId: 'run_1',
+      mode: 'question',
+      status: 'awaiting',
+      createdAt: 123,
+    };
+
+    expect(
+      extractChatsFromAgents([
+        {
+          key: 'agent-a',
+          name: 'Agent A',
+          chats: [
+            {
+              chatId: 'chat-awaiting',
+              chatName: 'Need answer',
+              awaiting,
+            },
+          ],
+        } as Agent,
+      ]),
+    ).toEqual([
+      {
+        chatId: 'chat-awaiting',
+        chatName: 'Need answer',
+        agentKey: 'agent-a',
+        awaiting,
+        hasPendingAwaiting: true,
+      },
+    ]);
+  });
+
+  it('keeps explicit hasPendingAwaiting false on nested agent chats with awaiting', () => {
+    expect(
+      extractChatsFromAgents([
+        {
+          key: 'agent-a',
+          name: 'Agent A',
+          chats: [
+            {
+              chatId: 'chat-cleared',
+              chatName: 'Cleared answer',
+              awaiting: {
+                awaitingId: 'await_1',
+                runId: 'run_1',
+                mode: 'question',
+                status: 'awaiting',
+                createdAt: 123,
+              },
+              hasPendingAwaiting: false,
+            },
+          ],
+        } as Agent,
+      ]),
+    ).toEqual([
+      {
+        chatId: 'chat-cleared',
+        chatName: 'Cleared answer',
+        agentKey: 'agent-a',
+        awaiting: {
+          awaitingId: 'await_1',
+          runId: 'run_1',
+          mode: 'question',
+          status: 'awaiting',
+          createdAt: 123,
+        },
+        hasPendingAwaiting: false,
+      },
+    ]);
+  });
+
   it('refreshes from agents only, merges chats, preserves current teams, and rebuilds once', async () => {
     const applyAgents = jest.fn();
     const applyChats = jest.fn();

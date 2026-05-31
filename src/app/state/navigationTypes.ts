@@ -1,3 +1,12 @@
+export interface ChatAwaitingSummary {
+	awaitingId?: string;
+	runId?: string;
+	mode?: string;
+	status?: string;
+	createdAt?: number | string;
+	[key: string]: unknown;
+}
+
 export interface Chat {
 	chatId: string;
 	chatName?: string;
@@ -9,6 +18,7 @@ export interface Chat {
 	lastRunId?: string;
 	lastRunContent?: string;
 	read?: ChatReadState;
+	awaiting?: ChatAwaitingSummary | null;
 	hasPendingAwaiting?: boolean;
 	[key: string]: unknown;
 }

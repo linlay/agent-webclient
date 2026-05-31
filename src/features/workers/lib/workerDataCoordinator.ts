@@ -59,11 +59,21 @@ export function extractChatsFromAgents(agents: Agent[]): Chat[] {
       const chat = rawChat as Chat;
       const chatId = String(chat.chatId || '').trim();
       if (!chatId) continue;
-      chats.push({
+      const hasExplicitPendingAwaiting = Object.prototype.hasOwnProperty.call(
+        chat,
+        'hasPendingAwaiting',
+      );
+      const nextChat: Chat = {
         ...chat,
         chatId,
         agentKey: String(chat.agentKey || chat.firstAgentKey || '').trim() || agentKey || undefined,
-      });
+      };
+      if (hasExplicitPendingAwaiting) {
+        nextChat.hasPendingAwaiting = chat.hasPendingAwaiting;
+      } else if (chat.awaiting) {
+        nextChat.hasPendingAwaiting = true;
+      }
+      chats.push(nextChat);
     }
   }
   return chats;
