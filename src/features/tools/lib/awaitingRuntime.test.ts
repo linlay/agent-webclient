@@ -464,6 +464,39 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
+  it('clears awaiting without resolvedByOther when awaiting.answer has this client submitId', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'question',
+      questions: [
+        {
+          id: 'q1',
+          type: 'text',
+          question: '目标是什么？',
+        },
+      ],
+    });
+
+    const pending = current ? { ...current, pendingSubmitId: 'submit_1' } : current;
+    const next = reduceActiveAwaiting(pending, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      submitId: 'submit_1',
+      status: 'answered',
+      answers: [
+        {
+          id: 'q1',
+          answer: 'Ship it',
+        },
+      ],
+    });
+
+    expect(next).toBeNull();
+  });
+
   it('clears awaiting state when the run reaches a terminal event', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',

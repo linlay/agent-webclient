@@ -640,9 +640,11 @@ export function submitTool(params: {
 }
 
 export function submitAwaiting(params: {
+	chatId?: string;
 	runId: string;
 	agentKey: string;
 	awaitingId: string;
+	submitId?: string;
 	params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
 	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params), {

@@ -438,6 +438,8 @@ export function reduceActiveAwaiting(
             : [],
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        pendingSubmitId:
+          current?.key === key ? current.pendingSubmitId : undefined,
       };
     }
 
@@ -462,6 +464,8 @@ export function reduceActiveAwaiting(
             : [],
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        pendingSubmitId:
+          current?.key === key ? current.pendingSubmitId : undefined,
       };
     }
 
@@ -495,6 +499,8 @@ export function reduceActiveAwaiting(
         ...runtime,
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        pendingSubmitId:
+          current?.key === key ? current.pendingSubmitId : undefined,
       };
     }
 
@@ -518,6 +524,8 @@ export function reduceActiveAwaiting(
             : { id: 'confirm' }),
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        pendingSubmitId:
+          current?.key === key ? current.pendingSubmitId : undefined,
       };
     }
 
@@ -526,8 +534,19 @@ export function reduceActiveAwaiting(
 
   if (type === AIAwaitEventTypeEnum.Answer) {
     const awaitingId = toText(event.awaitingId);
+    const runId = toText(event.runId);
     if (!current || !awaitingId || current.awaitingId !== awaitingId) {
       return current;
+    }
+    if (runId && current.runId !== runId) {
+      return current;
+    }
+    const submitId = toText((event as Record<string, unknown>).submitId);
+    if (submitId && current.pendingSubmitId === submitId) {
+      if (current.mode === 'question') {
+        clearAwaitingQuestionMeta(current.runId, current.awaitingId);
+      }
+      return null;
     }
     return {
       ...current,

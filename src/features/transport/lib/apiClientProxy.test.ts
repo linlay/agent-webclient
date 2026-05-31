@@ -1363,9 +1363,11 @@ describe("apiClientProxy", () => {
 		).resolves.toMatchObject({ data: { accepted: true } });
 		await expect(
 			proxy.submitAwaiting({
+				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "demo-agent",
 				awaitingId: "await_1",
+				submitId: "submit_1",
 				params: [],
 			}),
 		).resolves.toMatchObject({ data: { accepted: true } });
@@ -1378,9 +1380,11 @@ describe("apiClientProxy", () => {
 			params: { city: "beijing" },
 		});
 		expect(mockApiClient.submitAwaiting).toHaveBeenCalledWith({
+			chatId: "chat_1",
 			runId: "run_1",
 			agentKey: "demo-agent",
 			awaitingId: "await_1",
+			submitId: "submit_1",
 			params: [],
 		});
 	});

@@ -171,6 +171,9 @@ export function patchActiveAwaiting(
 			...(typeof patch.resolvedByOther === "boolean"
 				? { resolvedByOther: patch.resolvedByOther }
 				: {}),
+			...(typeof patch.pendingSubmitId === "string"
+				? { pendingSubmitId: patch.pendingSubmitId }
+				: {}),
 			...(typeof patch.loading === "boolean" ? { loading: patch.loading } : {}),
 			...(typeof patch.loadError === "string"
 				? { loadError: patch.loadError }
@@ -185,6 +188,15 @@ export function patchActiveAwaiting(
 		return {
 			...current,
 			resolvedByOther: patch.resolvedByOther,
+			...(typeof patch.pendingSubmitId === "string"
+				? { pendingSubmitId: patch.pendingSubmitId }
+				: {}),
+		};
+	}
+	if (typeof patch.pendingSubmitId === "string") {
+		return {
+			...current,
+			pendingSubmitId: patch.pendingSubmitId,
 		};
 	}
 

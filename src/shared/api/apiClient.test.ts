@@ -569,9 +569,11 @@ describe('apiClient query payloads', () => {
       params: { city: 'beijing' },
     });
     await submitAwaiting({
+      chatId: 'chat_1',
       runId: 'run_1',
       agentKey: 'demo-agent',
       awaitingId: 'await_1',
+      submitId: 'submit_1',
       params: [],
     });
 
@@ -583,6 +585,8 @@ describe('apiClient query payloads', () => {
 
     expect(toolPayload.agentKey).toBe('demo-agent');
     expect(awaitingPayload.agentKey).toBe('demo-agent');
+    expect(awaitingPayload.chatId).toBe('chat_1');
+    expect(awaitingPayload.submitId).toBe('submit_1');
   });
 
   it('posts chatId and runId for markChatRead', async () => {

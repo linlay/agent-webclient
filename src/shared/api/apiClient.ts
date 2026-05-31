@@ -1238,17 +1238,21 @@ export function submitTool(params: {
 }
 
 export function submitAwaiting(params: {
+  chatId?: string;
   runId: string;
   agentKey: string;
   awaitingId: string;
+  submitId?: string;
   params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
   return requestJson("/api/submit", {
     method: "POST",
     body: JSON.stringify({
+      chatId: params.chatId,
       runId: params.runId,
       agentKey: params.agentKey,
       awaitingId: params.awaitingId,
+      submitId: params.submitId,
       params: params.params,
     }),
   });

@@ -10,6 +10,7 @@ import type {
 import { submitAwaiting } from "@/features/transport/lib/apiClientProxy";
 import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { useI18n } from "@/shared/i18n";
+import { createCompactId } from "@/shared/utils/compactId";
 
 type FormActiveAwaitingPatch = Pick<
   FormActiveAwaiting,
@@ -18,6 +19,7 @@ type FormActiveAwaitingPatch = Pick<
 
 export type FormActiveAwaitingPatchPayload = Partial<FormActiveAwaitingPatch> & {
   resolvedByOther?: boolean;
+  pendingSubmitId?: string;
 };
 
 interface UseComposerAwaitingInput {
@@ -81,10 +83,20 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
           });
           return error;
         }
+        const submitId = createCompactId("submit");
+        dispatch({
+          type: "PATCH_ACTIVE_AWAITING",
+          patch: {
+            pendingSubmitId: submitId,
+            resolvedByOther: false,
+          },
+        });
         const response = await submitAwaiting({
+          chatId: state.chatId,
           runId: payload.runId,
           agentKey,
           awaitingId: payload.awaitingId,
+          submitId,
           params: payload.params,
         });
         const responseData = response.data as Record<string, unknown> | null;
@@ -108,6 +120,21 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
         }
 
         clearActiveAwaiting();
+        if (Boolean(responseData?.continued)) {
+          const runId = String(responseData?.runId || payload.runId || "").trim();
+          const chatId = String(responseData?.chatId || state.chatId || "").trim();
+          if (runId && chatId) {
+            window.dispatchEvent(
+              new CustomEvent("agent:attach-run", {
+                detail: {
+                  chatId,
+                  runId,
+                  agentKey,
+                },
+              }),
+            );
+          }
+        }
         dispatch({
           type: "APPEND_DEBUG",
           line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,

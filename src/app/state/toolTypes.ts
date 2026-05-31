@@ -97,6 +97,7 @@ interface ActiveAwaitingBase {
 	timeout: number | null;
 	createdAt?: number | null;
 	resolvedByOther?: boolean;
+	pendingSubmitId?: string;
 }
 
 export interface QuestionActiveAwaiting extends ActiveAwaitingBase {
