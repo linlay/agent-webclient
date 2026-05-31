@@ -337,6 +337,25 @@ describe("LeftSidebar", () => {
     });
   }
 
+  function clickCollapsedWorkerEntry() {
+    const button = antdButtonProps.find((props) =>
+      String(props.className || "").includes("worker-collapsed-icon"),
+    );
+    expect(button).toBeTruthy();
+    expect(typeof button?.onClick).toBe("function");
+
+    (button?.onClick as () => void)();
+  }
+
+  function dispatchedEvents(type: string): CustomEvent[] {
+    return (globalWithWindow.window?.dispatchEvent.mock.calls || [])
+      .map(([event]) => event)
+      .filter(
+        (event): event is CustomEvent =>
+          event instanceof CustomEvent && event.type === type,
+      );
+  }
+
   function firstWorkerActionMenu(): {
     items?: Array<{ key?: string; disabled?: boolean; danger?: boolean; label?: React.ReactNode }>;
     onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void;
@@ -997,30 +1016,73 @@ describe("LeftSidebar", () => {
     expect(chatHtml).toContain("chat-unread-dot");
   });
 
-  it("dispatches worker selection when clicking a collapsed worker entry", () => {
+  it("starts a new conversation when only older chats are unread on collapsed worker click", () => {
     mockState(createWorkerState());
     renderSidebar();
 
-    const button = antdButtonProps.find((props) =>
-      String(props.className || "").includes("worker-collapsed-icon"),
-    );
-    expect(button).toBeTruthy();
-    expect(typeof button?.onClick).toBe("function");
+    clickCollapsedWorkerEntry();
 
-    (button?.onClick as () => void)();
-
-    const workerSelectionEvents = globalWithWindow.window?.dispatchEvent.mock.calls
-      .map(([event]) => event)
-      .filter(
-        (event): event is CustomEvent =>
-          event instanceof CustomEvent && event.type === "agent:select-worker",
-      );
-
-    expect(workerSelectionEvents).toHaveLength(1);
-    expect(workerSelectionEvents[0].detail).toEqual({
-      workerKey: "agent:worker_a",
+    const startEvents = dispatchedEvents("agent:start-new-conversation");
+    expect(startEvents).toHaveLength(1);
+    expect(startEvents[0].detail).toEqual({
+      preserveWorkerContext: true,
       focusComposerOnComplete: true,
     });
+    expect(dispatchedEvents("agent:load-chat")).toHaveLength(0);
+    expect(dispatchedEvents("agent:select-worker")).toHaveLength(0);
+  });
+
+  it("loads the latest chat when collapsed worker latest chat is unread", () => {
+    const state = createWorkerState();
+    state.chats = state.chats.map((chat) =>
+      chat.chatId === "chat_6"
+        ? {
+            ...chat,
+            read: {
+              isRead: false,
+            },
+          }
+        : chat,
+    );
+    mockState(state);
+    renderSidebar();
+
+    clickCollapsedWorkerEntry();
+
+    const loadEvents = dispatchedEvents("agent:load-chat");
+    expect(loadEvents).toHaveLength(1);
+    expect(loadEvents[0].detail).toEqual({
+      chatId: "chat_6",
+      focusComposerOnComplete: true,
+    });
+    expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
+  });
+
+  it("loads the latest chat when collapsed worker latest chat is awaiting", () => {
+    const state = createWorkerState();
+    state.chats = state.chats.map((chat) =>
+      chat.chatId === "chat_6"
+        ? {
+            ...chat,
+            hasPendingAwaiting: true,
+            read: {
+              isRead: true,
+            },
+          }
+        : chat,
+    );
+    mockState(state);
+    renderSidebar();
+
+    clickCollapsedWorkerEntry();
+
+    const loadEvents = dispatchedEvents("agent:load-chat");
+    expect(loadEvents).toHaveLength(1);
+    expect(loadEvents[0].detail).toEqual({
+      chatId: "chat_6",
+      focusComposerOnComplete: true,
+    });
+    expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
 
   it("renders unread chat rows in the chat list", () => {

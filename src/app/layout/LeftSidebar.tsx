@@ -51,6 +51,7 @@ import {
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
+import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import {
   openWorkspaceDirectory,
@@ -262,19 +263,19 @@ export const LeftSidebar: React.FC = () => {
     );
   };
 
-  const handleStartNewConversationForWorker = (
-    e: React.MouseEvent<HTMLElement>,
+  const startNewConversationForWorker = (
     workerKey: string,
+    options: { focusComposerOnComplete?: boolean } = {},
   ) => {
-    e.stopPropagation();
+    const normalizedWorkerKey = String(workerKey || "").trim();
     const row =
-      state.workerIndexByKey.get(workerKey) ||
-      state.workerRows.find((item) => item.key === workerKey);
+      state.workerIndexByKey.get(normalizedWorkerKey) ||
+      state.workerRows.find((item) => item.key === normalizedWorkerKey);
     if (!row) return;
 
-    const workerChats = workerChatsByKey.get(workerKey) || [];
+    const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
     flushSync(() => {
-      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: normalizedWorkerKey });
       dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: workerChats });
       dispatch({
         type: "SET_WORKER_CHAT_PANEL_COLLAPSED",
@@ -282,7 +283,47 @@ export const LeftSidebar: React.FC = () => {
       });
     });
 
+    if (options.focusComposerOnComplete) {
+      window.dispatchEvent(
+        new CustomEvent("agent:start-new-conversation", {
+          detail: {
+            preserveWorkerContext: true,
+            focusComposerOnComplete: true,
+          },
+        }),
+      );
+      return;
+    }
+
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+  };
+
+  const handleStartNewConversationForWorker = (
+    e: React.MouseEvent<HTMLElement>,
+    workerKey: string,
+  ) => {
+    e.stopPropagation();
+    startNewConversationForWorker(workerKey);
+  };
+
+  const handleSelectCollapsedWorker = (workerKey: string) => {
+    const latestChat = workerChatsByKey.get(workerKey)?.[0];
+    if (
+      latestChat?.chatId &&
+      (latestChat.hasPendingAwaiting === true || isChatUnread(latestChat))
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("agent:load-chat", {
+          detail: {
+            chatId: latestChat.chatId,
+            focusComposerOnComplete: true,
+          },
+        }),
+      );
+      return;
+    }
+
+    startNewConversationForWorker(workerKey, { focusComposerOnComplete: true });
   };
 
   const handleWorkerCollapseChange = (key: string | string[]) => {
@@ -874,7 +915,7 @@ export const LeftSidebar: React.FC = () => {
                         <Button
                           type="text"
                           className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
-                          onClick={() => handleSelectWorker(item.key)}
+                          onClick={() => handleSelectCollapsedWorker(item.key)}
                         >
                           <AgentIcon
                             icon={workerIconsByKey.get(item.key)}
