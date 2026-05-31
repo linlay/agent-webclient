@@ -13,7 +13,7 @@ import type {
   AIUsageStats,
 } from '@/app/state/types';
 import { AIUsageEventTypeEnum } from '@/app/state/types';
-import { normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
+import { isChatUnread, normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { useWorkerData } from '@/features/workers/hooks/useWorkerData';
@@ -564,6 +564,7 @@ export function useChatActions() {
     const preserveWorkerContext = Boolean(options.preserveWorkerContext);
     const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
+    loadSeqRef.current += 1;
     detachActiveConversationSession();
     clearArtifactAutoCollapseTimer();
     clearPlanAutoCollapseTimer();
@@ -846,11 +847,12 @@ export function useChatActions() {
 
   const selectWorkerConversation = useCallback(async (
     workerKey: string,
-    options: { focusComposerOnComplete?: boolean } = {},
+    options: { focusComposerOnComplete?: boolean; preferNewChat?: boolean } = {},
   ) => {
     const normalized = String(workerKey || '').trim();
     if (!normalized) return;
     const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
+    const preferNewChat = Boolean(options.preferNewChat);
 
     const row = stateRef.current.workerIndexByKey.get(normalized) as WorkerRow | undefined;
     if (!row) return;
@@ -866,6 +868,34 @@ export function useChatActions() {
       collapsed: true,
     });
 
+    const appendNoHistoryDebug = () => {
+      dispatch({
+        type: 'APPEND_DEBUG',
+        line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
+      });
+    };
+
+    if (preferNewChat) {
+      const latestChat = workerChats[0];
+      const latestChatId = String(latestChat?.chatId || '').trim();
+      if (
+        latestChatId &&
+        (latestChat?.hasPendingAwaiting === true || isChatUnread(latestChat))
+      ) {
+        await loadChat(latestChatId, { focusComposerOnComplete });
+        return;
+      }
+
+      activateBlankConversation({
+        preserveWorkerContext: true,
+        focusComposerOnComplete,
+      });
+      if (!row.hasHistory || !row.latestChatId) {
+        appendNoHistoryDebug();
+      }
+      return;
+    }
+
     if (row.hasHistory && row.latestChatId) {
       await loadChat(row.latestChatId, { focusComposerOnComplete });
       return;
@@ -875,10 +905,7 @@ export function useChatActions() {
       preserveWorkerContext: true,
       focusComposerOnComplete,
     });
-    dispatch({
-      type: 'APPEND_DEBUG',
-      line: `[worker] ${row.type === 'team' ? '小组' : '员工'} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
-    });
+    appendNoHistoryDebug();
   }, [activateBlankConversation, dispatch, loadChat, stateRef]);
 
   useEffect(() => {

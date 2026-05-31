@@ -60,7 +60,10 @@ export function shouldStartInitialWorkerRefresh(input: {
 
 export function useWorkerData(input: {
   loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
-  selectWorkerConversation: (workerKey: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
+  selectWorkerConversation: (workerKey: string, options?: {
+    focusComposerOnComplete?: boolean;
+    preferNewChat?: boolean;
+  }) => Promise<void>;
 }) {
   const { loadChat, selectWorkerConversation } = input;
   const { state, dispatch, stateRef } = useAppContext();
@@ -352,8 +355,10 @@ export function useWorkerData(input: {
         workerKey?: string;
         agentKey?: string;
         focusComposerOnComplete?: boolean;
+        preferNewChat?: boolean;
       };
-      const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
+      const focusComposerOnComplete = Boolean(detail.focusComposerOnComplete);
+      const preferNewChat = Boolean(detail.preferNewChat);
       const requestedWorkerKey = String(detail.workerKey || '').trim();
       const fallbackWorkerKey = extractAgentWorkerKey(detail);
       const nextWorkerKey = requestedWorkerKey || fallbackWorkerKey;
@@ -361,7 +366,10 @@ export function useWorkerData(input: {
 
       ensureAgentLoadedForWorkerSelection(detail)
         .then((resolvedWorkerKey) => (
-          selectWorkerConversation(resolvedWorkerKey || nextWorkerKey, { focusComposerOnComplete })
+          selectWorkerConversation(resolvedWorkerKey || nextWorkerKey, {
+            focusComposerOnComplete,
+            preferNewChat,
+          })
         ))
         .catch(() => undefined);
     };

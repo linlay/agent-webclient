@@ -258,7 +258,7 @@ export const LeftSidebar: React.FC = () => {
   const handleSelectWorker = (workerKey: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:select-worker", {
-        detail: { workerKey, focusComposerOnComplete: true },
+        detail: { workerKey, focusComposerOnComplete: true, preferNewChat: true },
       }),
     );
   };
@@ -283,19 +283,15 @@ export const LeftSidebar: React.FC = () => {
       });
     });
 
-    if (options.focusComposerOnComplete) {
-      window.dispatchEvent(
-        new CustomEvent("agent:start-new-conversation", {
-          detail: {
-            preserveWorkerContext: true,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
-      return;
-    }
-
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+    window.dispatchEvent(
+      new CustomEvent("agent:start-new-conversation", {
+        detail: {
+          ...(row.type === "agent" ? { agentKey: row.sourceId } : {}),
+          preserveWorkerContext: true,
+          focusComposerOnComplete: Boolean(options.focusComposerOnComplete),
+        },
+      }),
+    );
   };
 
   const handleStartNewConversationForWorker = (

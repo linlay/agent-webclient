@@ -6,6 +6,7 @@ import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
+const antdCollapseProps: Array<Record<string, unknown>> = [];
 const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
 const dropdownMenuProps: Array<Record<string, unknown>> = [];
 const mockModalConfirm = jest.fn();
@@ -40,8 +41,9 @@ jest.mock("antd", () => {
     );
   };
 
-  const Collapse = ({ items = [], className }: any) =>
-    React.createElement(
+  const Collapse = ({ items = [], className, onChange, ...props }: any) => {
+    antdCollapseProps.push({ className, items, onChange, ...props });
+    return React.createElement(
       "div",
       { className },
       items.map((item: any) =>
@@ -53,6 +55,7 @@ jest.mock("antd", () => {
         ),
       ),
     );
+  };
 
   const Dropdown = ({ children, menu }: any) =>
     {
@@ -347,6 +350,16 @@ describe("LeftSidebar", () => {
     (button?.onClick as () => void)();
   }
 
+  function changeWorkerAccordion(key = "agent:worker_a") {
+    const collapse = antdCollapseProps.find((props) =>
+      String(props.className || "").includes("worker-collapse"),
+    );
+    expect(collapse).toBeTruthy();
+    expect(typeof collapse?.onChange).toBe("function");
+
+    (collapse?.onChange as (nextKey: string) => void)(key);
+  }
+
   function dispatchedEvents(type: string): CustomEvent[] {
     return (globalWithWindow.window?.dispatchEvent.mock.calls || [])
       .map(([event]) => event)
@@ -404,6 +417,7 @@ describe("LeftSidebar", () => {
 
   beforeEach(() => {
     antdButtonProps.length = 0;
+    antdCollapseProps.length = 0;
     uiButtonProps.length = 0;
     dropdownMenuProps.length = 0;
     selectProjectFolder.mockReset();
@@ -1016,6 +1030,23 @@ describe("LeftSidebar", () => {
     expect(chatHtml).toContain("chat-unread-dot");
   });
 
+  it("marks accordion worker selection as preferring a new chat", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state);
+    renderSidebar();
+
+    changeWorkerAccordion();
+
+    const workerSelectionEvents = dispatchedEvents("agent:select-worker");
+    expect(workerSelectionEvents).toHaveLength(1);
+    expect(workerSelectionEvents[0].detail).toEqual({
+      workerKey: "agent:worker_a",
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+  });
+
   it("starts a new conversation when only older chats are unread on collapsed worker click", () => {
     mockState(createWorkerState());
     renderSidebar();
@@ -1025,6 +1056,7 @@ describe("LeftSidebar", () => {
     const startEvents = dispatchedEvents("agent:start-new-conversation");
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].detail).toEqual({
+      agentKey: "worker_a",
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
     });
