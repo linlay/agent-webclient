@@ -13,7 +13,8 @@ import type {
   AIUsageStats,
 } from '@/app/state/types';
 import { AIUsageEventTypeEnum } from '@/app/state/types';
-import { isChatUnread, normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
+import { normalizeChatReadState, upsertAgentUnreadCount } from '@/features/chats/lib/chatReadState';
+import { isChatActiveRun, isWorkerAttentionChat } from '@/features/chats/lib/chatRunState';
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { useWorkerData } from '@/features/workers/hooks/useWorkerData';
@@ -880,13 +881,14 @@ export function useChatActions() {
     };
 
     if (preferNewChat) {
+      const runningChat = workerChats.find(isChatActiveRun);
       const latestChat = workerChats[0];
-      const latestChatId = String(latestChat?.chatId || '').trim();
-      if (
-        latestChatId &&
-        (latestChat?.hasPendingAwaiting === true || isChatUnread(latestChat))
-      ) {
-        await loadChat(latestChatId, { focusComposerOnComplete });
+      const targetChat = runningChat || (
+        isWorkerAttentionChat(latestChat) ? latestChat : undefined
+      );
+      const targetChatId = String(targetChat?.chatId || '').trim();
+      if (targetChatId) {
+        await loadChat(targetChatId, { focusComposerOnComplete });
         return;
       }
 

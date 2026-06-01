@@ -51,8 +51,10 @@ import {
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
-import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
-import { isChatUnread } from "@/features/chats/lib/chatReadState";
+import {
+  isChatActiveRun,
+  isWorkerAttentionChat,
+} from "@/features/chats/lib/chatRunState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import {
   openWorkspaceDirectory,
@@ -304,15 +306,17 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleSelectCollapsedWorker = (workerKey: string) => {
-    const latestChat = workerChatsByKey.get(workerKey)?.[0];
-    if (
-      latestChat?.chatId &&
-      (latestChat.hasPendingAwaiting === true || isChatUnread(latestChat))
-    ) {
+    const workerChats = workerChatsByKey.get(workerKey) || [];
+    const runningChat = workerChats.find(isWorkerChatRunning);
+    const latestChat = workerChats[0];
+    const targetChat = runningChat || (
+      isWorkerAttentionChat(latestChat) ? latestChat : undefined
+    );
+    if (targetChat?.chatId) {
       window.dispatchEvent(
         new CustomEvent("agent:load-chat", {
           detail: {
-            chatId: latestChat.chatId,
+            chatId: targetChat.chatId,
             focusComposerOnComplete: true,
           },
         }),

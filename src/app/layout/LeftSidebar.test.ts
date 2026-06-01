@@ -1120,6 +1120,33 @@ describe("LeftSidebar", () => {
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
 
+  it("loads an older running chat when collapsed worker is clicked", () => {
+    const state = createWorkerState();
+    state.chats = state.chats.map((chat) =>
+      chat.chatId === "chat_5"
+        ? {
+            ...chat,
+            hasActiveRun: true,
+            read: {
+              isRead: true,
+            },
+          }
+        : chat,
+    );
+    mockState(state);
+    renderSidebar();
+
+    clickCollapsedWorkerEntry();
+
+    const loadEvents = dispatchedEvents("agent:load-chat");
+    expect(loadEvents).toHaveLength(1);
+    expect(loadEvents[0].detail).toEqual({
+      chatId: "chat_5",
+      focusComposerOnComplete: true,
+    });
+    expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
+  });
+
   it("renders unread chat rows in the chat list", () => {
     mockState(createChatListState());
 

@@ -858,6 +858,50 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
   });
 
+  it('loads the latest worker chat when preferNewChat sees active run state', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        hasActiveRun: true,
+        read: { isRead: true },
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_latest', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('loads an older running worker chat before starting a blank preferNewChat conversation', async () => {
+    const state = createWorkerConversationState({
+      olderChat: {
+        hasActiveRun: true,
+        read: { isRead: true },
+      },
+      latestChat: {
+        read: { isRead: true },
+        hasPendingAwaiting: false,
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_older', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
   it('loads the latest worker chat when preferNewChat sees unread state', async () => {
     const state = createWorkerConversationState({
       latestChat: {

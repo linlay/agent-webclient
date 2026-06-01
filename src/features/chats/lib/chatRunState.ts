@@ -1,10 +1,21 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent, Chat, WorkerConversationRow } from "@/app/state/types";
+import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { toText } from "@/shared/utils/eventUtils";
 
 type ChatRunStateCarrier = {
   activeRun?: unknown;
   hasActiveRun?: boolean;
 } | null | undefined;
+
+type WorkerAttentionChatCarrier = (
+  | Pick<Chat, "activeRun" | "hasActiveRun" | "hasPendingAwaiting" | "read">
+  | (
+    Pick<
+      WorkerConversationRow,
+      "hasActiveRun" | "hasPendingAwaiting" | "isRead" | "read"
+    > & { activeRun?: unknown }
+  )
+) | null | undefined;
 
 function readActiveRunId(activeRun: unknown): string {
   if (!activeRun || typeof activeRun !== "object" || Array.isArray(activeRun)) {
@@ -18,6 +29,17 @@ export function isChatActiveRun(chat: ChatRunStateCarrier): boolean {
   if (chat.hasActiveRun === true) return true;
   if (chat.hasActiveRun === false) return false;
   return Boolean(readActiveRunId(chat.activeRun));
+}
+
+export function isWorkerAttentionChat(
+  chat: WorkerAttentionChatCarrier,
+): boolean {
+  return Boolean(
+    chat &&
+      (chat.hasPendingAwaiting === true ||
+        isChatUnread(chat) ||
+        isChatActiveRun(chat)),
+  );
 }
 
 export function resolveChatSummaryActiveRun(
