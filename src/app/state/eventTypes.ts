@@ -155,6 +155,7 @@ export interface AIUsageEstimatedCost {
 }
 
 export interface AIUsageStats {
+  modelKey?: string;
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;

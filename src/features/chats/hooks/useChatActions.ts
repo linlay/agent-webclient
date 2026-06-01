@@ -216,6 +216,10 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
   }
 
   const stats: AIUsageStats = {};
+  const modelKey = String(value.modelKey || value.model_key || '').trim();
+  if (modelKey) {
+    stats.modelKey = modelKey;
+  }
   const numericKeys = [
     'promptTokens',
     'completionTokens',
@@ -396,9 +400,9 @@ function resolveLoadedChatUsagePayload(
   const nestedChatUsage = normalizeLoadedChatUsageStats(usage?.chat);
   const eventCurrentUsage = normalizeLoadedChatUsageStats(latestUsageEvent?.usage?.current);
 
-  const current = nestedCurrentUsage || eventCurrentUsage || undefined;
   const run = nestedRunUsage || undefined;
   const chat = nestedChatUsage || flatChatUsage || undefined;
+  const current = nestedCurrentUsage || eventCurrentUsage || (run || chat ? {} : undefined);
 
   if (!current && !run && !chat) {
     return null;

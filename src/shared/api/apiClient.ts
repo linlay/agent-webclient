@@ -410,6 +410,7 @@ export interface ChatUsageEstimatedCost {
 }
 
 export interface ChatUsageData {
+  modelKey?: string;
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;

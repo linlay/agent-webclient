@@ -294,7 +294,7 @@ describe("TopNav", () => {
 		expect(html).toContain("<span>Total cost:</span><strong>0.123 元</strong>");
 	});
 
-	it("renders historical chat-only usage snapshots", () => {
+	it("renders historical chat usage with an empty current call section", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
@@ -304,6 +304,7 @@ describe("TopNav", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				usage: {
+					current: {},
 					chat: {
 						promptTokens: 900,
 						completionTokens: 300,
@@ -322,6 +323,7 @@ describe("TopNav", () => {
 		expect(html).toContain("<span>Cache hit rate:</span><strong>44.49%</strong>");
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).toContain("Current call");
+		expect(html).toContain("<h3>Current call</h3></div><dl class=\"usage-metric-grid\"><div class=\"usage-metric\"><dt>Prompt</dt><dd>-</dd>");
 		expect(html).toContain("Chat total");
 		expect(html).toContain("1,200");
 		expect(html).toContain("400");

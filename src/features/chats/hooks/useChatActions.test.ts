@@ -363,6 +363,7 @@ describe('replayEvent tool migration', () => {
           estimatedNextCallSize: 8000,
         },
         usage: {
+          current: {},
           run: {
             promptTokens: 30,
             completionTokens: 12,
@@ -391,7 +392,7 @@ describe('replayEvent tool migration', () => {
       },
     });
     const usageAction = dispatch.mock.calls.find(([action]) => action.type === 'SET_USAGE_SNAPSHOT')?.[0];
-    expect(usageAction.snapshot.usage.current).toBeUndefined();
+    expect(usageAction.snapshot.usage.current).toEqual({});
   });
 
   it('hydrates context window from the latest usage snapshot event when switching chats', async () => {
@@ -749,6 +750,7 @@ describe('replayEvent tool migration', () => {
         type: 'SET_USAGE_SNAPSHOT',
         snapshot: expect.objectContaining({
           usage: {
+            current: {},
             chat: {
               totalTokens: 0,
               llmChatCompletionCount: 0,
