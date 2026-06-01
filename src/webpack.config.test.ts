@@ -218,3 +218,17 @@ describe('webpack devServer proxy', () => {
     expect(proxyReq.setHeader).not.toHaveBeenCalled();
   });
 });
+
+describe('html template asset paths', () => {
+  it('bundles local font definitions through global css for deep Desktop routes', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    const template = fs.readFileSync(path.resolve(__dirname, '../public/index.html'), 'utf8');
+    const globalsCss = fs.readFileSync(path.resolve(__dirname, 'shared/styles/globals.css'), 'utf8');
+
+    expect(globalsCss).toContain('@import "../../../public/assets/fonts/fonts.css";');
+    expect(template).not.toContain('assets/fonts/fonts.css');
+  });
+});
