@@ -13,6 +13,7 @@ interface UseComposerSlashInput {
   isFrontendActive: boolean;
   isVoiceMode: boolean;
   commandModalOpen: boolean;
+  canUsePlanningMode: boolean;
 }
 
 export function useComposerSlash(input: UseComposerSlashInput) {
@@ -24,6 +25,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     isFrontendActive,
     isVoiceMode,
     commandModalOpen,
+    canUsePlanningMode,
   } = input;
   const slashPaletteRef = useRef<HTMLDivElement>(null);
   const [slashDismissed, setSlashDismissed] = useState(false);
@@ -31,8 +33,8 @@ export function useComposerSlash(input: UseComposerSlashInput) {
   const [slashPopoverWidth, setSlashPopoverWidth] = useState<number>();
 
   const slashCommands = useMemo(
-    () => getFilteredSlashCommands(inputValue),
-    [inputValue],
+    () => getFilteredSlashCommands(inputValue, { canUsePlanningMode }),
+    [canUsePlanningMode, inputValue],
   );
   const showSlashPalette =
     !isVoiceMode &&

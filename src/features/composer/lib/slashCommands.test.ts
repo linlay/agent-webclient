@@ -40,6 +40,21 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/compact').map((item) => item.id)).toEqual(['compact']);
   });
 
+  it('shows planning as /planning only when planning mode is available', () => {
+    expect(getFilteredSlashCommands('/planning')).toEqual([]);
+    expect(getFilteredSlashCommands('/plan', { canUsePlanningMode: false })).toEqual([]);
+
+    expect(getFilteredSlashCommands('/planning', { canUsePlanningMode: true })).toMatchObject([
+      { id: 'plan', command: '/planning' },
+    ]);
+    expect(getFilteredSlashCommands('/plan', { canUsePlanningMode: true })).toMatchObject([
+      { id: 'plan', command: '/planning' },
+    ]);
+    expect(getFilteredSlashCommands('/', { canUsePlanningMode: true }).find((item) => item.id === 'plan')).toMatchObject({
+      command: '/planning',
+    });
+  });
+
   it('filters debug and settings commands by feature flags', () => {
     expect(getFilteredSlashCommands('/debug')).toEqual([]);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);

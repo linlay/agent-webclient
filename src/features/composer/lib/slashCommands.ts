@@ -19,7 +19,7 @@ export type SlashCommandId =
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
-  command: `/${SlashCommandId}`;
+  command: `/${string}`;
   labelKey: string;
   descriptionKey: string;
   keywords: string[];
@@ -40,6 +40,10 @@ export interface SlashCommandAvailability {
   workerHistoryCount: number;
   workerCount: number;
   commandModalOpen: boolean;
+}
+
+export interface SlashCommandFilterOptions {
+  canUsePlanningMode?: boolean;
 }
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
@@ -129,7 +133,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'plan',
-    command: '/plan',
+    command: '/planning',
     labelKey: 'slash.command.plan.label',
     descriptionKey: 'slash.command.plan.description',
     keywords: ['plan', 'planning'],
@@ -161,13 +165,17 @@ export function shouldShowSlashCommandPalette(input: string): boolean {
   return /^\/\S*$/.test(String(input || ''));
 }
 
-export function getFilteredSlashCommands(input: string): ResolvedSlashCommandDefinition[] {
+export function getFilteredSlashCommands(
+  input: string,
+  options: SlashCommandFilterOptions = {},
+): ResolvedSlashCommandDefinition[] {
   if (!shouldShowSlashCommandPalette(input)) {
     return [];
   }
   const query = String(input || '').slice(1).trim().toLowerCase();
   const commands = SLASH_COMMANDS
     .filter((command) => isSlashCommandFeatureEnabled(command.id))
+    .filter((command) => command.id !== 'plan' || options.canUsePlanningMode === true)
     .map(resolveSlashCommand);
   if (!query) return commands;
 

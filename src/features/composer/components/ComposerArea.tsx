@@ -86,6 +86,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [currentWorker]);
   const { activeRunId, activeRunAgentKey } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
+  const planningModeAvailable =
+    currentWorker?.type === "agent" &&
+    String(currentWorker.raw?.mode || "").trim().toUpperCase() === "CODER";
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -164,6 +167,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive,
     isFrontendActive,
     isVoiceMode,
+    canUsePlanningMode: planningModeAvailable,
   });
 
   const {

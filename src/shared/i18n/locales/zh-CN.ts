@@ -636,7 +636,7 @@ export const zhCNMessages: I18nMessages = {
   "slash.command.compact.label": "压缩上下文",
   "slash.command.new.description": "清空当前会话上下文，保留当前 worker 选择",
   "slash.command.new.label": "新会话",
-  "slash.command.plan.description": "切换 planning mode",
+  "slash.command.plan.description": "切换计划模式",
   "slash.command.plan.label": "计划模式",
   "slash.command.redo.description": "重新发送当前会话里最近一条 query",
   "slash.command.redo.label": "重发最近 query",
