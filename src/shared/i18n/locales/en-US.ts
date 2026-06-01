@@ -370,6 +370,7 @@ export const enUSMessages: I18nMessages = {
   "leftSidebar.renameAgent": "Rename",
   "leftSidebar.renameAgentPlaceholder": "Enter new name",
   "leftSidebar.renameAgentSuccess": "Name updated",
+  "leftSidebar.running": "Running",
   "leftSidebar.editAgent": "Edit agent",
   "leftSidebar.deleteAgent": "Delete agent",
   "leftSidebar.deleteAgentConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",

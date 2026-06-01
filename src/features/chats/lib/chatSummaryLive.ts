@@ -1,4 +1,5 @@
 import type { AgentEvent, AppState, Chat } from '@/app/state/types';
+import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
   readEventFirstAgentName,
@@ -92,6 +93,7 @@ export function upsertLiveChatSummary(input: {
     selectedContext.teamId;
   const updatedAt = resolveChatSummaryUpdatedAt(event);
   const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
+  const hasActiveRun = resolveChatSummaryActiveRun(event);
 
   return {
     chat: {
@@ -108,6 +110,15 @@ export function upsertLiveChatSummary(input: {
       lastRunContent,
       updatedAt,
       hasPendingAwaiting,
+      hasActiveRun,
+      activeRun: hasActiveRun === true
+        ? {
+            runId,
+            ...(agentKey ? { agentKey } : {}),
+          }
+        : hasActiveRun === false
+          ? null
+          : undefined,
     },
     resolved: {
       chatId,

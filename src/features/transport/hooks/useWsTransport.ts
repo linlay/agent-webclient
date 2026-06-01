@@ -5,6 +5,7 @@ import { useAppContext } from "@/app/state/AppContext";
 import type { AgentEvent, AppState, Chat } from "@/app/state/types";
 import { ensureAccessToken } from "@/shared/api/apiClient";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
+import { resolveChatSummaryActiveRun } from "@/features/chats/lib/chatRunState";
 import {
 	resolveChatSummaryPendingAwaiting,
 	resolveChatSummaryUpdatedAt,
@@ -116,6 +117,16 @@ function toChatPatchFromPushEvent(
 	const runId = String(event.runId || raw.lastRunId || "").trim();
 	if (runId) {
 		chatPatch.lastRunId = runId;
+	}
+	const hasActiveRun = resolveChatSummaryActiveRun(event);
+	if (hasActiveRun !== undefined) {
+		chatPatch.hasActiveRun = hasActiveRun;
+		chatPatch.activeRun = hasActiveRun
+			? {
+					runId,
+					...(agentKey ? { agentKey } : {}),
+				}
+			: null;
 	}
 
 	if (event.type === "chat.read" || event.type === "chat.unread") {

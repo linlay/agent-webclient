@@ -329,12 +329,15 @@ describe("LeftSidebar", () => {
     };
   }
 
-  function mockState(state: AppState) {
+  function mockState(
+    state: AppState,
+    options: { querySessions?: Map<string, Record<string, unknown>> } = {},
+  ) {
     useAppContext.mockReturnValue({
       state,
       dispatch: jest.fn(),
       stateRef: { current: state },
-      querySessionsRef: { current: new Map() },
+      querySessionsRef: { current: options.querySessions || new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
       activeQuerySessionRequestIdRef: { current: "" },
     });
@@ -1124,6 +1127,85 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain('class="ui-list-item is-dense chat-item  is-unread"');
     expect(html).toContain('class="chat-unread-dot is-unread"');
+  });
+
+  it("shows running status and time in folded accordion header for the latest active run chat", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats = state.chats.map((chat) =>
+      chat.chatId === "chat_6"
+        ? {
+            ...chat,
+            hasActiveRun: true,
+          }
+        : chat,
+    );
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span>Latest reply 6</span><span class="chat-running-status">运行中</span><span class="worker-panel-time-label">',
+    );
+  });
+
+  it("prefers an older running chat over the latest non-running chat in folded accordion header", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats = state.chats.map((chat) =>
+      chat.chatId === "chat_5"
+        ? {
+            ...chat,
+            hasActiveRun: true,
+          }
+        : chat,
+    );
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span>Latest reply 5</span><span class="chat-running-status">运行中</span><span class="worker-panel-time-label">',
+    );
+    expect(html).not.toContain(
+      '<span>Latest reply 6</span><span class="chat-running-status">运行中</span>',
+    );
+  });
+
+  it("keeps the latest chat preview when no worker chat is running", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span>Latest reply 6</span><span class="worker-panel-time-label">',
+    );
+    expect(html).not.toContain("chat-running-status");
+  });
+
+  it("shows running status in folded accordion header from a local streaming session", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state, {
+      querySessions: new Map([
+        [
+          "req_1",
+          {
+            chatId: "chat_5",
+            streaming: true,
+          },
+        ],
+      ]),
+    });
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span>Latest reply 5</span><span class="chat-running-status">运行中</span><span class="worker-panel-time-label">',
+    );
+    expect(html).toContain('class="worker-chat-action" data-action="loading"');
   });
 
   it("renders awaiting status before time across worker header and preview rows", () => {

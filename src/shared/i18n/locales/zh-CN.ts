@@ -370,6 +370,7 @@ export const zhCNMessages: I18nMessages = {
   "leftSidebar.renameAgent": "修改名称",
   "leftSidebar.renameAgentPlaceholder": "请输入新名称",
   "leftSidebar.renameAgentSuccess": "名称已修改",
+  "leftSidebar.running": "运行中",
   "leftSidebar.editAgent": "编辑智能体",
   "leftSidebar.deleteAgent": "删除智能体",
   "leftSidebar.deleteAgentConfirm": "确定要删除智能体「{name}」吗？此操作不可撤销。",

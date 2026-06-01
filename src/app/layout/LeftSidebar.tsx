@@ -51,6 +51,7 @@ import {
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
+import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import {
@@ -544,21 +545,35 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const getWorkerChatLoading = (chatId: string) => {
-    if (!state.streaming) return false;
+  const hasStreamingSessionForChat = (chatId: string) => {
+    const normalizedChatId = String(chatId || "").trim();
+    if (!normalizedChatId) return false;
     for (const session of querySessionsRef.current.values()) {
-      if (session.streaming && session.chatId === chatId) {
+      if (session.streaming && String(session.chatId || "").trim() === normalizedChatId) {
         return true;
       }
     }
     return false;
   };
 
+  const getWorkerChatLoading = (chatId: string) => {
+    const normalizedChatId = String(chatId || "").trim();
+    if (!normalizedChatId) return false;
+    const chat = state.chats.find(
+      (item) => String(item?.chatId || "").trim() === normalizedChatId,
+    );
+    return isChatActiveRun(chat) || hasStreamingSessionForChat(normalizedChatId);
+  };
+
+  const isWorkerChatRunning = (chat: WorkerConversationRow) =>
+    isChatActiveRun(chat) || hasStreamingSessionForChat(chat.chatId);
+
   const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
     (row) => {
       const rawChats = workerChatsByKey.get(row.key) || [];
       const icon = workerIconsByKey.get(row.key);
       const unreadCount = workerUnreadCountByKey.get(row.key) || 0;
+      const activeRunChat = rawChats.find(isWorkerChatRunning);
 
       return {
         key: row.key,
@@ -570,6 +585,7 @@ export const LeftSidebar: React.FC = () => {
             isActive={row.key === state.workerSelectionKey}
             icon={icon}
             lastChat={rawChats[0]}
+            activeRunChat={activeRunChat}
             unreadCount={unreadCount}
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}

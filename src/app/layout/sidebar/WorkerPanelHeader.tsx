@@ -17,6 +17,7 @@ export const WorkerPanelHeader: React.FC<{
   isActive: boolean;
   icon?: AgentIconConfig;
   lastChat?: WorkerConversationRow;
+  activeRunChat?: WorkerConversationRow;
   unreadCount?: number;
   onStartNewConversation: (
     e: React.MouseEvent<HTMLElement>,
@@ -32,6 +33,7 @@ export const WorkerPanelHeader: React.FC<{
   isActive,
   icon,
   lastChat,
+  activeRunChat,
   unreadCount = 0,
   onStartNewConversation,
   onMarkAllRead,
@@ -47,11 +49,17 @@ export const WorkerPanelHeader: React.FC<{
     row.workspaceSourceKind === "browser-folder"
       ? t("leftSidebar.browserWorkspaceOpenUnavailable")
       : t("leftSidebar.workspaceUnavailable");
-  const preview = lastChat
-    ? lastChat?.lastRunContent ||
-      lastChat?.chatName ||
+  const previewChat = activeRunChat || lastChat;
+  const preview = previewChat
+    ? previewChat?.lastRunContent ||
+      previewChat?.chatName ||
       t("leftSidebar.latestConversationNoReply")
     : t("leftSidebar.noHistory");
+  const previewStatus = previewChat?.hasPendingAwaiting
+    ? "awaiting"
+    : activeRunChat
+      ? "running"
+      : "";
   const isAgent = row.type === "agent";
   const isCoder = row.agentType === "coder";
   const actionMenuItems: MenuProps["items"] = [
@@ -172,14 +180,19 @@ export const WorkerPanelHeader: React.FC<{
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {preview}
           </Typography.Text>
-          {lastChat?.hasPendingAwaiting && (
+          {previewStatus === "awaiting" && (
             <span className="chat-awaiting-status">
               {t("leftSidebar.awaitingApproval")}
             </span>
           )}
-          {!!lastChat?.updatedAt && (
+          {previewStatus === "running" && (
+            <span className="chat-running-status">
+              {t("leftSidebar.running")}
+            </span>
+          )}
+          {!!previewChat?.updatedAt && (
             <span className="worker-panel-time-label">
-              {formatChatTimeLabel(lastChat?.updatedAt)}
+              {formatChatTimeLabel(previewChat?.updatedAt)}
             </span>
           )}
         </Flex>

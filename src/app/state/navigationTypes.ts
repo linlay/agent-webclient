@@ -7,6 +7,13 @@ export interface ChatAwaitingSummary {
 	[key: string]: unknown;
 }
 
+export interface ChatActiveRunSummary {
+	runId?: string;
+	agentKey?: string;
+	lastSeq?: number | string;
+	[key: string]: unknown;
+}
+
 export interface Chat {
 	chatId: string;
 	chatName?: string;
@@ -20,6 +27,8 @@ export interface Chat {
 	read?: ChatReadState;
 	awaiting?: ChatAwaitingSummary | null;
 	hasPendingAwaiting?: boolean;
+	activeRun?: ChatActiveRunSummary | null;
+	hasActiveRun?: boolean;
 	[key: string]: unknown;
 }
 
@@ -123,4 +132,5 @@ export interface WorkerConversationRow {
 	read?: ChatReadState;
 	isRead?: boolean;
 	hasPendingAwaiting?: boolean;
+	hasActiveRun?: boolean;
 }

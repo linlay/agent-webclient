@@ -25,33 +25,26 @@ import { TerminalDock } from "./TerminalDock";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
-import { getChats } from "@/features/transport/lib/apiClientProxy";
+import { getAgent, getChats } from "@/features/transport/lib/apiClientProxy";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
+import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
-function upsertRouteAgent(agents: Agent[], agentKey: string): Agent[] {
+function createFallbackRouteAgent(agentKey: string): Agent {
   const normalizedAgentKey = String(agentKey || "").trim();
-  if (!normalizedAgentKey) {
-    return agents;
-  }
+  return {
+    key: normalizedAgentKey,
+    name: normalizedAgentKey,
+    role: "--",
+  };
+}
 
-  const currentAgents = Array.isArray(agents) ? agents : [];
-  const existing = currentAgents.find(
-    (agent) => String(agent?.key || "").trim() === normalizedAgentKey,
+function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
+  if (!agent) return false;
+  return Boolean(
+    String(agent.mode || "").trim() || String(agent.type || "").trim(),
   );
-  if (existing) {
-    return currentAgents;
-  }
-
-  return [
-    ...currentAgents,
-    {
-      key: normalizedAgentKey,
-      name: normalizedAgentKey,
-      role: "--",
-    },
-  ];
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
@@ -86,9 +79,16 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const lastOpenedHistoryRouteKeyRef = useRef("");
+  const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
+  const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
+  const routeAgentHydrationRequestRef = useRef(0);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
+  );
+  const routeWorkerKey = useMemo(
+    () => (agentKey ? `agent:${agentKey}` : ""),
+    [agentKey],
   );
   const chatId = useMemo(
     () => String(searchParams.get("chatId") || "").trim(),
@@ -105,10 +105,24 @@ export const AgentChatShell: React.FC = () => {
       ),
     [agentKey, state.agents],
   );
-  const routeAgentReady =
+  const routeAgentHasDetailSignal = hasRouteAgentDetailSignal(routeAgent);
+  const routeAgentHydrated =
     !agentKey ||
-    Boolean(chatId) ||
-    Boolean(routeAgent);
+    Boolean(
+      routeAgent &&
+        (routeAgentHasDetailSignal ||
+          routeAgentHydratedWithoutSignalRef.current.has(agentKey) ||
+          routeAgentHydrationFailedRef.current.has(agentKey)),
+    );
+  const routeAgentNeedsHydration =
+    Boolean(agentKey) &&
+    (!routeAgent ||
+      (!routeAgentHasDetailSignal &&
+        !routeAgentHydratedWithoutSignalRef.current.has(agentKey) &&
+        !routeAgentHydrationFailedRef.current.has(agentKey)));
+  const routeAgentReady =
+    routeAgentHydrated &&
+    (!agentKey || state.workerSelectionKey === routeWorkerKey);
   const routeChatReady = !chatId || String(state.chatId || "") === chatId;
   const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
     agents: state.agents,
@@ -135,21 +149,75 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
-    const nextAgents = upsertRouteAgent(state.agents, agentKey);
-    if (nextAgents !== state.agents) {
-      dispatch({ type: "SET_AGENTS", agents: nextAgents });
-    }
-  }, [agentKey, dispatch, state.agents]);
-
-  useEffect(() => {
-    if (!agentKey || !routeAgentReady) {
+    if (!routeAgentNeedsHydration) {
       return;
     }
 
-    const workerKey = `agent:${agentKey}`;
+    const requestId = routeAgentHydrationRequestRef.current + 1;
+    routeAgentHydrationRequestRef.current = requestId;
+    let cancelled = false;
+
+    void getAgent(agentKey)
+      .then((response) => {
+        if (
+          cancelled ||
+          routeAgentHydrationRequestRef.current !== requestId
+        ) {
+          return;
+        }
+
+        const payload = (response.data || {}) as Partial<Agent>;
+        const resolvedAgentKey =
+          String(payload.key || agentKey).trim() || agentKey;
+        const patch: Partial<Agent> & Pick<Agent, "key"> = {
+          ...payload,
+          key: resolvedAgentKey,
+        };
+        if (!hasRouteAgentDetailSignal(patch as Agent)) {
+          routeAgentHydratedWithoutSignalRef.current.add(resolvedAgentKey);
+        } else {
+          routeAgentHydratedWithoutSignalRef.current.delete(resolvedAgentKey);
+        }
+
+        const mergedAgents = upsertAgentSummary(
+          stateRef.current.agents,
+          patch,
+        );
+        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
+      })
+      .catch((error) => {
+        if (
+          cancelled ||
+          routeAgentHydrationRequestRef.current !== requestId
+        ) {
+          return;
+        }
+
+        routeAgentHydrationFailedRef.current.add(agentKey);
+        const mergedAgents = upsertAgentSummary(
+          stateRef.current.agents,
+          createFallbackRouteAgent(agentKey),
+        );
+        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[loadAgent error] ${(error as Error).message}`,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agentKey, dispatch, routeAgentNeedsHydration]);
+
+  useEffect(() => {
+    if (!agentKey || !routeAgentHydrated) {
+      return;
+    }
+
     dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
-    dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
-    dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
+    dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
+    dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
     if (chatId) {
@@ -191,7 +259,14 @@ export const AgentChatShell: React.FC = () => {
         },
       }),
     );
-  }, [agentKey, chatId, dispatch, routeAgentReady, routeHistoryRequested]);
+  }, [
+    agentKey,
+    chatId,
+    dispatch,
+    routeAgentHydrated,
+    routeHistoryRequested,
+    routeWorkerKey,
+  ]);
 
   const openRouteHistoryForWorker = useCallback(
     (workerKey: string) => {

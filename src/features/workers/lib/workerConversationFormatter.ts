@@ -1,4 +1,5 @@
 import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
+import { isChatActiveRun } from '@/features/chats/lib/chatRunState';
 import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
 import { toText } from '@/shared/utils/eventUtils';
 
@@ -52,6 +53,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
         read,
         isRead: read?.isRead ?? true,
         hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
+        hasActiveRun: isChatActiveRun(chat),
       };
     })
     .filter((row) => row.chatId);

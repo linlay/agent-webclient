@@ -2,8 +2,8 @@ import type { Chat, WorkerRow } from '@/app/state/types';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 
 describe('buildWorkerConversationRows', () => {
-  it('orders worker conversations by updatedAt descending', () => {
-    const worker: WorkerRow = {
+  function createWorker(): WorkerRow {
+    return {
       key: 'agent:agent-alpha',
       type: 'agent',
       sourceId: 'agent-alpha',
@@ -19,6 +19,10 @@ describe('buildWorkerConversationRows', () => {
       latestRunSortValue: 0,
       searchText: '',
     };
+  }
+
+  it('orders worker conversations by updatedAt descending', () => {
+    const worker = createWorker();
 
     const chats: Chat[] = [
       {
@@ -45,5 +49,55 @@ describe('buildWorkerConversationRows', () => {
       'chat_older',
     ]);
     expect(rows[0]?.hasPendingAwaiting).toBe(true);
+  });
+
+  it('marks rows as active when chat summaries carry active run state', () => {
+    const worker = createWorker();
+    const rows = buildWorkerConversationRows({
+      worker,
+      chats: [
+        {
+          chatId: 'chat_flag',
+          chatName: 'Flagged active',
+          agentKey: 'agent-alpha',
+          updatedAt: 300,
+          hasActiveRun: true,
+        } as Chat,
+        {
+          chatId: 'chat_nested',
+          chatName: 'Nested active',
+          agentKey: 'agent-alpha',
+          updatedAt: 200,
+          activeRun: {
+            runId: 'run_active',
+          },
+        } as Chat,
+      ],
+    });
+
+    expect(rows.map((row) => [row.chatId, row.hasActiveRun])).toEqual([
+      ['chat_flag', true],
+      ['chat_nested', true],
+    ]);
+  });
+
+  it('treats explicit hasActiveRun false as not running even when activeRun is stale', () => {
+    const rows = buildWorkerConversationRows({
+      worker: createWorker(),
+      chats: [
+        {
+          chatId: 'chat_stale',
+          chatName: 'Stale active run',
+          agentKey: 'agent-alpha',
+          updatedAt: 100,
+          hasActiveRun: false,
+          activeRun: {
+            runId: 'run_old',
+          },
+        } as Chat,
+      ],
+    });
+
+    expect(rows[0]?.hasActiveRun).toBe(false);
   });
 });

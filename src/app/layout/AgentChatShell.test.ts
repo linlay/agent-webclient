@@ -141,6 +141,10 @@ const { getAgent } = jest.requireMock(
   getAgent: jest.Mock;
 };
 
+const flushPromises = async () => {
+  await Promise.resolve();
+};
+
 const globalWithDom = globalThis as typeof globalThis & {
   window?: {
     dispatchEvent: jest.Mock;
@@ -191,7 +195,15 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
-    getAgent.mockClear();
+    getAgent.mockReset();
+    getAgent.mockResolvedValue({
+      data: {
+        key: "demo-agent",
+        name: "Demo Agent",
+        role: "Worker",
+        mode: "CODER",
+      },
+    });
   });
 
   afterAll(() => {
@@ -221,8 +233,9 @@ describe("AgentChatShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });
 
-  it("inserts a route agent placeholder without loading agent detail", () => {
+  it("hydrates an unknown route agent before route activation", async () => {
     const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
       .mockImplementation((effect: React.EffectCallback) => {
@@ -233,11 +246,65 @@ describe("AgentChatShell", () => {
 
     renderToStaticMarkup(React.createElement(AgentChatShell));
 
+    expect(getAgent).toHaveBeenCalledWith("demo-agent");
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
+    );
+
+    await flushPromises();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [
+        {
+          key: "demo-agent",
+          name: "Demo Agent",
+          role: "Worker",
+          mode: "CODER",
+        },
+      ],
+    });
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("falls back to a non-CODER placeholder when route agent hydration fails", async () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    getAgent.mockRejectedValueOnce(new Error("network down"));
+    useAppState.mockReturnValue(createInitialState());
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+    await flushPromises();
+
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_AGENTS",
       agents: [{ key: "demo-agent", name: "demo-agent", role: "--" }],
     });
-    expect(getAgent).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[loadAgent error] network down",
+    });
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [
+        expect.objectContaining({
+          key: "demo-agent",
+          mode: "CODER",
+        }),
+      ],
+    });
 
     useEffectSpy.mockRestore();
   });
@@ -245,7 +312,10 @@ describe("AgentChatShell", () => {
   it("renders the desktop chat layout without the left sidebar once the route agent is ready", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
     });
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
@@ -270,12 +340,18 @@ describe("AgentChatShell", () => {
       });
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
     });
     useAppDispatch.mockReturnValue(dispatch);
 
     renderToStaticMarkup(React.createElement(AgentChatShell));
 
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
     expect(dispatchEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
@@ -301,7 +377,9 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -334,13 +412,13 @@ describe("AgentChatShell", () => {
       }),
     );
     expect(html).toContain("agent-route-loading-page");
-    expect(html).toContain("Loading conversation");
+    expect(html).toContain("Loading agent");
     expect(html).not.toContain("conversation-stage");
 
     useEffectSpy.mockRestore();
   });
 
-  it("does not block a direct chat route while the route agent detail is unresolved", () => {
+  it("waits for agent hydration before activating a direct chat route", async () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -354,25 +432,36 @@ describe("AgentChatShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(getAgent).toHaveBeenCalledWith("demo-agent");
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_CONVERSATION_MODE",
       mode: "worker",
     });
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:load-chat",
-        detail: {
-          chatId: "chat-123",
-          focusComposerOnComplete: true,
-        },
       }),
     );
-    expect(html).not.toContain("Loading agent");
-    expect(html).toContain("Loading conversation");
+    expect(html).toContain("Loading agent");
+    expect(html).not.toContain("Loading conversation");
+
+    await flushPromises();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [
+        {
+          key: "demo-agent",
+          name: "Demo Agent",
+          role: "Worker",
+          mode: "CODER",
+        },
+      ],
+    });
 
     useEffectSpy.mockRestore();
   });
@@ -381,8 +470,11 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
       chatId: "chat-123",
+      workerSelectionKey: "agent:demo-agent",
     });
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
@@ -430,8 +522,9 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("history=1")]);
     useAppState.mockReturnValue({
       ...state,
-      agents: [{ key: "demo-agent", name: "Demo Agent" }],
+      agents: [{ key: "demo-agent", name: "Demo Agent", mode: "REACT" }],
       chats: [chat],
+      workerSelectionKey: "agent:demo-agent",
       workerRows: [workerRow],
       workerIndexByKey: new Map([[workerRow.key, workerRow]]),
     });
@@ -510,8 +603,9 @@ describe("AgentChatShell", () => {
     };
     useAppState.mockReturnValue({
       ...state,
-      agents: [{ key: "demo-agent", name: "Demo Agent" }],
+      agents: [{ key: "demo-agent", name: "Demo Agent", mode: "REACT" }],
       chats: [chat],
+      workerSelectionKey: "agent:demo-agent",
       workerRows: [workerRow],
       workerIndexByKey: new Map([[workerRow.key, workerRow]]),
     });
@@ -553,7 +647,9 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("theme=dark")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+      ],
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -577,7 +673,9 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("themeMode=dark")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
-      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker" }],
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+      ],
     });
     useAppDispatch.mockReturnValue(dispatch);
 
