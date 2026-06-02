@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Flex, Input, message } from "antd";
+import { Button, Checkbox, Flex, Input, message } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
   AIAwaitFormSubmitParamData,
@@ -24,7 +24,6 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -54,6 +53,8 @@ type AwaitingCollectFlow =
   | { type: "submit" }
   | { type: "reject"; reason: string }
   | { type: "switch"; nextIndex: number };
+
+type AwaitingFooterDecision = "submit" | "reject";
 
 interface AwaitingCollectLifecycleHandlers {
   onCollectingChange: (decision: AwaitingCollectDecision | null) => void;
@@ -366,6 +367,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [collectingDecision, setCollectingDecision] =
     useState<AwaitingCollectDecision | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [footerDecision, setFooterDecision] =
+    useState<AwaitingFooterDecision>();
   const currentForm = data.forms[activeFormIndex];
   const panelCaption = String(
     currentForm?.title ||
@@ -523,6 +526,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setSubmitError("");
     setTimeoutExpired(false);
     setRejectReason("");
+    setFooterDecision(undefined);
   }, [clearCollectTimeout, data.key]);
 
   useEffect(() => {
@@ -809,6 +813,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setSubmitError("");
   }, [data, onSubmit, rejectReason, requestCollectFromFrame, t]);
 
+  const handleFooterSubmit = useCallback(() => {
+    if (footerDecision === "submit") {
+      requestCollectFromFrame("submit", { type: "submit" });
+      return;
+    }
+    if (footerDecision === "reject") {
+      void handleReject();
+    }
+  }, [footerDecision, handleReject, requestCollectFromFrame]);
+
   const reasonInputDisabled =
     data.loading ||
     !onSubmit ||
@@ -823,6 +837,18 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     Boolean(collectingDecision) ||
     submitStatus === "submitting" ||
     submitStatus === "autoSubmitting";
+
+  const footerReadOnly =
+    data.loading ||
+    !onSubmit ||
+    Boolean(collectingDecision) ||
+    submitStatus === "submitting" ||
+    submitStatus === "autoSubmitting";
+
+  const footerSubmitDisabled =
+    footerReadOnly ||
+    !footerDecision ||
+    (footerDecision === "submit" && !data.viewportHtml);
 
   return (
     <div className="awaiting-panel" id="awaiting-html-panel">
@@ -905,49 +931,90 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       )}
 
       <div className="awaiting-panel-footer">
-        <div className="awaiting-panel-footer-hints">
-          <Button
-            className="awaiting-panel-submit-line"
-            disabled={submitDisabled}
-            type="text"
-            onClick={() =>
-              requestCollectFromFrame("submit", { type: "submit" })
-            }
-          >
-            <MaterialIcon
-              name="arrow_forward"
-              className="awaiting-panel-submit-icon"
-            />
-            <span className="awaiting-panel-submit-lead">同意</span>
-            <span className="awaiting-panel-submit-tail">
-              可以修改表单内容并提交
-            </span>
-          </Button>
-          <Flex gap={8} className="awaiting-reject-reason" align="center">
-            <Flex
-              className="awaiting-reject-reason-button"
-              gap={8}
-              onClick={() =>
-                !reasonInputDisabled && handleReject()
-              }
+        <Checkbox.Group
+          className="awaiting-panel-checkgroup"
+          value={footerDecision ? [footerDecision] : []}
+          disabled={footerReadOnly}
+          onChange={(keys) => {
+            const last = keys.at(-1);
+            setFooterDecision(
+              last === "submit" || last === "reject" ? last : undefined,
+            );
+          }}
+        >
+          <Flex className="awaiting-panel-option-row">
+            <Checkbox
+              value="submit"
+              className="awaiting-panel-option"
+              disabled={submitDisabled}
             >
-              <MaterialIcon
-                name="close"
-                className="awaiting-reject-reason-icon"
-              />
-              <span>{t("awaiting.action.reject")}</span>
-            </Flex>
-            <Input
-              aria-label={t("awaiting.rejectReason.placeholder")}
-              disabled={reasonInputDisabled}
-              variant="borderless"
-              placeholder={t("awaiting.rejectReason.placeholder")}
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              onPressEnter={() => void handleReject()}
-            />
+              <Flex gap={10} align="center">
+                <span>1.</span>
+                <span className="awaiting-panel-option-label">
+                  {t("awaiting.action.approve")}
+                </span>
+                <span className="awaiting-panel-submit-tail">
+                  {t("awaiting.hint.submitEditable")}
+                </span>
+                <span className="Selected">{t("approvalDialog.selected")}</span>
+              </Flex>
+            </Checkbox>
           </Flex>
-        </div>
+          <Flex className="awaiting-panel-option-row" align="center" gap={10}>
+            <Checkbox value="reject" className="awaiting-panel-option">
+              <Flex gap={10} align="center">
+                <span>2.</span>
+                <span className="awaiting-panel-option-label">
+                  {t("awaiting.action.reject")}
+                </span>
+                <Input
+                  aria-label={t("awaiting.rejectReason.placeholder")}
+                  disabled={reasonInputDisabled}
+                  variant="borderless"
+                  placeholder={t("awaiting.rejectReason.placeholder")}
+                  value={rejectReason}
+                  onFocus={() => setFooterDecision("reject")}
+                  onChange={(event) => {
+                    setRejectReason(event.target.value);
+                    setFooterDecision("reject");
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                  style={{ padding: 0, fontSize: 12 }}
+                />
+                <span className="Selected">{t("approvalDialog.selected")}</span>
+              </Flex>
+            </Checkbox>
+            <Flex gap={10} align="center" className="awaiting-panel-confirm">
+              <Button
+                type="text"
+                shape="round"
+                size="small"
+                className="awaiting-panel-ignore-button"
+                disabled={footerReadOnly}
+                onClick={() => {
+                  void handleReject();
+                }}
+              >
+                <span>{t("approvalDialog.action.ignore")}</span>
+              </Button>
+              <Button
+                type="primary"
+                shape="round"
+                size="small"
+                loading={
+                  submitStatus === "submitting" ||
+                  submitStatus === "autoSubmitting"
+                }
+                disabled={footerSubmitDisabled}
+                onClick={handleFooterSubmit}
+              >
+                <span>{t("approvalDialog.action.submit")}</span>
+              </Button>
+            </Flex>
+          </Flex>
+        </Checkbox.Group>
       </div>
 
       {submitStatusText && (

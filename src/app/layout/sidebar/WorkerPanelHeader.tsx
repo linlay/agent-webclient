@@ -7,10 +7,12 @@ import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
-type AgentIconConfig = string | {
-  color?: string;
-  name?: string;
-};
+type AgentIconConfig =
+  | string
+  | {
+      color?: string;
+      name?: string;
+    };
 
 export const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
@@ -25,7 +27,11 @@ export const WorkerPanelHeader: React.FC<{
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
   onOpenWorkspace?: (workerKey: string) => void;
-  onRenameAgent?: (workerKey: string, agentKey: string, currentName: string) => void;
+  onRenameAgent?: (
+    workerKey: string,
+    agentKey: string,
+    currentName: string,
+  ) => void;
   onEditAgent?: (agentKey: string) => void;
   onDeleteAgent?: (workerKey: string, agentKey: string) => void;
 }> = ({
@@ -122,7 +128,14 @@ export const WorkerPanelHeader: React.FC<{
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
             {subtitle && (
-              <span className="worker-panel-role" title={row.agentType === "coder" ? row.workspaceDir || row.workspaceName : undefined}>
+              <span
+                className="worker-panel-role"
+                title={
+                  row.agentType === "coder"
+                    ? row.workspaceDir || row.workspaceName
+                    : undefined
+                }
+              >
                 {subtitle}
               </span>
             )}
@@ -165,7 +178,13 @@ export const WorkerPanelHeader: React.FC<{
                 },
               }}
             >
-              <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
+              <Tooltip
+                title={
+                  canOpenWorkspace
+                    ? t("leftSidebar.moreActions")
+                    : workspaceUnavailableTitle
+                }
+              >
                 <Button
                   className="worker-panel-new"
                   type="text"
@@ -186,11 +205,12 @@ export const WorkerPanelHeader: React.FC<{
             </span>
           )}
           {previewStatus === "running" && (
-            <span className="chat-running-status">
-              {t("leftSidebar.running")}
-            </span>
+            <MaterialIcon
+              name="progress_activity"
+              className="chat-running-status"
+            />
           )}
-          {!!previewChat?.updatedAt && (
+          {!previewStatus && !!previewChat?.updatedAt && (
             <span className="worker-panel-time-label">
               {formatChatTimeLabel(previewChat?.updatedAt)}
             </span>

@@ -60,6 +60,7 @@ import {
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { debounce } from "lodash";
+import { useI18n } from "@/shared/i18n";
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
@@ -77,6 +78,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   onSubmit,
   onResolvedByOther,
 }) => {
+  const { t } = useI18n();
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
   const questionsRef = useRef<QuestionRef[]>([]);
@@ -165,6 +167,29 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       if (isEditableKeyboardTarget(e.target)) {
         return;
       }
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isCurrentMultiSelect = currentQuestion
+        ? isMultiSelectQuestionType(currentQuestion)
+        : false;
+      const isSpaceKey = e.key === " " || e.code === "Space";
+      if (
+        isSpaceKey
+        && isCurrentMultiSelect
+        && activeElement?.dataset.multiSelect === "true"
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const i = Number(activeElement.dataset.index);
+        const questionRef = questionsRef.current[curIndex];
+        questionRef?.check(i);
+        return;
+      }
+      if (e.key === "Enter" && isCurrentMultiSelect) {
+        e.preventDefault();
+        e.stopPropagation();
+        moveForward();
+        return;
+      }
       if (!/^[1-9]$/.test(e.key)) {
         return;
       }
@@ -191,9 +216,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       return;
     }
     resolvedByOtherHandledRef.current = true;
-    void message.info("已被其他终端提交");
+    void message.info(t("approvalDialog.resolvedByOther"));
     onResolvedByOther?.();
-  }, [data?.resolvedByOther, onResolvedByOther]);
+  }, [data?.resolvedByOther, onResolvedByOther, t]);
 
   useEffect(() => {
     total.current = questions.length;
@@ -313,8 +338,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                           {timeoutCountdown.label && (
                             <Flex className={Style.TimeoutRow}>
                               {timeoutExpired && loading
-                                ? "自动提交中..."
-                                : `提交倒计时 ${timeoutCountdown.label}`}
+                                ? t("approvalDialog.status.autoSubmitting")
+                                : t("approvalDialog.timeout.countdown", {
+                                    label: timeoutCountdown.label,
+                                  })}
                             </Flex>
                           )}
                           {questions.length > 1 && (
@@ -362,7 +389,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           size="small"
           onClick={doIgnore}
         >
-          <span>忽略</span>
+          <span>{t("approvalDialog.action.ignore")}</span>
           <span>ESC</span>
         </Button>
         {curIndex < questions.length - 1 && (
@@ -374,7 +401,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
               void moveForward();
             }}
           >
-            继续
+            {t("approvalDialog.action.continue")}
           </Button>
         )}
         {curIndex >= questions.length - 1 && (
@@ -387,7 +414,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
               void doSubmit();
             }}
           >
-            <span>提交</span>
+            <span>{t("approvalDialog.action.submit")}</span>
             <EnterOutlined />
           </Button>
         )}
@@ -403,7 +430,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
       <LoadingOutlined style={{ color: "var(--colorPrimary)" }} />
-      <div>问题生成中...</div>
+      <div>{t("confirmDialog.loading")}</div>
     </Flex>
   );
 };
@@ -451,6 +478,7 @@ const Question = forwardRef<
     onChange?: (value: AIAwaitQuestionSubmitParamData) => void;
   }
 >(({ data, value, onChange, onEnter, pagnation }, ref) => {
+  const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
   const heading = getAwaitingQuestionHeading(data);
@@ -515,6 +543,7 @@ const Question = forwardRef<
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
           onPressEnter={(e) => {
+            e.preventDefault();
             if (e.currentTarget.value.trim()) {
               onEnter();
             }
@@ -536,6 +565,7 @@ const Question = forwardRef<
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
           onPressEnter={(e) => {
+            e.preventDefault();
             if (e.currentTarget.value.trim()) {
               onEnter();
             }
@@ -682,7 +712,9 @@ const Question = forwardRef<
                     <InfoCircleOutlined />
                   </Tooltip>
                 )}
-                <span className="Selected">已选</span>
+                <span className="Selected">
+                  {t("approvalDialog.selected")}
+                </span>
               </Flex>
             </Checkbox>
           );

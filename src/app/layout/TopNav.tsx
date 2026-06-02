@@ -15,7 +15,7 @@ import {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Divider } from "antd";
+import { Divider, Flex, Progress } from "antd";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -77,7 +77,9 @@ function formatChatEstimatedCost(value: unknown): string {
   return `${trimTrailingZeros(costCny.toFixed(3))} 元`;
 }
 
-function resolveDisplayTotal(snapshot: AIUsageSnapshotEvent | null): number | null {
+function resolveDisplayTotal(
+  snapshot: AIUsageSnapshotEvent | null,
+): number | null {
   return readUsageNumber(snapshot?.usage?.chat?.totalTokens);
 }
 
@@ -141,7 +143,9 @@ function buildUsageMetrics(
   ];
 }
 
-function resolveLatestCompactUsage(events: AppState["events"]): AIUsageStats | null {
+function resolveLatestCompactUsage(
+  events: AppState["events"],
+): AIUsageStats | null {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index] as Record<string, unknown>;
     if (event.type !== "context.compact.complete") {
@@ -156,14 +160,18 @@ function resolveLatestCompactUsage(events: AppState["events"]): AIUsageStats | n
   return null;
 }
 
-function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): number | null {
+function resolveContextPercent(
+  snapshot: AIUsageSnapshotEvent | null,
+): number | null {
   const currentSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
   const maxSize = readUsageNumber(snapshot?.contextWindow?.maxSize);
   if (currentSize == null || maxSize == null || maxSize <= 0) return null;
   return Math.max(0, Math.min(100, Math.round((currentSize / maxSize) * 100)));
 }
 
-function resolveChatCacheHitPercent(snapshot: AIUsageSnapshotEvent | null): number | null {
+function resolveChatCacheHitPercent(
+  snapshot: AIUsageSnapshotEvent | null,
+): number | null {
   const promptDetails = snapshot?.usage?.chat?.promptTokensDetails;
   const hitTokens = readUsageNumber(promptDetails?.cacheHitTokens);
   const missTokens = readUsageNumber(promptDetails?.cacheMissTokens);
@@ -177,7 +185,9 @@ function formatUsagePercent(value: number | null): string {
   return value == null ? "--%" : `${value.toFixed(2)}%`;
 }
 
-function resolveChatEstimatedCost(snapshot: AIUsageSnapshotEvent | null): unknown {
+function resolveChatEstimatedCost(
+  snapshot: AIUsageSnapshotEvent | null,
+): unknown {
   return snapshot?.usage?.chat?.estimatedCost?.total;
 }
 
@@ -185,26 +195,13 @@ const UsageContextWindow: React.FC<{
   snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
 }> = ({ snapshot, t }) => {
-  const percent = resolveContextPercent(snapshot);
-  const progressValue = percent ?? 0;
-  const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
-  const cacheHitLabel = formatUsagePercent(cacheHitPercent);
-  const estimatedCostLabel = formatChatEstimatedCost(resolveChatEstimatedCost(snapshot));
+  const estimatedCostLabel = formatChatEstimatedCost(
+    resolveChatEstimatedCost(snapshot),
+  );
 
   return (
     <div className="usage-context-window">
       <div className="usage-context-metric">
-        <div
-          className="usage-context-ring"
-          style={
-            {
-              "--usage-context-percent": `${progressValue}%`,
-            } as React.CSSProperties
-          }
-          aria-label={t("topNav.usage.contextWindow")}
-        >
-          <span>{percent == null ? "--%" : `${percent}%`}</span>
-        </div>
         <div className="usage-context-copy">
           <span>{t("topNav.usage.contextWindow")}</span>
           <strong>
@@ -221,16 +218,13 @@ const UsageContextWindow: React.FC<{
           </small>
         </div>
       </div>
-      <div className="usage-context-inline-stats">
-        <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.cacheHitRate")}>
-          <span>{t("topNav.usage.cacheHitRate")}:</span>
-          <strong>{cacheHitLabel}</strong>
-        </div>
-        <div className="usage-cache-hit-inline" aria-label={t("topNav.usage.totalCost")}>
+        <div
+          className="usage-cache-hit-inline"
+          aria-label={t("topNav.usage.totalCost")}
+        >
           <span>{t("topNav.usage.totalCost")}:</span>
           <strong>{estimatedCostLabel}</strong>
         </div>
-      </div>
     </div>
   );
 };
@@ -252,7 +246,7 @@ const UsageTriggerRing: React.FC<{
       }
       aria-label={label}
     >
-      <span>{percent == null ? "--" : `${percent}%`}</span>
+      <span>{percent == null ? "-" : `${percent}`}</span>
     </span>
   );
 };
@@ -376,7 +370,8 @@ export const TopNav: React.FC = () => {
     !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
   const usageSnapshot = state.usageSnapshot;
   const compactUsage = resolveLatestCompactUsage(state.events);
-  const showUsageControl = Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
+  const showUsageControl =
+    Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
@@ -472,6 +467,9 @@ export const TopNav: React.FC = () => {
       tab,
     });
   };
+  const percent = resolveContextPercent(usageSnapshot);
+  const cacheHitPercent = resolveChatCacheHitPercent(usageSnapshot);
+  const cacheHitLabel = formatUsagePercent(cacheHitPercent);
 
   return (
     <nav className="top-nav">
@@ -515,32 +513,60 @@ export const TopNav: React.FC = () => {
                     role="dialog"
                     aria-label={t("topNav.usage.title")}
                   >
-                    <div className="usage-popover-header">
-                      <div>
-                        <strong>{t("topNav.usage.title")}</strong>
-                        {usageSnapshot?.model?.key ? (
-                          <span>{usageSnapshot.model.key}</span>
-                        ) : null}
-                      </div>
-                      <UiButton
-                        className="usage-popover-close"
-                        variant="ghost"
-                        size="sm"
-                        iconOnly
-                        aria-label={t("topNav.usage.close")}
-                        title={t("topNav.usage.close")}
-                        onClick={handleCloseUsagePopover}
+                    <Flex gap={10}>
+                      <div
+                        className="usage-context-ring"
+                        style={
+                          {
+                            "--usage-context-percent": `${percent ?? 0}%`,
+                          } as React.CSSProperties
+                        }
+                        aria-label={t("topNav.usage.contextWindow")}
                       >
-                        <span
-                          className="usage-popover-close-glyph"
-                          aria-hidden="true"
-                        />
-                      </UiButton>
-                    </div>
-                    <UsageContextWindow snapshot={usageSnapshot} t={t} />
+                        <span>{percent == null ? "--%" : `${percent}%`}</span>
+                      </div>
+                      <Flex vertical style={{ flex: 1 }}>
+                        <div className="usage-popover-header">
+                          <Flex gap={8} align="center">
+                            <strong>{t("topNav.usage.title")}</strong>
+                            <span>
+                              {usageSnapshot?.model?.key ||
+                                t("topNav.usage.modelUnknown")}
+                            </span>
+                          </Flex>
+                          <Flex align="center" gap={8}>
+                            <div
+                              className="usage-cache-hit-inline"
+                              aria-label={t("topNav.usage.cacheHitRate")}
+                            >
+                              <span>{t("topNav.usage.cacheHitRate")}:</span>
+                              <strong>{cacheHitLabel}</strong>
+                            </div>
+                            <UiButton
+                              className="usage-popover-close"
+                              variant="ghost"
+                              size="sm"
+                              iconOnly
+                              aria-label={t("topNav.usage.close")}
+                              title={t("topNav.usage.close")}
+                              onClick={handleCloseUsagePopover}
+                            >
+                              <span
+                                className="usage-popover-close-glyph"
+                                aria-hidden="true"
+                              />
+                            </UiButton>
+                          </Flex>
+                        </div>
+                        <UsageContextWindow snapshot={usageSnapshot} t={t} />
+                      </Flex>
+                    </Flex>
                     <UsageSection
                       title={t("topNav.usage.section.current")}
-                      metrics={buildUsageMetrics(t, usageSnapshot?.usage?.current)}
+                      metrics={buildUsageMetrics(
+                        t,
+                        usageSnapshot?.usage?.current,
+                      )}
                       aside={
                         <UsageCallCounts
                           t={t}
@@ -572,12 +598,7 @@ export const TopNav: React.FC = () => {
                       <UsageSection
                         title={t("topNav.usage.section.compact")}
                         metrics={buildUsageMetrics(t, compactUsage)}
-                        aside={
-                          <UsageCallCounts
-                            t={t}
-                            stats={compactUsage}
-                          />
-                        }
+                        aside={<UsageCallCounts t={t} stats={compactUsage} />}
                       />
                     ) : null}
                   </div>

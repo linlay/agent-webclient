@@ -115,7 +115,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Open usage stats");
-		expect(html).toContain(">50%</span>");
+		expect(html).toContain(">50</span>");
 		expect(html).toContain('aria-label="3.7K"');
 		expect(html).not.toContain("1.2K");
 		expect(html).not.toContain("Cache hit rate");
@@ -150,7 +150,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain('aria-label="3.7K"');
-		expect(html).toContain(">50%</span>");
+		expect(html).toContain(">50</span>");
 		expect(html).not.toContain('aria-label="Usage"');
 	});
 
@@ -174,7 +174,6 @@ describe("TopNav", () => {
 		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
 		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
 		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
-		expect(html).not.toContain("Unknown model");
 		expect(html).not.toContain("Waiting for usage stats");
 	});
 

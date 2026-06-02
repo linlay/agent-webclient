@@ -322,13 +322,9 @@
 }
 
 .chat-running-status {
-    font-size: 10px;
-    color: var(--accent-electric-strong);
-    white-space: nowrap;
-    background:
-        color-mix(in srgb, var(--accent-electric) 10%, transparent);
-    border-radius: 20px;
-    padding: 2px 6px;
+    animation: ui-spin 1s linear infinite;
+    font-size: 14px;
+    margin-right: 2px;
 }
 
 .chat-meta-line {

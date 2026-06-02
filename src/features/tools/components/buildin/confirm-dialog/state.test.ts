@@ -17,6 +17,10 @@ import {
   hasAwaitingQuestions,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
+import {
+  configureI18nRuntime,
+  getDefaultTermsForLocale,
+} from "@/shared/i18n";
 
 function createQuestion(question: string): AIAwaitQuestion {
   return {
@@ -31,6 +35,14 @@ function createQuestion(question: string): AIAwaitQuestion {
 }
 
 describe("confirm dialog state helpers", () => {
+  afterEach(() => {
+    configureI18nRuntime({
+      locale: "zh-CN",
+      fallbackLocale: "zh-CN",
+      terms: getDefaultTermsForLocale("zh-CN"),
+    });
+  });
+
   it("treats empty questions as loading instead of ready", () => {
     expect(hasAwaitingQuestions([])).toBe(false);
     expect(hasAwaitingQuestions(undefined)).toBe(false);
@@ -179,6 +191,35 @@ describe("confirm dialog state helpers", () => {
       index: 1,
       message: "请选择一个选项",
     });
+  });
+
+  it("localizes validation errors from the active runtime locale", () => {
+    configureI18nRuntime({
+      locale: "en-US",
+      fallbackLocale: "en-US",
+      terms: getDefaultTermsForLocale("en-US"),
+    });
+
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.Date,
+          question: "Date",
+        },
+        { question: "Date", answer: "2026-02-30" },
+      ),
+    ).toBe("Choose a valid date in YYYY-MM-DD format.");
+
+    expect(
+      getAwaitingAnswerError(
+        {
+          type: AIAwaitQuestionType.Select,
+          question: "Continue?",
+          options: [{ label: "Yes" }],
+        },
+        { question: "Continue?" },
+      ),
+    ).toBe("Choose one option.");
   });
 
   it("tracks select free text separately from option values", () => {

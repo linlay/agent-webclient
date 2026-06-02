@@ -22,9 +22,14 @@ const originalWarn = console.warn;
 
 jest.mock('antd', () => {
   const ReactRuntime = require('react');
+  const Checkbox = ({ children, ...props }: Record<string, unknown>) =>
+    ReactRuntime.createElement('label', props, children);
+  Checkbox.Group = ({ children, ...props }: Record<string, unknown>) =>
+    ReactRuntime.createElement('div', props, children);
   return {
-    Button: ({ children, ...props }: Record<string, unknown>) =>
+    Button: ({ children, loading: _loading, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('button', props, children),
+    Checkbox,
     Flex: ({ children, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('div', props, children),
     Input: (props: Record<string, unknown>) =>
@@ -89,7 +94,7 @@ describe('AwaitingHtmlContainer', () => {
     console.warn = originalWarn;
   });
 
-  it('renders a single submit line and no footer action buttons', () => {
+  it('renders footer options with ignore and submit actions', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
@@ -98,6 +103,7 @@ describe('AwaitingHtmlContainer', () => {
 
     expect(html).toContain('提交');
     expect(html).toContain('拒绝');
+    expect(html).toContain('忽略');
     expect(html).not.toContain('驳回');
   });
 
@@ -113,21 +119,37 @@ describe('AwaitingHtmlContainer', () => {
     );
   });
 
-  it('renders only the submit line and reject input in the footer', () => {
+  it('renders approve and reject as checkgroup options in the footer', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
       }),
     );
 
-    expect(html).toContain('awaiting-panel-submit-lead');
-    expect(html).toContain(
-      '<span class="awaiting-panel-submit-lead">同意</span>',
-    );
-    expect(html).toContain(
-      '<span class="awaiting-panel-submit-tail">可以修改表单内容并提交</span>',
-    );
+    expect(html).toContain('awaiting-panel-checkgroup');
+    expect(html).toContain('awaiting-panel-option-label">同意</span>');
+    expect(html).toContain('awaiting-panel-option-label">拒绝</span>');
+    expect(html).toContain('可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
+  });
+
+  it('renders footer labels from the active locale', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: 'en-US', fallbackLocale: 'en-US', persistLocale: false },
+        React.createElement(AwaitingHtmlContainer, {
+          data: createActiveAwaiting(),
+        }),
+      ),
+    );
+
+    expect(html).toContain('awaiting-panel-option-label">Approve</span>');
+    expect(html).toContain('awaiting-panel-option-label">Reject</span>');
+    expect(html).toContain('Edit the form contents and submit.');
+    expect(html).toContain(
+      'placeholder="Enter a reject reason. You can still edit the form contents."',
+    );
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {

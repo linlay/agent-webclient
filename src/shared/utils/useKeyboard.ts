@@ -58,6 +58,8 @@ export const useKeyboard = (props: UseKeyboardProps) => {
         callbackRef.current?.onEnter
           ? callbackRef.current?.onEnter(activeElement)
           : activeElement?.click();
+      } else {
+        callbackRef.current?.onKeyDown?.(e);
       }
     } else if (key === "escape") {
       callbackRef.current?.onClose?.();
