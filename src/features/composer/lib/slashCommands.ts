@@ -131,7 +131,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'voice',  
     icon: 'volume_up',
-    command: '/voice',
+    command: '/call',
     labelKey: 'slash.command.voice.label',
     descriptionKey: 'slash.command.voice.description',
     keywords: ['voice', 'speech', 'call', 'mic'],
