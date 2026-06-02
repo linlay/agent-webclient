@@ -116,10 +116,17 @@
 }
 
 .brand-logo {
-    background-color: var(--accent);
-    color: #fff;
-    padding: 5px 12px;
-    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+}
+
+.brand-logo svg {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .brand-cluster {
