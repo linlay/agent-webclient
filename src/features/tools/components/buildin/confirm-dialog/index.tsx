@@ -543,6 +543,7 @@ const Question = forwardRef<
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
           onPressEnter={(e) => {
+            e.preventDefault();
             if (e.currentTarget.value.trim()) {
               onEnter();
             }
@@ -564,6 +565,7 @@ const Question = forwardRef<
           value={typeof value?.answer === "string" ? value.answer : ""}
           onChange={(e) => setAnswer({ answer: e.target.value })}
           onPressEnter={(e) => {
+            e.preventDefault();
             if (e.currentTarget.value.trim()) {
               onEnter();
             }
