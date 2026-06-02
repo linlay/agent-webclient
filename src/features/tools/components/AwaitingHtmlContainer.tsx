@@ -950,9 +950,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             >
               <Flex gap={10} align="center">
                 <span>1.</span>
-                <span className="awaiting-panel-option-label">同意</span>
+                <span className="awaiting-panel-option-label">
+                  {t("awaiting.action.approve")}
+                </span>
                 <span className="awaiting-panel-submit-tail">
-                  可以修改表单内容并提交
+                  {t("awaiting.hint.submitEditable")}
                 </span>
                 <span className="Selected">{t("approvalDialog.selected")}</span>
               </Flex>

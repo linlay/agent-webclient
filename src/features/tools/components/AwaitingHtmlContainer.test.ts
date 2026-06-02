@@ -129,7 +129,27 @@ describe('AwaitingHtmlContainer', () => {
     expect(html).toContain('awaiting-panel-checkgroup');
     expect(html).toContain('awaiting-panel-option-label">同意</span>');
     expect(html).toContain('awaiting-panel-option-label">拒绝</span>');
+    expect(html).toContain('可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
+  });
+
+  it('renders footer labels from the active locale', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: 'en-US', fallbackLocale: 'en-US', persistLocale: false },
+        React.createElement(AwaitingHtmlContainer, {
+          data: createActiveAwaiting(),
+        }),
+      ),
+    );
+
+    expect(html).toContain('awaiting-panel-option-label">Approve</span>');
+    expect(html).toContain('awaiting-panel-option-label">Reject</span>');
+    expect(html).toContain('Edit the form contents and submit.');
+    expect(html).toContain(
+      'placeholder="Enter a reject reason. You can still edit the form contents."',
+    );
   });
 
   it('posts collect messages, enters collecting state, and times out if iframe does not submit', () => {

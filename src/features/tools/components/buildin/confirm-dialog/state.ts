@@ -4,6 +4,7 @@ import {
   type AIAwaitQuestionOption,
   type AIAwaitQuestionSubmitParamData,
 } from "@/app/state/types";
+import { t } from "@/shared/i18n";
 
 export function hasAwaitingQuestions(
   questions: AIAwaitQuestion[] | null | undefined,
@@ -216,13 +217,13 @@ export function getAwaitingAnswerError(
     question.type === AIAwaitQuestionType.Text ||
     question.type === AIAwaitQuestionType.Password
   ) {
-    return hasTextAnswer(value) ? null : "请输入内容";
+    return hasTextAnswer(value) ? null : t("confirmDialog.validation.text");
   }
 
   if (question.type === AIAwaitQuestionType.Number) {
     return typeof value?.answer === "number" && Number.isFinite(value.answer)
       ? null
-      : "请输入数字";
+      : t("confirmDialog.validation.number");
   }
 
   if (
@@ -231,7 +232,9 @@ export function getAwaitingAnswerError(
   ) {
     return isValidAwaitingDateAnswer(question, value?.answer)
       ? null
-      : `请选择有效日期，格式为 ${getAwaitingDateFormat(question)}`;
+      : t("confirmDialog.validation.date", {
+          format: getAwaitingDateFormat(question),
+        });
   }
 
   if (question.type === AIAwaitQuestionType.MultiSelect) {
@@ -241,11 +244,11 @@ export function getAwaitingAnswerError(
     )[0]?.answers;
     return Array.isArray(answers) && answers.length > 0
       ? null
-      : "请至少选择一个选项";
+      : t("confirmDialog.validation.multiSelect");
   }
 
   if (question.type === AIAwaitQuestionType.Select) {
-    return hasTextAnswer(value) ? null : "请选择一个选项";
+    return hasTextAnswer(value) ? null : t("confirmDialog.validation.select");
   }
 
   return null;
