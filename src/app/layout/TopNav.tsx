@@ -182,7 +182,7 @@ function resolveChatEstimatedCost(snapshot: AIUsageSnapshotEvent | null): unknow
 }
 
 const UsageContextWindow: React.FC<{
-  snapshot: AIUsageSnapshotEvent;
+  snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
 }> = ({ snapshot, t }) => {
   const percent = resolveContextPercent(snapshot);
@@ -208,14 +208,14 @@ const UsageContextWindow: React.FC<{
         <div className="usage-context-copy">
           <span>{t("topNav.usage.contextWindow")}</span>
           <strong>
-            {formatUsageNumber(snapshot.contextWindow?.currentSize)}
+            {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
             {" / "}
-            {formatUsageNumber(snapshot.contextWindow?.maxSize)}
+            {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
           </strong>
           <small>
             {t("topNav.usage.estimatedNext", {
               value: formatUsageNumber(
-                snapshot.contextWindow?.estimatedNextCallSize,
+                snapshot?.contextWindow?.estimatedNextCallSize,
               ),
             })}
           </small>
@@ -518,10 +518,9 @@ export const TopNav: React.FC = () => {
                     <div className="usage-popover-header">
                       <div>
                         <strong>{t("topNav.usage.title")}</strong>
-                        <span>
-                          {usageSnapshot?.model?.key ||
-                            t("topNav.usage.modelUnknown")}
-                        </span>
+                        {usageSnapshot?.model?.key ? (
+                          <span>{usageSnapshot.model.key}</span>
+                        ) : null}
                       </div>
                       <UiButton
                         className="usage-popover-close"
@@ -538,61 +537,49 @@ export const TopNav: React.FC = () => {
                         />
                       </UiButton>
                     </div>
-                    {usageSnapshot || compactUsage ? (
-                      <>
-                        {usageSnapshot ? (
-                          <>
-                            <UsageContextWindow snapshot={usageSnapshot} t={t} />
-                            <UsageSection
-                              title={t("topNav.usage.section.current")}
-                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.current)}
-                              aside={
-                                <UsageCallCounts
-                                  t={t}
-                                  stats={usageSnapshot.usage?.current}
-                                />
-                              }
-                            />
-                            <UsageSection
-                              title={t("topNav.usage.section.run")}
-                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.run)}
-                              aside={
-                                <UsageCallCounts
-                                  t={t}
-                                  stats={usageSnapshot.usage?.run}
-                                />
-                              }
-                            />
-                            <UsageSection
-                              title={t("topNav.usage.section.chat")}
-                              metrics={buildUsageMetrics(t, usageSnapshot.usage?.chat)}
-                              aside={
-                                <UsageCallCounts
-                                  t={t}
-                                  stats={usageSnapshot.usage?.chat}
-                                />
-                              }
-                            />
-                          </>
-                        ) : null}
-                        {compactUsage ? (
-                          <UsageSection
-                            title={t("topNav.usage.section.compact")}
-                            metrics={buildUsageMetrics(t, compactUsage)}
-                            aside={
-                              <UsageCallCounts
-                                t={t}
-                                stats={compactUsage}
-                              />
-                            }
+                    <UsageContextWindow snapshot={usageSnapshot} t={t} />
+                    <UsageSection
+                      title={t("topNav.usage.section.current")}
+                      metrics={buildUsageMetrics(t, usageSnapshot?.usage?.current)}
+                      aside={
+                        <UsageCallCounts
+                          t={t}
+                          stats={usageSnapshot?.usage?.current}
+                        />
+                      }
+                    />
+                    <UsageSection
+                      title={t("topNav.usage.section.run")}
+                      metrics={buildUsageMetrics(t, usageSnapshot?.usage?.run)}
+                      aside={
+                        <UsageCallCounts
+                          t={t}
+                          stats={usageSnapshot?.usage?.run}
+                        />
+                      }
+                    />
+                    <UsageSection
+                      title={t("topNav.usage.section.chat")}
+                      metrics={buildUsageMetrics(t, usageSnapshot?.usage?.chat)}
+                      aside={
+                        <UsageCallCounts
+                          t={t}
+                          stats={usageSnapshot?.usage?.chat}
+                        />
+                      }
+                    />
+                    {compactUsage ? (
+                      <UsageSection
+                        title={t("topNav.usage.section.compact")}
+                        metrics={buildUsageMetrics(t, compactUsage)}
+                        aside={
+                          <UsageCallCounts
+                            t={t}
+                            stats={compactUsage}
                           />
-                        ) : null}
-                      </>
-                    ) : (
-                      <p className="usage-popover-empty">
-                        {t("topNav.usage.waiting")}
-                      </p>
-                    )}
+                        }
+                      />
+                    ) : null}
                   </div>
                 ) : null}
               </div>

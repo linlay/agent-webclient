@@ -154,6 +154,30 @@ describe("TopNav", () => {
 		expect(html).not.toContain('aria-label="Usage"');
 	});
 
+	it("renders usage popover placeholders while waiting for the first streaming snapshot", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			streaming: true,
+			usagePopoverOpen: true,
+			usageSnapshot: null,
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Usage stats");
+		expect(html).toContain("Context window");
+		expect(html).toContain("Current call");
+		expect(html).toContain("Latest run");
+		expect(html).toContain("Chat total");
+		expect(html).toContain("Estimated next call -");
+		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
+		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
+		expect(html).not.toContain("Unknown model");
+		expect(html).not.toContain("Waiting for usage stats");
+	});
+
 	it("renders an empty cache hit rate in the usage popover when chat cache tokens are zero or missing", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
