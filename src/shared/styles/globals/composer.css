@@ -723,6 +723,78 @@
     gap: 2px;
 }
 
+.awaiting-panel-checkgroup {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.awaiting-panel-option-row {
+    width: 100%;
+}
+
+.awaiting-panel-option {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.awaiting-panel-option:hover,
+.awaiting-panel-option:focus-within {
+    background-color: var(--bg-hover);
+}
+
+.awaiting-panel-option .awaiting-panel-option-label {
+    color: var(--text-main);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.awaiting-panel-option .Selected {
+    color: var(--colorTextSecondary);
+    background-color: var(--bg-hover);
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: none;
+    white-space: nowrap;
+}
+
+.awaiting-panel-checkgroup .ant-checkbox {
+    display: none;
+}
+
+.awaiting-panel-checkgroup .ant-checkbox-wrapper>span:last-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.awaiting-panel-checkgroup .ant-checkbox-wrapper-checked .Selected {
+    display: block;
+}
+
+.awaiting-panel-checkgroup input {
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.awaiting-panel-checkgroup input::placeholder {
+    font-size: 12px;
+}
+
+.awaiting-panel-confirm {
+    flex-shrink: 0;
+}
+
+.awaiting-panel-ignore-button {
+    color: var(--text-muted);
+}
+
 .awaiting-panel-submit-line.ant-btn {
     width: 100%;
     min-height: 40px;
