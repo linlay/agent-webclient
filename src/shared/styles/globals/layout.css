@@ -430,19 +430,12 @@
 
 .usage-context-window {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     padding: 4px 6px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--accent-soft) 58%, transparent);
-}
-
-.usage-context-metric {
-    min-width: 0;
-    display: flex;
-    flex: 1 1 0;
-    align-items: center;
-    gap: 7px;
 }
 
 .usage-context-ring {

@@ -200,22 +200,20 @@ const UsageContextWindow: React.FC<{
 
   return (
     <div className="usage-context-window">
-      <div className="usage-context-metric">
-        <div className="usage-context-copy">
-          <span>{t("topNav.usage.contextWindow")}</span>
-          <strong>
-            {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
-            {" / "}
-            {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
-          </strong>
-          <small>
-            {t("topNav.usage.estimatedNext", {
-              value: formatUsageNumber(
-                snapshot?.contextWindow?.estimatedNextCallSize,
-              ),
-            })}
-          </small>
-        </div>
+      <div className="usage-context-copy">
+        <span>{t("topNav.usage.contextWindow")}</span>
+        <strong>
+          {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
+          {" / "}
+          {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
+        </strong>
+        <small>
+          {t("topNav.usage.estimatedNext", {
+            value: formatUsageNumber(
+              snapshot?.contextWindow?.estimatedNextCallSize,
+            ),
+          })}
+        </small>
       </div>
 
       <div
