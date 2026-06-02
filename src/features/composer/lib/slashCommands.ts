@@ -35,6 +35,7 @@ export interface SlashCommandAvailability {
   streaming: boolean;
   hasLatestQuery: boolean;
   isFrontendActive: boolean;
+  canUsePlanningMode: boolean;
   canUseVoiceMode: boolean;
   hasActiveChat: boolean;
   hasCurrentWorker: boolean;
@@ -147,7 +148,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'plan',
     icon: 'checklist',
-    command: '/plan',
+    command: '/planning',
     labelKey: 'slash.command.plan.label',
     descriptionKey: 'slash.command.plan.description',
     keywords: ['plan'],
@@ -216,6 +217,9 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
+  }
+  if (commandId === 'plan') {
+    return !availability.canUsePlanningMode;
   }
   if (commandId === 'automation' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandModalOpen;

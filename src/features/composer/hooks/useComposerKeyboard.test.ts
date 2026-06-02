@@ -12,6 +12,7 @@ function renderKeyboardHook(
     executeSlashCommand: jest.fn(),
     handleSend: jest.fn(),
     onTogglePlanningMode: jest.fn(),
+    canUsePlanningMode: true,
     isComposingRef: { current: false },
     isVoiceMode: false,
     mentionActiveIndex: 0,
@@ -61,6 +62,24 @@ describe("useComposerKeyboard", () => {
     handler({
       key: "Tab",
       shiftKey: false,
+      preventDefault,
+    } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
+
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(onTogglePlanningMode).not.toHaveBeenCalled();
+  });
+
+  it("ignores Shift+Tab when planning mode is unavailable", () => {
+    const onTogglePlanningMode = jest.fn();
+    const preventDefault = jest.fn();
+    const handler = renderKeyboardHook({
+      canUsePlanningMode: false,
+      onTogglePlanningMode,
+    });
+
+    handler({
+      key: "Tab",
+      shiftKey: true,
       preventDefault,
     } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
 

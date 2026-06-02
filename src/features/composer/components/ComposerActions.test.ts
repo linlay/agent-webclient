@@ -41,6 +41,7 @@ describe("ComposerActions", () => {
     isStreaming: false,
     modelOverride: {},
     planningMode: false,
+    canUsePlanningMode: true,
     voiceEnabled: true,
     hasUploadingAttachments: false,
     speechListening: false,

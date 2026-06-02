@@ -89,6 +89,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "").trim().toUpperCase() === "CODER";
+
+  useEffect(() => {
+    if (state.planningMode && !planningModeAvailable) {
+      dispatch({ type: "SET_PLANNING_MODE", enabled: false });
+    }
+  }, [dispatch, planningModeAvailable, state.planningMode]);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -199,11 +205,17 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   ]);
 
   const togglePlanningMode = useCallback(() => {
+    if (!planningModeAvailable) {
+      if (state.planningMode) {
+        dispatch({ type: "SET_PLANNING_MODE", enabled: false });
+      }
+      return;
+    }
     dispatch({
       type: "SET_PLANNING_MODE",
       enabled: !state.planningMode,
     });
-  }, [dispatch, state.planningMode]);
+  }, [dispatch, planningModeAvailable, state.planningMode]);
 
   const {
     speechSupported,
@@ -224,6 +236,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       streaming: state.streaming,
       hasLatestQuery: Boolean(latestQueryText),
       isFrontendActive,
+      canUsePlanningMode: planningModeAvailable,
       canUseVoiceMode: Boolean(voiceModeAvailable),
       hasActiveChat: Boolean(String(state.chatId || "").trim()),
       hasCurrentWorker: Boolean(currentWorker),
@@ -240,6 +253,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state.streaming,
       state.workerRows.length,
       voiceModeAvailable,
+      planningModeAvailable,
     ],
   );
 
@@ -335,6 +349,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     executeSlashCommand,
     handleSend,
     onTogglePlanningMode: togglePlanningMode,
+    canUsePlanningMode: planningModeAvailable,
     isComposingRef,
     isVoiceMode,
     mentionActiveIndex: state.mentionActiveIndex,
@@ -545,6 +560,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isStreaming={state.streaming}
                   modelOverride={modelOverride}
                   planningMode={state.planningMode}
+                  canUsePlanningMode={planningModeAvailable}
                   voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
                   speechListening={speechListening}

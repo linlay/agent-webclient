@@ -100,6 +100,7 @@ describe('slashCommands', () => {
       streaming: true,
       hasLatestQuery: false,
       isFrontendActive: true,
+      canUsePlanningMode: false,
       canUseVoiceMode: false,
       hasActiveChat: false,
       hasCurrentWorker: false,
@@ -113,9 +114,31 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('learn', availability)).toBe(true);
     expect(isSlashCommandDisabled('compact', availability)).toBe(true);
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
+    expect(isSlashCommandDisabled('plan', availability)).toBe(true);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
+  });
+
+  it('enables the plan command only for planning-capable workers', () => {
+    const availability = {
+      streaming: false,
+      hasLatestQuery: true,
+      isFrontendActive: false,
+      canUsePlanningMode: true,
+      canUseVoiceMode: true,
+      hasActiveChat: true,
+      hasCurrentWorker: true,
+      workerHistoryCount: 0,
+      workerCount: 1,
+      commandModalOpen: false,
+    };
+
+    expect(isSlashCommandDisabled('plan', availability)).toBe(false);
+    expect(isSlashCommandDisabled('plan', {
+      ...availability,
+      canUsePlanningMode: false,
+    })).toBe(true);
   });
 
   it('finds the most recent user query from timeline nodes', () => {

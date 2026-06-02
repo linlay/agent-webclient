@@ -18,6 +18,7 @@ interface ComposerActionsProps {
   isStreaming: boolean;
   modelOverride: QueryModelOverride;
   planningMode: boolean;
+  canUsePlanningMode: boolean;
   voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
   speechListening: boolean;
@@ -37,6 +38,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   isStreaming,
   modelOverride,
   planningMode,
+  canUsePlanningMode,
   voiceEnabled,
   hasUploadingAttachments,
   speechListening,
@@ -76,7 +78,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         >
           <MaterialIcon name="add" />
         </UiButton>
-        {planningMode && (
+        {planningMode && canUsePlanningMode && (
           <Tooltip
             title={
               <Flex align="center" vertical style={{fontSize: 12}}>
