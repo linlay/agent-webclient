@@ -168,7 +168,7 @@ export const enUSMessages: I18nMessages = {
   "composer.steer.submit": "Steer",
   "composer.steer.unavailable": "The current run is no longer steerable. Your text was restored to the input.",
   "composer.tooltip.createPlan": "Create plan",
-  "composer.tooltip.planShortcut": "Shift + Tab to toggle",
+  "composer.tooltip.planShortcut": "to toggle",
   "composer.voice.assistantLabel": "Assistant reply",
   "composer.voice.assistantPlaceholder": "Waiting for a reply...",
   "composer.voice.assistantThinkingPlaceholder": "Drafting a reply...",

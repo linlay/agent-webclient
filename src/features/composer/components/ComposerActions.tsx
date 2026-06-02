@@ -10,6 +10,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
+import { CloseCircleFilled } from "@ant-design/icons";
 
 interface ComposerActionsProps {
   accessLevel: QueryAccessLevel;
@@ -81,9 +82,11 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         {planningMode && canUsePlanningMode && (
           <Tooltip
             title={
-              <Flex align="center" vertical style={{fontSize: 12}}>
+              <Flex align="center" vertical style={{ fontSize: 12 }}>
                 <div>{t("composer.tooltip.createPlan")}</div>
-                <div>{t("composer.tooltip.planShortcut")}</div>
+                <div>
+                  <code className="plan-toggle-shortcut">Shift + Tab</code> {t("composer.tooltip.planShortcut")}
+                </div>
               </Flex>
             }
           >
@@ -94,7 +97,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onClick={onTogglePlanningMode}
             >
               <MaterialIcon name="checklist" className="plan-toggle-icon" />
-              <MaterialIcon name="close" className="plan-toggle-close-icon" />
+              <CloseCircleFilled className="plan-toggle-close-icon" />
               <span>{t("composer.actions.plan")}</span>
             </UiButton>
           </Tooltip>

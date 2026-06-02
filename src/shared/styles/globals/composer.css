@@ -337,13 +337,24 @@
 }
 .plan-toggle-btn.ui-btn.ui-btn-sm{
     font-size: 13px;
+    padding: 0 8px;
 }
 .plan-toggle-btn:hover .plan-toggle-icon {
     display: none;
 }
-
+.plan-toggle-close-icon{
+    font-size: 18px;
+    transform: scale(.8);
+}
 .plan-toggle-btn:not(:hover) .plan-toggle-close-icon {
     display: none;
+}
+.plan-toggle-shortcut{
+    font-size: 10px;
+    background: var(--colorFillSecondary);
+    padding: 5px 7px;
+    border-radius: 6px;
+    color: var(--text-sub);
 }
 
 .composer-plus-btn {

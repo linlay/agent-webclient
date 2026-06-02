@@ -168,7 +168,7 @@ export const zhCNMessages: I18nMessages = {
   "composer.steer.submit": "引导",
   "composer.steer.unavailable": "当前运行已经不可引导，已把内容放回输入框。",
   "composer.tooltip.createPlan": "创建计划",
-  "composer.tooltip.planShortcut": "Shift + Tab 切换",
+  "composer.tooltip.planShortcut": "切换",
   "composer.voice.assistantLabel": "助手回复",
   "composer.voice.assistantPlaceholder": "等待回答...",
   "composer.voice.assistantThinkingPlaceholder": "正在组织回答...",
