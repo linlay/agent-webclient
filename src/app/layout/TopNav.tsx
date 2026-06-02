@@ -195,9 +195,8 @@ const UsageContextWindow: React.FC<{
   snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
 }> = ({ snapshot, t }) => {
-  const estimatedCostLabel = formatChatEstimatedCost(
-    resolveChatEstimatedCost(snapshot),
-  );
+  const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
+  const cacheHitLabel = formatUsagePercent(cacheHitPercent);
 
   return (
     <div className="usage-context-window">
@@ -218,13 +217,14 @@ const UsageContextWindow: React.FC<{
           </small>
         </div>
       </div>
-        <div
-          className="usage-cache-hit-inline"
-          aria-label={t("topNav.usage.totalCost")}
-        >
-          <span>{t("topNav.usage.totalCost")}:</span>
-          <strong>{estimatedCostLabel}</strong>
-        </div>
+
+      <div
+        className="usage-cache-hit-inline"
+        aria-label={t("topNav.usage.cacheHitRate")}
+      >
+        <span>{t("topNav.usage.cacheHitRate")}:</span>
+        <strong>{cacheHitLabel}</strong>
+      </div>
     </div>
   );
 };
@@ -468,9 +468,9 @@ export const TopNav: React.FC = () => {
     });
   };
   const percent = resolveContextPercent(usageSnapshot);
-  const cacheHitPercent = resolveChatCacheHitPercent(usageSnapshot);
-  const cacheHitLabel = formatUsagePercent(cacheHitPercent);
-
+  const estimatedCostLabel = formatChatEstimatedCost(
+    resolveChatEstimatedCost(usageSnapshot),
+  );
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
@@ -513,7 +513,7 @@ export const TopNav: React.FC = () => {
                     role="dialog"
                     aria-label={t("topNav.usage.title")}
                   >
-                    <Flex gap={10}>
+                    <Flex gap={10} align="center">
                       <div
                         className="usage-context-ring"
                         style={
@@ -537,10 +537,10 @@ export const TopNav: React.FC = () => {
                           <Flex align="center" gap={8}>
                             <div
                               className="usage-cache-hit-inline"
-                              aria-label={t("topNav.usage.cacheHitRate")}
+                              aria-label={t("topNav.usage.totalCost")}
                             >
-                              <span>{t("topNav.usage.cacheHitRate")}:</span>
-                              <strong>{cacheHitLabel}</strong>
+                              <span>{t("topNav.usage.totalCost")}:</span>
+                              <strong>{estimatedCostLabel}</strong>
                             </div>
                             <UiButton
                               className="usage-popover-close"
