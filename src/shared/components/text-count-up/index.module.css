@@ -13,9 +13,10 @@
 }
 
 .Digit {
-  --digit: 0;
   --digit-delay: 0s;
   --digit-duration: 0.8s;
+  --from-digit: 0;
+  --to-digit: 0;
 
   display: inline-block;
   height: 1em;
@@ -27,7 +28,7 @@
 .DigitList {
   display: flex;
   flex-direction: column;
-  transform: translateY(calc(var(--digit) * -1em));
+  transform: translateY(calc(var(--to-digit) * -1em));
   animation: digitCount var(--digit-duration) cubic-bezier(0.2, 0.8, 0.2, 1)
     both;
   animation-delay: var(--digit-delay);
@@ -41,10 +42,10 @@
 
 @keyframes digitCount {
   from {
-    transform: translateY(0);
+    transform: translateY(calc(var(--from-digit) * -1em));
   }
   to {
-    transform: translateY(calc(var(--digit) * -1em));
+    transform: translateY(calc(var(--to-digit) * -1em));
   }
 }
 
