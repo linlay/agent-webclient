@@ -306,64 +306,6 @@
     letter-spacing: 0;
 }
 
-.usage-trigger-total {
-    display: inline-flex;
-    align-items: center;
-    height: 14px;
-    font:
-        600 11px/1.2 "IBM Plex Mono",
-        monospace;
-    white-space: nowrap;
-}
-
-.usage-trigger-total-viewport {
-    display: inline-flex;
-    align-items: center;
-    height: 14px;
-    overflow: hidden;
-}
-
-.usage-trigger-total-column {
-    display: inline-block;
-    width: 0.72em;
-    height: 14px;
-    overflow: hidden;
-}
-
-.usage-trigger-total-column.is-padding {
-    visibility: hidden;
-}
-
-.usage-trigger-total-stack {
-    display: flex;
-    flex-direction: column;
-    transform: translateY(-50%);
-    animation: usage-total-wheel 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.usage-trigger-total-stack span {
-    display: block;
-    height: 14px;
-    line-height: 14px;
-    text-align: center;
-}
-
-@keyframes usage-total-wheel {
-    from {
-        transform: translateY(0);
-    }
-
-    to {
-        transform: translateY(-50%);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .usage-trigger-total-stack {
-        animation: none;
-    }
-}
-
 .usage-popover {
     position: absolute;
     z-index: 50;

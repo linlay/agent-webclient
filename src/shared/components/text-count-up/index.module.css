@@ -1,0 +1,68 @@
+.TextCountUp {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+.Char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.35em);
+  animation: charEnter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.Digit {
+  --digit: 0;
+  --digit-delay: 0s;
+  --digit-duration: 0.8s;
+
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  line-height: 1;
+  vertical-align: baseline;
+}
+
+.DigitList {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--digit) * -1em));
+  animation: digitCount var(--digit-duration) cubic-bezier(0.2, 0.8, 0.2, 1)
+    both;
+  animation-delay: var(--digit-delay);
+}
+
+.DigitValue {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+@keyframes digitCount {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(var(--digit) * -1em));
+  }
+}
+
+@keyframes charEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Char {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .DigitList {
+    animation: none;
+  }
+}

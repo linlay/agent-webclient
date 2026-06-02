@@ -16,6 +16,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Divider, Flex, Progress } from "antd";
+import { TextCountUp } from "@/shared/components/text-count-up";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -249,45 +250,6 @@ const UsageTriggerRing: React.FC<{
   );
 };
 
-const UsageRollingTotal: React.FC<{ label: string }> = ({ label }) => {
-  const [previousLabel, setPreviousLabel] = React.useState(label);
-  const [displayLabel, setDisplayLabel] = React.useState(label);
-  const [animationKey, setAnimationKey] = React.useState(0);
-
-  React.useEffect(() => {
-    if (label === displayLabel) return;
-    setPreviousLabel(displayLabel);
-    setDisplayLabel(label);
-    setAnimationKey((current) => current + 1);
-  }, [displayLabel, label]);
-
-  const maxLength = Math.max(previousLabel.length, displayLabel.length);
-  const previousChars = previousLabel.padStart(maxLength, " ").split("");
-  const displayChars = displayLabel.padStart(maxLength, " ").split("");
-
-  return (
-    <span className="usage-trigger-total" aria-label={displayLabel}>
-      <span className="usage-trigger-total-viewport" aria-hidden="true">
-        {displayChars.map((char, index) => {
-          const previousChar = previousChars[index] ?? " ";
-          const isPadding = char === " " && previousChar === " ";
-          return (
-            <span
-              className={`usage-trigger-total-column ${isPadding ? "is-padding" : ""}`}
-              key={`${animationKey}-${index}-${char}`}
-            >
-              <span className="usage-trigger-total-stack">
-                <span>{previousChar}</span>
-                <span>{char}</span>
-              </span>
-            </span>
-          );
-        })}
-      </span>
-    </span>
-  );
-};
-
 const UsageSection: React.FC<{
   title: string;
   metrics: UsageMetric[];
@@ -500,8 +462,8 @@ export const TopNav: React.FC = () => {
                   {usageTotal == null ? (
                     t("topNav.usage.waitingShort")
                   ) : (
-                    <UsageRollingTotal
-                      label={formatCompactUsageNumber(usageTotal)}
+                    <TextCountUp
+                      text={formatCompactUsageNumber(usageTotal)}
                     />
                   )}
                 </UiButton>
