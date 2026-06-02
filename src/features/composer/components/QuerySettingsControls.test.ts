@@ -181,6 +181,30 @@ describe("QuerySettingsControls", () => {
     expect(html).not.toContain("正在加载模型");
   });
 
+  it("keeps access enabled when controls are disabled", () => {
+    resolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent",
+      raw: { mode: "CODER" },
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(QuerySettingsControls, {
+        accessLevel: "default",
+        disabled: true,
+        modelOverride: {},
+        onAccessLevelChange: jest.fn(),
+        onModelOverrideChange: jest.fn(),
+      }),
+    );
+
+    expect(html).toContain("默认权限");
+    expect(html).toContain("正在加载模型");
+    expect(html).toContain("disabled=\"\"");
+    expect(html).not.toContain(
+      "query-settings-btn ui-btn ui-btn-ghost ui-btn-sm\" disabled",
+    );
+  });
+
   it("loads global CODER model options", async () => {
     getModelOptions.mockResolvedValue({
       data: {

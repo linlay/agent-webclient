@@ -890,7 +890,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           className="query-settings-btn"
           variant="ghost"
           size="sm"
-          disabled={disabled}
           title={t("composer.query.access.title")}
           onClick={(event) => event.preventDefault()}
         >
