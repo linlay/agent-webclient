@@ -19,6 +19,7 @@ export type SlashCommandId =
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
+  icon: string;
   command: `/${string}`;
   labelKey: string;
   descriptionKey: string;
@@ -49,6 +50,7 @@ export interface SlashCommandFilterOptions {
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'new',
+    icon: 'edit_square',
     command: '/new',
     labelKey: 'slash.command.new.label',
     descriptionKey: 'slash.command.new.description',
@@ -56,6 +58,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'history',
+    icon: 'history',
     command: '/history',
     labelKey: 'slash.command.history.label',
     descriptionKey: 'slash.command.history.description',
@@ -63,13 +66,15 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'remember',
+    icon: 'psychology',
     command: '/remember',
     labelKey: 'slash.command.remember.label',
     descriptionKey: 'slash.command.remember.description',
     keywords: ['remember', 'memory', 'preference', 'fact'],
   },
   {
-    id: 'learn',
+    id: 'learn',  
+    icon: 'book_2',
     command: '/learn',
     labelKey: 'slash.command.learn.label',
     descriptionKey: 'slash.command.learn.description',
@@ -77,6 +82,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'compact',
+    icon: 'compress',
     command: '/compact',
     labelKey: 'slash.command.compact.label',
     descriptionKey: 'slash.command.compact.description',
@@ -84,6 +90,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'automation',
+    icon: 'schedule',
     command: '/automation',
     labelKey: 'slash.command.automation.label',
     descriptionKey: 'slash.command.automation.description',
@@ -91,6 +98,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'detail',
+    icon: 'conditions',
     command: '/detail',
     labelKey: 'slash.command.detail.label',
     descriptionKey: 'slash.command.detail.description',
@@ -98,6 +106,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'switch',
+    icon: 'sync_alt',
     command: '/switch',
     labelKey: 'slash.command.switch.label',
     descriptionKey: 'slash.command.switch.description',
@@ -105,6 +114,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'redo',
+    icon: 'redo',
     command: '/redo',
     labelKey: 'slash.command.redo.label',
     descriptionKey: 'slash.command.redo.description',
@@ -112,20 +122,23 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'debug',
+    icon: 'bug_report',
     command: '/debug',
     labelKey: 'slash.command.debug.label',
     descriptionKey: 'slash.command.debug.description',
     keywords: ['debug', 'panel', 'logs', 'events'],
   },
   {
-    id: 'voice',
+    id: 'voice',  
+    icon: 'volume_up',
     command: '/voice',
     labelKey: 'slash.command.voice.label',
     descriptionKey: 'slash.command.voice.description',
     keywords: ['voice', 'speech', 'call', 'mic'],
   },
   {
-    id: 'settings',
+    id: 'settings',  
+    icon: 'settings',
     command: '/settings',
     labelKey: 'slash.command.settings.label',
     descriptionKey: 'slash.command.settings.description',
@@ -133,10 +146,11 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'plan',
-    command: '/planning',
+    icon: 'checklist',
+    command: '/plan',
     labelKey: 'slash.command.plan.label',
     descriptionKey: 'slash.command.plan.description',
-    keywords: ['plan', 'planning'],
+    keywords: ['plan'],
   },
 ];
 

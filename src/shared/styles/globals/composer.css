@@ -1064,9 +1064,7 @@
 
 .slash-command-popover {
     border: 1px solid var(--line-soft);
-    border-radius: var(--radius-md);
-    background: var(--bg-elev-2);
-    box-shadow: var(--shadow-medium);
+    border-radius: var(--radius-lg);
     max-height: min(320px, calc(100vh - 120px));
     overflow: auto;
 }
@@ -1090,31 +1088,29 @@
 
 .slash-command-item {
     width: 100%;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    padding: 10px 12px;
+    border-radius: 12px;
     text-align: left;
     justify-content: flex-start;
 }
+.slash-command-item.ui-btn.ui-btn-sm{
+    padding: 6px 8px;
+}
 
 .slash-command-item .ui-btn-label {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 10px;
-    align-items: start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.slash-command-item .material-symbols-rounded {
+    font-size: 15px;
 }
 
 .slash-command-item.active,
 .slash-command-item:hover {
     background: var(--bg-hover);
-}
-
-.slash-command-main {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
 }
 
 .slash-command-name {
@@ -1126,13 +1122,15 @@
 
 .slash-command-label {
     font-size: 12px;
-    color: var(--ink-2);
+    color: var(--text-main);
 }
 
 .slash-command-description {
-    grid-column: 1;
     font-size: 11px;
-    color: var(--ink-muted);
+    color: var(--text-muted);
+    opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .slash-command-check {

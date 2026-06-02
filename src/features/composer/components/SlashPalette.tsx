@@ -56,10 +56,9 @@ const SlashPaletteContent: React.FC<{
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelect(command.id)}
             >
-              <span className="slash-command-main">
-                <span className="slash-command-name">{command.command}</span>
-                <span className="slash-command-label">{command.label}</span>
-              </span>
+              <MaterialIcon name={command.icon} />
+              <span className="slash-command-name">{command.command}</span>
+              <span className="slash-command-label">{command.label}</span>
               {command.id === "plan" && planningMode && (
                 <span className="slash-command-check" aria-hidden="true">
                   <MaterialIcon name="check" />
