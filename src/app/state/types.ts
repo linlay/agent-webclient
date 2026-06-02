@@ -76,6 +76,7 @@ export type {
 	AIAwaitSubmitParamData,
 	AIAwaitSubmitPayloadData,
 	AIContextCompactEvent,
+	AIUsageEstimatedCost,
 	AIUsageSnapshotEvent,
 	AIUsageStats,
 } from "@/app/state/eventTypes";

@@ -290,7 +290,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
 		expect(html).toContain('aria-label="Total cost"');
-		expect(html).toContain("<span>Total cost:</span><strong>0.03 分</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>¥0.03 分</strong>");
 	});
 
 	it("renders chat estimated cost in yuan when it is over ten fen", () => {
@@ -314,7 +314,31 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>0.123 元</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>¥0.123 元</strong>");
+	});
+
+	it("renders chat estimated cost with a dollar sign for USD", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					chat: {
+						totalTokens: 1200,
+						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
+						estimatedCost: { currency: "USD", total: 0.0123 },
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("<span>Total cost:</span><strong>$0.012</strong>");
 	});
 
 	it("renders historical chat usage with an empty current call section", () => {

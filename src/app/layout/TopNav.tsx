@@ -2,6 +2,7 @@ import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
 import type {
+  AIUsageEstimatedCost,
   AIUsageSnapshotEvent,
   AIUsageStats,
   AppState,
@@ -15,7 +16,7 @@ import {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Divider, Flex, Progress } from "antd";
+import { Divider, Flex, Progress, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
 
 interface TopNavStatusDisplay {
@@ -71,11 +72,26 @@ function trimTrailingZeros(value: string): string {
   return value.replace(/\.?0+$/, "");
 }
 
-function formatChatEstimatedCost(value: unknown): string {
-  const costCny = readUsageNumber(value);
-  if (costCny == null || costCny < 0) return "--";
-  if (costCny <= 0.1) return `${(costCny * 100).toFixed(2)} 分`;
-  return `${trimTrailingZeros(costCny.toFixed(3))} 元`;
+function formatMoneyAmount(value: number): string {
+  if (value >= 0.01) return trimTrailingZeros(value.toFixed(3));
+  return trimTrailingZeros(value.toFixed(6));
+}
+
+function formatChatEstimatedCost(cost?: AIUsageEstimatedCost): string {
+  const total = readUsageNumber(cost?.total);
+  if (total == null || total < 0) return "--";
+
+  const currency = cost?.currency?.toUpperCase();
+  if (currency === "USD") {
+    return `$${formatMoneyAmount(total)}`;
+  }
+
+  if (currency === "CNY" || currency === "RMB" || currency === "CNH") {
+    if (total <= 0.1) return `¥${(total * 100).toFixed(2)} 分`;
+    return `¥${trimTrailingZeros(total.toFixed(3))} 元`;
+  }
+
+  return formatMoneyAmount(total);
 }
 
 function resolveDisplayTotal(
@@ -188,8 +204,8 @@ function formatUsagePercent(value: number | null): string {
 
 function resolveChatEstimatedCost(
   snapshot: AIUsageSnapshotEvent | null,
-): unknown {
-  return snapshot?.usage?.chat?.estimatedCost?.total;
+): AIUsageEstimatedCost | undefined {
+  return snapshot?.usage?.chat?.estimatedCost;
 }
 
 const UsageContextWindow: React.FC<{
@@ -462,9 +478,7 @@ export const TopNav: React.FC = () => {
                   {usageTotal == null ? (
                     t("topNav.usage.waitingShort")
                   ) : (
-                    <TextCountUp
-                      text={formatCompactUsageNumber(usageTotal)}
-                    />
+                    <TextCountUp text={formatCompactUsageNumber(usageTotal)} />
                   )}
                 </UiButton>
                 {state.usagePopoverOpen ? (
@@ -485,14 +499,20 @@ export const TopNav: React.FC = () => {
                       >
                         <span>{percent == null ? "--%" : `${percent}%`}</span>
                       </div>
-                      <Flex vertical style={{ flex: 1 }}>
+                      <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
                         <div className="usage-popover-header">
-                          <Flex gap={8} align="center">
+                          <Flex
+                            gap={8}
+                            align="center"
+                            style={{ overflow: "hidden", whiteSpace: "nowrap" }}
+                          >
                             <strong>{t("topNav.usage.title")}</strong>
-                            <span>
+                            <Typography.Text
+                              ellipsis={{ tooltip: usageSnapshot?.model?.key }}
+                            >
                               {usageSnapshot?.model?.key ||
                                 t("topNav.usage.modelUnknown")}
-                            </span>
+                            </Typography.Text>
                           </Flex>
                           <Flex align="center" gap={8}>
                             <div
