@@ -167,6 +167,29 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       if (isEditableKeyboardTarget(e.target)) {
         return;
       }
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isCurrentMultiSelect = currentQuestion
+        ? isMultiSelectQuestionType(currentQuestion)
+        : false;
+      const isSpaceKey = e.key === " " || e.code === "Space";
+      if (
+        isSpaceKey
+        && isCurrentMultiSelect
+        && activeElement?.dataset.multiSelect === "true"
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const i = Number(activeElement.dataset.index);
+        const questionRef = questionsRef.current[curIndex];
+        questionRef?.check(i);
+        return;
+      }
+      if (e.key === "Enter" && isCurrentMultiSelect) {
+        e.preventDefault();
+        e.stopPropagation();
+        moveForward();
+        return;
+      }
       if (!/^[1-9]$/.test(e.key)) {
         return;
       }
