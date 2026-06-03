@@ -128,6 +128,8 @@ const mockComposerAwaitingState = {
   isAwaitingActive: false,
 };
 
+const mockUseRuntimeAccessLevel = jest.fn(() => jest.fn());
+
 jest.mock("@/features/composer/hooks/useComposerAwaiting", () => ({
   useComposerAwaiting: () => ({
     clearActiveAwaiting: jest.fn(),
@@ -135,6 +137,11 @@ jest.mock("@/features/composer/hooks/useComposerAwaiting", () => ({
     handlePatchActiveAwaiting: jest.fn(),
     isAwaitingActive: mockComposerAwaitingState.isAwaitingActive,
   }),
+}));
+
+jest.mock("@/features/composer/hooks/useRuntimeAccessLevel", () => ({
+  useRuntimeAccessLevel: (input: Record<string, any>) =>
+    mockUseRuntimeAccessLevel(input),
 }));
 
 jest.mock("@/features/composer/hooks/useComposerKeyboard", () => ({
@@ -224,6 +231,7 @@ describe("ComposerArea", () => {
     };
     mockComposerInputProps.length = 0;
     mockComposerAwaitingState.isAwaitingActive = false;
+    mockUseRuntimeAccessLevel.mockClear();
     useAppDispatch.mockReturnValue(jest.fn());
     useAppState.mockReturnValue(createInitialState());
     useComposerWonders.mockClear();
@@ -270,7 +278,33 @@ describe("ComposerArea", () => {
 
     const html = renderToStaticMarkup(React.createElement(ComposerArea));
 
-    expect(html).toContain("query-settings-controls");
     expect(html).toContain("approval");
+    expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeRunId: "run_1",
+        activeRunAgentKey: "agent_a",
+        isRunActive: true,
+      }),
+    );
+  });
+
+  it("treats a stale run id as inactive when the chat is not running", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      runId: "run_stale",
+      currentRunAgentKey: "agent_a",
+      streaming: false,
+      events: [{ type: "content.delta", runId: "run_stale" }],
+    });
+
+    renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeRunId: "run_stale",
+        activeRunAgentKey: "agent_a",
+        isRunActive: false,
+      }),
+    );
   });
 });

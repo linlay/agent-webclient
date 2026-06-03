@@ -33,6 +33,7 @@ describe("applyRuntimeAccessLevelChange", () => {
       nextAccessLevel: "full_access",
       activeRunId: "run_1",
       activeRunAgentKey: "agent_a",
+      isRunActive: true,
       setAccessLevel,
       messageApi,
       t,
@@ -42,6 +43,13 @@ describe("applyRuntimeAccessLevelChange", () => {
 
     expect(setAccessLevel).toHaveBeenNthCalledWith(1, "full_access");
     expect(setAccessLevel).toHaveBeenNthCalledWith(2, "default");
+    expect(updateAccessLevel).toHaveBeenCalledWith({
+      requestId: "access_1",
+      runId: "run_1",
+      agentKey: "agent_a",
+      accessLevel: "full_access",
+      reason: "user toggled permission",
+    });
     expect(messageApi.warning).toHaveBeenCalledWith(
       "The current run did not accept the access change (not supported by this run). Reverted to the previous value.",
     );
@@ -60,6 +68,7 @@ describe("applyRuntimeAccessLevelChange", () => {
       nextAccessLevel: "full_access",
       activeRunId: "run_1",
       activeRunAgentKey: "agent_a",
+      isRunActive: true,
       setAccessLevel,
       messageApi,
       t,
@@ -84,6 +93,7 @@ describe("applyRuntimeAccessLevelChange", () => {
       nextAccessLevel,
       activeRunId: "",
       activeRunAgentKey: "",
+      isRunActive: true,
       setAccessLevel,
       messageApi: {
         warning: jest.fn(),
@@ -95,5 +105,31 @@ describe("applyRuntimeAccessLevelChange", () => {
 
     expect(setAccessLevel).toHaveBeenCalledWith(nextAccessLevel);
     expect(updateAccessLevel).not.toHaveBeenCalled();
+  });
+
+  it("only updates local state when the current run identity is stale", async () => {
+    const setAccessLevel = jest.fn();
+    const updateAccessLevel = jest.fn();
+    const messageApi = {
+      warning: jest.fn(),
+      error: jest.fn(),
+    };
+
+    await applyRuntimeAccessLevelChange({
+      previousAccessLevel: "default",
+      nextAccessLevel: "full_access",
+      activeRunId: "run_stale",
+      activeRunAgentKey: "agent_a",
+      isRunActive: false,
+      setAccessLevel,
+      messageApi,
+      t,
+      updateAccessLevel,
+    });
+
+    expect(setAccessLevel).toHaveBeenCalledWith("full_access");
+    expect(updateAccessLevel).not.toHaveBeenCalled();
+    expect(messageApi.warning).not.toHaveBeenCalled();
+    expect(messageApi.error).not.toHaveBeenCalled();
   });
 });

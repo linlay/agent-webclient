@@ -315,6 +315,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     accessLevel,
     activeRunId,
     activeRunAgentKey,
+    isRunActive: state.streaming || isAwaitingActive,
     setAccessLevel,
     messageApi: message,
     t,

@@ -21,6 +21,7 @@ interface ApplyRuntimeAccessLevelChangeOptions {
   nextAccessLevel: QueryAccessLevel;
   activeRunId: string;
   activeRunAgentKey: string;
+  isRunActive?: boolean;
   setAccessLevel: SetAccessLevel;
   messageApi: RuntimeAccessMessageApi;
   t: Translate;
@@ -59,6 +60,7 @@ export async function applyRuntimeAccessLevelChange({
   nextAccessLevel,
   activeRunId,
   activeRunAgentKey,
+  isRunActive,
   setAccessLevel,
   messageApi,
   t,
@@ -71,7 +73,7 @@ export async function applyRuntimeAccessLevelChange({
   }
 
   setAccessLevel(nextAccessLevel);
-  if (!activeRunId || !activeRunAgentKey) {
+  if (!isRunActive || !activeRunId || !activeRunAgentKey) {
     return;
   }
 
@@ -103,6 +105,7 @@ interface UseRuntimeAccessLevelInput {
   accessLevel: QueryAccessLevel;
   activeRunId: string;
   activeRunAgentKey: string;
+  isRunActive: boolean;
   setAccessLevel: SetAccessLevel;
   messageApi: RuntimeAccessMessageApi;
   t: Translate;
@@ -112,6 +115,7 @@ export function useRuntimeAccessLevel({
   accessLevel,
   activeRunId,
   activeRunAgentKey,
+  isRunActive,
   setAccessLevel,
   messageApi,
   t,
@@ -127,6 +131,7 @@ export function useRuntimeAccessLevel({
         nextAccessLevel,
         activeRunId,
         activeRunAgentKey,
+        isRunActive,
         setAccessLevel,
         messageApi,
         t,
@@ -137,6 +142,7 @@ export function useRuntimeAccessLevel({
       accessLevel,
       activeRunAgentKey,
       activeRunId,
+      isRunActive,
       messageApi,
       setAccessLevel,
       t,
