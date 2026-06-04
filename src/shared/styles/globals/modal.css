@@ -129,6 +129,16 @@
     min-width: 0;
 }
 
+.left-sidebar-rename-agent-input.ant-input {
+    border: 1px solid var(--line-soft) !important;
+    box-shadow: none;
+}
+
+.left-sidebar-rename-agent-input.ant-input:focus {
+    border-color: var(--accent-electric) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-electric) 14%, transparent);
+}
+
 .command-history-toolbar-actions {
     flex: 0 0 auto;
     display: flex;

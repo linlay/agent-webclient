@@ -1,4 +1,6 @@
 import React from "react";
+import fs from "node:fs";
+import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
@@ -860,6 +862,17 @@ describe("LeftSidebar", () => {
 
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
     const confirmConfig = mockModalConfirm.mock.calls[0][0];
+    const modalStyles = fs.readFileSync(
+      path.join(process.cwd(), "src", "shared", "styles", "globals", "modal.css"),
+      "utf8",
+    );
+    expect(confirmConfig.content.props.className).toBe("left-sidebar-rename-agent-input");
+    expect(modalStyles).toMatch(
+      /\.left-sidebar-rename-agent-input\.ant-input\s*\{[\s\S]*?border:\s*1px solid var\(--line-soft\)\s*!important;/,
+    );
+    expect(modalStyles).toMatch(
+      /\.left-sidebar-rename-agent-input\.ant-input:focus\s*\{[\s\S]*?border-color:\s*var\(--accent-electric\)\s*!important;/,
+    );
     confirmConfig.content.props.onChange({
       target: { value: "Beta Agent" },
     });

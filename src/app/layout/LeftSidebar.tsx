@@ -470,6 +470,7 @@ export const LeftSidebar: React.FC = () => {
       content: (
         <Input
           autoFocus
+          className="left-sidebar-rename-agent-input"
           defaultValue={currentName}
           maxLength={120}
           placeholder={t("leftSidebar.renameAgentPlaceholder")}
