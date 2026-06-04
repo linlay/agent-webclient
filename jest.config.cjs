@@ -7,5 +7,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.svg$': '<rootDir>/src/shared/icons/__mocks__/svgMock.ts',
+    '\\.module\\.css$': '<rootDir>/src/__mocks__/styleMock.ts',
   },
 };

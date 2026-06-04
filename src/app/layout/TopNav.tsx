@@ -87,8 +87,8 @@ function formatChatEstimatedCost(cost?: AIUsageEstimatedCost): string {
   }
 
   if (currency === "CNY" || currency === "RMB" || currency === "CNH") {
-    if (total <= 0.1) return `¥${(total * 100).toFixed(2)} 分`;
-    return `¥${trimTrailingZeros(total.toFixed(3))} 元`;
+    if (total <= 0.1) return `¥ ${(total * 100).toFixed(2)} 分`;
+    return `¥ ${trimTrailingZeros(total.toFixed(3))} 元`;
   }
 
   return formatMoneyAmount(total);
@@ -224,13 +224,6 @@ const UsageContextWindow: React.FC<{
           {" / "}
           {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
         </strong>
-        <small>
-          {t("topNav.usage.estimatedNext", {
-            value: formatUsageNumber(
-              snapshot?.contextWindow?.estimatedNextCallSize,
-            ),
-          })}
-        </small>
       </div>
 
       <div

@@ -170,7 +170,6 @@ describe("TopNav", () => {
 		expect(html).toContain("Current call");
 		expect(html).toContain("Latest run");
 		expect(html).toContain("Chat total");
-		expect(html).toContain("Estimated next call -");
 		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
 		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
 		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
@@ -290,7 +289,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
 		expect(html).toContain('aria-label="Total cost"');
-		expect(html).toContain("<span>Total cost:</span><strong>¥0.03 分</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>¥ 0.03 分</strong>");
 	});
 
 	it("renders chat estimated cost in yuan when it is over ten fen", () => {
@@ -314,7 +313,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>¥0.123 元</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>¥ 0.123 元</strong>");
 	});
 
 	it("renders chat estimated cost with a dollar sign for USD", () => {
@@ -471,7 +470,6 @@ describe("TopNav", () => {
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");
 		expect(html).toContain("64,000 / 128,000");
-		expect(html).toContain("Estimated next call 8,000");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Latest run");
 		expect(html).toContain("Chat total");
