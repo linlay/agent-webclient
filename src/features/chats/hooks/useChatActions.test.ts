@@ -1034,6 +1034,88 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('restores planningMode=true when activeRun.planningMode is true and no explicit preference', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = {};
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_plan_active');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_active',
+      enabled: true,
+      persist: false,
+    });
+  });
+
+  it('does not restore planningMode when planningModeByChatId has an explicit false entry', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = { chat_plan_explicit: false };
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_plan_explicit');
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_explicit',
+      enabled: true,
+      persist: false,
+    });
+  });
+
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
     const state = createReplayState();
 

@@ -828,6 +828,17 @@ export function useChatActions() {
             activeRunAgentKey,
           );
         }
+
+        /* Restore planning mode from active run if no explicit user preference */
+        if (activeRun && activeRun.planningMode && stateRef.current.planningModeByChatId[chatId] === undefined) {
+          dispatch({
+            type: 'SET_PLANNING_MODE',
+            chatId,
+            enabled: true,
+            persist: false,
+          });
+        }
+
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
