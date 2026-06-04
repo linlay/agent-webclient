@@ -17,10 +17,23 @@ export function reduceConversationState(
 	switch (action.type) {
 		case "SET_CHAT_ID": {
 			const restored = state.planningModeByChatId[action.chatId];
+			const currentPlanningMode = state.planningMode;
+			const isNewChatId = action.chatId !== state.chatId;
+			const nextPlanningMode =
+				restored !== undefined
+					? restored
+					: currentPlanningMode && isNewChatId
+						? true
+						: false;
+			const nextByChatId =
+				restored === undefined && currentPlanningMode && isNewChatId
+					? { ...state.planningModeByChatId, [action.chatId]: true }
+					: state.planningModeByChatId;
 			return {
 				...state,
 				chatId: action.chatId,
-				planningMode: restored ?? false,
+				planningMode: nextPlanningMode,
+				planningModeByChatId: nextByChatId,
 			};
 		}
 		case "SET_RUN_ID": {
