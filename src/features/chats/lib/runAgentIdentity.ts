@@ -58,9 +58,9 @@ export function resolveChatAgentKey(input: {
 	}
 	const chat = input.chats?.find((item) => toText(item?.chatId) === chatId);
 	return (
-		toText(input.chatAgentById?.get(chatId))
-		|| toText(chat?.agentKey)
+		toText(chat?.agentKey)
 		|| toText(chat?.firstAgentKey)
+		|| toText(input.chatAgentById?.get(chatId))
 	);
 }
 

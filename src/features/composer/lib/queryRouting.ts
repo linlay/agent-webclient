@@ -1,13 +1,15 @@
-import type { AppState, WorkerRow } from "@/app/state/types";
+import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 
 type RoutingState = Pick<
   AppState,
   | "chatId"
   | "chatAgentById"
+  | "workerIndexByKey"
   | "pendingNewChatAgentKey"
   | "workerSelectionKey"
-  | "workerIndexByKey"
->;
+> & {
+  chats?: Array<Pick<Chat, "agentKey" | "chatId" | "firstAgentKey">>;
+};
 
 interface RoutingOptions {
   chatId?: string;
@@ -27,6 +29,16 @@ function resolveSelectedWorker(state: RoutingState): WorkerRow | null {
   return state.workerIndexByKey.get(workerKey) || null;
 }
 
+function resolveChatSummaryAgentKey(
+  state: RoutingState,
+  chatId: string,
+): string {
+  const chat = state.chats?.find(
+    (item) => normalizeText(item?.chatId) === chatId,
+  );
+  return normalizeText(chat?.agentKey || chat?.firstAgentKey);
+}
+
 export function resolvePreferredAgentKey(
   state: RoutingState,
   options: RoutingOptions = {},
@@ -38,6 +50,11 @@ export function resolvePreferredAgentKey(
 
   const chatId = normalizeText(options.chatId) || normalizeText(state.chatId);
   if (chatId) {
+    const chatAgentKey = resolveChatSummaryAgentKey(state, chatId);
+    if (chatAgentKey) {
+      return chatAgentKey;
+    }
+
     const remembered = normalizeText(state.chatAgentById.get(chatId));
     if (remembered) {
       return remembered;

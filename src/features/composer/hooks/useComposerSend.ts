@@ -293,6 +293,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       fallbackAgentKey: resolvePreferredAgentKey({
         chatId: state.chatId,
         chatAgentById: state.chatAgentById,
+        chats: state.chats,
         pendingNewChatAgentKey: state.pendingNewChatAgentKey,
         workerSelectionKey: state.workerSelectionKey,
         workerIndexByKey: state.workerIndexByKey,
@@ -314,6 +315,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     return resolvePreferredTeamId({
       chatId: state.chatId,
       chatAgentById: state.chatAgentById,
+      chats: state.chats,
       pendingNewChatAgentKey: state.pendingNewChatAgentKey,
       workerSelectionKey: state.workerSelectionKey,
       workerIndexByKey: state.workerIndexByKey,
@@ -321,6 +323,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [
     state.chatAgentById,
     state.chatId,
+    state.chats,
     state.pendingNewChatAgentKey,
     state.workerIndexByKey,
     state.workerSelectionKey,
@@ -566,6 +569,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const agentKey = resolvePreferredAgentKey({
       chatId: pendingChatId,
       chatAgentById: state.chatAgentById,
+      chats: state.chats,
       pendingNewChatAgentKey: state.pendingNewChatAgentKey,
       workerSelectionKey: state.workerSelectionKey,
       workerIndexByKey: state.workerIndexByKey,
@@ -573,6 +577,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const teamId = resolvePreferredTeamId({
       chatId: pendingChatId,
       chatAgentById: state.chatAgentById,
+      chats: state.chats,
       pendingNewChatAgentKey: state.pendingNewChatAgentKey,
       workerSelectionKey: state.workerSelectionKey,
       workerIndexByKey: state.workerIndexByKey,
@@ -629,6 +634,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     speechListening,
     state.chatAgentById,
     state.chatId,
+    state.chats,
     state.pendingNewChatAgentKey,
     state.streaming,
     state.workerIndexByKey,

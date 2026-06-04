@@ -1,5 +1,5 @@
 import type { AppAction } from "@/app/state/actions";
-import type { AppState } from "@/app/state/types";
+import type { AppState, Chat } from "@/app/state/types";
 import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { setMapValue } from "@/app/state/reducerHelpers";
 import {
@@ -7,6 +7,27 @@ import {
 	markWorkerRowsRead,
 	upsertAgentUnreadCount,
 } from "@/features/chats/lib/chatReadState";
+
+function syncChatAgentBinding(
+	source: Map<string, string>,
+	chat: Partial<Chat> | null | undefined,
+): Map<string, string> {
+	const chatId = String(chat?.chatId || "").trim();
+	const agentKey = String(chat?.agentKey || chat?.firstAgentKey || "").trim();
+	if (!chatId || !agentKey || source.get(chatId) === agentKey) {
+		return source;
+	}
+	const next = new Map(source);
+	next.set(chatId, agentKey);
+	return next;
+}
+
+function syncChatAgentBindings(
+	source: Map<string, string>,
+	chats: Array<Partial<Chat>>,
+): Map<string, string> {
+	return chats.reduce(syncChatAgentBinding, source);
+}
 
 export function reduceNavigationState(
 	state: AppState,
@@ -18,7 +39,14 @@ export function reduceNavigationState(
 		case "SET_TEAMS":
 			return { ...state, teams: action.teams };
 		case "SET_CHATS":
-			return { ...state, chats: action.chats };
+			return {
+				...state,
+				chats: action.chats,
+				chatAgentById: syncChatAgentBindings(
+					state.chatAgentById,
+					action.chats,
+				),
+			};
 		case "SET_AUTOMATIONS":
 			return { ...state, automations: action.automations };
 		case "START_SIDEBAR_REQUEST":
@@ -34,11 +62,17 @@ export function reduceNavigationState(
 					state.sidebarPendingRequestCount - 1,
 				),
 			};
-		case "UPSERT_CHAT":
+		case "UPSERT_CHAT": {
+			const chats = upsertChatSummary(state.chats, action.chat);
 			return {
 				...state,
-				chats: upsertChatSummary(state.chats, action.chat),
+				chats,
+				chatAgentById: syncChatAgentBinding(
+					state.chatAgentById,
+					action.chat,
+				),
 			};
+		}
 		case "CHAT_DELETED":
 		case "CHAT_ARCHIVED": {
 			const chatId = String(action.chatId || "");

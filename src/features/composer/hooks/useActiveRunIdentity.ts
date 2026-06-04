@@ -52,6 +52,7 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
       fallbackAgentKey: resolvePreferredAgentKey({
         chatId: state.chatId,
         chatAgentById: state.chatAgentById,
+        chats: state.chats,
         pendingNewChatAgentKey: state.pendingNewChatAgentKey,
         workerSelectionKey: state.workerSelectionKey,
         workerIndexByKey: state.workerIndexByKey,

@@ -52,6 +52,21 @@ describe("queryRouting", () => {
     expect(resolvePreferredAgentKey(state)).toBe("bound-agent");
   });
 
+  it("prefers chat summary agent over stale remembered bindings", () => {
+    const state = createInitialState();
+    state.chatId = "chat_1";
+    state.chats = [
+      {
+        chatId: "chat_1",
+        chatName: "Zenmind Env chat",
+        agentKey: "zenmind-env",
+      },
+    ];
+    state.chatAgentById.set("chat_1", "stale-agent");
+
+    expect(resolvePreferredAgentKey(state)).toBe("zenmind-env");
+  });
+
   it("prefers explicit agent key over remembered chat bindings", () => {
     const state = createInitialState();
     state.chatId = "chat_1";

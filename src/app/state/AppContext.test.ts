@@ -362,6 +362,34 @@ describe('appReducer conversation reset behavior', () => {
     });
   });
 
+  it('syncs chat-agent bindings from chat summaries', () => {
+    const state = createInitialState();
+    state.chatAgentById.set('chat_1', 'stale-agent');
+
+    const withChats = appReducer(state, {
+      type: 'SET_CHATS',
+      chats: [
+        {
+          chatId: 'chat_1',
+          chatName: 'Zenmind Env chat',
+          agentKey: 'zenmind-env',
+        },
+      ],
+    });
+
+    expect(withChats.chatAgentById.get('chat_1')).toBe('zenmind-env');
+
+    const updated = appReducer(withChats, {
+      type: 'UPSERT_CHAT',
+      chat: {
+        chatId: 'chat_1',
+        agentKey: 'agent-after-push',
+      },
+    });
+
+    expect(updated.chatAgentById.get('chat_1')).toBe('agent-after-push');
+  });
+
   it('removes archived chat summaries from active and worker lists', () => {
     const baseState = createInitialState();
     const state = {
