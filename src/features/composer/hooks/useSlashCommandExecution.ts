@@ -15,7 +15,7 @@ export function useSlashCommandExecution(input: {
 	submitCompactCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
-	state: Pick<AppState, "rightSidebarOpen" | "planningMode">;
+	state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId">;
 }) {
 	const {
 		slashAvailability,
@@ -105,7 +105,9 @@ export function useSlashCommandExecution(input: {
 				case "plan":
 					dispatch({
 						type: "SET_PLANNING_MODE",
+						chatId: state.chatId,
 						enabled: !state.planningMode,
+						persist: true,
 					});
 					return;
 			}

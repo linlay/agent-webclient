@@ -92,9 +92,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   useEffect(() => {
     if (state.planningMode && !planningModeAvailable) {
-      dispatch({ type: "SET_PLANNING_MODE", enabled: false });
+      dispatch({ type: "SET_PLANNING_MODE", chatId: state.chatId, enabled: false, persist: false });
     }
-  }, [dispatch, planningModeAvailable, state.planningMode]);
+  }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -207,15 +207,17 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const togglePlanningMode = useCallback(() => {
     if (!planningModeAvailable) {
       if (state.planningMode) {
-        dispatch({ type: "SET_PLANNING_MODE", enabled: false });
+        dispatch({ type: "SET_PLANNING_MODE", chatId: state.chatId, enabled: false, persist: false });
       }
       return;
     }
     dispatch({
       type: "SET_PLANNING_MODE",
+      chatId: state.chatId,
       enabled: !state.planningMode,
+      persist: true,
     });
-  }, [dispatch, planningModeAvailable, state.planningMode]);
+  }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
 
   const {
     speechSupported,
@@ -290,6 +292,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state: {
         rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
+        chatId: state.chatId,
       },
       toggleVoiceMode,
     },

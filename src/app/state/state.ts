@@ -163,6 +163,7 @@ export function createInitialState(): AppState {
 		audioMuted: false,
 		ttsDebugStatus: "idle",
 		planningMode: false,
+		planningModeByChatId: {},
 		usageSnapshot: null,
 		usagePopoverOpen: false,
 		inputMode: "text",

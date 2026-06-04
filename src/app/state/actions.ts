@@ -164,7 +164,7 @@ export type AppAction =
 	| { type: "SET_ACCESS_TOKEN"; token: string }
 	| { type: "SET_AUDIO_MUTED"; muted: boolean }
 	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
-	| { type: "SET_PLANNING_MODE"; enabled: boolean }
+	| { type: "SET_PLANNING_MODE"; chatId: string; enabled: boolean; persist?: boolean }
 	| { type: "SET_USAGE_SNAPSHOT"; snapshot: AIUsageSnapshotEvent | null }
 	| { type: "SET_USAGE_POPOVER_OPEN"; open: boolean }
 	| { type: "SET_INPUT_MODE"; mode: AppState["inputMode"] }

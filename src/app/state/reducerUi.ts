@@ -171,8 +171,16 @@ export function reduceUiState(
 				accessToken: action.token,
 				wsErrorMessage: "",
 			};
-		case "SET_PLANNING_MODE":
-			return { ...state, planningMode: action.enabled };
+		case "SET_PLANNING_MODE": {
+			const next = { ...state, planningMode: action.enabled };
+			if (action.persist !== false) {
+				next.planningModeByChatId = {
+					...state.planningModeByChatId,
+					[action.chatId]: action.enabled,
+				};
+			}
+			return next;
+		}
 		case "SET_USAGE_SNAPSHOT":
 			return { ...state, usageSnapshot: action.snapshot };
 		case "SET_USAGE_POPOVER_OPEN":

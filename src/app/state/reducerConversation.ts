@@ -15,8 +15,14 @@ export function reduceConversationState(
 	action: AppAction,
 ): AppState | null {
 	switch (action.type) {
-		case "SET_CHAT_ID":
-			return { ...state, chatId: action.chatId };
+		case "SET_CHAT_ID": {
+			const restored = state.planningModeByChatId[action.chatId];
+			return {
+				...state,
+				chatId: action.chatId,
+				planningMode: restored ?? false,
+			};
+		}
 		case "SET_RUN_ID": {
 			const runId = String(action.runId || "").trim();
 			return {

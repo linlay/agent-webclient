@@ -208,6 +208,7 @@ export interface AppState {
 	audioMuted: boolean;
 	ttsDebugStatus: string;
 	planningMode: boolean;
+	planningModeByChatId: Record<string, boolean>;
 	usageSnapshot: AIUsageSnapshotEvent | null;
 	usagePopoverOpen: boolean;
 	inputMode: InputMode;
