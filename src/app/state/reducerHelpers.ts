@@ -53,6 +53,7 @@ export function buildConversationResetState(
 		...state,
 		runId: "",
 		currentRunAgentKey: "",
+		pendingNewChatAgentKey: "",
 		requestId: "",
 		streaming: false,
 		abortController: null,

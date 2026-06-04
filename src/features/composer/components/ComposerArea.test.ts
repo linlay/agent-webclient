@@ -15,6 +15,7 @@ jest.mock("antd", () => ({
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
+  useAppContext: jest.fn(),
   useAppState: jest.fn(),
   useAppDispatch: jest.fn(),
 }));
@@ -199,9 +200,10 @@ jest.mock("@/shared/i18n", () => ({
   }),
 }));
 
-const { useAppState, useAppDispatch } = jest.requireMock(
+const { useAppContext, useAppState, useAppDispatch } = jest.requireMock(
   "@/app/state/AppContext",
 ) as {
+  useAppContext: jest.Mock;
   useAppState: jest.Mock;
   useAppDispatch: jest.Mock;
 };
@@ -232,8 +234,10 @@ describe("ComposerArea", () => {
     mockComposerInputProps.length = 0;
     mockComposerAwaitingState.isAwaitingActive = false;
     mockUseRuntimeAccessLevel.mockClear();
+    const initialState = createInitialState();
     useAppDispatch.mockReturnValue(jest.fn());
-    useAppState.mockReturnValue(createInitialState());
+    useAppState.mockReturnValue(initialState);
+    useAppContext.mockReturnValue({ stateRef: { current: initialState } });
     useComposerWonders.mockClear();
   });
 

@@ -19,12 +19,30 @@ export function reduceConversationState(
 			const restored = state.planningModeByChatId[action.chatId];
 			const currentPlanningMode = state.planningMode;
 			const isNewChatId = action.chatId !== state.chatId;
+			const activeRunPlanningMode =
+				restored === undefined
+					? (() => {
+							const chat = state.chats.find((c) => c.chatId === action.chatId);
+							if (
+								chat?.activeRun &&
+								typeof chat.activeRun === "object" &&
+								!Array.isArray(chat.activeRun)
+							) {
+								return Boolean(
+									(chat.activeRun as Record<string, unknown>).planningMode,
+								);
+							}
+							return false;
+						})()
+					: false;
 			const nextPlanningMode =
 				restored !== undefined
 					? restored
-					: currentPlanningMode && isNewChatId
+					: activeRunPlanningMode
 						? true
-						: false;
+						: currentPlanningMode && isNewChatId
+							? true
+							: false;
 			const nextByChatId =
 				restored === undefined && currentPlanningMode && isNewChatId
 					? { ...state.planningModeByChatId, [action.chatId]: true }
@@ -32,6 +50,9 @@ export function reduceConversationState(
 			return {
 				...state,
 				chatId: action.chatId,
+				pendingNewChatAgentKey: action.chatId
+					? ""
+					: state.pendingNewChatAgentKey,
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
 			};

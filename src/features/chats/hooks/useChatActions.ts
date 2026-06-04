@@ -861,6 +861,8 @@ export function useChatActions() {
 
     const row = stateRef.current.workerIndexByKey.get(normalized) as WorkerRow | undefined;
     if (!row) return;
+    const pendingAgentKey =
+      row.type === 'agent' ? String(row.sourceId || '').trim() : '';
 
     dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey: normalized });
     const workerChats = buildWorkerConversationRows({
@@ -896,6 +898,11 @@ export function useChatActions() {
         preserveWorkerContext: true,
         focusComposerOnComplete,
       });
+      dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: pendingAgentKey });
+      dispatch({
+        type: 'SET_WORKER_PRIORITY_KEY',
+        workerKey: pendingAgentKey ? normalized : '',
+      });
       if (!row.hasHistory || !row.latestChatId) {
         appendNoHistoryDebug();
       }
@@ -911,6 +918,11 @@ export function useChatActions() {
       preserveWorkerContext: true,
       focusComposerOnComplete,
     });
+    dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: pendingAgentKey });
+    dispatch({
+      type: 'SET_WORKER_PRIORITY_KEY',
+      workerKey: pendingAgentKey ? normalized : '',
+    });
     appendNoHistoryDebug();
   }, [activateBlankConversation, dispatch, loadChat, stateRef]);
 
@@ -925,12 +937,14 @@ export function useChatActions() {
         dispatch({ type: 'SET_CONVERSATION_MODE', mode: 'worker' });
         dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
         dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey });
-        dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: detail.agentKey });
       }
       activateBlankConversation({
         preserveWorkerContext: detail.preserveWorkerContext,
         focusComposerOnComplete: detail.focusComposerOnComplete,
       });
+      if (detail.agentKey) {
+        dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: detail.agentKey });
+      }
     };
     window.addEventListener('agent:start-new-conversation', handler);
     return () => window.removeEventListener('agent:start-new-conversation', handler);

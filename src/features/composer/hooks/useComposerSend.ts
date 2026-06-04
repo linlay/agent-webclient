@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
@@ -103,6 +103,7 @@ interface UseComposerSendInput {
   > & {
     pendingSteers: AppState["pendingSteers"];
   };
+  stateRef: MutableRefObject<AppState>;
   stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
   updateMentionSuggestions: (value: string) => void;
@@ -252,6 +253,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     setSlashDismissed,
     speechListening,
     state,
+    stateRef,
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
@@ -275,59 +277,45 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [inputValue]);
 
   const resolveCurrentRunId = useCallback(() => {
+    const currentState = stateRef.current || state;
     return resolveActiveRunId({
-      stateRunId: state.runId,
-      events: state.events,
+      stateRunId: currentState.runId,
+      events: currentState.events,
     });
-  }, [state.events, state.runId]);
+  }, [state, stateRef]);
 
   const resolveCurrentAgentKey = useCallback(() => {
+    const currentState = stateRef.current || state;
     const runId = resolveCurrentRunId();
     return resolveRunAgentKey({
       runId,
-      currentRunAgentKey: state.currentRunAgentKey,
-      runAgentById: state.runAgentById,
-      chatId: state.chatId,
-      chatAgentById: state.chatAgentById,
-      chats: state.chats,
+      currentRunAgentKey: currentState.currentRunAgentKey,
+      runAgentById: currentState.runAgentById,
+      chatId: currentState.chatId,
+      chatAgentById: currentState.chatAgentById,
+      chats: currentState.chats,
       fallbackAgentKey: resolvePreferredAgentKey({
-        chatId: state.chatId,
-        chatAgentById: state.chatAgentById,
-        chats: state.chats,
-        pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-        workerSelectionKey: state.workerSelectionKey,
-        workerIndexByKey: state.workerIndexByKey,
+        chatId: currentState.chatId,
+        chatAgentById: currentState.chatAgentById,
+        chats: currentState.chats,
+        pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
+        workerSelectionKey: currentState.workerSelectionKey,
+        workerIndexByKey: currentState.workerIndexByKey,
       }),
     });
-  }, [
-    state.chatAgentById,
-    state.chatId,
-    state.chats,
-    state.currentRunAgentKey,
-    state.pendingNewChatAgentKey,
-    state.runAgentById,
-    state.workerIndexByKey,
-    state.workerSelectionKey,
-    resolveCurrentRunId,
-  ]);
+  }, [resolveCurrentRunId, state, stateRef]);
 
   const resolveCurrentTeamId = useCallback(() => {
+    const currentState = stateRef.current || state;
     return resolvePreferredTeamId({
-      chatId: state.chatId,
-      chatAgentById: state.chatAgentById,
-      chats: state.chats,
-      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-      workerSelectionKey: state.workerSelectionKey,
-      workerIndexByKey: state.workerIndexByKey,
+      chatId: currentState.chatId,
+      chatAgentById: currentState.chatAgentById,
+      chats: currentState.chats,
+      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
+      workerSelectionKey: currentState.workerSelectionKey,
+      workerIndexByKey: currentState.workerIndexByKey,
     });
-  }, [
-    state.chatAgentById,
-    state.chatId,
-    state.chats,
-    state.pendingNewChatAgentKey,
-    state.workerIndexByKey,
-    state.workerSelectionKey,
-  ]);
+  }, [state, stateRef]);
 
   const resetForNewConversation = useCallback(() => {
     clearComposerAttachments();
@@ -538,9 +526,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
     }
-    if (state.streaming) {
+    const currentState = stateRef.current || state;
+    if (currentState.streaming) {
       const activeRunId = resolveCurrentRunId();
-      const activeChatId = String(state.chatId || "").trim();
+      const activeChatId = String(currentState.chatId || "").trim();
       if (!activeChatId || !activeRunId) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -565,24 +554,24 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
-    const pendingChatId = String(state.chatId || attachmentChatId || "").trim();
+    const pendingChatId = String(currentState.chatId || attachmentChatId || "").trim();
     const agentKey = resolvePreferredAgentKey({
       chatId: pendingChatId,
-      chatAgentById: state.chatAgentById,
-      chats: state.chats,
-      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-      workerSelectionKey: state.workerSelectionKey,
-      workerIndexByKey: state.workerIndexByKey,
+      chatAgentById: currentState.chatAgentById,
+      chats: currentState.chats,
+      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
+      workerSelectionKey: currentState.workerSelectionKey,
+      workerIndexByKey: currentState.workerIndexByKey,
     });
     const teamId = resolvePreferredTeamId({
       chatId: pendingChatId,
-      chatAgentById: state.chatAgentById,
-      chats: state.chats,
-      pendingNewChatAgentKey: state.pendingNewChatAgentKey,
-      workerSelectionKey: state.workerSelectionKey,
-      workerIndexByKey: state.workerIndexByKey,
+      chatAgentById: currentState.chatAgentById,
+      chats: currentState.chats,
+      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
+      workerSelectionKey: currentState.workerSelectionKey,
+      workerIndexByKey: currentState.workerIndexByKey,
     });
-    if (pendingChatId && !String(state.chatId || "").trim() && !agentKey) {
+    if (pendingChatId && !String(currentState.chatId || "").trim() && !agentKey) {
       pendingSendRef.current = false;
       pendingSentMessageRef.current = "";
       dispatch({
@@ -639,6 +628,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.streaming,
     state.workerIndexByKey,
     state.workerSelectionKey,
+    stateRef,
     stopSpeechInput,
   ]);
 

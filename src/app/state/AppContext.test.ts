@@ -327,6 +327,31 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.timelineOrder).toEqual([]);
   });
 
+  it('clears stale pending agent route when resetting to a blank conversation', () => {
+    const state = {
+      ...createInitialState(),
+      pendingNewChatAgentKey: 'agent_old',
+      workerSelectionKey: 'agent:agent_new',
+    };
+
+    const next = appReducer(state, { type: 'RESET_ACTIVE_CONVERSATION' });
+
+    expect(next.pendingNewChatAgentKey).toBe('');
+    expect(next.workerSelectionKey).toBe('agent:agent_new');
+  });
+
+  it('clears pending agent route once a chat id is established', () => {
+    const state = {
+      ...createInitialState(),
+      pendingNewChatAgentKey: 'agent_pending',
+    };
+
+    const next = appReducer(state, { type: 'SET_CHAT_ID', chatId: 'chat_1' });
+
+    expect(next.chatId).toBe('chat_1');
+    expect(next.pendingNewChatAgentKey).toBe('');
+  });
+
   it('upserts chat summaries without dropping existing metadata', () => {
     const baseState = createInitialState();
     const state = {

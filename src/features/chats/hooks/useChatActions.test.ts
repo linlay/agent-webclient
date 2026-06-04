@@ -941,6 +941,14 @@ describe('replayEvent tool migration', () => {
     expect(getChat).not.toHaveBeenCalled();
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
+      agentKey: 'worker_a',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_WORKER_PRIORITY_KEY',
+      workerKey: 'agent:worker_a',
+    });
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: 'APPEND_DEBUG' }),
     );
@@ -958,6 +966,14 @@ describe('replayEvent tool migration', () => {
     expect(getChat).not.toHaveBeenCalled();
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
+      agentKey: 'worker_a',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_WORKER_PRIORITY_KEY',
+      workerKey: 'agent:worker_a',
+    });
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'APPEND_DEBUG',

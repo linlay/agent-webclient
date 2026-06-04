@@ -122,4 +122,43 @@ describe("reduceConversationState – SET_CHAT_ID", () => {
 		expect(next.planningMode).toBe(false);
 		expect(next.planningModeByChatId).toEqual({});
 	});
+
+	it("sets planningMode to true when chat has activeRun with planningMode=true", () => {
+		const state = buildState({
+			chatId: "",
+			planningMode: false,
+			planningModeByChatId: {},
+			chats: [
+				{
+					chatId: "chat_active_plan",
+					activeRun: { runId: "run_1", planningMode: true },
+				} as any,
+			],
+		});
+		const next = appReducer(state, {
+			type: "SET_CHAT_ID",
+			chatId: "chat_active_plan",
+		});
+		expect(next.planningMode).toBe(true);
+	});
+
+	it("does not override explicit planningModeByChatId false when activeRun planningMode is true", () => {
+		const state = buildState({
+			chatId: "chat_old",
+			planningMode: false,
+			planningModeByChatId: { chat_target: false },
+			chats: [
+				{
+					chatId: "chat_target",
+					activeRun: { runId: "run_1", planningMode: true },
+				} as any,
+			],
+		});
+		const next = appReducer(state, {
+			type: "SET_CHAT_ID",
+			chatId: "chat_target",
+		});
+		expect(next.planningMode).toBe(false);
+		expect(next.planningModeByChatId).toEqual({ chat_target: false });
+	});
 });

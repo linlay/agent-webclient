@@ -11,6 +11,7 @@ export interface ChatActiveRunSummary {
 	runId?: string;
 	agentKey?: string;
 	lastSeq?: number | string;
+	planningMode?: boolean;
 	[key: string]: unknown;
 }
 

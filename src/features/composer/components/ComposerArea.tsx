@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { App as AntdApp } from "antd";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useAppContext, useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Buildin } from "@/features/tools/components/buildin";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
 import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
@@ -50,6 +50,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { stateRef } = useAppContext();
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
   const composerRef = useRef<HTMLDivElement>(null);
@@ -309,6 +310,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     showSlashPalette,
     speechListening,
     state,
+    stateRef,
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
