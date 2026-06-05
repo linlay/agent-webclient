@@ -501,9 +501,10 @@ export const TopNav: React.FC = () => {
                           >
                             <strong>{t("topNav.usage.title")}</strong>
                             <Typography.Text
-                              ellipsis={{ tooltip: usageSnapshot?.model?.key }}
+                              ellipsis={{ tooltip: usageSnapshot?.contextWindow?.modelKey || usageSnapshot?.model?.key }}
                             >
-                              {usageSnapshot?.model?.key ||
+                              {usageSnapshot?.contextWindow?.modelKey ||
+                                usageSnapshot?.model?.key ||
                                 t("topNav.usage.modelUnknown")}
                             </Typography.Text>
                           </Flex>

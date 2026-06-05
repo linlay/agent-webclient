@@ -361,6 +361,7 @@ describe('replayEvent tool migration', () => {
           maxSize: 128000,
           currentSize: 64000,
           estimatedNextCallSize: 8000,
+          modelKey: 'deepseek-chat',
         },
         usage: {
           current: {},
@@ -469,6 +470,7 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 13157,
             estimatedNextCallSize: 13367,
+            modelKey: 'minimax',
           },
         }),
       }),
@@ -553,6 +555,7 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 6252,
             estimatedNextCallSize: 6374,
+            modelKey: 'deepseek-chat',
           },
           usage: {
             current: {

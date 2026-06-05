@@ -99,6 +99,7 @@ describe("TopNav", () => {
 				contextWindow: {
 					maxSize: 128000,
 					currentSize: 64000,
+					modelKey: "deepseek-chat",
 				},
 				usage: {
 					chat: {
@@ -428,6 +429,7 @@ describe("TopNav", () => {
 					maxSize: 128000,
 					currentSize: 64000,
 					estimatedNextCallSize: 8000,
+					modelKey: "deepseek-chat",
 				},
 				usage: {
 					current: {

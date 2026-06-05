@@ -178,6 +178,8 @@ export interface AIUsageContextWindow {
   maxSize?: number;
   currentSize?: number;
   estimatedNextCallSize?: number;
+  modelKey?: string;
+  reasoningEffort?: string;
   [key: string]: unknown;
 }
 
@@ -191,6 +193,7 @@ export interface AIAwaitQuestionOption {
   description?: string;
   previewHtml?: string;
   value?: string;
+  recommended?: boolean;
 }
 
 export interface AIAwaitApprovalOption {

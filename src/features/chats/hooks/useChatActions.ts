@@ -286,6 +286,15 @@ function normalizeLoadedChatContextWindow(value: unknown): AIUsageSnapshotEvent[
     contextWindow.estimatedNextCallSize = estimatedNextCallSize;
   }
 
+  const modelKey = String(value.modelKey || '').trim();
+  if (modelKey) {
+    contextWindow.modelKey = modelKey;
+  }
+  const reasoningEffort = String(value.reasoningEffort || '').trim();
+  if (reasoningEffort) {
+    contextWindow.reasoningEffort = reasoningEffort;
+  }
+
   return Object.keys(contextWindow).length > 0 ? contextWindow : undefined;
 }
 
@@ -385,6 +394,13 @@ function getModelKey(value: unknown): string {
     }
   }
 
+  if (isObjectRecord(value.contextWindow)) {
+    const cwKey = String(value.contextWindow.modelKey || '').trim();
+    if (cwKey) {
+      return cwKey;
+    }
+  }
+
   return String(value.modelKey || '').trim();
 }
 
@@ -453,7 +469,7 @@ export function buildLoadedChatUsageSnapshot(
       ...eventSnapshot.snapshot,
       ...(runId ? { runId } : {}),
       ...(modelKey ? { model: { key: modelKey } } : {}),
-      ...(contextWindow ? { contextWindow } : {}),
+      ...(contextWindow ? { contextWindow: { ...contextWindow, ...(modelKey ? { modelKey } : {}) } } : {}),
       usage: {
         ...(eventSnapshot.snapshot.usage || {}),
         ...(usage || {}),
@@ -469,7 +485,10 @@ export function buildLoadedChatUsageSnapshot(
         chatId,
         ...(runId ? { runId } : {}),
         ...(modelKey ? { model: { key: modelKey } } : {}),
-        contextWindow,
+        contextWindow: {
+          ...contextWindow,
+          ...(modelKey ? { modelKey } : {}),
+        },
         usage: {},
       };
     }
@@ -485,7 +504,7 @@ export function buildLoadedChatUsageSnapshot(
     chatId,
     runId,
     ...(modelKey ? { model: { key: modelKey } } : {}),
-    ...(contextWindow ? { contextWindow } : {}),
+    ...(contextWindow ? { contextWindow: { ...contextWindow, ...(modelKey ? { modelKey } : {}) } } : {}),
     usage: {
       ...usage,
       ...(runUsage && !usage.run ? { run: runUsage } : {}),
@@ -733,6 +752,9 @@ export function useChatActions() {
         const chatData = response.data as Record<string, unknown>;
         const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
         const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
+        if (!usageSnapshot) {
+          console.log('[DEBUG] usageSnapshot is null for chat', chatId, 'data keys:', Object.keys(chatData));
+        }
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
         const downvotedRunKeys = new Set<string>();
