@@ -648,6 +648,43 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('hydrates context window from /api/chat top-level contextWindow without usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        chatId: 'chat-cw-only',
+        chatName: 'Context Window Only',
+        events: [
+          { seq: 1, type: 'chat.start', chatId: 'chat-cw-only' },
+        ],
+        runs: [],
+        contextWindow: {
+          maxSize: 196608,
+          currentSize: 2825,
+          estimatedNextCallSize: 2982,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-cw-only');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          type: 'usage.snapshot',
+          chatId: 'chat-cw-only',
+          contextWindow: {
+            maxSize: 196608,
+            currentSize: 2825,
+            estimatedNextCallSize: 2982,
+          },
+          usage: {},
+        }),
+      }),
+    );
+  });
+
   it('skips loaded chat usage snapshots when usage is not meaningful', async () => {
     const { actions, dispatch } = renderChatActions();
     getChat.mockResolvedValue({

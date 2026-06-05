@@ -462,6 +462,17 @@ export function buildLoadedChatUsageSnapshot(
     };
   }
   if (!usage) {
+    const contextWindow = normalizeLoadedChatContextWindow(chatData.contextWindow);
+    if (contextWindow) {
+      return {
+        type: AIUsageEventTypeEnum.Snapshot,
+        chatId,
+        ...(runId ? { runId } : {}),
+        ...(modelKey ? { model: { key: modelKey } } : {}),
+        contextWindow,
+        usage: {},
+      };
+    }
     return null;
   }
 
