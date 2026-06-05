@@ -196,7 +196,7 @@ export const ChatActionsMenu: React.FC<{
 					event.stopPropagation();
 				}}
 			>
-				<MaterialIcon name="more_vert" />
+				<MaterialIcon name="more_horiz" />
 			</Button>
 		</Dropdown>
 	);
