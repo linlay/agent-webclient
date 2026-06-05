@@ -127,37 +127,7 @@ export function buildSidebarSettingsMenuSections(input: {
           action: { type: "open-archive" },
         },
       ],
-    },
-    {
-      key: "reserved",
-      title: t("settingsMenu.section.reserved"),
-      items: [
-        {
-          key: "reserved-connection",
-          label: t("settingsMenu.reserved.connection"),
-          description: t("settingsMenu.reserved.description"),
-          icon: "sync_alt",
-          disabled: true,
-          action: { type: "noop" },
-        },
-        {
-          key: "reserved-appearance",
-          label: t("settingsMenu.reserved.appearance"),
-          description: t("settingsMenu.reserved.description"),
-          icon: "palette",
-          disabled: true,
-          action: { type: "noop" },
-        },
-        {
-          key: "reserved-shortcuts",
-          label: t("settingsMenu.reserved.shortcuts"),
-          description: t("settingsMenu.reserved.description"),
-          icon: "keyboard_command_key",
-          disabled: true,
-          action: { type: "noop" },
-        },
-      ],
-    },
+    }
   ];
 }
 
