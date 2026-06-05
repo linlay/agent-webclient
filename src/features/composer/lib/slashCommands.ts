@@ -15,7 +15,8 @@ export type SlashCommandId =
   | 'automation'
   | 'detail'
   | 'history'
-  | 'switch';
+  | 'switch'
+  | 'usage';
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
@@ -42,6 +43,7 @@ export interface SlashCommandAvailability {
   workerHistoryCount: number;
   workerCount: number;
   commandModalOpen: boolean;
+  canShowUsage: boolean;
 }
 
 export interface SlashCommandFilterOptions {
@@ -146,6 +148,14 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     keywords: ['settings', 'config', 'preferences'],
   },
   {
+    id: 'usage',
+    icon: 'bar_chart',
+    command: '/usage',
+    labelKey: 'slash.command.usage.label',
+    descriptionKey: 'slash.command.usage.description',
+    keywords: ['usage', 'tokens', 'cost', 'token', 'spend'],
+  },
+  {
     id: 'plan',
     icon: 'checklist',
     command: '/planning',
@@ -229,6 +239,9 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'switch') {
     return availability.workerCount === 0 || availability.commandModalOpen;
+  }
+  if (commandId === 'usage') {
+    return !availability.canShowUsage;
   }
   return false;
 }

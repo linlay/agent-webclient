@@ -234,6 +234,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateMentionSuggestions,
   });
 
+  function resolveHasCompactUsage(events: typeof state.events): boolean {
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const event = events[i] as Record<string, unknown>;
+      if (event.type !== 'context.compact.complete') continue;
+      return Boolean(event.compactionUsage);
+    }
+    return false;
+  }
+
   const slashAvailability = useMemo(
     () => ({
       streaming: state.streaming,
@@ -246,6 +255,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       workerHistoryCount: currentWorker?.relatedChats.length || 0,
       workerCount: state.workerRows.length,
       commandModalOpen: state.commandModal.open,
+      canShowUsage: Boolean(state.usageSnapshot) || state.streaming || resolveHasCompactUsage(state.events),
     }),
     [
       currentWorker,
@@ -254,6 +264,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state.chatId,
       state.commandModal.open,
       state.streaming,
+      state.usageSnapshot,
+      state.events,
       state.workerRows.length,
       voiceModeAvailable,
       planningModeAvailable,
@@ -294,6 +306,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
         chatId: state.chatId,
+        usagePopoverOpen: state.usagePopoverOpen,
       },
       toggleVoiceMode,
     },

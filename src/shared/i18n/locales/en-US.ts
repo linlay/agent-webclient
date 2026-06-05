@@ -658,6 +658,8 @@ export const enUSMessages: I18nMessages = {
   "slash.command.switch.label": "Switch {agentLabel}",
   "slash.command.voice.description": "Switch between text input and turn-based voice chat",
   "slash.command.voice.label": "Voice mode",
+  "slash.command.usage.description": "View token usage and cost for the current conversation",
+  "slash.command.usage.label": "Usage stats",
   "slashPalette.ariaLabel": "Slash commands",
   "switch.ariaLabel": "Switch {agentLabel}",
   "switch.empty": "No matching {agentLabel} or {teamLabel} found.",

@@ -658,6 +658,8 @@ export const zhCNMessages: I18nMessages = {
   "slash.command.switch.label": "切换{agentLabel}",
   "slash.command.voice.description": "在文字输入与一问一答语聊模式之间切换",
   "slash.command.voice.label": "语聊模式",
+  "slash.command.usage.description": "查看当前会话的 Token 用量与费用统计",
+  "slash.command.usage.label": "用量统计",
   "slashPalette.ariaLabel": "斜杠命令",
   "switch.ariaLabel": "切换{agentLabel}",
   "switch.empty": "没有匹配到{agentLabel}或{teamLabel}。",

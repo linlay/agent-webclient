@@ -38,6 +38,10 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/remote')).toEqual([]);
     expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
     expect(getFilteredSlashCommands('/compact').map((item) => item.id)).toEqual(['compact']);
+    expect(getFilteredSlashCommands('/usage').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('/us').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('/tokens').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('/cost').map((item) => item.id)).toEqual(['usage']);
   });
 
   it('shows planning as /planning only when planning mode is available', () => {
@@ -107,6 +111,7 @@ describe('slashCommands', () => {
       workerHistoryCount: 0,
       workerCount: 0,
       commandModalOpen: false,
+      canShowUsage: false,
     };
 
     expect(isSlashCommandDisabled('redo', availability)).toBe(true);
@@ -118,6 +123,7 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
+    expect(isSlashCommandDisabled('usage', availability)).toBe(true);
   });
 
   it('enables the plan command only for planning-capable workers', () => {
@@ -132,6 +138,7 @@ describe('slashCommands', () => {
       workerHistoryCount: 0,
       workerCount: 1,
       commandModalOpen: false,
+      canShowUsage: true,
     };
 
     expect(isSlashCommandDisabled('plan', availability)).toBe(false);

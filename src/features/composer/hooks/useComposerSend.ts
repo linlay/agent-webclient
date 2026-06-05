@@ -59,7 +59,7 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
-    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId">;
+    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen">;
     toggleVoiceMode: () => void;
   };
   backgroundCommandText: {

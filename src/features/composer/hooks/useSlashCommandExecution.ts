@@ -15,7 +15,7 @@ export function useSlashCommandExecution(input: {
 	submitCompactCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
-	state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId">;
+	state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen">;
 }) {
 	const {
 		slashAvailability,
@@ -108,6 +108,12 @@ export function useSlashCommandExecution(input: {
 						chatId: state.chatId,
 						enabled: !state.planningMode,
 						persist: true,
+					});
+					return;
+				case "usage":
+					dispatch({
+						type: "SET_USAGE_POPOVER_OPEN",
+						open: !state.usagePopoverOpen,
 					});
 					return;
 			}
