@@ -114,11 +114,10 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           <>
             <QuerySettingsControls
               accessLevel={accessLevel}
-              disabled={isFrontendActive}
+              disabled={true}
               modelOverride={modelOverride}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
-              showModelSelector={false}
             />
             <UiButton
               className="interrupt-btn"
