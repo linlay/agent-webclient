@@ -430,6 +430,7 @@ describe("TopNav", () => {
 					currentSize: 64000,
 					estimatedNextCallSize: 8000,
 					modelKey: "deepseek-chat",
+					reasoningEffort: "HIGH",
 				},
 				usage: {
 					current: {
@@ -467,6 +468,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Usage stats");
 		expect(html).toContain("deepseek-chat");
+		expect(html).toContain("· High");
 		expect(html).toContain("Context window");
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");

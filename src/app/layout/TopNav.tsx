@@ -440,6 +440,10 @@ export const TopNav: React.FC = () => {
   const estimatedCostLabel = formatChatEstimatedCost(
     resolveChatEstimatedCost(usageSnapshot),
   );
+  const reasoningEffort = usageSnapshot?.contextWindow?.reasoningEffort || '';
+  const reasoningEffortLabel = reasoningEffort
+    ? t(`composer.query.reasoning.${reasoningEffort}`)
+    : '';
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
@@ -507,6 +511,11 @@ export const TopNav: React.FC = () => {
                                 usageSnapshot?.model?.key ||
                                 t("topNav.usage.modelUnknown")}
                             </Typography.Text>
+                            {reasoningEffortLabel ? (
+                              <span style={{ color: "var(--ink-muted)", fontSize: 11, marginLeft: 4 }}>
+                                · {reasoningEffortLabel}
+                              </span>
+                            ) : null}
                           </Flex>
                           <Flex align="center" gap={8}>
                             <div
