@@ -752,9 +752,6 @@ export function useChatActions() {
         const chatData = response.data as Record<string, unknown>;
         const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
         const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
-        if (!usageSnapshot) {
-          console.log('[DEBUG] usageSnapshot is null for chat', chatId, 'data keys:', Object.keys(chatData));
-        }
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
         const downvotedRunKeys = new Set<string>();

@@ -645,6 +645,7 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 5396,
             estimatedNextCallSize: 5396,
+            modelKey: 'minimax',
           },
         }),
       }),
