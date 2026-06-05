@@ -30,18 +30,16 @@ export const WorkerChatPreviewItem: React.FC<{
     >
       <div className="worker-chat-item-head">
         <UnreadDot chat={chat} />
-        <span className="worker-chat-item-main">
-          <span className="worker-chat-name">
-            {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
-          </span>
+        <span className="worker-chat-name">
+          {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
+        </span>
+        {/* 显示优先级：hover > loading > unread > time */}
+        <span className="worker-chat-action" data-action={action}>
           {chat.hasPendingAwaiting && (
             <span className="chat-awaiting-status">
               {t("leftSidebar.awaitingApproval")}
             </span>
           )}
-        </span>
-        {/* 显示优先级：hover > loading > unread > time */}
-        <span className="worker-chat-action" data-action={action}>
           <MaterialIcon
             name="progress_activity"
             className="worker-chat-loading"
