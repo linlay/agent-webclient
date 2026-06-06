@@ -189,7 +189,7 @@ describe('shouldSyncLiveCache', () => {
 
     const cache = createLocalCacheFromState(state);
     cache.activeAwaiting = reduceActiveAwaiting(cache.activeAwaiting, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'question',
@@ -204,7 +204,7 @@ describe('shouldSyncLiveCache', () => {
     expect(cache.activeAwaiting?.questions).toHaveLength(0);
   });
 
-  it('ignores awaiting.ask sessions when mode is omitted', () => {
+  it('ignores awaiting.asking sessions when mode is omitted', () => {
     const baseState = createInitialState();
     const state = {
       ...baseState,
@@ -217,7 +217,7 @@ describe('shouldSyncLiveCache', () => {
 
     const cache = createLocalCacheFromState(state);
     cache.activeAwaiting = reduceActiveAwaiting(cache.activeAwaiting, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       questions: [
@@ -279,7 +279,7 @@ describe('shouldSyncLiveCache', () => {
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
 
-  it('marks awaiting as resolvedByOther when awaiting.answer matches the active dialog', () => {
+  it('marks awaiting as resolvedByOther when awaiting.answered matches the active dialog', () => {
     const current = {
       key: 'run_1#await_1',
       awaitingId: 'await_1',
@@ -302,7 +302,7 @@ describe('shouldSyncLiveCache', () => {
     };
 
     const next = reduceActiveAwaiting(current, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       awaitingId: 'await_1',
       runId: 'run_1',
       status: 'answered',

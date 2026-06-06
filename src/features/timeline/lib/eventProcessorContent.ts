@@ -143,7 +143,7 @@ export function processContentEvent(
     return commands;
   }
 
-  if (type === "awaiting.answer") {
+  if (type === "awaiting.answered") {
     const runId = toText(event.runId);
     const awaitingId = toText(event.awaitingId);
     const nodeId = awaitingId

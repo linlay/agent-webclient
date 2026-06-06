@@ -6,9 +6,9 @@ import {
 } from '@/features/chats/lib/chatSummaryLive';
 
 describe('chatSummaryLive helpers', () => {
-  it('marks awaiting.ask as pending approval and uses createdAt as updatedAt fallback', () => {
+  it('marks awaiting.asking as pending approval and uses createdAt as updatedAt fallback', () => {
     const event = {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       chatId: 'chat_1',
       runId: 'run_1',
       createdAt: 12345,
@@ -18,9 +18,9 @@ describe('chatSummaryLive helpers', () => {
     expect(resolveChatSummaryUpdatedAt(event)).toBe(12345);
   });
 
-  it('clears pending approval state for awaiting.answer and run lifecycle events', () => {
+  it('clears pending approval state for awaiting.answered and run lifecycle events', () => {
     expect(
-      resolveChatSummaryPendingAwaiting({ type: 'awaiting.answer' } as AgentEvent),
+      resolveChatSummaryPendingAwaiting({ type: 'awaiting.answered' } as AgentEvent),
     ).toBe(false);
     expect(
       resolveChatSummaryPendingAwaiting({ type: 'request.query' } as AgentEvent),
@@ -44,7 +44,7 @@ describe('chatSummaryLive helpers', () => {
 
     const next = upsertLiveChatSummary({
       event: {
-        type: 'awaiting.answer',
+        type: 'awaiting.answered',
         chatId: 'chat_1',
         runId: 'run_1',
         timestamp: 200,

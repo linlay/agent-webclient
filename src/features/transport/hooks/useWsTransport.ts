@@ -603,7 +603,7 @@ function buildWsClient(
 				return;
 			}
 
-			if (type === "awaiting.ask" || type === "awaiting.answer") {
+			if (type === "awaiting.asking" || type === "awaiting.answered") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				if (!isActiveChat) {
 					return;

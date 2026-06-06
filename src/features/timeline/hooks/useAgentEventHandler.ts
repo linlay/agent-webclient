@@ -343,7 +343,7 @@ export function useAgentEventHandler() {
         return;
       }
 
-      if (type === 'awaiting.ask' || type === 'awaiting.answer') {
+      if (type === 'awaiting.asking' || type === 'awaiting.answered') {
         upsertLiveChatSummary({ event, cache, state });
         return;
       }

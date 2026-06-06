@@ -131,7 +131,7 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 }
 
 export function awaitingAnswerTitle(event: AgentEvent): string {
-	if (event.type !== "awaiting.answer") {
+	if (event.type !== "awaiting.answered") {
 		return t("timeline.awaitingAnswer.submitted");
 	}
 	if (event.status === "answered") {

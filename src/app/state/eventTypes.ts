@@ -83,8 +83,8 @@ export enum AIArtifactEventTypeEnum {
 }
 
 export enum AIAwaitEventTypeEnum {
-  Ask = "awaiting.ask",
-  Answer = "awaiting.answer",
+  Ask = "awaiting.asking",
+  Answer = "awaiting.answered",
 }
 
 export enum AIPlanStatusEnum {

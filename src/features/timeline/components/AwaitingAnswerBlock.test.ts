@@ -12,7 +12,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_1',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           text: JSON.stringify({
             status: 'answered',
             items: [
@@ -40,7 +40,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_2',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           text: JSON.stringify({
             status: 'answered',
             items: [
@@ -66,7 +66,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_3',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           title: '等待已超时',
           text: JSON.stringify({
             status: 'error',
@@ -91,7 +91,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_4',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           text: JSON.stringify({
             status: 'answered',
             items: [
@@ -122,7 +122,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_5',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           text: JSON.stringify({
             status: 'answered',
             items: [
@@ -148,7 +148,7 @@ describe('AwaitingAnswerBlock', () => {
       React.createElement(AwaitingAnswerBlock, {
         node: {
           id: 'node_6',
-          kind: 'awaiting.answer',
+          kind: 'awaiting.answered',
           text: JSON.stringify({
             status: 'answered',
             plan: {

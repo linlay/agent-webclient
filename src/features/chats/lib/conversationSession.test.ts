@@ -123,7 +123,7 @@ describe('conversation session restore', () => {
         timestamp: 101,
       },
       {
-        type: 'awaiting.ask',
+        type: 'awaiting.asking',
         chatId: 'chat_1',
         runId: 'run_1',
         awaitingId: 'await_1',

@@ -12,7 +12,7 @@ describe("resolveAwaitingSubmitAgentKey", () => {
 		});
 	});
 
-	it("uses run identity when awaiting.ask omitted agentKey", () => {
+	it("uses run identity when awaiting.asking omitted agentKey", () => {
 		const state = {
 			...createInitialState(),
 			chatId: "chat_1",

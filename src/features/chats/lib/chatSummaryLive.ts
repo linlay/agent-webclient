@@ -45,11 +45,11 @@ export function resolveChatSummaryPendingAwaiting(
   event: AgentEvent,
 ): boolean | undefined {
   const type = toText(event.type);
-  if (type === 'awaiting.ask') {
+  if (type === 'awaiting.asking') {
     return true;
   }
   if (
-    type === 'awaiting.answer'
+    type === 'awaiting.answered'
     || type === 'request.query'
     || type === 'run.start'
     || type === 'run.complete'

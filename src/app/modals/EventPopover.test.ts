@@ -1303,19 +1303,19 @@ describe("EventPopover display and copy helpers", () => {
     expect(
       buildEventCopyMenuItems(
 	        {
-	          type: "awaiting.ask",
+	          type: "awaiting.asking",
 	          awaitingId: "await_1",
 	          mode: "question",
 	          questions: [{ id: "q1", question: "继续吗？", type: "text" as const }],
 	        },
 	        [],
-	        '{"type":"awaiting.ask"}',
+	        '{"type":"awaiting.asking"}',
       ),
     ).toEqual([
       {
 	        key: "eventJson",
 	        label: "Copy all",
-	        text: '{"type":"awaiting.ask"}',
+	        text: '{"type":"awaiting.asking"}',
       },
       {
         key: "awaitingId",

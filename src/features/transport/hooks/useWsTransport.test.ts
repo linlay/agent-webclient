@@ -521,7 +521,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts awaiting.ask for another chat and keeps it out of the active timeline", async () => {
+	it("upserts awaiting.asking for another chat and keeps it out of the active timeline", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 
@@ -538,7 +538,7 @@ describe("connectWsTransport", () => {
 
 		getOnPush()?.({
 			frame: "push",
-			type: "awaiting.ask",
+			type: "awaiting.asking",
 			payload: {
 				chatId: "chat_remote",
 				runId: "run_remote",
@@ -559,7 +559,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("clears pending awaiting state when awaiting.answer arrives over push", async () => {
+	it("upserts awaiting.asking push data into pending awaiting chat state", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 
@@ -576,7 +576,97 @@ describe("connectWsTransport", () => {
 
 		getOnPush()?.({
 			frame: "push",
-			type: "awaiting.answer",
+			type: "awaiting.asking",
+			data: {
+				agentKey: "askUser.demo",
+				awaitingId: "call_function_enm773pg95p1_1",
+				chatId: "chat_remote",
+				createdAt: 1780737509785,
+				mode: "question",
+				runId: "mq254p8r",
+				timeout: 600000,
+				viewportKey: "question",
+				viewportType: "builtin",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_remote",
+				lastRunId: "mq254p8r",
+				hasPendingAwaiting: true,
+				updatedAt: 1780737509785,
+			}),
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("forwards active awaiting.asking push events as awaiting.asking", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.asking",
+			data: {
+				awaitingId: "await_active",
+				chatId: "chat_active",
+				createdAt: 1780737509785,
+				mode: "question",
+				runId: "run_active",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_active",
+				hasPendingAwaiting: true,
+				updatedAt: 1780737509785,
+			}),
+		});
+		expect(handleEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "awaiting.asking",
+				chatId: "chat_active",
+				runId: "run_active",
+				awaitingId: "await_active",
+				mode: "question",
+			}),
+		);
+	});
+
+	it("clears pending awaiting state when awaiting.answered arrives over push", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.answered",
 			payload: {
 				chatId: "chat_remote",
 				runId: "run_remote",

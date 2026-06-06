@@ -43,7 +43,7 @@ export function processEvent(
     type === "content.delta" ||
     type === "content.end" ||
     type === "content.snapshot" ||
-    type === "awaiting.answer"
+    type === "awaiting.answered"
   ) {
     return processContentEvent(event, state, config);
   }

@@ -527,7 +527,7 @@ describe('processEvent', () => {
     const state = createState();
 
     processAndApply(state, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       status: 'answered',
@@ -567,7 +567,7 @@ describe('processEvent', () => {
     ]);
 
     processAndApply(state, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       status: 'answered',
@@ -608,7 +608,7 @@ describe('processEvent', () => {
     ]);
 
     processAndApply(state, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       status: 'answered',
@@ -642,7 +642,7 @@ describe('processEvent', () => {
     const state = createState();
 
     processAndApply(state, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       status: 'error',

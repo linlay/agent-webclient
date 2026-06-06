@@ -10,9 +10,9 @@ describe('reduceActiveAwaiting', () => {
     clearAllAwaitingQuestionMeta();
   });
 
-  it('opens question awaitings directly from awaiting.ask.questions without viewport metadata', () => {
+  it('opens question awaitings directly from awaiting.asking.questions without viewport metadata', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'question',
@@ -57,11 +57,11 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('inherits agentKey for awaiting.ask when the event omits it', () => {
+  it('inherits agentKey for awaiting.asking when the event omits it', () => {
     const asked = reduceActiveAwaiting(
       null,
       {
-        type: 'awaiting.ask',
+        type: 'awaiting.asking',
         runId: 'run_1',
         awaitingId: 'await_1',
         mode: 'question',
@@ -86,7 +86,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('normalizes multi-select questions without multiple flags', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_multi_1',
       awaitingId: 'await_multi_1',
       mode: 'question',
@@ -113,7 +113,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('keeps text, number and password question fields and assigns fallback ids when missing', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_2',
       awaitingId: 'await_2',
       mode: 'question',
@@ -165,7 +165,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('registers question metadata for later answer masking by id', () => {
     reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_3',
       awaitingId: 'await_3',
       mode: 'question',
@@ -190,7 +190,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('opens approval awaitings without viewport metadata', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_4',
       awaitingId: 'await_4',
       mode: 'approval',
@@ -239,7 +239,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('opens form awaitings only for html viewports and preserves html runtime state on repeated asks', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_5',
       awaitingId: 'await_5',
       viewportType: ViewportTypeEnum.Html,
@@ -265,7 +265,7 @@ describe('reduceActiveAwaiting', () => {
     };
 
     const next = reduceActiveAwaiting(hydrated, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_5',
       awaitingId: 'await_5',
       viewportType: ViewportTypeEnum.Html,
@@ -298,7 +298,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('opens plan awaitings from a single plan object', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_plan_1',
       awaitingId: 'run_plan_1_coder_plan_confirm_1',
       mode: 'plan',
@@ -352,7 +352,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('keeps html forms without action when form data is present', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_leave_1',
       awaitingId: 'await_leave_1',
       viewportType: ViewportTypeEnum.Html,
@@ -402,7 +402,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('rejects form awaitings without html viewport metadata', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_6',
       awaitingId: 'await_6',
       mode: 'form',
@@ -417,9 +417,9 @@ describe('reduceActiveAwaiting', () => {
     expect(current).toBeNull();
   });
 
-  it('ignores toolTimeout when awaiting.ask provides timeout', () => {
+  it('ignores toolTimeout when awaiting.asking provides timeout', () => {
     const asked = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'question',
@@ -430,9 +430,9 @@ describe('reduceActiveAwaiting', () => {
     expect(asked?.timeout).toBe(60);
   });
 
-  it('marks awaiting as resolved when awaiting.answer matches the active dialog', () => {
+  it('marks awaiting as resolved when awaiting.answered matches the active dialog', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'approval',
@@ -446,7 +446,7 @@ describe('reduceActiveAwaiting', () => {
     });
 
     const next = reduceActiveAwaiting(current, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       status: 'answered',
@@ -464,9 +464,9 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('clears awaiting without resolvedByOther when awaiting.answer has this client submitId', () => {
+  it('clears awaiting without resolvedByOther when awaiting.answered has this client submitId', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'question',
@@ -481,7 +481,7 @@ describe('reduceActiveAwaiting', () => {
 
     const pending = current ? { ...current, pendingSubmitId: 'submit_1' } : current;
     const next = reduceActiveAwaiting(pending, {
-      type: 'awaiting.answer',
+      type: 'awaiting.answered',
       runId: 'run_1',
       awaitingId: 'await_1',
       submitId: 'submit_1',
@@ -499,7 +499,7 @@ describe('reduceActiveAwaiting', () => {
 
   it('clears awaiting state when the run reaches a terminal event', () => {
     const current = reduceActiveAwaiting(null, {
-      type: 'awaiting.ask',
+      type: 'awaiting.asking',
       runId: 'run_1',
       awaitingId: 'await_1',
       mode: 'question',
