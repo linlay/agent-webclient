@@ -253,6 +253,11 @@ export function buildWorkerSwitchRows(
   });
 }
 
+export function isCoderAgent(summary: CurrentWorkerSummary | null): boolean {
+  if (!summary || summary.type !== 'agent') return false;
+  return String((summary.raw as Record<string, unknown> | null)?.['mode'] || '').toUpperCase() === 'CODER';
+}
+
 export function buildAutomationDraft(summary: CurrentWorkerSummary, task: string, automationRule: string): string {
   const kindLabel = summary.type === 'team' ? '小组' : '员工';
   const roleText = toText(summary.role);

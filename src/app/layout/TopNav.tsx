@@ -8,7 +8,10 @@ import type {
   AppState,
   RightSidebarTabKey,
 } from "@/app/state/types";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import {
+  isCoderAgent,
+  resolveCurrentWorkerSummary,
+} from "@/features/workers/lib/currentWorker";
 import {
   isDebugPanelEnabled,
   isVoiceEnabled,
@@ -325,6 +328,7 @@ export const TopNav: React.FC = () => {
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
+  const showTerminalButton = isCoderAgent(currentWorker);
   const isMacPlatform = React.useMemo(
     () =>
       typeof navigator !== "undefined" &&
@@ -665,30 +669,32 @@ export const TopNav: React.FC = () => {
               <MaterialIcon name="bug_report" />
             </UiButton>
           ) : null}
-          <UiButton
-            variant="ghost"
-            size="sm"
-            iconOnly
-            active={ui.terminalDockOpen}
-            aria-label={
-              ui.terminalDockOpen
-                ? t("topNav.terminal.close")
-                : t("topNav.terminal.open")
-            }
-            title={
-              ui.terminalDockOpen
-                ? t("topNav.terminal.close")
-                : t("topNav.terminal.open")
-            }
-            onClick={() =>
-              dispatch({
-                type: "SET_TERMINAL_DOCK_OPEN",
-                open: !ui.terminalDockOpen,
-              })
-            }
-          >
-            <MaterialIcon name="terminal" />
-          </UiButton>
+          {showTerminalButton ? (
+            <UiButton
+              variant="ghost"
+              size="sm"
+              iconOnly
+              active={ui.terminalDockOpen}
+              aria-label={
+                ui.terminalDockOpen
+                  ? t("topNav.terminal.close")
+                  : t("topNav.terminal.open")
+              }
+              title={
+                ui.terminalDockOpen
+                  ? t("topNav.terminal.close")
+                  : t("topNav.terminal.open")
+              }
+              onClick={() =>
+                dispatch({
+                  type: "SET_TERMINAL_DOCK_OPEN",
+                  open: !ui.terminalDockOpen,
+                })
+              }
+            >
+              <MaterialIcon name="terminal" />
+            </UiButton>
+          ) : null}
           <UiButton
             className="icon-btn"
             size="sm"

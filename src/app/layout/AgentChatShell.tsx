@@ -22,6 +22,10 @@ import { CommandModal } from "@/app/modals/CommandModal";
 import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock } from "./TerminalDock";
+import {
+  isCoderAgent,
+  resolveCurrentWorkerSummary,
+} from "@/features/workers/lib/currentWorker";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
@@ -139,6 +143,7 @@ export const AgentChatShell: React.FC = () => {
     null;
 
   useAppRuntimes();
+  const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -388,7 +393,7 @@ export const AgentChatShell: React.FC = () => {
       <ConversationStage showEmptyState={!chatId} />
       <RightSidebar />
       <BottomDock />
-      {state.terminalDockOpen ? <TerminalDock /> : null}
+      {state.terminalDockOpen && isCoderAgent(currentWorker) ? <TerminalDock /> : null}
       <CommandStatusOverlay />
       {state.archiveOpen ? <ArchiveModal /> : null}
       {state.memoryInfoOpen ? <MemoryInfoModal /> : null}

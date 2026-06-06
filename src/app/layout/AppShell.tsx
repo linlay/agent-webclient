@@ -16,6 +16,10 @@ import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock } from "./TerminalDock";
+import {
+  isCoderAgent,
+  resolveCurrentWorkerSummary,
+} from "@/features/workers/lib/currentWorker";
 // import { useLiveEvents } from "@/hooks/useLiveEvents";
 
 export const AppShell: React.FC = () => {
@@ -27,6 +31,7 @@ export const AppShell: React.FC = () => {
 	// Default real-time updates now come from `/ws` push frames via useWsTransport().
 	// useLiveEvents();
 
+	const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 	const leftDrawerClass = state.leftDrawerOpen
 		? "left-drawer-open"
 		: "left-drawer-closed";
@@ -50,7 +55,7 @@ export const AppShell: React.FC = () => {
 			<ConversationStage />
 			<RightSidebar />
 			<BottomDock />
-			{state.terminalDockOpen ? <TerminalDock /> : null}
+			{state.terminalDockOpen && isCoderAgent(currentWorker) ? <TerminalDock /> : null}
 			<CommandStatusOverlay />
 			{state.archiveOpen ? <ArchiveModal /> : null}
 			{state.memoryInfoOpen ? <MemoryInfoModal /> : null}
