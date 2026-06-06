@@ -23,9 +23,6 @@ require_file "$PROGRAM_RELEASE_ASSETS_DIR/windows/program-common.ps1"
 require_file "$REPO_ROOT/.env.example"
 require_file "$REPO_ROOT/package.json"
 require_file "$REPO_ROOT/package-lock.json"
-require_file "$REPO_ROOT/backend/server.js"
-require_file "$REPO_ROOT/backend/package.json"
-require_file "$REPO_ROOT/backend/package-lock.json"
 
 cd "$REPO_ROOT"
 
@@ -71,12 +68,6 @@ prepare_build_root() {
 
   cp -R "$REPO_ROOT/public" "$BUILD_ROOT/public"
   cp -R "$REPO_ROOT/src" "$BUILD_ROOT/src"
-  mkdir -p "$BUILD_ROOT/scripts"
-  cp "$SCRIPT_DIR/build-backend-bundle.mjs" "$BUILD_ROOT/scripts/build-backend-bundle.mjs"
-  mkdir -p "$BUILD_ROOT/backend"
-  cp "$REPO_ROOT/backend/package.json" "$BUILD_ROOT/backend/package.json"
-  cp "$REPO_ROOT/backend/package-lock.json" "$BUILD_ROOT/backend/package-lock.json"
-  cp "$REPO_ROOT/backend/server.js" "$BUILD_ROOT/backend/server.js"
 }
 
 install_build_dependencies() {
@@ -85,14 +76,6 @@ install_build_dependencies() {
     cd "$BUILD_ROOT"
     npm ci
   )
-
-  if [[ -f "$BUILD_ROOT/backend/package-lock.json" ]]; then
-    echo "[release] installing isolated backend dependencies..."
-    (
-      cd "$BUILD_ROOT/backend"
-      npm ci
-    )
-  fi
 }
 
 build_frontend_dist() {
@@ -112,7 +95,6 @@ build_program_bundle() {
   local tmp_dir
   local stage_root
   local bundle_root
-  local backend_dir
   local frontend_dir
   local scripts_dir
 
@@ -126,18 +108,13 @@ build_program_bundle() {
 
   stage_root="$tmp_dir/stage"
   bundle_root="$stage_root/$APP_NAME"
-  backend_dir="$bundle_root/backend"
   frontend_dir="$bundle_root/frontend"
   scripts_dir="$bundle_root/scripts"
 
-  mkdir -p "$backend_dir" "$frontend_dir/dist" "$scripts_dir"
+  mkdir -p "$frontend_dir/dist" "$scripts_dir"
 
   echo "[release] assembling program bundle for $target_os..."
   cp -R "$BUILD_ROOT/dist/." "$frontend_dir/dist/"
-  (
-    cd "$BUILD_ROOT"
-    node "$BUILD_ROOT/scripts/build-backend-bundle.mjs" --output "$backend_dir/server.cjs"
-  )
   cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
   write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$(basename "$bundle_archive")"
 
@@ -152,7 +129,6 @@ build_program_bundle() {
     cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/stop.sh" "$bundle_root/stop.sh"
     cp "$PROGRAM_RELEASE_ASSETS_DIR/unix/program-common.sh" "$scripts_dir/program-common.sh"
     chmod +x \
-      "$backend_dir/server.cjs" \
       "$bundle_root/deploy.sh" \
       "$bundle_root/start.sh" \
       "$bundle_root/stop.sh" \

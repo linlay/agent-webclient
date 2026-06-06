@@ -6,13 +6,9 @@ $Script:AppName = 'agent-webclient'
 $Script:ManifestFile = Join-Path $Script:BundleRoot 'manifest.json'
 $Script:EnvExampleFile = Join-Path $Script:BundleRoot '.env.example'
 $Script:EnvFile = Join-Path $(if ($env:SERVICE_CONFIG_DIR) { $env:SERVICE_CONFIG_DIR } else { $Script:BundleRoot }) '.env'
-$Script:BackendEntry = Join-Path (Join-Path $Script:BundleRoot 'backend') 'server.cjs'
 $Script:DistDir = Join-Path (Join-Path $Script:BundleRoot 'frontend') 'dist'
 $Script:RunDir = if ($env:SERVICE_STATE_DIR) { $env:SERVICE_STATE_DIR } else { Join-Path $Script:BundleRoot 'run' }
 $Script:LogDir = if ($env:SERVICE_LOG_DIR) { $env:SERVICE_LOG_DIR } else { $Script:RunDir }
-$Script:PidFile = Join-Path $Script:RunDir 'agent-webclient.pid'
-$Script:LogFile = Join-Path $Script:LogDir 'agent-webclient.log'
-$Script:ErrorLogFile = Join-Path $Script:LogDir 'agent-webclient.stderr.log'
 
 function Fail-Program([string]$Message) {
   throw "[program] $Message"
@@ -24,9 +20,6 @@ function Test-ProgramBundle {
   }
   if (-not (Test-Path -LiteralPath $Script:EnvExampleFile -PathType Leaf)) {
     Fail-Program "required file not found: $Script:EnvExampleFile"
-  }
-  if (-not (Test-Path -LiteralPath $Script:BackendEntry -PathType Leaf)) {
-    Fail-Program "required file not found: $Script:BackendEntry"
   }
   if (-not (Test-Path -LiteralPath $Script:DistDir -PathType Container)) {
     Fail-Program "required directory not found: $Script:DistDir"
@@ -69,110 +62,15 @@ function Import-ProgramEnv {
   }
 }
 
-function Resolve-NodeBin {
-  if ($env:NODE_BIN -and (Test-Path -LiteralPath $env:NODE_BIN -PathType Leaf)) {
-    if ($env:NODE_BIN -match 'electron|zenmind' -and -not $env:ELECTRON_RUN_AS_NODE) {
-      $env:ELECTRON_RUN_AS_NODE = "1"
-    }
-    return $env:NODE_BIN
-  }
-  try {
-    $nodeCommand = Get-Command node -ErrorAction Stop
-  } catch {
-    Fail-Program 'node runtime not found; install Node.js 18+'
-  }
-
-  return $nodeCommand.Source
-}
-
 function Initialize-ProgramRuntime {
   New-Item -ItemType Directory -Force -Path $Script:RunDir, $Script:LogDir | Out-Null
 }
 
-function Clear-StaleProgramPid {
-  if (-not (Test-Path -LiteralPath $Script:PidFile -PathType Leaf)) {
-    return
-  }
-
-  $pidValue = (Get-Content -LiteralPath $Script:PidFile -Raw).Trim()
-  if (-not [string]::IsNullOrWhiteSpace($pidValue)) {
-    try {
-      $null = Get-Process -Id ([int]$pidValue) -ErrorAction Stop
-      Fail-Program "$Script:AppName is already running with pid $pidValue"
-    } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
-      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
-      return
-    }
-  }
-
-  Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
+function Start-ProgramHostManaged {
+  Write-Host "[program-start] $Script:AppName is hosted by ZenMind Desktop"
+  Write-Host ("[program-start] endpoint: http://127.0.0.1:{0}/" -f $env:PORT)
 }
 
-function Start-ProgramBackend {
-  param(
-    [switch]$Daemon
-  )
-
-  $nodeBin = Resolve-NodeBin
-
-  if ($Daemon) {
-    Clear-StaleProgramPid
-    if (Test-Path -LiteralPath $Script:LogFile) {
-      Clear-Content -LiteralPath $Script:LogFile
-    } else {
-      New-Item -ItemType File -Path $Script:LogFile -Force | Out-Null
-    }
-    if (Test-Path -LiteralPath $Script:ErrorLogFile) {
-      Clear-Content -LiteralPath $Script:ErrorLogFile
-    } else {
-      New-Item -ItemType File -Path $Script:ErrorLogFile -Force | Out-Null
-    }
-
-    $proc = Start-Process -FilePath $nodeBin -ArgumentList @("`"$($Script:BackendEntry)`"") -WorkingDirectory $Script:BundleRoot -WindowStyle Hidden -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
-    $proc.Id | Set-Content -LiteralPath $Script:PidFile
-    Start-Sleep -Seconds 1
-    if ($proc.HasExited) {
-      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
-      Fail-Program "backend failed to start; see $Script:LogFile and $Script:ErrorLogFile"
-    }
-    Write-Host "[program-start] started $Script:AppName in daemon mode (pid=$($proc.Id))"
-    Write-Host "[program-start] log file: $Script:LogFile"
-    Write-Host "[program-start] stderr file: $Script:ErrorLogFile"
-    return
-  }
-
-  & $nodeBin $Script:BackendEntry
-}
-
-function Stop-ProgramBackend {
-  if (-not (Test-Path -LiteralPath $Script:PidFile -PathType Leaf)) {
-    Write-Host "[program-stop] pid file not found: $Script:PidFile"
-    return
-  }
-
-  $pidValue = (Get-Content -LiteralPath $Script:PidFile -Raw).Trim()
-  if ([string]::IsNullOrWhiteSpace($pidValue)) {
-    Fail-Program "pid file is empty: $Script:PidFile"
-  }
-
-  try {
-    $proc = Get-Process -Id ([int]$pidValue) -ErrorAction Stop
-  } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
-    Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
-    Write-Host "[program-stop] process $pidValue is not running; removed stale pid file"
-    return
-  }
-
-  Stop-Process -Id $proc.Id -ErrorAction Stop
-  for ($i = 0; $i -lt 30; $i++) {
-    Start-Sleep -Seconds 1
-    if ($proc.HasExited) {
-      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
-      Write-Host "[program-stop] stopped $Script:AppName (pid=$($proc.Id))"
-      return
-    }
-    $proc.Refresh()
-  }
-
-  Fail-Program "process $($proc.Id) did not stop within 30s"
+function Stop-ProgramHostManaged {
+  Write-Host "[program-stop] $Script:AppName is hosted by ZenMind Desktop; no child process to stop"
 }

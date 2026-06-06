@@ -4,4 +4,4 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Set-Location $ScriptDir
 Test-ProgramBundle
-Stop-ProgramBackend
+Stop-ProgramHostManaged

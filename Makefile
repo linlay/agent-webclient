@@ -8,7 +8,6 @@ PASS_PROGRAM_TARGET_MATRIX = $(if $(filter undefined,$(origin PROGRAM_TARGET_MAT
 
 install:
 	npm install
-	cd backend && npm install
 
 dev:
 	npm start

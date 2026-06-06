@@ -81,6 +81,7 @@ archive_bundle_dir() {
   local format="$4"
 
   mkdir -p "$(dirname "$output_path")"
+  rm -f "$output_path"
 
   case "$format" in
     tar.gz)
@@ -151,19 +152,16 @@ write_program_manifest() {
   local target_os="$2"
   local target_arch="$3"
   local asset_file_name="$4"
-  local backend_entry="backend/server.cjs"
   local start_script="start.sh"
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
   local program_common="scripts/program-common.sh"
-  local error_log_json=""
 
   if [[ "$target_os" == "windows" ]]; then
     start_script="start.ps1"
     stop_script="stop.ps1"
     deploy_script="deploy.ps1"
     program_common="scripts/program-common.ps1"
-    error_log_json='    "errorLogRelativePath": "run/agent-webclient.stderr.log",'
   fi
 
   cat >"$dest" <<EOF
@@ -172,7 +170,7 @@ write_program_manifest() {
   "id": "$APP_NAME",
   "name": "智能助理",
   "version": "$VERSION",
-  "description": "独立进程模式的 AGENT Web 客户端，负责静态资源托管并代理 API 请求。",
+  "description": "由 ZenMind Desktop 托管静态资源和代理路由的 AGENT Web 客户端。",
   "platform": {
     "os": "$target_os",
     "arch": "$target_arch"
@@ -181,12 +179,9 @@ write_program_manifest() {
     "mode": "standalone",
     "entry": "/",
     "directAccess": true,
-    "hostManaged": false,
+    "hostManaged": true,
     "hideFromNav": true,
     "embedPath": "/"
-  },
-  "backend": {
-    "entry": "$backend_entry"
   },
   "scripts": {
     "start": ["$start_script", "--daemon"],
@@ -203,11 +198,7 @@ write_program_manifest() {
     }
   ],
   "runtime": {
-    "pidRelativePath": "run/agent-webclient.pid",
-    "logRelativePath": "run/agent-webclient.log",
-${error_log_json}
     "requiredPaths": [
-      "$backend_entry",
       "$start_script",
       "$stop_script",
       "$deploy_script",
@@ -233,17 +224,6 @@ ${error_log_json}
     "envBindings": [
       {
         "key": "BASE_URL",
-        "fromService": "agent-platform",
-        "template": "http://127.0.0.1:{{port}}",
-        "onlyIfDefault": true,
-        "defaults": [
-          "",
-          "http://127.0.0.1:11949",
-          "http://localhost:11949"
-        ]
-      },
-      {
-        "key": "WS_BASE_URL",
         "fromService": "agent-platform",
         "template": "http://127.0.0.1:{{port}}",
         "onlyIfDefault": true,

@@ -5,7 +5,7 @@
 
 当前仓库只提供 Web 客户端。发布链路分为两类：
 
-- Program Bundle：宿主机部署包，包含静态资源、Express 代理后端和宿主机元数据
+- Program Bundle：ZenMind Desktop 内置服务包，包含静态资源、manifest 和跨平台生命周期脚本；HTTP 托管由 Desktop main process 负责
 - Image Bundle：包含离线 Docker 镜像、compose 和运行脚本的镜像部署包
 
 ## 2. 快速开始
@@ -31,7 +31,7 @@ cp .env.example .env
 make install
 ```
 
-仓库统一使用 `npm` 作为包管理器，并提交前端根目录与 `backend/` 的 `package-lock.json` 来固定依赖版本。
+仓库统一使用 `npm` 作为包管理器，并提交根目录 `package-lock.json` 来固定前端构建依赖版本。
 
 ### 本地启动
 ```bash
@@ -40,13 +40,12 @@ make dev
 
 默认访问地址为 [http://localhost:11948](http://localhost:11948)。开发模式下，Webpack Dev Server 会将普通 `/api/*` 和主 `/ws` 代理到 `BASE_URL`。设置 `VOICE_BASE_URL` 后，语音 HTTP 与 `/api/voice/ws` 会单独代理到该上游；未设置时语音功能隐藏且不注册语音代理。Webpack 自身的热更新 WebSocket 会使用内部路径 `/__webpack_hmr`，避免与业务 `/ws` 冲突。SSE 仅保留为手动兼容模式。
 
-### 本地验证 Program Bundle 后端
+### 本地验证生产构建
 ```bash
 make build
-node backend/server.js
 ```
 
-该命令会启动 Express 后端并托管生产构建产物。仓库内运行时会优先读取根目录 `dist/`；解压后的 Program Bundle 运行时会读取 `frontend/dist/`。
+该命令会生成生产静态资源；Desktop Program Bundle 只打包 `frontend/dist/`，本地代理仍通过 `make dev` 验证。
 
 ### 测试
 ```bash
@@ -68,7 +67,7 @@ make release
 make release-program
 ```
 
-该命令会先生成生产环境 `dist/`，再输出带 Node.js 后端的版本化压缩包：
+该命令会先生成生产环境 `dist/`，再输出由 ZenMind Desktop 托管的版本化压缩包：
 
 - macOS：`dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz`
 - Windows：`dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip`
@@ -76,8 +75,9 @@ make release-program
 
 Program Bundle 约束：
 
-- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.cjs`、`backend/package.json`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
-- Program Bundle 运行时依赖宿主机 `PATH` 中的 Node.js 18+
+- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
+- manifest 设置 `frontend.hostManaged: true`，不包含 `backend.entry`，HTTP 托管由 ZenMind Desktop main process 负责
+- Program Bundle 不要求包内或宿主机启动 Node.js 子进程；`start.*`/`stop.*` 仅作 Desktop manifest 兼容和提示用途
 - 版本号来自根目录 [`VERSION`](./VERSION)，格式固定为 `vX.Y.Z`
 
 ## 3. 配置说明
@@ -128,26 +128,26 @@ make release-program
 - 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
 - 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
 - 默认产物为 `darwin/arm64` 和 `windows/amd64` 两个平台；也可以通过 `PROGRAM_TARGET_MATRIX=<os>/<arch>` 覆盖。
-- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`backend/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
+- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`，不包含 Program backend。
 - 打包完成后，工作区只保留 `dist/release/` 下的最终压缩包，不保留展开的 `dist/js`、`dist/css`、`dist/fonts`。
 
 ### Program Bundle 使用
+Program Bundle 通常由 ZenMind Desktop 内置资源同步与服务管理器安装，并由 Desktop main process 绑定本地端口、托管静态资源和代理路由。
+
+如需手动检查包结构，可以解压并执行生命周期脚本：
 ```bash
 tar -xzf dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz
 cd agent-webclient
-cp .env.example .env
 ./deploy.sh
 ./start.sh --daemon
+./stop.sh
 ```
 
-部署端需要至少确认：
+手动执行不会启动 backend 子进程，只会校验 `frontend/dist`、准备 `.env`/运行目录并打印 Desktop 托管 endpoint。Desktop 端需要至少确认：
 - `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
 - `.env` 中的 `BASE_URL` 对应上游实际提供 `/api/*` 与 `/ws`。
 - 如需语音功能，`.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
-- 已安装 Node.js 18+。
-- `PORT` 未与宿主机其他服务冲突，默认值为 `11948`。
-
-启动后可通过 `./stop.sh` 停止服务。
+- `PORT` 未与 Desktop 内其他服务冲突，默认值为 `11948`。
 
 ### Image Bundle 发布
 ```bash
@@ -187,7 +187,7 @@ cp .env.example .env
 建议按以下顺序验证：
 
 1. `make release`
-确认生成对应平台压缩包，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`backend/server.cjs`、`backend/node_modules/`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`。
+确认生成对应平台压缩包，manifest 包含 `frontend.hostManaged: true`，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`，且不包含 `backend/`。
 
 2. `make release-program`
 确认行为与 `make release` 一致。

@@ -1,18 +1,19 @@
 agent-webclient program bundle
 ==============================
 
-This bundle packages the compiled frontend plus a lightweight backend process
-that serves the SPA and proxies API traffic to the configured upstreams.
+This bundle packages the compiled frontend for ZenMind Desktop. Desktop hosts
+the SPA and proxy routes from its main process.
 
 Contents:
 - `manifest.json`: Desktop/runtime metadata
 - `.env.example`: runtime environment template
-- `backend/server.cjs`: standalone Express HTTP server entry
-- `backend/package.json` + `backend/node_modules/`: pinned runtime dependencies
 - `frontend/dist/`: production frontend assets
 - `start.*`, `stop.*`, `deploy.*`: lifecycle scripts
 - `scripts/program-common.*`: shared runtime helpers
 
 Runtime notes:
-- Hosts should provide Node.js 18+ in `PATH`.
-- `BASE_URL` points to the runner HTTP API and main `/ws` upstream. Optional `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream; leave it empty to hide voice features.
+- ZenMind Desktop starts and stops the local HTTP host itself; lifecycle scripts
+  are retained for manifest compatibility and print the managed endpoint.
+- `BASE_URL` points to the runner HTTP API and main `/ws` upstream. Optional
+  `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream; leave it empty
+  to hide voice features.

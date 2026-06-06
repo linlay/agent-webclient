@@ -11,5 +11,5 @@ program_initialize_config
 program_prepare_runtime_dirs
 
 echo "[program-deploy] bundle validated"
-echo "[program-deploy] backend entry: $BACKEND_ENTRY"
+echo "[program-deploy] $APP_NAME is hosted by ZenMind Desktop"
 echo "[program-deploy] runtime directories prepared under $RUN_DIR"

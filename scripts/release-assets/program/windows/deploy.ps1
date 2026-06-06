@@ -8,5 +8,5 @@ Initialize-ProgramConfig
 Initialize-ProgramRuntime
 
 Write-Host '[program-deploy] bundle validated'
-Write-Host ("[program-deploy] backend entry: {0}" -f $Script:BackendEntry)
+Write-Host "[program-deploy] $Script:AppName is hosted by ZenMind Desktop"
 Write-Host ("[program-deploy] runtime directories prepared under {0}" -f $Script:RunDir)
