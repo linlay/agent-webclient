@@ -225,6 +225,7 @@ export interface AppState {
 	inputMode: InputMode;
 	voiceChat: VoiceChatState;
 	composerDraft: string;
+	composerDraftByChatId: Record<string, string>;
 	steerDraft: string;
 	pendingSteers: PendingSteer[];
 	downvotedRunKeys: Set<string>;

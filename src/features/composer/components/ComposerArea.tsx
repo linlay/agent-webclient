@@ -64,10 +64,23 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const [accessLevel, setAccessLevel] =
     useState<QueryAccessLevel>("default");
   const [modelOverride, setModelOverride] = useState<QueryModelOverride>({});
+  const isRestoringDraftRef = useRef(false);
+
+  // Restore: 当 state.composerDraft 被 reducer 更改（SET_CHAT_ID 恢复草稿）时，同步到 inputValue
+  useEffect(() => {
+    if (state.composerDraft !== inputValue) {
+      isRestoringDraftRef.current = true;
+      setInputValue(state.composerDraft);
+    }
+  }, [state.composerDraft]);
 
   useEffect(() => {
     if (state.composerDraft === inputValue) {
       return;
+    }
+    if (isRestoringDraftRef.current) {
+      isRestoringDraftRef.current = false;
+      return; // 这是 restore 触发的，不写回 reducer
     }
     dispatch({ type: "SET_COMPOSER_DRAFT", draft: inputValue });
   }, [dispatch, inputValue, state.composerDraft]);

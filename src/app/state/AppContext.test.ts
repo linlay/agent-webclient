@@ -554,12 +554,17 @@ describe('appReducer conversation reset behavior', () => {
   it('stores composer draft text through the reducer', () => {
     const baseState = createInitialState();
 
-    const next = appReducer(baseState, {
+    const withChatId = appReducer(baseState, {
+      type: 'SET_CHAT_ID',
+      chatId: 'chat_test',
+    });
+    const next = appReducer(withChatId, {
       type: 'SET_COMPOSER_DRAFT',
       draft: '当前输入内容',
     });
 
     expect(next.composerDraft).toBe('当前输入内容');
+    expect(next.composerDraftByChatId.chat_test).toBe('当前输入内容');
   });
 
   it('keeps stateRef current through rapid stream event dispatches', () => {

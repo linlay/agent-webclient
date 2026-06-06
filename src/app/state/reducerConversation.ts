@@ -47,6 +47,15 @@ export function reduceConversationState(
 				restored === undefined && currentPlanningMode && isNewChatId
 					? { ...state.planningModeByChatId, [action.chatId]: true }
 					: state.planningModeByChatId;
+
+			// Save current draft for old chat
+			let nextDraftByChatId = state.composerDraftByChatId;
+			if (state.chatId && state.chatId !== action.chatId) {
+				nextDraftByChatId = { ...nextDraftByChatId, [state.chatId]: state.composerDraft };
+			}
+			// Restore draft for new chat
+			const nextComposerDraft = nextDraftByChatId[action.chatId] ?? "";
+
 			return {
 				...state,
 				chatId: action.chatId,
@@ -55,6 +64,8 @@ export function reduceConversationState(
 					: state.pendingNewChatAgentKey,
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
+				composerDraft: nextComposerDraft,
+				composerDraftByChatId: nextDraftByChatId,
 			};
 		}
 		case "SET_RUN_ID": {
@@ -136,8 +147,16 @@ export function reduceConversationState(
 			};
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
-		case "SET_COMPOSER_DRAFT":
-			return { ...state, composerDraft: action.draft };
+		case "SET_COMPOSER_DRAFT": {
+			const { chatId, composerDraftByChatId } = state;
+			return {
+				...state,
+				composerDraft: action.draft,
+				composerDraftByChatId: chatId
+					? { ...composerDraftByChatId, [chatId]: action.draft }
+					: composerDraftByChatId,
+			};
+		}
 		case "SET_STEER_DRAFT":
 			return { ...state, steerDraft: action.draft };
 		case "ENQUEUE_PENDING_STEER":

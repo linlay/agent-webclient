@@ -169,6 +169,7 @@ export function createInitialState(): AppState {
 		inputMode: "text",
 		voiceChat: createInitialVoiceChatState(),
 		composerDraft: "",
+		composerDraftByChatId: {},
 		steerDraft: "",
 		pendingSteers: [],
 		downvotedRunKeys: new Set(),

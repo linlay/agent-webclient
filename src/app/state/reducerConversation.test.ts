@@ -25,6 +25,8 @@ function buildState(overrides: Partial<AppState> = {}): AppState {
 		chatId: "",
 		planningMode: false,
 		planningModeByChatId: {},
+		composerDraft: "",
+		composerDraftByChatId: {},
 		...overrides,
 	};
 }
@@ -160,5 +162,48 @@ describe("reduceConversationState – SET_CHAT_ID", () => {
 		});
 		expect(next.planningMode).toBe(false);
 		expect(next.planningModeByChatId).toEqual({ chat_target: false });
+	});
+});
+
+describe("reduceConversationState – composerDraftByChatId", () => {
+	it("switching chat saves current composerDraft and restores saved draft", () => {
+		const state = buildState({
+			chatId: "chat_a",
+			composerDraft: "draft_a",
+			composerDraftByChatId: { chat_b: "draft_b" },
+		});
+		const next = appReducer(state, {
+			type: "SET_CHAT_ID",
+			chatId: "chat_b",
+		});
+		expect(next.composerDraft).toBe("draft_b");
+		expect(next.composerDraftByChatId.chat_a).toBe("draft_a");
+	});
+
+	it("new chat with no saved draft gets empty string", () => {
+		const state = buildState({
+			chatId: "chat_a",
+			composerDraft: "draft_a",
+			composerDraftByChatId: {},
+		});
+		const next = appReducer(state, {
+			type: "SET_CHAT_ID",
+			chatId: "chat_new",
+		});
+		expect(next.composerDraft).toBe("");
+	});
+
+	it("SET_COMPOSER_DRAFT also writes to composerDraftByChatId", () => {
+		const state = buildState({
+			chatId: "chat_x",
+			composerDraft: "",
+			composerDraftByChatId: {},
+		});
+		const next = appReducer(state, {
+			type: "SET_COMPOSER_DRAFT",
+			draft: "hello",
+		});
+		expect(next.composerDraft).toBe("hello");
+		expect(next.composerDraftByChatId.chat_x).toBe("hello");
 	});
 });
