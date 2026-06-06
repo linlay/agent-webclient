@@ -100,4 +100,40 @@ describe('buildWorkerConversationRows', () => {
 
     expect(rows[0]?.hasActiveRun).toBe(false);
   });
+
+  it('propagates awaitingMode from chat when hasPendingAwaiting is set', () => {
+    const worker = createWorker();
+    const rows = buildWorkerConversationRows({
+      worker,
+      chats: [
+        {
+          chatId: 'chat_await_plan',
+          chatName: 'Plan awaiting',
+          agentKey: 'agent-alpha',
+          updatedAt: 300,
+          hasPendingAwaiting: true,
+          awaiting: { mode: 'plan' },
+        } as Chat,
+        {
+          chatId: 'chat_await_question',
+          chatName: 'Question awaiting',
+          agentKey: 'agent-alpha',
+          updatedAt: 200,
+          hasPendingAwaiting: true,
+          awaiting: { mode: 'question' },
+        } as Chat,
+        {
+          chatId: 'chat_no_awaiting',
+          chatName: 'No awaiting',
+          agentKey: 'agent-alpha',
+          updatedAt: 100,
+          awaiting: undefined,
+        } as Chat,
+      ],
+    });
+
+    expect(rows[0]?.awaitingMode).toBe('plan');
+    expect(rows[1]?.awaitingMode).toBe('question');
+    expect(rows[2]?.awaitingMode).toBeUndefined();
+  });
 });

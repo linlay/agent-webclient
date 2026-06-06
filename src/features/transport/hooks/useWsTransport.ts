@@ -97,6 +97,12 @@ function toChatPatchFromPushEvent(
 	const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
 	if (hasPendingAwaiting !== undefined) {
 		chatPatch.hasPendingAwaiting = hasPendingAwaiting;
+		if (hasPendingAwaiting) {
+			const mode = String(raw.mode || '').trim();
+			if (mode) {
+				chatPatch.awaiting = { mode };
+			}
+		}
 	}
 
 	const chatName = String(raw.chatName || "").trim();

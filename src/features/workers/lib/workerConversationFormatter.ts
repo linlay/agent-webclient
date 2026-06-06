@@ -53,6 +53,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
         read,
         isRead: read?.isRead ?? true,
         hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
+        awaitingMode: (chat as any)?.awaiting?.mode || undefined,
         hasActiveRun: isChatActiveRun(chat),
       };
     })

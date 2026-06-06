@@ -7,6 +7,16 @@ import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
+function getAwaitingStatusKey(mode?: string): string {
+  switch (mode) {
+    case 'plan': return 'leftSidebar.awaitingStatus.plan';
+    case 'question': return 'leftSidebar.awaitingStatus.question';
+    case 'approval': return 'leftSidebar.awaitingStatus.approval';
+    case 'form': return 'leftSidebar.awaitingStatus.form';
+    default: return 'leftSidebar.awaitingApproval';
+  }
+}
+
 type AgentIconConfig =
   | string
   | {
@@ -202,7 +212,7 @@ export const WorkerPanelHeader: React.FC<{
           {previewStatus === "awaiting" && (
             <>
               <span className="chat-awaiting-status">
-                {t("leftSidebar.awaitingApproval")}
+                {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
               </span>
               {!!previewChat?.updatedAt && (
                 <span className="worker-panel-time-label">

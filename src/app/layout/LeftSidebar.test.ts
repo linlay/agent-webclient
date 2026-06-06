@@ -1264,4 +1264,34 @@ describe("LeftSidebar", () => {
     );
     expect(html).toContain("worker-chat-action");
   });
+
+  it("renders awaiting status text based on awaiting mode", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    const targetChat = state.chats[state.chats.length - 1];
+    targetChat.hasPendingAwaiting = true;
+    targetChat.awaiting = { mode: "approval" };
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span class="chat-awaiting-status">等待批准</span>',
+    );
+  });
+
+  it("renders awaiting status as question text when mode is question", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    const targetChat = state.chats[state.chats.length - 1];
+    targetChat.hasPendingAwaiting = true;
+    targetChat.awaiting = { mode: "question" };
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<span class="chat-awaiting-status">等待回答</span>',
+    );
+  });
 });

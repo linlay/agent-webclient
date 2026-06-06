@@ -596,6 +596,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_remote",
 				lastRunId: "mq254p8r",
 				hasPendingAwaiting: true,
+				awaiting: { mode: "question" },
 				updatedAt: 1780737509785,
 			}),
 		});
@@ -656,6 +657,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_active",
 				lastRunId: "run_active",
 				hasPendingAwaiting: true,
+				awaiting: { mode: "question" },
 				updatedAt: 1780737509785,
 			}),
 		});

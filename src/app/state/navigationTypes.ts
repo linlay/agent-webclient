@@ -133,5 +133,6 @@ export interface WorkerConversationRow {
 	read?: ChatReadState;
 	isRead?: boolean;
 	hasPendingAwaiting?: boolean;
+	awaitingMode?: string;
 	hasActiveRun?: boolean;
 }

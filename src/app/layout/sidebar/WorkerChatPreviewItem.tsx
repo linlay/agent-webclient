@@ -7,6 +7,16 @@ import { UnreadDot } from "./UnreadDot";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
+function getAwaitingStatusKey(mode?: string): string {
+  switch (mode) {
+    case 'plan': return 'leftSidebar.awaitingStatus.plan';
+    case 'question': return 'leftSidebar.awaitingStatus.question';
+    case 'approval': return 'leftSidebar.awaitingStatus.approval';
+    case 'form': return 'leftSidebar.awaitingStatus.form';
+    default: return 'leftSidebar.awaitingApproval';
+  }
+}
+
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
   isActive: boolean;
@@ -31,7 +41,7 @@ export const WorkerChatPreviewItem: React.FC<{
         <span className="worker-chat-action" data-action={action}>
           {chat.hasPendingAwaiting && (
             <span className="chat-awaiting-status">
-              {t("leftSidebar.awaitingApproval")}
+              {t(getAwaitingStatusKey(chat.awaitingMode))}
             </span>
           )}
           <MaterialIcon
