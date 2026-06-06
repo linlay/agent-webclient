@@ -578,6 +578,7 @@ export const LeftSidebar: React.FC = () => {
       const rawChats = workerChatsByKey.get(row.key) || [];
       const icon = workerIconsByKey.get(row.key);
       const unreadCount = workerUnreadCountByKey.get(row.key) || 0;
+      const awaitingChat = rawChats.find((chat) => chat.hasPendingAwaiting);
       const activeRunChat = rawChats.find(isWorkerChatRunning);
 
       return {
@@ -590,6 +591,7 @@ export const LeftSidebar: React.FC = () => {
             isActive={row.key === state.workerSelectionKey}
             icon={icon}
             lastChat={rawChats[0]}
+            awaitingChat={awaitingChat}
             activeRunChat={activeRunChat}
             unreadCount={unreadCount}
             onStartNewConversation={handleStartNewConversationForWorker}

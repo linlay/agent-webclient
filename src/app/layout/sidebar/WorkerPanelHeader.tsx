@@ -4,7 +4,6 @@ import type { MenuProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
-import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 function getAwaitingStatusKey(mode?: string): string {
@@ -29,6 +28,7 @@ export const WorkerPanelHeader: React.FC<{
   isActive: boolean;
   icon?: AgentIconConfig;
   lastChat?: WorkerConversationRow;
+  awaitingChat?: WorkerConversationRow;
   activeRunChat?: WorkerConversationRow;
   unreadCount?: number;
   onStartNewConversation: (
@@ -49,6 +49,7 @@ export const WorkerPanelHeader: React.FC<{
   isActive,
   icon,
   lastChat,
+  awaitingChat,
   activeRunChat,
   unreadCount = 0,
   onStartNewConversation,
@@ -65,13 +66,13 @@ export const WorkerPanelHeader: React.FC<{
     row.workspaceSourceKind === "browser-folder"
       ? t("leftSidebar.browserWorkspaceOpenUnavailable")
       : t("leftSidebar.workspaceUnavailable");
-  const previewChat = activeRunChat || lastChat;
+  const previewChat = awaitingChat || activeRunChat || lastChat;
   const preview = previewChat
     ? previewChat?.lastRunContent ||
       previewChat?.chatName ||
       t("leftSidebar.latestConversationNoReply")
     : t("leftSidebar.noHistory");
-  const previewStatus = previewChat?.hasPendingAwaiting
+  const previewStatus = awaitingChat
     ? "awaiting"
     : activeRunChat
       ? "running"
@@ -214,17 +215,16 @@ export const WorkerPanelHeader: React.FC<{
               <span className="chat-awaiting-status">
                 {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
               </span>
-              {!!previewChat?.updatedAt && (
-                <span className="worker-panel-time-label">
-                  {formatChatTimeLabel(previewChat?.updatedAt)}
-                </span>
-              )}
+              <MaterialIcon
+                name="progress_activity"
+                className="worker-chat-loading"
+              />
             </>
           )}
           {previewStatus === "running" && (
             <MaterialIcon
               name="progress_activity"
-              className="chat-running-status"
+              className="worker-chat-loading"
             />
           )}
         </Flex>

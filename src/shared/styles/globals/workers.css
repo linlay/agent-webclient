@@ -369,8 +369,16 @@
     color: var(--colorFill);
 }
 
-[data-action="loading"] .worker-chat-loading {
+[data-action="loading"] .worker-chat-loading,
+[data-action="awaiting"] .worker-chat-loading {
     display: unset;
+}
+
+/* WorkerPanelHeader 中不在 [data-action] 上下文内的转圈图标 */
+.worker-chat-loading {
+    animation: ui-spin 1s linear infinite;
+    font-size: 14px;
+    color: var(--colorFill);
 }
 
 [data-action] .worker-panel-time-label {

@@ -1185,7 +1185,7 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-symbols-rounded chat-running-status">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
     );
   });
 
@@ -1205,10 +1205,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded chat-running-status">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
     );
     expect(html).not.toContain(
-      '<span>Latest reply 6</span><span class="material-symbols-rounded chat-running-status">progress_activity</span>',
+      '<span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span>',
     );
   });
 
@@ -1222,7 +1222,10 @@ describe("LeftSidebar", () => {
     expect(html).toContain(
       '<div class="worker-panel-preview"><span>Latest reply 6</span></div>',
     );
-    expect(html).not.toContain("chat-running-status");
+    // header 不应该有 loading 图标（chat item 行始终有，但 CSS 控制显隐）
+    expect(html).not.toContain(
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">',
+    );
   });
 
   it("shows running status in folded accordion header from a local streaming session", () => {
@@ -1243,12 +1246,12 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded chat-running-status">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
     );
     expect(html).toContain('class="worker-chat-action" data-action="loading"');
   });
 
-  it("renders awaiting status before time across worker header and preview rows", () => {
+  it("renders awaiting status across worker header and preview rows", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
@@ -1257,10 +1260,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="worker-panel-time-label">',
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
     );
     expect(html).toContain(
-      '<span class="worker-chat-name">Latest reply 6</span><span class="worker-chat-action" data-action="loading"><span class="chat-awaiting-status">等待审批</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span><span class="worker-panel-time-label">',
+      '<span class="worker-chat-name">Latest reply 6</span><span class="worker-chat-action" data-action="awaiting"><span class="chat-awaiting-status">等待审批</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span><span class="worker-panel-time-label">',
     );
     expect(html).toContain("worker-chat-action");
   });

@@ -24,7 +24,7 @@ export const WorkerChatPreviewItem: React.FC<{
   onClick: () => void;
 }> = ({ chat, isActive, loading, onClick }) => {
   const { t } = useI18n();
-  const action = chat.hasPendingAwaiting || loading ? "loading" : "time";
+  const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : "time";
 
   return (
     <UiListItem
@@ -37,7 +37,7 @@ export const WorkerChatPreviewItem: React.FC<{
         <span className="worker-chat-name">
           {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
         </span>
-        {/* 显示优先级：hover > loading > unread > time */}
+        {/* 显示优先级：hover > awaiting > loading > time */}
         <span className="worker-chat-action" data-action={action}>
           {chat.hasPendingAwaiting && (
             <span className="chat-awaiting-status">
