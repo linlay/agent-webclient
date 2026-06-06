@@ -50,7 +50,7 @@ export function reduceConversationState(
 
 			// Save current draft for old chat
 			let nextDraftByChatId = state.composerDraftByChatId;
-			if (state.chatId && state.chatId !== action.chatId) {
+			if (state.chatId !== action.chatId) {
 				nextDraftByChatId = { ...nextDraftByChatId, [state.chatId]: state.composerDraft };
 			}
 			// Restore draft for new chat
@@ -152,9 +152,7 @@ export function reduceConversationState(
 			return {
 				...state,
 				composerDraft: action.draft,
-				composerDraftByChatId: chatId
-					? { ...composerDraftByChatId, [chatId]: action.draft }
-					: composerDraftByChatId,
+				composerDraftByChatId: { ...composerDraftByChatId, [chatId]: action.draft },
 			};
 		}
 		case "SET_STEER_DRAFT":

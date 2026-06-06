@@ -180,6 +180,30 @@ describe("reduceConversationState – composerDraftByChatId", () => {
 		expect(next.composerDraftByChatId.chat_a).toBe("draft_a");
 	});
 
+	it("blank conversation draft is preserved when switching away and back", () => {
+		const state = buildState({
+			chatId: "",
+			composerDraft: "blank_draft",
+			composerDraftByChatId: {},
+		});
+		// Switch to a real chat
+		const toChat = appReducer(state, {
+			type: "SET_CHAT_ID",
+			chatId: "chat_x",
+		});
+		expect(toChat.composerDraft).toBe("");
+		expect(toChat.composerDraftByChatId[""]).toBe("blank_draft");
+		expect(toChat.composerDraftByChatId.chat_x).toBeUndefined();
+
+		// Switch back to blank conversation
+		const toBlank = appReducer(toChat, {
+			type: "SET_CHAT_ID",
+			chatId: "",
+		});
+		expect(toBlank.composerDraft).toBe("blank_draft");
+		expect(toBlank.composerDraftByChatId.chat_x).toBe("");
+	});
+
 	it("new chat with no saved draft gets empty string", () => {
 		const state = buildState({
 			chatId: "chat_a",
@@ -205,5 +229,19 @@ describe("reduceConversationState – composerDraftByChatId", () => {
 		});
 		expect(next.composerDraft).toBe("hello");
 		expect(next.composerDraftByChatId.chat_x).toBe("hello");
+	});
+
+	it("SET_COMPOSER_DRAFT writes to map even with empty chatId", () => {
+		const state = buildState({
+			chatId: "",
+			composerDraft: "",
+			composerDraftByChatId: {},
+		});
+		const next = appReducer(state, {
+			type: "SET_COMPOSER_DRAFT",
+			draft: "blank_draft",
+		});
+		expect(next.composerDraft).toBe("blank_draft");
+		expect(next.composerDraftByChatId[""]).toBe("blank_draft");
 	});
 });
