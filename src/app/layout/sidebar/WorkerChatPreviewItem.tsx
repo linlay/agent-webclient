@@ -1,11 +1,10 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { UiListItem } from "@/shared/ui/UiListItem";
 import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { UnreadDot } from "./UnreadDot";
 import { ChatActionsMenu } from "./ChatActionsMenu";
-import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 export const WorkerChatPreviewItem: React.FC<{
@@ -15,13 +14,8 @@ export const WorkerChatPreviewItem: React.FC<{
   onClick: () => void;
 }> = ({ chat, isActive, loading, onClick }) => {
   const { t } = useI18n();
-  const isUnread = isChatUnread(chat);
-  const action = useMemo(() => {
-    if (loading) {
-      return "loading";
-    }
-    return "time";
-  }, [loading, isUnread]);
+  const action = chat.hasPendingAwaiting || loading ? "loading" : "time";
+
   return (
     <UiListItem
       className={`worker-chat-item ${isActive ? "is-active" : ""}`}

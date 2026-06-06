@@ -200,20 +200,22 @@ export const WorkerPanelHeader: React.FC<{
             {preview}
           </Typography.Text>
           {previewStatus === "awaiting" && (
-            <span className="chat-awaiting-status">
-              {t("leftSidebar.awaitingApproval")}
-            </span>
+            <>
+              <span className="chat-awaiting-status">
+                {t("leftSidebar.awaitingApproval")}
+              </span>
+              {!!previewChat?.updatedAt && (
+                <span className="worker-panel-time-label">
+                  {formatChatTimeLabel(previewChat?.updatedAt)}
+                </span>
+              )}
+            </>
           )}
           {previewStatus === "running" && (
             <MaterialIcon
               name="progress_activity"
               className="chat-running-status"
             />
-          )}
-          {!previewStatus && !!previewChat?.updatedAt && (
-            <span className="worker-panel-time-label">
-              {formatChatTimeLabel(previewChat?.updatedAt)}
-            </span>
           )}
         </Flex>
       </Flex>
