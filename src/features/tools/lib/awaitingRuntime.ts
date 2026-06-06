@@ -10,9 +10,10 @@ import type {
   FormActiveAwaiting,
 } from '@/app/state/types';
 import {
-  AIAwaitEventTypeEnum,
   AIAwaitQuestionType,
   ViewportTypeEnum,
+  isAwaitingAnswerStreamEvent,
+  isAwaitingAskStreamEvent,
 } from '@/app/state/types';
 import { toText } from '@/shared/utils/eventUtils';
 import {
@@ -400,7 +401,7 @@ export function reduceActiveAwaiting(
     return null;
   }
 
-  if (type === AIAwaitEventTypeEnum.Ask) {
+  if (isAwaitingAskStreamEvent(type)) {
     const awaitingId = toText(event.awaitingId);
     const runId = toText(event.runId);
     if (!awaitingId || !runId) {
@@ -532,7 +533,7 @@ export function reduceActiveAwaiting(
     return current;
   }
 
-  if (type === AIAwaitEventTypeEnum.Answer) {
+  if (isAwaitingAnswerStreamEvent(type)) {
     const awaitingId = toText(event.awaitingId);
     const runId = toText(event.runId);
     if (!current || !awaitingId || current.awaitingId !== awaitingId) {

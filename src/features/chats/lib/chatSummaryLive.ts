@@ -1,4 +1,10 @@
-import type { AgentEvent, AppState, Chat } from '@/app/state/types';
+import {
+  isAwaitingAnswerLike,
+  isAwaitingAskLike,
+  type AgentEvent,
+  type AppState,
+  type Chat,
+} from '@/app/state/types';
 import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
@@ -45,11 +51,11 @@ export function resolveChatSummaryPendingAwaiting(
   event: AgentEvent,
 ): boolean | undefined {
   const type = toText(event.type);
-  if (type === 'awaiting.asking') {
+  if (isAwaitingAskLike(type)) {
     return true;
   }
   if (
-    type === 'awaiting.answered'
+    isAwaitingAnswerLike(type)
     || type === 'request.query'
     || type === 'run.start'
     || type === 'run.complete'

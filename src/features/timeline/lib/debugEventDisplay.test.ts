@@ -23,6 +23,7 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('request.steer')).toBe('request');
     expect(classifyEventGroup('chat.loaded')).toBe('chat');
     expect(classifyEventGroup('run.start')).toBe('run');
+    expect(classifyEventGroup('awaiting.ask')).toBe('awaiting');
     expect(classifyEventGroup('awaiting.asking')).toBe('awaiting');
     expect(classifyEventGroup('memory.context')).toBe('memory');
     expect(classifyEventGroup('content.delta')).toBe('content');

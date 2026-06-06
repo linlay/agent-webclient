@@ -81,6 +81,11 @@ export type {
 	AIUsageStats,
 } from "@/app/state/eventTypes";
 export {
+	AWAITING_ANSWER_EVENT_TYPE,
+	AWAITING_ANSWER_PUSH_EVENT_TYPE,
+	AWAITING_ANSWER_STREAM_EVENT_TYPE,
+	AWAITING_ASK_PUSH_EVENT_TYPE,
+	AWAITING_ASK_STREAM_EVENT_TYPE,
 	AIAwaitEventTypeEnum,
 	AIAwaitQuestionType,
 	AIContentEventTypeEnum,
@@ -91,6 +96,12 @@ export {
 	AIToolEventTypeEnum,
 	AIUsageEventTypeEnum,
 	ViewportTypeEnum,
+	isAwaitingAnswerLike,
+	isAwaitingAnswerPushEvent,
+	isAwaitingAnswerStreamEvent,
+	isAwaitingAskLike,
+	isAwaitingAskPushEvent,
+	isAwaitingAskStreamEvent,
 } from "@/app/state/eventTypes";
 export type * from "@/app/state/timelineTypes";
 export type * from "@/app/state/toolTypes";

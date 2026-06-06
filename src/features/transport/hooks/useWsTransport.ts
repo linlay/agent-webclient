@@ -2,7 +2,13 @@ import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
-import type { AgentEvent, AppState, Chat } from "@/app/state/types";
+import {
+	isAwaitingAnswerPushEvent,
+	isAwaitingAskPushEvent,
+	type AgentEvent,
+	type AppState,
+	type Chat,
+} from "@/app/state/types";
 import { ensureAccessToken } from "@/shared/api/apiClient";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
 import { resolveChatSummaryActiveRun } from "@/features/chats/lib/chatRunState";
@@ -603,9 +609,30 @@ function buildWsClient(
 				return;
 			}
 
-			if (type === "awaiting.asking" || type === "awaiting.answered") {
+			const isAwaitingPushEvent =
+				isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
+			if (isAwaitingPushEvent) {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				if (!isActiveChat) {
+					return;
+				}
+				if (!options.stateRef.current.streaming) {
+					const runId = String(liveEvent.runId || "").trim();
+					const agentKey = resolveRunAgentKey({
+						runId,
+						agentKey: liveEvent.agentKey,
+						currentRunAgentKey: options.stateRef.current.currentRunAgentKey,
+						runAgentById: options.stateRef.current.runAgentById,
+						chatId: eventChatId,
+						chatAgentById: options.stateRef.current.chatAgentById,
+						chats: options.stateRef.current.chats,
+						fallbackAgentKey: "",
+					});
+					if (runId && agentKey) {
+						dispatchAttachRunEvent(eventChatId, runId, 0, agentKey);
+					} else {
+						dispatchLoadChatEvent(eventChatId);
+					}
 					return;
 				}
 			}

@@ -6,7 +6,20 @@ import {
 } from '@/features/chats/lib/chatSummaryLive';
 
 describe('chatSummaryLive helpers', () => {
-  it('marks awaiting.asking as pending approval and uses createdAt as updatedAt fallback', () => {
+  it('marks stream and push awaiting ask events as pending approval', () => {
+    expect(
+      resolveChatSummaryPendingAwaiting({
+        type: 'awaiting.ask',
+      } as AgentEvent),
+    ).toBe(true);
+    expect(
+      resolveChatSummaryPendingAwaiting({
+        type: 'awaiting.asking',
+      } as AgentEvent),
+    ).toBe(true);
+  });
+
+  it('uses createdAt as updatedAt fallback for awaiting push events', () => {
     const event = {
       type: 'awaiting.asking',
       chatId: 'chat_1',
@@ -14,14 +27,19 @@ describe('chatSummaryLive helpers', () => {
       createdAt: 12345,
     } as AgentEvent;
 
-    expect(resolveChatSummaryPendingAwaiting(event)).toBe(true);
     expect(resolveChatSummaryUpdatedAt(event)).toBe(12345);
   });
 
-  it('clears pending approval state for awaiting.answered and run lifecycle events', () => {
+  it('clears pending approval state for stream and push awaiting answer events', () => {
+    expect(
+      resolveChatSummaryPendingAwaiting({ type: 'awaiting.answer' } as AgentEvent),
+    ).toBe(false);
     expect(
       resolveChatSummaryPendingAwaiting({ type: 'awaiting.answered' } as AgentEvent),
     ).toBe(false);
+  });
+
+  it('clears pending approval state for run lifecycle events', () => {
     expect(
       resolveChatSummaryPendingAwaiting({ type: 'request.query' } as AgentEvent),
     ).toBe(false);

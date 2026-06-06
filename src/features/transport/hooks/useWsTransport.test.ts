@@ -602,9 +602,29 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("forwards active awaiting.asking push events as awaiting.asking", async () => {
+	it("dispatches agent:attach-run for active awaiting.asking push events", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: { chatId: string; runId: string; agentKey: string; lastSeq: number };
+
+			constructor(type: string, init?: { detail?: { chatId: string; runId: string; agentKey?: string; lastSeq: number } }) {
+				this.type = type;
+				this.detail = { chatId: "", runId: "", agentKey: "", lastSeq: 0, ...(init?.detail || {}) };
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
 
 		await connectWsTransport({
 			dispatch,
@@ -621,6 +641,7 @@ describe("connectWsTransport", () => {
 			frame: "push",
 			type: "awaiting.asking",
 			data: {
+				agentKey: "agent_active",
 				awaitingId: "await_active",
 				chatId: "chat_active",
 				createdAt: 1780737509785,
@@ -638,15 +659,18 @@ describe("connectWsTransport", () => {
 				updatedAt: 1780737509785,
 			}),
 		});
-		expect(handleEvent).toHaveBeenCalledWith(
+		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
-				type: "awaiting.asking",
-				chatId: "chat_active",
-				runId: "run_active",
-				awaitingId: "await_active",
-				mode: "question",
+				type: "agent:attach-run",
+				detail: {
+					chatId: "chat_active",
+					runId: "run_active",
+					agentKey: "agent_active",
+					lastSeq: 0,
+				},
 			}),
 		);
+		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
 	it("clears pending awaiting state when awaiting.answered arrives over push", async () => {
@@ -682,6 +706,74 @@ describe("connectWsTransport", () => {
 				hasPendingAwaiting: false,
 			}),
 		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("dispatches agent:attach-run for active awaiting.answered push events", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: { chatId: string; runId: string; agentKey: string; lastSeq: number };
+
+			constructor(type: string, init?: { detail?: { chatId: string; runId: string; agentKey?: string; lastSeq: number } }) {
+				this.type = type;
+				this.detail = { chatId: "", runId: "", agentKey: "", lastSeq: 0, ...(init?.detail || {}) };
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.answered",
+			payload: {
+				agentKey: "agent_active",
+				chatId: "chat_active",
+				runId: "run_active",
+				awaitingId: "await_1",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_active",
+				hasPendingAwaiting: false,
+			}),
+		});
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "agent:attach-run",
+				detail: {
+					chatId: "chat_active",
+					runId: "run_active",
+					agentKey: "agent_active",
+					lastSeq: 0,
+				},
+			}),
+		);
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 

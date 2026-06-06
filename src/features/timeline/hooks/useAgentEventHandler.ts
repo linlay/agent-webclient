@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/state/AppContext';
-import type {
-  AgentEvent,
-  AIUsageSnapshotEvent,
-  AppState,
-  UiTimerHandle,
+import {
+  isAwaitingAnswerLike,
+  isAwaitingAskLike,
+  type AgentEvent,
+  type AIUsageSnapshotEvent,
+  type AppState,
+  type UiTimerHandle,
 } from '@/app/state/types';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
@@ -343,7 +345,7 @@ export function useAgentEventHandler() {
         return;
       }
 
-      if (type === 'awaiting.asking' || type === 'awaiting.answered') {
+      if (isAwaitingAskLike(type) || isAwaitingAnswerLike(type)) {
         upsertLiveChatSummary({ event, cache, state });
         return;
       }

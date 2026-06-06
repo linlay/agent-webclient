@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -43,7 +43,7 @@ export function processEvent(
     type === "content.delta" ||
     type === "content.end" ||
     type === "content.snapshot" ||
-    type === "awaiting.answered"
+    isAwaitingAnswerStreamEvent(type)
   ) {
     return processContentEvent(event, state, config);
   }

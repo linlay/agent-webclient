@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -143,7 +143,7 @@ export function processContentEvent(
     return commands;
   }
 
-  if (type === "awaiting.answered") {
+  if (isAwaitingAnswerStreamEvent(type)) {
     const runId = toText(event.runId);
     const awaitingId = toText(event.awaitingId);
     const nodeId = awaitingId

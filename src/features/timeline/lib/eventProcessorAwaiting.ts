@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
 import {
 	getAwaitingItemMeta,
 	maskAwaitingAnswerParams,
@@ -131,7 +131,7 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 }
 
 export function awaitingAnswerTitle(event: AgentEvent): string {
-	if (event.type !== "awaiting.answered") {
+	if (!isAwaitingAnswerStreamEvent(event.type)) {
 		return t("timeline.awaitingAnswer.submitted");
 	}
 	if (event.status === "answered") {
@@ -140,7 +140,12 @@ export function awaitingAnswerTitle(event: AgentEvent): string {
 	if (event.status !== "error") {
 		return t("timeline.awaitingAnswer.submitted");
 	}
-	switch (event.error?.code) {
+	const rawError = event.error;
+	const errorCode =
+		rawError && typeof rawError === "object" && !Array.isArray(rawError)
+			? toText((rawError as Record<string, unknown>).code)
+			: "";
+	switch (errorCode) {
 		case "user_dismissed":
 			return t("timeline.awaitingAnswer.canceled");
 		case "timeout":

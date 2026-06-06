@@ -82,9 +82,39 @@ export enum AIArtifactEventTypeEnum {
   Publish = "artifact.publish",
 }
 
+export const AWAITING_ASK_STREAM_EVENT_TYPE = "awaiting.ask";
+export const AWAITING_ASK_PUSH_EVENT_TYPE = "awaiting.asking";
+export const AWAITING_ANSWER_STREAM_EVENT_TYPE = "awaiting.answer";
+export const AWAITING_ANSWER_PUSH_EVENT_TYPE = "awaiting.answered";
+export const AWAITING_ANSWER_EVENT_TYPE = AWAITING_ANSWER_STREAM_EVENT_TYPE;
+
 export enum AIAwaitEventTypeEnum {
-  Ask = "awaiting.asking",
-  Answer = "awaiting.answered",
+  Ask = "awaiting.ask",
+  Answer = "awaiting.answer",
+}
+
+export function isAwaitingAskStreamEvent(type: unknown): boolean {
+  return String(type || "") === AWAITING_ASK_STREAM_EVENT_TYPE;
+}
+
+export function isAwaitingAskPushEvent(type: unknown): boolean {
+  return String(type || "") === AWAITING_ASK_PUSH_EVENT_TYPE;
+}
+
+export function isAwaitingAskLike(type: unknown): boolean {
+  return isAwaitingAskStreamEvent(type) || isAwaitingAskPushEvent(type);
+}
+
+export function isAwaitingAnswerStreamEvent(type: unknown): boolean {
+  return String(type || "") === AWAITING_ANSWER_STREAM_EVENT_TYPE;
+}
+
+export function isAwaitingAnswerPushEvent(type: unknown): boolean {
+  return String(type || "") === AWAITING_ANSWER_PUSH_EVENT_TYPE;
+}
+
+export function isAwaitingAnswerLike(type: unknown): boolean {
+  return isAwaitingAnswerStreamEvent(type) || isAwaitingAnswerPushEvent(type);
 }
 
 export enum AIPlanStatusEnum {
