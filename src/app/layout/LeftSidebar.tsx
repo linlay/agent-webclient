@@ -853,7 +853,7 @@ export const LeftSidebar: React.FC = () => {
                   }}
                 >
                   <MaterialIcon name="schedule" />
-                  <Flex gap={4} align="center">
+                  <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
                     <Badge count={state.automations?.length} />
                   </Flex>
@@ -866,7 +866,7 @@ export const LeftSidebar: React.FC = () => {
                   }
                 >
                   <MaterialIcon name="psychology" />
-                  <Flex gap={4} align="center">
+                  <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.memory")}</span>
                     <Badge count={state.memoryInfoRecords?.length || 0} />
                   </Flex>
@@ -882,7 +882,7 @@ export const LeftSidebar: React.FC = () => {
                   }}
                 >
                   <MaterialIcon name="robot_2" />
-                  <Flex gap={4} align="center">
+                  <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
                   </Flex>
