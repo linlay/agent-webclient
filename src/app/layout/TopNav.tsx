@@ -503,11 +503,10 @@ export const TopNav: React.FC = () => {
                       <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
                         <div className="usage-popover-header">
                           <Flex
-                            gap={8}
+                            gap={4}
                             align="center"
                             style={{ overflow: "hidden", whiteSpace: "nowrap" }}
                           >
-                            <strong>{t("topNav.usage.title")}</strong>
                             <Typography.Text
                               ellipsis={{ tooltip: usageSnapshot?.contextWindow?.modelKey || usageSnapshot?.model?.key }}
                             >
@@ -516,7 +515,7 @@ export const TopNav: React.FC = () => {
                                 t("topNav.usage.modelUnknown")}
                             </Typography.Text>
                             {reasoningEffortLabel ? (
-                              <span style={{ color: "var(--ink-muted)", fontSize: 11, marginLeft: 4 }}>
+                              <span style={{ color: "var(--ink-muted)", fontSize: 11 }}>
                                 · {reasoningEffortLabel}
                               </span>
                             ) : null}
