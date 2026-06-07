@@ -53,7 +53,7 @@ export function buildDebugEventGroups(
 		}
 		grouped.get("all")?.push({ event, index });
 		const group = classifyEventGroup(String(event.type || ""));
-		if (group && group !== "request") {
+		if (group) {
 			grouped.get(group)?.push({ event, index });
 		}
 	});
