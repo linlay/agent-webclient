@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
@@ -32,6 +32,8 @@ const CopilotTopBar: React.FC = () => {
   const { t } = useI18n();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText } = resolveTopNavStatus(state);
+  const debugPanelEnabled = isDebugPanelEnabled();
+  const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
 
   const handleStartNewConversation = () => {
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
@@ -92,6 +94,31 @@ const CopilotTopBar: React.FC = () => {
           >
             <MaterialIcon name="history" />
           </UiButton>
+          {debugPanelEnabled ? (
+            <UiButton
+              className="copilot-action-btn"
+              variant="ghost"
+              size="sm"
+              iconOnly
+              active={
+                debugDrawerOpen ||
+                (state.rightSidebarOpen && state.rightSidebarOpenTab === "debug")
+              }
+              aria-label={
+                debugDrawerOpen
+                  ? t("topNav.debug.close")
+                  : t("topNav.debug.open")
+              }
+              title={
+                debugDrawerOpen
+                  ? t("topNav.debug.close")
+                  : t("topNav.debug.open")
+              }
+              onClick={() => setDebugDrawerOpen((open) => !open)}
+            >
+              <MaterialIcon name="bug_report" />
+            </UiButton>
+          ) : null}
           <UiButton
             className="copilot-action-btn"
             variant="ghost"
@@ -105,6 +132,38 @@ const CopilotTopBar: React.FC = () => {
           </UiButton>
         </div>
       </div>
+      {debugPanelEnabled && debugDrawerOpen ? (
+        <>
+          <button
+            type="button"
+            className="copilot-debug-drawer-backdrop"
+            aria-label={t("copilot.panel.close")}
+            onClick={() => setDebugDrawerOpen(false)}
+          />
+          <section
+            className="copilot-debug-drawer"
+            role="dialog"
+            aria-label={t("copilot.panel.debug")}
+          >
+            <div className="copilot-debug-drawer-head">
+              <strong>{t("copilot.panel.debug")}</strong>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                iconOnly
+                aria-label={t("copilot.panel.close")}
+                title={t("copilot.panel.close")}
+                onClick={() => setDebugDrawerOpen(false)}
+              >
+                <MaterialIcon name="close" />
+              </UiButton>
+            </div>
+            <div className="copilot-debug-drawer-body">
+              <DebugTab />
+            </div>
+          </section>
+        </>
+      ) : null}
     </header>
   );
 };

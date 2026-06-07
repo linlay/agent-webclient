@@ -155,6 +155,12 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
+const { isDebugPanelEnabled } = jest.requireMock(
+  "@/shared/config/featureFlags",
+) as {
+  isDebugPanelEnabled: jest.Mock;
+};
+
 const {
   useLocation,
   useNavigate,
@@ -222,6 +228,7 @@ describe("CopilotShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    isDebugPanelEnabled.mockReturnValue(true);
   });
 
   afterAll(() => {
@@ -265,6 +272,7 @@ describe("CopilotShell", () => {
     expect(html).toContain("swap_horiz");
     expect(html).toContain("edit_square");
     expect(html).toContain("history");
+    expect(html).toContain("bug_report");
     expect(html).toContain("settings");
     expect(html).not.toContain(">call<");
     expect(html).not.toContain(">call_end<");
@@ -278,6 +286,14 @@ describe("CopilotShell", () => {
     expect(html).not.toContain("left-sidebar");
     expect(html).not.toContain("right-sidebar");
     expect(html).not.toContain("terminal-dock");
+  });
+
+  it("hides the compact debug drawer trigger when debug is disabled", () => {
+    isDebugPanelEnabled.mockReturnValue(false);
+
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).not.toContain("bug_report");
   });
 
   it("renders the compact side panel for reused right-sidebar content", () => {
