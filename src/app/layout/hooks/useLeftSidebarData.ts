@@ -9,6 +9,50 @@ type AgentIconConfig = string | {
   name?: string;
 };
 
+export type WorkerSortMode = "byName" | "byTime";
+
+export function sortWorkerRowsForMode(
+  rows: AppState["workerRows"],
+  options: {
+    agentOrderByKey: Map<string, number>;
+    workerBaseOrderByKey: Map<string, number>;
+    workerChatOrderByKey: Map<string, number>;
+    workerSortMode: WorkerSortMode;
+  },
+): AppState["workerRows"] {
+  if (options.workerSortMode === "byName") {
+    return rows.slice().sort((a, b) => {
+      const agentOrderA = options.agentOrderByKey.get(a.key);
+      const agentOrderB = options.agentOrderByKey.get(b.key);
+      const hasAgentOrderA = agentOrderA !== undefined;
+      const hasAgentOrderB = agentOrderB !== undefined;
+
+      if (hasAgentOrderA && hasAgentOrderB) return agentOrderA - agentOrderB;
+      if (hasAgentOrderA !== hasAgentOrderB) return hasAgentOrderA ? -1 : 1;
+
+      return (
+        (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+        (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+  }
+
+  return rows.slice().sort((a, b) => {
+    const chatOrderA = options.workerChatOrderByKey.get(a.key);
+    const chatOrderB = options.workerChatOrderByKey.get(b.key);
+    const hasChatsA = chatOrderA !== undefined;
+    const hasChatsB = chatOrderB !== undefined;
+
+    if (hasChatsA && hasChatsB) return chatOrderA - chatOrderB;
+    if (hasChatsA !== hasChatsB) return hasChatsA ? -1 : 1;
+
+    return (
+      (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+      (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+    );
+  });
+}
+
 export function useLeftSidebarData({
   agents,
   chatFilter,
@@ -17,12 +61,14 @@ export function useLeftSidebarData({
   historyWorkerKey,
   teams,
   workerRows,
+  workerSortMode = "byTime",
 }: Pick<
   AppState,
   "agents" | "chatFilter" | "chats" | "teams" | "workerRows"
 > & {
   historySearch: string;
   historyWorkerKey: string;
+  workerSortMode?: WorkerSortMode;
 }) {
   const filteredChats = useMemo(() => {
     const filter = chatFilter.toLowerCase().trim();
@@ -37,6 +83,16 @@ export function useLeftSidebarData({
   const workerBaseOrderByKey = useMemo(
     () => new Map(workerRows.map((row, index) => [row.key, index])),
     [workerRows],
+  );
+
+  const agentOrderByKey = useMemo(
+    () =>
+      new Map(
+        agents
+          .map((agent, index) => [`agent:${String(agent?.key || "").trim()}`, index] as const)
+          .filter(([key]) => key !== "agent:"),
+      ),
+    [agents],
   );
 
   const workerChatOrderByKey = useMemo(() => {
@@ -69,21 +125,20 @@ export function useLeftSidebarData({
       ? workerRows
       : workerRows.filter((row) => String(row.searchText || "").includes(filter));
 
-    return rows.slice().sort((a, b) => {
-      const chatOrderA = workerChatOrderByKey.get(a.key);
-      const chatOrderB = workerChatOrderByKey.get(b.key);
-      const hasChatsA = chatOrderA !== undefined;
-      const hasChatsB = chatOrderB !== undefined;
-
-      if (hasChatsA && hasChatsB) return chatOrderA - chatOrderB;
-      if (hasChatsA !== hasChatsB) return hasChatsA ? -1 : 1;
-
-      return (
-        (workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
-        (workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
-      );
+    return sortWorkerRowsForMode(rows, {
+      agentOrderByKey,
+      workerBaseOrderByKey,
+      workerChatOrderByKey,
+      workerSortMode,
     });
-  }, [workerRows, chatFilter, workerBaseOrderByKey, workerChatOrderByKey]);
+  }, [
+    agentOrderByKey,
+    workerRows,
+    chatFilter,
+    workerBaseOrderByKey,
+    workerChatOrderByKey,
+    workerSortMode,
+  ]);
 
   const workerIconsByKey = useMemo(() => {
     const icons = new Map<string, AgentIconConfig>();

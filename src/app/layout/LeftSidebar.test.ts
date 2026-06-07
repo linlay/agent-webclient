@@ -4,6 +4,7 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
+import { sortWorkerRowsForMode } from "@/app/layout/hooks/useLeftSidebarData";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
 
@@ -569,6 +570,64 @@ describe("LeftSidebar", () => {
       type: "OPEN_COMMAND_MODAL",
       modal: { type: "agents" },
     });
+  });
+
+  it("sorts worker rows by current freshness logic or by the /api/agents order", () => {
+    const alpha: WorkerRow = {
+      key: "agent:alpha",
+      type: "agent",
+      sourceId: "alpha",
+      displayName: "Alpha",
+      role: "",
+      teamAgentLabels: [],
+      latestChatId: "chat_alpha",
+      latestRunId: "run_alpha",
+      latestUpdatedAt: 100,
+      latestChatName: "Alpha chat",
+      latestRunContent: "",
+      hasHistory: true,
+      latestRunSortValue: 100,
+      searchText: "alpha",
+    };
+    const beta: WorkerRow = {
+      ...alpha,
+      key: "agent:beta",
+      sourceId: "beta",
+      displayName: "Beta",
+      latestChatId: "chat_beta",
+      latestRunId: "run_beta",
+      latestUpdatedAt: 200,
+      latestChatName: "Beta chat",
+      latestRunSortValue: 200,
+      searchText: "beta",
+    };
+    const rows = [alpha, beta];
+    const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
+    const workerChatOrderByKey = new Map([
+      ["agent:beta", 0],
+      ["agent:alpha", 1],
+    ]);
+    const agentOrderByKey = new Map([
+      ["agent:alpha", 0],
+      ["agent:beta", 1],
+    ]);
+
+    expect(
+      sortWorkerRowsForMode(rows, {
+        agentOrderByKey,
+        workerBaseOrderByKey,
+        workerChatOrderByKey,
+        workerSortMode: "byTime",
+      }).map((row) => row.key),
+    ).toEqual(["agent:beta", "agent:alpha"]);
+    expect(
+      sortWorkerRowsForMode(rows, {
+        agentOrderByKey,
+        workerBaseOrderByKey,
+        workerChatOrderByKey,
+        workerSortMode: "byName",
+      }).map((row) => row.key),
+    ).toEqual(["agent:alpha", "agent:beta"]);
   });
 
   it("renders the top action as new project and creates a coder project from a selected folder", async () => {

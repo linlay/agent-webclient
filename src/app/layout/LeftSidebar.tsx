@@ -11,6 +11,7 @@ import {
   Button,
   Collapse,
   CollapseProps,
+  Dropdown,
   Flex,
   Input,
   message,
@@ -36,6 +37,7 @@ import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
+import type { WorkerSortMode } from "@/app/layout/hooks/useLeftSidebarData";
 import { ChatItem } from "@/app/layout/sidebar/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
@@ -109,7 +111,9 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function normalizeAgentMode(mode: unknown): string {
-  const normalized = String(mode || "").trim().toUpperCase();
+  const normalized = String(mode || "")
+    .trim()
+    .toUpperCase();
   return normalized || "REACT";
 }
 
@@ -129,8 +133,10 @@ function buildFallbackAgentDefinition(
   const budget = asRecord(meta.budget);
   const modelKey = String(meta.modelKey || detail.model || "").trim();
   if (modelKey) definition.modelConfig = { modelKey };
-  if (Array.isArray(detail.tools)) definition.toolConfig = { tools: detail.tools };
-  if (Array.isArray(detail.skills)) definition.skillConfig = { skills: detail.skills };
+  if (Array.isArray(detail.tools))
+    definition.toolConfig = { tools: detail.tools };
+  if (Array.isArray(detail.skills))
+    definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
   if (Array.isArray(detail.controls)) definition.controls = detail.controls;
   if (Array.isArray(visibility.scopes)) {
@@ -155,6 +161,8 @@ export const LeftSidebar: React.FC = () => {
   >(null);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [workerSortMode, setWorkerSortMode] =
+    useState<WorkerSortMode>("byTime");
   const historyInputRef = useRef<HTMLInputElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
   const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -174,6 +182,7 @@ export const LeftSidebar: React.FC = () => {
     historyWorkerKey,
     teams: state.teams,
     workerRows: state.workerRows,
+    workerSortMode,
   });
 
   const historyWorker =
@@ -261,7 +270,11 @@ export const LeftSidebar: React.FC = () => {
   const handleSelectWorker = (workerKey: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:select-worker", {
-        detail: { workerKey, focusComposerOnComplete: true, preferNewChat: true },
+        detail: {
+          workerKey,
+          focusComposerOnComplete: true,
+          preferNewChat: true,
+        },
       }),
     );
   };
@@ -278,7 +291,10 @@ export const LeftSidebar: React.FC = () => {
 
     const workerChats = workerChatsByKey.get(normalizedWorkerKey) || [];
     flushSync(() => {
-      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: normalizedWorkerKey });
+      dispatch({
+        type: "SET_WORKER_SELECTION_KEY",
+        workerKey: normalizedWorkerKey,
+      });
       dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: workerChats });
       dispatch({
         type: "SET_WORKER_CHAT_PANEL_COLLAPSED",
@@ -309,9 +325,9 @@ export const LeftSidebar: React.FC = () => {
     const workerChats = workerChatsByKey.get(workerKey) || [];
     const runningChat = workerChats.find(isWorkerChatRunning);
     const latestChat = workerChats[0];
-    const targetChat = runningChat || (
-      isWorkerAttentionChat(latestChat) ? latestChat : undefined
-    );
+    const targetChat =
+      runningChat ||
+      (isWorkerAttentionChat(latestChat) ? latestChat : undefined);
     if (targetChat?.chatId) {
       window.dispatchEvent(
         new CustomEvent("agent:load-chat", {
@@ -488,7 +504,8 @@ export const LeftSidebar: React.FC = () => {
           const detail = await getAgent(agentKey);
           const agentDetail = detail.data as AgentDetailResponse;
           const definition = {
-            ...(agentDetail.definition || buildFallbackAgentDefinition(agentDetail)),
+            ...(agentDetail.definition ||
+              buildFallbackAgentDefinition(agentDetail)),
             name: newName,
           };
           await updateAgent({ key: agentKey, definition });
@@ -507,7 +524,10 @@ export const LeftSidebar: React.FC = () => {
 
   const handleEditAgent = (agentKey: string) => {
     const routeSearch = window.location.search || "";
-    window.open(`/agents/${encodeURIComponent(agentKey)}${routeSearch}`, "_blank");
+    window.open(
+      `/agents/${encodeURIComponent(agentKey)}${routeSearch}`,
+      "_blank",
+    );
   };
 
   const handleDeleteAgent = (workerKey: string, agentKey: string) => {
@@ -554,7 +574,10 @@ export const LeftSidebar: React.FC = () => {
     const normalizedChatId = String(chatId || "").trim();
     if (!normalizedChatId) return false;
     for (const session of querySessionsRef.current.values()) {
-      if (session.streaming && String(session.chatId || "").trim() === normalizedChatId) {
+      if (
+        session.streaming &&
+        String(session.chatId || "").trim() === normalizedChatId
+      ) {
         return true;
       }
     }
@@ -567,7 +590,9 @@ export const LeftSidebar: React.FC = () => {
     const chat = state.chats.find(
       (item) => String(item?.chatId || "").trim() === normalizedChatId,
     );
-    return isChatActiveRun(chat) || hasStreamingSessionForChat(normalizedChatId);
+    return (
+      isChatActiveRun(chat) || hasStreamingSessionForChat(normalizedChatId)
+    );
   };
 
   const isWorkerChatRunning = (chat: WorkerConversationRow) =>
@@ -743,7 +768,13 @@ export const LeftSidebar: React.FC = () => {
                           <stop offset="50%" stopColor="#00A2FF" />
                           <stop offset="100%" stopColor="#BB2BE2" />
                         </linearGradient>
-                        <filter id="brand-logo-cloud-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <filter
+                          id="brand-logo-cloud-shadow"
+                          x="-20%"
+                          y="-20%"
+                          width="140%"
+                          height="140%"
+                        >
                           <feDropShadow
                             dx="0"
                             dy="8"
@@ -764,7 +795,10 @@ export const LeftSidebar: React.FC = () => {
                         fill="#FFFFFF"
                         filter="url(#brand-logo-cloud-shadow)"
                       />
-                      <g fill="url(#brand-logo-blue-cyan-purple)" transform="translate(0, -20)">
+                      <g
+                        fill="url(#brand-logo-blue-cyan-purple)"
+                        transform="translate(0, -20)"
+                      >
                         <path d="M 120 135 Q 200 92 280 135 Q 200 132 120 135 Z" />
                         <path d="M 60 180 Q 200 102 340 180 Q 200 173 60 180 Z" />
                         <polygon points="231.5,190 278.5,190 168.5,290 121.5,290" />
@@ -893,6 +927,34 @@ export const LeftSidebar: React.FC = () => {
               >
                 <MaterialIcon name="refresh" />
               </UiButton>
+              <Dropdown
+                menu={{
+                  onClick: (info) => {
+                    const nextSortMode = String(info.key || "");
+                    if (
+                      nextSortMode === "byName" ||
+                      nextSortMode === "byTime"
+                    ) {
+                      setWorkerSortMode(nextSortMode);
+                    }
+                  },
+                  selectedKeys: [workerSortMode],
+                  items: [
+                    {
+                      key: "byName",
+                      label: "按照名称",
+                    },
+                    {
+                      key: "byTime",
+                      label: "按照时间",
+                    },
+                  ],
+                }}
+              >
+                <UiButton size="sm" variant="ghost" iconOnly>
+                  <MaterialIcon name="list_arrow" />
+                </UiButton>
+              </Dropdown>
             </Flex>
           </>
         )}
