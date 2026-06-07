@@ -103,4 +103,30 @@ describe("wsClientSingleton", () => {
 		expect(singleton.getWsClientAccessToken()).toBe("token_2");
 		expect(onAccessTokenChange).toHaveBeenCalledWith("token_2");
 	});
+
+	it("returns null when updating without a current singleton", async () => {
+		const singleton = await import("./wsClientSingleton");
+
+		expect(singleton.updateCurrentWsClientOptions({ accessToken: "token_2" })).toBeNull();
+		expect(mockWsClientCtor).not.toHaveBeenCalled();
+		expect(singleton.getWsClientAccessToken()).toBe("");
+	});
+
+	it("updates the current singleton options and token without replacing the client", async () => {
+		const singleton = await import("./wsClientSingleton");
+
+		const client = singleton.initWsClient({ accessToken: "token_1" });
+		const updatedClient = singleton.updateCurrentWsClientOptions({
+			accessToken: "token_2",
+		});
+
+		expect(updatedClient).toBe(client);
+		expect(mockWsClientCtor).toHaveBeenCalledTimes(1);
+		expect(mockWsClientInstances[0]?.dispose).not.toHaveBeenCalled();
+		expect(mockWsClientInstances[0]?.updateOptions).toHaveBeenCalledWith(
+			expect.objectContaining({ accessToken: "token_2" }),
+		);
+		expect(singleton.getWsClient()).toBe(client);
+		expect(singleton.getWsClientAccessToken()).toBe("token_2");
+	});
 });

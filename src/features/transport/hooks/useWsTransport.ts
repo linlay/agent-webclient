@@ -29,10 +29,16 @@ import {
 } from "@/features/transport/lib/wsClientSingleton";
 import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
 import {
+	createWsFrameId,
 	describeWsConnectionFailure,
+	isWsConnectionFailure,
 	toWsConnectionError,
 	type WsClient,
 } from "@/features/transport/lib/wsClient";
+import {
+	WS_STREAM_RETRY_DELAYS_MS,
+	handleStreamReplayError,
+} from "@/features/transport/lib/wsStreamReplay";
 import {
 	createLiveQuerySession,
 	type LiveQuerySession,
@@ -430,39 +436,95 @@ export function registerAttachRunListener(
 			}
 			options.handleEvent(attachedEvent);
 		};
-		const stream = wsClient.attachRun(
-			runId,
-			agentKey,
-			lastSeq,
-			attachHandleEvent,
-			(_reason, _lastSeq) => {
-				cleanupActiveAttach(stream.requestId);
-			},
-			controller.signal,
-		);
+		const requestId = createWsFrameId("wsstream");
 		session = createLiveQuerySession({
-			requestId: stream.requestId,
+			requestId,
 			chatId,
 		});
 		session.runId = runId;
 		session.agentKey = agentKey;
 		session.streaming = true;
 		session.abortController = controller;
-		options.querySessionsRef.current.set(stream.requestId, session);
-		options.chatQuerySessionIndexRef.current.set(chatId, stream.requestId);
-		options.activeQuerySessionRequestIdRef.current = stream.requestId;
+
+		let receivedServerActivity = false;
+		const retryCount = { current: 0 };
+		const abortFns: Array<() => void> = [];
+		const startAttachStream = () => {
+			const streamResult = wsClient.stream({
+				type: "/api/attach",
+				payload: {
+					runId,
+					agentKey,
+					lastSeq,
+				},
+				signal: controller.signal,
+				onEvent: (attachedEvent) => {
+					receivedServerActivity = true;
+					attachHandleEvent(attachedEvent);
+				},
+				onFrame: (_rawFrame) => {
+					receivedServerActivity = true;
+				},
+				onError: (error) => {
+					const handled = handleStreamReplayError(
+						error,
+						receivedServerActivity,
+						{
+							signal: controller.signal,
+							retryDelaysMs: WS_STREAM_RETRY_DELAYS_MS,
+							getRetryClient: async () => wsClient,
+							startStreamAttempt: () => {
+								startAttachStream();
+							},
+						},
+						retryCount,
+						(finalError) => {
+							if (finalError.name === "AbortError") {
+								cleanupActiveAttach(requestId);
+								return;
+							}
+							cleanupActiveAttach(requestId);
+						},
+					);
+
+					if (!handled) {
+						if (error.name === "AbortError") {
+							cleanupActiveAttach(requestId);
+							return;
+						}
+						cleanupActiveAttach(requestId);
+					}
+				},
+				onDone: (reason, _lastSeq) => {
+					cleanupActiveAttach(requestId);
+				},
+				requestId,
+			});
+			abortFns.push(streamResult.abort);
+		};
+
+		startAttachStream();
+
+		options.querySessionsRef.current.set(requestId, session);
+		options.chatQuerySessionIndexRef.current.set(chatId, requestId);
+		options.activeQuerySessionRequestIdRef.current = requestId;
 		options.activeAttachRef.current = {
-			requestId: stream.requestId,
+			requestId,
 			runId,
 			chatId,
 			agentKey,
 			controller,
-			abort: stream.abort,
+			abort: () => {
+				for (const fn of abortFns) {
+					fn();
+				}
+				controller.abort();
+			},
 		};
 		options.dispatch({ type: "SET_RUN_ID", runId });
 		options.dispatch({ type: "SET_RUN_AGENT_BY_ID", runId, agentKey });
 		options.dispatch({ type: "SET_CURRENT_RUN_AGENT_KEY", agentKey });
-		options.dispatch({ type: "SET_REQUEST_ID", requestId: stream.requestId });
+		options.dispatch({ type: "SET_REQUEST_ID", requestId });
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
 	};

@@ -42,6 +42,21 @@ export function initWsClient(options: WsClientOptions = {}): WsClient {
 	return wsClient;
 }
 
+export function updateCurrentWsClientOptions(
+	options: WsClientOptions = {},
+): WsClient | null {
+	clearPendingDestroy();
+	if (!wsClient) {
+		return null;
+	}
+	const syncedOptions = withAccessTokenSync(options);
+	wsClient.updateOptions(syncedOptions);
+	if (options.accessToken !== undefined) {
+		wsClientAccessToken = String(options.accessToken || "").trim();
+	}
+	return wsClient;
+}
+
 export function getWsClient(): WsClient | null {
 	clearPendingDestroy();
 	return wsClient;

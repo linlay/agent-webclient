@@ -1,6 +1,7 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, AgentEvent } from "@/app/state/types";
 import { connectWsTransport, registerAttachRunListener } from "@/features/transport/hooks/useWsTransport";
+import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
 function createState(overrides: Partial<AppState> = {}): AppState {
 	return {
@@ -750,36 +751,544 @@ describe("connectWsTransport", () => {
 			frame: "push",
 			type: "awaiting.answered",
 			payload: {
-				agentKey: "agent_active",
 				chatId: "chat_active",
-				runId: "run_active",
-				awaitingId: "await_1",
+				runId: "run_active_v2",
+				agentKey: "agent_active",
+				agentUnreadCount: 0,
 			},
 		});
 
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "UPSERT_CHAT",
-			chat: expect.objectContaining({
-				chatId: "chat_active",
-				lastRunId: "run_active",
-				hasPendingAwaiting: false,
-			}),
-		});
 		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "agent:attach-run",
 				detail: {
 					chatId: "chat_active",
-					runId: "run_active",
+					runId: "run_active_v2",
 					agentKey: "agent_active",
 					lastSeq: 0,
 				},
 			}),
 		);
-		expect(handleEvent).not.toHaveBeenCalled();
+	});
+});
+
+function setupMockWindow(): {
+	mockWindow: {
+		addEventListener: (
+			type: string,
+			listener: (event: Event) => void,
+		) => void;
+		removeEventListener: (
+			type: string,
+			listener: (event: Event) => void,
+		) => void;
+		dispatchEvent: (event: Event) => boolean;
+	};
+	MockCustomEvent: new (...args: any[]) => any;
+} {
+	const listeners = new Map<string, Set<(event: Event) => void>>();
+	const mockWindow = {
+		addEventListener: (type: string, listener: (event: Event) => void) => {
+			const current = listeners.get(type) || new Set();
+			current.add(listener);
+			listeners.set(type, current);
+		},
+		removeEventListener: (type: string, listener: (event: Event) => void) => {
+			listeners.get(type)?.delete(listener);
+		},
+		dispatchEvent: (event: Event): boolean => {
+			for (const listener of listeners.get(event.type) || []) {
+				listener(event);
+			}
+			return true;
+		},
+	};
+	class MockCustomEvent {
+		type: string;
+		detail: any;
+		constructor(type: string, init?: { detail?: any }) {
+			this.type = type;
+			this.detail = init?.detail;
+		}
+	}
+	Object.defineProperty(globalThis, "window", {
+		value: mockWindow,
+		configurable: true,
+		writable: true,
+	});
+	Object.defineProperty(globalThis, "CustomEvent", {
+		value: MockCustomEvent,
+		configurable: true,
+		writable: true,
+	});
+	return { mockWindow, MockCustomEvent };
+}
+
+function restoreWindow() {
+	delete (globalThis as any).window;
+	delete (globalThis as any).CustomEvent;
+}
+
+describe("registerAttachRunListener", () => {
+	const dispatch = jest.fn();
+	const handleEvent = jest.fn();
+	let mockWindow: ReturnType<typeof setupMockWindow>["mockWindow"];
+	let MockCustomEvent: ReturnType<typeof setupMockWindow>["MockCustomEvent"];
+
+	beforeEach(() => {
+		dispatch.mockReset();
+		handleEvent.mockReset();
+		const setup = setupMockWindow();
+		mockWindow = setup.mockWindow;
+		MockCustomEvent = setup.MockCustomEvent;
 	});
 
-	it("dispatches agent:attach-run for run.started on the active chat", async () => {
+	afterEach(() => {
+		restoreWindow();
+	});
+
+	function setupAttachTest() {
+		const streams: Array<{
+			options: Record<string, any>;
+			abort: jest.Mock;
+		}> = [];
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			const entry = {
+				options,
+				abort: jest.fn(),
+			};
+			streams.push(entry);
+			return { abort: entry.abort };
+		});
+		const wsClient = { stream: streamMock, connect: jest.fn(), updateOptions: jest.fn() };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+		return {
+			streams,
+			streamMock,
+			wsClient,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			cleanup,
+		};
+	}
+
+	it("attaches, dedupes, and clears state on completion", () => {
+		const { streams, streamMock, activeAttachRef, querySessionsRef, chatQuerySessionIndexRef, activeQuerySessionRequestIdRef, cleanup } = setupAttachTest();
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+
+		expect(streamMock).toHaveBeenCalledTimes(1);
+		const callArgs = streamMock.mock.calls[0][0];
+		expect(callArgs).toMatchObject({
+			type: "/api/attach",
+			payload: { runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		});
+		const requestId = callArgs.requestId;
+		expect(requestId).toBeTruthy();
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "run_1" });
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_REQUEST_ID", requestId });
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: true });
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_ABORT_CONTROLLER",
+			controller: expect.any(AbortController),
+		});
+		expect(querySessionsRef.current.get(requestId)).toEqual(expect.objectContaining({
+			requestId,
+			chatId: "chat_1",
+			runId: "run_1",
+			streaming: true,
+			abortController: expect.any(AbortController),
+		}));
+		expect(chatQuerySessionIndexRef.current.get("chat_1")).toBe(requestId);
+		expect(activeQuerySessionRequestIdRef.current).toBe(requestId);
+
+		// Complete the stream
+		callArgs.onDone?.("done", 9);
+
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: false });
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_ABORT_CONTROLLER",
+			controller: null,
+		});
+		expect(querySessionsRef.current.get(requestId)).toEqual(expect.objectContaining({
+			streaming: false,
+			abortController: null,
+		}));
+		expect(activeQuerySessionRequestIdRef.current).toBe("");
+
+		cleanup();
+	});
+
+	it("resolves agentKey from run identity before chat fallback", () => {
+		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
+		const wsClient = { stream: streamMock };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					transportMode: "ws",
+					chatAgentById: new Map([["chat_1", "agent_chat"]]),
+					runAgentById: new Map([["run_1", "agent_run"]]),
+					currentRunAgentKey: "agent_current",
+				}),
+			},
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef: { current: new Map() },
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+		}));
+
+		expect(streamMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "/api/attach",
+				payload: { runId: "run_1", agentKey: "agent_run", lastSeq: 0 },
+			}),
+		);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_RUN_AGENT_BY_ID",
+			runId: "run_1",
+			agentKey: "agent_run",
+		});
+		cleanup();
+	});
+
+	it("renders request.query from attached streams", () => {
+		let attachedOnEvent: ((event: AgentEvent) => void) | null = null;
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			attachedOnEvent = options.onEvent;
+			return { abort: jest.fn() };
+		});
+		const wsClient = { stream: streamMock };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+		attachedOnEvent?.({
+			type: "request.query",
+			requestId: "req_1",
+			query: "attached query",
+			references: [{ name: "demo.txt", sizeBytes: 12 }],
+			timestamp: 100,
+		} as any);
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_TIMELINE_NODE",
+			id: "user_req_1",
+			node: expect.objectContaining({
+				id: "user_req_1",
+				kind: "message",
+				role: "user",
+				text: "attached query",
+				attachments: [{ name: "demo.txt", size: 12 }],
+			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "APPEND_TIMELINE_ORDER",
+			id: "user_req_1",
+		});
+		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
+			type: "request.query",
+			query: "attached query",
+		}));
+
+		cleanup();
+	});
+
+	it("aborts the previous attach before starting a new one", () => {
+		const streams: Array<{ abort: jest.Mock }> = [];
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			const entry = { abort: jest.fn() };
+			streams.push(entry);
+			return entry;
+		});
+		const wsClient = { stream: streamMock };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+
+		expect(streams).toHaveLength(2);
+		expect(streams[0].abort).toHaveBeenCalledTimes(1);
+
+		cleanup();
+	});
+
+	it("retries up to 5 times on connection failure before server activity", async () => {
+		jest.useFakeTimers();
+		const streams: Array<{
+			options: Record<string, any>;
+			abort: jest.Mock;
+		}> = [];
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			// First 5 calls trigger onError synchronously; last call triggers onEvent + onDone
+			if (streamMock.mock.calls.length <= WS_STREAM_RETRY_DELAYS_MS.length) {
+				options.onError?.(new Error("WebSocket connection failed"));
+			} else {
+				options.onEvent?.({ type: "content.delta", text: "attached data" });
+				options.onDone?.("done", 1);
+			}
+			return { abort: jest.fn() };
+		});
+		const wsClient = { stream: streamMock, connect: jest.fn().mockResolvedValue(undefined), updateOptions: jest.fn() };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 5 },
+		}));
+
+		// Advance through all retry delays
+		for (const delayMs of WS_STREAM_RETRY_DELAYS_MS) {
+			await jest.advanceTimersByTimeAsync(delayMs);
+		}
+		// Flush microtasks for connect resolves
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(streamMock).toHaveBeenCalledTimes(WS_STREAM_RETRY_DELAYS_MS.length + 1);
+		// Each call should have same runId/agentKey/lastSeq
+		for (const [call] of streamMock.mock.calls) {
+			expect(call).toMatchObject({
+				type: "/api/attach",
+				payload: { runId: "run_1", agentKey: "agent_alpha", lastSeq: 5 },
+			});
+		}
+		expect(wsClient.connect).toHaveBeenCalledTimes(WS_STREAM_RETRY_DELAYS_MS.length);
+		expect(handleEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "content.delta", text: "attached data" }),
+		);
+
+		cleanup();
+		jest.useRealTimers();
+	});
+
+	it("does not retry after receiving an attach event before connection error", async () => {
+		jest.useFakeTimers();
+		const streams: Array<{ options: Record<string, any>; abort: jest.Mock }> = [];
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			const entry = { options, abort: jest.fn() };
+			streams.push(entry);
+			// First call sends event first, then error
+			options.onEvent?.({ type: "content.delta", text: "data before error" });
+			setTimeout(() => {
+				options.onError?.(new Error("WebSocket transport disconnected"));
+			}, 0);
+			return { abort: entry.abort };
+		});
+		const wsClient = { stream: streamMock, connect: jest.fn() };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// Only 1 call should have been made (no retry after server activity)
+		expect(streamMock).toHaveBeenCalledTimes(1);
+		expect(handleEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "content.delta", text: "data before error" }),
+		);
+
+		cleanup();
+		jest.useRealTimers();
+	});
+
+	it("does not abort current attach during retry; abort only on run switch", async () => {
+		jest.useFakeTimers();
+		const streams: Array<{ options: Record<string, any>; abort: jest.Mock }> = [];
+		const streamMock = jest.fn((options: Record<string, any>) => {
+			const entry = { options, abort: jest.fn() };
+			streams.push(entry);
+			// First two calls fail with connection error
+			if (streams.length <= 1) {
+				setTimeout(() => {
+					options.onError?.(new Error("WebSocket connection failed"));
+				}, 0);
+			} else if (streams.length === 2) {
+				// Second call — send event + done (success after retry)
+				setTimeout(() => {
+					options.onEvent?.({ type: "content.delta", text: "success" });
+					options.onDone?.("done", 1);
+				}, 0);
+			}
+			return { abort: entry.abort };
+		});
+		const wsClient = { stream: streamMock, connect: jest.fn().mockResolvedValue(undefined), updateOptions: jest.fn() };
+		const activeAttachRef = { current: null as any };
+		const querySessionsRef = { current: new Map() };
+		const chatQuerySessionIndexRef = { current: new Map() };
+		const activeQuerySessionRequestIdRef = { current: "" };
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef,
+			querySessionsRef,
+			chatQuerySessionIndexRef,
+			activeQuerySessionRequestIdRef,
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+
+		// Advance through first retry delay - no abort should happen
+		await jest.advanceTimersByTimeAsync(WS_STREAM_RETRY_DELAYS_MS[0]);
+
+		// Wait for connect + retry stream to start
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// The first stream's abort should NOT have been called during retry
+		expect(streams[0].abort).not.toHaveBeenCalled();
+
+		// Now switch to a different run — the old run's abort should be triggered
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+
+		// The first stream should now be aborted because of the new attach
+		expect(streams[0].abort).toHaveBeenCalledTimes(1);
+
+		cleanup();
+		jest.useRealTimers();
+	});
+});
+
+describe("connectWsTransport continued", () => {
+	const handleEvent = jest.fn<void, [AgentEvent]>();
+	const dispatch = jest.fn<void, [AppAction]>();
+	const originalWindow = (globalThis as { window?: unknown }).window;
+	const originalCustomEvent = (globalThis as { CustomEvent?: unknown }).CustomEvent;
+
+	function createConnectedWsClient(
+		initWsClientImpl = jest.fn(),
+	): {
+		initWsClientImpl: jest.Mock;
+		connect: jest.Mock<Promise<void>, []>;
+		getOnPush: () => ((frame: Record<string, unknown>) => void) | undefined;
+	} {
+		const connect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+		initWsClientImpl.mockImplementation((options) => ({ connect, options }) as any);
+		return {
+			initWsClientImpl,
+			connect,
+			getOnPush: () => initWsClientImpl.mock.calls[0]?.[0]?.onPush,
+		};
+	}
+
+	beforeEach(() => {
+		dispatch.mockReset();
+		handleEvent.mockReset();
+	});
+
+	afterEach(() => {
+		if (originalWindow === undefined) {
+			delete (globalThis as { window?: unknown }).window;
+		} else {
+			Object.defineProperty(globalThis, "window", {
+				value: originalWindow,
+				configurable: true,
+				writable: true,
+			});
+		}
+		if (originalCustomEvent === undefined) {
+			delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
+			return;
+		}
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: originalCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+	});
+
+	it("upserts run.started on the active chat and auto-attaches when not streaming", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -819,8 +1328,8 @@ describe("connectWsTransport", () => {
 			type: "run.started",
 			payload: {
 				chatId: "chat_active",
-				runId: "run_active",
-				agentKey: "agent_alpha",
+				runId: "run_started",
+				agentKey: "agent_started",
 			},
 		});
 
@@ -829,412 +1338,12 @@ describe("connectWsTransport", () => {
 				type: "agent:attach-run",
 				detail: {
 					chatId: "chat_active",
-					runId: "run_active",
-					agentKey: "agent_alpha",
+					runId: "run_started",
+					agentKey: "agent_started",
 					lastSeq: 0,
 				},
 			}),
 		);
-		expect(handleEvent).not.toHaveBeenCalled();
-	});
-
-	it("registerAttachRunListener attaches, dedupes, and clears state on completion", () => {
-		class MockWindow {
-			private listeners = new Map<string, Set<(event: Event) => void>>();
-
-			addEventListener(type: string, listener: (event: Event) => void): void {
-				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
-				current.add(listener);
-				this.listeners.set(type, current);
-			}
-
-			removeEventListener(type: string, listener: (event: Event) => void): void {
-				this.listeners.get(type)?.delete(listener);
-			}
-
-			dispatchEvent(event: Event): boolean {
-				for (const listener of this.listeners.get(event.type) || []) {
-					listener(event);
-				}
-				return true;
-			}
-		}
-
-		class MockCustomEvent {
-			type: string;
-			detail: Record<string, unknown>;
-
-			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
-				this.type = type;
-				this.detail = init?.detail || {};
-			}
-		}
-
-		const mockWindow = new MockWindow();
-		Object.defineProperty(globalThis, "window", {
-			value: mockWindow,
-			configurable: true,
-			writable: true,
-		});
-		Object.defineProperty(globalThis, "CustomEvent", {
-			value: MockCustomEvent,
-			configurable: true,
-			writable: true,
-		});
-
-		const attaches: Array<{
-			requestId: string;
-			abort: jest.Mock;
-			onDone: (reason: string, lastSeq: number) => void;
-		}> = [];
-		const attachRun = jest.fn(
-			(
-				runId: string,
-				_agentKey: string,
-				lastSeq: number,
-				_onEvent: (event: AgentEvent) => void,
-				onDone?: (reason: string, lastSeq: number) => void,
-			) => {
-				const entry = {
-					requestId: `attach_${attaches.length + 1}`,
-					abort: jest.fn(() => onDone?.("detached", 0)),
-					onDone: onDone || (() => undefined),
-				};
-				attaches.push(entry);
-				return entry;
-			},
-		);
-		const activeAttachRef = { current: null as any };
-		const querySessionsRef = { current: new Map() };
-		const chatQuerySessionIndexRef = { current: new Map() };
-		const activeQuerySessionRequestIdRef = { current: "" };
-		const cleanup = registerAttachRunListener({
-			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
-			handleEvent,
-			activeAttachRef,
-			querySessionsRef,
-			chatQuerySessionIndexRef,
-			activeQuerySessionRequestIdRef,
-			getWsClientImpl: () => ({ attachRun }) as any,
-		});
-
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
-		}) as unknown as Event);
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
-		}) as unknown as Event);
-
-		expect(attachRun).toHaveBeenCalledTimes(1);
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "run_1" });
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_REQUEST_ID", requestId: "attach_1" });
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: true });
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_ABORT_CONTROLLER",
-			controller: expect.any(AbortController),
-		});
-		expect(querySessionsRef.current.get("attach_1")).toEqual(expect.objectContaining({
-			requestId: "attach_1",
-			chatId: "chat_1",
-			runId: "run_1",
-			streaming: true,
-			abortController: expect.any(AbortController),
-		}));
-		expect(chatQuerySessionIndexRef.current.get("chat_1")).toBe("attach_1");
-		expect(activeQuerySessionRequestIdRef.current).toBe("attach_1");
-
-		attaches[0].onDone("done", 9);
-
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: false });
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_ABORT_CONTROLLER",
-			controller: null,
-		});
-		expect(querySessionsRef.current.get("attach_1")).toEqual(expect.objectContaining({
-			streaming: false,
-			abortController: null,
-		}));
-		expect(activeQuerySessionRequestIdRef.current).toBe("");
-
-		cleanup();
-	});
-
-	it("registerAttachRunListener resolves agentKey from run identity before chat fallback", () => {
-		class MockWindow {
-			private listeners = new Map<string, Set<(event: Event) => void>>();
-			addEventListener(type: string, listener: (event: Event) => void): void {
-				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
-				current.add(listener);
-				this.listeners.set(type, current);
-			}
-			removeEventListener(type: string, listener: (event: Event) => void): void {
-				this.listeners.get(type)?.delete(listener);
-			}
-			dispatchEvent(event: Event): boolean {
-				for (const listener of this.listeners.get(event.type) || []) {
-					listener(event);
-				}
-				return true;
-			}
-		}
-		class MockCustomEvent {
-			type: string;
-			detail: Record<string, unknown>;
-			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
-				this.type = type;
-				this.detail = init?.detail || {};
-			}
-		}
-		const mockWindow = new MockWindow();
-		Object.defineProperty(globalThis, "window", {
-			value: mockWindow,
-			configurable: true,
-			writable: true,
-		});
-		Object.defineProperty(globalThis, "CustomEvent", {
-			value: MockCustomEvent,
-			configurable: true,
-			writable: true,
-		});
-		const attachRun = jest.fn(() => ({
-			requestId: "attach_1",
-			abort: jest.fn(),
-		}));
-		const cleanup = registerAttachRunListener({
-			dispatch,
-			stateRef: {
-				current: createState({
-					transportMode: "ws",
-					chatAgentById: new Map([["chat_1", "agent_chat"]]),
-					runAgentById: new Map([["run_1", "agent_run"]]),
-					currentRunAgentKey: "agent_current",
-				}),
-			},
-			handleEvent,
-			activeAttachRef: { current: null },
-			querySessionsRef: { current: new Map() },
-			chatQuerySessionIndexRef: { current: new Map() },
-			activeQuerySessionRequestIdRef: { current: "" },
-			getWsClientImpl: () => ({ attachRun }) as any,
-		});
-
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
-		}) as unknown as Event);
-
-		expect(attachRun).toHaveBeenCalledWith(
-			"run_1",
-			"agent_run",
-			0,
-			expect.any(Function),
-			expect.any(Function),
-			expect.any(AbortSignal),
-		);
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_RUN_AGENT_BY_ID",
-			runId: "run_1",
-			agentKey: "agent_run",
-		});
-
-		cleanup();
-	});
-
-	it("registerAttachRunListener renders request.query from attached streams", () => {
-		class MockWindow {
-			private listeners = new Map<string, Set<(event: Event) => void>>();
-
-			addEventListener(type: string, listener: (event: Event) => void): void {
-				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
-				current.add(listener);
-				this.listeners.set(type, current);
-			}
-
-			removeEventListener(type: string, listener: (event: Event) => void): void {
-				this.listeners.get(type)?.delete(listener);
-			}
-
-			dispatchEvent(event: Event): boolean {
-				for (const listener of this.listeners.get(event.type) || []) {
-					listener(event);
-				}
-				return true;
-			}
-		}
-
-		class MockCustomEvent {
-			type: string;
-			detail: Record<string, unknown>;
-
-			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
-				this.type = type;
-				this.detail = init?.detail || {};
-			}
-		}
-
-		const mockWindow = new MockWindow();
-		Object.defineProperty(globalThis, "window", {
-			value: mockWindow,
-			configurable: true,
-			writable: true,
-		});
-		Object.defineProperty(globalThis, "CustomEvent", {
-			value: MockCustomEvent,
-			configurable: true,
-			writable: true,
-		});
-
-		let attachedOnEvent: ((event: AgentEvent) => void) | null = null;
-		const attachRun = jest.fn(
-			(
-				_runId: string,
-				_agentKey: string,
-				_lastSeq: number,
-				onEvent: (event: AgentEvent) => void,
-			) => {
-				attachedOnEvent = onEvent;
-				return {
-					requestId: "attach_1",
-					abort: jest.fn(),
-				};
-			},
-		);
-		const activeAttachRef = { current: null as any };
-		const querySessionsRef = { current: new Map() };
-		const chatQuerySessionIndexRef = { current: new Map() };
-		const activeQuerySessionRequestIdRef = { current: "" };
-		const cleanup = registerAttachRunListener({
-			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
-			handleEvent,
-			activeAttachRef,
-			querySessionsRef,
-			chatQuerySessionIndexRef,
-			activeQuerySessionRequestIdRef,
-			getWsClientImpl: () => ({ attachRun }) as any,
-		});
-
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
-		}) as unknown as Event);
-		attachedOnEvent?.({
-			type: "request.query",
-			requestId: "req_1",
-			query: "attached query",
-			references: [{ name: "demo.txt", sizeBytes: 12 }],
-			timestamp: 100,
-		});
-
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_TIMELINE_NODE",
-			id: "user_req_1",
-			node: expect.objectContaining({
-				id: "user_req_1",
-				kind: "message",
-				role: "user",
-				text: "attached query",
-				attachments: [{ name: "demo.txt", size: 12 }],
-			}),
-		});
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "APPEND_TIMELINE_ORDER",
-			id: "user_req_1",
-		});
-		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
-			type: "request.query",
-			query: "attached query",
-		}));
-
-		cleanup();
-	});
-
-	it("registerAttachRunListener aborts the previous attach before starting a new one", () => {
-		class MockWindow {
-			private listeners = new Map<string, Set<(event: Event) => void>>();
-
-			addEventListener(type: string, listener: (event: Event) => void): void {
-				const current = this.listeners.get(type) || new Set<(event: Event) => void>();
-				current.add(listener);
-				this.listeners.set(type, current);
-			}
-
-			removeEventListener(type: string, listener: (event: Event) => void): void {
-				this.listeners.get(type)?.delete(listener);
-			}
-
-			dispatchEvent(event: Event): boolean {
-				for (const listener of this.listeners.get(event.type) || []) {
-					listener(event);
-				}
-				return true;
-			}
-		}
-
-		class MockCustomEvent {
-			type: string;
-			detail: Record<string, unknown>;
-
-			constructor(type: string, init?: { detail?: Record<string, unknown> }) {
-				this.type = type;
-				this.detail = init?.detail || {};
-			}
-		}
-
-		const mockWindow = new MockWindow();
-		Object.defineProperty(globalThis, "window", {
-			value: mockWindow,
-			configurable: true,
-			writable: true,
-		});
-		Object.defineProperty(globalThis, "CustomEvent", {
-			value: MockCustomEvent,
-			configurable: true,
-			writable: true,
-		});
-
-		const attaches: Array<{ abort: jest.Mock }> = [];
-		const attachRun = jest.fn(
-			(
-				_runId: string,
-				_agentKey: string,
-				_lastSeq: number,
-				_onEvent: (event: AgentEvent) => void,
-				onDone?: (reason: string, lastSeq: number) => void,
-			) => {
-				const entry = {
-					requestId: `attach_${attaches.length + 1}`,
-					abort: jest.fn(() => onDone?.("detached", 0)),
-				};
-				attaches.push(entry);
-				return entry;
-			},
-		);
-		const activeAttachRef = { current: null as any };
-		const querySessionsRef = { current: new Map() };
-		const chatQuerySessionIndexRef = { current: new Map() };
-		const activeQuerySessionRequestIdRef = { current: "" };
-		const cleanup = registerAttachRunListener({
-			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
-			handleEvent,
-			activeAttachRef,
-			querySessionsRef,
-			chatQuerySessionIndexRef,
-			activeQuerySessionRequestIdRef,
-			getWsClientImpl: () => ({ attachRun }) as any,
-		});
-
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
-		}) as unknown as Event);
-		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
-		}) as unknown as Event);
-
-		expect(attaches).toHaveLength(2);
-		expect(attaches[0].abort).toHaveBeenCalledTimes(1);
-
-		cleanup();
 	});
 
 	it("reloads the active chat from persisted chat.updated pushes when idle", async () => {

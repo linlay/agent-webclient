@@ -1,4 +1,9 @@
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+import {
+	executeQueryStreamWs,
+} from "@/features/transport/lib/queryStreamRuntime.ws";
+import {
+	WS_STREAM_RETRY_DELAYS_MS,
+} from "@/features/transport/lib/wsStreamReplay";
 import {
 	ensureAccessToken,
 	getCurrentAccessToken,
@@ -8,12 +13,14 @@ import {
 	getWsClient,
 	getWsClientAccessToken,
 	initWsClient,
+	updateCurrentWsClientOptions,
 } from "@/features/transport/lib/wsClientSingleton";
 
 jest.mock("./wsClientSingleton", () => ({
 	getWsClient: jest.fn(),
 	getWsClientAccessToken: jest.fn(),
 	initWsClient: jest.fn(),
+	updateCurrentWsClientOptions: jest.fn(),
 }));
 
 jest.mock("@/shared/api/apiClient", () => ({
@@ -37,10 +44,17 @@ jest.mock("@/shared/utils/routing", () => ({
 	isAppMode: jest.fn(),
 }));
 
+async function advanceQueryWsRetryDelays(): Promise<void> {
+	for (const delayMs of WS_STREAM_RETRY_DELAYS_MS) {
+		await jest.advanceTimersByTimeAsync(delayMs);
+	}
+}
+
 describe("executeQueryStreamWs", () => {
 	const getWsClientMock = getWsClient as jest.MockedFunction<typeof getWsClient>;
 	const getWsClientAccessTokenMock = getWsClientAccessToken as jest.MockedFunction<typeof getWsClientAccessToken>;
 	const initWsClientMock = initWsClient as jest.MockedFunction<typeof initWsClient>;
+	const updateCurrentWsClientOptionsMock = updateCurrentWsClientOptions as jest.MockedFunction<typeof updateCurrentWsClientOptions>;
 	const ensureAccessTokenMock = ensureAccessToken as jest.MockedFunction<typeof ensureAccessToken>;
 	const getCurrentAccessTokenMock = getCurrentAccessToken as jest.MockedFunction<typeof getCurrentAccessToken>;
 	const isAppModeMock = isAppMode as jest.MockedFunction<typeof isAppMode>;
@@ -49,6 +63,7 @@ describe("executeQueryStreamWs", () => {
 		getWsClientMock.mockReset();
 		getWsClientAccessTokenMock.mockReset();
 		initWsClientMock.mockReset();
+		updateCurrentWsClientOptionsMock.mockReset();
 		ensureAccessTokenMock.mockReset();
 		getCurrentAccessTokenMock.mockReset();
 		isAppModeMock.mockReset();
@@ -56,6 +71,10 @@ describe("executeQueryStreamWs", () => {
 		getCurrentAccessTokenMock.mockReturnValue("");
 		getWsClientAccessTokenMock.mockReturnValue("");
 		isAppModeMock.mockReturnValue(false);
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
 	});
 
 	it("throws a user-facing error when websocket transport is not initialized", async () => {
@@ -203,38 +222,43 @@ describe("executeQueryStreamWs", () => {
 		);
 	});
 
-	it("recreates the ws client with a refreshed app token after a pre-stream handshake failure", async () => {
+	it("refreshes token through the singleton update path without disposing old singleton", async () => {
+		jest.useFakeTimers();
 		const dispatch = jest.fn();
 		const handleEvent = jest.fn();
-		const firstStream = jest.fn((options: { onError?: (error: Error) => void }) => {
-			options.onError?.(new Error("WebSocket connection failed"));
-			return { abort: jest.fn() };
-		});
-		const secondStream = jest.fn((options: {
-			onEvent: (event: unknown) => void;
-			onDone?: (reason: string, lastSeq: number) => void;
-		}) => {
-			options.onEvent({ type: "content.delta", text: "after refresh" });
-			options.onDone?.("done", 1);
-			return { abort: jest.fn() };
-		});
-		const refreshedConnect = jest.fn().mockResolvedValue(undefined);
+		const streamMock = jest.fn()
+			.mockImplementationOnce((options: { onError?: (error: Error) => void }) => {
+				options.onError?.(new Error("WebSocket connection failed"));
+				return { abort: jest.fn() };
+			})
+			.mockImplementationOnce((options: {
+				onEvent: (event: unknown) => void;
+				onDone?: (reason: string, lastSeq: number) => void;
+			}) => {
+				options.onEvent({ type: "content.delta", text: "after refresh" });
+				options.onDone?.("done", 1);
+				return { abort: jest.fn() };
+			});
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const currentClient = {
+			updateOptions: jest.fn(),
+			connect,
+			stream: streamMock,
+		};
 
 		isAppModeMock.mockReturnValue(true);
 		getCurrentAccessTokenMock.mockReturnValue("token_old");
 		getWsClientAccessTokenMock.mockReturnValue("token_old");
 		ensureAccessTokenMock.mockResolvedValue("token_new");
-		getWsClientMock.mockReturnValue({
-			updateOptions: jest.fn(),
-			stream: firstStream,
-		} as never);
-		initWsClientMock.mockReturnValue({
-			connect: refreshedConnect,
-			updateOptions: jest.fn(),
-			stream: secondStream,
-		} as never);
+		getWsClientMock.mockReturnValue(currentClient as never);
+		updateCurrentWsClientOptionsMock.mockImplementation((options) => {
+			if (typeof options.accessToken === "string") {
+				getWsClientAccessTokenMock.mockReturnValue(options.accessToken);
+			}
+			return currentClient as never;
+		});
 
-		await executeQueryStreamWs({
+		const promise = executeQueryStreamWs({
 			params: {
 				requestId: "req_refresh",
 				message: "hello",
@@ -242,18 +266,115 @@ describe("executeQueryStreamWs", () => {
 			dispatch,
 			handleEvent,
 		});
+		await jest.advanceTimersByTimeAsync(WS_STREAM_RETRY_DELAYS_MS[0]);
+		await promise;
 
-		expect(firstStream).toHaveBeenCalledTimes(1);
+		expect(streamMock).toHaveBeenCalledTimes(2);
 		expect(ensureAccessTokenMock).toHaveBeenCalledWith("unauthorized");
-		expect(initWsClientMock).toHaveBeenCalledWith(
+		// Should NOT have called initWsClient (which would dispose the old singleton)
+		expect(initWsClientMock).not.toHaveBeenCalled();
+		// Should update the current singleton instead of calling updateOptions directly.
+		expect(updateCurrentWsClientOptionsMock).toHaveBeenCalledWith(
 			expect.objectContaining({ accessToken: "token_new" }),
 		);
-		expect(refreshedConnect).toHaveBeenCalledTimes(1);
-		expect(secondStream).toHaveBeenCalledTimes(1);
+		expect(currentClient.updateOptions).not.toHaveBeenCalled();
+		expect(getWsClientAccessToken()).toBe("token_new");
+		expect(connect).toHaveBeenCalledTimes(1);
 		expect(handleEvent).toHaveBeenCalledWith({
 			type: "content.delta",
 			text: "after refresh",
 		});
+	});
+
+	it("replays a query stream up to five times when the connection fails before server activity", async () => {
+		jest.useFakeTimers();
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const streamMock = jest.fn((options: {
+			payload: { requestId: string; message: string };
+			onEvent: (event: unknown) => void;
+			onError?: (error: Error) => void;
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			if (streamMock.mock.calls.length <= WS_STREAM_RETRY_DELAYS_MS.length) {
+				options.onError?.(new Error("WebSocket connection failed"));
+				return { abort: jest.fn() };
+			}
+			options.onEvent({ type: "content.delta", text: "after retries" });
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		getCurrentAccessTokenMock.mockReturnValue("token_1");
+		getWsClientAccessTokenMock.mockReturnValue("token_1");
+		getWsClientMock.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			stream: streamMock,
+		} as never);
+
+		const promise = executeQueryStreamWs({
+			params: {
+				requestId: "req_replay",
+				message: "hello",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		await advanceQueryWsRetryDelays();
+		await promise;
+
+		expect(streamMock).toHaveBeenCalledTimes(
+			WS_STREAM_RETRY_DELAYS_MS.length + 1,
+		);
+		expect(connect).toHaveBeenCalledTimes(WS_STREAM_RETRY_DELAYS_MS.length);
+		for (const [call] of streamMock.mock.calls) {
+			expect(call).toEqual(
+				expect.objectContaining({
+					type: "/api/query",
+					payload: expect.objectContaining({
+						requestId: "req_replay",
+						message: "hello",
+					}),
+				}),
+			);
+		}
+		expect(handleEvent).toHaveBeenCalledWith({
+			type: "content.delta",
+			text: "after retries",
+		});
+	});
+
+	it("does not replay after receiving a server frame", async () => {
+		const streamMock = jest.fn((options: {
+			onFrame?: (raw: string) => void;
+			onError?: (error: Error) => void;
+		}) => {
+			options.onFrame?.('{"frame":"stream","id":"stream_1"}');
+			options.onError?.(new Error("WebSocket transport disconnected"));
+			return { abort: jest.fn() };
+		});
+
+		getCurrentAccessTokenMock.mockReturnValue("token_1");
+		getWsClientAccessTokenMock.mockReturnValue("token_1");
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await expect(
+			executeQueryStreamWs({
+				params: {
+					requestId: "req_no_replay_after_frame",
+					message: "hello",
+				},
+				dispatch: jest.fn(),
+				handleEvent: jest.fn(),
+			}),
+		).rejects.toThrow(/WebSocket .*?(handshake failed|握手失败)/i);
+
+		expect(streamMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("aborts the underlying stream when the external signal is cancelled", async () => {
@@ -370,26 +491,38 @@ describe("executeQueryStreamWs", () => {
 	});
 
 	it("normalizes websocket connection failures into actionable messages", async () => {
+		jest.useFakeTimers();
+		const streamMock = jest.fn(
+			(options: {
+				onError?: (error: Error) => void;
+			}) => {
+				options.onError?.(new Error("WebSocket connection failed"));
+				return { abort: jest.fn() };
+			},
+		);
 		getWsClientMock.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
 			stream: jest.fn(
-				(options: {
-					onError?: (error: Error) => void;
-				}) => {
-					options.onError?.(new Error("WebSocket connection failed"));
-					return { abort: jest.fn() };
-				},
+				(options: Parameters<typeof streamMock>[0]) => streamMock(options),
 			),
 		} as never);
 
-		await expect(
-			executeQueryStreamWs({
-				params: {
-					requestId: "req_failed_ws",
-					message: "hello",
-				},
-				dispatch: jest.fn(),
-				handleEvent: jest.fn(),
-			}),
-		).rejects.toThrow(/WebSocket .*?(handshake failed|握手失败)/i);
+		const promise = executeQueryStreamWs({
+			params: {
+				requestId: "req_failed_ws",
+				message: "hello",
+			},
+			dispatch: jest.fn(),
+			handleEvent: jest.fn(),
+		});
+		const assertion = expect(promise).rejects.toThrow(
+			/WebSocket .*?(handshake failed|握手失败)/i,
+		);
+
+		await advanceQueryWsRetryDelays();
+		await assertion;
+		expect(streamMock).toHaveBeenCalledTimes(
+			WS_STREAM_RETRY_DELAYS_MS.length + 1,
+		);
 	});
 });

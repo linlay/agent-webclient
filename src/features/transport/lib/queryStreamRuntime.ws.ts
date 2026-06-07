@@ -10,8 +10,8 @@ import {
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	getWsClient,
-	getWsClientAccessToken,
 	initWsClient,
+	updateCurrentWsClientOptions,
 } from "@/features/transport/lib/wsClientSingleton";
 import {
 	createStreamAbortScope,
@@ -19,6 +19,10 @@ import {
 	stopQueryStreamState,
 	type ExecuteQueryStreamOptions,
 } from "@/features/transport/lib/queryStreamShared";
+import {
+	WS_STREAM_RETRY_DELAYS_MS,
+	handleStreamReplayError,
+} from "@/features/transport/lib/wsStreamReplay";
 
 export type ExecuteQueryStreamWsOptions = ExecuteQueryStreamOptions;
 
@@ -44,16 +48,22 @@ async function resolveQueryWsClient(
 	if (!currentClient && !accessToken) {
 		return null;
 	}
-	if (!currentClient || getWsClientAccessToken() !== accessToken) {
+	if (!currentClient) {
 		return initWsClient({ accessToken, resolveAccessToken: resolveQueryAccessToken });
 	}
-	if (typeof currentClient.updateOptions === "function") {
-		currentClient.updateOptions({
-			accessToken,
-			resolveAccessToken: resolveQueryAccessToken,
-		});
-	}
-	return currentClient;
+
+	return updateCurrentWsClientOptions({
+		accessToken,
+		resolveAccessToken: resolveQueryAccessToken,
+	}) ?? currentClient;
+}
+
+function resolveQueryWsClientForRetry(
+	retryIndex: number,
+	appMode: boolean,
+): Promise<QueryWsClient | null> {
+	const reason: TokenRefreshReason = appMode && retryIndex === 0 ? "unauthorized" : "missing";
+	return resolveQueryWsClient(reason);
 }
 
 export async function executeQueryStreamWs(
@@ -74,8 +84,8 @@ export async function executeQueryStreamWs(
 	try {
 		await new Promise<void>((resolve, reject) => {
 			let settled = false;
-			let retriedAfterRefresh = false;
 			let receivedServerActivity = false;
+			const retryCount = { current: 0 };
 			const settle = (callback: () => void) => {
 				if (settled) {
 					return;
@@ -87,6 +97,46 @@ export async function executeQueryStreamWs(
 				settle(() => resolve());
 				return;
 			}
+
+			const handleStreamError = (error: Error) => {
+				if (error.name === "AbortError") {
+					settle(() => resolve());
+					return;
+				}
+
+				const handled = handleStreamReplayError(
+					error,
+					receivedServerActivity,
+					{
+						signal: abortController.signal,
+						retryDelaysMs: WS_STREAM_RETRY_DELAYS_MS,
+						getRetryClient: (retryIndex) =>
+							resolveQueryWsClientForRetry(retryIndex, appMode)
+								.then((client) => {
+									if (!client) {
+										throw toWsConnectionError(new Error("WebSocket transport is not initialized"));
+									}
+									return client;
+								}),
+						startStreamAttempt: (client) => {
+							wsClient = client;
+							startStream(client);
+						},
+					},
+					retryCount,
+					(finalError) => {
+						settle(() => reject(finalError));
+					},
+				);
+
+				if (!handled) {
+					if (isWsConnectionFailure(error)) {
+						settle(() => reject(toWsConnectionError(error)));
+						return;
+					}
+					settle(() => reject(error));
+				}
+			};
 
 			const startStream = (client: QueryWsClient) => {
 				const model = compactQueryModelOverride(params.model);
@@ -118,50 +168,7 @@ export async function executeQueryStreamWs(
 						receivedServerActivity = true;
 					},
 					onError: (error) => {
-						if (error.name === "AbortError") {
-							settle(() => resolve());
-							return;
-						}
-						if (
-							appMode
-							&& isWsConnectionFailure(error)
-							&& !retriedAfterRefresh
-							&& !receivedServerActivity
-							&& !abortController.signal.aborted
-						) {
-							retriedAfterRefresh = true;
-							void (async () => {
-								try {
-									const refreshedClient = await resolveQueryWsClient("unauthorized");
-									if (!refreshedClient || abortController.signal.aborted || settled) {
-										settle(() => reject(toWsConnectionError(error)));
-										return;
-									}
-									wsClient = refreshedClient;
-									await wsClient.connect();
-									if (abortController.signal.aborted || settled) {
-										return;
-									}
-									startStream(wsClient);
-								} catch (refreshError) {
-									settle(() =>
-										reject(
-											toWsConnectionError(
-												isWsConnectionFailure(refreshError)
-													? refreshError
-													: error,
-											),
-										),
-									);
-								}
-							})();
-							return;
-						}
-						if (isWsConnectionFailure(error)) {
-							settle(() => reject(toWsConnectionError(error)));
-							return;
-						}
-						settle(() => reject(error));
+						handleStreamError(error);
 					},
 					onDone: (_reason, _lastSeq) => {
 						settle(() => resolve());
