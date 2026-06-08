@@ -346,6 +346,18 @@ export function useAgentEventHandler() {
       }
 
       if (isAwaitingAskLike(type) || isAwaitingAnswerLike(type)) {
+        /* When agent asks user (awaiting.ask), cancel planning mode */
+        if (isAwaitingAskLike(type)) {
+          const chatId = toText(state.chatId) || cache.chatId;
+          if (chatId && state.planningMode) {
+            dispatch({
+              type: 'SET_PLANNING_MODE',
+              chatId,
+              enabled: false,
+              persist: true,
+            });
+          }
+        }
         upsertLiveChatSummary({ event, cache, state });
         return;
       }

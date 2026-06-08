@@ -879,8 +879,16 @@ export function useChatActions() {
           );
         }
 
-        /* Restore planning mode from active run if no explicit user preference */
-        if (activeRun && activeRun.planningMode && stateRef.current.planningModeByChatId[chatId] === undefined) {
+        /* Restore planning mode from active run if no explicit user preference,
+           unless replay encountered awaiting.ask (agent is waiting for user input) */
+        if (rs.activeAwaiting) {
+          dispatch({
+            type: 'SET_PLANNING_MODE',
+            chatId,
+            enabled: false,
+            persist: true,
+          });
+        } else if (activeRun && activeRun.planningMode && stateRef.current.planningModeByChatId[chatId] === undefined) {
           dispatch({
             type: 'SET_PLANNING_MODE',
             chatId,
@@ -888,7 +896,6 @@ export function useChatActions() {
             persist: false,
           });
         }
-
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }

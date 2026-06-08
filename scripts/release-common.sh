@@ -216,9 +216,6 @@ write_program_manifest() {
     "portEnvKey": "PORT",
     "defaultPort": 11948
   },
-  "prerequisites": [
-    "agent-platform"
-  ],
   "desktop": {
     "displayOrder": 3,
     "autoStart": true,
@@ -299,7 +296,22 @@ write_program_manifest() {
         "value": "{{serviceDefaultPort}}",
         "onlyIfDefault": true
       }
-    ]
+    ],
+    "capabilities": {
+      "provides": [],
+      "requires": [
+        {
+          "phase": "verifyRunning",
+          "capability": "auth.accessToken",
+          "action": "preload"
+        },
+        {
+          "phase": "verifyRunning",
+          "service": "agent-platform",
+          "action": "waitHttp"
+        }
+      ]
+    }
   }
 }
 EOF
