@@ -338,7 +338,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                 void moveForward(nextDecision);
               }}
               pagnation={
-                <Flex className={Style.HeaderSide} align="center" gap={12}>
+                <Flex className={Style.HeaderSide} align="center" gap={6}>
                   {timeoutCountdown.label && (
                     <Flex className={Style.TimeoutRow}>
                       <span className={Style.TimeoutBadge}>
@@ -487,17 +487,13 @@ const ApprovalQuestion = forwardRef<
 
     return (
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-        <Flex className={Style.Question} align="baseline">
-          <Flex vertical gap={4} className={Style.QuestionText}>
-            <span className={Style.QuestionHeading}>
-              {t("approvalDialog.defaultHeading")}
-            </span>
-            <span className={Style.QuestionPrompt}>
-              {approval?.description}
-            </span>
-          </Flex>
+        <div className={Style.Question}>
           {pagnation}
-        </Flex>
+          <div className={Style.QuestionHeading}>
+            {t("approvalDialog.defaultHeading")}
+          </div>
+          <div className={Style.QuestionPrompt}>{approval?.description}</div>
+        </div>
         <div className={Style.ApprovalDetails}>{approval?.command}</div>
         <Checkbox.Group
           className={Style.CheckboxGroup}
@@ -553,7 +549,11 @@ const ApprovalQuestion = forwardRef<
           ))}
         </Checkbox.Group>
         {approval.allowFreeText && (
-          <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10} align="center">
+          <Flex
+            className={[Style.Option, Style.FreeText].join(" ")}
+            gap={10}
+            align="center"
+          >
             <span>{options?.length + 1}.</span>
             <Input
               variant="borderless"

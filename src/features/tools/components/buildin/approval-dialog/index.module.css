@@ -11,8 +11,8 @@
   }
 
   .HeaderSide {
-    margin-left: auto;
-    min-width: max-content;
+    float: right;
+    margin-left: 10px;
   }
 
   .IgnoreButton {
@@ -42,19 +42,12 @@
   .Question {
     padding: 10px;
     gap: 16px;
-
-    :first-child {
-      flex: 1;
-    }
-  }
-
-  .QuestionText {
-    min-width: 0;
   }
 
   .QuestionHeading {
     color: var(--text-main);
     font-weight: bold;
+    font-size: 16px;
   }
 
   .QuestionPrompt {

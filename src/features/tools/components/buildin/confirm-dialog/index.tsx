@@ -173,9 +173,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
         : false;
       const isSpaceKey = e.key === " " || e.code === "Space";
       if (
-        isSpaceKey
-        && isCurrentMultiSelect
-        && activeElement?.dataset.multiSelect === "true"
+        isSpaceKey &&
+        isCurrentMultiSelect &&
+        activeElement?.dataset.multiSelect === "true"
       ) {
         e.preventDefault();
         e.stopPropagation();
@@ -521,13 +521,11 @@ const Question = forwardRef<
 
   const renderQuestionHeader = () => {
     return (
-      <Flex className={Style.Question} align="baseline">
-        <Flex vertical gap={4} className={Style.QuestionText}>
-          <span className={Style.QuestionHeading}>{heading}</span>
-          {prompt && <span className={Style.QuestionPrompt}>{prompt}</span>}
-        </Flex>
+      <div className={Style.Question}>
         {pagnation}
-      </Flex>
+        <div className={Style.QuestionHeading}>{heading}</div>
+        {prompt && <div className={Style.QuestionPrompt}>{prompt}</div>}
+      </div>
     );
   };
 
@@ -712,9 +710,7 @@ const Question = forwardRef<
                     <InfoCircleOutlined />
                   </Tooltip>
                 )}
-                <span className="Selected">
-                  {t("approvalDialog.selected")}
-                </span>
+                <span className="Selected">{t("approvalDialog.selected")}</span>
               </Flex>
             </Checkbox>
           );
