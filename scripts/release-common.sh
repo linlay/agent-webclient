@@ -308,7 +308,9 @@ write_program_manifest() {
         {
           "phase": "verifyRunning",
           "service": "agent-platform",
-          "action": "waitHttp"
+          "action": "waitHttp",
+          "target": "/api/runtime-info",
+          "authCapability": "auth.accessToken"
         }
       ]
     }
