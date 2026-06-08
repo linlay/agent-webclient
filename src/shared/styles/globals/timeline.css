@@ -1068,11 +1068,11 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .thinking-detail.is-open {
-    max-height: none;
+    max-height: 50vh;
     opacity: 1;
     margin-top: 6px;
     padding: 0;
-    overflow: visible;
+    overflow: auto;
 }
 
 /* ========================================

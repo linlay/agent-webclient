@@ -1,6 +1,6 @@
 import React from "react";
 import type { PendingSteer } from "@/app/state/types";
-import { Button } from "antd";
+import { Button, Typography } from "antd";
 import { SteerIcon } from "@/features/timeline/components/TimelineRow";
 import { useI18n } from "@/shared/i18n";
 
@@ -26,7 +26,7 @@ export const SteerBar: React.FC<{
             <div className="node-icon steer-preview-icon">
               <SteerIcon />
             </div>
-            <span className="steer-preview-text">{steer.message}</span>
+            <Typography.Text className="steer-preview-text" ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
             <div className="steer-preview-actions">
               <Button
                 size="small"
@@ -48,7 +48,7 @@ export const SteerBar: React.FC<{
             <div className="node-icon steer-preview-icon">
               <SteerIcon />
             </div>
-            <span className="steer-preview-text">{steerDraft}</span>
+            <Typography.Text className="steer-preview-text" ellipsis={{tooltip: steerDraft}}>{steerDraft}</Typography.Text>
             <div className="steer-preview-actions">
               <Button
                 size="small"
