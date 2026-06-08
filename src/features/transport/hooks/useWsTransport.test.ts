@@ -1,6 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, AgentEvent } from "@/app/state/types";
-import { connectWsTransport, registerAttachRunListener } from "@/features/transport/hooks/useWsTransport";
+import { connectWsTransport, registerAttachRunListener, registerDetachRunListener } from "@/features/transport/hooks/useWsTransport";
 import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
 function createState(overrides: Partial<AppState> = {}): AppState {
@@ -829,6 +829,114 @@ function restoreWindow() {
 	delete (globalThis as any).CustomEvent;
 }
 
+describe("registerDetachRunListener", () => {
+	const dispatch = jest.fn();
+	let mockWindow: ReturnType<typeof setupMockWindow>["mockWindow"];
+	let MockCustomEvent: ReturnType<typeof setupMockWindow>["MockCustomEvent"];
+
+	beforeEach(() => {
+		dispatch.mockReset();
+		const setup = setupMockWindow();
+		mockWindow = setup.mockWindow;
+		MockCustomEvent = setup.MockCustomEvent;
+	});
+
+	afterEach(() => {
+		restoreWindow();
+	});
+
+	it("sends /api/detach over ws for agent:detach-run events", () => {
+		const requestMock = jest.fn().mockResolvedValue({
+			data: { accepted: true, status: "detached" },
+		});
+		const state = createState({
+			chatId: "chat_1",
+			runId: "run_1",
+			runAgentById: new Map([["run_1", "agent_alpha"]]),
+		});
+		const cleanup = registerDetachRunListener({
+			dispatch,
+			stateRef: { current: state },
+			querySessionsRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => ({ request: requestMock }) as any,
+			logMissing: true,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", reason: "chat_switch" },
+		}));
+
+		expect(requestMock).toHaveBeenCalledWith({
+			type: "/api/detach",
+			payload: {
+				runId: "run_1",
+				agentKey: "agent_alpha",
+				reason: "chat_switch",
+			},
+		});
+
+		cleanup();
+	});
+
+	it("treats not_observing detach responses as harmless", async () => {
+		const requestMock = jest.fn().mockResolvedValue({
+			data: { accepted: false, status: "not_observing" },
+		});
+		const state = createState({
+			chatId: "chat_1",
+			runAgentById: new Map([["run_1", "agent_alpha"]]),
+		});
+		const cleanup = registerDetachRunListener({
+			dispatch,
+			stateRef: { current: state },
+			querySessionsRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => ({ request: requestMock }) as any,
+			logMissing: true,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", reason: "chat_switch" },
+		}));
+		await Promise.resolve();
+
+		expect(requestMock).toHaveBeenCalledTimes(1);
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "APPEND_DEBUG",
+				line: expect.stringContaining("not_observing"),
+			}),
+		);
+
+		cleanup();
+	});
+
+	it("skips detach when the agent key cannot be resolved", () => {
+		const requestMock = jest.fn();
+		const cleanup = registerDetachRunListener({
+			dispatch,
+			stateRef: { current: createState({ chatId: "chat_1" }) },
+			querySessionsRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => ({ request: requestMock }) as any,
+			logMissing: true,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", reason: "chat_switch" },
+		}));
+
+		expect(requestMock).not.toHaveBeenCalled();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "APPEND_DEBUG",
+			line: "[ws detach] skipped: missing runId or agentKey (chatId=chat_1)",
+		});
+
+		cleanup();
+	});
+});
+
 describe("registerAttachRunListener", () => {
 	const dispatch = jest.fn();
 	const handleEvent = jest.fn();
@@ -860,7 +968,12 @@ describe("registerAttachRunListener", () => {
 			streams.push(entry);
 			return { abort: entry.abort };
 		});
-		const wsClient = { stream: streamMock, connect: jest.fn(), updateOptions: jest.fn() };
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+			connect: jest.fn(),
+			updateOptions: jest.fn(),
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
@@ -941,7 +1054,8 @@ describe("registerAttachRunListener", () => {
 
 	it("resolves agentKey from run identity before chat fallback", () => {
 		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
-		const wsClient = { stream: streamMock };
+		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
+		const wsClient = { stream: streamMock, request: requestMock };
 		const cleanup = registerAttachRunListener({
 			dispatch,
 			stateRef: {
@@ -984,7 +1098,11 @@ describe("registerAttachRunListener", () => {
 			attachedOnEvent = options.onEvent;
 			return { abort: jest.fn() };
 		});
-		const wsClient = { stream: streamMock };
+		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
+		const wsClient = {
+			stream: streamMock,
+			request: requestMock,
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
@@ -1041,7 +1159,11 @@ describe("registerAttachRunListener", () => {
 			streams.push(entry);
 			return entry;
 		});
-		const wsClient = { stream: streamMock };
+		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
+		const wsClient = {
+			stream: streamMock,
+			request: requestMock,
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
@@ -1066,6 +1188,14 @@ describe("registerAttachRunListener", () => {
 
 		expect(streams).toHaveLength(2);
 		expect(streams[0].abort).toHaveBeenCalledTimes(1);
+		expect(requestMock).toHaveBeenCalledWith({
+			type: "/api/detach",
+			payload: {
+				runId: "run_1",
+				agentKey: "agent_alpha",
+				reason: "attach_switch",
+			},
+		});
 
 		cleanup();
 	});
@@ -1086,7 +1216,12 @@ describe("registerAttachRunListener", () => {
 			}
 			return { abort: jest.fn() };
 		});
-		const wsClient = { stream: streamMock, connect: jest.fn().mockResolvedValue(undefined), updateOptions: jest.fn() };
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
@@ -1144,7 +1279,11 @@ describe("registerAttachRunListener", () => {
 			}, 0);
 			return { abort: entry.abort };
 		});
-		const wsClient = { stream: streamMock, connect: jest.fn() };
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+			connect: jest.fn(),
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
@@ -1197,7 +1336,12 @@ describe("registerAttachRunListener", () => {
 			}
 			return { abort: entry.abort };
 		});
-		const wsClient = { stream: streamMock, connect: jest.fn().mockResolvedValue(undefined), updateOptions: jest.fn() };
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };

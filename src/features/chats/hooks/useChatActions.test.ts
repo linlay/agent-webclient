@@ -48,6 +48,24 @@ const { getChat } = jest.requireMock('@/features/transport/lib/apiClientProxy') 
   getChat: jest.Mock;
 };
 
+function createLiveSession(overrides: Record<string, unknown> = {}) {
+  return {
+    requestId: 'req_old',
+    chatId: 'chat_old',
+    runId: 'run_old',
+    agentKey: 'agent_old',
+    teamId: '',
+    streaming: true,
+    abortController: new AbortController(),
+    snapshot: null,
+    bufferedEvents: [],
+    bufferedDebugLines: [],
+    appliedEventCount: 0,
+    appliedDebugLineCount: 0,
+    ...overrides,
+  };
+}
+
 const globalWithBrowserApis = globalThis as typeof globalThis & {
   window?: {
     dispatchEvent: jest.Mock;
@@ -1155,6 +1173,165 @@ describe('replayEvent tool migration', () => {
       enabled: true,
       persist: false,
     });
+  });
+
+  it('detaches the current active run before loading and attaching another chat', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    state.runId = 'run_old';
+    state.streaming = true;
+    state.runAgentById.set('run_old', 'agent_old');
+    const dispatch = jest.fn();
+    const querySessionsRef = {
+      current: new Map([['req_old', createLiveSession()]]),
+    };
+    const activeQuerySessionRequestIdRef = { current: 'req_old' };
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef,
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef,
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'agent_new',
+        events: [],
+        activeRun: {
+          runId: 'run_new',
+          agentKey: 'agent_new',
+          lastSeq: 7,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_new');
+
+    const dispatchEvent = globalWithBrowserApis.window!.dispatchEvent;
+    const detachIndex = dispatchEvent.mock.calls.findIndex(
+      ([event]) => event.type === 'agent:detach-run',
+    );
+    const attachCall = dispatchEvent.mock.calls.find(
+      ([event]) => event.type === 'agent:attach-run',
+    );
+    expect(detachIndex).toBeGreaterThanOrEqual(0);
+    expect(dispatchEvent.mock.calls[detachIndex][0]).toMatchObject({
+      type: 'agent:detach-run',
+      detail: {
+        chatId: 'chat_old',
+        runId: 'run_old',
+        agentKey: 'agent_old',
+        reason: 'chat_switch',
+      },
+    });
+    expect(dispatchEvent.mock.invocationCallOrder[detachIndex]).toBeLessThan(
+      getChat.mock.invocationCallOrder[0],
+    );
+    expect(getChat).toHaveBeenCalledWith('chat_new', false);
+    expect(attachCall?.[0]).toMatchObject({
+      type: 'agent:attach-run',
+      detail: {
+        chatId: 'chat_new',
+        runId: 'run_new',
+        agentKey: 'agent_new',
+        lastSeq: 7,
+      },
+    });
+  });
+
+  it('loads a chat from the backend even when a local session snapshot exists', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_other';
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: {
+        current: new Map([
+          ['req_cached', createLiveSession({
+            requestId: 'req_cached',
+            chatId: 'chat_cached',
+            runId: 'run_cached',
+            streaming: false,
+            snapshot: { chatId: 'chat_cached' },
+          })],
+        ]),
+      },
+      chatQuerySessionIndexRef: { current: new Map([['chat_cached', 'req_cached']]) },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'agent_cached',
+        events: [],
+        activeRun: null,
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_cached');
+
+    expect(getChat).toHaveBeenCalledWith('chat_cached', false);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+    }));
+  });
+
+  it('detaches the current active run when starting a blank conversation', () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    state.runId = 'run_old';
+    state.streaming = true;
+    state.runAgentById.set('run_old', 'agent_old');
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: {
+        current: new Map([['req_old', createLiveSession()]]),
+      },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: 'req_old' },
+    });
+
+    let actions: ReturnType<typeof useChatActions> | null = null;
+    const Harness = () => {
+      actions = useChatActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    actions?.activateBlankConversation();
+
+    expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'agent:detach-run',
+        detail: {
+          chatId: 'chat_old',
+          runId: 'run_old',
+          agentKey: 'agent_old',
+          reason: 'new_conversation',
+        },
+      }),
+    );
   });
 
   it('stores viewportKey from new MCP payload and keeps toolName for display', () => {

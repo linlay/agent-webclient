@@ -19,6 +19,7 @@ import {
 import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
 import { executeQueryStreamSse } from '@/features/transport/lib/queryStreamRuntime.sse';
 import { executeQueryStreamWs } from '@/features/transport/lib/queryStreamRuntime.ws';
+import { dispatchDetachRunEvent, type DetachRunEventDetail } from '@/features/transport/lib/detachRunEvent';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
 import {
@@ -27,8 +28,8 @@ import {
   markSessionSnapshotApplied,
   type LiveQuerySession,
 } from '@/features/chats/lib/conversationSession';
-import { readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
-import type { AgentEvent } from '@/app/state/types';
+import { readRunAgentKeyFromEvent, resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
+import type { AgentEvent, AppState } from '@/app/state/types';
 import { readEventTeamId, readRequestQueryText } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 
@@ -85,6 +86,46 @@ export function canSendToTargetChat(input: {
   }
 
   return false;
+}
+
+export function resolveDifferentChatDetachRunDetail(input: {
+  currentActiveSession: Pick<LiveQuerySession, 'streaming' | 'chatId' | 'runId' | 'agentKey'> | null;
+  currentState: AppState;
+  targetChatId?: string;
+}): DetachRunEventDetail | null {
+  const targetChatId = String(input.targetChatId || '').trim();
+  const chatId = String(
+    input.currentActiveSession?.chatId || input.currentState.chatId || '',
+  ).trim();
+  if (!targetChatId || !chatId || targetChatId === chatId) {
+    return null;
+  }
+  if (!input.currentActiveSession?.streaming && !input.currentState.streaming) {
+    return null;
+  }
+
+  const runId = String(
+    input.currentActiveSession?.runId || input.currentState.runId || '',
+  ).trim();
+  if (!runId) {
+    return null;
+  }
+  const agentKey = resolveRunAgentKey({
+    runId,
+    agentKey: input.currentActiveSession?.agentKey,
+    currentRunAgentKey: input.currentState.currentRunAgentKey,
+    runAgentById: input.currentState.runAgentById,
+    chatId,
+    chatAgentById: input.currentState.chatAgentById,
+    chats: input.currentState.chats,
+  });
+
+  return {
+    chatId,
+    runId,
+    agentKey,
+    reason: 'chat_switch',
+  };
 }
 
 export function resolveQueryStreamExecutor(transportMode: 'sse' | 'ws') {
@@ -182,6 +223,19 @@ export function useMessageActions() {
 
       if (stateRef.current.streaming && !isSameChat) {
         // Different chat requested while current is streaming — detach current session
+        const detachDetail = resolveDifferentChatDetachRunDetail({
+          currentActiveSession,
+          currentState: stateRef.current,
+          targetChatId,
+        });
+        if (detachDetail) {
+          dispatchDetachRunEvent(detachDetail);
+        } else {
+          dispatch({
+            type: 'APPEND_DEBUG',
+            line: `[detach] skipped: missing runId or agentKey (chatId=${currentSessionChatId || '-'})`,
+          });
+        }
         if (currentActiveSession) {
           currentActiveSession.snapshot = snapshotConversationState(stateRef.current);
           currentActiveSession.chatId = currentActiveSession.chatId || currentSessionChatId;
@@ -189,6 +243,9 @@ export function useMessageActions() {
           currentActiveSession.streaming = true;
           currentActiveSession.abortController = stateRef.current.abortController;
           markSessionSnapshotApplied(currentActiveSession);
+        }
+        if (stateRef.current.transportMode === 'sse') {
+          stateRef.current.abortController?.abort();
         }
         activeQuerySessionRequestIdRef.current = '';
         dispatch({ type: 'RESET_ACTIVE_CONVERSATION' });

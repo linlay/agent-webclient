@@ -1,10 +1,24 @@
 import {
   canSendToTargetChat,
+  resolveDifferentChatDetachRunDetail,
   resolveQueryStreamExecutor,
   syncLiveSessionTerminalState,
 } from "@/features/composer/hooks/useMessageActions";
 import { executeQueryStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+
+function createDetachTestState(overrides: Record<string, unknown> = {}) {
+  return {
+    chatId: "",
+    runId: "",
+    streaming: false,
+    currentRunAgentKey: "",
+    runAgentById: new Map<string, string>(),
+    chatAgentById: new Map<string, string>(),
+    chats: [],
+    ...overrides,
+  } as never;
+}
 
 jest.mock("@/features/transport/lib/queryStreamRuntime.sse", () => ({
   executeQueryStreamSse: jest.fn(),
@@ -93,5 +107,53 @@ describe("canSendToTargetChat", () => {
     expect(allowed).toBe(true);
     expect(session.streaming).toBe(false);
     expect(session.abortController).toBeNull();
+  });
+});
+
+describe("resolveDifferentChatDetachRunDetail", () => {
+  it("returns detach event detail before sending to another chat while streaming", () => {
+    const state = createDetachTestState({
+      chatId: "chat_old",
+      runId: "run_old",
+      streaming: true,
+      runAgentById: new Map([["run_old", "agent_old"]]),
+    });
+
+    const detail = resolveDifferentChatDetachRunDetail({
+      currentActiveSession: {
+        streaming: true,
+        chatId: "chat_old",
+        runId: "run_old",
+        agentKey: "",
+      },
+      currentState: state,
+      targetChatId: "chat_new",
+    });
+
+    expect(detail).toEqual({
+      chatId: "chat_old",
+      runId: "run_old",
+      agentKey: "agent_old",
+      reason: "chat_switch",
+    });
+  });
+
+  it("does not detach when sending to the currently active chat", () => {
+    const state = createDetachTestState({
+      chatId: "chat_old",
+      runId: "run_old",
+      streaming: true,
+    });
+
+    expect(resolveDifferentChatDetachRunDetail({
+      currentActiveSession: {
+        streaming: true,
+        chatId: "chat_old",
+        runId: "run_old",
+        agentKey: "agent_old",
+      },
+      currentState: state,
+      targetChatId: "chat_old",
+    })).toBeNull();
   });
 });

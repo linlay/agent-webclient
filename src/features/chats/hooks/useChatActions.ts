@@ -19,12 +19,12 @@ import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormat
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { useWorkerData } from '@/features/workers/hooks/useWorkerData';
 import {
-  applyPendingSessionUpdates,
-  buildConversationStateUpdates,
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '@/features/chats/lib/conversationSession';
+import { resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan, type ReplayState } from '@/features/chats/lib/conversationReplay';
+import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/transport/lib/detachRunEvent';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -143,6 +143,25 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agen
       detail: { chatId, runId, lastSeq, agentKey },
     }),
   );
+}
+
+function maybeDispatchDetachRunEvent(detail: {
+  chatId?: string;
+  runId?: string;
+  agentKey?: string;
+  reason: DetachRunReason;
+}): boolean {
+  const runId = String(detail.runId || '').trim();
+  if (!runId) {
+    return false;
+  }
+  dispatchDetachRunEvent({
+    chatId: String(detail.chatId || '').trim(),
+    runId,
+    agentKey: String(detail.agentKey || '').trim(),
+    reason: detail.reason,
+  });
+  return true;
 }
 
 function normalizeAttachLastSeq(value: unknown): number {
@@ -521,7 +540,6 @@ export function useChatActions() {
     dispatch,
     stateRef,
     querySessionsRef,
-    chatQuerySessionIndexRef,
     activeQuerySessionRequestIdRef,
   } = useAppContext();
   const loadSeqRef = useRef(0);
@@ -587,10 +605,48 @@ export function useChatActions() {
     session.streaming = Boolean(state.streaming);
     session.abortController = state.abortController;
     markSessionSnapshotApplied(session);
+    if (state.transportMode === 'sse') {
+      state.abortController?.abort();
+    }
 
     activeQuerySessionRequestIdRef.current = '';
     return session;
   }, [activeQuerySessionRequestIdRef, querySessionsRef, stateRef]);
+
+  const dispatchDetachActiveRun = useCallback((reason: DetachRunReason, targetChatId = '') => {
+    const state = stateRef.current;
+    const activeRequestId = String(activeQuerySessionRequestIdRef.current || '').trim();
+    const session = activeRequestId
+      ? querySessionsRef.current.get(activeRequestId) || null
+      : null;
+    const chatId = String(session?.chatId || state.chatId || '').trim();
+    const normalizedTargetChatId = String(targetChatId || '').trim();
+    if (normalizedTargetChatId && chatId && normalizedTargetChatId === chatId) {
+      return;
+    }
+    if (!session?.streaming && !state.streaming) {
+      return;
+    }
+
+    const runId = String(session?.runId || state.runId || '').trim();
+    const agentKey = resolveRunAgentKey({
+      runId,
+      agentKey: session?.agentKey,
+      currentRunAgentKey: state.currentRunAgentKey,
+      runAgentById: state.runAgentById,
+      chatId,
+      chatAgentById: state.chatAgentById,
+      chats: state.chats,
+    });
+    if (maybeDispatchDetachRunEvent({ chatId, runId, agentKey, reason })) {
+      return;
+    }
+
+    dispatch({
+      type: 'APPEND_DEBUG',
+      line: `[detach] skipped: missing runId or agentKey (chatId=${chatId || '-'})`,
+    });
+  }, [activeQuerySessionRequestIdRef, dispatch, querySessionsRef, stateRef]);
 
   const activateBlankConversation = useCallback((options: {
     preserveWorkerContext?: boolean;
@@ -600,6 +656,7 @@ export function useChatActions() {
     const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
     loadSeqRef.current += 1;
+    dispatchDetachActiveRun('new_conversation');
     detachActiveConversationSession();
     clearArtifactAutoCollapseTimer();
     clearPlanAutoCollapseTimer();
@@ -617,45 +674,7 @@ export function useChatActions() {
     if (focusComposerOnComplete) {
       focusComposerSoon();
     }
-  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, focusComposerSoon]);
-
-  const restoreSessionConversation = useCallback((chatId: string): boolean => {
-    const requestId = String(chatQuerySessionIndexRef.current.get(chatId) || '').trim();
-    if (!requestId) {
-      return false;
-    }
-
-    const session = querySessionsRef.current.get(requestId) || null;
-    if (!session?.snapshot) {
-      return false;
-    }
-
-    const restored = applyPendingSessionUpdates(session.snapshot, session);
-    session.snapshot = restored;
-    session.streaming = restored.streaming;
-    session.abortController = restored.abortController;
-    markSessionSnapshotApplied(session);
-
-    clearArtifactAutoCollapseTimer();
-    clearPlanAutoCollapseTimer();
-    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
-    flushSync(() => {
-      dispatch({
-        type: 'BATCH_UPDATE',
-        updates: buildConversationStateUpdates(restored),
-      });
-    });
-    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
-    activeQuerySessionRequestIdRef.current = session.requestId;
-    return true;
-  }, [
-    activeQuerySessionRequestIdRef,
-    chatQuerySessionIndexRef,
-    clearArtifactAutoCollapseTimer,
-    clearPlanAutoCollapseTimer,
-    dispatch,
-    querySessionsRef,
-  ]);
+  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, focusComposerSoon]);
 
   const syncMarkReadResult = useCallback((chatId: string, data: unknown) => {
     if (!isObjectRecord(data)) {
@@ -722,8 +741,16 @@ export function useChatActions() {
     async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
       if (!chatId) return;
       const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
+      const currentChatId = String(stateRef.current.chatId || '').trim();
+      if (currentChatId && currentChatId === chatId && stateRef.current.streaming) {
+        if (focusComposerOnComplete) {
+          focusComposerSoon();
+        }
+        return;
+      }
 
       const seq = ++loadSeqRef.current;
+      dispatchDetachActiveRun('chat_switch', chatId);
       detachActiveConversationSession();
 
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
@@ -736,13 +763,6 @@ export function useChatActions() {
           worker: worker || null,
         });
         dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
-      }
-
-      if (restoreSessionConversation(chatId)) {
-        if (focusComposerOnComplete) {
-          focusComposerSoon();
-        }
-        return;
       }
 
       try {
@@ -883,10 +903,10 @@ export function useChatActions() {
       clearArtifactAutoCollapseTimer,
       clearPlanAutoCollapseTimer,
       detachActiveConversationSession,
+      dispatchDetachActiveRun,
       dispatch,
       focusComposerSoon,
       applyLoadedChatState,
-      restoreSessionConversation,
       stateRef,
     ]
   );

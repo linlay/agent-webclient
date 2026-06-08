@@ -40,6 +40,10 @@ import {
 	handleStreamReplayError,
 } from "@/features/transport/lib/wsStreamReplay";
 import {
+	AGENT_DETACH_RUN_EVENT,
+	type DetachRunReason,
+} from "@/features/transport/lib/detachRunEvent";
+import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/chats/lib/conversationSession";
@@ -276,6 +280,29 @@ type ActiveAttachState = {
 	abort: () => void;
 };
 
+interface DetachRunResponse {
+	accepted?: boolean;
+	status?: string;
+	runId?: string;
+	detail?: string;
+}
+
+type DetachRunDetail = {
+	chatId?: unknown;
+	runId?: unknown;
+	agentKey?: unknown;
+	reason?: unknown;
+};
+
+interface RequestWsDetachRunOptions {
+	dispatch: WsTransportDispatch;
+	stateRef: { current: AppState };
+	querySessionsRef: { current: Map<string, LiveQuerySession> };
+	activeQuerySessionRequestIdRef: { current: string };
+	getWsClientImpl?: typeof getWsClient;
+	logMissing?: boolean;
+}
+
 function resolveAttachAgentKey(
 	state: AppState,
 	chatId: string,
@@ -290,6 +317,105 @@ function resolveAttachAgentKey(
 		chatId,
 		chatAgentById: state.chatAgentById,
 		chats: state.chats,
+	});
+}
+
+function normalizeDetachReason(value: unknown): DetachRunReason {
+	const reason = toText(value);
+	return reason === "new_conversation"
+		|| reason === "page_leave"
+		|| reason === "transport_cleanup"
+		|| reason === "attach_switch"
+		? reason
+		: "chat_switch";
+}
+
+function resolveDetachRunTarget(
+	options: RequestWsDetachRunOptions,
+	detail: DetachRunDetail = {},
+): { chatId: string; runId: string; agentKey: string; reason: DetachRunReason } | null {
+	const state = options.stateRef.current;
+	const activeRequestId = toText(options.activeQuerySessionRequestIdRef.current);
+	const session = activeRequestId
+		? options.querySessionsRef.current.get(activeRequestId) || null
+		: null;
+	const chatId =
+		toText(detail.chatId)
+		|| toText(session?.chatId)
+		|| toText(state.chatId);
+	const runId =
+		toText(detail.runId)
+		|| toText(session?.runId)
+		|| toText(state.runId);
+	if (!runId) {
+		return null;
+	}
+	const agentKey = resolveRunAgentKey({
+		runId,
+		agentKey: detail.agentKey || session?.agentKey,
+		currentRunAgentKey: state.currentRunAgentKey,
+		runAgentById: state.runAgentById,
+		chatId,
+		chatAgentById: state.chatAgentById,
+		chats: state.chats,
+	});
+	if (!agentKey) {
+		return null;
+	}
+	return {
+		chatId,
+		runId,
+		agentKey,
+		reason: normalizeDetachReason(detail.reason),
+	};
+}
+
+function requestWsDetachRun(
+	options: RequestWsDetachRunOptions,
+	detail: DetachRunDetail = {},
+): void {
+	const getWsClientImpl = options.getWsClientImpl ?? getWsClient;
+	const target = resolveDetachRunTarget(options, detail);
+	if (!target) {
+		if (options.logMissing) {
+			appendWsDebug(
+				options.dispatch,
+				`[ws detach] skipped: missing runId or agentKey (chatId=${toText(detail.chatId) || "-"})`,
+			);
+		}
+		return;
+	}
+
+	const wsClient = getWsClientImpl();
+	if (!wsClient) {
+		appendWsDebug(
+			options.dispatch,
+			`[ws detach] skipped: WebSocket client unavailable (runId=${target.runId})`,
+		);
+		return;
+	}
+
+	void wsClient.request<DetachRunResponse>({
+		type: "/api/detach",
+		payload: {
+			runId: target.runId,
+			agentKey: target.agentKey,
+			reason: target.reason,
+		},
+	}).then((response) => {
+		const data = (response.data || {}) as DetachRunResponse;
+		const status = toText(data.status);
+		if (data.accepted === false && status && status !== "not_observing") {
+			appendWsDebug(
+				options.dispatch,
+				`[ws detach] ${target.runId}: ${status}`,
+			);
+		}
+	}).catch((error) => {
+		appendWsDebug(
+			options.dispatch,
+			`[ws detach error] ${(error as Error).message}`,
+		);
 	});
 }
 
@@ -409,11 +535,28 @@ export function registerAttachRunListener(
 			return;
 		}
 
-		current?.abort();
-
 		const wsClient = getWsClientImpl();
 		if (!wsClient) {
 			return;
+		}
+
+		if (current) {
+			requestWsDetachRun(
+				{
+					dispatch: options.dispatch,
+					stateRef: options.stateRef,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					getWsClientImpl,
+				},
+				{
+					chatId: current.chatId,
+					runId: current.runId,
+					agentKey: current.agentKey,
+					reason: "attach_switch",
+				},
+			);
+			current.abort();
 		}
 
 		const controller = new AbortController();
@@ -537,8 +680,45 @@ export function registerAttachRunListener(
 		if (typeof window !== "undefined" && typeof window.removeEventListener === "function") {
 			window.removeEventListener("agent:attach-run", handler);
 		}
-		options.activeAttachRef.current?.abort();
+		const current = options.activeAttachRef.current;
+		if (current) {
+			requestWsDetachRun(
+				{
+					dispatch: options.dispatch,
+					stateRef: options.stateRef,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					getWsClientImpl,
+				},
+				{
+					chatId: current.chatId,
+					runId: current.runId,
+					agentKey: current.agentKey,
+					reason: "transport_cleanup",
+				},
+			);
+			current.abort();
+		}
 		options.activeAttachRef.current = null;
+	};
+}
+
+export function registerDetachRunListener(
+	options: RequestWsDetachRunOptions,
+): () => void {
+	const handler = (event: Event) => {
+		const detail = (event as CustomEvent).detail as DetachRunDetail | undefined;
+		requestWsDetachRun(options, detail || {});
+	};
+
+	if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+		window.addEventListener(AGENT_DETACH_RUN_EVENT, handler);
+	}
+
+	return () => {
+		if (typeof window !== "undefined" && typeof window.removeEventListener === "function") {
+			window.removeEventListener(AGENT_DETACH_RUN_EVENT, handler);
+		}
 	};
 }
 
@@ -876,6 +1056,64 @@ export function useWsTransport() {
 
 	useEffect(() => {
 		if (state.transportMode !== "ws") {
+			return;
+		}
+
+		return registerDetachRunListener({
+			dispatch,
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			logMissing: true,
+		});
+	}, [
+		activeQuerySessionRequestIdRef,
+		dispatch,
+		querySessionsRef,
+		state.transportMode,
+		stateRef,
+	]);
+
+	useEffect(() => {
+		if (
+			state.transportMode !== "ws"
+			|| typeof window === "undefined"
+			|| typeof window.addEventListener !== "function"
+		) {
+			return;
+		}
+		const handler = () => {
+			requestWsDetachRun(
+				{
+					dispatch,
+					stateRef,
+					querySessionsRef,
+					activeQuerySessionRequestIdRef,
+				},
+				{ reason: "page_leave" },
+			);
+		};
+		window.addEventListener("pagehide", handler);
+		return () => window.removeEventListener("pagehide", handler);
+	}, [
+		activeQuerySessionRequestIdRef,
+		dispatch,
+		querySessionsRef,
+		state.transportMode,
+		stateRef,
+	]);
+
+	useEffect(() => {
+		if (state.transportMode !== "ws") {
+			requestWsDetachRun(
+				{
+					dispatch,
+					stateRef,
+					querySessionsRef,
+					activeQuerySessionRequestIdRef,
+				},
+				{ reason: "transport_cleanup" },
+			);
 			activeAttachRef.current?.abort();
 			activeAttachRef.current = null;
 			destroyWsClient();
@@ -912,6 +1150,15 @@ export function useWsTransport() {
 
 		return () => {
 			cancelled = true;
+			requestWsDetachRun(
+				{
+					dispatch,
+					stateRef,
+					querySessionsRef,
+					activeQuerySessionRequestIdRef,
+				},
+				{ reason: "transport_cleanup" },
+			);
 			activeAttachRef.current?.abort();
 			activeAttachRef.current = null;
 			scheduleDestroyWsClient();
@@ -920,6 +1167,8 @@ export function useWsTransport() {
 		};
 	}, [
 		dispatch,
+		activeQuerySessionRequestIdRef,
+		querySessionsRef,
 		stableHandleEvent,
 		state.transportMode,
 		stateRef,
