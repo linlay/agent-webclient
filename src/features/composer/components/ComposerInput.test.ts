@@ -14,6 +14,8 @@ jest.mock("antd", () => ({
       });
     },
   },
+  Tooltip: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
 }));
 
 jest.mock("@/shared/i18n", () => ({

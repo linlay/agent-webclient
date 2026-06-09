@@ -1,8 +1,10 @@
-import React from "react";
-import { Input } from "antd";
+import React, { useState } from "react";
+import { Button, Flex, Input, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { VoiceChatStatus } from "@/app/state/types";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
 
 interface ComposerInputProps {
   isVoiceMode: boolean;
@@ -73,12 +75,16 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   const hasVoiceUserPreview = Boolean(partialUserText.trim());
   const hasVoiceAssistantPreview = Boolean(partialAssistantText.trim());
   const voiceStatusText = getVoiceStatusText(voiceStatus, voiceError, t);
+  const [inputExpanded, setInputExpanded] = useState(false);
 
   return (
     <div className="composer-mode-shell">
       <div className="composer-mode-main">
         {isVoiceMode ? (
-          <div className={`voice-chat-panel is-${voiceStatus}`} aria-live="polite">
+          <div
+            className={`voice-chat-panel is-${voiceStatus}`}
+            aria-live="polite"
+          >
             <div className="voice-chat-panel-header">
               <div className="voice-chat-panel-identity">
                 <div
@@ -133,29 +139,66 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
             {voiceError && <div className="voice-chat-error">{voiceError}</div>}
           </div>
         ) : (
-          <Input.TextArea
-            ref={textareaRef}
-            id="message-input"
-            variant="borderless"
-            placeholder={
-              isFrontendActive
-                ? t("composer.input.placeholder.frontendActive")
-                : t("composer.input.placeholder.default")
-            }
-            autoSize={{
-              minRows: isTimelineEmpty ? emptyInputMinRows : 1,
-              maxRows: inputMaxRows,
-            }}
-            disabled={isFrontendActive}
-            value={inputValue}
-            onChange={(event) => onInputChange(event.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onCompositionStart={onCompositionStart}
-            onCompositionEnd={onCompositionEnd}
-          />
+          <div className="composer-input-wrapper">
+            <Tooltip
+              title={
+                inputExpanded
+                  ? t("composer.input.tooltip.collapse")
+                  : t("composer.input.tooltip.expand")
+              }
+            >
+              <UiButton
+                variant="ghost"
+                iconOnly
+                size="sm"
+                className="composer-input-expand-btn"
+                data-expanded={inputExpanded}
+                onClick={() => setInputExpanded(!inputExpanded)}
+              >
+                <MaterialIcon
+                  name="keyboard_arrow_up"
+                  className="composer-input-expand-arrow"
+                />
+                <MaterialIcon
+                  name={inputExpanded ? "collapse_content" : "expand_content"}
+                />
+              </UiButton>
+            </Tooltip>
+            <Input.TextArea
+              ref={textareaRef}
+              id="message-input"
+              variant="borderless"
+              placeholder={
+                inputExpanded
+                  ? t("composer.input.placeholder.expanded")
+                  : isFrontendActive
+                    ? t("composer.input.placeholder.frontendActive")
+                    : t("composer.input.placeholder.default")
+              }
+              autoSize={{
+                minRows:
+                  (isTimelineEmpty ? emptyInputMinRows : 1) +
+                  (inputExpanded ? 1 : 0),
+                maxRows: inputMaxRows,
+              }}
+              disabled={isFrontendActive}
+              value={inputValue}
+              onChange={(event) => onInputChange(event.target.value)}
+              onKeyDown={(e) => {
+                if (inputExpanded && e.key === "Enter") return;
+                if (inputExpanded && e.key === "Escape") {
+                  setInputExpanded(false);
+                  return;
+                }
+                onKeyDown(e);
+              }}
+              onPaste={onPaste}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onCompositionStart={onCompositionStart}
+              onCompositionEnd={onCompositionEnd}
+            />
+          </div>
         )}
       </div>
     </div>
