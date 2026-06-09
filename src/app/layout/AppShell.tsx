@@ -15,7 +15,10 @@ import { CommandModal } from "@/app/modals/CommandModal";
 import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import { TerminalDock } from "./TerminalDock";
+import {
+  TerminalDock,
+  resolveTerminalDockWorkspaceKey,
+} from "./TerminalDock";
 import {
   isCoderAgent,
   resolveCurrentWorkerSummary,
@@ -55,7 +58,13 @@ export const AppShell: React.FC = () => {
 			<ConversationStage />
 			<RightSidebar />
 			<BottomDock />
-			{state.terminalDockOpen && isCoderAgent(currentWorker) ? <TerminalDock /> : null}
+			{state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
+				<TerminalDock
+					agentKey={currentWorker.sourceId}
+					chatId={state.chatId}
+					workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+				/>
+			) : null}
 			<CommandStatusOverlay />
 			{state.archiveOpen ? <ArchiveModal /> : null}
 			{state.memoryInfoOpen ? <MemoryInfoModal /> : null}
