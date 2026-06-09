@@ -13,6 +13,7 @@ export type AttachmentPreviewKind =
 	| "text"
 	| "audio"
 	| "video"
+	| "office"
 	| "unsupported";
 
 export interface AttachmentPreviewState {
@@ -74,6 +75,33 @@ const videoExtensions = new Set([
 	"webm",
 ]);
 
+const officeExtensions = new Set([
+	"doc",
+	"docm",
+	"docx",
+	"dot",
+	"dotm",
+	"dotx",
+	"pot",
+	"potm",
+	"potx",
+	"pps",
+	"ppsm",
+	"ppsx",
+	"ppt",
+	"pptm",
+	"pptx",
+	"xla",
+	"xlam",
+	"xls",
+	"xlsb",
+	"xlsm",
+	"xlsx",
+	"xlt",
+	"xltm",
+	"xltx",
+]);
+
 function normalizeText(value: unknown): string {
 	return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -90,6 +118,20 @@ export function getAttachmentPreviewKind(
 
 	if (mimeType === "application/pdf" || extension === "pdf") {
 		return "pdf";
+	}
+
+	if (
+		officeExtensions.has(extension) ||
+		mimeType === "application/msword" ||
+		mimeType === "application/vnd.ms-excel" ||
+		mimeType === "application/vnd.ms-powerpoint" ||
+		mimeType.startsWith("application/vnd.ms-excel.") ||
+		mimeType.startsWith("application/vnd.ms-powerpoint.") ||
+		mimeType.startsWith(
+			"application/vnd.openxmlformats-officedocument.",
+		)
+	) {
+		return "office";
 	}
 
 	if (

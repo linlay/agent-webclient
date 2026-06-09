@@ -65,6 +65,33 @@ describe("attachmentPreview", () => {
 		).toBe(false);
 	});
 
+	it("routes Office documents to the download-only preview state", () => {
+		expect(
+			getAttachmentPreviewKind({
+				name: "brief.ppt",
+				mimeType: "text/plain",
+				url: "/resource/brief.ppt",
+			}),
+		).toBe("office");
+
+		expect(
+			getAttachmentPreviewKind({
+				name: "draft.docx",
+				mimeType:
+					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				url: "/resource/draft.docx",
+			}),
+		).toBe("office");
+
+		expect(
+			getAttachmentPreviewKind({
+				name: "budget.xlsx",
+				mimeType: "application/octet-stream",
+				url: "/resource/budget.xlsx",
+			}),
+		).toBe("office");
+	});
+
 	it("builds preview state from preview urls when available", () => {
 		expect(
 			buildAttachmentPreviewState({

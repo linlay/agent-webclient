@@ -191,6 +191,12 @@ export const AttachmentPreviewPanel: React.FC = () => {
           />
         ) : null}
 
+        {preview.kind === "office" ? (
+          <div className="status-line">
+            {t("rightSidebar.preview.office.downloadOnly")}
+          </div>
+        ) : null}
+
         {mediaError ? <div className="status-line">{mediaError}</div> : null}
         {downloadError ? (
           <div className="status-line">{downloadError}</div>

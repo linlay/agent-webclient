@@ -554,6 +554,9 @@
     flex-direction: column;
     gap: 10px;
 }
+.attachment-preview-body .status-line {
+    margin: 10px;
+}
 
 .attachment-preview-video {
     display: block;
