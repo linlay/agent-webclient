@@ -843,7 +843,7 @@ export const LeftSidebar: React.FC = () => {
               </Flex>
             </Flex>
             {quickActionsEnabled && (
-              <Flex className="left-sidebar-buttons" justify="space-between">
+              <Flex className="left-sidebar-buttons">
                 <UiButton
                   size="sm"
                   variant="ghost"

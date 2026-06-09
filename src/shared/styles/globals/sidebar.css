@@ -723,6 +723,8 @@
 
 .left-sidebar-buttons .ui-btn.ui-btn-sm {
     padding: 6px 2px;
+    flex: 1;
+    min-width: 0;
 }
 
 .left-sidebar-buttons .ant-badge .ant-badge-count {

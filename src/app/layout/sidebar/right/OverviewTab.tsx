@@ -217,7 +217,7 @@ export const OverviewTab: React.FC = () => {
 									className="right-sidebar-file-change-path"
 									title={item.filePath}
 								>
-									{item.filePath}
+									{item.filePath.split('/').pop()}
 								</span>
 								{renderFileChangeStats(item.addedLines, item.deletedLines, {
 									animated: fileChangeAnimation.paths.has(item.filePath),
