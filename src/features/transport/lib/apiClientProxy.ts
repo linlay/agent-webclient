@@ -20,6 +20,7 @@ import {
 	getAgentOrder as getAgentOrderHttp,
 	getAgentEditorOptions as getAgentEditorOptionsHttp,
 	getAgents as getAgentsHttp,
+	getChatRawJsonl as getChatRawJsonlHttp,
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
@@ -401,6 +402,20 @@ export function getChat(
 		}),
 		() => getChatHttp(chatId, includeRawMessages),
 	);
+}
+
+export async function getChatRawJsonl(chatId: string): Promise<string> {
+	const response = await routeRequest<string>(
+		"/api/chat/jsonl",
+		{ chatId },
+		async () => ({
+			status: 200,
+			code: 0,
+			msg: "success",
+			data: await getChatRawJsonlHttp(chatId),
+		}),
+	);
+	return String(response.data ?? "");
 }
 
 export function archiveChats(

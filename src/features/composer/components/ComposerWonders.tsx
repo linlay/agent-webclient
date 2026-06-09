@@ -1,13 +1,18 @@
 import React from "react";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface ComposerWondersProps {
   sampledWonders: string[];
+  allWonders: string[];
+  onReshuffle: () => void;
 }
 
 export const ComposerWonders: React.FC<ComposerWondersProps> = ({
   sampledWonders,
+  allWonders,
+  onReshuffle,
 }) => {
   const { t } = useI18n();
   const { applyComposerDraft } = useComposerContext();
@@ -28,6 +33,17 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
         <div className="composer-wonders-title">
           {t("composer.wonders.title")}
         </div>
+        {allWonders.length > 0 && (
+          <button
+            type="button"
+            className="composer-wonders-shuffle"
+            onClick={onReshuffle}
+            aria-label={t("composer.wonders.shuffleAriaLabel")}
+            title={t("composer.wonders.shuffle")}
+          >
+            <MaterialIcon name="refresh" />
+          </button>
+        )}
       </div>
       <div className="composer-wonders-grid">
         {sampledWonders.map((wonder, index) => (

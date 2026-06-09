@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppState } from "@/app/state/types";
 import { getAgent } from "@/features/transport/lib/apiClientProxy";
 import {
@@ -186,14 +185,22 @@ export function useComposerWonders(input: UseComposerWondersInput) {
     sampledGreeting,
   ]);
 
+  const reshuffleWonders = useCallback(() => {
+    if (currentAgentWonders.length > 0) {
+      setSampledWonders(pickRandomWonders(currentAgentWonders, 3));
+    }
+  }, [currentAgentWonders]);
+
   return {
     agentGreetingCache,
     agentWonderCache,
+    currentAgentWonders,
     sampledGreeting,
     sampledWonders,
     setAgentGreetingCache,
     setAgentWonderCache,
     setSampledGreeting,
     setSampledWonders,
+    reshuffleWonders,
   };
 }

@@ -1,6 +1,7 @@
 import {
   isDeltaLogsEnabled,
   isDebugPanelEnabled,
+  isMemoryEnabled,
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
   isVoiceEnabled,
@@ -79,6 +80,20 @@ describe("featureFlags", () => {
       QUICK_ACTIONS_ENABLED: "false",
     };
     expect(isQuickActionsEnabled()).toBe(false);
+  });
+
+  it("reads the memory flag from runtime config", () => {
+    expect(isMemoryEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      MEMORY_ENABLED: "true",
+    };
+    expect(isMemoryEnabled()).toBe(true);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      MEMORY_ENABLED: "false",
+    };
+    expect(isMemoryEnabled()).toBe(false);
   });
 
   it("reads the voice flag from runtime config", () => {

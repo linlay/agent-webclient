@@ -189,6 +189,8 @@ export const enUSMessages: I18nMessages = {
   "composer.wonders.itemLabel": "Prompt {index}",
   "composer.wonders.kicker": "Ideas",
   "composer.wonders.title": "Try one of these prompts",
+  "composer.wonders.shuffle": "Refresh",
+  "composer.wonders.shuffleAriaLabel": "Shuffle recommended prompts",
   "copilot.panel.close": "Close panel",
   "copilot.panel.debug": "Debug",
   "copilot.panel.overview": "Overview",

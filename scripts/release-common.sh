@@ -230,6 +230,7 @@ write_program_manifest() {
           "DELTA_LOGS_ENABLED",
           "SETTINGS_MENU_ENABLED",
           "QUICK_ACTIONS_ENABLED",
+          "MEMORY_ENABLED",
           "VOICE_ASR_CLIENT_GATE_ENABLED",
           "VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
           "VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",

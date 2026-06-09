@@ -32,6 +32,7 @@ import {
 import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
+  isMemoryEnabled,
 } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
@@ -151,6 +152,7 @@ export const LeftSidebar: React.FC = () => {
   const { t } = useI18n();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
+  const memoryEnabled = isMemoryEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
@@ -858,6 +860,7 @@ export const LeftSidebar: React.FC = () => {
                     <Badge count={state.automations?.length} />
                   </Flex>
                 </UiButton>
+                {memoryEnabled && (
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -871,6 +874,7 @@ export const LeftSidebar: React.FC = () => {
                     <Badge count={state.memoryInfoRecords?.length || 0} />
                   </Flex>
                 </UiButton>
+                )}
                 <UiButton
                   size="sm"
                   variant="ghost"

@@ -43,6 +43,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		getAgentEditorOptions: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
+		getChatRawJsonl: jest.fn(),
 		getArchive: jest.fn(),
 		getArchives: jest.fn(),
 		getChat: jest.fn(),
@@ -128,6 +129,7 @@ let mockApiClient: {
 	getAgentEditorOptions: jest.Mock;
 	getModelOptions: jest.Mock;
 	getAgents: jest.Mock;
+	getChatRawJsonl: jest.Mock;
 	getArchive: jest.Mock;
 	getArchives: jest.Mock;
 	getChat: jest.Mock;
@@ -836,6 +838,62 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getChat).not.toHaveBeenCalled();
 	});
 
+	it("routes raw chat jsonl loads over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: '{"_type":"query"}\n',
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChatRawJsonl("chat_1")).resolves.toBe(
+			'{"_type":"query"}\n',
+		);
+
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/jsonl",
+			payload: { chatId: "chat_1" },
+		});
+		expect(mockApiClient.getChatRawJsonl).not.toHaveBeenCalled();
+	});
+
+	it("falls back to http when raw chat jsonl ws request disconnects", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const request = jest
+			.fn()
+			.mockRejectedValue(new WsClientDisconnectedError());
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getChatRawJsonl.mockResolvedValue('{"_type":"query"}\n');
+
+		await expect(proxy.getChatRawJsonl("chat_1")).resolves.toBe(
+			'{"_type":"query"}\n',
+		);
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/jsonl",
+			payload: { chatId: "chat_1" },
+		});
+		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
+	});
+
 	it("routes markChatRead over ws without falling back to http", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
@@ -1242,6 +1300,19 @@ describe("apiClientProxy", () => {
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
+	});
+
+	it("routes raw chat jsonl over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getChatRawJsonl.mockResolvedValue('{"_type":"query"}\n');
+
+		await expect(proxy.getChatRawJsonl("chat_1")).resolves.toBe(
+			'{"_type":"query"}\n',
+		);
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
 	});
 
 	it("routes automation management over http when sse mode is selected", async () => {

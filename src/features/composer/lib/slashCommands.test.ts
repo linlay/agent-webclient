@@ -19,6 +19,7 @@ describe('slashCommands', () => {
   beforeEach(() => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'true',
+      MEMORY_ENABLED: 'true',
     };
   });
 
@@ -83,6 +84,21 @@ describe('slashCommands', () => {
       VOICE_ENABLED: 'false',
     };
     expect(getFilteredSlashCommands('/voice')).toEqual([]);
+  });
+
+  it('filters the remember and learn commands by the memory runtime flag', () => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: 'true',
+    };
+    expect(getFilteredSlashCommands('/rem')).toEqual([]);
+    expect(getFilteredSlashCommands('/learn')).toEqual([]);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      VOICE_ENABLED: 'true',
+      MEMORY_ENABLED: 'true',
+    };
+    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
   });
 
   it('uses 对话 wording for the new command', () => {

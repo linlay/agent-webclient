@@ -7,6 +7,10 @@ import {
   SidebarSettingsMenu,
 } from "@/features/settings/components/SidebarSettingsMenu";
 
+const globalWithFeatureFlags = globalThis as typeof globalThis & {
+  __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
 describe("resolveSettingsSummaryBadges", () => {
   it("returns compact badges for transport and theme", () => {
     expect(
@@ -29,17 +33,33 @@ describe("resolveSettingsSummaryBadges", () => {
 });
 
 describe("buildSidebarSettingsMenuSections", () => {
+  beforeEach(() => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      MEMORY_ENABLED: 'true',
+    };
+  });
+
+  afterEach(() => {
+    delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+  });
+
   it("includes quick actions, full settings entry, and reserved items", () => {
     const sections = buildSidebarSettingsMenuSections({
       wsStatus: "error",
       wsErrorMessage: "握手失败",
     });
 
-    expect(sections.map((section) => section.title)).toEqual(["设置", "预留"]);
+    expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items[0]?.description).toContain("握手失败");
     expect(sections[0]?.items[1]?.label).toBe("记忆信息");
     expect(sections[0]?.items[2]?.label).toBe("归档");
-    expect(sections[1]?.items.every((item) => item.disabled)).toBe(true);
+  });
+
+  it("hides memory info item when MEMORY_ENABLED is not set", () => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
+    const sections = buildSidebarSettingsMenuSections({});
+    const labels = sections[0]?.items.map((item) => item.label) || [];
+    expect(labels).not.toContain("记忆信息");
   });
 });
 
@@ -69,6 +89,16 @@ describe("dispatchSidebarSettingsAction", () => {
 });
 
 describe("SidebarSettingsMenu", () => {
+  beforeEach(() => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      MEMORY_ENABLED: 'true',
+    };
+  });
+
+  afterEach(() => {
+    delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+  });
+
   it("renders menu groups and reserved items", () => {
     const html = renderToStaticMarkup(
       React.createElement(SidebarSettingsMenu, {
@@ -80,8 +110,5 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("打开设置...");
     expect(html).toContain("记忆信息");
     expect(html).toContain("归档");
-    expect(html).toContain("连接设置（即将开放）");
-    expect(html).toContain("外观偏好（即将开放）");
-    expect(html).toContain("快捷键（即将开放）");
   });
 });

@@ -8,7 +8,7 @@ import React, {
 import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
-import { getChatRawJsonl } from "@/shared/api/apiClient";
+import { getChatRawJsonl } from "@/features/transport/lib/apiClientProxy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";

@@ -526,6 +526,7 @@ describe("LeftSidebar", () => {
   it("renders quick actions when enabled by env", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       QUICK_ACTIONS_ENABLED: "true",
+      MEMORY_ENABLED: "true",
     };
 
     const html = renderSidebar();

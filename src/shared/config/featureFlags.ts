@@ -25,3 +25,7 @@ export function isQuickActionsEnabled(): boolean {
 export function isVoiceEnabled(): boolean {
   return parseFeatureFlag(readRuntimeConfigValue("VOICE_ENABLED"));
 }
+
+export function isMemoryEnabled(): boolean {
+  return parseFeatureFlag(readRuntimeConfigValue("MEMORY_ENABLED"));
+}

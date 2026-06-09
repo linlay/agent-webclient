@@ -8,6 +8,7 @@ import type {
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { isMemoryEnabled } from "@/shared/config/featureFlags";
 
 export interface SettingsSummaryBadge {
   key: "transport" | "theme";
@@ -112,13 +113,17 @@ export function buildSidebarSettingsMenuSections(input: {
           icon: "tune",
           action: { type: "open-settings" },
         },
-        {
-          key: "open-memory-info",
-          label: t("settingsMenu.memoryInfo"),
-          description: t("settingsMenu.memoryInfoDescription"),
-          icon: "database",
-          action: { type: "open-memory-info" },
-        },
+        ...(isMemoryEnabled()
+          ? [
+              {
+                key: "open-memory-info",
+                label: t("settingsMenu.memoryInfo"),
+                description: t("settingsMenu.memoryInfoDescription"),
+                icon: "database" as const,
+                action: { type: "open-memory-info" as const },
+              },
+            ]
+          : []),
         {
           key: "open-archive",
           label: t("settingsMenu.archive"),

@@ -121,6 +121,36 @@
     color: var(--ink-2);
 }
 
+.composer-wonders-shuffle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    margin-left: auto;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition:
+        color 0.18s ease,
+        transform 0.35s ease;
+    flex-shrink: 0;
+}
+
+.composer-wonders-shuffle:hover,
+.composer-wonders-shuffle:focus-visible {
+    color: var(--ink-1);
+    transform: rotate(180deg);
+    outline: none;
+}
+
+.composer-wonders-shuffle .material-symbols-rounded {
+    font-size: 18px;
+}
+
 .composer-wonders-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

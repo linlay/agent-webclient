@@ -377,7 +377,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     t,
   });
 
-  const { sampledGreeting, sampledWonders } = useComposerWonders({
+  const { currentAgentWonders, reshuffleWonders, sampledGreeting, sampledWonders } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
     isBlankConversation,
@@ -642,7 +642,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               {showWonders &&
                 isBlankConversation &&
                 sampledWonders.length > 0 && (
-                  <ComposerWonders sampledWonders={sampledWonders} />
+                  <ComposerWonders
+                    sampledWonders={sampledWonders}
+                    allWonders={currentAgentWonders}
+                    onReshuffle={reshuffleWonders}
+                  />
                 )}
             </div>
           </SlashPalette>

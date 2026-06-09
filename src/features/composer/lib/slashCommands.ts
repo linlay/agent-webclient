@@ -1,5 +1,5 @@
 import type { TimelineNode } from '@/app/state/types';
-import { isDebugPanelEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
+import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 
 export type SlashCommandId =
@@ -182,6 +182,9 @@ export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean
   }
   if (commandId === 'voice') {
     return isVoiceEnabled();
+  }
+  if (commandId === 'remember' || commandId === 'learn') {
+    return isMemoryEnabled();
   }
   return true;
 }
