@@ -942,11 +942,11 @@ export const LeftSidebar: React.FC = () => {
                   items: [
                     {
                       key: "byName",
-                      label: "按照名称",
+                      label: "按名称",
                     },
                     {
                       key: "byTime",
-                      label: "按照时间",
+                      label: "按时间",
                     },
                   ],
                 }}
