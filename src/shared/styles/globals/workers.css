@@ -81,6 +81,13 @@
 .worker-collapse .ant-collapse-item {
     border-radius: 8px !important;
     overflow: hidden;
+    transition: .2s background, .2s transform;
+    transform-origin: right;
+}
+
+.worker-collapse .ant-collapse-item.ant-collapse-item-active,
+.worker-collapse .ant-collapse-item:hover {
+    transform: scaleX(1.05);
 }
 
 .worker-collapse .ant-collapse-item.ant-collapse-item-active {
