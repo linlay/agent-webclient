@@ -119,13 +119,34 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     });
   }, [data?.awaitingId, data?.runId, form, questions, submitPayload]);
 
-  const doIgnore = useCallback(() => {
-    callbackRef.current?.onSubmit?.({
+  const doSkip = useCallback(() => {
+    const params = (form.getFieldValue("params") ||
+      []) as AIAwaitQuestionSubmitParamData[];
+    const current = questions[curIndex];
+    if (!current) {
+      return;
+    }
+
+    const nextParams = [...params];
+    nextParams[curIndex] = {
+      id: current.id,
+      answer: "reject",
+    };
+    form.setFieldsValue({
+      params: nextParams,
+    });
+
+    if (questions.length > curIndex + 1) {
+      setCurIndex((prev) => Math.min(questions.length - 1, prev + 1));
+      return;
+    }
+
+    void submitPayload({
       runId: data?.runId || "",
       awaitingId: data?.awaitingId || "",
-      params: [],
+      params: buildQuestionSubmitParams(questions, nextParams),
     });
-  }, [data?.awaitingId, data?.runId]);
+  }, [curIndex, data?.awaitingId, data?.runId, questions, submitPayload]);
 
   const moveForward = useCallback(() => {
     if (questions.length === 0) {
@@ -269,7 +290,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          doIgnore();
+          doSkip();
         }
         return;
       }
@@ -285,10 +306,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        doIgnore();
+        doSkip();
       }
     },
-    [doIgnore],
+    [doSkip],
   );
 
   useEffect(() => {
@@ -335,15 +356,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                           align="center"
                           gap={12}
                         >
-                          {timeoutCountdown.label && (
-                            <Flex className={Style.TimeoutRow}>
-                              {timeoutExpired && loading
-                                ? t("approvalDialog.status.autoSubmitting")
-                                : t("approvalDialog.timeout.countdown", {
-                                    label: timeoutCountdown.label,
-                                  })}
-                            </Flex>
-                          )}
                           {questions.length > 1 && (
                             <Flex
                               className={Style.Pagination}
@@ -381,43 +393,53 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           );
         }}
       </Form.List>
-      <Flex gap={10} align="center" className={Style.FooterRow}>
-        <Button
-          type="link"
-          shape="round"
-          className={Style.IgnoreButton}
-          size="small"
-          onClick={doIgnore}
-        >
-          <span>{t("approvalDialog.action.ignore")}</span>
-          <span>ESC</span>
-        </Button>
-        {curIndex < questions.length - 1 && (
-          <Button
-            type="primary"
-            shape="round"
-            size="small"
-            onClick={() => {
-              void moveForward();
-            }}
-          >
-            {t("approvalDialog.action.continue")}
-          </Button>
+      <Flex gap={10} align="center" justify="space-between">
+        {timeoutCountdown.label && (
+          <Flex className={Style.TimeoutRow}>
+            {timeoutExpired && loading
+              ? t("approvalDialog.status.autoSubmitting")
+              : t("approvalDialog.timeout.countdown", {
+                  label: timeoutCountdown.label,
+                })}
+          </Flex>
         )}
-        {curIndex >= questions.length - 1 && (
+        <Flex gap={10}>
           <Button
-            type="primary"
+            type="link"
             shape="round"
+            className={Style.SkipButton}
             size="small"
-            loading={loading}
-            onClick={() => {
-              void doSubmit();
-            }}
+            onClick={doSkip}
           >
-            <span>{t("approvalDialog.action.submit")}</span>
-            <EnterOutlined />
+            <span>{t("confirmDialog.action.skip")}</span>
           </Button>
-        )}
+          {curIndex < questions.length - 1 && (
+            <Button
+              type="primary"
+              shape="round"
+              size="small"
+              onClick={() => {
+                void moveForward();
+              }}
+            >
+              {t("approvalDialog.action.continue")}
+            </Button>
+          )}
+          {curIndex >= questions.length - 1 && (
+            <Button
+              type="primary"
+              shape="round"
+              size="small"
+              loading={loading}
+              onClick={() => {
+                void doSubmit();
+              }}
+            >
+              <span>{t("approvalDialog.action.submit")}</span>
+              <EnterOutlined />
+            </Button>
+          )}
+        </Flex>
       </Flex>
     </Form>
   ) : (
@@ -521,11 +543,13 @@ const Question = forwardRef<
 
   const renderQuestionHeader = () => {
     return (
-      <div className={Style.Question}>
+      <Flex className={Style.Question} justify="space-between" align="baseline">
+        <Flex vertical>
+          <div className={Style.QuestionHeading}>{heading}</div>
+          {prompt && <div className={Style.QuestionPrompt}>{prompt}</div>}
+        </Flex>
         {pagnation}
-        <div className={Style.QuestionHeading}>{heading}</div>
-        {prompt && <div className={Style.QuestionPrompt}>{prompt}</div>}
-      </div>
+      </Flex>
     );
   };
 

@@ -150,16 +150,49 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     [approvals, decisions, hasAllDecisions, readOnly, reasons, submitPayload],
   );
 
-  const doIgnore = useCallback(() => {
-    if (!onSubmit || readOnly) {
+  const doSkip = useCallback(async () => {
+    if (readOnly || approvals.length === 0 || !currentApproval) {
       return;
     }
-    void onSubmit({
-      runId: data.runId,
-      awaitingId: data.awaitingId,
-      params: [],
-    });
-  }, [data.awaitingId, data.runId, onSubmit, readOnly]);
+
+    const nextDecisions = {
+      ...decisions,
+      [currentApproval.id]: "reject" as const,
+    };
+    const nextReasons = {
+      ...reasons,
+      [currentApproval.id]: "",
+    };
+
+    setDecisions(nextDecisions);
+    setReasons(nextReasons);
+
+    if (curIndex >= approvals.length - 1) {
+      if (!hasAllDecisions(nextDecisions)) {
+        return;
+      }
+      await submitPayload(
+        buildApprovalSubmitParams(approvals, nextDecisions, nextReasons).map(
+          (param) =>
+            param.id === currentApproval.id && param.decision === "reject"
+              ? { ...param, reason: "" }
+              : param,
+        ),
+      );
+      return;
+    }
+
+    setCurIndex((prev) => Math.min(approvals.length - 1, prev + 1));
+  }, [
+    approvals,
+    curIndex,
+    currentApproval,
+    decisions,
+    hasAllDecisions,
+    readOnly,
+    reasons,
+    submitPayload,
+  ]);
 
   const handleAutoSubmit = useCallback(() => {
     if (submitting || data.resolvedByOther) {
@@ -268,7 +301,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          doIgnore();
+          void doSkip();
         }
         return;
       }
@@ -290,10 +323,10 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        doIgnore();
+        void doSkip();
       }
     },
-    [approvals.length, doIgnore],
+    [approvals.length, doSkip],
   );
 
   useEffect(() => {
@@ -378,13 +411,14 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                   <Button
                     type="link"
                     shape="round"
-                    className={Style.IgnoreButton}
+                    className={Style.SkipButton}
                     size="small"
-                    onClick={doIgnore}
+                    onClick={() => {
+                      void doSkip();
+                    }}
                     disabled={readOnly}
                   >
-                    <span>{t("approvalDialog.action.ignore")}</span>
-                    <span>ESC</span>
+                    <span>{t("confirmDialog.action.skip")}</span>
                   </Button>
                   {curIndex < approvals.length - 1 && (
                     <Button
@@ -487,13 +521,14 @@ const ApprovalQuestion = forwardRef<
 
     return (
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-        <div className={Style.Question}>
+        <Flex
+          className={Style.Question}
+          justify="space-between"
+          align="baseline"
+        >
+          <div className={Style.QuestionHeading}>{approval?.description}</div>
           {pagnation}
-          <div className={Style.QuestionHeading}>
-            {t("approvalDialog.defaultHeading")}
-          </div>
-          <div className={Style.QuestionPrompt}>{approval?.description}</div>
-        </div>
+        </Flex>
         <div className={Style.ApprovalDetails}>{approval?.command}</div>
         <Checkbox.Group
           className={Style.CheckboxGroup}

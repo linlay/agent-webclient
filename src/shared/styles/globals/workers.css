@@ -81,6 +81,13 @@
 .worker-collapse .ant-collapse-item {
     border-radius: 8px !important;
     overflow: hidden;
+    transition: .2s background, .2s transform;
+    transform-origin: right;
+}
+
+.worker-collapse .ant-collapse-item.ant-collapse-item-active,
+.worker-collapse .ant-collapse-item:hover {
+    transform: scaleX(1.05);
 }
 
 .worker-collapse .ant-collapse-item.ant-collapse-item-active {
@@ -365,8 +372,8 @@
 [data-action] .worker-chat-loading {
     animation: ui-spin 1s linear infinite;
     transform: none;
-    top: 0;
-    color: var(--colorFill);
+    top: unset;
+    color: var(--text-sub);
 }
 
 [data-action="loading"] .worker-chat-loading,
@@ -378,7 +385,8 @@
 .worker-chat-loading {
     animation: ui-spin 1s linear infinite;
     font-size: 14px;
-    color: var(--colorFill);
+    color: var(--text-sub);
+    margin-right: 2px;
 }
 
 [data-action] .worker-panel-time-label {
@@ -400,7 +408,7 @@
     color: var(--text-main);
 }
 
-.worker-chat-item:hover [data-action]:not([data-action="loading"]) .chat-actions-trigger {
+.worker-chat-item:hover [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) .chat-actions-trigger {
     display: unset;
 }
 

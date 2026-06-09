@@ -11,20 +11,11 @@
   }
 
   .HeaderSide {
-    float: right;
-    margin-left: 10px;
+    flex-shrink: 0;
   }
 
-  .IgnoreButton {
+  .SkipButton {
     color: var(--text-muted);
-
-    span:last-child {
-      margin-left: 4px;
-      background-color: var(--accent-soft, rgba(0, 0, 0, 0.06));
-      padding: 1px 8px;
-      border-radius: 10px;
-      color: var(--text-main);
-    }
   }
   button {
     font-size: 12px;
@@ -47,19 +38,12 @@
   .QuestionHeading {
     color: var(--text-main);
     font-weight: bold;
-    font-size: 16px;
-  }
-
-  .QuestionPrompt {
-    color: var(--text-muted);
-    line-height: 1.5;
+    font-size: 14px;
   }
 
   .ApprovalDetails {
-    margin-bottom: 10px;
-    padding: 12px;
-    border-radius: 12px;
-    background: var(--bg-base);
+    padding: 0 12px 12px;
+    color: var(--text-muted);
   }
 
   .ApprovalMeta {

@@ -1,7 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { App as AntdApp } from "antd";
-import { useAppContext, useAppDispatch, useAppState } from "@/app/state/AppContext";
+import {
+  useAppContext,
+  useAppDispatch,
+  useAppState,
+} from "@/app/state/AppContext";
 import { Buildin } from "@/features/tools/components/buildin";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
 import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
@@ -61,8 +71,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
-  const [accessLevel, setAccessLevel] =
-    useState<QueryAccessLevel>("default");
+  const [accessLevel, setAccessLevel] = useState<QueryAccessLevel>("default");
   const [modelOverride, setModelOverride] = useState<QueryModelOverride>({});
   const isRestoringDraftRef = useRef(false);
 
@@ -102,11 +111,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
-    String(currentWorker.raw?.mode || "").trim().toUpperCase() === "CODER";
+    String(currentWorker.raw?.mode || "")
+      .trim()
+      .toUpperCase() === "CODER";
 
   useEffect(() => {
     if (state.planningMode && !planningModeAvailable) {
-      dispatch({ type: "SET_PLANNING_MODE", chatId: state.chatId, enabled: false, persist: false });
+      dispatch({
+        type: "SET_PLANNING_MODE",
+        chatId: state.chatId,
+        enabled: false,
+        persist: false,
+      });
     }
   }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
   const timelineEntries = useMemo(() => {
@@ -120,7 +136,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const isTimelineEmpty = useMemo(() => {
     return (
-      buildTimelineDisplayItems(timelineEntries, state.events, state.taskItemsById).length === 0
+      buildTimelineDisplayItems(
+        timelineEntries,
+        state.events,
+        state.taskItemsById,
+      ).length === 0
     );
   }, [state.events, state.taskItemsById, timelineEntries]);
   const isBlankConversation =
@@ -190,17 +210,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     canUsePlanningMode: planningModeAvailable,
   });
 
-  const {
-    closeMention,
-    selectMentionByIndex,
-    updateMentionSuggestions,
-  } = useComposerMention({
-    dispatch,
-    setInputValue,
-    setSlashDismissed,
-    state,
-    textareaRef,
-  });
+  const { closeMention, selectMentionByIndex, updateMentionSuggestions } =
+    useComposerMention({
+      dispatch,
+      setInputValue,
+      setSlashDismissed,
+      state,
+      textareaRef,
+    });
 
   const toggleVoiceMode = useCallback(() => {
     if (!voiceModeAvailable || state.streaming || isFrontendActive) {
@@ -221,7 +238,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const togglePlanningMode = useCallback(() => {
     if (!planningModeAvailable) {
       if (state.planningMode) {
-        dispatch({ type: "SET_PLANNING_MODE", chatId: state.chatId, enabled: false, persist: false });
+        dispatch({
+          type: "SET_PLANNING_MODE",
+          chatId: state.chatId,
+          enabled: false,
+          persist: false,
+        });
       }
       return;
     }
@@ -250,7 +272,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   function resolveHasCompactUsage(events: typeof state.events): boolean {
     for (let i = events.length - 1; i >= 0; i -= 1) {
       const event = events[i] as Record<string, unknown>;
-      if (event.type !== 'context.compact.complete') continue;
+      if (event.type !== "context.compact.complete") continue;
       return Boolean(event.compactionUsage);
     }
     return false;
@@ -268,7 +290,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       workerHistoryCount: currentWorker?.relatedChats.length || 0,
       workerCount: state.workerRows.length,
       commandModalOpen: state.commandModal.open,
-      canShowUsage: Boolean(state.usageSnapshot) || state.streaming || resolveHasCompactUsage(state.events),
+      canShowUsage:
+        Boolean(state.usageSnapshot) ||
+        state.streaming ||
+        resolveHasCompactUsage(state.events),
     }),
     [
       currentWorker,
@@ -368,7 +393,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const showSpeechHint =
     voiceEnabled &&
     !isVoiceMode &&
-    (!speechSupported || speechState === "error" || speechState === "unsupported");
+    (!speechSupported ||
+      speechState === "error" ||
+      speechState === "unsupported");
   const sendDisabled =
     isFrontendActive ||
     isAwaitingActive ||
@@ -541,7 +568,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerAttachments
                   attachments={attachments}
                   attachmentViewportRef={attachmentViewportRef}
-                  useUnifiedComposerAttachmentRow={useUnifiedComposerAttachmentRow}
+                  useUnifiedComposerAttachmentRow={
+                    useUnifiedComposerAttachmentRow
+                  }
                   hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
                   attachmentScrollState={attachmentScrollState}
                   onRemoveAttachment={handleRemoveAttachment}
@@ -604,11 +633,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onModelOverrideChange={setModelOverride}
                   onTogglePlanningMode={togglePlanningMode}
                 />
-                {showSpeechHint && <div className="voice-hint">{speechStatus}</div>}
+                {showSpeechHint && (
+                  <div className="voice-hint">{speechStatus}</div>
+                )}
               </div>
-              {showWonders && isBlankConversation && sampledWonders.length > 0 && (
-                <ComposerWonders sampledWonders={sampledWonders} />
-              )}
+              {showWonders &&
+                isBlankConversation &&
+                sampledWonders.length > 0 && (
+                  <ComposerWonders sampledWonders={sampledWonders} />
+                )}
             </div>
           </SlashPalette>
         </div>
