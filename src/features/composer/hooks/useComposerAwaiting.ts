@@ -9,6 +9,10 @@ import type {
 } from "@/app/state/types";
 import { submitAwaiting } from "@/features/transport/lib/apiClientProxy";
 import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
+import {
+  getPlanningModeForPlanDecision,
+  readPlanSubmitDecision,
+} from "@/features/tools/lib/planDecision";
 import { useI18n } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
@@ -46,6 +50,27 @@ export function resolveAwaitingSubmitAgentKey(input: {
     chatAgentById: input.state.chatAgentById,
     chats: input.state.chats,
   });
+}
+
+export function buildPlanDecisionPlanningModeAction(input: {
+  activeAwaiting: AppState["activeAwaiting"];
+  chatId: string;
+  params: unknown;
+}): AppAction | null {
+  if (input.activeAwaiting?.mode !== "plan") {
+    return null;
+  }
+  const decision = readPlanSubmitDecision(input.params);
+  const chatId = String(input.chatId || "").trim();
+  if (!decision || !chatId) {
+    return null;
+  }
+  return {
+    type: "SET_PLANNING_MODE",
+    chatId,
+    enabled: getPlanningModeForPlanDecision(decision),
+    persist: true,
+  };
 }
 
 export function useComposerAwaiting(input: UseComposerAwaitingInput) {
@@ -114,6 +139,15 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
               detail,
             }),
           );
+        }
+
+        const planningModeAction = buildPlanDecisionPlanningModeAction({
+          activeAwaiting,
+          chatId: state.chatId,
+          params: payload.params,
+        });
+        if (planningModeAction) {
+          dispatch(planningModeAction);
         }
 
         clearActiveAwaiting();

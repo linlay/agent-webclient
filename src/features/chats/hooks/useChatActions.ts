@@ -829,6 +829,7 @@ export function useChatActions() {
               events: rs.events,
               debugEvents: rs.debugEvents,
               artifacts: rs.artifacts,
+              fileChanges: rs.fileChanges,
               plan: rs.plan,
               planRuntimeByTaskId: rs.planRuntimeByTaskId,
               taskItemsById: rs.taskItemsById,
@@ -881,7 +882,7 @@ export function useChatActions() {
 
         /* Restore planning mode from active run if no explicit user preference,
            unless replay encountered awaiting.ask (agent is waiting for user input) */
-        if (rs.activeAwaiting) {
+        if (rs.activeAwaiting && rs.activeAwaiting.mode !== 'plan') {
           dispatch({
             type: 'SET_PLANNING_MODE',
             chatId,

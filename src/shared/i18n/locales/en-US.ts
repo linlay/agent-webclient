@@ -213,6 +213,8 @@ export const enUSMessages: I18nMessages = {
   "rightSidebar.debug.tabs.tool": "tool",
   "rightSidebar.overview.artifacts.empty": "No artifacts",
   "rightSidebar.overview.artifacts.title": "Artifacts",
+  "rightSidebar.overview.fileChanges.empty": "No code changes",
+  "rightSidebar.overview.fileChanges.title": "Code changes",
   "rightSidebar.preview.actions.close": "Close",
   "rightSidebar.preview.actions.download": "Download",
   "rightSidebar.preview.error.audio": "Audio preview failed. Download the file to view it.",

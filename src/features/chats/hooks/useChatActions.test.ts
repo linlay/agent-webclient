@@ -1175,6 +1175,87 @@ describe('replayEvent tool migration', () => {
     });
   });
 
+  it('does not disable planningMode when loading a pending plan awaiting', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = {};
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_plan_1',
+            mode: 'plan',
+            plan: {
+              id: 'confirm',
+            },
+          },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_plan_pending');
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_pending',
+      enabled: false,
+      persist: true,
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_pending',
+      enabled: true,
+      persist: false,
+    });
+  });
+
+  it('still disables planningMode when loading a non-plan pending awaiting', async () => {
+    const state = createInitialState();
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_question_1',
+            mode: 'question',
+            questions: [
+              {
+                id: 'q1',
+                type: 'text',
+                question: '继续吗？',
+              },
+            ],
+          },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_question_pending');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_question_pending',
+      enabled: false,
+      persist: true,
+    });
+  });
+
   it('detaches the current active run before loading and attaching another chat', async () => {
     const state = createInitialState();
     state.chatId = 'chat_old';
@@ -1554,6 +1635,43 @@ describe('replayEvent tool migration', () => {
           sizeBytes: 128,
           url: 'https://example.com/notes.txt',
         },
+      },
+    ]);
+  });
+
+  it('replays file tool results into persistent file change state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.snapshot',
+      toolId: 'tool_edit',
+      toolName: 'file_edit',
+      arguments: '{"file_path":"/workspace/src/App.tsx"}',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_edit',
+      result: JSON.stringify({
+        status: 'edited',
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 8,
+          deletedLines: 2,
+          editedLines: 2,
+        },
+      }),
+      timestamp: 140,
+    });
+
+    expect(state.fileChanges).toEqual([
+      {
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 8,
+        deletedLines: 2,
+        editedLines: 2,
+        operationCount: 1,
+        lastUpdatedAt: 140,
       },
     ]);
   });

@@ -1,6 +1,7 @@
 import type {
   ActiveAwaiting,
   AgentEvent,
+  FileChangeSummary,
   PublishedArtifact,
   TimelineNode,
   Plan,
@@ -36,6 +37,7 @@ export interface ReplayState {
   debugEvents: AgentEvent[];
   debugLines: string[];
   artifacts: PublishedArtifact[];
+  fileChanges: FileChangeSummary[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -64,6 +66,7 @@ export function createReplayState(): ReplayState {
     debugEvents: [],
     debugLines: [],
     artifacts: [],
+    fileChanges: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
@@ -102,6 +105,49 @@ function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
       ...item.artifact,
     },
   }));
+}
+
+function cloneFileChanges(fileChanges: FileChangeSummary[]): FileChangeSummary[] {
+  return fileChanges.map((item) => ({ ...item }));
+}
+
+function upsertReplayFileChange(
+  fileChanges: FileChangeSummary[],
+  fileChange: FileChangeSummary,
+): FileChangeSummary[] {
+  const filePath = String(fileChange.filePath || '').trim();
+  if (!filePath) {
+    return fileChanges;
+  }
+
+  const normalized: FileChangeSummary = {
+    filePath,
+    addedLines: Math.max(0, Number(fileChange.addedLines) || 0),
+    deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
+    editedLines: Math.max(0, Number(fileChange.editedLines) || 0),
+    operationCount: Math.max(1, Number(fileChange.operationCount) || 1),
+    lastUpdatedAt:
+      Number.isFinite(fileChange.lastUpdatedAt) && fileChange.lastUpdatedAt > 0
+        ? fileChange.lastUpdatedAt
+        : Date.now(),
+  };
+
+  const index = fileChanges.findIndex((item) => item.filePath === filePath);
+  if (index < 0) {
+    return [...fileChanges, normalized];
+  }
+
+  const current = fileChanges[index];
+  const next = fileChanges.slice();
+  next[index] = {
+    filePath,
+    addedLines: current.addedLines + normalized.addedLines,
+    deletedLines: current.deletedLines + normalized.deletedLines,
+    editedLines: current.editedLines + normalized.editedLines,
+    operationCount: current.operationCount + normalized.operationCount,
+    lastUpdatedAt: Math.max(current.lastUpdatedAt, normalized.lastUpdatedAt),
+  };
+  return next;
 }
 
 export function setReplayPlan(
@@ -222,6 +268,9 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'UPSERT_ARTIFACT':
       rs.artifacts = upsertReplayArtifact(rs.artifacts, command.artifact);
+      return;
+    case 'UPSERT_FILE_CHANGE':
+      rs.fileChanges = upsertReplayFileChange(rs.fileChanges, command.fileChange);
       return;
     case 'SET_PLAN':
       setReplayPlan(rs, command.plan, { resetRuntime: command.resetRuntime });

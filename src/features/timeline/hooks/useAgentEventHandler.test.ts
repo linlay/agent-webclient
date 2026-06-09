@@ -4,6 +4,7 @@ import type { EventCommand } from '@/features/timeline/lib/eventProcessor';
 import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
 import {
+  buildAwaitingPlanningModeAction,
   createLiveProcessorState,
   createLocalCacheFromState,
   findMatchingPendingSteer,
@@ -401,6 +402,104 @@ describe('shouldSyncLiveCache', () => {
     });
 
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
+  });
+});
+
+describe('buildAwaitingPlanningModeAction', () => {
+  it('does not close planning mode when a plan awaiting is shown', () => {
+    expect(
+      buildAwaitingPlanningModeAction({
+        event: {
+          type: 'awaiting.ask',
+          chatId: 'chat_1',
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          mode: 'plan',
+        },
+        chatId: 'chat_1',
+        planningMode: true,
+      }),
+    ).toBeNull();
+  });
+
+  it('closes planning mode for non-plan awaiting asks', () => {
+    expect(
+      buildAwaitingPlanningModeAction({
+        event: {
+          type: 'awaiting.ask',
+          chatId: 'chat_1',
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          mode: 'question',
+        },
+        chatId: 'chat_1',
+        planningMode: true,
+      }),
+    ).toEqual({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_1',
+      enabled: false,
+      persist: true,
+    });
+  });
+
+  it('syncs planning mode from plan answer decisions', () => {
+    expect(
+      buildAwaitingPlanningModeAction({
+        event: {
+          type: 'awaiting.answer',
+          chatId: 'chat_1',
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          status: 'answered',
+          plan: { id: 'confirm', decision: 'approve' },
+        },
+        chatId: 'chat_1',
+        planningMode: true,
+      }),
+    ).toEqual({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_1',
+      enabled: false,
+      persist: true,
+    });
+
+    expect(
+      buildAwaitingPlanningModeAction({
+        event: {
+          type: 'awaiting.answer',
+          chatId: 'chat_1',
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          status: 'answered',
+          plan: { id: 'confirm', decision: 'reject' },
+        },
+        chatId: 'chat_1',
+        planningMode: false,
+      }),
+    ).toEqual({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_1',
+      enabled: true,
+      persist: true,
+    });
+  });
+
+  it('ignores awaiting answers without plan decisions', () => {
+    expect(
+      buildAwaitingPlanningModeAction({
+        event: {
+          type: 'awaiting.answer',
+          chatId: 'chat_1',
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          status: 'answered',
+          approvals: [{ id: 'approve_1', decision: 'reject' }],
+        },
+        chatId: 'chat_1',
+        planningMode: true,
+      }),
+    ).toBeNull();
   });
 });
 

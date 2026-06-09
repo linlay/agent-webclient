@@ -70,6 +70,9 @@ export function applyLiveEventCommand(input: {
 		case "UPSERT_ARTIFACT":
 			dispatch({ type: "UPSERT_ARTIFACT", artifact: command.artifact });
 			return;
+		case "UPSERT_FILE_CHANGE":
+			dispatch({ type: "UPSERT_FILE_CHANGE", fileChange: command.fileChange });
+			return;
 		case "SET_PLAN":
 			if (command.resetRuntime) {
 				dispatch({

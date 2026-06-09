@@ -1,5 +1,10 @@
 import type { AppAction } from "@/app/state/actions";
-import type { ActiveAwaiting, AppState, PublishedArtifact } from "@/app/state/types";
+import type {
+	ActiveAwaiting,
+	AppState,
+	FileChangeSummary,
+	PublishedArtifact,
+} from "@/app/state/types";
 
 export function setMapValue<K, V>(source: Map<K, V>, key: K, value: V): Map<K, V> {
 	const next = new Map(source);
@@ -62,6 +67,7 @@ export function buildConversationResetState(
 		events: [],
 		debugEvents: [],
 		artifacts: [],
+		fileChanges: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		taskItemsById: new Map(),
@@ -159,6 +165,44 @@ export function upsertArtifact(
 	}
 	const next = artifacts.slice();
 	next[index] = artifact;
+	return next;
+}
+
+export function upsertFileChange(
+	fileChanges: FileChangeSummary[],
+	fileChange: FileChangeSummary,
+): FileChangeSummary[] {
+	const filePath = String(fileChange.filePath || "").trim();
+	if (!filePath) {
+		return fileChanges;
+	}
+	const normalizedChange: FileChangeSummary = {
+		filePath,
+		addedLines: Math.max(0, Number(fileChange.addedLines) || 0),
+		deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
+		editedLines: Math.max(0, Number(fileChange.editedLines) || 0),
+		operationCount: Math.max(1, Number(fileChange.operationCount) || 1),
+		lastUpdatedAt:
+			Number.isFinite(fileChange.lastUpdatedAt) && fileChange.lastUpdatedAt > 0
+				? fileChange.lastUpdatedAt
+				: Date.now(),
+	};
+
+	const index = fileChanges.findIndex((item) => item.filePath === filePath);
+	if (index < 0) {
+		return [...fileChanges, normalizedChange];
+	}
+
+	const current = fileChanges[index];
+	const next = fileChanges.slice();
+	next[index] = {
+		filePath,
+		addedLines: current.addedLines + normalizedChange.addedLines,
+		deletedLines: current.deletedLines + normalizedChange.deletedLines,
+		editedLines: current.editedLines + normalizedChange.editedLines,
+		operationCount: current.operationCount + normalizedChange.operationCount,
+		lastUpdatedAt: Math.max(current.lastUpdatedAt, normalizedChange.lastUpdatedAt),
+	};
 	return next;
 }
 

@@ -12,6 +12,7 @@ import type {
 	Plan,
 	PlanRuntime,
 	PublishedArtifact,
+	FileChangeSummary,
 	TaskItemMeta,
 	Team,
 	TimelineNode,
@@ -66,6 +67,7 @@ export type AppAction =
 	| { type: "APPEND_DEBUG"; line: string }
 	| { type: "CLEAR_DEBUG" }
 	| { type: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
+	| { type: "UPSERT_FILE_CHANGE"; fileChange: FileChangeSummary }
 	| { type: "SET_ARTIFACT_EXPANDED"; expanded: boolean }
 	| { type: "SET_ARTIFACT_MANUAL_OVERRIDE"; override: boolean | null }
 	| { type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }

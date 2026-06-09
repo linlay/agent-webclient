@@ -1,5 +1,6 @@
 import type {
   AgentEvent,
+  FileChangeSummary,
   Plan,
   PlanRuntime,
   TaskItemMeta,
@@ -37,6 +38,7 @@ type TestState = {
     };
     timestamp: number;
   }>;
+  fileChanges: FileChangeSummary[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -57,6 +59,7 @@ function createState(): TestState {
     chatId: '',
     runId: '',
     artifacts: [],
+    fileChanges: [],
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
@@ -128,6 +131,23 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           state.artifacts.push(command.artifact);
         } else {
           state.artifacts[index] = command.artifact;
+        }
+        break;
+      }
+      case 'UPSERT_FILE_CHANGE': {
+        const index = state.fileChanges.findIndex((item) => item.filePath === command.fileChange.filePath);
+        if (index < 0) {
+          state.fileChanges.push(command.fileChange);
+        } else {
+          const current = state.fileChanges[index];
+          state.fileChanges[index] = {
+            filePath: current.filePath,
+            addedLines: current.addedLines + command.fileChange.addedLines,
+            deletedLines: current.deletedLines + command.fileChange.deletedLines,
+            editedLines: current.editedLines + command.fileChange.editedLines,
+            operationCount: current.operationCount + command.fileChange.operationCount,
+            lastUpdatedAt: Math.max(current.lastUpdatedAt, command.fileChange.lastUpdatedAt),
+          };
         }
         break;
       }
@@ -703,6 +723,185 @@ describe('processEvent', () => {
 
     expect(state.timelineNodes.get('tool_0')?.argsText).toContain('[incomplete tool args]');
     expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+  });
+
+  it('records file_write line stats from object tool results', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_write',
+      toolName: 'file_write',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_write',
+      result: {
+        status: 'written',
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 12,
+          deletedLines: 3,
+          editedLines: 3,
+        },
+      },
+      timestamp: 120,
+    }, 'live', true);
+
+    expect(state.fileChanges).toEqual([
+      {
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 12,
+        deletedLines: 3,
+        editedLines: 3,
+        operationCount: 1,
+        lastUpdatedAt: 120,
+      },
+    ]);
+  });
+
+  it('records file_edit line stats from JSON string replay results', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.snapshot',
+      toolId: 'tool_edit',
+      toolName: 'file_edit',
+      arguments: '{"file_path":"/workspace/src/App.tsx"}',
+      timestamp: 100,
+    }, 'replay', false);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_edit',
+      result: JSON.stringify({
+        status: 'edited',
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: '4',
+          deletedLines: '1',
+          editedLines: '1',
+        },
+      }),
+      timestamp: 140,
+    }, 'replay', false);
+
+    expect(state.fileChanges).toEqual([
+      {
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 4,
+        deletedLines: 1,
+        editedLines: 1,
+        operationCount: 1,
+        lastUpdatedAt: 140,
+      },
+    ]);
+  });
+
+  it('aggregates multiple file mutations for the same file', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_write_once',
+      toolName: 'file_write',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_write_once',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 2,
+          deletedLines: 0,
+          editedLines: 0,
+        },
+      },
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_edit_once',
+      toolName: 'file_edit',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_edit_once',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 4,
+          deletedLines: 1,
+          editedLines: 1,
+        },
+      },
+      timestamp: 130,
+    }, 'live', true);
+
+    expect(state.fileChanges).toEqual([
+      {
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 6,
+        deletedLines: 1,
+        editedLines: 1,
+        operationCount: 2,
+        lastUpdatedAt: 130,
+      },
+    ]);
+  });
+
+  it('ignores failed, non-file, and malformed tool results for file changes', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_failed_write',
+      toolName: 'file_write',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_failed_write',
+      result: {
+        exitCode: -1,
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 2,
+          deletedLines: 0,
+          editedLines: 0,
+        },
+      },
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_not_file',
+      toolName: 'bash',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_not_file',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 2,
+          deletedLines: 0,
+          editedLines: 0,
+        },
+      },
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_missing_stats',
+      toolName: 'file_edit',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_missing_stats',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+      },
+    }, 'live', true);
+
+    expect(state.fileChanges).toEqual([]);
   });
 
   it('marks tool.result as failed when object result has non-zero camelCase exitCode', () => {

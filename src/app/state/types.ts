@@ -42,6 +42,7 @@ import type {
 	Message,
 	PendingSteer,
 	PublishedArtifact,
+	FileChangeSummary,
 	RightSidebarTabKey,
 	RenderQueue,
 	UiTimerHandle,
@@ -131,6 +132,7 @@ export interface AppState {
 	debugEvents: AgentEvent[];
 	debugLines: string[];
 	artifacts: PublishedArtifact[];
+	fileChanges: FileChangeSummary[];
 	plan: Plan | null;
 	planRuntimeByTaskId: Map<string, PlanRuntime>;
 	taskItemsById: Map<string, TaskItemMeta>;

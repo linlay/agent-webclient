@@ -458,13 +458,106 @@
     color: var(--ink-1);
 }
 
-.right-sidebar-overview-section-head span {
+.right-sidebar-overview-section-count {
     padding: 1px 7px;
     border-radius: 999px;
     background: color-mix(in srgb, var(--accent-soft) 62%, transparent);
     color: var(--accent-electric-strong);
     font-size: 11px;
     font-weight: 700;
+}
+
+.right-sidebar-file-change-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.right-sidebar-file-change-item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-input) 78%, #fff);
+}
+
+.right-sidebar-file-change-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
+    color: var(--ink-muted);
+}
+
+.right-sidebar-file-change-path {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font:
+        11px/1.35 "IBM Plex Mono",
+        monospace;
+    color: var(--ink-1);
+}
+
+.right-sidebar-file-change-stats {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font:
+        700 11px/1.2 "IBM Plex Mono",
+        monospace;
+    white-space: nowrap;
+}
+
+.right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-add,
+.right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-delete {
+    animation: right-sidebar-file-change-jump 560ms cubic-bezier(.2, .72, .18, 1);
+    transform-origin: center bottom;
+}
+
+.right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-delete {
+    animation-delay: 40ms;
+}
+
+.right-sidebar-file-change-add {
+    color: var(--ok);
+}
+
+.right-sidebar-file-change-delete {
+    color: var(--danger);
+}
+
+@keyframes right-sidebar-file-change-jump {
+    0% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+    35% {
+        transform: translateY(-4px) scale(1.14);
+        filter: brightness(1.15);
+    }
+    70% {
+        transform: translateY(1px) scale(.98);
+        filter: brightness(1.04);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-add,
+    .right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-delete {
+        animation: none;
+    }
 }
 
 .right-sidebar-empty {

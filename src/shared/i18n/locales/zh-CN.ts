@@ -213,6 +213,8 @@ export const zhCNMessages: I18nMessages = {
   "rightSidebar.debug.tabs.tool": "tool",
   "rightSidebar.overview.artifacts.empty": "暂无产物",
   "rightSidebar.overview.artifacts.title": "产物",
+  "rightSidebar.overview.fileChanges.empty": "暂无文件修改",
+  "rightSidebar.overview.fileChanges.title": "文件/代码修改",
   "rightSidebar.preview.actions.close": "关闭",
   "rightSidebar.preview.actions.download": "下载",
   "rightSidebar.preview.error.audio": "音频预览失败，请下载查看。",

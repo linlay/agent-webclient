@@ -1,4 +1,4 @@
-import type { AgentEvent, ToolState } from "@/app/state/types";
+import type { AgentEvent, FileChangeSummary, ToolState } from "@/app/state/types";
 import type {
   EventCommand,
   EventProcessorState,
@@ -44,6 +44,70 @@ function parseResultJSON(value: string): unknown {
   } catch {
     return null;
   }
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseResultObject(value: unknown): Record<string, unknown> | null {
+  if (isObjectRecord(value)) {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+  const parsed = parseResultJSON(value);
+  return isObjectRecord(parsed) ? parsed : null;
+}
+
+function readLineStat(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, value);
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }
+  return 0;
+}
+
+function isFileMutationToolName(toolName: string): boolean {
+  const normalized = toolName.trim().toLowerCase();
+  return normalized === "file_write" || normalized === "file_edit";
+}
+
+function normalizeFileChangeSummary(input: {
+  toolName: string;
+  resultValue: unknown;
+  timestamp: number;
+}): FileChangeSummary | null {
+  if (!isFileMutationToolName(input.toolName)) {
+    return null;
+  }
+
+  const record = parseResultObject(input.resultValue);
+  if (!record) {
+    return null;
+  }
+
+  const filePath = toText(record.filePath);
+  const lineStats = record.lineStats;
+  if (!filePath || !isObjectRecord(lineStats)) {
+    return null;
+  }
+
+  return {
+    filePath,
+    addedLines: readLineStat(lineStats.addedLines),
+    deletedLines: readLineStat(lineStats.deletedLines),
+    editedLines: readLineStat(lineStats.editedLines),
+    operationCount: 1,
+    lastUpdatedAt:
+      Number.isFinite(input.timestamp) && input.timestamp > 0
+        ? input.timestamp
+        : Date.now(),
+  };
 }
 
 function isToolResultFailure(event: AgentEvent, resultValue: unknown): boolean {
@@ -200,6 +264,15 @@ export function processToolEvent(
     const existing = state.getTimelineNode(nodeId);
     const existingToolState = state.getToolState(toolId);
     const resultValue = event.result ?? event.output ?? event.text ?? "";
+    const resolvedToolName = pickToolName(existingToolState?.toolName, event.toolName);
+    const failed = isToolResultFailure(event, resultValue);
+    const fileChange = failed
+      ? null
+      : normalizeFileChangeSummary({
+          toolName: resolvedToolName,
+          resultValue,
+          timestamp: event.timestamp || Date.now(),
+        });
     const resultText =
       typeof resultValue === "string"
         ? resultValue
@@ -218,12 +291,15 @@ export function processToolEvent(
         existing,
         existingToolState,
         argsText,
-        status: isToolResultFailure(event, resultValue) ? "failed" : "success",
+        status: failed ? "failed" : "success",
         result: { text: resultText, isCode: typeof resultValue !== "string" },
         ts: existing?.ts || event.timestamp || Date.now(),
         state,
       }),
     });
+    if (fileChange) {
+      commands.push({ cmd: "UPSERT_FILE_CHANGE", fileChange });
+    }
     return commands;
   }
 

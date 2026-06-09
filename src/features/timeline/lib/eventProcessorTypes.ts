@@ -1,6 +1,7 @@
 import type {
 	Plan,
 	PlanRuntime,
+	FileChangeSummary,
 	PublishedArtifact,
 	TaskItemMeta,
 	TimelineNode,
@@ -44,6 +45,7 @@ export type EventCommand =
 	| { cmd: "SET_TOOL_STATE"; toolId: string; state: ToolState }
 	| { cmd: "SET_ACTIVE_REASONING_KEY"; key: string }
 	| { cmd: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
+	| { cmd: "UPSERT_FILE_CHANGE"; fileChange: FileChangeSummary }
 	| { cmd: "SET_PLAN"; plan: Plan | null; resetRuntime: boolean }
 	| { cmd: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { cmd: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }

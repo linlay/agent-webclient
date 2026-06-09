@@ -70,6 +70,7 @@ export function createInitialState(): AppState {
 		debugEvents: [],
 		debugLines: [],
 		artifacts: [],
+		fileChanges: [],
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		taskItemsById: new Map(),

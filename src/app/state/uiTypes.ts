@@ -22,6 +22,15 @@ export interface PublishedArtifact {
 	timestamp: number;
 }
 
+export interface FileChangeSummary {
+	filePath: string;
+	addedLines: number;
+	deletedLines: number;
+	editedLines: number;
+	operationCount: number;
+	lastUpdatedAt: number;
+}
+
 export type UiTimerHandle = number;
 
 export interface Message {

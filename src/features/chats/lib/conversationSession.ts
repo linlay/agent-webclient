@@ -5,6 +5,7 @@ import type {
   AgentEvent,
   AppState,
   AIUsageSnapshotEvent,
+  FileChangeSummary,
   Message,
   PendingSteer,
   PendingTool,
@@ -36,6 +37,7 @@ export interface ConversationSnapshot {
   debugEvents: AgentEvent[];
   debugLines: string[];
   artifacts: PublishedArtifact[];
+  fileChanges: FileChangeSummary[];
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -108,6 +110,10 @@ function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
       ...item.artifact,
     },
   }));
+}
+
+function cloneFileChanges(fileChanges: FileChangeSummary[]): FileChangeSummary[] {
+  return fileChanges.map((item) => ({ ...item }));
 }
 
 function cloneTaskItemMap(input: Map<string, TaskItemMeta>): Map<string, TaskItemMeta> {
@@ -192,6 +198,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     debugEvents: state.debugEvents.slice(),
     debugLines: state.debugLines.slice(),
     artifacts: cloneArtifacts(state.artifacts),
+    fileChanges: cloneFileChanges(state.fileChanges),
     plan: state.plan
       ? {
           ...state.plan,
@@ -236,6 +243,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     debugEvents: snapshot.debugEvents.slice(),
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
+    fileChanges: cloneFileChanges(snapshot.fileChanges),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,
@@ -284,6 +292,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.debugEvents = snapshot.debugEvents.slice();
   rs.debugLines = snapshot.debugLines.slice();
   rs.artifacts = cloneArtifacts(snapshot.artifacts);
+  rs.fileChanges = cloneFileChanges(snapshot.fileChanges);
   rs.plan = snapshot.plan
     ? {
         ...snapshot.plan,
@@ -319,6 +328,7 @@ function applyReplayStateToSnapshot(
   next.events = rs.events;
   next.debugEvents = rs.debugEvents;
   next.artifacts = rs.artifacts;
+  next.fileChanges = rs.fileChanges;
   next.plan = rs.plan;
   next.planRuntimeByTaskId = rs.planRuntimeByTaskId;
   next.taskItemsById = rs.taskItemsById;
@@ -402,6 +412,7 @@ export function buildConversationStateUpdates(
     debugEvents: snapshot.debugEvents.slice(),
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
+    fileChanges: cloneFileChanges(snapshot.fileChanges),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,

@@ -27,6 +27,10 @@ import { isVoiceEnabled } from '@/shared/config/featureFlags';
 import { stripSpecialBlocksFromText } from '@/features/timeline/lib/contentSegments';
 import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import {
+  getPlanningModeForPlanDecision,
+  readPlanAnswerDecision,
+} from '@/features/tools/lib/planDecision';
+import {
   readRunAgentKeyFromEvent,
   resolveRunAgentKey,
 } from '@/features/chats/lib/runAgentIdentity';
@@ -51,6 +55,46 @@ export {
 export {
   findMatchingPendingSteer,
 } from '@/features/timeline/lib/eventDispatchHandlers';
+
+export function buildAwaitingPlanningModeAction(input: {
+  event: AgentEvent;
+  chatId: string;
+  planningMode: boolean;
+}) {
+  const type = toText(input.event.type);
+  const chatId = toText(input.chatId);
+  if (!chatId) {
+    return null;
+  }
+
+  if (isAwaitingAskLike(type)) {
+    const awaitingMode = toText((input.event as Record<string, unknown>).mode);
+    if (awaitingMode === 'plan' || !input.planningMode) {
+      return null;
+    }
+    return {
+      type: 'SET_PLANNING_MODE' as const,
+      chatId,
+      enabled: false,
+      persist: true,
+    };
+  }
+
+  if (isAwaitingAnswerLike(type)) {
+    const planDecision = readPlanAnswerDecision(input.event);
+    if (!planDecision) {
+      return null;
+    }
+    return {
+      type: 'SET_PLANNING_MODE' as const,
+      chatId,
+      enabled: getPlanningModeForPlanDecision(planDecision),
+      persist: true,
+    };
+  }
+
+  return null;
+}
 
 function resolveSelectedWorkerContext(state: AppState): { agentKey: string; teamId: string } {
   const selectedWorker = state.workerIndexByKey.get(toText(state.workerSelectionKey)) || null;
@@ -346,17 +390,14 @@ export function useAgentEventHandler() {
       }
 
       if (isAwaitingAskLike(type) || isAwaitingAnswerLike(type)) {
-        /* When agent asks user (awaiting.ask), cancel planning mode */
-        if (isAwaitingAskLike(type)) {
-          const chatId = toText(state.chatId) || cache.chatId;
-          if (chatId && state.planningMode) {
-            dispatch({
-              type: 'SET_PLANNING_MODE',
-              chatId,
-              enabled: false,
-              persist: true,
-            });
-          }
+        const chatId = toText(event.chatId) || toText(state.chatId) || cache.chatId;
+        const planningModeAction = buildAwaitingPlanningModeAction({
+          event,
+          chatId,
+          planningMode: state.planningMode,
+        });
+        if (planningModeAction) {
+          dispatch(planningModeAction);
         }
         upsertLiveChatSummary({ event, cache, state });
         return;

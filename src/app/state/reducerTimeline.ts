@@ -7,6 +7,7 @@ import {
 	removeSetValue,
 	setMapValue,
 	upsertArtifact,
+	upsertFileChange,
 } from "@/app/state/reducerHelpers";
 
 export function reduceTimelineState(
@@ -18,6 +19,11 @@ export function reduceTimelineState(
 			return {
 				...state,
 				artifacts: upsertArtifact(state.artifacts, action.artifact),
+			};
+		case "UPSERT_FILE_CHANGE":
+			return {
+				...state,
+				fileChanges: upsertFileChange(state.fileChanges, action.fileChange),
 			};
 		case "SET_ARTIFACT_EXPANDED":
 			return { ...state, artifactExpanded: action.expanded };
