@@ -325,6 +325,7 @@ export const enUSMessages: I18nMessages = {
   "eventPopover.copy.message": "Copy message",
   "eventPopover.copy.model": "Copy model",
   "eventPopover.copy.openMenu": "Open copy menu",
+  "eventPopover.copy.rawJsonl": "Copy raw JSONL",
   "eventPopover.copy.requestBody": "Copy requestBody",
   "eventPopover.copy.result": "Copy result",
   "eventPopover.copy.systemPrompt": "Copy systemPrompt",

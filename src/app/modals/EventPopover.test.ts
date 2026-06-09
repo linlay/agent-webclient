@@ -22,6 +22,8 @@ const {
   resolveDebugPreCallCopyPayloads,
   resolveInjectedPromptPayloads,
   resolveInitialPopoverState,
+  resolveRawJsonlChatId,
+  buildRawJsonlCopyMenuItem,
 } = __TEST_ONLY__;
 
 jest.mock("@/app/state/AppContext", () => {
@@ -998,6 +1000,47 @@ describe("EventPopover display and copy helpers", () => {
         text: "Alpha",
       },
     ]);
+  });
+
+  it("resolves raw jsonl chatId from current and related events", () => {
+    expect(
+      resolveRawJsonlChatId(
+        { type: "run.start", runId: "run_1", chatId: "chat_1" },
+        [],
+      ),
+    ).toBe("chat_1");
+
+    expect(
+      resolveRawJsonlChatId(
+        { type: "tool.end", toolId: "tool_1" },
+        [
+          createEntry(
+            { type: "tool.start", toolId: "tool_1", chatId: "chat_related" },
+            0,
+          ),
+        ],
+      ),
+    ).toBe("chat_related");
+
+    expect(resolveRawJsonlChatId({ type: "tool.end", toolId: "tool_1" }, [])).toBe("");
+  });
+
+  it("builds a deferred raw jsonl copy menu item", async () => {
+    const loadRawJsonl = jest.fn(async () => '{"_type":"query"}\n');
+    const item = buildRawJsonlCopyMenuItem(
+      " chat_1 ",
+      (key) => (key === "eventPopover.copy.rawJsonl" ? "Copy raw JSONL" : key),
+      loadRawJsonl,
+    );
+
+    expect(item).toMatchObject({
+      key: "rawJsonl",
+      label: "Copy raw JSONL",
+      text: "",
+    });
+    await expect(item!.loadText!()).resolves.toBe('{"_type":"query"}\n');
+    expect(loadRawJsonl).toHaveBeenCalledWith("chat_1");
+    expect(buildRawJsonlCopyMenuItem("", (key) => key)).toBeNull();
   });
 
   it("builds request event copy menu items with message and references", () => {

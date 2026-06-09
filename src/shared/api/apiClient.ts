@@ -195,6 +195,7 @@ export interface AgentDetailResponse {
   icon?: unknown;
   description?: string;
   role?: string;
+  greetings?: string[];
   wonders?: string[];
   model: string;
   mode: string;
@@ -873,6 +874,33 @@ export async function getResourceText(
       data: error.data,
     });
   }
+  return response.text();
+}
+
+export async function getChatRawJsonl(
+  chatId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<string> {
+  const query = toQueryString({ chatId });
+  const response = await requestWithAuth(`/api/chat/jsonl?${query}`, {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+  });
+
+  if (!response.ok) {
+    const fallbackMessage = t("api.loadResourceTextFailedWithStatus", {
+      status: response.status,
+    });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+    });
+  }
+
   return response.text();
 }
 

@@ -325,6 +325,7 @@ export const zhCNMessages: I18nMessages = {
   "eventPopover.copy.message": "复制消息",
   "eventPopover.copy.model": "复制 model",
   "eventPopover.copy.openMenu": "打开复制菜单",
+  "eventPopover.copy.rawJsonl": "复制原始 jsonl",
   "eventPopover.copy.requestBody": "复制 requestBody",
   "eventPopover.copy.result": "复制结果",
   "eventPopover.copy.systemPrompt": "复制 systemPrompt",

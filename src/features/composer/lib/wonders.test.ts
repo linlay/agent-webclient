@@ -1,4 +1,9 @@
-import { normalizeWonders, pickRandomWonders } from "@/features/composer/lib/wonders";
+import {
+  normalizeGreetings,
+  normalizeWonders,
+  pickRandomGreeting,
+  pickRandomWonders,
+} from "@/features/composer/lib/wonders";
 
 describe("wonders", () => {
   it("normalizes and keeps multiline wonder text", () => {
@@ -28,5 +33,23 @@ describe("wonders", () => {
     expect(
       pickRandomWonders(["A", "B"], 3, () => 0.5),
     ).toEqual(["A", "B"]);
+  });
+
+  it("normalizes greetings and keeps multiline placeholder text", () => {
+    expect(
+      normalizeGreetings([
+        "  我可以帮你拆解问题  ",
+        "我可以帮你制定计划\n并确认下一步",
+        "",
+        null,
+      ]),
+    ).toEqual([
+      "我可以帮你拆解问题",
+      "我可以帮你制定计划\n并确认下一步",
+    ]);
+  });
+
+  it("picks one random greeting", () => {
+    expect(pickRandomGreeting(["A", "B", "C"], () => 0.67)).toBe("C");
   });
 });

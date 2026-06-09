@@ -190,6 +190,7 @@ jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
 
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({
   useComposerWonders: jest.fn(() => ({
+    sampledGreeting: "Greeting from detail",
     sampledWonders: ["Try this"],
   })),
 }));
@@ -261,7 +262,9 @@ describe("ComposerArea", () => {
     expect(html).not.toContain("composer-wonders");
     expect(mockComposerInputProps[0].emptyInputMinRows).toBe(1);
     expect(mockComposerInputProps[0].inputMaxRows).toBe(6);
-    expect(useComposerWonders.mock.calls[0][0].isBlankConversation).toBe(false);
+    expect(mockComposerInputProps[0].placeholder).toBe("Greeting from detail");
+    expect(useComposerWonders.mock.calls[0][0].isBlankConversation).toBe(true);
+    expect(useComposerWonders.mock.calls[0][0].showWonders).toBe(false);
   });
 
   it("keeps runtime permission controls visible while awaiting approval", () => {

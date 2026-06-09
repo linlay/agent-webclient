@@ -73,4 +73,23 @@ describe("ComposerInput", () => {
       maxRows: 6,
     });
   });
+
+  it("uses a sampled greeting placeholder when provided", () => {
+    renderComposerInput({
+      placeholder: "我可以帮你检查项目状态",
+    });
+
+    expect(mockTextAreaProps[0].placeholder).toBe("我可以帮你检查项目状态");
+  });
+
+  it("keeps the frontend active placeholder above sampled greetings", () => {
+    renderComposerInput({
+      isFrontendActive: true,
+      placeholder: "我可以帮你检查项目状态",
+    });
+
+    expect(mockTextAreaProps[0].placeholder).toBe(
+      "composer.input.placeholder.frontendActive",
+    );
+  });
 });

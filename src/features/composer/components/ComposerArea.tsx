@@ -377,10 +377,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     t,
   });
 
-  const { sampledWonders } = useComposerWonders({
+  const { sampledGreeting, sampledWonders } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
-    isBlankConversation: showWonders && isBlankConversation,
+    isBlankConversation,
+    showWonders,
   });
 
   const hasPendingSteers = state.pendingSteers.length > 0;
@@ -581,6 +582,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isFrontendActive={isFrontendActive}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
+                  placeholder={sampledGreeting}
                   currentWorkerName={
                     state.voiceChat.currentAgentName ||
                     currentWorker?.displayName ||

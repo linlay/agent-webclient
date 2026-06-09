@@ -27,6 +27,7 @@ import {
   getAgentOrder,
   getAgentEditorOptions,
   getAgents,
+  getChatRawJsonl,
   getArchives,
   getChats,
   getMemoryRecord,
@@ -1208,6 +1209,43 @@ describe('apiClient query payloads', () => {
 
     expect(anchor.download).toBe('你好.md');
     expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads raw chat jsonl as authenticated text', async () => {
+    setAccessToken('demo-token');
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => '{"_type":"query"}\n',
+    });
+
+    await expect(getChatRawJsonl('chat_1')).resolves.toBe('{"_type":"query"}\n');
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/chat/jsonl?chatId=chat_1');
+    expect(options.method).toBe('GET');
+    expect(options.headers).toEqual({
+      Authorization: 'Bearer demo-token',
+    });
+  });
+
+  it('surfaces api error messages when raw chat jsonl loading fails', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: async () =>
+        JSON.stringify({
+          code: 404,
+          msg: 'chat not found',
+          data: {},
+        }),
+    });
+
+    await expect(getChatRawJsonl('missing')).rejects.toMatchObject({
+      message: 'chat not found',
+      status: 404,
+      code: 404,
+    });
   });
 
   it('uploads files with a single multipart request', async () => {

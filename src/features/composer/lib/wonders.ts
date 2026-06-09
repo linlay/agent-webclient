@@ -1,4 +1,4 @@
-export function normalizeWonders(value: unknown): string[] {
+function normalizeComposerTextList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -6,6 +6,14 @@ export function normalizeWonders(value: unknown): string[] {
   return value
     .map((item) => (typeof item === "string" ? item.trim() : ""))
     .filter((item) => item.length > 0);
+}
+
+export function normalizeWonders(value: unknown): string[] {
+  return normalizeComposerTextList(value);
+}
+
+export function normalizeGreetings(value: unknown): string[] {
+  return normalizeComposerTextList(value);
 }
 
 export function pickRandomWonders(
@@ -24,4 +32,19 @@ export function pickRandomWonders(
   }
 
   return pool.slice(0, Math.min(maxCount, pool.length));
+}
+
+export function pickRandomGreeting(
+  greetings: string[],
+  random: () => number = Math.random,
+): string {
+  if (!Array.isArray(greetings) || greetings.length === 0) {
+    return "";
+  }
+
+  const index = Math.min(
+    greetings.length - 1,
+    Math.max(0, Math.floor(random() * greetings.length)),
+  );
+  return greetings[index] || "";
 }

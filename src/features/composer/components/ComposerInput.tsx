@@ -9,6 +9,7 @@ interface ComposerInputProps {
   isFrontendActive: boolean;
   isTimelineEmpty: boolean;
   inputValue: string;
+  placeholder?: string;
   currentWorkerName: string;
   voiceStatus: VoiceChatStatus;
   voiceError: string;
@@ -46,6 +47,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   isFrontendActive,
   isTimelineEmpty,
   inputValue,
+  placeholder,
   currentWorkerName,
   voiceStatus,
   voiceError,
@@ -140,7 +142,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
             placeholder={
               isFrontendActive
                 ? t("composer.input.placeholder.frontendActive")
-                : t("composer.input.placeholder.default")
+                : placeholder || t("composer.input.placeholder.default")
             }
             autoSize={{
               minRows: isTimelineEmpty ? emptyInputMinRows : 1,

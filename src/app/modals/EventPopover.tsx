@@ -8,6 +8,7 @@ import React, {
 import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
+import { getChatRawJsonl } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -27,6 +28,7 @@ import {
 	canCollectEvent,
 	getCollectibleRelatedEvents,
 	mapCollectedSnapshotType,
+	readEventIdValue,
 	resolveEventGroupMeta,
 	type RelatedEventEntry,
 } from "@/app/modals/lib/eventPopoverGrouping";
@@ -49,6 +51,45 @@ function promptSectionTitle(
 
 function promptRoundLabel(roundNumber?: number): string {
 	return roundNumber && roundNumber > 0 ? `Round ${roundNumber}` : "";
+}
+
+type RawJsonlLoader = (chatId: string) => Promise<string>;
+
+function resolveRawJsonlChatId(
+	event: AgentEvent | null,
+	relatedEvents: RelatedEventEntry[],
+): string {
+	const eventChatId = readEventIdValue(event || {}, "chatId");
+	if (eventChatId) {
+		return eventChatId;
+	}
+
+	for (const entry of relatedEvents) {
+		const relatedChatId = readEventIdValue(entry.event || {}, "chatId");
+		if (relatedChatId) {
+			return relatedChatId;
+		}
+	}
+
+	return "";
+}
+
+function buildRawJsonlCopyMenuItem(
+	chatId: string,
+	t: (key: string, params?: Record<string, unknown>) => string,
+	loadRawJsonl: RawJsonlLoader = getChatRawJsonl,
+): EventCopyMenuItem | null {
+	const normalizedChatId = String(chatId || "").trim();
+	if (!normalizedChatId) {
+		return null;
+	}
+
+	return {
+		key: "rawJsonl",
+		label: t("eventPopover.copy.rawJsonl"),
+		text: "",
+		loadText: () => loadRawJsonl(normalizedChatId),
+	};
 }
 
 const useIsomorphicLayoutEffect =
@@ -115,10 +156,20 @@ export const EventPopover: React.FC = () => {
 		() => getCollectibleRelatedEvents(event, groupMeta, relatedEvents),
 		[event, groupMeta, relatedEvents],
 	);
-	const copyMenuItems = useMemo(
-		() => buildEventCopyMenuItems(event, relatedEvents, popoverState.rawJsonStr, t),
-		[event, relatedEvents, popoverState.rawJsonStr, t],
+	const rawJsonlChatId = useMemo(
+		() => resolveRawJsonlChatId(event, relatedEvents),
+		[event, relatedEvents],
 	);
+	const copyMenuItems = useMemo(() => {
+		const items = buildEventCopyMenuItems(
+			event,
+			relatedEvents,
+			popoverState.rawJsonStr,
+			t,
+		);
+		const rawJsonlItem = buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
+		return rawJsonlItem ? [...items, rawJsonlItem] : items;
+	}, [event, relatedEvents, rawJsonlChatId, popoverState.rawJsonStr, t]);
 	const primaryCopyMenuItem = useMemo(
 		() => getPrimaryCopyMenuItem(copyMenuItems),
 		[copyMenuItems],
@@ -193,12 +244,16 @@ export const EventPopover: React.FC = () => {
 	);
 
 	const handleCopy = (item: EventCopyMenuItem) => {
-		const { key, label, text } = item;
-		if (!text) {
+		const { key, label } = item;
+		if (!item.text && !item.loadText) {
 			return;
 		}
 		setLastCopyItem({ key, label: stripCopyPrefix(label) });
-		void copyText(text)
+		const textPromise = item.loadText
+			? item.loadText()
+			: Promise.resolve(item.text);
+		void textPromise
+			.then((text) => copyText(text))
 			.then(() => {
 				const existing = copyTimerRef.current.get(key);
 				if (existing) {
@@ -491,6 +546,8 @@ export const __TEST_ONLY__ = {
 	resolveEventGroupMeta,
 	resolveDebugPreCallCopyPayloads,
 	resolveInjectedPromptPayloads,
+	resolveRawJsonlChatId,
+	buildRawJsonlCopyMenuItem,
 	buildEventCopyMenuItems,
 	buildCopyMenuTitle,
 	getPrimaryCopyMenuItem,
