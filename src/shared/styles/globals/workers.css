@@ -366,7 +366,6 @@
     animation: ui-spin 1s linear infinite;
     transform: none;
     top: unset;
-    right: 8px;
     color: var(--text-sub);
 }
 
@@ -380,6 +379,7 @@
     animation: ui-spin 1s linear infinite;
     font-size: 14px;
     color: var(--text-sub);
+    margin-right: 2px;
 }
 
 [data-action] .worker-panel-time-label {
