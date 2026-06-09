@@ -14,6 +14,8 @@ jest.mock("antd", () => ({
       });
     },
   },
+  Tooltip: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
 }));
 
 jest.mock("@/shared/i18n", () => ({
@@ -72,6 +74,13 @@ describe("ComposerInput", () => {
       minRows: 1,
       maxRows: 6,
     });
+  });
+
+  it("renders the main input expand control", () => {
+    const markup = renderComposerInput();
+
+    expect(markup).toContain("composer-input-expand-btn");
+    expect(markup).toContain('data-expanded="false"');
   });
 
   it("uses a sampled greeting placeholder when provided", () => {
