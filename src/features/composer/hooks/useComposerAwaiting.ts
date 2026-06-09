@@ -17,21 +17,18 @@ type FormActiveAwaitingPatch = Pick<
   "loading" | "loadError" | "viewportHtml"
 >;
 
-export type FormActiveAwaitingPatchPayload = Partial<FormActiveAwaitingPatch> & {
-  resolvedByOther?: boolean;
-  pendingSubmitId?: string;
-};
+export type FormActiveAwaitingPatchPayload =
+  Partial<FormActiveAwaitingPatch> & {
+    resolvedByOther?: boolean;
+    pendingSubmitId?: string;
+  };
 
 interface UseComposerAwaitingInput {
   activeAwaiting: AppState["activeAwaiting"];
   dispatch: Dispatch<AppAction>;
   state: Pick<
     AppState,
-    | "currentRunAgentKey"
-    | "runAgentById"
-    | "chatId"
-    | "chatAgentById"
-    | "chats"
+    "currentRunAgentKey" | "runAgentById" | "chatId" | "chatAgentById" | "chats"
   >;
 }
 
@@ -121,8 +118,12 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
 
         clearActiveAwaiting();
         if (Boolean(responseData?.continued)) {
-          const runId = String(responseData?.runId || payload.runId || "").trim();
-          const chatId = String(responseData?.chatId || state.chatId || "").trim();
+          const runId = String(
+            responseData?.runId || payload.runId || "",
+          ).trim();
+          const chatId = String(
+            responseData?.chatId || state.chatId || "",
+          ).trim();
           if (runId && chatId) {
             window.dispatchEvent(
               new CustomEvent("agent:attach-run", {

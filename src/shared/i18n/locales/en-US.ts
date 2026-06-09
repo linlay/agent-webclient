@@ -223,6 +223,7 @@ export const enUSMessages: I18nMessages = {
   "approvalDialog.action.continue": "Continue",
   "approvalDialog.action.ignore": "Ignore",
   "approvalDialog.action.submit": "Submit",
+  "confirmDialog.action.skip": "Skip",
   "approvalDialog.defaultHeading": "Confirm whether to continue with this action",
   "approvalDialog.loading": "Loading approval request...",
   "approvalDialog.resolvedByOther": "This request was already submitted from another client.",

@@ -11,20 +11,11 @@
   }
 
   .HeaderSide {
-    float: right;
-    margin-left: 10px;
+    flex-shrink: 0;
   }
 
-  .IgnoreButton {
+  .SkipButton {
     color: var(--text-muted);
-
-    span:last-child {
-      margin-left: 4px;
-      background-color: var(--accent-soft, rgba(0, 0, 0, 0.06));
-      padding: 1px 8px;
-      border-radius: 10px;
-      color: var(--text-main);
-    }
   }
 
   .FormItem {
@@ -36,15 +27,11 @@
   }
 }
 
-.FooterRow {
-  justify-content: flex-end;
-  width: 100%;
-}
-
 .TimeoutRow {
   color: var(--text-muted);
   font-size: 12px;
   white-space: nowrap;
+  margin-left: 14px;
 }
 
 .QuestionWrapper {
@@ -57,7 +44,7 @@
   .QuestionHeading {
     color: var(--text-main);
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .QuestionPrompt {
