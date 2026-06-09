@@ -150,7 +150,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     [approvals, decisions, hasAllDecisions, readOnly, reasons, submitPayload],
   );
 
-  const doIgnore = useCallback(async () => {
+  const doSkip = useCallback(async () => {
     if (readOnly || approvals.length === 0 || !currentApproval) {
       return;
     }
@@ -301,7 +301,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          void doIgnore();
+          void doSkip();
         }
         return;
       }
@@ -323,10 +323,10 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        void doIgnore();
+        void doSkip();
       }
     },
-    [approvals.length, doIgnore],
+    [approvals.length, doSkip],
   );
 
   useEffect(() => {
@@ -414,7 +414,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                     className={Style.SkipButton}
                     size="small"
                     onClick={() => {
-                      void doIgnore();
+                      void doSkip();
                     }}
                     disabled={readOnly}
                   >
@@ -526,12 +526,7 @@ const ApprovalQuestion = forwardRef<
           justify="space-between"
           align="baseline"
         >
-          <Flex vertical>
-            <div className={Style.QuestionHeading}>
-              {t("approvalDialog.defaultHeading")}
-            </div>
-            <div className={Style.QuestionPrompt}>{approval?.description}</div>
-          </Flex>
+          <div className={Style.QuestionHeading}>{approval?.description}</div>
           {pagnation}
         </Flex>
         <div className={Style.ApprovalDetails}>{approval?.command}</div>

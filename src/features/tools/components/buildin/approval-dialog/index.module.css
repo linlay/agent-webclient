@@ -41,16 +41,9 @@
     font-size: 14px;
   }
 
-  .QuestionPrompt {
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
   .ApprovalDetails {
-    margin-bottom: 10px;
-    padding: 12px;
-    border-radius: 12px;
-    background: var(--bg-base);
+    padding: 0 12px 12px;
+    color: var(--text-muted);
   }
 
   .ApprovalMeta {

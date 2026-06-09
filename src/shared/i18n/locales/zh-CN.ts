@@ -224,7 +224,6 @@ export const zhCNMessages: I18nMessages = {
   "approvalDialog.action.ignore": "忽略",
   "approvalDialog.action.submit": "提交",
   "confirmDialog.action.skip": "跳过",
-  "approvalDialog.defaultHeading": "请确认是否继续执行以下操作",
   "approvalDialog.loading": "等待审批加载中...",
   "approvalDialog.resolvedByOther": "已被其他终端提交",
   "approvalDialog.selected": "已选",
