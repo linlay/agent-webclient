@@ -30,7 +30,7 @@ export const SteerBar: React.FC<{
             <div className="steer-preview-actions">
               <Button
                 size="small"
-                type="primary"
+                type="text"
                 className="steer-primary-btn"
                 shape="round"
                 loading
@@ -56,7 +56,7 @@ export const SteerBar: React.FC<{
                 shape="round"
                 className="steer-primary-btn"
                 loading={steerSubmitting}
-                disabled={!steerDraft.trim() || steerSubmitting}
+                disabled={!steerDraft.trim()}
                 onClick={onSubmit}
               >
                 {t("composer.steer.submit")}
