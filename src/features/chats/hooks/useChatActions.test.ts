@@ -1646,6 +1646,7 @@ describe('replayEvent tool migration', () => {
       type: 'tool.snapshot',
       toolId: 'tool_edit',
       toolName: 'file_edit',
+      runId: 'run_1',
       arguments: '{"file_path":"/workspace/src/App.tsx"}',
       timestamp: 100,
     });
@@ -1666,6 +1667,7 @@ describe('replayEvent tool migration', () => {
 
     expect(state.fileChanges).toEqual([
       {
+        runId: 'run_1',
         filePath: '/workspace/src/App.tsx',
         addedLines: 8,
         deletedLines: 2,

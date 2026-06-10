@@ -135,12 +135,17 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
         break;
       }
       case 'UPSERT_FILE_CHANGE': {
-        const index = state.fileChanges.findIndex((item) => item.filePath === command.fileChange.filePath);
+        const index = state.fileChanges.findIndex(
+          (item) =>
+            item.runId === command.fileChange.runId &&
+            item.filePath === command.fileChange.filePath,
+        );
         if (index < 0) {
           state.fileChanges.push(command.fileChange);
         } else {
           const current = state.fileChanges[index];
           state.fileChanges[index] = {
+            runId: current.runId,
             filePath: current.filePath,
             addedLines: current.addedLines + command.fileChange.addedLines,
             deletedLines: current.deletedLines + command.fileChange.deletedLines,
@@ -732,6 +737,7 @@ describe('processEvent', () => {
       type: 'tool.start',
       toolId: 'tool_write',
       toolName: 'file_write',
+      runId: 'run_1',
       timestamp: 100,
     }, 'live', true);
     processAndApply(state, {
@@ -751,6 +757,7 @@ describe('processEvent', () => {
 
     expect(state.fileChanges).toEqual([
       {
+        runId: 'run_1',
         filePath: '/workspace/src/App.tsx',
         addedLines: 12,
         deletedLines: 3,
@@ -768,6 +775,7 @@ describe('processEvent', () => {
       type: 'tool.snapshot',
       toolId: 'tool_edit',
       toolName: 'file_edit',
+      runId: 'run_1',
       arguments: '{"file_path":"/workspace/src/App.tsx"}',
       timestamp: 100,
     }, 'replay', false);
@@ -788,6 +796,7 @@ describe('processEvent', () => {
 
     expect(state.fileChanges).toEqual([
       {
+        runId: 'run_1',
         filePath: '/workspace/src/App.tsx',
         addedLines: 4,
         deletedLines: 1,
@@ -805,6 +814,7 @@ describe('processEvent', () => {
       type: 'tool.start',
       toolId: 'tool_write_once',
       toolName: 'file_write',
+      runId: 'run_1',
     }, 'live', true);
     processAndApply(state, {
       type: 'tool.result',
@@ -823,6 +833,7 @@ describe('processEvent', () => {
       type: 'tool.start',
       toolId: 'tool_edit_once',
       toolName: 'file_edit',
+      runId: 'run_1',
     }, 'live', true);
     processAndApply(state, {
       type: 'tool.result',
@@ -840,11 +851,76 @@ describe('processEvent', () => {
 
     expect(state.fileChanges).toEqual([
       {
+        runId: 'run_1',
         filePath: '/workspace/src/App.tsx',
         addedLines: 6,
         deletedLines: 1,
         editedLines: 1,
         operationCount: 2,
+        lastUpdatedAt: 130,
+      },
+    ]);
+  });
+
+  it('keeps file change aggregates separate by run id', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_write_run_1',
+      toolName: 'file_write',
+      runId: 'run_1',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_write_run_1',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 2,
+          deletedLines: 0,
+          editedLines: 0,
+        },
+      },
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_write_run_2',
+      toolName: 'file_write',
+      runId: 'run_2',
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_write_run_2',
+      result: {
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 3,
+          deletedLines: 1,
+          editedLines: 1,
+        },
+      },
+      timestamp: 130,
+    }, 'live', true);
+
+    expect(state.fileChanges).toEqual([
+      {
+        runId: 'run_1',
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 2,
+        deletedLines: 0,
+        editedLines: 0,
+        operationCount: 1,
+        lastUpdatedAt: 100,
+      },
+      {
+        runId: 'run_2',
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 3,
+        deletedLines: 1,
+        editedLines: 1,
+        operationCount: 1,
         lastUpdatedAt: 130,
       },
     ]);
@@ -857,6 +933,7 @@ describe('processEvent', () => {
       type: 'tool.start',
       toolId: 'tool_failed_write',
       toolName: 'file_write',
+      runId: 'run_1',
     }, 'live', true);
     processAndApply(state, {
       type: 'tool.result',
@@ -892,6 +969,7 @@ describe('processEvent', () => {
       type: 'tool.start',
       toolId: 'tool_missing_stats',
       toolName: 'file_edit',
+      runId: 'run_1',
     }, 'live', true);
     processAndApply(state, {
       type: 'tool.result',

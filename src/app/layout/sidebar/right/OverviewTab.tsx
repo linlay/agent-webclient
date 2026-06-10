@@ -3,6 +3,8 @@ import { useAppState } from "@/app/state/AppContext";
 import type { FileChangeSummary, PublishedArtifact } from "@/app/state/types";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
+import { getFileHistory } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -70,6 +72,7 @@ export function buildOverviewArtifactItems(
 }
 
 export interface OverviewFileChangeItem {
+	runId: string;
 	filePath: string;
 	addedLines: number;
 	deletedLines: number;
@@ -80,12 +83,92 @@ export interface OverviewFileChangeItem {
 
 const FILE_CHANGE_JUMP_DURATION_MS = 560;
 
+export type FileHistoryCacheEntry =
+	| { status: "loading" }
+	| { status: "loaded"; original: string; current: string }
+	| { status: "error" };
+
+type FileHistoryCache = Record<string, FileHistoryCacheEntry>;
+type FileHistoryCacheUpdater = (
+	update: (current: FileHistoryCache) => FileHistoryCache,
+) => void;
+type FileHistoryFetcher = typeof getFileHistory;
+
+export async function loadFileHistoryForCache(params: {
+	chatId: string;
+	item: Pick<OverviewFileChangeItem, "runId" | "filePath">;
+	cache: FileHistoryCache;
+	updateCache: FileHistoryCacheUpdater;
+	fetchHistory?: FileHistoryFetcher;
+}): Promise<"loaded" | "error" | "skipped"> {
+	const { chatId, item, cache, updateCache, fetchHistory = getFileHistory } = params;
+	const cacheKey = buildFileHistoryCacheKey(chatId, item);
+	if (!chatId || !item.runId || !item.filePath) {
+		updateCache((current) => ({
+			...current,
+			[cacheKey]: { status: "error" },
+		}));
+		return "error";
+	}
+	const existing = cache[cacheKey];
+	if (existing && existing.status !== "error") {
+		return "skipped";
+	}
+	updateCache((current) => ({
+		...current,
+		[cacheKey]: { status: "loading" },
+	}));
+	try {
+		const [original, current] = await Promise.all([
+			fetchHistory({
+				chatId,
+				runId: item.runId,
+				filePath: item.filePath,
+				version: "original",
+			}),
+			fetchHistory({
+				chatId,
+				runId: item.runId,
+				filePath: item.filePath,
+				version: "current",
+			}),
+		]);
+		updateCache((nextCache) => ({
+			...nextCache,
+			[cacheKey]: {
+				status: "loaded",
+				original: original.data.content || "",
+				current: current.data.content || "",
+			},
+		}));
+		return "loaded";
+	} catch {
+		updateCache((current) => ({
+			...current,
+			[cacheKey]: { status: "error" },
+		}));
+		return "error";
+	}
+}
+
+export function buildFileChangeKey(runId: string, filePath: string): string {
+	return `${runId}\u0000${filePath}`;
+}
+
+export function buildFileHistoryCacheKey(
+	chatId: string,
+	item: Pick<OverviewFileChangeItem, "runId" | "filePath">,
+): string {
+	return `${chatId}\u0000${item.runId}\u0000${item.filePath}`;
+}
+
 export function buildOverviewFileChangeItems(
 	fileChanges: FileChangeSummary[],
 ): OverviewFileChangeItem[] {
 	return [...fileChanges]
 		.sort((a, b) => (b.lastUpdatedAt || 0) - (a.lastUpdatedAt || 0))
 		.map((item) => ({
+			runId: item.runId || "",
 			filePath: item.filePath,
 			addedLines: item.addedLines || 0,
 			deletedLines: item.deletedLines || 0,
@@ -100,8 +183,9 @@ export function buildFileChangeAnimationSignatures(
 ): Map<string, string> {
 	return new Map(
 		fileChanges.map((item) => [
-			item.filePath,
+			buildFileChangeKey(item.runId, item.filePath),
 			[
+				item.runId,
 				item.addedLines,
 				item.deletedLines,
 				item.editedLines,
@@ -129,6 +213,11 @@ function formatLineCount(value: number): string {
 	return Math.max(0, value || 0).toLocaleString();
 }
 
+function displayFileName(filePath: string): string {
+	const normalized = filePath.replace(/\\/g, "/");
+	return normalized.split("/").pop() || filePath;
+}
+
 function renderFileChangeStats(
 	addedLines: number,
 	deletedLines: number,
@@ -147,6 +236,25 @@ function renderFileChangeStats(
 			</span>
 		</span>
 	);
+}
+
+function renderFileHistoryPanel(entry: FileHistoryCacheEntry | undefined) {
+	if (!entry || entry.status === "loading") {
+		return (
+			<div className="right-sidebar-file-diff-status">
+				<span className="right-sidebar-file-diff-spinner" aria-hidden="true" />
+				{t("rightSidebar.overview.fileChanges.diffLoading")}
+			</div>
+		);
+	}
+	if (entry.status === "error") {
+		return (
+			<div className="right-sidebar-file-diff-status is-error">
+				{t("rightSidebar.overview.fileChanges.diffUnavailable")}
+			</div>
+		);
+	}
+	return <FileDiffView original={entry.original} current={entry.current} />;
 }
 
 const OverviewSection: React.FC<{
@@ -176,6 +284,12 @@ export const OverviewTab: React.FC = () => {
 		paths: new Set(),
 		total: false,
 	});
+	const [expandedFileChangeKeys, setExpandedFileChangeKeys] = React.useState<
+		Set<string>
+	>(new Set());
+	const [fileHistoryCache, setFileHistoryCache] = React.useState<
+		FileHistoryCache
+	>({});
 	const previousFileChangeSignaturesRef =
 		React.useRef<Map<string, string> | null>(null);
 	const artifacts = React.useMemo(
@@ -237,6 +351,38 @@ export const OverviewTab: React.FC = () => {
 		return () => window.clearTimeout(timer);
 	}, [fileChanges, state.rightSidebarOpen]);
 
+	const loadFileHistory = React.useCallback(
+		(item: OverviewFileChangeItem) => {
+			void loadFileHistoryForCache({
+				chatId: state.chatId,
+				item,
+				cache: fileHistoryCache,
+				updateCache: setFileHistoryCache,
+			});
+		},
+		[fileHistoryCache, state.chatId],
+	);
+
+	const toggleFileChange = React.useCallback(
+		(item: OverviewFileChangeItem) => {
+			const itemKey = buildFileChangeKey(item.runId, item.filePath);
+			const expanding = !expandedFileChangeKeys.has(itemKey);
+			setExpandedFileChangeKeys((current) => {
+				const next = new Set(current);
+				if (next.has(itemKey)) {
+					next.delete(itemKey);
+				} else {
+					next.add(itemKey);
+				}
+				return next;
+			});
+			if (expanding) {
+				loadFileHistory(item);
+			}
+		},
+		[expandedFileChangeKeys, loadFileHistory],
+	);
+
 	return (
 		<div className="right-sidebar-overview">
 			<OverviewSection
@@ -256,25 +402,55 @@ export const OverviewTab: React.FC = () => {
 					</div>
 				) : (
 					<ul className="right-sidebar-file-change-list">
-						{fileChanges.map((item) => (
-							<li key={item.filePath} className="right-sidebar-file-change-item">
-								<MaterialIcon
-									name={getFileIcon(item.filePath)}
-									className="right-sidebar-file-change-icon"
-									aria-hidden="true"
-								/>
-								<span
-									className="right-sidebar-file-change-path"
-									title={item.filePath}
+						{fileChanges.map((item) => {
+							const itemKey = buildFileChangeKey(item.runId, item.filePath);
+							const cacheKey = buildFileHistoryCacheKey(state.chatId, item);
+							const expanded = expandedFileChangeKeys.has(itemKey);
+							return (
+								<li
+									key={itemKey}
+									className={`right-sidebar-file-change-item ${expanded ? "is-expanded" : ""}`.trim()}
 								>
-									{item.filePath.split('/').pop()}
-								</span>
-								{renderFileChangeStats(item.addedLines, item.deletedLines, {
-									animated: fileChangeAnimation.paths.has(item.filePath),
-									animationKey: `${item.filePath}-${fileChangeAnimation.version}`,
-								})}
-							</li>
-						))}
+									<button
+										type="button"
+										className="right-sidebar-file-change-row"
+										aria-expanded={expanded}
+										onClick={() => toggleFileChange(item)}
+									>
+										<MaterialIcon
+											name={expanded ? "expand_more" : "chevron_right"}
+											className="right-sidebar-file-change-expand"
+											aria-hidden="true"
+										/>
+										<MaterialIcon
+											name={getFileIcon(item.filePath)}
+											className="right-sidebar-file-change-icon"
+											aria-hidden="true"
+										/>
+										<span
+											className="right-sidebar-file-change-path-wrap"
+											title={`${item.filePath} · ${item.runId}`}
+										>
+											<span className="right-sidebar-file-change-path">
+												{displayFileName(item.filePath)}
+											</span>
+											<span className="right-sidebar-file-change-run">
+												{item.runId}
+											</span>
+										</span>
+										{renderFileChangeStats(item.addedLines, item.deletedLines, {
+											animated: fileChangeAnimation.paths.has(itemKey),
+											animationKey: `${itemKey}-${fileChangeAnimation.version}`,
+										})}
+									</button>
+									{expanded && (
+										<div className="right-sidebar-file-change-diff">
+											{renderFileHistoryPanel(fileHistoryCache[cacheKey])}
+										</div>
+									)}
+								</li>
+							);
+						})}
 					</ul>
 				)}
 			</OverviewSection>

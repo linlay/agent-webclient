@@ -81,8 +81,14 @@ function normalizeFileChangeSummary(input: {
   toolName: string;
   resultValue: unknown;
   timestamp: number;
+  runId: string;
 }): FileChangeSummary | null {
   if (!isFileMutationToolName(input.toolName)) {
+    return null;
+  }
+
+  const runId = input.runId.trim();
+  if (!runId) {
     return null;
   }
 
@@ -98,6 +104,7 @@ function normalizeFileChangeSummary(input: {
   }
 
   return {
+    runId,
     filePath,
     addedLines: readLineStat(lineStats.addedLines),
     deletedLines: readLineStat(lineStats.deletedLines),
@@ -266,12 +273,15 @@ export function processToolEvent(
     const resultValue = event.result ?? event.output ?? event.text ?? "";
     const resolvedToolName = pickToolName(existingToolState?.toolName, event.toolName);
     const failed = isToolResultFailure(event, resultValue);
+    const resultRunId =
+      toText(event.runId) || existingToolState?.runId || state.runId;
     const fileChange = failed
       ? null
       : normalizeFileChangeSummary({
           toolName: resolvedToolName,
           resultValue,
           timestamp: event.timestamp || Date.now(),
+          runId: resultRunId,
         });
     const resultText =
       typeof resultValue === "string"

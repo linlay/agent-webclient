@@ -23,6 +23,7 @@ export interface PublishedArtifact {
 }
 
 export interface FileChangeSummary {
+	runId: string;
 	filePath: string;
 	addedLines: number;
 	deletedLines: number;

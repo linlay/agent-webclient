@@ -479,12 +479,35 @@
 .right-sidebar-file-change-item {
     min-width: 0;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    flex-direction: column;
     border: 1px solid var(--line-soft);
     border-radius: 8px;
     background: color-mix(in srgb, var(--bg-input) 78%, #fff);
+    overflow: hidden;
+}
+
+.right-sidebar-file-change-row {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.right-sidebar-file-change-row:hover {
+    background: color-mix(in srgb, var(--accent-soft) 38%, transparent);
+}
+
+.right-sidebar-file-change-expand {
+    flex: 0 0 auto;
+    font-size: 16px;
+    color: var(--ink-muted);
 }
 
 .right-sidebar-file-change-icon {
@@ -493,9 +516,16 @@
     color: var(--ink-muted);
 }
 
-.right-sidebar-file-change-path {
+.right-sidebar-file-change-path-wrap {
     min-width: 0;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.right-sidebar-file-change-path {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -503,6 +533,17 @@
         11px/1.35 "IBM Plex Mono",
         monospace;
     color: var(--ink-1);
+}
+
+.right-sidebar-file-change-run {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font:
+        10px/1.25 "IBM Plex Mono",
+        monospace;
+    color: var(--ink-muted);
 }
 
 .right-sidebar-file-change-stats {
@@ -534,6 +575,90 @@
     color: var(--danger);
 }
 
+.right-sidebar-file-change-diff {
+    width: 100%;
+    min-width: 0;
+    border-top: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--bg-surface) 86%, transparent);
+}
+
+.right-sidebar-file-diff-status,
+.right-sidebar-file-diff-empty {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    color: var(--ink-muted);
+    font-size: 12px;
+}
+
+.right-sidebar-file-diff-status.is-error {
+    color: var(--danger);
+}
+
+.right-sidebar-file-diff-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--ink-muted) 22%, transparent);
+    border-top-color: var(--accent-electric);
+    animation: ui-spin 900ms linear infinite;
+}
+
+.right-sidebar-file-diff {
+    max-height: 360px;
+    overflow: auto;
+    padding: 6px 0;
+    font:
+        11px/1.45 "IBM Plex Mono",
+        monospace;
+}
+
+.right-sidebar-file-diff-line {
+    min-width: max-content;
+    display: grid;
+    grid-template-columns: 38px 38px 18px minmax(220px, 1fr);
+    align-items: stretch;
+}
+
+.right-sidebar-file-diff-line.is-add {
+    background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.right-sidebar-file-diff-line.is-delete {
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.right-sidebar-file-diff-no,
+.right-sidebar-file-diff-marker {
+    user-select: none;
+    color: var(--ink-muted);
+    text-align: right;
+    padding: 1px 6px;
+}
+
+.right-sidebar-file-diff-marker {
+    text-align: center;
+}
+
+.right-sidebar-file-diff-line.is-add .right-sidebar-file-diff-marker {
+    color: var(--ok);
+}
+
+.right-sidebar-file-diff-line.is-delete .right-sidebar-file-diff-marker {
+    color: var(--danger);
+}
+
+.right-sidebar-file-diff-code {
+    min-width: 0;
+    padding: 1px 10px 1px 4px;
+    color: var(--ink-1);
+    background: transparent;
+    white-space: pre;
+}
+
 @keyframes right-sidebar-file-change-jump {
     0% {
         transform: translateY(0) scale(1);
@@ -555,7 +680,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-add,
-    .right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-delete {
+    .right-sidebar-file-change-stats.is-jumping .right-sidebar-file-change-delete,
+    .right-sidebar-file-diff-spinner {
         animation: none;
     }
 }

@@ -63,11 +63,11 @@ describe("ComposerActions", () => {
     );
 
     expect(html).toContain("query-settings-controls");
-    expect(html).toContain('data-show-model="false"');
+    expect(html).toContain('data-show-model="true"');
     expect(html).toContain("interrupt-btn");
   });
 
-  it("hides send, voice, and model selector controls while streaming", () => {
+  it("hides send and voice controls while streaming", () => {
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {
         ...baseProps,
@@ -77,6 +77,5 @@ describe("ComposerActions", () => {
 
     expect(html).not.toContain("send-btn");
     expect(html).not.toContain("voice-btn");
-    expect(html).not.toContain('data-show-model="true"');
   });
 });

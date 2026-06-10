@@ -115,12 +115,14 @@ function upsertReplayFileChange(
   fileChanges: FileChangeSummary[],
   fileChange: FileChangeSummary,
 ): FileChangeSummary[] {
+  const runId = String(fileChange.runId || '').trim();
   const filePath = String(fileChange.filePath || '').trim();
-  if (!filePath) {
+  if (!runId || !filePath) {
     return fileChanges;
   }
 
   const normalized: FileChangeSummary = {
+    runId,
     filePath,
     addedLines: Math.max(0, Number(fileChange.addedLines) || 0),
     deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
@@ -132,7 +134,9 @@ function upsertReplayFileChange(
         : Date.now(),
   };
 
-  const index = fileChanges.findIndex((item) => item.filePath === filePath);
+  const index = fileChanges.findIndex(
+    (item) => item.runId === runId && item.filePath === filePath,
+  );
   if (index < 0) {
     return [...fileChanges, normalized];
   }
@@ -140,6 +144,7 @@ function upsertReplayFileChange(
   const current = fileChanges[index];
   const next = fileChanges.slice();
   next[index] = {
+    runId,
     filePath,
     addedLines: current.addedLines + normalized.addedLines,
     deletedLines: current.deletedLines + normalized.deletedLines,

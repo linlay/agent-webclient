@@ -30,6 +30,7 @@ import {
   getChatRawJsonl,
   getArchives,
   getChats,
+  getFileHistory,
   getMemoryRecord,
   getMemoryRecords,
   getMemoryMeta,
@@ -742,6 +743,19 @@ describe('apiClient query payloads', () => {
     await getAgent('demo-agent');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
+  });
+
+  it('requests file history with encoded path and version', async () => {
+    await getFileHistory({
+      chatId: 'chat_1',
+      runId: 'run_1',
+      filePath: '/workspace/src/App.tsx',
+      version: 'current',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/file/history?chatId=chat_1&runId=run_1&filePath=%2Fworkspace%2Fsrc%2FApp.tsx&version=current',
+    );
   });
 
   it('requests memory records and detail over HTTP query params', async () => {

@@ -172,11 +172,13 @@ export function upsertFileChange(
 	fileChanges: FileChangeSummary[],
 	fileChange: FileChangeSummary,
 ): FileChangeSummary[] {
+	const runId = String(fileChange.runId || "").trim();
 	const filePath = String(fileChange.filePath || "").trim();
-	if (!filePath) {
+	if (!runId || !filePath) {
 		return fileChanges;
 	}
 	const normalizedChange: FileChangeSummary = {
+		runId,
 		filePath,
 		addedLines: Math.max(0, Number(fileChange.addedLines) || 0),
 		deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
@@ -188,7 +190,9 @@ export function upsertFileChange(
 				: Date.now(),
 	};
 
-	const index = fileChanges.findIndex((item) => item.filePath === filePath);
+	const index = fileChanges.findIndex(
+		(item) => item.runId === runId && item.filePath === filePath,
+	);
 	if (index < 0) {
 		return [...fileChanges, normalizedChange];
 	}
@@ -196,6 +200,7 @@ export function upsertFileChange(
 	const current = fileChanges[index];
 	const next = fileChanges.slice();
 	next[index] = {
+		runId,
 		filePath,
 		addedLines: current.addedLines + normalizedChange.addedLines,
 		deletedLines: current.deletedLines + normalizedChange.deletedLines,

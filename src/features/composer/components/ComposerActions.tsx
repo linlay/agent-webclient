@@ -116,7 +116,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               accessLevel={accessLevel}
               disabled={true}
               modelOverride={modelOverride}
-              showModelSelector={false}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
             />

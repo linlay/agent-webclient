@@ -50,6 +50,10 @@ export interface ApiResponse<T = unknown> {
   data: T;
 }
 
+export interface FileHistoryResponse {
+  content: string;
+}
+
 export interface GetAgentsOptions {
   includeChats?: number;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
@@ -758,6 +762,27 @@ export function createRequestId(prefix = "req"): string {
 
 export function buildResourceUrl(file: string): string {
   return `/api/resource?file=${encodeURIComponent(file)}`;
+}
+
+export function getFileHistory(
+  params: {
+    chatId?: string;
+    runId: string;
+    filePath: string;
+    version: "original" | "current";
+  },
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<FileHistoryResponse>> {
+  const query = toQueryString({
+    chatId: params.chatId,
+    runId: params.runId,
+    filePath: params.filePath,
+    version: params.version,
+  });
+  return requestJson<FileHistoryResponse>(`/api/file/history?${query}`, {
+    method: "GET",
+    signal: options.signal,
+  });
 }
 
 function getErrorMessageFromText(
