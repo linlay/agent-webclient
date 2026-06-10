@@ -11,7 +11,7 @@ jest.mock("@/shared/api/apiClient", () => ({
   getCurrentAccessToken: jest.fn(),
 }));
 
-import { resolveTerminalDockWorkspaceKey } from "@/app/layout/TerminalDock";
+import { resolveTerminalDockWorkspaceKey, resolveTerminalTheme } from "@/app/layout/TerminalDock";
 
 describe("resolveTerminalDockWorkspaceKey", () => {
   it("uses an absolute worker row workspace when available", () => {
@@ -53,5 +53,38 @@ describe("resolveTerminalDockWorkspaceKey", () => {
         row: { workspaceDir: "/tmp/team" },
       } as never),
     ).toBe("");
+  });
+});
+
+describe("resolveTerminalTheme", () => {
+  it("returns dark theme for \"dark\" mode", () => {
+    const theme = resolveTerminalTheme("dark");
+    expect(theme.background).toBe("#181818");
+    expect(theme.foreground).toBe("#c9cdd4");
+    expect(theme.cursor).toBe("#c9cdd4");
+    expect(theme.cursorAccent).toBe("#181818");
+    expect(theme.black).toBe("#1e1e2e");
+    expect(theme.white).toBe("#bac2de");
+  });
+
+  it("returns light theme for \"light\" mode", () => {
+    const theme = resolveTerminalTheme("light");
+    expect(theme.background).toBe("#fafafa");
+    expect(theme.foreground).toBe("#2c2c2c");
+    expect(theme.cursor).toBe("#2c2c2c");
+    expect(theme.cursorAccent).toBe("#fafafa");
+    expect(theme.black).toBe("#2e3436");
+    expect(theme.white).toBe("#d3d7cf");
+  });
+
+  it("falls back to light theme for unknown values", () => {
+    const theme = resolveTerminalTheme("system");
+    expect(theme.background).toBe("#fafafa");
+    expect(theme.foreground).toBe("#2c2c2c");
+  });
+
+  it("falls back to light theme for empty string", () => {
+    const theme = resolveTerminalTheme("");
+    expect(theme.background).toBe("#fafafa");
   });
 });

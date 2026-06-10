@@ -1224,3 +1224,19 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     padding: 0 16px 16px;
     position: relative;
 }
+
+/* xterm viewport 背景跟随主题 */
+html[data-theme="light"] .xterm .xterm-viewport {
+    background-color: #fafafa;
+}
+html[data-theme="dark"] .xterm .xterm-viewport {
+    background-color: #181818;
+}
+html[data-theme="light"] .xterm .composition-view {
+    background: #fafafa;
+    color: #1d2129;
+}
+html[data-theme="dark"] .xterm .composition-view {
+    background: #181818;
+    color: #f2f3f5;
+}

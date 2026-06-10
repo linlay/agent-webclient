@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
+import type { ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import type { AgentEvent } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -16,6 +17,7 @@ import {
   ensureAccessToken,
   getCurrentAccessToken,
 } from "@/shared/api/apiClient";
+import { useAppState } from "@/app/state/AppContext";
 import "@xterm/xterm/css/xterm.css";
 
 const INPUT_FLUSH_DELAY_MS = 12;
@@ -37,6 +39,60 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 
 function isChatWorkspaceKey(workspaceKey: string): boolean {
   return toText(workspaceKey).toLowerCase() === "@chat";
+}
+
+export function resolveTerminalTheme(themeMode: string): ITheme {
+  const isDark = themeMode === "dark";
+  if (isDark) {
+    return {
+      foreground: "#c9cdd4",
+      background: "#181818",
+      cursor: "#c9cdd4",
+      cursorAccent: "#181818",
+      selectionBackground: "rgba(79, 136, 255, 0.28)",
+      selectionForeground: "#f2f3f5",
+      black: "#1e1e2e",
+      red: "#f38ba8",
+      green: "#a6e3a1",
+      yellow: "#f9e2af",
+      blue: "#89b4fa",
+      magenta: "#cba6f7",
+      cyan: "#94e2d5",
+      white: "#bac2de",
+      brightBlack: "#45475a",
+      brightRed: "#f38ba8",
+      brightGreen: "#a6e3a1",
+      brightYellow: "#f9e2af",
+      brightBlue: "#89b4fa",
+      brightMagenta: "#cba6f7",
+      brightCyan: "#94e2d5",
+      brightWhite: "#cdd6f4",
+    };
+  }
+  return {
+    foreground: "#2c2c2c",
+    background: "#fafafa",
+    cursor: "#2c2c2c",
+    cursorAccent: "#fafafa",
+    selectionBackground: "rgba(38, 99, 235, 0.2)",
+    selectionForeground: "#1d2129",
+    black: "#2e3436",
+    red: "#cc0000",
+    green: "#4e9a06",
+    yellow: "#c4a000",
+    blue: "#3465a4",
+    magenta: "#75507b",
+    cyan: "#06989a",
+    white: "#d3d7cf",
+    brightBlack: "#555753",
+    brightRed: "#ef2929",
+    brightGreen: "#8ae234",
+    brightYellow: "#fce94f",
+    brightBlue: "#729fcf",
+    brightMagenta: "#ad7fa8",
+    brightCyan: "#34e2e2",
+    brightWhite: "#eeeeec",
+  };
 }
 
 function terminalErrorMessage(error: unknown): string {
@@ -93,6 +149,8 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   const inputFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionVersionRef = useRef(0);
+
+  const { themeMode } = useAppState();
 
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
   const normalizedWorkspaceKey = useMemo(
@@ -195,6 +253,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
       fontSize: 13,
       scrollback: 5000,
       convertEol: false,
+      theme: resolveTerminalTheme(themeMode),
     });
     const fitAddon = new FitAddon();
     terminalRef.current = terminal;
@@ -338,6 +397,12 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
     terminalChatId,
     writeStatus,
   ]);
+
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+    terminal.options.theme = resolveTerminalTheme(themeMode);
+  }, [themeMode]);
 
   return (
     <section

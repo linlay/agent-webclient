@@ -5,6 +5,51 @@ import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
+import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+
+export function getFileIcon(filePath: string): string {
+	const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+	const map: Record<string, string> = {
+		ts: "code",
+		tsx: "code",
+		js: "javascript",
+		jsx: "javascript",
+		mjs: "javascript",
+		cjs: "javascript",
+		css: "css",
+		scss: "css",
+		sass: "css",
+		less: "css",
+		html: "html",
+		htm: "html",
+		json: "data_object",
+		md: "description",
+		mdx: "description",
+		py: "code",
+		java: "code",
+		go: "code",
+		rs: "code",
+		sh: "terminal",
+		bash: "terminal",
+		zsh: "terminal",
+		yaml: "description",
+		yml: "description",
+		toml: "settings",
+		xml: "code",
+		svg: "image",
+		png: "image",
+		jpg: "image",
+		jpeg: "image",
+		gif: "image",
+		webp: "image",
+		ico: "image",
+		txt: "description",
+		lock: "lock",
+		env: "settings",
+		properties: "settings",
+	};
+	return map[ext] ?? "description";
+}
 
 export interface OverviewArtifactItem {
 	artifactId: string;
@@ -152,6 +197,11 @@ export const OverviewTab: React.FC = () => {
 			),
 		[fileChanges],
 	);
+	const isCoder = React.useMemo(() => {
+		const worker = resolveCurrentWorkerSummary(state);
+		if (!worker || worker.type !== "agent") return false;
+		return String((worker.raw as Record<string, unknown> | null)?.["mode"] || "").toUpperCase() === "CODER";
+	}, [state]);
 
 	React.useEffect(() => {
 		const nextSignatures = buildFileChangeAnimationSignatures(fileChanges);
@@ -190,7 +240,7 @@ export const OverviewTab: React.FC = () => {
 	return (
 		<div className="right-sidebar-overview">
 			<OverviewSection
-				title={t("rightSidebar.overview.fileChanges.title")}
+				title={isCoder ? t("rightSidebar.overview.fileChanges.titleCoder") : t("rightSidebar.overview.fileChanges.title")}
 				count={renderFileChangeStats(
 					fileChangeTotals.addedLines,
 					fileChangeTotals.deletedLines,
@@ -202,14 +252,14 @@ export const OverviewTab: React.FC = () => {
 			>
 				{fileChanges.length === 0 ? (
 					<div className="right-sidebar-empty">
-						{t("rightSidebar.overview.fileChanges.empty")}
+						{t(isCoder ? "rightSidebar.overview.fileChanges.emptyCoder" : "rightSidebar.overview.fileChanges.empty")}
 					</div>
 				) : (
 					<ul className="right-sidebar-file-change-list">
 						{fileChanges.map((item) => (
 							<li key={item.filePath} className="right-sidebar-file-change-item">
 								<MaterialIcon
-									name="code"
+									name={getFileIcon(item.filePath)}
 									className="right-sidebar-file-change-icon"
 									aria-hidden="true"
 								/>
