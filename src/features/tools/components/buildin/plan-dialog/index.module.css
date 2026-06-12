@@ -38,31 +38,6 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-
-    :global {
-      .Selected {
-        color: var(--colorTextSecondary);
-        background-color: var(--colorBgTextHover, rgba(0, 0, 0, 0.06));
-        padding: 1px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-        display: none;
-      }
-
-      .ant-checkbox {
-        display: none;
-      }
-
-      .ant-checkbox-wrapper>:last-child {
-        flex: 1;
-      }
-
-      .ant-checkbox-wrapper-checked {
-        .Selected {
-          display: block;
-        }
-      }
-    }
   }
   .Option {
     padding: 6px 3px;
@@ -119,7 +94,7 @@
   .CheckboxGroup :global(.Selected) {
     color: var(--colorTextSecondary);
     background-color: var(--bg-hover);
-    padding: 0 6px;
+    padding: 1px 8px;
     border-radius: 10px;
     font-size: 12px;
     display: none;

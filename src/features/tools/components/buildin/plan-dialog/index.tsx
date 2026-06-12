@@ -1,30 +1,24 @@
 import { message } from "antd";
 import { Button, Checkbox, CheckboxRef, Flex, Input } from "antd/es";
-import { EnterOutlined, LoadingOutlined } from "@ant-design/icons";
+import { LoadingOutlined } from "@ant-design/icons";
 import React, {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import type {
   AIAwaitPlan,
   AIAwaitPlanDecision,
-  AIAwaitPlanOption,
   AIAwaitSubmitPayloadData,
   PlanActiveAwaiting,
 } from "@/app/state/types";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
-import {
-  buildPlanSubmitParam,
-  resolvePlanOptions,
-} from "@/features/tools/components/buildin/plan-dialog/state";
+import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";
 import { useI18n } from "@/shared/i18n";
-import { debounce } from "lodash";
 import Style from "./index.module.css";
 
 interface PlanDialogProps {
@@ -48,15 +42,12 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
   const resolvedByOtherHandledRef = useRef(false);
   const [submittingDecision, setSubmittingDecision] =
     useState<AIAwaitPlanDecision | null>(null);
-  const [decision, setDecision] = useState<AIAwaitPlanDecision | undefined>();
   const [reason, setReason] = useState("");
   const plan = data.plan;
-  const options = useMemo(() => resolvePlanOptions(plan), [plan]);
   const readOnly = Boolean(submittingDecision) || Boolean(data.resolvedByOther);
   const ready = Boolean(plan.id);
 
   useEffect(() => {
-    setDecision(undefined);
     setReason("");
     setSubmittingDecision(null);
   }, [data.awaitingId, data.runId]);
@@ -75,10 +66,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
   }, [data.resolvedByOther, onResolvedByOther, t]);
 
   const submitDecision = useCallback(
-    async (
-      nextDecision: AIAwaitPlanDecision | undefined = decision,
-      nextReason = reason,
-    ) => {
+    async (nextDecision?: AIAwaitPlanDecision, nextReason = reason) => {
       if (!onSubmit || readOnly) {
         return;
       }
@@ -97,16 +85,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
         setSubmittingDecision(null);
       }
     },
-    [
-      data.awaitingId,
-      data.runId,
-      decision,
-      onSubmit,
-      plan,
-      readOnly,
-      reason,
-      t,
-    ],
+    [data.awaitingId, data.runId, onSubmit, plan, readOnly, reason, t],
   );
 
   useKeyboard({
@@ -143,8 +122,8 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 
   const doIgnore = useCallback(() => {
     if (readOnly) return;
-    void submitDecision("reject", "跳过本次计划实施");
-  }, [submitDecision]);
+    void submitDecision("reject", t("planDialog.skipReason"));
+  }, [readOnly, submitDecision, t]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -200,118 +179,107 @@ const PlanQuestion = forwardRef<
     onReasonChange: (nextReason: string) => void;
     onEnter: (nextDecision?: AIAwaitPlanDecision, nextReason?: string) => void;
   }
->(
-  (
-    {
-      plan,
-      readOnly,
-      reason,
-      onReasonChange,
-      onEnter,
-    },
+>(({ plan, readOnly, reason, onReasonChange, onEnter }, ref) => {
+  const { t } = useI18n();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const checkboxsRef = useRef<CheckboxRef[]>([]);
+
+  useImperativeHandle(
     ref,
-  ) => {
-    const { t } = useI18n();
-    const hostRef = useRef<HTMLDivElement>(null);
-    const checkboxsRef = useRef<CheckboxRef[]>([]);
+    () => ({
+      getElements: () => {
+        return hostRef.current?.querySelectorAll('[tabIndex="0"]');
+      },
+      check: (index: number) => {
+        checkboxsRef.current[index]?.input?.click();
+      },
+    }),
+    [],
+  );
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        getElements: () => {
-          return hostRef.current?.querySelectorAll('[tabIndex="0"]');
-        },
-        check: (index: number) => {
-          checkboxsRef.current[index]?.input?.click();
-        },
-      }),
-      [],
-    );
-
-    return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-        <Flex className={Style.Question} align="baseline">
-          <Flex vertical gap={4} className={Style.QuestionText}>
-            <span className={Style.QuestionHeading}>
-              {plan.title || "Implement this plan?"}
-            </span>
-          </Flex>
+  return (
+    <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+      <Flex className={Style.Question} align="baseline">
+        <Flex vertical gap={4} className={Style.QuestionText}>
+          <span className={Style.QuestionHeading}>
+            {plan.title || t("planDialog.titleFallback")}
+          </span>
         </Flex>
-        <Checkbox.Group className={Style.CheckboxGroup} disabled={readOnly}>
-          <Checkbox
-            ref={(checkboxRef) => {
-              if (checkboxRef) {
-                checkboxsRef.current[0] = checkboxRef;
-              }
-            }}
-            className={Style.Option}
-            onClick={() => {
-              onEnter("approve");
-            }}
-          >
-            <Flex
-              gap={10}
-              align="center"
-              tabIndex={0}
-              data-index={0}
-              style={{ outline: "none" }}
-            >
-              <span className={Style.Index}>1</span>
-              <span className={Style.Info}>是，实施此计划</span>
-            </Flex>
-          </Checkbox>
-          <Checkbox
-            ref={(checkboxRef) => {
-              if (checkboxRef) {
-                checkboxsRef.current[1] = checkboxRef;
-              }
-            }}
-            className={Style.Option}
-            onClick={() => {
-              onEnter("reject", reason);
-            }}
-          >
-            <Flex gap={10} align="center">
-              <span className={Style.Index}>2</span>
-              <span>否</span>
-              <Input
-                variant="borderless"
-                placeholder="请告知如何调整"
-                tabIndex={0}
-                disabled={readOnly}
-                onChange={(event) => {
-                  onReasonChange(event.target.value);
-                }}
-                onPressEnter={(event) => {
-                  const val = event.currentTarget.value.trim();
-                  if (val) {
-                    onEnter("reject", val);
-                  }
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                style={{ padding: 0, fontSize: 12, borderRadius: 0 }}
-              />
-              <Button
-                type="link"
-                shape="round"
-                className={Style.IgnoreButton}
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEnter("reject", "跳过本次计划实施");
-                }}
-                disabled={readOnly}
-              >
-                {t("approvalDialog.action.skip")}
-              </Button>
-            </Flex>
-          </Checkbox>
-        </Checkbox.Group>
       </Flex>
-    );
-  },
-);
+      <Checkbox.Group className={Style.CheckboxGroup} disabled={readOnly}>
+        <Checkbox
+          ref={(checkboxRef) => {
+            if (checkboxRef) {
+              checkboxsRef.current[0] = checkboxRef;
+            }
+          }}
+          className={Style.Option}
+          onClick={() => {
+            onEnter("approve");
+          }}
+        >
+          <Flex
+            gap={10}
+            align="center"
+            tabIndex={0}
+            data-index={0}
+            style={{ outline: "none" }}
+          >
+            <span className={Style.Index}>1</span>
+            <span className={Style.Info}>{t("planDialog.option.approve")}</span>
+          </Flex>
+        </Checkbox>
+        <Checkbox
+          ref={(checkboxRef) => {
+            if (checkboxRef) {
+              checkboxsRef.current[1] = checkboxRef;
+            }
+          }}
+          className={Style.Option}
+          onClick={() => {
+            onEnter("reject", reason);
+          }}
+        >
+          <Flex gap={10} align="center">
+            <span className={Style.Index}>2</span>
+            <span>{t("planDialog.option.reject")}</span>
+            <Input
+              variant="borderless"
+              placeholder={t("planDialog.rejectPlaceholder")}
+              tabIndex={0}
+              disabled={readOnly}
+              onChange={(event) => {
+                onReasonChange(event.target.value);
+              }}
+              onPressEnter={(event) => {
+                const val = event.currentTarget.value.trim();
+                if (val) {
+                  onEnter("reject", val);
+                }
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              style={{ padding: 0, fontSize: 12, borderRadius: 0 }}
+            />
+            <Button
+              type="link"
+              shape="round"
+              className={Style.IgnoreButton}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEnter("reject", t("planDialog.skipReason"));
+              }}
+              disabled={readOnly}
+            >
+              {t("approvalDialog.action.skip")}
+            </Button>
+          </Flex>
+        </Checkbox>
+      </Checkbox.Group>
+    </Flex>
+  );
+});
 
 PlanQuestion.displayName = "PlanQuestion";
