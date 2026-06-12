@@ -1745,7 +1745,6 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
       agentKey: params.agentKey,
       teamId: params.teamId,
       message: params.message,
-      planningMode: params.planningMode ?? false,
     }),
   });
 }
@@ -1776,7 +1775,6 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
       agentKey: params.agentKey,
       teamId: params.teamId,
       message: params.message,
-      planningMode: params.planningMode ?? false,
     }),
   });
 }
@@ -1822,6 +1820,7 @@ export interface QueryStreamParams {
   requestId: string;
   message: string;
   planningMode?: boolean;
+  agentMode?: string;
   accessLevel?: QueryAccessLevel;
   model?: QueryModelOverride;
   agentKey?: string;
@@ -1847,9 +1846,12 @@ export function createQueryStream(
 ): Promise<Response> {
   const body: Record<string, unknown> = {
     requestId: options.requestId,
-    planningMode: options.planningMode ?? false,
     message: options.message,
   };
+
+  if (String(options.agentMode || "").trim().toUpperCase() === "CODER") {
+    body.planningMode = options.planningMode === true;
+  }
 
   if (options.agentKey) body.agentKey = options.agentKey;
   if (options.teamId) body.teamId = options.teamId;

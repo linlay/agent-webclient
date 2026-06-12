@@ -293,6 +293,11 @@ export function useMessageActions() {
 
       const cleanMessage = mention.cleanMessage || rawMessage;
 
+      const selectedAgent = stateRef.current.agents.find(
+        (agent) => toText(agent?.key) === selectedAgentKey,
+      );
+      const selectedAgentMode = String(selectedAgent?.mode || '').trim();
+
       if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
 
       dispatch({
@@ -501,6 +506,7 @@ export function useMessageActions() {
             model,
             params: Object.keys(params).length > 0 ? params : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
+            agentMode: selectedAgentMode || undefined,
             signal: abortController.signal,
           },
           dispatch: sessionDispatch,

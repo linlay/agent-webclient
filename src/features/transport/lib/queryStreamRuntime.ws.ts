@@ -144,7 +144,9 @@ export async function executeQueryStreamWs(
 					type: "/api/query",
 					payload: {
 						requestId: params.requestId,
-						planningMode: params.planningMode ?? false,
+						...(String(params.agentMode || "").trim().toUpperCase() === "CODER"
+							? { planningMode: params.planningMode === true }
+							: {}),
 						message: params.message,
 						...(params.agentKey ? { agentKey: params.agentKey } : {}),
 						...(params.teamId ? { teamId: params.teamId } : {}),

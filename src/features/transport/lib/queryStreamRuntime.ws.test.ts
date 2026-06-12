@@ -140,6 +140,111 @@ describe("executeQueryStreamWs", () => {
 				}),
 			}),
 		);
+		const firstCall = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(firstCall.payload).not.toHaveProperty("planningMode");
+		expect(firstCall.payload).not.toHaveProperty("agentMode");
+	});
+
+	it("serializes planningMode=true for CODER websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: { onDone?: (reason: string, lastSeq: number) => void }) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_plan_ws",
+				message: "plan",
+				planningMode: true,
+				agentMode: "CODER",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		const call = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(call.payload).toEqual(
+			expect.objectContaining({
+				requestId: "req_plan_ws",
+				planningMode: true,
+				message: "plan",
+			}),
+		);
+		expect(call.payload).not.toHaveProperty("agentMode");
+	});
+
+	it("serializes planningMode=false for CODER websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: { onDone?: (reason: string, lastSeq: number) => void }) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_coder_false_ws",
+				message: "execute",
+				planningMode: false,
+				agentMode: "CODER",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		const call = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(call.payload).toEqual(
+			expect.objectContaining({
+				requestId: "req_coder_false_ws",
+				planningMode: false,
+				message: "execute",
+			}),
+		);
+		expect(call.payload).not.toHaveProperty("agentMode");
+	});
+
+	it("omits planningMode for non-CODER websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: { onDone?: (reason: string, lastSeq: number) => void }) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		getWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_react_plan_ws",
+				message: "react",
+				planningMode: true,
+				agentMode: "REACT",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		const call = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(call.payload).toEqual(
+			expect.objectContaining({
+				requestId: "req_react_plan_ws",
+				message: "react",
+			}),
+		);
+		expect(call.payload).not.toHaveProperty("planningMode");
+		expect(call.payload).not.toHaveProperty("agentMode");
 	});
 
 	it("passes business params unchanged through websocket payloads", async () => {

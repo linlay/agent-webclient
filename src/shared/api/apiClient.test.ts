@@ -245,18 +245,20 @@ describe('apiClient query payloads', () => {
     expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_1',
-      planningMode: false,
       message: '显示广州的天气',
     });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('runId');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('stream');
   });
 
-  it('includes only present optional fields for query streams', async () => {
+  it('includes planningMode=true for CODER query streams', async () => {
     await createQueryStream({
       requestId: 'req_2',
       message: '继续',
       planningMode: true,
+      agentMode: 'CODER',
       chatId: 'chat_1',
       agentKey: 'demoViewport',
     });
@@ -270,6 +272,41 @@ describe('apiClient query payloads', () => {
       chatId: 'chat_1',
       agentKey: 'demoViewport',
     });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
+  });
+
+  it('includes planningMode=false for CODER query streams when disabled', async () => {
+    await createQueryStream({
+      requestId: 'req_coder_false',
+      message: '普通执行',
+      planningMode: false,
+      agentMode: 'CODER',
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_coder_false',
+      message: '普通执行',
+      planningMode: false,
+    });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
+  });
+
+  it('omits planningMode for non-CODER query streams even when enabled', async () => {
+    await createQueryStream({
+      requestId: 'req_react_plan_stale',
+      message: '非 CODER 请求',
+      planningMode: true,
+      agentMode: 'REACT',
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_react_plan_stale',
+      message: '非 CODER 请求',
+    });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
   });
 
   it('keeps query params empty in desktop app mode when no business params are provided', async () => {
@@ -287,9 +324,9 @@ describe('apiClient query payloads', () => {
     expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_desktop',
-      planningMode: false,
       message: '当前页面是什么',
     });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
   });
 
   it('passes business params unchanged in desktop app mode', async () => {
@@ -327,7 +364,6 @@ describe('apiClient query payloads', () => {
     expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_desktop_snapshot',
-      planningMode: false,
       message: '当前页面是什么',
       params: { city: 'beijing' },
     });
@@ -349,7 +385,6 @@ describe('apiClient query payloads', () => {
     expect(url).toBe('/api/query');
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_access_model',
-      planningMode: false,
       message: '继续',
       accessLevel: 'auto_approve',
       model: {
@@ -370,7 +405,6 @@ describe('apiClient query payloads', () => {
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_3',
-      planningMode: false,
       message: '',
       references: [{ id: 'upload_1', name: 'spec.md' }],
     });

@@ -148,6 +148,10 @@ export function useVoiceChatListening({
 						agentKey: agentKey || undefined,
 						chatId: chatId || undefined,
 						planningMode: Boolean(controller.stateRef.current.planningMode),
+						agentMode:
+							currentWorker?.type === "agent"
+								? String(currentWorker.raw?.mode || "").trim() || undefined
+								: undefined,
 					},
 					dispatch,
 					handleEvent,
