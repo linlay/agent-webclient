@@ -234,7 +234,7 @@ export const zhCNMessages: I18nMessages = {
   "rightSidebar.resize.ariaLabel": "调整右侧栏宽度",
   "rightSidebar.resize.title": "拖拽调整右侧栏宽度",
   "approvalDialog.action.continue": "继续",
-  "approvalDialog.action.ignore": "忽略",
+  "approvalDialog.action.skip": "跳过",
   "approvalDialog.action.submit": "提交",
   "confirmDialog.action.skip": "跳过",
   "approvalDialog.loading": "等待审批加载中...",

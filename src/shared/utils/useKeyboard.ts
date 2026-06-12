@@ -43,9 +43,11 @@ export const useKeyboard = (props: UseKeyboardProps) => {
     const activeElement = document.activeElement as HTMLElement | null;
     const activeTagName = activeElement?.tagName;
     const activeElementIsEditable =
-      activeTagName === "INPUT"
-      || activeTagName === "TEXTAREA"
-      || Boolean(activeElement?.isContentEditable);
+      key !== "arrowdown" &&
+      key !== "arrowup" &&
+      (activeTagName === "INPUT" ||
+        activeTagName === "TEXTAREA" ||
+        Boolean(activeElement?.isContentEditable));
 
     if (activeElementIsEditable && key !== "escape") {
       callbackRef.current?.onKeyDown?.(e);

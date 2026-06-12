@@ -998,7 +998,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                   void handleReject();
                 }}
               >
-                <span>{t("approvalDialog.action.ignore")}</span>
+                <span>{t("approvalDialog.action.skip")}</span>
               </Button>
               <Button
                 type="primary"

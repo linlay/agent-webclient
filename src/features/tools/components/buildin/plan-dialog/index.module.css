@@ -8,14 +8,6 @@
 
   .IgnoreButton {
     color: var(--text-muted);
-
-    span:last-child {
-      margin-left: 4px;
-      background-color: var(--accent-soft, rgba(0, 0, 0, 0.06));
-      padding: 1px 8px;
-      border-radius: 10px;
-      color: var(--text-main);
-    }
   }
   button {
     font-size: 12px;
@@ -75,7 +67,7 @@
   .Option {
     padding: 6px 3px;
     border-radius: 16px;
-    color: var(--text-muted);
+    color: var(--text-main);
     font-size: 12px;
     flex: 1;
 
@@ -106,6 +98,7 @@
       border-radius: 50%;
       background: var(--bg-hover);
       border: 1px solid var(--line);
+      color: var(--text-muted);
       width: 20px;
       height: 20px;
       display: flex;
