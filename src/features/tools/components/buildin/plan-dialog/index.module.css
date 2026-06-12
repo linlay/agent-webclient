@@ -73,8 +73,8 @@
     }
   }
   .Option {
-    padding: 6px 0;
-    border-radius: 10px;
+    padding: 6px 3px;
+    border-radius: 16px;
     color: var(--text-muted);
     font-size: 12px;
     flex: 1;
@@ -88,6 +88,34 @@
     &:hover:not(&.FreeText),
     &:focus-within:not(&.FreeText) {
       background-color: var(--bg-hover);
+    }
+
+    &:focus-within&.FreeText {
+      border-color: var(--accent);
+    }
+
+    &:focus-within {
+      .Index {
+        background: var(--text-main);
+        color: var(--bg-base);
+        border-color: var(--text-main);
+      }
+    }
+
+    .Index {
+      border-radius: 50%;
+      background: var(--bg-hover);
+      border: 1px solid var(--line);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      :global(.material-symbols-rounded) {
+        font-size: 12px;
+      }
     }
 
     .Info {

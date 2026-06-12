@@ -318,7 +318,7 @@ const PlanQuestion = forwardRef<
                   className={Style.Option}
                 >
                   <Flex gap={6}>
-                    <span>{index + 1}.</span>
+                    <span className={Style.Index}>{index + 1}</span>
                     {option.input ? (
                       <Input
                         variant="borderless"
