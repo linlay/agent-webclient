@@ -61,6 +61,7 @@ import {
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { debounce } from "lodash";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
@@ -721,7 +722,7 @@ const Question = forwardRef<
                 data-multi-select={isMultiSelectQuestionType(data)}
                 style={{ outline: "none" }}
               >
-                <span>{i + 1}.</span>
+                <span className={Style.Index}>{i + 1}</span>
                 <span className={Style.Info}>{option.label}</span>
                 {tooltip && (
                   <Tooltip
@@ -742,7 +743,9 @@ const Question = forwardRef<
       </Checkbox.Group>
       {data.allowFreeText && (
         <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10}>
-          <span>{options.length + 1}.</span>
+          <span className={Style.Index}>
+            <MaterialIcon name="edit" />
+          </span>
           <Input
             variant="borderless"
             placeholder={placeholder}

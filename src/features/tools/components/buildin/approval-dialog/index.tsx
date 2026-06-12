@@ -35,6 +35,7 @@ import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitin
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
 import Style from "./index.module.css";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface ApprovalDialogProps {
   data: ApprovalActiveAwaiting;
@@ -565,7 +566,7 @@ const ApprovalQuestion = forwardRef<
                   data-index={index}
                   style={{ outline: "none" }}
                 >
-                  <span>{index + 1}.</span>
+                  <span className={Style.Index}>{index + 1}</span>
                   <span className={Style.Info}>{option.label}</span>
                   {option.description && (
                     <span className={Style.ApprovalMeta}>
@@ -589,7 +590,9 @@ const ApprovalQuestion = forwardRef<
             gap={10}
             align="center"
           >
-            <span>{options?.length + 1}.</span>
+            <span className={Style.Index}>
+              <MaterialIcon name="edit" />
+            </span>
             <Input
               variant="borderless"
               placeholder={approval.freeTextPlaceholder}

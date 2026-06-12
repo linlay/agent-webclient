@@ -17,11 +17,13 @@
   .SkipButton {
     color: var(--text-muted);
   }
+
   button {
     font-size: 12px;
 
   }
 }
+
 .TimeoutRow {
   color: var(--text-muted);
   font-size: 12px;
@@ -30,6 +32,7 @@
 
 .QuestionWrapper {
   font-size: 12px;
+
   .Question {
     padding: 10px;
     gap: 16px;
@@ -93,15 +96,16 @@
       }
     }
   }
+
   .Option {
-    padding: 6px;
-    border-radius: 10px;
+    padding: 6px 3px;
+    border-radius: 16px;
     color: var(--text-muted);
     font-size: 12px;
     flex: 1;
 
-    :global{
-      input{
+    :global {
+      input {
         font-size: 12px;
       }
     }
@@ -111,6 +115,34 @@
       background-color: var(--bg-hover);
     }
 
+    &:focus-within&.FreeText {
+      border-color: var(--accent);
+    }
+
+    &:focus-within {
+      .Index {
+        background: var(--text-main);
+        color: var(--bg-base);
+        border-color: var(--text-main);
+      }
+    }
+
+    .Index {
+      border-radius: 50%;
+      background: var(--bg-hover);
+      border: 1px solid var(--line);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      :global(.material-symbols-rounded) {
+        font-size: 12px;
+      }
+    }
+
     .Info {
       color: var(--text-main);
       font-weight: bold;
@@ -118,7 +150,9 @@
   }
 
   .FreeText {
-    padding: 6px 14px;
+    border: 1px solid transparent;
+    padding: 6px 10px;
+    margin: 4px 0;
   }
 
   .CheckboxGroup :global(.Selected) {

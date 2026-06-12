@@ -24,6 +24,7 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
+import Style from "./buildin/confirm-dialog/index.module.css";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -949,7 +950,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               disabled={submitDisabled}
             >
               <Flex gap={10} align="center">
-                <span>1.</span>
+                <span className="awaiting-panel-option-index">1</span>
                 <span className="awaiting-panel-option-label">
                   {t("awaiting.action.approve")}
                 </span>
@@ -963,7 +964,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           <Flex className="awaiting-panel-option-row" align="center" gap={10}>
             <Checkbox value="reject" className="awaiting-panel-option">
               <Flex gap={10} align="center">
-                <span>2.</span>
+                <span className="awaiting-panel-option-index">2</span>
                 <span className="awaiting-panel-option-label">
                   {t("awaiting.action.reject")}
                 </span>

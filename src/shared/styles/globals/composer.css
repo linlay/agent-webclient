@@ -794,6 +794,24 @@
     background-color: var(--bg-hover);
 }
 
+.awaiting-panel-option:focus-within .awaiting-panel-option-index {
+    background: var(--text-main);
+    color: var(--bg-base);
+    border-color: var(--text-main);
+}
+
+.awaiting-panel-option-index {
+    border-radius: 50%;
+    background: var(--bg-hover);
+    border: 1px solid var(--line);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
 .awaiting-panel-option .awaiting-panel-option-label {
     color: var(--text-main);
     font-weight: 600;
@@ -1225,11 +1243,13 @@
     font-size: 12px;
     color: var(--ink-muted);
 }
-.composer-input-wrapper{
+
+.composer-input-wrapper {
     position: relative;
     width: 100%;
 }
-.composer-input-wrapper .ui-btn.is-icon-only{
+
+.composer-input-wrapper .ui-btn.is-icon-only {
     position: absolute;
     top: -4px;
     right: -4px;
@@ -1238,12 +1258,16 @@
     min-height: 20px;
     z-index: 10;
 }
-.composer-input-expand-arrow{
+
+.composer-input-expand-arrow {
     transform: rotate(45deg) translate(0px, -4px);
 }
-.composer-input-expand-btn:hover .composer-input-expand-arrow, .composer-input-expand-btn[data-expanded="true"] .composer-input-expand-arrow{
+
+.composer-input-expand-btn:hover .composer-input-expand-arrow,
+.composer-input-expand-btn[data-expanded="true"] .composer-input-expand-arrow {
     display: none;
 }
-.composer-input-expand-btn:not(:hover):not([data-expanded="true"]) .material-symbols-rounded:not(.composer-input-expand-arrow){
+
+.composer-input-expand-btn:not(:hover):not([data-expanded="true"]) .material-symbols-rounded:not(.composer-input-expand-arrow) {
     display: none;
 }
