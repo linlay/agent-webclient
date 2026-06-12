@@ -277,7 +277,7 @@ export const enUSMessages: I18nMessages = {
   "rightSidebar.resize.ariaLabel": "Resize right sidebar",
   "rightSidebar.resize.title": "Drag to resize the right sidebar",
   "approvalDialog.action.continue": "Continue",
-  "approvalDialog.action.ignore": "Ignore",
+  "approvalDialog.action.skip": "Skip",
   "approvalDialog.action.submit": "Submit",
   "confirmDialog.action.skip": "Skip",
   "approvalDialog.loading": "Loading approval request...",
