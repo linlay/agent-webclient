@@ -304,6 +304,32 @@ describe("connectWsTransport", () => {
 		});
 	});
 
+	it("records a disconnected websocket transport without calling it a handshake failure", async () => {
+		const connect = jest
+			.fn<Promise<void>, []>()
+			.mockRejectedValue(new Error("WebSocket transport disconnected"));
+		const initWsClientImpl = jest.fn(() => ({ connect }) as any);
+		const state = createState({ accessToken: "token_local" });
+
+		await expect(
+			connectWsTransport({
+				dispatch,
+				state,
+				stateRef: { current: state },
+				handleEvent,
+				isAppModeImpl: () => false,
+				ensureAccessTokenImpl: jest.fn(),
+				initWsClientImpl,
+				destroyWsClientImpl: jest.fn(),
+			}),
+		).rejects.toThrow(/WebSocket .*?(disconnected|连接已断开)/i);
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_WS_ERROR_MESSAGE",
+			message: expect.stringMatching(/WebSocket .*?(disconnected|连接已断开)/i),
+		});
+	});
+
 	it("retries once with a refreshed app-mode token after connect failure", async () => {
 		const firstConnect = jest
 			.fn<Promise<void>, []>()
@@ -481,6 +507,58 @@ describe("connectWsTransport", () => {
 		);
 		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "agent:voice-reset" }),
+		);
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("forwards catalog.updated push events to the registry console window listener", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "catalog.updated",
+			payload: {
+				reason: "models",
+			},
+		});
+
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "agent:catalog-updated",
+				detail: expect.objectContaining({ type: "catalog.updated", reason: "models" }),
+			}),
 		);
 		expect(handleEvent).not.toHaveBeenCalled();
 	});

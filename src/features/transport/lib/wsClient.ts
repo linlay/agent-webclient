@@ -96,10 +96,24 @@ export interface WsClientOptions {
 	requestTimeoutMs?: number;
 }
 
+// Backend targets a 30s application heartbeat; the client allows about three
+// missed beats plus scheduler jitter before it treats the socket as stale.
+const WS_SERVER_HEARTBEAT_INTERVAL_MS = 30_000;
+const DEFAULT_WS_HEARTBEAT_TIMEOUT_MS =
+	WS_SERVER_HEARTBEAT_INTERVAL_MS * 3 + 10_000;
+const DEFAULT_WS_HEALTH_CHECK_INTERVAL_MS = 5_000;
+const WS_HEARTBEAT_TIMEOUT_CLOSE_CODE = 4000;
+const WS_HEARTBEAT_TIMEOUT_CLOSE_REASON = "heartbeat timeout";
+const WS_HEARTBEAT_TIMEOUT_MESSAGE = "WebSocket heartbeat timeout";
+const WS_TRANSPORT_DISCONNECTED_MESSAGE = "WebSocket transport disconnected";
+const WS_TRANSPORT_NOT_CONNECTED_MESSAGE = "WebSocket transport is not connected";
+const WS_TRANSPORT_NOT_INITIALIZED_MESSAGE =
+	"WebSocket transport is not initialized";
+
 export class WsClientDisconnectedError extends Error {
 	code: string;
 
-	constructor(message = "WebSocket transport disconnected") {
+	constructor(message = WS_TRANSPORT_DISCONNECTED_MESSAGE) {
 		super(message);
 		this.name = "WsClientDisconnectedError";
 		this.code = "WS_DISCONNECTED";
@@ -155,12 +169,52 @@ function hasHelpfulWsMessage(message: string): boolean {
 		message.startsWith("Missing access token") ||
 		message.startsWith("Missing Access Token") ||
 		message.startsWith("WebSocket handshake failed") ||
-		message.startsWith("WebSocket transport is not initialized") ||
+		message.startsWith(WS_TRANSPORT_NOT_INITIALIZED_MESSAGE) ||
 		message.startsWith(t("ws.missingAccessToken.browser")) ||
 		message.startsWith(t("ws.missingAccessToken.host")) ||
 		message.startsWith(t("ws.handshakeFailed")) ||
+		message.startsWith(t("ws.disconnected")) ||
+		message.startsWith(t("ws.heartbeatTimeout")) ||
 		message.startsWith(t("ws.transportNotInitialized"))
 	);
+}
+
+function normalizeWsCloseReason(reason: unknown): string {
+	return String(reason || "").trim();
+}
+
+function isHeartbeatTimeoutClose(
+	event?: Pick<CloseEvent, "code" | "reason">,
+): boolean {
+	const code = Number(event?.code ?? 0);
+	const reason = normalizeWsCloseReason(event?.reason).toLowerCase();
+	return (
+		code === WS_HEARTBEAT_TIMEOUT_CLOSE_CODE &&
+		reason === WS_HEARTBEAT_TIMEOUT_CLOSE_REASON
+	);
+}
+
+function isTransportDisconnectedMessage(message: string): boolean {
+	return (
+		message === WS_TRANSPORT_DISCONNECTED_MESSAGE ||
+		message === WS_TRANSPORT_NOT_CONNECTED_MESSAGE ||
+		message.startsWith(`${WS_TRANSPORT_DISCONNECTED_MESSAGE}:`)
+	);
+}
+
+function createDisconnectErrorFromClose(
+	event?: Pick<CloseEvent, "code" | "reason">,
+): WsClientDisconnectedError {
+	if (isHeartbeatTimeoutClose(event)) {
+		return new WsClientDisconnectedError(WS_HEARTBEAT_TIMEOUT_MESSAGE);
+	}
+	const reason = normalizeWsCloseReason(event?.reason);
+	if (reason) {
+		return new WsClientDisconnectedError(
+			`${WS_TRANSPORT_DISCONNECTED_MESSAGE}: ${reason}`,
+		);
+	}
+	return new WsClientDisconnectedError(WS_TRANSPORT_DISCONNECTED_MESSAGE);
 }
 
 function missingAccessTokenMessage(appMode = false): string {
@@ -181,8 +235,9 @@ export function isWsConnectionFailure(error: unknown): boolean {
 	return (
 		hasHelpfulWsMessage(message) ||
 		message === "WebSocket connection failed" ||
-		message === "WebSocket transport disconnected" ||
-		message === "WebSocket transport is not initialized"
+		message === WS_HEARTBEAT_TIMEOUT_MESSAGE ||
+		isTransportDisconnectedMessage(message) ||
+		message === WS_TRANSPORT_NOT_INITIALIZED_MESSAGE
 	);
 }
 
@@ -203,16 +258,19 @@ export function describeWsConnectionFailure(
 	if (!rawMessage) {
 		return t("ws.handshakeFailed");
 	}
-	if (rawMessage === "WebSocket transport is not initialized") {
+	if (rawMessage === WS_TRANSPORT_NOT_INITIALIZED_MESSAGE) {
 		return t("ws.transportNotInitialized");
+	}
+	if (rawMessage === WS_HEARTBEAT_TIMEOUT_MESSAGE) {
+		return t("ws.heartbeatTimeout");
+	}
+	if (isTransportDisconnectedMessage(rawMessage)) {
+		return t("ws.disconnected");
 	}
 	if (hasHelpfulWsMessage(rawMessage)) {
 		return rawMessage;
 	}
-	if (
-		rawMessage === "WebSocket connection failed" ||
-		rawMessage === "WebSocket transport disconnected"
-	) {
+	if (rawMessage === "WebSocket connection failed") {
 		return t("ws.handshakeFailed");
 	}
 	return rawMessage.startsWith("WebSocket ")
@@ -336,7 +394,10 @@ export class WsClient {
 		this.onStatusChange = options.onStatusChange;
 		this.onPush = options.onPush;
 		this.connectTimeoutMs = Math.max(1000, options.connectTimeoutMs ?? 10_000);
-		this.heartbeatTimeoutMs = Math.max(1000, options.heartbeatTimeoutMs ?? 45_000);
+		this.heartbeatTimeoutMs = Math.max(
+			1000,
+			options.heartbeatTimeoutMs ?? DEFAULT_WS_HEARTBEAT_TIMEOUT_MS,
+		);
 		this.reconnectBaseDelayMs = Math.max(100, options.reconnectBaseDelayMs ?? 1_000);
 		this.reconnectMaxDelayMs = Math.max(
 			this.reconnectBaseDelayMs,
@@ -348,7 +409,7 @@ export class WsClient {
 		);
 		this.healthCheckIntervalMs = Math.max(
 			1000,
-			options.healthCheckIntervalMs ?? 5_000,
+			options.healthCheckIntervalMs ?? DEFAULT_WS_HEALTH_CHECK_INTERVAL_MS,
 		);
 		this.requestTimeoutMs = Math.max(1, options.requestTimeoutMs ?? 30_000);
 	}
@@ -395,7 +456,7 @@ export class WsClient {
 		this.expectedClose = true;
 		this.clearReconnectTimer();
 		this.clearHealthCheckTimer();
-		this.cleanupPending(new WsClientDisconnectedError("WebSocket transport disconnected"));
+		this.cleanupPending(new WsClientDisconnectedError());
 
 		if (this.socket) {
 			try {
@@ -846,7 +907,7 @@ export class WsClient {
 						this.setStatus("disconnected");
 					}
 					reject(
-						toWsConnectionError(new WsClientDisconnectedError(), {
+						toWsConnectionError(new Error("WebSocket connection failed"), {
 							hasAccessToken: Boolean(this.accessToken),
 						}),
 					);
@@ -985,7 +1046,7 @@ export class WsClient {
 		}
 
 		this.setStatus("error");
-		this.cleanupPending(new WsClientDisconnectedError());
+		this.cleanupPending(createDisconnectErrorFromClose(event));
 		this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
 	};
 
@@ -1050,7 +1111,10 @@ export class WsClient {
 	private shouldRefreshTokenForClose(
 		event?: Pick<CloseEvent, "code" | "reason">,
 	): boolean {
-		const reason = String(event?.reason || "").toLowerCase();
+		if (isHeartbeatTimeoutClose(event)) {
+			return false;
+		}
+		const reason = normalizeWsCloseReason(event?.reason).toLowerCase();
 		const code = Number(event?.code ?? 0);
 		return (
 			code === 1002 ||
@@ -1169,7 +1233,10 @@ export class WsClient {
 				return;
 			}
 			try {
-				this.socket.close(4000, "heartbeat timeout");
+				this.socket.close(
+					WS_HEARTBEAT_TIMEOUT_CLOSE_CODE,
+					WS_HEARTBEAT_TIMEOUT_CLOSE_REASON,
+				);
 			} catch {
 				// Ignore close failures and let the socket tear down naturally.
 			}

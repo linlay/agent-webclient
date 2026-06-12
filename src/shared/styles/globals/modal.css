@@ -753,6 +753,81 @@
     margin-bottom: 0;
 }
 
+.registry-console-message {
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 28%, var(--line-soft));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-electric) 7%, transparent);
+    color: var(--ink-1);
+    font-size: 12px;
+    padding: 8px 10px;
+}
+
+.registry-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.registry-meta-grid span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.registry-diagnostics {
+    border-color: color-mix(in srgb, var(--accent-danger) 28%, var(--line-soft));
+    background: color-mix(in srgb, var(--accent-danger) 5%, transparent);
+}
+
+.registry-diagnostic-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 12px;
+}
+
+.registry-diagnostic-row + .registry-diagnostic-row {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+.registry-diagnostic-row strong {
+    color: var(--accent-danger);
+    font-size: 11px;
+}
+
+.registry-diagnostic-row span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink-2);
+}
+
+.registry-summary div {
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+}
+
+.registry-editor-field {
+    margin-top: 14px;
+}
+
+.registry-yaml-editor.ant-input {
+    min-height: 420px;
+    resize: vertical;
+    line-height: 1.5;
+    tab-size: 2;
+}
+
+.registry-dirty {
+    color: var(--ink-muted);
+    font-size: 12px;
+}
+
 .automation-executions {
     margin-top: 18px;
     border-top: 1px solid var(--line-soft);
@@ -1188,6 +1263,14 @@
 
     .automation-execution-row {
         grid-template-columns: 1fr;
+    }
+
+    .registry-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .registry-yaml-editor.ant-input {
+        min-height: 320px;
     }
 
     .agent-console-toolbar {

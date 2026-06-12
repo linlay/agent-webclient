@@ -372,7 +372,7 @@ describe("executeQueryStreamWs", () => {
 				dispatch: jest.fn(),
 				handleEvent: jest.fn(),
 			}),
-		).rejects.toThrow(/WebSocket .*?(handshake failed|握手失败)/i);
+		).rejects.toThrow(/WebSocket .*?(disconnected|连接已断开)/i);
 
 		expect(streamMock).toHaveBeenCalledTimes(1);
 	});

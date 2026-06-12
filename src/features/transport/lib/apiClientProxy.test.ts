@@ -41,6 +41,8 @@ jest.mock("@/shared/api/apiClient", () => {
 		getAdminAgentDetail: jest.fn(),
 		getAdminAgentOrder: jest.fn(),
 		getAdminAgents: jest.fn(),
+		getAdminRegistries: jest.fn(),
+		getAdminRegistryDetail: jest.fn(),
 		getAgent: jest.fn(),
 		getAgentOrder: jest.fn(),
 		getAgentEditorOptions: jest.fn(),
@@ -84,6 +86,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		markChatRead: jest.fn(),
 		openAgentWorkspace: jest.fn(),
 		putAdminAgentOrder: jest.fn(),
+		saveAdminRegistryDetail: jest.fn(),
 		rememberChat: jest.fn(),
 		renameChat: jest.fn(),
 		previewMemoryContext: jest.fn(),
@@ -102,6 +105,7 @@ jest.mock("@/shared/api/apiClient", () => {
 			putAgentOrder: jest.fn(),
 			updateAutomation: jest.fn(),
 			uploadFile: jest.fn(),
+			validateAdminRegistry: jest.fn(),
 			validateMemoryScope: jest.fn(),
 	};
 });
@@ -131,6 +135,8 @@ let mockApiClient: {
 	getAdminAgentDetail: jest.Mock;
 	getAdminAgentOrder: jest.Mock;
 	getAdminAgents: jest.Mock;
+	getAdminRegistries: jest.Mock;
+	getAdminRegistryDetail: jest.Mock;
 	getAgent: jest.Mock;
 	getAgentOrder: jest.Mock;
 	getAgentEditorOptions: jest.Mock;
@@ -163,6 +169,7 @@ let mockApiClient: {
 	markChatRead: jest.Mock;
 	openAgentWorkspace: jest.Mock;
 	putAdminAgentOrder: jest.Mock;
+	saveAdminRegistryDetail: jest.Mock;
 	rememberChat: jest.Mock;
 	renameChat: jest.Mock;
 	previewMemoryContext: jest.Mock;
@@ -181,6 +188,7 @@ let mockApiClient: {
 		putAgentOrder: jest.Mock;
 		updateAutomation: jest.Mock;
 		uploadFile: jest.Mock;
+		validateAdminRegistry: jest.Mock;
 		validateMemoryScope: jest.Mock;
 	};
 let WsClientDisconnectedError: typeof import("./wsClient").WsClientDisconnectedError;
@@ -365,6 +373,59 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAdminAgentDetail).not.toHaveBeenCalled();
 		expect(mockApiClient.getAdminAgentOrder).not.toHaveBeenCalled();
 		expect(mockApiClient.putAdminAgentOrder).not.toHaveBeenCalled();
+	});
+
+	it("routes admin registry management calls over ws", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAdminRegistries();
+		await proxy.getAdminRegistryDetail("models", "openai.yml");
+		await proxy.saveAdminRegistryDetail({
+			category: "models",
+			file: "openai.yml",
+			content: "key: openai\n",
+		});
+		await proxy.validateAdminRegistry({
+			category: "models",
+			file: "openai.yml",
+			content: "key: openai\n",
+		});
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/admin/registries",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/admin/registries/detail",
+			payload: { category: "models", file: "openai.yml" },
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/admin/registries/detail",
+			payload: { category: "models", file: "openai.yml", content: "key: openai\n" },
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/admin/registries/validate",
+			payload: { category: "models", file: "openai.yml", content: "key: openai\n" },
+		});
+		expect(mockApiClient.getAdminRegistries).not.toHaveBeenCalled();
+		expect(mockApiClient.getAdminRegistryDetail).not.toHaveBeenCalled();
+		expect(mockApiClient.saveAdminRegistryDetail).not.toHaveBeenCalled();
+		expect(mockApiClient.validateAdminRegistry).not.toHaveBeenCalled();
 	});
 
 	it("routes automation management calls over ws when connected", async () => {

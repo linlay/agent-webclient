@@ -31,6 +31,7 @@ import { APP_UI_BASE } from "@/shared/utils/routing";
 import { AutomationsPage } from "./pages/automations";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
+import { RegistriesPage } from "./pages/registries";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
@@ -181,6 +182,14 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.automations">
               <AutomationsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/registries",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.registries">
+              <RegistriesPage />
             </DocumentTitleRoute>
           ),
         },

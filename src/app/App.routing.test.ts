@@ -49,6 +49,10 @@ jest.mock("./pages/agents", () => ({
   AgentsPage: () => null,
 }));
 
+jest.mock("./pages/registries", () => ({
+  RegistriesPage: () => null,
+}));
+
 describe("App routing", () => {
   beforeEach(() => {
     jest.resetModules();
@@ -79,6 +83,7 @@ describe("App routing", () => {
         "/copilot",
         "/copilot/:agentKey",
         "/automations",
+        "/registries",
         "/schedules",
         "/memory",
         "/agents",
@@ -88,7 +93,7 @@ describe("App routing", () => {
     );
   });
 
-  it("registers localized document title keys for agents and automations", async () => {
+  it("registers localized document title keys for agents, automations, and registries", async () => {
     await import("./App");
 
     const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{
@@ -102,6 +107,9 @@ describe("App routing", () => {
     );
     expect(childRoutes.find((route) => route.path === "/automations")?.element?.props.titleKey).toBe(
       "route.title.automations",
+    );
+    expect(childRoutes.find((route) => route.path === "/registries")?.element?.props.titleKey).toBe(
+      "route.title.registries",
     );
   });
 });

@@ -25,6 +25,8 @@ import {
   getAdminAgentDetail,
   getAdminAgentOrder,
   getAdminAgents,
+  getAdminRegistries,
+  getAdminRegistryDetail,
   getArchive,
   getAgent,
   getAgentOrder,
@@ -59,6 +61,7 @@ import {
   searchArchives,
   searchGlobal,
   setAccessToken,
+  saveAdminRegistryDetail,
   steerChat,
   submitAwaiting,
   submitFeedback,
@@ -71,6 +74,7 @@ import {
   putAgentOrder,
   updateAutomation,
   uploadFile,
+  validateAdminRegistry,
 } from '@/shared/api/apiClient';
 
 class MockFormData {
@@ -904,6 +908,48 @@ describe('apiClient query payloads', () => {
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject({
       method: 'PUT',
       body: JSON.stringify({ order: ['bad-agent', 'agent-a'] }),
+    });
+  });
+
+  it('uses admin endpoints for registry list, detail, save, and validate', async () => {
+    await getAdminRegistries();
+    await getAdminRegistryDetail('models', 'openai.yml');
+    await saveAdminRegistryDetail({
+      category: 'models',
+      file: 'openai.yml',
+      content: 'key: openai\n',
+    });
+    await validateAdminRegistry({
+      category: 'models',
+      file: 'openai.yml',
+      content: 'key: openai\n',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/registries');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      '/api/admin/registries/detail?category=models&file=openai.yml',
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      '/api/admin/registries/detail',
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject({
+      method: 'PUT',
+      body: JSON.stringify({
+        category: 'models',
+        file: 'openai.yml',
+        content: 'key: openai\n',
+      }),
+    });
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+      '/api/admin/registries/validate',
+    );
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        category: 'models',
+        file: 'openai.yml',
+        content: 'key: openai\n',
+      }),
     });
   });
 

@@ -1,7 +1,9 @@
 import { resetCompactIdStateForTests } from "@/shared/utils/compactId";
 import {
 	createWsFrameId,
+	describeWsConnectionFailure,
 	WsClient,
+	WsClientDisconnectedError,
 	WsClientRequestTimeoutError,
 	type WsConnectionStatus,
 } from "@/features/transport/lib/wsClient";
@@ -470,13 +472,51 @@ describe("WsClient", () => {
 		firstSocket.open();
 		await flushMicrotasks();
 
-		jest.advanceTimersByTime(50_000);
+		jest.advanceTimersByTime(95_000);
+		expect(firstSocket.closeCalls).toBe(0);
+
+		jest.advanceTimersByTime(10_000);
 		expect(firstSocket.closeCalls).toBe(1);
 
 		jest.advanceTimersByTime(1_000);
 		expect(MockWebSocket.instances).toHaveLength(2);
 		expect(statuses).toContain("connected");
 		expect(statuses).toContain("error");
+	});
+
+	it("keeps an idle default connection open for 95 seconds", async () => {
+		jest.useFakeTimers();
+		const client = createClient();
+
+		client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await flushMicrotasks();
+
+		jest.advanceTimersByTime(95_000);
+
+		expect(socket.closeCalls).toBe(0);
+		expect(client.getStatus()).toBe("connected");
+	});
+
+	it("refreshes lastSeenAt when a push heartbeat arrives", async () => {
+		jest.useFakeTimers();
+		const client = createClient();
+
+		client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await flushMicrotasks();
+
+		jest.advanceTimersByTime(95_000);
+		expect(socket.closeCalls).toBe(0);
+
+		socket.message(JSON.stringify({ frame: "push", type: "heartbeat", data: {} }));
+		jest.advanceTimersByTime(95_000);
+		expect(socket.closeCalls).toBe(0);
+
+		jest.advanceTimersByTime(10_000);
+		expect(socket.closeCalls).toBe(1);
 	});
 
 	it("does not reconnect after an explicit disconnect", async () => {
@@ -569,6 +609,20 @@ describe("WsClient", () => {
 		client.disconnect();
 	});
 
+	it("describes open-phase disconnects without blaming the handshake", () => {
+		expect(describeWsConnectionFailure(new WsClientDisconnectedError())).toMatch(
+			/断开|disconnected/i,
+		);
+		expect(
+			describeWsConnectionFailure(
+				new WsClientDisconnectedError("WebSocket heartbeat timeout"),
+			),
+		).toMatch(/心跳|heartbeat/i);
+		expect(describeWsConnectionFailure(new Error("WebSocket connection failed"))).toMatch(
+			/握手失败|handshake failed/i,
+		);
+	});
+
 	it("refreshes token once when the initial handshake fails before opening", async () => {
 		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
 		const client = createClient({
@@ -634,6 +688,33 @@ describe("WsClient", () => {
 		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
 		secondSocket.open();
 		await flushMicrotasks();
+	});
+
+	it("does not refresh the token after a client heartbeat timeout close", async () => {
+		jest.useFakeTimers();
+		const resolveAccessToken = jest.fn().mockResolvedValue("token_b");
+		const client = createClient({
+			accessToken: "token_a",
+			resolveAccessToken,
+			reconnectBaseDelayMs: 1_000,
+			reconnectMaxDelayMs: 1_000,
+			reconnectTokenRefreshThreshold: 2,
+		});
+
+		const firstConnect = client.connect();
+		const firstSocket = MockWebSocket.instances[0];
+		firstSocket.open();
+		await expect(firstConnect).resolves.toBeUndefined();
+
+		jest.advanceTimersByTime(105_000);
+		expect(firstSocket.closeCalls).toBe(1);
+		jest.advanceTimersByTime(1_000);
+		await waitForSocketCount(2);
+
+		expect(resolveAccessToken).not.toHaveBeenCalled();
+		expect(MockWebSocket.instances[1].url).toBe(
+			"ws://localhost:3000/ws?token=token_a",
+		);
 	});
 
 	it("does not reconnect with a naked websocket URL when unauthorized refresh returns empty", async () => {
