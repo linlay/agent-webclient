@@ -894,6 +894,11 @@
     background: var(--bg-hover);
 }
 
+.agent-console-list-item.is-invalid {
+    border-color: color-mix(in srgb, var(--accent-danger) 34%, transparent);
+    background: color-mix(in srgb, var(--accent-danger) 7%, transparent);
+}
+
 .agent-console-list-item-icon {
     flex: 0 0 auto;
     width: 32px;
@@ -950,6 +955,28 @@
     color: var(--ink-muted);
 }
 
+.agent-console-list-item-head-meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+}
+
+.agent-console-status {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.agent-console-status.is-invalid {
+    background: color-mix(in srgb, var(--accent-danger) 14%, var(--bg-input));
+    color: var(--accent-danger);
+}
+
 .agent-console-list-item-meta {
     font-size: 11px;
     color: var(--ink-muted);
@@ -959,6 +986,16 @@
     font-size: 11px;
     font-weight: 500;
     color: var(--ink-muted);
+}
+
+.agent-console-list-item-diagnostic {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent-danger);
+    font-size: 11px;
+    font-weight: 500;
 }
 
 .agent-detail-head {
@@ -992,6 +1029,72 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.agent-detail-admin-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 14px;
+}
+
+.agent-detail-source,
+.agent-diagnostics,
+.agent-console-uneditable {
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 26%, var(--line-soft));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-danger) 6%, transparent);
+    color: var(--ink-1);
+    font-size: 12px;
+}
+
+.agent-detail-source {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+}
+
+.agent-detail-source span,
+.agent-diagnostics strong {
+    color: var(--accent-danger);
+    font-weight: 700;
+}
+
+.agent-detail-source code,
+.agent-diagnostic-item code {
+    min-width: 0;
+    color: var(--ink-muted);
+    overflow-wrap: anywhere;
+}
+
+.agent-diagnostics {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 9px 10px;
+}
+
+.agent-diagnostic-item {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.agent-diagnostic-code {
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.agent-console-uneditable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    color: var(--accent-danger);
 }
 
 .agent-form-grid {

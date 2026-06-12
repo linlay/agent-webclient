@@ -34,19 +34,22 @@ jest.mock("antd", () => {
   };
 });
 
+const mockAppState = { agents: [] as any[] };
+const mockDispatch = jest.fn();
+
 jest.mock("@/app/state/AppContext", () => ({
-  useAppContext: jest.fn(() => ({ state: { agents: [] }, dispatch: jest.fn() })),
+  useAppContext: jest.fn(() => ({ state: mockAppState, dispatch: mockDispatch })),
 }));
 
 jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
-  getAgent: jest.fn(),
+  getAdminAgentDetail: jest.fn(),
+  getAdminAgents: jest.fn(),
   getAgentEditorOptions: jest.fn(),
-  getAgents: jest.fn(),
   getSkills: jest.fn(),
   getTools: jest.fn(),
-  putAgentOrder: jest.fn(),
+  putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
 }));
 
@@ -65,50 +68,56 @@ jest.mock("@/shared/ui/UiButton", () => ({
 
 import {
   AgentConsole,
-  agentConsoleListRequestOptions,
+  AGENT_CONSOLE_ADMIN_LIST_ROUTE,
   buildDefinition,
   buildAgentListSummary,
+  firstAdminAgentDiagnosticMessage,
   formFromDetail,
+  hasEditableAdminDefinition,
+  isInvalidAdminAgent,
+  readAdminAgentDiagnostics,
   saveAgentOrderRequest,
   shouldStartAgentConsoleBootstrap,
 } from "@/features/workers/components/AgentConsole";
 
-const { getAgents, putAgentOrder } = jest.requireMock(
+const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
   "@/features/transport/lib/apiClientProxy",
 ) as {
-  getAgents: jest.Mock;
-  putAgentOrder: jest.Mock;
+  getAdminAgents: jest.Mock;
+  putAdminAgentOrder: jest.Mock;
 };
 
 const translate = (key: string) => key;
 
 describe("AgentConsole order persistence", () => {
   beforeEach(() => {
-    getAgents.mockReset();
-    putAgentOrder.mockReset();
+    mockAppState.agents = [];
+    mockDispatch.mockReset();
+    getAdminAgents.mockReset();
+    putAdminAgentOrder.mockReset();
   });
 
   it("persists agent order without reloading the agent list", async () => {
-    putAgentOrder.mockResolvedValue({ data: { order: ["agent-b", "agent-a"] } });
+    putAdminAgentOrder.mockResolvedValue({ data: { order: ["agent-b", "agent-a"] } });
 
     await saveAgentOrderRequest([
       { key: "agent-b", name: "Agent B" },
       { key: "agent-a", name: "Agent A" },
     ]);
 
-    expect(putAgentOrder).toHaveBeenCalledWith({ order: ["agent-b", "agent-a"] });
-    expect(getAgents).not.toHaveBeenCalled();
+    expect(putAdminAgentOrder).toHaveBeenCalledWith({ order: ["agent-b", "agent-a"] });
+    expect(getAdminAgents).not.toHaveBeenCalled();
   });
 
   it("propagates order persistence errors without reloading the agent list", async () => {
     const error = new Error("order failed");
-    putAgentOrder.mockRejectedValue(error);
+    putAdminAgentOrder.mockRejectedValue(error);
 
     await expect(
       saveAgentOrderRequest([{ key: "agent-a", name: "Agent A" }]),
     ).rejects.toBe(error);
 
-    expect(getAgents).not.toHaveBeenCalled();
+    expect(getAdminAgents).not.toHaveBeenCalled();
   });
 });
 
@@ -122,13 +131,95 @@ describe("shouldStartAgentConsoleBootstrap", () => {
   });
 });
 
-describe("agentConsoleListRequestOptions", () => {
-  it("loads the /agents page list with all agents scope", () => {
-    expect(agentConsoleListRequestOptions()).toEqual({ scope: "all" });
+describe("AGENT_CONSOLE_ADMIN_LIST_ROUTE", () => {
+  it("loads the /agents management page from the admin discovery endpoint", () => {
+    expect(AGENT_CONSOLE_ADMIN_LIST_ROUTE).toBe("/api/admin/agents");
+  });
+});
+
+describe("AgentConsole admin diagnostics", () => {
+  beforeEach(() => {
+    mockAppState.agents = [];
+    mockDispatch.mockReset();
+  });
+
+  it("reads invalid status and the first diagnostic message", () => {
+    const agent = {
+      key: "bad-agent",
+      name: "Bad Agent",
+      status: "invalid",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid_yaml",
+          message: "yaml: did not find expected key",
+          sourcePath: "/agents/bad-agent/agent.yaml",
+        },
+      ],
+    };
+
+    expect(isInvalidAdminAgent(agent)).toBe(true);
+    expect(firstAdminAgentDiagnosticMessage(agent)).toBe("yaml: did not find expected key");
+    expect(readAdminAgentDiagnostics(agent)).toEqual([
+      {
+        severity: "error",
+        code: "invalid_yaml",
+        message: "yaml: did not find expected key",
+        sourcePath: "/agents/bad-agent/agent.yaml",
+      },
+    ]);
+  });
+
+  it("allows invalid details with a parsed definition and blocks invalid YAML without one", () => {
+    expect(
+      hasEditableAdminDefinition({
+        key: "semantic-error",
+        name: "Semantic Error",
+        status: "invalid",
+        definition: { key: "semantic-error", name: "Semantic Error" },
+      } as any),
+    ).toBe(true);
+    expect(
+      hasEditableAdminDefinition({
+        key: "invalid-yaml",
+        name: "Invalid YAML",
+        status: "invalid",
+        diagnostics: [{ severity: "error", code: "invalid_yaml", message: "yaml failed" }],
+      } as any),
+    ).toBe(false);
+  });
+
+  it("renders invalid agent rows with status and diagnostic text", () => {
+    mockAppState.agents = [
+      {
+        key: "bad-agent",
+        name: "Bad Agent",
+        role: "Fix me",
+        status: "invalid",
+        diagnostics: [{ severity: "error", code: "invalid_yaml", message: "yaml failed" }],
+        meta: { mode: "REACT", modelKey: "gpt-5" },
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    expect(html).toContain("Invalid");
+    expect(html).toContain("yaml failed");
   });
 });
 
 describe("AgentConsole i18n rendering", () => {
+  beforeEach(() => {
+    mockAppState.agents = [];
+    mockDispatch.mockReset();
+  });
+
   it("renders the empty console in Chinese", () => {
     const html = renderToStaticMarkup(
       React.createElement(

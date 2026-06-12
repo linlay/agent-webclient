@@ -184,6 +184,63 @@ export interface AutomationExecutionsRequest {
   offset?: number;
 }
 
+export type AdminRegistryCategory =
+  | "providers"
+  | "models"
+  | "mcp-servers"
+  | "viewport-servers";
+
+export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
+
+export interface AdminRegistryDiagnostic {
+  severity: string;
+  code: string;
+  message: string;
+  sourcePath?: string;
+}
+
+export interface AdminRegistrySummary {
+  category: AdminRegistryCategory;
+  file: string;
+  key?: string;
+  name?: string;
+  status: AdminRegistryStatus;
+  diagnostics?: AdminRegistryDiagnostic[];
+  source?: AgentSource;
+  summary?: Record<string, unknown>;
+  updatedAt?: number;
+  size?: number;
+}
+
+export interface AdminRegistryListResponse {
+  items: AdminRegistrySummary[];
+  total: number;
+}
+
+export interface AdminRegistryDetailResponse extends AdminRegistrySummary {
+  content: string;
+  parsed?: Record<string, unknown>;
+}
+
+export interface AdminRegistryDetailRequest {
+  category: AdminRegistryCategory;
+  file: string;
+  content: string;
+}
+
+export interface AdminRegistryValidateRequest {
+  category: AdminRegistryCategory;
+  file?: string;
+  content: string;
+}
+
+export interface AdminRegistryValidateResponse {
+  status: AdminRegistryStatus;
+  diagnostics?: AdminRegistryDiagnostic[];
+  summary?: Record<string, unknown>;
+  parsed?: Record<string, unknown>;
+}
+
 export interface AgentSource {
   kind: string;
   path?: string;
@@ -211,6 +268,45 @@ export interface AgentDetailResponse {
   soulPrompt?: string;
   agentsPrompt?: string;
   source?: AgentSource;
+}
+
+export interface AdminAgentDiagnostic {
+  severity: string;
+  code: string;
+  message: string;
+  sourcePath?: string;
+}
+
+export interface AdminAgentSummary {
+  key: string;
+  name: string;
+  type?: "agent" | "coder";
+  workspaceDir?: string;
+  workspaceName?: string;
+  icon?: unknown;
+  description?: string;
+  role?: string;
+  model?: string;
+  mode?: string;
+  tools?: string[];
+  skills?: string[];
+  controls?: Array<Record<string, unknown>>;
+  meta?: Record<string, unknown>;
+  status: "ready" | "invalid" | string;
+  diagnostics?: AdminAgentDiagnostic[];
+  source?: AgentSource;
+  [key: string]: unknown;
+}
+
+export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "model" | "mode" | "tools" | "skills" | "controls" | "meta"> {
+  model?: string;
+  mode?: string;
+  tools?: string[];
+  skills?: string[];
+  controls?: Array<Record<string, unknown>>;
+  meta?: Record<string, unknown>;
+  status: "ready" | "invalid" | string;
+  diagnostics?: AdminAgentDiagnostic[];
 }
 
 export interface CreateAgentRequest {
@@ -962,6 +1058,39 @@ export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> 
   return requestJson(query ? `/api/agents?${query}` : "/api/agents");
 }
 
+export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
+  return requestJson<AdminAgentSummary[]>("/api/admin/agents");
+}
+
+export function getAdminRegistries(): Promise<ApiResponse<AdminRegistryListResponse>> {
+  return requestJson<AdminRegistryListResponse>("/api/admin/registries");
+}
+
+export function getAdminRegistryDetail(
+  category: AdminRegistryCategory,
+  file: string,
+): Promise<ApiResponse<AdminRegistryDetailResponse>> {
+  const query = toQueryString({ category, file });
+  return requestJson<AdminRegistryDetailResponse>(
+    query ? `/api/admin/registries/detail?${query}` : "/api/admin/registries/detail",
+  );
+}
+
+export function saveAdminRegistryDetail(
+  params: AdminRegistryDetailRequest,
+): Promise<ApiResponse<AdminRegistryDetailResponse>> {
+  return requestJson<AdminRegistryDetailResponse>("/api/admin/registries/detail", {
+    method: "PUT",
+    body: JSON.stringify(params),
+  });
+}
+
+export function validateAdminRegistry(
+  params: AdminRegistryValidateRequest,
+): Promise<ApiResponse<AdminRegistryValidateResponse>> {
+  return postJson<AdminRegistryValidateResponse>("/api/admin/registries/validate", params);
+}
+
 export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
   return requestJson<AgentOrderResponse>("/api/agents/order");
 }
@@ -975,9 +1104,27 @@ export function putAgentOrder(
   });
 }
 
+export function getAdminAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
+  return requestJson<AgentOrderResponse>("/api/admin/agents/order");
+}
+
+export function putAdminAgentOrder(
+  params: UpdateAgentOrderRequest,
+): Promise<ApiResponse<AgentOrderResponse>> {
+  return requestJson<AgentOrderResponse>("/api/admin/agents/order", {
+    method: "PUT",
+    body: JSON.stringify(params ?? { order: [] }),
+  });
+}
+
 export function getAgent(agentKey: string): Promise<ApiResponse> {
   const query = toQueryString({ agentKey });
   return requestJson(query ? `/api/agent?${query}` : "/api/agent");
+}
+
+export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {
+  const query = toQueryString({ agentKey });
+  return requestJson<AdminAgentDetailResponse>(query ? `/api/admin/agents/detail?${query}` : "/api/admin/agents/detail");
 }
 
 export function createAgent(

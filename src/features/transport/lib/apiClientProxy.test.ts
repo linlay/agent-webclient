@@ -38,6 +38,9 @@ jest.mock("@/shared/api/apiClient", () => {
 		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
+		getAdminAgentDetail: jest.fn(),
+		getAdminAgentOrder: jest.fn(),
+		getAdminAgents: jest.fn(),
 		getAgent: jest.fn(),
 		getAgentOrder: jest.fn(),
 		getAgentEditorOptions: jest.fn(),
@@ -80,6 +83,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
 		openAgentWorkspace: jest.fn(),
+		putAdminAgentOrder: jest.fn(),
 		rememberChat: jest.fn(),
 		renameChat: jest.fn(),
 		previewMemoryContext: jest.fn(),
@@ -124,6 +128,9 @@ let mockApiClient: {
 	downloadChatExport: jest.Mock;
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
+	getAdminAgentDetail: jest.Mock;
+	getAdminAgentOrder: jest.Mock;
+	getAdminAgents: jest.Mock;
 	getAgent: jest.Mock;
 	getAgentOrder: jest.Mock;
 	getAgentEditorOptions: jest.Mock;
@@ -155,6 +162,7 @@ let mockApiClient: {
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
 	openAgentWorkspace: jest.Mock;
+	putAdminAgentOrder: jest.Mock;
 	rememberChat: jest.Mock;
 	renameChat: jest.Mock;
 	previewMemoryContext: jest.Mock;
@@ -292,6 +300,71 @@ describe("apiClientProxy", () => {
 		});
 		expect(mockApiClient.getAgentOrder).not.toHaveBeenCalled();
 		expect(mockApiClient.putAgentOrder).not.toHaveBeenCalled();
+	});
+
+	it("routes admin agent management calls over ws", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest
+			.fn()
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: [],
+			})
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { key: "bad-agent", status: "invalid", diagnostics: [] },
+			})
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { version: 1, order: [], updatedAt: 0 },
+			})
+			.mockResolvedValueOnce({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { version: 1, order: ["bad-agent"], updatedAt: 1 },
+			});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAdminAgents();
+		await proxy.getAdminAgentDetail("bad-agent");
+		await proxy.getAdminAgentOrder();
+		await proxy.putAdminAgentOrder({ order: ["bad-agent"] });
+
+		expect(request).toHaveBeenNthCalledWith(1, {
+			type: "/api/admin/agents",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/admin/agents/detail",
+			payload: { agentKey: "bad-agent" },
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
+			type: "/api/admin/agents/order",
+			payload: undefined,
+		});
+		expect(request).toHaveBeenNthCalledWith(4, {
+			type: "/api/admin/agents/order",
+			payload: { order: ["bad-agent"] },
+		});
+		expect(mockApiClient.getAdminAgents).not.toHaveBeenCalled();
+		expect(mockApiClient.getAdminAgentDetail).not.toHaveBeenCalled();
+		expect(mockApiClient.getAdminAgentOrder).not.toHaveBeenCalled();
+		expect(mockApiClient.putAdminAgentOrder).not.toHaveBeenCalled();
 	});
 
 	it("routes automation management calls over ws when connected", async () => {
@@ -1282,6 +1355,54 @@ describe("apiClientProxy", () => {
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
+	});
+
+	it("routes admin agent management calls over http when sse mode is selected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getAdminAgents.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: [{ key: "bad-agent", status: "invalid" }],
+		});
+		mockApiClient.getAdminAgentDetail.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "bad-agent", status: "invalid" },
+		});
+		mockApiClient.getAdminAgentOrder.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { version: 1, order: ["bad-agent"], updatedAt: 0 },
+		});
+		mockApiClient.putAdminAgentOrder.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { version: 2, order: ["bad-agent"], updatedAt: 1 },
+		});
+
+		await expect(proxy.getAdminAgents()).resolves.toMatchObject({
+			data: [{ key: "bad-agent", status: "invalid" }],
+		});
+		await expect(proxy.getAdminAgentDetail("bad-agent")).resolves.toMatchObject({
+			data: { key: "bad-agent", status: "invalid" },
+		});
+		await expect(proxy.getAdminAgentOrder()).resolves.toMatchObject({
+			data: { order: ["bad-agent"] },
+		});
+		await expect(proxy.putAdminAgentOrder({ order: ["bad-agent"] })).resolves.toMatchObject({
+			data: { version: 2 },
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getAdminAgents).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.getAdminAgentDetail).toHaveBeenCalledWith("bad-agent");
+		expect(mockApiClient.getAdminAgentOrder).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.putAdminAgentOrder).toHaveBeenCalledWith({ order: ["bad-agent"] });
 	});
 
 	it("routes getChat over http when sse mode is selected", async () => {

@@ -22,6 +22,9 @@ import {
   downloadChatExport,
   extractUploadChatId,
   extractUploadReferences,
+  getAdminAgentDetail,
+  getAdminAgentOrder,
+  getAdminAgents,
   getArchive,
   getAgent,
   getAgentOrder,
@@ -64,6 +67,7 @@ import {
   updateAgent,
   updateAccessLevel,
   updateAgentModelConfig,
+  putAdminAgentOrder,
   putAgentOrder,
   updateAutomation,
   uploadFile,
@@ -883,6 +887,23 @@ describe('apiClient query payloads', () => {
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[1]).toMatchObject({
       method: 'PUT',
       body: JSON.stringify({ order: ['agent-b', 'agent-a'] }),
+    });
+  });
+
+  it('uses admin endpoints for management agent discovery, detail, and order', async () => {
+    await getAdminAgents();
+    await getAdminAgentDetail('bad-agent');
+    await getAdminAgentOrder();
+    await putAdminAgentOrder({ order: ['bad-agent', 'agent-a'] });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/agents');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/agents/detail?agentKey=bad-agent');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/admin/agents/order');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1].method).toBe('GET');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/admin/agents/order');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject({
+      method: 'PUT',
+      body: JSON.stringify({ order: ['bad-agent', 'agent-a'] }),
     });
   });
 

@@ -22,18 +22,19 @@ import type { Agent } from "@/app/state/types";
 import {
   createAgent,
   deleteAgent,
-  getAgent,
+  getAdminAgentDetail,
+  getAdminAgents,
   getAgentEditorOptions,
-  getAgents,
   getSkills,
   getTools,
-  putAgentOrder,
+  putAdminAgentOrder,
   updateAgent,
 } from "@/features/transport/lib/apiClientProxy";
 import type {
+  AdminAgentDetailResponse,
+  AdminAgentDiagnostic,
   AgentDetailResponse,
   AgentEditorOptionsResponse,
-  GetAgentsOptions,
 } from "@/shared/api/apiClient";
 import {
   agentOrderPayload,
@@ -48,6 +49,7 @@ import { useI18n, type I18nContextValue } from "@/shared/i18n";
 type AgentFormMode = "create" | "edit";
 type IconKind = "none" | "builtin" | "image";
 type Translate = I18nContextValue["t"];
+type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
 
 interface AgentFormState {
   key: string;
@@ -80,14 +82,10 @@ interface AgentConsoleProps {
   embedded?: boolean;
 }
 
-export const AGENT_CONSOLE_LIST_OPTIONS: GetAgentsOptions = { scope: "all" };
-
-export function agentConsoleListRequestOptions(): GetAgentsOptions {
-  return { ...AGENT_CONSOLE_LIST_OPTIONS };
-}
+export const AGENT_CONSOLE_ADMIN_LIST_ROUTE = "/api/admin/agents";
 
 export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
-  await putAgentOrder({ order: agentOrderPayload(agents) });
+  await putAdminAgentOrder({ order: agentOrderPayload(agents) });
 }
 
 const EMPTY_FORM: AgentFormState = {
@@ -129,6 +127,54 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? { ...(value as Record<string, unknown>) }
     : {};
+}
+
+export function readAdminAgentStatus(value: unknown): string {
+  return toText(asRecord(value).status).toLowerCase();
+}
+
+export function isInvalidAdminAgent(value: unknown): boolean {
+  return readAdminAgentStatus(value) === "invalid";
+}
+
+export function readAdminAgentDiagnostics(value: unknown): AdminAgentDiagnostic[] {
+  const diagnostics = asRecord(value).diagnostics;
+  if (!Array.isArray(diagnostics)) return [];
+  return diagnostics
+    .map((item) => {
+      const record = asRecord(item);
+      const message = toText(record.message);
+      const code = toText(record.code);
+      if (!message && !code) return null;
+      const sourcePath = toText(record.sourcePath);
+      return {
+        severity: toText(record.severity) || "error",
+        code,
+        message: message || code,
+        ...(sourcePath ? { sourcePath } : {}),
+      };
+    })
+    .filter((item): item is AdminAgentDiagnostic => Boolean(item));
+}
+
+export function firstAdminAgentDiagnosticMessage(value: unknown): string {
+  return readAdminAgentDiagnostics(value)[0]?.message || "";
+}
+
+export function hasEditableAdminDefinition(detail: EditableAgentDetail | null): boolean {
+  if (!detail || !isInvalidAdminAgent(detail)) return true;
+  return Boolean(detail.definition);
+}
+
+function resolveAdminAgentSourcePath(detail: EditableAgentDetail | null): string {
+  if (!detail) return "";
+  const source = asRecord(detail.source);
+  return (
+    toText(source.path)
+    || toText(source.agentDir)
+    || readAdminAgentDiagnostics(detail).map((item) => toText(item.sourcePath)).find(Boolean)
+    || ""
+  );
 }
 
 function textListFromUnknown(value: unknown): string[] {
@@ -262,13 +308,13 @@ export function shouldStartAgentConsoleBootstrap(ref: React.MutableRefObject<boo
   return true;
 }
 
-function resolveModelKey(detail: AgentDetailResponse, definition: Record<string, unknown>): string {
+function resolveModelKey(detail: EditableAgentDetail, definition: Record<string, unknown>): string {
   const modelConfig = asRecord(definition.modelConfig);
   const meta = asRecord(detail.meta);
   return toText(modelConfig.modelKey) || toText(meta.modelKey) || toText(detail.model);
 }
 
-function fallbackDefinition(detail: AgentDetailResponse): Record<string, unknown> {
+function fallbackDefinition(detail: EditableAgentDetail): Record<string, unknown> {
   const definition: Record<string, unknown> = {
     key: detail.key,
     name: detail.name,
@@ -291,7 +337,7 @@ function fallbackDefinition(detail: AgentDetailResponse): Record<string, unknown
   return definition;
 }
 
-export function formFromDetail(detail: AgentDetailResponse): AgentFormState {
+export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
   const definition = detail.definition || fallbackDefinition(detail);
   const modelConfig = asRecord(definition.modelConfig);
   const toolConfig = asRecord(definition.toolConfig);
@@ -401,9 +447,11 @@ export function buildDefinition(form: AgentFormState, baseDefinition: Record<str
 interface SortableAgentListItemProps {
   agent: Agent;
   agentKey: string;
+  diagnosticMessage: string;
   disabled: boolean;
   isActive: boolean;
   isDragging: boolean;
+  isInvalid: boolean;
   name: string;
   role: string;
   sortableId: string;
@@ -415,9 +463,11 @@ interface SortableAgentListItemProps {
 const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
   agent,
   agentKey,
+  diagnosticMessage,
   disabled,
   isActive,
   isDragging,
+  isInvalid,
   name,
   role,
   sortableId,
@@ -447,7 +497,7 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
       style={style}
       role="button"
       tabIndex={0}
-      className={`agent-console-list-item ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""}`}
+      className={`agent-console-list-item ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isInvalid ? "is-invalid" : ""}`}
       onClick={() => onSelect(agentKey)}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -476,7 +526,14 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
       <span className="agent-console-list-item-main">
         <span className="agent-console-list-item-row agent-console-list-item-head">
           <strong>{name}</strong>
-          <span>{agentKey || "--"}</span>
+          <span className="agent-console-list-item-head-meta">
+            {isInvalid && (
+              <span className="agent-console-status is-invalid">
+                {t("agentConsole.status.invalid")}
+              </span>
+            )}
+            <span>{agentKey || "--"}</span>
+          </span>
         </span>
         <span className="agent-console-list-item-row agent-console-list-item-meta">
           <span>{role}</span>
@@ -491,6 +548,11 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
             })}
           </span>
         </span>
+        {isInvalid && diagnosticMessage && (
+          <span className="agent-console-list-item-diagnostic">
+            {diagnosticMessage}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -509,7 +571,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [searchText, setSearchText] = useState("");
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [form, setForm] = useState<AgentFormState>(EMPTY_FORM);
-  const [detail, setDetail] = useState<AgentDetailResponse | null>(null);
+  const [detail, setDetail] = useState<EditableAgentDetail | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -589,6 +651,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     if (form.iconKind === "builtin" && form.iconName) return { name: form.iconName };
     return undefined;
   }, [form.iconImage, form.iconKind, form.iconName]);
+  const detailDiagnostics = useMemo(() => readAdminAgentDiagnostics(detail), [detail]);
+  const detailSourcePath = useMemo(() => resolveAdminAgentSourcePath(detail), [detail]);
+  const canEditStructuredAgent = formMode === "create" || hasEditableAdminDefinition(detail);
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
@@ -621,7 +686,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setLoadingList(true);
       setError("");
       try {
-        const response = await getAgents(agentConsoleListRequestOptions());
+        const response = await getAdminAgents();
         if (listLoadSeqRef.current !== requestSeq) return;
         const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
         dispatch({ type: "SET_AGENTS", agents });
@@ -722,8 +787,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
     setPendingDeleteKey("");
     try {
-      const response = await getAgent(key);
-      const nextDetail = response.data as AgentDetailResponse;
+      const response = await getAdminAgentDetail(key);
+      const nextDetail = response.data as EditableAgentDetail;
       setDetail(nextDetail);
       setForm(formFromDetail(nextDetail));
       setFormMode("edit");
@@ -765,6 +830,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   };
 
   const saveForm = async () => {
+    if (!canEditStructuredAgent) {
+      setFormError(t("agentConsole.error.structuredSaveUnavailable"));
+      return;
+    }
     if (!form.key.trim()) {
       setFormError(t("agentConsole.error.keyRequired"));
       return;
@@ -887,14 +956,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       const role = toText(agent.role) || "--";
                       const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
                       const sortableId = agentKey || `agent-console-empty-${index}`;
+                      const isInvalid = isInvalidAdminAgent(agent);
+                      const diagnosticMessage = firstAdminAgentDiagnosticMessage(agent);
                       return (
                         <SortableAgentListItem
                           key={sortableId}
                           agent={agent}
                           agentKey={agentKey}
+                          diagnosticMessage={diagnosticMessage}
                           disabled={savingOrder}
                           isActive={agentKey === effectiveSelectedKey}
                           isDragging={agentKey === draggingAgentKey}
+                          isInvalid={isInvalid}
                           name={name}
                           role={role}
                           sortableId={sortableId}
@@ -928,7 +1001,34 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               )}
             </div>
 
-            <div className="agent-form-grid">
+            {formMode === "edit" && (detailSourcePath || detailDiagnostics.length > 0) && (
+              <div className="agent-detail-admin-meta">
+                {detailSourcePath && (
+                  <div className="agent-detail-source">
+                    <span>{t("agentConsole.diagnostics.source")}</span>
+                    <code>{detailSourcePath}</code>
+                  </div>
+                )}
+                {detailDiagnostics.length > 0 && (
+                  <div className="agent-diagnostics" role="status">
+                    <strong>{t("agentConsole.diagnostics.title")}</strong>
+                    {detailDiagnostics.map((diagnostic, index) => (
+                      <div className="agent-diagnostic-item" key={`${diagnostic.code}-${index}`}>
+                        <span className="agent-diagnostic-code">
+                          {[diagnostic.severity, diagnostic.code].filter(Boolean).join(" · ")}
+                        </span>
+                        <span>{diagnostic.message}</span>
+                        {diagnostic.sourcePath && <code>{diagnostic.sourcePath}</code>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {canEditStructuredAgent ? (
+              <>
+                <div className="agent-form-grid">
               <div className="field-group">
                 <label htmlFor="agent-key-input">Key</label>
                 <Input id="agent-key-input" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
@@ -1097,11 +1197,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <Input.TextArea id="agent-agents-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
               </div>
             </fieldset>
+              </>
+            ) : (
+              <div className="agent-console-uneditable">
+                <MaterialIcon name="warning" />
+                <span>{t("agentConsole.diagnostics.uneditable")}</span>
+              </div>
+            )}
 
             {formError && <div className="settings-error">{formError}</div>}
 
             <div className="agent-save-actions">
-              <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving}>
+              <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving || !canEditStructuredAgent}>
                 <MaterialIcon name="save" />
                 <span>{formMode === "create" ? t("agentConsole.action.create") : t("agentConsole.action.saveChanges")}</span>
               </UiButton>
