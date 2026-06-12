@@ -360,9 +360,7 @@
 
 .timeline-user-bubble {
     border-radius: 14px;
-    border-top-right-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--accent-electric) 58%, transparent);
-    background: linear-gradient(140deg, #2663eb, #1d4ed8);
+    background: linear-gradient(140deg, #70bbf9 0%, #4595f5 50%, #5c69e9 100%);
     color: #f8fcff;
     box-shadow: 0 6px 16px rgba(38, 99, 235, 0.18);
     padding: 10px 14px;
@@ -1200,27 +1198,32 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     padding: 0 4px;
 }
 
-.timeline-row[data-kind="planning"]{
+.timeline-row[data-kind="planning"] {
     margin: 20px 0;
 }
-.timeline-planning-collapse{
+
+.timeline-planning-collapse {
     background-color: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
 }
 
-.timeline-planning-collapse .ant-collapse-extra .material-symbols-rounded{
+.timeline-planning-collapse .ant-collapse-extra .material-symbols-rounded {
     font-size: 14px;
 }
-.timeline-planning-collapse .ant-collapse-extra .ui-btn.is-icon-only{
+
+.timeline-planning-collapse .ant-collapse-extra .ui-btn.is-icon-only {
     width: 22px;
     min-width: 22px;
 }
-.timeline-planning-collapse .ant-collapse-extra .ui-btn.ui-btn-sm{
+
+.timeline-planning-collapse .ant-collapse-extra .ui-btn.ui-btn-sm {
     min-height: 22px;
 }
-.timeline-planning-collapse.ant-collapse.ant-collapse-icon-position-end>.ant-collapse-item >.ant-collapse-header .ant-collapse-expand-icon{
+
+.timeline-planning-collapse.ant-collapse.ant-collapse-icon-position-end>.ant-collapse-item>.ant-collapse-header .ant-collapse-expand-icon {
     padding-left: 6px;
 }
-.timeline-planning-collapse.ant-collapse .ant-collapse-content>.ant-collapse-content-box{
+
+.timeline-planning-collapse.ant-collapse .ant-collapse-content>.ant-collapse-content-box {
     padding: 0 16px 16px;
     position: relative;
 }
@@ -1229,13 +1232,16 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 html[data-theme="light"] .xterm .xterm-viewport {
     background-color: #fafafa;
 }
+
 html[data-theme="dark"] .xterm .xterm-viewport {
     background-color: #181818;
 }
+
 html[data-theme="light"] .xterm .composition-view {
     background: #fafafa;
     color: #1d2129;
 }
+
 html[data-theme="dark"] .xterm .composition-view {
     background: #181818;
     color: #f2f3f5;
