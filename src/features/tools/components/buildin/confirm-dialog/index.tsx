@@ -320,6 +320,8 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     };
   }, [handleKeyDown]);
 
+  const params = Form.useWatch("params", form);
+
   return ready ? (
     <Form
       form={form}
@@ -348,44 +350,42 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                         }
                       }}
                       data={questions[field.name]}
+                      question={
+                        questions.length > 1 ? (
+                          <Flex
+                            className={Style.Pagination}
+                            align="center"
+                            gap={6}
+                          >
+                            {questions?.map((item, index) => {
+                              const value = params?.[
+                                index
+                              ] as AIAwaitQuestionSubmitParamData;
+                              const skip = value?.answer === "reject";
+                              const done =
+                                !skip &&
+                                (value?.answer ||
+                                  (Array.isArray(value?.answers) &&
+                                    value?.answers?.length > 0));
+                              return (
+                                <span
+                                  key={item.id}
+                                  className={[
+                                    Style.Item,
+                                    index === curIndex ? Style.Active : "",
+                                    done ? Style.Done : "",
+                                    skip ? Style.Skip : "",
+                                  ].join(" ")}
+                                  onClick={() => setCurIndex(index)}
+                                ></span>
+                              );
+                            })}
+                          </Flex>
+                        ) : null
+                      }
                       onEnter={() => {
                         void moveForward();
                       }}
-                      pagnation={
-                        <Flex
-                          className={Style.HeaderSide}
-                          align="center"
-                          gap={12}
-                        >
-                          {questions.length > 1 && (
-                            <Flex
-                              className={Style.Pagination}
-                              align="center"
-                              gap={10}
-                            >
-                              <Button
-                                disabled={curIndex <= 0}
-                                icon={<LeftOutlined style={{ fontSize: 12 }} />}
-                                size="small"
-                                type="text"
-                                onClick={() => setCurIndex(curIndex - 1)}
-                              />
-                              <span>
-                                {curIndex + 1} / {questions.length}
-                              </span>
-                              <Button
-                                size="small"
-                                type="text"
-                                disabled={curIndex >= questions.length - 1}
-                                icon={
-                                  <RightOutlined style={{ fontSize: 12 }} />
-                                }
-                                onClick={() => setCurIndex(curIndex + 1)}
-                              />
-                            </Flex>
-                          )}
-                        </Flex>
-                      }
                     />
                   </Form.Item>
                 ),
@@ -495,12 +495,12 @@ const Question = forwardRef<
   QuestionRef,
   {
     data: AIAwaitQuestion;
+    question?: React.ReactNode;
     onEnter: () => void;
-    pagnation: React.ReactNode;
     value?: AIAwaitQuestionSubmitParamData;
     onChange?: (value: AIAwaitQuestionSubmitParamData) => void;
   }
->(({ data, value, onChange, onEnter, pagnation }, ref) => {
+>(({ data, question, value, onChange, onEnter }, ref) => {
   const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
@@ -549,7 +549,7 @@ const Question = forwardRef<
           <div className={Style.QuestionHeading}>{heading}</div>
           {prompt && <div className={Style.QuestionPrompt}>{prompt}</div>}
         </Flex>
-        {pagnation}
+        {question}
       </Flex>
     );
   };

@@ -6,14 +6,6 @@
   padding: 10px;
   background: var(--bg-card);
 
-  .Pagination {
-    font-size: 12px;
-  }
-
-  .HeaderSide {
-    flex-shrink: 0;
-  }
-
   .SkipButton {
     color: var(--text-muted);
   }
@@ -39,8 +31,35 @@
   font-size: 12px;
 
   .Question {
-    padding: 10px;
+    padding: 0 10px 10px;
     gap: 16px;
+  }
+
+  .Pagination {
+    flex-shrink: 0;
+
+    .Item {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+
+    .Active,
+    .Item:hover {
+      transform: scale(1.5);
+    }
+
+    .Skip {
+      background: var(--accent-danger);
+    }
+
+    .Done {
+      background: var(--accent-lime);
+    }
+
   }
 
   .QuestionHeading {
@@ -111,7 +130,7 @@
       border-color: var(--accent);
     }
 
-    &:focus-within {
+    :global(&.ant-checkbox-wrapper-checked) {
       .Index {
         background: var(--text-main);
         color: var(--bg-base);
