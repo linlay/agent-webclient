@@ -755,6 +755,11 @@ describe('processEvent', () => {
       timestamp: 120,
     }, 'live', true);
 
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      startedAt: 100,
+      endedAt: 120,
+      durationMs: 20,
+    });
     expect(state.fileChanges).toEqual([
       {
         runId: 'run_1',

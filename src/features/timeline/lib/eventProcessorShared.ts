@@ -368,6 +368,9 @@ export function buildToolTimelineNode(input: {
   status: string;
   result: TimelineNode["result"];
   ts: number;
+  startedAt?: number;
+  endedAt?: number;
+  durationMs?: number;
   state: EventProcessorState;
 }): TimelineNode {
   const {
@@ -408,5 +411,8 @@ export function buildToolTimelineNode(input: {
     status,
     result,
     ts,
+    startedAt: input.startedAt ?? existing?.startedAt,
+    endedAt: input.endedAt ?? existing?.endedAt,
+    durationMs: input.durationMs ?? existing?.durationMs,
   };
 }

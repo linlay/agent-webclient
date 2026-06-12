@@ -3,7 +3,9 @@ import {
 	buildToolPillRecords,
 	canExpandToolPill,
 	formatToolArgumentsInline,
+	formatToolDuration,
 	formatToolPillTitle,
+	getToolPillDurationText,
 	getExpandableToolPillRecords,
 } from "@/features/timeline/components/ToolPill";
 
@@ -244,5 +246,156 @@ describe("ToolPill helpers", () => {
 			'{"cmd":"echo 1","timeout":3}',
 		);
 		expect(formatToolArgumentsInline("line 1\n  line 2")).toBe("line 1 line 2");
+	});
+
+	it("formats tool duration text only for positive durations", () => {
+		expect(formatToolDuration()).toBe("");
+		expect(formatToolDuration(0)).toBe("");
+		expect(formatToolDuration(250)).toBe("250毫秒");
+		expect(formatToolDuration(1_500)).toBe("1.5秒");
+		expect(formatToolDuration(12_500)).toBe("13秒");
+		expect(formatToolDuration(65_000)).toBe("1分5秒");
+		expect(formatToolDuration(3_725_000)).toBe("1小时2分5秒");
+	});
+
+	it("formats helper labels with a custom translator", () => {
+		const translate = (
+			key: string,
+			params: Record<string, unknown> = {},
+		): string => {
+			const messages: Record<string, string> = {
+				"timeline.toolPill.duration.hours":
+					"{hours}h {minutes}m {seconds}s",
+				"timeline.toolPill.groupTitle": "{label} x{count}",
+				"timeline.toolPill.runTitle": "Run {index}",
+				"timeline.toolPill.status.success": "Done",
+			};
+			return (messages[key] || key).replace(
+				/\{([^}]+)\}/g,
+				(_, rawKey: string) => String(params[rawKey] ?? ""),
+			);
+		};
+		const group = {
+			kind: "tool-group" as const,
+			key: "tool_group_tool_1",
+			toolName: "_sandbox_bash_",
+			toolLabel: "Run command",
+			count: 1,
+			nodes: [
+				createToolNode({
+					id: "tool_1",
+					kind: "tool",
+					ts: 100,
+					status: "success",
+					result: { text: "ok", isCode: false },
+				}),
+			],
+		};
+
+		expect(formatToolDuration(3_725_000, translate)).toBe("1h 2m 5s");
+		expect(formatToolPillTitle(group, translate)).toBe("Run command x1");
+		expect(buildToolPillRecords(group, translate)[0]).toEqual(
+			expect.objectContaining({
+				title: "Run 1",
+				statusLabel: "Done",
+			}),
+		);
+	});
+
+	it("uses a single tool's completed duration only after result arrives", () => {
+		const runningNode = createToolNode({
+			id: "tool_1",
+			kind: "tool",
+			ts: 100,
+			startedAt: 100,
+			status: "running",
+		});
+		const completedNode = createToolNode({
+			id: "tool_2",
+			kind: "tool",
+			ts: 100,
+			startedAt: 100,
+			endedAt: 1_600,
+			durationMs: 1_500,
+			result: { text: "ok", isCode: false },
+			status: "success",
+		});
+
+		expect(getToolPillDurationText(runningNode)).toBe("");
+		expect(
+			getToolPillDurationText(runningNode, {
+				now: 1_600,
+				conversationActive: true,
+			}),
+		).toBe("1.5秒");
+		expect(getToolPillDurationText(completedNode)).toBe("1.5秒");
+	});
+
+	it("uses the first tool.start and last tool.result for grouped duration", () => {
+		const group = {
+			kind: "tool-group" as const,
+			key: "tool_group_tool_1",
+			toolName: "_sandbox_bash_",
+			toolLabel: "执行命令",
+			count: 2,
+			nodes: [
+				createToolNode({
+					id: "tool_1",
+					kind: "tool",
+					ts: 100,
+					startedAt: 100,
+					endedAt: 900,
+					durationMs: 800,
+					result: { text: "1", isCode: false },
+				}),
+				createToolNode({
+					id: "tool_2",
+					kind: "tool",
+					ts: 300,
+					startedAt: 300,
+					endedAt: 1_600,
+					durationMs: 1_300,
+					result: { text: "2", isCode: false },
+				}),
+			],
+		};
+
+		expect(getToolPillDurationText(group)).toBe("1.5秒");
+	});
+
+	it("omits grouped duration when any tool is missing tool.result", () => {
+		const group = {
+			kind: "tool-group" as const,
+			key: "tool_group_tool_1",
+			toolName: "_sandbox_bash_",
+			toolLabel: "执行命令",
+			count: 2,
+			nodes: [
+				createToolNode({
+					id: "tool_1",
+					kind: "tool",
+					ts: 100,
+					startedAt: 100,
+					endedAt: 900,
+					durationMs: 800,
+					result: { text: "1", isCode: false },
+				}),
+				createToolNode({
+					id: "tool_2",
+					kind: "tool",
+					ts: 300,
+					startedAt: 300,
+					status: "running",
+				}),
+			],
+		};
+
+		expect(getToolPillDurationText(group)).toBe("");
+		expect(
+			getToolPillDurationText(group, {
+				now: 1_600,
+				conversationActive: true,
+			}),
+		).toBe("1.5秒");
 	});
 });
