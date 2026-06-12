@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message, Radio } from "antd";
 import { Button, Checkbox, CheckboxRef, Flex, Input, Tabs } from "antd/es";
 import {
   EnterOutlined,
@@ -162,7 +162,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     };
     const nextReasons = {
       ...reasons,
-      [currentApproval.id]: "",
+      [currentApproval.id]: "拒绝本次审批",
     };
 
     setDecisions(nextDecisions);
@@ -176,7 +176,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         buildApprovalSubmitParams(approvals, nextDecisions, nextReasons).map(
           (param) =>
             param.id === currentApproval.id && param.decision === "reject"
-              ? { ...param, reason: "" }
+              ? { ...param, reason: "拒绝本次审批" }
               : param,
         ),
       );
@@ -372,7 +372,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                 void moveForward(nextDecision);
               }}
               pagnation={
-                <Flex className={Style.HeaderSide} align="center" gap={6}>
+                <Flex className={Style.HeaderSide} align="center" gap={16}>
                   {timeoutCountdown.label && (
                     <Flex className={Style.TimeoutRow}>
                       <span className={Style.TimeoutBadge}>
@@ -385,42 +385,30 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                     </Flex>
                   )}
                   {approvals.length > 1 && (
-                    <Flex className={Style.Pagination} align="center" gap={10}>
-                      <Button
-                        disabled={curIndex <= 0}
-                        icon={<LeftOutlined style={{ fontSize: 12 }} />}
-                        size="small"
-                        type="text"
-                        onClick={() => setCurIndex(curIndex - 1)}
-                      />
-                      <span>
-                        {curIndex + 1} / {approvals.length}
-                      </span>
-                      <Button
-                        size="small"
-                        type="text"
-                        disabled={curIndex >= approvals.length - 1}
-                        icon={<RightOutlined style={{ fontSize: 12 }} />}
-                        onClick={() => setCurIndex(curIndex + 1)}
-                      />
+                    <Flex className={Style.Pagination} gap={6}>
+                      {approvals?.map((item, index) => {
+                        const value = decisions?.[item.id];
+                        const skip = value === "reject";
+                        const done = !skip && value;
+                        return (
+                          <span
+                            key={item.id}
+                            className={[
+                              Style.Item,
+                              index === curIndex ? Style.Active : "",
+                              done ? Style.Done : "",
+                              skip ? Style.Skip : "",
+                            ].join(" ")}
+                            onClick={() => setCurIndex(index)}
+                          ></span>
+                        );
+                      })}
                     </Flex>
                   )}
                 </Flex>
               }
               confirmSlot={
                 <Flex gap={10} align="center">
-                  <Button
-                    type="link"
-                    shape="round"
-                    className={Style.SkipButton}
-                    size="small"
-                    onClick={() => {
-                      void doSkip();
-                    }}
-                    disabled={readOnly}
-                  >
-                    <span>{t("confirmDialog.action.skip")}</span>
-                  </Button>
                   {curIndex < approvals.length - 1 && (
                     <Button
                       type="primary"
@@ -525,98 +513,90 @@ const ApprovalQuestion = forwardRef<
         <Flex
           className={Style.Question}
           justify="space-between"
-          align="baseline"
         >
           <div className={Style.QuestionHeading}>{approval?.description}</div>
           {pagnation}
         </Flex>
         <div className={Style.ApprovalDetails}>{approval?.command}</div>
-        <Checkbox.Group
-          className={Style.CheckboxGroup}
-          value={decision ? [decision] : []}
+        <Radio.Group
+          className={Style.RadioGroup}
+          value={decision}
           disabled={readOnly}
-          onChange={(keys) => {
-            const last = keys.at(-1);
-            const nextDecision =
-              typeof last === "string"
-                ? (last as AIAwaitApprovalDecision)
-                : undefined;
-            onDecisionChange(nextDecision);
-            if (nextDecision) {
-              onEnterDebounce(nextDecision);
-            }
-          }}
         >
           {options?.map((option, index) => (
-            <Flex>
-              <Checkbox
-                key={`${approval.id}:${option.decision}`}
-                ref={(checkboxRef) => {
-                  if (checkboxRef) {
-                    checkboxsRef.current[index] = checkboxRef;
-                  }
-                }}
-                value={option.decision}
-                className={Style.Option}
+            <Radio
+              key={`${approval.id}:${option.decision}`}
+              ref={(checkboxRef) => {
+                if (checkboxRef) {
+                  checkboxsRef.current[index] = checkboxRef;
+                }
+              }}
+              value={option.decision}
+              className={Style.Option}
+              onClick={() => {
+                const val = option?.decision as any;
+                onDecisionChange(val);
+                onEnterDebounce(val);
+              }}
+            >
+              <Flex
+                gap={10}
+                align="center"
+                tabIndex={0}
+                data-index={index}
+                style={{ outline: "none" }}
               >
-                <Flex
-                  gap={10}
-                  align="center"
-                  tabIndex={0}
-                  data-index={index}
-                  style={{ outline: "none" }}
-                >
-                  <span className={Style.Index}>{index + 1}</span>
-                  <span className={Style.Info}>{option.label}</span>
-                  {option.description && (
-                    <span className={Style.ApprovalMeta}>
-                      {option.description}
-                    </span>
-                  )}
-                  <span className="Selected">
-                    {t("approvalDialog.selected")}
+                <span className={Style.Index}>{index + 1}</span>
+                <span className={Style.Info}>{option.label}</span>
+                {option.description && (
+                  <span className={Style.ApprovalMeta}>
+                    {option.description}
                   </span>
-                </Flex>
-              </Checkbox>
-              {index === options.length - 1 &&
-                !approval.allowFreeText &&
-                confirmSlot}
-            </Flex>
+                )}
+                <span className="Selected">{t("approvalDialog.selected")}</span>
+              </Flex>
+            </Radio>
           ))}
-        </Checkbox.Group>
-        {approval.allowFreeText && (
-          <Flex
-            className={[Style.Option, Style.FreeText].join(" ")}
-            gap={10}
-            align="center"
-          >
-            <span className={Style.Index}>
-              <MaterialIcon name="edit" />
-            </span>
-            <Input
-              variant="borderless"
-              placeholder={approval.freeTextPlaceholder}
-              value={reason}
-              tabIndex={0}
-              onChange={(e) => {
-                const nextReason = e.target.value;
-                onReasonChange(nextReason);
-                if (nextReason.trim() && !decision) {
-                  onDecisionChange("reject");
-                }
+          <Flex align="center">
+            <Radio
+              className={[Style.Option, Style.FreeText].join(" ")}
+              value="reject"
+              onClick={() => {
+                onDecisionChange("reject");
+                onEnterDebounce("reject");
               }}
-              onPressEnter={(e) => {
-                const nextReason = e.currentTarget.value.trim();
-                if (!nextReason) {
-                  return;
-                }
-                onEnter(decision || "reject");
-              }}
-              style={{ padding: 0 }}
-            />
+            >
+              <Flex gap={10} align="center">
+                <span className={Style.Index}>
+                  <MaterialIcon name="edit" />
+                </span>
+                <span className={Style.Info}>拒绝</span>
+                <Input
+                  variant="borderless"
+                  placeholder="请告知如何调整"
+                  value={reason}
+                  tabIndex={0}
+                  onChange={(e) => {
+                    const nextReason = e.target.value;
+                    onReasonChange(nextReason);
+                    if (nextReason.trim() && !decision) {
+                      onDecisionChange("reject");
+                    }
+                  }}
+                  onPressEnter={(e) => {
+                    const nextReason = e.currentTarget.value.trim();
+                    if (!nextReason) {
+                      return;
+                    }
+                    onEnter("reject");
+                  }}
+                  style={{ padding: 0 }}
+                />
+              </Flex>
+            </Radio>
             {confirmSlot}
           </Flex>
-        )}
+        </Radio.Group>
       </Flex>
     );
   },
