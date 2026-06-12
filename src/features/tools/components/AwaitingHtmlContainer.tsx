@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Checkbox, Flex, Input, message } from "antd";
+import { Button, Checkbox, Flex, Input, message, Radio } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type {
   AIAwaitFormSubmitParamData,
@@ -25,6 +25,8 @@ import {
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
 import Style from "./buildin/confirm-dialog/index.module.css";
+import { useKeyboard } from "@/shared/utils/useKeyboard";
+import { RadioRef } from "antd/es/radio";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -814,26 +816,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setSubmitError("");
   }, [data, onSubmit, rejectReason, requestCollectFromFrame, t]);
 
-  const handleFooterSubmit = useCallback(() => {
-    if (footerDecision === "submit") {
-      requestCollectFromFrame("submit", { type: "submit" });
-      return;
-    }
-    if (footerDecision === "reject") {
-      void handleReject();
-    }
-  }, [footerDecision, handleReject, requestCollectFromFrame]);
-
   const reasonInputDisabled =
     data.loading ||
-    !onSubmit ||
-    Boolean(collectingDecision) ||
-    submitStatus === "submitting" ||
-    submitStatus === "autoSubmitting";
-
-  const submitDisabled =
-    data.loading ||
-    !data.viewportHtml ||
     !onSubmit ||
     Boolean(collectingDecision) ||
     submitStatus === "submitting" ||
@@ -846,11 +830,44 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     submitStatus === "submitting" ||
     submitStatus === "autoSubmitting";
 
-  const footerSubmitDisabled =
-    footerReadOnly ||
-    !footerDecision ||
-    (footerDecision === "submit" && !data.viewportHtml);
+  const handleFooterDecisionSubmit = useCallback(
+    (decision: AwaitingFooterDecision) => {
+      if (footerReadOnly || (decision === "submit" && !data.viewportHtml)) {
+        return;
+      }
 
+      setFooterDecision(decision);
+      if (decision === "submit") {
+        requestCollectFromFrame("submit", { type: "submit" });
+        return;
+      }
+      void handleReject();
+    },
+    [data.viewportHtml, footerReadOnly, handleReject, requestCollectFromFrame],
+  );
+  const hostRef = useRef<HTMLDivElement>(null);
+  const radioItemsRef = useRef<RadioRef[]>([]);
+  useKeyboard({
+    getAllHost: () => hostRef.current?.querySelectorAll('[tabIndex="0"]'),
+    onEnter: (element) => {
+      const index = Number(element.dataset.index);
+      if (!Number.isFinite(index)) {
+        return;
+      }
+      radioItemsRef.current?.[index]?.input?.click();
+    },
+    // onKeyDown: (e) => {
+    //   if (isEditableKeyboardTarget(e.target)) {
+    //     return;
+    //   }
+    //   if (!/^[1-9]$/.test(e.key)) {
+    //     return;
+    //   }
+    //   e.preventDefault();
+    //   e.stopPropagation();
+    //   planQuestionRef.current?.check(Number(e.key) - 1);
+    // },
+  });
   return (
     <div className="awaiting-panel" id="awaiting-html-panel">
       <div className="awaiting-panel-header">
@@ -931,91 +948,84 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         />
       )}
 
-      <div className="awaiting-panel-footer">
-        <Checkbox.Group
-          className="awaiting-panel-checkgroup"
-          value={footerDecision ? [footerDecision] : []}
+      <div ref={hostRef} className="awaiting-panel-footer">
+        <Radio.Group
+          className="awaiting-panel-radiogroup"
+          value={footerDecision}
           disabled={footerReadOnly}
-          onChange={(keys) => {
-            const last = keys.at(-1);
-            setFooterDecision(
-              last === "submit" || last === "reject" ? last : undefined,
-            );
-          }}
         >
-          <Flex className="awaiting-panel-option-row">
-            <Checkbox
-              value="submit"
-              className="awaiting-panel-option"
-              disabled={submitDisabled}
+          <Radio
+            value="submit"
+            ref={(radioRef) => {
+              if (radioRef) {
+                radioItemsRef.current[0] = radioRef;
+              }
+            }}
+            className="awaiting-panel-option"
+            disabled={footerReadOnly || !data.viewportHtml}
+            onClick={() => {
+              handleFooterDecisionSubmit("submit");
+            }}
+          >
+            <Flex
+              gap={10}
+              align="center"
+              tabIndex={0}
+              data-index={0}
+              style={{ outline: "none" }}
             >
-              <Flex gap={10} align="center">
-                <span className="awaiting-panel-option-index">1</span>
-                <span className="awaiting-panel-option-label">
-                  {t("awaiting.action.approve")}
-                </span>
-                <span className="awaiting-panel-submit-tail">
-                  {t("awaiting.hint.submitEditable")}
-                </span>
-                <span className="Selected">{t("approvalDialog.selected")}</span>
-              </Flex>
-            </Checkbox>
-          </Flex>
-          <Flex className="awaiting-panel-option-row" align="center" gap={10}>
-            <Checkbox value="reject" className="awaiting-panel-option">
-              <Flex gap={10} align="center">
-                <span className="awaiting-panel-option-index">2</span>
-                <span className="awaiting-panel-option-label">
-                  {t("awaiting.action.reject")}
-                </span>
-                <Input
-                  aria-label={t("awaiting.rejectReason.placeholder")}
-                  disabled={reasonInputDisabled}
-                  variant="borderless"
-                  placeholder={t("awaiting.rejectReason.placeholder")}
-                  value={rejectReason}
-                  onFocus={() => setFooterDecision("reject")}
-                  onChange={(event) => {
-                    setRejectReason(event.target.value);
-                    setFooterDecision("reject");
-                  }}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                  }}
-                  style={{ padding: 0, fontSize: 12 }}
-                />
-                <span className="Selected">{t("approvalDialog.selected")}</span>
-              </Flex>
-            </Checkbox>
-            <Flex gap={10} align="center" className="awaiting-panel-confirm">
-              <Button
-                type="text"
-                shape="round"
-                size="small"
-                className="awaiting-panel-ignore-button"
-                disabled={footerReadOnly}
-                onClick={() => {
-                  void handleReject();
-                }}
-              >
-                <span>{t("approvalDialog.action.skip")}</span>
-              </Button>
-              <Button
-                type="primary"
-                shape="round"
-                size="small"
-                loading={
-                  submitStatus === "submitting" ||
-                  submitStatus === "autoSubmitting"
-                }
-                disabled={footerSubmitDisabled}
-                onClick={handleFooterSubmit}
-              >
-                <span>{t("approvalDialog.action.submit")}</span>
-              </Button>
+              <span className="awaiting-panel-option-index">1</span>
+              <span className="awaiting-panel-option-label">
+                {t("awaiting.action.approve")}
+              </span>
+              <span className="awaiting-panel-submit-tail">
+                {t("awaiting.hint.submitEditable")}
+              </span>
             </Flex>
-          </Flex>
-        </Checkbox.Group>
+          </Radio>
+          <Radio
+            value="reject"
+            ref={(radioRef) => {
+              if (radioRef) {
+                radioItemsRef.current[1] = radioRef;
+              }
+            }}
+            className="awaiting-panel-option free-text"
+            disabled={footerReadOnly || !data.viewportHtml}
+            onClick={() => {
+              handleFooterDecisionSubmit("reject");
+            }}
+          >
+            <Flex gap={10} align="center">
+              <span className="awaiting-panel-option-index">2</span>
+              <span className="awaiting-panel-option-label">
+                {t("awaiting.action.reject")}
+              </span>
+              <Input
+                aria-label={t("awaiting.rejectReason.placeholder")}
+                disabled={reasonInputDisabled}
+                variant="borderless"
+                tabIndex={0}
+                placeholder={t("awaiting.rejectReason.placeholder")}
+                value={rejectReason}
+                onChange={(event) => {
+                  setRejectReason(event.target.value);
+                  setFooterDecision("reject");
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+                onPressEnter={() => {
+                  if (!rejectReason) {
+                    return;
+                  }
+                  handleFooterDecisionSubmit("reject");
+                }}
+                style={{ padding: 0, fontSize: 12 }}
+              />
+            </Flex>
+          </Radio>
+        </Radio.Group>
       </div>
 
       {submitStatusText && (

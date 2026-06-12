@@ -769,7 +769,7 @@
     gap: 2px;
 }
 
-.awaiting-panel-checkgroup {
+.awaiting-panel-radiogroup {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -784,20 +784,26 @@
     flex: 1;
     min-width: 0;
     padding: 6px 0;
-    border-radius: 10px;
+    border-radius: 16px;
     color: var(--text-muted);
     font-size: 12px;
+    border: 1px solid transparent;
+    margin-inline-end: 0;
 }
 
 .awaiting-panel-option:hover,
-.awaiting-panel-option:focus-within {
+.awaiting-panel-option:not(.free-text):focus-within {
     background-color: var(--bg-hover);
 }
 
-.awaiting-panel-option:focus-within .awaiting-panel-option-index {
+.awaiting-panel-option:focus-within .awaiting-panel-option-index,
+.awaiting-panel-radiogroup .ant-radio-wrapper-checked .awaiting-panel-option-index {
     background: var(--text-main);
     color: var(--bg-base);
     border-color: var(--text-main);
+}
+.awaiting-panel-option.free-text:focus-within{
+    border-color: var(--accent);
 }
 
 .awaiting-panel-option-index {
@@ -818,37 +824,12 @@
     white-space: nowrap;
 }
 
-.awaiting-panel-option .Selected {
-    color: var(--colorTextSecondary);
-    background-color: var(--bg-hover);
-    padding: 0 6px;
-    border-radius: 10px;
-    font-size: 12px;
-    display: none;
-    white-space: nowrap;
-}
-
-.awaiting-panel-checkgroup .ant-checkbox {
+.awaiting-panel-radiogroup .ant-radio {
     display: none;
 }
 
-.awaiting-panel-checkgroup .ant-checkbox-wrapper>span:last-child {
-    flex: 1;
-    min-width: 0;
-}
-
-.awaiting-panel-checkgroup .ant-checkbox-wrapper-checked .Selected {
-    display: block;
-}
-
-.awaiting-panel-checkgroup input {
-    min-width: 0;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-.awaiting-panel-checkgroup input::placeholder {
-    font-size: 12px;
+.awaiting-panel-radiogroup .ant-radio-label{
+    width: 100%;
 }
 
 .awaiting-panel-confirm {

@@ -538,7 +538,9 @@ textarea {
     box-shadow: var(--shadow-soft);
     border: 1px solid var(--line-soft);
 }
-
+.ant-input{
+    border-radius: 0;
+}
 /* 滚动条 */
 ::-webkit-scrollbar {
     width: 6px;

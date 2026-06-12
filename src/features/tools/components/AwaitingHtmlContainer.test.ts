@@ -19,6 +19,8 @@ import {
 } from '@/features/tools/components/AwaitingHtmlContainer';
 
 const originalWarn = console.warn;
+let mockRadioGroupProps: Record<string, any> | null = null;
+let mockInputProps: Record<string, any> | null = null;
 
 jest.mock('antd', () => {
   const ReactRuntime = require('react');
@@ -26,17 +28,50 @@ jest.mock('antd', () => {
     ReactRuntime.createElement('label', props, children);
   Checkbox.Group = ({ children, ...props }: Record<string, unknown>) =>
     ReactRuntime.createElement('div', props, children);
+  const Radio = {
+    Group: ({
+      options = [],
+      onChange,
+      ...props
+    }: Record<string, any>) => {
+      mockRadioGroupProps = { options, onChange, ...props };
+      return ReactRuntime.createElement(
+        'div',
+        props,
+        options.map((option: Record<string, any>) =>
+          ReactRuntime.createElement(
+            'label',
+            {
+              key: option.value,
+              className: option.className,
+              'data-value': option.value,
+            },
+            ReactRuntime.createElement('input', {
+              type: 'radio',
+              disabled: props.disabled || option.disabled,
+              value: option.value,
+              onChange: () => onChange?.({ target: { value: option.value } }),
+            }),
+            option.label,
+          ),
+        ),
+      );
+    },
+  };
   return {
     Button: ({ children, loading: _loading, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('button', props, children),
     Checkbox,
     Flex: ({ children, ...props }: Record<string, unknown>) =>
       ReactRuntime.createElement('div', props, children),
-    Input: (props: Record<string, unknown>) =>
-      ReactRuntime.createElement('input', props),
+    Input: (props: Record<string, unknown>) => {
+      mockInputProps = props;
+      return ReactRuntime.createElement('input', props);
+    },
     message: {
       info: jest.fn(),
     },
+    Radio,
   };
 });
 
@@ -88,22 +123,23 @@ describe('AwaitingHtmlContainer', () => {
 
   beforeEach(() => {
     console.warn = jest.fn();
+    mockRadioGroupProps = null;
+    mockInputProps = null;
   });
 
   afterEach(() => {
     console.warn = originalWarn;
   });
 
-  it('renders footer options with ignore and submit actions', () => {
+  it('renders footer options with submit and reject actions', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
       }),
     );
 
-    expect(html).toContain('提交');
+    expect(html).toContain('同意');
     expect(html).toContain('拒绝');
-    expect(html).toContain('忽略');
     expect(html).not.toContain('驳回');
   });
 
@@ -119,18 +155,62 @@ describe('AwaitingHtmlContainer', () => {
     );
   });
 
-  it('renders approve and reject as checkgroup options in the footer', () => {
+  it('renders approve and reject as radio options in the footer', () => {
     const html = renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
         data: createActiveAwaiting(),
       }),
     );
 
-    expect(html).toContain('awaiting-panel-checkgroup');
+    expect(html).toContain('awaiting-panel-radiogroup');
     expect(html).toContain('awaiting-panel-option-label">同意</span>');
     expect(html).toContain('awaiting-panel-option-label">拒绝</span>');
     expect(html).toContain('可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
+  });
+
+  it('submits reject when the reject option is selected', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+
+    renderAwaiting(
+      React.createElement(AwaitingHtmlContainer, {
+        data: createActiveAwaiting({ viewportHtml: '' }),
+        onSubmit,
+      }),
+    );
+
+    mockRadioGroupProps?.onChange({ target: { value: 'reject' } });
+    await Promise.resolve();
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      buildRejectAwaitingSubmitPayload(createActiveAwaiting({ viewportHtml: '' })),
+    );
+  });
+
+  it('does not submit when focusing the reject input, but submits on Enter', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+
+    renderAwaiting(
+      React.createElement(AwaitingHtmlContainer, {
+        data: createActiveAwaiting({ viewportHtml: '' }),
+        onSubmit,
+      }),
+    );
+
+    mockInputProps?.onFocus();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    mockInputProps?.onKeyDown({
+      key: 'Enter',
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+    });
+    await Promise.resolve();
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      buildRejectAwaitingSubmitPayload(createActiveAwaiting({ viewportHtml: '' })),
+    );
   });
 
   it('renders footer labels from the active locale', () => {
