@@ -18,7 +18,6 @@ import {
 	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
 	getAgentOrder as getAgentOrderHttp,
-	getAgentEditorOptions as getAgentEditorOptionsHttp,
 	getAgents as getAgentsHttp,
 	getChatRawJsonl as getChatRawJsonlHttp,
 	getChat as getChatHttp,
@@ -36,10 +35,8 @@ import {
 	normalizeChatSummariesPayload,
 	previewMemoryContext as previewMemoryContextHttp,
 	getResourceText,
-	getSkills as getSkillsHttp,
 	getTeams as getTeamsHttp,
 	getTool as getToolHttp,
-	getTools as getToolsHttp,
 	getViewport as getViewportHttp,
 	compactChat as compactChatHttp,
 	interruptChat as interruptChatHttp,
@@ -63,7 +60,6 @@ import {
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AgentDetailResponse,
-	type AgentEditorOptionsResponse,
 	type AgentModelConfigResponse,
 	type AgentOrderResponse,
 	type AccessLevelUpdateParams,
@@ -290,21 +286,13 @@ export function getAgent(agentKey: string): Promise<ApiResponse> {
 export function createAgent(
 	params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-	return routeRequest<AgentDetailResponse>(
-		"/api/agent/create",
-		params,
-		() => createAgentHttp(params),
-	);
+	return createAgentHttp(params);
 }
 
 export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-	return routeRequest<AgentDetailResponse>(
-		"/api/agent/update",
-		params,
-		() => updateAgentHttp(params),
-	);
+	return updateAgentHttp(params);
 }
 
 export function updateAgentModelConfig(
@@ -320,25 +308,13 @@ export function updateAgentModelConfig(
 export function deleteAgent(
 	params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
-	return routeRequest<DeleteAgentResponse>(
-		"/api/agent/delete",
-		params,
-		() => deleteAgentHttp(params),
-	);
+	return deleteAgentHttp(params);
 }
 
 export function openAgentWorkspace(
 	params: OpenAgentWorkspaceRequest,
 ): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
 	return openAgentWorkspaceHttp(params);
-}
-
-export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
-	return routeRequest<AgentEditorOptionsResponse>(
-		"/api/agent/editor-options",
-		undefined,
-		() => getAgentEditorOptionsHttp(),
-	);
 }
 
 export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
@@ -351,26 +327,6 @@ export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse
 
 export function getTeams(): Promise<ApiResponse> {
 	return routeRequest("/api/teams", undefined, () => getTeamsHttp());
-}
-
-export function getSkills(tag?: string): Promise<ApiResponse> {
-	return routeRequest("/api/skills", tag ? { tag } : undefined, () =>
-		getSkillsHttp(tag),
-	);
-}
-
-export function getTools(options: {
-	tag?: string;
-	kind?: string;
-} = {}): Promise<ApiResponse> {
-	return routeRequest(
-		"/api/tools",
-		{
-			...(options.tag ? { tag: options.tag } : {}),
-			...(options.kind ? { kind: options.kind } : {}),
-		},
-		() => getToolsHttp(options),
-	);
 }
 
 export function getTool(toolName: string): Promise<ApiResponse> {

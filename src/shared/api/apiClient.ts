@@ -1130,13 +1130,13 @@ export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<Admin
 export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent/create", params);
+  return postJson<AgentDetailResponse>("/api/admin/agents/create", params);
 }
 
 export function updateAgent(
   params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/agent/update", params);
+  return postJson<AgentDetailResponse>("/api/admin/agents/update", params);
 }
 
 export function updateAgentModelConfig(
@@ -1148,7 +1148,7 @@ export function updateAgentModelConfig(
 export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
-  return postJson<DeleteAgentResponse>("/api/agent/delete", params);
+  return postJson<DeleteAgentResponse>("/api/admin/agents/delete", params);
 }
 
 export function openAgentWorkspace(
@@ -1157,8 +1157,8 @@ export function openAgentWorkspace(
   return postJson<OpenAgentWorkspaceResponse>("/api/agent/open-workspace", params);
 }
 
-export function getAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
-  return requestJson<AgentEditorOptionsResponse>("/api/agent/editor-options");
+export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
+  return requestJson<AgentEditorOptionsResponse>("/api/admin/agents/editor-options");
 }
 
 export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
@@ -1169,16 +1169,16 @@ export function getTeams(): Promise<ApiResponse> {
   return requestJson("/api/teams");
 }
 
-export function getSkills(tag?: string): Promise<ApiResponse> {
+export function getAdminSkills(tag?: string): Promise<ApiResponse> {
   const query = toQueryString({ tag });
-  return requestJson(query ? `/api/skills?${query}` : "/api/skills");
+  return requestJson(query ? `/api/admin/skills?${query}` : "/api/admin/skills");
 }
 
-export function getTools(
+export function getAdminTools(
   options: { tag?: string; kind?: string } = {},
 ): Promise<ApiResponse> {
   const query = toQueryString({ tag: options.tag, kind: options.kind });
-  return requestJson(query ? `/api/tools?${query}` : "/api/tools");
+  return requestJson(query ? `/api/admin/tools?${query}` : "/api/admin/tools");
 }
 
 export function getTool(toolName: string): Promise<ApiResponse> {

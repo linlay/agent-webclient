@@ -52,9 +52,9 @@
 - `GET /api/agents`
 - `GET /api/teams`
 - `GET /api/agent`
-- `GET /api/skills`
+- `GET /api/admin/skills`
 - `GET /api/tool`
-- `GET /api/tools`
+- `GET /api/admin/tools`
 - `GET /api/chats`
 - `GET /api/chat`
 - `GET /api/viewport`

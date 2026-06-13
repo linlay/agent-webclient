@@ -23,14 +23,16 @@ import {
   extractUploadChatId,
   extractUploadReferences,
   getAdminAgentDetail,
+  getAdminAgentEditorOptions,
   getAdminAgentOrder,
   getAdminAgents,
+  getAdminSkills,
+  getAdminTools,
   getAdminRegistries,
   getAdminRegistryDetail,
   getArchive,
   getAgent,
   getAgentOrder,
-  getAgentEditorOptions,
   getAgents,
   getChatRawJsonl,
   getArchives,
@@ -496,7 +498,7 @@ describe('apiClient query payloads', () => {
     }));
     expect(calls).toEqual([
       {
-        url: '/api/agent/create',
+        url: '/api/admin/agents/create',
         body: {
           key: 'editable-agent',
           definition: {
@@ -509,7 +511,7 @@ describe('apiClient query payloads', () => {
         },
       },
       {
-        url: '/api/agent/update',
+        url: '/api/admin/agents/update',
         body: {
           key: 'editable-agent',
           definition: {
@@ -528,7 +530,7 @@ describe('apiClient query payloads', () => {
           reasoningEffort: 'HIGH',
         },
       },
-      { url: '/api/agent/delete', body: { key: 'editable-agent' } },
+      { url: '/api/admin/agents/delete', body: { key: 'editable-agent' } },
       {
         url: '/api/agent/open-workspace',
         body: { agentKey: 'editable-agent' },
@@ -536,13 +538,25 @@ describe('apiClient query payloads', () => {
     ]);
   });
 
-  it('loads agent editor options', async () => {
-    await getAgentEditorOptions();
+  it('loads admin agent editor options', async () => {
+    await getAdminAgentEditorOptions();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/agent/editor-options',
+      '/api/admin/agents/editor-options',
       expect.objectContaining({ method: 'GET' }),
     );
+  });
+
+  it('loads admin skills and tools', async () => {
+    await getAdminSkills();
+    await getAdminSkills('planning');
+    await getAdminTools();
+    await getAdminTools({ tag: 'coding', kind: 'builtin' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/skills');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/skills?tag=planning');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/admin/tools');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/admin/tools?tag=coding&kind=builtin');
   });
 
   it('loads global model options', async () => {

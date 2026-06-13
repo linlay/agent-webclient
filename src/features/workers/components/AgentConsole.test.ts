@@ -45,10 +45,10 @@ jest.mock("@/shared/api/apiClient", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
   getAdminAgentDetail: jest.fn(),
+  getAdminAgentEditorOptions: jest.fn(),
   getAdminAgents: jest.fn(),
-  getAgentEditorOptions: jest.fn(),
-  getSkills: jest.fn(),
-  getTools: jest.fn(),
+  getAdminSkills: jest.fn(),
+  getAdminTools: jest.fn(),
   putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
 }));

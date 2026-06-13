@@ -23,10 +23,10 @@ import {
   createAgent,
   deleteAgent,
   getAdminAgentDetail,
+  getAdminAgentEditorOptions,
   getAdminAgents,
-  getAgentEditorOptions,
-  getSkills,
-  getTools,
+  getAdminSkills,
+  getAdminTools,
   putAdminAgentOrder,
   updateAgent,
 } from "@/shared/api/apiClient";
@@ -751,7 +751,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     optionsLoadSeqRef.current = requestSeq;
     setLoadingOptions(true);
     try {
-      const [optionsResponse, toolsResponse, skillsResponse] = await Promise.all([getAgentEditorOptions(), getTools(), getSkills()]);
+      const [optionsResponse, toolsResponse, skillsResponse] = await Promise.all([
+        getAdminAgentEditorOptions(),
+        getAdminTools(),
+        getAdminSkills(),
+      ]);
       if (optionsLoadSeqRef.current !== requestSeq) return;
       setEditorOptions((optionsResponse.data || null) as AgentEditorOptionsResponse | null);
       setToolOptions(

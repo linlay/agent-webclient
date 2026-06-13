@@ -40,7 +40,6 @@ jest.mock("@/shared/api/apiClient", () => {
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
 		getAgentOrder: jest.fn(),
-		getAgentEditorOptions: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
 		getChatRawJsonl: jest.fn(),
@@ -70,10 +69,8 @@ jest.mock("@/shared/api/apiClient", () => {
 				: [],
 		),
 		getResourceText: jest.fn(),
-		getSkills: jest.fn(),
 		getTeams: jest.fn(),
 		getTool: jest.fn(),
-		getTools: jest.fn(),
 		getViewport: jest.fn(),
 		compactChat: jest.fn(),
 		interruptChat: jest.fn(),
@@ -126,7 +123,6 @@ let mockApiClient: {
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
 	getAgentOrder: jest.Mock;
-	getAgentEditorOptions: jest.Mock;
 	getModelOptions: jest.Mock;
 	getAgents: jest.Mock;
 	getChatRawJsonl: jest.Mock;
@@ -143,12 +139,10 @@ let mockApiClient: {
 		getAutomation: jest.Mock;
 		getAutomationExecutions: jest.Mock;
 		getAutomations: jest.Mock;
-		normalizeChatSummariesPayload: jest.Mock;
+	normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
-	getSkills: jest.Mock;
 	getTeams: jest.Mock;
 	getTool: jest.Mock;
-	getTools: jest.Mock;
 	getViewport: jest.Mock;
 	compactChat: jest.Mock;
 	interruptChat: jest.Mock;
@@ -358,7 +352,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getAutomations).not.toHaveBeenCalled();
 	});
 
-	it("routes agent management calls over ws when connected", async () => {
+	it("keeps agent CRUD on http and routes model config over ws when connected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -375,6 +369,24 @@ describe("apiClientProxy", () => {
 			request,
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.createAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+		mockApiClient.updateAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+		mockApiClient.deleteAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent", deleted: true },
+		});
 
 		await proxy.createAgent({
 			key: "editable-agent",
@@ -390,24 +402,9 @@ describe("apiClientProxy", () => {
 			reasoningEffort: "HIGH",
 		});
 		await proxy.deleteAgent({ key: "editable-agent" });
-		await proxy.getAgentEditorOptions();
 		await proxy.getModelOptions();
 
 		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/agent/create",
-			payload: {
-				key: "editable-agent",
-				definition: { key: "editable-agent", name: "Editable Agent" },
-			},
-		});
-		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/agent/update",
-			payload: {
-				key: "editable-agent",
-				definition: { key: "editable-agent", name: "Updated Agent" },
-			},
-		});
-		expect(request).toHaveBeenNthCalledWith(3, {
 			type: "/api/agent/model-config",
 			payload: {
 				agentKey: "editable-agent",
@@ -415,58 +412,19 @@ describe("apiClientProxy", () => {
 				reasoningEffort: "HIGH",
 			},
 		});
-		expect(request).toHaveBeenNthCalledWith(4, {
-			type: "/api/agent/delete",
-			payload: { key: "editable-agent" },
-		});
-		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/agent/editor-options",
-			payload: undefined,
-		});
-		expect(request).toHaveBeenNthCalledWith(6, {
+		expect(request).toHaveBeenNthCalledWith(2, {
 			type: "/api/model-options",
 			payload: undefined,
 		});
-		expect(mockApiClient.createAgent).not.toHaveBeenCalled();
-	});
-
-	it("routes agent console option lookups over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
-		proxy.setTransportModeProvider(() => "ws");
-
-		const connect = jest.fn().mockResolvedValue(undefined);
-		const request = jest.fn().mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: [],
+		expect(mockApiClient.createAgent).toHaveBeenCalledWith({
+			key: "editable-agent",
+			definition: { key: "editable-agent", name: "Editable Agent" },
 		});
-		mockGetWsClient.mockReturnValue({
-			connect,
-			updateOptions: jest.fn(),
-			request,
+		expect(mockApiClient.updateAgent).toHaveBeenCalledWith({
+			key: "editable-agent",
+			definition: { key: "editable-agent", name: "Updated Agent" },
 		});
-		mockGetWsClientAccessToken.mockReturnValue("");
-
-		await proxy.getAgentEditorOptions();
-		await proxy.getTools();
-		await proxy.getSkills();
-
-		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/agent/editor-options",
-			payload: undefined,
-		});
-		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/tools",
-			payload: {},
-		});
-		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/skills",
-			payload: undefined,
-		});
-		expect(mockApiClient.getAgentEditorOptions).not.toHaveBeenCalled();
-		expect(mockApiClient.getTools).not.toHaveBeenCalled();
-		expect(mockApiClient.getSkills).not.toHaveBeenCalled();
+		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({ key: "editable-agent" });
 	});
 
 	it("routes memory console calls over ws when connected", async () => {
@@ -1363,12 +1321,6 @@ describe("apiClientProxy", () => {
 			msg: "ok",
 			data: { key: "editable-agent", deleted: true },
 		});
-		mockApiClient.getAgentEditorOptions.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { modes: [{ key: "PROXY", label: "ACP-PROXY" }] },
-		});
 		mockApiClient.getModelOptions.mockResolvedValue({
 			status: 200,
 			code: 0,
@@ -1389,9 +1341,6 @@ describe("apiClientProxy", () => {
 		).resolves.toMatchObject({
 			data: { key: "editable-agent", deleted: true },
 		});
-		await expect(proxy.getAgentEditorOptions()).resolves.toMatchObject({
-			data: { modes: [{ key: "PROXY", label: "ACP-PROXY" }] },
-		});
 		await expect(proxy.getModelOptions()).resolves.toMatchObject({
 			data: { models: [{ key: "coder-model" }] },
 		});
@@ -1404,7 +1353,6 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({
 			key: "editable-agent",
 		});
-		expect(mockApiClient.getAgentEditorOptions).toHaveBeenCalledTimes(1);
 		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith();
 	});
 
