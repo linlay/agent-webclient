@@ -19,7 +19,6 @@ export const enUSMessages: I18nMessages = {
   "agentConsole.detail.createSubtitle": "Saved changes are written to the backend agent config",
   "agentConsole.detail.titleCreate": "New agent",
   "agentConsole.detail.titleEdit": "Edit agent",
-  "agentConsole.diagnostics.source": "Source",
   "agentConsole.diagnostics.title": "Diagnostics",
   "agentConsole.diagnostics.uneditable": "This config cannot be parsed, so structured saving is disabled until the source file is fixed.",
   "agentConsole.empty": "No matching agents.",

@@ -29,7 +29,7 @@ import {
   getTools,
   putAdminAgentOrder,
   updateAgent,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/api/apiClient";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,
@@ -166,9 +166,9 @@ export function hasEditableAdminDefinition(detail: EditableAgentDetail | null): 
   return Boolean(detail.definition);
 }
 
-function resolveAdminAgentSourcePath(detail: EditableAgentDetail | null): string {
-  if (!detail) return "";
-  const source = asRecord(detail.source);
+export function resolveAdminAgentSourcePath(detail: unknown): string {
+  const record = asRecord(detail);
+  const source = asRecord(record.source);
   return (
     toText(source.path)
     || toText(source.agentDir)
@@ -653,6 +653,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [form.iconImage, form.iconKind, form.iconName]);
   const detailDiagnostics = useMemo(() => readAdminAgentDiagnostics(detail), [detail]);
   const detailSourcePath = useMemo(() => resolveAdminAgentSourcePath(detail), [detail]);
+  const detailSubtitle = formMode === "create"
+    ? t("agentConsole.detail.createSubtitle")
+    : detailSourcePath || form.key;
   const canEditStructuredAgent = formMode === "create" || hasEditableAdminDefinition(detail);
 
   useEffect(() => {
@@ -989,7 +992,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <div className="agent-detail-head">
               <div>
                 <strong>{formMode === "create" ? t("agentConsole.detail.titleCreate") : selectedSummary?.name || form.name || form.key || t("agentConsole.detail.titleEdit")}</strong>
-                <span>{formMode === "create" ? t("agentConsole.detail.createSubtitle") : detail?.source?.path || form.key}</span>
+                <span>{detailSubtitle}</span>
               </div>
               {formMode === "edit" && (
                 <div className="agent-detail-actions">
@@ -1001,28 +1004,19 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               )}
             </div>
 
-            {formMode === "edit" && (detailSourcePath || detailDiagnostics.length > 0) && (
+            {formMode === "edit" && detailDiagnostics.length > 0 && (
               <div className="agent-detail-admin-meta">
-                {detailSourcePath && (
-                  <div className="agent-detail-source">
-                    <span>{t("agentConsole.diagnostics.source")}</span>
-                    <code>{detailSourcePath}</code>
-                  </div>
-                )}
-                {detailDiagnostics.length > 0 && (
-                  <div className="agent-diagnostics" role="status">
-                    <strong>{t("agentConsole.diagnostics.title")}</strong>
-                    {detailDiagnostics.map((diagnostic, index) => (
-                      <div className="agent-diagnostic-item" key={`${diagnostic.code}-${index}`}>
-                        <span className="agent-diagnostic-code">
-                          {[diagnostic.severity, diagnostic.code].filter(Boolean).join(" · ")}
-                        </span>
-                        <span>{diagnostic.message}</span>
-                        {diagnostic.sourcePath && <code>{diagnostic.sourcePath}</code>}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="agent-diagnostics" role="status">
+                  <strong>{t("agentConsole.diagnostics.title")}</strong>
+                  {detailDiagnostics.map((diagnostic, index) => (
+                    <div className="agent-diagnostic-item" key={`${diagnostic.code}-${index}`}>
+                      <span className="agent-diagnostic-code">
+                        {[diagnostic.severity, diagnostic.code].filter(Boolean).join(" · ")}
+                      </span>
+                      <span>{diagnostic.message}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

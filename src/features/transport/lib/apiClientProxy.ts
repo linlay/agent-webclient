@@ -12,9 +12,6 @@ import {
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
-	getAdminAgentDetail as getAdminAgentDetailHttp,
-	getAdminAgentOrder as getAdminAgentOrderHttp,
-	getAdminAgents as getAdminAgentsHttp,
 	getArchive as getArchiveHttp,
 	getArchives as getArchivesHttp,
 	searchGlobal as searchGlobalHttp,
@@ -49,7 +46,6 @@ import {
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
 	openAgentWorkspace as openAgentWorkspaceHttp,
-	putAdminAgentOrder as putAdminAgentOrderHttp,
 	rememberChat as rememberChatHttp,
 	renameChat as renameChatHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
@@ -66,8 +62,6 @@ import {
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
-	type AdminAgentDetailResponse,
-	type AdminAgentSummary,
 	type AgentDetailResponse,
 	type AgentEditorOptionsResponse,
 	type AgentModelConfigResponse,
@@ -279,14 +273,6 @@ export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> 
 	);
 }
 
-export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
-	return routeRequest<AdminAgentSummary[]>(
-		"/api/admin/agents",
-		undefined,
-		() => getAdminAgentsHttp(),
-	);
-}
-
 export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
 	return routeRequest("/api/agents/order", undefined, () => getAgentOrderHttp());
 }
@@ -297,34 +283,8 @@ export function putAgentOrder(
 	return routeRequest("/api/agents/order", params, () => putAgentOrderHttp(params));
 }
 
-export function getAdminAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
-	return routeRequest(
-		"/api/admin/agents/order",
-		undefined,
-		() => getAdminAgentOrderHttp(),
-	);
-}
-
-export function putAdminAgentOrder(
-	params: UpdateAgentOrderRequest,
-): Promise<ApiResponse<AgentOrderResponse>> {
-	return routeRequest(
-		"/api/admin/agents/order",
-		params,
-		() => putAdminAgentOrderHttp(params),
-	);
-}
-
 export function getAgent(agentKey: string): Promise<ApiResponse> {
 	return routeRequest("/api/agent", { agentKey }, () => getAgentHttp(agentKey));
-}
-
-export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {
-	return routeRequest<AdminAgentDetailResponse>(
-		"/api/admin/agents/detail",
-		{ agentKey },
-		() => getAdminAgentDetailHttp(agentKey),
-	);
 }
 
 export function createAgent(

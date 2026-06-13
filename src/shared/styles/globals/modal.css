@@ -1171,7 +1171,6 @@
     margin: 0 0 14px;
 }
 
-.agent-detail-source,
 .agent-diagnostics,
 .agent-console-uneditable {
     border: 1px solid color-mix(in srgb, var(--accent-danger) 26%, var(--line-soft));
@@ -1181,25 +1180,9 @@
     font-size: 12px;
 }
 
-.agent-detail-source {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-}
-
-.agent-detail-source span,
 .agent-diagnostics strong {
     color: var(--accent-danger);
     font-weight: 700;
-}
-
-.agent-detail-source code,
-.agent-diagnostic-item code {
-    min-width: 0;
-    color: var(--ink-muted);
-    overflow-wrap: anywhere;
 }
 
 .agent-diagnostics {

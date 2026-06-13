@@ -41,7 +41,7 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(() => ({ state: mockAppState, dispatch: mockDispatch })),
 }));
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/api/apiClient", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
   getAdminAgentDetail: jest.fn(),
@@ -76,12 +76,13 @@ import {
   hasEditableAdminDefinition,
   isInvalidAdminAgent,
   readAdminAgentDiagnostics,
+  resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
   shouldStartAgentConsoleBootstrap,
 } from "@/features/workers/components/AgentConsole";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
-  "@/features/transport/lib/apiClientProxy",
+  "@/shared/api/apiClient",
 ) as {
   getAdminAgents: jest.Mock;
   putAdminAgentOrder: jest.Mock;
@@ -189,6 +190,28 @@ describe("AgentConsole admin diagnostics", () => {
     ).toBe(false);
   });
 
+  it("uses source path as detail subtitle data without requiring diagnostics to render it", () => {
+    const detail = {
+      key: "invalid-yaml",
+      name: "Invalid YAML",
+      status: "invalid",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid_yaml",
+          message: "yaml failed",
+          sourcePath: "/agents/invalid-yaml/agent.yml",
+        },
+      ],
+    } as any;
+
+    expect(resolveAdminAgentSourcePath(detail)).toBe("/agents/invalid-yaml/agent.yml");
+    expect(readAdminAgentDiagnostics(detail)[0]).toMatchObject({
+      message: "yaml failed",
+      sourcePath: "/agents/invalid-yaml/agent.yml",
+    });
+  });
+
   it("renders invalid agent rows with status and diagnostic text", () => {
     mockAppState.agents = [
       {
@@ -196,7 +219,14 @@ describe("AgentConsole admin diagnostics", () => {
         name: "Bad Agent",
         role: "Fix me",
         status: "invalid",
-        diagnostics: [{ severity: "error", code: "invalid_yaml", message: "yaml failed" }],
+        diagnostics: [
+          {
+            severity: "error",
+            code: "invalid_yaml",
+            message: "yaml failed",
+            sourcePath: "/agents/bad-agent/agent.yml",
+          },
+        ],
         meta: { mode: "REACT", modelKey: "gpt-5" },
       },
     ];
@@ -211,6 +241,7 @@ describe("AgentConsole admin diagnostics", () => {
 
     expect(html).toContain("Invalid");
     expect(html).toContain("yaml failed");
+    expect(html).not.toContain("/agents/bad-agent/agent.yml");
   });
 });
 

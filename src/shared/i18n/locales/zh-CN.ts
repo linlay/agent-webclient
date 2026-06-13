@@ -19,7 +19,6 @@ export const zhCNMessages: I18nMessages = {
   "agentConsole.detail.createSubtitle": "保存后写入后端 agent 配置",
   "agentConsole.detail.titleCreate": "新建智能体",
   "agentConsole.detail.titleEdit": "编辑智能体",
-  "agentConsole.diagnostics.source": "配置源",
   "agentConsole.diagnostics.title": "配置诊断",
   "agentConsole.diagnostics.uneditable": "配置文件无法解析，暂不能用结构化表单保存。请先修复源文件。",
   "agentConsole.empty": "暂无匹配智能体。",
