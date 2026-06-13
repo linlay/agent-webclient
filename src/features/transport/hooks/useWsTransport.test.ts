@@ -511,58 +511,6 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("forwards catalog.updated push events to the registry console window listener", async () => {
-		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
-		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
-		const dispatchEvent = jest.fn();
-		class MockCustomEvent {
-			type: string;
-			detail: unknown;
-
-			constructor(type: string, init?: { detail?: unknown }) {
-				this.type = type;
-				this.detail = init?.detail;
-			}
-		}
-		Object.defineProperty(globalThis, "window", {
-			value: { dispatchEvent },
-			configurable: true,
-			writable: true,
-		});
-		Object.defineProperty(globalThis, "CustomEvent", {
-			value: MockCustomEvent,
-			configurable: true,
-			writable: true,
-		});
-
-		await connectWsTransport({
-			dispatch,
-			state,
-			stateRef: { current: state },
-			handleEvent,
-			isAppModeImpl: () => false,
-			ensureAccessTokenImpl: jest.fn(),
-			initWsClientImpl,
-			destroyWsClientImpl: jest.fn(),
-		});
-
-		getOnPush()?.({
-			frame: "push",
-			type: "catalog.updated",
-			payload: {
-				reason: "models",
-			},
-		});
-
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "agent:catalog-updated",
-				detail: expect.objectContaining({ type: "catalog.updated", reason: "models" }),
-			}),
-		);
-		expect(handleEvent).not.toHaveBeenCalled();
-	});
-
 	it("upserts run.started for another chat without dropping it on the current-chat filter", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });

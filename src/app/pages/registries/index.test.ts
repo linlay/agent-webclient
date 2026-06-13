@@ -37,7 +37,7 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/api/apiClient", () => ({
   getAdminRegistries: jest.fn(),
   getAdminRegistryDetail: jest.fn(),
   saveAdminRegistryDetail: jest.fn(),
@@ -87,7 +87,9 @@ describe("RegistriesPage", () => {
     const html = renderRegistriesPage("zh-CN");
 
     expect(html).toContain("搜索 registry 配置");
-    expect(html).toContain("全部分类");
+    expect(html).toContain("Providers");
+    expect(html).toContain("Models");
+    expect(html).not.toContain("全部分类");
     expect(html).toContain("全部状态");
     expect(html).toContain("新建");
     expect(html).toContain("请选择或新建 registry 配置");
@@ -97,7 +99,9 @@ describe("RegistriesPage", () => {
     const html = renderRegistriesPage("en-US");
 
     expect(html).toContain("Search registry configs");
-    expect(html).toContain("All categories");
+    expect(html).toContain("Providers");
+    expect(html).toContain("Models");
+    expect(html).not.toContain("All categories");
     expect(html).toContain("All statuses");
     expect(html).toContain("Select or create a registry config");
   });
@@ -111,6 +115,12 @@ describe("RegistriesPage", () => {
     expect(
       filterRegistryItems(registryItems, { categoryFilter: "models" }).map(registryItemKey),
     ).toEqual(["models/broken-model.yml"]);
+    expect(
+      filterRegistryItems(registryItems, {
+        categoryFilter: "providers",
+        searchText: "unknown provider",
+      }).map(registryItemKey),
+    ).toEqual([]);
     expect(
       filterRegistryItems(registryItems, { statusFilter: "disabled" }).map(registryItemKey),
     ).toEqual(["mcp-servers/disabled-mcp.yml"]);

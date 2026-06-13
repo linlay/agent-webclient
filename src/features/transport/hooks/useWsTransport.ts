@@ -773,15 +773,6 @@ function buildWsClient(
 				return;
 			}
 
-			if (type === "catalog.updated") {
-				if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
-					window.dispatchEvent(
-						new CustomEvent("agent:catalog-updated", { detail: liveEvent }),
-					);
-				}
-				return;
-			}
-
 			if (type === "chat.created") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				return;

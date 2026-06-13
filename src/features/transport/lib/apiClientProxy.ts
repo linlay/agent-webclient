@@ -15,8 +15,6 @@ import {
 	getAdminAgentDetail as getAdminAgentDetailHttp,
 	getAdminAgentOrder as getAdminAgentOrderHttp,
 	getAdminAgents as getAdminAgentsHttp,
-	getAdminRegistries as getAdminRegistriesHttp,
-	getAdminRegistryDetail as getAdminRegistryDetailHttp,
 	getArchive as getArchiveHttp,
 	getArchives as getArchivesHttp,
 	searchGlobal as searchGlobalHttp,
@@ -52,7 +50,6 @@ import {
 	markChatRead as markChatReadHttp,
 	openAgentWorkspace as openAgentWorkspaceHttp,
 	putAdminAgentOrder as putAdminAgentOrderHttp,
-	saveAdminRegistryDetail as saveAdminRegistryDetailHttp,
 	rememberChat as rememberChatHttp,
 	renameChat as renameChatHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
@@ -68,16 +65,9 @@ import {
 	putAgentOrder as putAgentOrderHttp,
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
-	validateAdminRegistry as validateAdminRegistryHttp,
 	validateMemoryScope as validateMemoryScopeHttp,
 	type AdminAgentDetailResponse,
 	type AdminAgentSummary,
-	type AdminRegistryCategory,
-	type AdminRegistryDetailRequest,
-	type AdminRegistryDetailResponse,
-	type AdminRegistryListResponse,
-	type AdminRegistryValidateRequest,
-	type AdminRegistryValidateResponse,
 	type AgentDetailResponse,
 	type AgentEditorOptionsResponse,
 	type AgentModelConfigResponse,
@@ -294,45 +284,6 @@ export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
 		"/api/admin/agents",
 		undefined,
 		() => getAdminAgentsHttp(),
-	);
-}
-
-export function getAdminRegistries(): Promise<ApiResponse<AdminRegistryListResponse>> {
-	return routeRequest<AdminRegistryListResponse>(
-		"/api/admin/registries",
-		undefined,
-		() => getAdminRegistriesHttp(),
-	);
-}
-
-export function getAdminRegistryDetail(
-	category: AdminRegistryCategory,
-	file: string,
-): Promise<ApiResponse<AdminRegistryDetailResponse>> {
-	return routeRequest<AdminRegistryDetailResponse>(
-		"/api/admin/registries/detail",
-		{ category, file },
-		() => getAdminRegistryDetailHttp(category, file),
-	);
-}
-
-export function saveAdminRegistryDetail(
-	params: AdminRegistryDetailRequest,
-): Promise<ApiResponse<AdminRegistryDetailResponse>> {
-	return routeRequest<AdminRegistryDetailResponse>(
-		"/api/admin/registries/detail",
-		params,
-		() => saveAdminRegistryDetailHttp(params),
-	);
-}
-
-export function validateAdminRegistry(
-	params: AdminRegistryValidateRequest,
-): Promise<ApiResponse<AdminRegistryValidateResponse>> {
-	return routeRequest<AdminRegistryValidateResponse>(
-		"/api/admin/registries/validate",
-		params,
-		() => validateAdminRegistryHttp(params),
 	);
 }
 

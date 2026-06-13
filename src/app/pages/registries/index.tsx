@@ -5,7 +5,7 @@ import {
   getAdminRegistryDetail,
   saveAdminRegistryDetail,
   validateAdminRegistry,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/api/apiClient";
 import type {
   AdminRegistryCategory,
   AdminRegistryDetailResponse,
@@ -18,7 +18,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 
-type CategoryFilter = "all" | AdminRegistryCategory;
 type StatusFilter = "all" | AdminRegistryStatus;
 
 const CATEGORIES: AdminRegistryCategory[] = [
@@ -140,15 +139,15 @@ export function filterRegistryItems(
   items: AdminRegistrySummary[],
   filters: {
     searchText?: string;
-    categoryFilter?: CategoryFilter;
+    categoryFilter?: AdminRegistryCategory;
     statusFilter?: StatusFilter;
   },
 ): AdminRegistrySummary[] {
   const needle = (filters.searchText || "").trim().toLowerCase();
-  const categoryFilter = filters.categoryFilter || "all";
+  const categoryFilter = filters.categoryFilter;
   const statusFilter = filters.statusFilter || "all";
   return items.filter((item) => {
-    if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+    if (categoryFilter && item.category !== categoryFilter) return false;
     if (statusFilter !== "all" && item.status !== statusFilter) return false;
     if (!needle) return true;
     const haystack = [
@@ -173,7 +172,7 @@ export const RegistriesPage = () => {
   const [detail, setDetail] = useState<AdminRegistryDetailResponse | null>(null);
   const [draft, setDraft] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [activeCategory, setActiveCategory] = useState<AdminRegistryCategory>("providers");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -184,15 +183,18 @@ export const RegistriesPage = () => {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const categoryOptions = useMemo(
-    () => [
-      { value: "all", label: t("registryConsole.filter.category.all") },
-      ...CATEGORIES.map((category) => ({
-        value: category,
-        label: t(`registryConsole.category.${category}`),
-      })),
-    ],
-    [t],
+  const categoryCounts = useMemo(
+    () =>
+      CATEGORIES.reduce<Record<AdminRegistryCategory, number>>((acc, category) => {
+        acc[category] = items.filter((item) => item.category === category).length;
+        return acc;
+      }, {
+        providers: 0,
+        models: 0,
+        "mcp-servers": 0,
+        "viewport-servers": 0,
+      }),
+    [items],
   );
 
   const statusOptions = useMemo(
@@ -205,12 +207,12 @@ export const RegistriesPage = () => {
   );
 
   const filteredItems = useMemo(() => {
-    return filterRegistryItems(items, { searchText, categoryFilter, statusFilter });
-  }, [categoryFilter, items, searchText, statusFilter]);
+    return filterRegistryItems(items, { searchText, categoryFilter: activeCategory, statusFilter });
+  }, [activeCategory, items, searchText, statusFilter]);
 
-  const selectedSummary = useMemo(
-    () => items.find((item) => registryItemKey(item) === selectedKey) || null,
-    [items, selectedKey],
+  const currentCategoryItems = useMemo(
+    () => items.filter((item) => item.category === activeCategory),
+    [activeCategory, items],
   );
 
   const loadDetail = useCallback(
@@ -233,24 +235,30 @@ export const RegistriesPage = () => {
   );
 
   const loadRegistries = useCallback(
-    async (preferredKey?: string) => {
+    async (preferredKey?: string, categoryOverride?: AdminRegistryCategory) => {
       setLoading(true);
       setError("");
       try {
         const response = await getAdminRegistries();
         const nextItems = response.data.items || [];
         setItems(nextItems);
-        const targetKey =
-          preferredKey ||
-          (nextItems.some((item) => registryItemKey(item) === selectedKey)
-            ? selectedKey
-            : registryItemKey(nextItems[0] || { category: "providers", file: "" }));
-        if (targetKey && targetKey !== "providers/" && !newDraft) {
-          const target = nextItems.find((item) => registryItemKey(item) === targetKey);
-          if (target) {
-            setSelectedKey(targetKey);
-            await loadDetail(target);
-          }
+        const category = categoryOverride || activeCategory;
+        const categoryItems = nextItems.filter((item) => item.category === category);
+        const target =
+          (preferredKey
+            ? categoryItems.find((item) => registryItemKey(item) === preferredKey)
+            : null) ||
+          categoryItems.find((item) => registryItemKey(item) === selectedKey) ||
+          categoryItems[0] ||
+          null;
+        if (target && !newDraft) {
+          setSelectedKey(registryItemKey(target));
+          await loadDetail(target);
+        } else if (!newDraft) {
+          setSelectedKey("");
+          setDetail(null);
+          setDraft("");
+          setDirty(false);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -258,29 +266,12 @@ export const RegistriesPage = () => {
         setLoading(false);
       }
     },
-    [loadDetail, newDraft, selectedKey],
+    [activeCategory, loadDetail, newDraft, selectedKey],
   );
 
   useEffect(() => {
-    void loadRegistries();
+    void loadRegistries(undefined, "providers");
   }, []);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detailPayload = (event as CustomEvent).detail as Record<string, unknown> | undefined;
-      const reason = String(detailPayload?.reason || "");
-      if (
-        !reason ||
-        reason === "config" ||
-        CATEGORIES.includes(reason as AdminRegistryCategory)
-      ) {
-        setMessage(t("registryConsole.message.catalogUpdated"));
-        void loadRegistries(selectedKey);
-      }
-    };
-    window.addEventListener("agent:catalog-updated", handler);
-    return () => window.removeEventListener("agent:catalog-updated", handler);
-  }, [loadRegistries, selectedKey, t]);
 
   const selectItem = (item: AdminRegistrySummary) => {
     if (dirty && !window.confirm(t("registryConsole.confirm.discard"))) {
@@ -292,11 +283,31 @@ export const RegistriesPage = () => {
     void loadDetail(item);
   };
 
+  const switchCategory = (category: AdminRegistryCategory) => {
+    if (category === activeCategory) return;
+    if (dirty && !window.confirm(t("registryConsole.confirm.discard"))) {
+      return;
+    }
+    setActiveCategory(category);
+    setMessage("");
+    setNewDraft(false);
+    setDirty(false);
+    const target = items.find((item) => item.category === category);
+    if (target) {
+      setSelectedKey(registryItemKey(target));
+      void loadDetail(target);
+      return;
+    }
+    setSelectedKey("");
+    setDetail(null);
+    setDraft("");
+  };
+
   const startNew = () => {
     if (dirty && !window.confirm(t("registryConsole.confirm.discard"))) {
       return;
     }
-    const category = categoryFilter === "all" ? "providers" : categoryFilter;
+    const category = activeCategory;
     const file = defaultFileName(category, items);
     const content = templateForCategory(category, file);
     setSelectedKey(`${category}/${file}`);
@@ -385,6 +396,22 @@ export const RegistriesPage = () => {
   return (
     <main className="automations-page registries-page">
       <div className="command-modal-section automation-console registry-console">
+        <div className="registry-category-tabs" role="tablist" aria-label={t("registryConsole.section.categories")}>
+          {CATEGORIES.map((category) => (
+            <button
+              type="button"
+              key={category}
+              role="tab"
+              aria-selected={category === activeCategory}
+              className={`registry-category-tab ${category === activeCategory ? "is-active" : ""}`}
+              onClick={() => switchCategory(category)}
+            >
+              <span>{t(`registryConsole.category.${category}`)}</span>
+              <strong>{categoryCounts[category]}</strong>
+            </button>
+          ))}
+        </div>
+
         <div className="automation-console-toolbar registry-console-toolbar">
           <Input
             prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
@@ -392,11 +419,6 @@ export const RegistriesPage = () => {
             placeholder={t("registryConsole.searchPlaceholder")}
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-          />
-          <Select
-            value={categoryFilter}
-            onChange={(value) => setCategoryFilter(value)}
-            options={categoryOptions}
           />
           <Select
             value={statusFilter}
@@ -407,7 +429,7 @@ export const RegistriesPage = () => {
             size="sm"
             variant="ghost"
             iconOnly
-            onClick={() => loadRegistries(selectedKey)}
+            onClick={() => loadRegistries(selectedKey, activeCategory)}
             disabled={loading || saving}
             aria-label={t("registryConsole.action.refresh")}
           >
@@ -422,7 +444,7 @@ export const RegistriesPage = () => {
         {error && (
           <div className="automation-console-error">
             <span>{error}</span>
-            <UiButton size="sm" variant="ghost" onClick={() => loadRegistries(selectedKey)}>
+            <UiButton size="sm" variant="ghost" onClick={() => loadRegistries(selectedKey, activeCategory)}>
               {t("registryConsole.action.retry")}
             </UiButton>
           </div>
@@ -433,7 +455,7 @@ export const RegistriesPage = () => {
         <div className="automation-console-body">
           <div className="automation-console-list">
             <div className="automation-console-count">
-              {t("registryConsole.list.count", { count: items.length })}
+              {t("registryConsole.list.count", { count: currentCategoryItems.length })}
             </div>
             <Spin spinning={loading}>
               {filteredItems.length === 0 ? (

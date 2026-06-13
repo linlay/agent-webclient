@@ -540,6 +540,64 @@
     width: 100%;
 }
 
+.registry-category-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-input) 70%, var(--bg-elev-2));
+    padding: 4px;
+}
+
+.registry-category-tab {
+    min-width: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 8px;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.registry-category-tab span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.registry-category-tab strong {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line-soft) 78%, transparent);
+    color: var(--ink-muted);
+    font-size: 10px;
+    line-height: 1.2;
+    padding: 2px 6px;
+}
+
+.registry-category-tab:hover,
+.registry-category-tab.is-active {
+    border-color: color-mix(in srgb, var(--accent-soft) 52%, var(--line-soft));
+    background: var(--bg-base);
+    color: var(--ink-1);
+}
+
+.registry-category-tab.is-active strong {
+    background: color-mix(in srgb, var(--accent-electric) 14%, var(--bg-input));
+    color: var(--accent-electric-strong);
+}
+
+.registry-console-toolbar {
+    grid-template-columns: minmax(220px, 1fr) 160px auto auto;
+}
+
 .automation-console-error {
     display: flex;
     align-items: center;
@@ -1242,6 +1300,10 @@
 @media (max-width: 860px) {
     .automation-console-toolbar {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .registry-category-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .automation-console-toolbar .ant-input-affix-wrapper {
