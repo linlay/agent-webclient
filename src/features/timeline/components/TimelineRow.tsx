@@ -32,6 +32,7 @@ interface TimelineRowProps {
   toolGroup?: ToolGroupRenderEntry;
   showTime?: boolean;
   metaNode?: React.ReactNode;
+  conversationActive?: boolean;
 }
 
 function createTimeFormatter(locale: Locale): Intl.DateTimeFormat {
@@ -214,6 +215,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   toolGroup,
   showTime = false,
   metaNode,
+  conversationActive = false,
 }) => {
   const { message } = useApp();
   const { locale, t } = useI18n();
@@ -392,7 +394,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <NodeIcon kind="tool" />
         </div>
         <div className="timeline-flow-content">
-          <ToolPill node={node} toolGroup={toolGroup} />
+          <ToolPill
+            node={node}
+            toolGroup={toolGroup}
+            conversationActive={conversationActive}
+          />
           {timeNode}
         </div>
       </div>

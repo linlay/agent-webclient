@@ -77,6 +77,13 @@
     white-space: nowrap;
 }
 
+.tool-pill-duration {
+    color: color-mix(in srgb, var(--ink-muted) 78%, transparent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
 .tool-status-dot[data-tool-status="running"] {
     animation-name: flash;
     animation-duration: 1s;

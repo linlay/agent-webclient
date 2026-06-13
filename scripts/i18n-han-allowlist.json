@@ -32,7 +32,6 @@
   "src/features/timeline/components/FrontendToolOverlay.tsx",
   "src/features/timeline/components/ThinkingBlock.tsx",
   "src/features/timeline/components/TimelineRow.tsx",
-  "src/features/timeline/components/ToolPill.tsx",
   "src/features/timeline/components/ViewportEmbed.tsx",
   "src/features/timeline/lib/eventProcessor.ts",
   "src/features/timeline/lib/timelineDisplay.ts",

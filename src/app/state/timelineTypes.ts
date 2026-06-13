@@ -75,6 +75,9 @@ export interface TimelineNode {
 	description?: string;
 	argsText?: string;
 	result?: ToolResultPayload | null;
+	startedAt?: number;
+	endedAt?: number;
+	durationMs?: number;
 	contentId?: string;
 	segments?: ContentSegment[];
 	embeddedViewports?: Record<string, EmbeddedViewport>;

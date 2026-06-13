@@ -241,7 +241,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     (entry: TimelineRenderEntry) => {
       if (entry.kind === "node") {
         if (entry.node.kind === "agent-group") return null;
-        return <TimelineRow key={entry.key} node={entry.node} />;
+        return (
+          <TimelineRow
+            key={entry.key}
+            node={entry.node}
+            conversationActive={state.streaming}
+          />
+        );
       }
       if (entry.kind === "task-group") {
         const expanded = Boolean(expandedTaskGroups[entry.key]);
@@ -312,9 +318,21 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           </section>
         );
       }
-      return <TimelineRow key={entry.key} toolGroup={entry} />;
+      return (
+        <TimelineRow
+          key={entry.key}
+          toolGroup={entry}
+          conversationActive={state.streaming}
+        />
+      );
     },
-    [currentWorker, expandedTaskGroups, state.agents, toggleTaskGroup],
+    [
+      currentWorker,
+      expandedTaskGroups,
+      state.agents,
+      state.streaming,
+      toggleTaskGroup,
+    ],
   );
 
   useEffect(() => {
@@ -374,6 +392,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     <TimelineRow
                       key={item.key}
                       node={item.node}
+                      conversationActive={state.streaming}
                       metaNode={
                         <div className="timeline-meta-row">
                           <div className="timeline-meta-actions">

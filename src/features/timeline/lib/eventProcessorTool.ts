@@ -174,6 +174,10 @@ export function processToolEvent(
         status: type === "tool.snapshot" ? "completed" : "start",
         result: existing?.result || null,
         ts: event.timestamp || existing?.ts || Date.now(),
+        startedAt:
+          existing?.startedAt || event.timestamp || existing?.ts || Date.now(),
+        endedAt: existing?.endedAt,
+        durationMs: existing?.durationMs,
         state,
       }),
     });
@@ -287,6 +291,15 @@ export function processToolEvent(
       typeof resultValue === "string"
         ? resultValue
         : JSON.stringify(resultValue, null, 2);
+    const endedAt = event.timestamp || Date.now();
+    const startedAt =
+      typeof existing?.startedAt === "number"
+        ? existing.startedAt
+        : typeof existing?.ts === "number"
+          ? existing.ts
+          : undefined;
+    const durationMs =
+      typeof startedAt === "number" ? Math.max(0, endedAt - startedAt) : undefined;
     const argsText = resolveFinalToolArgsText(
       existing?.argsText || "",
       existingToolState?.argsBuffer || "",
@@ -304,6 +317,9 @@ export function processToolEvent(
         status: failed ? "failed" : "success",
         result: { text: resultText, isCode: typeof resultValue !== "string" },
         ts: existing?.ts || event.timestamp || Date.now(),
+        startedAt,
+        endedAt,
+        durationMs,
         state,
       }),
     });

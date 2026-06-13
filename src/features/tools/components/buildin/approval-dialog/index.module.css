@@ -7,7 +7,29 @@
   background: var(--bg-card);
 
   .Pagination {
-    font-size: 12px;
+    flex-shrink: 0;
+
+    .Item {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+
+    .Active,
+    .Item:hover {
+      transform: scale(1.5);
+    }
+
+    .Skip {
+      background: var(--accent-danger);
+    }
+
+    .Done {
+      background: var(--accent-lime);
+    }
   }
 
   .HeaderSide {
@@ -34,7 +56,7 @@
   font-size: 12px;
 
   .Question {
-    padding: 10px;
+    padding: 0 10px 10px;
     gap: 16px;
   }
 
@@ -66,35 +88,10 @@
     resize: none;
   }
 
-  .CheckboxGroup {
+  .RadioGroup {
     display: flex;
     flex-direction: column;
     gap: 4px;
-
-    :global {
-      .Selected {
-        color: var(--colorTextSecondary);
-        background-color: var(--colorBgTextHover, rgba(0, 0, 0, 0.06));
-        padding: 1px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-        display: none;
-      }
-
-      .ant-checkbox {
-        display: none;
-      }
-
-      .ant-checkbox-wrapper>:last-child {
-        flex: 1;
-      }
-
-      .ant-checkbox-wrapper-checked {
-        .Selected {
-          display: block;
-        }
-      }
-    }
   }
 
   .Option {
@@ -110,7 +107,7 @@
       }
     }
 
-    &:hover:not(&.FreeText),
+    &:hover,
     &:focus-within:not(&.FreeText) {
       background-color: var(--bg-hover);
     }
@@ -119,11 +116,15 @@
       border-color: var(--accent);
     }
 
-    &:focus-within {
+    :global(&.ant-radio-wrapper-checked) {
       .Index {
         background: var(--text-main);
         color: var(--bg-base);
         border-color: var(--text-main);
+
+        :global(.material-symbols-rounded) {
+          color: var(--bg-base);
+        }
       }
     }
 
@@ -140,22 +141,23 @@
 
       :global(.material-symbols-rounded) {
         font-size: 12px;
+        color: var(--text-muted);
       }
     }
 
     .Info {
       color: var(--text-main);
       font-weight: bold;
+      white-space: nowrap;
     }
   }
 
   .FreeText {
     border: 1px solid transparent;
-    padding: 6px 10px;
-    margin: 4px 0;
+    color: var(--text-main);
   }
 
-  .CheckboxGroup :global(.Selected) {
+  .RadioGroup :global(.Selected) {
     color: var(--colorTextSecondary);
     background-color: var(--bg-hover);
     padding: 0 6px;
@@ -164,15 +166,15 @@
     display: none;
   }
 
-  .CheckboxGroup :global(.ant-checkbox) {
+  .RadioGroup :global(.ant-radio) {
     display: none;
   }
 
-  .CheckboxGroup :global(.ant-checkbox-wrapper-checked .Selected) {
+  .RadioGroup :global(.ant-radio-wrapper-checked .Selected) {
     display: block;
   }
 
-  .CheckboxGroup :global(.ant-checkbox-wrapper>:last-child) {
+  .RadioGroup :global(.ant-radio-wrapper>:last-child) {
     flex: 1;
   }
 }
