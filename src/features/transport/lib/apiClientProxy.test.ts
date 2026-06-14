@@ -70,7 +70,6 @@ jest.mock("@/shared/api/apiClient", () => {
 		),
 		getResourceText: jest.fn(),
 		getTeams: jest.fn(),
-		getTool: jest.fn(),
 		getViewport: jest.fn(),
 		compactChat: jest.fn(),
 		interruptChat: jest.fn(),
@@ -142,7 +141,6 @@ let mockApiClient: {
 	normalizeChatSummariesPayload: jest.Mock;
 	getResourceText: jest.Mock;
 	getTeams: jest.Mock;
-	getTool: jest.Mock;
 	getViewport: jest.Mock;
 	compactChat: jest.Mock;
 	interruptChat: jest.Mock;

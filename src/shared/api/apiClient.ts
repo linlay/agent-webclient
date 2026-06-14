@@ -1186,11 +1186,6 @@ export function getAdminTools(
   return requestJson(query ? `/api/admin/tools?${query}` : "/api/admin/tools");
 }
 
-export function getTool(toolName: string): Promise<ApiResponse> {
-  const query = toQueryString({ toolName });
-  return requestJson(query ? `/api/tool?${query}` : "/api/tool");
-}
-
 export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
   const query = toQueryString({ agentKey: options.agentKey });
   return requestJson(query ? `/api/chats?${query}` : "/api/chats").then((response) => ({

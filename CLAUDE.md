@@ -53,7 +53,6 @@
 - `GET /api/teams`
 - `GET /api/agent`
 - `GET /api/admin/skills`
-- `GET /api/tool`
 - `GET /api/admin/tools`
 - `GET /api/chats`
 - `GET /api/chat`

@@ -36,7 +36,6 @@ import {
 	previewMemoryContext as previewMemoryContextHttp,
 	getResourceText,
 	getTeams as getTeamsHttp,
-	getTool as getToolHttp,
 	getViewport as getViewportHttp,
 	compactChat as compactChatHttp,
 	interruptChat as interruptChatHttp,
@@ -218,10 +217,6 @@ export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse
 
 export function getTeams(): Promise<ApiResponse> {
 	return routeRequest("/api/teams", undefined, () => getTeamsHttp());
-}
-
-export function getTool(toolName: string): Promise<ApiResponse> {
-	return routeRequest("/api/tool", { toolName }, () => getToolHttp(toolName));
 }
 
 export async function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
