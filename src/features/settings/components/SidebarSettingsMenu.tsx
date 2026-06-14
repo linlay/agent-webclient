@@ -19,6 +19,7 @@ export interface SettingsSummaryBadge {
 
 export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
+  | { type: "open-registries" }
   | { type: "open-archive" }
   | { type: "open-memory-info" }
   | { type: "noop" };
@@ -112,6 +113,13 @@ export function buildSidebarSettingsMenuSections(input: {
           description: wsDescription,
           icon: "tune",
           action: { type: "open-settings" },
+        },
+        {
+          key: "open-registries",
+          label: t("settingsMenu.registries"),
+          description: t("settingsMenu.registriesDescription"),
+          icon: "hub",
+          action: { type: "open-registries" },
         },
         ...(isMemoryEnabled()
           ? [

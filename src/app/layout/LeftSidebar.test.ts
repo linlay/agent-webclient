@@ -14,6 +14,7 @@ const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
 const dropdownMenuProps: Array<Record<string, unknown>> = [];
 const mockModalConfirm = jest.fn();
 const mockMessageSuccess = jest.fn();
+const mockNavigate = jest.fn();
 
 function collectText(value: React.ReactNode): string {
   if (value === null || value === undefined || typeof value === "boolean") {
@@ -210,6 +211,11 @@ jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   markChatRead: jest.fn(),
   searchGlobal: jest.fn(),
   updateAgent: jest.fn(),
+}));
+
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
 }));
 
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
@@ -435,6 +441,7 @@ describe("LeftSidebar", () => {
     updateAgent.mockReset();
     mockModalConfirm.mockReset();
     mockMessageSuccess.mockReset();
+    mockNavigate.mockReset();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -513,6 +520,42 @@ describe("LeftSidebar", () => {
     expect(html).toContain(">夜<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
+  });
+
+  it("navigates to registry config from the settings menu", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true",
+    };
+
+    renderSidebar();
+
+    const registriesButton = uiButtonProps.find((props) =>
+      props.text.includes("注册配置"),
+    );
+    expect(registriesButton).toBeTruthy();
+    expect(typeof registriesButton?.onClick).toBe("function");
+
+    (registriesButton?.onClick as () => void)();
+
+    expect(mockNavigate).toHaveBeenCalledWith("/registries");
+  });
+
+  it("preserves the current search string when opening registry config", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true",
+    };
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
+
+    renderSidebar();
+
+    const registriesButton = uiButtonProps.find((props) =>
+      props.text.includes("注册配置"),
+    );
+    expect(registriesButton).toBeTruthy();
+
+    (registriesButton?.onClick as () => void)();
+
+    expect(mockNavigate).toHaveBeenCalledWith("/registries?lang=zh-CN");
   });
 
   it("does not render quick actions by default", () => {

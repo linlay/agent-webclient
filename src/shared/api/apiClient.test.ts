@@ -1,4 +1,5 @@
 import { Blob } from 'buffer';
+import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/accessTokenStorage';
 import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/appAuth';
 import {
   initializeDesktopQueryContextBridge,
@@ -185,9 +186,17 @@ function installWindow(options: {
   };
 }
 
+function installStandaloneLocalStorage(initial: Record<string, string> = {}) {
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: createMockStorage(initial),
+  });
+}
+
 describe('apiClient query payloads', () => {
   const fetchMock = jest.fn();
   const originalWindow = globalThis.window;
+  const originalLocalStorage = globalThis.localStorage;
 
   beforeEach(() => {
     resetDesktopQueryContextBridgeForTests();
@@ -217,6 +226,14 @@ describe('apiClient query payloads', () => {
         originalWindow;
     } else {
       delete (globalThis as Record<string, unknown>).window;
+    }
+    if (originalLocalStorage) {
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        value: originalLocalStorage,
+      });
+    } else {
+      delete (globalThis as Record<string, unknown>).localStorage;
     }
   });
 
@@ -916,6 +933,34 @@ describe('apiClient query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
       Authorization: 'Bearer bridge-token-1',
+    });
+  });
+
+  it('injects a stored standalone token into the first registry request', async () => {
+    installStandaloneLocalStorage({
+      [ACCESS_TOKEN_STORAGE_KEY]: 'stored-browser-token',
+    });
+
+    await getAdminRegistries();
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/admin/registries',
+    );
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer stored-browser-token',
+    });
+  });
+
+  it('prefers an explicit token over the stored standalone token', async () => {
+    installStandaloneLocalStorage({
+      [ACCESS_TOKEN_STORAGE_KEY]: 'stored-browser-token',
+    });
+    setAccessToken('manual-token');
+
+    await getAdminRegistries();
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
+      Authorization: 'Bearer manual-token',
     });
   });
 

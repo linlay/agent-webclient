@@ -6,4 +6,4 @@ export const MAX_DEBUG_LINES = 220;
 export const COMPOSER_MIN_LINES = 1;
 export const COMPOSER_MAX_LINES = 2;
 export const FRONTEND_VIEWPORT_TYPES = new Set(['html', 'qlc']);
-export const ACCESS_TOKEN_STORAGE_KEY = 'agent-webclient.accessToken';
+export { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/accessTokenStorage';

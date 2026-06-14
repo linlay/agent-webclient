@@ -521,6 +521,8 @@ export const enUSMessages: I18nMessages = {
   "settingsMenu.memoryInfo": "Memory info",
   "settingsMenu.memoryInfoDescription": "Inspect the current agent's memory records and full details.",
   "settingsMenu.openSettings": "Open settings...",
+  "settingsMenu.registries": "Registry config",
+  "settingsMenu.registriesDescription": "Manage registry YAML configs.",
   "settingsMenu.reserved.appearance": "Appearance preferences (coming soon)",
   "settingsMenu.reserved.connection": "Connection settings (coming soon)",
   "settingsMenu.reserved.description": "Reserved menu entry for a future update.",

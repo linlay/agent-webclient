@@ -1,6 +1,6 @@
 import type { AppState, VoiceChatState } from "@/app/state/types";
-import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import { getAppAccessToken } from "@/shared/api/appAuth";
+import { readStoredAccessToken } from "@/shared/api/accessTokenStorage";
 import {
 	createDefaultMemoryConsoleTab,
 	createDefaultMemoryInfoFilters,
@@ -42,9 +42,7 @@ export function createInitialState(): AppState {
 	const appMode = isAppMode();
 	const storedToken = appMode
 		? getAppAccessToken() || ""
-		: typeof localStorage !== "undefined"
-			? localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || ""
-			: "";
+		: readStoredAccessToken();
 	const themeMode = resolveInitialThemeMode();
 	const transportMode = appMode ? "ws" : readStoredTransportMode() || "ws";
 

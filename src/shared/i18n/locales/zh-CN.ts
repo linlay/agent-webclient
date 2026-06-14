@@ -521,6 +521,8 @@ export const zhCNMessages: I18nMessages = {
   "settingsMenu.memoryInfo": "记忆信息",
   "settingsMenu.memoryInfoDescription": "查看当前智能体的记忆记录与完整详情。",
   "settingsMenu.openSettings": "打开设置...",
+  "settingsMenu.registries": "注册配置",
+  "settingsMenu.registriesDescription": "管理 registry YAML 配置。",
   "settingsMenu.reserved.appearance": "外观偏好（即将开放）",
   "settingsMenu.reserved.connection": "连接设置（即将开放）",
   "settingsMenu.reserved.description": "预留菜单入口，后续补充。",

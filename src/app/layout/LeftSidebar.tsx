@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { flushSync } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
@@ -150,6 +151,7 @@ function buildFallbackAgentDefinition(
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef, stateRef } = useAppContext();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
   const memoryEnabled = isMemoryEnabled();
@@ -566,6 +568,12 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
+    if (action.type === "open-registries") {
+      navigate(`/registries${window.location.search || ""}`);
+      setSettingsMenuOpen(false);
+      return;
+    }
+
     const shouldClose = dispatchSidebarSettingsAction(action, dispatch);
     if (shouldClose) {
       setSettingsMenuOpen(false);

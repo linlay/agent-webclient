@@ -7,6 +7,7 @@ import {
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
 } from '@/shared/api/appAuth';
+import { readStoredAccessToken } from '@/shared/api/accessTokenStorage';
 import type {
   MemoryScopeDetail,
   MemoryContextPreviewResponse,
@@ -587,8 +588,9 @@ function buildAuthHeaders(
   if (includeJsonContentType && !hasHeader(merged, "Content-Type")) {
     merged["Content-Type"] = "application/json";
   }
-  if (authToken) {
-    merged.Authorization = `Bearer ${authToken}`;
+  const token = getCurrentAccessToken();
+  if (token) {
+    merged.Authorization = `Bearer ${token}`;
   } else if ("Authorization" in merged) {
     delete merged.Authorization;
   }
@@ -601,6 +603,9 @@ export function setAccessToken(token = ""): void {
 
 export function getCurrentAccessToken(): string {
   if (!isAppMode()) {
+    if (!authToken) {
+      authToken = readStoredAccessToken();
+    }
     return authToken;
   }
 
