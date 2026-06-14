@@ -1,23 +1,9 @@
 import type { AppState } from "@/app/state/types";
 import type { AppAction } from "@/app/state/actions";
-import { buildConversationResetState } from "@/app/state/reducerHelpers";
-import { reduceConversationState } from "@/app/state/reducerConversation";
-import { reduceNavigationState } from "@/app/state/reducerNavigation";
-import { reduceTimelineState } from "@/app/state/reducerTimeline";
-import { reduceUiState } from "@/app/state/reducerUi";
-import { reduceVoiceState } from "@/app/state/reducerVoice";
+import { buildConversationResetState } from "@/app/state/conversationReset";
+import { domainReducers } from "@/app/state/domainReducers";
 
 export type { AppAction } from "@/app/state/actions";
-
-type DomainReducer = (state: AppState, action: AppAction) => AppState | null;
-
-const domainReducers: DomainReducer[] = [
-	reduceNavigationState,
-	reduceConversationState,
-	reduceTimelineState,
-	reduceUiState,
-	reduceVoiceState,
-];
 
 export function appReducer(state: AppState, action: AppAction): AppState {
 	switch (action.type) {

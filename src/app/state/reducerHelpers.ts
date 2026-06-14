@@ -1,10 +1,11 @@
 import type { AppAction } from "@/app/state/actions";
 import type {
 	ActiveAwaiting,
-	AppState,
 	FileChangeSummary,
 	PublishedArtifact,
 } from "@/app/state/types";
+
+export { buildConversationResetState } from "@/app/state/conversationReset";
 
 export function setMapValue<K, V>(source: Map<K, V>, key: K, value: V): Map<K, V> {
 	const next = new Map(source);
@@ -47,110 +48,6 @@ export function toggleSetValue<T>(source: Set<T>, value: T): Set<T> {
 		next.add(value);
 	}
 	return next;
-}
-
-export function buildConversationResetState(
-	state: AppState,
-	options: { preserveWorkerContext?: boolean } = {},
-): AppState {
-	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
-	return {
-		...state,
-		runId: "",
-		currentRunAgentKey: "",
-		pendingNewChatAgentKey: "",
-		requestId: "",
-		streaming: false,
-		abortController: null,
-		messagesById: new Map(),
-		messageOrder: [],
-		events: [],
-		debugEvents: [],
-		artifacts: [],
-		fileChanges: [],
-		plan: null,
-		planRuntimeByTaskId: new Map(),
-		taskItemsById: new Map(),
-		activeTaskIds: new Set(),
-		planCurrentRunningTaskId: "",
-		planLastTouchedTaskId: "",
-		artifactExpanded: false,
-		artifactManualOverride: null,
-		artifactAutoCollapseTimer: null,
-		planExpanded: false,
-		planManualOverride: null,
-		planAutoCollapseTimer: null,
-		toolStates: new Map(),
-		toolNodeById: new Map(),
-		contentNodeById: new Map(),
-		pendingTools: new Map(),
-		reasoningNodeById: new Map(),
-		reasoningCollapseTimers: new Map(),
-		actionStates: new Map(),
-		executedActionIds: new Set(),
-		timelineNodes: new Map(),
-		timelineOrder: [],
-		timelineNodeByMessageId: new Map(),
-		timelineDomCache: new Map(),
-		timelineCounter: 0,
-		renderQueue: {
-			dirtyNodeIds: new Set(),
-			scheduled: false,
-			stickToBottomRequested: false,
-			fullSyncNeeded: false,
-		},
-		activeReasoningKey: "",
-		activeFrontendTool: null,
-		activeAwaiting: null,
-		usageSnapshot: null,
-		usagePopoverOpen: false,
-		rightSidebarOpenTab: null,
-		attachmentPreview: null,
-		inputMode: "text",
-		voiceChat: {
-			...state.voiceChat,
-			status: "idle",
-			sessionActive: false,
-			partialUserText: "",
-			partialAssistantText: "",
-			activeAssistantContentId: "",
-			activeRequestId: "",
-			activeTtsTaskId: "",
-			ttsCommitted: false,
-			error: "",
-			wsStatus: "idle",
-			currentAgentKey: "",
-			currentAgentName: "",
-		},
-		workerRelatedChats: preserveWorkerContext ? state.workerRelatedChats : [],
-		workerChatPanelCollapsed: preserveWorkerContext
-			? state.workerChatPanelCollapsed
-			: true,
-		steerDraft: "",
-		pendingSteers: [],
-		downvotedRunKeys: new Set(),
-		eventPopoverIndex: -1,
-		eventPopoverEventRef: null,
-		eventPopoverAnchor: null,
-		commandStatusOverlay: {
-			visible: false,
-			commandType: null,
-			phase: "success",
-			text: "",
-			timer: null,
-		},
-		commandModal: {
-			open: false,
-			type: null,
-			searchText: "",
-			historySearch: "",
-			activeIndex: 0,
-			scope: "all",
-			focusArea: "search",
-			automationTask: "",
-			automationRule: "",
-		},
-	};
 }
 
 export function upsertArtifact(

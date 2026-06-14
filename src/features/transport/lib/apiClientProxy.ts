@@ -115,141 +115,32 @@ import type {
 	MemoryScopeValidationResult,
 } from "@/shared/api/memoryTypes";
 import {
-	getWsClient,
-	getWsClientAccessToken,
-	initWsClient,
-} from "@/features/transport/lib/wsClientSingleton";
-import { isWsTransportError } from "@/features/transport/lib/wsClient";
+	createTransportClient,
+	type TransportRequestOptions,
+} from "@/features/transport/lib/transportClient";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
 let getTransportMode: () => TransportModeValue = () => "ws";
+const transportClient = createTransportClient({
+	getMode: () => getTransportMode(),
+});
 
 export function setTransportModeProvider(provider: () => TransportModeValue): void {
 	getTransportMode = provider;
 }
 
-type WsRequestClient = NonNullable<ReturnType<typeof getWsClient>>;
-type TokenRefreshReason = Parameters<typeof ensureAccessToken>[0];
-
-async function resolveWsAccessToken(
-	reason: TokenRefreshReason = "missing",
-): Promise<string> {
-	let accessToken = String(getCurrentAccessToken() || "").trim();
-	if (!accessToken || reason === "unauthorized") {
-		accessToken = String(await ensureAccessToken(reason)).trim();
-	}
-	return accessToken;
-}
-
-function resolveWsClient(accessToken: string): WsRequestClient {
-	const currentClient = getWsClient();
-	const wsClient =
-		currentClient == null || getWsClientAccessToken() !== accessToken
-			? initWsClient({ accessToken, resolveAccessToken: resolveWsAccessToken })
-			: currentClient;
-
-	if (
-		currentClient != null &&
-		getWsClientAccessToken() === accessToken &&
-		typeof wsClient.updateOptions === "function"
-	) {
-		wsClient.updateOptions({ accessToken, resolveAccessToken: resolveWsAccessToken });
-	}
-
-	return wsClient;
-}
-
-function resolveActiveWsClient(
-	accessToken: string,
-	wsClient: WsRequestClient,
-): { accessToken: string; wsClient: WsRequestClient } {
-	const currentClient = getWsClient();
-	const currentAccessToken = String(getWsClientAccessToken() || "").trim();
-	if (currentClient === wsClient) {
-		return {
-			accessToken: currentAccessToken || accessToken,
-			wsClient,
-		};
-	}
-
-	return {
-		accessToken,
-		wsClient: resolveWsClient(accessToken),
-	};
-}
+type RouteRequestOptions<T> = Omit<TransportRequestOptions<T>, "fallback">;
 
 async function routeRequest<T>(
 	type: string,
 	payload: unknown,
 	fallback: () => Promise<ApiResponse<T>>,
-	options: {
-		fallbackOnConnectFailure?: boolean;
-		fallbackOnRequestFailure?: boolean;
-	} = {},
+	options: RouteRequestOptions<T> = {},
 ): Promise<ApiResponse<T>> {
-	if (getTransportMode() !== "ws") {
-		return fallback();
-	}
-	let accessToken = await resolveWsAccessToken("missing");
-	let wsClient = resolveWsClient(accessToken);
-	const syncActiveWsClient = () => {
-		const active = resolveActiveWsClient(accessToken, wsClient);
-		accessToken = active.accessToken;
-		wsClient = active.wsClient;
-	};
-	const connectActiveWsClient = async () => {
-		syncActiveWsClient();
-		const connectingClient = wsClient;
-		await connectingClient.connect();
-		syncActiveWsClient();
-		if (wsClient !== connectingClient) {
-			await wsClient.connect();
-			syncActiveWsClient();
-		}
-	};
-
-	try {
-		await connectActiveWsClient();
-	} catch (error) {
-		const refreshedToken = await resolveWsAccessToken("unauthorized");
-		if (refreshedToken && refreshedToken !== accessToken) {
-			accessToken = refreshedToken;
-			wsClient = resolveWsClient(accessToken);
-			try {
-				await connectActiveWsClient();
-			} catch (refreshError) {
-				if (options.fallbackOnConnectFailure === false) {
-					throw refreshError;
-				}
-				return fallback();
-			}
-		} else {
-			if (options.fallbackOnConnectFailure === false) {
-				throw error;
-			}
-			// Brief cooldown then retry once to handle transient failures
-			// caused by concurrent WebSocket connect attempts.
-			await new Promise((r) => setTimeout(r, 200));
-			try {
-				await connectActiveWsClient();
-			} catch {
-				return fallback();
-			}
-		}
-	}
-
-	try {
-		syncActiveWsClient();
-		return await wsClient.request<T>({ type, payload });
-	} catch (error) {
-		if (
-			options.fallbackOnRequestFailure === false
-			|| !isWsTransportError(error)
-		) {
-			throw error;
-		}
-		return fallback();
-	}
+	return transportClient.request<T>(type, payload, {
+		...options,
+		fallback,
+	});
 }
 
 function compactPayload(params: Record<string, unknown>): Record<string, unknown> {

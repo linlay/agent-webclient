@@ -59,6 +59,7 @@ import {
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
 import { debounce } from "lodash";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -83,7 +84,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
   const questionsRef = useRef<QuestionRef[]>([]);
-  const resolvedByOtherHandledRef = useRef(false);
   const total = useRef(0);
   const [loading, setLoading] = useState(false);
   const [timeoutExpired, setTimeoutExpired] = useState(false);
@@ -229,18 +229,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     };
   }, [onSubmit]);
 
-  useEffect(() => {
-    if (!data?.resolvedByOther) {
-      resolvedByOtherHandledRef.current = false;
-      return;
-    }
-    if (resolvedByOtherHandledRef.current) {
-      return;
-    }
-    resolvedByOtherHandledRef.current = true;
-    void message.info(t("approvalDialog.resolvedByOther"));
-    onResolvedByOther?.();
-  }, [data?.resolvedByOther, onResolvedByOther, t]);
+  useResolvedByOtherNotice({
+    resolvedByOther: data?.resolvedByOther,
+    onResolvedByOther,
+  });
 
   useEffect(() => {
     total.current = questions.length;

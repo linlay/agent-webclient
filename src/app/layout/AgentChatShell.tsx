@@ -8,18 +8,11 @@ import React, {
 import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
-import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
-import { SettingsModal } from "@/features/settings/components/SettingsModal";
-import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
-import { ArchiveModal } from "@/features/settings/components/ArchiveModal";
-import { ActionModal } from "@/app/modals/ActionModal";
-import { EventPopover } from "@/app/modals/EventPopover";
-import { CommandModal } from "@/app/modals/CommandModal";
-import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
+import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import {
   TerminalDock,
@@ -403,14 +396,7 @@ export const AgentChatShell: React.FC = () => {
           workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
         />
       ) : null}
-      <CommandStatusOverlay />
-      {state.archiveOpen ? <ArchiveModal /> : null}
-      {state.memoryInfoOpen ? <MemoryInfoModal /> : null}
-      {state.settingsOpen && <SettingsModal />}
-      <CommandModal />
-      <ActionModal />
-      <EventPopover />
-      <FireworksCanvas />
+      <ShellOverlays />
       <SidebarHistorySection
         open={Boolean(historyWorkerKey)}
         historyWorker={historyWorker}

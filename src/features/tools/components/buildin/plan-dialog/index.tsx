@@ -18,6 +18,7 @@ import type {
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";
+import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
 import { useI18n } from "@/shared/i18n";
 import Style from "./index.module.css";
 
@@ -39,7 +40,6 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 }) => {
   const { t } = useI18n();
   const planQuestionRef = useRef<PlanQuestionRef>(null);
-  const resolvedByOtherHandledRef = useRef(false);
   const [submittingDecision, setSubmittingDecision] =
     useState<AIAwaitPlanDecision | null>(null);
   const [reason, setReason] = useState("");
@@ -52,18 +52,10 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     setSubmittingDecision(null);
   }, [data.awaitingId, data.runId]);
 
-  useEffect(() => {
-    if (!data.resolvedByOther) {
-      resolvedByOtherHandledRef.current = false;
-      return;
-    }
-    if (resolvedByOtherHandledRef.current) {
-      return;
-    }
-    resolvedByOtherHandledRef.current = true;
-    void message.info(t("approvalDialog.resolvedByOther"));
-    onResolvedByOther?.();
-  }, [data.resolvedByOther, onResolvedByOther, t]);
+  useResolvedByOtherNotice({
+    resolvedByOther: data.resolvedByOther,
+    onResolvedByOther,
+  });
 
   const submitDecision = useCallback(
     async (nextDecision?: AIAwaitPlanDecision, nextReason = reason) => {

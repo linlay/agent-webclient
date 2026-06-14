@@ -19,6 +19,14 @@ export interface ExecuteAttachRunOptions {
   handleEvent: (event: AgentEvent) => void;
 }
 
+export type QueryStreamExecutor = (
+  options: ExecuteQueryStreamOptions,
+) => Promise<void>;
+
+export type AttachStreamExecutor = (
+  options: ExecuteAttachRunOptions,
+) => Promise<void>;
+
 export interface StreamAbortScope {
   abortController: AbortController;
   cleanup: () => void;

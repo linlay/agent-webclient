@@ -12,6 +12,9 @@ import { toText } from "@/shared/utils/eventUtils";
  * Local mutable cache to track node IDs and text between React renders.
  * This is critical because React 18 batches dispatches, so stateRef
  * may not reflect the latest state when multiple events arrive rapidly.
+ *
+ * This cache is not a server replay or attach fallback. It only keeps the
+ * client-side live event processor authoritative until React state catches up.
  */
 export interface LocalCache {
 	contentNodeById: Map<string, string>;

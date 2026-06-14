@@ -177,6 +177,38 @@ describe('shouldSyncLiveCache', () => {
     expect(shouldSyncLiveCache(cache, state)).toBe(false);
   });
 
+  it('keeps live-only nodes authoritative until React batched state catches up', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineCounter: 1,
+      timelineNodes: new Map<string, TimelineNode>(),
+      timelineOrder: ['content_0'],
+      contentNodeById: new Map<string, string>(),
+    };
+    const contentNode: TimelineNode = {
+      id: 'content_0',
+      kind: 'content',
+      contentId: 'content_1',
+      text: 'Hello from the live stream',
+      segments: [],
+      ts: 100,
+    };
+
+    const cache = createLocalCacheFromState(state);
+    cache.contentNodeById.set('content_1', 'content_0');
+    cache.nodeById.set('content_0', contentNode);
+    cache.nodeText.set('content_0', contentNode.text);
+
+    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+    expect(createLiveProcessorState(cache, state).getNodeText('content_0')).toBe(
+      'Hello from the live stream',
+    );
+  });
+
   it('keeps live awaiting state authoritative until React state catches up', () => {
     const baseState = createInitialState();
     const state = {

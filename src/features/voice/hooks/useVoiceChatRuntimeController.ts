@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { Dispatch, MutableRefObject } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, VoiceCapabilities } from "@/app/state/types";
@@ -9,11 +9,8 @@ import {
 } from "@/shared/api/apiClient";
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { ReadyCuePlayer } from "@/features/voice/lib/voiceChatAudio";
 import {
 	cleanupVoiceAudioCapture,
-	createVoiceAudioCaptureState,
-	type VoiceAudioCaptureState,
 } from "@/features/voice/lib/voiceAudioCapture";
 import { resolveVoiceAsrRuntimeConfig } from "@/features/voice/lib/voiceAsrProtocol";
 import {
@@ -22,6 +19,7 @@ import {
 } from "@/features/voice/lib/voiceChatRuntimeUtils";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { t } from "@/shared/i18n";
+import { useVoiceChatRuntimeRefs } from "@/features/voice/hooks/useVoiceChatRuntimeRefs";
 
 export type VoiceChatRuntimeController = ReturnType<
 	typeof useVoiceChatRuntimeController
@@ -36,32 +34,30 @@ export function useVoiceChatRuntimeController({
 	state: AppState;
 	stateRef: MutableRefObject<AppState>;
 }) {
-	const socketRef = useRef<WebSocket | null>(null);
-	const socketPromiseRef = useRef<Promise<WebSocket> | null>(null);
-	const expectedCloseRef = useRef(false);
-	const startedAgentKeyRef = useRef("");
-	const pendingUtteranceRef = useRef("");
-	const flushTimerRef = useRef<number | null>(null);
-	const capturePausedRef = useRef(false);
-	const turnCounterRef = useRef(0);
-	const readyCuePlayerRef = useRef(new ReadyCuePlayer());
-	const audioCaptureStateRef = useRef<VoiceAudioCaptureState>(
-		createVoiceAudioCaptureState(),
-	);
-	const asrChunkCounterRef = useRef(0);
-	const listeningTransitionRef = useRef(0);
-	const reconnectTimerRef = useRef<number | null>(null);
-	const reconnectAttemptRef = useRef(0);
-	const reconnectInFlightRef = useRef(false);
-	const asrTaskActiveRef = useRef(false);
-	const asrStartInFlightRef = useRef(false);
-	const asrRestartPendingRef = useRef(false);
-	const ttsTaskActiveRef = useRef(false);
-	const bargeInProgressRef = useRef(false);
-	const clientGateConfigRef = useRef(state.voiceChat.clientGate);
-	const scheduleVoiceReconnectRef = useRef<(reason: string) => void>(
-		() => undefined,
-	);
+	const {
+		socketRef,
+		socketPromiseRef,
+		expectedCloseRef,
+		startedAgentKeyRef,
+		pendingUtteranceRef,
+		flushTimerRef,
+		capturePausedRef,
+		turnCounterRef,
+		readyCuePlayerRef,
+		audioCaptureStateRef,
+		asrChunkCounterRef,
+		listeningTransitionRef,
+		reconnectTimerRef,
+		reconnectAttemptRef,
+		reconnectInFlightRef,
+		asrTaskActiveRef,
+		asrStartInFlightRef,
+		asrRestartPendingRef,
+		ttsTaskActiveRef,
+		bargeInProgressRef,
+		clientGateConfigRef,
+		scheduleVoiceReconnectRef,
+	} = useVoiceChatRuntimeRefs(state);
 
 	const appendDebug = useCallback(
 		(line: string) => {

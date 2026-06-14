@@ -17,8 +17,7 @@ import {
   resolvePreferredTeamId,
 } from '@/features/composer/lib/queryRouting';
 import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
-import { executeQueryStreamSse } from '@/features/transport/lib/queryStreamRuntime.sse';
-import { executeQueryStreamWs } from '@/features/transport/lib/queryStreamRuntime.ws';
+import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } from '@/features/transport/lib/queryStreamExecutors';
 import { dispatchDetachRunEvent, type DetachRunEventDetail } from '@/features/transport/lib/detachRunEvent';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
@@ -128,11 +127,7 @@ export function resolveDifferentChatDetachRunDetail(input: {
   };
 }
 
-export function resolveQueryStreamExecutor(transportMode: 'sse' | 'ws') {
-  return transportMode === 'sse'
-    ? executeQueryStreamSse
-    : executeQueryStreamWs;
-}
+export const resolveQueryStreamExecutor = resolveTransportQueryStreamExecutor;
 
 function normalizeQueryAccessLevel(value: unknown): QueryAccessLevel | undefined {
   return value === 'default' || value === 'auto_approve' || value === 'full_access'

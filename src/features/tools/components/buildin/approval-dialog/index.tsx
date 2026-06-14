@@ -1,4 +1,4 @@
-import { message, Radio } from "antd";
+import { Radio } from "antd";
 import { Button, Checkbox, CheckboxRef, Flex, Input, Tabs } from "antd/es";
 import {
   EnterOutlined,
@@ -32,6 +32,7 @@ import {
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
 import Style from "./index.module.css";
@@ -56,7 +57,6 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const { t } = useI18n();
   const approvals = data.approvals;
   const approvalsRef = useRef<ApprovalRef[]>([]);
-  const resolvedByOtherHandledRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
@@ -82,18 +82,10 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     [decisions, hasAllDecisions, readOnly],
   );
 
-  useEffect(() => {
-    if (!data.resolvedByOther) {
-      resolvedByOtherHandledRef.current = false;
-      return;
-    }
-    if (resolvedByOtherHandledRef.current) {
-      return;
-    }
-    resolvedByOtherHandledRef.current = true;
-    void message.info(t("approvalDialog.resolvedByOther"));
-    onResolvedByOther?.();
-  }, [data.resolvedByOther, onResolvedByOther, t]);
+  useResolvedByOtherNotice({
+    resolvedByOther: data.resolvedByOther,
+    onResolvedByOther,
+  });
 
   useEffect(() => {
     setDecisions({});

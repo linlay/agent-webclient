@@ -1,20 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { CommandStatusOverlay } from "@/app/layout/CommandStatusOverlay";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
-import { ActionModal } from "@/app/modals/ActionModal";
-import { ArchiveModal } from "@/features/settings/components/ArchiveModal";
-import { CommandModal } from "@/app/modals/CommandModal";
-import { EventPopover } from "@/app/modals/EventPopover";
-import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
-import { SettingsModal } from "@/features/settings/components/SettingsModal";
 import { BottomDock } from "@/app/layout/BottomDock";
-import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
+import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
@@ -323,14 +316,7 @@ export const CopilotShell: React.FC = () => {
       <ConversationStage showEmptyState={false} />
       <BottomDock mode="copilot" />
       <CopilotSidePanel />
-      <CommandStatusOverlay />
-      {state.archiveOpen ? <ArchiveModal /> : null}
-      {state.memoryInfoOpen ? <MemoryInfoModal /> : null}
-      {state.settingsOpen && <SettingsModal />}
-      <CommandModal variant="copilot" />
-      <ActionModal />
-      <EventPopover />
-      <FireworksCanvas />
+      <ShellOverlays commandModalVariant="copilot" />
     </div>
   );
 };
