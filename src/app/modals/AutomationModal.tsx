@@ -286,6 +286,14 @@ function validateForm(form: AutomationFormState, t: Translate): string {
   return "";
 }
 
+export function shouldStartAutomationConsoleBootstrap(
+  ref: React.MutableRefObject<boolean>,
+): boolean {
+  if (ref.current) return false;
+  ref.current = true;
+  return true;
+}
+
 export const AutomationModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
@@ -310,6 +318,7 @@ export const AutomationModal: React.FC<{
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState("");
+  const didBootstrapAutomationsRef = useRef(false);
   const didAutoSelectInitialAutomationRef = useRef(false);
 
   const workerOptions = useMemo(() => {
@@ -515,6 +524,12 @@ export const AutomationModal: React.FC<{
     },
     [dispatch, selectAutomation, startCreate],
   );
+
+  useEffect(() => {
+    if (!shouldStartAutomationConsoleBootstrap(didBootstrapAutomationsRef))
+      return;
+    void loadAutomations(selectedId);
+  }, [loadAutomations, selectedId]);
 
   useEffect(() => {
     if (

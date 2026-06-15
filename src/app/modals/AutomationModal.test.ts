@@ -1,6 +1,10 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AutomationModal, automationSourcePath } from "@/app/modals/AutomationModal";
+import {
+  AutomationModal,
+  automationSourcePath,
+  shouldStartAutomationConsoleBootstrap,
+} from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getAutomations } from "@/features/transport/lib/apiClientProxy";
 import { I18nProvider, type Locale } from "@/shared/i18n";
@@ -122,6 +126,14 @@ describe("AutomationModal", () => {
         total: 1,
       },
     });
+  });
+
+  it("allows the automation list bootstrap to run once per component instance", () => {
+    const bootstrapRef = { current: false };
+
+    expect(shouldStartAutomationConsoleBootstrap(bootstrapRef)).toBe(true);
+    expect(bootstrapRef.current).toBe(true);
+    expect(shouldStartAutomationConsoleBootstrap(bootstrapRef)).toBe(false);
   });
 
   it("renders the automation console with create defaults from the current worker", () => {
