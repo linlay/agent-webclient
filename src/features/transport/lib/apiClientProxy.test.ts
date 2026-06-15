@@ -286,7 +286,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.putAgentOrder).not.toHaveBeenCalled();
 	});
 
-	it("routes automation management calls over ws when connected", async () => {
+	it("keeps automation management calls on http even when ws mode is selected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -303,8 +303,51 @@ describe("apiClientProxy", () => {
 			request,
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAutomations.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockApiClient.getAutomation.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", name: "Daily Demo" },
+		});
+		mockApiClient.createAutomation.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", name: "Daily Demo" },
+		});
+		mockApiClient.updateAutomation.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", cron: "0 18 * * 1-5" },
+		});
+		mockApiClient.toggleAutomation.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", enabled: false },
+		});
+		mockApiClient.getAutomationExecutions.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { items: [], total: 0 },
+		});
+		mockApiClient.deleteAutomation.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { id: "daily-demo", deleted: true },
+		});
 
 		await proxy.getAutomations();
+		await proxy.getAutomation("daily-demo");
 		await proxy.createAutomation({
 			name: "Daily Demo",
 			description: "Demo",
@@ -317,37 +360,33 @@ describe("apiClientProxy", () => {
 		await proxy.getAutomationExecutions({ id: "daily-demo", limit: 20 });
 		await proxy.deleteAutomation({ id: "daily-demo" });
 
-		expect(request).toHaveBeenNthCalledWith(1, {
-			type: "/api/automations",
-			payload: {},
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(connect).not.toHaveBeenCalled();
+		expect(request).not.toHaveBeenCalled();
+		expect(mockApiClient.getAutomations).toHaveBeenCalledWith({});
+		expect(mockApiClient.getAutomation).toHaveBeenCalledWith("daily-demo");
+		expect(mockApiClient.createAutomation).toHaveBeenCalledWith({
+			name: "Daily Demo",
+			description: "Demo",
+			cron: "0 9 * * *",
+			agentKey: "demo-agent",
+			query: { message: "hello" },
 		});
-		expect(request).toHaveBeenNthCalledWith(2, {
-			type: "/api/automation/create",
-			payload: {
-				name: "Daily Demo",
-				description: "Demo",
-				cron: "0 9 * * *",
-				agentKey: "demo-agent",
-				query: { message: "hello" },
-			},
+		expect(mockApiClient.updateAutomation).toHaveBeenCalledWith({
+			id: "daily-demo",
+			cron: "0 18 * * 1-5",
 		});
-		expect(request).toHaveBeenNthCalledWith(3, {
-			type: "/api/automation/update",
-			payload: { id: "daily-demo", cron: "0 18 * * 1-5" },
+		expect(mockApiClient.toggleAutomation).toHaveBeenCalledWith({
+			id: "daily-demo",
+			enabled: false,
 		});
-		expect(request).toHaveBeenNthCalledWith(4, {
-			type: "/api/automation/toggle",
-			payload: { id: "daily-demo", enabled: false },
+		expect(mockApiClient.getAutomationExecutions).toHaveBeenCalledWith({
+			id: "daily-demo",
+			limit: 20,
 		});
-		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/automation/executions",
-			payload: { id: "daily-demo", limit: 20 },
+		expect(mockApiClient.deleteAutomation).toHaveBeenCalledWith({
+			id: "daily-demo",
 		});
-		expect(request).toHaveBeenNthCalledWith(6, {
-			type: "/api/automation/delete",
-			payload: { id: "daily-demo" },
-		});
-		expect(mockApiClient.getAutomations).not.toHaveBeenCalled();
 	});
 
 	it("keeps agent CRUD on http and routes model config over ws when connected", async () => {

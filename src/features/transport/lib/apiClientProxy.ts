@@ -333,71 +333,43 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 export function getAutomations(
 	params: AutomationListRequest = {},
 ): Promise<ApiResponse<AutomationListResponse>> {
-	return routeRequest<AutomationListResponse>(
-		"/api/automations",
-		params,
-		() => getAutomationsHttp(params),
-	);
+	return getAutomationsHttp(params);
 }
 
 export function getAutomation(
 	id: string,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-	return routeRequest<AutomationDetailResponse>(
-		"/api/automation",
-		{ id },
-		() => getAutomationHttp(id),
-	);
+	return getAutomationHttp(id);
 }
 
 export function createAutomation(
 	params: CreateAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-	return routeRequest<AutomationDetailResponse>(
-		"/api/automation/create",
-		params,
-		() => createAutomationHttp(params),
-	);
+	return createAutomationHttp(params);
 }
 
 export function updateAutomation(
 	params: UpdateAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-	return routeRequest<AutomationDetailResponse>(
-		"/api/automation/update",
-		params,
-		() => updateAutomationHttp(params),
-	);
+	return updateAutomationHttp(params);
 }
 
 export function deleteAutomation(
 	params: DeleteAutomationRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
-	return routeRequest<{ id: string; deleted: boolean }>(
-		"/api/automation/delete",
-		params,
-		() => deleteAutomationHttp(params),
-	);
+	return deleteAutomationHttp(params);
 }
 
 export function toggleAutomation(
 	params: ToggleAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-	return routeRequest<AutomationDetailResponse>(
-		"/api/automation/toggle",
-		params,
-		() => toggleAutomationHttp(params),
-	);
+	return toggleAutomationHttp(params);
 }
 
 export function getAutomationExecutions(
 	params: AutomationExecutionsRequest,
 ): Promise<ApiResponse<AutomationExecutionListResponse>> {
-	return routeRequest<AutomationExecutionListResponse>(
-		"/api/automation/executions",
-		params,
-		() => getAutomationExecutionsHttp(params),
-	);
+	return getAutomationExecutionsHttp(params);
 }
 
 export function getMemoryRecords(
