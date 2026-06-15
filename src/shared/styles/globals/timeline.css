@@ -359,8 +359,8 @@
 }
 
 .timeline-user-bubble {
-    border-radius: 14px;
-    background: linear-gradient(140deg, #70bbf9 0%, #4595f5 50%, #5c69e9 100%);
+    border-radius: 14px 14px 4px 14px;
+    background: var(--accent);
     color: #f8fcff;
     box-shadow: 0 6px 16px rgba(38, 99, 235, 0.18);
     padding: 10px 14px;
