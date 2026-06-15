@@ -245,7 +245,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           <TimelineRow
             key={entry.key}
             node={entry.node}
-            conversationActive={state.streaming}
           />
         );
       }
@@ -322,7 +321,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         <TimelineRow
           key={entry.key}
           toolGroup={entry}
-          conversationActive={state.streaming}
         />
       );
     },
@@ -392,7 +390,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     <TimelineRow
                       key={item.key}
                       node={item.node}
-                      conversationActive={state.streaming}
                       metaNode={
                         <div className="timeline-meta-row">
                           <div className="timeline-meta-actions">

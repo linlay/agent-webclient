@@ -752,7 +752,6 @@ export const zhCNMessages: I18nMessages = {
   "timeline.toolPill.copy.copied": "已复制",
   "timeline.toolPill.copy.failed": "复制失败",
   "timeline.toolPill.duration.hours": "{hours}小时{minutes}分{seconds}秒",
-  "timeline.toolPill.duration.milliseconds": "{count}毫秒",
   "timeline.toolPill.duration.minutes": "{minutes}分{seconds}秒",
   "timeline.toolPill.duration.seconds": "{count}秒",
   "timeline.toolPill.empty": "空",

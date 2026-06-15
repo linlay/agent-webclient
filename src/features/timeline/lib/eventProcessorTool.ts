@@ -1,11 +1,18 @@
-import type { AgentEvent, FileChangeSummary, ToolState } from "@/app/state/types";
+import type {
+  AgentEvent,
+  FileChangeSummary,
+  ToolState,
+} from "@/app/state/types";
 import type {
   EventCommand,
   EventProcessorState,
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { parseFrontendToolParams } from "@/features/tools/lib/frontendToolParams";
 import { toText } from "@/shared/utils/eventUtils";
-import { pickToolName, resolveViewportKey } from "@/features/timeline/lib/toolEvent";
+import {
+  pickToolName,
+  resolveViewportKey,
+} from "@/features/timeline/lib/toolEvent";
 import {
   applyTaskBindingToNode,
   buildToolTimelineNode,
@@ -122,7 +129,9 @@ function isToolResultFailure(event: AgentEvent, resultValue: unknown): boolean {
     return true;
   }
   const candidate =
-    typeof resultValue === "string" ? parseResultJSON(resultValue) : resultValue;
+    typeof resultValue === "string"
+      ? parseResultJSON(resultValue)
+      : resultValue;
   const exitCode = readStructuredExitCode(candidate);
   return exitCode !== null && exitCode !== 0;
 }
@@ -149,18 +158,27 @@ export function processToolEvent(
     const params = parseFrontendToolParams(event);
     const resolvedParams = params.found && params.params ? params.params : null;
     const rawArgsText = readToolArgumentsText(event);
-    const prettyArgsText = resolvedParams ? JSON.stringify(resolvedParams, null, 2) : "";
+    const prettyArgsText = resolvedParams
+      ? JSON.stringify(resolvedParams, null, 2)
+      : "";
     const argsText = resolvedParams
       ? prettyArgsText
-      : rawArgsText || existing?.argsText || existingToolState?.argsBuffer || "";
+      : rawArgsText ||
+        existing?.argsText ||
+        existingToolState?.argsBuffer ||
+        "";
     const description = pickEventText(
       readToolDescription(event),
       existing?.description,
       existingToolState?.description,
     );
     const viewportKey =
-      resolveViewportKey(event) || existing?.viewportKey || existingToolState?.viewportKey || "";
-    const argsBuffer = rawArgsText || prettyArgsText || existingToolState?.argsBuffer || "";
+      resolveViewportKey(event) ||
+      existing?.viewportKey ||
+      existingToolState?.viewportKey ||
+      "";
+    const argsBuffer =
+      rawArgsText || prettyArgsText || existingToolState?.argsBuffer || "";
 
     commands.push({
       cmd: "SET_TIMELINE_NODE",
@@ -187,12 +205,17 @@ export function processToolEvent(
       state: {
         toolId,
         argsBuffer,
-        agentKey: toText(event.agentKey) || existingToolState?.agentKey || state.agentKey || "",
+        agentKey:
+          toText(event.agentKey) ||
+          existingToolState?.agentKey ||
+          state.agentKey ||
+          "",
         toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
         toolName: pickToolName(existingToolState?.toolName, event.toolName),
         toolType: event.toolType || existingToolState?.toolType || "",
         viewportKey,
-        toolTimeout: event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
+        toolTimeout:
+          event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
         toolParams: resolvedParams || existingToolState?.toolParams || null,
         description,
         runId: event.runId || existingToolState?.runId || state.runId,
@@ -211,7 +234,8 @@ export function processToolEvent(
       nextArgsBuffer,
       existingToolState?.toolParams || null,
     );
-    const viewportKey = resolveViewportKey(event) || existingToolState?.viewportKey || "";
+    const viewportKey =
+      resolveViewportKey(event) || existingToolState?.viewportKey || "";
     const description = pickEventText(
       readToolDescription(event),
       existingToolState?.description,
@@ -219,7 +243,11 @@ export function processToolEvent(
     const nextToolState: ToolState = {
       toolId,
       argsBuffer: nextArgsBuffer,
-      agentKey: toText(event.agentKey) || existingToolState?.agentKey || state.agentKey || "",
+      agentKey:
+        toText(event.agentKey) ||
+        existingToolState?.agentKey ||
+        state.agentKey ||
+        "",
       toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
       toolName: pickToolName(existingToolState?.toolName, event.toolName),
       toolType: event.toolType || existingToolState?.toolType || "",
@@ -251,13 +279,16 @@ export function processToolEvent(
         toolLabel: nextToolState.toolLabel || existingNode?.toolLabel || "",
         toolName: pickToolName(existingNode?.toolName, nextToolState.toolName),
         viewportKey: viewportKey || existingNode?.viewportKey || "",
-        description: nextToolState.description || existingNode?.description || "",
+        description:
+          nextToolState.description || existingNode?.description || "",
         argsText: parsedToolParams
           ? JSON.stringify(parsedToolParams, null, 2)
           : nextArgsBuffer || existingNode?.argsText || "",
-        status: "running",
-        result: existingNode?.result || null,
-        ts: event.timestamp || existingNode?.ts || Date.now(),
+       status: "running",
+       result: existingNode?.result || null,
+       ts: event.timestamp || existingNode?.ts || Date.now(),
+        startedAt: existingNode?.startedAt,
+        endedAt: existingNode?.endedAt,
       },
     });
     return commands;
@@ -275,7 +306,10 @@ export function processToolEvent(
     const existing = state.getTimelineNode(nodeId);
     const existingToolState = state.getToolState(toolId);
     const resultValue = event.result ?? event.output ?? event.text ?? "";
-    const resolvedToolName = pickToolName(existingToolState?.toolName, event.toolName);
+    const resolvedToolName = pickToolName(
+      existingToolState?.toolName,
+      event.toolName,
+    );
     const failed = isToolResultFailure(event, resultValue);
     const resultRunId =
       toText(event.runId) || existingToolState?.runId || state.runId;
@@ -299,7 +333,9 @@ export function processToolEvent(
           ? existing.ts
           : undefined;
     const durationMs =
-      typeof startedAt === "number" ? Math.max(0, endedAt - startedAt) : undefined;
+      typeof startedAt === "number"
+        ? Math.max(0, endedAt - startedAt)
+        : undefined;
     const argsText = resolveFinalToolArgsText(
       existing?.argsText || "",
       existingToolState?.argsBuffer || "",

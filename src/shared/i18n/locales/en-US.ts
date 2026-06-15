@@ -752,7 +752,6 @@ export const enUSMessages: I18nMessages = {
   "timeline.toolPill.copy.copied": "Copied",
   "timeline.toolPill.copy.failed": "Copy failed",
   "timeline.toolPill.duration.hours": "{hours}h {minutes}m {seconds}s",
-  "timeline.toolPill.duration.milliseconds": "{count}ms",
   "timeline.toolPill.duration.minutes": "{minutes}m {seconds}s",
   "timeline.toolPill.duration.seconds": "{count}s",
   "timeline.toolPill.empty": "Empty",
