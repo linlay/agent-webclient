@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "1.0",
+  "profile": "knowledge",
+  "project": {
+    "name": "agent-webclient",
+    "type": [
+      "javascript-project"
+    ],
+    "primaryLanguages": [
+      "javascript",
+      "typescript"
+    ],
+    "summary": "Project context has been initialized but not scanned yet."
+  },
+  "readOrder": [
+    {
+      "when": "always",
+      "files": [
+        ".doc/project.json",
+        ".doc/rules/agent.md",
+        ".doc/catalog/tasks.json"
+      ]
+    },
+    {
+      "when": "choosing task",
+      "resolve": ".doc/tasks/{task}.json"
+    },
+    {
+      "when": "editing module",
+      "resolve": ".doc/modules/{module}.json"
+    },
+    {
+      "when": "changing behavior",
+      "files": [
+        ".doc/rules.json",
+        ".doc/catalog/flows.json"
+      ]
+    }
+  ],
+  "moduleMap": {
+    "api": {
+      "paths": [
+        "src/shared/api/**"
+      ],
+      "context": ".doc/modules/api.json",
+      "confidence": "confirmed"
+    },
+    "artifacts": {
+      "paths": [
+        "src/features/artifacts/**"
+      ],
+      "context": ".doc/modules/artifacts.json",
+      "confidence": "confirmed"
+    },
+    "chats": {
+      "paths": [
+        "src/features/chats/**"
+      ],
+      "context": ".doc/modules/chats.json",
+      "confidence": "confirmed"
+    },
+    "components": {
+      "paths": [
+        "src/shared/components/**"
+      ],
+      "context": ".doc/modules/components.json",
+      "confidence": "confirmed"
+    },
+    "composer": {
+      "paths": [
+        "src/features/composer/**"
+      ],
+      "context": ".doc/modules/composer.json",
+      "confidence": "confirmed"
+    },
+    "config": {
+      "paths": [
+        "src/shared/config/**"
+      ],
+      "context": ".doc/modules/config.json",
+      "confidence": "confirmed"
+    },
+    "hooks": {
+      "paths": [
+        "src/shared/hooks/**"
+      ],
+      "context": ".doc/modules/hooks.json",
+      "confidence": "confirmed"
+    },
+    "i18n": {
+      "paths": [
+        "src/shared/i18n/**"
+      ],
+      "context": ".doc/modules/i18n.json",
+      "confidence": "confirmed"
+    },
+    "icons": {
+      "paths": [
+        "src/shared/icons/**"
+      ],
+      "context": ".doc/modules/icons.json",
+      "confidence": "confirmed"
+    },
+    "plan": {
+      "paths": [
+        "src/features/plan/**"
+      ],
+      "context": ".doc/modules/plan.json",
+      "confidence": "confirmed"
+    },
+    "settings": {
+      "paths": [
+        "src/features/settings/**"
+      ],
+      "context": ".doc/modules/settings.json",
+      "confidence": "confirmed"
+    },
+    "styles": {
+      "paths": [
+        "src/shared/styles/**"
+      ],
+      "context": ".doc/modules/styles.json",
+      "confidence": "confirmed"
+    },
+    "timeline": {
+      "paths": [
+        "src/features/timeline/**"
+      ],
+      "context": ".doc/modules/timeline.json",
+      "confidence": "confirmed"
+    },
+    "tools": {
+      "paths": [
+        "src/features/tools/**"
+      ],
+      "context": ".doc/modules/tools.json",
+      "confidence": "confirmed"
+    },
+    "transport": {
+      "paths": [
+        "src/features/transport/**"
+      ],
+      "context": ".doc/modules/transport.json",
+      "confidence": "confirmed"
+    },
+    "ui": {
+      "paths": [
+        "src/shared/ui/**"
+      ],
+      "context": ".doc/modules/ui.json",
+      "confidence": "confirmed"
+    },
+    "utils": {
+      "paths": [
+        "src/shared/utils/**"
+      ],
+      "context": ".doc/modules/utils.json",
+      "confidence": "confirmed"
+    },
+    "voice": {
+      "paths": [
+        "src/features/voice/**"
+      ],
+      "context": ".doc/modules/voice.json",
+      "confidence": "confirmed"
+    },
+    "workers": {
+      "paths": [
+        "src/features/workers/**"
+      ],
+      "context": ".doc/modules/workers.json",
+      "confidence": "confirmed"
+    }
+  },
+  "curated": {
+    "modules": ".doc/curated/modules",
+    "flows": ".doc/curated/flows",
+    "tasks": ".doc/curated/tasks",
+    "rules": ".doc/curated/rules.json"
+  },
+  "catalogs": {
+    "modules": ".doc/catalog/modules.json",
+    "flows": ".doc/catalog/flows.json",
+    "tasks": ".doc/catalog/tasks.json"
+  },
+  "rulesRef": ".doc/rules.json",
+  "generated": {
+    "moduleCount": 19,
+    "flowCount": 2,
+    "taskCount": 3,
+    "sourceFileCount": 386,
+    "factsRef": ".doc/generated/project-facts.json"
+  }
+}

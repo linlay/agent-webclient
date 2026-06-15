@@ -105,3 +105,16 @@ Git 提交与推送规范：
 - 开发与部署都依赖外部 AGENT API / 语音服务，脱离后端无法完成核心联调。
 - 若上游返回非标准 JSON、SSE 帧格式异常或 WebSocket 事件不完整，前端会以错误态显示，但无法替代后端修复协议问题。
 - 语音、前端工具和运行态调试能力对浏览器能力、代理配置和后端实时链路较敏感，回归时需要重点验证。
+
+<!-- xgraph:start -->
+## Project Context
+
+Before work, read `.doc/index.json`.
+
+Follow its `readOrder` progressively. Start from `.doc/catalog.json` or the catalog paths declared by the index, then inspect related module cards only as needed.
+
+Keep this entry file short; use `.doc/rules/agent.md` for detailed behavior.
+
+When an agent lifecycle hook is installed, let it run `xgraph finish`; otherwise run `xgraph sync` before finishing.
+
+<!-- xgraph:end -->

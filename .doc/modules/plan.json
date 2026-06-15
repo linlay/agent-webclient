@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "module": "plan",
+  "status": "confirmed",
+  "paths": [
+    "src/features/plan/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "PlanPanel",
+      "PlanSummaryView",
+      "buildPlanSummaryView"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/plan/components/PlanPanel.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

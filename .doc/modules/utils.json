@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "module": "utils",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/utils/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "APP_UI_BASE",
+      "CreateCompactIdOptions",
+      "EnterLikeEvent",
+      "copyText",
+      "createCompactId",
+      "formatDebugTimestamp",
+      "isAppMode",
+      "isDesktopAppMode",
+      "isImeEnterConfirming",
+      "isObjectJson",
+      "isTerminalStatus",
+      "readEventChatName",
+      "readEventFirstAgentName",
+      "readEventTeamId",
+      "readRequestQueryText",
+      "resetCompactIdStateForTests",
+      "safeJsonParse",
+      "safeText",
+      "toText",
+      "useKeyboard"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/utils/compactId.test.ts",
+      "src/shared/utils/ime.test.ts",
+      "src/shared/utils/routing.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

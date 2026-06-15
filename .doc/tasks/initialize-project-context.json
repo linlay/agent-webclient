@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "id": "initialize-project-context",
+  "title": "Initialize project context",
+  "intentKeywords": [
+    "init",
+    "initialize",
+    "new project",
+    "existing project",
+    "onboard repository"
+  ],
+  "entryDecision": [
+    "Use this task when first adding XGraph context to a repository or changing entry files/context directory."
+  ],
+  "mustRead": [
+    {
+      "type": "doc",
+      "ref": ".doc/rules/agent.md"
+    }
+  ],
+  "likelyFiles": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".xgraph.json"
+  ],
+  "acceptanceChecks": [
+    "Entry files point to the generated index.",
+    "Context indexes and catalogs are healthy."
+  ],
+  "doNotMiss": [
+    "Do not overwrite user-authored entry-file content outside managed blocks."
+  ],
+  "generated": {
+    "mustReadCount": 1,
+    "likelyFileCount": 3
+  }
+}

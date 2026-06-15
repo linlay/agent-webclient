@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "rules": [
+    {
+      "id": "agent-starts-from-index",
+      "title": "Agent starts from XGraph index",
+      "statement": "Before editing code, agents read the context index, choose the closest task card, then inspect related module, flow, and rule cards.",
+      "appliesTo": [],
+      "protectedModules": [],
+      "checkHints": [
+        "Keep AGENTS.md short and route detailed behavior through .doc/index.json.",
+        "Do not replace progressive context loading with whole-repository scanning."
+      ]
+    },
+    {
+      "id": "semantic-memory-needs-confirmation",
+      "title": "Semantic memory needs confirmation",
+      "statement": "Curated module summaries, risk rules, and confirmed module partitions require explicit user confirmation.",
+      "appliesTo": [],
+      "protectedModules": [],
+      "checkHints": [
+        "Ask before changing curated semantic memory.",
+        "Deterministic facts, catalogs, and generated project facts may be rebuilt by XGraph."
+      ]
+    },
+    {
+      "id": "managed-blocks-only",
+      "title": "Managed blocks preserve user text",
+      "statement": "Entry files, gitignore, and hooks may only be updated inside XGraph managed blocks unless the user explicitly asks for wider edits.",
+      "appliesTo": [],
+      "protectedModules": [],
+      "checkHints": [
+        "Repeated init or hook install commands must be idempotent.",
+        "Never discard user-authored content around managed blocks."
+      ]
+    }
+  ]
+}

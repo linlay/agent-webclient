@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "module": "chats",
+  "status": "confirmed",
+  "paths": [
+    "src/features/chats/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/chats/hooks/useChatActions.test.ts",
+      "src/features/chats/lib/chatSummary.test.ts",
+      "src/features/chats/lib/chatSummaryLive.test.ts",
+      "src/features/chats/lib/conversationSession.test.ts",
+      "src/features/chats/lib/runAgentIdentity.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

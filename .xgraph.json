@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "contextDir": ".doc",
+  "contextSchemaVersion": "1.0",
+  "contextProfile": "knowledge",
+  "entryFiles": [
+    "AGENTS.md",
+    "CLAUDE.md"
+  ]
+}

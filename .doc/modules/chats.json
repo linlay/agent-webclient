@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0",
+  "module": "chats",
+  "status": "confirmed",
+  "paths": [
+    "src/features/chats/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "ChatInfo",
+      "ChatSummaryPatch",
+      "ConversationSnapshot",
+      "LiveChatSummaryCache",
+      "LiveChatSummaryContext",
+      "LiveQuerySession",
+      "ReplayState",
+      "StartNewConversationDetail",
+      "applyPendingSessionUpdates",
+      "bindRunAgentKey",
+      "buildConversationStateUpdates",
+      "buildLoadedChatUsageSnapshot",
+      "buildSelectedWorkerConversationRows",
+      "cloneConversationSnapshot",
+      "countUnreadChatsForWorker",
+      "createLiveQuerySession",
+      "createReplayState",
+      "formatChatTimeLabel",
+      "getAutoReadTriggerKey",
+      "isChatActiveRun",
+      "isChatUnread",
+      "isWorkerAttentionChat",
+      "markAgentChatsRead",
+      "markSessionSnapshotApplied",
+      "markWorkerRowsRead",
+      "mergeChatSummary",
+      "mergeFetchedChats",
+      "normalizeChatArtifactItems",
+      "normalizeChatReadState",
+      "normalizeLoadedChatUsageStats",
+      "normalizeStartNewConversationDetail",
+      "pickChatAgentLabel",
+      "readRunAgentKeyFromEvent",
+      "replayEvent",
+      "resolveChatAgentKey",
+      "resolveChatSummaryActiveRun",
+      "resolveChatSummaryPendingAwaiting",
+      "resolveChatSummaryUpdatedAt",
+      "resolveRunAgentKey",
+      "resolveStateRunAgentKey",
+      "resolveWorkerUnreadCount",
+      "setReplayArtifacts",
+      "setReplayPlan",
+      "shouldAutoMarkChatRead",
+      "snapshotConversationState",
+      "upsertAgentUnreadCount",
+      "upsertChatSummary",
+      "upsertLiveChatSummary",
+      "useChatActions"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/chats/hooks/useChatActions.test.ts",
+      "src/features/chats/lib/chatSummary.test.ts",
+      "src/features/chats/lib/chatSummaryLive.test.ts",
+      "src/features/chats/lib/conversationSession.test.ts",
+      "src/features/chats/lib/runAgentIdentity.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "module": "api",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/api/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/api/apiClient.test.ts",
+      "src/shared/api/appAuth.test.ts",
+      "src/shared/api/desktopFileSystem.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

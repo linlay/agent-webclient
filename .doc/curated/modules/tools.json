@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "module": "tools",
+  "status": "confirmed",
+  "paths": [
+    "src/features/tools/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/tools/components/AwaitingHtmlContainer.test.ts",
+      "src/features/tools/components/awaitingTimeout.test.ts",
+      "src/features/tools/components/buildin/approval-dialog/state.test.ts",
+      "src/features/tools/components/buildin/confirm-dialog/state.test.ts",
+      "src/features/tools/components/buildin/plan-dialog/state.test.ts",
+      "src/features/tools/components/protocol.test.ts",
+      "src/features/tools/hooks/useActionRuntime.test.ts",
+      "src/features/tools/lib/actionRuntime.test.ts",
+      "src/features/tools/lib/awaitingRuntime.test.ts",
+      "src/features/tools/lib/frontendToolParams.test.ts",
+      "src/features/tools/lib/planDecision.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "module": "artifacts",
+  "status": "confirmed",
+  "paths": [
+    "src/features/artifacts/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "ArtifactPanel",
+      "ArtifactSummaryView",
+      "AttachmentCard",
+      "AttachmentLike",
+      "AttachmentPreviewKind",
+      "AttachmentPreviewState",
+      "buildArtifactSummaryView",
+      "buildAttachmentPreviewState",
+      "canPreviewAttachment",
+      "formatAttachmentSize",
+      "getAttachmentDownloadUrl",
+      "getAttachmentExtension",
+      "getAttachmentIconName",
+      "getAttachmentKind",
+      "getAttachmentKindLabel",
+      "getAttachmentPreviewKind",
+      "getAttachmentUrl",
+      "isImageAttachment",
+      "normalizeTimelineAttachments"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/artifacts/components/ArtifactPanel.test.ts",
+      "src/features/artifacts/lib/attachmentPreview.test.ts",
+      "src/features/artifacts/lib/attachmentUtils.test.ts",
+      "src/features/artifacts/lib/timelineAttachments.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

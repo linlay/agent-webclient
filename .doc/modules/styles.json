@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "module": "styles",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/styles/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "THEME_STORAGE_KEY",
+      "ThemeMode",
+      "applyThemeModeToDocument",
+      "normalizeThemeMode",
+      "readHostThemeMode",
+      "readStoredThemeMode",
+      "readThemeParam",
+      "readUrlThemeMode",
+      "resolveInitialThemeMode",
+      "writeStoredThemeMode"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/styles/layoutStatusPill.test.ts",
+      "src/shared/styles/theme.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

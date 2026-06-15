@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "id": "context-initialization",
+  "title": "Context initialization",
+  "trigger": "A repository is connected to XGraph for the first time.",
+  "sourceOfTruth": [
+    ".doc/index.json",
+    ".doc/project.json"
+  ],
+  "steps": [
+    {
+      "order": 1,
+      "label": "Scan project facts",
+      "moduleId": "xgraph",
+      "file": "internal/cli/scanner.go"
+    },
+    {
+      "order": 2,
+      "label": "Write entry managed blocks",
+      "moduleId": "agent-rules",
+      "file": "internal/cli/managed_blocks.go"
+    },
+    {
+      "order": 3,
+      "label": "Build catalogs and facts",
+      "moduleId": "cli",
+      "file": "internal/cli/knowledge.go"
+    }
+  ],
+  "failureModes": [
+    "Generated context omits detected languages or entrypoints.",
+    "Entry files point to stale config names."
+  ],
+  "mustCheckModules": [
+    "xgraph",
+    "agent-rules",
+    "cli"
+  ],
+  "relatedTasks": [
+    "initialize-project-context",
+    "update-agent-protocol"
+  ],
+  "generated": {}
+}

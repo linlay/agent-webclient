@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "id": "modify-module-code",
+  "title": "Modify module code",
+  "intentKeywords": [
+    "feature",
+    "bugfix",
+    "refactor",
+    "module",
+    "code change"
+  ],
+  "entryDecision": [
+    "Use this task for ordinary implementation work after resolving affected files to confirmed modules."
+  ],
+  "mustRead": [
+    {
+      "type": "doc",
+      "ref": ".doc/catalog/modules.json"
+    },
+    {
+      "type": "doc",
+      "ref": ".doc/rules.json"
+    }
+  ],
+  "likelyFiles": [],
+  "acceptanceChecks": [
+    "Generated module facts are refreshed when deterministic code shape changed.",
+    "Behavioral changes consider related flows and rules."
+  ],
+  "doNotMiss": [
+    "Prefer the most specific module owner for a changed file."
+  ],
+  "generated": {
+    "mustReadCount": 2
+  }
+}

@@ -302,7 +302,7 @@ describe("ToolPill helpers", () => {
 		);
 	});
 
-	it("uses a single tool's completed duration only after result arrives", () => {
+	it("uses live duration for running tool only", () => {
 		const runningNode = createToolNode({
 			id: "tool_1",
 			kind: "tool",
@@ -328,10 +328,10 @@ describe("ToolPill helpers", () => {
 				conversationActive: true,
 			}),
 		).toBe("1.5秒");
-		expect(getToolPillDurationText(completedNode)).toBe("1.5秒");
+		expect(getToolPillDurationText(completedNode)).toBe("");
 	});
 
-	it("uses the first tool.start and last tool.result for grouped duration", () => {
+	it("hides grouped duration when all tools are completed", () => {
 		const group = {
 			kind: "tool-group" as const,
 			key: "tool_group_tool_1",
@@ -360,7 +360,7 @@ describe("ToolPill helpers", () => {
 			],
 		};
 
-		expect(getToolPillDurationText(group)).toBe("1.5秒");
+		expect(getToolPillDurationText(group)).toBe("");
 	});
 
 	it("omits grouped duration when any tool is missing tool.result", () => {

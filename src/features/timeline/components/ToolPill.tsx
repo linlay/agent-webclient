@@ -8,6 +8,7 @@ import { copyText } from "@/shared/utils/copy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
+import { useAppState } from "@/app/state/provider";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -20,7 +21,6 @@ type CopyState = "copied" | "error";
 interface ToolPillProps {
   node?: TimelineNode;
   toolGroup?: ToolGroupRenderEntry;
-  conversationActive?: boolean;
 }
 
 export interface ToolPillRecord {
@@ -87,9 +87,7 @@ export function formatToolDuration(
 
   const value = Number(durationMs);
   if (value < 1000) {
-    return translate("timeline.toolPill.duration.milliseconds", {
-      count: Math.round(value),
-    });
+    return "";
   }
   if (value < 60_000) {
     return translate("timeline.toolPill.duration.seconds", {
@@ -120,7 +118,7 @@ export function getToolPillDurationText(
   source: TimelineNode | ToolGroupRenderEntry,
   options: {
     now?: number;
-    conversationActive?: boolean;
+    streaming?: boolean;
     t?: TranslateFn;
   } = {},
 ): string {
@@ -129,27 +127,21 @@ export function getToolPillDurationText(
   if (nodes.length === 0) {
     return "";
   }
-
   const hasMissingResult = nodes.some((item) => !item.result);
   if (hasMissingResult) {
-    if (!options.conversationActive) {
-      return "";
-    }
-
-    const startedAtValues = nodes.map((item) => Number(item.startedAt));
-    if (startedAtValues.some((value) => !Number.isFinite(value))) {
+    if (!options.streaming) {
       return "";
     }
     const now = Number(options.now ?? Date.now());
     if (!Number.isFinite(now)) {
       return "";
     }
-    return formatToolDuration(
-      Math.max(0, now - Math.min(...startedAtValues)),
-      options.t,
+    const startedAtValue = nodes.reduce(
+      (prev, cur) => Math.min(prev, cur.startedAt || now),
+      now,
     );
+    return formatToolDuration(Math.max(0, now - startedAtValue), options.t);
   }
-
   if ("kind" in source && source.kind === "tool-group") {
     const startedAtValues = nodes.map((item) => Number(item.startedAt));
     const endedAtValues = nodes.map((item) => Number(item.endedAt));
@@ -165,7 +157,6 @@ export function getToolPillDurationText(
       options.t,
     );
   }
-
   return formatToolDuration(nodes[0].durationMs, options.t);
 }
 
@@ -221,11 +212,8 @@ export function canExpandToolPill(
   return getExpandableToolPillRecords(buildToolPillRecords(source)).length > 0;
 }
 
-export const ToolPill: React.FC<ToolPillProps> = ({
-  node,
-  toolGroup,
-  conversationActive = false,
-}) => {
+export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
+  const state = useAppState();
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
@@ -242,7 +230,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!source || !conversationActive) return;
+    if (!source || !state.streaming) return;
     const nodes =
       "kind" in source && source.kind === "tool-group"
         ? source.nodes
@@ -252,7 +240,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({
     setNowMs(Date.now());
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [conversationActive, source]);
+  }, [state.streaming, source]);
 
   if (!source) return null;
 
@@ -267,10 +255,10 @@ export const ToolPill: React.FC<ToolPillProps> = ({
     () =>
       getToolPillDurationText(source, {
         now: nowMs,
-        conversationActive,
+        streaming: state.streaming,
         t,
       }),
-    [nowMs, conversationActive, source, t],
+    [nowMs, state.streaming, source, t],
   );
 
   const flashCopyStatus = (key: string, state: CopyState) => {
@@ -327,9 +315,15 @@ export const ToolPill: React.FC<ToolPillProps> = ({
         ) : (
           <span className="tool-status-dot" data-tool-status={status} />
         )}
-        {durationText && (
-          <span className="tool-pill-duration">{durationText}</span>
-        )}
+        {records?.some(
+          (item) =>
+            item.status === "running" ||
+            item.status === "pending" ||
+            item.status === "completed",
+        ) &&
+          durationText && (
+            <span className="tool-pill-duration">{durationText}</span>
+          )}
         {canExpand && <MaterialIcon name="chevron_right" className="chevron" />}
       </UiButton>
 

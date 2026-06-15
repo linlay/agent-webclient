@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "module": "voice",
+  "status": "confirmed",
+  "paths": [
+    "src/features/voice/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/voice/lib/asrDebugSession.test.ts",
+      "src/features/voice/lib/voiceAsrProtocol.test.ts",
+      "src/features/voice/lib/voiceAudioCapture.test.ts",
+      "src/features/voice/lib/voiceChatAudio.test.ts",
+      "src/features/voice/lib/voiceChatListeningReady.test.ts",
+      "src/features/voice/lib/voiceChatTts.test.ts",
+      "src/features/voice/lib/voiceRuntime.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}
