@@ -909,23 +909,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   return (
     <div className={`command-modal-section agent-console ${embedded ? "is-embedded" : ""}`}>
-      <div className="agent-console-toolbar">
-        <Input
-          prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
-          variant="filled"
-          placeholder={t("agentConsole.searchPlaceholder")}
-          value={searchText}
-          onChange={(event) => setSearchText(event.target.value)}
-        />
-        <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label={t("agentConsole.action.refresh")}>
-          <MaterialIcon name="refresh" />
-        </UiButton>
-        <UiButton size="sm" variant="primary" onClick={startCreate}>
-          <MaterialIcon name="add" />
-          <span>{t("agentConsole.action.new")}</span>
-        </UiButton>
-      </div>
-
       {error && (
         <div className="agent-console-error">
           <span>{error}</span>
@@ -935,60 +918,78 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
       <div className="agent-console-body">
         <div className="agent-console-list">
+          <div className="agent-console-toolbar">
+            <Input
+              prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
+              variant="filled"
+              placeholder={t("agentConsole.searchPlaceholder")}
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+            <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label={t("agentConsole.action.refresh")}>
+              <MaterialIcon name="refresh" />
+            </UiButton>
+            <UiButton size="sm" variant="primary" onClick={startCreate}>
+              <MaterialIcon name="add" />
+              <span>{t("agentConsole.action.new")}</span>
+            </UiButton>
+          </div>
           <div className="agent-console-count">
             <span>{t("agentConsole.list.count", { count: state.agents.length })}</span>
             {savingOrder && <span>{t("agentConsole.list.savingOrder")}</span>}
           </div>
-          <Spin spinning={loadingList || savingOrder}>
-            {filteredAgents.length === 0 ? (
-              <div className="command-empty-state">
-                {t("agentConsole.empty")}
-                <UiButton size="sm" variant="primary" onClick={startCreate}>{t("agentConsole.action.create")}</UiButton>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragCancel={() => setDraggingAgentKey("")}
-                onDragEnd={(event) => {
-                  void handleDragEnd(event);
-                }}
-              >
-                <SortableContext items={filteredAgentSortableIds} strategy={verticalListSortingStrategy}>
-                  <div className="agent-console-list-items">
-                    {filteredAgents.map((agent, index) => {
-                      const agentKey = toText(agent.key);
-                      const name = toText(agent.name) || agentKey;
-                      const role = toText(agent.role) || "--";
-                      const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
-                      const sortableId = agentKey || `agent-console-empty-${index}`;
-                      const isInvalid = isInvalidAdminAgent(agent);
-                      const diagnosticMessage = firstAdminAgentDiagnosticMessage(agent);
-                      return (
-                        <SortableAgentListItem
-                          key={sortableId}
-                          agent={agent}
-                          agentKey={agentKey}
-                          diagnosticMessage={diagnosticMessage}
-                          disabled={savingOrder}
-                          isActive={agentKey === effectiveSelectedKey}
-                          isDragging={agentKey === draggingAgentKey}
-                          isInvalid={isInvalid}
-                          name={name}
-                          role={role}
-                          sortableId={sortableId}
-                          summary={summary}
-                          t={t}
-                          onSelect={selectAgent}
-                        />
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </Spin>
+          <div className="agent-console-list-scroll">
+            <Spin spinning={loadingList || savingOrder}>
+              {filteredAgents.length === 0 ? (
+                <div className="command-empty-state">
+                  {t("agentConsole.empty")}
+                  <UiButton size="sm" variant="primary" onClick={startCreate}>{t("agentConsole.action.create")}</UiButton>
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragCancel={() => setDraggingAgentKey("")}
+                  onDragEnd={(event) => {
+                    void handleDragEnd(event);
+                  }}
+                >
+                  <SortableContext items={filteredAgentSortableIds} strategy={verticalListSortingStrategy}>
+                    <div className="agent-console-list-items">
+                      {filteredAgents.map((agent, index) => {
+                        const agentKey = toText(agent.key);
+                        const name = toText(agent.name) || agentKey;
+                        const role = toText(agent.role) || "--";
+                        const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
+                        const sortableId = agentKey || `agent-console-empty-${index}`;
+                        const isInvalid = isInvalidAdminAgent(agent);
+                        const diagnosticMessage = firstAdminAgentDiagnosticMessage(agent);
+                        return (
+                          <SortableAgentListItem
+                            key={sortableId}
+                            agent={agent}
+                            agentKey={agentKey}
+                            diagnosticMessage={diagnosticMessage}
+                            disabled={savingOrder}
+                            isActive={agentKey === effectiveSelectedKey}
+                            isDragging={agentKey === draggingAgentKey}
+                            isInvalid={isInvalid}
+                            name={name}
+                            role={role}
+                            sortableId={sortableId}
+                            summary={summary}
+                            t={t}
+                            onSelect={selectAgent}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </Spin>
+          </div>
         </div>
 
         <div className="agent-console-detail">

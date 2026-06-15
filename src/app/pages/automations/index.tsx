@@ -10,7 +10,7 @@ export const AutomationsPage = () => {
     [state],
   );
   return (
-    <main className="automations-page">
+    <main className="automations-page automations-console-page">
       <AutomationModal
         currentWorker={currentWorker}
         agents={state.agents}

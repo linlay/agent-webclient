@@ -615,49 +615,6 @@ export const AutomationModal: React.FC<{
 
   return (
     <div className="command-modal-section automation-console">
-      <div className="automation-console-toolbar">
-        <Input
-          prefix={
-            <MaterialIcon
-              name="search"
-              style={{ color: "var(--text-muted)" }}
-            />
-          }
-          variant="filled"
-          placeholder={t("automationConsole.searchPlaceholder")}
-          value={searchText}
-          onChange={(event) => setSearchText(event.target.value)}
-        />
-        <Select
-          value={statusFilter}
-          onChange={(value) => setStatusFilter(value)}
-          options={[
-            { value: "all", label: t("automationConsole.filter.status.all") },
-            { value: "enabled", label: t("automationConsole.filter.status.enabled") },
-            { value: "disabled", label: t("automationConsole.filter.status.disabled") },
-          ]}
-        />
-        <Select
-          value={workerFilter}
-          onChange={(value) => setWorkerFilter(value)}
-          options={[{ value: "", label: t("automationConsole.filter.worker.all") }, ...workerOptions]}
-        />
-        <UiButton
-          size="sm"
-          variant="ghost"
-          iconOnly
-          onClick={() => loadAutomations(selectedId)}
-          disabled={loading || saving}
-          aria-label={t("automationConsole.action.refresh")}
-        >
-          <MaterialIcon name="refresh" />
-        </UiButton>
-        <UiButton size="sm" variant="primary" onClick={startCreate}>
-          <MaterialIcon name="add" />
-          <span>{t("automationConsole.action.new")}</span>
-        </UiButton>
-      </div>
-
       {error && (
         <div className="automation-console-error">
           <span>{error}</span>
@@ -673,51 +630,95 @@ export const AutomationModal: React.FC<{
 
       <div className="automation-console-body">
         <div className="automation-console-list">
+          <div className="automation-console-toolbar">
+            <Input
+              prefix={
+                <MaterialIcon
+                  name="search"
+                  style={{ color: "var(--text-muted)" }}
+                />
+              }
+              variant="filled"
+              placeholder={t("automationConsole.searchPlaceholder")}
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+            <Select
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(value)}
+              options={[
+                { value: "all", label: t("automationConsole.filter.status.all") },
+                { value: "enabled", label: t("automationConsole.filter.status.enabled") },
+                { value: "disabled", label: t("automationConsole.filter.status.disabled") },
+              ]}
+            />
+            <Select
+              value={workerFilter}
+              onChange={(value) => setWorkerFilter(value)}
+              options={[{ value: "", label: t("automationConsole.filter.worker.all") }, ...workerOptions]}
+            />
+            <UiButton
+              size="sm"
+              variant="ghost"
+              iconOnly
+              onClick={() => loadAutomations(selectedId)}
+              disabled={loading || saving}
+              aria-label={t("automationConsole.action.refresh")}
+            >
+              <MaterialIcon name="refresh" />
+            </UiButton>
+            <UiButton size="sm" variant="primary" onClick={startCreate}>
+              <MaterialIcon name="add" />
+              <span>{t("automationConsole.action.new")}</span>
+            </UiButton>
+          </div>
           <div className="automation-console-count">
             {t("automationConsole.list.count", { count: automations.length })}
           </div>
-          <Spin spinning={loading}>
-            {filteredAutomations.length === 0 ? (
-              <div className="command-empty-state">
-                {t("automationConsole.empty")}
-                <UiButton size="sm" variant="primary" onClick={startCreate}>
-                  {t("automationConsole.action.create")}
-                </UiButton>
-              </div>
-            ) : (
-              <div className="automation-list-items">
-                {filteredAutomations.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={`automation-list-item ${item.id === selectedId ? "is-active" : ""}`}
-                    onClick={() => selectAutomation(item.id)}
-                  >
-                    <span className="automation-list-item-head">
-                      <span
-                        className="automation-list-item-title"
-                        title={`${getAutomationWorkerName(item)} ${item.name || item.id}`}
-                      >
-                        <span className="automation-list-item-owner">
-                          [{getAutomationWorkerName(item)}]
-                        </span>
-                        <strong>{item.name || item.id}</strong>
-                      </span>
-                      <UiTag tone={item.enabled ? "accent" : "muted"}>
-                        {item.enabled ? t("automationConsole.status.enabled") : t("automationConsole.status.disabled")}
-                      </UiTag>
-                    </span>
-                    <span
-                      className="automation-list-item-meta"
-                      title={automationListMeta(item, t, locale)}
+          <div className="automation-console-list-scroll">
+            <Spin spinning={loading}>
+              {filteredAutomations.length === 0 ? (
+                <div className="command-empty-state">
+                  {t("automationConsole.empty")}
+                  <UiButton size="sm" variant="primary" onClick={startCreate}>
+                    {t("automationConsole.action.create")}
+                  </UiButton>
+                </div>
+              ) : (
+                <div className="automation-list-items">
+                  {filteredAutomations.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`automation-list-item ${item.id === selectedId ? "is-active" : ""}`}
+                      onClick={() => selectAutomation(item.id)}
                     >
-                      {automationListMeta(item, t, locale)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Spin>
+                      <span className="automation-list-item-head">
+                        <span
+                          className="automation-list-item-title"
+                          title={`${getAutomationWorkerName(item)} ${item.name || item.id}`}
+                        >
+                          <span className="automation-list-item-owner">
+                            [{getAutomationWorkerName(item)}]
+                          </span>
+                          <strong>{item.name || item.id}</strong>
+                        </span>
+                        <UiTag tone={item.enabled ? "accent" : "muted"}>
+                          {item.enabled ? t("automationConsole.status.enabled") : t("automationConsole.status.disabled")}
+                        </UiTag>
+                      </span>
+                      <span
+                        className="automation-list-item-meta"
+                        title={automationListMeta(item, t, locale)}
+                      >
+                        {automationListMeta(item, t, locale)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Spin>
+          </div>
         </div>
 
         <div className="automation-console-detail">

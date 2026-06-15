@@ -518,9 +518,13 @@
 
 .automation-console-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) 130px 160px auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 8px;
+}
+
+.automation-console-toolbar .ant-input-affix-wrapper {
+    grid-column: 1 / -1;
 }
 
 .automation-console-toolbar select,
@@ -537,6 +541,7 @@
 
 .automation-console-toolbar .ant-select,
 .automation-console-detail .ant-select {
+    min-width: 0;
     width: 100%;
 }
 
@@ -595,7 +600,7 @@
 }
 
 .registry-console-toolbar {
-    grid-template-columns: minmax(220px, 1fr) 160px auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .automation-console-error {
@@ -611,6 +616,7 @@
 }
 
 .automation-console-body {
+    flex: 1 1 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.4fr);
@@ -620,14 +626,31 @@
 
 .automation-console-list,
 .automation-console-detail {
+    min-width: 0;
     min-height: 0;
+}
+
+.automation-console-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.automation-console-detail {
     overflow: auto;
 }
 
 .automation-console-count {
-    margin-bottom: 8px;
     font-size: 12px;
     color: var(--ink-muted);
+}
+
+.automation-console-list-scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    padding-right: 2px;
 }
 
 .automation-list-items {
@@ -928,7 +951,7 @@
 
 .agent-console-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 8px;
 }
@@ -945,6 +968,7 @@
 }
 
 .agent-console-detail .ant-select {
+    min-width: 0;
     width: 100%;
 }
 
@@ -961,6 +985,7 @@
 }
 
 .agent-console-body {
+    flex: 1 1 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(280px, 0.52fr) minmax(480px, 1.55fr);
@@ -970,18 +995,35 @@
 
 .agent-console-list,
 .agent-console-detail {
+    min-width: 0;
     min-height: 0;
+}
+
+.agent-console-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.agent-console-detail {
     overflow: auto;
 }
 
 .agent-console-count {
-    margin-bottom: 8px;
     font-size: 12px;
     color: var(--ink-muted);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+}
+
+.agent-console-list-scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    padding-right: 2px;
 }
 
 .agent-console-list-items {
@@ -1283,6 +1325,10 @@
 @media (max-width: 860px) {
     .automation-console-toolbar {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .registry-console-toolbar {
+        grid-template-columns: minmax(0, 1fr) auto auto;
     }
 
     .registry-category-tabs {

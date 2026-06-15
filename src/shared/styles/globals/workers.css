@@ -551,6 +551,21 @@
     overflow: auto;
 }
 
+.automations-console-page,
+.registries-page {
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.automations-console-page>.automation-console,
+.registries-page>.registry-console {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .agents-page-head {
     display: flex;
     align-items: flex-end;

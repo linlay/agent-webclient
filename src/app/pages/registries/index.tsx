@@ -412,35 +412,6 @@ export const RegistriesPage = () => {
           ))}
         </div>
 
-        <div className="automation-console-toolbar registry-console-toolbar">
-          <Input
-            prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
-            variant="filled"
-            placeholder={t("registryConsole.searchPlaceholder")}
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-          <Select
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value)}
-            options={statusOptions}
-          />
-          <UiButton
-            size="sm"
-            variant="ghost"
-            iconOnly
-            onClick={() => loadRegistries(selectedKey, activeCategory)}
-            disabled={loading || saving}
-            aria-label={t("registryConsole.action.refresh")}
-          >
-            <MaterialIcon name="refresh" />
-          </UiButton>
-          <UiButton size="sm" variant="primary" onClick={startNew}>
-            <MaterialIcon name="add" />
-            <span>{t("registryConsole.action.new")}</span>
-          </UiButton>
-        </div>
-
         {error && (
           <div className="automation-console-error">
             <span>{error}</span>
@@ -454,48 +425,78 @@ export const RegistriesPage = () => {
 
         <div className="automation-console-body">
           <div className="automation-console-list">
+            <div className="automation-console-toolbar registry-console-toolbar">
+              <Input
+                prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
+                variant="filled"
+                placeholder={t("registryConsole.searchPlaceholder")}
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+              />
+              <Select
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value)}
+                options={statusOptions}
+              />
+              <UiButton
+                size="sm"
+                variant="ghost"
+                iconOnly
+                onClick={() => loadRegistries(selectedKey, activeCategory)}
+                disabled={loading || saving}
+                aria-label={t("registryConsole.action.refresh")}
+              >
+                <MaterialIcon name="refresh" />
+              </UiButton>
+              <UiButton size="sm" variant="primary" onClick={startNew}>
+                <MaterialIcon name="add" />
+                <span>{t("registryConsole.action.new")}</span>
+              </UiButton>
+            </div>
             <div className="automation-console-count">
               {t("registryConsole.list.count", { count: currentCategoryItems.length })}
             </div>
-            <Spin spinning={loading}>
-              {filteredItems.length === 0 ? (
-                <div className="command-empty-state">
-                  {t("registryConsole.empty")}
-                  <UiButton size="sm" variant="primary" onClick={startNew}>
-                    {t("registryConsole.action.create")}
-                  </UiButton>
-                </div>
-              ) : (
-                <div className="automation-list-items">
-                  {filteredItems.map((item) => {
-                    const itemKey = registryItemKey(item);
-                    return (
-                      <button
-                        type="button"
-                        key={itemKey}
-                        className={`automation-list-item ${itemKey === selectedKey ? "is-active" : ""}`}
-                        onClick={() => selectItem(item)}
-                      >
-                        <span className="automation-list-item-head">
-                          <span className="automation-list-item-title" title={`${item.category} ${item.file}`}>
-                            <span className="automation-list-item-owner">
-                              [{t(`registryConsole.category.${item.category}`)}]
+            <div className="automation-console-list-scroll">
+              <Spin spinning={loading}>
+                {filteredItems.length === 0 ? (
+                  <div className="command-empty-state">
+                    {t("registryConsole.empty")}
+                    <UiButton size="sm" variant="primary" onClick={startNew}>
+                      {t("registryConsole.action.create")}
+                    </UiButton>
+                  </div>
+                ) : (
+                  <div className="automation-list-items">
+                    {filteredItems.map((item) => {
+                      const itemKey = registryItemKey(item);
+                      return (
+                        <button
+                          type="button"
+                          key={itemKey}
+                          className={`automation-list-item ${itemKey === selectedKey ? "is-active" : ""}`}
+                          onClick={() => selectItem(item)}
+                        >
+                          <span className="automation-list-item-head">
+                            <span className="automation-list-item-title" title={`${item.category} ${item.file}`}>
+                              <span className="automation-list-item-owner">
+                                [{t(`registryConsole.category.${item.category}`)}]
+                              </span>
+                              <strong>{item.name || item.key || item.file}</strong>
                             </span>
-                            <strong>{item.name || item.key || item.file}</strong>
+                            <UiTag tone={statusTone(item.status)}>
+                              {t(`registryConsole.status.${item.status}`)}
+                            </UiTag>
                           </span>
-                          <UiTag tone={statusTone(item.status)}>
-                            {t(`registryConsole.status.${item.status}`)}
-                          </UiTag>
-                        </span>
-                        <span className="automation-list-item-meta" title={summaryLine(item.summary)}>
-                          {item.file} · {summaryLine(item.summary) || firstDiagnostic(item.diagnostics) || "--"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </Spin>
+                          <span className="automation-list-item-meta" title={summaryLine(item.summary)}>
+                            {item.file} · {summaryLine(item.summary) || firstDiagnostic(item.diagnostics) || "--"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </Spin>
+            </div>
           </div>
 
           <div className="automation-console-detail registry-console-detail">
