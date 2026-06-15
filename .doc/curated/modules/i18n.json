@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "module": "i18n",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/i18n/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/i18n/provider.test.tsx",
+      "src/shared/i18n/runtime.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

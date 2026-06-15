@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "module": "config",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/config/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "RuntimeConfig",
+      "isDebugPanelEnabled",
+      "isDeltaLogsEnabled",
+      "isMemoryEnabled",
+      "isQuickActionsEnabled",
+      "isSettingsMenuEnabled",
+      "isVoiceEnabled",
+      "parseFeatureFlag",
+      "readRuntimeConfigValue"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/config/featureFlags.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

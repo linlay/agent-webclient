@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "id": "update-agent-protocol",
+  "title": "Update agent protocol",
+  "intentKeywords": [
+    "AGENTS",
+    "CLAUDE",
+    "rules",
+    "hook",
+    "managed block",
+    "agent protocol"
+  ],
+  "entryDecision": [
+    "Use this task when changing agent entry files, lifecycle hooks, managed blocks, or context reading rules."
+  ],
+  "mustRead": [
+    {
+      "type": "doc",
+      "ref": ".doc/rules.json"
+    }
+  ],
+  "likelyFiles": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".gitignore"
+  ],
+  "acceptanceChecks": [
+    "Managed blocks remain idempotent.",
+    "Agent protocol still routes through the index and task catalog."
+  ],
+  "doNotMiss": [
+    "Keep host-specific entry files generated from one source of truth."
+  ],
+  "generated": {}
+}

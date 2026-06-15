@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "items": [
+    {
+      "id": "code-change-sync",
+      "title": "Code change sync",
+      "trigger": "A code change should refresh XGraph deterministic context.",
+      "mustCheckModules": [
+        "change-tracking",
+        "cli"
+      ],
+      "card": ".doc/flows/code-change-sync.json"
+    },
+    {
+      "id": "context-initialization",
+      "title": "Context initialization",
+      "trigger": "A repository is connected to XGraph for the first time.",
+      "mustCheckModules": [
+        "xgraph",
+        "agent-rules",
+        "cli"
+      ],
+      "card": ".doc/flows/context-initialization.json"
+    }
+  ]
+}

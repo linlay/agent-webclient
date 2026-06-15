@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "id": "code-change-sync",
+  "title": "Code change sync",
+  "trigger": "A code change should refresh XGraph deterministic context.",
+  "sourceOfTruth": [
+    ".doc/modules",
+    ".doc/generated/project-facts.json"
+  ],
+  "steps": [
+    {
+      "order": 1,
+      "label": "Resolve changed files to module owners",
+      "moduleId": "change-tracking",
+      "file": "internal/cli/update.go"
+    },
+    {
+      "order": 2,
+      "label": "Refresh deterministic module facts",
+      "moduleId": "cli",
+      "file": "internal/cli/sync.go"
+    },
+    {
+      "order": 3,
+      "label": "Rebuild catalogs and generated facts",
+      "moduleId": "cli",
+      "file": "internal/cli/knowledge.go"
+    }
+  ],
+  "failureModes": [
+    "Overlapping modules make a change appear broader than it is.",
+    "Generated facts drift from source files."
+  ],
+  "mustCheckModules": [
+    "change-tracking",
+    "cli"
+  ],
+  "relatedTasks": [
+    "modify-module-code"
+  ],
+  "generated": {
+    "stepCount": 3,
+    "files": [
+      "internal/cli/knowledge.go",
+      "internal/cli/sync.go",
+      "internal/cli/update.go"
+    ],
+    "resolvedModules": [
+      "change-tracking",
+      "cli"
+    ]
+  }
+}

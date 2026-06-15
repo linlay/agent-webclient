@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "module": "i18n",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/i18n/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "DEFAULT_LOCALE",
+      "DEFAULT_LOCALES",
+      "I18N_LOCALE_STORAGE_KEY",
+      "I18nContextValue",
+      "I18nLocaleMap",
+      "I18nMessages",
+      "I18nProvider",
+      "I18nProviderProps",
+      "I18nRuntimeConfig",
+      "I18nTerms",
+      "Locale",
+      "TranslateParams",
+      "buildI18nRuntimeConfig",
+      "configureI18nRuntime",
+      "enUSMessages",
+      "getDefaultTermsForLocale",
+      "getI18nRuntimeConfig",
+      "isHanTextAllowedFile",
+      "isLocaleMap",
+      "normalizeLocale",
+      "readLocaleParam",
+      "readUrlLocale",
+      "resolveI18nTerms",
+      "resolveInitialLocale",
+      "t",
+      "translateMessage",
+      "useI18n",
+      "zhCNMessages"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/i18n/provider.test.tsx",
+      "src/shared/i18n/runtime.test.ts"
+    ],
+    "lastScannedAt": "2026-06-15T10:45:54Z"
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

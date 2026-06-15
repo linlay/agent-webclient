@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "module": "components",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/components/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/components/text-count-up/index.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

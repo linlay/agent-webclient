@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0",
+  "module": "settings",
+  "status": "confirmed",
+  "paths": [
+    "src/features/settings/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "ArchiveModal",
+      "ClientGateDraftField",
+      "ClientGateDraftState",
+      "LivePreferenceDraftValues",
+      "MemoryAgentContext",
+      "MemoryInfoConsole",
+      "MemoryInfoConsoleView",
+      "MemoryInfoConsoleViewProps",
+      "MemoryInfoModal",
+      "MemoryInfoModalView",
+      "MemoryInfoModalViewProps",
+      "MemoryPreviewContext",
+      "SettingsAsrDebug",
+      "SettingsClientGate",
+      "SettingsModal",
+      "SettingsSummaryBadge",
+      "SettingsToken",
+      "SettingsTransport",
+      "SettingsTtsDebug",
+      "SidebarSettingsMenu",
+      "SidebarSettingsMenuAction",
+      "SidebarSettingsMenuItem",
+      "SidebarSettingsMenuProps",
+      "SidebarSettingsMenuSection",
+      "buildArchiveBulkCandidates",
+      "buildSidebarSettingsMenuSections",
+      "commitClientGateDraft",
+      "createMemoryPreferenceDraftRecord",
+      "dispatchSidebarSettingsAction",
+      "extractArchivePreviewLines",
+      "formatClientGateDraftState",
+      "formatMemoryJson",
+      "formatMemoryTimestamp",
+      "formatScopeTabLabel",
+      "formatWsStatusText",
+      "hydratePreferenceDrafts",
+      "normalizeMemoryTagList",
+      "normalizePreferenceScopeType",
+      "parseClientGateDraftValue",
+      "preferredScopeTypeFromSummaries",
+      "resolveMemoryAgentContext",
+      "resolveMemoryPreviewContext",
+      "resolveSettingsSummaryBadges",
+      "syncClientGateDraftState",
+      "syncSelectedPreferenceDraftFromLiveValues",
+      "toScopeRecordInputs",
+      "useMemoryRecordsInitialization"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/settings/components/ArchiveModal.test.ts",
+      "src/features/settings/components/MemoryInfoModal.test.tsx",
+      "src/features/settings/components/SettingsModal.test.ts",
+      "src/features/settings/components/SidebarSettingsMenu.test.ts",
+      "src/features/settings/lib/memoryInfo.test.ts",
+      "src/features/settings/lib/settingsClientGateDrafts.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

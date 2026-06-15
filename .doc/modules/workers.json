@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "module": "workers",
+  "status": "confirmed",
+  "paths": [
+    "src/features/workers/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "AGENT_CONSOLE_ADMIN_LIST_ROUTE",
+      "AgentConsole",
+      "AgentList",
+      "AgentListProps",
+      "AgentSummaryPatch",
+      "CurrentWorkerDetailView",
+      "CurrentWorkerSummary",
+      "WorkerDataSnapshot",
+      "WorkerRefreshOverrides",
+      "WorkerRowBuildOptions",
+      "agentOrderPayload",
+      "buildAgentListRequestOptions",
+      "buildAgentListSummary",
+      "buildAgentOrderSearchText",
+      "buildAutomationDraft",
+      "buildCurrentWorkerDetailView",
+      "buildDefinition",
+      "buildWorkerConversationRows",
+      "buildWorkerRows",
+      "buildWorkerSwitchRows",
+      "createWorkerKeyFromChat",
+      "extractChatsFromAgents",
+      "filterAgentsPreservingOrder",
+      "firstAdminAgentDiagnosticMessage",
+      "formFromDetail",
+      "hasEditableAdminDefinition",
+      "isCoderAgent",
+      "isInvalidAdminAgent",
+      "mergeAgentSummary",
+      "moveAgentForDrop",
+      "readAdminAgentDiagnostics",
+      "readAdminAgentStatus",
+      "readTeamAgentKeys",
+      "refreshWorkerDataFromAgentsWithChats",
+      "refreshWorkerDataWithCoordinator",
+      "resolveAdminAgentSourcePath",
+      "resolveAgentListScope",
+      "resolveCurrentWorkerSummary",
+      "saveAgentOrderRequest",
+      "shouldStartAgentConsoleBootstrap",
+      "shouldStartInitialWorkerRefresh",
+      "upsertAgentSummary",
+      "useWorkerData"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/workers/components/AgentConsole.test.ts",
+      "src/features/workers/hooks/useWorkerData.test.ts",
+      "src/features/workers/lib/agentOrdering.test.ts",
+      "src/features/workers/lib/agentSummary.test.ts",
+      "src/features/workers/lib/currentWorker.test.ts",
+      "src/features/workers/lib/teamUtils.test.ts",
+      "src/features/workers/lib/workerConversationFormatter.test.ts",
+      "src/features/workers/lib/workerDataCoordinator.test.ts",
+      "src/features/workers/lib/workerListFormatter.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "module": "timeline",
+  "status": "confirmed",
+  "paths": [
+    "src/features/timeline/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
+      "src/features/timeline/components/ConversationStage.test.ts",
+      "src/features/timeline/components/ToolPill.test.ts",
+      "src/features/timeline/components/ViewportEmbed.test.ts",
+      "src/features/timeline/hooks/useAgentEventHandler.test.ts",
+      "src/features/timeline/lib/contentSegments.test.ts",
+      "src/features/timeline/lib/debugEventDisplay.test.ts",
+      "src/features/timeline/lib/eventProcessor.test.ts",
+      "src/features/timeline/lib/reasoningAutoCollapse.test.ts",
+      "src/features/timeline/lib/runTranscript.test.ts",
+      "src/features/timeline/lib/timelineDisplay.test.ts",
+      "src/features/timeline/lib/toolDisplay.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

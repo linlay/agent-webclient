@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "module": "workers",
+  "status": "confirmed",
+  "paths": [
+    "src/features/workers/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/workers/components/AgentConsole.test.ts",
+      "src/features/workers/hooks/useWorkerData.test.ts",
+      "src/features/workers/lib/agentOrdering.test.ts",
+      "src/features/workers/lib/agentSummary.test.ts",
+      "src/features/workers/lib/currentWorker.test.ts",
+      "src/features/workers/lib/teamUtils.test.ts",
+      "src/features/workers/lib/workerConversationFormatter.test.ts",
+      "src/features/workers/lib/workerDataCoordinator.test.ts",
+      "src/features/workers/lib/workerListFormatter.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

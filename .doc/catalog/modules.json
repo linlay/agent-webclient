@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "1.0",
+  "items": [
+    {
+      "id": "api",
+      "title": "api",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/api/**"
+      ],
+      "card": ".doc/modules/api.json"
+    },
+    {
+      "id": "artifacts",
+      "title": "artifacts",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/artifacts/**"
+      ],
+      "card": ".doc/modules/artifacts.json"
+    },
+    {
+      "id": "chats",
+      "title": "chats",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/chats/**"
+      ],
+      "card": ".doc/modules/chats.json"
+    },
+    {
+      "id": "components",
+      "title": "components",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/components/**"
+      ],
+      "card": ".doc/modules/components.json"
+    },
+    {
+      "id": "composer",
+      "title": "composer",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/composer/**"
+      ],
+      "card": ".doc/modules/composer.json"
+    },
+    {
+      "id": "config",
+      "title": "config",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/config/**"
+      ],
+      "card": ".doc/modules/config.json"
+    },
+    {
+      "id": "hooks",
+      "title": "hooks",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/hooks/**"
+      ],
+      "card": ".doc/modules/hooks.json"
+    },
+    {
+      "id": "i18n",
+      "title": "i18n",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/i18n/**"
+      ],
+      "card": ".doc/modules/i18n.json"
+    },
+    {
+      "id": "icons",
+      "title": "icons",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/icons/**"
+      ],
+      "card": ".doc/modules/icons.json"
+    },
+    {
+      "id": "plan",
+      "title": "plan",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/plan/**"
+      ],
+      "card": ".doc/modules/plan.json"
+    },
+    {
+      "id": "settings",
+      "title": "settings",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/settings/**"
+      ],
+      "card": ".doc/modules/settings.json"
+    },
+    {
+      "id": "styles",
+      "title": "styles",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/styles/**"
+      ],
+      "card": ".doc/modules/styles.json"
+    },
+    {
+      "id": "timeline",
+      "title": "timeline",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/timeline/**"
+      ],
+      "card": ".doc/modules/timeline.json"
+    },
+    {
+      "id": "tools",
+      "title": "tools",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/tools/**"
+      ],
+      "card": ".doc/modules/tools.json"
+    },
+    {
+      "id": "transport",
+      "title": "transport",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/transport/**"
+      ],
+      "card": ".doc/modules/transport.json"
+    },
+    {
+      "id": "ui",
+      "title": "ui",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/ui/**"
+      ],
+      "card": ".doc/modules/ui.json"
+    },
+    {
+      "id": "utils",
+      "title": "utils",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/shared/utils/**"
+      ],
+      "card": ".doc/modules/utils.json"
+    },
+    {
+      "id": "voice",
+      "title": "voice",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/voice/**"
+      ],
+      "card": ".doc/modules/voice.json"
+    },
+    {
+      "id": "workers",
+      "title": "workers",
+      "summary": "Module boundary confirmed during xgraph init.",
+      "pathHints": [
+        "src/features/workers/**"
+      ],
+      "card": ".doc/modules/workers.json"
+    }
+  ]
+}

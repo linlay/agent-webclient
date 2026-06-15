@@ -33,3 +33,10 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+<!-- xgraph:start -->
+# xgraph local state
+.doc/.cache/
+.doc/local/
+.doc/tmp/
+<!-- xgraph:end -->

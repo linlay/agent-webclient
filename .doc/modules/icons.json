@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "module": "icons",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/icons/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "AGENT_ICON_NAMES",
+      "AgentIcon",
+      "default"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/icons/agent.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

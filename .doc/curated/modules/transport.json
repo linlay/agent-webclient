@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "module": "transport",
+  "status": "confirmed",
+  "paths": [
+    "src/features/transport/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/features/transport/hooks/useSseAttachTransport.test.ts",
+      "src/features/transport/hooks/useWsTransport.test.ts",
+      "src/features/transport/lib/apiClientProxy.test.ts",
+      "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
+      "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
+      "src/features/transport/lib/transportClient.test.ts",
+      "src/features/transport/lib/transportMode.test.ts",
+      "src/features/transport/lib/wsClient.test.ts",
+      "src/features/transport/lib/wsClientSingleton.test.ts",
+      "src/features/transport/lib/wsStreamReplay.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

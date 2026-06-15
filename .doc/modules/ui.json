@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "module": "ui",
+  "status": "confirmed",
+  "paths": [
+    "src/shared/ui/**"
+  ],
+  "summary": {
+    "purpose": "Module boundary confirmed during xgraph init.",
+    "ownedConcepts": [],
+    "nonGoals": []
+  },
+  "facts": {
+    "entrypoints": [],
+    "publicApi": [
+      "MERMAID_ZOOM_DEFAULT",
+      "MERMAID_ZOOM_MAX",
+      "MERMAID_ZOOM_MIN",
+      "MarkdownCode",
+      "MarkdownContent",
+      "MarkdownECharts",
+      "MarkdownMermaid",
+      "MaterialIcon",
+      "UiButton",
+      "UiButtonProps",
+      "UiCard",
+      "UiCardProps",
+      "UiInput",
+      "UiInputProps",
+      "UiListItem",
+      "UiListItemProps",
+      "UiSection",
+      "UiSectionBody",
+      "UiSectionHead",
+      "UiTag",
+      "UiTagProps",
+      "getMermaidRenderConfig",
+      "getMermaidRenderDelay",
+      "getNextMermaidZoom",
+      "getVisibleMermaidRenderState",
+      "isMermaidDragDistance",
+      "removeEmptyMarkdownTables"
+    ],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [
+      "src/shared/ui/MarkdownContent.test.ts",
+      "src/shared/ui/markdown-code/index.test.ts"
+    ],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}
