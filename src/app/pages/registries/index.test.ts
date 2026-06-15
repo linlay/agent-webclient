@@ -87,8 +87,8 @@ describe("RegistriesPage", () => {
     const html = renderRegistriesPage("zh-CN");
 
     expect(html).toContain("搜索 registry 配置");
-    expect(html).toContain("Providers");
-    expect(html).toContain("Models");
+    expect(html).toContain("供应商");
+    expect(html).toContain("模型");
     expect(html).not.toContain("全部分类");
     expect(html).toContain("全部状态");
     expect(html).toContain("新建");
