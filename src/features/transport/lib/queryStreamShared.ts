@@ -6,6 +6,7 @@ import {
   type AttachStreamParams,
   type QueryStreamParams,
 } from "@/shared/api/apiClient";
+import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
 
 export interface ExecuteQueryStreamOptions {
   params: QueryStreamParams;
@@ -30,6 +31,10 @@ export type AttachStreamExecutor = (
 export interface StreamAbortScope {
   abortController: AbortController;
   cleanup: () => void;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === "object";
 }
 
 export function createStreamAbortScope(
@@ -81,31 +86,55 @@ export function toApiErrorFromText(
 ): ApiError {
   const trimmed = String(rawText || "").trim();
   if (!trimmed) {
-    return new ApiError(fallbackMessage, {
+    const display = formatPlatformErrorForDisplay({ status, message: fallbackMessage });
+    return new ApiError(display.message, {
       status,
       data: rawText,
+      platformError: display.error,
     });
   }
 
   try {
-    const json = JSON.parse(trimmed) as Record<string, unknown>;
-    return new ApiError(
-      typeof json.msg === "string" && json.msg.trim()
-        ? json.msg.trim()
-        : fallbackMessage,
-      {
+    const json = JSON.parse(trimmed) as unknown;
+    if (!isObjectRecord(json)) {
+      const display = formatPlatformErrorForDisplay({
         status,
-        code:
-          typeof json.code === "number" || typeof json.code === "string"
-            ? json.code
-            : null,
-        data: "data" in json ? json.data : json,
-      },
-    );
+        message: fallbackMessage,
+        raw: rawText,
+      });
+      return new ApiError(display.message, {
+        status,
+        data: rawText,
+        platformError: display.error,
+      });
+    }
+    const display = formatPlatformErrorForDisplay({
+      ...json,
+      status,
+      ...(!(typeof json.message === "string" && json.message.trim())
+        ? { message: fallbackMessage }
+        : {}),
+    });
+    return new ApiError(display.message, {
+      status: display.status ?? status,
+      code:
+        display.code ||
+        (typeof json.code === "number" || typeof json.code === "string"
+          ? json.code
+          : null),
+      data: "data" in json ? json.data : json,
+      platformError: display.error,
+    });
   } catch {
-    return new ApiError(trimmed || fallbackMessage, {
+    const display = formatPlatformErrorForDisplay({
+      status,
+      message: fallbackMessage,
+      raw: rawText,
+    });
+    return new ApiError(display.message, {
       status,
       data: rawText,
+      platformError: display.error,
     });
   }
 }

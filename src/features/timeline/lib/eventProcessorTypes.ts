@@ -66,5 +66,11 @@ export type EventCommand =
 			taskGroupId?: string;
 			subAgentKey?: string;
 	  }
-	| { cmd: "SYSTEM_ERROR"; nodeId: string; text: string; ts: number }
+	| {
+			cmd: "SYSTEM_ERROR";
+			nodeId: string;
+			text: string;
+			ts: number;
+			errorDetail?: TimelineNode["errorDetail"];
+	  }
 	| { cmd: "SYSTEM_MESSAGE"; nodeId: string; text: string; ts: number };

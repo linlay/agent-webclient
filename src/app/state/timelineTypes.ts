@@ -48,6 +48,18 @@ export interface TtsVoiceBlock {
 	channels?: number;
 }
 
+export interface TimelineErrorDetail {
+	code: string;
+	category: string;
+	scope: string;
+	status: number | null;
+	retryable: boolean | null;
+	message: string;
+	diagnostics: unknown;
+	raw: unknown;
+	technicalText: string;
+}
+
 export interface TimelineNode {
 	id: string;
 	kind: TimelineNodeKind;
@@ -80,6 +92,7 @@ export interface TimelineNode {
 	durationMs?: number;
 	contentId?: string;
 	segments?: ContentSegment[];
+	errorDetail?: TimelineErrorDetail;
 	embeddedViewports?: Record<string, EmbeddedViewport>;
 	ttsVoiceBlocks?: Record<string, TtsVoiceBlock>;
 }

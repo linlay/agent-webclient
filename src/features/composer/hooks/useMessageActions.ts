@@ -21,6 +21,7 @@ import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } fro
 import { dispatchDetachRunEvent, type DetachRunEventDetail } from '@/features/transport/lib/detachRunEvent';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
+import { formatPlatformErrorForDisplay } from '@/shared/api/platformError';
 import {
   createLiveQuerySession,
   snapshotConversationState,
@@ -510,6 +511,7 @@ export function useMessageActions() {
       } catch (error) {
         const err = error as Error;
         if (err.name !== 'AbortError') {
+          const display = formatPlatformErrorForDisplay(err);
           if (isSessionActive()) {
             dispatch({
               type: 'APPEND_DEBUG',
@@ -523,7 +525,8 @@ export function useMessageActions() {
                 id: errNodeId,
                 kind: 'message',
                 role: 'system',
-                text: `发送失败: ${err.message}`,
+                text: display.message,
+                errorDetail: display.error,
                 ts: Date.now(),
               },
             });
@@ -534,7 +537,7 @@ export function useMessageActions() {
               chatId: session.chatId || undefined,
               runId: session.runId || undefined,
               requestId: session.requestId,
-              error: err.message,
+              error: display.error,
               timestamp: Date.now(),
             };
             session.bufferedDebugLines.push(`[send error] ${err.message}`);

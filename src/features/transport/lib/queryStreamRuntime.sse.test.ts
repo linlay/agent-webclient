@@ -119,8 +119,22 @@ describe("executeQueryStreamSse", () => {
 
   it("throws ApiError for non-ok responses", async () => {
     createQueryStreamMock.mockResolvedValue(
-      new Response(JSON.stringify({ msg: "bad request", code: 123 }), {
-        status: 400,
+      new Response(JSON.stringify({
+        code: 429,
+        msg: "model request failed with status 429",
+        data: {
+          error: {
+            category: "model",
+            code: "provider_quota_exhausted",
+            scope: "model",
+            status: 429,
+            retryable: false,
+            message: "model request failed with status 429: quota exhausted",
+            diagnostics: { upstreamStatus: 429 },
+          },
+        },
+      }), {
+        status: 429,
         headers: { "Content-Type": "application/json" },
       }),
     );
@@ -136,8 +150,12 @@ describe("executeQueryStreamSse", () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining<ApiError>({
-        message: "bad request",
-        status: 400,
+        message: "模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。",
+        status: 429,
+        platformError: expect.objectContaining({
+          code: "provider_quota_exhausted",
+          message: "model request failed with status 429: quota exhausted",
+        }),
       }),
     );
   });
@@ -240,9 +258,13 @@ describe("executeQueryStreamSse", () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining<ApiError>({
-        message: "sequence expired",
+        message: "操作失败，请稍后重试。",
         status: 409,
         code: "SEQ_EXPIRED",
+        platformError: expect.objectContaining({
+          code: "SEQ_EXPIRED",
+          message: "HTTP 409",
+        }),
       }),
     );
   });

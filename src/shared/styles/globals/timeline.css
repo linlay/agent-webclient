@@ -1010,6 +1010,55 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     white-space: pre-wrap;
 }
 
+.system-alert-message {
+    white-space: pre-wrap;
+}
+
+.system-alert-details {
+    margin-top: 8px;
+    color: var(--ink-2);
+    white-space: normal;
+}
+
+.system-alert-details summary {
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
+.system-alert-details dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px 8px;
+    margin: 8px 0 0;
+}
+
+.system-alert-details dt {
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
+.system-alert-details dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+}
+
+.system-alert-details pre {
+    margin: 8px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    padding: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+}
+
 /* ========================================
    Thinking Block
    ======================================== */

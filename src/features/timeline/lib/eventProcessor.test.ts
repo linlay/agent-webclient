@@ -199,6 +199,7 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           kind: 'message',
           role: 'system',
           text: command.text,
+          ...(command.errorDetail ? { errorDetail: command.errorDetail } : {}),
           ts: command.ts,
         });
         state.timelineOrder.push(command.nodeId);
@@ -258,6 +259,41 @@ describe('processEvent', () => {
       },
     ]);
     expect(liveCommands).toEqual([]);
+  });
+
+  it('renders run.error with platform i18n text and technical details', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'run.error',
+      runId: 'run_1',
+      error: {
+        category: 'model',
+        code: 'provider_quota_exhausted',
+        scope: 'model',
+        status: 429,
+        retryable: false,
+        message: 'model request failed with status 429: quota exhausted',
+        diagnostics: { upstreamStatus: 429 },
+      },
+      timestamp: 123,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('sys_0')).toMatchObject({
+      id: 'sys_0',
+      kind: 'message',
+      role: 'system',
+      text: '模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。',
+      errorDetail: expect.objectContaining({
+        code: 'provider_quota_exhausted',
+        category: 'model',
+        scope: 'model',
+        status: 429,
+        message: 'model request failed with status 429: quota exhausted',
+        diagnostics: { upstreamStatus: 429 },
+      }),
+      ts: 123,
+    });
   });
 
   it('creates replay user nodes for attachment-only request.query events', () => {

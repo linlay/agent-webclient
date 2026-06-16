@@ -9,6 +9,7 @@ import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineA
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
 import { t } from "@/shared/i18n";
+import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
 
 export function processRunEvent(
   event: AgentEvent,
@@ -131,11 +132,13 @@ export function processRunEvent(
 
   if (type === "run.error" || type === "run.complete" || type === "run.cancel") {
     if (type === "run.error" && event.error) {
+      const display = formatPlatformErrorForDisplay(event);
       commands.push({
         cmd: "SYSTEM_ERROR",
         nodeId: `sys_${config.mode === "replay" ? state.nextCounter() : Date.now()}`,
-        text: safeText(event.error),
-        ts: Date.now(),
+        text: display.message,
+        errorDetail: display.error,
+        ts: event.timestamp || Date.now(),
       });
     }
     return commands;

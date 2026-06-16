@@ -321,6 +321,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         kind: 'message',
         role: 'system',
         text: command.text,
+        ...(command.errorDetail ? { errorDetail: command.errorDetail } : {}),
         ts: command.ts,
       });
       rs.timelineOrder.push(command.nodeId);

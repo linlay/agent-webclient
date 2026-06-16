@@ -388,14 +388,30 @@ describe("WsClient", () => {
 			JSON.stringify({
 				frame: "error",
 				id: sentFrame.id,
-				msg: "stream failed",
-				code: 500,
+				type: "provider_quota_exhausted",
+				msg: "model request failed with status 429",
+				code: 429,
+				data: {
+					error: {
+						category: "model",
+						code: "provider_quota_exhausted",
+						scope: "run",
+						status: 429,
+						retryable: false,
+						message: "model request failed with status 429: quota exhausted",
+						diagnostics: { upstreamStatus: 429 },
+					},
+				},
 			}),
 		);
 
 		expect(onError).toHaveBeenCalledWith(
 			expect.objectContaining({
-				message: "stream failed",
+				message: "模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。",
+				platformError: expect.objectContaining({
+					code: "provider_quota_exhausted",
+					message: "model request failed with status 429: quota exhausted",
+				}),
 			}),
 		);
 	});

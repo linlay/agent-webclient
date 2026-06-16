@@ -22,12 +22,17 @@ import type {
 import { t } from '@/shared/i18n';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
+import {
+  formatPlatformErrorForDisplay,
+  type PlatformError,
+} from "@/shared/api/platformError";
 
 export class ApiError extends Error {
   name = "ApiError";
   status: number | null;
   code: number | string | null;
   data: unknown;
+  platformError: PlatformError | null;
 
   constructor(
     message: string,
@@ -35,12 +40,14 @@ export class ApiError extends Error {
       status?: number | null;
       code?: number | string | null;
       data?: unknown;
+      platformError?: PlatformError | null;
     } = {},
   ) {
     super(message);
     this.status = details.status ?? null;
     this.code = details.code ?? null;
     this.data = details.data ?? null;
+    this.platformError = details.platformError ?? null;
   }
 }
 
@@ -646,6 +653,33 @@ export function normalizeChatSummariesPayload(data: unknown): unknown[] {
   });
 }
 
+function createPlatformApiError(input: unknown, options: {
+  status?: number | null;
+  code?: number | string | null;
+  data?: unknown;
+  fallbackMessage?: string;
+} = {}): ApiError {
+  const source = isObjectRecord(input)
+    ? {
+        ...input,
+        ...(options.status != null ? { status: options.status } : {}),
+        ...(options.fallbackMessage && !(typeof input.message === "string" && input.message.trim())
+          ? { message: options.fallbackMessage }
+          : {}),
+      }
+    : input || {
+        status: options.status ?? undefined,
+        message: options.fallbackMessage,
+      };
+  const display = formatPlatformErrorForDisplay(source);
+  return new ApiError(display.message, {
+    status: display.status ?? options.status ?? null,
+    code: display.code || (options.code ?? null),
+    data: options.data,
+    platformError: display.error,
+  });
+}
+
 async function readJsonResponse<T = unknown>(
   response: Response,
 ): Promise<ApiResponse<T>> {
@@ -662,10 +696,11 @@ async function readJsonResponse<T = unknown>(
   }
 
   if (!response.ok) {
-    throw new ApiError((json?.msg as string) || `HTTP ${response.status}`, {
+    throw createPlatformApiError(json, {
       status: response.status,
       code: json?.code as number | undefined,
       data: json?.data,
+      fallbackMessage: `HTTP ${response.status}`,
     });
   }
 
@@ -677,10 +712,11 @@ async function readJsonResponse<T = unknown>(
   }
 
   if (json.code !== 0) {
-    throw new ApiError((json.msg as string) || "API returned non-zero code", {
+    throw createPlatformApiError(json, {
       status: response.status,
       code: json.code as number,
       data: json.data,
+      fallbackMessage: "API returned non-zero code",
     });
   }
 
@@ -709,19 +745,21 @@ async function readVoiceCapabilitiesResponse(
 
   if (!response.ok) {
     const apiJson = isObjectRecord(json) ? json : null;
-    throw new ApiError((apiJson?.msg as string) || `HTTP ${response.status}`, {
+    throw createPlatformApiError(apiJson ?? json, {
       status: response.status,
       code: apiJson?.code as number | undefined,
       data: apiJson?.data ?? json,
+      fallbackMessage: `HTTP ${response.status}`,
     });
   }
 
   if (isApiResponseShape(json)) {
     if (json.code !== 0) {
-      throw new ApiError((json.msg as string) || "API returned non-zero code", {
+      throw createPlatformApiError(json, {
         status: response.status,
         code: json.code as number,
         data: json.data,
+        fallbackMessage: "API returned non-zero code",
       });
     }
     if (json.data == null) {
@@ -767,19 +805,21 @@ async function readVoiceVoicesResponse(
 
   if (!response.ok) {
     const apiJson = isObjectRecord(json) ? json : null;
-    throw new ApiError((apiJson?.msg as string) || `HTTP ${response.status}`, {
+    throw createPlatformApiError(apiJson ?? json, {
       status: response.status,
       code: apiJson?.code as number | undefined,
       data: apiJson?.data ?? json,
+      fallbackMessage: `HTTP ${response.status}`,
     });
   }
 
   if (isApiResponseShape(json)) {
     if (json.code !== 0) {
-      throw new ApiError((json.msg as string) || "API returned non-zero code", {
+      throw createPlatformApiError(json, {
         status: response.status,
         code: json.code as number,
         data: json.data,
+        fallbackMessage: "API returned non-zero code",
       });
     }
     if (json.data == null) {
@@ -889,37 +929,66 @@ export function getFileHistory(
 function getErrorMessageFromText(
   rawText: string,
   fallbackMessage: string,
+  status?: number,
 ): {
   message: string;
   code?: number | string | null;
   data?: unknown;
+  platformError?: PlatformError | null;
 } {
   const trimmed = rawText.trim();
   if (!trimmed) {
-    return { message: fallbackMessage, data: rawText };
+    const display = formatPlatformErrorForDisplay({ status, message: fallbackMessage });
+    return {
+      message: display.message,
+      code: display.code || null,
+      data: rawText,
+      platformError: display.error,
+    };
   }
 
   try {
     const json = JSON.parse(trimmed) as unknown;
     if (isObjectRecord(json)) {
-      const message =
-        typeof json.msg === "string" && json.msg.trim()
-          ? json.msg.trim()
-          : fallbackMessage;
+      const display = formatPlatformErrorForDisplay({
+        ...json,
+        status,
+        ...(!(typeof json.message === "string" && json.message.trim())
+          ? { message: fallbackMessage }
+          : {}),
+      });
       return {
-        message,
+        message: display.message,
         code:
-          typeof json.code === "number" || typeof json.code === "string"
+          display.code ||
+          (typeof json.code === "number" || typeof json.code === "string"
             ? json.code
-            : null,
+            : null),
         data: "data" in json ? json.data : json,
+        platformError: display.error,
       };
     }
   } catch {
-    return { message: trimmed, data: rawText };
+    const display = formatPlatformErrorForDisplay({
+      status,
+      message: fallbackMessage,
+      raw: rawText,
+    });
+    return {
+      message: display.message,
+      code: display.code || null,
+      data: rawText,
+      platformError: display.error,
+    };
   }
 
-  return { message: fallbackMessage, data: rawText };
+  const display = formatPlatformErrorForDisplay({ status, message: fallbackMessage });
+  return {
+    message: display.message,
+    code: display.code || null,
+    data: rawText,
+    platformError: display.error,
+  };
 }
 
 function triggerBrowserDownload(blob: Blob, filename: string): void {
@@ -962,11 +1031,12 @@ export async function downloadResource(
       status: response.status,
     });
     const rawText = await response.text();
-    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
     throw new ApiError(error.message, {
       status: response.status,
       code: error.code,
       data: error.data,
+      platformError: error.platformError,
     });
   }
 
@@ -993,11 +1063,12 @@ export async function getResourceText(
       status: response.status,
     });
     const rawText = await response.text();
-    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
     throw new ApiError(error.message, {
       status: response.status,
       code: error.code,
       data: error.data,
+      platformError: error.platformError,
     });
   }
   return response.text();
@@ -1019,11 +1090,12 @@ export async function getChatRawJsonl(
       status: response.status,
     });
     const rawText = await response.text();
-    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
     throw new ApiError(error.message, {
       status: response.status,
       code: error.code,
       data: error.data,
+      platformError: error.platformError,
     });
   }
 
@@ -1721,11 +1793,12 @@ export async function downloadChatExport(chatId: string): Promise<void> {
       status: response.status,
     });
     const rawText = await response.text();
-    const error = getErrorMessageFromText(rawText, fallbackMessage);
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
     throw new ApiError(error.message, {
       status: response.status,
       code: error.code,
       data: error.data,
+      platformError: error.platformError,
     });
   }
   const blob = await response.blob();

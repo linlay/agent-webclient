@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@/app/state/types";
 import { ApiError, type ApiResponse } from "@/shared/api/apiClient";
+import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
@@ -53,6 +54,7 @@ interface WsPushFrame {
 interface WsErrorFrame {
 	frame: "error";
 	id?: string;
+	type?: string;
 	code?: number | string;
 	status?: number;
 	msg?: string;
@@ -300,27 +302,13 @@ function buildWsUrl(accessToken = ""): string {
 	return url.toString();
 }
 
-function frameErrorMessage(frame: WsErrorFrame | WsResponseFrame): string {
-	const explicit = String(
-		frame.msg || ("error" in frame ? frame.error : "") || "",
-	).trim();
-	if (explicit) {
-		return explicit;
-	}
-	if (frame.status) {
-		return `WebSocket request failed (${frame.status})`;
-	}
-	if (frame.code != null) {
-		return `WebSocket request failed (code=${String(frame.code)})`;
-	}
-	return "WebSocket request failed";
-}
-
 function toApiError(frame: WsErrorFrame | WsResponseFrame): ApiError {
-	return new ApiError(frameErrorMessage(frame), {
-		status: frame.status ?? null,
-		code: frame.code ?? null,
+	const display = formatPlatformErrorForDisplay(frame);
+	return new ApiError(display.message, {
+		status: display.status ?? frame.status ?? null,
+		code: display.code || (frame.code ?? null),
 		data: frame.data ?? null,
+		platformError: display.error,
 	});
 }
 

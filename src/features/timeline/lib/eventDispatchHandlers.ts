@@ -150,6 +150,9 @@ export function applyLiveEventCommand(input: {
 				kind: "message",
 				role: "system",
 				text: command.text,
+				...(command.cmd === "SYSTEM_ERROR" && command.errorDetail
+					? { errorDetail: command.errorDetail }
+					: {}),
 				ts: command.ts,
 			});
 			cache.nodeText.set(command.nodeId, command.text);
@@ -161,6 +164,9 @@ export function applyLiveEventCommand(input: {
 					kind: "message",
 					role: "system",
 					text: command.text,
+					...(command.cmd === "SYSTEM_ERROR" && command.errorDetail
+						? { errorDetail: command.errorDetail }
+						: {}),
 					ts: command.ts,
 				},
 			});

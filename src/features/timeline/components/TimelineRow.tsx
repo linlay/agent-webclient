@@ -331,7 +331,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <NodeIcon kind="message" role="system" />
         </div>
         <div className="timeline-flow-content">
-          <SystemAlert text={node.text || ""} />
+          <SystemAlert text={node.text || ""} errorDetail={node.errorDetail} />
           {timeNode}
         </div>
       </div>

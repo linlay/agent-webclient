@@ -1323,7 +1323,7 @@ describe('apiClient query payloads', () => {
     expect(removeChild).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces api error messages when resource downloads fail', async () => {
+  it('uses generic platform display text when resource downloads fail without structured codes', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 403,
@@ -1336,9 +1336,13 @@ describe('apiClient query payloads', () => {
     });
 
     await expect(downloadResource('/api/resource?file=private.txt')).rejects.toMatchObject({
-      message: 'token expired',
+      message: '操作失败，请稍后重试。',
       status: 403,
       code: 40301,
+      platformError: expect.objectContaining({
+        status: 403,
+        message: expect.stringContaining('下载失败'),
+      }),
     });
   });
 
@@ -1403,7 +1407,7 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('surfaces api error messages when raw chat jsonl loading fails', async () => {
+  it('uses generic platform display text when raw chat jsonl loading fails without structured codes', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -1416,9 +1420,13 @@ describe('apiClient query payloads', () => {
     });
 
     await expect(getChatRawJsonl('missing')).rejects.toMatchObject({
-      message: 'chat not found',
+      message: '操作失败，请稍后重试。',
       status: 404,
       code: 404,
+      platformError: expect.objectContaining({
+        status: 404,
+        message: expect.stringContaining('加载资源文本失败'),
+      }),
     });
   });
 

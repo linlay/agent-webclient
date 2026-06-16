@@ -75,9 +75,12 @@ describe("TopNav", () => {
 				type: "run.error",
 				runId: "run_1",
 				error: {
-					category: "runtime",
-					code: "stream_failed",
-					message: "api key quota exhausted",
+					category: "model",
+					code: "provider_quota_exhausted",
+					scope: "model",
+					status: 429,
+					retryable: false,
+					message: "model request failed with status 429: api key quota exhausted",
 				},
 				timestamp: 123,
 			}],
@@ -87,7 +90,8 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Run error");
 		expect(html).toContain("status-pill is-error");
-		expect(html).toContain("api key quota exhausted");
+		expect(html).toContain("The model service quota is exhausted.");
+		expect(html).not.toContain("model request failed");
 		expect(html).toContain('title="Run error:');
 		expect(html).toContain('aria-label="Run error:');
 	});

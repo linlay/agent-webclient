@@ -16,6 +16,7 @@ import {
   isDebugPanelEnabled,
   isVoiceEnabled,
 } from "@/shared/config/featureFlags";
+import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -28,20 +29,6 @@ interface TopNavStatusDisplay {
   statusDetail?: string;
 }
 
-function formatStatusDetail(value: unknown): string {
-  if (typeof value === "string") {
-    return value.trim();
-  }
-  if (value == null) {
-    return "";
-  }
-  try {
-    return JSON.stringify(value) || String(value);
-  } catch {
-    return String(value);
-  }
-}
-
 export function resolveTopNavStatus(
   state: Pick<AppState, "streaming" | "events">,
 ): TopNavStatusDisplay {
@@ -52,7 +39,9 @@ export function resolveTopNavStatus(
     if (event.type === "run.error") {
       hasRunError = true;
       const rawError = (event as Record<string, unknown>).error;
-      runErrorDetail = formatStatusDetail(rawError);
+      runErrorDetail = rawError
+        ? formatPlatformErrorForDisplay(event).message
+        : "";
       break;
     }
   }
