@@ -17,6 +17,8 @@ interface ComposerActionsProps {
   isFrontendActive: boolean;
   isVoiceMode: boolean;
   isStreaming: boolean;
+  canCaptureDesktopScreenshot: boolean;
+  isCapturingDesktopScreenshot: boolean;
   modelOverride: QueryModelOverride;
   planningMode: boolean;
   canUsePlanningMode: boolean;
@@ -37,6 +39,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   isFrontendActive,
   isVoiceMode,
   isStreaming,
+  canCaptureDesktopScreenshot,
+  isCapturingDesktopScreenshot,
   modelOverride,
   planningMode,
   canUsePlanningMode,
@@ -52,8 +56,14 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onTogglePlanningMode,
 }) => {
   const { t } = useI18n();
-  const { openFilePicker, interruptCurrentRun, toggleSpeechInput, handleSend } =
-    useComposerContext();
+  const {
+    captureDesktopScreenshot,
+    openFilePicker,
+    interruptCurrentRun,
+    toggleSpeechInput,
+    handleSend,
+  } = useComposerContext();
+  const attachmentActionsDisabled = isFrontendActive || isVoiceMode || isStreaming;
 
   return (
     <div className="composer-control-row">
@@ -64,7 +74,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           size="sm"
           iconOnly
           loading={hasUploadingAttachments}
-          disabled={isFrontendActive || isVoiceMode || isStreaming}
+          disabled={attachmentActionsDisabled}
           onClick={openFilePicker}
           aria-label={t("composer.actions.upload")}
           title={
@@ -79,6 +89,31 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         >
           <MaterialIcon name="add" />
         </UiButton>
+        {canCaptureDesktopScreenshot ? (
+          <UiButton
+            className="desktop-screenshot-btn"
+            variant="ghost"
+            size="sm"
+            iconOnly
+            loading={isCapturingDesktopScreenshot}
+            disabled={attachmentActionsDisabled || isCapturingDesktopScreenshot}
+            onClick={() => void captureDesktopScreenshot()}
+            aria-label={t("composer.actions.screenshot")}
+            title={
+              isFrontendActive
+                ? t("composer.actions.screenshotDisabled.frontendActive")
+                : isVoiceMode
+                  ? t("composer.actions.screenshotDisabled.voiceMode")
+                  : isStreaming
+                    ? t("composer.actions.screenshotDisabled.streaming")
+                    : isCapturingDesktopScreenshot
+                      ? t("composer.actions.screenshotCapturing")
+                      : t("composer.actions.screenshot")
+            }
+          >
+            <MaterialIcon name="crop_free" />
+          </UiButton>
+        ) : null}
         {planningMode && canUsePlanningMode && (
           <Tooltip
             title={

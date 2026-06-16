@@ -3,6 +3,12 @@ import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
 import {
+  canUseDesktopScreenshotBridge,
+  captureDesktopScreenshot as captureDesktopScreenshotFromBridge,
+  desktopScreenshotToFile,
+} from "@/shared/api/desktopScreenshot";
+import { t } from "@/shared/i18n";
+import {
   type ComposerAttachment,
   createPendingComposerAttachments,
   getComposerAttachmentNameKey,
@@ -24,6 +30,7 @@ interface UseComposerAttachmentsInput {
     | "workerIndexByKey"
     | "workerSelectionKey"
   >;
+  onError?: (message: string) => void;
 }
 
 export interface ComposerAttachmentScrollState {
@@ -44,13 +51,15 @@ function addTimestampToFilename(filename: string) {
 }
 
 export function useComposerAttachments(input: UseComposerAttachmentsInput) {
-  const { dispatch, isFrontendActive, isVoiceMode, state } = input;
+  const { dispatch, isFrontendActive, isVoiceMode, onError, state } = input;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentViewportRef = useRef<HTMLDivElement>(null);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
   const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [attachmentChatId, setAttachmentChatId] = useState("");
+  const [isCapturingDesktopScreenshot, setIsCapturingDesktopScreenshot] =
+    useState(false);
   const [attachmentScrollState, setAttachmentScrollState] =
     useState<ComposerAttachmentScrollState>({
       canScrollLeft: false,
@@ -83,6 +92,10 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const useUnifiedComposerAttachmentRow = attachments.length > 1;
   const hasComposerAttachmentOverflow =
     attachmentScrollState.canScrollLeft || attachmentScrollState.canScrollRight;
+  const canCaptureDesktopScreenshot = useMemo(
+    () => canUseDesktopScreenshotBridge(),
+    [],
+  );
 
   const updateComposerAttachmentScrollState = useCallback(() => {
     const viewport = attachmentViewportRef.current;
@@ -247,6 +260,43 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     ],
   );
 
+  const captureDesktopScreenshot = useCallback(async () => {
+    if (!canCaptureDesktopScreenshot) {
+      onError?.(t("composer.actions.screenshotUnavailable"));
+      return false;
+    }
+    if (
+      isCapturingDesktopScreenshot ||
+      state.streaming ||
+      isFrontendActive ||
+      isVoiceMode
+    ) {
+      return false;
+    }
+
+    setIsCapturingDesktopScreenshot(true);
+    try {
+      const screenshot = await captureDesktopScreenshotFromBridge();
+      if (!screenshot) {
+        return false;
+      }
+      return uploadFiles([desktopScreenshotToFile(screenshot)]);
+    } catch (error) {
+      onError?.((error as Error).message || t("composer.actions.screenshotFailed"));
+      return false;
+    } finally {
+      setIsCapturingDesktopScreenshot(false);
+    }
+  }, [
+    canCaptureDesktopScreenshot,
+    isCapturingDesktopScreenshot,
+    isFrontendActive,
+    isVoiceMode,
+    onError,
+    state.streaming,
+    uploadFiles,
+  ]);
+
   const handleFileSelection = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
@@ -372,6 +422,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     attachmentScrollState,
     attachmentViewportRef,
     attachments,
+    canCaptureDesktopScreenshot,
+    captureDesktopScreenshot,
     clearComposerAttachments,
     fileInputRef,
     handleFileDragOver,
@@ -381,6 +433,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     handleRemoveAttachment,
     hasComposerAttachmentOverflow,
     hasUploadingAttachments,
+    isCapturingDesktopScreenshot,
     openFilePicker,
     readyAttachments,
     scrollComposerAttachments,

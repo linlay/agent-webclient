@@ -1,8 +1,10 @@
 import {
+	createPendingComposerAttachments,
 	keepLatestFilesByName,
 	uploadComposerAttachments,
 } from "@/features/composer/lib/composerAttachments";
 import { uploadFile } from "@/shared/api/apiClient";
+import { desktopScreenshotToFile } from "@/shared/api/desktopScreenshot";
 
 jest.mock("@/shared/api/apiClient", () => ({
 	createRequestId: jest.fn((prefix: string) => `${prefix}_mock`),
@@ -124,6 +126,64 @@ describe("composerAttachments", () => {
 			setAttachmentChatId: jest.fn(),
 		});
 
+		expect(setAttachments).toHaveBeenCalledTimes(1);
+	});
+
+	it("uploads desktop screenshots through the existing attachment flow", async () => {
+		const file = desktopScreenshotToFile({
+			dataUrl: "data:image/png;base64,cG5n",
+			filename: "screenshot-20260616-120000.png",
+			mimeType: "image/png",
+			sizeBytes: 3,
+		});
+		const [pendingAttachment] = createPendingComposerAttachments([file]);
+		const setAttachments = jest.fn((updater) => {
+			const next = updater([pendingAttachment]);
+			expect(next[0]).toMatchObject({
+				name: "screenshot-20260616-120000.png",
+				type: "image",
+				mimeType: "image/png",
+				resourceUrl: "/api/resource?file=chat_1%2Fscreenshot.png",
+				status: "ready",
+			});
+		});
+		(uploadFile as jest.Mock).mockResolvedValueOnce({
+			data: {
+				chatId: "chat_1",
+				references: [
+					{
+						name: "screenshot-20260616-120000.png",
+						type: "file",
+						mimeType: "image/png",
+						sizeBytes: 3,
+						url: "/api/resource?file=chat_1%2Fscreenshot.png",
+					},
+				],
+			},
+		});
+
+		await uploadComposerAttachments({
+			files: [file],
+			nextAttachments: [pendingAttachment],
+			attachmentChatId: "",
+			state: {
+				chatId: "chat_1",
+				chatAgentById: {},
+				pendingNewChatAgentKey: "",
+				workerSelectionKey: "",
+				workerIndexByKey: {},
+			},
+			dispatch: jest.fn(),
+			setAttachments,
+			setAttachmentChatId: jest.fn(),
+		});
+
+		expect(uploadFile).toHaveBeenCalledWith(
+			expect.objectContaining({
+				file,
+				filename: "screenshot-20260616-120000.png",
+			}),
+		);
 		expect(setAttachments).toHaveBeenCalledTimes(1);
 	});
 });
