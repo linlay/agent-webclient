@@ -168,6 +168,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     attachmentScrollState,
     attachmentViewportRef,
     attachments,
+    canCaptureDesktopScreenshot,
+    captureDesktopScreenshot,
     clearComposerAttachments,
     fileInputRef,
     handleFileDragOver,
@@ -177,6 +179,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleRemoveAttachment,
     hasComposerAttachmentOverflow,
     hasUploadingAttachments,
+    isCapturingDesktopScreenshot,
     openFilePicker,
     scrollComposerAttachments,
     sendAttachmentMeta,
@@ -186,6 +189,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch,
     isFrontendActive,
     isVoiceMode,
+    onError: (text) => {
+      void message.error(text || t("composer.actions.screenshotFailed"));
+    },
     state,
   });
 
@@ -447,6 +453,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       slashDismissed,
       setSlashDismissed,
       attachmentScrollState,
+      captureDesktopScreenshot,
       openFilePicker,
       handleSend,
       interruptCurrentRun,
@@ -460,6 +467,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       activeSlashIndex,
       applyComposerDraft,
       attachmentScrollState,
+      captureDesktopScreenshot,
       executeSlashCommand,
       handleSend,
       inputValue,
@@ -621,6 +629,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}
                   isStreaming={state.streaming}
+                  canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
+                  isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
                   modelOverride={modelOverride}
                   planningMode={state.planningMode}
                   canUsePlanningMode={planningModeAvailable}

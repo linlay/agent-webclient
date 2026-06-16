@@ -15,6 +15,7 @@ export interface ComposerContextValue {
   slashDismissed: boolean;
   setSlashDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   attachmentScrollState: ComposerAttachmentScrollState;
+  captureDesktopScreenshot: () => Promise<boolean>;
   openFilePicker: () => void;
   handleSend: () => void;
   interruptCurrentRun: () => Promise<void>;

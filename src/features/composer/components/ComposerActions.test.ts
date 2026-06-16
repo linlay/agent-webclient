@@ -4,6 +4,7 @@ import { ComposerActions } from "@/features/composer/components/ComposerActions"
 
 jest.mock("@/features/composer/components/ComposerContext", () => ({
   useComposerContext: () => ({
+    captureDesktopScreenshot: jest.fn(),
     openFilePicker: jest.fn(),
     interruptCurrentRun: jest.fn(),
     toggleSpeechInput: jest.fn(),
@@ -44,6 +45,8 @@ describe("ComposerActions", () => {
     canUsePlanningMode: true,
     voiceEnabled: true,
     hasUploadingAttachments: false,
+    canCaptureDesktopScreenshot: false,
+    isCapturingDesktopScreenshot: false,
     speechListening: false,
     speechSupported: true,
     speechStatus: "ready",
@@ -77,5 +80,28 @@ describe("ComposerActions", () => {
 
     expect(html).not.toContain("send-btn");
     expect(html).not.toContain("voice-btn");
+  });
+
+  it("renders desktop screenshot action when the bridge is available", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        canCaptureDesktopScreenshot: true,
+      }),
+    );
+
+    expect(html).toContain("desktop-screenshot-btn");
+    expect(html).toContain("composer.actions.screenshot");
+  });
+
+  it("hides desktop screenshot action when the bridge is unavailable", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        canCaptureDesktopScreenshot: false,
+      }),
+    );
+
+    expect(html).not.toContain("desktop-screenshot-btn");
   });
 });
