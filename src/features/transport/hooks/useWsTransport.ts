@@ -241,21 +241,6 @@ function syncAgentUnreadCountFromPush(
 	dispatch({ type: "SET_AGENTS", agents: nextAgents });
 }
 
-function dispatchLoadChatEvent(chatId: string): void {
-	if (
-		typeof window === "undefined"
-		|| typeof window.dispatchEvent !== "function"
-		|| typeof CustomEvent !== "function"
-	) {
-		return;
-	}
-	window.dispatchEvent(
-		new CustomEvent("agent:load-chat", {
-			detail: { chatId },
-		}),
-	);
-}
-
 function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agentKey = ""): void {
 	if (
 		typeof window === "undefined"
@@ -825,9 +810,6 @@ function buildWsClient(
 			if (type === "chat.updated") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
-				if (isActiveChat) {
-					dispatchLoadChatEvent(eventChatId);
-				}
 				return;
 			}
 
@@ -848,12 +830,6 @@ function buildWsClient(
 
 			if (type === "run.complete") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
-				if (options.stateRef.current.streaming) {
-					return;
-				}
-				if (isActiveChat) {
-					dispatchLoadChatEvent(eventChatId);
-				}
 				return;
 			}
 
@@ -879,7 +855,10 @@ function buildWsClient(
 					if (runId && agentKey) {
 						dispatchAttachRunEvent(eventChatId, runId, 0, agentKey);
 					} else {
-						dispatchLoadChatEvent(eventChatId);
+						appendWsDebug(
+							options.dispatch,
+							`[live] awaiting push ignored without attach identity (chatId=${eventChatId || "-"}, runId=${runId || "-"})`,
+						);
 					}
 					return;
 				}

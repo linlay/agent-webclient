@@ -50,7 +50,7 @@ describe("TopNav", () => {
 		delete globalWithStorage.localStorage;
 	});
 
-	it("renders websocket error status with detailed title", () => {
+	it("keeps websocket connection errors out of the main chat status", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
@@ -65,6 +65,31 @@ describe("TopNav", () => {
 		expect(html).toContain(">Idle<");
 		expect(html).toContain("status-pill is-idle");
 		expect(html).not.toContain("WebSocket connection error");
+	});
+
+	it("renders run errors with detailed title", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			events: [{
+				type: "run.error",
+				runId: "run_1",
+				error: {
+					category: "runtime",
+					code: "stream_failed",
+					message: "api key quota exhausted",
+				},
+				timestamp: 123,
+			}],
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("Run error");
+		expect(html).toContain("status-pill is-error");
+		expect(html).toContain("api key quota exhausted");
+		expect(html).toContain('title="Run error:');
+		expect(html).toContain('aria-label="Run error:');
 	});
 
 	it("renders streaming status as running", () => {
@@ -119,7 +144,7 @@ describe("TopNav", () => {
 		expect(html).toContain(">50</span>");
 		expect(html).toContain('aria-label="3.7K"');
 		expect(html).not.toContain("1.2K");
-		expect(html).not.toContain("Cache hit rate");
+		expect(html).not.toContain("Cache hit");
 		expect(html).not.toContain("Current call");
 	});
 
@@ -167,11 +192,11 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Usage stats");
-		expect(html).toContain("Context window");
+		expect(html).toContain("Ctx Window");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Latest run");
 		expect(html).toContain("Chat total");
-		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+		expect(html).toContain("<span>Cache hit:</span><strong>--%</strong>");
 		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
 		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
 		expect(html).not.toContain("Waiting for usage stats");
@@ -202,8 +227,8 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">50%</span>");
-		expect(html).toContain('aria-label="Cache hit rate"');
-		expect(html).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+		expect(html).toContain('aria-label="Cache hit"');
+		expect(html).toContain("<span>Cache hit:</span><strong>--%</strong>");
 		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
 
 		useAppState.mockReturnValue({
@@ -226,8 +251,8 @@ describe("TopNav", () => {
 		const missingHtml = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(missingHtml).toContain(">50%</span>");
-		expect(missingHtml).toContain('aria-label="Cache hit rate"');
-		expect(missingHtml).toContain("<span>Cache hit rate:</span><strong>--%</strong>");
+		expect(missingHtml).toContain('aria-label="Cache hit"');
+		expect(missingHtml).toContain("<span>Cache hit:</span><strong>--%</strong>");
 	});
 
 	it("calculates popover cache hit rate from chat totals instead of current call or run totals", () => {
@@ -256,7 +281,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
+		expect(html).toContain("<span>Cache hit:</span><strong>25.00%</strong>");
 		expect(html).not.toContain('aria-label="99%"');
 		expect(html).not.toContain('aria-label="90%"');
 	});
@@ -288,7 +313,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit rate:</span><strong>25.00%</strong>");
+		expect(html).toContain("<span>Cache hit:</span><strong>25.00%</strong>");
 		expect(html).toContain('aria-label="Total cost"');
 		expect(html).toContain("<span>Total cost:</span><strong>¥ 0.03 分</strong>");
 	});
@@ -367,7 +392,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit rate:</span><strong>44.49%</strong>");
+		expect(html).toContain("<span>Cache hit:</span><strong>44.49%</strong>");
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).toContain("Current call");
 		expect(html).toContain("<h3>Current call</h3></div><dl class=\"usage-metric-grid\"><div class=\"usage-metric\"><dt>Prompt</dt><dd>-</dd>");
@@ -469,7 +494,7 @@ describe("TopNav", () => {
 		expect(html).toContain("Usage stats");
 		expect(html).toContain("deepseek-chat");
 		expect(html).toContain("· High");
-		expect(html).toContain("Context window");
+		expect(html).toContain("Ctx Window");
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");

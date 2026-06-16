@@ -702,6 +702,69 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
+	it("does not reload the active chat when an awaiting push lacks attach identity", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: { chatId: string };
+
+			constructor(type: string, init?: { detail?: { chatId: string } }) {
+				this.type = type;
+				this.detail = init?.detail || { chatId: "" };
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "awaiting.asking",
+			data: {
+				awaitingId: "await_active",
+				chatId: "chat_active",
+				createdAt: 1780737509785,
+				mode: "question",
+				runId: "run_active",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_active",
+				hasPendingAwaiting: true,
+			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "APPEND_DEBUG",
+			line: "[live] awaiting push ignored without attach identity (chatId=chat_active, runId=run_active)",
+		});
+		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("clears pending awaiting state when awaiting.answered arrives over push", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
@@ -1516,7 +1579,7 @@ describe("connectWsTransport continued", () => {
 		);
 	});
 
-	it("reloads the active chat from persisted chat.updated pushes when idle", async () => {
+	it("updates the active chat summary from chat.updated pushes without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -1567,12 +1630,7 @@ describe("connectWsTransport continued", () => {
 				lastRunContent: "updated elsewhere",
 			}),
 		});
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "agent:load-chat",
-				detail: { chatId: "chat_active" },
-			}),
-		);
+		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
@@ -1677,7 +1735,7 @@ describe("connectWsTransport continued", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts run.finished for any chat and reloads the active chat when idle", async () => {
+	it("upserts run.finished for the active chat without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -1728,12 +1786,73 @@ describe("connectWsTransport continued", () => {
 				lastRunId: "run_done",
 			}),
 		});
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "agent:load-chat",
-				detail: { chatId: "chat_active" },
+		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("does not reload the active chat after a streamed run.error is followed by finish and update pushes", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			events: [
+				{
+					type: "run.error",
+					chatId: "chat_active",
+					runId: "run_failed",
+					error: {
+						category: "runtime",
+						code: "stream_failed",
+						message: "api key quota exhausted",
+					},
+				},
+			] as AgentEvent[],
+		});
+		const dispatchEvent = jest.fn();
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.finished",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_failed",
+			},
+		});
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.updated",
+			payload: {
+				chatId: "chat_active",
+				lastRunId: "run_failed",
+				lastRunContent: "",
+				updatedAt: 1781588217376,
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_failed",
 			}),
-		);
+		});
+		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 

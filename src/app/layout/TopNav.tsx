@@ -25,12 +25,37 @@ import { TextCountUp } from "@/shared/components/text-count-up";
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
   statusText: string;
+  statusDetail?: string;
+}
+
+function formatStatusDetail(value: unknown): string {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (value == null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value) || String(value);
+  } catch {
+    return String(value);
+  }
 }
 
 export function resolveTopNavStatus(
   state: Pick<AppState, "streaming" | "events">,
 ): TopNavStatusDisplay {
-  const hasRunError = state.events.some((event) => event.type === "run.error");
+  let runErrorDetail = "";
+  let hasRunError = false;
+  for (let index = state.events.length - 1; index >= 0; index -= 1) {
+    const event = state.events[index];
+    if (event.type === "run.error") {
+      hasRunError = true;
+      const rawError = (event as Record<string, unknown>).error;
+      runErrorDetail = formatStatusDetail(rawError);
+      break;
+    }
+  }
 
   if (state.streaming) {
     return {
@@ -43,6 +68,7 @@ export function resolveTopNavStatus(
     return {
       statusClass: "is-error",
       statusText: "topNav.status.error",
+      ...(runErrorDetail ? { statusDetail: runErrorDetail } : {}),
     };
   }
 
@@ -322,7 +348,7 @@ export const TopNav: React.FC = () => {
   const { t } = useI18n();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
-  const { statusClass, statusText } = resolveTopNavStatus(state);
+  const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const currentWorker = resolveCurrentWorkerSummary(state);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
@@ -448,6 +474,8 @@ export const TopNav: React.FC = () => {
   const reasoningEffortLabel = reasoningEffort
     ? t(`composer.query.reasoning.${reasoningEffort}`)
     : '';
+  const statusLabel = t(statusText);
+  const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
@@ -458,8 +486,13 @@ export const TopNav: React.FC = () => {
             <strong className="current-worker-name">
               {currentWorker?.displayName || t("topNav.noSelection")}
             </strong>
-            <span className={`status-pill ${statusClass}`} id="api-status">
-              {t(statusText)}
+            <span
+              className={`status-pill ${statusClass}`}
+              id="api-status"
+              title={statusTitle}
+              aria-label={statusTitle}
+            >
+              {statusLabel}
             </span>
             {showUsageControl ? (
               <div className="usage-popover-anchor">

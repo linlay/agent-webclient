@@ -24,9 +24,11 @@ const CopilotTopBar: React.FC = () => {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
   const currentWorker = resolveCurrentWorkerSummary(state);
-  const { statusClass, statusText } = resolveTopNavStatus(state);
+  const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const debugPanelEnabled = isDebugPanelEnabled();
   const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
+  const statusLabel = t(statusText);
+  const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
 
   const handleStartNewConversation = () => {
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
@@ -55,8 +57,13 @@ const CopilotTopBar: React.FC = () => {
           >
             <MaterialIcon name="swap_horiz" />
           </UiButton>
-          <span className={`status-pill ${statusClass}`} id="copilot-api-status">
-            {t(statusText)}
+          <span
+            className={`status-pill ${statusClass}`}
+            id="copilot-api-status"
+            title={statusTitle}
+            aria-label={statusTitle}
+          >
+            {statusLabel}
           </span>
         </div>
         <div className="copilot-topbar-actions">
