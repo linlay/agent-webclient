@@ -43,7 +43,6 @@ import type {
 	PendingSteer,
 	PublishedArtifact,
 	FileChangeSummary,
-	FileContentSnapshot,
 	RightSidebarTabKey,
 	RenderQueue,
 	UiTimerHandle,
@@ -134,7 +133,6 @@ export interface AppState {
 	debugLines: string[];
 	artifacts: PublishedArtifact[];
 	fileChanges: FileChangeSummary[];
-	fileContentSnapshots: Map<string, FileContentSnapshot>;
 	plan: Plan | null;
 	planRuntimeByTaskId: Map<string, PlanRuntime>;
 	taskItemsById: Map<string, TaskItemMeta>;

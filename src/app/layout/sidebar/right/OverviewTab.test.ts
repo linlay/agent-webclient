@@ -11,10 +11,6 @@ import {
 	type FileHistoryCacheEntry,
 } from "@/app/layout/sidebar/right/OverviewTab";
 
-jest.mock("@/app/layout/sidebar/right/FileDiffView", () => ({
-	FileDiffView: () => null,
-}));
-
 function createArtifact(
 	artifactId: string,
 	name: string,

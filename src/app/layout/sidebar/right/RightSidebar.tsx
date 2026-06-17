@@ -4,20 +4,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Tabs, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
-import { OverviewTab, type OverviewFileChangeItem } from "@/app/layout/sidebar/right/OverviewTab";
-import { ReviewTab } from "@/app/layout/sidebar/right/ReviewTab";
+import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
-import type { PublishedArtifact } from "@/app/state/types";
-import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
-import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
-import {
-	closeDynamicRightSidebarTab,
-	openArtifactRightSidebarTab,
-	openFileDiffRightSidebarTab,
-	type DynamicRightSidebarTab,
-	type RightSidebarActiveTabKey,
-	type StaticRightSidebarTabKey,
-} from "@/app/layout/sidebar/right/rightSidebarTabs";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -29,10 +17,6 @@ const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
 const RIGHT_SIDEBAR_MIN_WIDTH = 280;
 const RIGHT_SIDEBAR_MAX_WIDTH = 720;
 const RIGHT_SIDEBAR_MAIN_MIN_WIDTH = 420;
-
-function isStaticTabKey(key: string): key is StaticRightSidebarTabKey {
-  return key === "overview" || key === "review" || key === "preview";
-}
 
 function clampRightSidebarWidth(width: number): number {
   const viewportMax =
@@ -94,9 +78,6 @@ export const RightSidebar: React.FC = () => {
     React.useState<RightSidebarTabKey>(initialPanel);
   const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
     initialPanel === "debug" ? "overview" : initialPanel,
-  );
-  const [dynamicTabs, setDynamicTabs] = React.useState<DynamicRightSidebarTab[]>(
-    [],
   );
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
@@ -196,73 +177,6 @@ export const RightSidebar: React.FC = () => {
     [updateSidebarWidth],
   );
 
-  const closeDynamicTab = React.useCallback(
-    (tabKey: string) => {
-      setDynamicTabs((current) => {
-        const result = closeDynamicRightSidebarTab(
-          current,
-          tabKey,
-          activeTab,
-          "review",
-        );
-        setActiveTab(result.activeKey as RightSidebarTabsKey);
-        if (isStaticTabKey(String(result.activeKey))) {
-          setActivePanel(result.activeKey as RightSidebarTabKey);
-        }
-        return result.tabs;
-      });
-    },
-    [activeTab],
-  );
-
-  const renderDynamicLabel = React.useCallback(
-    (tab: DynamicRightSidebarTab) => (
-      <span className="right-sidebar-dynamic-tab-label">
-        <span className="right-sidebar-dynamic-tab-title" title={tab.title}>
-          {tab.title}
-        </span>
-        <button
-          type="button"
-          className="right-sidebar-dynamic-tab-close"
-          aria-label={t("rightSidebar.tabs.closeDynamic", { title: tab.title })}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            closeDynamicTab(tab.key);
-          }}
-        >
-          <MaterialIcon name="close" />
-        </button>
-      </span>
-    ),
-    [closeDynamicTab, t],
-  );
-
-  const handleOpenFileChange = React.useCallback(
-    (item: OverviewFileChangeItem) => {
-      const result = openFileDiffRightSidebarTab(
-        dynamicTabs,
-        item,
-        state.fileContentSnapshots.get(item.filePath) || null,
-      );
-      setDynamicTabs(result.tabs);
-      setActiveTab(result.activeKey as RightSidebarTabsKey);
-      setActivePanel("overview");
-    },
-    [dynamicTabs, state.fileContentSnapshots],
-  );
-
-  const handleOpenArtifact = React.useCallback(
-    (artifact: PublishedArtifact) => {
-      const result = openArtifactRightSidebarTab(dynamicTabs, artifact);
-      setDynamicTabs(result.tabs);
-      setActiveTab(result.activeKey as RightSidebarTabsKey);
-      setActivePanel("overview");
-    },
-    [dynamicTabs],
-  );
-
   const handleResizeKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
       let nextWidth: number | null = null;
@@ -290,18 +204,7 @@ export const RightSidebar: React.FC = () => {
         key: "overview",
         label: t("copilot.panel.overview"),
         icon: <MaterialIcon name="dashboard" />,
-        children: (
-          <OverviewTab
-            onOpenFileChange={handleOpenFileChange}
-            onOpenArtifact={handleOpenArtifact}
-          />
-        ),
-      },
-      {
-        key: "review",
-        label: t("copilot.panel.review"),
-        icon: <MaterialIcon name="rate_review" />,
-        children: <ReviewTab />,
+        children: <OverviewTab />,
       },
     ];
 
@@ -314,51 +217,13 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
-    for (const tab of dynamicTabs) {
-      items.push({
-        key: tab.key,
-        label: renderDynamicLabel(tab),
-        children:
-          tab.type === "fileDiff" ? (
-            <div className="right-sidebar-file-diff-tab">
-              <div className="right-sidebar-file-diff-tab-head">
-                <strong title={tab.filePath}>{tab.title}</strong>
-                <span>{tab.filePath}</span>
-              </div>
-              {tab.snapshot ? (
-                <FileDiffView
-                  original={tab.snapshot.originalContent}
-                  current={tab.snapshot.currentContent}
-                />
-              ) : (
-                <div className="right-sidebar-file-diff-status is-error">
-                  {t("rightSidebar.overview.fileChanges.diffUnavailable")}
-                </div>
-              )}
-            </div>
-          ) : (
-            <AttachmentPreviewPanel
-              previewOverride={buildAttachmentPreviewState(tab.artifact.artifact)}
-            />
-          ),
-      });
-    }
-
     return items;
-  }, [
-    dynamicTabs,
-    handleOpenArtifact,
-    handleOpenFileChange,
-    preview,
-    renderDynamicLabel,
-    t,
-  ]);
+  }, [preview, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
-    setActiveTab(key as RightSidebarTabsKey);
-    if (isStaticTabKey(key)) {
-      setActivePanel(key);
-    }
+    const nextTab = key as RightSidebarTabsKey;
+    setActiveTab(nextTab);
+    setActivePanel(nextTab);
   }, []);
 
   return (

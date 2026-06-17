@@ -8,7 +8,6 @@ import {
 	setMapValue,
 	upsertArtifact,
 	upsertFileChange,
-	upsertFileContentSnapshot,
 } from "@/app/state/reducerHelpers";
 
 export function reduceTimelineState(
@@ -25,14 +24,6 @@ export function reduceTimelineState(
 			return {
 				...state,
 				fileChanges: upsertFileChange(state.fileChanges, action.fileChange),
-			};
-		case "UPSERT_FILE_CONTENT_SNAPSHOT":
-			return {
-				...state,
-				fileContentSnapshots: upsertFileContentSnapshot(
-					state.fileContentSnapshots,
-					action.snapshot,
-				),
 			};
 		case "SET_ARTIFACT_EXPANDED":
 			return { ...state, artifactExpanded: action.expanded };

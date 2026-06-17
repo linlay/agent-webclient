@@ -1,6 +1,5 @@
 import type {
   AgentEvent,
-  FileContentSnapshot,
   FileChangeSummary,
   Plan,
   PlanRuntime,
@@ -40,7 +39,6 @@ type TestState = {
     timestamp: number;
   }>;
   fileChanges: FileChangeSummary[];
-  fileContentSnapshots: Map<string, FileContentSnapshot>;
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -62,7 +60,6 @@ function createState(): TestState {
     runId: '',
     artifacts: [],
     fileChanges: [],
-    fileContentSnapshots: new Map(),
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
@@ -77,7 +74,6 @@ function buildProcessorState(state: TestState): EventProcessorState {
     getReasoningNodeId: (reasoningId) => state.reasoningNodeById.get(reasoningId),
     getToolNodeId: (toolId) => state.toolNodeById.get(toolId),
     getToolState: (toolId) => state.toolStates.get(toolId),
-    getFileContentSnapshot: (filePath) => state.fileContentSnapshots.get(filePath),
     getTimelineNode: (nodeId) => state.timelineNodes.get(nodeId),
     getNodeText: (nodeId) => state.timelineNodes.get(nodeId)?.text || '',
     nextCounter: () => state.timelineCounter++,
@@ -160,9 +156,6 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
         }
         break;
       }
-      case 'UPSERT_FILE_CONTENT_SNAPSHOT':
-        state.fileContentSnapshots.set(command.snapshot.filePath, command.snapshot);
-        break;
       case 'SET_PLAN':
         state.plan = command.plan;
         if (command.resetRuntime) {
@@ -814,89 +807,6 @@ describe('processEvent', () => {
         lastUpdatedAt: 120,
       },
     ]);
-  });
-
-  it('stores file_read results as original and current content snapshots', () => {
-    const state = createState();
-
-    processAndApply(state, {
-      type: 'tool.start',
-      toolId: 'tool_read',
-      toolName: 'file_read',
-      runId: 'run_1',
-      arguments: JSON.stringify({ filePath: '/workspace/src/App.tsx' }),
-      timestamp: 100,
-    }, 'live', true);
-    processAndApply(state, {
-      type: 'tool.result',
-      toolId: 'tool_read',
-      result: {
-        filePath: '/workspace/src/App.tsx',
-        content: 'one\ntwo\n',
-      },
-      timestamp: 120,
-    }, 'live', true);
-
-    expect(state.fileContentSnapshots.get('/workspace/src/App.tsx')).toEqual({
-      runId: 'run_1',
-      filePath: '/workspace/src/App.tsx',
-      originalContent: 'one\ntwo\n',
-      currentContent: 'one\ntwo\n',
-      lastUpdatedAt: 120,
-    });
-  });
-
-  it('applies file_edit arguments to the current content snapshot', () => {
-    const state = createState();
-
-    processAndApply(state, {
-      type: 'tool.start',
-      toolId: 'tool_read',
-      toolName: 'file_read',
-      runId: 'run_1',
-      arguments: JSON.stringify({ file_path: '/workspace/src/App.tsx' }),
-    }, 'live', true);
-    processAndApply(state, {
-      type: 'tool.result',
-      toolId: 'tool_read',
-      result: {
-        filePath: '/workspace/src/App.tsx',
-        content: 'alpha\nbeta\ngamma\n',
-      },
-      timestamp: 100,
-    }, 'live', true);
-    processAndApply(state, {
-      type: 'tool.start',
-      toolId: 'tool_edit',
-      toolName: 'file_edit',
-      runId: 'run_1',
-      arguments: JSON.stringify({
-        file_path: '/workspace/src/App.tsx',
-        old_string: 'beta',
-        new_string: 'BETA',
-      }),
-    }, 'live', true);
-    processAndApply(state, {
-      type: 'tool.result',
-      toolId: 'tool_edit',
-      result: {
-        filePath: '/workspace/src/App.tsx',
-        lineStats: {
-          addedLines: 1,
-          deletedLines: 1,
-          editedLines: 1,
-        },
-      },
-      timestamp: 140,
-    }, 'live', true);
-
-    expect(state.fileContentSnapshots.get('/workspace/src/App.tsx')).toEqual({
-      runId: 'run_1',
-      filePath: '/workspace/src/App.tsx',
-      originalContent: 'alpha\nbeta\ngamma\n',
-      currentContent: 'alpha\nBETA\ngamma\n',
-      lastUpdatedAt: 140,
-    });
   });
 
   it('records file_edit line stats from JSON string replay results', () => {

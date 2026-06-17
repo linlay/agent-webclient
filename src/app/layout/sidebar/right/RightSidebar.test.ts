@@ -37,20 +37,12 @@ jest.mock("@/app/layout/sidebar/right/OverviewTab", () => ({
   OverviewTab: () => React.createElement("div", null, "overview tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/ReviewTab", () => ({
-  ReviewTab: () => React.createElement("div", null, "review tab"),
-}));
-
 jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
   DebugTab: () => React.createElement("div", null, "debug tab"),
 }));
 
 jest.mock("@/app/layout/sidebar/right/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
-}));
-
-jest.mock("@/app/layout/sidebar/right/FileDiffView", () => ({
-  FileDiffView: () => React.createElement("div", null, "file diff view"),
 }));
 
 const { useAppState } = jest.requireMock("@/app/state/AppContext") as {
@@ -94,10 +86,8 @@ describe("RightSidebar", () => {
   it("does not render the debug tab by default", () => {
     const html = renderToStaticMarkup(React.createElement(RightSidebar));
 
-    expect(html).toContain("Overview");
-    expect(html).toContain("Review");
-    expect(html).toContain("review tab");
-    expect(html).not.toContain("Debug");
+    expect(html).toContain("概览");
+    expect(html).not.toContain("调试");
     expect(html).not.toContain("debug tab");
   });
 

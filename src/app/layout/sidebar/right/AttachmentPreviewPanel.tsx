@@ -1,7 +1,6 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { downloadResource, getResourceText } from "@/shared/api/apiClient";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -9,13 +8,10 @@ import { Image } from "antd";
 
 const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
-export const AttachmentPreviewPanel: React.FC<{
-  previewOverride?: AttachmentPreviewState | null;
-}> = ({ previewOverride }) => {
+export const AttachmentPreviewPanel: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const hasPreviewOverride = previewOverride !== undefined;
-  const preview = hasPreviewOverride ? previewOverride : state.attachmentPreview;
+  const preview = state.attachmentPreview;
   const [textContent, setTextContent] = React.useState("");
   const [textLoading, setTextLoading] = React.useState(false);
   const [textError, setTextError] = React.useState("");

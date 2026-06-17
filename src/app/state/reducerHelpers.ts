@@ -1,7 +1,6 @@
 import type { AppAction } from "@/app/state/actions";
 import type {
 	ActiveAwaiting,
-	FileContentSnapshot,
 	FileChangeSummary,
 	PublishedArtifact,
 } from "@/app/state/types";
@@ -106,28 +105,6 @@ export function upsertFileChange(
 		operationCount: current.operationCount + normalizedChange.operationCount,
 		lastUpdatedAt: Math.max(current.lastUpdatedAt, normalizedChange.lastUpdatedAt),
 	};
-	return next;
-}
-
-export function upsertFileContentSnapshot(
-	snapshots: Map<string, FileContentSnapshot>,
-	snapshot: FileContentSnapshot,
-): Map<string, FileContentSnapshot> {
-	const filePath = String(snapshot.filePath || "").trim();
-	if (!filePath) {
-		return snapshots;
-	}
-	const next = new Map(snapshots);
-	next.set(filePath, {
-		runId: String(snapshot.runId || "").trim(),
-		filePath,
-		originalContent: String(snapshot.originalContent ?? ""),
-		currentContent: String(snapshot.currentContent ?? ""),
-		lastUpdatedAt:
-			Number.isFinite(snapshot.lastUpdatedAt) && snapshot.lastUpdatedAt > 0
-				? snapshot.lastUpdatedAt
-				: Date.now(),
-	});
 	return next;
 }
 

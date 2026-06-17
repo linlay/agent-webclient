@@ -73,13 +73,6 @@ export function applyLiveEventCommand(input: {
 		case "UPSERT_FILE_CHANGE":
 			dispatch({ type: "UPSERT_FILE_CHANGE", fileChange: command.fileChange });
 			return;
-		case "UPSERT_FILE_CONTENT_SNAPSHOT":
-			cache.fileContentSnapshots.set(command.snapshot.filePath, command.snapshot);
-			dispatch({
-				type: "UPSERT_FILE_CONTENT_SNAPSHOT",
-				snapshot: command.snapshot,
-			});
-			return;
 		case "SET_PLAN":
 			if (command.resetRuntime) {
 				dispatch({
