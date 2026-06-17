@@ -288,7 +288,7 @@
 
 .frontend-tool-frame {
     width: 100%;
-    height: min(420px, 55vh);
+    max-height: 70vh;
     border: 0;
 }
 

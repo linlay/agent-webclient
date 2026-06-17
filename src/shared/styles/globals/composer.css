@@ -193,10 +193,6 @@
 
 .composer-wonder-text {
     font-size: 13px;
-    line-height: 1.6;
-    color: var(--ink-1);
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 .composer-attachments-shell {

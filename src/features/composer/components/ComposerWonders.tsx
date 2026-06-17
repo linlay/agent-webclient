@@ -2,6 +2,7 @@ import React from "react";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { Typography } from "antd";
 
 interface ComposerWondersProps {
   sampledWonders: string[];
@@ -56,7 +57,9 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
             <span className="composer-wonder-index">
               {t("composer.wonders.itemLabel", { index: index + 1 })}
             </span>
-            <span className="composer-wonder-text">{wonder}</span>
+            <Typography.Paragraph ellipsis={{ rows: 3, tooltip: wonder }}>
+              <span className="composer-wonder-text">{wonder}</span>
+            </Typography.Paragraph>
           </button>
         ))}
       </div>
