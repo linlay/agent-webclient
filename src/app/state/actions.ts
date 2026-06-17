@@ -188,6 +188,7 @@ export type AppAction =
 			type: "PATCH_ACTIVE_AWAITING";
 			patch: {
 				resolvedByOther?: boolean;
+				resolutionReason?: ActiveAwaiting["resolutionReason"];
 				pendingSubmitId?: string;
 				loading?: boolean;
 				loadError?: string;

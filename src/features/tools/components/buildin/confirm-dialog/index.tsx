@@ -91,8 +91,12 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   const questions = useMemo(() => data?.questions || [], [data]);
   const currentQuestion = questions[curIndex];
   const ready = useMemo(() => hasAwaitingQuestions(questions), [questions]);
+  const resolved = Boolean(data?.resolutionReason || data?.resolvedByOther);
 
   const submitPayload = useCallback((payload: AIAwaitSubmitPayloadData) => {
+    if (resolved) {
+      return Promise.resolve(undefined);
+    }
     setLoading(true);
     const pending = callbackRef.current?.onSubmit?.(payload);
     if (!pending) {
@@ -100,7 +104,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       return Promise.resolve(undefined);
     }
     return pending.finally(() => setLoading(false));
-  }, []);
+  }, [resolved]);
 
   const doSubmit = useCallback(() => {
     const params = form.getFieldValue("params") as
@@ -231,6 +235,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
 
   useResolvedByOtherNotice({
     resolvedByOther: data?.resolvedByOther,
+    resolutionReason: data?.resolutionReason,
     onResolvedByOther,
   });
 
@@ -246,7 +251,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   }, [data?.awaitingId, data?.runId, form, questions]);
 
   const handleAutoSubmit = useCallback(() => {
-    if (loading || data?.resolvedByOther) {
+    if (loading || resolved) {
       return;
     }
     setTimeoutExpired(true);
@@ -262,11 +267,11 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     });
   }, [
     data?.awaitingId,
-    data?.resolvedByOther,
     data?.runId,
     form,
     loading,
     questions,
+    resolved,
     submitPayload,
   ]);
 

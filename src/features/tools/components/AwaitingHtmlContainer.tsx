@@ -360,7 +360,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const requestedKeyRef = useRef("");
   const currentFrameKeyRef = useRef("");
   const lastPostedSignatureRef = useRef("");
-  const resolvedByOtherHandledRef = useRef(false);
+  const resolutionHandledRef = useRef(false);
   const collectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const collectFlowRef = useRef<AwaitingCollectFlow | null>(null);
   const [activeFormIndex, setActiveFormIndex] = useState(0);
@@ -373,6 +373,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [footerDecision, setFooterDecision] =
     useState<AwaitingFooterDecision>();
   const currentForm = data.forms[activeFormIndex];
+  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
   const panelCaption = String(
     currentForm?.title ||
       currentForm?.action ||
@@ -480,7 +481,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
   const handleAutoSubmit = useCallback(() => {
     if (
-      data.resolvedByOther ||
+      resolved ||
       submitStatus === "submitting" ||
       submitStatus === "autoSubmitting" ||
       Boolean(collectingDecision)
@@ -499,9 +500,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   }, [
     collectingDecision,
     data.forms,
-    data.resolvedByOther,
     data.viewportHtml,
     requestCollectFromFrame,
+    resolved,
     submitAggregatedPayload,
     submitStatus,
   ]);
@@ -539,22 +540,34 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   }, [data.forms.length]);
 
   useEffect(() => {
-    if (!data.resolvedByOther) {
-      resolvedByOtherHandledRef.current = false;
+    const noticeKey =
+      data.resolutionReason === "timeout"
+        ? "awaiting.timeoutResolved"
+        : data.resolutionReason === "remote_answered" || data.resolvedByOther
+          ? "awaiting.resolvedByOther"
+          : "";
+    if (!noticeKey) {
+      resolutionHandledRef.current = false;
       return;
     }
-    if (resolvedByOtherHandledRef.current) {
+    if (resolutionHandledRef.current) {
       return;
     }
     clearCollectTimeout();
     collectFlowRef.current = null;
-    resolvedByOtherHandledRef.current = true;
+    resolutionHandledRef.current = true;
     setCollectingDecision(null);
     setSubmitStatus("");
     setSubmitError("");
-    void message.info(t("awaiting.resolvedByOther"));
+    void message.info(t(noticeKey));
     onResolvedByOther?.();
-  }, [clearCollectTimeout, data.resolvedByOther, onResolvedByOther, t]);
+  }, [
+    clearCollectTimeout,
+    data.resolutionReason,
+    data.resolvedByOther,
+    onResolvedByOther,
+    t,
+  ]);
 
   useEffect(
     () => () => {

@@ -497,7 +497,71 @@ describe('reduceActiveAwaiting', () => {
     expect(next).toMatchObject({
       awaitingId: 'await_1',
       resolvedByOther: true,
+      resolutionReason: 'remote_answered',
     });
+  });
+
+  it('marks matching awaiting.answer timeout errors with timeout resolution reason', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'approval',
+      approvals: [
+        {
+          id: 'approve_1',
+          command: '删除生产环境缓存',
+        },
+      ],
+    });
+
+    const next = reduceActiveAwaiting(current, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      status: 'error',
+      errorCode: 'timeout',
+      errorMessage: '等待项已超时',
+    } as any);
+
+    expect(next).toMatchObject({
+      awaitingId: 'await_1',
+      resolutionReason: 'timeout',
+    });
+    expect(next?.resolvedByOther).toBeUndefined();
+  });
+
+  it('recognizes nested awaiting.answer timeout errors', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'question',
+      questions: [
+        {
+          id: 'q1',
+          type: 'text',
+          question: '目标是什么？',
+        },
+      ],
+    });
+
+    const next = reduceActiveAwaiting(current, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      status: 'error',
+      error: {
+        code: 'timeout',
+        message: '等待项已超时',
+      },
+    });
+
+    expect(next).toMatchObject({
+      awaitingId: 'await_1',
+      resolutionReason: 'timeout',
+    });
+    expect(next?.resolvedByOther).toBeUndefined();
   });
 
   it('ignores push-only awaiting.answered so it does not resolve active awaiting data', () => {

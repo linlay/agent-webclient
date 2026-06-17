@@ -44,7 +44,8 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     useState<AIAwaitPlanDecision | null>(null);
   const [reason, setReason] = useState("");
   const plan = data.plan;
-  const readOnly = Boolean(submittingDecision) || Boolean(data.resolvedByOther);
+  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
+  const readOnly = Boolean(submittingDecision) || resolved;
   const ready = Boolean(plan.id);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 
   useResolvedByOtherNotice({
     resolvedByOther: data.resolvedByOther,
+    resolutionReason: data.resolutionReason,
     onResolvedByOther,
   });
 

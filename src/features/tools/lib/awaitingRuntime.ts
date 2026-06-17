@@ -22,6 +22,7 @@ import {
   registerAwaitingFormMeta,
   registerAwaitingQuestionMeta,
 } from '@/features/tools/lib/awaitingQuestionMeta';
+import { isAwaitingAnswerTimeoutError } from '@/features/tools/lib/awaitingAnswerError';
 
 export const BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY = 'confirm_dialog';
 
@@ -439,6 +440,8 @@ export function reduceActiveAwaiting(
             : [],
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        resolutionReason:
+          current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
           current?.key === key ? current.pendingSubmitId : undefined,
       };
@@ -465,6 +468,8 @@ export function reduceActiveAwaiting(
             : [],
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        resolutionReason:
+          current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
           current?.key === key ? current.pendingSubmitId : undefined,
       };
@@ -500,6 +505,8 @@ export function reduceActiveAwaiting(
         ...runtime,
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        resolutionReason:
+          current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
           current?.key === key ? current.pendingSubmitId : undefined,
       };
@@ -525,6 +532,8 @@ export function reduceActiveAwaiting(
             : { id: 'confirm' }),
         resolvedByOther:
           current?.key === key ? current.resolvedByOther : undefined,
+        resolutionReason:
+          current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
           current?.key === key ? current.pendingSubmitId : undefined,
       };
@@ -549,9 +558,17 @@ export function reduceActiveAwaiting(
       }
       return null;
     }
+    if (isAwaitingAnswerTimeoutError(event as Record<string, unknown>)) {
+      return {
+        ...current,
+        resolvedByOther: undefined,
+        resolutionReason: 'timeout',
+      };
+    }
     return {
       ...current,
       resolvedByOther: true,
+      resolutionReason: 'remote_answered',
     };
   }
 

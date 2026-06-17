@@ -726,6 +726,31 @@ describe('processEvent', () => {
     });
   });
 
+  it('maps top-level awaiting answer timeout errors to title and envelope text', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      status: 'error',
+      errorCode: 'timeout',
+      errorMessage: '等待项已超时',
+      timestamp: 224,
+    }, 'replay', false);
+
+    expect(state.timelineNodes.get('awaiting_answer_run_1_await_1')).toMatchObject({
+      id: 'awaiting_answer_run_1_await_1',
+      kind: 'awaiting-answer',
+      awaitingId: 'await_1',
+      title: '等待已超时',
+      text: '{\n  "status": "error",\n  "error": {\n    "code": "timeout",\n    "message": "等待项已超时"\n  }\n}',
+      status: 'completed',
+      expanded: false,
+      ts: 224,
+    });
+  });
+
   it('buffers tool args and upgrades argsText to pretty JSON once complete', () => {
     const state = createState();
 

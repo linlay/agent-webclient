@@ -64,7 +64,8 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     Record<string, AIAwaitApprovalDecision | undefined>
   >({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const readOnly = submitting || Boolean(data.resolvedByOther);
+  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
+  const readOnly = submitting || resolved;
   const currentApproval = approvals[curIndex];
   const currentDecision = currentApproval
     ? decisions[currentApproval.id]
@@ -84,6 +85,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   useResolvedByOtherNotice({
     resolvedByOther: data.resolvedByOther,
+    resolutionReason: data.resolutionReason,
     onResolvedByOther,
   });
 
@@ -114,7 +116,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   const submitPayload = useCallback(
     async (params: AIAwaitSubmitPayloadData["params"]) => {
-      if (!onSubmit || submitting || data.resolvedByOther) {
+      if (!onSubmit || submitting || resolved) {
         return;
       }
       setSubmitting(true);
@@ -128,7 +130,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         setSubmitting(false);
       }
     },
-    [data.awaitingId, data.runId, onSubmit, data.resolvedByOther, submitting],
+    [data.awaitingId, data.runId, onSubmit, resolved, submitting],
   );
 
   const submitDecision = useCallback(
@@ -188,7 +190,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   ]);
 
   const handleAutoSubmit = useCallback(() => {
-    if (submitting || data.resolvedByOther) {
+    if (submitting || resolved) {
       return;
     }
     setTimeoutExpired(true);
@@ -197,7 +199,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     );
   }, [
     approvals,
-    data.resolvedByOther,
+    resolved,
     decisions,
     reasons,
     submitPayload,

@@ -89,6 +89,8 @@ export interface ActiveFrontendTool {
 	viewportHtml: string;
 }
 
+export type ActiveAwaitingResolutionReason = "timeout" | "remote_answered";
+
 interface ActiveAwaitingBase {
 	key: string;
 	awaitingId: string;
@@ -97,6 +99,7 @@ interface ActiveAwaitingBase {
 	timeout: number | null;
 	createdAt?: number | null;
 	resolvedByOther?: boolean;
+	resolutionReason?: ActiveAwaitingResolutionReason;
 	pendingSubmitId?: string;
 }
 

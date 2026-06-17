@@ -3,6 +3,7 @@ import {
 	getAwaitingItemMeta,
 	maskAwaitingAnswerParams,
 } from "@/features/tools/lib/awaitingQuestionMeta";
+import { readAwaitingAnswerErrorInfo } from "@/features/tools/lib/awaitingAnswerError";
 import { t } from "@/shared/i18n";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 
@@ -85,17 +86,10 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 	const rawRecord = event as Record<string, unknown>;
 	const status = toText(rawRecord.status);
 	if (status === "error") {
-		const rawError = rawRecord.error;
-		const error =
-			rawError && typeof rawError === "object" && !Array.isArray(rawError)
-				? {
-						code: toText((rawError as Record<string, unknown>).code),
-						message: toText((rawError as Record<string, unknown>).message),
-				  }
-				: undefined;
+		const error = readAwaitingAnswerErrorInfo(rawRecord);
 		return {
 			status: "error",
-			error,
+			error: error.code || error.message ? error : undefined,
 		};
 	}
 	if (status === "answered") {
@@ -140,11 +134,9 @@ export function awaitingAnswerTitle(event: AgentEvent): string {
 	if (event.status !== "error") {
 		return t("timeline.awaitingAnswer.submitted");
 	}
-	const rawError = event.error;
-	const errorCode =
-		rawError && typeof rawError === "object" && !Array.isArray(rawError)
-			? toText((rawError as Record<string, unknown>).code)
-			: "";
+	const errorCode = readAwaitingAnswerErrorInfo(
+		event as Record<string, unknown>,
+	).code;
 	switch (errorCode) {
 		case "user_dismissed":
 			return t("timeline.awaitingAnswer.canceled");
