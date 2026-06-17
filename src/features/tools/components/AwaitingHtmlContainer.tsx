@@ -976,7 +976,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             >
               <span className="awaiting-panel-option-index">1</span>
               <span className="awaiting-panel-option-label">
-                {t("awaiting.action.approve")}
+                {submitStatusText
+                  ? submitStatusText
+                  : t("awaiting.action.approve")}
               </span>
               <span className="awaiting-panel-submit-tail">
                 {t("awaiting.hint.submitEditable")}
@@ -1027,10 +1029,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           </Radio>
         </Radio.Group>
       </div>
-
-      {submitStatusText && (
-        <div className="status-line">{submitStatusText}</div>
-      )}
       {submitError && <div className="system-alert">{submitError}</div>}
     </div>
   );
