@@ -91,7 +91,7 @@ export function formatToolDuration(
   }
   if (value < 60_000) {
     return translate("timeline.toolPill.duration.seconds", {
-      count: (value / 1000).toFixed(value >= 10_000 ? 0 : 1),
+      count: Math.floor(value / 1000),
     });
   }
 
