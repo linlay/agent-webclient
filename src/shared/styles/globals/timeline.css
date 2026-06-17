@@ -1233,9 +1233,173 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .terminal-dock {
+    position: relative;
     width: 100%;
-    overflow: hidden;
-    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- 拖拽调整高度手柄 ---- */
+
+.terminal-dock-resize-handle {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 5px;
+    min-height: 5px;
+    cursor: ns-resize;
+    background: var(--bg-elev-1);
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.terminal-dock-resize-handle:hover {
+    background: var(--accent-electric);
+    opacity: 0.4;
+}
+
+/* ---- 终端标签栏 ---- */
+
+.terminal-dock-tabs {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 4px;
+    gap: 2px;
+}
+
+.terminal-dock-tab-list {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    overflow-x: auto;
+    height: 100%;
+    gap: 4px;
+}
+
+.terminal-dock-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px 0 10px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    border-radius: 4px;
+}
+
+.terminal-dock-tab:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
+}
+
+.terminal-dock-tab-active {
+    background: var(--bg-elev-1);
+}
+
+.terminal-dock-tab-label {
+    pointer-events: none;
+}
+
+.terminal-dock-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1;
+    color: inherit;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.terminal-dock-tab-close:hover {
+    opacity: 1;
+    background: var(--colorFill);
+}
+
+.terminal-dock-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 2px;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.terminal-dock-tab-add:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
+}
+
+/* ---- 终端面板容器 ---- */
+
+.terminal-dock-panes {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+.terminal-pane {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.terminal-pane .xterm {
+    height: 100%;
+    padding: 4px 8px;
+}
+
+/* ---- 空状态 ---- */
+
+.terminal-dock-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.terminal-dock-empty-add {
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--ink-2);
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.terminal-dock-empty-add:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
 }
 
 .ant-typography {
@@ -1278,12 +1442,8 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 /* xterm viewport 背景跟随主题 */
-html[data-theme="light"] .xterm .xterm-viewport {
-    background-color: #fafafa;
-}
-
-html[data-theme="dark"] .xterm .xterm-viewport {
-    background-color: #181818;
+#root .xterm .xterm-viewport {
+    background-color: var(--bg-base);
 }
 
 html[data-theme="light"] .xterm .composition-view {

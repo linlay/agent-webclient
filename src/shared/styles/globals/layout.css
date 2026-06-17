@@ -19,7 +19,7 @@
 }
 
 .app-shell.timeline-empty-layout.terminal-dock-open {
-    grid-template-rows: auto minmax(0, 2fr) minmax(0, 3fr) var(--terminal-dock-height);
+    grid-template-rows: auto minmax(0, 2fr) minmax(0, 3fr) auto;
 }
 
 .agent-route-loading-page {

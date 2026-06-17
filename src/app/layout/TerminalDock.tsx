@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Terminal } from "@xterm/xterm";
 import type { ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -27,6 +33,11 @@ interface TerminalDockProps {
   agentKey: string;
   chatId?: string;
   workspaceKey?: string;
+}
+
+interface TerminalTab {
+  id: string;
+  label: string;
 }
 
 function toText(value: unknown): string {
@@ -71,7 +82,7 @@ export function resolveTerminalTheme(themeMode: string): ITheme {
   }
   return {
     foreground: "#2c2c2c",
-    background: "#fafafa",
+    background: "#fff",
     cursor: "#2c2c2c",
     cursorAccent: "#fafafa",
     selectionBackground: "rgba(38, 99, 235, 0.2)",
@@ -135,10 +146,22 @@ export function resolveTerminalDockWorkspaceKey(
   return toText(raw.workspaceDir || workspace.root || worker.row.workspaceDir);
 }
 
-export const TerminalDock: React.FC<TerminalDockProps> = ({
+// ---- TerminalPane: 单个终端实例 ----
+
+interface TerminalPaneProps {
+  agentKey: string;
+  chatId: string;
+  workspaceKey: string;
+  isActive: boolean;
+  themeMode: string;
+}
+
+const TerminalPane: React.FC<TerminalPaneProps> = ({
   agentKey,
-  chatId = "",
-  workspaceKey = "",
+  chatId,
+  workspaceKey,
+  isActive,
+  themeMode,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -149,8 +172,8 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   const inputFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionVersionRef = useRef(0);
-
-  const { themeMode } = useAppState();
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
 
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
   const normalizedWorkspaceKey = useMemo(
@@ -179,15 +202,17 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
     const client = wsClientRef.current;
     if (!terminalId || !client) return;
 
-    void client.request({
-      type: "/api/terminal/input",
-      payload: {
-        terminalId,
-        data,
-      },
-    }).catch((error) => {
-      writeStatus(terminalErrorMessage(error));
-    });
+    void client
+      .request({
+        type: "/api/terminal/input",
+        payload: {
+          terminalId,
+          data,
+        },
+      })
+      .catch((error) => {
+        writeStatus(terminalErrorMessage(error));
+      });
   }, [writeStatus]);
 
   const queueInput = useCallback(
@@ -215,16 +240,18 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
     const client = wsClientRef.current;
     if (!terminalId || !client) return;
 
-    void client.request({
-      type: "/api/terminal/resize",
-      payload: {
-        terminalId,
-        cols: Math.max(1, terminal.cols || 80),
-        rows: Math.max(1, terminal.rows || 24),
-      },
-    }).catch((error) => {
-      writeStatus(terminalErrorMessage(error));
-    });
+    void client
+      .request({
+        type: "/api/terminal/resize",
+        payload: {
+          terminalId,
+          cols: Math.max(1, terminal.cols || 80),
+          rows: Math.max(1, terminal.rows || 24),
+        },
+      })
+      .catch((error) => {
+        writeStatus(terminalErrorMessage(error));
+      });
   }, [writeStatus]);
 
   const queueResize = useCallback(() => {
@@ -276,12 +303,14 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
         activeTerminalIdRef.current = "";
       }
       terminalId = "";
-      void client.request({
-        type: "/api/terminal/close",
-        payload: { terminalId: id },
-      }).catch(() => {
-        // Closing is best-effort during teardown.
-      });
+      void client
+        .request({
+          type: "/api/terminal/close",
+          payload: { terminalId: id },
+        })
+        .catch(() => {
+          // Closing is best-effort during teardown.
+        });
     };
 
     const stopStream = () => {
@@ -314,7 +343,9 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
       }
     };
 
-    const handleResize = () => queueResize();
+    const handleResize = () => {
+      if (isActiveRef.current) queueResize();
+    };
     window.addEventListener("resize", handleResize);
 
     const dataSubscription = terminal.onData(queueInput);
@@ -344,7 +375,11 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
             }
           },
           onError: (error) => {
-            if (disposed || !isCurrentSession() || error.name === "AbortError") {
+            if (
+              disposed ||
+              !isCurrentSession() ||
+              error.name === "AbortError"
+            ) {
               return;
             }
             activeTerminalIdRef.current = "";
@@ -404,11 +439,217 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
     terminal.options.theme = resolveTerminalTheme(themeMode);
   }, [themeMode]);
 
+  // 当标签页变为活跃时触发 resize 以适应容器
+  useEffect(() => {
+    if (isActive) {
+      queueResize();
+    }
+  }, [isActive, queueResize]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="terminal-pane"
+      style={{
+        display: isActive ? "block" : "none",
+        width: "100%",
+        height: "100%",
+      }}
+    />
+  );
+};
+
+// ---- TerminalDock: 多标签页管理器 ----
+
+function generateTabId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+export const TerminalDock: React.FC<TerminalDockProps> = ({
+  agentKey,
+  chatId = "",
+  workspaceKey = "",
+}) => {
+  const { themeMode } = useAppState();
+  const [tabs, setTabs] = useState<TerminalTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+  const tabCounterRef = useRef(0);
+  const prevAgentKeyRef = useRef(agentKey);
+
+  const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
+
+  // ---- 拖拽调整高度 ----
+  const [dockHeight, setDockHeight] = useState<number | null>(250);
+  const isResizingRef = useRef(false);
+  const resizeStartYRef = useRef(0);
+  const resizeStartHeightRef = useRef(0);
+
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isResizingRef.current = true;
+      resizeStartYRef.current = e.clientY;
+      resizeStartHeightRef.current =
+        dockHeight ??
+        document.querySelector(".terminal-dock")?.getBoundingClientRect()
+          .height ??
+        250;
+    },
+    [dockHeight],
+  );
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const delta = resizeStartYRef.current - e.clientY;
+      const newHeight = Math.max(
+        80,
+        Math.min(
+          window.innerHeight * 0.7,
+          resizeStartHeightRef.current + delta,
+        ),
+      );
+      setDockHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const createTab = useCallback(() => {
+    tabCounterRef.current += 1;
+    const newTab: TerminalTab = {
+      id: generateTabId(),
+      label: "终端",
+    };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  }, []);
+
+  const closeTab = useCallback((tabId: string) => {
+    setTabs((prev) => prev.filter((t) => t.id !== tabId));
+    setActiveTabId((prevActive) => {
+      if (prevActive !== tabId) return prevActive;
+      return ""; // 由下方 useEffect 接管激活相邻标签
+    });
+  }, []);
+
+  // 当 activeTabId 被清空时（关闭了活跃标签），切换到相邻标签
+  useEffect(() => {
+    if (!activeTabId && tabs.length > 0) {
+      setActiveTabId(tabs[tabs.length - 1].id);
+    }
+  }, [activeTabId, tabs]);
+
+  // agentKey 变化时重置所有标签
+  useEffect(() => {
+    if (prevAgentKeyRef.current !== normalizedAgentKey) {
+      prevAgentKeyRef.current = normalizedAgentKey;
+      tabCounterRef.current = 0;
+      setTabs([]);
+      setActiveTabId("");
+    }
+  }, [normalizedAgentKey]);
+
+  // 挂载时自动创建首个标签页
+  useEffect(() => {
+    if (normalizedAgentKey && tabs.length === 0) {
+      createTab();
+    }
+  }, [normalizedAgentKey, tabs.length, createTab]);
+
+  const handleCloseTab = useCallback(
+    (tabId: string) => {
+      closeTab(tabId);
+    },
+    [closeTab],
+  );
+
   return (
     <section
-      ref={containerRef}
       className="terminal-dock"
       aria-label="终端面板"
-    ></section>
+      style={dockHeight != null ? { height: dockHeight } : undefined}
+    >
+      <div
+        className="terminal-dock-resize-handle"
+        onMouseDown={handleResizeMouseDown}
+      />
+      <div className="terminal-dock-tabs">
+        <div className="terminal-dock-tab-list">
+          {tabs.map((tab, i) => (
+            <div
+              key={tab.id}
+              className={`terminal-dock-tab ${tab.id === activeTabId ? "terminal-dock-tab-active" : ""}`}
+              onClick={() => setActiveTabId(tab.id)}
+              role="tab"
+              aria-selected={tab.id === activeTabId}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveTabId(tab.id);
+                }
+              }}
+            >
+              <span className="terminal-dock-tab-label">
+                {tab.label}
+                {tabs?.length > 1 ? i + 1 : null}
+              </span>
+              <button
+                className="terminal-dock-tab-close"
+                aria-label={`关闭 ${tab.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseTab(tab.id);
+                }}
+                tabIndex={0}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          className="terminal-dock-tab-add"
+          aria-label="新建终端"
+          onClick={createTab}
+          tabIndex={0}
+        >
+          +
+        </button>
+      </div>
+      <div className="terminal-dock-panes">
+        {tabs.map((tab) => (
+          <TerminalPane
+            key={tab.id}
+            agentKey={normalizedAgentKey}
+            chatId={chatId}
+            workspaceKey={workspaceKey}
+            isActive={tab.id === activeTabId}
+            themeMode={themeMode}
+          />
+        ))}
+        {tabs.length === 0 && (
+          <div className="terminal-dock-empty">
+            <button
+              className="terminal-dock-empty-add"
+              onClick={createTab}
+              tabIndex={0}
+            >
+              + 新建终端
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
   );
 };
