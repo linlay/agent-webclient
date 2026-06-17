@@ -35,6 +35,7 @@
     "src/app/layout/sidebar/right/OverviewTab.test.ts",
     "src/app/layout/sidebar/right/RightSidebar.test.ts",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/CommandModal.test.ts",
     "src/app/modals/EventPopover.test.ts",
@@ -126,6 +127,8 @@
     "src/shared/api/apiClient.test.ts",
     "src/shared/api/appAuth.test.ts",
     "src/shared/api/desktopFileSystem.test.ts",
+    "src/shared/api/desktopScreenshot.test.ts",
+    "src/shared/api/platformError.test.ts",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/config/featureFlags.test.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
@@ -186,10 +189,13 @@
     "src/app/layout/sidebar/right/FileDiffView.tsx",
     "src/app/layout/sidebar/right/OverviewTab.test.ts",
     "src/app/layout/sidebar/right/OverviewTab.tsx",
+    "src/app/layout/sidebar/right/ReviewTab.tsx",
     "src/app/layout/sidebar/right/RightSidebar.test.ts",
     "src/app/layout/sidebar/right/RightSidebar.tsx",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/layout/sidebar/right/fileDiff.ts",
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts",
+    "src/app/layout/sidebar/right/rightSidebarTabs.ts",
     "src/app/modals/ActionModal.tsx",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",
@@ -480,7 +486,11 @@
     "src/shared/api/desktopFileSystem.ts",
     "src/shared/api/desktopHostBridge.ts",
     "src/shared/api/desktopQueryContext.ts",
+    "src/shared/api/desktopScreenshot.test.ts",
+    "src/shared/api/desktopScreenshot.ts",
     "src/shared/api/memoryTypes.ts",
+    "src/shared/api/platformError.test.ts",
+    "src/shared/api/platformError.ts",
     "src/shared/components/skeleton/index.tsx",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/components/text-count-up/index.tsx",
@@ -627,6 +637,10 @@
                             "type": "file"
                           },
                           {
+                            "name": "ReviewTab.tsx",
+                            "type": "file"
+                          },
+                          {
                             "name": "RightSidebar.test.ts",
                             "type": "file"
                           },
@@ -640,6 +654,14 @@
                           },
                           {
                             "name": "fileDiff.ts",
+                            "type": "file"
+                          },
+                          {
+                            "name": "rightSidebarTabs.test.ts",
+                            "type": "file"
+                          },
+                          {
+                            "name": "rightSidebarTabs.ts",
                             "type": "file"
                           }
                         ]
@@ -2207,7 +2229,23 @@
                     "type": "file"
                   },
                   {
+                    "name": "desktopScreenshot.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopScreenshot.ts",
+                    "type": "file"
+                  },
+                  {
                     "name": "memoryTypes.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.ts",
                     "type": "file"
                   }
                 ]
@@ -2533,7 +2571,11 @@
       "src/shared/api/desktopFileSystem.ts",
       "src/shared/api/desktopHostBridge.ts",
       "src/shared/api/desktopQueryContext.ts",
-      "src/shared/api/memoryTypes.ts"
+      "src/shared/api/desktopScreenshot.test.ts",
+      "src/shared/api/desktopScreenshot.ts",
+      "src/shared/api/memoryTypes.ts",
+      "src/shared/api/platformError.test.ts",
+      "src/shared/api/platformError.ts"
     ],
     "artifacts": [
       "src/features/artifacts/components/ArtifactPanel.test.ts",
@@ -3099,7 +3141,11 @@
     "src/shared/api/desktopFileSystem.ts": "api",
     "src/shared/api/desktopHostBridge.ts": "api",
     "src/shared/api/desktopQueryContext.ts": "api",
+    "src/shared/api/desktopScreenshot.test.ts": "api",
+    "src/shared/api/desktopScreenshot.ts": "api",
     "src/shared/api/memoryTypes.ts": "api",
+    "src/shared/api/platformError.test.ts": "api",
+    "src/shared/api/platformError.ts": "api",
     "src/shared/components/skeleton/index.tsx": "components",
     "src/shared/components/text-count-up/index.test.ts": "components",
     "src/shared/components/text-count-up/index.tsx": "components",
@@ -3336,7 +3382,11 @@
       "buildOverviewFileChangeItems",
       "getFileIcon",
       "loadFileHistoryForCache",
+      "renderFileChangeStats",
       "resolveAnimatedFileChangePaths"
+    ],
+    "src/app/layout/sidebar/right/ReviewTab.tsx": [
+      "ReviewTab"
     ],
     "src/app/layout/sidebar/right/RightSidebar.test.ts": null,
     "src/app/layout/sidebar/right/RightSidebar.tsx": [
@@ -3347,6 +3397,18 @@
       "FileDiffRow",
       "FileDiffRowType",
       "buildLineDiffRows"
+    ],
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts": null,
+    "src/app/layout/sidebar/right/rightSidebarTabs.ts": [
+      "DynamicRightSidebarTab",
+      "RightSidebarActiveTabKey",
+      "StaticRightSidebarTabKey",
+      "buildArtifactTabKey",
+      "buildFileDiffTabKey",
+      "closeDynamicRightSidebarTab",
+      "displayRightSidebarFileName",
+      "openArtifactRightSidebarTab",
+      "openFileDiffRightSidebarTab"
     ],
     "src/app/modals/ActionModal.tsx": [
       "ActionModal"
@@ -3578,7 +3640,8 @@
       "setMapValue",
       "toggleSetValue",
       "upsertArtifact",
-      "upsertFileChange"
+      "upsertFileChange",
+      "upsertFileContentSnapshot"
     ],
     "src/app/state/reducerNavigation.ts": [
       "reduceNavigationState"
@@ -3604,6 +3667,7 @@
     "src/app/state/timelineTypes.ts": [
       "EmbeddedViewport",
       "TimelineAttachment",
+      "TimelineErrorDetail",
       "TimelineNode",
       "TimelineNodeKind",
       "TimelineRole",
@@ -3661,6 +3725,7 @@
       "CommandStatusOverlayPhase",
       "CommandStatusOverlayState",
       "FileChangeSummary",
+      "FileContentSnapshot",
       "Message",
       "PendingSteer",
       "PublishedArtifact",
@@ -4918,6 +4983,14 @@
       "initializeDesktopQueryContextBridge",
       "resetDesktopQueryContextBridgeForTests"
     ],
+    "src/shared/api/desktopScreenshot.test.ts": null,
+    "src/shared/api/desktopScreenshot.ts": [
+      "DesktopScreenshotError",
+      "DesktopScreenshotResult",
+      "canUseDesktopScreenshotBridge",
+      "captureDesktopScreenshot",
+      "desktopScreenshotToFile"
+    ],
     "src/shared/api/memoryTypes.ts": [
       "MemoryConsoleTab",
       "MemoryContextPreviewDecision",
@@ -4954,6 +5027,13 @@
       "createDefaultMemoryPreferenceMode",
       "createDefaultMemoryPreviewPromptLayer",
       "createEmptyMemoryScopeValidationResult"
+    ],
+    "src/shared/api/platformError.test.ts": null,
+    "src/shared/api/platformError.ts": [
+      "PlatformError",
+      "PlatformErrorDisplay",
+      "formatPlatformErrorForDisplay",
+      "normalizePlatformError"
     ],
     "src/shared/components/skeleton/index.tsx": [
       "Skeleton"
@@ -5148,6 +5228,7 @@
       "useKeyboard"
     ],
     "src/typings.d.ts": [
+      "ReactDiffViewerProps",
       "default"
     ],
     "src/webpack.config.test.ts": null,
@@ -5358,6 +5439,7 @@
       "@/app/state/selectors",
       "@/app/state/types",
       "@/features/workers/lib/currentWorker",
+      "@/shared/api/platformError",
       "@/shared/components/text-count-up",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
@@ -5450,6 +5532,7 @@
     ],
     "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": [
       "@/app/state/AppContext",
+      "@/features/artifacts/lib/attachmentPreview",
       "@/features/artifacts/lib/attachmentUtils",
       "@/shared/api/apiClient",
       "@/shared/i18n",
@@ -5474,9 +5557,9 @@
       "react"
     ],
     "src/app/layout/sidebar/right/FileDiffView.tsx": [
-      "@/app/layout/sidebar/right/fileDiff",
       "@/shared/i18n",
-      "react"
+      "react",
+      "react-diff-viewer-continued"
     ],
     "src/app/layout/sidebar/right/OverviewTab.test.ts": [
       "@/app/layout/sidebar/right/OverviewTab",
@@ -5486,12 +5569,21 @@
       "@/app/layout/sidebar/right/FileDiffView",
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/features/artifacts/components/AttachmentCard",
       "@/features/artifacts/lib/attachmentUtils",
       "@/features/workers/lib/currentWorker",
       "@/shared/api/apiClient",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
+      "react"
+    ],
+    "src/app/layout/sidebar/right/ReviewTab.tsx": [
+      "@/app/layout/sidebar/right/FileDiffView",
+      "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/layout/sidebar/right/rightSidebarTabs",
+      "@/app/state/AppContext",
+      "@/shared/i18n",
+      "@/shared/ui/MaterialIcon",
+      "@/shared/ui/UiButton",
       "react"
     ],
     "src/app/layout/sidebar/right/RightSidebar.test.ts": [
@@ -5503,9 +5595,14 @@
     "src/app/layout/sidebar/right/RightSidebar.tsx": [
       "@/app/layout/sidebar/right/AttachmentPreviewPanel",
       "@/app/layout/sidebar/right/DebugTab",
+      "@/app/layout/sidebar/right/FileDiffView",
       "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/layout/sidebar/right/ReviewTab",
+      "@/app/layout/sidebar/right/rightSidebarTabs",
       "@/app/state/AppContext",
+      "@/app/state/types",
       "@/app/state/uiTypes",
+      "@/features/artifacts/lib/attachmentPreview",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
@@ -5517,6 +5614,15 @@
       "@/app/layout/sidebar/right/fileDiff"
     ],
     "src/app/layout/sidebar/right/fileDiff.ts": null,
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts": [
+      "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/layout/sidebar/right/rightSidebarTabs",
+      "@/app/state/types"
+    ],
+    "src/app/layout/sidebar/right/rightSidebarTabs.ts": [
+      "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/state/types"
+    ],
     "src/app/modals/ActionModal.tsx": [
       "react"
     ],
@@ -6021,6 +6127,7 @@
       "@/features/composer/components/ComposerContext",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
+      "antd",
       "react"
     ],
     "src/features/composer/components/ControlsForm.tsx": [
@@ -6082,6 +6189,8 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/composer/lib/composerAttachments",
+      "@/shared/api/desktopScreenshot",
+      "@/shared/i18n",
       "react"
     ],
     "src/features/composer/hooks/useComposerAwaiting.test.ts": [
@@ -6173,6 +6282,7 @@
       "@/features/transport/lib/queryStreamExecutors",
       "@/features/voice/lib/voiceRuntime",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils",
       "react"
@@ -6196,7 +6306,8 @@
     ],
     "src/features/composer/lib/composerAttachments.test.ts": [
       "@/features/composer/lib/composerAttachments",
-      "@/shared/api/apiClient"
+      "@/shared/api/apiClient",
+      "@/shared/api/desktopScreenshot"
     ],
     "src/features/composer/lib/composerAttachments.ts": [
       "@/app/state/actions",
@@ -6452,6 +6563,8 @@
       "react"
     ],
     "src/features/timeline/components/SystemAlert.tsx": [
+      "@/app/state/types",
+      "@/shared/i18n",
       "react"
     ],
     "src/features/timeline/components/ThinkingBlock.tsx": [
@@ -6625,6 +6738,7 @@
       "@/features/artifacts/lib/timelineAttachments",
       "@/features/timeline/lib/eventProcessorShared",
       "@/features/timeline/lib/eventProcessorTypes",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils"
@@ -6928,6 +7042,7 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "react"
     ],
     "src/features/transport/lib/transportClient.test.ts": [
@@ -6953,6 +7068,7 @@
     "src/features/transport/lib/wsClient.ts": [
       "@/app/state/types",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/compactId"
     ],
@@ -7243,6 +7359,7 @@
       "@/shared/api/accessTokenStorage",
       "@/shared/api/appAuth",
       "@/shared/api/memoryTypes",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/compactId",
       "@/shared/utils/routing"
@@ -7270,7 +7387,22 @@
       "@/shared/api/desktopHostBridge",
       "@/shared/utils/routing"
     ],
+    "src/shared/api/desktopScreenshot.test.ts": [
+      "@/shared/api/desktopScreenshot"
+    ],
+    "src/shared/api/desktopScreenshot.ts": [
+      "@/shared/api/desktopHostBridge",
+      "@/shared/i18n",
+      "@/shared/utils/routing"
+    ],
     "src/shared/api/memoryTypes.ts": null,
+    "src/shared/api/platformError.test.ts": [
+      "@/shared/api/platformError",
+      "@/shared/i18n"
+    ],
+    "src/shared/api/platformError.ts": [
+      "@/shared/i18n"
+    ],
     "src/shared/components/skeleton/index.tsx": [
       "./index.module.css",
       "react"
@@ -7472,7 +7604,9 @@
     "src/shared/utils/useKeyboard.ts": [
       "react"
     ],
-    "src/typings.d.ts": null,
+    "src/typings.d.ts": [
+      "react"
+    ],
     "src/webpack.config.test.ts": [
       "../../../public/assets/fonts/fonts.css",
       "../webpack.config.js",
@@ -7543,10 +7677,13 @@
     "src/app/layout/sidebar/right/FileDiffView.tsx": null,
     "src/app/layout/sidebar/right/OverviewTab.test.ts": null,
     "src/app/layout/sidebar/right/OverviewTab.tsx": null,
+    "src/app/layout/sidebar/right/ReviewTab.tsx": null,
     "src/app/layout/sidebar/right/RightSidebar.test.ts": null,
     "src/app/layout/sidebar/right/RightSidebar.tsx": null,
     "src/app/layout/sidebar/right/fileDiff.test.ts": null,
     "src/app/layout/sidebar/right/fileDiff.ts": null,
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts": null,
+    "src/app/layout/sidebar/right/rightSidebarTabs.ts": null,
     "src/app/modals/ActionModal.tsx": null,
     "src/app/modals/AutomationModal.test.ts": null,
     "src/app/modals/AutomationModal.tsx": null,
@@ -7850,7 +7987,11 @@
     "src/shared/api/desktopFileSystem.ts": null,
     "src/shared/api/desktopHostBridge.ts": null,
     "src/shared/api/desktopQueryContext.ts": null,
+    "src/shared/api/desktopScreenshot.test.ts": null,
+    "src/shared/api/desktopScreenshot.ts": null,
     "src/shared/api/memoryTypes.ts": null,
+    "src/shared/api/platformError.test.ts": null,
+    "src/shared/api/platformError.ts": null,
     "src/shared/components/skeleton/index.tsx": [
       "src/shared/components/skeleton/index.module.css"
     ],
@@ -8004,10 +8145,13 @@
     "src/app/layout/sidebar/right/FileDiffView.tsx",
     "src/app/layout/sidebar/right/OverviewTab.test.ts",
     "src/app/layout/sidebar/right/OverviewTab.tsx",
+    "src/app/layout/sidebar/right/ReviewTab.tsx",
     "src/app/layout/sidebar/right/RightSidebar.test.ts",
     "src/app/layout/sidebar/right/RightSidebar.tsx",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/layout/sidebar/right/fileDiff.ts",
+    "src/app/layout/sidebar/right/rightSidebarTabs.test.ts",
+    "src/app/layout/sidebar/right/rightSidebarTabs.ts",
     "src/app/modals/ActionModal.tsx",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",

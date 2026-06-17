@@ -1,8 +1,10 @@
 import React from "react";
 import { useAppState } from "@/app/state/AppContext";
 import type { FileChangeSummary, PublishedArtifact } from "@/app/state/types";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
-import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import {
+	formatAttachmentSize,
+	getAttachmentIconName,
+} from "@/features/artifacts/lib/attachmentUtils";
 import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
 import { getFileHistory } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -218,7 +220,7 @@ function displayFileName(filePath: string): string {
 	return normalized.split("/").pop() || filePath;
 }
 
-function renderFileChangeStats(
+export function renderFileChangeStats(
 	addedLines: number,
 	deletedLines: number,
 	options: { animated?: boolean; animationKey?: string } = {},
@@ -260,21 +262,43 @@ function renderFileHistoryPanel(entry: FileHistoryCacheEntry | undefined) {
 const OverviewSection: React.FC<{
 	title: string;
 	count: React.ReactNode;
+	expanded?: boolean;
+	onToggle?: () => void;
 	children: React.ReactNode;
-}> = ({ title, count, children }) => {
+}> = ({ title, count, expanded = true, onToggle, children }) => {
 	return (
 		<section className="right-sidebar-overview-section">
 			<div className="right-sidebar-overview-section-head">
-				<h3>{title}</h3>
+				{onToggle ? (
+					<button
+						type="button"
+						className="right-sidebar-overview-section-toggle"
+						aria-expanded={expanded}
+						onClick={onToggle}
+					>
+						<MaterialIcon
+							name={expanded ? "expand_more" : "chevron_right"}
+							aria-hidden="true"
+						/>
+						<h3>{title}</h3>
+					</button>
+				) : (
+					<h3>{title}</h3>
+				)}
 				<div className="right-sidebar-overview-section-count">{count}</div>
 			</div>
-			{children}
+			{expanded ? children : null}
 		</section>
 	);
 };
 
-export const OverviewTab: React.FC = () => {
+export const OverviewTab: React.FC<{
+	onOpenFileChange?: (item: OverviewFileChangeItem) => void;
+	onOpenArtifact?: (artifact: PublishedArtifact) => void;
+}> = ({ onOpenFileChange, onOpenArtifact }) => {
 	const state = useAppState();
+	const [fileChangesExpanded, setFileChangesExpanded] = React.useState(true);
+	const [artifactsExpanded, setArtifactsExpanded] = React.useState(true);
 	const [fileChangeAnimation, setFileChangeAnimation] = React.useState<{
 		version: number;
 		paths: Set<string>;
@@ -387,6 +411,8 @@ export const OverviewTab: React.FC = () => {
 		<div className="right-sidebar-overview">
 			<OverviewSection
 				title={isCoder ? t("rightSidebar.overview.fileChanges.titleCoder") : t("rightSidebar.overview.fileChanges.title")}
+				expanded={fileChangesExpanded}
+				onToggle={() => setFileChangesExpanded((expanded) => !expanded)}
 				count={renderFileChangeStats(
 					fileChangeTotals.addedLines,
 					fileChangeTotals.deletedLines,
@@ -415,7 +441,11 @@ export const OverviewTab: React.FC = () => {
 										type="button"
 										className="right-sidebar-file-change-row"
 										aria-expanded={expanded}
-										onClick={() => toggleFileChange(item)}
+										onClick={() =>
+											onOpenFileChange
+												? onOpenFileChange(item)
+												: toggleFileChange(item)
+										}
 									>
 										<MaterialIcon
 											name={expanded ? "expand_more" : "chevron_right"}
@@ -457,6 +487,8 @@ export const OverviewTab: React.FC = () => {
 			<OverviewSection
 				title={t("rightSidebar.overview.artifacts.title")}
 				count={artifacts.length}
+				expanded={artifactsExpanded}
+				onToggle={() => setArtifactsExpanded((expanded) => !expanded)}
 			>
 				{artifacts.length === 0 ? (
 					<div className="right-sidebar-empty">
@@ -466,13 +498,34 @@ export const OverviewTab: React.FC = () => {
 					<ul className="artifact-drawer-list right-sidebar-artifact-list">
 						{artifacts.map((item) => (
 							<li key={item.artifactId} className="artifact-drawer-item">
-								<AttachmentCard
-									attachment={item.artifact}
-									variant="composer"
-									displayMode="file"
-									density="compact"
-									subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
-								/>
+								<div
+									role="button"
+									tabIndex={0}
+									className="right-sidebar-artifact-open"
+									onClick={() => onOpenArtifact?.(item)}
+									onKeyDown={(event) => {
+										if (event.key === "Enter" || event.key === " ") {
+											event.preventDefault();
+											onOpenArtifact?.(item);
+										}
+									}}
+								>
+									<span className="attachment-card attachment-card-composer attachment-card-compact is-file">
+										<span className="attachment-card-file-shell">
+											<span className="attachment-card-file-icon">
+												<MaterialIcon name={getAttachmentIconName(item.artifact)} />
+											</span>
+											<span className="attachment-card-file-copy">
+												<span className="attachment-card-title" title={item.artifact.name}>
+													{item.artifact.name}
+												</span>
+												<span className="attachment-card-subtitle">
+													{formatAttachmentSize(item.artifact.sizeBytes)}
+												</span>
+											</span>
+										</span>
+									</span>
+								</div>
 							</li>
 						))}
 					</ul>

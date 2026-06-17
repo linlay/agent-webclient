@@ -1,6 +1,7 @@
 import type {
 	Plan,
 	PlanRuntime,
+	FileContentSnapshot,
 	FileChangeSummary,
 	PublishedArtifact,
 	TaskItemMeta,
@@ -13,6 +14,7 @@ export interface EventProcessorState {
 	getReasoningNodeId(reasoningKey: string): string | undefined;
 	getToolNodeId(toolId: string): string | undefined;
 	getToolState(toolId: string): ToolState | undefined;
+	getFileContentSnapshot(filePath: string): FileContentSnapshot | undefined;
 	getTimelineNode(nodeId: string): TimelineNode | undefined;
 	getNodeText(nodeId: string): string;
 	nextCounter(): number;
@@ -46,6 +48,7 @@ export type EventCommand =
 	| { cmd: "SET_ACTIVE_REASONING_KEY"; key: string }
 	| { cmd: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
 	| { cmd: "UPSERT_FILE_CHANGE"; fileChange: FileChangeSummary }
+	| { cmd: "UPSERT_FILE_CONTENT_SNAPSHOT"; snapshot: FileContentSnapshot }
 	| { cmd: "SET_PLAN"; plan: Plan | null; resetRuntime: boolean }
 	| { cmd: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
 	| { cmd: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }

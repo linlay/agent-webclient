@@ -1,6 +1,7 @@
 import type {
   ActiveAwaiting,
   AgentEvent,
+  FileContentSnapshot,
   FileChangeSummary,
   PublishedArtifact,
   TimelineNode,
@@ -38,6 +39,7 @@ export interface ReplayState {
   debugLines: string[];
   artifacts: PublishedArtifact[];
   fileChanges: FileChangeSummary[];
+  fileContentSnapshots: Map<string, FileContentSnapshot>;
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -67,6 +69,7 @@ export function createReplayState(): ReplayState {
     debugLines: [],
     artifacts: [],
     fileChanges: [],
+    fileContentSnapshots: new Map(),
     plan: null,
     planRuntimeByTaskId: new Map(),
     taskItemsById: new Map(),
@@ -109,6 +112,17 @@ function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
 
 function cloneFileChanges(fileChanges: FileChangeSummary[]): FileChangeSummary[] {
   return fileChanges.map((item) => ({ ...item }));
+}
+
+function cloneFileContentSnapshots(
+  snapshots: Map<string, FileContentSnapshot>,
+): Map<string, FileContentSnapshot> {
+  return new Map(
+    Array.from(snapshots.entries(), ([filePath, snapshot]) => [
+      filePath,
+      { ...snapshot },
+    ]),
+  );
 }
 
 function upsertReplayFileChange(
@@ -181,6 +195,7 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
     getReasoningNodeId: (reasoningKey) => rs.reasoningNodeById.get(reasoningKey),
     getToolNodeId: (toolId) => rs.toolNodeById.get(toolId),
     getToolState: (toolId) => rs.toolStates.get(toolId),
+    getFileContentSnapshot: (filePath) => rs.fileContentSnapshots.get(filePath),
     getTimelineNode: (nodeId) => rs.timelineNodes.get(nodeId),
     getNodeText: (nodeId) => rs.timelineNodes.get(nodeId)?.text || '',
     nextCounter: () => {
@@ -276,6 +291,9 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'UPSERT_FILE_CHANGE':
       rs.fileChanges = upsertReplayFileChange(rs.fileChanges, command.fileChange);
+      return;
+    case 'UPSERT_FILE_CONTENT_SNAPSHOT':
+      rs.fileContentSnapshots.set(command.snapshot.filePath, command.snapshot);
       return;
     case 'SET_PLAN':
       setReplayPlan(rs, command.plan, { resetRuntime: command.resetRuntime });

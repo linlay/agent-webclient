@@ -1,5 +1,6 @@
 import type {
   AgentEvent,
+  FileContentSnapshot,
   FileChangeSummary,
   ToolState,
 } from "@/app/state/types";
@@ -82,6 +83,124 @@ function readLineStat(value: unknown): number {
 function isFileMutationToolName(toolName: string): boolean {
   const normalized = toolName.trim().toLowerCase();
   return normalized === "file_write" || normalized === "file_edit";
+}
+
+function isFileReadToolName(toolName: string): boolean {
+  return toolName.trim().toLowerCase() === "file_read";
+}
+
+function readRecordText(
+  record: Record<string, unknown> | null,
+  keys: string[],
+): string {
+  if (!record) {
+    return "";
+  }
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string") {
+      return value;
+    }
+  }
+  return "";
+}
+
+function readFilePathFromRecords(
+  ...records: Array<Record<string, unknown> | null>
+): string {
+  for (const record of records) {
+    const filePath = readRecordText(record, ["filePath", "file_path", "path"]);
+    if (filePath.trim()) {
+      return filePath.trim();
+    }
+  }
+  return "";
+}
+
+function parseToolArgsRecord(argsText: string): Record<string, unknown> | null {
+  const parsed = parseResultJSON(argsText);
+  return isObjectRecord(parsed) ? parsed : null;
+}
+
+function applyFileEditToContent(
+  content: string,
+  argsRecord: Record<string, unknown> | null,
+): string {
+  const oldString = readRecordText(argsRecord, ["oldString", "old_string"]);
+  const newString = readRecordText(argsRecord, ["newString", "new_string"]);
+  if (!oldString || oldString === newString) {
+    return content;
+  }
+  const index = content.indexOf(oldString);
+  if (index < 0) {
+    return content;
+  }
+  return `${content.slice(0, index)}${newString}${content.slice(index + oldString.length)}`;
+}
+
+function normalizeFileContentSnapshot(input: {
+  toolName: string;
+  resultValue: unknown;
+  argsText: string;
+  timestamp: number;
+  runId: string;
+  previous?: FileContentSnapshot;
+}): FileContentSnapshot | null {
+  const toolName = input.toolName.trim().toLowerCase();
+  const resultRecord = parseResultObject(input.resultValue);
+  const argsRecord = parseToolArgsRecord(input.argsText);
+  const filePath = readFilePathFromRecords(resultRecord, argsRecord);
+  if (!filePath) {
+    return null;
+  }
+
+  const timestamp =
+    Number.isFinite(input.timestamp) && input.timestamp > 0
+      ? input.timestamp
+      : Date.now();
+  const runId = input.runId.trim() || input.previous?.runId || "";
+
+  if (toolName === "file_read") {
+    const content =
+      readRecordText(resultRecord, ["content", "text", "data"]) ||
+      (typeof input.resultValue === "string" && !resultRecord
+        ? input.resultValue
+        : "");
+    return {
+      runId,
+      filePath,
+      originalContent: content,
+      currentContent: content,
+      lastUpdatedAt: timestamp,
+    };
+  }
+
+  if (toolName === "file_write") {
+    const content = readRecordText(argsRecord, ["content", "contents", "text"]);
+    if (!content && !input.previous) {
+      return null;
+    }
+    return {
+      runId,
+      filePath,
+      originalContent: input.previous?.originalContent || "",
+      currentContent: content,
+      lastUpdatedAt: timestamp,
+    };
+  }
+
+  if (toolName === "file_edit") {
+    const baseContent = input.previous?.currentContent || "";
+    return {
+      runId,
+      filePath,
+      originalContent: input.previous?.originalContent || baseContent,
+      currentContent: applyFileEditToContent(baseContent, argsRecord),
+      lastUpdatedAt: timestamp,
+    };
+  }
+
+  return null;
 }
 
 function normalizeFileChangeSummary(input: {
@@ -313,6 +432,11 @@ export function processToolEvent(
     const failed = isToolResultFailure(event, resultValue);
     const resultRunId =
       toText(event.runId) || existingToolState?.runId || state.runId;
+    const argsText = resolveFinalToolArgsText(
+      existing?.argsText || "",
+      existingToolState?.argsBuffer || "",
+      readToolArgumentsText(event),
+    );
     const fileChange = failed
       ? null
       : normalizeFileChangeSummary({
@@ -320,6 +444,21 @@ export function processToolEvent(
           resultValue,
           timestamp: event.timestamp || Date.now(),
           runId: resultRunId,
+        });
+    const fileContentSnapshot = failed
+      ? null
+      : normalizeFileContentSnapshot({
+          toolName: resolvedToolName,
+          resultValue,
+          argsText,
+          timestamp: event.timestamp || Date.now(),
+          runId: resultRunId,
+          previous: state.getFileContentSnapshot(
+            readFilePathFromRecords(
+              parseResultObject(resultValue),
+              parseToolArgsRecord(argsText),
+            ),
+          ),
         });
     const resultText =
       typeof resultValue === "string"
@@ -336,11 +475,6 @@ export function processToolEvent(
       typeof startedAt === "number"
         ? Math.max(0, endedAt - startedAt)
         : undefined;
-    const argsText = resolveFinalToolArgsText(
-      existing?.argsText || "",
-      existingToolState?.argsBuffer || "",
-      readToolArgumentsText(event),
-    );
     commands.push({
       cmd: "SET_TIMELINE_NODE",
       id: nodeId,
@@ -361,6 +495,12 @@ export function processToolEvent(
     });
     if (fileChange) {
       commands.push({ cmd: "UPSERT_FILE_CHANGE", fileChange });
+    }
+    if (fileContentSnapshot) {
+      commands.push({
+        cmd: "UPSERT_FILE_CONTENT_SNAPSHOT",
+        snapshot: fileContentSnapshot,
+      });
     }
     return commands;
   }

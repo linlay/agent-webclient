@@ -19,6 +19,7 @@ export function buildConversationResetState(
 		debugEvents: [],
 		artifacts: [],
 		fileChanges: [],
+		fileContentSnapshots: new Map(),
 		plan: null,
 		planRuntimeByTaskId: new Map(),
 		taskItemsById: new Map(),

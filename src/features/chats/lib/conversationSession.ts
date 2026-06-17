@@ -5,6 +5,7 @@ import type {
   AgentEvent,
   AppState,
   AIUsageSnapshotEvent,
+  FileContentSnapshot,
   FileChangeSummary,
   Message,
   PendingSteer,
@@ -38,6 +39,7 @@ export interface ConversationSnapshot {
   debugLines: string[];
   artifacts: PublishedArtifact[];
   fileChanges: FileChangeSummary[];
+  fileContentSnapshots: Map<string, FileContentSnapshot>;
   plan: Plan | null;
   planRuntimeByTaskId: Map<string, PlanRuntime>;
   taskItemsById: Map<string, TaskItemMeta>;
@@ -114,6 +116,17 @@ function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
 
 function cloneFileChanges(fileChanges: FileChangeSummary[]): FileChangeSummary[] {
   return fileChanges.map((item) => ({ ...item }));
+}
+
+function cloneFileContentSnapshots(
+  snapshots: Map<string, FileContentSnapshot>,
+): Map<string, FileContentSnapshot> {
+  return new Map(
+    Array.from(snapshots.entries(), ([filePath, snapshot]) => [
+      filePath,
+      { ...snapshot },
+    ]),
+  );
 }
 
 function cloneTaskItemMap(input: Map<string, TaskItemMeta>): Map<string, TaskItemMeta> {
@@ -199,6 +212,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     debugLines: state.debugLines.slice(),
     artifacts: cloneArtifacts(state.artifacts),
     fileChanges: cloneFileChanges(state.fileChanges),
+    fileContentSnapshots: cloneFileContentSnapshots(state.fileContentSnapshots),
     plan: state.plan
       ? {
           ...state.plan,
@@ -244,6 +258,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
     fileChanges: cloneFileChanges(snapshot.fileChanges),
+    fileContentSnapshots: cloneFileContentSnapshots(snapshot.fileContentSnapshots),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,
@@ -293,6 +308,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.debugLines = snapshot.debugLines.slice();
   rs.artifacts = cloneArtifacts(snapshot.artifacts);
   rs.fileChanges = cloneFileChanges(snapshot.fileChanges);
+  rs.fileContentSnapshots = cloneFileContentSnapshots(snapshot.fileContentSnapshots);
   rs.plan = snapshot.plan
     ? {
         ...snapshot.plan,
@@ -329,6 +345,7 @@ function applyReplayStateToSnapshot(
   next.debugEvents = rs.debugEvents;
   next.artifacts = rs.artifacts;
   next.fileChanges = rs.fileChanges;
+  next.fileContentSnapshots = rs.fileContentSnapshots;
   next.plan = rs.plan;
   next.planRuntimeByTaskId = rs.planRuntimeByTaskId;
   next.taskItemsById = rs.taskItemsById;
@@ -413,6 +430,7 @@ export function buildConversationStateUpdates(
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
     fileChanges: cloneFileChanges(snapshot.fileChanges),
+    fileContentSnapshots: cloneFileContentSnapshots(snapshot.fileContentSnapshots),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,

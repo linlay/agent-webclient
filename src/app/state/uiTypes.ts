@@ -1,7 +1,7 @@
 import type { AIEvent } from "@/app/state/eventTypes";
 
 export type AgentEvent = AIEvent;
-export type RightSidebarTabKey = "overview" | "debug" | "preview";
+export type RightSidebarTabKey = "overview" | "debug" | "review" | "preview";
 
 export interface ResourceFile {
 	mimeType: string;
@@ -29,6 +29,14 @@ export interface FileChangeSummary {
 	deletedLines: number;
 	editedLines: number;
 	operationCount: number;
+	lastUpdatedAt: number;
+}
+
+export interface FileContentSnapshot {
+	runId: string;
+	filePath: string;
+	originalContent: string;
+	currentContent: string;
 	lastUpdatedAt: number;
 }
 

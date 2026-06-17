@@ -1,6 +1,7 @@
 import type {
 	ActiveAwaiting,
 	AppState,
+	FileContentSnapshot,
 	TaskItemMeta,
 	TimelineNode,
 	ToolState,
@@ -21,6 +22,7 @@ export interface LocalCache {
 	reasoningNodeById: Map<string, string>;
 	toolNodeById: Map<string, string>;
 	toolStateById: Map<string, ToolState>;
+	fileContentSnapshots: Map<string, FileContentSnapshot>;
 	taskItemsById: Map<string, TaskItemMeta>;
 	activeTaskIds: Set<string>;
 	nodeById: Map<string, TimelineNode>;
@@ -40,6 +42,7 @@ export function createLocalCache(): LocalCache {
 		reasoningNodeById: new Map(),
 		toolNodeById: new Map(),
 		toolStateById: new Map(),
+		fileContentSnapshots: new Map(),
 		taskItemsById: new Map(),
 		activeTaskIds: new Set(),
 		nodeById: new Map(),
@@ -65,6 +68,7 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 		reasoningNodeById: new Map(state.reasoningNodeById),
 		toolNodeById: new Map(state.toolNodeById),
 		toolStateById: new Map(state.toolStates),
+		fileContentSnapshots: new Map(state.fileContentSnapshots),
 		taskItemsById: new Map(state.taskItemsById),
 		activeTaskIds: new Set(state.activeTaskIds),
 		nodeById: new Map(state.timelineNodes),
@@ -148,6 +152,8 @@ export function createLiveProcessorState(
 		getReasoningNodeId: (reasoningKey) => cache.reasoningNodeById.get(reasoningKey) ?? state.reasoningNodeById.get(reasoningKey),
 		getToolNodeId: (toolId) => cache.toolNodeById.get(toolId) ?? state.toolNodeById.get(toolId),
 		getToolState: (toolId) => cache.toolStateById.get(toolId) ?? state.toolStates.get(toolId),
+		getFileContentSnapshot: (filePath) =>
+			cache.fileContentSnapshots.get(filePath) ?? state.fileContentSnapshots.get(filePath),
 		getTimelineNode: (nodeId) => getCachedNode(cache, state, nodeId),
 		getNodeText: (nodeId) => getCachedNodeText(cache, state, nodeId),
 		nextCounter: () => cache.counter++,

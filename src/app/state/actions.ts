@@ -13,6 +13,7 @@ import type {
 	PlanRuntime,
 	PublishedArtifact,
 	FileChangeSummary,
+	FileContentSnapshot,
 	TaskItemMeta,
 	Team,
 	TimelineNode,
@@ -68,6 +69,7 @@ export type AppAction =
 	| { type: "CLEAR_DEBUG" }
 	| { type: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
 	| { type: "UPSERT_FILE_CHANGE"; fileChange: FileChangeSummary }
+	| { type: "UPSERT_FILE_CONTENT_SNAPSHOT"; snapshot: FileContentSnapshot }
 	| { type: "SET_ARTIFACT_EXPANDED"; expanded: boolean }
 	| { type: "SET_ARTIFACT_MANUAL_OVERRIDE"; override: boolean | null }
 	| { type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
