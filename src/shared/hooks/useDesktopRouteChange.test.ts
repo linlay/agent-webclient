@@ -65,6 +65,31 @@ describe("useDesktopRouteChange bridge", () => {
     ).toBe("/agent/demo?chatId=from_payload#payload_hash");
   });
 
+  it("ignores desktop route payloads that point at data-plane or static URLs", () => {
+    expect(
+      buildDesktopRouteTarget({
+        pathname: "/api/resource",
+        search: "?file=chat_1%2Fslides.html",
+        hash: "#/",
+      }),
+    ).toBeNull();
+    expect(
+      buildDesktopRouteTarget({
+        pathname: "/ws",
+      }),
+    ).toBeNull();
+    expect(
+      buildDesktopRouteTarget({
+        pathname: "/runtime-config.js",
+      }),
+    ).toBeNull();
+    expect(
+      buildDesktopRouteTarget({
+        pathname: "/js/main.js",
+      }),
+    ).toBeNull();
+  });
+
   it("registers the host listener only once for multiple subscribers", () => {
     const callbacks: RouteCallback[] = [];
     const onFromMain = jest.fn((_channel: string, callback: RouteCallback) => {
@@ -134,6 +159,11 @@ describe("useDesktopRouteChange bridge", () => {
     callbacks[0]?.({}, {
       type: "desktopRouteChanged",
       pathname: "",
+    });
+    callbacks[0]?.({}, {
+      type: "desktopRouteChanged",
+      pathname: "/api/resource",
+      search: "?file=chat_1%2Fslides.html",
     });
 
     expect(targets).toEqual([]);

@@ -31,11 +31,27 @@ type DesktopRouteWindow = Window & typeof globalThis & {
 const DESKTOP_ROUTE_CHANGED_MESSAGE_TYPE = "desktopRouteChanged";
 const SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL = "zenmind:service-webview:route";
 const DESKTOP_ROUTE_BRIDGE_KEY = "__ZENMIND_AGENT_WEBCLIENT_DESKTOP_ROUTE_BRIDGE__";
+const ROUTABLE_DESKTOP_PATHS = [
+  "/",
+  "/agent",
+  "/agents",
+  "/automations",
+  "/copilot",
+  "/memory",
+  "/registries",
+  "/schedules",
+];
 
 let fallbackBridge: DesktopRouteBridge | null = null;
 
 function normalizeRoutePart(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isRoutableDesktopPathname(pathname: string): boolean {
+  return ROUTABLE_DESKTOP_PATHS.some((routePath) =>
+    pathname === routePath || pathname.startsWith(`${routePath}/`),
+  );
 }
 
 export function buildDesktopRouteTarget(
@@ -63,6 +79,10 @@ export function buildDesktopRouteTarget(
   const pathname = pathnameWithoutQuery.startsWith("/")
     ? pathnameWithoutQuery || "/"
     : `/${pathnameWithoutQuery}`;
+  if (!isRoutableDesktopPathname(pathname)) {
+    return null;
+  }
+
   const rawSearch = normalizeRoutePart(payload.search) || queryFromPath;
   const rawHash = normalizeRoutePart(payload.hash) || hashFromPath;
   const search = rawSearch
