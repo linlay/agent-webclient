@@ -43,6 +43,11 @@ const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, string> = {
   auto_approve: "verified_user",
   full_access: "gpp_maybe",
 };
+const ACCESS_LEVEL_COLOR: Record<QueryAccessLevel, string> = {
+  default: "",
+  auto_approve: "var(--accent)",
+  full_access: "var(--accent-warn)",
+};
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
@@ -212,7 +217,10 @@ export function shouldApplyCoderDefaultModelOverride({
   previousAppliedDefault: AppliedDefaultModelOverride | null;
 }): boolean {
   if (!shouldShowModelControls || !agentKey) return false;
-  if (!resolvedDefaultOverride.key && !resolvedDefaultOverride.reasoningEffort) {
+  if (
+    !resolvedDefaultOverride.key &&
+    !resolvedDefaultOverride.reasoningEffort
+  ) {
     return false;
   }
   if (
@@ -709,7 +717,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (
       shouldShowModelControls &&
       agentKey &&
-      (resolvedDefaultOverride.key || resolvedDefaultOverride.reasoningEffort) &&
+      (resolvedDefaultOverride.key ||
+        resolvedDefaultOverride.reasoningEffort) &&
       modelOverride.key === resolvedDefaultOverride.key &&
       modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
     ) {
@@ -757,8 +766,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const persistModelConfig = async (nextOverride: QueryModelOverride) => {
     const nextModelKey = String(nextOverride.key || "").trim();
     if (!agentKey || !nextModelKey) return;
-    const nextReasoningEffort =
-      nextOverride.reasoningEffort || "MEDIUM";
+    const nextReasoningEffort = nextOverride.reasoningEffort || "MEDIUM";
     const persistedOverride: QueryModelOverride = {
       key: nextModelKey,
       reasoningEffort: nextReasoningEffort,
@@ -827,7 +835,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           current: modelOverride,
           patch: { key: decodeURIComponent(encoded) },
           defaults: {
-            defaultModelKey: resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
+            defaultModelKey:
+              resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
             defaultReasoningEffort:
               resolvedDefaultOverride.reasoningEffort ||
               modelDefaults.defaultReasoningEffort,
@@ -846,7 +855,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           current: modelOverride,
           patch: { reasoningEffort: effort },
           defaults: {
-            defaultModelKey: resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
+            defaultModelKey:
+              resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
             defaultReasoningEffort:
               resolvedDefaultOverride.reasoningEffort ||
               modelDefaults.defaultReasoningEffort,
@@ -890,8 +900,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           className="query-settings-btn"
           variant="ghost"
           size="sm"
+          color="var(--accent)"
           title={t("composer.query.access.title")}
           onClick={(event) => event.preventDefault()}
+          style={{ color: ACCESS_LEVEL_COLOR[accessLevel] }}
         >
           <MaterialIcon name={ACCESS_LEVEL_ICON[accessLevel]} />
           <span>{accessLabel}</span>
@@ -920,7 +932,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             <span style={{ color: "var(--text-main)" }}>
               {selectedModelLabel}
             </span>
-            <span>{modelConfigSaving ? t("composer.query.model.saving") : selectedReasoningLabel}</span>
+            <span>
+              {modelConfigSaving
+                ? t("composer.query.model.saving")
+                : selectedReasoningLabel}
+            </span>
             <MaterialIcon name="expand_more" />
           </UiButton>
         </Dropdown>
