@@ -313,10 +313,10 @@
 
 .chat-awaiting-status {
     font-size: 11px;
-    color: var(--ok);
+    color: var(--accent-warn);
     white-space: nowrap;
     background:
-        color-mix(in srgb, var(--ok) 10%, transparent);
+        color-mix(in srgb, var(--accent-warn) 10%, transparent);
     border-radius: 20px;
     padding: 2px 6px;
     margin-right: 5px;
