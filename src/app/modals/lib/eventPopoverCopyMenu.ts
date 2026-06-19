@@ -42,6 +42,7 @@ export const defaultEventPopoverT: EventPopoverT = (key, params = {}) => {
 		"eventPopover.copy.allShort": "All",
 		"eventPopover.copy.all": "Copy all",
 		"eventPopover.copy.requestBody": "Copy requestBody",
+		"eventPopover.copy.rawLlmJson": "Copy raw LLM JSON",
 		"eventPopover.copy.rawJsonl": "Copy raw JSONL",
 		"eventPopover.copy.systemPrompt": "Copy systemPrompt",
 		"eventPopover.copy.tools": "Copy tools",

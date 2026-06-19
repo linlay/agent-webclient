@@ -1102,6 +1102,34 @@ export async function getChatRawJsonl(
   return response.text();
 }
 
+export async function getChatLLMTraceRaw(
+  file: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<string> {
+  const query = toQueryString({ file });
+  const response = await requestWithAuth(`/api/chat/llm-trace?${query}`, {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+  });
+
+  if (!response.ok) {
+    const fallbackMessage = t("api.loadResourceTextFailedWithStatus", {
+      status: response.status,
+    });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+      platformError: error.platformError,
+    });
+  }
+
+  return response.text();
+}
+
 export function extractUploadReferences(data: unknown): unknown[] {
   if (Array.isArray(data)) {
     return data.filter((item) => item != null);

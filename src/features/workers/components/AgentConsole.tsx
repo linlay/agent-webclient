@@ -964,9 +964,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <UiButton size="sm" variant="ghost" iconOnly onClick={() => loadAgents(effectiveSelectedKey)} disabled={loadingList || saving} aria-label={t("agentConsole.action.refresh")}>
               <MaterialIcon name="refresh" />
             </UiButton>
-            <UiButton size="sm" variant="primary" onClick={startCreate}>
+            <UiButton
+              size="sm"
+              variant="primary"
+              iconOnly
+              aria-label={t("agentConsole.action.new")}
+              onClick={startCreate}
+            >
               <MaterialIcon name="add" />
-              <span>{t("agentConsole.action.new")}</span>
             </UiButton>
           </div>
           <div className="agent-console-count">

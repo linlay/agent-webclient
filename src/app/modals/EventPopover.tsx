@@ -8,7 +8,10 @@ import React, {
 import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
-import { getChatRawJsonl } from "@/features/transport/lib/apiClientProxy";
+import {
+	getChatLLMTraceRaw,
+	getChatRawJsonl,
+} from "@/features/transport/lib/apiClientProxy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -36,24 +39,23 @@ import {
 	formatReadableTimestamp,
 	resolveInjectedPromptPayloads,
 	resolveDebugPreCallCopyPayloads,
+	resolveInjectedPromptPayloadFromLLMTrace,
+	resolveInjectedPromptPayloadFromRequestBody,
 	resolveDisplayPayloadTimestamp,
 	resolveInitialPopoverState,
 	stringifyPopoverPayload,
 } from "@/app/modals/lib/eventPopoverFormatters";
-
-function promptSectionTitle(
-	label: string,
-	tokens: number,
-	tokenLabel: string,
-): string {
-	return tokens > 0 ? `${label} (${tokens} ${tokenLabel})` : label;
-}
-
-function promptRoundLabel(roundNumber?: number): string {
-	return roundNumber && roundNumber > 0 ? `Round ${roundNumber}` : "";
-}
+import { PromptAnalysisModal } from "@/app/modals/PromptAnalysisModal";
+import {
+	isValidRawLLMTraceFile,
+	resolvePromptAnalysisCalls,
+	resolvePromptAnalysisPayloadFromTraceText,
+	resolveRawLLMTraceFile,
+	type PromptAnalysisLoadState,
+} from "@/app/modals/lib/promptAnalysis";
 
 type RawJsonlLoader = (chatId: string) => Promise<string>;
+type RawLLMTraceLoader = (file: string) => Promise<string>;
 
 function resolveRawJsonlChatId(
 	event: AgentEvent | null,
@@ -92,6 +94,24 @@ function buildRawJsonlCopyMenuItem(
 	};
 }
 
+function buildRawLLMTraceCopyMenuItem(
+	file: string,
+	t: (key: string, params?: Record<string, unknown>) => string,
+	loadRawLLMTrace: RawLLMTraceLoader = getChatLLMTraceRaw,
+): EventCopyMenuItem | null {
+	const normalizedFile = String(file || "").trim();
+	if (!isValidRawLLMTraceFile(normalizedFile)) {
+		return null;
+	}
+
+	return {
+		key: "rawLlmJson",
+		label: t("eventPopover.copy.rawLlmJson"),
+		text: "",
+		loadText: () => loadRawLLMTrace(normalizedFile),
+	};
+}
+
 const useIsomorphicLayoutEffect =
 	typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -109,7 +129,12 @@ export const EventPopover: React.FC = () => {
 		() => buildDefaultCopyMenuItem(t),
 	);
 	const [copyMenuOpen, setCopyMenuOpen] = useState(false);
-	const [injectedPromptOpen, setInjectedPromptOpen] = useState(false);
+	const [promptAnalysisOpen, setPromptAnalysisOpen] = useState(false);
+	const [selectedPromptAnalysisCallId, setSelectedPromptAnalysisCallId] =
+		useState("");
+	const [promptAnalysisLoadStates, setPromptAnalysisLoadStates] = useState<
+		Record<string, PromptAnalysisLoadState>
+	>({});
 	const [position, setPosition] = useState({ top: 80, right: 320 });
 	const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
 	const event = state.eventPopoverEventRef;
@@ -160,6 +185,10 @@ export const EventPopover: React.FC = () => {
 		() => resolveRawJsonlChatId(event, relatedEvents),
 		[event, relatedEvents],
 	);
+	const rawLLMTraceFile = useMemo(
+		() => resolveRawLLMTraceFile(event),
+		[event],
+	);
 	const copyMenuItems = useMemo(() => {
 		const items = buildEventCopyMenuItems(
 			event,
@@ -167,17 +196,32 @@ export const EventPopover: React.FC = () => {
 			popoverState.rawJsonStr,
 			t,
 		);
+		const rawLLMTraceItem = buildRawLLMTraceCopyMenuItem(rawLLMTraceFile, t);
 		const rawJsonlItem = buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
-		return rawJsonlItem ? [...items, rawJsonlItem] : items;
-	}, [event, relatedEvents, rawJsonlChatId, popoverState.rawJsonStr, t]);
+		return [
+			...items,
+			...(rawLLMTraceItem ? [rawLLMTraceItem] : []),
+			...(rawJsonlItem ? [rawJsonlItem] : []),
+		];
+	}, [event, relatedEvents, rawJsonlChatId, rawLLMTraceFile, popoverState.rawJsonStr, t]);
 	const primaryCopyMenuItem = useMemo(
 		() => getPrimaryCopyMenuItem(copyMenuItems),
 		[copyMenuItems],
 	);
-	const injectedPromptPayloads = useMemo(
-		() => resolveInjectedPromptPayloads(event),
-		[event],
+	const promptAnalysisCalls = useMemo(
+		() => resolvePromptAnalysisCalls(event, state.debugEvents),
+		[event, state.debugEvents],
 	);
+	const selectedPromptAnalysisCall = useMemo(
+		() =>
+			promptAnalysisCalls.find(
+				(call) => call.id === selectedPromptAnalysisCallId,
+			) || promptAnalysisCalls[0],
+		[promptAnalysisCalls, selectedPromptAnalysisCallId],
+	);
+	const selectedPromptAnalysisLoadStatus = selectedPromptAnalysisCall
+		? promptAnalysisLoadStates[selectedPromptAnalysisCall.id]?.status
+		: undefined;
 
 	useEffect(() => {
 		setPopoverState(resolveInitialPopoverState(event));
@@ -186,8 +230,77 @@ export const EventPopover: React.FC = () => {
 		setCopyStatus({});
 		setLastCopyItem(buildDefaultCopyMenuItem(t));
 		setCopyMenuOpen(false);
-		setInjectedPromptOpen(false);
+		setPromptAnalysisOpen(false);
+		setSelectedPromptAnalysisCallId("");
+		setPromptAnalysisLoadStates({});
 	}, [event, t]);
+
+	useEffect(() => {
+		if (!promptAnalysisOpen) {
+			return;
+		}
+		if (promptAnalysisCalls.length === 0) {
+			setSelectedPromptAnalysisCallId("");
+			return;
+		}
+		if (
+			!selectedPromptAnalysisCallId ||
+			!promptAnalysisCalls.some((call) => call.id === selectedPromptAnalysisCallId)
+		) {
+			setSelectedPromptAnalysisCallId(promptAnalysisCalls[0].id);
+		}
+	}, [promptAnalysisOpen, promptAnalysisCalls, selectedPromptAnalysisCallId]);
+
+	useEffect(() => {
+		if (
+			!promptAnalysisOpen ||
+			!selectedPromptAnalysisCall ||
+			selectedPromptAnalysisCall.inlinePayload ||
+			!selectedPromptAnalysisCall.traceFile ||
+			selectedPromptAnalysisLoadStatus === "loading" ||
+			selectedPromptAnalysisLoadStatus === "ready" ||
+			selectedPromptAnalysisLoadStatus === "empty"
+		) {
+			return;
+		}
+
+		let cancelled = false;
+		const callId = selectedPromptAnalysisCall.id;
+		const traceFile = selectedPromptAnalysisCall.traceFile;
+		setPromptAnalysisLoadStates((current) => ({
+			...current,
+			[callId]: { status: "loading" },
+		}));
+		void getChatLLMTraceRaw(traceFile)
+			.then((rawText) => resolvePromptAnalysisPayloadFromTraceText(rawText))
+			.then((payload) => {
+				if (cancelled) return;
+				setPromptAnalysisLoadStates((current) => ({
+					...current,
+					[callId]: payload
+						? { status: "ready", payload }
+						: { status: "empty" },
+				}));
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				setPromptAnalysisLoadStates((current) => ({
+					...current,
+					[callId]: {
+						status: "error",
+						message: error instanceof Error ? error.message : String(error || ""),
+					},
+				}));
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		promptAnalysisOpen,
+		selectedPromptAnalysisCall,
+		selectedPromptAnalysisLoadStatus,
+	]);
 
 	useEffect(() => {
 		return () => {
@@ -281,6 +394,12 @@ export const EventPopover: React.FC = () => {
 	};
 
 	const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus, t);
+	const openPromptAnalysis = () => {
+		if (promptAnalysisCalls[0]) {
+			setSelectedPromptAnalysisCallId(promptAnalysisCalls[0].id);
+		}
+		setPromptAnalysisOpen(true);
+	};
 
 	return (
 		<div
@@ -376,17 +495,17 @@ export const EventPopover: React.FC = () => {
 							<MaterialIcon name={copyIcon} />
 						</UiButton>
 					</Popover>
-					{injectedPromptPayloads && (
+					{promptAnalysisCalls.length > 0 && (
 						<UiButton
-							className="event-popover-action-btn"
+							className="event-popover-action-btn event-popover-prompt-action"
 							variant="ghost"
 							size="sm"
-							iconOnly
-							aria-label={t("eventPopover.action.viewInjectedPrompt")}
-							title={t("eventPopover.action.viewInjectedPrompt")}
-							onClick={() => setInjectedPromptOpen(true)}
+							aria-label={t("eventPopover.action.promptAnalysis")}
+							title={t("eventPopover.action.promptAnalysis")}
+							onClick={openPromptAnalysis}
 						>
-							<MaterialIcon name="article" />
+							<MaterialIcon name="travel_explore" />
+							<span>{t("eventPopover.action.promptAnalysis")}</span>
 						</UiButton>
 					)}
 					<UiButton
@@ -410,128 +529,14 @@ export const EventPopover: React.FC = () => {
 				</div>
 			</div>
 			<pre className="event-popover-body">{popoverState.displayJsonStr}</pre>
-			{injectedPromptPayloads && injectedPromptOpen && (
-				<div
-					className="modal event-popover-prompt-modal"
-					id="event-popover-prompt-modal"
-					onClick={(event) => {
-						if (event.target === event.currentTarget) {
-							setInjectedPromptOpen(false);
-						}
-					}}
-				>
-					<div
-						className="modal-card event-popover-prompt-card"
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="event-popover-prompt-title"
-					>
-						<div className="event-popover-prompt-head">
-							<div>
-								<h3 id="event-popover-prompt-title">
-									{t("eventPopover.promptModal.title")}
-								</h3>
-								<p>{t("eventPopover.promptModal.subtitle")}</p>
-							</div>
-							<UiButton
-								variant="ghost"
-								size="sm"
-								iconOnly
-								aria-label={t("eventPopover.promptModal.close")}
-								title={t("eventPopover.promptModal.close")}
-								onClick={() => setInjectedPromptOpen(false)}
-							>
-								<MaterialIcon name="close" />
-							</UiButton>
-						</div>
-						<div className="event-popover-prompt-body">
-							<section className="event-popover-prompt-section">
-								<strong>{t("eventPopover.promptModal.summary")}</strong>
-								<div className="event-popover-prompt-summary">
-									<span className="event-popover-prompt-chip">
-										{promptSectionTitle(
-											t("eventPopover.promptModal.systemPrompt"),
-											injectedPromptPayloads.systemPromptTokens,
-											t("eventPopover.promptModal.tokens"),
-										)}
-									</span>
-									<span className="event-popover-prompt-chip">
-										{promptSectionTitle(
-											t("eventPopover.promptModal.historyMessages"),
-											injectedPromptPayloads.historyMessagesTokens,
-											t("eventPopover.promptModal.tokens"),
-										)}
-									</span>
-									<span className="event-popover-prompt-chip">
-										{promptSectionTitle(
-											t("eventPopover.promptModal.currentUserMessage"),
-											injectedPromptPayloads.currentUserMessageTokens,
-											t("eventPopover.promptModal.tokens"),
-										)}
-									</span>
-									<span className="event-popover-prompt-chip">
-										{promptSectionTitle(
-											t("eventPopover.promptModal.providerMessages"),
-											injectedPromptPayloads.providerMessagesTokens,
-											t("eventPopover.promptModal.tokens"),
-										)}
-									</span>
-								</div>
-							</section>
-							<section className="event-popover-prompt-section">
-								<strong>
-									{t("eventPopover.promptModal.entries", {
-										count: injectedPromptPayloads.entries.length,
-									})}
-								</strong>
-								<div className="event-popover-prompt-entries">
-									{injectedPromptPayloads.entries.map((entry) => (
-										<details key={entry.id} className="event-popover-prompt-entry">
-											<summary>
-												<span className="event-popover-prompt-entry-heading">
-													<span className="event-popover-prompt-entry-title">
-														{entry.title}
-													</span>
-													<span className="event-popover-prompt-entry-tags">
-														{entry.roundNumber ? (
-															<span className="event-popover-prompt-tag event-popover-prompt-tag-round">
-																{promptRoundLabel(entry.roundNumber)}
-															</span>
-														) : null}
-														<span
-															className={`event-popover-prompt-tag event-popover-prompt-tag-role event-popover-prompt-tag-role-${entry.role || "unknown"}`}
-														>
-															{entry.role || "unknown"}
-														</span>
-														<span className="event-popover-prompt-tag event-popover-prompt-tag-token">
-															{entry.tokens > 0
-																? `${entry.tokens} ${t("eventPopover.promptModal.tokens")}`
-																: t("eventPopover.promptModal.tokens")}
-														</span>
-													</span>
-												</span>
-											</summary>
-											<pre>{entry.contentText}</pre>
-											<details className="event-popover-prompt-raw">
-												<summary>{t("eventPopover.promptModal.rawJson")}</summary>
-												<pre>{entry.rawJsonText}</pre>
-											</details>
-										</details>
-									))}
-								</div>
-							</section>
-							<details className="event-popover-prompt-entry">
-								<summary>
-									<span className="event-popover-prompt-entry-title">
-										{t("eventPopover.promptModal.rawPayload")}
-									</span>
-								</summary>
-								<pre>{injectedPromptPayloads.rawJsonText}</pre>
-							</details>
-						</div>
-					</div>
-				</div>
-			)}
+			<PromptAnalysisModal
+				calls={promptAnalysisCalls}
+				loadStates={promptAnalysisLoadStates}
+				open={promptAnalysisOpen}
+				selectedCallId={selectedPromptAnalysisCallId}
+				onClose={() => setPromptAnalysisOpen(false)}
+				onSelectCall={setSelectedPromptAnalysisCallId}
+			/>
 		</div>
 	);
 };
@@ -546,8 +551,15 @@ export const __TEST_ONLY__ = {
 	resolveEventGroupMeta,
 	resolveDebugPreCallCopyPayloads,
 	resolveInjectedPromptPayloads,
+	resolveInjectedPromptPayloadFromLLMTrace,
+	resolveInjectedPromptPayloadFromRequestBody,
+	resolvePromptAnalysisCalls,
+	resolvePromptAnalysisPayloadFromTraceText,
 	resolveRawJsonlChatId,
 	buildRawJsonlCopyMenuItem,
+	resolveRawLLMTraceFile,
+	buildRawLLMTraceCopyMenuItem,
+	isValidRawLLMTraceFile,
 	buildEventCopyMenuItems,
 	buildCopyMenuTitle,
 	getPrimaryCopyMenuItem,

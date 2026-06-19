@@ -19,6 +19,7 @@ import {
 	getAgent as getAgentHttp,
 	getAgentOrder as getAgentOrderHttp,
 	getAgents as getAgentsHttp,
+	getChatLLMTraceRaw as getChatLLMTraceRawHttp,
 	getChatRawJsonl as getChatRawJsonlHttp,
 	getChat as getChatHttp,
 	getChats as getChatsHttp,
@@ -255,6 +256,20 @@ export async function getChatRawJsonl(chatId: string): Promise<string> {
 			code: 0,
 			msg: "success",
 			data: await getChatRawJsonlHttp(chatId),
+		}),
+	);
+	return String(response.data ?? "");
+}
+
+export async function getChatLLMTraceRaw(file: string): Promise<string> {
+	const response = await routeRequest<string>(
+		"/api/chat/llm-trace",
+		{ file },
+		async () => ({
+			status: 200,
+			code: 0,
+			msg: "success",
+			data: await getChatLLMTraceRawHttp(file),
 		}),
 	);
 	return String(response.data ?? "");

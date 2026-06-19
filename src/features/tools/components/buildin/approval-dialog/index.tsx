@@ -71,6 +71,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     ? decisions[currentApproval.id]
     : undefined;
   const ready = approvals.length > 0;
+  const defaultRejectReason = t("approvalDialog.rejectDefaultReason");
 
   const hasAllDecisions = useCallback(
     (nextDecisions: Record<string, AIAwaitApprovalDecision | undefined>) =>
@@ -156,7 +157,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     };
     const nextReasons = {
       ...reasons,
-      [currentApproval.id]: "拒绝本次审批",
+      [currentApproval.id]: defaultRejectReason,
     };
 
     setDecisions(nextDecisions);
@@ -170,7 +171,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         buildApprovalSubmitParams(approvals, nextDecisions, nextReasons).map(
           (param) =>
             param.id === currentApproval.id && param.decision === "reject"
-              ? { ...param, reason: "拒绝本次审批" }
+              ? { ...param, reason: defaultRejectReason }
               : param,
         ),
       );
@@ -183,6 +184,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     curIndex,
     currentApproval,
     decisions,
+    defaultRejectReason,
     hasAllDecisions,
     readOnly,
     reasons,
@@ -564,10 +566,12 @@ const ApprovalQuestion = forwardRef<
                 <span className={Style.Index}>
                   <MaterialIcon name="edit" />
                 </span>
-                <span className={Style.Info}>拒绝</span>
+                <span className={Style.Info}>
+                  {t("approvalDialog.option.reject")}
+                </span>
                 <Input
                   variant="borderless"
-                  placeholder="请告知如何调整"
+                  placeholder={t("approvalDialog.rejectPlaceholder")}
                   value={reason}
                   tabIndex={0}
                   onChange={(e) => {

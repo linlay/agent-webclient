@@ -42,6 +42,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		getAgentOrder: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
+		getChatLLMTraceRaw: jest.fn(),
 		getChatRawJsonl: jest.fn(),
 		getArchive: jest.fn(),
 		getArchives: jest.fn(),
@@ -124,6 +125,7 @@ let mockApiClient: {
 	getAgentOrder: jest.Mock;
 	getModelOptions: jest.Mock;
 	getAgents: jest.Mock;
+	getChatLLMTraceRaw: jest.Mock;
 	getChatRawJsonl: jest.Mock;
 	getArchive: jest.Mock;
 	getArchives: jest.Mock;
@@ -887,6 +889,62 @@ describe("apiClientProxy", () => {
 			payload: { chatId: "chat_1" },
 		});
 		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
+	});
+
+	it("routes raw llm trace loads over ws when connected", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: '{"runId":"run_1"}\n',
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChatLLMTraceRaw("llm/run_1_001.json")).resolves.toBe(
+			'{"runId":"run_1"}\n',
+		);
+
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/llm-trace",
+			payload: { file: "llm/run_1_001.json" },
+		});
+		expect(mockApiClient.getChatLLMTraceRaw).not.toHaveBeenCalled();
+	});
+
+	it("falls back to http when raw llm trace ws request disconnects", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const request = jest
+			.fn()
+			.mockRejectedValue(new WsClientDisconnectedError());
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getChatLLMTraceRaw.mockResolvedValue('{"runId":"run_1"}\n');
+
+		await expect(proxy.getChatLLMTraceRaw("llm/run_1_001.json")).resolves.toBe(
+			'{"runId":"run_1"}\n',
+		);
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/llm-trace",
+			payload: { file: "llm/run_1_001.json" },
+		});
+		expect(mockApiClient.getChatLLMTraceRaw).toHaveBeenCalledWith("llm/run_1_001.json");
 	});
 
 	it("routes markChatRead over ws without falling back to http", async () => {

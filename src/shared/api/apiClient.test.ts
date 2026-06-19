@@ -35,6 +35,7 @@ import {
   getAgent,
   getAgentOrder,
   getAgents,
+  getChatLLMTraceRaw,
   getChatRawJsonl,
   getArchives,
   getChats,
@@ -1401,6 +1402,24 @@ describe('apiClient query payloads', () => {
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/chat/jsonl?chatId=chat_1');
+    expect(options.method).toBe('GET');
+    expect(options.headers).toEqual({
+      Authorization: 'Bearer demo-token',
+    });
+  });
+
+  it('loads raw llm trace json as authenticated text', async () => {
+    setAccessToken('demo-token');
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => '{"runId":"run_1"}\n',
+    });
+
+    await expect(getChatLLMTraceRaw('llm/run_1_001.json')).resolves.toBe('{"runId":"run_1"}\n');
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/chat/llm-trace?file=llm%2Frun_1_001.json');
     expect(options.method).toBe('GET');
     expect(options.headers).toEqual({
       Authorization: 'Bearer demo-token',

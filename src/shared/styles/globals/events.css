@@ -181,6 +181,17 @@
     min-height: 28px;
 }
 
+.event-popover-prompt-action.ui-btn.ui-btn-sm {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.event-popover-prompt-action .ui-btn-label {
+    gap: 4px;
+}
+
 .event-popover-copy-menu-overlay .ant-popover-inner {
     padding: 0;
 }
@@ -257,6 +268,83 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.event-popover-prompt-shell {
+    display: grid;
+    grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+}
+
+.event-popover-prompt-call-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.event-popover-prompt-call.ui-btn.ui-btn-sm {
+    justify-content: flex-start;
+    min-height: 54px;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.event-popover-prompt-call .ui-btn-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+}
+
+.event-popover-prompt-call-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-1);
+    font-weight: 800;
+}
+
+.event-popover-prompt-call-meta {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+    font:
+        400 10px/1.35 "IBM Plex Mono",
+        monospace;
+}
+
+.event-popover-prompt-detail {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.event-popover-prompt-status {
+    min-height: 140px;
+    border: 1px dashed var(--line-soft);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--bg-input));
+    color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.event-popover-prompt-status.is-error {
+    color: var(--accent-danger);
+    border-color: color-mix(in srgb, var(--accent-danger) 38%, var(--line-soft));
+    background: color-mix(in srgb, var(--accent-danger) 7%, var(--bg-elev-2));
 }
 
 .event-popover-prompt-section {
@@ -409,6 +497,17 @@
 
 .event-popover-prompt-raw {
     margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+    .event-popover-prompt-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .event-popover-prompt-call-list {
+        max-height: 150px;
+        overflow: auto;
+    }
 }
 
 /* Debug event cards for tools tab */

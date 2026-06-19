@@ -21,9 +21,16 @@ const {
   resolveEventGroupMeta,
   resolveDebugPreCallCopyPayloads,
   resolveInjectedPromptPayloads,
+  resolveInjectedPromptPayloadFromLLMTrace,
+  resolveInjectedPromptPayloadFromRequestBody,
+  resolvePromptAnalysisCalls,
+  resolvePromptAnalysisPayloadFromTraceText,
   resolveInitialPopoverState,
   resolveRawJsonlChatId,
   buildRawJsonlCopyMenuItem,
+  resolveRawLLMTraceFile,
+  buildRawLLMTraceCopyMenuItem,
+  isValidRawLLMTraceFile,
 } = __TEST_ONLY__;
 
 jest.mock("@/app/state/AppContext", () => {
@@ -272,7 +279,7 @@ describe("EventPopover collect controls", () => {
     expect(html).not.toContain('aria-label="复制 tools"');
   });
 
-  it("renders an injected prompt viewer trigger for debug.preCall when payload exists", () => {
+  it("does not render prompt analysis directly on debug.preCall when payload exists", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.preCall",
@@ -302,7 +309,78 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="View injected prompt"');
+    expect(html).not.toContain('aria-label="Prompt analysis"');
+  });
+
+  it("renders prompt analysis for run.start with same-run llm chat calls", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "run.start",
+      runId: "run_1",
+      timestamp: 1776518171300,
+    };
+    const llmChatEvent: AgentEvent = {
+      type: "debug.llmChat",
+      runId: "run_1",
+      data: {
+        model: { key: "mock-model" },
+        runSeq: 1,
+        status: "ok",
+        trace: { file: "llm/run_1_001.json" },
+      },
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event, llmChatEvent],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="Prompt analysis"');
+  });
+
+  it("renders prompt analysis for debug.llmChat with a valid trace file", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "debug.llmChat",
+      runId: "run_1",
+      data: {
+        trace: { file: "llm/run_1_001.json" },
+      },
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="Prompt analysis"');
+  });
+
+  it("does not render prompt analysis for debug.llmChat with an invalid trace file", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "debug.llmChat",
+      runId: "run_1",
+      data: {
+        trace: { file: "llm/../run_1_001.json" },
+      },
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).not.toContain('aria-label="Prompt analysis"');
   });
 });
 
@@ -919,6 +997,120 @@ describe("EventPopover display and copy helpers", () => {
     });
   });
 
+  it("extracts structured prompt payloads from llm trace json", () => {
+    const payload = resolveInjectedPromptPayloadFromLLMTrace({
+      injectedPrompt: {
+        systemPrompt: "trace system",
+        systemPromptTokens: 3,
+        providerMessages: [
+          { role: "system", content: "trace system", estimatedTokens: 3 },
+          { role: "user", content: "trace user", estimatedTokens: 2 },
+        ],
+        providerMessagesTokens: 5,
+      },
+    });
+
+    expect(payload).toMatchObject({
+      systemPromptText: "trace system",
+      systemPromptTokens: 3,
+      providerMessagesTokens: 5,
+    });
+    expect(payload?.entries.map((entry) => entry.title)).toEqual([
+      "System Prompt",
+      "Provider Message #1",
+      "Provider Message #2",
+    ]);
+  });
+
+  it("falls back to OpenAI-style trace request messages for prompt analysis", () => {
+    const payload = resolveInjectedPromptPayloadFromRequestBody({
+      model: "gpt-5",
+      messages: [
+        { role: "system", content: "openai system" },
+        { role: "user", content: "first user" },
+        { role: "assistant", content: "first answer" },
+        { role: "user", content: "second user" },
+      ],
+    });
+
+    expect(payload?.systemPromptText).toBe("openai system");
+    expect(payload?.historyMessagesText).toContain("first user");
+    expect(payload?.historyMessagesText).toContain("first answer");
+    expect(payload?.currentUserMessageText).toContain("second user");
+    expect(payload?.providerMessagesText).toContain("openai system");
+  });
+
+  it("falls back to Anthropic-style trace request system text for prompt analysis", () => {
+    const payload = resolveInjectedPromptPayloadFromRequestBody({
+      model: "claude",
+      system: "anthropic system",
+      messages: [{ role: "user", content: "hello" }],
+    });
+
+    expect(payload?.systemPromptText).toBe("anthropic system");
+    expect(payload?.providerMessagesText).toContain("anthropic system");
+    expect(payload?.currentUserMessageText).toContain("hello");
+  });
+
+  it("parses prompt analysis payloads from raw trace text", () => {
+    expect(
+      resolvePromptAnalysisPayloadFromTraceText(
+        JSON.stringify({
+          request: {
+            messages: [
+              { role: "system", content: "raw system" },
+              { role: "user", content: "raw user" },
+            ],
+          },
+        }),
+      )?.systemPromptText,
+    ).toBe("raw system");
+
+    expect(resolvePromptAnalysisPayloadFromTraceText("{not json")).toBeNull();
+  });
+
+  it("collects prompt analysis calls for run.start and excludes direct debug.preCall", () => {
+    const legacyPreCall: AgentEvent = {
+      type: "debug.preCall",
+      runId: "run_1",
+      data: {
+        injectedPrompt: {
+          systemPrompt: "legacy system",
+          systemPromptTokens: 3,
+          providerMessages: [
+            { role: "system", content: "legacy system", estimatedTokens: 3 },
+          ],
+          providerMessagesTokens: 3,
+        },
+      },
+    };
+    const llmChat: AgentEvent = {
+      type: "debug.llmChat",
+      runId: "run_1",
+      data: {
+        model: { key: "mock-model" },
+        runSeq: 2,
+        status: "ok",
+        trace: { file: "llm/run_1_002.json" },
+      },
+    };
+
+    expect(resolvePromptAnalysisCalls(legacyPreCall, [legacyPreCall])).toEqual([]);
+    expect(
+      resolvePromptAnalysisCalls(
+        { type: "run.start", runId: "run_1" },
+        [legacyPreCall, llmChat, { type: "debug.llmChat", runId: "other" }],
+      ).map((call) => ({
+        kind: call.kind,
+        title: call.title,
+        modelLabel: call.modelLabel,
+      })),
+    ).toEqual([
+      { kind: "inline", title: "debug.preCall", modelLabel: "" },
+      { kind: "trace", title: "LLM #2", modelLabel: "mock-model" },
+    ]);
+  });
+
   it("builds copy menu items from requestBody-derived debug.preCall content", () => {
     expect(
       buildEventCopyMenuItems(
@@ -1041,6 +1233,60 @@ describe("EventPopover display and copy helpers", () => {
     await expect(item!.loadText!()).resolves.toBe('{"_type":"query"}\n');
     expect(loadRawJsonl).toHaveBeenCalledWith("chat_1");
     expect(buildRawJsonlCopyMenuItem("", (key) => key)).toBeNull();
+  });
+
+  it("resolves raw llm trace file only from debug.llmChat events", () => {
+    expect(
+      resolveRawLLMTraceFile({
+        type: "debug.llmChat",
+        data: {
+          trace: {
+            file: "llm/run_1_001.json",
+          },
+        },
+      }),
+    ).toBe("llm/run_1_001.json");
+
+    expect(
+      resolveRawLLMTraceFile({
+        type: "debug.postCall",
+        data: {
+          trace: {
+            file: "llm/run_1_001.json",
+          },
+        },
+      }),
+    ).toBe("");
+
+    expect(
+      resolveRawLLMTraceFile({
+        type: "debug.llmChat",
+        data: {
+          trace: {
+            file: "llm/../run_1_001.json",
+          },
+        },
+      }),
+    ).toBe("");
+  });
+
+  it("builds a deferred raw llm trace copy menu item", async () => {
+    const loadRawLLMTrace = jest.fn(async () => '{"runId":"run_1"}\n');
+    const item = buildRawLLMTraceCopyMenuItem(
+      " llm/run_1_001.json ",
+      (key) => (key === "eventPopover.copy.rawLlmJson" ? "Copy raw LLM JSON" : key),
+      loadRawLLMTrace,
+    );
+
+    expect(item).toMatchObject({
+      key: "rawLlmJson",
+      label: "Copy raw LLM JSON",
+      text: "",
+    });
+    await expect(item!.loadText!()).resolves.toBe('{"runId":"run_1"}\n');
+    expect(loadRawLLMTrace).toHaveBeenCalledWith("llm/run_1_001.json");
+    expect(buildRawLLMTraceCopyMenuItem("", (key) => key)).toBeNull();
+    expect(isValidRawLLMTraceFile("llm/run_1_001.txt")).toBe(false);
   });
 
   it("builds request event copy menu items with message and references", () => {

@@ -135,7 +135,13 @@ export function resolveInjectedPromptPayloads(
 		return null;
 	}
 	const payload = readObjectValue(event.data);
-	const injectedPrompt = readObjectValue(payload?.injectedPrompt);
+	return resolveInjectedPromptPayloadRecord(payload?.injectedPrompt);
+}
+
+export function resolveInjectedPromptPayloadRecord(
+	value: unknown,
+): InjectedPromptPayloads | null {
+	const injectedPrompt = readObjectValue(value);
 	if (!injectedPrompt) {
 		return null;
 	}
@@ -151,6 +157,37 @@ export function resolveInjectedPromptPayloads(
 		providerMessagesTokens: readNumberValue(injectedPrompt.providerMessagesTokens),
 		entries: buildInjectedPromptEntries(injectedPrompt),
 	};
+}
+
+export function resolveInjectedPromptPayloadFromLLMTrace(
+	trace: unknown,
+): InjectedPromptPayloads | null {
+	const traceRecord = readObjectValue(trace);
+	if (!traceRecord) {
+		return null;
+	}
+
+	const injectedPromptPayload = resolveInjectedPromptPayloadRecord(
+		traceRecord.injectedPrompt,
+	);
+	if (injectedPromptPayload) {
+		return injectedPromptPayload;
+	}
+
+	return resolveInjectedPromptPayloadFromRequestBody(traceRecord.request);
+}
+
+export function resolveInjectedPromptPayloadFromRequestBody(
+	requestBodyValue: unknown,
+): InjectedPromptPayloads | null {
+	const requestBody = readObjectValue(requestBodyValue);
+	if (!requestBody) {
+		return null;
+	}
+	const injectedPrompt = buildInjectedPromptFromRequestBody(requestBody);
+	return injectedPrompt
+		? resolveInjectedPromptPayloadRecord(injectedPrompt)
+		: null;
 }
 
 export function readNumberValue(value: unknown): number {
@@ -276,6 +313,126 @@ function extractInjectedPromptMessageContent(
 	return JSON.stringify(message, null, 2);
 }
 
+function buildInjectedPromptFromRequestBody(
+	requestBody: Record<string, unknown>,
+): Record<string, unknown> | null {
+	const requestMessages = Array.isArray(requestBody.messages)
+		? requestBody.messages
+		: [];
+	const normalizedMessages = requestMessages
+		.map(normalizeRequestMessageForPrompt)
+		.filter((message): message is Record<string, unknown> => Boolean(message));
+	const systemPrompt = extractSystemPromptFromRequestBody(requestBody);
+	const hasSystemMessage = normalizedMessages.some(
+		(message) => readStringValue(message.role).toLowerCase() === "system",
+	);
+	const providerMessages =
+		systemPrompt && !hasSystemMessage
+			? [
+					{
+						role: "system",
+						content: systemPrompt,
+						estimatedTokens: estimateTokensFromText(systemPrompt),
+					},
+					...normalizedMessages,
+				]
+			: normalizedMessages;
+
+	if (providerMessages.length === 0 && !systemPrompt) {
+		return null;
+	}
+
+	let lastUserIndex = -1;
+	providerMessages.forEach((message, index) => {
+		if (readStringValue(message.role).toLowerCase() === "user") {
+			lastUserIndex = index;
+		}
+	});
+
+	const historyMessages: Record<string, unknown>[] = [];
+	let currentUserMessage: Record<string, unknown> | null = null;
+	providerMessages.forEach((message, index) => {
+		const role = readStringValue(message.role).toLowerCase();
+		if (role === "system") {
+			return;
+		}
+		if (role === "user" && index === lastUserIndex) {
+			currentUserMessage = message;
+			return;
+		}
+		historyMessages.push(message);
+	});
+
+	const injectedPrompt: Record<string, unknown> = {
+		providerMessages,
+		providerMessagesTokens: estimateTokensFromValue(providerMessages),
+	};
+	if (systemPrompt) {
+		injectedPrompt.systemPrompt = systemPrompt;
+		injectedPrompt.systemPromptTokens = estimateTokensFromText(systemPrompt);
+		injectedPrompt.systemSections = [
+			{
+				id: "request-system",
+				title: "System Prompt",
+				role: "system",
+				category: "request.system",
+				content: systemPrompt,
+				tokens: estimateTokensFromText(systemPrompt),
+			},
+		];
+	}
+	if (historyMessages.length > 0) {
+		injectedPrompt.historyMessages = historyMessages;
+		injectedPrompt.historyMessagesTokens = estimateTokensFromValue(historyMessages);
+	}
+	if (currentUserMessage) {
+		injectedPrompt.currentUserMessage = currentUserMessage;
+		injectedPrompt.currentUserMessageTokens =
+			estimateTokensFromValue(currentUserMessage);
+	}
+	return injectedPrompt;
+}
+
+function normalizeRequestMessageForPrompt(
+	value: unknown,
+): Record<string, unknown> | null {
+	const message = readObjectValue(value);
+	if (!message) {
+		return null;
+	}
+	const role = readNonEmptyStringValue(message.role);
+	if (!role) {
+		return null;
+	}
+	const normalized: Record<string, unknown> = { role };
+	const contentText =
+		extractTextParts(message.content).join("\n\n") ||
+		stringifyCopyValue(message.content);
+	if (contentText) {
+		normalized.content = contentText;
+	}
+	const name = readNonEmptyStringValue(message.name);
+	if (name) {
+		normalized.name = name;
+	}
+	const toolCallId =
+		readNonEmptyStringValue(message.toolCallId) ||
+		readNonEmptyStringValue(message.tool_call_id);
+	if (toolCallId) {
+		normalized.toolCallId = toolCallId;
+	}
+	const toolCalls = Array.isArray(message.toolCalls)
+		? message.toolCalls
+		: Array.isArray(message.tool_calls)
+			? message.tool_calls
+			: [];
+	if (toolCalls.length > 0) {
+		normalized.toolCalls = toolCalls;
+	}
+	normalized.estimatedTokens = estimateTokensFromValue(message);
+	return normalized;
+}
+
 function extractTextParts(value: unknown): string[] {
 	if (typeof value === "string") {
 		const trimmed = value.trim();
@@ -298,6 +455,16 @@ function extractTextParts(value: unknown): string[] {
 		return extractTextParts(record.value);
 	}
 	return [];
+}
+
+function estimateTokensFromValue(value: unknown): number {
+	const text = stringifyCopyValue(value);
+	return estimateTokensFromText(text);
+}
+
+function estimateTokensFromText(text: string): number {
+	const length = String(text || "").length;
+	return length > 0 ? Math.ceil(length / 4) : 0;
 }
 
 function extractSystemPromptFromRequestBody(
