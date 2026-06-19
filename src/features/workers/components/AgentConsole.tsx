@@ -444,6 +444,34 @@ export function buildDefinition(form: AgentFormState, baseDefinition: Record<str
   return definition;
 }
 
+function normalizeModeKey(value: string): string {
+  const upper = value.trim().toUpperCase();
+  if (upper === "PLAN-EXECUTE" || upper === "PLAN_EXECUTE") return "PLAN_EXECUTE";
+  if (upper === "ACP-PROXY" || upper === "ACP_PROXY" || upper === "PROXY") return "PROXY";
+  return upper;
+}
+
+const MODE_LABEL: Record<string, string> = {
+  REACT: "REACT",
+  CODER: "CODER",
+  PLAN_EXECUTE: "P-E",
+  PROXY: "PROXY",
+};
+
+const ModeBadge: React.FC<{ mode: string }> = ({ mode }) => {
+  const normalized = normalizeModeKey(mode);
+  const label = MODE_LABEL[normalized];
+  if (!label) return null;
+  return (
+    <span className="agent-console-list-item-mode-badge">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <circle cx="12" cy="12" r="5" />
+      </svg>
+      <span>{label}</span>
+    </span>
+  );
+};
+
 interface SortableAgentListItemProps {
   agent: Agent;
   agentKey: string;
@@ -453,7 +481,6 @@ interface SortableAgentListItemProps {
   isDragging: boolean;
   isInvalid: boolean;
   name: string;
-  role: string;
   sortableId: string;
   summary: ReturnType<typeof buildAgentListSummary>;
   t: Translate;
@@ -469,7 +496,6 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
   isDragging,
   isInvalid,
   name,
-  role,
   sortableId,
   summary,
   t,
@@ -507,21 +533,23 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
         }
       }}
     >
-      <span
-        ref={setActivatorNodeRef}
-        className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
-        aria-label={t("agentConsole.list.dragHandle", { name })}
-        {...attributes}
-        {...listeners}
-      >
-        <AgentIcon
-          icon={agent.icon}
-          type="agent"
-          props={{
-            icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
-            avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
-          }}
-        />
+      <span className="agent-console-list-item-icon-col">
+        <span
+          ref={setActivatorNodeRef}
+          className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
+          aria-label={t("agentConsole.list.dragHandle", { name })}
+          {...attributes}
+          {...listeners}
+        >
+          <AgentIcon
+            icon={agent.icon}
+            type="agent"
+            props={{
+              icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
+              avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
+            }}
+          />
+        </span>
       </span>
       <span className="agent-console-list-item-main">
         <span className="agent-console-list-item-row agent-console-list-item-head">
@@ -536,16 +564,23 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
           </span>
         </span>
         <span className="agent-console-list-item-row agent-console-list-item-meta">
-          <span>{role}</span>
-          <span>{summary.mode}</span>
-        </span>
-        <span className="agent-console-list-item-row agent-console-list-item-meta">
           <span>{summary.modelKey}</span>
-          <span>
-            {t("agentConsole.list.toolsSkills", {
-              tools: summary.toolsCount,
-              skills: summary.skillsCount,
-            })}
+          <span className="agent-console-list-item-counts">
+            <span className="agent-console-list-item-count">
+              <svg className="agent-console-list-item-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+              </svg>
+              {summary.toolsCount}
+            </span>
+            <span className="agent-console-list-item-count-sep">·</span>
+            <span className="agent-console-list-item-count">
+              <svg className="agent-console-list-item-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              {summary.skillsCount}
+            </span>
+            <span className="agent-console-list-item-count-sep">·</span>
+            <ModeBadge mode={summary.mode} />
           </span>
         </span>
         {isInvalid && diagnosticMessage && (
@@ -960,7 +995,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       {filteredAgents.map((agent, index) => {
                         const agentKey = toText(agent.key);
                         const name = toText(agent.name) || agentKey;
-                        const role = toText(agent.role) || "--";
                         const summary = buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
                         const sortableId = agentKey || `agent-console-empty-${index}`;
                         const isInvalid = isInvalidAdminAgent(agent);
@@ -976,7 +1010,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                             isDragging={agentKey === draggingAgentKey}
                             isInvalid={isInvalid}
                             name={name}
-                            role={role}
                             sortableId={sortableId}
                             summary={summary}
                             t={t}

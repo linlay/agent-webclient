@@ -1091,6 +1091,57 @@
     display: block;
 }
 
+.agent-console-list-item-icon-col {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.agent-console-list-item-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ink-muted);
+}
+
+.agent-console-list-item-mode-badge svg {
+    width: 8px;
+    height: 8px;
+}
+
+.agent-console-list-item-mode-badge span {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.agent-console-list-item-counts {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.agent-console-list-item-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 9px;
+}
+
+.agent-console-list-item-count-icon {
+    width: 9px;
+    height: 9px;
+}
+
+.agent-console-list-item-count-sep {
+    font-size: 8px;
+    color: var(--ink-muted);
+    opacity: 0.6;
+}
+
 .agent-console-list-item-main {
     min-width: 0;
     flex: 1;
