@@ -518,13 +518,9 @@
 
 .automation-console-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 8px;
-}
-
-.automation-console-toolbar .ant-input-affix-wrapper {
-    grid-column: 1 / -1;
 }
 
 .automation-console-toolbar select,
@@ -603,6 +599,59 @@
     grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
+/* ---- SearchFilterBar (VSCode-style) ---- */
+.search-filter-bar {
+    display: flex;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
+    overflow: hidden;
+}
+
+.search-filter-bar .ant-input-affix-wrapper {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.search-filter-bar .ant-input-affix-wrapper.ant-input-affix-wrapper-focused {
+    box-shadow: none !important;
+}
+
+.filter-trigger {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 6px;
+    height: 30px;
+    border: none;
+    border-left: 1px solid color-mix(in srgb, var(--line-soft) 68%, transparent);
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-muted);
+    flex: 0 0 auto;
+}
+
+.filter-trigger:hover {
+    color: var(--ink-1);
+    background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+}
+
+.filter-trigger.is-active {
+    color: var(--accent-electric-strong);
+}
+
+.filter-indicator {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--accent-electric);
+}
+
 .automation-console-error {
     display: flex;
     align-items: center;
@@ -619,7 +668,7 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.4fr);
+    grid-template-columns: minmax(280px, 0.52fr) minmax(480px, 1.55fr);
     gap: 16px;
     overflow: hidden;
 }
@@ -1041,7 +1090,7 @@
     padding: 8px 10px;
     text-align: left;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
     cursor: pointer;
 }
@@ -1375,7 +1424,7 @@
 
 @media (max-width: 860px) {
     .automation-console-toolbar {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr auto auto;
     }
 
     .registry-console-toolbar {
@@ -1384,10 +1433,6 @@
 
     .registry-category-tabs {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .automation-console-toolbar .ant-input-affix-wrapper {
-        grid-column: 1 / -1;
     }
 
     .automation-console-body {

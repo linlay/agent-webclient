@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Input, Select, Spin } from "antd";
+import { Input, Spin } from "antd";
+import type { MenuProps } from "antd";
 import {
   getAdminRegistries,
   getAdminRegistryDetail,
@@ -15,6 +16,7 @@ import type {
 } from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 
@@ -182,6 +184,7 @@ export const RegistriesPage = () => {
   const [newDraft, setNewDraft] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   const categoryCounts = useMemo(
     () =>
@@ -195,15 +198,6 @@ export const RegistriesPage = () => {
         "viewport-servers": 0,
       }),
     [items],
-  );
-
-  const statusOptions = useMemo(
-    () =>
-      STATUS_FILTERS.map((status) => ({
-        value: status,
-        label: t(`registryConsole.filter.status.${status}`),
-      })),
-    [t],
   );
 
   const filteredItems = useMemo(() => {
@@ -393,6 +387,15 @@ export const RegistriesPage = () => {
     }
   };
 
+  const statusMenu: MenuProps = useMemo(() => ({
+    onClick: (info) => setStatusFilter(info.key as StatusFilter),
+    selectedKeys: [statusFilter],
+    items: STATUS_FILTERS.map((status) => ({
+      key: status,
+      label: t(`registryConsole.filter.status.${status}`),
+    })),
+  }), [t, statusFilter]);
+
   return (
     <main className="automations-page registries-page">
       <div className="command-modal-section automation-console registry-console">
@@ -426,17 +429,21 @@ export const RegistriesPage = () => {
         <div className="automation-console-body">
           <div className="automation-console-list">
             <div className="automation-console-toolbar registry-console-toolbar">
-              <Input
-                prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
-                variant="filled"
-                placeholder={t("registryConsole.searchPlaceholder")}
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-              />
-              <Select
-                value={statusFilter}
-                onChange={(value) => setStatusFilter(value)}
-                options={statusOptions}
+              <SearchFilterBar
+                searchText={searchText}
+                onSearchChange={setSearchText}
+                searchPlaceholder={t("registryConsole.searchPlaceholder")}
+                filters={[
+                  {
+                    key: "status",
+                    label: t("registryConsole.filter.status.all"),
+                    icon: "filter_list",
+                    active: statusFilter !== "all",
+                    open: statusDropdownOpen,
+                    onOpenChange: setStatusDropdownOpen,
+                    menu: statusMenu,
+                  },
+                ]}
               />
               <UiButton
                 size="sm"
@@ -448,9 +455,8 @@ export const RegistriesPage = () => {
               >
                 <MaterialIcon name="refresh" />
               </UiButton>
-              <UiButton size="sm" variant="primary" onClick={startNew}>
+              <UiButton size="sm" variant="primary" iconOnly onClick={startNew} aria-label={t("registryConsole.action.new")}>
                 <MaterialIcon name="add" />
-                <span>{t("registryConsole.action.new")}</span>
               </UiButton>
             </div>
             <div className="automation-console-count">

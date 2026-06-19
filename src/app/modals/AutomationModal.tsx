@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, Input, Select, Spin, Tooltip } from "antd";
+import { Checkbox, Dropdown, Input, Select, Spin, Tooltip } from "antd";
+import type { MenuProps } from "antd";
 import type { Agent, Team } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -21,6 +22,7 @@ import type {
   UpdateAutomationRequest,
 } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { useI18n, type I18nContextValue } from "@/shared/i18n";
@@ -318,6 +320,8 @@ export const AutomationModal: React.FC<{
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState("");
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [workerDropdownOpen, setWorkerDropdownOpen] = useState(false);
   const didBootstrapAutomationsRef = useRef(false);
   const didAutoSelectInitialAutomationRef = useRef(false);
 
@@ -628,6 +632,28 @@ export const AutomationModal: React.FC<{
     }
   };
 
+  const statusMenu: MenuProps = useMemo(() => ({
+    onClick: (info) => setStatusFilter(info.key as AutomationStatusFilter),
+    selectedKeys: [statusFilter],
+    items: [
+      { key: "all", label: t("automationConsole.filter.status.all") },
+      { key: "enabled", label: t("automationConsole.filter.status.enabled") },
+      { key: "disabled", label: t("automationConsole.filter.status.disabled") },
+    ],
+  }), [t, statusFilter]);
+
+  const workerMenu: MenuProps = useMemo(() => ({
+    onClick: (info) => setWorkerFilter(info.key),
+    selectedKeys: [workerFilter],
+    items: [
+      { key: "", label: t("automationConsole.filter.worker.all") },
+      ...workerOptions.map((opt) => ({
+        key: opt.value,
+        label: opt.label,
+      })),
+    ],
+  }), [t, workerFilter, workerOptions]);
+
   return (
     <div className="command-modal-section automation-console">
       {error && (
@@ -646,31 +672,30 @@ export const AutomationModal: React.FC<{
       <div className="automation-console-body">
         <div className="automation-console-list">
           <div className="automation-console-toolbar">
-            <Input
-              prefix={
-                <MaterialIcon
-                  name="search"
-                  style={{ color: "var(--text-muted)" }}
-                />
-              }
-              variant="filled"
-              placeholder={t("automationConsole.searchPlaceholder")}
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-            />
-            <Select
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(value)}
-              options={[
-                { value: "all", label: t("automationConsole.filter.status.all") },
-                { value: "enabled", label: t("automationConsole.filter.status.enabled") },
-                { value: "disabled", label: t("automationConsole.filter.status.disabled") },
+            <SearchFilterBar
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              searchPlaceholder={t("automationConsole.searchPlaceholder")}
+              filters={[
+                {
+                  key: "status",
+                  label: t("automationConsole.filter.status.all"),
+                  icon: "filter_list",
+                  active: statusFilter !== "all",
+                  open: statusDropdownOpen,
+                  onOpenChange: setStatusDropdownOpen,
+                  menu: statusMenu,
+                },
+                {
+                  key: "worker",
+                  label: t("automationConsole.filter.worker.all"),
+                  icon: "person",
+                  active: workerFilter !== "",
+                  open: workerDropdownOpen,
+                  onOpenChange: setWorkerDropdownOpen,
+                  menu: workerMenu,
+                },
               ]}
-            />
-            <Select
-              value={workerFilter}
-              onChange={(value) => setWorkerFilter(value)}
-              options={[{ value: "", label: t("automationConsole.filter.worker.all") }, ...workerOptions]}
             />
             <UiButton
               size="sm"
@@ -682,9 +707,8 @@ export const AutomationModal: React.FC<{
             >
               <MaterialIcon name="refresh" />
             </UiButton>
-            <UiButton size="sm" variant="primary" onClick={startCreate}>
+            <UiButton size="sm" variant="primary" iconOnly onClick={startCreate} aria-label={t("automationConsole.action.new")}>
               <MaterialIcon name="add" />
-              <span>{t("automationConsole.action.new")}</span>
             </UiButton>
           </div>
           <div className="automation-console-count">
