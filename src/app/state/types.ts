@@ -121,6 +121,7 @@ export interface AppState {
 	currentRunAgentKey: string;
 	pendingNewChatAgentKey: string;
 	workerPriorityKey: string;
+	temporaryPinnedAgentKey: string;
 	chatId: string;
 	runId: string;
 	requestId: string;

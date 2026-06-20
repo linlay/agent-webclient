@@ -15,13 +15,34 @@ export function sortWorkerRowsForMode(
   rows: AppState["workerRows"],
   options: {
     agentOrderByKey: Map<string, number>;
+    temporaryPinnedAgentKey?: string;
     workerBaseOrderByKey: Map<string, number>;
     workerChatOrderByKey: Map<string, number>;
     workerSortMode: WorkerSortMode;
   },
 ): AppState["workerRows"] {
+  const temporaryPinnedWorkerKey = options.temporaryPinnedAgentKey
+    ? `agent:${String(options.temporaryPinnedAgentKey || "").trim()}`
+    : "";
+
+  const compareTemporaryPinnedWorker = (
+    a: AppState["workerRows"][number],
+    b: AppState["workerRows"][number],
+  ): number => {
+    if (!temporaryPinnedWorkerKey || temporaryPinnedWorkerKey === "agent:") {
+      return 0;
+    }
+    const pinnedA = a.key === temporaryPinnedWorkerKey;
+    const pinnedB = b.key === temporaryPinnedWorkerKey;
+    if (pinnedA === pinnedB) return 0;
+    return pinnedA ? -1 : 1;
+  };
+
   if (options.workerSortMode === "byName") {
     return rows.slice().sort((a, b) => {
+      const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
+      if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
+
       const agentOrderA = options.agentOrderByKey.get(a.key);
       const agentOrderB = options.agentOrderByKey.get(b.key);
       const hasAgentOrderA = agentOrderA !== undefined;
@@ -38,6 +59,9 @@ export function sortWorkerRowsForMode(
   }
 
   return rows.slice().sort((a, b) => {
+    const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
+    if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
+
     const chatOrderA = options.workerChatOrderByKey.get(a.key);
     const chatOrderB = options.workerChatOrderByKey.get(b.key);
     const hasChatsA = chatOrderA !== undefined;
@@ -60,11 +84,17 @@ export function useLeftSidebarData({
   historySearch,
   historyWorkerKey,
   teams,
+  temporaryPinnedAgentKey,
   workerRows,
   workerSortMode = "byTime",
 }: Pick<
   AppState,
-  "agents" | "chatFilter" | "chats" | "teams" | "workerRows"
+  | "agents"
+  | "chatFilter"
+  | "chats"
+  | "teams"
+  | "temporaryPinnedAgentKey"
+  | "workerRows"
 > & {
   historySearch: string;
   historyWorkerKey: string;
@@ -127,6 +157,7 @@ export function useLeftSidebarData({
 
     return sortWorkerRowsForMode(rows, {
       agentOrderByKey,
+      temporaryPinnedAgentKey,
       workerBaseOrderByKey,
       workerChatOrderByKey,
       workerSortMode,
@@ -138,6 +169,7 @@ export function useLeftSidebarData({
     workerBaseOrderByKey,
     workerChatOrderByKey,
     workerSortMode,
+    temporaryPinnedAgentKey,
   ]);
 
   const workerIconsByKey = useMemo(() => {

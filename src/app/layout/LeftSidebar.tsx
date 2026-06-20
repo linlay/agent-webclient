@@ -185,6 +185,7 @@ export const LeftSidebar: React.FC = () => {
     historySearch,
     historyWorkerKey,
     teams: state.teams,
+    temporaryPinnedAgentKey: state.temporaryPinnedAgentKey,
     workerRows: state.workerRows,
     workerSortMode,
   });
@@ -698,6 +699,12 @@ export const LeftSidebar: React.FC = () => {
           buildCoderAgentCreateRequest(selection.workspaceDir),
         );
         const createdKey = String(response.data?.key || "").trim();
+        if (createdKey) {
+          dispatch({
+            type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+            agentKey: createdKey,
+          });
+        }
         try {
           const agentsResponse = await getAgents({
             includeChats: 5,

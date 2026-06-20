@@ -296,6 +296,13 @@ export function useMessageActions() {
 
       if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
 
+      if (
+        selectedAgentKey
+        && selectedAgentKey === String(stateRef.current.temporaryPinnedAgentKey || '').trim()
+      ) {
+        dispatch({ type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: '' });
+      }
+
       dispatch({
         type: 'SET_WORKER_PRIORITY_KEY',
         workerKey: selectedAgentKey ? `agent:${selectedAgentKey}` : '',

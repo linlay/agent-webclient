@@ -352,6 +352,82 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.pendingNewChatAgentKey).toBe('');
   });
 
+  it('stores the temporary pinned agent key only in state', () => {
+    const initial = createInitialState();
+
+    expect(initial.temporaryPinnedAgentKey).toBe('');
+
+    const pinned = appReducer(initial, {
+      type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
+      agentKey: ' agent-coder ',
+    });
+
+    expect(pinned.temporaryPinnedAgentKey).toBe('agent-coder');
+
+    const cleared = appReducer(pinned, {
+      type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
+      agentKey: '',
+    });
+
+    expect(cleared.temporaryPinnedAgentKey).toBe('');
+  });
+
+  it('clears the temporary pinned agent when matching chats receive a last run id', () => {
+    const baseState = {
+      ...createInitialState(),
+      temporaryPinnedAgentKey: 'agent-coder',
+    };
+
+    const unchanged = appReducer(baseState, {
+      type: 'SET_CHATS',
+      chats: [
+        {
+          chatId: 'chat_other',
+          agentKey: 'agent-other',
+          lastRunId: 'run_other',
+        },
+        {
+          chatId: 'chat_empty',
+          agentKey: 'agent-coder',
+        },
+      ],
+    });
+
+    expect(unchanged.temporaryPinnedAgentKey).toBe('agent-coder');
+
+    const clearedBySetChats = appReducer(baseState, {
+      type: 'SET_CHATS',
+      chats: [
+        {
+          chatId: 'chat_coder',
+          agentKey: 'agent-coder',
+          lastRunId: 'run_coder',
+        },
+      ],
+    });
+
+    expect(clearedBySetChats.temporaryPinnedAgentKey).toBe('');
+
+    const withExistingChat = {
+      ...baseState,
+      chats: [
+        {
+          chatId: 'chat_coder',
+          agentKey: 'agent-coder',
+        },
+      ],
+    };
+    const clearedByUpsert = appReducer(withExistingChat, {
+      type: 'UPSERT_CHAT',
+      chat: {
+        chatId: 'chat_coder',
+        lastRunId: 'run_from_push',
+      },
+    });
+
+    expect(clearedByUpsert.temporaryPinnedAgentKey).toBe('');
+  });
+
   it('upserts chat summaries without dropping existing metadata', () => {
     const baseState = createInitialState();
     const state = {

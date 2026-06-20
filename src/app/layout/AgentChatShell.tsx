@@ -132,6 +132,7 @@ export const AgentChatShell: React.FC = () => {
     historySearch,
     historyWorkerKey,
     teams: state.teams,
+    temporaryPinnedAgentKey: state.temporaryPinnedAgentKey,
     workerRows: state.workerRows,
   });
   const historyWorker =
@@ -145,6 +146,12 @@ export const AgentChatShell: React.FC = () => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    if (agentKey && state.temporaryPinnedAgentKey === agentKey) {
+      dispatch({ type: "SET_TEMPORARY_PINNED_AGENT_KEY", agentKey: "" });
+    }
+  }, [agentKey, dispatch, state.temporaryPinnedAgentKey]);
 
   useEffect(() => {
     if (

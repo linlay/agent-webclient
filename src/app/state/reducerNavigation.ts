@@ -29,6 +29,33 @@ function syncChatAgentBindings(
 	return chats.reduce(syncChatAgentBinding, source);
 }
 
+function resolveChatAgentKey(chat: Partial<Chat> | null | undefined): string {
+	return String(chat?.agentKey || chat?.firstAgentKey || "").trim();
+}
+
+function hasLastRunForTemporaryPinnedAgent(
+	chats: Array<Partial<Chat>>,
+	agentKey: string,
+): boolean {
+	const normalizedAgentKey = String(agentKey || "").trim();
+	if (!normalizedAgentKey) {
+		return false;
+	}
+	return chats.some((chat) => (
+		resolveChatAgentKey(chat) === normalizedAgentKey
+		&& Boolean(String(chat?.lastRunId || "").trim())
+	));
+}
+
+function clearTemporaryPinForChats(
+	state: AppState,
+	chats: Array<Partial<Chat>>,
+): string {
+	return hasLastRunForTemporaryPinnedAgent(chats, state.temporaryPinnedAgentKey)
+		? ""
+		: state.temporaryPinnedAgentKey;
+}
+
 export function reduceNavigationState(
 	state: AppState,
 	action: AppAction,
@@ -42,6 +69,7 @@ export function reduceNavigationState(
 			return {
 				...state,
 				chats: action.chats,
+				temporaryPinnedAgentKey: clearTemporaryPinForChats(state, action.chats),
 				chatAgentById: syncChatAgentBindings(
 					state.chatAgentById,
 					action.chats,
@@ -67,6 +95,7 @@ export function reduceNavigationState(
 			return {
 				...state,
 				chats,
+				temporaryPinnedAgentKey: clearTemporaryPinForChats(state, chats),
 				chatAgentById: syncChatAgentBinding(
 					state.chatAgentById,
 					action.chat,
@@ -142,6 +171,11 @@ export function reduceNavigationState(
 			return { ...state, pendingNewChatAgentKey: action.agentKey };
 		case "SET_WORKER_PRIORITY_KEY":
 			return { ...state, workerPriorityKey: action.workerKey };
+		case "SET_TEMPORARY_PINNED_AGENT_KEY":
+			return {
+				...state,
+				temporaryPinnedAgentKey: String(action.agentKey || "").trim(),
+			};
 		case "SET_CHAT_AGENT_BY_ID":
 			return {
 				...state,

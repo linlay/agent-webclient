@@ -1013,6 +1013,27 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('clears a matching temporary pinned agent when selecting its worker', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        read: { isRead: true },
+        hasPendingAwaiting: false,
+      },
+    });
+    state.temporaryPinnedAgentKey = 'worker_a';
+    const { actions, dispatch } = renderChatActions(state);
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
+      agentKey: '',
+    });
+  });
+
   it('starts a blank worker chat with no-history debug when preferNewChat has no history', async () => {
     const state = createWorkerConversationState({ hasHistory: false });
     const { actions, dispatch } = renderChatActions(state);

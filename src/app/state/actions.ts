@@ -159,6 +159,7 @@ export type AppAction =
 	| { type: "SET_WORKER_CHAT_PANEL_COLLAPSED"; collapsed: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
 	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
+	| { type: "SET_TEMPORARY_PINNED_AGENT_KEY"; agentKey: string }
 	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
 	| { type: "SET_TRANSPORT_MODE"; mode: AppState["transportMode"] }
 	| { type: "SET_WS_STATUS"; status: AppState["wsStatus"] }

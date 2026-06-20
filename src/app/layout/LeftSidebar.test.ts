@@ -692,6 +692,89 @@ describe("LeftSidebar", () => {
     ).toEqual(["agent:alpha", "agent:beta"]);
   });
 
+  it("keeps a temporary pinned agent first before applying the selected sort mode", () => {
+    const alpha: WorkerRow = {
+      key: "agent:alpha",
+      type: "agent",
+      sourceId: "alpha",
+      displayName: "Alpha",
+      role: "",
+      teamAgentLabels: [],
+      latestChatId: "chat_alpha",
+      latestRunId: "run_alpha",
+      latestUpdatedAt: 100,
+      latestChatName: "Alpha chat",
+      latestRunContent: "",
+      hasHistory: true,
+      latestRunSortValue: 100,
+      searchText: "alpha",
+    };
+    const beta: WorkerRow = {
+      ...alpha,
+      key: "agent:beta",
+      sourceId: "beta",
+      displayName: "Beta",
+      latestChatId: "chat_beta",
+      latestRunId: "run_beta",
+      latestUpdatedAt: 300,
+      latestChatName: "Beta chat",
+      latestRunSortValue: 300,
+      searchText: "beta",
+    };
+    const gamma: WorkerRow = {
+      ...alpha,
+      key: "agent:gamma",
+      sourceId: "gamma",
+      displayName: "Gamma",
+      latestChatId: "chat_gamma",
+      latestRunId: "run_gamma",
+      latestUpdatedAt: 200,
+      latestChatName: "Gamma chat",
+      latestRunSortValue: 200,
+      searchText: "gamma",
+    };
+    const rows = [alpha, beta, gamma];
+    const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
+    const workerChatOrderByKey = new Map([
+      ["agent:beta", 0],
+      ["agent:gamma", 1],
+      ["agent:alpha", 2],
+    ]);
+    const agentOrderByKey = new Map([
+      ["agent:gamma", 0],
+      ["agent:beta", 1],
+      ["agent:alpha", 2],
+    ]);
+
+    expect(
+      sortWorkerRowsForMode(rows, {
+        agentOrderByKey,
+        temporaryPinnedAgentKey: "alpha",
+        workerBaseOrderByKey,
+        workerChatOrderByKey,
+        workerSortMode: "byTime",
+      }).map((row) => row.key),
+    ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
+    expect(
+      sortWorkerRowsForMode(rows, {
+        agentOrderByKey,
+        temporaryPinnedAgentKey: "alpha",
+        workerBaseOrderByKey,
+        workerChatOrderByKey,
+        workerSortMode: "byName",
+      }).map((row) => row.key),
+    ).toEqual(["agent:alpha", "agent:gamma", "agent:beta"]);
+    expect(
+      sortWorkerRowsForMode(rows, {
+        agentOrderByKey,
+        temporaryPinnedAgentKey: "missing",
+        workerBaseOrderByKey,
+        workerChatOrderByKey,
+        workerSortMode: "byTime",
+      }).map((row) => row.key),
+    ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
+  });
+
   it("renders the top action as new project and creates a coder project from a selected folder", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
@@ -755,6 +838,10 @@ describe("LeftSidebar", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_AGENTS",
       agents: [createdAgent],
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+      agentKey: "agent-coder",
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",

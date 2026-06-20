@@ -932,6 +932,12 @@ export function useChatActions() {
     if (!row) return;
     const pendingAgentKey =
       row.type === 'agent' ? String(row.sourceId || '').trim() : '';
+    if (
+      pendingAgentKey
+      && pendingAgentKey === String(stateRef.current.temporaryPinnedAgentKey || '').trim()
+    ) {
+      dispatch({ type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: '' });
+    }
 
     dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey: normalized });
     const workerChats = buildWorkerConversationRows({
@@ -1003,6 +1009,12 @@ export function useChatActions() {
       );
       if (detail.agentKey) {
         const workerKey = `agent:${detail.agentKey}`;
+        if (
+          detail.agentKey
+          === String(stateRef.current.temporaryPinnedAgentKey || '').trim()
+        ) {
+          dispatch({ type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: '' });
+        }
         dispatch({ type: 'SET_CONVERSATION_MODE', mode: 'worker' });
         dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
         dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey });

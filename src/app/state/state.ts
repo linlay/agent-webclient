@@ -57,6 +57,7 @@ export function createInitialState(): AppState {
 		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",
 		workerPriorityKey: "",
+		temporaryPinnedAgentKey: "",
 		chatId: "",
 		runId: "",
 		requestId: "",

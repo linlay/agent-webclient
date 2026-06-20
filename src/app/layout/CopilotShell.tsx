@@ -253,6 +253,12 @@ export const CopilotShell: React.FC = () => {
   useAppRuntimes();
 
   useEffect(() => {
+    if (resolvedAgentKey && state.temporaryPinnedAgentKey === resolvedAgentKey) {
+      dispatch({ type: "SET_TEMPORARY_PINNED_AGENT_KEY", agentKey: "" });
+    }
+  }, [dispatch, resolvedAgentKey, state.temporaryPinnedAgentKey]);
+
+  useEffect(() => {
     if (!resolvedAgentKey) {
       lastRouteTargetKeyRef.current = "";
       return;

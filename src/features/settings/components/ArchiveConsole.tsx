@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Flex, Input, InputNumber, Modal, Select, Spin } from "antd";
+import { Button, Flex, Input, InputNumber, Modal, Popover, Select, Spin } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Chat, WorkerConversationRow } from "@/app/state/types";
 import {
@@ -462,45 +462,59 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 							placeholder={t("archive.filter.agentPlaceholder")}
 							onChange={(event) => setAgentFilter(event.target.value)}
 							allowClear
+							className="archive-agent-filter-input"
 						/>
 					) : null}
+					<Popover
+						trigger="click"
+						placement="bottomRight"
+						content={
+							<div className="archive-bulk-panel">
+								<Flex gap={8} align="center" wrap="wrap">
+									<span className="archive-bulk-label">{t("archive.bulk.label")}</span>
+									<Select
+										value={bulkDays}
+										style={{ width: 116 }}
+										options={BULK_DAY_OPTIONS.map((days) => ({
+											value: days,
+											label: t("archive.bulk.days", { days }),
+										}))}
+										onChange={setBulkDays}
+									/>
+									<InputNumber
+										min={1}
+										max={3650}
+										value={bulkDays}
+										onChange={(value) => setBulkDays(Number(value) || 30)}
+										addonAfter={t("archive.bulk.dayUnit")}
+										style={{ width: 132 }}
+									/>
+									<UiButton
+										size="sm"
+										variant="primary"
+										disabled={bulkCandidates.length === 0}
+										onClick={handleBulkArchive}
+									>
+										{t("archive.bulk.button", { count: bulkCandidates.length })}
+									</UiButton>
+								</Flex>
+							</div>
+						}
+					>
+						<button type="button" className="archive-bulk-trigger">
+							<MaterialIcon name="archive" />
+							{bulkCandidates.length > 0 ? (
+								<span className="archive-bulk-badge">{bulkCandidates.length}</span>
+							) : null}
+						</button>
+					</Popover>
 				</div>
-				<div className="archive-bulk-panel">
-					<Flex gap={8} align="center" wrap="wrap">
-						<span className="archive-bulk-label">{t("archive.bulk.label")}</span>
-						<Select
-							value={bulkDays}
-							style={{ width: 116 }}
-							options={BULK_DAY_OPTIONS.map((days) => ({
-								value: days,
-								label: t("archive.bulk.days", { days }),
-							}))}
-							onChange={setBulkDays}
-						/>
-						<InputNumber
-							min={1}
-							max={3650}
-							value={bulkDays}
-							onChange={(value) => setBulkDays(Number(value) || 30)}
-							addonAfter={t("archive.bulk.dayUnit")}
-							style={{ width: 132 }}
-						/>
-						<UiButton
-							size="sm"
-							variant="primary"
-							disabled={bulkCandidates.length === 0}
-							onClick={handleBulkArchive}
-						>
-							{t("archive.bulk.button", { count: bulkCandidates.length })}
-						</UiButton>
-					</Flex>
-					{bulkResult ? (
-						<div className="archive-bulk-result">{bulkResult}</div>
-					) : null}
-					{actionResult ? (
-						<div className="archive-bulk-result">{actionResult}</div>
-					) : null}
-				</div>
+				{bulkResult || actionResult ? (
+					<div className="archive-result-bar">
+						{bulkResult ? <span>{bulkResult}</span> : null}
+						{actionResult ? <span>{actionResult}</span> : null}
+					</div>
+				) : null}
 				<Spin spinning={loadingList}>
 					<div className="archive-list" role="listbox" aria-label={t("archive.list.ariaLabel")}>
 						{items.length === 0 ? (
