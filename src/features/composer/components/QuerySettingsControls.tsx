@@ -45,8 +45,8 @@ const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, string> = {
 };
 const ACCESS_LEVEL_COLOR: Record<QueryAccessLevel, string> = {
   default: "",
-  auto_approve: "var(--accent)",
-  full_access: "var(--accent-warn)",
+  auto_approve: "color-mix(in srgb, var(--accent-warn) 72%, transparent)",
+  full_access: "color-mix(in srgb, var(--accent-danger) 72%, transparent)",
 };
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
@@ -688,9 +688,13 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       ACCESS_LEVELS.map((value) => ({
         key: value,
         label: (
-          <span className="query-settings-menu-item">
-            <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
-            <span>{t(`composer.query.access.${value}`)}</span>
+          <span
+            className={`query-settings-access-item query-settings-access-item-${value}`}
+          >
+            <span className="query-settings-menu-item">
+              <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
+              <span>{t(`composer.query.access.${value}`)}</span>
+            </span>
           </span>
         ),
         extra: value === accessLevel ? <MaterialIcon name="check" /> : null,
