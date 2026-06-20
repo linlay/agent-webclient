@@ -61,7 +61,13 @@ function buildTimelineAgentSearchText(input: {
 
 function pushUniqueTimelineAgentOption(
   options: TimelineAgentOption[],
-  option: Omit<TimelineAgentOption, "searchText"> & { searchText?: string },
+  option: {
+    key?: unknown;
+    name?: unknown;
+    role?: unknown;
+    icon?: Agent["icon"];
+    searchText?: unknown;
+  },
 ): void {
   const key = String(option.key || "").trim();
   if (!key || options.some((item) => item.key === key)) {
@@ -79,7 +85,7 @@ function pushUniqueTimelineAgentOption(
       key,
       name,
       role,
-      searchText: option.searchText,
+      searchText: String(option.searchText || ""),
     }),
   });
 }

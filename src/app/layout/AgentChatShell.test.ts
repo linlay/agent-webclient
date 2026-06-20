@@ -5,6 +5,7 @@ import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import type { Chat, WorkerRow } from "@/app/state/types";
 
 jest.mock("react-router-dom", () => ({
+  useNavigate: jest.fn(),
   useParams: jest.fn(),
   useSearchParams: jest.fn(),
 }));
@@ -117,7 +118,8 @@ jest.mock("@/app/effects/FireworksCanvas", () => ({
     React.createElement("canvas", { className: "fireworks-canvas" }),
 }));
 
-const { useParams, useSearchParams } = jest.requireMock("react-router-dom") as {
+const { useNavigate, useParams, useSearchParams } = jest.requireMock("react-router-dom") as {
+  useNavigate: jest.Mock;
   useParams: jest.Mock;
   useSearchParams: jest.Mock;
 };
@@ -147,7 +149,9 @@ const flushPromises = async () => {
 
 const globalWithDom = globalThis as typeof globalThis & {
   window?: {
+    addEventListener: jest.Mock;
     dispatchEvent: jest.Mock;
+    removeEventListener: jest.Mock;
     electronAPI?: {
       onFromMain: jest.Mock;
     };
@@ -168,10 +172,13 @@ describe("AgentChatShell", () => {
   const originalWindow = globalWithDom.window;
   const originalCustomEvent = globalWithDom.CustomEvent;
   const originalLocalStorage = globalWithDom.localStorage;
+  const navigateMock = jest.fn();
 
   beforeEach(() => {
     globalWithDom.window = {
+      addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
+      removeEventListener: jest.fn(),
       location: {
         pathname: "/agent/demo-agent",
         search: "",
@@ -192,6 +199,8 @@ describe("AgentChatShell", () => {
     };
     useParams.mockReturnValue({ agentKey: "demo-agent" });
     useSearchParams.mockReturnValue([new URLSearchParams("")]);
+    useNavigate.mockReturnValue(navigateMock);
+    navigateMock.mockClear();
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
@@ -633,6 +642,46 @@ describe("AgentChatShell", () => {
         },
       }),
     );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("syncs the agent route when selecting a different agent", () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("chatId=chat-123&history=1&lang=en"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+        { key: "next-agent", name: "Next Agent", role: "Research", mode: "REACT" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    const selectWorkerListener = globalWithDom.window?.addEventListener.mock.calls.find(
+      ([type]) => type === "agent:select-worker",
+    )?.[1] as ((event: Event) => void) | undefined;
+    expect(selectWorkerListener).toEqual(expect.any(Function));
+
+    selectWorkerListener?.(
+      new CustomEvent("agent:select-worker", {
+        detail: {
+          workerKey: "agent:next-agent",
+        },
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith("/agent/next-agent?lang=en");
 
     useEffectSpy.mockRestore();
   });

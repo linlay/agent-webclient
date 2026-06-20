@@ -1,8 +1,30 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import type { TaskItemMeta, TimelineNode } from "@/app/state/types";
-import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import type {
+  TaskItemMeta,
+  TimelineNode,
+  WorkerConversationRow,
+  WorkerRow,
+} from "@/app/state/types";
+import {
+  buildTimelineAgentOptions,
+  ConversationStage,
+  dispatchTimelineAgentSwitch,
+  filterTimelineAgentOptions,
+  TimelineAgentSwitcher,
+} from "@/features/timeline/components/ConversationStage";
+
+let mockCurrentWorker: {
+  key: string;
+  type: "agent" | "team";
+  sourceId: string;
+  displayName: string;
+  role: string;
+  raw: Record<string, unknown> | null;
+  row: WorkerRow;
+  relatedChats: WorkerConversationRow[];
+} | null = null;
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -14,7 +36,7 @@ jest.mock("@/app/state/AppContext", () => {
 });
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
-  resolveCurrentWorkerSummary: () => null,
+  resolveCurrentWorkerSummary: () => mockCurrentWorker,
 }));
 
 jest.mock("@/shared/icons/agent", () => ({
@@ -43,6 +65,14 @@ const { useAppState, useAppDispatch } = jest.requireMock(
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
+  CustomEvent?: typeof CustomEvent;
+  window?: {
+    dispatchEvent: jest.Mock;
+    location: {
+      pathname: string;
+      search: string;
+    };
+  };
   localStorage?: {
     getItem: jest.Mock;
     setItem: jest.Mock;
@@ -54,10 +84,49 @@ function createTimelineMap(nodes: TimelineNode[]): Map<string, TimelineNode> {
   return new Map(nodes.map((node) => [node.id, node]));
 }
 
+function createAgentWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
+  const sourceId = overrides.sourceId || "xiao-zhai";
+  return {
+    key: `agent:${sourceId}`,
+    type: "agent",
+    sourceId,
+    displayName: "小宅",
+    role: "生活助理",
+    teamAgentLabels: [],
+    latestChatId: "",
+    latestRunId: "",
+    latestUpdatedAt: 0,
+    latestChatName: "",
+    latestRunContent: "",
+    hasHistory: false,
+    latestRunSortValue: -1,
+    searchText: `${sourceId} 小宅 生活助理`,
+    ...overrides,
+  };
+}
+
 describe("ConversationStage", () => {
   const originalLocalStorage = globalWithStorage.localStorage;
+  const originalWindow = globalWithStorage.window;
+  const originalCustomEvent = globalWithStorage.CustomEvent;
 
   beforeEach(() => {
+    mockCurrentWorker = null;
+    globalWithStorage.window = {
+      dispatchEvent: jest.fn(() => true),
+      location: {
+        pathname: "/",
+        search: "?lang=zh-CN",
+      },
+    };
+    globalWithStorage.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
+      detail: T;
+
+      constructor(type: string, init?: CustomEventInit<T>) {
+        super(type);
+        this.detail = init?.detail as T;
+      }
+    } as typeof CustomEvent;
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -67,6 +136,16 @@ describe("ConversationStage", () => {
   });
 
   afterAll(() => {
+    if (originalWindow) {
+      globalWithStorage.window = originalWindow;
+    } else {
+      delete globalWithStorage.window;
+    }
+    if (originalCustomEvent) {
+      globalWithStorage.CustomEvent = originalCustomEvent;
+    } else {
+      delete globalWithStorage.CustomEvent;
+    }
     if (originalLocalStorage) {
       globalWithStorage.localStorage = originalLocalStorage;
       return;
@@ -195,5 +274,176 @@ describe("ConversationStage", () => {
     expect(html).toContain("timeline-stack");
     expect(html).not.toContain("timeline-empty");
     expect(html).not.toContain("今天有什么可以帮您");
+  });
+
+  it("renders the empty-state agent switch trigger with a subtle arrow", () => {
+    const state = createInitialState();
+    const currentRow = createAgentWorkerRow();
+    const nextRow = createAgentWorkerRow({
+      key: "agent:researcher",
+      sourceId: "researcher",
+      displayName: "小研",
+      role: "研究员",
+      searchText: "researcher 小研 研究员",
+    });
+    mockCurrentWorker = {
+      key: currentRow.key,
+      type: "agent",
+      sourceId: currentRow.sourceId,
+      displayName: currentRow.displayName,
+      role: currentRow.role,
+      raw: null,
+      row: currentRow,
+      relatedChats: [],
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      agents: [
+        { key: "xiao-zhai", name: "小宅", role: "生活助理" },
+        { key: "researcher", name: "小研", role: "研究员" },
+      ],
+      workerRows: [currentRow, nextRow],
+      workerIndexByKey: new Map([
+        [currentRow.key, currentRow],
+        [nextRow.key, nextRow],
+      ]),
+      workerSelectionKey: currentRow.key,
+      timelineNodes: new Map(),
+      timelineOrder: [],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ConversationStage));
+
+    expect(html).toContain("timeline-empty");
+    expect(html).toContain("timeline-agent-switcher-trigger");
+    expect(html).toContain("小宅");
+    expect(html).toContain("keyboard_arrow_down");
+    expect(html).toContain("与 ");
+    expect(html).toContain(" 对话");
+  });
+
+  it("falls back to the static empty-state copy when there is no alternate agent", () => {
+    const state = createInitialState();
+    const currentRow = createAgentWorkerRow();
+    mockCurrentWorker = {
+      key: currentRow.key,
+      type: "agent",
+      sourceId: currentRow.sourceId,
+      displayName: currentRow.displayName,
+      role: currentRow.role,
+      raw: null,
+      row: currentRow,
+      relatedChats: [],
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      agents: [{ key: "xiao-zhai", name: "小宅", role: "生活助理" }],
+      workerRows: [currentRow],
+      workerIndexByKey: new Map([[currentRow.key, currentRow]]),
+      workerSelectionKey: currentRow.key,
+      timelineNodes: new Map(),
+      timelineOrder: [],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ConversationStage));
+
+    expect(html).toContain("与 小宅 对话");
+    expect(html).not.toContain("timeline-agent-switcher-trigger");
+  });
+
+  it("filters the agent switch menu by role and renders the empty result", () => {
+    const currentRow = createAgentWorkerRow();
+    const options = buildTimelineAgentOptions({
+      agents: [
+        { key: "xiao-zhai", name: "小宅", role: "生活助理" },
+        { key: "researcher", name: "小研", role: "研究员" },
+      ],
+      workerRows: [
+        currentRow,
+        createAgentWorkerRow({
+          key: "agent:researcher",
+          sourceId: "researcher",
+          displayName: "小研",
+          role: "研究员",
+          searchText: "researcher 小研 研究员",
+        }),
+      ],
+      currentWorker: {
+        key: currentRow.key,
+        type: "agent",
+        sourceId: currentRow.sourceId,
+        displayName: currentRow.displayName,
+        role: currentRow.role,
+        raw: null,
+        row: currentRow,
+        relatedChats: [],
+      },
+    });
+
+    expect(filterTimelineAgentOptions(options, "研究员").map((item) => item.key)).toEqual([
+      "researcher",
+    ]);
+
+    const matchedHtml = renderToStaticMarkup(
+      React.createElement(TimelineAgentSwitcher, {
+        currentWorker: {
+          key: currentRow.key,
+          type: "agent",
+          sourceId: currentRow.sourceId,
+          displayName: currentRow.displayName,
+          role: currentRow.role,
+          raw: null,
+          row: currentRow,
+          relatedChats: [],
+        },
+        options,
+        initialOpen: true,
+        initialSearchText: "研究员",
+      }),
+    );
+    expect(matchedHtml).toContain("timeline-agent-switcher-menu");
+    expect(matchedHtml).toContain("小研");
+    expect(matchedHtml).toContain("研究员");
+    expect(matchedHtml).not.toContain("生活助理</span>");
+
+    const emptyHtml = renderToStaticMarkup(
+      React.createElement(TimelineAgentSwitcher, {
+        currentWorker: {
+          key: currentRow.key,
+          type: "agent",
+          sourceId: currentRow.sourceId,
+          displayName: currentRow.displayName,
+          role: currentRow.role,
+          raw: null,
+          row: currentRow,
+          relatedChats: [],
+        },
+        options,
+        initialOpen: true,
+        initialSearchText: "不存在",
+      }),
+    );
+    expect(emptyHtml).toContain("没有匹配的智能体");
+  });
+
+  it("dispatches the existing worker selection event when selecting an agent", () => {
+    dispatchTimelineAgentSwitch({
+      key: "researcher",
+      name: "小研",
+      role: "研究员",
+      searchText: "researcher 小研 研究员",
+    });
+
+    expect(globalWithStorage.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:select-worker",
+        detail: {
+          workerKey: "agent:researcher",
+          agentKey: "researcher",
+          focusComposerOnComplete: true,
+          preferNewChat: true,
+        },
+      }),
+    );
   });
 });
