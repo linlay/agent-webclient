@@ -47,7 +47,9 @@ import {
 } from "@/app/modals/lib/eventPopoverFormatters";
 import { PromptAnalysisModal } from "@/app/modals/PromptAnalysisModal";
 import {
+	buildPromptAnalysisTimeoutLoadState,
 	isValidRawLLMTraceFile,
+	PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
 	resolvePromptAnalysisCalls,
 	resolvePromptAnalysisPayloadFromTraceText,
 	resolveRawLLMTraceFile,
@@ -267,6 +269,16 @@ export const EventPopover: React.FC = () => {
 		let cancelled = false;
 		const callId = selectedPromptAnalysisCall.id;
 		const traceFile = selectedPromptAnalysisCall.traceFile;
+		const timeout = window.setTimeout(() => {
+			if (cancelled) return;
+			cancelled = true;
+			setPromptAnalysisLoadStates((current) => ({
+				...current,
+				[callId]: buildPromptAnalysisTimeoutLoadState(
+					t("eventPopover.promptModal.timeout"),
+				),
+			}));
+		}, PROMPT_ANALYSIS_LOAD_TIMEOUT_MS);
 		setPromptAnalysisLoadStates((current) => ({
 			...current,
 			[callId]: { status: "loading" },
@@ -275,6 +287,7 @@ export const EventPopover: React.FC = () => {
 			.then((rawText) => resolvePromptAnalysisPayloadFromTraceText(rawText))
 			.then((payload) => {
 				if (cancelled) return;
+				window.clearTimeout(timeout);
 				setPromptAnalysisLoadStates((current) => ({
 					...current,
 					[callId]: payload
@@ -284,6 +297,7 @@ export const EventPopover: React.FC = () => {
 			})
 			.catch((error) => {
 				if (cancelled) return;
+				window.clearTimeout(timeout);
 				setPromptAnalysisLoadStates((current) => ({
 					...current,
 					[callId]: {
@@ -295,11 +309,12 @@ export const EventPopover: React.FC = () => {
 
 		return () => {
 			cancelled = true;
+			window.clearTimeout(timeout);
 		};
 	}, [
 		promptAnalysisOpen,
 		selectedPromptAnalysisCall,
-		selectedPromptAnalysisLoadStatus,
+		t,
 	]);
 
 	useEffect(() => {
@@ -555,6 +570,8 @@ export const __TEST_ONLY__ = {
 	resolveInjectedPromptPayloadFromRequestBody,
 	resolvePromptAnalysisCalls,
 	resolvePromptAnalysisPayloadFromTraceText,
+	buildPromptAnalysisTimeoutLoadState,
+	PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
 	resolveRawJsonlChatId,
 	buildRawJsonlCopyMenuItem,
 	resolveRawLLMTraceFile,

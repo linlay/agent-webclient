@@ -424,6 +424,7 @@ export const enUSMessages: I18nMessages = {
   "eventPopover.promptModal.rawJson": "Raw prompt JSON",
   "eventPopover.promptModal.rawPayload": "Full prompt payload",
   "eventPopover.promptModal.summary": "Summary",
+  "eventPopover.promptModal.timeout": "Loading prompt analysis timed out.",
   "eventPopover.promptModal.subtitle": "This view shows the prompt content that entered model context.",
   "eventPopover.promptModal.subtitleCall": "This view shows the prompt content for the selected LLM call.",
   "eventPopover.promptModal.subtitleRun": "This run has {count} analyzable LLM calls. Select one to inspect its prompt.",

@@ -31,6 +31,14 @@ export type PromptAnalysisLoadState =
 	| { status: "empty" }
 	| { status: "error"; message: string };
 
+export const PROMPT_ANALYSIS_LOAD_TIMEOUT_MS = 15_000;
+
+export function buildPromptAnalysisTimeoutLoadState(
+	message: string,
+): PromptAnalysisLoadState {
+	return { status: "error", message };
+}
+
 export function isValidRawLLMTraceFile(file: string): boolean {
 	const normalized = String(file || "").trim();
 	if (
@@ -113,17 +121,46 @@ export function resolvePromptAnalysisCalls(
 }
 
 export function resolvePromptAnalysisPayloadFromTraceText(
-	rawText: string,
+	rawText: unknown,
 ): InjectedPromptPayloads | null {
-	const trimmed = String(rawText || "").trim();
-	if (!trimmed) {
-		return null;
+	for (const candidate of collectPromptAnalysisTraceCandidates(rawText)) {
+		const payload = resolveInjectedPromptPayloadFromLLMTrace(candidate);
+		if (payload) {
+			return payload;
+		}
 	}
-	try {
-		return resolveInjectedPromptPayloadFromLLMTrace(JSON.parse(trimmed));
-	} catch {
-		return null;
+	return null;
+}
+
+function collectPromptAnalysisTraceCandidates(
+	value: unknown,
+	depth = 0,
+): unknown[] {
+	if (depth > 4) {
+		return [];
 	}
+
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		if (!trimmed) {
+			return [];
+		}
+		try {
+			return collectPromptAnalysisTraceCandidates(JSON.parse(trimmed), depth + 1);
+		} catch {
+			return [];
+		}
+	}
+
+	const record = readObjectValue(value);
+	if (!record) {
+		return [];
+	}
+
+	return [
+		record,
+		...collectPromptAnalysisTraceCandidates(record.data, depth + 1),
+	];
 }
 
 function buildDebugLLMChatCall(

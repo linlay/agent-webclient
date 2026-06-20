@@ -25,6 +25,8 @@ const {
   resolveInjectedPromptPayloadFromRequestBody,
   resolvePromptAnalysisCalls,
   resolvePromptAnalysisPayloadFromTraceText,
+  buildPromptAnalysisTimeoutLoadState,
+  PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
   resolveInitialPopoverState,
   resolveRawJsonlChatId,
   buildRawJsonlCopyMenuItem,
@@ -1040,6 +1042,21 @@ describe("EventPopover display and copy helpers", () => {
     expect(payload?.providerMessagesText).toContain("openai system");
   });
 
+  it("falls back to trace requestBody fields for prompt analysis", () => {
+    const payload = resolveInjectedPromptPayloadFromLLMTrace({
+      requestBody: {
+        model: "gpt-5",
+        messages: [
+          { role: "system", content: "requestBody system" },
+          { role: "user", content: "requestBody user" },
+        ],
+      },
+    });
+
+    expect(payload?.systemPromptText).toBe("requestBody system");
+    expect(payload?.currentUserMessageText).toContain("requestBody user");
+  });
+
   it("falls back to Anthropic-style trace request system text for prompt analysis", () => {
     const payload = resolveInjectedPromptPayloadFromRequestBody({
       model: "claude",
@@ -1067,6 +1084,53 @@ describe("EventPopover display and copy helpers", () => {
     ).toBe("raw system");
 
     expect(resolvePromptAnalysisPayloadFromTraceText("{not json")).toBeNull();
+  });
+
+  it("parses prompt analysis payloads from trace objects and data wrappers", () => {
+    expect(
+      resolvePromptAnalysisPayloadFromTraceText({
+        request: {
+          messages: [
+            { role: "system", content: "object system" },
+            { role: "user", content: "object user" },
+          ],
+        },
+      })?.systemPromptText,
+    ).toBe("object system");
+
+    expect(
+      resolvePromptAnalysisPayloadFromTraceText({
+        data: {
+          request: {
+            messages: [
+              { role: "system", content: "wrapped system" },
+              { role: "user", content: "wrapped user" },
+            ],
+          },
+        },
+      })?.currentUserMessageText,
+    ).toContain("wrapped user");
+
+    expect(
+      resolvePromptAnalysisPayloadFromTraceText({
+        data: JSON.stringify({
+          request: {
+            messages: [
+              { role: "system", content: "string-wrapped system" },
+              { role: "user", content: "string-wrapped user" },
+            ],
+          },
+        }),
+      })?.systemPromptText,
+    ).toBe("string-wrapped system");
+  });
+
+  it("builds an error load state for prompt analysis timeout", () => {
+    expect(PROMPT_ANALYSIS_LOAD_TIMEOUT_MS).toBe(15_000);
+    expect(buildPromptAnalysisTimeoutLoadState("timeout")).toEqual({
+      status: "error",
+      message: "timeout",
+    });
   });
 
   it("collects prompt analysis calls for run.start and excludes direct debug.preCall", () => {

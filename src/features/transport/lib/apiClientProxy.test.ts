@@ -921,6 +921,41 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.getChatLLMTraceRaw).not.toHaveBeenCalled();
 	});
 
+	it("normalizes object raw llm trace ws responses to json text", async () => {
+		const proxy = await import("./apiClientProxy");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const tracePayload = {
+			request: {
+				messages: [
+					{ role: "system", content: "system" },
+					{ role: "user", content: "hello" },
+				],
+			},
+		};
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: tracePayload,
+		});
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		const rawText = await proxy.getChatLLMTraceRaw("llm/run_1_001.json");
+
+		expect(JSON.parse(rawText)).toEqual(tracePayload);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/llm-trace",
+			payload: { file: "llm/run_1_001.json" },
+		});
+		expect(mockApiClient.getChatLLMTraceRaw).not.toHaveBeenCalled();
+	});
+
 	it("falls back to http when raw llm trace ws request disconnects", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");

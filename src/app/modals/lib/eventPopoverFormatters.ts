@@ -174,7 +174,11 @@ export function resolveInjectedPromptPayloadFromLLMTrace(
 		return injectedPromptPayload;
 	}
 
-	return resolveInjectedPromptPayloadFromRequestBody(traceRecord.request);
+	return (
+		resolveInjectedPromptPayloadFromRequestBody(traceRecord.request) ||
+		resolveInjectedPromptPayloadFromRequestBody(traceRecord.requestBody) ||
+		resolveInjectedPromptPayloadFromRequestBody(traceRecord.request_body)
+	);
 }
 
 export function resolveInjectedPromptPayloadFromRequestBody(

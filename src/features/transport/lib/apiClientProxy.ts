@@ -261,6 +261,23 @@ export async function getChatRawJsonl(chatId: string): Promise<string> {
 	return String(response.data ?? "");
 }
 
+function stringifyRawResponseData(data: unknown): string {
+	if (typeof data === "string") {
+		return data;
+	}
+	if (data === null || data === undefined) {
+		return "";
+	}
+	if (typeof data === "object") {
+		try {
+			return JSON.stringify(data);
+		} catch {
+			return "";
+		}
+	}
+	return String(data);
+}
+
 export async function getChatLLMTraceRaw(file: string): Promise<string> {
 	const response = await routeRequest<string>(
 		"/api/chat/llm-trace",
@@ -272,7 +289,7 @@ export async function getChatLLMTraceRaw(file: string): Promise<string> {
 			data: await getChatLLMTraceRawHttp(file),
 		}),
 	);
-	return String(response.data ?? "");
+	return stringifyRawResponseData(response.data);
 }
 
 export function archiveChats(

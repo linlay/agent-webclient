@@ -424,6 +424,7 @@ export const zhCNMessages: I18nMessages = {
   "eventPopover.promptModal.rawJson": "原始提示词 JSON",
   "eventPopover.promptModal.rawPayload": "完整提示词载荷",
   "eventPopover.promptModal.summary": "汇总",
+  "eventPopover.promptModal.timeout": "加载提示词分析超时。",
   "eventPopover.promptModal.subtitle": "这里展示的是进入模型上下文的提示词内容。",
   "eventPopover.promptModal.subtitleCall": "这里展示当前 LLM 调用进入模型上下文的提示词。",
   "eventPopover.promptModal.subtitleRun": "这个 run 有 {count} 次可分析的 LLM 调用，可切换查看每次提示词。",
