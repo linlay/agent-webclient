@@ -339,9 +339,9 @@
     max-width: 340px;
     overflow: hidden;
     color: var(--ink-muted);
-    font:
-        500 9px/1.15 "IBM Plex Mono",
-        monospace;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

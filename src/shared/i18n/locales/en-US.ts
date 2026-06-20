@@ -440,7 +440,7 @@ export const enUSMessages: I18nMessages = {
   "eventPopover.title.doubleClickCopy": "Double-click to copy all",
   "leftSidebar.awaitingApproval": "Awaiting approval",
   "leftSidebar.awaitingStatus.plan": "Await Impl",
-  "leftSidebar.awaitingStatus.question": "Await Question",
+  "leftSidebar.awaitingStatus.question": "Await Ques",
   "leftSidebar.awaitingStatus.approval": "Await Appr",
   "leftSidebar.awaitingStatus.form": "Await Submit",
   "leftSidebar.browserFolderUnsupported": "Browser folder selection is not supported",

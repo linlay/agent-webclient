@@ -537,7 +537,7 @@ export const TopNav: React.FC = () => {
                                 t("topNav.usage.modelUnknown")}
                             </Typography.Text>
                             {reasoningEffortLabel ? (
-                              <span style={{ color: "var(--ink-muted)", fontSize: 11 }}>
+                              <span style={{ color: "var(--ink-muted)" }}>
                                 · {reasoningEffortLabel}
                               </span>
                             ) : null}
