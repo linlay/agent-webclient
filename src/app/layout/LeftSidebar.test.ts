@@ -558,6 +558,24 @@ describe("LeftSidebar", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/registries?lang=zh-CN");
   });
 
+  it("navigates to archives from the settings menu and preserves the current search string", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true",
+    };
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
+
+    renderSidebar();
+
+    const archiveButton = uiButtonProps.find((props) =>
+      props.text.includes("归档"),
+    );
+    expect(archiveButton).toBeTruthy();
+
+    (archiveButton?.onClick as () => void)();
+
+    expect(mockNavigate).toHaveBeenCalledWith("/archives?lang=zh-CN");
+  });
+
   it("does not render quick actions by default", () => {
     const html = renderSidebar();
 

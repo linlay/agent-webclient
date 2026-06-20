@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
 import { TopNav } from "@/app/layout/TopNav";
@@ -64,6 +64,7 @@ export const AgentChatShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const [historyWorkerKey, setHistoryWorkerKey] = useState("");
@@ -144,6 +145,45 @@ export const AgentChatShell: React.FC = () => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.addEventListener !== "function"
+    ) {
+      return;
+    }
+
+    const handleSelectWorker = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        agentKey?: unknown;
+        workerKey?: unknown;
+      };
+      const explicitAgentKey = String(detail.agentKey || "").trim();
+      const workerKey = String(detail.workerKey || "").trim();
+      const nextAgentKey =
+        explicitAgentKey ||
+        (workerKey.startsWith("agent:")
+          ? workerKey.slice("agent:".length).trim()
+          : "");
+      if (!nextAgentKey || nextAgentKey === agentKey) {
+        return;
+      }
+
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("chatId");
+      nextSearchParams.delete("history");
+      const nextSearch = nextSearchParams.toString();
+      navigate(
+        `/agent/${encodeURIComponent(nextAgentKey)}${nextSearch ? `?${nextSearch}` : ""}`,
+      );
+    };
+
+    window.addEventListener("agent:select-worker", handleSelectWorker);
+    return () => {
+      window.removeEventListener("agent:select-worker", handleSelectWorker);
+    };
+  }, [agentKey, navigate, searchParams]);
 
   useEffect(() => {
     if (!agentKey) {

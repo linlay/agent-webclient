@@ -573,6 +573,11 @@ export const LeftSidebar: React.FC = () => {
       setSettingsMenuOpen(false);
       return;
     }
+    if (action.type === "open-archive") {
+      navigate(`/archives${window.location.search || ""}`);
+      setSettingsMenuOpen(false);
+      return;
+    }
 
     const shouldClose = dispatchSidebarSettingsAction(action, dispatch);
     if (shouldClose) {

@@ -807,6 +807,17 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.restored") {
+				const summary = isObjectRecord(liveEvent.summary)
+					? (liveEvent.summary as Partial<Chat> & Pick<Chat, "chatId">)
+					: null;
+				if (summary?.chatId) {
+					options.dispatch({ type: "UPSERT_CHAT", chat: summary });
+					window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+				}
+				return;
+			}
+
 			if (type === "chat.updated") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);

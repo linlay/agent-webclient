@@ -539,6 +539,34 @@ export interface ArchiveDeleteResponse {
   deleted: boolean;
 }
 
+export interface ChatSummaryResponse {
+  chatId: string;
+  chatName?: string;
+  agentKey?: string;
+  teamId?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  lastRunId?: string;
+  lastRunContent?: string;
+  read?: {
+    isRead?: boolean;
+    readAt?: number;
+    readRunId?: string;
+  };
+  usage?: ChatUsageData;
+}
+
+export interface ArchiveRestoreResult {
+  chatId: string;
+  success: boolean;
+  error?: string;
+  summary?: ChatSummaryResponse;
+}
+
+export interface ArchiveRestoreResponse {
+  results: ArchiveRestoreResult[];
+}
+
 let authToken = "";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -1338,7 +1366,7 @@ export function getArchive(
 export function searchArchives(
   params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
-  return postJson<ArchiveSearchResponse>("/api/archive/search", {
+  return postJson<ArchiveSearchResponse>("/api/archives/search", {
     query: params.query,
     agentKey: params.agentKey,
     limit: params.limit,
@@ -1352,6 +1380,14 @@ export function deleteArchive(params: {
   return requestJson<ArchiveDeleteResponse>(`/api/archive/delete?${query}`, {
     method: "POST",
     body: JSON.stringify({}),
+  });
+}
+
+export function restoreArchives(params: {
+  chatIds: string[];
+}): Promise<ApiResponse<ArchiveRestoreResponse>> {
+  return postJson<ArchiveRestoreResponse>("/api/archive/restore", {
+    chatIds: params.chatIds,
   });
 }
 

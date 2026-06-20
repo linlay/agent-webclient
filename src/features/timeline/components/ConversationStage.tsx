@@ -23,7 +23,158 @@ import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { Button, Dropdown, Flex, Form, Input, message, Popover } from "antd";
-import type { Agent } from "@/app/state/types";
+import type { InputRef } from "antd";
+import type { Agent, WorkerRow } from "@/app/state/types";
+
+type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
+
+export interface TimelineAgentOption {
+  key: string;
+  name: string;
+  role: string;
+  icon?: Agent["icon"];
+  searchText: string;
+}
+
+function normalizeSearchText(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function buildTimelineAgentSearchText(input: {
+  key: string;
+  name: string;
+  role: string;
+  searchText?: string;
+}): string {
+  return [
+    input.name,
+    input.role,
+    input.key,
+    input.searchText,
+  ]
+    .map(normalizeSearchText)
+    .filter(Boolean)
+    .join(" ");
+}
+
+function pushUniqueTimelineAgentOption(
+  options: TimelineAgentOption[],
+  option: Omit<TimelineAgentOption, "searchText"> & { searchText?: string },
+): void {
+  const key = String(option.key || "").trim();
+  if (!key || options.some((item) => item.key === key)) {
+    return;
+  }
+
+  const name = String(option.name || key).trim() || key;
+  const role = String(option.role || "").trim();
+  options.push({
+    key,
+    name,
+    role,
+    icon: option.icon,
+    searchText: buildTimelineAgentSearchText({
+      key,
+      name,
+      role,
+      searchText: option.searchText,
+    }),
+  });
+}
+
+export function buildTimelineAgentOptions(input: {
+  agents: Agent[];
+  workerRows: WorkerRow[];
+  currentWorker: CurrentWorkerSummary;
+}): TimelineAgentOption[] {
+  const iconByAgentKey = new Map<string, Agent["icon"]>();
+  for (const agent of Array.isArray(input.agents) ? input.agents : []) {
+    const key = String(agent?.key || "").trim();
+    if (key) {
+      iconByAgentKey.set(key, agent.icon);
+    }
+  }
+
+  const options: TimelineAgentOption[] = [];
+  if (input.currentWorker?.type === "agent") {
+    pushUniqueTimelineAgentOption(options, {
+      key: input.currentWorker.sourceId,
+      name: input.currentWorker.displayName,
+      role: input.currentWorker.role,
+      icon: iconByAgentKey.get(input.currentWorker.sourceId),
+    });
+  }
+
+  const rows = Array.isArray(input.workerRows) ? input.workerRows : [];
+  for (const row of rows) {
+    if (row?.type !== "agent") continue;
+    pushUniqueTimelineAgentOption(options, {
+      key: row.sourceId,
+      name: row.displayName,
+      role: row.role,
+      icon: iconByAgentKey.get(row.sourceId),
+      searchText: row.searchText,
+    });
+  }
+
+  if (options.length <= 1) {
+    for (const agent of Array.isArray(input.agents) ? input.agents : []) {
+      pushUniqueTimelineAgentOption(options, {
+        key: agent?.key,
+        name: agent?.name,
+        role: agent?.role || "",
+        icon: agent?.icon,
+      });
+    }
+  }
+
+  return options;
+}
+
+export function filterTimelineAgentOptions(
+  options: TimelineAgentOption[],
+  searchText: string,
+): TimelineAgentOption[] {
+  const normalizedSearch = normalizeSearchText(searchText);
+  if (!normalizedSearch) {
+    return options;
+  }
+
+  return options.filter((option) =>
+    normalizeSearchText(option.searchText).includes(normalizedSearch),
+  );
+}
+
+export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
+  const agentKey = String(option?.key || "").trim();
+  if (
+    !agentKey ||
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function"
+  ) {
+    return;
+  }
+
+  const detail = {
+    workerKey: `agent:${agentKey}`,
+    agentKey,
+    focusComposerOnComplete: true,
+    preferNewChat: true,
+  };
+
+  if (typeof CustomEvent === "function") {
+    window.dispatchEvent(new CustomEvent("agent:select-worker", { detail }));
+    return;
+  }
+
+  const event = new Event("agent:select-worker") as CustomEvent<
+    typeof detail
+  >;
+  Object.defineProperty(event, "detail", { value: detail });
+  window.dispatchEvent(event);
+}
 
 function formatResponseDuration(durationMs?: number): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
@@ -83,6 +234,156 @@ function resolveTaskGroupAgent(
   );
 }
 
+export const TimelineAgentSwitcher: React.FC<{
+  currentWorker: CurrentWorkerSummary;
+  options: TimelineAgentOption[];
+  initialOpen?: boolean;
+  initialSearchText?: string;
+}> = ({
+  currentWorker,
+  options,
+  initialOpen = false,
+  initialSearchText = "",
+}) => {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(initialOpen);
+  const [searchText, setSearchText] = useState(initialSearchText);
+  const searchInputRef = useRef<InputRef>(null);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const currentAgentKey =
+    currentWorker?.type === "agent" ? currentWorker.sourceId : "";
+  const activeOption =
+    options.find((option) => option.key === currentAgentKey) || options[0];
+  const displayName =
+    currentWorker?.displayName || activeOption?.name || currentAgentKey;
+  const filteredOptions = useMemo(
+    () => filterTimelineAgentOptions(options, searchText),
+    [options, searchText],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    searchInputRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        rootRef.current &&
+        target instanceof Node &&
+        rootRef.current.contains(target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const handleSelectAgent = (option: TimelineAgentOption) => {
+    setOpen(false);
+    setSearchText("");
+    dispatchTimelineAgentSwitch(option);
+  };
+
+  return (
+    <span className="timeline-empty-agent-switcher" ref={rootRef}>
+      <button
+        className="timeline-agent-switcher-trigger"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t("timeline.agentSwitcher.ariaLabel", {
+          name: displayName,
+        })}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="timeline-agent-switcher-trigger-name">
+          {displayName}
+        </span>
+        <MaterialIcon
+          className="timeline-agent-switcher-arrow"
+          name="keyboard_arrow_down"
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <div className="timeline-agent-switcher-menu">
+          <Input
+            ref={searchInputRef}
+            className="timeline-agent-switcher-search"
+            size="small"
+            variant="filled"
+            value={searchText}
+            placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          {filteredOptions.length === 0 ? (
+            <div className="timeline-agent-switcher-empty">
+              {t("timeline.agentSwitcher.empty")}
+            </div>
+          ) : (
+            <div
+              className="timeline-agent-switcher-list"
+              role="listbox"
+              aria-label={t("timeline.agentSwitcher.listAriaLabel")}
+            >
+              {filteredOptions.map((option) => {
+                const selected = option.key === currentAgentKey;
+                return (
+                  <button
+                    key={option.key}
+                    className={`timeline-agent-switcher-option ${selected ? "is-active" : ""}`.trim()}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => handleSelectAgent(option)}
+                  >
+                    <AgentIcon
+                      icon={option.icon}
+                      type="agent"
+                      props={{
+                        icon: {
+                          className: "timeline-agent-switcher-avatar",
+                          width: 28,
+                          height: 28,
+                        },
+                        avatar: {
+                          className: "timeline-agent-switcher-avatar",
+                          size: 28,
+                        },
+                      }}
+                    />
+                    <span className="timeline-agent-switcher-option-copy">
+                      <strong>{option.name}</strong>
+                      <span>{option.role || "--"}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </span>
+  );
+};
+
 interface ConversationStageProps {
   showEmptyState?: boolean;
 }
@@ -101,6 +402,20 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     Record<string, boolean>
   >({});
   const currentWorker = resolveCurrentWorkerSummary(state);
+  const timelineAgentOptions = useMemo(
+    () =>
+      buildTimelineAgentOptions({
+        agents: state.agents,
+        workerRows: state.workerRows,
+        currentWorker,
+      }),
+    [currentWorker, state.agents, state.workerRows],
+  );
+  const canSwitchEmptyAgent =
+    currentWorker?.type === "agent" &&
+    timelineAgentOptions.some(
+      (option) => option.key !== currentWorker.sourceId,
+    );
 
   const isNearBottom = (el: HTMLDivElement, threshold = 24): boolean => {
     return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
@@ -372,11 +687,24 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           {displayItems.length === 0 ? (
             showEmptyState ? (
               <div className="timeline-empty">
-                {currentWorker?.displayName
-                  ? t("timeline.empty.withWorker", {
+                {currentWorker?.displayName ? (
+                  canSwitchEmptyAgent ? (
+                    <>
+                      {t("timeline.empty.withAgentPrefix")}
+                      <TimelineAgentSwitcher
+                        currentWorker={currentWorker}
+                        options={timelineAgentOptions}
+                      />
+                      {t("timeline.empty.withAgentSuffix")}
+                    </>
+                  ) : (
+                    t("timeline.empty.withWorker", {
                       name: currentWorker.displayName,
                     })
-                  : t("timeline.empty.default")}
+                  )
+                ) : (
+                  t("timeline.empty.default")
+                )}
               </div>
             ) : null
           ) : (

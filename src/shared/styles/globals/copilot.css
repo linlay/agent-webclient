@@ -426,6 +426,7 @@
 .layout-copilot .settings-grid,
 .layout-copilot .settings-numeric-grid,
 .layout-copilot .memory-info-layout,
+.layout-copilot .archive-console,
 .layout-copilot .archive-modal-layout {
     grid-template-columns: 1fr;
 }

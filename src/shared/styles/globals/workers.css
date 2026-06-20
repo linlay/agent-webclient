@@ -541,6 +541,23 @@
     flex-direction: column;
 }
 
+.archives-page {
+    max-width: none;
+    margin: 0;
+    height: 100vh;
+    padding: 10px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.archives-page>.archive-console {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .automations-page {
     max-width: none;
     margin: 0;

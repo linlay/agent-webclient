@@ -511,6 +511,69 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
+	it("upserts restored chat summaries when chat.restored arrives over push", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local", chatId: "" });
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: { dispatchEvent },
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.restored",
+			payload: {
+				chatId: "chat_restored",
+				agentKey: "agent_a",
+				summary: {
+					chatId: "chat_restored",
+					chatName: "Restored",
+					agentKey: "agent_a",
+				},
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_restored",
+				chatName: "Restored",
+				agentKey: "agent_a",
+			}),
+		});
+		expect(dispatchEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "agent:refresh-worker-data" }),
+		);
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("upserts run.started for another chat without dropping it on the current-chat filter", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });

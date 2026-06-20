@@ -45,6 +45,7 @@ import {
 	openAgentWorkspace as openAgentWorkspaceHttp,
 	rememberChat as rememberChatHttp,
 	renameChat as renameChatHttp,
+	restoreArchives as restoreArchivesHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
 	setAccessToken,
 	steerChat as steerChatHttp,
@@ -73,6 +74,7 @@ import {
 	type ArchivesResponse,
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
+	type ArchiveRestoreResponse,
 	type CreateAgentRequest,
 	type CreateAutomationRequest,
 	type DeleteAgentRequest,
@@ -334,7 +336,7 @@ export function searchArchives(
 	params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
 	return routeRequest<ArchiveSearchResponse>(
-		"/api/archive/search",
+		"/api/archives/search",
 		params,
 		() => searchArchivesHttp(params),
 	);
@@ -347,6 +349,20 @@ export function deleteArchive(params: {
 		"/api/archive/delete",
 		params,
 		() => deleteArchiveHttp(params),
+		{
+			fallbackOnConnectFailure: false,
+			fallbackOnRequestFailure: false,
+		},
+	);
+}
+
+export function restoreArchives(params: {
+	chatIds: string[];
+}): Promise<ApiResponse<ArchiveRestoreResponse>> {
+	return routeRequest<ArchiveRestoreResponse>(
+		"/api/archive/restore",
+		params,
+		() => restoreArchivesHttp(params),
 		{
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,

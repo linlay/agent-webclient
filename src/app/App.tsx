@@ -31,6 +31,7 @@ import { APP_UI_BASE } from "@/shared/utils/routing";
 import { AutomationsPage } from "./pages/automations";
 import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
+import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import zhCN from "antd/locale/zh_CN";
@@ -214,6 +215,22 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.agents">
               <AgentsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/archives",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.archives">
+              <ArchivesPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/archives/:chatId",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.archives">
+              <ArchivesPage />
             </DocumentTitleRoute>
           ),
         },

@@ -223,6 +223,7 @@
     padding-top: 8px;
 }
 
+.archive-console,
 .archive-modal-layout {
     min-height: 520px;
     max-height: min(72vh, 720px);
@@ -231,12 +232,24 @@
     gap: 16px;
 }
 
+.archive-console-page {
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+}
+
 .archive-modal-list-pane,
 .archive-detail-pane {
     min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.archive-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .archive-toolbar .ant-input-prefix {
@@ -269,6 +282,10 @@
     flex-direction: column;
     gap: 4px;
     padding-right: 4px;
+}
+
+.archive-console-page .archive-list {
+    max-height: none;
 }
 
 .archive-list-item {
@@ -355,6 +372,10 @@
     flex-direction: column;
     gap: 10px;
     padding-right: 4px;
+}
+
+.archive-console-page .archive-detail-content {
+    max-height: none;
 }
 
 .archive-preview-line {
