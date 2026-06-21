@@ -11,7 +11,13 @@ require_release_tools
 resolve_release_context
 
 require_file "$REPO_ROOT/.env.example"
+require_file "$REPO_ROOT/scripts/release-assets/program/unix/deploy.sh"
+require_file "$REPO_ROOT/scripts/release-assets/program/unix/start.sh"
+require_file "$REPO_ROOT/scripts/release-assets/program/unix/stop.sh"
 require_file "$REPO_ROOT/scripts/release-assets/program/unix/program-common.sh"
+require_file "$REPO_ROOT/scripts/release-assets/program/windows/deploy.ps1"
+require_file "$REPO_ROOT/scripts/release-assets/program/windows/start.ps1"
+require_file "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
 require_file "$REPO_ROOT/package.json"
 require_file "$REPO_ROOT/package-lock.json"
@@ -110,10 +116,20 @@ build_program_bundle() {
   cp -R "$BUILD_ROOT/dist/." "$frontend_dir/dist/"
   cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
   if [[ "$target_os" == "windows" ]]; then
+    cp "$REPO_ROOT/scripts/release-assets/program/windows/deploy.ps1" "$bundle_root/deploy.ps1"
+    cp "$REPO_ROOT/scripts/release-assets/program/windows/start.ps1" "$bundle_root/start.ps1"
+    cp "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1" "$bundle_root/stop.ps1"
     cp "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1" "$scripts_dir/program-common.ps1"
   else
+    cp "$REPO_ROOT/scripts/release-assets/program/unix/deploy.sh" "$bundle_root/deploy.sh"
+    cp "$REPO_ROOT/scripts/release-assets/program/unix/start.sh" "$bundle_root/start.sh"
+    cp "$REPO_ROOT/scripts/release-assets/program/unix/stop.sh" "$bundle_root/stop.sh"
     cp "$REPO_ROOT/scripts/release-assets/program/unix/program-common.sh" "$scripts_dir/program-common.sh"
-    chmod +x "$scripts_dir/program-common.sh"
+    chmod +x \
+      "$bundle_root/deploy.sh" \
+      "$bundle_root/start.sh" \
+      "$bundle_root/stop.sh" \
+      "$scripts_dir/program-common.sh"
   fi
   write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$(basename "$bundle_archive")"
 

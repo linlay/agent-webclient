@@ -152,9 +152,15 @@ write_program_manifest() {
   local target_os="$2"
   local target_arch="$3"
   local asset_file_name="$4"
+  local start_script="start.sh"
+  local stop_script="stop.sh"
+  local deploy_script="deploy.sh"
   local program_common="scripts/program-common.sh"
 
   if [[ "$target_os" == "windows" ]]; then
+    start_script="start.ps1"
+    stop_script="stop.ps1"
+    deploy_script="deploy.ps1"
     program_common="scripts/program-common.ps1"
   fi
 
@@ -180,6 +186,11 @@ write_program_manifest() {
     "hideFromNav": true,
     "embedPath": "/"
   },
+  "lifecycle": {
+    "start": ["$start_script", "--daemon"],
+    "stop": "$stop_script",
+    "deploy": "$deploy_script"
+  },
   "configFiles": [
     {
       "key": "env",
@@ -193,6 +204,9 @@ write_program_manifest() {
     "requiredPaths": [
       ".env.example",
       "manifest.json",
+      "$start_script",
+      "$stop_script",
+      "$deploy_script",
       "$program_common",
       "frontend/dist/index.html"
     ]
