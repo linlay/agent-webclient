@@ -51,7 +51,6 @@ export interface VoiceCapabilities {
 	};
 	tts?: {
 		modes?: string[];
-		deprecatedModes?: string[];
 		defaultMode?: "local" | "llm";
 		streamInput?: boolean;
 		runnerConfigured?: boolean;

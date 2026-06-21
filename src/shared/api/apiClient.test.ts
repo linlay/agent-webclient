@@ -1353,7 +1353,7 @@ describe('apiClient query payloads', () => {
     });
   });
 
-  it('recovers legacy utf8 filenames from chat export content disposition', async () => {
+  it('decodes RFC 5987 filenames from chat export content disposition', async () => {
     const createObjectURL = jest.fn(() => 'blob:chat-export');
     const revokeObjectURL = jest.fn();
     const click = jest.fn();
@@ -1384,7 +1384,7 @@ describe('apiClient query payloads', () => {
       headers: {
         get: (key: string) =>
           key.toLowerCase() === 'content-disposition'
-            ? 'attachment; filename="ä½ å¥½.md"'
+            ? "attachment; filename*=UTF-8''%E4%BD%A0%E5%A5%BD.md"
             : null,
       },
       blob: async () => new Blob(['demo']),
@@ -1573,7 +1573,6 @@ describe('apiClient query payloads', () => {
       },
     ]);
 
-    expect(extractUploadReferences({ reference: { id: 'legacy' } })).toEqual([]);
     expect(extractUploadReferences(null)).toEqual([]);
   });
 

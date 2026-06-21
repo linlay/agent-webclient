@@ -1,13 +1,6 @@
 import type { AgentEvent } from "@/app/state/types";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
 
-export interface DebugPreCallCopyPayloads {
-	requestBodyText: string;
-	systemPromptText: string;
-	toolsText: string;
-	modelText: string;
-}
-
 export interface InjectedPromptPayloads {
 	rawJsonText: string;
 	systemPromptText: string;
@@ -79,34 +72,6 @@ export function stringifyCopyValue(value: unknown): string {
 	}
 }
 
-export function resolveDebugPreCallCopyPayloads(
-	event: AgentEvent | null,
-): DebugPreCallCopyPayloads | null {
-	if (!event || String(event.type || "").toLowerCase() !== "debug.precall") {
-		return null;
-	}
-	const payload = readObjectValue(event.data);
-	if (!payload) {
-		return null;
-	}
-	const requestBody = readObjectValue(payload.requestBody);
-	if (!requestBody) {
-		return null;
-	}
-
-	const systemPromptText = extractSystemPromptFromRequestBody(requestBody);
-	const toolsText = Array.isArray(requestBody.tools)
-		? JSON.stringify(requestBody.tools, null, 2)
-		: "";
-
-	return {
-		requestBodyText: JSON.stringify(requestBody, null, 2),
-		systemPromptText,
-		toolsText,
-		modelText: stringifyCopyValue(requestBody.model),
-	};
-}
-
 export function resolveDisplayPayloadTimestamp(
 	payload: unknown,
 ): number | undefined {
@@ -126,16 +91,6 @@ export function resolveInitialPopoverState(event: AgentEvent | null): {
 		rawJsonStr,
 		displayJsonStr: rawJsonStr,
 	};
-}
-
-export function resolveInjectedPromptPayloads(
-	event: AgentEvent | null,
-): InjectedPromptPayloads | null {
-	if (!event || String(event.type || "").toLowerCase() !== "debug.precall") {
-		return null;
-	}
-	const payload = readObjectValue(event.data);
-	return resolveInjectedPromptPayloadRecord(payload?.injectedPrompt);
 }
 
 export function resolveInjectedPromptPayloadRecord(

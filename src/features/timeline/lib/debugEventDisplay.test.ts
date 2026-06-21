@@ -495,7 +495,7 @@ describe('resolveDebugEventTarget', () => {
   it('maps request-like events to user request node ids when present', () => {
     expect(
       resolveDebugEventTarget(
-        { type: 'debug.preCall', requestId: 'req_1', timestamp: 1002 },
+        { type: 'debug.llmChat', requestId: 'req_1', timestamp: 1002 },
         {
           contentNodeById: new Map(),
           reasoningNodeById: new Map(),

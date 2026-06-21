@@ -19,8 +19,8 @@ import {
 } from '@/features/tools/components/AwaitingHtmlContainer';
 
 const originalWarn = console.warn;
-let mockRadioGroupProps: Record<string, any> | null = null;
 let mockInputProps: Record<string, any> | null = null;
+let mockRadioPropsByValue: Record<string, Record<string, any>> = {};
 
 jest.mock('antd', () => {
   const ReactRuntime = require('react');
@@ -28,16 +28,20 @@ jest.mock('antd', () => {
     ReactRuntime.createElement('label', props, children);
   Checkbox.Group = ({ children, ...props }: Record<string, unknown>) =>
     ReactRuntime.createElement('div', props, children);
-  const Radio = {
-    Group: ({
-      options = [],
-      onChange,
-      ...props
-    }: Record<string, any>) => {
-      mockRadioGroupProps = { options, onChange, ...props };
-      return ReactRuntime.createElement(
-        'div',
-        props,
+  const Radio = ({ children, ...props }: Record<string, any>) => {
+    mockRadioPropsByValue[String(props.value || '')] = props;
+    return ReactRuntime.createElement('label', props, children);
+  };
+  Radio.Group = ({
+    children,
+    options = [],
+    onChange,
+    ...props
+  }: Record<string, any>) => {
+    return ReactRuntime.createElement(
+      'div',
+      props,
+      children ||
         options.map((option: Record<string, any>) =>
           ReactRuntime.createElement(
             'label',
@@ -55,8 +59,7 @@ jest.mock('antd', () => {
             option.label,
           ),
         ),
-      );
-    },
+    );
   };
   return {
     Button: ({ children, loading: _loading, ...props }: Record<string, unknown>) =>
@@ -123,8 +126,8 @@ describe('AwaitingHtmlContainer', () => {
 
   beforeEach(() => {
     console.warn = jest.fn();
-    mockRadioGroupProps = null;
     mockInputProps = null;
+    mockRadioPropsByValue = {};
   });
 
   afterEach(() => {
@@ -179,7 +182,7 @@ describe('AwaitingHtmlContainer', () => {
       }),
     );
 
-    mockRadioGroupProps?.onChange({ target: { value: 'reject' } });
+    mockRadioPropsByValue.reject?.onClick();
     await Promise.resolve();
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -187,7 +190,7 @@ describe('AwaitingHtmlContainer', () => {
     );
   });
 
-  it('does not submit when focusing the reject input, but submits on Enter', async () => {
+  it('does not submit when clicking the reject input', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 
     renderAwaiting(
@@ -197,20 +200,9 @@ describe('AwaitingHtmlContainer', () => {
       }),
     );
 
-    mockInputProps?.onFocus();
+    mockInputProps?.onClick({ stopPropagation: jest.fn() });
 
     expect(onSubmit).not.toHaveBeenCalled();
-
-    mockInputProps?.onKeyDown({
-      key: 'Enter',
-      preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
-    });
-    await Promise.resolve();
-
-    expect(onSubmit).toHaveBeenCalledWith(
-      buildRejectAwaitingSubmitPayload(createActiveAwaiting({ viewportHtml: '' })),
-    );
   });
 
   it('renders footer labels from the active locale', () => {

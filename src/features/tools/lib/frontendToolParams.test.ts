@@ -12,24 +12,12 @@ describe('parseFrontendToolParams', () => {
     });
   });
 
-  it('reads params from JSON arguments snapshots', () => {
+  it('ignores events without toolParams', () => {
     expect(parseFrontendToolParams({
-      toolId: 'tool_legacy',
-      arguments: '{"offset":"+2D"}',
-    })).toEqual({
-      found: true,
-      source: 'arguments',
-      params: { offset: '+2D' },
-    });
-  });
-
-  it('keeps invalid arguments payloads out of frontend params parsing', () => {
-    expect(parseFrontendToolParams({
-      toolId: 'tool_invalid',
-      arguments: '{invalid json}',
+      toolId: 'tool_without_params',
     })).toMatchObject({
       found: false,
-      source: 'arguments',
+      source: '',
       params: null,
     });
   });

@@ -98,7 +98,6 @@ interface ActiveAwaitingBase {
 	agentKey: string;
 	timeout: number | null;
 	createdAt?: number | null;
-	resolvedByOther?: boolean;
 	resolutionReason?: ActiveAwaitingResolutionReason;
 	pendingSubmitId?: string;
 }

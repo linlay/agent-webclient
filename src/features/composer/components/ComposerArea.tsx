@@ -489,7 +489,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             onPatch={handlePatchActiveAwaiting}
             onSubmit={handleAwaitingSubmit}
             onClose={clearActiveAwaiting}
-            onResolvedByOther={clearActiveAwaiting}
+            onResolved={clearActiveAwaiting}
           />
         </AwaitingShell>
       );
@@ -500,7 +500,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           <Buildin.ApprovalDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
-            onResolvedByOther={clearActiveAwaiting}
+            onResolved={clearActiveAwaiting}
           />
         </AwaitingShell>
       );
@@ -511,7 +511,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           <Buildin.PlanDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
-            onResolvedByOther={clearActiveAwaiting}
+            onResolved={clearActiveAwaiting}
           />
         </AwaitingShell>
       );
@@ -522,7 +522,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           <Buildin.QuestionDialog
             data={state.activeAwaiting}
             onSubmit={handleAwaitingSubmit}
-            onResolvedByOther={clearActiveAwaiting}
+            onResolved={clearActiveAwaiting}
           />
         </AwaitingShell>
       );

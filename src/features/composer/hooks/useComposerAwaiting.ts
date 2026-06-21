@@ -23,7 +23,6 @@ type FormActiveAwaitingPatch = Pick<
 
 export type FormActiveAwaitingPatchPayload =
   Partial<FormActiveAwaitingPatch> & {
-    resolvedByOther?: boolean;
     pendingSubmitId?: string;
   };
 
@@ -110,7 +109,6 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
           type: "PATCH_ACTIVE_AWAITING",
           patch: {
             pendingSubmitId: submitId,
-            resolvedByOther: false,
           },
         });
         const response = await submitAwaiting({

@@ -4,30 +4,27 @@ import type { ActiveAwaitingResolutionReason } from "@/app/state/types";
 import { useI18n } from "@/shared/i18n";
 
 export function resolveAwaitingResolutionNoticeKey(input: {
-	resolvedByOther?: boolean;
 	resolutionReason?: ActiveAwaitingResolutionReason;
 }): string {
 	if (input.resolutionReason === "timeout") {
 		return "approvalDialog.timeoutResolved";
 	}
-	if (input.resolutionReason === "remote_answered" || input.resolvedByOther) {
-		return "approvalDialog.resolvedByOther";
+	if (input.resolutionReason === "remote_answered") {
+		return "approvalDialog.remoteAnswered";
 	}
 	return "";
 }
 
-export function useResolvedByOtherNotice(input: {
-	resolvedByOther?: boolean;
+export function useAwaitingResolutionNotice(input: {
 	resolutionReason?: ActiveAwaitingResolutionReason;
-	onResolvedByOther?: () => void;
+	onResolved?: () => void;
 }): void {
-	const { resolvedByOther, resolutionReason, onResolvedByOther } = input;
+	const { resolutionReason, onResolved } = input;
 	const { t } = useI18n();
 	const handledRef = useRef(false);
 
 	useEffect(() => {
 		const noticeKey = resolveAwaitingResolutionNoticeKey({
-			resolvedByOther,
 			resolutionReason,
 		});
 		if (!noticeKey) {
@@ -39,6 +36,6 @@ export function useResolvedByOtherNotice(input: {
 		}
 		handledRef.current = true;
 		void message.info(t(noticeKey));
-		onResolvedByOther?.();
-	}, [onResolvedByOther, resolutionReason, resolvedByOther, t]);
+		onResolved?.();
+	}, [onResolved, resolutionReason, t]);
 }

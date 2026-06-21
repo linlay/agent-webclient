@@ -1,10 +1,6 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages: I18nMessages = {
-  "agents.list.conversationCount": "{count} conversations",
-  "agents.list.empty": "No agents",
-  "agents.list.searchPlaceholder": "Search agent name / key / role...",
-  "agents.list.unreadCount": "{count} unread",
   "agents.page.count": "{count} available agents",
   "agents.page.title": "Agents",
   "agentConsole.action.add": "Add",
@@ -289,7 +285,7 @@ export const enUSMessages: I18nMessages = {
   "approvalDialog.action.submit": "Submit",
   "confirmDialog.action.skip": "Skip",
   "approvalDialog.loading": "Loading approval request...",
-  "approvalDialog.resolvedByOther": "This request was already submitted from another client.",
+  "approvalDialog.remoteAnswered": "This request was already submitted from another client.",
   "approvalDialog.option.reject": "Reject",
   "approvalDialog.rejectDefaultReason": "Reject this approval request",
   "approvalDialog.rejectPlaceholder": "Tell me how to adjust it",
@@ -310,7 +306,7 @@ export const enUSMessages: I18nMessages = {
   "awaiting.load.failedWithDetail": "Failed to load the business confirmation form: {detail}",
   "awaiting.load.loading": "Loading form...",
   "awaiting.load.waiting": "Waiting for the business confirmation form...",
-  "awaiting.resolvedByOther": "This request was already submitted from another client.",
+  "awaiting.remoteAnswered": "This request was already submitted from another client.",
   "awaiting.rejectReason.placeholder": "Enter a reject reason. You can still edit the form contents.",
   "awaiting.status.autoSubmitting": "Auto-submitting...",
   "awaiting.status.collecting": "Collecting...",

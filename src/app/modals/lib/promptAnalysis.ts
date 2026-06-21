@@ -5,7 +5,6 @@ import {
 	readStringValue,
 	resolveInjectedPromptPayloadFromLLMTrace,
 	resolveInjectedPromptPayloadRecord,
-	resolveInjectedPromptPayloads,
 	type InjectedPromptPayloads,
 } from "@/app/modals/lib/eventPopoverFormatters";
 
@@ -109,13 +108,6 @@ export function resolvePromptAnalysisCalls(
 			const call = buildDebugLLMChatCall(candidate, index);
 			return call ? [call] : [];
 		}
-		if (candidateType === "debug.precall") {
-			const payload = resolveInjectedPromptPayloads(candidate);
-			if (!payload) {
-				return [];
-			}
-			return [buildLegacyPreCallAnalysisCall(candidate, index, payload)];
-		}
 		return [];
 	});
 }
@@ -185,25 +177,6 @@ function buildDebugLLMChatCall(
 		modelLabel: readModelLabel(data),
 		status: readStringValue(data?.status),
 		inlinePayload,
-	};
-}
-
-function buildLegacyPreCallAnalysisCall(
-	event: AgentEvent,
-	index: number,
-	payload: InjectedPromptPayloads,
-): PromptAnalysisCall {
-	return {
-		id: `debug-precall-${index >= 0 ? index : "current"}`,
-		kind: "inline",
-		event,
-		index,
-		title: "debug.preCall",
-		traceFile: "",
-		runSeq: 0,
-		modelLabel: readModelLabel(readObjectValue(event.data)),
-		status: "legacy",
-		inlinePayload: payload,
 	};
 }
 

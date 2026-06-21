@@ -116,16 +116,11 @@ export function patchActiveAwaiting(
 		patch.resolutionReason === "timeout" ||
 		patch.resolutionReason === "remote_answered"
 			? { resolutionReason: patch.resolutionReason }
-			: patch.resolvedByOther === false
-				? { resolutionReason: undefined }
-				: {};
+			: {};
 
 	if (current.mode === "form") {
 		return {
 			...current,
-			...(typeof patch.resolvedByOther === "boolean"
-				? { resolvedByOther: patch.resolvedByOther }
-				: {}),
 			...resolutionPatch,
 			...(typeof patch.pendingSubmitId === "string"
 				? { pendingSubmitId: patch.pendingSubmitId }
@@ -140,16 +135,6 @@ export function patchActiveAwaiting(
 		};
 	}
 
-	if (typeof patch.resolvedByOther === "boolean") {
-		return {
-			...current,
-			resolvedByOther: patch.resolvedByOther,
-			...resolutionPatch,
-			...(typeof patch.pendingSubmitId === "string"
-				? { pendingSubmitId: patch.pendingSubmitId }
-				: {}),
-		};
-	}
 	if (
 		patch.resolutionReason === "timeout" ||
 		patch.resolutionReason === "remote_answered"

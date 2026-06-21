@@ -438,8 +438,6 @@ export function reduceActiveAwaiting(
             : current?.key === key && current.mode === 'question'
             ? cloneQuestions(current.questions)
             : [],
-        resolvedByOther:
-          current?.key === key ? current.resolvedByOther : undefined,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
@@ -466,8 +464,6 @@ export function reduceActiveAwaiting(
             : current?.key === key && current.mode === 'approval'
             ? cloneApprovals(current.approvals)
             : [],
-        resolvedByOther:
-          current?.key === key ? current.resolvedByOther : undefined,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
@@ -503,8 +499,6 @@ export function reduceActiveAwaiting(
         viewportKey,
         viewportType: ViewportTypeEnum.Html,
         ...runtime,
-        resolvedByOther:
-          current?.key === key ? current.resolvedByOther : undefined,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
@@ -530,8 +524,6 @@ export function reduceActiveAwaiting(
           ?? (current?.key === key && current.mode === 'plan'
             ? clonePlan(current.plan)
             : { id: 'confirm' }),
-        resolvedByOther:
-          current?.key === key ? current.resolvedByOther : undefined,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
         pendingSubmitId:
@@ -561,13 +553,11 @@ export function reduceActiveAwaiting(
     if (isAwaitingAnswerTimeoutError(event as Record<string, unknown>)) {
       return {
         ...current,
-        resolvedByOther: undefined,
         resolutionReason: 'timeout',
       };
     }
     return {
       ...current,
-      resolvedByOther: true,
       resolutionReason: 'remote_answered',
     };
   }

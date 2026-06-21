@@ -32,7 +32,7 @@ import {
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
-import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
+import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
 import Style from "./index.module.css";
@@ -41,7 +41,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 interface ApprovalDialogProps {
   data: ApprovalActiveAwaiting;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
-  onResolvedByOther?: () => void;
+  onResolved?: () => void;
 }
 
 interface ApprovalRef {
@@ -52,7 +52,7 @@ interface ApprovalRef {
 export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   data,
   onSubmit,
-  onResolvedByOther,
+  onResolved,
 }) => {
   const { t } = useI18n();
   const approvals = data.approvals;
@@ -64,7 +64,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     Record<string, AIAwaitApprovalDecision | undefined>
   >({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
+  const resolved = Boolean(data.resolutionReason);
   const readOnly = submitting || resolved;
   const currentApproval = approvals[curIndex];
   const currentDecision = currentApproval
@@ -84,10 +84,9 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     [decisions, hasAllDecisions, readOnly],
   );
 
-  useResolvedByOtherNotice({
-    resolvedByOther: data.resolvedByOther,
+  useAwaitingResolutionNotice({
     resolutionReason: data.resolutionReason,
-    onResolvedByOther,
+    onResolved,
   });
 
   useEffect(() => {

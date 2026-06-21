@@ -313,17 +313,6 @@ button:active {
     background: var(--bg-elev-2);
 }
 
-.ui-card {
-    border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
-    border-radius: var(--radius-md);
-    background: var(--bg-elev-2);
-    box-shadow: var(--shadow-soft);
-}
-
-.ui-card.ui-card-subtle {
-    background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--bg-input));
-}
-
 .ui-tag {
     display: inline-flex;
     align-items: center;
@@ -359,33 +348,6 @@ button:active {
             var(--accent-danger) 30%,
             var(--line-soft));
     background: color-mix(in srgb, var(--accent-danger) 10%, var(--bg-elev-2));
-}
-
-.ui-section {
-    border: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
-    border-radius: 8px;
-    overflow: hidden;
-    background: color-mix(in srgb, var(--bg-elev-2) 92%, var(--bg-input));
-}
-
-.ui-section+.ui-section {
-    margin-top: 6px;
-}
-
-.ui-section-head {
-    padding: 7px 10px;
-    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 74%, transparent);
-    background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
-}
-
-.ui-section-body {
-    margin: 0;
-    padding: 9px 11px;
-    font-size: 11px;
-    line-height: 1.44;
-    color: var(--ink-2);
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 input,

@@ -312,7 +312,7 @@ describe('shouldSyncLiveCache', () => {
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
   });
 
-  it('marks awaiting as resolvedByOther when awaiting.answer matches the active dialog', () => {
+  it('marks awaiting as remote answered when awaiting.answer matches the active dialog', () => {
     const current = {
       key: 'run_1#await_1',
       awaitingId: 'await_1',
@@ -343,7 +343,7 @@ describe('shouldSyncLiveCache', () => {
 
     expect(next).toMatchObject({
       awaitingId: 'await_1',
-      resolvedByOther: true,
+      resolutionReason: 'remote_answered',
     });
     expect(next?.questions).toHaveLength(1);
   });

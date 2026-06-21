@@ -496,7 +496,6 @@ describe('reduceActiveAwaiting', () => {
 
     expect(next).toMatchObject({
       awaitingId: 'await_1',
-      resolvedByOther: true,
       resolutionReason: 'remote_answered',
     });
   });
@@ -528,7 +527,6 @@ describe('reduceActiveAwaiting', () => {
       awaitingId: 'await_1',
       resolutionReason: 'timeout',
     });
-    expect(next?.resolvedByOther).toBeUndefined();
   });
 
   it('recognizes nested awaiting.answer timeout errors', () => {
@@ -561,7 +559,6 @@ describe('reduceActiveAwaiting', () => {
       awaitingId: 'await_1',
       resolutionReason: 'timeout',
     });
-    expect(next?.resolvedByOther).toBeUndefined();
   });
 
   it('ignores push-only awaiting.answered so it does not resolve active awaiting data', () => {
@@ -598,7 +595,7 @@ describe('reduceActiveAwaiting', () => {
     });
   });
 
-  it('clears awaiting without resolvedByOther when awaiting.answer has this client submitId', () => {
+  it('clears awaiting when awaiting.answer has this client submitId', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_1',

@@ -8,12 +8,10 @@ Contents:
 - `manifest.json`: Desktop/runtime metadata
 - `.env.example`: runtime environment template
 - `frontend/dist/`: production frontend assets
-- `start.*`, `stop.*`, `deploy.*`: lifecycle scripts
-- `scripts/program-common.*`: shared runtime helpers
 
 Runtime notes:
-- ZenMind Desktop starts and stops the local HTTP host itself; lifecycle scripts
-  are retained for manifest compatibility and print the managed endpoint.
+- ZenMind Desktop starts and stops the local HTTP host itself. This bundle does
+  not include start/stop/deploy files or a backend entrypoint.
 - `BASE_URL` points to the runner HTTP API and main `/ws` upstream. Optional
   `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream; leave it empty
   to hide voice features.

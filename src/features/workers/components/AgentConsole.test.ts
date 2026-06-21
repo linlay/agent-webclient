@@ -494,21 +494,27 @@ describe("buildAgentListSummary", () => {
     });
   });
 
-  it("keeps compatibility with legacy meta arrays", () => {
+  it("uses current model, tool, and skill config fields", () => {
     expect(
       buildAgentListSummary({
         key: "agent-a",
         name: "Agent A",
         meta: {
           mode: "PLAN_EXECUTE",
-          model: "legacy-model",
-          tools: ["bash", "file_read"],
-          skills: ["browser"],
+        },
+        modelConfig: {
+          modelKey: "gpt-5",
+        },
+        toolConfig: {
+          tools: [{ key: "bash" }, { key: "file_read" }],
+        },
+        skillConfig: {
+          skills: [{ key: "browser" }],
         },
       }),
     ).toEqual({
       mode: "PLAN_EXECUTE",
-      modelKey: "legacy-model",
+      modelKey: "gpt-5",
       toolsCount: 2,
       skillsCount: 1,
     });

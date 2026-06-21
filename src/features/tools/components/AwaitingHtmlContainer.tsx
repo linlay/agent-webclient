@@ -33,7 +33,7 @@ interface AwaitingHtmlContainerProps {
   onPatch?: (patch: Partial<FormActiveAwaiting>) => void;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
   onClose?: () => void;
-  onResolvedByOther?: () => void;
+  onResolved?: () => void;
 }
 
 export const INVALID_AWAITING_SUBMIT_ERROR = "Invalid awaiting submit payload";
@@ -352,7 +352,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   onPatch,
   onSubmit,
   onClose,
-  onResolvedByOther,
+  onResolved,
 }) => {
   const { t } = useI18n();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -373,7 +373,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const [footerDecision, setFooterDecision] =
     useState<AwaitingFooterDecision>();
   const currentForm = data.forms[activeFormIndex];
-  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
+  const resolved = Boolean(data.resolutionReason);
   const panelCaption = String(
     currentForm?.title ||
       currentForm?.action ||
@@ -543,8 +543,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     const noticeKey =
       data.resolutionReason === "timeout"
         ? "awaiting.timeoutResolved"
-        : data.resolutionReason === "remote_answered" || data.resolvedByOther
-          ? "awaiting.resolvedByOther"
+        : data.resolutionReason === "remote_answered"
+          ? "awaiting.remoteAnswered"
           : "";
     if (!noticeKey) {
       resolutionHandledRef.current = false;
@@ -560,12 +560,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     setSubmitStatus("");
     setSubmitError("");
     void message.info(t(noticeKey));
-    onResolvedByOther?.();
+    onResolved?.();
   }, [
     clearCollectTimeout,
     data.resolutionReason,
-    data.resolvedByOther,
-    onResolvedByOther,
+    onResolved,
     t,
   ]);
 

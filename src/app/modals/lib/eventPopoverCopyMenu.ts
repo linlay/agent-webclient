@@ -10,7 +10,6 @@ import {
 	readNonEmptyStringValue,
 	readObjectValue,
 	readStringValue,
-	resolveDebugPreCallCopyPayloads,
 	stringifyCopyValue,
 	stringifyPopoverPayload,
 } from "@/app/modals/lib/eventPopoverFormatters";
@@ -126,17 +125,6 @@ export function buildEventCopyMenuItems(
 		collectibleRelatedEvents,
 	);
 	const collectedText = readCollectedSnapshotText(event, collectibleRelatedEvents);
-
-	if (type === "debug.precall") {
-		const debugPreCallPayloads = resolveDebugPreCallCopyPayloads(event);
-		if (debugPreCallPayloads) {
-			pushCopyMenuItem(items, "requestBody", t("eventPopover.copy.requestBody"), debugPreCallPayloads.requestBodyText);
-			pushCopyMenuItem(items, "systemPrompt", t("eventPopover.copy.systemPrompt"), debugPreCallPayloads.systemPromptText);
-			pushCopyMenuItem(items, "tools", t("eventPopover.copy.tools"), debugPreCallPayloads.toolsText);
-			pushCopyMenuItem(items, "model", t("eventPopover.copy.model"), debugPreCallPayloads.modelText);
-		}
-		return items;
-	}
 
 	if (type.startsWith("chat.")) {
 		pushCopyMenuItem(items, "chatId", copyFieldLabel(t, "chatId"), readEventIdValue(event || {}, "chatId"));

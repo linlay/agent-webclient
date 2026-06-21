@@ -1809,25 +1809,6 @@ export function searchGlobal(
   }) as Promise<ApiResponse<GlobalSearchResponse>>;
 }
 
-function recoverLegacyUtf8Filename(value: string): string {
-  if (!value || /[\u4e00-\u9fff]/.test(value)) {
-    return value;
-  }
-  if (typeof TextDecoder === "undefined") {
-    return value;
-  }
-
-  try {
-    const bytes = Uint8Array.from(
-      Array.from(value, (char) => char.charCodeAt(0) & 0xff),
-    );
-    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    return decoded || value;
-  } catch {
-    return value;
-  }
-}
-
 function filenameFromContentDisposition(value: string | null): string {
   const header = String(value || "");
   const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(header);
@@ -1839,11 +1820,9 @@ function filenameFromContentDisposition(value: string | null): string {
     }
   }
   const quotedMatch = /filename="([^"]+)"/i.exec(header);
-  if (quotedMatch?.[1]) return recoverLegacyUtf8Filename(quotedMatch[1].trim());
+  if (quotedMatch?.[1]) return quotedMatch[1].trim();
   const plainMatch = /filename=([^;]+)/i.exec(header);
-  return plainMatch?.[1]
-    ? recoverLegacyUtf8Filename(plainMatch[1].trim())
-    : "";
+  return plainMatch?.[1] ? plainMatch[1].trim() : "";
 }
 
 export async function downloadChatExport(chatId: string): Promise<void> {

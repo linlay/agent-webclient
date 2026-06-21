@@ -37,8 +37,6 @@ import {
 } from "@/app/modals/lib/eventPopoverGrouping";
 import {
 	formatReadableTimestamp,
-	resolveInjectedPromptPayloads,
-	resolveDebugPreCallCopyPayloads,
 	resolveInjectedPromptPayloadFromLLMTrace,
 	resolveInjectedPromptPayloadFromRequestBody,
 	resolveDisplayPayloadTimestamp,
@@ -564,8 +562,6 @@ export const __TEST_ONLY__ = {
 	buildCollectedSnapshot,
 	mapCollectedSnapshotType,
 	resolveEventGroupMeta,
-	resolveDebugPreCallCopyPayloads,
-	resolveInjectedPromptPayloads,
 	resolveInjectedPromptPayloadFromLLMTrace,
 	resolveInjectedPromptPayloadFromRequestBody,
 	resolvePromptAnalysisCalls,

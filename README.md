@@ -75,9 +75,9 @@ make release-program
 
 Program Bundle 约束：
 
-- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`
+- 包内包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`
 - manifest 设置 `frontend.hostManaged: true`，不包含 `backend.entry`，HTTP 托管由 ZenMind Desktop main process 负责
-- Program Bundle 不要求包内或宿主机启动 Node.js 子进程；`start.*`/`stop.*` 仅作 Desktop manifest 兼容和提示用途
+- Program Bundle 不要求包内或宿主机启动 Node.js 子进程，也不包含生命周期脚本
 - 版本号来自根目录 [`VERSION`](./VERSION)，格式固定为 `vX.Y.Z`
 
 ## 3. 配置说明
@@ -128,22 +128,20 @@ make release-program
 - 会读取根目录 `VERSION`，校验格式必须为 `vX.Y.Z`。
 - 构建优先读取根目录本地 `.env`；如果缺失，会自动回退到 `.env.example`，并强制使用 production 模式完成前端打包。
 - 默认产物为 `darwin/arm64` 和 `windows/amd64` 两个平台；也可以通过 `PROGRAM_TARGET_MATRIX=<os>/<arch>` 覆盖。
-- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`，不包含 Program backend。
+- 解压后根目录固定为 `agent-webclient/`，其下包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`，不包含 Program backend。
 - 打包完成后，工作区只保留 `dist/release/` 下的最终压缩包，不保留展开的 `dist/js`、`dist/css`、`dist/fonts`。
 
 ### Program Bundle 使用
 Program Bundle 通常由 ZenMind Desktop 内置资源同步与服务管理器安装，并由 Desktop main process 绑定本地端口、托管静态资源和代理路由。
 
-如需手动检查包结构，可以解压并执行生命周期脚本：
+如需手动检查包结构，可以解压并检查关键文件：
 ```bash
 tar -xzf dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz
 cd agent-webclient
-./deploy.sh
-./start.sh --daemon
-./stop.sh
+ls manifest.json .env.example README.txt frontend/dist/index.html
 ```
 
-手动执行不会启动 backend 子进程，只会校验 `frontend/dist`、准备 `.env`/运行目录并打印 Desktop 托管 endpoint。Desktop 端需要至少确认：
+Program Bundle 不提供手动启动入口；Desktop main process 负责本地 HTTP 托管、静态资源服务和代理路由。Desktop 端需要至少确认：
 - `.env` 中的 `BASE_URL` 指向可访问的 AGENT HTTP API。
 - `.env` 中的 `BASE_URL` 对应上游实际提供 `/api/*` 与 `/ws`。
 - 如需语音功能，`.env` 中的 `VOICE_BASE_URL` 指向可访问的语音 WebSocket / HTTP 上游。
@@ -187,7 +185,7 @@ cp .env.example .env
 建议按以下顺序验证：
 
 1. `make release`
-确认生成对应平台压缩包，manifest 包含 `frontend.hostManaged: true`，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`、`start.*`、`stop.*`、`deploy.*`，且不包含 `backend/`。
+确认生成对应平台压缩包，manifest 包含 `frontend.hostManaged: true` 且不包含 `scripts` 字段，解压后包含 `manifest.json`、`.env.example`、`README.txt`、`frontend/dist/`，且不包含 `backend/`。
 
 2. `make release-program`
 确认行为与 `make release` 一致。

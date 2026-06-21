@@ -38,8 +38,8 @@ export function shouldSkipHistoricalActionBatch(params: {
 }
 
 /**
- * Hook to initialize the ActionRuntime (for things like launch_fireworks, switch_theme, show_modal)
- * and listen to the event stream for `action.start` events to automatically execute them.
+ * Hook to initialize the ActionRuntime and listen to the event stream for
+ * `action.start` events to automatically execute them.
  */
 export function useActionRuntime() {
   const { state, dispatch } = useAppContext();
@@ -54,10 +54,6 @@ export function useActionRuntime() {
     const initTimer = setTimeout(() => {
       const root = document.documentElement;
       const canvas = document.getElementById('fireworks-canvas') as HTMLCanvasElement;
-      const modalRoot = document.getElementById('action-modal') || document.createElement('div');
-      const modalTitle = document.getElementById('action-modal-title') || document.createElement('div');
-      const modalContent = document.getElementById('action-modal-content') || document.createElement('div');
-      const modalClose = document.getElementById('action-modal-close') || document.createElement('button');
 
       if (!canvas) {
         console.warn('ActionRuntime: fireworks-canvas not found in DOM.');
@@ -67,10 +63,6 @@ export function useActionRuntime() {
       const runtime = createActionRuntime({
         root,
         canvas,
-        modalRoot,
-        modalTitle,
-        modalContent,
-        modalClose,
         onThemeChange: (theme) => {
           dispatch({ type: 'SET_THEME_MODE', themeMode: theme });
         },

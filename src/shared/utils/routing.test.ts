@@ -19,10 +19,6 @@ describe('routing', () => {
     expect(isAppMode('/chat', '?desktopAuthContext=platform%3A1')).toBe(true);
   });
 
-  it('ignores the legacy desktopApp query flag', () => {
-    expect(isAppMode(APP_UI_BASE, '?desktopApp=1')).toBe(false);
-  });
-
   it('keeps regular web paths out of app mode', () => {
     expect(isAppMode('/')).toBe(false);
     expect(isAppMode('/chat')).toBe(false);

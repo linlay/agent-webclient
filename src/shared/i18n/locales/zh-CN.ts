@@ -1,10 +1,6 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages: I18nMessages = {
-  "agents.list.conversationCount": "{count} 个会话",
-  "agents.list.empty": "暂无 Agents",
-  "agents.list.searchPlaceholder": "搜索 Agent 名称 / key / 职责...",
-  "agents.list.unreadCount": "{count} 未读",
   "agents.page.count": "{count} 个可用 Agent",
   "agents.page.title": "Agents",
   "agentConsole.action.add": "添加",
@@ -289,7 +285,7 @@ export const zhCNMessages: I18nMessages = {
   "approvalDialog.action.submit": "提交",
   "confirmDialog.action.skip": "跳过",
   "approvalDialog.loading": "等待审批加载中...",
-  "approvalDialog.resolvedByOther": "已被其他终端提交",
+  "approvalDialog.remoteAnswered": "已被其他终端提交",
   "approvalDialog.option.reject": "拒绝",
   "approvalDialog.rejectDefaultReason": "拒绝本次审批",
   "approvalDialog.rejectPlaceholder": "请告知如何调整",
@@ -310,7 +306,7 @@ export const zhCNMessages: I18nMessages = {
   "awaiting.load.failedWithDetail": "业务确认表单加载失败: {detail}",
   "awaiting.load.loading": "加载表单中...",
   "awaiting.load.waiting": "等待业务确认表单加载...",
-  "awaiting.resolvedByOther": "已被其他终端提交",
+  "awaiting.remoteAnswered": "已被其他终端提交",
   "awaiting.rejectReason.placeholder": "请输入拒绝理由，可以修改表单内容",
   "awaiting.status.autoSubmitting": "自动提交中...",
   "awaiting.status.collecting": "采集中...",

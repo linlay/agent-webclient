@@ -88,7 +88,6 @@ describe("App routing", () => {
         "/copilot/:agentKey",
         "/automations",
         "/registries",
-        "/schedules",
         "/memory",
         "/agents",
         "/archives",

@@ -17,22 +17,6 @@ export function normalizeActionArgs(actionName: string, rawArgs: Record<string, 
     return { durationMs };
   }
 
-  if (actionName === 'show_modal') {
-    const title =
-      typeof rawArgs.title === 'string' && (rawArgs.title as string).trim()
-        ? (rawArgs.title as string).trim()
-        : '通知';
-    const content =
-      typeof rawArgs.content === 'string' && (rawArgs.content as string).trim()
-        ? (rawArgs.content as string).trim()
-        : '';
-    const closeText =
-      typeof rawArgs.closeText === 'string' && (rawArgs.closeText as string).trim()
-        ? (rawArgs.closeText as string).trim()
-        : '关闭';
-    return { title, content, closeText };
-  }
-
   return rawArgs;
 }
 
@@ -151,41 +135,9 @@ function createFireworksRuntime(canvas: HTMLCanvasElement) {
   return { launch, stop };
 }
 
-function createModalRuntime(
-  modalRoot: HTMLElement,
-  titleEl: HTMLElement,
-  contentEl: HTMLElement,
-  closeBtn: HTMLElement
-) {
-  const hide = () => {
-    modalRoot.classList.add('hidden');
-  };
-
-  closeBtn.addEventListener('click', hide);
-  modalRoot.addEventListener('click', (event) => {
-    if (event.target === modalRoot) {
-      hide();
-    }
-  });
-
-  return {
-    show({ title, content, closeText }: { title: string; content: string; closeText: string }) {
-      titleEl.textContent = title;
-      contentEl.textContent = content;
-      closeBtn.textContent = closeText;
-      modalRoot.classList.remove('hidden');
-    },
-    hide,
-  };
-}
-
 export interface ActionRuntimeOptions {
   root: HTMLElement;
   canvas: HTMLCanvasElement;
-  modalRoot: HTMLElement;
-  modalTitle: HTMLElement;
-  modalContent: HTMLElement;
-  modalClose: HTMLElement;
   onThemeChange?: (theme: ThemeMode) => void;
   onStatus?: (text: string) => void;
 }
@@ -196,10 +148,9 @@ export interface ActionRuntime {
 }
 
 export function createActionRuntime(options: ActionRuntimeOptions): ActionRuntime {
-  const { root, canvas, modalRoot, modalTitle, modalContent, modalClose, onThemeChange, onStatus } = options;
+  const { root, canvas, onThemeChange, onStatus } = options;
 
   const fireworks = createFireworksRuntime(canvas);
-  const modal = createModalRuntime(modalRoot, modalTitle, modalContent, modalClose);
 
   return {
     execute(actionName: string, rawArgs: Record<string, unknown> = {}) {
@@ -219,12 +170,6 @@ export function createActionRuntime(options: ActionRuntimeOptions): ActionRuntim
       if (actionName === 'launch_fireworks') {
         fireworks.launch(args.durationMs as number);
         onStatus?.(`Action launch_fireworks -> ${args.durationMs}ms`);
-        return args;
-      }
-
-      if (actionName === 'show_modal') {
-        modal.show(args as { title: string; content: string; closeText: string });
-        onStatus?.(`Action show_modal -> ${args.title}`);
         return args;
       }
 

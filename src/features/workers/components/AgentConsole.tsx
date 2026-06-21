@@ -279,7 +279,6 @@ export function buildAgentListSummary(agent: Agent, formFallback?: AgentFormStat
     mode: formFallback?.mode || toText(meta.mode) || toText(agent.mode) || "--",
     modelKey:
       toText(meta.modelKey) ||
-      toText(meta.model) ||
       toText(agent.modelKey) ||
       toText(modelConfig.modelKey) ||
       toText(agent.model) ||
@@ -287,14 +286,12 @@ export function buildAgentListSummary(agent: Agent, formFallback?: AgentFormStat
       "--",
     toolsCount: resolveFirstCount(
       meta.toolsCount,
-      meta.tools,
       toolConfig.tools,
       agent.tools,
       formFallback?.tools,
     ),
     skillsCount: resolveFirstCount(
       meta.skillsCount,
-      meta.skills,
       skillConfig.skills,
       agent.skills,
       formFallback?.skills,

@@ -16,16 +16,12 @@ import {
   isCoderAgent,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
-// import { useLiveEvents } from "@/hooks/useLiveEvents";
 
 export const AppShell: React.FC = () => {
 	const state = useAppState();
 
 	/* Initialize business logic hooks */
 	useAppRuntimes();
-	// Legacy SSE live sync remains available as a compatibility path only.
-	// Default real-time updates now come from `/ws` push frames via useWsTransport().
-	// useLiveEvents();
 
 	const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 	const leftDrawerClass = state.leftDrawerOpen

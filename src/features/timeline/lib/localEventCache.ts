@@ -270,7 +270,6 @@ function normalizeAwaitingRuntimeSignature(
 		loading: awaiting.mode === "form" ? awaiting.loading : false,
 		loadError: awaiting.mode === "form" ? awaiting.loadError : "",
 		viewportHtml: awaiting.mode === "form" ? awaiting.viewportHtml : "",
-		resolvedByOther: Boolean(awaiting.resolvedByOther),
 		resolutionReason: awaiting.resolutionReason || "",
 	});
 }

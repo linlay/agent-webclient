@@ -1,16 +1,5 @@
 import { createActionRuntime } from '@/features/tools/lib/actionRuntime';
 
-function createMockElement() {
-  return {
-    addEventListener: jest.fn(),
-    textContent: '',
-    classList: {
-      add: jest.fn(),
-      remove: jest.fn(),
-    },
-  } as unknown as HTMLElement;
-}
-
 describe('createActionRuntime', () => {
   it('routes switch_theme through onThemeChange when provided', () => {
     const root = {
@@ -22,10 +11,6 @@ describe('createActionRuntime', () => {
       canvas: {
         getContext: jest.fn(),
       } as unknown as HTMLCanvasElement,
-      modalRoot: createMockElement(),
-      modalTitle: createMockElement(),
-      modalContent: createMockElement(),
-      modalClose: createMockElement(),
       onThemeChange,
     });
 
@@ -45,10 +30,6 @@ describe('createActionRuntime', () => {
       canvas: {
         getContext: jest.fn(),
       } as unknown as HTMLCanvasElement,
-      modalRoot: createMockElement(),
-      modalTitle: createMockElement(),
-      modalContent: createMockElement(),
-      modalClose: createMockElement(),
     });
 
     runtime.execute('switch_theme', { theme: 'light' });

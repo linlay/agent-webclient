@@ -18,14 +18,14 @@ import type {
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";
-import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
+import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
 import Style from "./index.module.css";
 
 interface PlanDialogProps {
   data: PlanActiveAwaiting;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
-  onResolvedByOther?: () => void;
+  onResolved?: () => void;
 }
 
 interface PlanQuestionRef {
@@ -36,7 +36,7 @@ interface PlanQuestionRef {
 export const PlanDialog: React.FC<PlanDialogProps> = ({
   data,
   onSubmit,
-  onResolvedByOther,
+  onResolved,
 }) => {
   const { t } = useI18n();
   const planQuestionRef = useRef<PlanQuestionRef>(null);
@@ -44,7 +44,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     useState<AIAwaitPlanDecision | null>(null);
   const [reason, setReason] = useState("");
   const plan = data.plan;
-  const resolved = Boolean(data.resolutionReason || data.resolvedByOther);
+  const resolved = Boolean(data.resolutionReason);
   const readOnly = Boolean(submittingDecision) || resolved;
   const ready = Boolean(plan.id);
 
@@ -53,10 +53,9 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     setSubmittingDecision(null);
   }, [data.awaitingId, data.runId]);
 
-  useResolvedByOtherNotice({
-    resolvedByOther: data.resolvedByOther,
+  useAwaitingResolutionNotice({
     resolutionReason: data.resolutionReason,
-    onResolvedByOther,
+    onResolved,
   });
 
   const submitDecision = useCallback(

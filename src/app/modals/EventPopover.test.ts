@@ -19,8 +19,6 @@ const {
   buildCopyMenuTitle,
   getPrimaryCopyMenuItem,
   resolveEventGroupMeta,
-  resolveDebugPreCallCopyPayloads,
-  resolveInjectedPromptPayloads,
   resolveInjectedPromptPayloadFromLLMTrace,
   resolveInjectedPromptPayloadFromRequestBody,
   resolvePromptAnalysisCalls,
@@ -252,66 +250,6 @@ describe("EventPopover collect controls", () => {
     expect(html).toContain('aria-label="Open copy menu"');
     expect(html).toContain('aria-label="Close event details"');
     expect(html).not.toContain('aria-label="Collect event snapshot"');
-  });
-
-  it("renders a copy menu trigger for debug.preCall instead of flat copy buttons", () => {
-    const state = createInitialState();
-    const event: AgentEvent = {
-      type: "debug.preCall",
-      runId: "run_1",
-      data: {
-        requestBody: {
-          messages: [{ role: "system", content: "system prompt" }],
-          tools: [{ name: "search" }],
-        },
-      },
-      timestamp: 1776518171300,
-    };
-    useAppState.mockReturnValue({
-      ...state,
-      eventPopoverIndex: 0,
-      eventPopoverEventRef: event,
-      events: [event],
-    });
-
-    const html = renderToStaticMarkup(React.createElement(EventPopover));
-
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).not.toContain('aria-label="复制 systemPrompt"');
-    expect(html).not.toContain('aria-label="复制 tools"');
-  });
-
-  it("does not render prompt analysis directly on debug.preCall when payload exists", () => {
-    const state = createInitialState();
-    const event: AgentEvent = {
-      type: "debug.preCall",
-      runId: "run_1",
-      data: {
-        requestBody: {
-          messages: [{ role: "system", content: "system prompt" }],
-        },
-        injectedPrompt: {
-          systemPrompt: "system prompt",
-          systemPromptTokens: 3,
-          providerMessages: [
-            { role: "system", content: "system prompt", estimatedTokens: 3 },
-            { role: "user", content: "show debug", estimatedTokens: 2 },
-          ],
-          providerMessagesTokens: 5,
-        },
-      },
-      timestamp: 1776518171300,
-    };
-    useAppState.mockReturnValue({
-      ...state,
-      eventPopoverIndex: 0,
-      eventPopoverEventRef: event,
-      events: [event],
-    });
-
-    const html = renderToStaticMarkup(React.createElement(EventPopover));
-
-    expect(html).not.toContain('aria-label="Prompt analysis"');
   });
 
   it("renders prompt analysis for run.start with same-run llm chat calls", () => {
@@ -702,64 +640,10 @@ describe("EventPopover display and copy helpers", () => {
     expect(writeText).toHaveBeenCalledWith('{"type":"content.start"}');
   });
 
-  it("extracts debug.preCall copy payloads from an OpenAI-style requestBody", () => {
-    expect(
-      resolveDebugPreCallCopyPayloads({
-        type: "debug.preCall",
-        data: {
-          requestBody: {
-            messages: [{ role: "system", content: "system prompt" }],
-            tools: [{ name: "search" }],
-          },
-        },
-      }),
-    ).toEqual({
-      requestBodyText: JSON.stringify(
-        {
-          messages: [{ role: "system", content: "system prompt" }],
-          tools: [{ name: "search" }],
-        },
-        null,
-        2,
-      ),
-      systemPromptText: "system prompt",
-      toolsText: JSON.stringify([{ name: "search" }], null, 2),
-      modelText: "",
-    });
-  });
-
-  it("extracts debug.preCall copy payloads from an Anthropic-style requestBody", () => {
-    expect(
-      resolveDebugPreCallCopyPayloads({
-        type: "debug.preCall",
-        data: {
-          requestBody: {
-            system: "anthropic system",
-            tools: [{ name: "browser" }],
-          },
-        },
-      }),
-    ).toEqual({
-      requestBodyText: JSON.stringify(
-        {
-          system: "anthropic system",
-          tools: [{ name: "browser" }],
-        },
-        null,
-        2,
-      ),
-      systemPromptText: "anthropic system",
-      toolsText: JSON.stringify([{ name: "browser" }], null, 2),
-      modelText: "",
-    });
-  });
-
   it("extracts injected prompt payloads with token counts", () => {
     expect(
-      resolveInjectedPromptPayloads({
-        type: "debug.preCall",
-        data: {
-          injectedPrompt: {
+      resolveInjectedPromptPayloadFromLLMTrace({
+        injectedPrompt: {
             systemPrompt: "system prompt",
             systemPromptTokens: 3,
             systemSections: [
@@ -795,7 +679,6 @@ describe("EventPopover display and copy helpers", () => {
             ],
             providerMessagesTokens: 5,
           },
-        },
       }),
     ).toEqual({
       rawJsonText: JSON.stringify(
@@ -1133,16 +1016,17 @@ describe("EventPopover display and copy helpers", () => {
     });
   });
 
-  it("collects prompt analysis calls for run.start and excludes direct debug.preCall", () => {
-    const legacyPreCall: AgentEvent = {
-      type: "debug.preCall",
+  it("collects prompt analysis calls for run.start and direct debug.llmChat", () => {
+    const inlineLlmChat: AgentEvent = {
+      type: "debug.llmChat",
       runId: "run_1",
       data: {
+        model: { key: "inline-model" },
         injectedPrompt: {
-          systemPrompt: "legacy system",
+          systemPrompt: "inline system",
           systemPromptTokens: 3,
           providerMessages: [
-            { role: "system", content: "legacy system", estimatedTokens: 3 },
+            { role: "system", content: "inline system", estimatedTokens: 3 },
           ],
           providerMessagesTokens: 3,
         },
@@ -1159,72 +1043,27 @@ describe("EventPopover display and copy helpers", () => {
       },
     };
 
-    expect(resolvePromptAnalysisCalls(legacyPreCall, [legacyPreCall])).toEqual([]);
+    expect(
+      resolvePromptAnalysisCalls(inlineLlmChat, [inlineLlmChat]).map((call) => ({
+        kind: call.kind,
+        title: call.title,
+        modelLabel: call.modelLabel,
+      })),
+    ).toEqual([
+      { kind: "inline", title: "LLM", modelLabel: "inline-model" },
+    ]);
     expect(
       resolvePromptAnalysisCalls(
         { type: "run.start", runId: "run_1" },
-        [legacyPreCall, llmChat, { type: "debug.llmChat", runId: "other" }],
+        [inlineLlmChat, llmChat, { type: "debug.llmChat", runId: "other" }],
       ).map((call) => ({
         kind: call.kind,
         title: call.title,
         modelLabel: call.modelLabel,
       })),
     ).toEqual([
-      { kind: "inline", title: "debug.preCall", modelLabel: "" },
+      { kind: "inline", title: "LLM", modelLabel: "inline-model" },
       { kind: "trace", title: "LLM #2", modelLabel: "mock-model" },
-    ]);
-  });
-
-  it("builds copy menu items from requestBody-derived debug.preCall content", () => {
-    expect(
-      buildEventCopyMenuItems(
-        {
-          type: "debug.preCall",
-          data: {
-            requestBody: {
-              model: "gpt-5",
-              messages: [{ role: "system", content: "system prompt" }],
-              tools: [{ name: "search" }],
-            },
-          },
-        },
-        [],
-        '{"type":"debug.preCall"}',
-      ),
-    ).toEqual([
-      {
-        key: "eventJson",
-        label: "Copy all",
-        text: '{"type":"debug.preCall"}',
-      },
-      {
-        key: "requestBody",
-        label: "Copy requestBody",
-        text: JSON.stringify(
-          {
-            model: "gpt-5",
-            messages: [{ role: "system", content: "system prompt" }],
-            tools: [{ name: "search" }],
-          },
-          null,
-          2,
-        ),
-      },
-      {
-        key: "systemPrompt",
-        label: "Copy systemPrompt",
-        text: "system prompt",
-      },
-      {
-        key: "tools",
-        label: "Copy tools",
-        text: JSON.stringify([{ name: "search" }], null, 2),
-      },
-      {
-        key: "model",
-        label: "Copy model",
-        text: "gpt-5",
-      },
     ]);
   });
 
@@ -1691,7 +1530,7 @@ describe("EventPopover display and copy helpers", () => {
     expect(
       buildEventCopyMenuItems(
         {
-          type: "debug.preCall",
+          type: "debug.llmChat",
           data: {
             requestBody: {
               model: "mock-model",
@@ -1699,29 +1538,13 @@ describe("EventPopover display and copy helpers", () => {
           },
         },
         [],
-        '{"type":"debug.preCall"}',
+        '{"type":"debug.llmChat"}',
       ),
     ).toEqual([
       {
         key: "eventJson",
         label: "Copy all",
-        text: '{"type":"debug.preCall"}',
-      },
-      {
-        key: "requestBody",
-        label: "Copy requestBody",
-        text: JSON.stringify(
-          {
-            model: "mock-model",
-          },
-          null,
-          2,
-        ),
-      },
-      {
-        key: "model",
-        label: "Copy model",
-        text: "mock-model",
+        text: '{"type":"debug.llmChat"}',
       },
     ]);
 

@@ -116,11 +116,6 @@ jest.mock("@/app/modals/CommandModal", () => ({
     ),
 }));
 
-jest.mock("@/app/modals/ActionModal", () => ({
-  ActionModal: () =>
-    React.createElement("div", { className: "action-modal" }, "action"),
-}));
-
 jest.mock("@/app/modals/EventPopover", () => ({
   EventPopover: () =>
     React.createElement("div", { className: "event-popover" }, "event"),

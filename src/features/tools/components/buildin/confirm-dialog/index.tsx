@@ -59,7 +59,7 @@ import {
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
-import { useResolvedByOtherNotice } from "@/features/tools/components/buildin/useResolvedByOtherNotice";
+import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { debounce } from "lodash";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -68,7 +68,7 @@ const FREE_TEXT_OPTION_VALUE = "freeText";
 
 interface ConfirmDialogProps extends CallbackData {
   data: QuestionActiveAwaiting;
-  onResolvedByOther?: () => void;
+  onResolved?: () => void;
 }
 
 interface CallbackData {
@@ -78,7 +78,7 @@ interface CallbackData {
 export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   data,
   onSubmit,
-  onResolvedByOther,
+  onResolved,
 }) => {
   const { t } = useI18n();
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
@@ -91,7 +91,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   const questions = useMemo(() => data?.questions || [], [data]);
   const currentQuestion = questions[curIndex];
   const ready = useMemo(() => hasAwaitingQuestions(questions), [questions]);
-  const resolved = Boolean(data?.resolutionReason || data?.resolvedByOther);
+  const resolved = Boolean(data?.resolutionReason);
 
   const submitPayload = useCallback((payload: AIAwaitSubmitPayloadData) => {
     if (resolved) {
@@ -233,10 +233,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     };
   }, [onSubmit]);
 
-  useResolvedByOtherNotice({
-    resolvedByOther: data?.resolvedByOther,
+  useAwaitingResolutionNotice({
     resolutionReason: data?.resolutionReason,
-    onResolvedByOther,
+    onResolved,
   });
 
   useEffect(() => {
