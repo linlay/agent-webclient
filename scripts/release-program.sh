@@ -11,7 +11,8 @@ require_release_tools
 resolve_release_context
 
 require_file "$REPO_ROOT/.env.example"
-require_file "$REPO_ROOT/scripts/release-assets/program/README.txt"
+require_file "$REPO_ROOT/scripts/release-assets/program/unix/program-common.sh"
+require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
 require_file "$REPO_ROOT/package.json"
 require_file "$REPO_ROOT/package-lock.json"
 
@@ -87,6 +88,7 @@ build_program_bundle() {
   local stage_root
   local bundle_root
   local frontend_dir
+  local scripts_dir
 
   archive_format="$(archive_format_for_os "$target_os")"
   bundle_archive="$RELEASE_DIR/$(program_bundle_filename "$VERSION" "$target_os" "$target_arch" "$archive_format")"
@@ -99,13 +101,20 @@ build_program_bundle() {
   stage_root="$tmp_dir/stage"
   bundle_root="$stage_root/$APP_NAME"
   frontend_dir="$bundle_root/frontend"
+  scripts_dir="$bundle_root/scripts"
 
   mkdir -p "$frontend_dir/dist"
+  mkdir -p "$scripts_dir"
 
   echo "[release] assembling program bundle for $target_os..."
   cp -R "$BUILD_ROOT/dist/." "$frontend_dir/dist/"
   cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
-  cp "$REPO_ROOT/scripts/release-assets/program/README.txt" "$bundle_root/README.txt"
+  if [[ "$target_os" == "windows" ]]; then
+    cp "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1" "$scripts_dir/program-common.ps1"
+  else
+    cp "$REPO_ROOT/scripts/release-assets/program/unix/program-common.sh" "$scripts_dir/program-common.sh"
+    chmod +x "$scripts_dir/program-common.sh"
+  fi
   write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$(basename "$bundle_archive")"
 
   mkdir -p "$RELEASE_DIR"

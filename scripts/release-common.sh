@@ -152,6 +152,11 @@ write_program_manifest() {
   local target_os="$2"
   local target_arch="$3"
   local asset_file_name="$4"
+  local program_common="scripts/program-common.sh"
+
+  if [[ "$target_os" == "windows" ]]; then
+    program_common="scripts/program-common.ps1"
+  fi
 
   cat >"$dest" <<EOF
 {
@@ -188,6 +193,7 @@ write_program_manifest() {
     "requiredPaths": [
       ".env.example",
       "manifest.json",
+      "$program_common",
       "frontend/dist/index.html"
     ]
   },
