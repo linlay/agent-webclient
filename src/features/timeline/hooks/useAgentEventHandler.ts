@@ -31,6 +31,10 @@ import {
   readPlanAnswerDecision,
 } from '@/features/tools/lib/planDecision';
 import {
+  clearAwaitingSubmitId,
+  readAwaitingSubmitId,
+} from '@/features/tools/lib/awaitingSubmitTracker';
+import {
   readRunAgentKeyFromEvent,
   resolveRunAgentKey,
 } from '@/features/chats/lib/runAgentIdentity';
@@ -110,6 +114,37 @@ function resolveSelectedWorkerContext(state: AppState): { agentKey: string; team
   return {
     agentKey: '',
     teamId: toText(selectedWorker.sourceId),
+  };
+}
+
+export function resolveAwaitingSubmitRuntimeContext(input: {
+  event: AgentEvent;
+  cache: LocalCache;
+  state: AppState;
+}): { awaitingRunId: string; awaitingId: string; pendingSubmitId: string } {
+  const awaitingId = toText(input.event.awaitingId);
+  const awaitingRunId =
+    toText(input.event.runId)
+    || (
+      awaitingId && input.cache.activeAwaiting?.awaitingId === awaitingId
+        ? input.cache.activeAwaiting.runId
+        : ''
+    )
+    || (
+      awaitingId && input.state.activeAwaiting?.awaitingId === awaitingId
+        ? input.state.activeAwaiting.runId
+        : ''
+    )
+    || input.cache.runId
+    || input.state.runId;
+  const pendingSubmitId =
+    awaitingRunId && awaitingId
+      ? readAwaitingSubmitId(awaitingRunId, awaitingId)
+      : '';
+  return {
+    awaitingRunId,
+    awaitingId,
+    pendingSubmitId,
   };
 }
 
@@ -298,12 +333,24 @@ export function useAgentEventHandler() {
           chats: state.chats,
           fallbackAgentKey: resolveSelectedWorkerContext(state).agentKey,
         });
+      const {
+        awaitingRunId,
+        awaitingId,
+        pendingSubmitId: pendingAwaitingSubmitId,
+      } = resolveAwaitingSubmitRuntimeContext({ event, cache, state });
       const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event, {
         agentKey: awaitingFallbackAgentKey,
+        pendingSubmitId: pendingAwaitingSubmitId,
       });
       if (nextAwaiting !== cache.activeAwaiting) {
         cache.activeAwaiting = nextAwaiting;
         dispatch({ type: 'SET_ACTIVE_AWAITING', awaiting: nextAwaiting });
+      }
+      if (isAwaitingAnswerLike(type) && awaitingRunId && awaitingId) {
+        const submitId = toText((event as Record<string, unknown>).submitId);
+        if (submitId && pendingAwaitingSubmitId === submitId) {
+          clearAwaitingSubmitId(awaitingRunId, awaitingId);
+        }
       }
 
       if (type === 'request.query') {

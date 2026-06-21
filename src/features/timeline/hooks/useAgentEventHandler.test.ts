@@ -8,8 +8,13 @@ import {
   createLiveProcessorState,
   createLocalCacheFromState,
   findMatchingPendingSteer,
+  resolveAwaitingSubmitRuntimeContext,
   shouldSyncLiveCache,
 } from '@/features/timeline/hooks/useAgentEventHandler';
+import {
+  clearAllAwaitingSubmitIdsForTest,
+  rememberAwaitingSubmitId,
+} from '@/features/tools/lib/awaitingSubmitTracker';
 
 function applyCommands(
   state: ReturnType<typeof createInitialState>,
@@ -51,6 +56,40 @@ function applyCommands(
         break;
     }
   }
+}
+
+function installSessionStorage(): () => void {
+  const originalWindow = (globalThis as { window?: unknown }).window;
+  const store: Record<string, string> = {};
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      location: {
+        pathname: '/',
+        search: '',
+      },
+      sessionStorage: {
+        getItem: (key: string) =>
+          Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null,
+        removeItem: (key: string) => {
+          delete store[key];
+        },
+        setItem: (key: string, value: string) => {
+          store[key] = value;
+        },
+      },
+    },
+  });
+  return () => {
+    if (originalWindow === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+      return;
+    }
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: originalWindow,
+    });
+  };
 }
 
 describe('findMatchingPendingSteer', () => {
@@ -386,6 +425,90 @@ describe('shouldSyncLiveCache', () => {
     });
 
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
+  });
+
+  it('rebuilds cache when awaiting pendingSubmitId is patched in React state', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        timeout: 60,
+        mode: 'question' as const,
+        questions: [
+          {
+            id: 'q1',
+            type: 'text' as const,
+            question: '目标是什么？',
+          },
+        ],
+        pendingSubmitId: 'submit_1',
+      },
+    };
+
+    const cache = createLocalCacheFromState({
+      ...state,
+      activeAwaiting: {
+        ...state.activeAwaiting,
+        pendingSubmitId: undefined,
+      },
+    });
+
+    expect(shouldSyncLiveCache(cache, state)).toBe(true);
+  });
+
+  it('resolves submitId from tracker for live awaiting.answer events', () => {
+    const restoreWindow = installSessionStorage();
+    try {
+      clearAllAwaitingSubmitIdsForTest();
+      rememberAwaitingSubmitId('run_1', 'await_1', 'submit_1');
+      const state = {
+        ...createInitialState(),
+        chatId: 'chat_1',
+        runId: 'run_1',
+        activeAwaiting: {
+          key: 'run_1#await_1',
+          awaitingId: 'await_1',
+          runId: 'run_1',
+          timeout: 60,
+          mode: 'question' as const,
+          questions: [
+            {
+              id: 'q1',
+              type: 'text' as const,
+              question: '目标是什么？',
+            },
+          ],
+        },
+      };
+      const cache = createLocalCacheFromState(state);
+
+      expect(
+        resolveAwaitingSubmitRuntimeContext({
+          event: {
+            type: 'awaiting.answer',
+            runId: 'run_1',
+            awaitingId: 'await_1',
+            submitId: 'submit_1',
+          },
+          cache,
+          state,
+        }),
+      ).toEqual({
+        awaitingRunId: 'run_1',
+        awaitingId: 'await_1',
+        pendingSubmitId: 'submit_1',
+      });
+    } finally {
+      clearAllAwaitingSubmitIdsForTest();
+      restoreWindow();
+    }
   });
 
   it('rebuilds cache when html awaiting mode or form data changes in React state', () => {

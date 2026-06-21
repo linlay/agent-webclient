@@ -628,6 +628,70 @@ describe('reduceActiveAwaiting', () => {
     expect(next).toBeNull();
   });
 
+  it('clears awaiting when awaiting.answer matches pending submitId from runtime options', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'question',
+      questions: [
+        {
+          id: 'q1',
+          type: 'text',
+          question: '目标是什么？',
+        },
+      ],
+    });
+
+    const next = reduceActiveAwaiting(
+      current,
+      {
+        type: 'awaiting.answer',
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        submitId: 'submit_1',
+        status: 'answered',
+        answers: [
+          {
+            id: 'q1',
+            answer: 'Ship it',
+          },
+        ],
+      },
+      { pendingSubmitId: 'submit_1' },
+    );
+
+    expect(next).toBeNull();
+  });
+
+  it('clears matching historical awaiting.answer without marking remote answered', () => {
+    const current = reduceActiveAwaiting(null, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'approval',
+      approvals: [
+        {
+          id: 'approve_1',
+          command: '删除生产环境缓存',
+        },
+      ],
+    });
+
+    const next = reduceActiveAwaiting(
+      current,
+      {
+        type: 'awaiting.answer',
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        status: 'answered',
+      },
+      { markRemoteAnswer: false },
+    );
+
+    expect(next).toBeNull();
+  });
+
   it('clears awaiting state when the run reaches a terminal event', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',

@@ -268,11 +268,12 @@ function normalizeAwaitingRuntimeSignature(
 		viewportType: awaiting.mode === "form" ? awaiting.viewportType : "",
 		viewportKey: awaiting.mode === "form" ? awaiting.viewportKey : "",
 		loading: awaiting.mode === "form" ? awaiting.loading : false,
-		loadError: awaiting.mode === "form" ? awaiting.loadError : "",
-		viewportHtml: awaiting.mode === "form" ? awaiting.viewportHtml : "",
-		resolutionReason: awaiting.resolutionReason || "",
-	});
-}
+			loadError: awaiting.mode === "form" ? awaiting.loadError : "",
+			viewportHtml: awaiting.mode === "form" ? awaiting.viewportHtml : "",
+			pendingSubmitId: awaiting.pendingSubmitId || "",
+			resolutionReason: awaiting.resolutionReason || "",
+		});
+	}
 
 function shouldSyncActiveAwaitingFromState(
 	cache: LocalCache,

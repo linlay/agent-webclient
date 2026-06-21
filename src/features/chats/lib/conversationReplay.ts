@@ -353,6 +353,7 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   );
   rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
     agentKey: rs.currentRunAgentKey,
+    markRemoteAnswer: false,
   });
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',

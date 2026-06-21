@@ -103,6 +103,19 @@ export function cloneActiveAwaiting(
   };
 }
 
+interface ReduceActiveAwaitingOptions {
+  agentKey?: string;
+  pendingSubmitId?: string;
+  markRemoteAnswer?: boolean;
+}
+
+function clearActiveAwaitingRuntime(current: ActiveAwaiting): null {
+  if (current.mode === 'question') {
+    clearAwaitingQuestionMeta(current.runId, current.awaitingId);
+  }
+  return null;
+}
+
 function createFormRuntimeState(
   current: ActiveAwaiting | null,
   key: string,
@@ -384,7 +397,7 @@ function readAwaitingCreatedAt(event: AgentEvent): number | null {
 export function reduceActiveAwaiting(
   current: ActiveAwaiting | null,
   event: AgentEvent,
-  fallback: { agentKey?: string } = {},
+  fallback: ReduceActiveAwaitingOptions = {},
 ): ActiveAwaiting | null {
   const type = toText(event.type);
   const eventAgentKey = toText(event.agentKey);
@@ -418,6 +431,10 @@ export function reduceActiveAwaiting(
       eventAgentKey
       || (current?.key === key ? current.agentKey : '')
       || toText(fallback.agentKey);
+    const pendingSubmitId =
+      current?.key === key
+        ? current.pendingSubmitId || toText(fallback.pendingSubmitId)
+        : toText(fallback.pendingSubmitId);
 
     if (nextMode === 'question') {
       const nextQuestions = normalizeQuestions(event.questions);
@@ -440,8 +457,7 @@ export function reduceActiveAwaiting(
             : [],
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
-        pendingSubmitId:
-          current?.key === key ? current.pendingSubmitId : undefined,
+        pendingSubmitId,
       };
     }
 
@@ -466,8 +482,7 @@ export function reduceActiveAwaiting(
             : [],
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
-        pendingSubmitId:
-          current?.key === key ? current.pendingSubmitId : undefined,
+        pendingSubmitId,
       };
     }
 
@@ -501,8 +516,7 @@ export function reduceActiveAwaiting(
         ...runtime,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
-        pendingSubmitId:
-          current?.key === key ? current.pendingSubmitId : undefined,
+        pendingSubmitId,
       };
     }
 
@@ -526,8 +540,7 @@ export function reduceActiveAwaiting(
             : { id: 'confirm' }),
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,
-        pendingSubmitId:
-          current?.key === key ? current.pendingSubmitId : undefined,
+        pendingSubmitId,
       };
     }
 
@@ -544,17 +557,19 @@ export function reduceActiveAwaiting(
       return current;
     }
     const submitId = toText((event as Record<string, unknown>).submitId);
-    if (submitId && current.pendingSubmitId === submitId) {
-      if (current.mode === 'question') {
-        clearAwaitingQuestionMeta(current.runId, current.awaitingId);
-      }
-      return null;
+    const pendingSubmitId =
+      toText(fallback.pendingSubmitId) || current.pendingSubmitId || '';
+    if (submitId && pendingSubmitId === submitId) {
+      return clearActiveAwaitingRuntime(current);
     }
     if (isAwaitingAnswerTimeoutError(event as Record<string, unknown>)) {
       return {
         ...current,
         resolutionReason: 'timeout',
       };
+    }
+    if (fallback.markRemoteAnswer === false) {
+      return clearActiveAwaitingRuntime(current);
     }
     return {
       ...current,

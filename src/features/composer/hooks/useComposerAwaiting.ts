@@ -13,6 +13,10 @@ import {
   getPlanningModeForPlanDecision,
   readPlanSubmitDecision,
 } from "@/features/tools/lib/planDecision";
+import {
+  clearAwaitingSubmitId,
+  rememberAwaitingSubmitId,
+} from "@/features/tools/lib/awaitingSubmitTracker";
 import { useI18n } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
@@ -90,6 +94,8 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
       if (!activeAwaiting) return;
+      let trackedRunId = "";
+      let trackedAwaitingId = "";
       try {
         const agentKey = resolveAwaitingSubmitAgentKey({
           activeAwaiting,
@@ -105,6 +111,9 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
           return error;
         }
         const submitId = createCompactId("submit");
+        trackedRunId = payload.runId;
+        trackedAwaitingId = payload.awaitingId;
+        rememberAwaitingSubmitId(trackedRunId, trackedAwaitingId, submitId);
         dispatch({
           type: "PATCH_ACTIVE_AWAITING",
           patch: {
@@ -128,6 +137,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
 
         if (!accepted) {
           if (status === "already_resolved") {
+            clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
             void message.info(t("composer.awaiting.alreadyResolved"));
             clearActiveAwaiting();
             return response;
@@ -178,6 +188,9 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
           /unknown awaiting|awaiting.*not found|awaiting.*expired/i.test(
             error.message,
           );
+        if (trackedRunId && trackedAwaitingId) {
+          clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
+        }
         if (isStaleAwaiting) {
           void message.warning(t("composer.awaiting.expired"));
           clearActiveAwaiting();

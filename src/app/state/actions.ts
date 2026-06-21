@@ -187,10 +187,10 @@ export type AppAction =
 	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
 	| {
 			type: "PATCH_ACTIVE_AWAITING";
-			patch: {
-				resolutionReason?: ActiveAwaiting["resolutionReason"];
-				pendingSubmitId?: string;
-				loading?: boolean;
+				patch: {
+					resolutionReason?: ActiveAwaiting["resolutionReason"];
+					pendingSubmitId?: string;
+					loading?: boolean;
 				loadError?: string;
 				viewportHtml?: string;
 			};
