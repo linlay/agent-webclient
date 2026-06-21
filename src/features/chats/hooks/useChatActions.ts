@@ -60,25 +60,30 @@ export function getAutoReadTriggerKey(
 
 export interface StartNewConversationDetail {
   agentKey?: unknown;
-  preserveWorkerContext?: unknown;
-  focusComposerOnComplete?: unknown;
+  preserveWorkerContext: unknown;
+  focusComposerOnComplete: unknown;
 }
 
 export function normalizeStartNewConversationDetail(
   detail: StartNewConversationDetail | null | undefined,
-  currentConversationMode: string,
 ): {
   agentKey: string;
   preserveWorkerContext: boolean;
   focusComposerOnComplete: boolean;
-} {
-  const agentKey = String(detail?.agentKey || '').trim();
+} | null {
+  if (!isObjectRecord(detail)) return null;
+  if (!Object.prototype.hasOwnProperty.call(detail, 'preserveWorkerContext')) {
+    return null;
+  }
+  if (!Object.prototype.hasOwnProperty.call(detail, 'focusComposerOnComplete')) {
+    return null;
+  }
+
+  const agentKey = String(detail.agentKey || '').trim();
   return {
     agentKey,
-    preserveWorkerContext: Boolean(detail?.preserveWorkerContext)
-      || Boolean(agentKey)
-      || currentConversationMode === 'worker',
-    focusComposerOnComplete: Boolean(detail?.focusComposerOnComplete),
+    preserveWorkerContext: detail.preserveWorkerContext === true,
+    focusComposerOnComplete: detail.focusComposerOnComplete === true,
   };
 }
 
@@ -1004,9 +1009,15 @@ export function useChatActions() {
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = normalizeStartNewConversationDetail(
-        ((event as CustomEvent).detail || {}) as StartNewConversationDetail,
-        stateRef.current.conversationMode,
+        (event as CustomEvent).detail as StartNewConversationDetail | null | undefined,
       );
+      if (!detail) {
+        dispatch({
+          type: 'APPEND_DEBUG',
+          line: '[new conversation] ignored: missing explicit detail',
+        });
+        return;
+      }
       if (detail.agentKey) {
         const workerKey = `agent:${detail.agentKey}`;
         if (

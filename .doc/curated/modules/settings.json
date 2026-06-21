@@ -17,7 +17,7 @@
     "dependents": [],
     "tests": [
       "src/features/settings/components/ArchiveModal.test.ts",
-      "src/features/settings/components/MemoryInfoModal.test.tsx",
+      "src/features/settings/components/MemoryInfoModal.test.ts",
       "src/features/settings/components/SettingsModal.test.ts",
       "src/features/settings/components/SidebarSettingsMenu.test.ts",
       "src/features/settings/lib/memoryInfo.test.ts",

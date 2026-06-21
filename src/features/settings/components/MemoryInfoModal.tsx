@@ -185,10 +185,9 @@ function formatDetailValue(value: unknown): string {
 function mergeMemoryMetaOptions(
   preferred: string[] | undefined,
   fallback: string[],
-  extras: Array<string | undefined>,
 ): string[] {
   return Array.from(
-    new Set([...(preferred && preferred.length > 0 ? preferred : fallback), ...extras]
+    new Set((preferred && preferred.length > 0 ? preferred : fallback)
       .map((value) => toText(value))
       .filter(Boolean)),
   );
@@ -349,22 +348,18 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   const kindOptions = mergeMemoryMetaOptions(
     memoryMeta?.types,
     ["fact", "observation"],
-    [filters.kind, ...records.map((record) => toText(record.kind))],
   );
   const scopeTypeOptions = mergeMemoryMetaOptions(
     memoryMeta?.scopeTypes,
     ["user", "agent", "team", "chat", "global"],
-    [filters.scopeType, ...records.map((record) => toText(record.scopeType))],
   );
   const statusOptions = mergeMemoryMetaOptions(
     memoryMeta?.statuses,
     ["active", "open", "superseded", "archived", "contested"],
-    [filters.status, ...records.map((record) => toText(record.status))],
   );
   const categoryOptions = mergeMemoryMetaOptions(
     memoryMeta?.categories,
     ["general", "remember", "identity", "work_rules", "bugfix"],
-    [filters.category, ...records.map((record) => toText(record.category))],
   );
 
   return (
@@ -675,10 +670,6 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
   const categoryOptions = mergeMemoryMetaOptions(
     memoryMeta?.categories,
     ["general", "preference", "constraint", "workflow", "decision", "bugfix"],
-    [
-      selectedDraft?.category,
-      ...recordsDraft.map((record) => toText(record.category)),
-    ],
   );
 
   return (

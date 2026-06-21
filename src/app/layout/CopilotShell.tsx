@@ -31,7 +31,17 @@ const CopilotTopBar: React.FC = () => {
   const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
 
   const handleStartNewConversation = () => {
-    window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+    window.dispatchEvent(
+      new CustomEvent("agent:start-new-conversation", {
+        detail: {
+          ...(currentWorker?.type === "agent" && currentWorker.sourceId
+            ? { agentKey: currentWorker.sourceId }
+            : {}),
+          preserveWorkerContext: true,
+          focusComposerOnComplete: false,
+        },
+      }),
+    );
   };
 
   return (

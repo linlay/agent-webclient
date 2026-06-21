@@ -722,7 +722,6 @@ export const LeftSidebar: React.FC = () => {
                 teams: stateRef.current.teams,
                 chats: stateRef.current.chats,
                 workerPriorityKey: `agent:${createdKey}`,
-                allowUnknownAgentRows: false,
               }),
             });
           }
@@ -744,7 +743,15 @@ export const LeftSidebar: React.FC = () => {
             });
           });
         }
-        window.dispatchEvent(new CustomEvent("agent:start-new-conversation"));
+        window.dispatchEvent(
+          new CustomEvent("agent:start-new-conversation", {
+            detail: {
+              ...(createdKey ? { agentKey: createdKey } : {}),
+              preserveWorkerContext: Boolean(createdKey),
+              focusComposerOnComplete: false,
+            },
+          }),
+        );
       })
       .catch((error) => {
         dispatch({

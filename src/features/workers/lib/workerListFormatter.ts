@@ -177,41 +177,9 @@ export function buildWorkerRows(input: {
   teams: Team[];
   chats: Chat[];
   workerPriorityKey?: string;
-  allowUnknownAgentRows?: boolean;
 }): WorkerRow[] {
   const latestByWorker = toLatestChatMap(input.chats);
   const workersByKey = createBaseWorkerMap(input.agents, input.teams);
-  const allowUnknownAgentRows = input.allowUnknownAgentRows ?? true;
-
-  for (const [workerKey, chat] of latestByWorker.entries()) {
-    if (workersByKey.has(workerKey)) continue;
-
-    if (workerKey.startsWith('team:')) {
-      const teamId = workerKey.slice('team:'.length);
-      workersByKey.set(workerKey, {
-        key: workerKey,
-        type: 'team',
-        sourceId: teamId,
-        displayName: teamId,
-        role: '--',
-        teamAgentLabels: ['--'],
-      });
-      continue;
-    }
-
-    if (workerKey.startsWith('agent:') && allowUnknownAgentRows) {
-      const agentKey = workerKey.slice('agent:'.length);
-      workersByKey.set(workerKey, {
-        key: workerKey,
-        type: 'agent',
-        agentType: 'agent',
-        sourceId: agentKey,
-        displayName: agentKey,
-        role: '',
-        teamAgentLabels: [],
-      });
-    }
-  }
 
   const rows: WorkerRow[] = [];
   for (const [key, base] of workersByKey.entries()) {

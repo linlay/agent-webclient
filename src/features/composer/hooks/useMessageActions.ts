@@ -160,7 +160,6 @@ function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undef
 
 /**
  * useMessageActions — handles sending messages and processing the query stream.
- * Replaces the original messageActions.js.
  */
 export function useMessageActions() {
   const {

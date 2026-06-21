@@ -319,12 +319,19 @@ export function useComposerSend(input: UseComposerSendInput) {
 
   const resetForNewConversation = useCallback(() => {
     clearComposerAttachments();
+    const currentState = stateRef.current || state;
+    const agentKey = resolveCurrentAgentKey();
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
-        detail: { focusComposerOnComplete: true },
+        detail: {
+          ...(agentKey ? { agentKey } : {}),
+          preserveWorkerContext:
+            currentState.conversationMode === "worker" || Boolean(agentKey),
+          focusComposerOnComplete: true,
+        },
       }),
     );
-  }, [clearComposerAttachments]);
+  }, [clearComposerAttachments, resolveCurrentAgentKey, state, stateRef]);
 
   const interruptCurrentRun = useCallback(async () => {
     const chatId = String(state.chatId || "").trim();

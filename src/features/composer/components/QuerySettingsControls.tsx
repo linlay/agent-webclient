@@ -114,11 +114,7 @@ function getModelKey(value: unknown): string {
 }
 
 function getModelDisplayName(model: CoderModelOption): string {
-  const key = String(model.key || "").trim();
-  return (
-    toConfigText(model.name) ||
-    (model.modelId ? `${key} · ${model.modelId}` : key)
-  );
+  return toConfigText(model.name);
 }
 
 function normalizeModelIdentityText(value: unknown): string {
@@ -180,7 +176,7 @@ function filterModelOptions(value: unknown): CoderModelOption[] {
   return Array.isArray(value)
     ? value.filter(
         (item): item is CoderModelOption =>
-          isRecord(item) && Boolean(toText(item.key)),
+          isRecord(item) && Boolean(toText(item.key)) && Boolean(toConfigText(item.name)),
       )
     : [];
 }

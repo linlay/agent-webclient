@@ -1307,7 +1307,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.interruptChat).not.toHaveBeenCalled();
 	});
 
-	it("ignores the legacy transport override and keeps routing over ws", async () => {
+	it("keeps ordinary requests on websocket transport when ws mode is selected", async () => {
 		const proxy = await import("./apiClientProxy");
 		proxy.setTransportModeProvider(() => "ws");
 		const connect = jest.fn().mockResolvedValue(undefined);

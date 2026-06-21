@@ -69,7 +69,7 @@
     "src/features/composer/lib/wonders.test.ts",
     "src/features/plan/components/PlanPanel.test.ts",
     "src/features/settings/components/ArchiveModal.test.ts",
-    "src/features/settings/components/MemoryInfoModal.test.tsx",
+    "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SidebarSettingsMenu.test.ts",
     "src/features/settings/lib/memoryInfo.test.ts",
@@ -190,7 +190,6 @@
     "src/app/layout/sidebar/right/RightSidebar.tsx",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/layout/sidebar/right/fileDiff.ts",
-    "src/app/modals/ActionModal.tsx",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",
     "src/app/modals/CommandModal.test.ts",
@@ -310,7 +309,7 @@
     "src/features/plan/components/PlanPanel.tsx",
     "src/features/settings/components/ArchiveModal.test.ts",
     "src/features/settings/components/ArchiveModal.tsx",
-    "src/features/settings/components/MemoryInfoModal.test.tsx",
+    "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/MemoryInfoModal.tsx",
     "src/features/settings/components/SettingsAsrDebug.tsx",
     "src/features/settings/components/SettingsClientGate.tsx",
@@ -761,10 +760,6 @@
                         "type": "file"
                       }
                     ]
-                  },
-                  {
-                    "name": "ActionModal.tsx",
-                    "type": "file"
                   },
                   {
                     "name": "AutomationModal.test.ts",
@@ -1363,7 +1358,7 @@
                         "type": "file"
                       },
                       {
-                        "name": "MemoryInfoModal.test.tsx",
+                        "name": "MemoryInfoModal.test.ts",
                         "type": "file"
                       },
                       {
@@ -2647,7 +2642,7 @@
     "settings": [
       "src/features/settings/components/ArchiveModal.test.ts",
       "src/features/settings/components/ArchiveModal.tsx",
-      "src/features/settings/components/MemoryInfoModal.test.tsx",
+      "src/features/settings/components/MemoryInfoModal.test.ts",
       "src/features/settings/components/MemoryInfoModal.tsx",
       "src/features/settings/components/SettingsAsrDebug.tsx",
       "src/features/settings/components/SettingsClientGate.tsx",
@@ -2929,7 +2924,7 @@
     "src/features/plan/components/PlanPanel.tsx": "plan",
     "src/features/settings/components/ArchiveModal.test.ts": "settings",
     "src/features/settings/components/ArchiveModal.tsx": "settings",
-    "src/features/settings/components/MemoryInfoModal.test.tsx": "settings",
+    "src/features/settings/components/MemoryInfoModal.test.ts": "settings",
     "src/features/settings/components/MemoryInfoModal.tsx": "settings",
     "src/features/settings/components/SettingsAsrDebug.tsx": "settings",
     "src/features/settings/components/SettingsClientGate.tsx": "settings",
@@ -3347,9 +3342,6 @@
       "FileDiffRow",
       "FileDiffRowType",
       "buildLineDiffRows"
-    ],
-    "src/app/modals/ActionModal.tsx": [
-      "ActionModal"
     ],
     "src/app/modals/AutomationModal.test.ts": null,
     "src/app/modals/AutomationModal.tsx": [
@@ -3968,7 +3960,7 @@
       "buildArchiveBulkCandidates",
       "extractArchivePreviewLines"
     ],
-    "src/features/settings/components/MemoryInfoModal.test.tsx": null,
+    "src/features/settings/components/MemoryInfoModal.test.ts": null,
     "src/features/settings/components/MemoryInfoModal.tsx": [
       "MemoryInfoConsole",
       "MemoryInfoConsoleView",
@@ -5323,7 +5315,6 @@
     "src/app/layout/ShellOverlays.tsx": [
       "@/app/effects/FireworksCanvas",
       "@/app/layout/CommandStatusOverlay",
-      "@/app/modals/ActionModal",
       "@/app/modals/CommandModal",
       "@/app/modals/EventPopover",
       "@/app/state/AppContext",
@@ -5517,9 +5508,6 @@
       "@/app/layout/sidebar/right/fileDiff"
     ],
     "src/app/layout/sidebar/right/fileDiff.ts": null,
-    "src/app/modals/ActionModal.tsx": [
-      "react"
-    ],
     "src/app/modals/AutomationModal.test.ts": [
       "@/app/modals/AutomationModal",
       "@/features/transport/lib/apiClientProxy",
@@ -6272,7 +6260,7 @@
       "antd",
       "react"
     ],
-    "src/features/settings/components/MemoryInfoModal.test.tsx": [
+    "src/features/settings/components/MemoryInfoModal.test.ts": [
       "@/features/settings/components/MemoryInfoModal",
       "@/shared/api/memoryTypes",
       "@/shared/i18n",
@@ -7547,7 +7535,6 @@
     "src/app/layout/sidebar/right/RightSidebar.tsx": null,
     "src/app/layout/sidebar/right/fileDiff.test.ts": null,
     "src/app/layout/sidebar/right/fileDiff.ts": null,
-    "src/app/modals/ActionModal.tsx": null,
     "src/app/modals/AutomationModal.test.ts": null,
     "src/app/modals/AutomationModal.tsx": null,
     "src/app/modals/CommandModal.test.ts": null,
@@ -7669,7 +7656,7 @@
     "src/features/plan/components/PlanPanel.tsx": null,
     "src/features/settings/components/ArchiveModal.test.ts": null,
     "src/features/settings/components/ArchiveModal.tsx": null,
-    "src/features/settings/components/MemoryInfoModal.test.tsx": null,
+    "src/features/settings/components/MemoryInfoModal.test.ts": null,
     "src/features/settings/components/MemoryInfoModal.tsx": null,
     "src/features/settings/components/SettingsAsrDebug.tsx": null,
     "src/features/settings/components/SettingsClientGate.tsx": null,
@@ -8008,7 +7995,6 @@
     "src/app/layout/sidebar/right/RightSidebar.tsx",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/layout/sidebar/right/fileDiff.ts",
-    "src/app/modals/ActionModal.tsx",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",
     "src/app/modals/CommandModal.test.ts",

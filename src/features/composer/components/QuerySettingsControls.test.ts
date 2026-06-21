@@ -208,7 +208,7 @@ describe("QuerySettingsControls", () => {
   it("loads global CODER model options", async () => {
     getModelOptions.mockResolvedValue({
       data: {
-        models: [{ key: "coder-model", modelId: "qwen3-coder" }],
+        models: [{ key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder" }],
         reasoningEfforts: [{ key: "NONE", label: "NONE" }],
         defaultModelKey: "coder-model",
         defaultReasoningEffort: "NONE",
@@ -216,7 +216,7 @@ describe("QuerySettingsControls", () => {
     });
 
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
-      models: [{ key: "coder-model", modelId: "qwen3-coder" }],
+      models: [{ key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder" }],
       reasoningEfforts: [{ key: "NONE", label: "NONE" }],
       defaultModelKey: "coder-model",
       defaultReasoningEffort: "NONE",
@@ -227,23 +227,23 @@ describe("QuerySettingsControls", () => {
   it("returns cached model options after the first successful load", async () => {
     getModelOptions.mockResolvedValue({
       data: {
-        models: [{ key: "cached-model", modelId: "qwen3-cached" }],
+        models: [{ key: "cached-model", name: "Cached Coder", modelId: "qwen3-cached" }],
         reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
       },
     });
 
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
-      models: [{ key: "cached-model" }],
+      models: [{ key: "cached-model", name: "Cached Coder" }],
       reasoningEfforts: [{ key: "MEDIUM" }],
     });
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
-      models: [{ key: "cached-model" }],
+      models: [{ key: "cached-model", name: "Cached Coder" }],
       reasoningEfforts: [{ key: "MEDIUM" }],
     });
 
     expect(getModelOptions).toHaveBeenCalledTimes(1);
     expect(getCachedCoderModelOptions()).toMatchObject({
-      models: [{ key: "cached-model" }],
+      models: [{ key: "cached-model", name: "Cached Coder" }],
       reasoningEfforts: [{ key: "MEDIUM" }],
     });
   });
@@ -251,7 +251,7 @@ describe("QuerySettingsControls", () => {
   it("coalesces concurrent model option loads into one request", async () => {
     getModelOptions.mockResolvedValue({
       data: {
-        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        models: [{ key: "shared-model", name: "Shared Coder", modelId: "qwen3-shared" }],
         reasoningEfforts: [{ key: "LOW", label: "LOW" }],
       },
     });
@@ -262,11 +262,11 @@ describe("QuerySettingsControls", () => {
     expect(getModelOptions).toHaveBeenCalledTimes(1);
     await expect(Promise.all([first, second])).resolves.toMatchObject([
       {
-        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        models: [{ key: "shared-model", name: "Shared Coder", modelId: "qwen3-shared" }],
         reasoningEfforts: [{ key: "LOW", label: "LOW" }],
       },
       {
-        models: [{ key: "shared-model", modelId: "qwen3-shared" }],
+        models: [{ key: "shared-model", name: "Shared Coder", modelId: "qwen3-shared" }],
         reasoningEfforts: [{ key: "LOW", label: "LOW" }],
       },
     ]);
@@ -277,7 +277,7 @@ describe("QuerySettingsControls", () => {
       .mockRejectedValueOnce(new Error("network timeout"))
       .mockResolvedValueOnce({
         data: {
-          models: [{ key: "retry-model", modelId: "qwen3-retry" }],
+          models: [{ key: "retry-model", name: "Retry Coder", modelId: "qwen3-retry" }],
           reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
         },
       });
@@ -286,7 +286,7 @@ describe("QuerySettingsControls", () => {
     expect(getCachedCoderModelOptions()).toBeNull();
 
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
-      models: [{ key: "retry-model" }],
+      models: [{ key: "retry-model", name: "Retry Coder" }],
       reasoningEfforts: [{ key: "HIGH" }],
     });
     expect(getModelOptions).toHaveBeenCalledTimes(2);
@@ -587,20 +587,33 @@ describe("QuerySettingsControls", () => {
     expect(reasoningHtml).toContain("高");
   });
 
-  it("falls back to key and modelId when a model name is missing", () => {
+  it("filters out model options that do not provide a display name", () => {
+    const normalized = normalizeCoderModelOptionsResponse({
+      data: {
+        models: [
+          {
+            key: "missing-name-coder",
+            modelId: "qwen3-missing-name",
+            isReasoner: true,
+            isVision: false,
+          },
+          {
+            key: "named-coder",
+            name: "Named Coder",
+            modelId: "qwen3-named",
+            isReasoner: true,
+            isVision: false,
+          },
+        ],
+        reasoningEfforts: [],
+      },
+    });
     const items = buildModelMenuItems({
-      models: [
-        {
-          key: "legacy-coder",
-          modelId: "qwen3-legacy",
-          isReasoner: true,
-          isVision: false,
-        },
-      ],
+      models: normalized.models,
       reasoningEfforts: [],
-      modelOverride: { key: "legacy-coder" },
-      selectedModelKey: "legacy-coder",
-      selectedModelLabel: "legacy-coder · qwen3-legacy",
+      modelOverride: { key: "named-coder" },
+      selectedModelKey: "named-coder",
+      selectedModelLabel: "Named Coder",
       t: (key) => {
         const messages: Record<string, string> = {
           "composer.query.model.group": "模型",
@@ -611,10 +624,22 @@ describe("QuerySettingsControls", () => {
     }) as TestMenuItem[];
     const modelChildren = getModelMenuChildren(items);
     const modelHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, modelChildren[0]?.label),
+      React.createElement(
+        React.Fragment,
+        null,
+        modelChildren.map((item) =>
+          React.createElement(React.Fragment, { key: item.key }, item.label),
+        ),
+      ),
     );
 
-    expect(modelHtml).toContain("legacy-coder · qwen3-legacy");
+    expect(normalized.models.map((model) => model.key)).toEqual(["named-coder"]);
+    expect(modelChildren.map((item) => item.key)).toEqual([
+      "model:named-coder",
+    ]);
+    expect(modelHtml).toContain("Named Coder");
+    expect(modelHtml).not.toContain("missing-name-coder");
+    expect(modelHtml).not.toContain("qwen3-missing-name");
   });
 
   it("retries model loading when the menu opens after an empty or failed load", () => {

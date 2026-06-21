@@ -7,7 +7,6 @@ import { isAppMode } from '@/shared/utils/routing';
 import {
   refreshWorkerDataFromAgentsWithChats,
   type WorkerDataSnapshot,
-  type WorkerRowBuildOptions,
   type WorkerRefreshOverrides,
 } from '@/features/workers/lib/workerDataCoordinator';
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
@@ -111,7 +110,7 @@ export function useWorkerData(input: {
     return rows[0]?.key || '';
   }, [findDefaultTeamWorkerKey, stateRef]);
 
-  const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides & WorkerRowBuildOptions = {}) => {
+  const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides = {}) => {
     const current = stateRef.current;
     const agents = overrides.agents ?? current.agents;
     const teams = overrides.teams ?? current.teams;
@@ -121,7 +120,6 @@ export function useWorkerData(input: {
       teams,
       chats,
       workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
-      allowUnknownAgentRows: overrides.allowUnknownAgentRows ?? false,
     });
     const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
     if (workerSelectionKey) {
@@ -161,7 +159,7 @@ export function useWorkerData(input: {
         const response = await getAgents(buildAgentListRequestOptions(currentPathname()));
         const agents = (response.data as Agent[]) || [];
         dispatch({ type: 'SET_AGENTS', agents });
-        rebuildWorkerRowsFromState({ agents, allowUnknownAgentRows: false });
+        rebuildWorkerRowsFromState({ agents });
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
       }
@@ -211,10 +209,7 @@ export function useWorkerData(input: {
           dispatch({ type: 'SET_CHATS', chats });
         },
         rebuildWorkerRows: (overrides) => {
-          rebuildWorkerRowsFromState({
-            ...overrides,
-            allowUnknownAgentRows: false,
-          });
+          rebuildWorkerRowsFromState(overrides);
         },
         appendDebug: (line) => {
           dispatch({ type: 'APPEND_DEBUG', line });

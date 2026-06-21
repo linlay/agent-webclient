@@ -17,7 +17,7 @@
 - 数学公式：KaTeX
 - 测试：Jest、ts-jest
 - 部署：Docker、Nginx 静态站点代理
-- Desktop Program Bundle：`frontend/dist`、manifest 与跨平台生命周期脚本；HTTP 托管在 ZenMind Desktop main process 中实现
+- Desktop Program Bundle：`frontend/dist` 与 manifest；HTTP 托管在 ZenMind Desktop main process 中实现
 
 ## 3. 架构设计
 应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，状态初始化、reducer、provider 和类型定义拆分在 `src/app/state/` 下；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
@@ -77,11 +77,11 @@
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
 - 仓库统一使用 `npm`；根目录提交 `package-lock.json`，不使用 `pnpm` / `yarn` 锁文件。
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制；设置 `VOICE_BASE_URL` 时语音 WebSocket 与语音相关 HTTP 代理到该上游，未设置时语音功能关闭。
-- Desktop Program Bundle 只交付 `frontend/dist`、manifest 和生命周期脚本；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 ZenMind Desktop main process 托管。
+- Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 ZenMind Desktop main process 托管。
 - 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 与 `/ws` 到 `BASE_URL`，并在设置 `VOICE_BASE_URL` 时追加 `/api/voice/ws`、`/api/voice/*` 的语音代理。
 - SSE 和 WebSocket 请求都需要禁用代理缓冲，避免事件流被延迟或截断。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口；旧的并行样式入口不再保留。
+- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口，其他全局样式通过该文件集中导入。
 
 ## 8. 开发流程
 本地开发流程：

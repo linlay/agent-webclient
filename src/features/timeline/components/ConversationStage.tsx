@@ -530,6 +530,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
       const workerDetail: Record<string, string | boolean> = {
         preserveWorkerContext: true,
+        focusComposerOnComplete: false,
       };
       const sendDetail: Record<string, string> = { message: messageText };
       if (currentWorker?.type === "agent" && currentWorker.sourceId) {

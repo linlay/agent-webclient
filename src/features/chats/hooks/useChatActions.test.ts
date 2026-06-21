@@ -825,8 +825,9 @@ describe('replayEvent tool migration', () => {
     expect(
       normalizeStartNewConversationDetail({
         agentKey: 'demo-agent',
+        preserveWorkerContext: true,
         focusComposerOnComplete: true,
-      }, 'chat'),
+      }),
     ).toEqual({
       agentKey: 'demo-agent',
       preserveWorkerContext: true,
@@ -834,15 +835,17 @@ describe('replayEvent tool migration', () => {
     });
   });
 
-  it('keeps legacy new-conversation events scoped to the current mode', () => {
-    expect(normalizeStartNewConversationDetail({}, 'chat')).toEqual({
+  it('requires new-conversation events to provide explicit detail fields', () => {
+    expect(normalizeStartNewConversationDetail(null)).toBeNull();
+    expect(normalizeStartNewConversationDetail({} as never)).toBeNull();
+    expect(
+      normalizeStartNewConversationDetail({
+        preserveWorkerContext: false,
+        focusComposerOnComplete: false,
+      }),
+    ).toEqual({
       agentKey: '',
       preserveWorkerContext: false,
-      focusComposerOnComplete: false,
-    });
-    expect(normalizeStartNewConversationDetail({}, 'worker')).toEqual({
-      agentKey: '',
-      preserveWorkerContext: true,
       focusComposerOnComplete: false,
     });
   });

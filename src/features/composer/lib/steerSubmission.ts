@@ -24,22 +24,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-function normalizeBoolean(value: unknown, fallback: boolean): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value !== 0;
-  const text = String(value ?? "").trim().toLowerCase();
-  if (["true", "1", "yes", "accepted"].includes(text)) return true;
-  if (["false", "0", "no", "rejected", "unmatched"].includes(text)) {
-    return false;
-  }
-  return fallback;
-}
-
 export function normalizeSteerSubmissionResponse(
   response: ApiResponse | null | undefined,
 ): SteerSubmissionResult {
   const data = isRecord(response?.data) ? response.data : {};
-  const accepted = normalizeBoolean(data.accepted, true);
+  if (typeof data.accepted !== "boolean") {
+    return {
+      accepted: false,
+      status: "invalid_response",
+      detail: String(data.detail || response?.msg || "").trim(),
+    };
+  }
+
+  const accepted = data.accepted;
   const status = String(data.status || (accepted ? "accepted" : "unmatched"));
   const detail = String(data.detail || response?.msg || "").trim();
 

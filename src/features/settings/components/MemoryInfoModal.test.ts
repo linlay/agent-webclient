@@ -434,7 +434,7 @@ describe("MemoryInfoModalView", () => {
     expect(recordHtml).toContain("Select an agent before opening memory info.");
   });
 
-  it("keeps legacy category values visible when meta options do not include them", () => {
+  it("uses only current meta categories for preference record options", () => {
     const html = renderView({
       preferencesPanel: {
         agentKey: "agent-alice",
@@ -468,10 +468,10 @@ describe("MemoryInfoModalView", () => {
         markdownDraft: "# AGENT\n",
         recordsDraft: [
           {
-            clientId: "draft:legacy",
-            id: "mem_legacy",
-            title: "旧分类",
-            summary: "Legacy category value.",
+            clientId: "draft:outside-catalog",
+            id: "mem_outside_catalog",
+            title: "Unknown category",
+            summary: "Category value outside current meta.",
             category: "response_style",
             importance: 6,
             confidence: 0.8,
@@ -483,7 +483,7 @@ describe("MemoryInfoModalView", () => {
             updatedAt: 1_777_344_300_000,
           },
         ],
-        selectedRecordId: "draft:legacy",
+        selectedRecordId: "draft:outside-catalog",
         dirty: false,
         saving: false,
         saveSummary: null,
@@ -509,9 +509,8 @@ describe("MemoryInfoModalView", () => {
       },
     });
 
-    expect(html).toContain("response_style");
-    expect(html).toContain(
-      "<option value=\"response_style\" selected=\"\">response_style</option>",
-    );
+    expect(html).toContain("<option value=\"general\">general</option>");
+    expect(html).toContain("<option value=\"workflow\">workflow</option>");
+    expect(html).not.toContain("<option value=\"response_style\"");
   });
 });

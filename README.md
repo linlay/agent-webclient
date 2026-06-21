@@ -5,7 +5,7 @@
 
 当前仓库只提供 Web 客户端。发布链路分为两类：
 
-- Program Bundle：ZenMind Desktop 内置服务包，包含静态资源、manifest 和跨平台生命周期脚本；HTTP 托管由 Desktop main process 负责
+- Program Bundle：ZenMind Desktop 内置服务包，包含静态资源和 manifest；HTTP 托管由 Desktop main process 负责
 - Image Bundle：包含离线 Docker 镜像、compose 和运行脚本的镜像部署包
 
 ## 2. 快速开始

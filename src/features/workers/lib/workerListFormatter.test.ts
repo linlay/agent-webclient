@@ -78,7 +78,7 @@ describe('buildWorkerRows', () => {
     expect(rows).toEqual([]);
   });
 
-  it('keeps chat-derived unknown agent rows by default for compatibility', () => {
+  it('omits chat-derived rows when the worker is not in the current agent list', () => {
     const rows = buildWorkerRows({
       agents: [],
       teams: [],
@@ -93,10 +93,10 @@ describe('buildWorkerRows', () => {
       ],
     });
 
-    expect(rows.map((row) => row.key)).toEqual(['agent:agent-hidden']);
+    expect(rows).toEqual([]);
   });
 
-  it('omits chat-derived unknown agent rows when scoped agent lists hide them', () => {
+  it('keeps only current agents when chats include hidden agents', () => {
     const rows = buildWorkerRows({
       agents: [{ key: 'agent-visible', name: 'Visible' } as Agent],
       teams: [],
@@ -116,7 +116,6 @@ describe('buildWorkerRows', () => {
           updatedAt: 300,
         } as Chat,
       ],
-      allowUnknownAgentRows: false,
     });
 
     expect(rows.map((row) => row.key)).toEqual(['agent:agent-visible']);
