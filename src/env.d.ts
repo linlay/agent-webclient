@@ -5,6 +5,7 @@ declare global {
 
   interface Window {
     __AGENT_APP_ACCESS_TOKEN?: string;
+    __DESKTOP_WEBVIEW_BRIDGE__?: boolean;
     __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__?: boolean;
   }
 }

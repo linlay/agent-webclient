@@ -27,10 +27,19 @@ describe("desktopScreenshot bridge", () => {
 
   function installDesktopWindow(
     respond: (payload: { requestId: string }) => void,
+    options: {
+      bridgeFlag?:
+        | "__DESKTOP_WEBVIEW_BRIDGE__"
+        | "__ZENMIND_DESKTOP_WEBVIEW_BRIDGE__";
+      runtimeConfig?: Record<string, unknown>;
+      search?: string;
+    } = {},
   ) {
     const listeners = new Set<(event: MessageEvent) => void>();
+    const bridgeFlag =
+      options.bridgeFlag ?? "__ZENMIND_DESKTOP_WEBVIEW_BRIDGE__";
     const mockWindow: any = {
-      location: { pathname: "/", search: "" },
+      location: { pathname: "/", search: options.search ?? "" },
       parent: null,
       postMessage: jest.fn((payload: { requestId: string }) => {
         respond(payload);
@@ -47,14 +56,15 @@ describe("desktopScreenshot bridge", () => {
       }),
       setTimeout,
       clearTimeout,
-      __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: true,
+      [bridgeFlag]: true,
     };
     mockWindow.parent = mockWindow;
     (globalThis as unknown as { window?: typeof mockWindow }).window =
       mockWindow;
-    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      DESKTOP_APP: "true",
-    };
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ =
+      options.runtimeConfig ?? {
+        DESKTOP_APP: "true",
+      };
     return {
       mockWindow,
       emit: (data: Record<string, unknown>) => {
@@ -95,6 +105,38 @@ describe("desktopScreenshot bridge", () => {
     expect(desktop.mockWindow.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "zenmind:desktop-screenshot:capture",
+      }),
+      "*",
+    );
+  });
+
+  it("captures through the current desktop webview bridge flag", async () => {
+    const desktop = installDesktopWindow(
+      (payload) => {
+        queueMicrotask(() => {
+          desktop.emit({
+            type: "desktop:screenshot:capture:response",
+            requestId: payload.requestId,
+            ok: true,
+            dataBase64: "cG5n",
+            mimeType: "image/png",
+          });
+        });
+      },
+      {
+        bridgeFlag: "__DESKTOP_WEBVIEW_BRIDGE__",
+        runtimeConfig: { DESKTOP_APP: "false" },
+        search: "?desktopAuthContext=platform%3A202",
+      },
+    );
+
+    await expect(captureDesktopScreenshot()).resolves.toMatchObject({
+      dataUrl: "data:image/png;base64,cG5n",
+      mimeType: "image/png",
+    });
+    expect(desktop.mockWindow.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "desktop:screenshot:capture",
       }),
       "*",
     );

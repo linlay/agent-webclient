@@ -1,14 +1,19 @@
 import {
   hasDesktopHostBridge,
+  hasCurrentDesktopHostBridgeFlag,
   isDesktopHostMessageEvent,
   postDesktopHostMessage,
 } from "@/shared/api/desktopHostBridge";
 import { t } from "@/shared/i18n";
-import { isDesktopAppMode } from "@/shared/utils/routing";
+import { isAppMode } from "@/shared/utils/routing";
 
 const DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE =
-  "zenmind:desktop-screenshot:capture";
+  "desktop:screenshot:capture";
 const DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE =
+  "desktop:screenshot:capture:response";
+const LEGACY_DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE =
+  "zenmind:desktop-screenshot:capture";
+const LEGACY_DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE =
   "zenmind:desktop-screenshot:capture:response";
 const DESKTOP_SCREENSHOT_TIMEOUT_MS = 120_000;
 
@@ -32,12 +37,16 @@ export interface DesktopScreenshotResult {
 }
 
 interface DesktopScreenshotRequestMessage {
-  type: typeof DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE;
+  type:
+    | typeof DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE
+    | typeof LEGACY_DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE;
   requestId: string;
 }
 
 interface DesktopScreenshotResponseMessage {
-  type: typeof DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE;
+  type:
+    | typeof DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE
+    | typeof LEGACY_DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE;
   requestId: string;
   ok?: boolean;
   cancelled?: boolean;
@@ -75,8 +84,33 @@ function createDesktopScreenshotFilename(): string {
 export function canUseDesktopScreenshotBridge(): boolean {
   return (
     typeof window !== "undefined" &&
-    isDesktopAppMode() &&
+    isAppMode() &&
     hasDesktopHostBridge()
+  );
+}
+
+function getDesktopScreenshotBridgeTypes() {
+  if (hasCurrentDesktopHostBridgeFlag()) {
+    return {
+      requestType: DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
+      responseType: DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
+    };
+  }
+
+  return {
+    requestType: LEGACY_DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
+    responseType: LEGACY_DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
+  };
+}
+
+function isDesktopScreenshotResponseType(
+  type: unknown,
+  expectedType: string,
+): type is DesktopScreenshotResponseMessage["type"] {
+  return (
+    type === expectedType ||
+    type === DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE ||
+    type === LEGACY_DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE
   );
 }
 
@@ -104,8 +138,9 @@ export function captureDesktopScreenshot(): Promise<DesktopScreenshotResult | nu
 
   return new Promise<DesktopScreenshotResult | null>((resolve, reject) => {
     const requestId = createDesktopScreenshotRequestId();
+    const { requestType, responseType } = getDesktopScreenshotBridgeTypes();
     const requestMessage: DesktopScreenshotRequestMessage = {
-      type: DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
+      type: requestType,
       requestId,
     };
 
@@ -121,7 +156,7 @@ export function captureDesktopScreenshot(): Promise<DesktopScreenshotResult | nu
       const payload = event.data as DesktopScreenshotResponseMessage | null;
       if (
         !payload ||
-        payload.type !== DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE ||
+        !isDesktopScreenshotResponseType(payload.type, responseType) ||
         payload.requestId !== requestId
       ) {
         return;
