@@ -1,8 +1,8 @@
 import { isAppMode } from "@/shared/utils/routing";
 import { hasDesktopHostBridge, postDesktopHostMessage } from "@/shared/api/desktopHostBridge";
 
-const AGENT_APP_CLIPBOARD_REQUEST_TYPE = "zenmind:agent-app-clipboard:request";
-const AGENT_APP_CLIPBOARD_RESPONSE_TYPE = "zenmind:agent-app-clipboard:response";
+const AGENT_APP_CLIPBOARD_REQUEST_TYPE = "desktop:agent-app-clipboard:request";
+const AGENT_APP_CLIPBOARD_RESPONSE_TYPE = "desktop:agent-app-clipboard:response";
 const AGENT_APP_CLIPBOARD_TIMEOUT_MS = 5_000;
 
 interface ClipboardRequestMessage {
