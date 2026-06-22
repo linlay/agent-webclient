@@ -193,7 +193,9 @@ export function processToolEvent(
         result: existing?.result || null,
         ts: event.timestamp || existing?.ts || Date.now(),
         startedAt:
-          existing?.startedAt || event.timestamp || existing?.ts || Date.now(),
+          type === "tool.snapshot"
+            ? (existing?.startedAt || event.timestamp || existing?.ts || Date.now())
+            : existing?.startedAt,
         endedAt: existing?.endedAt,
         durationMs: existing?.durationMs,
         state,
@@ -397,6 +399,8 @@ export function processToolEvent(
             : "completed",
         result: existing?.result || null,
         ts: existing?.ts || event.timestamp || Date.now(),
+        startedAt: event.timestamp || Date.now(),
+        endedAt: existing?.endedAt,
         state,
       }),
     });
