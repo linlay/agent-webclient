@@ -13,6 +13,7 @@ import {
   toggleAutomation,
   updateAutomation,
 } from "@/features/transport/lib/apiClientProxy";
+import { getAgents as getAgentsHttp } from "@/shared/api/apiClient";
 import type {
   CreateAutomationRequest,
   AutomationDetailResponse,
@@ -93,6 +94,8 @@ const COMMON_ZONE_OPTIONS = [
   "Australia/Sydney",
 ];
 
+const AUTOMATION_ROLE_OPTIONS = ["user", "assistant", "system"];
+
 function compactPayload<T extends Record<string, unknown>>(payload: T): T {
   const next = { ...payload };
   for (const key of Object.keys(next)) {
@@ -139,7 +142,6 @@ function createInitialForm(
   return {
     ...EMPTY_FORM,
     agentKey: resolveDefaultAgentKey(currentWorker),
-    teamId: currentWorker?.type === "team" ? currentWorker.sourceId : "",
   };
 }
 
@@ -227,13 +229,12 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
   return query;
 }
 
-function buildCreatePayload(form: AutomationFormState): CreateAutomationRequest {
+export function buildCreateAutomationPayloadForSubmit(form: AutomationFormState): CreateAutomationRequest {
   return compactPayload({
     name: form.name.trim(),
     description: form.description.trim(),
     cron: form.cron.trim(),
     agentKey: form.agentKey.trim(),
-    teamId: form.teamId.trim(),
     zoneId: form.zoneId.trim(),
     enabled: form.enabled,
     remainingRuns: form.remainingRuns.trim()
@@ -243,14 +244,13 @@ function buildCreatePayload(form: AutomationFormState): CreateAutomationRequest 
   }) as CreateAutomationRequest;
 }
 
-function buildUpdatePayload(form: AutomationFormState): UpdateAutomationRequest {
+export function buildUpdateAutomationPayloadForSubmit(form: AutomationFormState): UpdateAutomationRequest {
   return compactPayload({
     id: form.id,
     name: form.name.trim(),
     description: form.description.trim(),
     cron: form.cron.trim(),
     agentKey: form.agentKey.trim(),
-    teamId: form.teamId.trim(),
     zoneId: form.zoneId.trim(),
     enabled: form.enabled,
     remainingRuns: form.remainingRuns.trim()
@@ -296,6 +296,21 @@ export function shouldStartAutomationConsoleBootstrap(
   return true;
 }
 
+export function shouldLoadAutomationAgents(
+  ref: React.MutableRefObject<boolean>,
+  agents: Agent[],
+): boolean {
+  if (ref.current) return false;
+  if (Array.isArray(agents) && agents.length > 0) return false;
+  ref.current = true;
+  return true;
+}
+
+export async function fetchAutomationAgentsForSelect(): Promise<Agent[]> {
+  const response = await getAgentsHttp();
+  return Array.isArray(response.data) ? (response.data as Agent[]) : [];
+}
+
 export const AutomationModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
@@ -323,6 +338,7 @@ export const AutomationModal: React.FC<{
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [workerDropdownOpen, setWorkerDropdownOpen] = useState(false);
   const didBootstrapAutomationsRef = useRef(false);
+  const didBootstrapAgentsRef = useRef(false);
   const didAutoSelectInitialAutomationRef = useRef(false);
 
   const workerOptions = useMemo(() => {
@@ -403,6 +419,15 @@ export const AutomationModal: React.FC<{
     }
     return values;
   }, [agents, teams]);
+
+  const loadAgentsForAutomation = useCallback(async () => {
+    try {
+      const nextAgents = await fetchAutomationAgentsForSelect();
+      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+    } catch (error) {
+      setError((error as Error).message);
+    }
+  }, [dispatch]);
 
   const getAutomationWorkerName = useCallback(
     (automation: AutomationSummaryResponse): string => {
@@ -536,6 +561,11 @@ export const AutomationModal: React.FC<{
   }, [loadAutomations, selectedId]);
 
   useEffect(() => {
+    if (!shouldLoadAutomationAgents(didBootstrapAgentsRef, agents)) return;
+    void loadAgentsForAutomation();
+  }, [agents, loadAgentsForAutomation]);
+
+  useEffect(() => {
     if (
       didAutoSelectInitialAutomationRef.current ||
       selectedId ||
@@ -565,8 +595,8 @@ export const AutomationModal: React.FC<{
     try {
       const response =
         formMode === "create"
-          ? await createAutomation(buildCreatePayload(form))
-          : await updateAutomation(buildUpdatePayload(form));
+          ? await createAutomation(buildCreateAutomationPayloadForSubmit(form))
+          : await updateAutomation(buildUpdateAutomationPayloadForSubmit(form));
       await loadAutomations(response.data.id);
     } catch (error) {
       setFormError((error as Error).message);
@@ -843,17 +873,11 @@ export const AutomationModal: React.FC<{
               <label htmlFor="automation-agent-input">{t("automationConsole.field.agent")}</label>
               <Select
                 id="automation-agent-input"
+                showSearch
+                optionFilterProp="label"
                 value={form.agentKey}
                 onChange={(value) => updateForm({ agentKey: value })}
                 options={[{ value: "", label: t("automationConsole.field.agentPlaceholder") }, ...agentOptions]}
-              />
-            </div>
-            <div className="field-group">
-              <label htmlFor="automation-team-input">TeamID</label>
-              <Input
-                id="automation-team-input"
-                value={form.teamId}
-                onChange={(event) => updateForm({ teamId: event.target.value })}
               />
             </div>
             <div className="field-group">
@@ -927,10 +951,14 @@ export const AutomationModal: React.FC<{
               </div>
               <div className="field-group">
                 <label htmlFor="automation-role-input">{t("automationConsole.field.role")}</label>
-                <Input
+                <Select
                   id="automation-role-input"
                   value={form.role}
-                  onChange={(event) => updateForm({ role: event.target.value })}
+                  onChange={(value) => updateForm({ role: value })}
+                  options={AUTOMATION_ROLE_OPTIONS.map((role) => ({
+                    value: role,
+                    label: role,
+                  }))}
                 />
               </div>
               <div className="field-group">

@@ -3,15 +3,23 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   AutomationModal,
   automationSourcePath,
+  buildCreateAutomationPayloadForSubmit,
+  buildUpdateAutomationPayloadForSubmit,
+  fetchAutomationAgentsForSelect,
+  shouldLoadAutomationAgents,
   shouldStartAutomationConsoleBootstrap,
 } from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getAutomations } from "@/features/transport/lib/apiClientProxy";
+import { getAgents as getAgentsHttp } from "@/shared/api/apiClient";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
+const mockedDispatch = jest.fn();
+const mockedUseAppState = jest.fn(() => ({ automations: [], agents: [] }));
+
 jest.mock("@/app/state/AppContext", () => ({
-  useAppDispatch: jest.fn(() => jest.fn()),
-  useAppState: jest.fn(() => ({ automations: [] })),
+  useAppDispatch: jest.fn(() => mockedDispatch),
+  useAppState: () => mockedUseAppState(),
 }));
 
 jest.mock("antd", () => {
@@ -27,8 +35,9 @@ jest.mock("antd", () => {
   return {
     Checkbox: ({ children, ...props }: any) =>
       React.createElement("label", null, React.createElement("input", { type: "checkbox", ...props }), children),
+    Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Input,
-    Select: ({ options = [], ...props }: any) =>
+    Select: ({ options = [], showSearch, optionFilterProp, ...props }: any) =>
       React.createElement(
         "select",
         props,
@@ -55,7 +64,12 @@ jest.mock("@/features/transport/lib/apiClientProxy", () => ({
   updateAutomation: jest.fn(),
 }));
 
+jest.mock("@/shared/api/apiClient", () => ({
+  getAgents: jest.fn(),
+}));
+
 const mockedGetAutomations = getAutomations as jest.Mock;
+const mockedGetAgentsHttp = getAgentsHttp as jest.Mock;
 
 function createCurrentWorker(): CurrentWorkerSummary {
   return {
@@ -106,6 +120,17 @@ function renderAutomationModal(locale: Locale) {
 
 describe("AutomationModal", () => {
   beforeEach(() => {
+    mockedDispatch.mockClear();
+    mockedUseAppState.mockReturnValue({ automations: [], agents: [] });
+    mockedGetAgentsHttp.mockResolvedValue({
+      status: 200,
+      code: 0,
+      msg: "ok",
+      data: [
+        { key: "agent-a", name: "小宅", role: "执行官" },
+        { key: "agent-b", name: "小智", role: "分析师" },
+      ],
+    });
     mockedGetAutomations.mockResolvedValue({
       status: 200,
       code: 0,
@@ -136,6 +161,24 @@ describe("AutomationModal", () => {
     expect(shouldStartAutomationConsoleBootstrap(bootstrapRef)).toBe(false);
   });
 
+  it("only bootstraps automation agents when the current list is empty", () => {
+    const bootstrapRef = { current: false };
+
+    expect(shouldLoadAutomationAgents(bootstrapRef, [])).toBe(true);
+    expect(bootstrapRef.current).toBe(true);
+    expect(shouldLoadAutomationAgents(bootstrapRef, [])).toBe(false);
+    expect(shouldLoadAutomationAgents({ current: false }, [{ key: "agent-a", name: "小宅" }])).toBe(false);
+  });
+
+  it("loads automation agent options through HTTP GET /api/agents without extra params", async () => {
+    await expect(fetchAutomationAgentsForSelect()).resolves.toEqual([
+      { key: "agent-a", name: "小宅", role: "执行官" },
+      { key: "agent-b", name: "小智", role: "分析师" },
+    ]);
+
+    expect(mockedGetAgentsHttp).toHaveBeenCalledWith();
+  });
+
   it("renders the automation console with create defaults from the current worker", () => {
     const html = renderAutomationModal("zh-CN");
 
@@ -143,11 +186,14 @@ describe("AutomationModal", () => {
     expect(html).toContain("请求");
     expect(html).toContain("智能体");
     expect(html).toContain("小宅");
+    expect(html).toContain("执行官");
     expect(html).toContain("Asia/Shanghai");
     expect(html).toContain("automation-cron-control");
     expect(html).toContain("快捷选择");
-    expect(html).toContain("value=\"team-a\"");
+    expect(html).not.toContain("automation-team-input");
     expect(html).toContain("每天 09:00");
+    expect(html).toContain("value=\"user\"");
+    expect(html).toContain(">user<");
     expect(html).toContain("创建自动化");
   });
 
@@ -158,7 +204,49 @@ describe("AutomationModal", () => {
     expect(html).toContain("Request");
     expect(html).toContain("Agent");
     expect(html).toContain("Quick presets");
+    expect(html).not.toContain("automation-team-input");
     expect(html).toContain("Create automation");
+  });
+
+  it("builds create and update payloads without TeamID and with the selected role", () => {
+    const form = {
+      id: "daily-demo",
+      name: "Daily demo",
+      description: "Run daily",
+      cron: "0 9 * * *",
+      agentKey: "agent-a",
+      teamId: "team-a",
+      zoneId: "Asia/Shanghai",
+      remainingRuns: "3",
+      enabled: true,
+      message: "Summarize status",
+      chatId: "",
+      role: "assistant",
+      hidden: "",
+      paramsText: "",
+    };
+
+    expect(buildCreateAutomationPayloadForSubmit(form)).toMatchObject({
+      name: "Daily demo",
+      agentKey: "agent-a",
+      zoneId: "Asia/Shanghai",
+      remainingRuns: 3,
+      query: {
+        message: "Summarize status",
+        role: "assistant",
+      },
+    });
+    expect(buildCreateAutomationPayloadForSubmit(form)).not.toHaveProperty("teamId");
+
+    expect(buildUpdateAutomationPayloadForSubmit(form)).toMatchObject({
+      id: "daily-demo",
+      agentKey: "agent-a",
+      query: {
+        message: "Summarize status",
+        role: "assistant",
+      },
+    });
+    expect(buildUpdateAutomationPayloadForSubmit(form)).not.toHaveProperty("teamId");
   });
 
   it("normalizes automation source files to display filenames", () => {
