@@ -407,7 +407,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isFrontendActive ||
     isAwaitingActive ||
     hasUploadingAttachments ||
-    (!inputValue.trim() && sendReferences.length === 0);
+    !inputValue.trim();
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,

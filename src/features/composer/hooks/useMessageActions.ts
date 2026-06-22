@@ -574,7 +574,7 @@ export function useMessageActions() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = ((e as CustomEvent).detail || {}) as SendMessageEventDetail;
-      const message = String(detail.message || '');
+      const message = String(detail.message || '').trim();
       const references = Array.isArray(detail.references)
         ? detail.references
         : [];
@@ -588,7 +588,7 @@ export function useMessageActions() {
       const chatId = String(detail.chatId || '').trim();
       const agentKey = String(detail.agentKey || '').trim();
       const teamId = String(detail.teamId || '').trim();
-      if (message || references.length > 0) {
+      if (message) {
         void sendMessage(
           message,
           references,

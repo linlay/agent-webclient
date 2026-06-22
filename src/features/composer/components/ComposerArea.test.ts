@@ -56,6 +56,11 @@ jest.mock("@/features/composer/components/ComposerAttachments", () => ({
 }));
 
 const mockComposerInputProps: Array<Record<string, any>> = [];
+const mockComposerActionsProps: Array<Record<string, any>> = [];
+const mockComposerAttachmentsState = {
+  sendAttachmentMeta: [] as unknown[],
+  sendReferences: [] as unknown[],
+};
 
 jest.mock("@/features/composer/components/ComposerInput", () => ({
   ComposerInput: (props: Record<string, any>) => {
@@ -65,8 +70,10 @@ jest.mock("@/features/composer/components/ComposerInput", () => ({
 }));
 
 jest.mock("@/features/composer/components/ComposerActions", () => ({
-  ComposerActions: () =>
-    React.createElement("div", { className: "composer-actions" }),
+  ComposerActions: (props: Record<string, any>) => {
+    mockComposerActionsProps.push(props);
+    return React.createElement("div", { className: "composer-actions" });
+  },
 }));
 
 jest.mock("@/features/composer/components/QuerySettingsControls", () => ({
@@ -122,8 +129,8 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
     isCapturingDesktopScreenshot: false,
     openFilePicker: jest.fn(),
     scrollComposerAttachments: jest.fn(),
-    sendAttachmentMeta: [],
-    sendReferences: [],
+    sendAttachmentMeta: mockComposerAttachmentsState.sendAttachmentMeta,
+    sendReferences: mockComposerAttachmentsState.sendReferences,
     useUnifiedComposerAttachmentRow: false,
   }),
 }));
@@ -236,6 +243,9 @@ describe("ComposerArea", () => {
       removeItem: jest.fn(),
     };
     mockComposerInputProps.length = 0;
+    mockComposerActionsProps.length = 0;
+    mockComposerAttachmentsState.sendAttachmentMeta = [];
+    mockComposerAttachmentsState.sendReferences = [];
     mockComposerAwaitingState.isAwaitingActive = false;
     mockUseRuntimeAccessLevel.mockClear();
     const initialState = createInitialState();
@@ -316,5 +326,23 @@ describe("ComposerArea", () => {
         isRunActive: false,
       }),
     );
+  });
+
+  it("keeps send disabled for screenshot-only attachments until text is entered", () => {
+    mockComposerAttachmentsState.sendReferences = [
+      { type: "image", url: "/api/resource?file=screenshot.png" },
+    ];
+    mockComposerAttachmentsState.sendAttachmentMeta = [
+      {
+        name: "screenshot.png",
+        size: 1024,
+        type: "image",
+        url: "/api/resource?file=screenshot.png",
+      },
+    ];
+
+    renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 });

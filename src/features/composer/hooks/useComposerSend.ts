@@ -528,7 +528,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const message = inputValue.trim();
-    if (!message && sendReferences.length === 0) return;
+    if (!message) return;
     if (hasUploadingAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
