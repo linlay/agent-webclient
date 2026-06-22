@@ -17,6 +17,7 @@ import {
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
+type AgentListRequestOptions = { includeChats?: number; scope: 'nav' | 'copilot' };
 
 function isCopilotPath(pathname: string): boolean {
   return pathname === '/copilot' || pathname.startsWith('/copilot/');
@@ -29,12 +30,21 @@ export function resolveAgentListScope(pathname: string): 'nav' | 'copilot' {
 export function buildAgentListRequestOptions(
   pathname: string,
   includeChats?: number,
-): { includeChats?: number; scope: 'nav' | 'copilot' } {
+): AgentListRequestOptions {
   const scope = resolveAgentListScope(pathname);
   return {
     includeChats: scope === 'copilot' ? undefined : includeChats,
     scope,
   };
+}
+
+export function buildAgentListFallbackRequestOptions(
+  options: AgentListRequestOptions,
+): AgentListRequestOptions | null {
+  if (options.scope !== 'copilot') {
+    return null;
+  }
+  return { includeChats: options.includeChats, scope: 'nav' };
 }
 
 function currentPathname(): string {
@@ -153,18 +163,28 @@ export function useWorkerData(input: {
     }
   }, [dispatch]);
 
+  const fetchAgentsWithScopeFallback = useCallback(async (options: AgentListRequestOptions): Promise<Agent[]> => {
+    const response = await getAgents(options);
+    const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
+    const fallbackOptions = agents.length === 0 ? buildAgentListFallbackRequestOptions(options) : null;
+    if (!fallbackOptions) {
+      return agents;
+    }
+    const fallbackResponse = await getAgents(fallbackOptions);
+    return Array.isArray(fallbackResponse.data) ? (fallbackResponse.data as Agent[]) : [];
+  }, []);
+
   const loadAgents = useCallback(async () => {
     await runWithSidebarLoading(async () => {
       try {
-        const response = await getAgents(buildAgentListRequestOptions(currentPathname()));
-        const agents = (response.data as Agent[]) || [];
+        const agents = await fetchAgentsWithScopeFallback(buildAgentListRequestOptions(currentPathname()));
         dispatch({ type: 'SET_AGENTS', agents });
         rebuildWorkerRowsFromState({ agents });
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
       }
     });
-  }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading]);
+  }, [dispatch, fetchAgentsWithScopeFallback, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const loadTeams = useCallback(async () => {
     await runWithSidebarLoading(async () => {
@@ -196,10 +216,9 @@ export function useWorkerData(input: {
     await runWithSidebarLoading(async () => {
       await refreshWorkerDataFromAgentsWithChats({
         fetchAgents: async () => {
-          const response = await getAgents(
+          return fetchAgentsWithScopeFallback(
             buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
           );
-          return (response.data as Agent[]) || [];
         },
         getSnapshot: getWorkerDataSnapshot,
         applyAgents: (agents) => {
@@ -216,7 +235,7 @@ export function useWorkerData(input: {
         },
       });
     });
-  }, [dispatch, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading]);
+  }, [dispatch, fetchAgentsWithScopeFallback, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const ensureAgentLoadedForWorkerSelection = useCallback(async (
     detail: { workerKey?: unknown; agentKey?: unknown },

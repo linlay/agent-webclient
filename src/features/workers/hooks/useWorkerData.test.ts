@@ -1,4 +1,5 @@
 import {
+  buildAgentListFallbackRequestOptions,
   buildAgentListRequestOptions,
   resolveAgentListScope,
   shouldStartInitialWorkerRefresh,
@@ -41,6 +42,19 @@ describe('buildAgentListRequestOptions', () => {
       includeChats: undefined,
       scope: 'nav',
     });
+  });
+});
+
+describe('buildAgentListFallbackRequestOptions', () => {
+  it('falls back from empty Copilot scoped lists to nav-scoped agents', () => {
+    expect(buildAgentListFallbackRequestOptions({ scope: 'copilot' })).toEqual({
+      includeChats: undefined,
+      scope: 'nav',
+    });
+  });
+
+  it('does not fallback normal nav requests', () => {
+    expect(buildAgentListFallbackRequestOptions({ includeChats: 5, scope: 'nav' })).toBeNull();
   });
 });
 
