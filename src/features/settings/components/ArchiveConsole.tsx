@@ -18,7 +18,6 @@ import type {
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiTag } from "@/shared/ui/UiTag";
 import { t } from "@/shared/i18n";
 
 const ARCHIVE_PAGE_SIZE = 30;
@@ -529,15 +528,12 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 								>
 									<span className="archive-list-item-head">
 										<strong>{item.chatName || item.chatId}</strong>
-										<span>{formatChatTimeLabel(item.archivedAt)}</span>
-									</span>
-									<span className="archive-list-preview">
-										{item.snippet || item.lastRunContent || t("archive.empty.preview")}
 									</span>
 									<span className="archive-list-meta">
-										{item.agentKey ? <UiTag tone="muted">{item.agentKey}</UiTag> : null}
-										{item.teamId ? <UiTag tone="muted">{item.teamId}</UiTag> : null}
-										{item.hasAttachments ? <UiTag tone="accent">{t("archive.tag.attachments")}</UiTag> : null}
+										{item.agentKey && <span className="archive-list-meta-item">{item.agentKey}</span>}
+										<span className="archive-list-meta-item">{t("archive.item.created")}: {formatChatTimeLabel(item.createdAt)}</span>
+										<span className="archive-list-meta-item">{t("archive.item.updated")}: {formatChatTimeLabel(item.updatedAt)}</span>
+										<span className="archive-list-meta-item">{t("archive.detail.archivedAt", { time: formatChatTimeLabel(item.archivedAt) })}</span>
 									</span>
 								</button>
 							))

@@ -396,6 +396,12 @@
     margin-top: 8px;
 }
 
+.archive-list-meta-item {
+    font-size: 11px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+}
+
 .archive-detail-pane {
     border-left: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
     padding-left: 16px;
