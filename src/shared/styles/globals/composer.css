@@ -242,13 +242,6 @@
     }
 }
 
-.composer-control-field.is-string,
-.composer-control-field.is-number,
-.composer-control-field.is-date,
-.composer-control-field.is-select {
-    max-width: 140px;
-}
-
 .composer-control-label {
     color: var(--ink-2);
     font-size: 11px;
@@ -262,7 +255,7 @@
 
 .composer-control-input {
     min-width: 0;
-    width: min(180px, 100%);
+    width: 90px;
     border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
     border-radius: 8px;
     background: color-mix(in srgb, var(--bg-input) 88%, var(--bg-elev-2));
@@ -354,8 +347,6 @@
     display: inline-flex;
     align-items: center;
     flex: 1;
-    overflow: auto;
-    align-self: center;
     white-space: nowrap;
 }
 
@@ -418,6 +409,12 @@
     z-index: 14;
 }
 
+.send-btn,
+.interrupt-btn {
+    position: sticky;
+    right: 0;
+}
+
 .send-btn {
     width: 32px;
     height: 32px;
@@ -459,18 +456,10 @@
     width: 100%;
 }
 
-.composer-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: center;
-}
-
 .query-settings-controls {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-width: 0;
 }
 
 .query-settings-btn.ui-btn {
@@ -814,7 +803,8 @@
     color: var(--bg-base);
     border-color: var(--text-main);
 }
-.awaiting-panel-option.free-text:focus-within{
+
+.awaiting-panel-option.free-text:focus-within {
     border-color: var(--accent);
 }
 
@@ -840,7 +830,7 @@
     display: none;
 }
 
-.awaiting-panel-radiogroup .ant-radio-label{
+.awaiting-panel-radiogroup .ant-radio-label {
     width: 100%;
 }
 
@@ -933,8 +923,10 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
 }
 
 .voice-btn {

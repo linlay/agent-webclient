@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
@@ -63,88 +63,103 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
     toggleSpeechInput,
     handleSend,
   } = useComposerContext();
-  const attachmentActionsDisabled = isFrontendActive || isVoiceMode || isStreaming;
+  const attachmentActionsDisabled =
+    isFrontendActive || isVoiceMode || isStreaming;
+
+  const isCopilot = useMemo(() => location.pathname.startsWith("/copilot"), []);
 
   return (
-    <div className="composer-control-row">
-      <div className="composer-plus-wrap">
-        <UiButton
-          className="composer-plus-btn"
-          variant="ghost"
-          size="sm"
-          iconOnly
-          loading={hasUploadingAttachments}
-          disabled={attachmentActionsDisabled}
-          onClick={openFilePicker}
-          aria-label={t("composer.actions.upload")}
-          title={
-            isFrontendActive
-              ? t("composer.actions.uploadDisabled.frontendActive")
-              : isVoiceMode
-                ? t("composer.actions.uploadDisabled.voiceMode")
-                : isStreaming
-                  ? t("composer.actions.uploadDisabled.streaming")
-                  : t("composer.actions.upload")
-          }
-        >
-          <MaterialIcon name="add" />
-        </UiButton>
-        {canCaptureDesktopScreenshot ? (
+    <Flex vertical style={{ width: "100%" }}>
+      {isCopilot && (
+        <Flex wrap gap={4}>
+          <ControlsForm
+            disabled={isFrontendActive || isStreaming}
+            onChange={onControlParamsChange}
+          />
+        </Flex>
+      )}
+      <div className="composer-control-row">
+        <div className="composer-plus-wrap">
           <UiButton
-            className="desktop-screenshot-btn"
+            className="composer-plus-btn"
             variant="ghost"
             size="sm"
             iconOnly
-            loading={isCapturingDesktopScreenshot}
-            disabled={attachmentActionsDisabled || isCapturingDesktopScreenshot}
-            onClick={() => void captureDesktopScreenshot()}
-            aria-label={t("composer.actions.screenshot")}
+            loading={hasUploadingAttachments}
+            disabled={attachmentActionsDisabled}
+            onClick={openFilePicker}
+            aria-label={t("composer.actions.upload")}
             title={
               isFrontendActive
-                ? t("composer.actions.screenshotDisabled.frontendActive")
+                ? t("composer.actions.uploadDisabled.frontendActive")
                 : isVoiceMode
-                  ? t("composer.actions.screenshotDisabled.voiceMode")
+                  ? t("composer.actions.uploadDisabled.voiceMode")
                   : isStreaming
-                    ? t("composer.actions.screenshotDisabled.streaming")
-                    : isCapturingDesktopScreenshot
-                      ? t("composer.actions.screenshotCapturing")
-                      : t("composer.actions.screenshot")
+                    ? t("composer.actions.uploadDisabled.streaming")
+                    : t("composer.actions.upload")
             }
           >
-            <MaterialIcon name="crop_free" />
+            <MaterialIcon name="add" />
           </UiButton>
-        ) : null}
-        {planningMode && canUsePlanningMode && (
-          <Tooltip
-            title={
-              <Flex align="center" vertical style={{ fontSize: 12 }}>
-                <div>{t("composer.tooltip.createPlan")}</div>
-                <div>
-                  <code className="plan-toggle-shortcut">Shift + Tab</code> {t("composer.tooltip.planShortcut")}
-                </div>
-              </Flex>
-            }
-          >
+          {canCaptureDesktopScreenshot ? (
             <UiButton
-              className="plan-toggle-btn"
+              className="desktop-screenshot-btn"
               variant="ghost"
               size="sm"
-              onClick={onTogglePlanningMode}
+              iconOnly
+              loading={isCapturingDesktopScreenshot}
+              disabled={
+                attachmentActionsDisabled || isCapturingDesktopScreenshot
+              }
+              onClick={() => void captureDesktopScreenshot()}
+              aria-label={t("composer.actions.screenshot")}
+              title={
+                isFrontendActive
+                  ? t("composer.actions.screenshotDisabled.frontendActive")
+                  : isVoiceMode
+                    ? t("composer.actions.screenshotDisabled.voiceMode")
+                    : isStreaming
+                      ? t("composer.actions.screenshotDisabled.streaming")
+                      : isCapturingDesktopScreenshot
+                        ? t("composer.actions.screenshotCapturing")
+                        : t("composer.actions.screenshot")
+              }
             >
-              <MaterialIcon name="checklist" className="plan-toggle-icon" />
-              <CloseCircleFilled className="plan-toggle-close-icon" />
-              <span>{t("composer.actions.plan")}</span>
+              <MaterialIcon name="crop_free" />
             </UiButton>
-          </Tooltip>
-        )}
-        <ControlsForm
-          disabled={isFrontendActive || isStreaming}
-          onChange={onControlParamsChange}
-        />
-      </div>
-      <div
-        className={`composer-actions ${isVoiceMode ? "has-voice-controls" : ""}`.trim()}
-      >
+          ) : null}
+          {planningMode && canUsePlanningMode && (
+            <Tooltip
+              title={
+                <Flex align="center" vertical style={{ fontSize: 12 }}>
+                  <div>{t("composer.tooltip.createPlan")}</div>
+                  <div>
+                    <code className="plan-toggle-shortcut">Shift + Tab</code>{" "}
+                    {t("composer.tooltip.planShortcut")}
+                  </div>
+                </Flex>
+              }
+            >
+              <UiButton
+                className="plan-toggle-btn"
+                variant="ghost"
+                size="sm"
+                onClick={onTogglePlanningMode}
+              >
+                <MaterialIcon name="checklist" className="plan-toggle-icon" />
+                <CloseCircleFilled className="plan-toggle-close-icon" />
+                <span>{t("composer.actions.plan")}</span>
+              </UiButton>
+            </Tooltip>
+          )}
+
+          {!isCopilot && (
+            <ControlsForm
+              disabled={isFrontendActive || isStreaming}
+              onChange={onControlParamsChange}
+            />
+          )}
+        </div>
         {isStreaming ? (
           <>
             <QuerySettingsControls
@@ -215,6 +230,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           </>
         ) : null}
       </div>
-    </div>
+    </Flex>
   );
 };

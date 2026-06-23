@@ -32,7 +32,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 					)}
 					<div className="bottom-dock-composer-rail">
 						<ComposerArea
-							emptyInputMinRows={isCopilot ? 1 : undefined}
+							emptyInputMinRows={isCopilot ? 3 : undefined}
 							inputMaxRows={isCopilot ? 6 : undefined}
 							showWonders={!isCopilot}
 						/>
