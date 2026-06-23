@@ -37,22 +37,21 @@ import {
 } from "@/app/modals/lib/eventPopoverGrouping";
 import {
 	formatReadableTimestamp,
-	resolveInjectedPromptPayloadFromLLMTrace,
-	resolveInjectedPromptPayloadFromRequestBody,
 	resolveDisplayPayloadTimestamp,
 	resolveInitialPopoverState,
 	stringifyPopoverPayload,
 } from "@/app/modals/lib/eventPopoverFormatters";
-import { PromptAnalysisModal } from "@/app/modals/PromptAnalysisModal";
+import { SystemPromptModal } from "@/app/modals/SystemPromptModal";
 import {
-	buildPromptAnalysisTimeoutLoadState,
+	buildSystemPromptTimeoutLoadState,
 	isValidRawLLMTraceFile,
-	PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
-	resolvePromptAnalysisCalls,
-	resolvePromptAnalysisPayloadFromTraceText,
+	SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
 	resolveRawLLMTraceFile,
-	type PromptAnalysisLoadState,
-} from "@/app/modals/lib/promptAnalysis";
+	resolveSystemPromptCalls,
+	resolveSystemPromptTextFromRequestBody,
+	resolveSystemPromptTextFromTraceText,
+	type SystemPromptLoadState,
+} from "@/app/modals/lib/systemPromptTrace";
 
 type RawJsonlLoader = (chatId: string) => Promise<string>;
 type RawLLMTraceLoader = (file: string) => Promise<string>;
@@ -129,11 +128,11 @@ export const EventPopover: React.FC = () => {
 		() => buildDefaultCopyMenuItem(t),
 	);
 	const [copyMenuOpen, setCopyMenuOpen] = useState(false);
-	const [promptAnalysisOpen, setPromptAnalysisOpen] = useState(false);
-	const [selectedPromptAnalysisCallId, setSelectedPromptAnalysisCallId] =
+	const [systemPromptOpen, setSystemPromptOpen] = useState(false);
+	const [selectedSystemPromptCallId, setSelectedSystemPromptCallId] =
 		useState("");
-	const [promptAnalysisLoadStates, setPromptAnalysisLoadStates] = useState<
-		Record<string, PromptAnalysisLoadState>
+	const [systemPromptLoadStates, setSystemPromptLoadStates] = useState<
+		Record<string, SystemPromptLoadState>
 	>({});
 	const [position, setPosition] = useState({ top: 80, right: 320 });
 	const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
@@ -208,19 +207,19 @@ export const EventPopover: React.FC = () => {
 		() => getPrimaryCopyMenuItem(copyMenuItems),
 		[copyMenuItems],
 	);
-	const promptAnalysisCalls = useMemo(
-		() => resolvePromptAnalysisCalls(event, state.debugEvents),
+	const systemPromptCalls = useMemo(
+		() => resolveSystemPromptCalls(event, state.debugEvents),
 		[event, state.debugEvents],
 	);
-	const selectedPromptAnalysisCall = useMemo(
+	const selectedSystemPromptCall = useMemo(
 		() =>
-			promptAnalysisCalls.find(
-				(call) => call.id === selectedPromptAnalysisCallId,
-			) || promptAnalysisCalls[0],
-		[promptAnalysisCalls, selectedPromptAnalysisCallId],
+			systemPromptCalls.find(
+				(call) => call.id === selectedSystemPromptCallId,
+			) || systemPromptCalls[0],
+		[systemPromptCalls, selectedSystemPromptCallId],
 	);
-	const selectedPromptAnalysisLoadStatus = selectedPromptAnalysisCall
-		? promptAnalysisLoadStates[selectedPromptAnalysisCall.id]?.status
+	const selectedSystemPromptLoadStatus = selectedSystemPromptCall
+		? systemPromptLoadStates[selectedSystemPromptCall.id]?.status
 		: undefined;
 
 	useEffect(() => {
@@ -230,73 +229,72 @@ export const EventPopover: React.FC = () => {
 		setCopyStatus({});
 		setLastCopyItem(buildDefaultCopyMenuItem(t));
 		setCopyMenuOpen(false);
-		setPromptAnalysisOpen(false);
-		setSelectedPromptAnalysisCallId("");
-		setPromptAnalysisLoadStates({});
+		setSystemPromptOpen(false);
+		setSelectedSystemPromptCallId("");
+		setSystemPromptLoadStates({});
 	}, [event, t]);
 
 	useEffect(() => {
-		if (!promptAnalysisOpen) {
+		if (!systemPromptOpen) {
 			return;
 		}
-		if (promptAnalysisCalls.length === 0) {
-			setSelectedPromptAnalysisCallId("");
+		if (systemPromptCalls.length === 0) {
+			setSelectedSystemPromptCallId("");
 			return;
 		}
 		if (
-			!selectedPromptAnalysisCallId ||
-			!promptAnalysisCalls.some((call) => call.id === selectedPromptAnalysisCallId)
+			!selectedSystemPromptCallId ||
+			!systemPromptCalls.some((call) => call.id === selectedSystemPromptCallId)
 		) {
-			setSelectedPromptAnalysisCallId(promptAnalysisCalls[0].id);
+			setSelectedSystemPromptCallId(systemPromptCalls[0].id);
 		}
-	}, [promptAnalysisOpen, promptAnalysisCalls, selectedPromptAnalysisCallId]);
+	}, [systemPromptOpen, systemPromptCalls, selectedSystemPromptCallId]);
 
 	useEffect(() => {
 		if (
-			!promptAnalysisOpen ||
-			!selectedPromptAnalysisCall ||
-			selectedPromptAnalysisCall.inlinePayload ||
-			!selectedPromptAnalysisCall.traceFile ||
-			selectedPromptAnalysisLoadStatus === "loading" ||
-			selectedPromptAnalysisLoadStatus === "ready" ||
-			selectedPromptAnalysisLoadStatus === "empty"
+			!systemPromptOpen ||
+			!selectedSystemPromptCall ||
+			!selectedSystemPromptCall.traceFile ||
+			selectedSystemPromptLoadStatus === "loading" ||
+			selectedSystemPromptLoadStatus === "ready" ||
+			selectedSystemPromptLoadStatus === "empty"
 		) {
 			return;
 		}
 
 		let cancelled = false;
-		const callId = selectedPromptAnalysisCall.id;
-		const traceFile = selectedPromptAnalysisCall.traceFile;
+		const callId = selectedSystemPromptCall.id;
+		const traceFile = selectedSystemPromptCall.traceFile;
 		const timeout = window.setTimeout(() => {
 			if (cancelled) return;
 			cancelled = true;
-			setPromptAnalysisLoadStates((current) => ({
+			setSystemPromptLoadStates((current) => ({
 				...current,
-				[callId]: buildPromptAnalysisTimeoutLoadState(
-					t("eventPopover.promptModal.timeout"),
+				[callId]: buildSystemPromptTimeoutLoadState(
+					t("eventPopover.systemPromptModal.timeout"),
 				),
 			}));
-		}, PROMPT_ANALYSIS_LOAD_TIMEOUT_MS);
-		setPromptAnalysisLoadStates((current) => ({
+		}, SYSTEM_PROMPT_LOAD_TIMEOUT_MS);
+		setSystemPromptLoadStates((current) => ({
 			...current,
 			[callId]: { status: "loading" },
 		}));
 		void getChatLLMTraceRaw(traceFile)
-			.then((rawText) => resolvePromptAnalysisPayloadFromTraceText(rawText))
-			.then((payload) => {
+			.then((rawText) => resolveSystemPromptTextFromTraceText(rawText))
+			.then((text) => {
 				if (cancelled) return;
 				window.clearTimeout(timeout);
-				setPromptAnalysisLoadStates((current) => ({
+				setSystemPromptLoadStates((current) => ({
 					...current,
-					[callId]: payload
-						? { status: "ready", payload }
+					[callId]: text
+						? { status: "ready", text }
 						: { status: "empty" },
 				}));
 			})
 			.catch((error) => {
 				if (cancelled) return;
 				window.clearTimeout(timeout);
-				setPromptAnalysisLoadStates((current) => ({
+				setSystemPromptLoadStates((current) => ({
 					...current,
 					[callId]: {
 						status: "error",
@@ -310,8 +308,8 @@ export const EventPopover: React.FC = () => {
 			window.clearTimeout(timeout);
 		};
 	}, [
-		promptAnalysisOpen,
-		selectedPromptAnalysisCall,
+		systemPromptOpen,
+		selectedSystemPromptCall,
 		t,
 	]);
 
@@ -407,11 +405,11 @@ export const EventPopover: React.FC = () => {
 	};
 
 	const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus, t);
-	const openPromptAnalysis = () => {
-		if (promptAnalysisCalls[0]) {
-			setSelectedPromptAnalysisCallId(promptAnalysisCalls[0].id);
+	const openSystemPrompt = () => {
+		if (systemPromptCalls[0]) {
+			setSelectedSystemPromptCallId(systemPromptCalls[0].id);
 		}
-		setPromptAnalysisOpen(true);
+		setSystemPromptOpen(true);
 	};
 
 	return (
@@ -508,17 +506,17 @@ export const EventPopover: React.FC = () => {
 							<MaterialIcon name={copyIcon} />
 						</UiButton>
 					</Popover>
-					{promptAnalysisCalls.length > 0 && (
+					{systemPromptCalls.length > 0 && (
 						<UiButton
-							className="event-popover-action-btn event-popover-prompt-action"
+							className="event-popover-action-btn event-popover-system-action"
 							variant="ghost"
 							size="sm"
-							aria-label={t("eventPopover.action.promptAnalysis")}
-							title={t("eventPopover.action.promptAnalysis")}
-							onClick={openPromptAnalysis}
+							aria-label={t("eventPopover.action.systemPrompt")}
+							title={t("eventPopover.action.systemPrompt")}
+							onClick={openSystemPrompt}
 						>
-							<MaterialIcon name="travel_explore" />
-							<span>{t("eventPopover.action.promptAnalysis")}</span>
+							<MaterialIcon name="subject" />
+							<span>{t("eventPopover.action.systemPrompt")}</span>
 						</UiButton>
 					)}
 					<UiButton
@@ -542,13 +540,13 @@ export const EventPopover: React.FC = () => {
 				</div>
 			</div>
 			<pre className="event-popover-body">{popoverState.displayJsonStr}</pre>
-			<PromptAnalysisModal
-				calls={promptAnalysisCalls}
-				loadStates={promptAnalysisLoadStates}
-				open={promptAnalysisOpen}
-				selectedCallId={selectedPromptAnalysisCallId}
-				onClose={() => setPromptAnalysisOpen(false)}
-				onSelectCall={setSelectedPromptAnalysisCallId}
+			<SystemPromptModal
+				calls={systemPromptCalls}
+				loadStates={systemPromptLoadStates}
+				open={systemPromptOpen}
+				selectedCallId={selectedSystemPromptCallId}
+				onClose={() => setSystemPromptOpen(false)}
+				onSelectCall={setSelectedSystemPromptCallId}
 			/>
 		</div>
 	);
@@ -562,12 +560,11 @@ export const __TEST_ONLY__ = {
 	buildCollectedSnapshot,
 	mapCollectedSnapshotType,
 	resolveEventGroupMeta,
-	resolveInjectedPromptPayloadFromLLMTrace,
-	resolveInjectedPromptPayloadFromRequestBody,
-	resolvePromptAnalysisCalls,
-	resolvePromptAnalysisPayloadFromTraceText,
-	buildPromptAnalysisTimeoutLoadState,
-	PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
+	resolveSystemPromptCalls,
+	resolveSystemPromptTextFromTraceText,
+	resolveSystemPromptTextFromRequestBody,
+	buildSystemPromptTimeoutLoadState,
+	SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
 	resolveRawJsonlChatId,
 	buildRawJsonlCopyMenuItem,
 	resolveRawLLMTraceFile,

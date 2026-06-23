@@ -1422,10 +1422,10 @@ describe('apiClient query payloads', () => {
       text: async () => '{"runId":"run_1"}\n',
     });
 
-    await expect(getChatLLMTraceRaw('llm/run_1_001.json')).resolves.toBe('{"runId":"run_1"}\n');
+    await expect(getChatLLMTraceRaw('chat_1/.llm-records/run_1_001.json')).resolves.toBe('{"runId":"run_1"}\n');
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/chat/llm-trace?file=llm%2Frun_1_001.json');
+    expect(url).toBe('/api/chat/llm-trace?file=chat_1%2F.llm-records%2Frun_1_001.json');
     expect(options.method).toBe('GET');
     expect(options.headers).toEqual({
       Authorization: 'Bearer demo-token',

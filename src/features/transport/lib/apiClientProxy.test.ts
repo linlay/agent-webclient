@@ -911,14 +911,14 @@ describe("apiClientProxy", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await expect(proxy.getChatLLMTraceRaw("llm/run_1_001.json")).resolves.toBe(
+		await expect(proxy.getChatLLMTraceRaw("chat_1/.llm-records/run_1_001.json")).resolves.toBe(
 			'{"runId":"run_1"}\n',
 		);
 
 		expect(connect).toHaveBeenCalledTimes(1);
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/chat/llm-trace",
-			payload: { file: "llm/run_1_001.json" },
+			payload: { file: "chat_1/.llm-records/run_1_001.json" },
 		});
 		expect(mockApiClient.getChatLLMTraceRaw).not.toHaveBeenCalled();
 	});
@@ -948,12 +948,12 @@ describe("apiClientProxy", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		const rawText = await proxy.getChatLLMTraceRaw("llm/run_1_001.json");
+		const rawText = await proxy.getChatLLMTraceRaw("chat_1/.llm-records/run_1_001.json");
 
 		expect(JSON.parse(rawText)).toEqual(tracePayload);
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/chat/llm-trace",
-			payload: { file: "llm/run_1_001.json" },
+			payload: { file: "chat_1/.llm-records/run_1_001.json" },
 		});
 		expect(mockApiClient.getChatLLMTraceRaw).not.toHaveBeenCalled();
 	});
@@ -973,15 +973,15 @@ describe("apiClientProxy", () => {
 		mockGetWsClientAccessToken.mockReturnValue("");
 		mockApiClient.getChatLLMTraceRaw.mockResolvedValue('{"runId":"run_1"}\n');
 
-		await expect(proxy.getChatLLMTraceRaw("llm/run_1_001.json")).resolves.toBe(
+		await expect(proxy.getChatLLMTraceRaw("chat_1/.llm-records/run_1_001.json")).resolves.toBe(
 			'{"runId":"run_1"}\n',
 		);
 
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/chat/llm-trace",
-			payload: { file: "llm/run_1_001.json" },
+			payload: { file: "chat_1/.llm-records/run_1_001.json" },
 		});
-		expect(mockApiClient.getChatLLMTraceRaw).toHaveBeenCalledWith("llm/run_1_001.json");
+		expect(mockApiClient.getChatLLMTraceRaw).toHaveBeenCalledWith("chat_1/.llm-records/run_1_001.json");
 	});
 
 	it("routes markChatRead over ws without falling back to http", async () => {

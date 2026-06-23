@@ -19,12 +19,11 @@ const {
   buildCopyMenuTitle,
   getPrimaryCopyMenuItem,
   resolveEventGroupMeta,
-  resolveInjectedPromptPayloadFromLLMTrace,
-  resolveInjectedPromptPayloadFromRequestBody,
-  resolvePromptAnalysisCalls,
-  resolvePromptAnalysisPayloadFromTraceText,
-  buildPromptAnalysisTimeoutLoadState,
-  PROMPT_ANALYSIS_LOAD_TIMEOUT_MS,
+  resolveSystemPromptCalls,
+  resolveSystemPromptTextFromTraceText,
+  resolveSystemPromptTextFromRequestBody,
+  buildSystemPromptTimeoutLoadState,
+  SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
   resolveInitialPopoverState,
   resolveRawJsonlChatId,
   buildRawJsonlCopyMenuItem,
@@ -252,7 +251,7 @@ describe("EventPopover collect controls", () => {
     expect(html).not.toContain('aria-label="Collect event snapshot"');
   });
 
-  it("renders prompt analysis for run.start with same-run llm chat calls", () => {
+  it("renders system prompt action for run.start with same-run llm chat calls", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "run.start",
@@ -266,7 +265,7 @@ describe("EventPopover collect controls", () => {
         model: { key: "mock-model" },
         runSeq: 1,
         status: "ok",
-        trace: { file: "llm/run_1_001.json" },
+	        trace: { file: "chat_1/.llm-records/run_1_001.json" },
       },
     };
     useAppState.mockReturnValue({
@@ -278,16 +277,16 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Prompt analysis"');
+    expect(html).toContain('aria-label="System Prompt"');
   });
 
-  it("renders prompt analysis for debug.llmChat with a valid trace file", () => {
+  it("renders system prompt action for debug.llmChat with a valid trace file", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.llmChat",
       runId: "run_1",
       data: {
-        trace: { file: "llm/run_1_001.json" },
+        trace: { file: "chat_1/.llm-records/run_1_001.json" },
       },
     };
     useAppState.mockReturnValue({
@@ -299,16 +298,16 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Prompt analysis"');
+    expect(html).toContain('aria-label="System Prompt"');
   });
 
-  it("does not render prompt analysis for debug.llmChat with an invalid trace file", () => {
+  it("does not render system prompt action for debug.llmChat with an invalid trace file", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.llmChat",
       runId: "run_1",
       data: {
-        trace: { file: "llm/../run_1_001.json" },
+        trace: { file: "chat_1/../run_1_001.json" },
       },
     };
     useAppState.mockReturnValue({
@@ -320,7 +319,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).not.toContain('aria-label="Prompt analysis"');
+    expect(html).not.toContain('aria-label="System Prompt"');
   });
 });
 
@@ -640,275 +639,9 @@ describe("EventPopover display and copy helpers", () => {
     expect(writeText).toHaveBeenCalledWith('{"type":"content.start"}');
   });
 
-  it("extracts injected prompt payloads with token counts", () => {
+  it("extracts OpenAI-style system prompt text from trace request messages", () => {
     expect(
-      resolveInjectedPromptPayloadFromLLMTrace({
-        injectedPrompt: {
-            systemPrompt: "system prompt",
-            systemPromptTokens: 3,
-            systemSections: [
-              {
-                id: "agent-identity",
-                title: "Agent Identity",
-                role: "system",
-                category: "agent.identity",
-                content: "Agent Identity\nkey: jira",
-                tokens: 5,
-              },
-              {
-                id: "runtime-session",
-                title: "Runtime Context: Session",
-                role: "system",
-                category: "runtime.session",
-                content: "Runtime Context: Session\nchatId: chat-1",
-                tokens: 6,
-              },
-            ],
-            historyMessages: [
-              { role: "user", content: "first user", estimatedTokens: 2 },
-              { role: "assistant", content: "first answer", estimatedTokens: 3 },
-              { role: "tool", content: "tool output", estimatedTokens: 4 },
-              { role: "user", content: "second user", estimatedTokens: 2 },
-            ],
-            historyMessagesTokens: 11,
-            currentUserMessage: { role: "user", content: "show debug", estimatedTokens: 2 },
-            currentUserMessageTokens: 2,
-            providerMessages: [
-              { role: "system", content: "system prompt", estimatedTokens: 3 },
-              { role: "user", content: "show debug", estimatedTokens: 2 },
-            ],
-            providerMessagesTokens: 5,
-          },
-      }),
-    ).toEqual({
-      rawJsonText: JSON.stringify(
-        {
-          systemPrompt: "system prompt",
-          systemPromptTokens: 3,
-          systemSections: [
-            {
-              id: "agent-identity",
-              title: "Agent Identity",
-              role: "system",
-              category: "agent.identity",
-              content: "Agent Identity\nkey: jira",
-              tokens: 5,
-            },
-            {
-              id: "runtime-session",
-              title: "Runtime Context: Session",
-              role: "system",
-              category: "runtime.session",
-              content: "Runtime Context: Session\nchatId: chat-1",
-              tokens: 6,
-            },
-          ],
-          historyMessages: [
-            { role: "user", content: "first user", estimatedTokens: 2 },
-            { role: "assistant", content: "first answer", estimatedTokens: 3 },
-            { role: "tool", content: "tool output", estimatedTokens: 4 },
-            { role: "user", content: "second user", estimatedTokens: 2 },
-          ],
-          historyMessagesTokens: 11,
-          currentUserMessage: { role: "user", content: "show debug", estimatedTokens: 2 },
-          currentUserMessageTokens: 2,
-          providerMessages: [
-            { role: "system", content: "system prompt", estimatedTokens: 3 },
-            { role: "user", content: "show debug", estimatedTokens: 2 },
-          ],
-          providerMessagesTokens: 5,
-        },
-        null,
-        2,
-      ),
-      systemPromptText: "system prompt",
-      systemPromptTokens: 3,
-      historyMessagesText: JSON.stringify(
-        [
-          { role: "user", content: "first user", estimatedTokens: 2 },
-          { role: "assistant", content: "first answer", estimatedTokens: 3 },
-          { role: "tool", content: "tool output", estimatedTokens: 4 },
-          { role: "user", content: "second user", estimatedTokens: 2 },
-        ],
-        null,
-        2,
-      ),
-      historyMessagesTokens: 11,
-      currentUserMessageText: JSON.stringify(
-        { role: "user", content: "show debug", estimatedTokens: 2 },
-        null,
-        2,
-      ),
-      currentUserMessageTokens: 2,
-      providerMessagesText: JSON.stringify(
-        [
-          { role: "system", content: "system prompt", estimatedTokens: 3 },
-          { role: "user", content: "show debug", estimatedTokens: 2 },
-        ],
-        null,
-        2,
-      ),
-      providerMessagesTokens: 5,
-      entries: [
-        {
-          id: "agent-identity",
-          title: "Agent Identity",
-          role: "system",
-          category: "agent.identity",
-          tokens: 5,
-          contentText: "Agent Identity\nkey: jira",
-          rawJsonText: JSON.stringify(
-            {
-              id: "agent-identity",
-              title: "Agent Identity",
-              role: "system",
-              category: "agent.identity",
-              content: "Agent Identity\nkey: jira",
-              tokens: 5,
-            },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "runtime-session",
-          title: "Runtime Context: Session",
-          role: "system",
-          category: "runtime.session",
-          tokens: 6,
-          contentText: "Runtime Context: Session\nchatId: chat-1",
-          rawJsonText: JSON.stringify(
-            {
-              id: "runtime-session",
-              title: "Runtime Context: Session",
-              role: "system",
-              category: "runtime.session",
-              content: "Runtime Context: Session\nchatId: chat-1",
-              tokens: 6,
-            },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "history-1",
-          title: "History Message #1",
-          role: "user",
-          tokens: 2,
-          roundNumber: 1,
-          contentText: "first user",
-          rawJsonText: JSON.stringify(
-            { role: "user", content: "first user", estimatedTokens: 2 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "history-2",
-          title: "History Message #2",
-          role: "assistant",
-          tokens: 3,
-          roundNumber: 1,
-          contentText: "first answer",
-          rawJsonText: JSON.stringify(
-            { role: "assistant", content: "first answer", estimatedTokens: 3 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "history-3",
-          title: "History Message #3",
-          role: "tool",
-          tokens: 4,
-          roundNumber: 1,
-          contentText: "tool output",
-          rawJsonText: JSON.stringify(
-            { role: "tool", content: "tool output", estimatedTokens: 4 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "history-4",
-          title: "History Message #4",
-          role: "user",
-          tokens: 2,
-          roundNumber: 2,
-          contentText: "second user",
-          rawJsonText: JSON.stringify(
-            { role: "user", content: "second user", estimatedTokens: 2 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "current-user",
-          title: "Current User Message #5",
-          role: "user",
-          tokens: 2,
-          contentText: "show debug",
-          rawJsonText: JSON.stringify(
-            { role: "user", content: "show debug", estimatedTokens: 2 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "provider-1",
-          title: "Provider Message #1",
-          role: "system",
-          tokens: 3,
-          contentText: "system prompt",
-          rawJsonText: JSON.stringify(
-            { role: "system", content: "system prompt", estimatedTokens: 3 },
-            null,
-            2,
-          ),
-        },
-        {
-          id: "provider-2",
-          title: "Provider Message #2",
-          role: "user",
-          tokens: 2,
-          contentText: "show debug",
-          rawJsonText: JSON.stringify(
-            { role: "user", content: "show debug", estimatedTokens: 2 },
-            null,
-            2,
-          ),
-        },
-      ],
-    });
-  });
-
-  it("extracts structured prompt payloads from llm trace json", () => {
-    const payload = resolveInjectedPromptPayloadFromLLMTrace({
-      injectedPrompt: {
-        systemPrompt: "trace system",
-        systemPromptTokens: 3,
-        providerMessages: [
-          { role: "system", content: "trace system", estimatedTokens: 3 },
-          { role: "user", content: "trace user", estimatedTokens: 2 },
-        ],
-        providerMessagesTokens: 5,
-      },
-    });
-
-    expect(payload).toMatchObject({
-      systemPromptText: "trace system",
-      systemPromptTokens: 3,
-      providerMessagesTokens: 5,
-    });
-    expect(payload?.entries.map((entry) => entry.title)).toEqual([
-      "System Prompt",
-      "Provider Message #1",
-      "Provider Message #2",
-    ]);
-  });
-
-  it("falls back to OpenAI-style trace request messages for prompt analysis", () => {
-    const payload = resolveInjectedPromptPayloadFromRequestBody({
+      resolveSystemPromptTextFromRequestBody({
       model: "gpt-5",
       messages: [
         { role: "system", content: "openai system" },
@@ -916,17 +649,13 @@ describe("EventPopover display and copy helpers", () => {
         { role: "assistant", content: "first answer" },
         { role: "user", content: "second user" },
       ],
-    });
-
-    expect(payload?.systemPromptText).toBe("openai system");
-    expect(payload?.historyMessagesText).toContain("first user");
-    expect(payload?.historyMessagesText).toContain("first answer");
-    expect(payload?.currentUserMessageText).toContain("second user");
-    expect(payload?.providerMessagesText).toContain("openai system");
+      }),
+    ).toBe("openai system");
   });
 
-  it("falls back to trace requestBody fields for prompt analysis", () => {
-    const payload = resolveInjectedPromptPayloadFromLLMTrace({
+  it("extracts system prompt text from requestBody trace fields", () => {
+    expect(
+      resolveSystemPromptTextFromTraceText({
       requestBody: {
         model: "gpt-5",
         messages: [
@@ -934,27 +663,26 @@ describe("EventPopover display and copy helpers", () => {
           { role: "user", content: "requestBody user" },
         ],
       },
-    });
-
-    expect(payload?.systemPromptText).toBe("requestBody system");
-    expect(payload?.currentUserMessageText).toContain("requestBody user");
+      }),
+    ).toBe("requestBody system");
   });
 
-  it("falls back to Anthropic-style trace request system text for prompt analysis", () => {
-    const payload = resolveInjectedPromptPayloadFromRequestBody({
+  it("extracts Anthropic-style system text before system messages", () => {
+    expect(
+      resolveSystemPromptTextFromRequestBody({
       model: "claude",
       system: "anthropic system",
-      messages: [{ role: "user", content: "hello" }],
-    });
-
-    expect(payload?.systemPromptText).toBe("anthropic system");
-    expect(payload?.providerMessagesText).toContain("anthropic system");
-    expect(payload?.currentUserMessageText).toContain("hello");
+        messages: [
+          { role: "system", content: "openai system" },
+          { role: "user", content: "hello" },
+        ],
+      }),
+    ).toBe("anthropic system\n\nopenai system");
   });
 
-  it("parses prompt analysis payloads from raw trace text", () => {
+  it("parses system prompt text from raw trace text", () => {
     expect(
-      resolvePromptAnalysisPayloadFromTraceText(
+      resolveSystemPromptTextFromTraceText(
         JSON.stringify({
           request: {
             messages: [
@@ -963,26 +691,26 @@ describe("EventPopover display and copy helpers", () => {
             ],
           },
         }),
-      )?.systemPromptText,
+      ),
     ).toBe("raw system");
 
-    expect(resolvePromptAnalysisPayloadFromTraceText("{not json")).toBeNull();
+    expect(resolveSystemPromptTextFromTraceText("{not json")).toBe("");
   });
 
-  it("parses prompt analysis payloads from trace objects and data wrappers", () => {
+  it("parses system prompt text from trace objects and data wrappers", () => {
     expect(
-      resolvePromptAnalysisPayloadFromTraceText({
+      resolveSystemPromptTextFromTraceText({
         request: {
           messages: [
             { role: "system", content: "object system" },
             { role: "user", content: "object user" },
           ],
         },
-      })?.systemPromptText,
+      }),
     ).toBe("object system");
 
     expect(
-      resolvePromptAnalysisPayloadFromTraceText({
+      resolveSystemPromptTextFromTraceText({
         data: {
           request: {
             messages: [
@@ -991,11 +719,11 @@ describe("EventPopover display and copy helpers", () => {
             ],
           },
         },
-      })?.currentUserMessageText,
-    ).toContain("wrapped user");
+      }),
+    ).toBe("wrapped system");
 
     expect(
-      resolvePromptAnalysisPayloadFromTraceText({
+      resolveSystemPromptTextFromTraceText({
         data: JSON.stringify({
           request: {
             messages: [
@@ -1004,66 +732,59 @@ describe("EventPopover display and copy helpers", () => {
             ],
           },
         }),
-      })?.systemPromptText,
+      }),
     ).toBe("string-wrapped system");
   });
 
-  it("builds an error load state for prompt analysis timeout", () => {
-    expect(PROMPT_ANALYSIS_LOAD_TIMEOUT_MS).toBe(15_000);
-    expect(buildPromptAnalysisTimeoutLoadState("timeout")).toEqual({
+  it("builds an error load state for system prompt timeout", () => {
+    expect(SYSTEM_PROMPT_LOAD_TIMEOUT_MS).toBe(15_000);
+    expect(buildSystemPromptTimeoutLoadState("timeout")).toEqual({
       status: "error",
       message: "timeout",
     });
   });
 
-  it("collects prompt analysis calls for run.start and direct debug.llmChat", () => {
-    const inlineLlmChat: AgentEvent = {
-      type: "debug.llmChat",
-      runId: "run_1",
-      data: {
-        model: { key: "inline-model" },
-        injectedPrompt: {
-          systemPrompt: "inline system",
-          systemPromptTokens: 3,
-          providerMessages: [
-            { role: "system", content: "inline system", estimatedTokens: 3 },
-          ],
-          providerMessagesTokens: 3,
-        },
-      },
-    };
-    const llmChat: AgentEvent = {
+  it("collects system prompt calls for run.start and direct debug.llmChat", () => {
+    const firstLlmChat: AgentEvent = {
       type: "debug.llmChat",
       runId: "run_1",
       data: {
         model: { key: "mock-model" },
+        runSeq: 1,
+        status: "ok",
+        trace: { file: "chat_1/.llm-records/run_1_001.json" },
+      },
+    };
+    const secondLlmChat: AgentEvent = {
+      type: "debug.llmChat",
+      runId: "run_1",
+      data: {
+        model: { key: "other-model" },
         runSeq: 2,
         status: "ok",
-        trace: { file: "llm/run_1_002.json" },
+        trace: { file: "chat_1/.llm-records/run_1_002.json" },
       },
     };
 
     expect(
-      resolvePromptAnalysisCalls(inlineLlmChat, [inlineLlmChat]).map((call) => ({
-        kind: call.kind,
+      resolveSystemPromptCalls(firstLlmChat, [firstLlmChat]).map((call) => ({
         title: call.title,
         modelLabel: call.modelLabel,
       })),
     ).toEqual([
-      { kind: "inline", title: "LLM", modelLabel: "inline-model" },
+      { title: "LLM #1", modelLabel: "mock-model" },
     ]);
     expect(
-      resolvePromptAnalysisCalls(
+      resolveSystemPromptCalls(
         { type: "run.start", runId: "run_1" },
-        [inlineLlmChat, llmChat, { type: "debug.llmChat", runId: "other" }],
+        [firstLlmChat, secondLlmChat, { type: "debug.llmChat", runId: "other" }],
       ).map((call) => ({
-        kind: call.kind,
         title: call.title,
         modelLabel: call.modelLabel,
       })),
     ).toEqual([
-      { kind: "inline", title: "LLM", modelLabel: "inline-model" },
-      { kind: "trace", title: "LLM #2", modelLabel: "mock-model" },
+      { title: "LLM #1", modelLabel: "mock-model" },
+      { title: "LLM #2", modelLabel: "other-model" },
     ]);
   });
 
@@ -1140,43 +861,43 @@ describe("EventPopover display and copy helpers", () => {
 
   it("resolves raw llm trace file only from debug.llmChat events", () => {
     expect(
-      resolveRawLLMTraceFile({
-        type: "debug.llmChat",
-        data: {
-          trace: {
-            file: "llm/run_1_001.json",
-          },
-        },
-      }),
-    ).toBe("llm/run_1_001.json");
+	      resolveRawLLMTraceFile({
+	        type: "debug.llmChat",
+	        data: {
+	          trace: {
+	            file: "chat_1/.llm-records/run_1_001.json",
+	          },
+	        },
+	      }),
+    ).toBe("chat_1/.llm-records/run_1_001.json");
 
     expect(
-      resolveRawLLMTraceFile({
-        type: "debug.postCall",
-        data: {
-          trace: {
-            file: "llm/run_1_001.json",
-          },
-        },
-      }),
+	      resolveRawLLMTraceFile({
+	        type: "debug.postCall",
+	        data: {
+	          trace: {
+	            file: "chat_1/.llm-records/run_1_001.json",
+	          },
+	        },
+	      }),
     ).toBe("");
 
     expect(
-      resolveRawLLMTraceFile({
-        type: "debug.llmChat",
-        data: {
-          trace: {
-            file: "llm/../run_1_001.json",
-          },
-        },
-      }),
+	      resolveRawLLMTraceFile({
+	        type: "debug.llmChat",
+	        data: {
+	          trace: {
+	            file: "chat_1/../run_1_001.json",
+	          },
+	        },
+	      }),
     ).toBe("");
   });
 
   it("builds a deferred raw llm trace copy menu item", async () => {
     const loadRawLLMTrace = jest.fn(async () => '{"runId":"run_1"}\n');
     const item = buildRawLLMTraceCopyMenuItem(
-      " llm/run_1_001.json ",
+      " chat_1/.llm-records/run_1_001.json ",
       (key) => (key === "eventPopover.copy.rawLlmJson" ? "Copy raw LLM JSON" : key),
       loadRawLLMTrace,
     );
@@ -1187,9 +908,9 @@ describe("EventPopover display and copy helpers", () => {
       text: "",
     });
     await expect(item!.loadText!()).resolves.toBe('{"runId":"run_1"}\n');
-    expect(loadRawLLMTrace).toHaveBeenCalledWith("llm/run_1_001.json");
+    expect(loadRawLLMTrace).toHaveBeenCalledWith("chat_1/.llm-records/run_1_001.json");
     expect(buildRawLLMTraceCopyMenuItem("", (key) => key)).toBeNull();
-    expect(isValidRawLLMTraceFile("llm/run_1_001.txt")).toBe(false);
+    expect(isValidRawLLMTraceFile("chat_1/.llm-records/run_1_001.txt")).toBe(false);
   });
 
   it("builds request event copy menu items with message and references", () => {
