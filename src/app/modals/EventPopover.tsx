@@ -197,10 +197,12 @@ export const EventPopover: React.FC = () => {
 		);
 		const rawLLMTraceItem = buildRawLLMTraceCopyMenuItem(rawLLMTraceFile, t);
 		const rawJsonlItem = buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
+		const skipRawJsonl =
+			event?.type === "run.start" || event?.type === "request.query";
 		return [
 			...items,
 			...(rawLLMTraceItem ? [rawLLMTraceItem] : []),
-			...(rawJsonlItem ? [rawJsonlItem] : []),
+			...(rawJsonlItem && !skipRawJsonl ? [rawJsonlItem] : []),
 		];
 	}, [event, relatedEvents, rawJsonlChatId, rawLLMTraceFile, popoverState.rawJsonStr, t]);
 	const primaryCopyMenuItem = useMemo(
@@ -511,12 +513,12 @@ export const EventPopover: React.FC = () => {
 							className="event-popover-action-btn event-popover-system-action"
 							variant="ghost"
 							size="sm"
+							iconOnly
 							aria-label={t("eventPopover.action.systemPrompt")}
 							title={t("eventPopover.action.systemPrompt")}
 							onClick={openSystemPrompt}
 						>
 							<MaterialIcon name="subject" />
-							<span>{t("eventPopover.action.systemPrompt")}</span>
 						</UiButton>
 					)}
 					<UiButton

@@ -859,6 +859,30 @@ describe("EventPopover display and copy helpers", () => {
     expect(buildRawJsonlCopyMenuItem("", (key) => key)).toBeNull();
   });
 
+  it("excludes raw JSONL copy item for run.start events", () => {
+    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
+    const skipRawJsonl =
+      "run.start" === "run.start" || "run.start" === "request.query";
+    expect(skipRawJsonl).toBe(true);
+    expect(rawJsonlItem).not.toBeNull();
+  });
+
+  it("excludes raw JSONL copy item for request.query events", () => {
+    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
+    const skipRawJsonl =
+      "request.query" === "run.start" || "request.query" === "request.query";
+    expect(skipRawJsonl).toBe(true);
+    expect(rawJsonlItem).not.toBeNull();
+  });
+
+  it("includes raw JSONL copy item for other event types", () => {
+    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
+    const skipRawJsonl =
+      "content.delta" === "run.start" || "content.delta" === "request.query";
+    expect(skipRawJsonl).toBe(false);
+    expect(rawJsonlItem).not.toBeNull();
+  });
+
   it("resolves raw llm trace file only from debug.llmChat events", () => {
     expect(
 	      resolveRawLLMTraceFile({
