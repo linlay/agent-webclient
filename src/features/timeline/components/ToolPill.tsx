@@ -315,12 +315,13 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         ) : (
           <span className="tool-status-dot" data-tool-status={status} />
         )}
-        {records?.some(
+        {(records?.some(
           (item) =>
             item.status === "running" ||
             item.status === "pending" ||
             item.status === "completed",
-        ) &&
+        ) ||
+          expanded) &&
           durationText && (
             <span className="tool-pill-duration">{durationText}</span>
           )}
