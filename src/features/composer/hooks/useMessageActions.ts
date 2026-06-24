@@ -143,6 +143,7 @@ function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undef
   const record = value as Record<string, unknown>;
   const key = String(record.key || '').trim();
   const reasoningEffort = String(record.reasoningEffort || '').trim();
+  const serviceTier = String(record.serviceTier || '').trim().toUpperCase();
   const model: QueryModelOverride = {};
   if (key) {
     model.key = key;
@@ -155,7 +156,10 @@ function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undef
   ) {
     model.reasoningEffort = reasoningEffort;
   }
-  return model.key || model.reasoningEffort ? model : undefined;
+  if (serviceTier && serviceTier !== 'STANDARD') {
+    model.serviceTier = serviceTier;
+  }
+  return model.key || model.reasoningEffort || model.serviceTier ? model : undefined;
 }
 
 /**

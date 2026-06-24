@@ -336,6 +336,7 @@ export interface UpdateAgentModelConfigRequest {
   agentKey?: string;
   modelKey: string;
   reasoningEffort?: QueryReasoningEffort;
+  serviceTier?: QueryServiceTier;
 }
 
 export interface AgentModelConfigResponse {
@@ -377,6 +378,7 @@ export interface AgentEditorModelOption {
   protocol?: string;
   isVision: boolean;
   contextWindow?: number;
+  serviceTiers?: string[];
 }
 
 export interface CoderModelOption extends AgentEditorModelOption {
@@ -388,11 +390,20 @@ export interface ReasoningEffortOption {
   label: string;
 }
 
+export type QueryServiceTier = string;
+
+export interface ServiceTierOption {
+  key: QueryServiceTier;
+  label: string;
+}
+
 export interface CoderModelOptionsResponse {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
+  serviceTiers?: ServiceTierOption[];
   defaultModelKey?: string;
   defaultReasoningEffort: QueryReasoningEffort;
+  defaultServiceTier?: QueryServiceTier;
 }
 
 export interface AgentEditorProxyConfigField {
@@ -1294,8 +1305,14 @@ export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOpt
   return requestJson<AgentEditorOptionsResponse>("/api/admin/agents/editor-options");
 }
 
-export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
-  return requestJson<CoderModelOptionsResponse>("/api/model-options");
+export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {
+  const params = new URLSearchParams();
+  const normalizedAgentKey = String(agentKey || "").trim();
+  if (normalizedAgentKey) params.set("agentKey", normalizedAgentKey);
+  const query = params.toString();
+  return requestJson<CoderModelOptionsResponse>(
+    query ? `/api/model-options?${query}` : "/api/model-options",
+  );
 }
 
 export function getTeams(): Promise<ApiResponse> {
@@ -1683,6 +1700,7 @@ export interface AccessLevelUpdateResponse {
 export interface QueryModelOverride {
   key?: string;
   reasoningEffort?: QueryReasoningEffort;
+  serviceTier?: QueryServiceTier;
 }
 
 export interface BackgroundCommandParams {
@@ -2002,12 +2020,16 @@ export function compactQueryModelOverride(
   const reasoningEffort = String(model.reasoningEffort || "").trim() as
     | QueryReasoningEffort
     | "";
-  if (!key && !reasoningEffort) {
+  const serviceTier = String(model.serviceTier || "").trim().toUpperCase() as
+    | QueryServiceTier
+    | "";
+  if (!key && !reasoningEffort && (!serviceTier || serviceTier === "STANDARD")) {
     return null;
   }
   return {
     ...(key ? { key } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {}),
+    ...(serviceTier && serviceTier !== "STANDARD" ? { serviceTier } : {}),
   };
 }
 

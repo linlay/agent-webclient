@@ -248,6 +248,24 @@ describe("WsClient", () => {
 		expect(client.getStatus()).toBe("error");
 	});
 
+	it("opens an anonymous websocket when anonymous mode is allowed", async () => {
+		const resolveAccessToken = jest.fn().mockResolvedValue("");
+		const client = createClient({
+			accessToken: "",
+			allowAnonymous: true,
+			resolveAccessToken,
+		});
+
+		const promise = client.connect();
+		await waitForSocketCount(1);
+
+		expect(resolveAccessToken).not.toHaveBeenCalled();
+		const socket = MockWebSocket.instances[0];
+		expect(socket.url).toBe("ws://localhost:3000/ws");
+		socket.open();
+		await expect(promise).resolves.toBeUndefined();
+	});
+
 	it("routes stream frames and completes on done", async () => {
 		jest.spyOn(Date, "now").mockReturnValue(1_776_474_697_581);
 		const onEvent = jest.fn();

@@ -83,6 +83,7 @@ type ActiveStream = {
 
 export interface WsClientOptions {
 	accessToken?: string;
+	allowAnonymous?: boolean;
 	resolveAccessToken?: (
 		reason: WsAccessTokenRefreshReason,
 	) => string | Promise<string>;
@@ -374,9 +375,11 @@ export class WsClient {
 		reason: WsAccessTokenRefreshReason,
 	) => string | Promise<string>;
 	private onAccessTokenChange?: (accessToken: string) => void;
+	private allowAnonymous: boolean;
 
 	constructor(options: WsClientOptions = {}) {
 		this.accessToken = String(options.accessToken || "").trim();
+		this.allowAnonymous = Boolean(options.allowAnonymous);
 		this.resolveAccessToken = options.resolveAccessToken;
 		this.onAccessTokenChange = options.onAccessTokenChange;
 		this.onStatusChange = options.onStatusChange;
@@ -408,6 +411,9 @@ export class WsClient {
 		}
 		if (options.accessToken !== undefined) {
 			this.accessToken = String(options.accessToken || "").trim();
+		}
+		if (options.allowAnonymous !== undefined) {
+			this.allowAnonymous = Boolean(options.allowAnonymous);
 		}
 		if (options.resolveAccessToken !== undefined) {
 			this.resolveAccessToken = options.resolveAccessToken;
@@ -676,7 +682,7 @@ export class WsClient {
 				reject(inactiveConnectionError());
 				return;
 			}
-			if (!this.accessToken) {
+			if (!this.accessToken && !this.allowAnonymous) {
 				void this.refreshAccessToken("missing")
 					.then((token) => {
 						if (!isActiveHandshake()) {

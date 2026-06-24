@@ -46,6 +46,7 @@ jest.mock("@/shared/i18n", () => ({
         "composer.query.model.title": "选择模型和思考深度",
         "composer.query.reasoning.group": "思考深度",
         "composer.query.reasoning.HIGH": "高",
+        "composer.query.reasoning.MEDIUM": "中",
         "composer.query.reasoning.NONE": "关闭",
         "composer.query.reasoning.default": "默认思考",
         "composer.query.reasoning.empty": "暂无可选思考深度",
@@ -161,6 +162,31 @@ describe("QuerySettingsControls", () => {
     expect(nonCoderHtml).not.toContain("正在加载模型");
   });
 
+  it("shows a lightning icon for FAST service tier in the model button", () => {
+    resolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent",
+      raw: { mode: "CODER" },
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(QuerySettingsControls, {
+        accessLevel: "default",
+        modelOverride: {
+          key: "gpt-5.4",
+          reasoningEffort: "MEDIUM",
+          serviceTier: "FAST",
+        },
+        onAccessLevelChange: jest.fn(),
+        onModelOverrideChange: jest.fn(),
+      }),
+    );
+
+    expect(html).toContain("bolt");
+    expect(html).toContain("gpt-5.4");
+    expect(html).toContain("中");
+    expect(html).not.toContain("快速");
+  });
+
   it("can hide the model selector while keeping access controls", () => {
     resolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
@@ -221,7 +247,37 @@ describe("QuerySettingsControls", () => {
       defaultModelKey: "coder-model",
       defaultReasoningEffort: "NONE",
     });
-    expect(getModelOptions).toHaveBeenCalledWith();
+    expect(getModelOptions).toHaveBeenCalledWith(undefined);
+  });
+
+  it("keeps CODER model option caches scoped by agent", async () => {
+    getModelOptions
+      .mockResolvedValueOnce({
+        data: {
+          models: [{ key: "codex-model", name: "Codex Model", modelId: "gpt-5.5" }],
+          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          models: [{ key: "native-model", name: "Native Model", modelId: "qwen3" }],
+          reasoningEfforts: [{ key: "LOW", label: "LOW" }],
+        },
+      });
+
+    await expect(loadCoderModelOptions("codexCoder")).resolves.toMatchObject({
+      models: [{ key: "codex-model", name: "Codex Model" }],
+    });
+    await expect(loadCoderModelOptions("nativeCoder")).resolves.toMatchObject({
+      models: [{ key: "native-model", name: "Native Model" }],
+    });
+    await expect(loadCoderModelOptions("codexCoder")).resolves.toMatchObject({
+      models: [{ key: "codex-model", name: "Codex Model" }],
+    });
+
+    expect(getModelOptions).toHaveBeenNthCalledWith(1, "codexCoder");
+    expect(getModelOptions).toHaveBeenNthCalledWith(2, "nativeCoder");
+    expect(getModelOptions).toHaveBeenCalledTimes(2);
   });
 
   it("returns cached model options after the first successful load", async () => {
@@ -302,6 +358,10 @@ describe("QuerySettingsControls", () => {
         { key: "NONE", label: "NONE" },
         { key: "", label: "ignored" },
       ],
+      serviceTiers: [
+        { key: "FLEX", label: "Flex" },
+        { key: "", label: "ignored" },
+      ],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
     };
@@ -309,6 +369,7 @@ describe("QuerySettingsControls", () => {
     expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
+      serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
       recognized: true,
@@ -316,6 +377,7 @@ describe("QuerySettingsControls", () => {
     expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
+      serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
       recognized: true,
@@ -323,10 +385,53 @@ describe("QuerySettingsControls", () => {
     expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
+      serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
       defaultReasoningEffort: "HIGH",
       recognized: true,
     });
+  });
+
+  it("renders ACP-provided service tiers instead of filtering them to a fixed list", () => {
+    const items = buildModelMenuItems({
+      models: [
+        {
+          key: "gpt-5.3",
+          name: "GPT-5.3",
+          modelId: "gpt-5.3",
+          isReasoner: true,
+          isVision: false,
+          serviceTiers: ["FLEX"],
+        },
+      ],
+      reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+      serviceTiers: [
+        { key: "STANDARD", label: "Standard" },
+        { key: "FLEX", label: "Flex" },
+      ],
+      modelOverride: { key: "gpt-5.3", reasoningEffort: "MEDIUM", serviceTier: "FLEX" },
+      selectedModelLabel: "GPT-5.3",
+      selectedModelKey: "gpt-5.3",
+      selectedReasoningEffort: "MEDIUM",
+      selectedServiceTier: "FLEX",
+      t: (key) => {
+        const messages: Record<string, string> = {
+          "composer.query.reasoning.group": "思考深度",
+          "composer.query.reasoning.MEDIUM": "中",
+          "composer.query.serviceTier.group": "速度模式",
+          "composer.query.serviceTier.STANDARD": "标准",
+          "composer.query.serviceTier.FLEX": "灵活",
+          "composer.query.model.group": "模型",
+        };
+        return messages[key] || key;
+      },
+    }) as TestMenuItem[];
+
+    const serviceTierGroup = items.find((item) => item.key === "service-tier");
+    expect(serviceTierGroup?.children?.map((item) => item.key)).toEqual([
+      "serviceTier:STANDARD",
+      "serviceTier:FLEX",
+    ]);
   });
 
   it("warns when model display identity conflicts with technical identifiers", () => {
@@ -503,8 +608,9 @@ describe("QuerySettingsControls", () => {
         return messages[key] || key;
       },
     }) as Array<{ key: string; label?: React.ReactNode }>;
+    const modelSubmenu = items.find((item) => item.key === "model-submenu");
     const modelSubmenuHtml = renderToStaticMarkup(
-      React.createElement(React.Fragment, null, items[1].label),
+      React.createElement(React.Fragment, null, modelSubmenu?.label),
     );
 
     expect(modelSubmenuHtml).toContain("正在加载模型");
@@ -547,7 +653,8 @@ describe("QuerySettingsControls", () => {
     }) as TestMenuItem[];
 
     const reasoningChildren = items[0].children || [];
-    const modelSubmenu = items[1];
+    const modelSubmenu = items.find((item) => item.key === "model-submenu");
+    const serviceTierGroup = items.find((item) => item.key === "service-tier");
     const modelChildren = getModelMenuChildren(items);
     const modelHtml = renderToStaticMarkup(
       React.createElement(
@@ -571,7 +678,14 @@ describe("QuerySettingsControls", () => {
       ),
     );
 
-    expect(items.map((item) => item.key)).toEqual(["reasoning", "model-submenu"]);
+    expect(items.map((item) => item.key)).toEqual([
+      "reasoning",
+      "service-tier",
+      "model-submenu",
+    ]);
+    expect(serviceTierGroup?.children?.map((item) => item.key)).toEqual([
+      "serviceTier:STANDARD",
+    ]);
     expect(reasoningChildren.map((item) => item.key)).toEqual([
       "reasoning:HIGH",
     ]);
@@ -844,6 +958,7 @@ describe("QuerySettingsControls", () => {
     expect(merged.modelKey).toBe("new-model");
     expect(merged.defaultModelKey).toBe("new-model");
     expect(merged.defaultReasoningEffort).toBe("HIGH");
+    expect(merged.defaultServiceTier).toBe("STANDARD");
     expect(merged.definition).toEqual({
       key: "coder-agent",
       name: "Coder Agent",
@@ -858,6 +973,33 @@ describe("QuerySettingsControls", () => {
       workspace: { root: "/workspace" },
       modelKey: "new-model",
       reasoningEffort: "HIGH",
+    });
+  });
+
+  it("preserves FAST as the default service tier when model config response includes it", () => {
+    const merged = agentSummaryFromModelConfig(
+      {
+        key: "coder-agent",
+        name: "Coder Agent",
+        mode: "CODER",
+        meta: {},
+      } as Agent,
+      {
+        key: "coder-agent",
+        modelConfig: {
+          modelKey: "gpt-5.4",
+          reasoning: { enabled: true, effort: "MEDIUM" },
+          serviceTier: "FAST",
+        },
+      },
+      { key: "gpt-5.4", reasoningEffort: "MEDIUM", serviceTier: "FAST" },
+    );
+
+    expect(merged.defaultServiceTier).toBe("FAST");
+    expect(merged.meta).toEqual({
+      modelKey: "gpt-5.4",
+      reasoningEffort: "MEDIUM",
+      serviceTier: "FAST",
     });
   });
 });

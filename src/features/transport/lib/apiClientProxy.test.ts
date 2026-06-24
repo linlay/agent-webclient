@@ -1491,7 +1491,7 @@ describe("apiClientProxy", () => {
 		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({
 			key: "editable-agent",
 		});
-		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith();
+		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith(undefined);
 	});
 
 	it("routes submit requests over http when sse mode is selected", async () => {

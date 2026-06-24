@@ -210,11 +210,12 @@ export function openAgentWorkspace(
 	return openAgentWorkspaceHttp(params);
 }
 
-export function getModelOptions(): Promise<ApiResponse<CoderModelOptionsResponse>> {
+export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {
+	const payload = compactPayload({ agentKey });
 	return routeRequest<CoderModelOptionsResponse>(
 		"/api/model-options",
-		undefined,
-		() => getModelOptionsHttp(),
+		Object.keys(payload).length > 0 ? payload : undefined,
+		() => getModelOptionsHttp(agentKey),
 	);
 }
 

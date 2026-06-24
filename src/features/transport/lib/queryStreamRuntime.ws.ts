@@ -43,17 +43,23 @@ async function resolveQueryWsClient(
 	reason: TokenRefreshReason = "missing",
 ): Promise<QueryWsClient | null> {
 	const accessToken = await resolveQueryAccessToken(reason);
+	const appMode = isAppMode();
 
 	const currentClient = getWsClient();
-	if (!currentClient && !accessToken) {
+	if (!currentClient && !accessToken && appMode) {
 		return null;
 	}
 	if (!currentClient) {
-		return initWsClient({ accessToken, resolveAccessToken: resolveQueryAccessToken });
+		return initWsClient({
+			accessToken,
+			allowAnonymous: !appMode,
+			resolveAccessToken: resolveQueryAccessToken,
+		});
 	}
 
 	return updateCurrentWsClientOptions({
 		accessToken,
+		allowAnonymous: !appMode,
 		resolveAccessToken: resolveQueryAccessToken,
 	}) ?? currentClient;
 }

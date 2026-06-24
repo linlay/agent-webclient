@@ -17,7 +17,9 @@ import type {
   QueryAccessLevel,
   QueryModelOverride,
   QueryReasoningEffort,
+  QueryServiceTier,
   ReasoningEffortOption,
+  ServiceTierOption,
 } from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -54,8 +56,10 @@ type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 type LoadedCoderModelOptions = {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
+  serviceTiers: ServiceTierOption[];
   defaultModelKey?: string;
   defaultReasoningEffort?: QueryReasoningEffort;
+  defaultServiceTier?: QueryServiceTier;
 };
 
 type AppliedDefaultModelOverride = {
@@ -63,9 +67,11 @@ type AppliedDefaultModelOverride = {
   value: QueryModelOverride;
 };
 
-let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
-let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null =
-  null;
+const cachedCoderModelOptionsByAgent = new Map<string, LoadedCoderModelOptions>();
+const pendingCoderModelOptionsPromiseByAgent = new Map<
+  string,
+  Promise<LoadedCoderModelOptions>
+>();
 
 function isCoderMode(value: unknown): boolean {
   return (
@@ -172,6 +178,20 @@ function normalizeReasoningEffort(
   return undefined;
 }
 
+function normalizeServiceTier(value: unknown): QueryServiceTier | undefined {
+  const text = toConfigText(value).toUpperCase();
+  if (
+    text === "STANDARD" ||
+    text === "DEFAULT" ||
+    text === "AUTO" ||
+    text === ""
+  ) {
+    return "STANDARD";
+  }
+  if (text === "PRIORITY") return "FAST";
+  return text || undefined;
+}
+
 function filterModelOptions(value: unknown): CoderModelOption[] {
   return Array.isArray(value)
     ? value.filter(
@@ -190,12 +210,62 @@ function filterReasoningOptions(value: unknown): ReasoningEffortOption[] {
     : [];
 }
 
+function filterServiceTierOptions(value: unknown): ServiceTierOption[] {
+  const seen = new Set<string>(["STANDARD"]);
+  const parsed: ServiceTierOption[] = [{ key: "STANDARD", label: "Standard" }];
+  if (!Array.isArray(value)) {
+    return parsed;
+  }
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const key = normalizeServiceTier(item.key);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    parsed.push({ key, label: toConfigText(item.label) || key });
+  }
+  return parsed;
+}
+
+function normalizeModelServiceTiers(model: CoderModelOption | undefined): Set<QueryServiceTier> {
+  const supported = new Set<QueryServiceTier>(["STANDARD"]);
+  const tiers = Array.isArray(model?.serviceTiers) ? model.serviceTiers : [];
+  for (const tier of tiers) {
+    const normalized = normalizeServiceTier(tier);
+    if (normalized && normalized !== "STANDARD") {
+      supported.add(normalized);
+    }
+  }
+  return supported;
+}
+
+function serviceTierSupportedByModel(
+  tier: QueryServiceTier | undefined,
+  model: CoderModelOption | undefined,
+): boolean {
+  const normalized = normalizeServiceTier(tier) || "STANDARD";
+  return normalizeModelServiceTiers(model).has(normalized);
+}
+
+function serviceTierLabelText(
+  option: ServiceTierOption,
+  t: (key: string) => string,
+): string {
+  const messageKey = `composer.query.serviceTier.${option.key}`;
+  const translated = t(messageKey);
+  return translated === messageKey ? option.label : translated;
+}
+
 export function shouldClearModelOverride(
   isCoderAgent: boolean,
   modelOverride: QueryModelOverride,
 ): boolean {
   return (
-    !isCoderAgent && Boolean(modelOverride.key || modelOverride.reasoningEffort)
+    !isCoderAgent &&
+    Boolean(
+      modelOverride.key ||
+        modelOverride.reasoningEffort ||
+        modelOverride.serviceTier,
+    )
   );
 }
 
@@ -215,25 +285,28 @@ export function shouldApplyCoderDefaultModelOverride({
   if (!shouldShowModelControls || !agentKey) return false;
   if (
     !resolvedDefaultOverride.key &&
-    !resolvedDefaultOverride.reasoningEffort
+    !resolvedDefaultOverride.reasoningEffort &&
+    !resolvedDefaultOverride.serviceTier
   ) {
     return false;
   }
   if (
     modelOverride.key === resolvedDefaultOverride.key &&
-    modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
+    modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
+    modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
   ) {
     return false;
   }
 
   const hasCurrentOverride = Boolean(
-    modelOverride.key || modelOverride.reasoningEffort,
+    modelOverride.key || modelOverride.reasoningEffort || modelOverride.serviceTier,
   );
   const currentMatchesPrevious =
     previousAppliedDefault?.agentKey === agentKey &&
     modelOverride.key === previousAppliedDefault.value.key &&
     modelOverride.reasoningEffort ===
-      previousAppliedDefault.value.reasoningEffort;
+      previousAppliedDefault.value.reasoningEffort &&
+    modelOverride.serviceTier === previousAppliedDefault.value.serviceTier;
 
   return !(
     previousAppliedDefault?.agentKey === agentKey &&
@@ -273,20 +346,24 @@ export function shouldRetryModelOptionsOnOpen({
 export function buildModelMenuItems({
   models,
   reasoningEfforts,
+  serviceTiers = filterServiceTierOptions([]),
   modelOverride,
   selectedModelLabel,
   selectedModelKey,
   selectedReasoningEffort,
+  selectedServiceTier,
   modelsLoading = false,
   status = "idle",
   t,
 }: {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
+  serviceTiers?: ServiceTierOption[];
   modelOverride: QueryModelOverride;
   selectedModelLabel?: string;
   selectedModelKey?: string;
   selectedReasoningEffort?: QueryReasoningEffort;
+  selectedServiceTier?: QueryServiceTier;
   modelsLoading?: boolean;
   status?: ModelOptionsStatus;
   t: (key: string) => string;
@@ -346,6 +423,10 @@ export function buildModelMenuItems({
   ];
   const resolvedSelectedModelLabel =
     selectedModelLabel || selectedModelKey || modelOverride.key || "";
+  const selectedModel = models.find((model) => toText(model.key) === toText(selectedModelKey || modelOverride.key));
+  const availableServiceTiers = serviceTiers.filter((option) =>
+    serviceTierSupportedByModel(option.key, selectedModel),
+  );
 
   return [
     {
@@ -361,6 +442,24 @@ export function buildModelMenuItems({
         ),
         extra:
           (selectedReasoningEffort || modelOverride.reasoningEffort) ===
+          option.key ? (
+            <MaterialIcon name="check" />
+          ) : null,
+      })),
+    },
+    {
+      key: "service-tier",
+      type: "group",
+      label: t("composer.query.serviceTier.group"),
+      children: availableServiceTiers.map((option) => ({
+        key: `serviceTier:${option.key}`,
+        label: (
+          <span className="query-settings-menu-item">
+            {serviceTierLabelText(option, t)}
+          </span>
+        ),
+        extra:
+          (selectedServiceTier || modelOverride.serviceTier || "STANDARD") ===
           option.key ? (
             <MaterialIcon name="check" />
           ) : null,
@@ -389,8 +488,10 @@ export function buildModelMenuItems({
 export function normalizeCoderModelOptionsResponse(response: unknown): {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
+  serviceTiers: ServiceTierOption[];
   defaultModelKey?: string;
   defaultReasoningEffort?: QueryReasoningEffort;
+  defaultServiceTier?: QueryServiceTier;
   recognized: boolean;
 } {
   const topLevel = isRecord(response) ? response : {};
@@ -421,10 +522,12 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
     return {
       models,
       reasoningEfforts: filterReasoningOptions(candidate.reasoningEfforts),
+      serviceTiers: filterServiceTierOptions(candidate.serviceTiers),
       defaultModelKey: getModelKey(candidate.defaultModelKey),
       defaultReasoningEffort: normalizeReasoningEffort(
         candidate.defaultReasoningEffort,
       ),
+      defaultServiceTier: normalizeServiceTier(candidate.defaultServiceTier),
       recognized: true,
     };
   }
@@ -432,6 +535,7 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
   return {
     models: [],
     reasoningEfforts: [],
+    serviceTiers: filterServiceTierOptions([]),
     recognized: false,
   };
 }
@@ -441,7 +545,7 @@ export function resolveCoderAgentDefaultModelOverride(
   options:
     | Pick<
         LoadedCoderModelOptions,
-        "defaultModelKey" | "defaultReasoningEffort"
+        "defaultModelKey" | "defaultReasoningEffort" | "defaultServiceTier"
       >
     | null
     | undefined,
@@ -467,31 +571,47 @@ export function resolveCoderAgentDefaultModelOverride(
     normalizeReasoningEffort(modelConfig.reasoningEffort) ||
     normalizeReasoningEffort(definitionModelConfig.reasoningEffort) ||
     normalizeReasoningEffort(options?.defaultReasoningEffort);
+  const serviceTier =
+    normalizeServiceTier(raw.serviceTier) ||
+    normalizeServiceTier(raw.defaultServiceTier) ||
+    normalizeServiceTier(meta.serviceTier) ||
+    normalizeServiceTier(modelConfig.serviceTier) ||
+    normalizeServiceTier(definitionModelConfig.serviceTier) ||
+    normalizeServiceTier(options?.defaultServiceTier);
 
   return {
     ...(key ? { key } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {}),
+    ...(serviceTier && serviceTier !== "STANDARD" ? { serviceTier } : {}),
   };
 }
 
 export function clearCoderModelOptionsCacheForTest(): void {
-  cachedCoderModelOptions = null;
-  pendingCoderModelOptionsPromise = null;
+  cachedCoderModelOptionsByAgent.clear();
+  pendingCoderModelOptionsPromiseByAgent.clear();
 }
 
-export function getCachedCoderModelOptions(): LoadedCoderModelOptions | null {
-  return cachedCoderModelOptions;
+export function getCachedCoderModelOptions(
+  agentKey = "",
+): LoadedCoderModelOptions | null {
+  return cachedCoderModelOptionsByAgent.get(toAgentConfigKey(agentKey)) ?? null;
 }
 
-export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> {
+export async function loadCoderModelOptions(
+  agentKey = "",
+): Promise<LoadedCoderModelOptions> {
+  const cacheKey = toAgentConfigKey(agentKey);
+  const cachedCoderModelOptions = cachedCoderModelOptionsByAgent.get(cacheKey);
   if (cachedCoderModelOptions) {
     return cachedCoderModelOptions;
   }
+  const pendingCoderModelOptionsPromise =
+    pendingCoderModelOptionsPromiseByAgent.get(cacheKey);
   if (pendingCoderModelOptionsPromise) {
     return pendingCoderModelOptionsPromise;
   }
 
-  pendingCoderModelOptionsPromise = getModelOptions()
+  const nextPromise = getModelOptions(cacheKey || undefined)
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
@@ -500,18 +620,22 @@ export async function loadCoderModelOptions(): Promise<LoadedCoderModelOptions> 
           rawResponse,
         );
       }
-      cachedCoderModelOptions = {
+      const loadedOptions = {
         models: options.models,
         reasoningEfforts: options.reasoningEfforts,
+        serviceTiers: options.serviceTiers,
         defaultModelKey: options.defaultModelKey,
         defaultReasoningEffort: options.defaultReasoningEffort,
+        defaultServiceTier: options.defaultServiceTier,
       };
-      return cachedCoderModelOptions;
+      cachedCoderModelOptionsByAgent.set(cacheKey, loadedOptions);
+      return loadedOptions;
     })
     .finally(() => {
-      pendingCoderModelOptionsPromise = null;
+      pendingCoderModelOptionsPromiseByAgent.delete(cacheKey);
     });
-  return pendingCoderModelOptionsPromise;
+  pendingCoderModelOptionsPromiseByAgent.set(cacheKey, nextPromise);
+  return nextPromise;
 }
 
 export function buildPersistedModelConfigOverride({
@@ -523,7 +647,7 @@ export function buildPersistedModelConfigOverride({
   patch: QueryModelOverride;
   defaults: Pick<
     LoadedCoderModelOptions,
-    "defaultModelKey" | "defaultReasoningEffort"
+    "defaultModelKey" | "defaultReasoningEffort" | "defaultServiceTier"
   >;
 }): QueryModelOverride {
   const key = patch.key || current.key || defaults.defaultModelKey || "";
@@ -532,9 +656,17 @@ export function buildPersistedModelConfigOverride({
     current.reasoningEffort ||
     defaults.defaultReasoningEffort ||
     "MEDIUM";
+  const hasPatchServiceTier = Object.prototype.hasOwnProperty.call(
+    patch,
+    "serviceTier",
+  );
+  const serviceTier = hasPatchServiceTier
+    ? patch.serviceTier
+    : current.serviceTier;
   return {
     ...(key ? { key } : {}),
     reasoningEffort,
+    ...(serviceTier ? { serviceTier } : {}),
   };
 }
 
@@ -554,6 +686,11 @@ export function agentSummaryFromModelConfig(
   if (modelOverride.reasoningEffort) {
     meta.reasoningEffort = modelOverride.reasoningEffort;
   }
+  if (modelOverride.serviceTier) {
+    meta.serviceTier = modelOverride.serviceTier;
+  } else {
+    delete meta.serviceTier;
+  }
   return {
     ...(existing || {}),
     key,
@@ -562,6 +699,7 @@ export function agentSummaryFromModelConfig(
     modelKey: nextModelKey || existing?.modelKey,
     defaultModelKey: nextModelKey || existing?.defaultModelKey,
     defaultReasoningEffort: modelOverride.reasoningEffort,
+    defaultServiceTier: modelOverride.serviceTier || "STANDARD",
     definition,
     modelConfig: definitionModelConfig,
     meta,
@@ -596,8 +734,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [reasoningEfforts, setReasoningEfforts] = useState<
     ReasoningEffortOption[]
   >([]);
+  const [serviceTiers, setServiceTiers] = useState<ServiceTierOption[]>(filterServiceTierOptions([]));
   const [modelDefaults, setModelDefaults] = useState<
-    Pick<LoadedCoderModelOptions, "defaultModelKey" | "defaultReasoningEffort">
+    Pick<
+      LoadedCoderModelOptions,
+      "defaultModelKey" | "defaultReasoningEffort" | "defaultServiceTier"
+    >
   >({});
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelOptionsStatus, setModelOptionsStatus] =
@@ -622,18 +764,21 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (!shouldShowModelControls || !agentKey) {
       setModels([]);
       setReasoningEfforts([]);
+      setServiceTiers(filterServiceTierOptions([]));
       setModelDefaults({});
       setModelsLoading(false);
       setModelOptionsStatus("idle");
       return;
     }
-    const cachedOptions = getCachedCoderModelOptions();
+    const cachedOptions = getCachedCoderModelOptions(agentKey);
     if (cachedOptions) {
       setModels(cachedOptions.models);
       setReasoningEfforts(cachedOptions.reasoningEfforts);
+      setServiceTiers(cachedOptions.serviceTiers);
       setModelDefaults({
         defaultModelKey: cachedOptions.defaultModelKey,
         defaultReasoningEffort: cachedOptions.defaultReasoningEffort,
+        defaultServiceTier: cachedOptions.defaultServiceTier,
       });
       setModelsLoading(false);
       setModelOptionsStatus(
@@ -647,14 +792,16 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     let cancelled = false;
     setModelsLoading(true);
     setModelOptionsStatus("idle");
-    void loadCoderModelOptions()
+    void loadCoderModelOptions(agentKey)
       .then((options) => {
         if (cancelled) return;
         setModels(options.models);
         setReasoningEfforts(options.reasoningEfforts);
+        setServiceTiers(options.serviceTiers);
         setModelDefaults({
           defaultModelKey: options.defaultModelKey,
           defaultReasoningEffort: options.defaultReasoningEffort,
+          defaultServiceTier: options.defaultServiceTier,
         });
         setModelOptionsStatus(
           options.models.length > 0 || options.reasoningEfforts.length > 0
@@ -666,6 +813,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         if (cancelled) return;
         setModels([]);
         setReasoningEfforts([]);
+        setServiceTiers(filterServiceTierOptions([]));
         setModelDefaults({});
         setModelOptionsStatus("failed");
       })
@@ -718,9 +866,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       shouldShowModelControls &&
       agentKey &&
       (resolvedDefaultOverride.key ||
-        resolvedDefaultOverride.reasoningEffort) &&
+        resolvedDefaultOverride.reasoningEffort ||
+        resolvedDefaultOverride.serviceTier) &&
       modelOverride.key === resolvedDefaultOverride.key &&
-      modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort
+      modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
+      modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
     ) {
       appliedDefaultRef.current = {
         agentKey,
@@ -749,19 +899,32 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     agentKey,
     modelOverride.key,
     modelOverride.reasoningEffort,
+    modelOverride.serviceTier,
     onModelOverrideChange,
     resolvedDefaultOverride,
     shouldShowModelControls,
   ]);
 
-  const selectedModelKey = modelOverride.key || "";
-  const selectedReasoningEffort = modelOverride.reasoningEffort;
+  const selectedModelKey =
+    modelOverride.key ||
+    resolvedDefaultOverride.key ||
+    modelDefaults.defaultModelKey ||
+    "";
+  const selectedReasoningEffort =
+    modelOverride.reasoningEffort || resolvedDefaultOverride.reasoningEffort;
+  const selectedServiceTier =
+    normalizeServiceTier(
+      modelOverride.serviceTier ||
+        resolvedDefaultOverride.serviceTier ||
+        modelDefaults.defaultServiceTier,
+    ) || "STANDARD";
   const selectedModelLabel = selectedModelKey
     ? modelLabelByKey.get(selectedModelKey) || selectedModelKey
     : t("composer.query.model.loading");
   const selectedReasoningLabel = selectedReasoningEffort
     ? t(`composer.query.reasoning.${selectedReasoningEffort}`)
     : t("composer.query.model.loading");
+  const showFastBadge = selectedServiceTier === "FAST";
 
   const persistModelConfig = async (nextOverride: QueryModelOverride) => {
     const nextModelKey = String(nextOverride.key || "").trim();
@@ -770,6 +933,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     const persistedOverride: QueryModelOverride = {
       key: nextModelKey,
       reasoningEffort: nextReasoningEffort,
+      ...(nextOverride.serviceTier
+        ? { serviceTier: nextOverride.serviceTier }
+        : {}),
     };
     setModelConfigSaving(true);
     setModelConfigError("");
@@ -778,8 +944,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         agentKey: toAgentConfigKey(agentKey),
         modelKey: nextModelKey,
         reasoningEffort: nextReasoningEffort,
+        serviceTier: nextOverride.serviceTier,
       });
       const detail = response.data;
+      const nextDefaultServiceTier =
+        normalizeServiceTier(nextOverride.serviceTier) || "STANDARD";
+      setModelDefaults((currentDefaults) => ({
+        ...currentDefaults,
+        defaultModelKey: nextModelKey,
+        defaultReasoningEffort: nextReasoningEffort,
+        defaultServiceTier: nextDefaultServiceTier,
+      }));
       onModelOverrideChange(persistedOverride);
       appliedDefaultRef.current = {
         agentKey,
@@ -803,10 +978,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       buildModelMenuItems({
         models,
         reasoningEfforts,
+        serviceTiers,
         modelOverride,
         selectedModelLabel,
         selectedModelKey,
         selectedReasoningEffort,
+        selectedServiceTier,
         modelsLoading,
         status: modelOptionsStatus,
         t,
@@ -820,6 +997,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       selectedModelKey,
       selectedModelLabel,
       selectedReasoningEffort,
+      selectedServiceTier,
+      serviceTiers,
       t,
     ],
   );
@@ -830,16 +1009,29 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (textKey.startsWith("model:")) {
       const encoded = textKey.slice("model:".length);
       if (!encoded) return;
+      const nextModelKey = decodeURIComponent(encoded);
+      const nextModel = models.find((model) => toText(model.key) === nextModelKey);
+      const currentServiceTier = selectedServiceTier;
       void persistModelConfig({
         ...buildPersistedModelConfigOverride({
           current: modelOverride,
-          patch: { key: decodeURIComponent(encoded) },
+          patch: {
+            key: nextModelKey,
+            serviceTier:
+              serviceTierSupportedByModel(currentServiceTier, nextModel) &&
+              currentServiceTier !== "STANDARD"
+                ? currentServiceTier
+                : undefined,
+          },
           defaults: {
             defaultModelKey:
               resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
             defaultReasoningEffort:
               resolvedDefaultOverride.reasoningEffort ||
               modelDefaults.defaultReasoningEffort,
+            defaultServiceTier:
+              resolvedDefaultOverride.serviceTier ||
+              modelDefaults.defaultServiceTier,
           },
         }),
       });
@@ -860,6 +1052,36 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             defaultReasoningEffort:
               resolvedDefaultOverride.reasoningEffort ||
               modelDefaults.defaultReasoningEffort,
+            defaultServiceTier:
+              resolvedDefaultOverride.serviceTier ||
+              modelDefaults.defaultServiceTier,
+          },
+        }),
+      });
+      return;
+    }
+    if (textKey.startsWith("serviceTier:")) {
+      const serviceTier = normalizeServiceTier(
+        textKey.slice("serviceTier:".length),
+      );
+      if (!serviceTier) return;
+      void persistModelConfig({
+        ...buildPersistedModelConfigOverride({
+          current: modelOverride,
+          patch: {
+            ...(serviceTier === "STANDARD"
+              ? { serviceTier: undefined }
+              : { serviceTier }),
+          },
+          defaults: {
+            defaultModelKey:
+              resolvedDefaultOverride.key || modelDefaults.defaultModelKey,
+            defaultReasoningEffort:
+              resolvedDefaultOverride.reasoningEffort ||
+              modelDefaults.defaultReasoningEffort,
+            defaultServiceTier:
+              resolvedDefaultOverride.serviceTier ||
+              modelDefaults.defaultServiceTier,
           },
         }),
       });
@@ -929,6 +1151,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             title={modelConfigError || t("composer.query.model.title")}
             onClick={(event) => event.preventDefault()}
           >
+            {showFastBadge ? <MaterialIcon name="bolt" /> : null}
             <span style={{ color: "var(--text-main)" }}>
               {selectedModelLabel}
             </span>

@@ -78,6 +78,7 @@ describe("executeQueryStreamWs", () => {
 	});
 
 	it("throws a user-facing error when websocket transport is not initialized", async () => {
+		isAppModeMock.mockReturnValue(true);
 		getWsClientMock.mockReturnValue(null as never);
 
 		await expect(
@@ -90,6 +91,39 @@ describe("executeQueryStreamWs", () => {
 				handleEvent: jest.fn(),
 			}),
 		).rejects.toThrow(/WebSocket .*?(not initialized|尚未初始化)/i);
+	});
+
+	it("creates an anonymous ws client for standalone query streaming", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: {
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+
+		getWsClientMock.mockReturnValue(null as never);
+		initWsClientMock.mockReturnValue({
+			stream: streamMock,
+		} as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_anonymous",
+				message: "hello",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		expect(initWsClientMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				accessToken: "",
+				allowAnonymous: true,
+			}),
+		);
+		expect(streamMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("dispatches the expected lifecycle actions", async () => {

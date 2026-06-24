@@ -9,6 +9,7 @@ import {
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
 import { WsClientDisconnectedError } from "@/features/transport/lib/wsClient";
+import { isAppMode } from "@/shared/utils/routing";
 
 jest.mock("@/shared/api/apiClient", () => ({
 	ensureAccessToken: jest.fn(),
@@ -21,12 +22,17 @@ jest.mock("./wsClientSingleton", () => ({
 	initWsClient: jest.fn(),
 }));
 
+jest.mock("@/shared/utils/routing", () => ({
+	isAppMode: jest.fn(),
+}));
+
 describe("TransportClient", () => {
 	const ensureAccessTokenMock = ensureAccessToken as jest.MockedFunction<typeof ensureAccessToken>;
 	const getCurrentAccessTokenMock = getCurrentAccessToken as jest.MockedFunction<typeof getCurrentAccessToken>;
 	const getWsClientMock = getWsClient as jest.MockedFunction<typeof getWsClient>;
 	const getWsClientAccessTokenMock = getWsClientAccessToken as jest.MockedFunction<typeof getWsClientAccessToken>;
 	const initWsClientMock = initWsClient as jest.MockedFunction<typeof initWsClient>;
+	const isAppModeMock = isAppMode as jest.MockedFunction<typeof isAppMode>;
 
 	beforeEach(() => {
 		ensureAccessTokenMock.mockReset();
@@ -34,9 +40,11 @@ describe("TransportClient", () => {
 		getWsClientMock.mockReset();
 		getWsClientAccessTokenMock.mockReset();
 		initWsClientMock.mockReset();
+		isAppModeMock.mockReset();
 		ensureAccessTokenMock.mockResolvedValue("");
 		getCurrentAccessTokenMock.mockReturnValue("");
 		getWsClientAccessTokenMock.mockReturnValue("");
+		isAppModeMock.mockReturnValue(false);
 	});
 
 	it("uses the HTTP fallback when the active mode is not ws", async () => {
@@ -67,6 +75,35 @@ describe("TransportClient", () => {
 			type: "/api/example",
 			payload: { id: "1" },
 		});
+		expect(fallback).not.toHaveBeenCalled();
+	});
+
+	it("creates an anonymous ws client for standalone requests without a token", async () => {
+		let activeClient: { connect: jest.Mock; request: jest.Mock } | null = null;
+		const wsClient = {
+			connect: jest.fn().mockResolvedValue(undefined),
+			request: jest.fn().mockResolvedValue({ code: 0, data: "ws" }),
+		};
+		getWsClientMock.mockImplementation(() => activeClient as never);
+		initWsClientMock.mockImplementation(() => {
+			activeClient = wsClient;
+			return wsClient as never;
+		});
+		const fallback = jest.fn().mockResolvedValue({ code: 0, data: "http" });
+		const client = createTransportClient({ getMode: () => "ws" });
+
+		await expect(
+			client.request("/api/example", undefined, { fallback }),
+		).resolves.toEqual({ code: 0, data: "ws" });
+
+		expect(initWsClientMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				accessToken: "",
+				allowAnonymous: true,
+			}),
+		);
+		expect(wsClient.connect).toHaveBeenCalledTimes(1);
+		expect(wsClient.request).toHaveBeenCalledTimes(1);
 		expect(fallback).not.toHaveBeenCalled();
 	});
 

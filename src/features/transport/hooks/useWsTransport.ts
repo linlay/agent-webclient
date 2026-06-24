@@ -727,6 +727,7 @@ function buildWsClient(
 	};
 	return initWsClientImpl({
 		accessToken,
+		allowAnonymous: !appMode,
 		resolveAccessToken: async (reason) => {
 			if (!appMode) {
 				return currentStateToken();
@@ -925,7 +926,7 @@ export async function connectWsTransport(
 		return;
 	}
 
-	if (!initialToken) {
+	if (!initialToken && appMode) {
 		destroyWsClientImpl();
 		throw setWsError(
 			options.dispatch,

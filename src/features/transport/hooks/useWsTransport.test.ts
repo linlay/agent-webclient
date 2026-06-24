@@ -268,6 +268,37 @@ describe("connectWsTransport", () => {
 		});
 	});
 
+	it("connects a standalone page websocket without an access token", async () => {
+		const connect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+		const initWsClientImpl = jest.fn(() => ({ connect }) as any);
+		const ensureAccessTokenImpl = jest.fn();
+		const destroyWsClientImpl = jest.fn();
+		const state = createState({ accessToken: "" });
+
+		await expect(
+			connectWsTransport({
+				dispatch,
+				state,
+				stateRef: { current: state },
+				handleEvent,
+				isAppModeImpl: () => false,
+				ensureAccessTokenImpl,
+				initWsClientImpl,
+				destroyWsClientImpl,
+			}),
+		).resolves.toBeUndefined();
+
+		expect(ensureAccessTokenImpl).not.toHaveBeenCalled();
+		expect(destroyWsClientImpl).not.toHaveBeenCalled();
+		expect(initWsClientImpl).toHaveBeenCalledWith(
+			expect.objectContaining({
+				accessToken: "",
+				allowAnonymous: true,
+			}),
+		);
+		expect(connect).toHaveBeenCalledTimes(1);
+	});
+
 	it("records a standalone-page handshake failure without app-mode token refresh", async () => {
 		const connect = jest
 			.fn<Promise<void>, []>()

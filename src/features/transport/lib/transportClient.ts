@@ -10,6 +10,7 @@ import {
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
+import { isAppMode } from "@/shared/utils/routing";
 
 type WsRequestClient = NonNullable<ReturnType<typeof getWsClient>>;
 type TokenRefreshReason = Parameters<typeof ensureAccessToken>[0];
@@ -49,9 +50,14 @@ async function resolveWsAccessToken(
 
 function resolveWsClient(accessToken: string): WsRequestClient {
 	const currentClient = getWsClient();
+	const appMode = isAppMode();
 	const wsClient =
 		currentClient == null || getWsClientAccessToken() !== accessToken
-			? initWsClient({ accessToken, resolveAccessToken: resolveWsAccessToken })
+			? initWsClient({
+				accessToken,
+				allowAnonymous: !appMode,
+				resolveAccessToken: resolveWsAccessToken,
+			})
 			: currentClient;
 
 	if (
@@ -61,6 +67,7 @@ function resolveWsClient(accessToken: string): WsRequestClient {
 	) {
 		wsClient.updateOptions({
 			accessToken,
+			allowAnonymous: !appMode,
 			resolveAccessToken: resolveWsAccessToken,
 		});
 	}
