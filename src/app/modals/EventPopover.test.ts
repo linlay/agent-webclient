@@ -27,6 +27,7 @@ const {
   resolveInitialPopoverState,
   resolveRawJsonlChatId,
   buildRawJsonlCopyMenuItem,
+  shouldIncludeRawJsonlCopyItem,
   resolveRawLLMTraceFile,
   buildRawLLMTraceCopyMenuItem,
   isValidRawLLMTraceFile,
@@ -859,28 +860,90 @@ describe("EventPopover display and copy helpers", () => {
     expect(buildRawJsonlCopyMenuItem("", (key) => key)).toBeNull();
   });
 
-  it("excludes raw JSONL copy item for run.start events", () => {
-    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
-    const skipRawJsonl =
-      "run.start" === "run.start" || "run.start" === "request.query";
-    expect(skipRawJsonl).toBe(true);
-    expect(rawJsonlItem).not.toBeNull();
+  it("includes raw JSONL copy item for run.start events with chatId", () => {
+    const event: AgentEvent = {
+      type: "run.start",
+      runId: "run_1",
+      chatId: "chat_1",
+    };
+    const rawJsonlItem = buildRawJsonlCopyMenuItem(
+      resolveRawJsonlChatId(event, []),
+      (key) => key,
+    );
+
+    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(true);
+    expect(rawJsonlItem).toMatchObject({ key: "rawJsonl" });
   });
 
   it("excludes raw JSONL copy item for request.query events", () => {
-    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
-    const skipRawJsonl =
-      "request.query" === "run.start" || "request.query" === "request.query";
-    expect(skipRawJsonl).toBe(true);
+    const event: AgentEvent = {
+      type: "request.query",
+      requestId: "req_1",
+      chatId: "chat_1",
+    };
+    const rawJsonlItem = buildRawJsonlCopyMenuItem(
+      resolveRawJsonlChatId(event, []),
+      (key) => key,
+    );
+
+    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
     expect(rawJsonlItem).not.toBeNull();
   });
 
-  it("includes raw JSONL copy item for other event types", () => {
-    const rawJsonlItem = buildRawJsonlCopyMenuItem("chat_1", (key) => key);
-    const skipRawJsonl =
-      "content.delta" === "run.start" || "content.delta" === "request.query";
-    expect(skipRawJsonl).toBe(false);
+  it("excludes raw JSONL copy item for usage.snapshot events", () => {
+    const event: AgentEvent = {
+      type: "usage.snapshot",
+      chatId: "chat_1",
+    };
+    const rawJsonlItem = buildRawJsonlCopyMenuItem(
+      resolveRawJsonlChatId(event, []),
+      (key) => key,
+    );
+
+    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
     expect(rawJsonlItem).not.toBeNull();
+  });
+
+  it("excludes raw JSONL but keeps raw LLM trace for debug.llmChat events", () => {
+    const event: AgentEvent = {
+      type: "debug.llmChat",
+      chatId: "chat_1",
+      data: {
+        trace: {
+          file: "chat_1/.llm-records/run_1_001.json",
+        },
+      },
+    };
+    const rawJsonlItem = buildRawJsonlCopyMenuItem(
+      resolveRawJsonlChatId(event, []),
+      (key) => key,
+    );
+    const rawLlmItem = buildRawLLMTraceCopyMenuItem(
+      resolveRawLLMTraceFile(event),
+      (key) => (key === "eventPopover.copy.rawLlmJson" ? "Copy raw LLM JSON" : key),
+    );
+
+    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
+    expect(rawJsonlItem).not.toBeNull();
+    expect(rawLlmItem).toMatchObject({
+      key: "rawLlmJson",
+      label: "Copy raw LLM JSON",
+    });
+  });
+
+  it("includes raw JSONL copy item for other event types", () => {
+    const event: AgentEvent = {
+      type: "content.delta",
+      contentId: "content_1",
+      chatId: "chat_1",
+    };
+    const rawJsonlItem = buildRawJsonlCopyMenuItem(
+      resolveRawJsonlChatId(event, []),
+      (key) => key,
+    );
+
+    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(true);
+    expect(rawJsonlItem).toMatchObject({ key: "rawJsonl" });
   });
 
   it("resolves raw llm trace file only from debug.llmChat events", () => {

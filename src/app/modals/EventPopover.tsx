@@ -93,6 +93,20 @@ function buildRawJsonlCopyMenuItem(
 	};
 }
 
+const RAW_JSONL_COPY_EXCLUDED_EVENT_TYPES = new Set([
+	"request.query",
+	"usage.snapshot",
+	"debug.llmchat",
+]);
+
+function shouldIncludeRawJsonlCopyItem(event: AgentEvent | null): boolean {
+	const type = String(event?.type || "").toLowerCase();
+	if (!type) {
+		return false;
+	}
+	return !RAW_JSONL_COPY_EXCLUDED_EVENT_TYPES.has(type);
+}
+
 function buildRawLLMTraceCopyMenuItem(
 	file: string,
 	t: (key: string, params?: Record<string, unknown>) => string,
@@ -197,12 +211,11 @@ export const EventPopover: React.FC = () => {
 		);
 		const rawLLMTraceItem = buildRawLLMTraceCopyMenuItem(rawLLMTraceFile, t);
 		const rawJsonlItem = buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
-		const skipRawJsonl =
-			event?.type === "run.start" || event?.type === "request.query";
+		const includeRawJsonl = shouldIncludeRawJsonlCopyItem(event);
 		return [
 			...items,
 			...(rawLLMTraceItem ? [rawLLMTraceItem] : []),
-			...(rawJsonlItem && !skipRawJsonl ? [rawJsonlItem] : []),
+			...(rawJsonlItem && includeRawJsonl ? [rawJsonlItem] : []),
 		];
 	}, [event, relatedEvents, rawJsonlChatId, rawLLMTraceFile, popoverState.rawJsonStr, t]);
 	const primaryCopyMenuItem = useMemo(
@@ -577,4 +590,5 @@ export const __TEST_ONLY__ = {
 	getPrimaryCopyMenuItem,
 	resolveInitialPopoverState,
 	stringifyPopoverPayload,
+	shouldIncludeRawJsonlCopyItem,
 };
