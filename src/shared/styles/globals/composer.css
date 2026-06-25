@@ -346,8 +346,9 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    flex: 1;
+    overflow: auto;
     white-space: nowrap;
+    flex: 1;
 }
 
 .plan-toggle-btn.ui-btn.ui-btn-ghost {
@@ -409,12 +410,6 @@
     z-index: 14;
 }
 
-.send-btn,
-.interrupt-btn {
-    position: sticky;
-    right: 0;
-}
-
 .send-btn {
     width: 32px;
     height: 32px;
@@ -459,12 +454,10 @@
 .query-settings-controls {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
 }
 
 .query-settings-btn.ui-btn {
     min-height: 32px;
-    max-width: 220px;
     padding: 0 8px;
     border-radius: 8px;
     font-size: 13px;
@@ -491,7 +484,15 @@
 }
 
 .query-model-btn.ui-btn {
-    max-width: 280px;
+    overflow: hidden;
+}
+
+.layout-copilot .query-model-label {
+    max-width: 50px;
+}
+
+.query-model-label {
+    color: var(--text-main);
 }
 
 .query-model-btn.ui-btn.is-loading {
@@ -924,9 +925,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: relative;
+    overflow: hidden;
 }
 
 .voice-btn {

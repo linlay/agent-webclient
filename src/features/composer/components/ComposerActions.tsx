@@ -71,7 +71,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   return (
     <Flex vertical style={{ width: "100%" }}>
       {isCopilot && (
-        <Flex wrap gap={4}>
+        <Flex gap={4} style={{ overflow: "auto" }}>
           <ControlsForm
             disabled={isFrontendActive || isStreaming}
             onChange={onControlParamsChange}
@@ -79,28 +79,28 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         </Flex>
       )}
       <div className="composer-control-row">
+        <UiButton
+          className="composer-plus-btn"
+          variant="ghost"
+          size="sm"
+          iconOnly
+          loading={hasUploadingAttachments}
+          disabled={attachmentActionsDisabled}
+          onClick={openFilePicker}
+          aria-label={t("composer.actions.upload")}
+          title={
+            isFrontendActive
+              ? t("composer.actions.uploadDisabled.frontendActive")
+              : isVoiceMode
+                ? t("composer.actions.uploadDisabled.voiceMode")
+                : isStreaming
+                  ? t("composer.actions.uploadDisabled.streaming")
+                  : t("composer.actions.upload")
+          }
+        >
+          <MaterialIcon name="add" />
+        </UiButton>
         <div className="composer-plus-wrap">
-          <UiButton
-            className="composer-plus-btn"
-            variant="ghost"
-            size="sm"
-            iconOnly
-            loading={hasUploadingAttachments}
-            disabled={attachmentActionsDisabled}
-            onClick={openFilePicker}
-            aria-label={t("composer.actions.upload")}
-            title={
-              isFrontendActive
-                ? t("composer.actions.uploadDisabled.frontendActive")
-                : isVoiceMode
-                  ? t("composer.actions.uploadDisabled.voiceMode")
-                  : isStreaming
-                    ? t("composer.actions.uploadDisabled.streaming")
-                    : t("composer.actions.upload")
-            }
-          >
-            <MaterialIcon name="add" />
-          </UiButton>
           {canCaptureDesktopScreenshot ? (
             <UiButton
               className="desktop-screenshot-btn"
