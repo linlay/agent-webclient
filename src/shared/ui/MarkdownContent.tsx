@@ -166,7 +166,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   }
 
   return (
-    <Markdown config={markdownConfig} components={markdownComponents}>
+    <Markdown config={markdownConfig} components={markdownComponents} style={{fontSize: 14}}>
       {processedContent}
     </Markdown>
   );
