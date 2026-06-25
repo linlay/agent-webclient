@@ -5,21 +5,15 @@ import type {
   AIAwaitApprovalSubmitParamData,
 } from "@/app/state/types";
 
+export type ApprovalDialogDecision =
+  | AIAwaitApprovalDecision
+  | "reject_with_reason";
+
 const DEFAULT_APPROVAL_OPTIONS: AIAwaitApprovalOption[] = [
   {
     label: "同意",
     decision: "approve",
-    description: "只本次放行这条命令",
-  },
-  {
-    label: "同意（本次运行同规则都放行）",
-    decision: "approve_rule_run",
-    description: "本次 run 内同规则命令自动放行，不再重复询问",
-  },
-  {
-    label: "拒绝",
-    decision: "reject",
-    description: "终止这条命令",
+    description: "允许执行当前命令",
   },
 ];
 
@@ -39,12 +33,12 @@ export function resolveApprovalOptions(
 
 export function buildApprovalSubmitParams(
   approvals: AIAwaitApproval[],
-  decisions: Record<string, AIAwaitApprovalDecision | undefined>,
+  decisions: Record<string, ApprovalDialogDecision | undefined>,
   reasons: Record<string, string>,
 ): AIAwaitApprovalSubmitParamData[] {
   return approvals.map((approval) => ({
     id: approval.id,
-    decision: decisions[approval.id] as AIAwaitApprovalDecision,
+    decision: normalizeApprovalDecision(decisions[approval.id]),
     ...(approval.allowFreeText && reasons[approval.id]?.trim()
       ? { reason: reasons[approval.id].trim() }
       : {}),
@@ -53,7 +47,7 @@ export function buildApprovalSubmitParams(
 
 export function buildPartialApprovalSubmitParams(
   approvals: AIAwaitApproval[],
-  decisions: Record<string, AIAwaitApprovalDecision | undefined>,
+  decisions: Record<string, ApprovalDialogDecision | undefined>,
   reasons: Record<string, string>,
 ): AIAwaitApprovalSubmitParamData[] {
   return approvals.flatMap((approval) => {
@@ -64,11 +58,17 @@ export function buildPartialApprovalSubmitParams(
     return [
       {
         id: approval.id,
-        decision,
+        decision: normalizeApprovalDecision(decision),
         ...(approval.allowFreeText && reasons[approval.id]?.trim()
           ? { reason: reasons[approval.id].trim() }
           : {}),
       },
     ];
   });
+}
+
+function normalizeApprovalDecision(
+  decision: ApprovalDialogDecision | undefined,
+): AIAwaitApprovalDecision {
+  return decision === "reject_with_reason" ? "reject" : decision as AIAwaitApprovalDecision;
 }

@@ -17,7 +17,6 @@ import React, {
 } from "react";
 import type {
   AIAwaitApproval,
-  AIAwaitApprovalDecision,
   AIAwaitSubmitPayloadData,
   ApprovalActiveAwaiting,
 } from "@/app/state/types";
@@ -27,6 +26,7 @@ import {
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import {
+  type ApprovalDialogDecision,
   buildPartialApprovalSubmitParams,
   buildApprovalSubmitParams,
   resolveApprovalOptions,
@@ -61,7 +61,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const [decisions, setDecisions] = useState<
-    Record<string, AIAwaitApprovalDecision | undefined>
+    Record<string, ApprovalDialogDecision | undefined>
   >({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const resolved = Boolean(data.resolutionReason);
@@ -74,14 +74,26 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const defaultRejectReason = t("approvalDialog.rejectDefaultReason");
 
   const hasAllDecisions = useCallback(
-    (nextDecisions: Record<string, AIAwaitApprovalDecision | undefined>) =>
-      approvals.every((approval) => Boolean(nextDecisions[approval.id])),
+    (
+      nextDecisions: Record<string, ApprovalDialogDecision | undefined>,
+      nextReasons: Record<string, string> = reasons,
+    ) =>
+      approvals.every((approval) => {
+        const decision = nextDecisions[approval.id];
+        if (!decision) {
+          return false;
+        }
+        if (decision === "reject_with_reason") {
+          return Boolean(nextReasons[approval.id]?.trim());
+        }
+        return true;
+      }),
     [approvals],
   );
 
   const canSubmit = useMemo(
-    () => !readOnly && hasAllDecisions(decisions),
-    [decisions, hasAllDecisions, readOnly],
+    () => !readOnly && hasAllDecisions(decisions, reasons),
+    [decisions, hasAllDecisions, readOnly, reasons],
   );
 
   useAwaitingResolutionNotice({
@@ -98,7 +110,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   useEffect(() => {
     setDecisions((current) => {
-      const next: Record<string, AIAwaitApprovalDecision | undefined> = {};
+      const next: Record<string, ApprovalDialogDecision | undefined> = {};
       approvals.forEach((approval) => {
         next[approval.id] = current[approval.id];
       });
@@ -135,7 +147,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   const submitDecision = useCallback(
     async (nextDecisions = decisions, nextReasons = reasons) => {
-      if (readOnly || !hasAllDecisions(nextDecisions)) {
+      if (readOnly || !hasAllDecisions(nextDecisions, nextReasons)) {
         return;
       }
       await submitPayload(
@@ -215,7 +227,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   });
 
   const moveForward = useCallback(
-    async (nextDecision?: AIAwaitApprovalDecision) => {
+    async (nextDecision?: ApprovalDialogDecision) => {
       if (readOnly || approvals.length === 0 || !currentApproval) {
         return;
       }
@@ -250,7 +262,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   );
 
   const handleDecisionChange = useCallback(
-    (approvalId: string, nextDecision: AIAwaitApprovalDecision | undefined) => {
+    (approvalId: string, nextDecision: ApprovalDialogDecision | undefined) => {
       setDecisions((current) => ({
         ...current,
         [approvalId]: nextDecision,
@@ -459,13 +471,13 @@ const ApprovalQuestion = forwardRef<
   {
     approval: AIAwaitApproval;
     readOnly: boolean;
-    decision?: AIAwaitApprovalDecision;
+    decision?: ApprovalDialogDecision;
     reason: string;
     onDecisionChange: (
-      nextDecision: AIAwaitApprovalDecision | undefined,
+      nextDecision: ApprovalDialogDecision | undefined,
     ) => void;
     onReasonChange: (nextReason: string) => void;
-    onEnter: (nextDecision?: AIAwaitApprovalDecision) => void;
+    onEnter: (nextDecision?: ApprovalDialogDecision) => void;
     pagnation: React.ReactNode;
     confirmSlot: React.ReactNode;
   }
@@ -529,7 +541,7 @@ const ApprovalQuestion = forwardRef<
               value={option.decision}
               className={Style.Option}
               onClick={() => {
-                const val = option?.decision as any;
+                const val = option?.decision as ApprovalDialogDecision;
                 onDecisionChange(val);
                 onEnterDebounce(val);
               }}
@@ -552,13 +564,35 @@ const ApprovalQuestion = forwardRef<
               </Flex>
             </Radio>
           ))}
+          <Radio
+            value="reject"
+            className={Style.Option}
+            onClick={() => {
+              onDecisionChange("reject");
+              onEnterDebounce("reject");
+            }}
+          >
+            <Flex
+              gap={10}
+              align="center"
+              tabIndex={0}
+              data-index={options.length}
+              style={{ outline: "none" }}
+            >
+              <span className={Style.Index}>{options.length + 1}</span>
+              <span className={Style.Info}>
+                {t("approvalDialog.option.reject")}
+              </span>
+              <span className={Style.ApprovalMeta}>{t("approvalDialog.rejectDefaultReason")}</span>
+              <span className="Selected">{t("approvalDialog.selected")}</span>
+            </Flex>
+          </Radio>
           <Flex align="center">
             <Radio
               className={[Style.Option, Style.FreeText].join(" ")}
-              value="reject"
+              value="reject_with_reason"
               onClick={() => {
-                onDecisionChange("reject");
-                onEnterDebounce("reject");
+                onDecisionChange("reject_with_reason");
               }}
             >
               <Flex gap={10} align="center">
@@ -566,7 +600,7 @@ const ApprovalQuestion = forwardRef<
                   <MaterialIcon name="edit" />
                 </span>
                 <span className={Style.Info}>
-                  {t("approvalDialog.option.reject")}
+                  {t("approvalDialog.option.rejectWithReason")}
                 </span>
                 <Input
                   variant="borderless"
@@ -576,8 +610,8 @@ const ApprovalQuestion = forwardRef<
                   onChange={(e) => {
                     const nextReason = e.target.value;
                     onReasonChange(nextReason);
-                    if (nextReason.trim() && !decision) {
-                      onDecisionChange("reject");
+                    if (nextReason.trim()) {
+                      onDecisionChange("reject_with_reason");
                     }
                   }}
                   onPressEnter={(e) => {
@@ -585,7 +619,7 @@ const ApprovalQuestion = forwardRef<
                     if (!nextReason) {
                       return;
                     }
-                    onEnter("reject");
+                    onEnter("reject_with_reason");
                   }}
                   style={{ padding: 0 }}
                 />

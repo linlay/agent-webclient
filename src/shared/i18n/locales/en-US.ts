@@ -291,6 +291,7 @@ export const enUSMessages: I18nMessages = {
   "approvalDialog.loading": "Loading approval request...",
   "approvalDialog.remoteAnswered": "This request was already submitted from another client.",
   "approvalDialog.option.reject": "Reject",
+  "approvalDialog.option.rejectWithReason": "Reject and suggest",
   "approvalDialog.rejectDefaultReason": "Reject this approval request",
   "approvalDialog.rejectPlaceholder": "Tell me how to adjust it",
   "approvalDialog.selected": "Selected",

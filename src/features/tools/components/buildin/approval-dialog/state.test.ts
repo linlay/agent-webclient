@@ -10,17 +10,7 @@ describe("approval dialog state helpers", () => {
       {
         label: "同意",
         decision: "approve",
-        description: "只本次放行这条命令",
-      },
-      {
-        label: "同意（本次运行同规则都放行）",
-        decision: "approve_rule_run",
-        description: "本次 run 内同规则命令自动放行，不再重复询问",
-      },
-      {
-        label: "拒绝",
-        decision: "reject",
-        description: "终止这条命令",
+        description: "允许执行当前命令",
       },
     ]);
   });
@@ -90,6 +80,32 @@ describe("approval dialog state helpers", () => {
         id: "tool_1",
         decision: "approve",
         reason: "已确认",
+      },
+    ]);
+  });
+
+  it("maps reject_with_reason to reject on submit", () => {
+    const approvals = [
+      {
+        id: "tool_3",
+        command: "rm -rf /tmp/demo",
+        allowFreeText: true,
+      },
+    ];
+
+    expect(buildApprovalSubmitParams(
+      approvals,
+      {
+        tool_3: "reject_with_reason",
+      },
+      {
+        tool_3: "请改成工作区内路径",
+      },
+    )).toEqual([
+      {
+        id: "tool_3",
+        decision: "reject",
+        reason: "请改成工作区内路径",
       },
     ]);
   });
