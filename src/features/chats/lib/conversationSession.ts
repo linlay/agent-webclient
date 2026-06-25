@@ -59,7 +59,6 @@ export interface ConversationSnapshot {
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
   usageSnapshot: AIUsageSnapshotEvent | null;
-  steerDraft: string;
   pendingSteers: PendingSteer[];
   downvotedRunKeys: Set<string>;
 }
@@ -227,7 +226,6 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
     usageSnapshot: state.usageSnapshot,
-    steerDraft: String(state.steerDraft || ''),
     pendingSteers: state.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(state.downvotedRunKeys),
   };
@@ -448,7 +446,6 @@ export function buildConversationStateUpdates(
     artifactExpanded: false,
     artifactManualOverride: null,
     artifactAutoCollapseTimer: null,
-    steerDraft: snapshot.steerDraft,
     pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };

@@ -1152,7 +1152,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             onClick={(event) => event.preventDefault()}
           >
             {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-            <span style={{ color: "var(--text-main)" }}>
+            <span className="query-model-label">
               {selectedModelLabel}
             </span>
             <span>

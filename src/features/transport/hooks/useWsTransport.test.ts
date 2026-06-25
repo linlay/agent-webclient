@@ -114,7 +114,6 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 			currentAgentKey: "",
 			currentAgentName: "",
 		},
-		steerDraft: "",
 		pendingSteers: [],
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,

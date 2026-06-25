@@ -179,7 +179,6 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
     handleSend: jest.fn(),
     handleSteer: jest.fn(),
     interruptCurrentRun: jest.fn(),
-    mergedSteerDraft: "",
     steerSubmitting: false,
   }),
 }));
