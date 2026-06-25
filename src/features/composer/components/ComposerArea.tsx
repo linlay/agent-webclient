@@ -382,16 +382,21 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     t,
   });
 
-  const { currentAgentWonders, reshuffleWonders, sampledGreeting, sampledWonders } = useComposerWonders({
+  const {
+    currentAgentWonders,
+    reshuffleWonders,
+    sampledGreeting,
+    sampledWonders,
+  } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
     isBlankConversation,
     showWonders,
   });
 
-  const hasPendingSteers = state.pendingSteers.length > 0;
+  const hasPendingSteers =
+    (state.pendingSteers[String(state.chatId || "")] || []).length > 0;
   const shouldShowSteerBar =
-    state.streaming &&
     !isFrontendActive &&
     !isAwaitingActive &&
     hasPendingSteers;
@@ -544,7 +549,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         {state.mentionOpen && <MentionSuggest />}
         {shouldShowSteerBar && (
           <SteerBar
-            pendingSteers={state.pendingSteers}
+            pendingSteers={
+              state.pendingSteers[String(state.chatId || "")] || []
+            }
             steerSubmitting={steerSubmitting}
             onSubmit={(steerId) => void handleSteer(steerId)}
             onCancel={handleCancelSteer}

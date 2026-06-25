@@ -229,7 +229,7 @@ export interface AppState {
 	voiceChat: VoiceChatState;
 	composerDraft: string;
 	composerDraftByChatId: Record<string, string>;
-	pendingSteers: PendingSteer[];
+	pendingSteers: Record<string, PendingSteer[]>;
 	downvotedRunKeys: Set<string>;
 	eventPopoverIndex: number;
 	eventPopoverEventRef: AgentEvent | null;

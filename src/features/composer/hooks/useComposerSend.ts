@@ -272,10 +272,11 @@ export function useComposerSend(input: UseComposerSendInput) {
   useEffect(() => {
     const wasStreaming = prevStreamingRef.current;
     prevStreamingRef.current = state.streaming;
-    if (!wasStreaming || state.streaming || state.pendingSteers.length === 0) {
+    const steers = state.pendingSteers[String(state.chatId || "")] || [];
+    if (!wasStreaming || state.streaming || steers.length === 0) {
       return;
     }
-    const firstQueued = state.pendingSteers.find((s) => s.status === "queued");
+    const firstQueued = steers.find((s) => s.status === "queued");
     if (!firstQueued) return;
     dispatch({ type: "REMOVE_PENDING_STEER", steerId: firstQueued.steerId });
     window.dispatchEvent(
@@ -283,7 +284,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: { message: firstQueued.message },
       }),
     );
-  }, [state.streaming, state.pendingSteers, dispatch]);
+  }, [state.streaming, state.pendingSteers, state.chatId, dispatch]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
@@ -684,7 +685,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   );
 
   const handleSteer = useCallback(async (steerId: string) => {
-    const steer = state.pendingSteers.find(
+    const steer = (state.pendingSteers[String(state.chatId || "")] || []).find(
       (s) => s.steerId === steerId && s.status === "queued",
     );
     if (!steer || steerSubmitting) return;
@@ -766,7 +767,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   ]);
 
   const handleCancelSteer = useCallback((steerId: string) => {
-    const steer = state.pendingSteers.find((s) => s.steerId === steerId);
+    const steer = (state.pendingSteers[String(state.chatId || "")] || []).find((s) => s.steerId === steerId);
     if (!steer) return;
     dispatch({ type: "REMOVE_PENDING_STEER", steerId });
     restoreMessageToComposer(steer.message);
@@ -774,6 +775,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch,
     restoreMessageToComposer,
     state.pendingSteers,
+    state.chatId,
   ]);
 
   const applyComposerDraft = useCallback(

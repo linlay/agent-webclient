@@ -180,5 +180,9 @@ export function findMatchingPendingSteer(state: AppState, event: AgentEvent) {
 	if (!steerId) {
 		return null;
 	}
-	return state.pendingSteers.find((steer) => toText(steer.steerId) === steerId) || null;
+	for (const chatId of Object.keys(state.pendingSteers)) {
+		const match = state.pendingSteers[chatId].find((steer) => toText(steer.steerId) === steerId);
+		if (match) return match;
+	}
+	return null;
 }
