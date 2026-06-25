@@ -33,6 +33,7 @@ export interface ToolPillRecord {
   argsText: string;
   argsInlineText: string;
   result: TimelineNode["result"];
+  durationMs?: number;
 }
 
 function resolveStatusLabel(
@@ -114,52 +115,6 @@ export function formatToolDuration(
   });
 }
 
-export function getToolPillDurationText(
-  source: TimelineNode | ToolGroupRenderEntry,
-  options: {
-    now?: number;
-    streaming?: boolean;
-    t?: TranslateFn;
-  } = {},
-): string {
-  const nodes =
-    "kind" in source && source.kind === "tool-group" ? source.nodes : [source];
-  if (nodes.length === 0) {
-    return "";
-  }
-  const hasMissingResult = nodes.some((item) => !item.result);
-  if (hasMissingResult) {
-    if (!options.streaming) {
-      return "";
-    }
-    const now = Number(options.now ?? Date.now());
-    if (!Number.isFinite(now)) {
-      return "";
-    }
-    const startedAtValue = nodes.reduce(
-      (prev, cur) => Math.min(prev, cur.startedAt || now),
-      now,
-    );
-    return formatToolDuration(Math.max(0, now - startedAtValue), options.t);
-  }
-  if ("kind" in source && source.kind === "tool-group") {
-    const startedAtValues = nodes.map((item) => Number(item.startedAt));
-    const endedAtValues = nodes.map((item) => Number(item.endedAt));
-    if (
-      startedAtValues.some((value) => !Number.isFinite(value)) ||
-      endedAtValues.some((value) => !Number.isFinite(value))
-    ) {
-      return "";
-    }
-    const startedAt = Math.min(...startedAtValues);
-    return formatToolDuration(
-      Math.max(0, Math.max(...endedAtValues) - startedAt),
-      options.t,
-    );
-  }
-  return formatToolDuration(nodes[0].durationMs, options.t);
-}
-
 export function formatToolPillTitle(
   source: TimelineNode | ToolGroupRenderEntry,
 ): string {
@@ -196,6 +151,7 @@ export function buildToolPillRecords(
       argsText,
       argsInlineText: formatToolArgumentsInline(argsText),
       result,
+      durationMs: node.durationMs,
     };
   });
 }
@@ -213,14 +169,70 @@ export function canExpandToolPill(
 }
 
 export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
-  const state = useAppState();
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const copyTimerRef = useRef<Map<string, number>>(new Map());
   const source = toolGroup || node;
   const { t } = useI18n();
+  const { streaming } = useAppState();
+
+  const { isLive, startTimeMs } = useMemo(() => {
+    const nodes = toolGroup?.nodes || (node ? [node] : []);
+    if (nodes.length === 0)
+      return {
+        isLive: false,
+        startTimeMs: null as number | null,
+      };
+
+    const terminalStatuses = new Set([
+      "success",
+      "failed",
+      "error",
+      "canceled",
+    ]);
+
+    let earliestStart: number | null = null;
+    for (const n of nodes) {
+      if (
+        n.startedAt != null &&
+        (earliestStart == null || n.startedAt < earliestStart)
+      ) {
+        earliestStart = n.startedAt;
+      }
+    }
+
+    const allDone = nodes.every((n) => terminalStatuses.has(n.status || ""));
+
+    if (allDone) {
+      return {
+        isLive: false,
+        startTimeMs: null,
+      };
+    }
+
+    if (streaming && earliestStart != null) {
+      return {
+        isLive: true,
+        startTimeMs: earliestStart,
+      };
+    }
+
+    return { isLive: false, startTimeMs: null };
+  }, [streaming, node, toolGroup]);
+
+  const [liveNow, setLiveNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!isLive) return;
+    const timer = setInterval(() => setLiveNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [isLive]);
+
+  const displayDurationMs = useMemo(() => {
+    if (!isLive || !startTimeMs) return 0;
+    return Math.max(0, liveNow - startTimeMs);
+  }, [isLive, startTimeMs, liveNow]);
 
   useEffect(() => {
     return () => {
@@ -228,19 +240,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       copyTimerRef.current.clear();
     };
   }, []);
-
-  useEffect(() => {
-    if (!source || !state.streaming) return;
-    const nodes =
-      "kind" in source && source.kind === "tool-group"
-        ? source.nodes
-        : [source];
-    if (nodes.length === 0 || nodes.every((item) => item.result)) return;
-
-    setNowMs(Date.now());
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [state.streaming, source]);
 
   if (!source) return null;
 
@@ -251,15 +250,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const isGrouped = Boolean(toolGroup && toolGroup.count > 1);
   const latestRecord = records[records.length - 1];
   const status = latestRecord?.status || "pending";
-  const durationText = useMemo(
-    () =>
-      getToolPillDurationText(source, {
-        now: nowMs,
-        streaming: state.streaming,
-        t,
-      }),
-    [nowMs, state.streaming, source, t],
-  );
 
   const flashCopyStatus = (key: string, state: CopyState) => {
     const existing = copyTimerRef.current.get(key);
@@ -315,16 +305,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         ) : (
           <span className="tool-status-dot" data-tool-status={status} />
         )}
-        {(records?.some(
-          (item) =>
-            item.status === "running" ||
-            item.status === "pending" ||
-            item.status === "completed",
-        ) ||
-          expanded) &&
-          durationText && (
-            <span className="tool-pill-duration">{durationText}</span>
-          )}
+        <span className="tool-pill-duration">
+          {displayDurationMs ? formatToolDuration(displayDurationMs, t) : ""}
+        </span>
         {canExpand && <MaterialIcon name="chevron_right" className="chevron" />}
       </UiButton>
 
@@ -359,7 +342,12 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               )}
 
               <div className="tool-call-body">
-                <Flex className="tool-call-copy">
+                <Flex className="tool-call-copy" align="center">
+                  {record.durationMs && (
+                    <span style={{ marginRight: 4 }}>
+                      {formatToolDuration(record.durationMs, t)}
+                    </span>
+                  )}
                   <Tooltip
                     title={
                       isWrap
