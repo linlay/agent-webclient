@@ -93,18 +93,9 @@ function buildRawJsonlCopyMenuItem(
 	};
 }
 
-const RAW_JSONL_COPY_EXCLUDED_EVENT_TYPES = new Set([
-	"request.query",
-	"usage.snapshot",
-	"debug.llmchat",
-]);
-
 function shouldIncludeRawJsonlCopyItem(event: AgentEvent | null): boolean {
 	const type = String(event?.type || "").toLowerCase();
-	if (!type) {
-		return false;
-	}
-	return !RAW_JSONL_COPY_EXCLUDED_EVENT_TYPES.has(type);
+	return type.startsWith("chat.") || type.startsWith("run.");
 }
 
 function buildRawLLMTraceCopyMenuItem(
