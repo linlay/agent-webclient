@@ -1,16 +1,13 @@
 import { useEffect } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import type { AppAction } from "@/app/state/AppContext";
 
 export function useComposerLifecycle({
   applyComposerDraft,
   chatId,
   closeMention,
-  dispatch,
   isFrontendActive,
   isVoiceMode,
-  mergedSteerDraft,
   setInputValue,
   setSlashDismissed,
   stopSpeechInput,
@@ -20,14 +17,8 @@ export function useComposerLifecycle({
   applyComposerDraft: (draft: string) => void;
   chatId: string;
   closeMention: () => void;
-  dispatch: Dispatch<AppAction>;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
-  mergedSteerDraft: {
-    nextValue: string;
-    draft: string;
-    hasPendingSteers: boolean;
-  } | null;
   setInputValue: Dispatch<SetStateAction<string>>;
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
   stopSpeechInput: () => void;
@@ -95,35 +86,5 @@ export function useComposerLifecycle({
     if (!isVoiceMode && !isFrontendActive) return;
     stopSpeechInput();
   }, [isFrontendActive, isVoiceMode, stopSpeechInput]);
-
-  useEffect(() => {
-    if (!mergedSteerDraft) {
-      return;
-    }
-    const { nextValue, draft, hasPendingSteers } = mergedSteerDraft;
-    setInputValue(nextValue);
-    setSlashDismissed(false);
-    updateMentionSuggestions(nextValue);
-    if (draft.trim()) {
-      dispatch({ type: "SET_STEER_DRAFT", draft: "" });
-    }
-    if (hasPendingSteers) {
-      dispatch({ type: "CLEAR_PENDING_STEERS" });
-    }
-    window.requestAnimationFrame(() => {
-      const el = textareaRef.current?.resizableTextArea?.textArea;
-      if (!el) return;
-      el.focus();
-      const caret = nextValue.length;
-      el.setSelectionRange(caret, caret);
-    });
-  }, [
-    dispatch,
-    mergedSteerDraft,
-    setInputValue,
-    setSlashDismissed,
-    textareaRef,
-    updateMentionSuggestions,
-  ]);
 }
 

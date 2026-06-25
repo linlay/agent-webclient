@@ -155,12 +155,19 @@ export function reduceConversationState(
 				composerDraftByChatId: { ...composerDraftByChatId, [chatId]: action.draft },
 			};
 		}
-		case "SET_STEER_DRAFT":
-			return { ...state, steerDraft: action.draft };
 		case "ENQUEUE_PENDING_STEER":
 			return {
 				...state,
 				pendingSteers: [...state.pendingSteers, action.steer],
+			};
+		case "UPDATE_PENDING_STEER_STATUS":
+			return {
+				...state,
+				pendingSteers: state.pendingSteers.map((steer) =>
+					steer.steerId === action.steerId
+						? { ...steer, status: action.status }
+						: steer,
+				),
 			};
 		case "REMOVE_PENDING_STEER":
 			return {

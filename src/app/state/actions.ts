@@ -174,8 +174,8 @@ export type AppAction =
 	| { type: "PATCH_VOICE_CHAT"; patch: Partial<VoiceChatState> }
 	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
 	| { type: "SET_COMPOSER_DRAFT"; draft: string }
-	| { type: "SET_STEER_DRAFT"; draft: string }
 	| { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
+	| { type: "UPDATE_PENDING_STEER_STATUS"; steerId: string; status: PendingSteer['status'] }
 	| { type: "REMOVE_PENDING_STEER"; steerId: string }
 	| { type: "CLEAR_PENDING_STEERS" }
 	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }

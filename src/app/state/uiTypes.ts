@@ -47,6 +47,7 @@ export interface PendingSteer {
 	requestId: string;
 	runId: string;
 	createdAt: number;
+	status: 'queued' | 'sending';
 }
 
 export type CommandStatusOverlayCommandType = "remember" | "learn" | "compact" | null;
