@@ -875,33 +875,14 @@ describe("EventPopover display and copy helpers", () => {
     expect(rawJsonlItem).toMatchObject({ key: "rawJsonl" });
   });
 
-  it("excludes raw JSONL copy item for request.query events", () => {
-    const event: AgentEvent = {
-      type: "request.query",
-      requestId: "req_1",
-      chatId: "chat_1",
-    };
-    const rawJsonlItem = buildRawJsonlCopyMenuItem(
-      resolveRawJsonlChatId(event, []),
-      (key) => key,
-    );
-
-    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
-    expect(rawJsonlItem).not.toBeNull();
-  });
-
-  it("excludes raw JSONL copy item for usage.snapshot events", () => {
-    const event: AgentEvent = {
-      type: "usage.snapshot",
-      chatId: "chat_1",
-    };
-    const rawJsonlItem = buildRawJsonlCopyMenuItem(
-      resolveRawJsonlChatId(event, []),
-      (key) => key,
-    );
-
-    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
-    expect(rawJsonlItem).not.toBeNull();
+  it("includes raw JSONL copy item for chat and run events only", () => {
+    expect(shouldIncludeRawJsonlCopyItem({ type: "chat.update", chatId: "chat_1" })).toBe(true);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "run.complete", chatId: "chat_1" })).toBe(true);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "request.query", chatId: "chat_1" })).toBe(false);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "usage.snapshot", chatId: "chat_1" })).toBe(false);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "artifact.publish", chatId: "chat_1" })).toBe(false);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "content.delta", chatId: "chat_1" })).toBe(false);
+    expect(shouldIncludeRawJsonlCopyItem({ type: "tool.end", chatId: "chat_1" })).toBe(false);
   });
 
   it("excludes raw JSONL but keeps raw LLM trace for debug.llmChat events", () => {
@@ -914,36 +895,16 @@ describe("EventPopover display and copy helpers", () => {
         },
       },
     };
-    const rawJsonlItem = buildRawJsonlCopyMenuItem(
-      resolveRawJsonlChatId(event, []),
-      (key) => key,
-    );
     const rawLlmItem = buildRawLLMTraceCopyMenuItem(
       resolveRawLLMTraceFile(event),
       (key) => (key === "eventPopover.copy.rawLlmJson" ? "Copy raw LLM JSON" : key),
     );
 
     expect(shouldIncludeRawJsonlCopyItem(event)).toBe(false);
-    expect(rawJsonlItem).not.toBeNull();
     expect(rawLlmItem).toMatchObject({
       key: "rawLlmJson",
       label: "Copy raw LLM JSON",
     });
-  });
-
-  it("includes raw JSONL copy item for other event types", () => {
-    const event: AgentEvent = {
-      type: "content.delta",
-      contentId: "content_1",
-      chatId: "chat_1",
-    };
-    const rawJsonlItem = buildRawJsonlCopyMenuItem(
-      resolveRawJsonlChatId(event, []),
-      (key) => key,
-    );
-
-    expect(shouldIncludeRawJsonlCopyItem(event)).toBe(true);
-    expect(rawJsonlItem).toMatchObject({ key: "rawJsonl" });
   });
 
   it("resolves raw llm trace file only from debug.llmChat events", () => {

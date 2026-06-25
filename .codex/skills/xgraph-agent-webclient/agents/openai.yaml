@@ -1,0 +1,7 @@
+interface:
+  display_name: "XGraph agent-webclient Context"
+  short_description: "Use XGraph context for this repo"
+  default_prompt: "Use $xgraph-agent-webclient to make a focused change in this repository."
+
+policy:
+  allow_implicit_invocation: true

@@ -59,8 +59,7 @@ export interface ConversationSnapshot {
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
   usageSnapshot: AIUsageSnapshotEvent | null;
-  steerDraft: string;
-  pendingSteers: PendingSteer[];
+  pendingSteers: Record<string, PendingSteer[]>;
   downvotedRunKeys: Set<string>;
 }
 
@@ -161,6 +160,14 @@ function cloneActiveFrontendTool(tool: ActiveFrontendTool | null): ActiveFronten
     : null;
 }
 
+function clonePendingSteersDict(input: Record<string, PendingSteer[]>): Record<string, PendingSteer[]> {
+  const result: Record<string, PendingSteer[]> = {};
+  for (const chatId of Object.keys(input)) {
+    result[chatId] = input[chatId].map((steer) => ({ ...steer }));
+  }
+  return result;
+}
+
 export function createLiveQuerySession(input: {
   requestId: string;
   chatId?: string;
@@ -227,8 +234,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
     usageSnapshot: state.usageSnapshot,
-    steerDraft: String(state.steerDraft || ''),
-    pendingSteers: state.pendingSteers.map((steer) => ({ ...steer })),
+    pendingSteers: clonePendingSteersDict(state.pendingSteers),
     downvotedRunKeys: cloneSet(state.downvotedRunKeys),
   };
 }
@@ -268,7 +274,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
     usageSnapshot: snapshot.usageSnapshot,
-    pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
+    pendingSteers: clonePendingSteersDict(snapshot.pendingSteers),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };
 }
@@ -448,8 +454,7 @@ export function buildConversationStateUpdates(
     artifactExpanded: false,
     artifactManualOverride: null,
     artifactAutoCollapseTimer: null,
-    steerDraft: snapshot.steerDraft,
-    pendingSteers: snapshot.pendingSteers.map((steer) => ({ ...steer })),
+    pendingSteers: clonePendingSteersDict(snapshot.pendingSteers),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };
 }

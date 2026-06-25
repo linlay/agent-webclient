@@ -544,8 +544,8 @@ describe('appReducer conversation reset behavior', () => {
       steerId: 'steer_1',
     });
 
-    expect(queued.pendingSteers).toHaveLength(1);
-    expect(removed.pendingSteers).toEqual([]);
+    expect(queued.pendingSteers[""]).toHaveLength(1);
+    expect(removed.pendingSteers).toEqual({});
   });
 
   it('manages memory info modal state while preserving filters on close', () => {

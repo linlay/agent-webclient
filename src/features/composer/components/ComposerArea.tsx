@@ -323,7 +323,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleSend,
     handleSteer,
     interruptCurrentRun,
-    mergedSteerDraft,
     steerSubmitting,
   } = useComposerSend({
     attachmentChatId,
@@ -383,20 +382,24 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     t,
   });
 
-  const { currentAgentWonders, reshuffleWonders, sampledGreeting, sampledWonders } = useComposerWonders({
+  const {
+    currentAgentWonders,
+    reshuffleWonders,
+    sampledGreeting,
+    sampledWonders,
+  } = useComposerWonders({
     agents: state.agents,
     currentAgentKey,
     isBlankConversation,
     showWonders,
   });
 
-  const hasPendingSteers = state.pendingSteers.length > 0;
-  const hasSteerDraft = Boolean(state.steerDraft.trim());
+  const hasPendingSteers =
+    (state.pendingSteers[String(state.chatId || "")] || []).length > 0;
   const shouldShowSteerBar =
-    state.streaming &&
     !isFrontendActive &&
     !isAwaitingActive &&
-    (hasSteerDraft || hasPendingSteers);
+    hasPendingSteers;
   const showSpeechHint =
     voiceEnabled &&
     !isVoiceMode &&
@@ -433,10 +436,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     applyComposerDraft,
     chatId: state.chatId,
     closeMention,
-    dispatch,
     isFrontendActive,
     isVoiceMode,
-    mergedSteerDraft,
     setInputValue,
     setSlashDismissed,
     stopSpeechInput,
@@ -548,10 +549,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         {state.mentionOpen && <MentionSuggest />}
         {shouldShowSteerBar && (
           <SteerBar
-            pendingSteers={state.pendingSteers}
-            steerDraft={state.steerDraft}
+            pendingSteers={
+              state.pendingSteers[String(state.chatId || "")] || []
+            }
             steerSubmitting={steerSubmitting}
-            onSubmit={() => void handleSteer()}
+            onSubmit={(steerId) => void handleSteer(steerId)}
             onCancel={handleCancelSteer}
           />
         )}

@@ -1,5 +1,5 @@
 import type { AppAction } from "@/app/state/actions";
-import type { AppState } from "@/app/state/types";
+import type { AppState, PendingSteer } from "@/app/state/types";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import { bindRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/timeline/lib/debugEventDisplay";
@@ -155,25 +155,52 @@ export function reduceConversationState(
 				composerDraftByChatId: { ...composerDraftByChatId, [chatId]: action.draft },
 			};
 		}
-		case "SET_STEER_DRAFT":
-			return { ...state, steerDraft: action.draft };
-		case "ENQUEUE_PENDING_STEER":
+		case "ENQUEUE_PENDING_STEER": {
+			const chatId = state.chatId || "";
+			const existing = state.pendingSteers[chatId] || [];
 			return {
 				...state,
-				pendingSteers: [...state.pendingSteers, action.steer],
+				pendingSteers: { ...state.pendingSteers, [chatId]: [...existing, action.steer] },
 			};
-		case "REMOVE_PENDING_STEER":
-			return {
-				...state,
-				pendingSteers: state.pendingSteers.filter(
+		}
+		case "UPDATE_PENDING_STEER_STATUS": {
+			const next: Record<string, PendingSteer[]> = {};
+			let changed = false;
+			for (const cid of Object.keys(state.pendingSteers)) {
+				const updated = state.pendingSteers[cid].map((steer) =>
+					steer.steerId === action.steerId
+						? ((changed = true), { ...steer, status: action.status })
+						: steer,
+				);
+				next[cid] = changed ? updated : state.pendingSteers[cid];
+			}
+			if (!changed) return state;
+			return { ...state, pendingSteers: next };
+		}
+		case "REMOVE_PENDING_STEER": {
+			const next: Record<string, PendingSteer[]> = {};
+			let removed = false;
+			for (const cid of Object.keys(state.pendingSteers)) {
+				const filtered = state.pendingSteers[cid].filter(
 					(steer) => steer.steerId !== action.steerId,
-				),
-			};
-		case "CLEAR_PENDING_STEERS":
-			if (state.pendingSteers.length === 0) {
+				);
+				if (filtered.length < state.pendingSteers[cid].length) {
+					removed = true;
+				}
+				if (filtered.length === 0) continue;
+				next[cid] = filtered;
+			}
+			if (!removed) return state;
+			return { ...state, pendingSteers: next };
+		}
+		case "CLEAR_PENDING_STEERS": {
+			const chatId = state.chatId || "";
+			const existing = state.pendingSteers[chatId];
+			if (!existing || existing.length === 0) {
 				return state;
 			}
-			return { ...state, pendingSteers: [] };
+			return { ...state, pendingSteers: { ...state.pendingSteers, [chatId]: [] } };
+		}
 		case "TOGGLE_RUN_DOWNVOTE":
 			return {
 				...state,

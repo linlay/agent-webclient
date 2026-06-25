@@ -77,8 +77,7 @@ export function buildConversationResetState(
 		workerChatPanelCollapsed: preserveWorkerContext
 			? state.workerChatPanelCollapsed
 			: true,
-		steerDraft: "",
-		pendingSteers: [],
+		pendingSteers: state.pendingSteers,
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,
 		eventPopoverEventRef: null,

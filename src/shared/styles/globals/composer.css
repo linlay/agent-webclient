@@ -998,15 +998,13 @@
 .steer-queue {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-}
-
-.steer-preview {
-    min-width: 0;
     border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
     border-bottom: 0;
     border-radius: 12px 12px 0 0;
     background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
+}
+
+.steer-preview {
     color: var(--ink-1);
     padding: 8px 12px 9px;
     font-size: 12px;
