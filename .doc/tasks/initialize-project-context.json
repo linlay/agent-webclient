@@ -19,9 +19,9 @@
     }
   ],
   "likelyFiles": [
+    ".xgraph.json",
     "AGENTS.md",
-    "CLAUDE.md",
-    ".xgraph.json"
+    "CLAUDE.md"
   ],
   "acceptanceChecks": [
     "Entry files point to the generated index.",

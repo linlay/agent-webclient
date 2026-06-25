@@ -20,9 +20,9 @@
     }
   ],
   "likelyFiles": [
+    ".gitignore",
     "AGENTS.md",
-    "CLAUDE.md",
-    ".gitignore"
+    "CLAUDE.md"
   ],
   "acceptanceChecks": [
     "Managed blocks remain idempotent.",

@@ -13,6 +13,8 @@
   "facts": {
     "entrypoints": [],
     "publicApi": [
+      "ArchiveConsole",
+      "ArchiveConsoleProps",
       "ArchiveModal",
       "ClientGateDraftField",
       "ClientGateDraftState",

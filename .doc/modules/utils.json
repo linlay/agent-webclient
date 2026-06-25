@@ -38,6 +38,7 @@
     "dependents": [],
     "tests": [
       "src/shared/utils/compactId.test.ts",
+      "src/shared/utils/copy.test.ts",
       "src/shared/utils/ime.test.ts",
       "src/shared/utils/routing.test.ts"
     ],

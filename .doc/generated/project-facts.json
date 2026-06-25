@@ -91,10 +91,12 @@
     "src/features/tools/components/buildin/approval-dialog/state.test.ts",
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts",
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts",
     "src/features/tools/components/protocol.test.ts",
     "src/features/tools/hooks/useActionRuntime.test.ts",
     "src/features/tools/lib/actionRuntime.test.ts",
     "src/features/tools/lib/awaitingRuntime.test.ts",
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts",
     "src/features/tools/lib/frontendToolParams.test.ts",
     "src/features/tools/lib/planDecision.test.ts",
     "src/features/transport/hooks/useSseAttachTransport.test.ts",
@@ -126,6 +128,8 @@
     "src/shared/api/apiClient.test.ts",
     "src/shared/api/appAuth.test.ts",
     "src/shared/api/desktopFileSystem.test.ts",
+    "src/shared/api/desktopScreenshot.test.ts",
+    "src/shared/api/platformError.test.ts",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/config/featureFlags.test.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
@@ -137,6 +141,7 @@
     "src/shared/ui/MarkdownContent.test.ts",
     "src/shared/ui/markdown-code/index.test.ts",
     "src/shared/utils/compactId.test.ts",
+    "src/shared/utils/copy.test.ts",
     "src/shared/utils/ime.test.ts",
     "src/shared/utils/routing.test.ts",
     "src/webpack.config.test.ts"
@@ -202,11 +207,14 @@
     "src/app/modals/HistoryModal.tsx",
     "src/app/modals/SwitchModal.test.ts",
     "src/app/modals/SwitchModal.tsx",
+    "src/app/modals/SystemPromptModal.tsx",
     "src/app/modals/lib/eventPopoverCopyMenu.ts",
     "src/app/modals/lib/eventPopoverFormatters.ts",
     "src/app/modals/lib/eventPopoverGrouping.ts",
+    "src/app/modals/lib/systemPromptTrace.ts",
     "src/app/pages/agents/index.test.ts",
     "src/app/pages/agents/index.tsx",
+    "src/app/pages/archives/index.tsx",
     "src/app/pages/automations/index.tsx",
     "src/app/pages/memory/index.tsx",
     "src/app/pages/registries/index.test.ts",
@@ -307,6 +315,7 @@
     "src/features/composer/lib/wonders.ts",
     "src/features/plan/components/PlanPanel.test.ts",
     "src/features/plan/components/PlanPanel.tsx",
+    "src/features/settings/components/ArchiveConsole.tsx",
     "src/features/settings/components/ArchiveModal.test.ts",
     "src/features/settings/components/ArchiveModal.tsx",
     "src/features/settings/components/MemoryInfoModal.test.ts",
@@ -331,7 +340,6 @@
     "src/features/timeline/components/ContentBlock.tsx",
     "src/features/timeline/components/ConversationStage.test.ts",
     "src/features/timeline/components/ConversationStage.tsx",
-    "src/features/timeline/components/FrontendToolOverlay.tsx",
     "src/features/timeline/components/SystemAlert.tsx",
     "src/features/timeline/components/ThinkingBlock.tsx",
     "src/features/timeline/components/TimelineRow.tsx",
@@ -384,16 +392,20 @@
     "src/features/tools/components/buildin/plan-dialog/index.tsx",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts",
     "src/features/tools/components/buildin/plan-dialog/state.ts",
-    "src/features/tools/components/buildin/useResolvedByOtherNotice.ts",
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts",
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts",
     "src/features/tools/components/protocol.test.ts",
     "src/features/tools/components/protocol.ts",
     "src/features/tools/hooks/useActionRuntime.test.ts",
     "src/features/tools/hooks/useActionRuntime.ts",
     "src/features/tools/lib/actionRuntime.test.ts",
     "src/features/tools/lib/actionRuntime.ts",
+    "src/features/tools/lib/awaitingAnswerError.ts",
     "src/features/tools/lib/awaitingQuestionMeta.ts",
     "src/features/tools/lib/awaitingRuntime.test.ts",
     "src/features/tools/lib/awaitingRuntime.ts",
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts",
+    "src/features/tools/lib/awaitingSubmitTracker.ts",
     "src/features/tools/lib/frontendToolParams.test.ts",
     "src/features/tools/lib/frontendToolParams.ts",
     "src/features/tools/lib/planDecision.test.ts",
@@ -453,7 +465,6 @@
     "src/features/voice/lib/voiceSocket.ts",
     "src/features/workers/components/AgentConsole.test.ts",
     "src/features/workers/components/AgentConsole.tsx",
-    "src/features/workers/components/AgentList.tsx",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/hooks/useWorkerData.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
@@ -479,7 +490,11 @@
     "src/shared/api/desktopFileSystem.ts",
     "src/shared/api/desktopHostBridge.ts",
     "src/shared/api/desktopQueryContext.ts",
+    "src/shared/api/desktopScreenshot.test.ts",
+    "src/shared/api/desktopScreenshot.ts",
     "src/shared/api/memoryTypes.ts",
+    "src/shared/api/platformError.test.ts",
+    "src/shared/api/platformError.ts",
     "src/shared/components/skeleton/index.tsx",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/components/text-count-up/index.tsx",
@@ -506,11 +521,10 @@
     "src/shared/ui/MarkdownContent.test.ts",
     "src/shared/ui/MarkdownContent.tsx",
     "src/shared/ui/MaterialIcon.tsx",
+    "src/shared/ui/SearchFilterBar.tsx",
     "src/shared/ui/UiButton.tsx",
-    "src/shared/ui/UiCard.tsx",
     "src/shared/ui/UiInput.tsx",
     "src/shared/ui/UiListItem.tsx",
-    "src/shared/ui/UiSection.tsx",
     "src/shared/ui/UiTag.tsx",
     "src/shared/ui/markdown-code/MarkdownECharts.tsx",
     "src/shared/ui/markdown-code/MarkdownMermaid.tsx",
@@ -519,6 +533,7 @@
     "src/shared/ui/markdownPreprocess.ts",
     "src/shared/utils/compactId.test.ts",
     "src/shared/utils/compactId.ts",
+    "src/shared/utils/copy.test.ts",
     "src/shared/utils/copy.ts",
     "src/shared/utils/debugTime.ts",
     "src/shared/utils/eventFieldReaders.ts",
@@ -758,6 +773,10 @@
                       {
                         "name": "eventPopoverGrouping.ts",
                         "type": "file"
+                      },
+                      {
+                        "name": "systemPromptTrace.ts",
+                        "type": "file"
                       }
                     ]
                   },
@@ -808,6 +827,10 @@
                   {
                     "name": "SwitchModal.tsx",
                     "type": "file"
+                  },
+                  {
+                    "name": "SystemPromptModal.tsx",
+                    "type": "file"
                   }
                 ]
               },
@@ -823,6 +846,16 @@
                         "name": "index.test.ts",
                         "type": "file"
                       },
+                      {
+                        "name": "index.tsx",
+                        "type": "file"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "archives",
+                    "type": "directory",
+                    "children": [
                       {
                         "name": "index.tsx",
                         "type": "file"
@@ -1350,6 +1383,10 @@
                     "type": "directory",
                     "children": [
                       {
+                        "name": "ArchiveConsole.tsx",
+                        "type": "file"
+                      },
+                      {
                         "name": "ArchiveModal.test.ts",
                         "type": "file"
                       },
@@ -1477,10 +1514,6 @@
                       },
                       {
                         "name": "ConversationStage.tsx",
-                        "type": "file"
-                      },
-                      {
-                        "name": "FrontendToolOverlay.tsx",
                         "type": "file"
                       },
                       {
@@ -1714,7 +1747,11 @@
                             "type": "file"
                           },
                           {
-                            "name": "useResolvedByOtherNotice.ts",
+                            "name": "useAwaitingResolutionNotice.test.ts",
+                            "type": "file"
+                          },
+                          {
+                            "name": "useAwaitingResolutionNotice.ts",
                             "type": "file"
                           }
                         ]
@@ -1776,6 +1813,10 @@
                         "type": "file"
                       },
                       {
+                        "name": "awaitingAnswerError.ts",
+                        "type": "file"
+                      },
+                      {
                         "name": "awaitingQuestionMeta.ts",
                         "type": "file"
                       },
@@ -1785,6 +1826,14 @@
                       },
                       {
                         "name": "awaitingRuntime.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "awaitingSubmitTracker.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "awaitingSubmitTracker.ts",
                         "type": "file"
                       },
                       {
@@ -2070,10 +2119,6 @@
                       {
                         "name": "AgentConsole.tsx",
                         "type": "file"
-                      },
-                      {
-                        "name": "AgentList.tsx",
-                        "type": "file"
                       }
                     ]
                   },
@@ -2202,7 +2247,23 @@
                     "type": "file"
                   },
                   {
+                    "name": "desktopScreenshot.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopScreenshot.ts",
+                    "type": "file"
+                  },
+                  {
                     "name": "memoryTypes.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.ts",
                     "type": "file"
                   }
                 ]
@@ -2404,11 +2465,11 @@
                     "type": "file"
                   },
                   {
-                    "name": "UiButton.tsx",
+                    "name": "SearchFilterBar.tsx",
                     "type": "file"
                   },
                   {
-                    "name": "UiCard.tsx",
+                    "name": "UiButton.tsx",
                     "type": "file"
                   },
                   {
@@ -2417,10 +2478,6 @@
                   },
                   {
                     "name": "UiListItem.tsx",
-                    "type": "file"
-                  },
-                  {
-                    "name": "UiSection.tsx",
                     "type": "file"
                   },
                   {
@@ -2443,6 +2500,10 @@
                   },
                   {
                     "name": "compactId.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "copy.test.ts",
                     "type": "file"
                   },
                   {
@@ -2528,7 +2589,11 @@
       "src/shared/api/desktopFileSystem.ts",
       "src/shared/api/desktopHostBridge.ts",
       "src/shared/api/desktopQueryContext.ts",
-      "src/shared/api/memoryTypes.ts"
+      "src/shared/api/desktopScreenshot.test.ts",
+      "src/shared/api/desktopScreenshot.ts",
+      "src/shared/api/memoryTypes.ts",
+      "src/shared/api/platformError.test.ts",
+      "src/shared/api/platformError.ts"
     ],
     "artifacts": [
       "src/features/artifacts/components/ArtifactPanel.test.ts",
@@ -2640,6 +2705,7 @@
       "src/features/plan/components/PlanPanel.tsx"
     ],
     "settings": [
+      "src/features/settings/components/ArchiveConsole.tsx",
       "src/features/settings/components/ArchiveModal.test.ts",
       "src/features/settings/components/ArchiveModal.tsx",
       "src/features/settings/components/MemoryInfoModal.test.ts",
@@ -2671,7 +2737,6 @@
       "src/features/timeline/components/ContentBlock.tsx",
       "src/features/timeline/components/ConversationStage.test.ts",
       "src/features/timeline/components/ConversationStage.tsx",
-      "src/features/timeline/components/FrontendToolOverlay.tsx",
       "src/features/timeline/components/SystemAlert.tsx",
       "src/features/timeline/components/ThinkingBlock.tsx",
       "src/features/timeline/components/TimelineRow.tsx",
@@ -2726,16 +2791,20 @@
       "src/features/tools/components/buildin/plan-dialog/index.tsx",
       "src/features/tools/components/buildin/plan-dialog/state.test.ts",
       "src/features/tools/components/buildin/plan-dialog/state.ts",
-      "src/features/tools/components/buildin/useResolvedByOtherNotice.ts",
+      "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts",
+      "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts",
       "src/features/tools/components/protocol.test.ts",
       "src/features/tools/components/protocol.ts",
       "src/features/tools/hooks/useActionRuntime.test.ts",
       "src/features/tools/hooks/useActionRuntime.ts",
       "src/features/tools/lib/actionRuntime.test.ts",
       "src/features/tools/lib/actionRuntime.ts",
+      "src/features/tools/lib/awaitingAnswerError.ts",
       "src/features/tools/lib/awaitingQuestionMeta.ts",
       "src/features/tools/lib/awaitingRuntime.test.ts",
       "src/features/tools/lib/awaitingRuntime.ts",
+      "src/features/tools/lib/awaitingSubmitTracker.test.ts",
+      "src/features/tools/lib/awaitingSubmitTracker.ts",
       "src/features/tools/lib/frontendToolParams.test.ts",
       "src/features/tools/lib/frontendToolParams.ts",
       "src/features/tools/lib/planDecision.test.ts",
@@ -2771,11 +2840,10 @@
       "src/shared/ui/MarkdownContent.test.ts",
       "src/shared/ui/MarkdownContent.tsx",
       "src/shared/ui/MaterialIcon.tsx",
+      "src/shared/ui/SearchFilterBar.tsx",
       "src/shared/ui/UiButton.tsx",
-      "src/shared/ui/UiCard.tsx",
       "src/shared/ui/UiInput.tsx",
       "src/shared/ui/UiListItem.tsx",
-      "src/shared/ui/UiSection.tsx",
       "src/shared/ui/UiTag.tsx",
       "src/shared/ui/markdown-code/MarkdownECharts.tsx",
       "src/shared/ui/markdown-code/MarkdownMermaid.tsx",
@@ -2786,6 +2854,7 @@
     "utils": [
       "src/shared/utils/compactId.test.ts",
       "src/shared/utils/compactId.ts",
+      "src/shared/utils/copy.test.ts",
       "src/shared/utils/copy.ts",
       "src/shared/utils/debugTime.ts",
       "src/shared/utils/eventFieldReaders.ts",
@@ -2831,7 +2900,6 @@
     "workers": [
       "src/features/workers/components/AgentConsole.test.ts",
       "src/features/workers/components/AgentConsole.tsx",
-      "src/features/workers/components/AgentList.tsx",
       "src/features/workers/hooks/useWorkerData.test.ts",
       "src/features/workers/hooks/useWorkerData.ts",
       "src/features/workers/lib/agentOrdering.test.ts",
@@ -2922,6 +2990,7 @@
     "src/features/composer/lib/wonders.ts": "composer",
     "src/features/plan/components/PlanPanel.test.ts": "plan",
     "src/features/plan/components/PlanPanel.tsx": "plan",
+    "src/features/settings/components/ArchiveConsole.tsx": "settings",
     "src/features/settings/components/ArchiveModal.test.ts": "settings",
     "src/features/settings/components/ArchiveModal.tsx": "settings",
     "src/features/settings/components/MemoryInfoModal.test.ts": "settings",
@@ -2946,7 +3015,6 @@
     "src/features/timeline/components/ContentBlock.tsx": "timeline",
     "src/features/timeline/components/ConversationStage.test.ts": "timeline",
     "src/features/timeline/components/ConversationStage.tsx": "timeline",
-    "src/features/timeline/components/FrontendToolOverlay.tsx": "timeline",
     "src/features/timeline/components/SystemAlert.tsx": "timeline",
     "src/features/timeline/components/ThinkingBlock.tsx": "timeline",
     "src/features/timeline/components/TimelineRow.tsx": "timeline",
@@ -2999,16 +3067,20 @@
     "src/features/tools/components/buildin/plan-dialog/index.tsx": "tools",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts": "tools",
     "src/features/tools/components/buildin/plan-dialog/state.ts": "tools",
-    "src/features/tools/components/buildin/useResolvedByOtherNotice.ts": "tools",
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts": "tools",
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts": "tools",
     "src/features/tools/components/protocol.test.ts": "tools",
     "src/features/tools/components/protocol.ts": "tools",
     "src/features/tools/hooks/useActionRuntime.test.ts": "tools",
     "src/features/tools/hooks/useActionRuntime.ts": "tools",
     "src/features/tools/lib/actionRuntime.test.ts": "tools",
     "src/features/tools/lib/actionRuntime.ts": "tools",
+    "src/features/tools/lib/awaitingAnswerError.ts": "tools",
     "src/features/tools/lib/awaitingQuestionMeta.ts": "tools",
     "src/features/tools/lib/awaitingRuntime.test.ts": "tools",
     "src/features/tools/lib/awaitingRuntime.ts": "tools",
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts": "tools",
+    "src/features/tools/lib/awaitingSubmitTracker.ts": "tools",
     "src/features/tools/lib/frontendToolParams.test.ts": "tools",
     "src/features/tools/lib/frontendToolParams.ts": "tools",
     "src/features/tools/lib/planDecision.test.ts": "tools",
@@ -3068,7 +3140,6 @@
     "src/features/voice/lib/voiceSocket.ts": "voice",
     "src/features/workers/components/AgentConsole.test.ts": "workers",
     "src/features/workers/components/AgentConsole.tsx": "workers",
-    "src/features/workers/components/AgentList.tsx": "workers",
     "src/features/workers/hooks/useWorkerData.test.ts": "workers",
     "src/features/workers/hooks/useWorkerData.ts": "workers",
     "src/features/workers/lib/agentOrdering.test.ts": "workers",
@@ -3094,7 +3165,11 @@
     "src/shared/api/desktopFileSystem.ts": "api",
     "src/shared/api/desktopHostBridge.ts": "api",
     "src/shared/api/desktopQueryContext.ts": "api",
+    "src/shared/api/desktopScreenshot.test.ts": "api",
+    "src/shared/api/desktopScreenshot.ts": "api",
     "src/shared/api/memoryTypes.ts": "api",
+    "src/shared/api/platformError.test.ts": "api",
+    "src/shared/api/platformError.ts": "api",
     "src/shared/components/skeleton/index.tsx": "components",
     "src/shared/components/text-count-up/index.test.ts": "components",
     "src/shared/components/text-count-up/index.tsx": "components",
@@ -3121,11 +3196,10 @@
     "src/shared/ui/MarkdownContent.test.ts": "ui",
     "src/shared/ui/MarkdownContent.tsx": "ui",
     "src/shared/ui/MaterialIcon.tsx": "ui",
+    "src/shared/ui/SearchFilterBar.tsx": "ui",
     "src/shared/ui/UiButton.tsx": "ui",
-    "src/shared/ui/UiCard.tsx": "ui",
     "src/shared/ui/UiInput.tsx": "ui",
     "src/shared/ui/UiListItem.tsx": "ui",
-    "src/shared/ui/UiSection.tsx": "ui",
     "src/shared/ui/UiTag.tsx": "ui",
     "src/shared/ui/markdown-code/MarkdownECharts.tsx": "ui",
     "src/shared/ui/markdown-code/MarkdownMermaid.tsx": "ui",
@@ -3134,6 +3208,7 @@
     "src/shared/ui/markdownPreprocess.ts": "ui",
     "src/shared/utils/compactId.test.ts": "utils",
     "src/shared/utils/compactId.ts": "utils",
+    "src/shared/utils/copy.test.ts": "utils",
     "src/shared/utils/copy.ts": "utils",
     "src/shared/utils/debugTime.ts": "utils",
     "src/shared/utils/eventFieldReaders.ts": "utils",
@@ -3347,6 +3422,10 @@
     "src/app/modals/AutomationModal.tsx": [
       "AutomationModal",
       "automationSourcePath",
+      "buildCreateAutomationPayloadForSubmit",
+      "buildUpdateAutomationPayloadForSubmit",
+      "fetchAutomationAgentsForSelect",
+      "shouldLoadAutomationAgents",
       "shouldStartAutomationConsoleBootstrap"
     ],
     "src/app/modals/CommandModal.test.ts": null,
@@ -3373,6 +3452,9 @@
       "SWITCH_SCOPES",
       "SwitchModal"
     ],
+    "src/app/modals/SystemPromptModal.tsx": [
+      "SystemPromptModal"
+    ],
     "src/app/modals/lib/eventPopoverCopyMenu.ts": [
       "CopyFeedbackState",
       "CopyMenuItemState",
@@ -3387,18 +3469,12 @@
       "stripCopyPrefix"
     ],
     "src/app/modals/lib/eventPopoverFormatters.ts": [
-      "DebugPreCallCopyPayloads",
-      "InjectedPromptEntry",
-      "InjectedPromptPayloads",
       "formatReadableTimestamp",
       "readNonEmptyStringValue",
-      "readNumberValue",
       "readObjectValue",
       "readStringValue",
-      "resolveDebugPreCallCopyPayloads",
       "resolveDisplayPayloadTimestamp",
       "resolveInitialPopoverState",
-      "resolveInjectedPromptPayloads",
       "stringifyCopyValue",
       "stringifyPopoverPayload"
     ],
@@ -3413,9 +3489,24 @@
       "readEventIdValue",
       "resolveEventGroupMeta"
     ],
+    "src/app/modals/lib/systemPromptTrace.ts": [
+      "SYSTEM_PROMPT_LOAD_TIMEOUT_MS",
+      "SystemPromptCall",
+      "SystemPromptLoadState",
+      "buildSystemPromptTimeoutLoadState",
+      "isValidRawLLMTraceFile",
+      "resolveRawLLMTraceFile",
+      "resolveSystemPromptCalls",
+      "resolveSystemPromptTextFromRequestBody",
+      "resolveSystemPromptTextFromTrace",
+      "resolveSystemPromptTextFromTraceText"
+    ],
     "src/app/pages/agents/index.test.ts": null,
     "src/app/pages/agents/index.tsx": [
       "AgentsPage"
+    ],
+    "src/app/pages/archives/index.tsx": [
+      "ArchivesPage"
     ],
     "src/app/pages/automations/index.tsx": [
       "AutomationsPage"
@@ -3596,6 +3687,7 @@
     "src/app/state/timelineTypes.ts": [
       "EmbeddedViewport",
       "TimelineAttachment",
+      "TimelineErrorDetail",
       "TimelineNode",
       "TimelineNodeKind",
       "TimelineRole",
@@ -3605,6 +3697,7 @@
     "src/app/state/toolTypes.ts": [
       "ActionState",
       "ActiveAwaiting",
+      "ActiveAwaitingResolutionReason",
       "ActiveFrontendTool",
       "ApprovalActiveAwaiting",
       "FormActiveAwaiting",
@@ -3954,6 +4047,12 @@
       "PlanSummaryView",
       "buildPlanSummaryView"
     ],
+    "src/features/settings/components/ArchiveConsole.tsx": [
+      "ArchiveConsole",
+      "ArchiveConsoleProps",
+      "buildArchiveBulkCandidates",
+      "extractArchivePreviewLines"
+    ],
     "src/features/settings/components/ArchiveModal.test.ts": null,
     "src/features/settings/components/ArchiveModal.tsx": [
       "ArchiveModal",
@@ -4043,10 +4142,12 @@
     ],
     "src/features/timeline/components/ConversationStage.test.ts": null,
     "src/features/timeline/components/ConversationStage.tsx": [
-      "ConversationStage"
-    ],
-    "src/features/timeline/components/FrontendToolOverlay.tsx": [
-      "FrontendToolOverlay"
+      "ConversationStage",
+      "TimelineAgentOption",
+      "TimelineAgentSwitcher",
+      "buildTimelineAgentOptions",
+      "dispatchTimelineAgentSwitch",
+      "filterTimelineAgentOptions"
     ],
     "src/features/timeline/components/SystemAlert.tsx": [
       "SystemAlert"
@@ -4090,6 +4191,7 @@
       "createLiveProcessorState",
       "createLocalCacheFromState",
       "findMatchingPendingSteer",
+      "resolveAwaitingSubmitRuntimeContext",
       "shouldSyncLiveCache",
       "useAgentEventHandler"
     ],
@@ -4280,8 +4382,10 @@
       "buildPlanSubmitParam",
       "resolvePlanOptions"
     ],
-    "src/features/tools/components/buildin/useResolvedByOtherNotice.ts": [
-      "useResolvedByOtherNotice"
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts": null,
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts": [
+      "resolveAwaitingResolutionNoticeKey",
+      "useAwaitingResolutionNotice"
     ],
     "src/features/tools/components/protocol.test.ts": null,
     "src/features/tools/components/protocol.ts": [
@@ -4312,6 +4416,11 @@
       "createActionRuntime",
       "normalizeActionArgs"
     ],
+    "src/features/tools/lib/awaitingAnswerError.ts": [
+      "AwaitingAnswerErrorInfo",
+      "isAwaitingAnswerTimeoutError",
+      "readAwaitingAnswerErrorInfo"
+    ],
     "src/features/tools/lib/awaitingQuestionMeta.ts": [
       "AwaitingItemMeta",
       "MASKED_PASSWORD_VALUE",
@@ -4330,6 +4439,14 @@
       "BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY",
       "cloneActiveAwaiting",
       "reduceActiveAwaiting"
+    ],
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts": null,
+    "src/features/tools/lib/awaitingSubmitTracker.ts": [
+      "buildAwaitingSubmitKey",
+      "clearAllAwaitingSubmitIdsForTest",
+      "clearAwaitingSubmitId",
+      "readAwaitingSubmitId",
+      "rememberAwaitingSubmitId"
     ],
     "src/features/tools/lib/frontendToolParams.test.ts": null,
     "src/features/tools/lib/frontendToolParams.ts": [
@@ -4384,6 +4501,7 @@
       "getAutomationExecutions",
       "getAutomations",
       "getChat",
+      "getChatLLMTraceRaw",
       "getChatRawJsonl",
       "getChats",
       "getCurrentAccessToken",
@@ -4404,6 +4522,7 @@
       "putAgentOrder",
       "rememberChat",
       "renameChat",
+      "restoreArchives",
       "saveMemoryScope",
       "searchArchives",
       "searchGlobal",
@@ -4655,12 +4774,9 @@
       "saveAgentOrderRequest",
       "shouldStartAgentConsoleBootstrap"
     ],
-    "src/features/workers/components/AgentList.tsx": [
-      "AgentList",
-      "AgentListProps"
-    ],
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": [
+      "buildAgentListFallbackRequestOptions",
       "buildAgentListRequestOptions",
       "resolveAgentListScope",
       "shouldStartInitialWorkerRefresh",
@@ -4701,7 +4817,6 @@
     "src/features/workers/lib/workerDataCoordinator.ts": [
       "WorkerDataSnapshot",
       "WorkerRefreshOverrides",
-      "WorkerRowBuildOptions",
       "extractChatsFromAgents",
       "refreshWorkerDataFromAgentsWithChats",
       "refreshWorkerDataWithCoordinator"
@@ -4747,6 +4862,8 @@
       "ArchiveChatsResponse",
       "ArchiveDeleteResponse",
       "ArchiveDetailResponse",
+      "ArchiveRestoreResponse",
+      "ArchiveRestoreResult",
       "ArchiveSearchParams",
       "ArchiveSearchResponse",
       "ArchiveSearchResult",
@@ -4765,6 +4882,7 @@
       "AutomationQueryResponse",
       "AutomationSummaryResponse",
       "BackgroundCommandParams",
+      "ChatSummaryResponse",
       "ChatUsageData",
       "ChatUsageEstimatedCost",
       "ChatUsageTokenDetails",
@@ -4791,10 +4909,12 @@
       "QueryLikeParams",
       "QueryModelOverride",
       "QueryReasoningEffort",
+      "QueryServiceTier",
       "QueryStreamParams",
       "ReasoningEffortOption",
       "RenameChatRequest",
       "RenameChatResponse",
+      "ServiceTierOption",
       "ToggleAutomationRequest",
       "UpdateAgentModelConfigRequest",
       "UpdateAgentOrderRequest",
@@ -4836,6 +4956,7 @@
       "getAutomationExecutions",
       "getAutomations",
       "getChat",
+      "getChatLLMTraceRaw",
       "getChatRawJsonl",
       "getChats",
       "getCurrentAccessToken",
@@ -4863,6 +4984,7 @@
       "putAgentOrder",
       "rememberChat",
       "renameChat",
+      "restoreArchives",
       "saveAdminRegistryDetail",
       "saveMemoryScope",
       "searchArchives",
@@ -4910,6 +5032,14 @@
       "initializeDesktopQueryContextBridge",
       "resetDesktopQueryContextBridgeForTests"
     ],
+    "src/shared/api/desktopScreenshot.test.ts": null,
+    "src/shared/api/desktopScreenshot.ts": [
+      "DesktopScreenshotError",
+      "DesktopScreenshotResult",
+      "canUseDesktopScreenshotBridge",
+      "captureDesktopScreenshot",
+      "desktopScreenshotToFile"
+    ],
     "src/shared/api/memoryTypes.ts": [
       "MemoryConsoleTab",
       "MemoryContextPreviewDecision",
@@ -4946,6 +5076,13 @@
       "createDefaultMemoryPreferenceMode",
       "createDefaultMemoryPreviewPromptLayer",
       "createEmptyMemoryScopeValidationResult"
+    ],
+    "src/shared/api/platformError.test.ts": null,
+    "src/shared/api/platformError.ts": [
+      "PlatformError",
+      "PlatformErrorDisplay",
+      "formatPlatformErrorForDisplay",
+      "normalizePlatformError"
     ],
     "src/shared/components/skeleton/index.tsx": [
       "Skeleton"
@@ -5052,13 +5189,14 @@
     "src/shared/ui/MaterialIcon.tsx": [
       "MaterialIcon"
     ],
+    "src/shared/ui/SearchFilterBar.tsx": [
+      "SearchFilter",
+      "SearchFilterBar",
+      "SearchFilterBarProps"
+    ],
     "src/shared/ui/UiButton.tsx": [
       "UiButton",
       "UiButtonProps"
-    ],
-    "src/shared/ui/UiCard.tsx": [
-      "UiCard",
-      "UiCardProps"
     ],
     "src/shared/ui/UiInput.tsx": [
       "UiInput",
@@ -5067,11 +5205,6 @@
     "src/shared/ui/UiListItem.tsx": [
       "UiListItem",
       "UiListItemProps"
-    ],
-    "src/shared/ui/UiSection.tsx": [
-      "UiSection",
-      "UiSectionBody",
-      "UiSectionHead"
     ],
     "src/shared/ui/UiTag.tsx": [
       "UiTag",
@@ -5104,6 +5237,7 @@
       "createCompactId",
       "resetCompactIdStateForTests"
     ],
+    "src/shared/utils/copy.test.ts": null,
     "src/shared/utils/copy.ts": [
       "copyText"
     ],
@@ -5160,6 +5294,7 @@
     ],
     "src/app/App.tsx": [
       "./pages/agents",
+      "./pages/archives",
       "./pages/automations",
       "./pages/memory",
       "./pages/registries",
@@ -5229,7 +5364,6 @@
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
       "@/features/workers/lib/currentWorker",
-      "@/hooks/useLiveEvents",
       "react"
     ],
     "src/app/layout/BottomDock.tsx": [
@@ -5349,6 +5483,7 @@
       "@/app/state/selectors",
       "@/app/state/types",
       "@/features/workers/lib/currentWorker",
+      "@/shared/api/platformError",
       "@/shared/components/text-count-up",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
@@ -5512,6 +5647,7 @@
       "@/app/modals/AutomationModal",
       "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/currentWorker",
+      "@/shared/api/apiClient",
       "@/shared/i18n",
       "react",
       "react-dom/server"
@@ -5524,6 +5660,7 @@
       "@/shared/api/apiClient",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
+      "@/shared/ui/SearchFilterBar",
       "@/shared/ui/UiButton",
       "@/shared/ui/UiTag",
       "antd",
@@ -5571,9 +5708,11 @@
       "react-dom/server"
     ],
     "src/app/modals/EventPopover.tsx": [
+      "@/app/modals/SystemPromptModal",
       "@/app/modals/lib/eventPopoverCopyMenu",
       "@/app/modals/lib/eventPopoverFormatters",
       "@/app/modals/lib/eventPopoverGrouping",
+      "@/app/modals/lib/systemPromptTrace",
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/transport/lib/apiClientProxy",
@@ -5618,6 +5757,13 @@
       "@/shared/ui/UiTag",
       "react"
     ],
+    "src/app/modals/SystemPromptModal.tsx": [
+      "@/app/modals/lib/systemPromptTrace",
+      "@/shared/i18n",
+      "@/shared/ui/MaterialIcon",
+      "@/shared/ui/UiButton",
+      "react"
+    ],
     "src/app/modals/lib/eventPopoverCopyMenu.ts": [
       "@/app/modals/lib/eventPopoverFormatters",
       "@/app/modals/lib/eventPopoverGrouping",
@@ -5632,6 +5778,10 @@
       "@/app/modals/lib/eventPopoverFormatters",
       "@/app/state/types"
     ],
+    "src/app/modals/lib/systemPromptTrace.ts": [
+      "@/app/modals/lib/eventPopoverFormatters",
+      "@/app/state/types"
+    ],
     "src/app/pages/agents/index.test.ts": [
       "@/app/pages/agents",
       "react",
@@ -5639,6 +5789,11 @@
     ],
     "src/app/pages/agents/index.tsx": [
       "@/features/workers/components/AgentConsole",
+      "react-router-dom"
+    ],
+    "src/app/pages/archives/index.tsx": [
+      "@/features/settings/components/ArchiveConsole",
+      "@/shared/api/apiClient",
       "react-router-dom"
     ],
     "src/app/pages/automations/index.tsx": [
@@ -5662,6 +5817,7 @@
       "@/shared/api/apiClient",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
+      "@/shared/ui/SearchFilterBar",
       "@/shared/ui/UiButton",
       "@/shared/ui/UiTag",
       "antd",
@@ -6009,6 +6165,7 @@
       "@/features/composer/components/ComposerContext",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
+      "antd",
       "react"
     ],
     "src/features/composer/components/ControlsForm.tsx": [
@@ -6070,6 +6227,8 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/composer/lib/composerAttachments",
+      "@/shared/api/desktopScreenshot",
+      "@/shared/i18n",
       "react"
     ],
     "src/features/composer/hooks/useComposerAwaiting.test.ts": [
@@ -6081,6 +6240,7 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/runAgentIdentity",
+      "@/features/tools/lib/awaitingSubmitTracker",
       "@/features/tools/lib/planDecision",
       "@/features/transport/lib/apiClientProxy",
       "@/shared/i18n",
@@ -6100,7 +6260,6 @@
       "react"
     ],
     "src/features/composer/hooks/useComposerLifecycle.ts": [
-      "@/app/state/AppContext",
       "antd/es/input/TextArea",
       "react"
     ],
@@ -6142,9 +6301,13 @@
       "react"
     ],
     "src/features/composer/hooks/useMessageActions.test.ts": [
+      "@/app/state/state",
+      "@/app/state/types",
       "@/features/composer/hooks/useMessageActions",
       "@/features/transport/lib/queryStreamRuntime.sse",
-      "@/features/transport/lib/queryStreamRuntime.ws"
+      "@/features/transport/lib/queryStreamRuntime.ws",
+      "react",
+      "react-dom/server"
     ],
     "src/features/composer/hooks/useMessageActions.ts": [
       "@/app/state/AppContext",
@@ -6161,6 +6324,7 @@
       "@/features/transport/lib/queryStreamExecutors",
       "@/features/voice/lib/voiceRuntime",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils",
       "react"
@@ -6184,7 +6348,8 @@
     ],
     "src/features/composer/lib/composerAttachments.test.ts": [
       "@/features/composer/lib/composerAttachments",
-      "@/shared/api/apiClient"
+      "@/shared/api/apiClient",
+      "@/shared/api/desktopScreenshot"
     ],
     "src/features/composer/lib/composerAttachments.ts": [
       "@/app/state/actions",
@@ -6244,10 +6409,7 @@
       "antd",
       "react"
     ],
-    "src/features/settings/components/ArchiveModal.test.ts": [
-      "@/features/settings/components/ArchiveModal"
-    ],
-    "src/features/settings/components/ArchiveModal.tsx": [
+    "src/features/settings/components/ArchiveConsole.tsx": [
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/chatListFormatter",
@@ -6256,7 +6418,16 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
-      "@/shared/ui/UiTag",
+      "antd",
+      "react"
+    ],
+    "src/features/settings/components/ArchiveModal.test.ts": [
+      "@/features/settings/components/ArchiveModal"
+    ],
+    "src/features/settings/components/ArchiveModal.tsx": [
+      "@/app/state/AppContext",
+      "@/features/settings/components/ArchiveConsole",
+      "@/shared/i18n",
       "antd",
       "react"
     ],
@@ -6432,14 +6603,9 @@
       "antd",
       "react"
     ],
-    "src/features/timeline/components/FrontendToolOverlay.tsx": [
-      "@/app/state/AppContext",
-      "@/app/state/constants",
-      "@/features/timeline/lib/toolDisplay",
-      "@/features/transport/lib/apiClientProxy",
-      "react"
-    ],
     "src/features/timeline/components/SystemAlert.tsx": [
+      "@/app/state/types",
+      "@/shared/i18n",
       "react"
     ],
     "src/features/timeline/components/ThinkingBlock.tsx": [
@@ -6515,7 +6681,8 @@
       "@/app/state/types",
       "@/features/timeline/hooks/useAgentEventHandler",
       "@/features/timeline/lib/eventProcessor",
-      "@/features/tools/lib/awaitingRuntime"
+      "@/features/tools/lib/awaitingRuntime",
+      "@/features/tools/lib/awaitingSubmitTracker"
     ],
     "src/features/timeline/hooks/useAgentEventHandler.ts": [
       "@/app/state/AppContext",
@@ -6529,6 +6696,7 @@
       "@/features/timeline/lib/localEventCache",
       "@/features/timeline/lib/reasoningAutoCollapse",
       "@/features/tools/lib/awaitingRuntime",
+      "@/features/tools/lib/awaitingSubmitTracker",
       "@/features/tools/lib/planDecision",
       "@/features/voice/lib/voiceRuntime",
       "@/shared/config/featureFlags",
@@ -6577,6 +6745,7 @@
     ],
     "src/features/timeline/lib/eventProcessorAwaiting.ts": [
       "@/app/state/types",
+      "@/features/tools/lib/awaitingAnswerError",
       "@/features/tools/lib/awaitingQuestionMeta",
       "@/shared/i18n",
       "@/shared/utils/eventUtils"
@@ -6613,6 +6782,7 @@
       "@/features/artifacts/lib/timelineAttachments",
       "@/features/timeline/lib/eventProcessorShared",
       "@/features/timeline/lib/eventProcessorTypes",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils"
@@ -6708,7 +6878,7 @@
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/buildin/approval-dialog/state",
       "@/features/tools/components/buildin/confirm-dialog/state",
-      "@/features/tools/components/buildin/useResolvedByOtherNotice",
+      "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
@@ -6729,7 +6899,7 @@
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/buildin/confirm-dialog/index.module.css",
       "@/features/tools/components/buildin/confirm-dialog/state",
-      "@/features/tools/components/buildin/useResolvedByOtherNotice",
+      "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
@@ -6759,7 +6929,7 @@
       "@/app/state/types",
       "@/features/tools/components/buildin/confirm-dialog/state",
       "@/features/tools/components/buildin/plan-dialog/state",
-      "@/features/tools/components/buildin/useResolvedByOtherNotice",
+      "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
       "@/shared/utils/useKeyboard",
       "@ant-design/icons",
@@ -6773,7 +6943,11 @@
     "src/features/tools/components/buildin/plan-dialog/state.ts": [
       "@/app/state/types"
     ],
-    "src/features/tools/components/buildin/useResolvedByOtherNotice.ts": [
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts": [
+      "@/features/tools/components/buildin/useAwaitingResolutionNotice"
+    ],
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts": [
+      "@/app/state/types",
       "@/shared/i18n",
       "antd",
       "react"
@@ -6801,6 +6975,9 @@
     "src/features/tools/lib/actionRuntime.ts": [
       "@/shared/styles/theme"
     ],
+    "src/features/tools/lib/awaitingAnswerError.ts": [
+      "@/shared/utils/eventUtils"
+    ],
     "src/features/tools/lib/awaitingQuestionMeta.ts": [
       "@/app/state/types"
     ],
@@ -6811,9 +6988,14 @@
     ],
     "src/features/tools/lib/awaitingRuntime.ts": [
       "@/app/state/types",
+      "@/features/tools/lib/awaitingAnswerError",
       "@/features/tools/lib/awaitingQuestionMeta",
       "@/shared/utils/eventUtils"
     ],
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts": [
+      "@/features/tools/lib/awaitingSubmitTracker"
+    ],
+    "src/features/tools/lib/awaitingSubmitTracker.ts": null,
     "src/features/tools/lib/frontendToolParams.test.ts": [
       "@/features/tools/lib/frontendToolParams"
     ],
@@ -6916,19 +7098,22 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "react"
     ],
     "src/features/transport/lib/transportClient.test.ts": [
       "@/features/transport/lib/transportClient",
       "@/features/transport/lib/wsClient",
       "@/features/transport/lib/wsClientSingleton",
-      "@/shared/api/apiClient"
+      "@/shared/api/apiClient",
+      "@/shared/utils/routing"
     ],
     "src/features/transport/lib/transportClient.ts": [
       "@/features/transport/lib/transportMode",
       "@/features/transport/lib/wsClient",
       "@/features/transport/lib/wsClientSingleton",
-      "@/shared/api/apiClient"
+      "@/shared/api/apiClient",
+      "@/shared/utils/routing"
     ],
     "src/features/transport/lib/transportMode.test.ts": [
       "@/features/transport/lib/transportMode"
@@ -6941,6 +7126,7 @@
     "src/features/transport/lib/wsClient.ts": [
       "@/app/state/types",
       "@/shared/api/apiClient",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/compactId"
     ],
@@ -7133,16 +7319,6 @@
       "antd",
       "react"
     ],
-    "src/features/workers/components/AgentList.tsx": [
-      "@/app/state/types",
-      "@/shared/i18n",
-      "@/shared/icons/agent",
-      "@/shared/ui/MaterialIcon",
-      "@/shared/ui/UiInput",
-      "@/shared/ui/UiListItem",
-      "@/shared/ui/UiTag",
-      "react"
-    ],
     "src/features/workers/hooks/useWorkerData.test.ts": [
       "@/features/workers/hooks/useWorkerData"
     ],
@@ -7231,6 +7407,7 @@
       "@/shared/api/accessTokenStorage",
       "@/shared/api/appAuth",
       "@/shared/api/memoryTypes",
+      "@/shared/api/platformError",
       "@/shared/i18n",
       "@/shared/utils/compactId",
       "@/shared/utils/routing"
@@ -7258,7 +7435,22 @@
       "@/shared/api/desktopHostBridge",
       "@/shared/utils/routing"
     ],
+    "src/shared/api/desktopScreenshot.test.ts": [
+      "@/shared/api/desktopScreenshot"
+    ],
+    "src/shared/api/desktopScreenshot.ts": [
+      "@/shared/api/desktopHostBridge",
+      "@/shared/i18n",
+      "@/shared/utils/routing"
+    ],
     "src/shared/api/memoryTypes.ts": null,
+    "src/shared/api/platformError.test.ts": [
+      "@/shared/api/platformError",
+      "@/shared/i18n"
+    ],
+    "src/shared/api/platformError.ts": [
+      "@/shared/i18n"
+    ],
     "src/shared/components/skeleton/index.tsx": [
       "./index.module.css",
       "react"
@@ -7384,19 +7576,18 @@
     "src/shared/ui/MaterialIcon.tsx": [
       "react"
     ],
-    "src/shared/ui/UiButton.tsx": [
+    "src/shared/ui/SearchFilterBar.tsx": [
+      "./MaterialIcon",
+      "antd",
       "react"
     ],
-    "src/shared/ui/UiCard.tsx": [
+    "src/shared/ui/UiButton.tsx": [
       "react"
     ],
     "src/shared/ui/UiInput.tsx": [
       "react"
     ],
     "src/shared/ui/UiListItem.tsx": [
-      "react"
-    ],
-    "src/shared/ui/UiSection.tsx": [
       "react"
     ],
     "src/shared/ui/UiTag.tsx": [
@@ -7434,6 +7625,9 @@
       "@/shared/utils/compactId"
     ],
     "src/shared/utils/compactId.ts": null,
+    "src/shared/utils/copy.test.ts": [
+      "@/shared/utils/copy"
+    ],
     "src/shared/utils/copy.ts": [
       "@/shared/api/desktopHostBridge",
       "@/shared/utils/routing"
@@ -7482,6 +7676,7 @@
     "src/app/App.routing.test.ts": null,
     "src/app/App.tsx": [
       "src/app/pages/agents/index.tsx",
+      "src/app/pages/archives/index.tsx",
       "src/app/pages/automations/index.tsx",
       "src/app/pages/memory/index.tsx",
       "src/app/pages/registries/index.tsx"
@@ -7549,11 +7744,14 @@
     ],
     "src/app/modals/SwitchModal.test.ts": null,
     "src/app/modals/SwitchModal.tsx": null,
+    "src/app/modals/SystemPromptModal.tsx": null,
     "src/app/modals/lib/eventPopoverCopyMenu.ts": null,
     "src/app/modals/lib/eventPopoverFormatters.ts": null,
     "src/app/modals/lib/eventPopoverGrouping.ts": null,
+    "src/app/modals/lib/systemPromptTrace.ts": null,
     "src/app/pages/agents/index.test.ts": null,
     "src/app/pages/agents/index.tsx": null,
+    "src/app/pages/archives/index.tsx": null,
     "src/app/pages/automations/index.tsx": null,
     "src/app/pages/memory/index.tsx": null,
     "src/app/pages/registries/index.test.ts": null,
@@ -7654,6 +7852,7 @@
     "src/features/composer/lib/wonders.ts": null,
     "src/features/plan/components/PlanPanel.test.ts": null,
     "src/features/plan/components/PlanPanel.tsx": null,
+    "src/features/settings/components/ArchiveConsole.tsx": null,
     "src/features/settings/components/ArchiveModal.test.ts": null,
     "src/features/settings/components/ArchiveModal.tsx": null,
     "src/features/settings/components/MemoryInfoModal.test.ts": null,
@@ -7678,7 +7877,6 @@
     "src/features/timeline/components/ContentBlock.tsx": null,
     "src/features/timeline/components/ConversationStage.test.ts": null,
     "src/features/timeline/components/ConversationStage.tsx": null,
-    "src/features/timeline/components/FrontendToolOverlay.tsx": null,
     "src/features/timeline/components/SystemAlert.tsx": null,
     "src/features/timeline/components/ThinkingBlock.tsx": null,
     "src/features/timeline/components/TimelineRow.tsx": [
@@ -7742,16 +7940,20 @@
     ],
     "src/features/tools/components/buildin/plan-dialog/state.test.ts": null,
     "src/features/tools/components/buildin/plan-dialog/state.ts": null,
-    "src/features/tools/components/buildin/useResolvedByOtherNotice.ts": null,
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts": null,
+    "src/features/tools/components/buildin/useAwaitingResolutionNotice.ts": null,
     "src/features/tools/components/protocol.test.ts": null,
     "src/features/tools/components/protocol.ts": null,
     "src/features/tools/hooks/useActionRuntime.test.ts": null,
     "src/features/tools/hooks/useActionRuntime.ts": null,
     "src/features/tools/lib/actionRuntime.test.ts": null,
     "src/features/tools/lib/actionRuntime.ts": null,
+    "src/features/tools/lib/awaitingAnswerError.ts": null,
     "src/features/tools/lib/awaitingQuestionMeta.ts": null,
     "src/features/tools/lib/awaitingRuntime.test.ts": null,
     "src/features/tools/lib/awaitingRuntime.ts": null,
+    "src/features/tools/lib/awaitingSubmitTracker.test.ts": null,
+    "src/features/tools/lib/awaitingSubmitTracker.ts": null,
     "src/features/tools/lib/frontendToolParams.test.ts": null,
     "src/features/tools/lib/frontendToolParams.ts": null,
     "src/features/tools/lib/planDecision.test.ts": null,
@@ -7811,7 +8013,6 @@
     "src/features/voice/lib/voiceSocket.ts": null,
     "src/features/workers/components/AgentConsole.test.ts": null,
     "src/features/workers/components/AgentConsole.tsx": null,
-    "src/features/workers/components/AgentList.tsx": null,
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": null,
     "src/features/workers/lib/agentOrdering.test.ts": null,
@@ -7837,7 +8038,11 @@
     "src/shared/api/desktopFileSystem.ts": null,
     "src/shared/api/desktopHostBridge.ts": null,
     "src/shared/api/desktopQueryContext.ts": null,
+    "src/shared/api/desktopScreenshot.test.ts": null,
+    "src/shared/api/desktopScreenshot.ts": null,
     "src/shared/api/memoryTypes.ts": null,
+    "src/shared/api/platformError.test.ts": null,
+    "src/shared/api/platformError.ts": null,
     "src/shared/components/skeleton/index.tsx": [
       "src/shared/components/skeleton/index.module.css"
     ],
@@ -7909,11 +8114,12 @@
       "src/shared/ui/markdownPreprocess.ts"
     ],
     "src/shared/ui/MaterialIcon.tsx": null,
+    "src/shared/ui/SearchFilterBar.tsx": [
+      "src/shared/ui/MaterialIcon.tsx"
+    ],
     "src/shared/ui/UiButton.tsx": null,
-    "src/shared/ui/UiCard.tsx": null,
     "src/shared/ui/UiInput.tsx": null,
     "src/shared/ui/UiListItem.tsx": null,
-    "src/shared/ui/UiSection.tsx": null,
     "src/shared/ui/UiTag.tsx": null,
     "src/shared/ui/markdown-code/MarkdownECharts.tsx": null,
     "src/shared/ui/markdown-code/MarkdownMermaid.tsx": [
@@ -7934,6 +8140,7 @@
     "src/shared/ui/markdownPreprocess.ts": null,
     "src/shared/utils/compactId.test.ts": null,
     "src/shared/utils/compactId.ts": null,
+    "src/shared/utils/copy.test.ts": null,
     "src/shared/utils/copy.ts": null,
     "src/shared/utils/debugTime.ts": null,
     "src/shared/utils/eventFieldReaders.ts": null,
@@ -8007,11 +8214,14 @@
     "src/app/modals/HistoryModal.tsx",
     "src/app/modals/SwitchModal.test.ts",
     "src/app/modals/SwitchModal.tsx",
+    "src/app/modals/SystemPromptModal.tsx",
     "src/app/modals/lib/eventPopoverCopyMenu.ts",
     "src/app/modals/lib/eventPopoverFormatters.ts",
     "src/app/modals/lib/eventPopoverGrouping.ts",
+    "src/app/modals/lib/systemPromptTrace.ts",
     "src/app/pages/agents/index.test.ts",
     "src/app/pages/agents/index.tsx",
+    "src/app/pages/archives/index.tsx",
     "src/app/pages/automations/index.tsx",
     "src/app/pages/memory/index.tsx",
     "src/app/pages/registries/index.test.ts",
