@@ -36,8 +36,7 @@
     background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
     color: var(--ink-muted);
     font:
-        600 10px/1 "IBM Plex Mono",
-        monospace;
+        600 10px/1 var(--font-mono);
     letter-spacing: 0.02em;
     white-space: nowrap;
 }

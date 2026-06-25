@@ -13,6 +13,7 @@ import {
 	getChatRawJsonl,
 } from "@/features/transport/lib/apiClientProxy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import {
@@ -367,7 +368,7 @@ export const EventPopover: React.FC = () => {
 		: t("eventPopover.group.unknown");
 	const showSwitcher = relatedEvents.length > 1;
 	const showCollect = collectibleRelatedEvents.length > 1;
-	const copyIcon =
+	const copyIcon: MaterialIconName =
 		copyStatus[lastCopyItem.key] === "copied" ? "check" : "content_copy";
 	const readableTimestamp = formatReadableTimestamp(
 		resolveDisplayPayloadTimestamp(popoverState.payload),

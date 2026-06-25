@@ -2,11 +2,12 @@ import React from "react";
 import { Dropdown, Input } from "antd";
 import type { MenuProps } from "antd";
 import { MaterialIcon } from "./MaterialIcon";
+import type { MaterialIconName } from "./MaterialIcon";
 
 export interface SearchFilter {
   key: string;
   label: string;
-  icon?: string;
+  icon?: MaterialIconName;
   active?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;

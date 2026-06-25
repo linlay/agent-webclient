@@ -324,7 +324,7 @@
     background: linear-gradient(180deg, #2fbc8a, #0ea172);
 }
 
-.attachment-card-file-icon .material-symbols-rounded {
+.attachment-card-file-icon .material-icon {
     font-size: 20px;
 }
 
@@ -365,7 +365,7 @@
     color: color-mix(in srgb, var(--ink-muted) 88%, #818892 12%);
 }
 
-.attachment-card-trailing .material-symbols-rounded {
+.attachment-card-trailing .material-icon {
     font-size: 17px;
 }
 
@@ -381,7 +381,7 @@
     border-radius: 10px;
 }
 
-.attachment-card-compact .attachment-card-file-icon .material-symbols-rounded {
+.attachment-card-compact .attachment-card-file-icon .material-icon {
     font-size: 17px;
 }
 
@@ -439,7 +439,7 @@
     box-shadow: 0 10px 22px rgba(17, 18, 20, 0.24);
 }
 
-.attachment-card-remove .material-symbols-rounded {
+.attachment-card-remove .material-icon {
     font-size: 15px;
 }
 
@@ -522,8 +522,7 @@
 .timeline-command-label {
     margin-top: 9px;
     font:
-        700 11px/1 "IBM Plex Mono",
-        monospace;
+        700 11px/1 var(--font-mono);
     color: var(--accent-electric-strong);
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -562,7 +561,7 @@
     z-index: 2;
 }
 
-.node-icon .material-symbols-rounded {
+.node-icon .material-icon {
     font-size: 18px;
 }
 
@@ -691,15 +690,15 @@
     cursor: pointer;
 }
 
-.timeline-task-group-header:hover .material-symbols-rounded {
+.timeline-task-group-header:hover .material-icon {
     opacity: 1;
 }
 
-.timeline-task-group-header.is-expanded .material-symbols-rounded {
+.timeline-task-group-header.is-expanded .material-icon {
     opacity: 1;
 }
 
-.timeline-task-group-header .material-symbols-rounded {
+.timeline-task-group-header .material-icon {
     font-size: 18px;
     flex: 0 0 auto;
     opacity: 0;
@@ -840,7 +839,7 @@
     gap: 4px;
 }
 
-.timeline-meta-btn .material-symbols-rounded {
+.timeline-meta-btn .material-icon {
     font-size: 14px;
 }
 
@@ -923,7 +922,7 @@
 }
 
 .timeline-markdown code {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
 }
 
 .timeline-markdown a {
@@ -1217,7 +1216,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     min-width: 0;
     margin: 0;
     overflow-wrap: anywhere;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     white-space: pre-wrap;
 }
@@ -1229,7 +1228,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     border-radius: 6px;
     background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
     padding: 8px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     white-space: pre-wrap;
 }
@@ -1594,7 +1593,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     background-color: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
 }
 
-.timeline-planning-collapse .ant-collapse-extra .material-symbols-rounded {
+.timeline-planning-collapse .ant-collapse-extra .material-icon {
     font-size: 14px;
 }
 

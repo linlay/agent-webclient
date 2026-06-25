@@ -6,12 +6,13 @@ import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
 import { getFileHistory } from "@/shared/api/apiClient";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 
-export function getFileIcon(filePath: string): string {
+export function getFileIcon(filePath: string): MaterialIconName {
 	const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-	const map: Record<string, string> = {
+	const map: Record<string, MaterialIconName> = {
 		ts: "code",
 		tsx: "code",
 		js: "javascript",

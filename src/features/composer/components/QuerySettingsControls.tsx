@@ -23,6 +23,7 @@ import type {
 } from "@/shared/api/apiClient";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
 interface QuerySettingsControlsProps {
@@ -40,7 +41,7 @@ const ACCESS_LEVELS: QueryAccessLevel[] = [
   "full_access",
 ];
 
-const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, string> = {
+const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, MaterialIconName> = {
   default: "front_hand",
   auto_approve: "verified_user",
   full_access: "gpp_maybe",

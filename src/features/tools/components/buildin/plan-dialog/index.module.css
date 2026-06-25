@@ -81,7 +81,7 @@
       justify-content: center;
       flex-shrink: 0;
 
-      :global(.material-symbols-rounded) {
+      :global(.material-icon) {
         font-size: 12px;
       }
     }

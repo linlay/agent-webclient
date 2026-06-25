@@ -118,8 +118,7 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               colorBorderSecondary: "rgba(255, 255, 255, 0.14)",
               borderRadius: 8,
               controlHeight: 32,
-              fontFamily:
-                '"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif',
+              fontFamily: "var(--font-sans)",
             }
           : {
               colorPrimary: "#2663eb",
@@ -138,8 +137,7 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               colorBorderSecondary: "#c9cdd4",
               borderRadius: 8,
               controlHeight: 32,
-              fontFamily:
-                '"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif',
+              fontFamily: "var(--font-sans)",
             },
       }}
     >

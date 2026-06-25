@@ -136,6 +136,7 @@
     "src/shared/i18n/provider.test.tsx",
     "src/shared/i18n/runtime.test.ts",
     "src/shared/icons/agent.test.ts",
+    "src/shared/icons/material.test.ts",
     "src/shared/styles/layoutStatusPill.test.ts",
     "src/shared/styles/theme.test.ts",
     "src/shared/ui/MarkdownContent.test.ts",
@@ -155,6 +156,7 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
+    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",
@@ -515,6 +517,12 @@
     "src/shared/icons/__mocks__/svgMock.ts",
     "src/shared/icons/agent.test.ts",
     "src/shared/icons/agent.tsx",
+    "src/shared/icons/index.ts",
+    "src/shared/icons/material.test.ts",
+    "src/shared/icons/material/MaterialIcon.tsx",
+    "src/shared/icons/material/index.ts",
+    "src/shared/icons/material/registry.ts",
+    "src/shared/icons/material/sprite.tsx",
     "src/shared/styles/layoutStatusPill.test.ts",
     "src/shared/styles/theme.test.ts",
     "src/shared/styles/theme.ts",
@@ -570,6 +578,10 @@
             "name": "__mocks__",
             "type": "directory",
             "children": [
+              {
+                "name": "antDesignIconsMock.ts",
+                "type": "file"
+              },
               {
                 "name": "styleMock.ts",
                 "type": "file"
@@ -2399,11 +2411,41 @@
                     ]
                   },
                   {
+                    "name": "material",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "MaterialIcon.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "index.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "registry.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "sprite.tsx",
+                        "type": "file"
+                      }
+                    ]
+                  },
+                  {
                     "name": "agent.test.ts",
                     "type": "file"
                   },
                   {
                     "name": "agent.tsx",
+                    "type": "file"
+                  },
+                  {
+                    "name": "index.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "material.test.ts",
                     "type": "file"
                   }
                 ]
@@ -2698,7 +2740,13 @@
     "icons": [
       "src/shared/icons/__mocks__/svgMock.ts",
       "src/shared/icons/agent.test.ts",
-      "src/shared/icons/agent.tsx"
+      "src/shared/icons/agent.tsx",
+      "src/shared/icons/index.ts",
+      "src/shared/icons/material.test.ts",
+      "src/shared/icons/material/MaterialIcon.tsx",
+      "src/shared/icons/material/index.ts",
+      "src/shared/icons/material/registry.ts",
+      "src/shared/icons/material/sprite.tsx"
     ],
     "plan": [
       "src/features/plan/components/PlanPanel.test.ts",
@@ -3190,6 +3238,12 @@
     "src/shared/icons/__mocks__/svgMock.ts": "icons",
     "src/shared/icons/agent.test.ts": "icons",
     "src/shared/icons/agent.tsx": "icons",
+    "src/shared/icons/index.ts": "icons",
+    "src/shared/icons/material.test.ts": "icons",
+    "src/shared/icons/material/MaterialIcon.tsx": "icons",
+    "src/shared/icons/material/index.ts": "icons",
+    "src/shared/icons/material/registry.ts": "icons",
+    "src/shared/icons/material/sprite.tsx": "icons",
     "src/shared/styles/layoutStatusPill.test.ts": "styles",
     "src/shared/styles/theme.test.ts": "styles",
     "src/shared/styles/theme.ts": "styles",
@@ -3302,6 +3356,16 @@
     "jest.config.cjs": null,
     "postcss.config.js": null,
     "scripts/check-hardcoded-han.js": null,
+    "src/__mocks__/antDesignIconsMock.ts": [
+      "CaretRightOutlined",
+      "CloseCircleFilled",
+      "EnterOutlined",
+      "InfoCircleOutlined",
+      "LeftOutlined",
+      "LoadingOutlined",
+      "RightOutlined",
+      "TeamOutlined"
+    ],
     "src/__mocks__/styleMock.ts": [
       "default"
     ],
@@ -5168,6 +5232,46 @@
       "AGENT_ICON_NAMES",
       "AgentIcon"
     ],
+    "src/shared/icons/index.ts": [
+      "AGENT_ICON_NAMES",
+      "AgentIcon",
+      "MATERIAL_ICON_NAMES",
+      "MaterialIcon",
+      "getMaterialIconHref",
+      "getMaterialIconSymbolId",
+      "isMaterialIconName",
+      "materialIconSymbolIds",
+      "resolveMaterialIconName",
+      "type MaterialIconName",
+      "type MaterialIconProps"
+    ],
+    "src/shared/icons/material.test.ts": null,
+    "src/shared/icons/material/MaterialIcon.tsx": [
+      "MaterialIcon",
+      "MaterialIconProps"
+    ],
+    "src/shared/icons/material/index.ts": [
+      "MATERIAL_ICON_NAMES",
+      "MaterialIcon",
+      "getMaterialIconHref",
+      "getMaterialIconSymbolId",
+      "isMaterialIconName",
+      "materialIconSymbolIds",
+      "resolveMaterialIconName",
+      "type MaterialIconName",
+      "type MaterialIconProps"
+    ],
+    "src/shared/icons/material/registry.ts": [
+      "MATERIAL_ICON_NAMES",
+      "MaterialIconName",
+      "getMaterialIconSymbolId",
+      "isMaterialIconName",
+      "materialIconSymbolIds",
+      "resolveMaterialIconName"
+    ],
+    "src/shared/icons/material/sprite.tsx": [
+      "getMaterialIconHref"
+    ],
     "src/shared/styles/layoutStatusPill.test.ts": null,
     "src/shared/styles/theme.test.ts": null,
     "src/shared/styles/theme.ts": [
@@ -5187,7 +5291,15 @@
       "MarkdownContent"
     ],
     "src/shared/ui/MaterialIcon.tsx": [
-      "MaterialIcon"
+      "MATERIAL_ICON_NAMES",
+      "MaterialIcon",
+      "getMaterialIconHref",
+      "getMaterialIconSymbolId",
+      "isMaterialIconName",
+      "materialIconSymbolIds",
+      "resolveMaterialIconName",
+      "type MaterialIconName",
+      "type MaterialIconProps"
     ],
     "src/shared/ui/SearchFilterBar.tsx": [
       "SearchFilter",
@@ -5286,6 +5398,9 @@
       "fs",
       "path",
       "typescript"
+    ],
+    "src/__mocks__/antDesignIconsMock.ts": [
+      "react"
     ],
     "src/__mocks__/styleMock.ts": null,
     "src/app/App.routing.test.ts": [
@@ -5987,7 +6102,9 @@
     "src/features/artifacts/lib/attachmentUtils.test.ts": [
       "@/features/artifacts/lib/attachmentUtils"
     ],
-    "src/features/artifacts/lib/attachmentUtils.ts": null,
+    "src/features/artifacts/lib/attachmentUtils.ts": [
+      "@/shared/ui/MaterialIcon"
+    ],
     "src/features/artifacts/lib/timelineAttachments.test.ts": [
       "@/features/artifacts/lib/timelineAttachments"
     ],
@@ -6381,7 +6498,8 @@
     "src/features/composer/lib/slashCommands.ts": [
       "@/app/state/types",
       "@/shared/config/featureFlags",
-      "@/shared/i18n"
+      "@/shared/i18n",
+      "@/shared/ui/MaterialIcon"
     ],
     "src/features/composer/lib/steerSubmission.test.ts": [
       "@/features/composer/lib/steerSubmission"
@@ -7554,6 +7672,32 @@
       "antd/es",
       "react"
     ],
+    "src/shared/icons/index.ts": [
+      "./agent",
+      "./material"
+    ],
+    "src/shared/icons/material.test.ts": [
+      "./material",
+      "fs",
+      "path",
+      "react",
+      "react-dom/server"
+    ],
+    "src/shared/icons/material/MaterialIcon.tsx": [
+      "./registry",
+      "./sprite",
+      "react"
+    ],
+    "src/shared/icons/material/index.ts": [
+      "./MaterialIcon",
+      "./registry",
+      "./sprite"
+    ],
+    "src/shared/icons/material/registry.ts": null,
+    "src/shared/icons/material/sprite.tsx": [
+      "./registry",
+      "./sprite.svg"
+    ],
     "src/shared/styles/layoutStatusPill.test.ts": [
       "node:fs",
       "node:path"
@@ -7574,7 +7718,7 @@
       "react"
     ],
     "src/shared/ui/MaterialIcon.tsx": [
-      "react"
+      "@/shared/icons/material"
     ],
     "src/shared/ui/SearchFilterBar.tsx": [
       "./MaterialIcon",
@@ -7656,7 +7800,6 @@
     ],
     "src/typings.d.ts": null,
     "src/webpack.config.test.ts": [
-      "../../../public/assets/fonts/fonts.css",
       "../webpack.config.js",
       "fs",
       "path"
@@ -7672,6 +7815,7 @@
     "jest.config.cjs": null,
     "postcss.config.js": null,
     "scripts/check-hardcoded-han.js": null,
+    "src/__mocks__/antDesignIconsMock.ts": null,
     "src/__mocks__/styleMock.ts": null,
     "src/app/App.routing.test.ts": null,
     "src/app/App.tsx": [
@@ -8105,6 +8249,27 @@
       "src/shared/icons/agent-icons/terminal.svg",
       "src/shared/icons/agent-icons/wave.svg"
     ],
+    "src/shared/icons/index.ts": [
+      "src/shared/icons/agent.tsx",
+      "src/shared/icons/material/index.ts"
+    ],
+    "src/shared/icons/material.test.ts": [
+      "src/shared/icons/material/index.ts"
+    ],
+    "src/shared/icons/material/MaterialIcon.tsx": [
+      "src/shared/icons/material/registry.ts",
+      "src/shared/icons/material/sprite.tsx"
+    ],
+    "src/shared/icons/material/index.ts": [
+      "src/shared/icons/material/MaterialIcon.tsx",
+      "src/shared/icons/material/registry.ts",
+      "src/shared/icons/material/sprite.tsx"
+    ],
+    "src/shared/icons/material/registry.ts": null,
+    "src/shared/icons/material/sprite.tsx": [
+      "src/shared/icons/material/registry.ts",
+      "src/shared/icons/material/sprite.svg"
+    ],
     "src/shared/styles/layoutStatusPill.test.ts": null,
     "src/shared/styles/theme.test.ts": null,
     "src/shared/styles/theme.ts": null,
@@ -8162,6 +8327,7 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
+    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",

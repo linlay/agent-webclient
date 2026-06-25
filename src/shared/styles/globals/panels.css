@@ -23,7 +23,7 @@
     flex: 0 0 auto;
 }
 
-.artifact-chevron .material-symbols-rounded {
+.artifact-chevron .material-icon {
     font-size: 18px;
 }
 
@@ -112,8 +112,7 @@
 .plan-title {
     flex: 0 0 auto;
     font:
-        700 12px/1 "IBM Plex Mono",
-        monospace;
+        700 12px/1 var(--font-mono);
     color: var(--ink-1);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -129,8 +128,7 @@
 
 .plan-summary-status {
     font:
-        700 11px/1 "IBM Plex Mono",
-        monospace;
+        700 11px/1 var(--font-mono);
     color: var(--accent-electric-strong);
     letter-spacing: 0.02em;
     flex: 0 0 auto;
@@ -159,7 +157,7 @@
     margin-left: auto;
 }
 
-.plan-chevron .material-symbols-rounded {
+.plan-chevron .material-icon {
     font-size: 18px;
 }
 

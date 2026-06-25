@@ -14,6 +14,7 @@ import { ToolPill } from "@/features/timeline/components/ToolPill";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
@@ -173,7 +174,7 @@ const NodeIcon: React.FC<{
   }
 
   let className = "node-icon";
-  let iconName = "smart_toy";
+  let iconName: MaterialIconName = "smart_toy";
 
   switch (kind) {
     case "thinking":

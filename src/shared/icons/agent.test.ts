@@ -14,7 +14,7 @@ jest.mock("@ant-design/icons", () => {
   return {
     TeamOutlined: () => React.createElement("span", null, "team"),
   };
-});
+}, { virtual: true });
 
 import { AGENT_ICON_NAMES, AgentIcon } from "./agent";
 

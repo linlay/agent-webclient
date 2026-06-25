@@ -1,3 +1,5 @@
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
+
 export interface AttachmentLike {
   name?: string;
   size?: number;
@@ -89,7 +91,9 @@ export function getAttachmentKindLabel(attachment: AttachmentLike): string {
   return isImageAttachment(attachment) ? '图片' : '文件';
 }
 
-export function getAttachmentIconName(attachment: AttachmentLike): string {
+export function getAttachmentIconName(
+  attachment: AttachmentLike,
+): MaterialIconName {
   if (isImageAttachment(attachment)) {
     return 'image';
   }

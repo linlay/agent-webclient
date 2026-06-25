@@ -1393,7 +1393,7 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
   });
 
@@ -1413,10 +1413,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
     expect(html).not.toContain(
-      '<span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span>',
+      '<span>Latest reply 6</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
   });
 
@@ -1432,7 +1432,7 @@ describe("LeftSidebar", () => {
     );
     // header 不应该有 loading 图标（chat item 行始终有，但 CSS 控制显隐）
     expect(html).not.toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-symbols-rounded worker-chat-loading">',
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
   });
 
@@ -1454,7 +1454,7 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 5</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
     expect(html).toContain('class="worker-chat-action" data-action="loading"');
   });
@@ -1468,10 +1468,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span></div>',
+      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="chat-awaiting-status">等待审批</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
     expect(html).toContain(
-      '<span class="worker-chat-name">Latest reply 6</span><span class="worker-chat-action" data-action="awaiting"><span class="chat-awaiting-status">等待审批</span><span class="material-symbols-rounded worker-chat-loading">progress_activity</span><span class="worker-panel-time-label">',
+      '<span class="worker-chat-name">Latest reply 6</span><span class="worker-chat-action" data-action="awaiting"><span class="chat-awaiting-status">等待审批</span><span class="material-icon worker-chat-loading" data-material-icon="progress_activity">',
     );
     expect(html).toContain("worker-chat-action");
   });

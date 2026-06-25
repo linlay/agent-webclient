@@ -220,7 +220,7 @@ describe('webpack devServer proxy', () => {
 });
 
 describe('html template asset paths', () => {
-  it('bundles local font definitions through global css for deep Desktop routes', () => {
+  it('does not load font assets from the html template or global css', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const fs = require('fs');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -228,7 +228,8 @@ describe('html template asset paths', () => {
     const template = fs.readFileSync(path.resolve(__dirname, '../public/index.html'), 'utf8');
     const globalsCss = fs.readFileSync(path.resolve(__dirname, 'shared/styles/globals.css'), 'utf8');
 
-    expect(globalsCss).toContain('@import "../../../public/assets/fonts/fonts.css";');
+    expect(globalsCss).not.toContain('assets/fonts');
     expect(template).not.toContain('assets/fonts/fonts.css');
+    expect(template).not.toContain('fonts.googleapis.com');
   });
 });

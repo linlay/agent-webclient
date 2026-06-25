@@ -130,6 +130,7 @@
       "src/shared/i18n/provider.test.tsx",
       "src/shared/i18n/runtime.test.ts",
       "src/shared/icons/agent.test.ts",
+      "src/shared/icons/material.test.ts",
       "src/shared/styles/layoutStatusPill.test.ts",
       "src/shared/styles/theme.test.ts",
       "src/shared/ui/MarkdownContent.test.ts",

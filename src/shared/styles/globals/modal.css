@@ -448,7 +448,7 @@
 
 .archive-preview-label {
     margin-bottom: 6px;
-    font: 600 11px/1.2 "IBM Plex Mono", monospace;
+    font: 600 11px/1.2 var(--font-mono);
     color: var(--ink-muted);
 }
 
@@ -576,8 +576,7 @@
     max-height: 220px;
     overflow: auto;
     font:
-        12px/1.55 "IBM Plex Mono",
-        monospace;
+        12px/1.55 var(--font-mono);
     color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-word;
@@ -935,7 +934,7 @@
 }
 
 .automation-mono-textarea {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
 }
 
 .automation-save-actions {
@@ -949,7 +948,7 @@
     padding: 12px;
 }
 
-.automation-request-box .material-symbols-rounded {
+.automation-request-box .material-icon {
     transform: scale(.8);
 }
 
@@ -1492,7 +1491,7 @@
 }
 
 .agent-mono-textarea {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
 }
 
 .agent-prompt-textarea {
@@ -2131,8 +2130,7 @@
     max-height: 260px;
     overflow: auto;
     font:
-        12px/1.55 "IBM Plex Mono",
-        monospace;
+        12px/1.55 var(--font-mono);
     color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-word;
@@ -2218,8 +2216,7 @@
     max-height: 260px;
     overflow: auto;
     font:
-        12px/1.65 "IBM Plex Mono",
-        monospace;
+        12px/1.65 var(--font-mono);
     color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-word;
@@ -2329,8 +2326,7 @@
 .memory-preference-markdown {
     min-height: 360px;
     font:
-        12px/1.6 "IBM Plex Mono",
-        monospace;
+        12px/1.6 var(--font-mono);
 }
 
 .memory-preference-markdown-hint {

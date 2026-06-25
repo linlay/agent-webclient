@@ -181,8 +181,8 @@
     border-radius: 8px;
 }
 
-.top-nav .icon-btn .material-symbols-rounded,
-.top-nav .current-worker-tool .material-symbols-rounded {
+.top-nav .icon-btn .material-icon,
+.top-nav .current-worker-tool .material-icon {
     font-size: 18px;
 }
 
@@ -301,8 +301,7 @@
 .usage-trigger-ring span {
     color: var(--ink-1);
     font:
-        700 11px/1 "IBM Plex Mono",
-        monospace;
+        700 11px/1 var(--font-mono);
     letter-spacing: 0;
 }
 
@@ -354,22 +353,6 @@
     border-radius: 7px;
 }
 
-.usage-popover-close-glyph::before {
-    content: "close";
-    font-family: "Material Symbols Rounded";
-    font-size: 15px;
-    font-weight: normal;
-    font-style: normal;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: "liga";
-    -webkit-font-smoothing: antialiased;
-}
-
 .usage-context-window {
     display: flex;
     flex-wrap: wrap;
@@ -398,8 +381,7 @@
 .usage-context-ring span {
     color: var(--ink-1);
     font:
-        700 14px/1 "IBM Plex Mono",
-        monospace;
+        700 14px/1 var(--font-mono);
 }
 
 .usage-context-copy {
@@ -421,8 +403,7 @@
 .usage-context-copy strong {
     flex: 0 0 auto;
     font:
-        700 10px/1.1 "IBM Plex Mono",
-        monospace;
+        700 10px/1.1 var(--font-mono);
     overflow-wrap: anywhere;
 }
 
@@ -447,8 +428,7 @@
 .usage-cache-hit-inline strong {
     color: var(--ink-1);
     font:
-        700 10px/1.1 "IBM Plex Mono",
-        monospace;
+        700 10px/1.1 var(--font-mono);
 }
 
 .usage-popover-section {
@@ -493,8 +473,7 @@
 .usage-section-llm-calls strong {
     color: var(--ink-1);
     font:
-        700 10px/1 "IBM Plex Mono",
-        monospace;
+        700 10px/1 var(--font-mono);
 }
 
 .usage-metric-grid {
@@ -530,8 +509,7 @@
     margin: 0;
     color: var(--ink-1);
     font:
-        700 10px/1.15 "IBM Plex Mono",
-        monospace;
+        700 10px/1.15 var(--font-mono);
     overflow-wrap: anywhere;
 }
 
@@ -556,8 +534,7 @@
     position: relative;
     padding: 6px 11px 6px 24px;
     font:
-        600 11px/1.25 "IBM Plex Mono",
-        monospace;
+        600 11px/1.25 var(--font-mono);
     letter-spacing: 0.02em;
     white-space: nowrap;
     word-break: keep-all;

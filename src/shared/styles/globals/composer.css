@@ -148,7 +148,7 @@
     outline: none;
 }
 
-.composer-wonders-shuffle .material-symbols-rounded {
+.composer-wonders-shuffle .material-icon {
     font-size: 18px;
 }
 
@@ -248,7 +248,7 @@
     font-weight: 700;
 }
 
-.composer-control-label .material-symbols-rounded {
+.composer-control-label .material-icon {
     font-size: 15px;
     color: var(--ink-muted);
 }
@@ -320,7 +320,7 @@
     box-shadow: none;
 }
 
-.composer-attachments-nav .material-symbols-rounded {
+.composer-attachments-nav .material-icon {
     font-size: 16px;
 }
 
@@ -393,7 +393,7 @@
     padding: 0;
 }
 
-.composer-plus-btn .material-symbols-rounded {
+.composer-plus-btn .material-icon {
     font-size: 18px;
 }
 
@@ -429,7 +429,7 @@
     align-self: center;
 }
 
-.send-btn .material-symbols-rounded {
+.send-btn .material-icon {
     font-size: 17px;
 }
 
@@ -471,14 +471,14 @@
     min-width: 0;
 }
 
-.query-settings-btn .ui-btn-label>span:not(.material-symbols-rounded) {
+.query-settings-btn .ui-btn-label>span:not(.material-icon) {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.query-settings-btn .material-symbols-rounded {
+.query-settings-btn .material-icon {
     flex: 0 0 auto;
     font-size: 14px;
 }
@@ -571,7 +571,7 @@
     font-size: 13px;
 }
 
-.query-settings-menu-item .material-symbols-rounded {
+.query-settings-menu-item .material-icon {
     font-size: 14px;
 }
 
@@ -939,7 +939,7 @@
     padding: 0;
 }
 
-.voice-btn .material-symbols-rounded {
+.voice-btn .material-icon {
     font-size: 17px;
 }
 
@@ -1036,7 +1036,7 @@
 }
 
 .steer-preview-label {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 10px;
     color: var(--ink-muted);
     letter-spacing: 0.02em;
@@ -1150,7 +1150,7 @@
     overflow: hidden;
 }
 
-.slash-command-item .material-symbols-rounded {
+.slash-command-item .material-icon {
     font-size: 15px;
 }
 
@@ -1160,7 +1160,7 @@
 }
 
 .slash-command-name {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 600;
     color: var(--accent-electric-strong);
@@ -1188,7 +1188,7 @@
     color: var(--accent-lime);
 }
 
-.slash-command-check .material-symbols-rounded {
+.slash-command-check .material-icon {
     font-size: 16px;
 }
 
@@ -1215,7 +1215,7 @@
 }
 
 .mention-key {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-weight: 600;
     font-size: 12px;
     color: var(--accent-electric-strong);
@@ -1250,6 +1250,6 @@
     display: none;
 }
 
-.composer-input-expand-btn:not(:hover):not([data-expanded="true"]) .material-symbols-rounded:not(.composer-input-expand-arrow) {
+.composer-input-expand-btn:not(:hover):not([data-expanded="true"]) .material-icon:not(.composer-input-expand-arrow) {
     display: none;
 }

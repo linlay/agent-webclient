@@ -7,12 +7,13 @@ import type {
 } from "@/app/state/types";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { isMemoryEnabled } from "@/shared/config/featureFlags";
 
 export interface SettingsSummaryBadge {
   key: "transport" | "theme";
-  icon: string;
+  icon: MaterialIconName;
   label: string;
   title: string;
 }
@@ -29,7 +30,7 @@ export interface SidebarSettingsMenuItem {
   label: string;
   description?: string;
   title?: string;
-  icon?: string;
+  icon?: MaterialIconName;
   active?: boolean;
   disabled?: boolean;
   action: SidebarSettingsMenuAction;

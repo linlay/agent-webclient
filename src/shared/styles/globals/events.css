@@ -31,7 +31,7 @@
 .event-row-time {
     font-size: 10px;
     color: var(--ink-muted);
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     white-space: nowrap;
     line-height: 1.35;
     opacity: 0.9;
@@ -221,8 +221,7 @@
     padding: 10px 12px;
     margin: 0;
     font:
-        400 10px/1.48 "IBM Plex Mono",
-        monospace;
+        400 10px/1.48 var(--font-mono);
     color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-all;
@@ -309,8 +308,7 @@
     white-space: nowrap;
     color: var(--ink-muted);
     font:
-        400 10px/1.35 "IBM Plex Mono",
-        monospace;
+        400 10px/1.35 var(--font-mono);
 }
 
 .event-popover-system-detail {
@@ -350,8 +348,7 @@
     white-space: pre-wrap;
     word-break: break-word;
     font:
-        400 11px/1.5 "IBM Plex Mono",
-        monospace;
+        400 11px/1.5 var(--font-mono);
 }
 
 @media (max-width: 760px) {
@@ -391,7 +388,7 @@
 .debug-event-head strong {
     color: var(--accent-electric-strong);
     font-size: 12px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
 }
 
 .debug-event-meta {
@@ -408,7 +405,7 @@
     background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
     color: var(--ink-2);
     font-size: 11px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     line-height: 1.35;
     white-space: pre-wrap;
     word-break: break-all;

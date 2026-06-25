@@ -104,7 +104,7 @@
     background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
 }
 
-.copilot-action-btn .material-symbols-rounded {
+.copilot-action-btn .material-icon {
     font-size: 17px;
 }
 
@@ -142,7 +142,7 @@
     width: 14px;
 }
 
-.layout-copilot .node-icon .material-symbols-rounded {
+.layout-copilot .node-icon .material-icon {
     font-size: 16px;
 }
 

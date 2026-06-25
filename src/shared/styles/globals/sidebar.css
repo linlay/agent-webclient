@@ -178,8 +178,7 @@
 
 .chip {
     font:
-        500 10px/1 "IBM Plex Mono",
-        monospace;
+        500 10px/1 var(--font-mono);
     padding: 3px 8px;
     border-radius: 999px;
     border: 1px solid var(--line-soft);
@@ -300,7 +299,7 @@
 .chat-time {
     flex: 0 0 auto;
     font-size: 10px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     color: var(--ink-muted);
 }
 
@@ -530,8 +529,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font:
-        11px/1.35 "IBM Plex Mono",
-        monospace;
+        11px/1.35 var(--font-mono);
     color: var(--ink-1);
 }
 
@@ -541,8 +539,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font:
-        10px/1.25 "IBM Plex Mono",
-        monospace;
+        10px/1.25 var(--font-mono);
     color: var(--ink-muted);
 }
 
@@ -552,8 +549,7 @@
     align-items: center;
     gap: 4px;
     font:
-        700 11px/1.2 "IBM Plex Mono",
-        monospace;
+        700 11px/1.2 var(--font-mono);
     white-space: nowrap;
 }
 
@@ -612,8 +608,7 @@
     overflow: auto;
     padding: 6px 0;
     font:
-        11px/1.45 "IBM Plex Mono",
-        monospace;
+        11px/1.45 var(--font-mono);
 }
 
 .right-sidebar-file-diff-line {
@@ -802,8 +797,7 @@
     overflow: auto;
     color: var(--ink-1);
     font:
-        12px/1.6 "IBM Plex Mono",
-        monospace;
+        12px/1.6 var(--font-mono);
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -840,7 +834,7 @@
 }
 
 .mono {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
 }
 
 .left-sidebar-buttons {

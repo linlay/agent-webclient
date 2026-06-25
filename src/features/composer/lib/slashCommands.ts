@@ -1,6 +1,7 @@
 import type { TimelineNode } from '@/app/state/types';
 import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
+import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
 
 export type SlashCommandId =
   | 'remember'
@@ -20,7 +21,7 @@ export type SlashCommandId =
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
-  icon: string;
+  icon: MaterialIconName;
   command: `/${string}`;
   labelKey: string;
   descriptionKey: string;

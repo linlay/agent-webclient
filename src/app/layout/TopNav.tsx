@@ -559,10 +559,7 @@ export const TopNav: React.FC = () => {
                               title={t("topNav.usage.close")}
                               onClick={handleCloseUsagePopover}
                             >
-                              <span
-                                className="usage-popover-close-glyph"
-                                aria-hidden="true"
-                              />
+                              <MaterialIcon name="close" />
                             </UiButton>
                           </Flex>
                         </div>

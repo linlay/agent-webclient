@@ -79,7 +79,7 @@
 
 .tool-pill-duration {
     color: color-mix(in srgb, var(--ink-muted) 78%, transparent);
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     white-space: nowrap;
 }
@@ -124,7 +124,7 @@
 
 .tool-call-title {
     font-size: 10px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -190,7 +190,7 @@
 .tool-call-inline,
 .tool-call-result {
     margin: 0;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     line-height: 1.5;
     color: var(--text-muted);
@@ -233,7 +233,7 @@
     gap: 4px;
 }
 
-.tool-call-copy .material-symbols-rounded {
+.tool-call-copy .material-icon {
     font-size: 14px;
 }
 
@@ -287,7 +287,7 @@
 
 .frontend-tool-meta {
     font-size: 10px;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     color: var(--ink-muted);
 }
 

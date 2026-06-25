@@ -13,6 +13,7 @@
   "facts": {
     "entrypoints": [],
     "publicApi": [
+      "MATERIAL_ICON_NAMES",
       "MERMAID_ZOOM_DEFAULT",
       "MERMAID_ZOOM_MAX",
       "MERMAID_ZOOM_MIN",
@@ -32,12 +33,19 @@
       "UiListItemProps",
       "UiTag",
       "UiTagProps",
+      "getMaterialIconHref",
+      "getMaterialIconSymbolId",
       "getMermaidRenderConfig",
       "getMermaidRenderDelay",
       "getNextMermaidZoom",
       "getVisibleMermaidRenderState",
+      "isMaterialIconName",
       "isMermaidDragDistance",
-      "removeEmptyMarkdownTables"
+      "materialIconSymbolIds",
+      "removeEmptyMarkdownTables",
+      "resolveMaterialIconName",
+      "type MaterialIconName",
+      "type MaterialIconProps"
     ],
     "dependencies": [],
     "dependents": [],
@@ -45,7 +53,7 @@
       "src/shared/ui/MarkdownContent.test.ts",
       "src/shared/ui/markdown-code/index.test.ts"
     ],
-    "lastScannedAt": ""
+    "lastScannedAt": "2026-06-25T10:03:23Z"
   },
   "readHints": {
     "alwaysRead": [],

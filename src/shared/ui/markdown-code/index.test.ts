@@ -58,7 +58,7 @@ jest.mock("antd", () => ({
 
 jest.mock("@ant-design/icons", () => ({
   CaretRightOutlined: () => React.createElement("span", null),
-}));
+}), { virtual: true });
 
 describe("MarkdownCode", () => {
   it("renders Mermaid blocks before the original code block", () => {

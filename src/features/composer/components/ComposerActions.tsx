@@ -66,7 +66,12 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   const attachmentActionsDisabled =
     isFrontendActive || isVoiceMode || isStreaming;
 
-  const isCopilot = useMemo(() => location.pathname.startsWith("/copilot"), []);
+  const isCopilot = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/copilot"),
+    [],
+  );
 
   return (
     <Flex vertical style={{ width: "100%" }}>

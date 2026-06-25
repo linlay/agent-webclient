@@ -723,7 +723,8 @@
         "src/shared/icons/**"
       ],
       "tests": [
-        "src/shared/icons/agent.test.ts"
+        "src/shared/icons/agent.test.ts",
+        "src/shared/icons/material.test.ts"
       ],
       "dependsOn": [],
       "dependedBy": [],
@@ -734,18 +735,30 @@
         "confirmed",
         "default",
         "during",
+        "get",
+        "href",
         "icon",
         "icons",
+        "ids",
+        "index",
         "init",
+        "material",
         "mock",
         "mocks",
         "module",
+        "name",
         "names",
+        "props",
+        "registry",
+        "resolve",
         "shared",
+        "sprite",
         "src",
         "svg",
+        "symbol",
         "test",
         "tsx",
+        "type",
         "xgraph"
       ]
     },
@@ -1451,7 +1464,9 @@
         "empty",
         "filter",
         "get",
+        "href",
         "icon",
+        "ids",
         "index",
         "init",
         "input",
@@ -1463,19 +1478,24 @@
         "mermaid",
         "min",
         "module",
+        "name",
+        "names",
         "next",
         "preprocess",
         "props",
         "remove",
         "render",
+        "resolve",
         "search",
         "shared",
         "src",
         "state",
+        "symbol",
         "tables",
         "tag",
         "test",
         "tsx",
+        "type",
         "visible",
         "xgraph",
         "zoom"
@@ -2116,6 +2136,7 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
+    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",
@@ -2476,6 +2497,12 @@
     "src/shared/icons/__mocks__/svgMock.ts",
     "src/shared/icons/agent.test.ts",
     "src/shared/icons/agent.tsx",
+    "src/shared/icons/index.ts",
+    "src/shared/icons/material.test.ts",
+    "src/shared/icons/material/MaterialIcon.tsx",
+    "src/shared/icons/material/index.ts",
+    "src/shared/icons/material/registry.ts",
+    "src/shared/icons/material/sprite.tsx",
     "src/shared/styles/layoutStatusPill.test.ts",
     "src/shared/styles/theme.test.ts",
     "src/shared/styles/theme.ts",
@@ -2781,6 +2808,12 @@
     "src/shared/icons/__mocks__/svgMock.ts": "icons",
     "src/shared/icons/agent.test.ts": "icons",
     "src/shared/icons/agent.tsx": "icons",
+    "src/shared/icons/index.ts": "icons",
+    "src/shared/icons/material.test.ts": "icons",
+    "src/shared/icons/material/MaterialIcon.tsx": "icons",
+    "src/shared/icons/material/index.ts": "icons",
+    "src/shared/icons/material/registry.ts": "icons",
+    "src/shared/icons/material/sprite.tsx": "icons",
     "src/shared/styles/layoutStatusPill.test.ts": "styles",
     "src/shared/styles/theme.test.ts": "styles",
     "src/shared/styles/theme.ts": "styles",
@@ -6544,6 +6577,11 @@
       },
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -6787,6 +6825,18 @@
         "path": ".doc/modules/styles.json"
       }
     ],
+    "href": [
+      {
+        "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
+      }
+    ],
     "html": [
       {
         "kind": "module",
@@ -6866,8 +6916,18 @@
     "ids": [
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       }
     ],
     "image": [
@@ -6906,6 +6966,11 @@
         "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
+      },
+      {
+        "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
       },
       {
         "kind": "module",
@@ -7819,6 +7884,11 @@
     "material": [
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
       }
@@ -8247,8 +8317,18 @@
       },
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       },
       {
         "kind": "module",
@@ -8266,6 +8346,11 @@
         "kind": "module",
         "id": "icons",
         "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       }
     ],
     "needs": [
@@ -9091,6 +9176,11 @@
       },
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -9499,6 +9589,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
       }
     ],
     "reject": [
@@ -9716,6 +9811,11 @@
       },
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -9738,6 +9838,11 @@
         "kind": "module",
         "id": "transport",
         "path": ".doc/modules/transport.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       },
       {
         "kind": "module",
@@ -10492,6 +10597,13 @@
         "path": ".doc/modules/composer.json"
       }
     ],
+    "sprite": [
+      {
+        "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      }
+    ],
     "src": [
       {
         "kind": "module",
@@ -10993,6 +11105,18 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "symbol": [
+      {
+        "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       }
     ],
     "sync": [
@@ -11697,6 +11821,11 @@
       },
       {
         "kind": "module",
+        "id": "icons",
+        "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -11709,6 +11838,11 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      },
+      {
+        "kind": "module",
+        "id": "ui",
+        "path": ".doc/modules/ui.json"
       }
     ],
     "types": [
@@ -12419,6 +12553,6 @@
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
-    "sourceFileCount": 395
+    "sourceFileCount": 402
   }
 }
