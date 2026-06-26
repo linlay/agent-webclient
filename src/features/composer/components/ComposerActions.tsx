@@ -5,7 +5,7 @@ import { useComposerContext } from "@/features/composer/components/ComposerConte
 import type {
   QueryAccessLevel,
   QueryModelOverride,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

@@ -2,14 +2,14 @@ import {
   ApiError,
   createAttachStream,
   createQueryStream,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
   executeAttachRunSse,
   executeQueryStreamSse,
 } from "@/features/transport/lib/queryStreamRuntime.sse";
 
-jest.mock("@/shared/api/apiClient", () => {
-  const actual = jest.requireActual("@/shared/api/apiClient");
+jest.mock("@/shared/data", () => {
+  const actual = jest.requireActual("@/shared/data");
   return {
     ...actual,
     createAttachStream: jest.fn(),

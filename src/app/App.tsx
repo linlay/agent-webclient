@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
-import { initializeDesktopQueryContextBridge } from "@/shared/api/desktopQueryContext";
+import { initializeDesktopQueryContextBridge } from "@/shared/data/desktopQueryContext";
 import {
   I18nProvider,
   readUrlLocale,

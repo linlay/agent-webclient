@@ -5,14 +5,16 @@
       "id": "api",
       "path": ".doc/modules/api.json",
       "ownedPaths": [
-        "src/shared/api/**"
+        "src/shared/data/**"
       ],
       "tests": [
-        "src/shared/api/apiClient.test.ts",
-        "src/shared/api/appAuth.test.ts",
-        "src/shared/api/desktopFileSystem.test.ts",
-        "src/shared/api/desktopScreenshot.test.ts",
-        "src/shared/api/platformError.test.ts"
+        "src/shared/data/appAuth.test.ts",
+        "src/shared/data/client.test.ts",
+        "src/shared/data/desktopFileSystem.test.ts",
+        "src/shared/data/desktopScreenshot.test.ts",
+        "src/shared/data/platformError.test.ts",
+        "src/shared/data/routedClient.test.ts",
+        "src/shared/data/transportClient.test.ts"
       ],
       "dependsOn": [],
       "dependedBy": [],
@@ -22,6 +24,7 @@
         "admin",
         "agent",
         "agents",
+        "and",
         "api",
         "app",
         "archive",
@@ -32,11 +35,13 @@
         "automation",
         "automations",
         "awaiting",
+        "aware",
         "background",
-        "boundary",
         "bridge",
         "brief",
         "build",
+        "cache",
+        "caching",
         "can",
         "capabilities",
         "capture",
@@ -44,11 +49,11 @@
         "chat",
         "chats",
         "client",
+        "clients",
         "coder",
         "command",
         "compact",
         "config",
-        "confirmed",
         "console",
         "context",
         "cost",
@@ -57,6 +62,8 @@
         "data",
         "decision",
         "default",
+        "define",
+        "definition",
         "delete",
         "desktop",
         "detail",
@@ -66,11 +73,12 @@
         "display",
         "download",
         "draft",
-        "during",
         "editor",
         "effort",
         "embedding",
         "empty",
+        "endpoint",
+        "endpoints",
         "ensure",
         "error",
         "estimated",
@@ -91,10 +99,11 @@
         "get",
         "global",
         "has",
+        "helpers",
         "history",
         "host",
+        "index",
         "info",
-        "init",
         "initialize",
         "input",
         "interrupt",
@@ -108,10 +117,12 @@
         "like",
         "list",
         "llmtrace",
+        "management",
         "mark",
         "memory",
         "message",
         "meta",
+        "method",
         "mode",
         "model",
         "module",
@@ -124,14 +135,17 @@
         "params",
         "payload",
         "platform",
+        "policy",
         "post",
         "preference",
         "preview",
         "project",
         "prompt",
         "prompts",
+        "provider",
         "proxy",
         "put",
+        "queries",
         "query",
         "raw",
         "read",
@@ -141,16 +155,20 @@
         "records",
         "references",
         "refresh",
+        "registration",
         "registries",
         "registry",
         "remember",
         "rename",
         "request",
         "reset",
+        "resolve",
         "resource",
         "response",
         "restore",
         "result",
+        "routed",
+        "routing",
         "save",
         "schema",
         "scope",
@@ -159,12 +177,15 @@
         "search",
         "select",
         "selection",
+        "server",
         "service",
         "set",
         "shared",
         "skills",
+        "snapshot",
         "source",
         "src",
+        "state",
         "status",
         "steer",
         "storage",
@@ -184,8 +205,10 @@
         "token",
         "tool",
         "tools",
+        "transport",
         "type",
         "types",
+        "unified",
         "update",
         "upload",
         "url",
@@ -198,8 +221,7 @@
         "voices",
         "webview",
         "window",
-        "workspace",
-        "xgraph"
+        "workspace"
       ]
     },
     {
@@ -1287,10 +1309,8 @@
       "tests": [
         "src/features/transport/hooks/useSseAttachTransport.test.ts",
         "src/features/transport/hooks/useWsTransport.test.ts",
-        "src/features/transport/lib/apiClientProxy.test.ts",
         "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
         "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
-        "src/features/transport/lib/transportClient.test.ts",
         "src/features/transport/lib/transportMode.test.ts",
         "src/features/transport/lib/wsClient.test.ts",
         "src/features/transport/lib/wsClientSingleton.test.ts",
@@ -1303,21 +1323,10 @@
         "abort",
         "access",
         "agent",
-        "agents",
         "api",
-        "archive",
-        "archives",
         "attach",
-        "automation",
-        "automations",
-        "awaiting",
         "boundary",
-        "build",
-        "chat",
-        "chats",
         "client",
-        "compact",
-        "config",
         "confirmed",
         "connect",
         "connection",
@@ -1326,81 +1335,47 @@
         "current",
         "delay",
         "delays",
-        "delete",
         "describe",
         "destroy",
         "detach",
         "detail",
         "disconnected",
         "dispatch",
-        "download",
         "during",
-        "ensure",
         "error",
         "event",
         "execute",
-        "executions",
         "executor",
         "executors",
-        "export",
         "failure",
         "features",
-        "feedback",
-        "file",
         "for",
         "frame",
         "from",
         "get",
-        "global",
         "handle",
         "hooks",
         "init",
-        "interrupt",
-        "jsonl",
         "key",
-        "learn",
-        "level",
         "lib",
         "listener",
-        "llmtrace",
-        "mark",
-        "memory",
-        "meta",
         "mode",
-        "model",
         "module",
         "normalize",
-        "open",
         "options",
-        "order",
-        "preview",
-        "provider",
-        "proxy",
-        "put",
         "query",
-        "raw",
         "read",
         "reason",
-        "record",
-        "records",
         "refresh",
         "register",
-        "remember",
-        "rename",
         "replay",
         "request",
         "resolve",
-        "resource",
-        "restore",
         "retry",
         "run",
         "runtime",
-        "save",
         "schedule",
         "scope",
-        "scopes",
-        "search",
-        "set",
         "shared",
         "singleton",
         "src",
@@ -1408,28 +1383,18 @@
         "start",
         "state",
         "status",
-        "steer",
         "stop",
         "storage",
         "stored",
         "stream",
-        "submit",
-        "teams",
         "test",
         "text",
         "timeout",
-        "toggle",
         "token",
-        "tool",
         "transport",
         "update",
-        "upload",
-        "url",
         "use",
-        "validate",
-        "viewport",
         "wait",
-        "workspace",
         "write",
         "xgraph"
       ]
@@ -2397,8 +2362,6 @@
     "src/features/transport/hooks/useSseAttachTransport.ts",
     "src/features/transport/hooks/useWsTransport.test.ts",
     "src/features/transport/hooks/useWsTransport.ts",
-    "src/features/transport/lib/apiClientProxy.test.ts",
-    "src/features/transport/lib/apiClientProxy.ts",
     "src/features/transport/lib/detachRunEvent.ts",
     "src/features/transport/lib/queryStreamExecutors.ts",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -2406,8 +2369,6 @@
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
     "src/features/transport/lib/queryStreamRuntime.ws.ts",
     "src/features/transport/lib/queryStreamShared.ts",
-    "src/features/transport/lib/transportClient.test.ts",
-    "src/features/transport/lib/transportClient.ts",
     "src/features/transport/lib/transportMode.test.ts",
     "src/features/transport/lib/transportMode.ts",
     "src/features/transport/lib/wsClient.test.ts",
@@ -2463,26 +2424,35 @@
     "src/features/workers/lib/workerDataCoordinator.ts",
     "src/features/workers/lib/workerListFormatter.test.ts",
     "src/features/workers/lib/workerListFormatter.ts",
-    "src/shared/api/accessTokenStorage.ts",
-    "src/shared/api/apiClient.test.ts",
-    "src/shared/api/apiClient.ts",
-    "src/shared/api/appAuth.test.ts",
-    "src/shared/api/appAuth.ts",
-    "src/shared/api/desktopFileSystem.test.ts",
-    "src/shared/api/desktopFileSystem.ts",
-    "src/shared/api/desktopHostBridge.ts",
-    "src/shared/api/desktopQueryContext.ts",
-    "src/shared/api/desktopScreenshot.test.ts",
-    "src/shared/api/desktopScreenshot.ts",
-    "src/shared/api/memoryTypes.ts",
-    "src/shared/api/platformError.test.ts",
-    "src/shared/api/platformError.ts",
     "src/shared/components/skeleton/index.tsx",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/components/text-count-up/index.tsx",
     "src/shared/config/featureFlags.test.ts",
     "src/shared/config/featureFlags.ts",
     "src/shared/config/runtimeConfig.ts",
+    "src/shared/data/accessTokenStorage.ts",
+    "src/shared/data/appAuth.test.ts",
+    "src/shared/data/appAuth.ts",
+    "src/shared/data/client.test.ts",
+    "src/shared/data/client.ts",
+    "src/shared/data/desktopFileSystem.test.ts",
+    "src/shared/data/desktopFileSystem.ts",
+    "src/shared/data/desktopHostBridge.ts",
+    "src/shared/data/desktopQueryContext.ts",
+    "src/shared/data/desktopScreenshot.test.ts",
+    "src/shared/data/desktopScreenshot.ts",
+    "src/shared/data/endpointRegistry.ts",
+    "src/shared/data/endpoints.ts",
+    "src/shared/data/index.ts",
+    "src/shared/data/memoryTypes.ts",
+    "src/shared/data/platformError.test.ts",
+    "src/shared/data/platformError.ts",
+    "src/shared/data/queries.ts",
+    "src/shared/data/routedClient.test.ts",
+    "src/shared/data/routedClient.ts",
+    "src/shared/data/serverState.ts",
+    "src/shared/data/transportClient.test.ts",
+    "src/shared/data/transportClient.ts",
     "src/shared/hooks/agentPage/useDesktopAction.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
     "src/shared/hooks/useDesktopRouteChange.ts",
@@ -2708,8 +2678,6 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": "transport",
     "src/features/transport/hooks/useWsTransport.test.ts": "transport",
     "src/features/transport/hooks/useWsTransport.ts": "transport",
-    "src/features/transport/lib/apiClientProxy.test.ts": "transport",
-    "src/features/transport/lib/apiClientProxy.ts": "transport",
     "src/features/transport/lib/detachRunEvent.ts": "transport",
     "src/features/transport/lib/queryStreamExecutors.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": "transport",
@@ -2717,8 +2685,6 @@
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.ws.ts": "transport",
     "src/features/transport/lib/queryStreamShared.ts": "transport",
-    "src/features/transport/lib/transportClient.test.ts": "transport",
-    "src/features/transport/lib/transportClient.ts": "transport",
     "src/features/transport/lib/transportMode.test.ts": "transport",
     "src/features/transport/lib/transportMode.ts": "transport",
     "src/features/transport/lib/wsClient.test.ts": "transport",
@@ -2774,26 +2740,35 @@
     "src/features/workers/lib/workerDataCoordinator.ts": "workers",
     "src/features/workers/lib/workerListFormatter.test.ts": "workers",
     "src/features/workers/lib/workerListFormatter.ts": "workers",
-    "src/shared/api/accessTokenStorage.ts": "api",
-    "src/shared/api/apiClient.test.ts": "api",
-    "src/shared/api/apiClient.ts": "api",
-    "src/shared/api/appAuth.test.ts": "api",
-    "src/shared/api/appAuth.ts": "api",
-    "src/shared/api/desktopFileSystem.test.ts": "api",
-    "src/shared/api/desktopFileSystem.ts": "api",
-    "src/shared/api/desktopHostBridge.ts": "api",
-    "src/shared/api/desktopQueryContext.ts": "api",
-    "src/shared/api/desktopScreenshot.test.ts": "api",
-    "src/shared/api/desktopScreenshot.ts": "api",
-    "src/shared/api/memoryTypes.ts": "api",
-    "src/shared/api/platformError.test.ts": "api",
-    "src/shared/api/platformError.ts": "api",
     "src/shared/components/skeleton/index.tsx": "components",
     "src/shared/components/text-count-up/index.test.ts": "components",
     "src/shared/components/text-count-up/index.tsx": "components",
     "src/shared/config/featureFlags.test.ts": "config",
     "src/shared/config/featureFlags.ts": "config",
     "src/shared/config/runtimeConfig.ts": "config",
+    "src/shared/data/accessTokenStorage.ts": "api",
+    "src/shared/data/appAuth.test.ts": "api",
+    "src/shared/data/appAuth.ts": "api",
+    "src/shared/data/client.test.ts": "api",
+    "src/shared/data/client.ts": "api",
+    "src/shared/data/desktopFileSystem.test.ts": "api",
+    "src/shared/data/desktopFileSystem.ts": "api",
+    "src/shared/data/desktopHostBridge.ts": "api",
+    "src/shared/data/desktopQueryContext.ts": "api",
+    "src/shared/data/desktopScreenshot.test.ts": "api",
+    "src/shared/data/desktopScreenshot.ts": "api",
+    "src/shared/data/endpointRegistry.ts": "api",
+    "src/shared/data/endpoints.ts": "api",
+    "src/shared/data/index.ts": "api",
+    "src/shared/data/memoryTypes.ts": "api",
+    "src/shared/data/platformError.test.ts": "api",
+    "src/shared/data/platformError.ts": "api",
+    "src/shared/data/queries.ts": "api",
+    "src/shared/data/routedClient.test.ts": "api",
+    "src/shared/data/routedClient.ts": "api",
+    "src/shared/data/serverState.ts": "api",
+    "src/shared/data/transportClient.test.ts": "api",
+    "src/shared/data/transportClient.ts": "api",
     "src/shared/hooks/agentPage/useDesktopAction.ts": "hooks",
     "src/shared/hooks/useDesktopRouteChange.test.ts": "hooks",
     "src/shared/hooks/useDesktopRouteChange.ts": "hooks",
@@ -3038,11 +3013,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       },
@@ -3091,6 +3061,11 @@
       }
     ],
     "and": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
       {
         "kind": "rule",
         "id": "agent-starts-from-index",
@@ -3215,11 +3190,6 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "archived": [
@@ -3234,11 +3204,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "are": [
@@ -3434,11 +3399,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       }
@@ -3448,11 +3408,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "availability": [
@@ -3487,11 +3442,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
+      }
+    ],
+    "aware": [
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "background": [
@@ -3664,11 +3621,6 @@
       }
     ],
     "boundary": [
-      {
-        "kind": "module",
-        "id": "api",
-        "path": ".doc/modules/api.json"
-      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -3865,11 +3817,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "voice",
         "path": ".doc/modules/voice.json"
       },
@@ -3917,6 +3864,11 @@
     "cache": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -3941,6 +3893,13 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "caching": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "calculate": [
@@ -4147,11 +4106,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "utils",
         "path": ".doc/modules/utils.json"
       },
@@ -4176,11 +4130,6 @@
         "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "module",
@@ -4279,6 +4228,13 @@
         "kind": "module",
         "id": "voice",
         "path": ".doc/modules/voice.json"
+      }
+    ],
+    "clients": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "clone": [
@@ -4421,11 +4377,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "utils",
         "path": ".doc/modules/utils.json"
       }
@@ -4519,11 +4470,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
       },
@@ -4562,11 +4508,6 @@
       }
     ],
     "confirmed": [
-      {
-        "kind": "module",
-        "id": "api",
-        "path": ".doc/modules/api.json"
-      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -5077,7 +5018,19 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "define": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "definition": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -5118,11 +5071,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "delta": [
@@ -5393,11 +5341,6 @@
         "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "downsample": [
@@ -5465,11 +5408,6 @@
       }
     ],
     "during": [
-      {
-        "kind": "module",
-        "id": "api",
-        "path": ".doc/modules/api.json"
-      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -5660,6 +5598,20 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "endpoint": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
+    "endpoints": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "ensure": [
       {
         "kind": "module",
@@ -5670,11 +5622,6 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "module",
@@ -5853,11 +5800,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "executor": [
@@ -5926,11 +5868,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "extension": [
@@ -6057,11 +5994,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "fence": [
@@ -6105,11 +6037,6 @@
         "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "files": [
@@ -6623,11 +6550,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "greeting": [
@@ -6716,6 +6638,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "helpers": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "hidden": [
@@ -6959,6 +6888,11 @@
       },
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "components",
         "path": ".doc/modules/components.json"
       },
@@ -7021,11 +6955,6 @@
       }
     ],
     "init": [
-      {
-        "kind": "module",
-        "id": "api",
-        "path": ".doc/modules/api.json"
-      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -7240,11 +7169,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "into": [
@@ -7359,11 +7283,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "keep": [
@@ -7523,11 +7442,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "length": [
@@ -7547,11 +7461,6 @@
         "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "lib": [
@@ -7725,11 +7634,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "load": [
@@ -7800,6 +7704,13 @@
         "path": ".doc/tasks/update-agent-protocol.json"
       }
     ],
+    "management": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "manager": [
       {
         "kind": "module",
@@ -7841,11 +7752,6 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "markdown": [
@@ -7932,11 +7838,6 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "rule",
@@ -8046,11 +7947,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
+      }
+    ],
+    "method": [
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "min": [
@@ -8135,11 +8038,6 @@
         "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "modify": [
@@ -8512,11 +8410,6 @@
         "kind": "module",
         "id": "hooks",
         "path": ".doc/modules/hooks.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "option": [
@@ -8583,11 +8476,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "module",
@@ -9010,6 +8898,13 @@
         "path": ".doc/flows/context-initialization.json"
       }
     ],
+    "policy": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "post": [
       {
         "kind": "module",
@@ -9094,11 +8989,6 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "process": [
@@ -9215,6 +9105,11 @@
     "provider": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -9222,11 +9117,6 @@
         "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "proxy": [
@@ -9234,11 +9124,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "published": [
@@ -9253,11 +9138,13 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
+      }
+    ],
+    "queries": [
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "query": [
@@ -9334,11 +9221,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "read": [
@@ -9486,11 +9368,6 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "records": [
@@ -9508,11 +9385,6 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "reduce": [
@@ -9577,6 +9449,13 @@
         "path": ".doc/modules/transport.json"
       }
     ],
+    "registration": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "registries": [
       {
         "kind": "module",
@@ -9627,11 +9506,6 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "remove": [
@@ -9646,11 +9520,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "render": [
@@ -9796,6 +9665,11 @@
     "resolve": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -9874,11 +9748,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "response": [
@@ -9898,11 +9767,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "result": [
@@ -9972,7 +9836,19 @@
         "path": ".doc/rules.json"
       }
     ],
+    "routed": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "routing": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -10108,11 +9984,6 @@
       },
       {
         "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
-      },
-      {
-        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       }
@@ -10170,11 +10041,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "screenshot": [
@@ -10196,11 +10062,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "module",
@@ -10303,6 +10164,13 @@
         "path": ".doc/modules/timeline.json"
       }
     ],
+    "server": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "service": [
       {
         "kind": "module",
@@ -10337,11 +10205,6 @@
         "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "settings": [
@@ -10533,6 +10396,11 @@
       }
     ],
     "snapshot": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -10759,6 +10627,11 @@
     "state": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -10862,11 +10735,6 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "stop": [
@@ -10992,11 +10860,6 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "submitted": [
@@ -11272,11 +11135,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "terminal": [
@@ -11639,11 +11497,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "token": [
@@ -11678,11 +11531,6 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "tools": [
@@ -11726,6 +11574,11 @@
       }
     ],
     "transport": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
       {
         "kind": "module",
         "id": "settings",
@@ -11862,6 +11715,13 @@
         "path": ".doc/modules/timeline.json"
       }
     ],
+    "unified": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "unless": [
       {
         "kind": "rule",
@@ -11937,11 +11797,6 @@
         "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "upsert": [
@@ -11981,11 +11836,6 @@
         "kind": "module",
         "id": "styles",
         "path": ".doc/modules/styles.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       },
       {
         "kind": "module",
@@ -12152,11 +12002,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "validation": [
@@ -12247,11 +12092,6 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "visible": [
@@ -12394,11 +12234,6 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
-      },
-      {
-        "kind": "module",
-        "id": "transport",
-        "path": ".doc/modules/transport.json"
       }
     ],
     "write": [
@@ -12423,11 +12258,6 @@
         "kind": "flow",
         "id": "context-initialization",
         "path": ".doc/flows/context-initialization.json"
-      },
-      {
-        "kind": "module",
-        "id": "api",
-        "path": ".doc/modules/api.json"
       },
       {
         "kind": "module",
@@ -12553,6 +12383,6 @@
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
-    "sourceFileCount": 402
+    "sourceFileCount": 407
   }
 }

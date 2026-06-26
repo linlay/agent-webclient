@@ -6,7 +6,7 @@ import {
   canUseDesktopScreenshotBridge,
   captureDesktopScreenshot as captureDesktopScreenshotFromBridge,
   desktopScreenshotToFile,
-} from "@/shared/api/desktopScreenshot";
+} from "@/shared/data/desktopScreenshot";
 import { t } from "@/shared/i18n";
 import {
   type ComposerAttachment,

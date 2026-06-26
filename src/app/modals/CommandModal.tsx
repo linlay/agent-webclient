@@ -15,7 +15,7 @@ import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import {
   markChatRead,
   searchGlobal,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 
 function clampIndex(index: number, length: number): number {

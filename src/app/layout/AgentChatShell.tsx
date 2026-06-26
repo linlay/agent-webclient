@@ -25,7 +25,7 @@ import {
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
-import { getAgent, getChats } from "@/features/transport/lib/apiClientProxy";
+import { getAgent, getChats } from "@/shared/data";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";

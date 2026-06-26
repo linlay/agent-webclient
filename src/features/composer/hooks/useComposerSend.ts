@@ -14,14 +14,14 @@ import {
   type CompactChatResponse,
   type QueryAccessLevel,
   type QueryModelOverride,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
   compactChat,
   interruptChat,
   learnChat,
   rememberChat,
   steerChat,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import {
   resolvePreferredAgentKey,
   resolvePreferredTeamId,

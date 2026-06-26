@@ -29,13 +29,14 @@ import {
   getAdminTools,
   putAdminAgentOrder,
   updateAgent,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
+import { dataEndpoints } from "@/shared/data/endpoints";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,
   AgentDetailResponse,
   AgentEditorOptionsResponse,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
   agentOrderPayload,
   filterAgentsPreservingOrder,
@@ -82,7 +83,7 @@ interface AgentConsoleProps {
   embedded?: boolean;
 }
 
-export const AGENT_CONSOLE_ADMIN_LIST_ROUTE = "/api/admin/agents";
+export const AGENT_CONSOLE_ADMIN_LIST_ROUTE = dataEndpoints.adminAgents.path;
 
 export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
   await putAdminAgentOrder({ order: agentOrderPayload(agents) });

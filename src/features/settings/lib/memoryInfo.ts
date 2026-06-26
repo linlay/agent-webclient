@@ -5,7 +5,7 @@ import type {
   MemoryScopeRecord,
   MemoryScopeRecordInput,
   MemoryScopeSummary,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import { toText } from "@/shared/utils/eventUtils";
 
 export interface MemoryAgentContext {

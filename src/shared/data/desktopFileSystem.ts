@@ -1,8 +1,8 @@
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
-} from "@/shared/api/desktopHostBridge";
-import { openAgentWorkspace } from "@/shared/api/apiClient";
+} from "@/shared/data/desktopHostBridge";
+import { openAgentWorkspace } from "@/shared/data/client";
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 

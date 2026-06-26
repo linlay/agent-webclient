@@ -1,6 +1,7 @@
 import type { AgentEvent } from "@/app/state/types";
-import { ApiError, type ApiResponse } from "@/shared/api/apiClient";
-import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
+import { ApiError, type ApiResponse } from "@/shared/data/client";
+import { dataEndpoints } from "@/shared/data/endpoints";
+import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
@@ -625,9 +626,9 @@ export class WsClient {
 		onDone?: (reason: string, lastSeq: number) => void,
 		signal?: AbortSignal,
 	): { requestId: string; abort: () => void } {
-		const requestId = createWsFrameId("wsstream");
-		const stream = this.stream({
-			type: "/api/attach",
+			const requestId = createWsFrameId("wsstream");
+			const stream = this.stream({
+				type: dataEndpoints.attach.path,
 			payload: {
 				runId,
 				agentKey,

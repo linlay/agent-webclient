@@ -53,7 +53,7 @@ import {
   markChatRead,
   searchGlobal,
   updateAgent,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import {
   isChatActiveRun,
@@ -63,9 +63,9 @@ import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import {
   openWorkspaceDirectory,
   selectProjectFolder,
-} from "@/shared/api/desktopFileSystem";
+} from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
-import type { AgentDetailResponse } from "@/shared/api/apiClient";
+import type { AgentDetailResponse } from "@/shared/data";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();

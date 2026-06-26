@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppDispatch } from "@/app/state/AppContext";
-import { downloadResource } from "@/shared/api/apiClient";
+import { downloadResource } from "@/shared/data";
 import {
 	buildAttachmentPreviewState,
 	canPreviewAttachment,

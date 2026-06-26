@@ -6,8 +6,8 @@ import {
   getAppAccessToken,
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
-} from '@/shared/api/appAuth';
-import { readStoredAccessToken } from '@/shared/api/accessTokenStorage';
+} from '@/shared/data/appAuth';
+import { readStoredAccessToken } from '@/shared/data/accessTokenStorage';
 import type {
   MemoryScopeDetail,
   MemoryContextPreviewResponse,
@@ -18,14 +18,20 @@ import type {
   MemoryScopeValidationResult,
   MemoryRecordDetail,
   MemoryRecordsPayload,
-} from '@/shared/api/memoryTypes';
+} from '@/shared/data/memoryTypes';
 import { t } from '@/shared/i18n';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
 import {
   formatPlatformErrorForDisplay,
   type PlatformError,
-} from "@/shared/api/platformError";
+} from "@/shared/data/platformError";
+import {
+  buildAttachPayload,
+  buildQueryPayload,
+  compactQueryModelOverride,
+  dataEndpoints,
+} from "@/shared/data/endpoints";
 
 export class ApiError extends Error {
   name = "ApiError";
@@ -941,7 +947,11 @@ export function createRequestId(prefix = "req"): string {
 }
 
 export function buildResourceUrl(file: string): string {
-  return `/api/resource?file=${encodeURIComponent(file)}`;
+  return `${dataEndpoints.resource.path}?file=${encodeURIComponent(file)}`;
+}
+
+function withQuery(path: string, query: string): string {
+  return query ? `${path}?${query}` : path;
 }
 
 export function getFileHistory(
@@ -959,7 +969,7 @@ export function getFileHistory(
     filePath: params.filePath,
     version: params.version,
   });
-  return requestJson<FileHistoryResponse>(`/api/file/history?${query}`, {
+  return requestJson<FileHistoryResponse>(withQuery(dataEndpoints.fileHistory.path, query), {
     method: "GET",
     signal: options.signal,
   });
@@ -1118,7 +1128,7 @@ export async function getChatRawJsonl(
   options: { signal?: AbortSignal } = {},
 ): Promise<string> {
   const query = toQueryString({ chatId });
-  const response = await requestWithAuth(`/api/chat/jsonl?${query}`, {
+  const response = await requestWithAuth(withQuery(dataEndpoints.chatJsonl.path, query), {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
@@ -1146,7 +1156,7 @@ export async function getChatLLMTraceRaw(
   options: { signal?: AbortSignal } = {},
 ): Promise<string> {
   const query = toQueryString({ file });
-  const response = await requestWithAuth(`/api/chat/llm-trace?${query}`, {
+  const response = await requestWithAuth(withQuery(dataEndpoints.chatLlmTrace.path, query), {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
@@ -1199,15 +1209,15 @@ export function extractUploadReferences(data: unknown): unknown[] {
 
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
   const query = toQueryString({ includeChats: options.includeChats, scope: options.scope });
-  return requestJson(query ? `/api/agents?${query}` : "/api/agents");
+  return requestJson(withQuery(dataEndpoints.agents.path, query));
 }
 
 export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
-  return requestJson<AdminAgentSummary[]>("/api/admin/agents");
+  return requestJson<AdminAgentSummary[]>(dataEndpoints.adminAgents.path);
 }
 
 export function getAdminRegistries(): Promise<ApiResponse<AdminRegistryListResponse>> {
-  return requestJson<AdminRegistryListResponse>("/api/admin/registries");
+  return requestJson<AdminRegistryListResponse>(dataEndpoints.adminRegistries.path);
 }
 
 export function getAdminRegistryDetail(
@@ -1216,14 +1226,14 @@ export function getAdminRegistryDetail(
 ): Promise<ApiResponse<AdminRegistryDetailResponse>> {
   const query = toQueryString({ category, file });
   return requestJson<AdminRegistryDetailResponse>(
-    query ? `/api/admin/registries/detail?${query}` : "/api/admin/registries/detail",
+    withQuery(dataEndpoints.adminRegistryDetail.path, query),
   );
 }
 
 export function saveAdminRegistryDetail(
   params: AdminRegistryDetailRequest,
 ): Promise<ApiResponse<AdminRegistryDetailResponse>> {
-  return requestJson<AdminRegistryDetailResponse>("/api/admin/registries/detail", {
+  return requestJson<AdminRegistryDetailResponse>(dataEndpoints.adminRegistryDetail.path, {
     method: "PUT",
     body: JSON.stringify(params),
   });
@@ -1232,30 +1242,30 @@ export function saveAdminRegistryDetail(
 export function validateAdminRegistry(
   params: AdminRegistryValidateRequest,
 ): Promise<ApiResponse<AdminRegistryValidateResponse>> {
-  return postJson<AdminRegistryValidateResponse>("/api/admin/registries/validate", params);
+  return postJson<AdminRegistryValidateResponse>(dataEndpoints.adminRegistryValidate.path, params);
 }
 
 export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
-  return requestJson<AgentOrderResponse>("/api/agents/order");
+  return requestJson<AgentOrderResponse>(dataEndpoints.agentOrder.path);
 }
 
 export function putAgentOrder(
   params: UpdateAgentOrderRequest,
 ): Promise<ApiResponse<AgentOrderResponse>> {
-  return requestJson<AgentOrderResponse>("/api/agents/order", {
+  return requestJson<AgentOrderResponse>(dataEndpoints.agentOrderUpdate.path, {
     method: "PUT",
     body: JSON.stringify(params ?? { order: [] }),
   });
 }
 
 export function getAdminAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
-  return requestJson<AgentOrderResponse>("/api/admin/agents/order");
+  return requestJson<AgentOrderResponse>(dataEndpoints.adminAgentOrder.path);
 }
 
 export function putAdminAgentOrder(
   params: UpdateAgentOrderRequest,
 ): Promise<ApiResponse<AgentOrderResponse>> {
-  return requestJson<AgentOrderResponse>("/api/admin/agents/order", {
+  return requestJson<AgentOrderResponse>(dataEndpoints.adminAgentOrderUpdate.path, {
     method: "PUT",
     body: JSON.stringify(params ?? { order: [] }),
   });
@@ -1263,46 +1273,46 @@ export function putAdminAgentOrder(
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
   const query = toQueryString({ agentKey });
-  return requestJson(query ? `/api/agent?${query}` : "/api/agent");
+  return requestJson(withQuery(dataEndpoints.agent.path, query));
 }
 
 export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {
   const query = toQueryString({ agentKey });
-  return requestJson<AdminAgentDetailResponse>(query ? `/api/admin/agents/detail?${query}` : "/api/admin/agents/detail");
+  return requestJson<AdminAgentDetailResponse>(withQuery(dataEndpoints.adminAgentDetail.path, query));
 }
 
 export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/admin/agents/create", params);
+  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentCreate.path, params);
 }
 
 export function updateAgent(
   params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>("/api/admin/agents/update", params);
+  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentUpdate.path, params);
 }
 
 export function updateAgentModelConfig(
   params: UpdateAgentModelConfigRequest,
 ): Promise<ApiResponse<AgentModelConfigResponse>> {
-  return postJson<AgentModelConfigResponse>("/api/agent/model-config", params);
+  return postJson<AgentModelConfigResponse>(dataEndpoints.agentModelConfig.path, params);
 }
 
 export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
-  return postJson<DeleteAgentResponse>("/api/admin/agents/delete", params);
+  return postJson<DeleteAgentResponse>(dataEndpoints.adminAgentDelete.path, params);
 }
 
 export function openAgentWorkspace(
   params: OpenAgentWorkspaceRequest,
 ): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
-  return postJson<OpenAgentWorkspaceResponse>("/api/agent/open-workspace", params);
+  return postJson<OpenAgentWorkspaceResponse>(dataEndpoints.agentOpenWorkspace.path, params);
 }
 
 export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
-  return requestJson<AgentEditorOptionsResponse>("/api/admin/agents/editor-options");
+  return requestJson<AgentEditorOptionsResponse>(dataEndpoints.adminAgentEditorOptions.path);
 }
 
 export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {
@@ -1311,29 +1321,29 @@ export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderMod
   if (normalizedAgentKey) params.set("agentKey", normalizedAgentKey);
   const query = params.toString();
   return requestJson<CoderModelOptionsResponse>(
-    query ? `/api/model-options?${query}` : "/api/model-options",
+    withQuery(dataEndpoints.modelOptions.path, query),
   );
 }
 
 export function getTeams(): Promise<ApiResponse> {
-  return requestJson("/api/teams");
+  return requestJson(dataEndpoints.teams.path);
 }
 
 export function getAdminSkills(tag?: string): Promise<ApiResponse> {
   const query = toQueryString({ tag });
-  return requestJson(query ? `/api/admin/skills?${query}` : "/api/admin/skills");
+  return requestJson(withQuery(dataEndpoints.adminSkills.path, query));
 }
 
 export function getAdminTools(
   options: { tag?: string; kind?: string } = {},
 ): Promise<ApiResponse> {
   const query = toQueryString({ tag: options.tag, kind: options.kind });
-  return requestJson(query ? `/api/admin/tools?${query}` : "/api/admin/tools");
+  return requestJson(withQuery(dataEndpoints.adminTools.path, query));
 }
 
 export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
   const query = toQueryString({ agentKey: options.agentKey });
-  return requestJson(query ? `/api/chats?${query}` : "/api/chats").then((response) => ({
+  return requestJson(withQuery(dataEndpoints.chats.path, query)).then((response) => ({
     ...response,
     data: normalizeChatSummariesPayload(response.data),
   }));
@@ -1347,13 +1357,13 @@ export function getChat(
     chatId,
     includeRawMessages: includeRawMessages ? "true" : undefined,
   });
-  return requestJson(`/api/chat?${query}`);
+  return requestJson(withQuery(dataEndpoints.chat.path, query));
 }
 
 export function archiveChats(
   params: ArchiveChatsRequest,
 ): Promise<ApiResponse<ArchiveChatsResponse>> {
-  return postJson<ArchiveChatsResponse>("/api/chat/archive", {
+  return postJson<ArchiveChatsResponse>(dataEndpoints.chatArchive.path, {
     chatIds: params.chatIds,
   });
 }
@@ -1366,7 +1376,7 @@ export function getArchives(
     limit: params.limit,
     offset: params.offset,
   });
-  return requestJson<ArchivesResponse>(query ? `/api/archives?${query}` : "/api/archives");
+  return requestJson<ArchivesResponse>(withQuery(dataEndpoints.archives.path, query));
 }
 
 export function getArchive(
@@ -1377,13 +1387,13 @@ export function getArchive(
     chatId,
     includeRawMessages: includeRawMessages ? "true" : undefined,
   });
-  return requestJson<ArchiveDetailResponse>(`/api/archive?${query}`);
+  return requestJson<ArchiveDetailResponse>(withQuery(dataEndpoints.archive.path, query));
 }
 
 export function searchArchives(
   params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
-  return postJson<ArchiveSearchResponse>("/api/archives/search", {
+  return postJson<ArchiveSearchResponse>(dataEndpoints.archivesSearch.path, {
     query: params.query,
     agentKey: params.agentKey,
     limit: params.limit,
@@ -1394,7 +1404,7 @@ export function deleteArchive(params: {
   chatId: string;
 }): Promise<ApiResponse<ArchiveDeleteResponse>> {
   const query = toQueryString({ chatId: params.chatId });
-  return requestJson<ArchiveDeleteResponse>(`/api/archive/delete?${query}`, {
+  return requestJson<ArchiveDeleteResponse>(withQuery(dataEndpoints.archiveDelete.path, query), {
     method: "POST",
     body: JSON.stringify({}),
   });
@@ -1403,14 +1413,14 @@ export function deleteArchive(params: {
 export function restoreArchives(params: {
   chatIds: string[];
 }): Promise<ApiResponse<ArchiveRestoreResponse>> {
-  return postJson<ArchiveRestoreResponse>("/api/archive/restore", {
+  return postJson<ArchiveRestoreResponse>(dataEndpoints.archiveRestore.path, {
     chatIds: params.chatIds,
   });
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
   const query = toQueryString({ viewportKey });
-  return requestJson(`/api/viewport?${query}`);
+  return requestJson(withQuery(dataEndpoints.viewport.path, query));
 }
 
 function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
@@ -1423,43 +1433,43 @@ function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
 export function getAutomations(
   params: AutomationListRequest = {},
 ): Promise<ApiResponse<AutomationListResponse>> {
-  return postJson<AutomationListResponse>("/api/automations", params);
+  return postJson<AutomationListResponse>(dataEndpoints.automations.path, params);
 }
 
 export function getAutomation(
   id: string,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-  return postJson<AutomationDetailResponse>("/api/automation", { id });
+  return postJson<AutomationDetailResponse>(dataEndpoints.automation.path, { id });
 }
 
 export function createAutomation(
   params: CreateAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-  return postJson<AutomationDetailResponse>("/api/automation/create", params);
+  return postJson<AutomationDetailResponse>(dataEndpoints.automationCreate.path, params);
 }
 
 export function updateAutomation(
   params: UpdateAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-  return postJson<AutomationDetailResponse>("/api/automation/update", params);
+  return postJson<AutomationDetailResponse>(dataEndpoints.automationUpdate.path, params);
 }
 
 export function deleteAutomation(
   params: DeleteAutomationRequest,
 ): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
-  return postJson<{ id: string; deleted: boolean }>("/api/automation/delete", params);
+  return postJson<{ id: string; deleted: boolean }>(dataEndpoints.automationDelete.path, params);
 }
 
 export function toggleAutomation(
   params: ToggleAutomationRequest,
 ): Promise<ApiResponse<AutomationDetailResponse>> {
-  return postJson<AutomationDetailResponse>("/api/automation/toggle", params);
+  return postJson<AutomationDetailResponse>(dataEndpoints.automationToggle.path, params);
 }
 
 export function getAutomationExecutions(
   params: AutomationExecutionsRequest,
 ): Promise<ApiResponse<AutomationExecutionListResponse>> {
-  return postJson<AutomationExecutionListResponse>("/api/automation/executions", params);
+  return postJson<AutomationExecutionListResponse>(dataEndpoints.automationExecutions.path, params);
 }
 
 export interface GetMemoryRecordsParams {
@@ -1488,7 +1498,7 @@ export function getMemoryRecords(
     cursor: params.cursor,
     chatId: params.chatId,
   });
-  return requestJson<MemoryRecordsPayload>(`/api/memory/record/list?${query}`);
+  return requestJson<MemoryRecordsPayload>(withQuery(dataEndpoints.memoryRecords.path, query));
 }
 
 export function getMemoryRecord(
@@ -1496,18 +1506,18 @@ export function getMemoryRecord(
   id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
   const query = toQueryString({ agentKey, recordId: id });
-  return requestJson<MemoryRecordDetail>(`/api/memory/record/detail?${query}`);
+  return requestJson<MemoryRecordDetail>(withQuery(dataEndpoints.memoryRecordDetail.path, query));
 }
 
 export function getMemoryScopes(
   agentKey: string,
 ): Promise<ApiResponse<MemoryScopesResponse>> {
   const query = toQueryString({ agentKey });
-  return requestJson<MemoryScopesResponse>(`/api/memory/scope/list?${query}`);
+  return requestJson<MemoryScopesResponse>(withQuery(dataEndpoints.memoryScopes.path, query));
 }
 
 export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
-  return requestJson<MemoryMeta>("/api/memory/meta");
+  return requestJson<MemoryMeta>(dataEndpoints.memoryMeta.path);
 }
 
 export function getMemoryScope(
@@ -1516,7 +1526,7 @@ export function getMemoryScope(
   scopeKey?: string,
 ): Promise<ApiResponse<MemoryScopeDetail>> {
   const query = toQueryString({ agentKey, scopeType, scopeKey });
-  return requestJson<MemoryScopeDetail>(`/api/memory/scope/detail?${query}`);
+  return requestJson<MemoryScopeDetail>(withQuery(dataEndpoints.memoryScope.path, query));
 }
 
 export function validateMemoryScope(
@@ -1524,7 +1534,7 @@ export function validateMemoryScope(
   scopeType: string,
   markdown: string,
 ): Promise<ApiResponse<MemoryScopeValidationResult>> {
-  return requestJson<MemoryScopeValidationResult>("/api/memory/scope/validate", {
+  return requestJson<MemoryScopeValidationResult>(dataEndpoints.memoryScopeValidate.path, {
     method: "POST",
     body: JSON.stringify({
       agentKey,
@@ -1538,7 +1548,7 @@ export function previewMemoryContext(params: {
   chatId: string;
   message: string;
 }): Promise<ApiResponse<MemoryContextPreviewResponse>> {
-  return requestJson<MemoryContextPreviewResponse>("/api/memory/context-preview", {
+  return requestJson<MemoryContextPreviewResponse>(dataEndpoints.memoryContextPreview.path, {
     method: "POST",
     body: JSON.stringify({
       chatId: params.chatId,
@@ -1550,26 +1560,26 @@ export function previewMemoryContext(params: {
 export function saveMemoryScope(
   payload: MemoryScopeSavePayload,
 ): Promise<ApiResponse<MemoryScopeSaveResult>> {
-  return requestJson<MemoryScopeSaveResult>("/api/memory/scope/save", {
+  return requestJson<MemoryScopeSaveResult>(dataEndpoints.memoryScopeSave.path, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function getVoiceCapabilities(): Promise<ApiResponse> {
-  return requestJson("/api/voice/capabilities");
+  return requestJson(dataEndpoints.voiceCapabilities.path);
 }
 
 export async function getVoiceCapabilitiesFlexible(): Promise<VoiceCapabilities | null> {
-  const response = await requestWithAuth('/api/voice/capabilities');
+  const response = await requestWithAuth(dataEndpoints.voiceCapabilities.path);
   return readVoiceCapabilitiesResponse(response);
 }
 
 export function getVoiceVoices(): Promise<ApiResponse> {
-  return requestJson("/api/voice/tts/voices");
+  return requestJson(dataEndpoints.voiceVoices.path);
 }
 
-export async function getVoiceVoicesFlexible(path = '/api/voice/tts/voices'): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
+export async function getVoiceVoicesFlexible(path = dataEndpoints.voiceVoices.path): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
   const response = await requestWithAuth(path);
   return readVoiceVoicesResponse(response);
 }
@@ -1580,7 +1590,7 @@ export function submitTool(params: {
   toolId: string;
   params: Record<string, unknown>;
 }): Promise<ApiResponse> {
-  return requestJson("/api/submit", {
+  return requestJson(dataEndpoints.submit.path, {
     method: "POST",
     body: JSON.stringify({
       runId: params.runId,
@@ -1599,7 +1609,7 @@ export function submitAwaiting(params: {
   submitId?: string;
   params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
-  return requestJson("/api/submit", {
+  return requestJson(dataEndpoints.submit.path, {
     method: "POST",
     body: JSON.stringify({
       chatId: params.chatId,
@@ -1657,7 +1667,7 @@ export async function uploadFile(
   }
   formData.append("file", params.file, filename);
 
-  return requestJson("/api/upload", {
+  return requestJson(dataEndpoints.upload.path, {
     method: "POST",
     body: formData,
     signal: params.signal,
@@ -1740,7 +1750,7 @@ export interface MarkChatReadParams {
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
-  return requestJson("/api/read", {
+  return requestJson(dataEndpoints.read.path, {
     method: "POST",
     body: JSON.stringify({
       chatId: params.chatId,
@@ -1758,7 +1768,7 @@ export interface FeedbackParams {
 }
 
 export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
-  return requestJson("/api/feedback", {
+  return requestJson(dataEndpoints.feedback.path, {
     method: "POST",
     body: JSON.stringify({
       chatId: params.chatId,
@@ -1771,7 +1781,7 @@ export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
   const query = toQueryString({ chatId: params.chatId });
-  return requestJson(`/api/chat/delete?${query}`, {
+  return requestJson(withQuery(dataEndpoints.chatDelete.path, query), {
     method: "POST",
     body: JSON.stringify({}),
   });
@@ -1781,7 +1791,7 @@ export function renameChat(
   params: RenameChatRequest,
 ): Promise<ApiResponse<RenameChatResponse>> {
   const query = toQueryString({ chatId: params.chatId });
-  return requestJson<RenameChatResponse>(`/api/chat/rename?${query}`, {
+  return requestJson<RenameChatResponse>(withQuery(dataEndpoints.chatRename.path, query), {
     method: "POST",
     body: JSON.stringify({ chatName: params.chatName }),
   });
@@ -1816,7 +1826,7 @@ export interface GlobalSearchResponse {
 export function searchGlobal(
   params: GlobalSearchParams,
 ): Promise<ApiResponse<GlobalSearchResponse>> {
-  return requestJson("/api/search", {
+  return requestJson(dataEndpoints.search.path, {
     method: "POST",
     body: JSON.stringify({
       query: params.query,
@@ -1844,7 +1854,7 @@ function filenameFromContentDisposition(value: string | null): string {
 }
 
 export async function downloadChatExport(chatId: string): Promise<void> {
-  const path = `/api/chat-export?chatId=${encodeURIComponent(chatId)}`;
+  const path = `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(chatId)}`;
   const response = await fetch(path, {
     method: "GET",
     headers: buildAuthHeaders({}, { includeJsonContentType: false }),
@@ -1870,7 +1880,7 @@ export async function downloadChatExport(chatId: string): Promise<void> {
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson("/api/interrupt", {
+  return requestJson(dataEndpoints.interrupt.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1886,7 +1896,7 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 export function updateAccessLevel(
   params: AccessLevelUpdateParams,
 ): Promise<ApiResponse<AccessLevelUpdateResponse>> {
-  return requestJson("/api/access-level", {
+  return requestJson(dataEndpoints.accessLevelUpdate.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1899,7 +1909,7 @@ export function updateAccessLevel(
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson("/api/steer", {
+  return requestJson(dataEndpoints.steer.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1916,7 +1926,7 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
 export function rememberChat(
   params: BackgroundCommandParams,
 ): Promise<ApiResponse> {
-  return requestJson("/api/remember", {
+  return requestJson(dataEndpoints.remember.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1928,7 +1938,7 @@ export function rememberChat(
 export function learnChat(
   params: BackgroundCommandParams,
 ): Promise<ApiResponse> {
-  return requestJson("/api/learn", {
+  return requestJson(dataEndpoints.learn.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1940,7 +1950,7 @@ export function learnChat(
 export function compactChat(
   params: BackgroundCommandParams,
 ): Promise<ApiResponse<CompactChatResponse>> {
-  return requestJson("/api/compact", {
+  return requestJson(dataEndpoints.compact.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,
@@ -1978,74 +1988,30 @@ export interface AttachStreamParams {
 export function createQueryStream(
   options: QueryStreamParams,
 ): Promise<Response> {
-  const body: Record<string, unknown> = {
-    requestId: options.requestId,
-    message: options.message,
-  };
-
-  if (String(options.agentMode || "").trim().toUpperCase() === "CODER") {
-    body.planningMode = options.planningMode === true;
-  }
-
-  if (options.agentKey) body.agentKey = options.agentKey;
-  if (options.teamId) body.teamId = options.teamId;
-  if (options.chatId) body.chatId = options.chatId;
-  if (options.accessLevel) body.accessLevel = options.accessLevel;
-  const model = compactQueryModelOverride(options.model);
-  if (model) body.model = model;
-  if (options.role) body.role = options.role;
-  if (options.references !== undefined) body.references = options.references;
-  if (options.params !== undefined) body.params = options.params;
-  if (options.scene) body.scene = options.scene;
-  if (options.stream !== undefined) body.stream = options.stream;
-
-  return requestWithAuth('/api/query', {
+  return requestWithAuth(dataEndpoints.query.path, {
     method: 'POST',
     headers: {
       Accept: 'text/event-stream',
       'Cache-Control': 'no-cache',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(buildQueryPayload(options)),
     signal: options.signal,
   });
 }
 
-export function compactQueryModelOverride(
-  model: QueryModelOverride | undefined,
-): QueryModelOverride | null {
-  if (!model) {
-    return null;
-  }
-  const key = String(model.key || "").trim();
-  const reasoningEffort = String(model.reasoningEffort || "").trim() as
-    | QueryReasoningEffort
-    | "";
-  const serviceTier = String(model.serviceTier || "").trim().toUpperCase() as
-    | QueryServiceTier
-    | "";
-  if (!key && !reasoningEffort && (!serviceTier || serviceTier === "STANDARD")) {
-    return null;
-  }
-  return {
-    ...(key ? { key } : {}),
-    ...(reasoningEffort ? { reasoningEffort } : {}),
-    ...(serviceTier && serviceTier !== "STANDARD" ? { serviceTier } : {}),
-  };
-}
+export { compactQueryModelOverride };
 
 export function createAttachStream(
   options: AttachStreamParams,
 ): Promise<Response> {
-  const runId = String(options.runId || '').trim();
-  const agentKey = String(options.agentKey || '').trim();
-  const lastSeq = Number(options.lastSeq ?? 0);
+  const { runId, agentKey, lastSeq } = buildAttachPayload(options);
   const query = new URLSearchParams({
     runId,
     agentKey,
-    lastSeq: String(Number.isFinite(lastSeq) && lastSeq >= 0 ? lastSeq : 0),
+    lastSeq: String(lastSeq),
   });
 
-  return requestWithAuth(`/api/attach?${query.toString()}`, {
+  return requestWithAuth(`${dataEndpoints.attach.path}?${query.toString()}`, {
     method: 'GET',
     headers: {
       Accept: 'text/event-stream',

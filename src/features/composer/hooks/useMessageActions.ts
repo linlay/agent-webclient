@@ -9,7 +9,7 @@ import {
   type QueryAccessLevel,
   type QueryModelOverride,
   setAccessToken,
-} from '@/shared/api/apiClient';
+} from '@/shared/data';
 import { parseLeadingAgentMention } from '@/features/composer/lib/mentionParser';
 import { resolveMentionCandidatesFromState } from '@/features/composer/lib/mentionCandidates';
 import {
@@ -21,7 +21,7 @@ import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } fro
 import { dispatchDetachRunEvent, type DetachRunEventDetail } from '@/features/transport/lib/detachRunEvent';
 import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
 import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
-import { formatPlatformErrorForDisplay } from '@/shared/api/platformError';
+import { formatPlatformErrorForDisplay } from '@/shared/data/platformError';
 import {
   createLiveQuerySession,
   snapshotConversationState,

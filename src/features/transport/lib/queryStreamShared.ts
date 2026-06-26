@@ -5,8 +5,8 @@ import {
   ApiError,
   type AttachStreamParams,
   type QueryStreamParams,
-} from "@/shared/api/apiClient";
-import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
+} from "@/shared/data";
+import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 
 export interface ExecuteQueryStreamOptions {
   params: QueryStreamParams;

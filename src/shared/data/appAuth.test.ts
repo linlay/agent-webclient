@@ -3,7 +3,7 @@ import {
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   getAppAccessToken,
   refreshAppAccessToken,
-} from '@/shared/api/appAuth';
+} from '@/shared/data/appAuth';
 
 type MockStorage = {
   getItem: (key: string) => string | null;

@@ -1,8 +1,9 @@
 import {
-	compactQueryModelOverride,
+	buildQueryPayload,
+	dataEndpoints,
 	ensureAccessToken,
 	getCurrentAccessToken,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
 	isWsConnectionFailure,
 	toWsConnectionError,
@@ -145,28 +146,9 @@ export async function executeQueryStreamWs(
 			};
 
 			const startStream = (client: QueryWsClient) => {
-				const model = compactQueryModelOverride(params.model);
-				client.stream({
-					type: "/api/query",
-					payload: {
-						requestId: params.requestId,
-						...(String(params.agentMode || "").trim().toUpperCase() === "CODER"
-							? { planningMode: params.planningMode === true }
-							: {}),
-						message: params.message,
-						...(params.agentKey ? { agentKey: params.agentKey } : {}),
-						...(params.teamId ? { teamId: params.teamId } : {}),
-						...(params.chatId ? { chatId: params.chatId } : {}),
-						...(params.accessLevel ? { accessLevel: params.accessLevel } : {}),
-						...(model ? { model } : {}),
-						...(params.role ? { role: params.role } : {}),
-						...(params.references !== undefined
-							? { references: params.references }
-							: {}),
-						...(params.params !== undefined ? { params: params.params } : {}),
-						...(params.scene ? { scene: params.scene } : {}),
-						...(params.stream !== undefined ? { stream: params.stream } : {}),
-					},
+					client.stream({
+						type: dataEndpoints.query.path,
+						payload: buildQueryPayload(params),
 					signal: abortController.signal,
 					onEvent: (event) => {
 						receivedServerActivity = true;

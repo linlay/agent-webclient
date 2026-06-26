@@ -1,8 +1,8 @@
-import type { ApiResponse } from "@/shared/api/apiClient";
+import type { ApiResponse } from "@/shared/data/client";
 import {
 	ensureAccessToken,
 	getCurrentAccessToken,
-} from "@/shared/api/apiClient";
+} from "@/shared/data/client";
 import { isWsTransportError } from "@/features/transport/lib/wsClient";
 import {
 	getWsClient,

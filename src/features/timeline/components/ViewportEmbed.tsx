@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { getViewport } from "@/features/transport/lib/apiClientProxy";
+import { getViewport } from "@/shared/data";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 
 interface ViewportEmbedProps {

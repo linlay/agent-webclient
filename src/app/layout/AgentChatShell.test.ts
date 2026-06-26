@@ -59,7 +59,7 @@ jest.mock("@/app/layout/sidebar/SidebarHistorySection", () => ({
       : null,
 }));
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
   getAgent: jest.fn(() =>
     Promise.resolve({
       data: { key: "demo-agent", name: "Demo Agent", role: "Worker" },
@@ -133,7 +133,7 @@ const { useAppRuntimes } = jest.requireMock(
 };
 
 const { getAgent } = jest.requireMock(
-  "@/features/transport/lib/apiClientProxy",
+  "@/shared/data",
 ) as {
   getAgent: jest.Mock;
 };

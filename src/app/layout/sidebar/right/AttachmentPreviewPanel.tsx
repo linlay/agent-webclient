@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { downloadResource, getResourceText } from "@/shared/api/apiClient";
+import { downloadResource, getResourceText } from "@/shared/data";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";

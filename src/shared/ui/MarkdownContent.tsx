@@ -5,7 +5,7 @@ import React, {
 } from "react";
 import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
-import { buildResourceUrl, downloadResource } from "@/shared/api/apiClient";
+import { buildResourceUrl, downloadResource } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 

@@ -101,10 +101,8 @@
     "src/features/tools/lib/planDecision.test.ts",
     "src/features/transport/hooks/useSseAttachTransport.test.ts",
     "src/features/transport/hooks/useWsTransport.test.ts",
-    "src/features/transport/lib/apiClientProxy.test.ts",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
-    "src/features/transport/lib/transportClient.test.ts",
     "src/features/transport/lib/transportMode.test.ts",
     "src/features/transport/lib/wsClient.test.ts",
     "src/features/transport/lib/wsClientSingleton.test.ts",
@@ -125,13 +123,15 @@
     "src/features/workers/lib/workerConversationFormatter.test.ts",
     "src/features/workers/lib/workerDataCoordinator.test.ts",
     "src/features/workers/lib/workerListFormatter.test.ts",
-    "src/shared/api/apiClient.test.ts",
-    "src/shared/api/appAuth.test.ts",
-    "src/shared/api/desktopFileSystem.test.ts",
-    "src/shared/api/desktopScreenshot.test.ts",
-    "src/shared/api/platformError.test.ts",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/config/featureFlags.test.ts",
+    "src/shared/data/appAuth.test.ts",
+    "src/shared/data/client.test.ts",
+    "src/shared/data/desktopFileSystem.test.ts",
+    "src/shared/data/desktopScreenshot.test.ts",
+    "src/shared/data/platformError.test.ts",
+    "src/shared/data/routedClient.test.ts",
+    "src/shared/data/transportClient.test.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
     "src/shared/i18n/provider.test.tsx",
     "src/shared/i18n/runtime.test.ts",
@@ -417,8 +417,6 @@
     "src/features/transport/hooks/useSseAttachTransport.ts",
     "src/features/transport/hooks/useWsTransport.test.ts",
     "src/features/transport/hooks/useWsTransport.ts",
-    "src/features/transport/lib/apiClientProxy.test.ts",
-    "src/features/transport/lib/apiClientProxy.ts",
     "src/features/transport/lib/detachRunEvent.ts",
     "src/features/transport/lib/queryStreamExecutors.ts",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -426,8 +424,6 @@
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
     "src/features/transport/lib/queryStreamRuntime.ws.ts",
     "src/features/transport/lib/queryStreamShared.ts",
-    "src/features/transport/lib/transportClient.test.ts",
-    "src/features/transport/lib/transportClient.ts",
     "src/features/transport/lib/transportMode.test.ts",
     "src/features/transport/lib/transportMode.ts",
     "src/features/transport/lib/wsClient.test.ts",
@@ -483,26 +479,35 @@
     "src/features/workers/lib/workerDataCoordinator.ts",
     "src/features/workers/lib/workerListFormatter.test.ts",
     "src/features/workers/lib/workerListFormatter.ts",
-    "src/shared/api/accessTokenStorage.ts",
-    "src/shared/api/apiClient.test.ts",
-    "src/shared/api/apiClient.ts",
-    "src/shared/api/appAuth.test.ts",
-    "src/shared/api/appAuth.ts",
-    "src/shared/api/desktopFileSystem.test.ts",
-    "src/shared/api/desktopFileSystem.ts",
-    "src/shared/api/desktopHostBridge.ts",
-    "src/shared/api/desktopQueryContext.ts",
-    "src/shared/api/desktopScreenshot.test.ts",
-    "src/shared/api/desktopScreenshot.ts",
-    "src/shared/api/memoryTypes.ts",
-    "src/shared/api/platformError.test.ts",
-    "src/shared/api/platformError.ts",
     "src/shared/components/skeleton/index.tsx",
     "src/shared/components/text-count-up/index.test.ts",
     "src/shared/components/text-count-up/index.tsx",
     "src/shared/config/featureFlags.test.ts",
     "src/shared/config/featureFlags.ts",
     "src/shared/config/runtimeConfig.ts",
+    "src/shared/data/accessTokenStorage.ts",
+    "src/shared/data/appAuth.test.ts",
+    "src/shared/data/appAuth.ts",
+    "src/shared/data/client.test.ts",
+    "src/shared/data/client.ts",
+    "src/shared/data/desktopFileSystem.test.ts",
+    "src/shared/data/desktopFileSystem.ts",
+    "src/shared/data/desktopHostBridge.ts",
+    "src/shared/data/desktopQueryContext.ts",
+    "src/shared/data/desktopScreenshot.test.ts",
+    "src/shared/data/desktopScreenshot.ts",
+    "src/shared/data/endpointRegistry.ts",
+    "src/shared/data/endpoints.ts",
+    "src/shared/data/index.ts",
+    "src/shared/data/memoryTypes.ts",
+    "src/shared/data/platformError.test.ts",
+    "src/shared/data/platformError.ts",
+    "src/shared/data/queries.ts",
+    "src/shared/data/routedClient.test.ts",
+    "src/shared/data/routedClient.ts",
+    "src/shared/data/serverState.ts",
+    "src/shared/data/transportClient.test.ts",
+    "src/shared/data/transportClient.ts",
     "src/shared/hooks/agentPage/useDesktopAction.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
     "src/shared/hooks/useDesktopRouteChange.ts",
@@ -1903,14 +1908,6 @@
                     "type": "directory",
                     "children": [
                       {
-                        "name": "apiClientProxy.test.ts",
-                        "type": "file"
-                      },
-                      {
-                        "name": "apiClientProxy.ts",
-                        "type": "file"
-                      },
-                      {
                         "name": "detachRunEvent.ts",
                         "type": "file"
                       },
@@ -1936,14 +1933,6 @@
                       },
                       {
                         "name": "queryStreamShared.ts",
-                        "type": "file"
-                      },
-                      {
-                        "name": "transportClient.test.ts",
-                        "type": "file"
-                      },
-                      {
-                        "name": "transportClient.ts",
                         "type": "file"
                       },
                       {
@@ -2219,68 +2208,6 @@
             "type": "directory",
             "children": [
               {
-                "name": "api",
-                "type": "directory",
-                "children": [
-                  {
-                    "name": "accessTokenStorage.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "apiClient.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "apiClient.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "appAuth.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "appAuth.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopFileSystem.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopFileSystem.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopHostBridge.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopQueryContext.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopScreenshot.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "desktopScreenshot.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "memoryTypes.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "platformError.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "platformError.ts",
-                    "type": "file"
-                  }
-                ]
-              },
-              {
                 "name": "components",
                 "type": "directory",
                 "children": [
@@ -2324,6 +2251,104 @@
                   },
                   {
                     "name": "runtimeConfig.ts",
+                    "type": "file"
+                  }
+                ]
+              },
+              {
+                "name": "data",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "accessTokenStorage.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "appAuth.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "appAuth.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "client.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "client.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopFileSystem.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopFileSystem.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopHostBridge.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopQueryContext.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopScreenshot.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "desktopScreenshot.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "endpointRegistry.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "endpoints.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "index.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "memoryTypes.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "platformError.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "queries.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "routedClient.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "routedClient.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "serverState.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "transportClient.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "transportClient.ts",
                     "type": "file"
                   }
                 ]
@@ -2622,20 +2647,29 @@
   },
   "moduleOwnership": {
     "api": [
-      "src/shared/api/accessTokenStorage.ts",
-      "src/shared/api/apiClient.test.ts",
-      "src/shared/api/apiClient.ts",
-      "src/shared/api/appAuth.test.ts",
-      "src/shared/api/appAuth.ts",
-      "src/shared/api/desktopFileSystem.test.ts",
-      "src/shared/api/desktopFileSystem.ts",
-      "src/shared/api/desktopHostBridge.ts",
-      "src/shared/api/desktopQueryContext.ts",
-      "src/shared/api/desktopScreenshot.test.ts",
-      "src/shared/api/desktopScreenshot.ts",
-      "src/shared/api/memoryTypes.ts",
-      "src/shared/api/platformError.test.ts",
-      "src/shared/api/platformError.ts"
+      "src/shared/data/accessTokenStorage.ts",
+      "src/shared/data/appAuth.test.ts",
+      "src/shared/data/appAuth.ts",
+      "src/shared/data/client.test.ts",
+      "src/shared/data/client.ts",
+      "src/shared/data/desktopFileSystem.test.ts",
+      "src/shared/data/desktopFileSystem.ts",
+      "src/shared/data/desktopHostBridge.ts",
+      "src/shared/data/desktopQueryContext.ts",
+      "src/shared/data/desktopScreenshot.test.ts",
+      "src/shared/data/desktopScreenshot.ts",
+      "src/shared/data/endpointRegistry.ts",
+      "src/shared/data/endpoints.ts",
+      "src/shared/data/index.ts",
+      "src/shared/data/memoryTypes.ts",
+      "src/shared/data/platformError.test.ts",
+      "src/shared/data/platformError.ts",
+      "src/shared/data/queries.ts",
+      "src/shared/data/routedClient.test.ts",
+      "src/shared/data/routedClient.ts",
+      "src/shared/data/serverState.ts",
+      "src/shared/data/transportClient.test.ts",
+      "src/shared/data/transportClient.ts"
     ],
     "artifacts": [
       "src/features/artifacts/components/ArtifactPanel.test.ts",
@@ -2864,8 +2898,6 @@
       "src/features/transport/hooks/useSseAttachTransport.ts",
       "src/features/transport/hooks/useWsTransport.test.ts",
       "src/features/transport/hooks/useWsTransport.ts",
-      "src/features/transport/lib/apiClientProxy.test.ts",
-      "src/features/transport/lib/apiClientProxy.ts",
       "src/features/transport/lib/detachRunEvent.ts",
       "src/features/transport/lib/queryStreamExecutors.ts",
       "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -2873,8 +2905,6 @@
       "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
       "src/features/transport/lib/queryStreamRuntime.ws.ts",
       "src/features/transport/lib/queryStreamShared.ts",
-      "src/features/transport/lib/transportClient.test.ts",
-      "src/features/transport/lib/transportClient.ts",
       "src/features/transport/lib/transportMode.test.ts",
       "src/features/transport/lib/transportMode.ts",
       "src/features/transport/lib/wsClient.test.ts",
@@ -3138,8 +3168,6 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": "transport",
     "src/features/transport/hooks/useWsTransport.test.ts": "transport",
     "src/features/transport/hooks/useWsTransport.ts": "transport",
-    "src/features/transport/lib/apiClientProxy.test.ts": "transport",
-    "src/features/transport/lib/apiClientProxy.ts": "transport",
     "src/features/transport/lib/detachRunEvent.ts": "transport",
     "src/features/transport/lib/queryStreamExecutors.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": "transport",
@@ -3147,8 +3175,6 @@
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.ws.ts": "transport",
     "src/features/transport/lib/queryStreamShared.ts": "transport",
-    "src/features/transport/lib/transportClient.test.ts": "transport",
-    "src/features/transport/lib/transportClient.ts": "transport",
     "src/features/transport/lib/transportMode.test.ts": "transport",
     "src/features/transport/lib/transportMode.ts": "transport",
     "src/features/transport/lib/wsClient.test.ts": "transport",
@@ -3204,26 +3230,35 @@
     "src/features/workers/lib/workerDataCoordinator.ts": "workers",
     "src/features/workers/lib/workerListFormatter.test.ts": "workers",
     "src/features/workers/lib/workerListFormatter.ts": "workers",
-    "src/shared/api/accessTokenStorage.ts": "api",
-    "src/shared/api/apiClient.test.ts": "api",
-    "src/shared/api/apiClient.ts": "api",
-    "src/shared/api/appAuth.test.ts": "api",
-    "src/shared/api/appAuth.ts": "api",
-    "src/shared/api/desktopFileSystem.test.ts": "api",
-    "src/shared/api/desktopFileSystem.ts": "api",
-    "src/shared/api/desktopHostBridge.ts": "api",
-    "src/shared/api/desktopQueryContext.ts": "api",
-    "src/shared/api/desktopScreenshot.test.ts": "api",
-    "src/shared/api/desktopScreenshot.ts": "api",
-    "src/shared/api/memoryTypes.ts": "api",
-    "src/shared/api/platformError.test.ts": "api",
-    "src/shared/api/platformError.ts": "api",
     "src/shared/components/skeleton/index.tsx": "components",
     "src/shared/components/text-count-up/index.test.ts": "components",
     "src/shared/components/text-count-up/index.tsx": "components",
     "src/shared/config/featureFlags.test.ts": "config",
     "src/shared/config/featureFlags.ts": "config",
     "src/shared/config/runtimeConfig.ts": "config",
+    "src/shared/data/accessTokenStorage.ts": "api",
+    "src/shared/data/appAuth.test.ts": "api",
+    "src/shared/data/appAuth.ts": "api",
+    "src/shared/data/client.test.ts": "api",
+    "src/shared/data/client.ts": "api",
+    "src/shared/data/desktopFileSystem.test.ts": "api",
+    "src/shared/data/desktopFileSystem.ts": "api",
+    "src/shared/data/desktopHostBridge.ts": "api",
+    "src/shared/data/desktopQueryContext.ts": "api",
+    "src/shared/data/desktopScreenshot.test.ts": "api",
+    "src/shared/data/desktopScreenshot.ts": "api",
+    "src/shared/data/endpointRegistry.ts": "api",
+    "src/shared/data/endpoints.ts": "api",
+    "src/shared/data/index.ts": "api",
+    "src/shared/data/memoryTypes.ts": "api",
+    "src/shared/data/platformError.test.ts": "api",
+    "src/shared/data/platformError.ts": "api",
+    "src/shared/data/queries.ts": "api",
+    "src/shared/data/routedClient.test.ts": "api",
+    "src/shared/data/routedClient.ts": "api",
+    "src/shared/data/serverState.ts": "api",
+    "src/shared/data/transportClient.test.ts": "api",
+    "src/shared/data/transportClient.ts": "api",
     "src/shared/hooks/agentPage/useDesktopAction.ts": "hooks",
     "src/shared/hooks/useDesktopRouteChange.test.ts": "hooks",
     "src/shared/hooks/useDesktopRouteChange.ts": "hooks",
@@ -4403,6 +4438,7 @@
     ],
     "src/features/tools/components/buildin/approval-dialog/state.test.ts": null,
     "src/features/tools/components/buildin/approval-dialog/state.ts": [
+      "ApprovalDialogDecision",
       "buildApprovalSubmitParams",
       "buildPartialApprovalSubmitParams",
       "resolveApprovalOptions"
@@ -4541,69 +4577,6 @@
       "registerDetachRunListener",
       "useWsTransport"
     ],
-    "src/features/transport/lib/apiClientProxy.test.ts": null,
-    "src/features/transport/lib/apiClientProxy.ts": [
-      "archiveChats",
-      "buildResourceUrl",
-      "compactChat",
-      "createAgent",
-      "createAutomation",
-      "createQueryStream",
-      "deleteAgent",
-      "deleteArchive",
-      "deleteAutomation",
-      "deleteChat",
-      "downloadChatExport",
-      "downloadResource",
-      "ensureAccessToken",
-      "getAgent",
-      "getAgentOrder",
-      "getAgents",
-      "getArchive",
-      "getArchives",
-      "getAutomation",
-      "getAutomationExecutions",
-      "getAutomations",
-      "getChat",
-      "getChatLLMTraceRaw",
-      "getChatRawJsonl",
-      "getChats",
-      "getCurrentAccessToken",
-      "getMemoryMeta",
-      "getMemoryRecord",
-      "getMemoryRecords",
-      "getMemoryScope",
-      "getMemoryScopes",
-      "getModelOptions",
-      "getResourceText",
-      "getTeams",
-      "getViewport",
-      "interruptChat",
-      "learnChat",
-      "markChatRead",
-      "openAgentWorkspace",
-      "previewMemoryContext",
-      "putAgentOrder",
-      "rememberChat",
-      "renameChat",
-      "restoreArchives",
-      "saveMemoryScope",
-      "searchArchives",
-      "searchGlobal",
-      "setAccessToken",
-      "setTransportModeProvider",
-      "steerChat",
-      "submitAwaiting",
-      "submitFeedback",
-      "submitTool",
-      "toggleAutomation",
-      "updateAccessLevel",
-      "updateAgent",
-      "updateAgentModelConfig",
-      "updateAutomation",
-      "uploadFile",
-      "validateMemoryScope"
-    ],
     "src/features/transport/lib/detachRunEvent.ts": [
       "AGENT_DETACH_RUN_EVENT",
       "DetachRunEventDetail",
@@ -4636,12 +4609,6 @@
       "startQueryStreamState",
       "stopQueryStreamState",
       "toApiErrorFromText"
-    ],
-    "src/features/transport/lib/transportClient.test.ts": null,
-    "src/features/transport/lib/transportClient.ts": [
-      "TransportClient",
-      "TransportRequestOptions",
-      "createTransportClient"
     ],
     "src/features/transport/lib/transportMode.test.ts": null,
     "src/features/transport/lib/transportMode.ts": [
@@ -4890,12 +4857,43 @@
       "buildWorkerRows",
       "createWorkerKeyFromChat"
     ],
-    "src/shared/api/accessTokenStorage.ts": [
+    "src/shared/components/skeleton/index.tsx": [
+      "Skeleton"
+    ],
+    "src/shared/components/text-count-up/index.test.ts": null,
+    "src/shared/components/text-count-up/index.tsx": [
+      "TextCountUp",
+      "TextCountUpChar",
+      "getTextCountUpChars"
+    ],
+    "src/shared/config/featureFlags.test.ts": null,
+    "src/shared/config/featureFlags.ts": [
+      "isDebugPanelEnabled",
+      "isDeltaLogsEnabled",
+      "isMemoryEnabled",
+      "isQuickActionsEnabled",
+      "isSettingsMenuEnabled",
+      "isVoiceEnabled",
+      "parseFeatureFlag"
+    ],
+    "src/shared/config/runtimeConfig.ts": [
+      "RuntimeConfig",
+      "readRuntimeConfigValue"
+    ],
+    "src/shared/data/accessTokenStorage.ts": [
       "ACCESS_TOKEN_STORAGE_KEY",
       "readStoredAccessToken"
     ],
-    "src/shared/api/apiClient.test.ts": null,
-    "src/shared/api/apiClient.ts": [
+    "src/shared/data/appAuth.test.ts": null,
+    "src/shared/data/appAuth.ts": [
+      "AGENT_APP_ACCESS_TOKEN_STORAGE_KEY",
+      "AGENT_APP_AUTH_CONTEXT_STORAGE_KEY",
+      "AppAccessTokenRefreshReason",
+      "getAppAccessToken",
+      "refreshAppAccessToken"
+    ],
+    "src/shared/data/client.test.ts": null,
+    "src/shared/data/client.ts": [
       "AccessLevelUpdateParams",
       "AccessLevelUpdateResponse",
       "AdminAgentDetailResponse",
@@ -5067,23 +5065,15 @@
       "validateAdminRegistry",
       "validateMemoryScope"
     ],
-    "src/shared/api/appAuth.test.ts": null,
-    "src/shared/api/appAuth.ts": [
-      "AGENT_APP_ACCESS_TOKEN_STORAGE_KEY",
-      "AGENT_APP_AUTH_CONTEXT_STORAGE_KEY",
-      "AppAccessTokenRefreshReason",
-      "getAppAccessToken",
-      "refreshAppAccessToken"
-    ],
-    "src/shared/api/desktopFileSystem.test.ts": null,
-    "src/shared/api/desktopFileSystem.ts": [
+    "src/shared/data/desktopFileSystem.test.ts": null,
+    "src/shared/data/desktopFileSystem.ts": [
       "ProjectFolderSelection",
       "ProjectFolderSelectionError",
       "openWorkspaceDirectory",
       "selectProjectFolder",
       "selectWorkspaceDirectory"
     ],
-    "src/shared/api/desktopHostBridge.ts": [
+    "src/shared/data/desktopHostBridge.ts": [
       "DESKTOP_WEBVIEW_BRIDGE_FLAG",
       "DesktopBridgeWindow",
       "getDesktopHostMessageSource",
@@ -5091,20 +5081,95 @@
       "isDesktopHostMessageEvent",
       "postDesktopHostMessage"
     ],
-    "src/shared/api/desktopQueryContext.ts": [
+    "src/shared/data/desktopQueryContext.ts": [
       "buildDesktopQueryContext",
       "initializeDesktopQueryContextBridge",
       "resetDesktopQueryContextBridgeForTests"
     ],
-    "src/shared/api/desktopScreenshot.test.ts": null,
-    "src/shared/api/desktopScreenshot.ts": [
+    "src/shared/data/desktopScreenshot.test.ts": null,
+    "src/shared/data/desktopScreenshot.ts": [
       "DesktopScreenshotError",
       "DesktopScreenshotResult",
       "canUseDesktopScreenshotBridge",
       "captureDesktopScreenshot",
       "desktopScreenshotToFile"
     ],
-    "src/shared/api/memoryTypes.ts": [
+    "src/shared/data/endpointRegistry.ts": [
+      "EndpointCachePolicy",
+      "EndpointDefinition",
+      "EndpointMethod",
+      "EndpointTransport",
+      "compactPayload",
+      "createDataCacheKey",
+      "createEndpointRegistry",
+      "defineEndpoint",
+      "resolveEndpointPayload"
+    ],
+    "src/shared/data/endpoints.ts": [
+      "DataEndpointKey",
+      "buildAttachPayload",
+      "buildQueryPayload",
+      "compactQueryModelOverride",
+      "dataEndpoints"
+    ],
+    "src/shared/data/index.ts": [
+      "archiveChats",
+      "compactChat",
+      "createAgent",
+      "createAutomation",
+      "deleteAgent",
+      "deleteArchive",
+      "deleteAutomation",
+      "deleteChat",
+      "downloadChatExport",
+      "downloadResource",
+      "getAgent",
+      "getAgentOrder",
+      "getAgents",
+      "getArchive",
+      "getArchives",
+      "getAutomation",
+      "getAutomationExecutions",
+      "getAutomations",
+      "getChat",
+      "getChatLLMTraceRaw",
+      "getChatRawJsonl",
+      "getChats",
+      "getMemoryMeta",
+      "getMemoryRecord",
+      "getMemoryRecords",
+      "getMemoryScope",
+      "getMemoryScopes",
+      "getModelOptions",
+      "getResourceText",
+      "getTeams",
+      "getViewport",
+      "interruptChat",
+      "learnChat",
+      "markChatRead",
+      "openAgentWorkspace",
+      "previewMemoryContext",
+      "putAgentOrder",
+      "rememberChat",
+      "renameChat",
+      "restoreArchives",
+      "saveMemoryScope",
+      "searchArchives",
+      "searchGlobal",
+      "setTransportModeProvider",
+      "steerChat",
+      "submitAwaiting",
+      "submitFeedback",
+      "submitTool",
+      "toggleAutomation",
+      "updateAccessLevel",
+      "updateAgent",
+      "updateAgentModelConfig",
+      "updateAutomation",
+      "uploadFile",
+      "validateMemoryScope"
+    ],
+    "src/shared/data/memoryTypes.ts": [
       "MemoryConsoleTab",
       "MemoryContextPreviewDecision",
       "MemoryContextPreviewItem",
@@ -5141,35 +5206,96 @@
       "createDefaultMemoryPreviewPromptLayer",
       "createEmptyMemoryScopeValidationResult"
     ],
-    "src/shared/api/platformError.test.ts": null,
-    "src/shared/api/platformError.ts": [
+    "src/shared/data/platformError.test.ts": null,
+    "src/shared/data/platformError.ts": [
       "PlatformError",
       "PlatformErrorDisplay",
       "formatPlatformErrorForDisplay",
       "normalizePlatformError"
     ],
-    "src/shared/components/skeleton/index.tsx": [
-      "Skeleton"
+    "src/shared/data/queries.ts": [
+      "useAgentsQuery",
+      "useChatsQuery",
+      "useMemoryRecordsQuery",
+      "useModelOptionsQuery",
+      "useTeamsQuery"
     ],
-    "src/shared/components/text-count-up/index.test.ts": null,
-    "src/shared/components/text-count-up/index.tsx": [
-      "TextCountUp",
-      "TextCountUpChar",
-      "getTextCountUpChars"
+    "src/shared/data/routedClient.test.ts": null,
+    "src/shared/data/routedClient.ts": [
+      "archiveChats",
+      "buildResourceUrl",
+      "compactChat",
+      "createAgent",
+      "createAutomation",
+      "createQueryStream",
+      "deleteAgent",
+      "deleteArchive",
+      "deleteAutomation",
+      "deleteChat",
+      "downloadChatExport",
+      "downloadResource",
+      "ensureAccessToken",
+      "getAgent",
+      "getAgentOrder",
+      "getAgents",
+      "getArchive",
+      "getArchives",
+      "getAutomation",
+      "getAutomationExecutions",
+      "getAutomations",
+      "getChat",
+      "getChatLLMTraceRaw",
+      "getChatRawJsonl",
+      "getChats",
+      "getCurrentAccessToken",
+      "getMemoryMeta",
+      "getMemoryRecord",
+      "getMemoryRecords",
+      "getMemoryScope",
+      "getMemoryScopes",
+      "getModelOptions",
+      "getResourceText",
+      "getTeams",
+      "getViewport",
+      "interruptChat",
+      "learnChat",
+      "markChatRead",
+      "openAgentWorkspace",
+      "previewMemoryContext",
+      "putAgentOrder",
+      "rememberChat",
+      "renameChat",
+      "restoreArchives",
+      "saveMemoryScope",
+      "searchArchives",
+      "searchGlobal",
+      "setAccessToken",
+      "setTransportModeProvider",
+      "steerChat",
+      "submitAwaiting",
+      "submitFeedback",
+      "submitTool",
+      "toggleAutomation",
+      "updateAccessLevel",
+      "updateAgent",
+      "updateAgentModelConfig",
+      "updateAutomation",
+      "uploadFile",
+      "validateMemoryScope"
     ],
-    "src/shared/config/featureFlags.test.ts": null,
-    "src/shared/config/featureFlags.ts": [
-      "isDebugPanelEnabled",
-      "isDeltaLogsEnabled",
-      "isMemoryEnabled",
-      "isQuickActionsEnabled",
-      "isSettingsMenuEnabled",
-      "isVoiceEnabled",
-      "parseFeatureFlag"
+    "src/shared/data/serverState.ts": [
+      "DataQuerySnapshot",
+      "DataQueryStatus",
+      "UseDataQueryOptions",
+      "UseDataQueryResult",
+      "dataQueryCache",
+      "useDataQuery"
     ],
-    "src/shared/config/runtimeConfig.ts": [
-      "RuntimeConfig",
-      "readRuntimeConfigValue"
+    "src/shared/data/transportClient.test.ts": null,
+    "src/shared/data/transportClient.ts": [
+      "TransportClient",
+      "TransportRequestOptions",
+      "createTransportClient"
     ],
     "src/shared/hooks/agentPage/useDesktopAction.ts": [
       "DesktopOpenChatHistoryDetail",
@@ -5417,7 +5543,7 @@
       "@/app/layout/AppShell",
       "@/app/layout/CopilotShell",
       "@/app/state/AppContext",
-      "@/shared/api/desktopQueryContext",
+      "@/shared/data/desktopQueryContext",
       "@/shared/hooks/useDesktopRouteChange",
       "@/shared/i18n",
       "@/shared/styles/theme",
@@ -5459,9 +5585,9 @@
       "@/features/chats/lib/chatSummary",
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/agentSummary",
       "@/features/workers/lib/currentWorker",
+      "@/shared/data",
       "@/shared/hooks/agentPage/useDesktopAction",
       "@/shared/i18n",
       "react",
@@ -5546,11 +5672,10 @@
       "@/features/chats/lib/chatRunState",
       "@/features/chats/lib/chatSummary",
       "@/features/settings/components/SidebarSettingsMenu",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/workerListFormatter",
-      "@/shared/api/apiClient",
-      "@/shared/api/desktopFileSystem",
       "@/shared/config/featureFlags",
+      "@/shared/data",
+      "@/shared/data/desktopFileSystem",
       "@/shared/i18n",
       "@/shared/icons/agent",
       "@/shared/ui/MaterialIcon",
@@ -5581,7 +5706,7 @@
       "@/features/transport/lib/wsClient",
       "@/features/transport/lib/wsClientSingleton",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@xterm/addon-fit",
       "@xterm/xterm",
       "@xterm/xterm/css/xterm.css",
@@ -5598,9 +5723,9 @@
       "@/app/state/selectors",
       "@/app/state/types",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/platformError",
       "@/shared/components/text-count-up",
       "@/shared/config/featureFlags",
+      "@/shared/data/platformError",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -5631,7 +5756,7 @@
     ],
     "src/app/layout/sidebar/ChatActionsMenu.tsx": [
       "@/app/state/AppContext",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "antd",
@@ -5692,7 +5817,7 @@
     "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": [
       "@/app/state/AppContext",
       "@/features/artifacts/lib/attachmentUtils",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/UiButton",
       "antd",
@@ -5730,7 +5855,7 @@
       "@/features/artifacts/components/AttachmentCard",
       "@/features/artifacts/lib/attachmentUtils",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "react"
@@ -5738,6 +5863,7 @@
     "src/app/layout/sidebar/right/RightSidebar.test.ts": [
       "@/app/layout/sidebar/right/RightSidebar",
       "@/app/state/AppContext",
+      "@/shared/i18n",
       "react",
       "react-dom/server"
     ],
@@ -5760,9 +5886,8 @@
     "src/app/layout/sidebar/right/fileDiff.ts": null,
     "src/app/modals/AutomationModal.test.ts": [
       "@/app/modals/AutomationModal",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "react",
       "react-dom/server"
@@ -5770,9 +5895,8 @@
     "src/app/modals/AutomationModal.tsx": [
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/SearchFilterBar",
@@ -5796,10 +5920,10 @@
       "@/app/modals/SwitchModal",
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/components/AgentConsole",
       "@/features/workers/lib/currentWorker",
       "@/features/workers/lib/workerConversationFormatter",
+      "@/shared/data",
       "react"
     ],
     "src/app/modals/CommandModalHeader.tsx": [
@@ -5830,7 +5954,7 @@
       "@/app/modals/lib/systemPromptTrace",
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -5848,7 +5972,7 @@
       "@/app/state/types",
       "@/features/chats/lib/chatListFormatter",
       "@/features/chats/lib/chatReadState",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -5908,7 +6032,7 @@
     ],
     "src/app/pages/archives/index.tsx": [
       "@/features/settings/components/ArchiveConsole",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "react-router-dom"
     ],
     "src/app/pages/automations/index.tsx": [
@@ -5923,13 +6047,13 @@
     ],
     "src/app/pages/registries/index.test.ts": [
       "@/app/pages/registries",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "react",
       "react-dom/server"
     ],
     "src/app/pages/registries/index.tsx": [
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/SearchFilterBar",
@@ -5955,11 +6079,11 @@
       "@/app/state/types",
       "@/app/state/uiTypes",
       "@/features/artifacts/lib/attachmentPreview",
-      "@/shared/api/apiClient",
-      "@/shared/api/memoryTypes"
+      "@/shared/data",
+      "@/shared/data/memoryTypes"
     ],
     "src/app/state/constants.ts": [
-      "@/shared/api/accessTokenStorage"
+      "@/shared/data/accessTokenStorage"
     ],
     "src/app/state/conversationReset.ts": [
       "@/app/state/types"
@@ -5981,10 +6105,9 @@
       "@/app/state/state",
       "@/app/state/types",
       "@/features/chats/lib/conversationSession",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/transport/lib/transportMode",
-      "@/shared/api/apiClient",
-      "@/shared/api/appAuth",
+      "@/shared/data",
+      "@/shared/data/appAuth",
       "@/shared/styles/theme",
       "@/shared/utils/routing",
       "react"
@@ -6041,9 +6164,9 @@
       "@/app/state/types",
       "@/features/transport/lib/transportMode",
       "@/features/voice/lib/voiceAsrProtocol",
-      "@/shared/api/accessTokenStorage",
-      "@/shared/api/appAuth",
-      "@/shared/api/memoryTypes",
+      "@/shared/data/accessTokenStorage",
+      "@/shared/data/appAuth",
+      "@/shared/data/memoryTypes",
       "@/shared/styles/theme",
       "@/shared/utils/routing"
     ],
@@ -6063,8 +6186,8 @@
       "@/features/artifacts/lib/attachmentPreview",
       "@/features/tools/lib/actionRuntime",
       "@/features/transport/lib/transportMode",
-      "@/shared/api/apiClient",
-      "@/shared/api/memoryTypes",
+      "@/shared/data",
+      "@/shared/data/memoryTypes",
       "@/shared/styles/theme"
     ],
     "src/app/state/uiTypes.ts": [
@@ -6089,7 +6212,7 @@
       "@/app/state/AppContext",
       "@/features/artifacts/lib/attachmentPreview",
       "@/features/artifacts/lib/attachmentUtils",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/ui/MaterialIcon",
       "react"
     ],
@@ -6126,11 +6249,11 @@
       "@/features/chats/lib/conversationReplay",
       "@/features/chats/lib/conversationSession",
       "@/features/chats/lib/runAgentIdentity",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/transport/lib/detachRunEvent",
       "@/features/workers/hooks/useWorkerData",
       "@/features/workers/lib/workerConversationFormatter",
       "@/features/workers/lib/workerListFormatter",
+      "@/shared/data",
       "react",
       "react-dom"
     ],
@@ -6204,7 +6327,7 @@
       "@/features/composer/components/ComposerContext",
       "@/features/composer/components/ControlsForm",
       "@/features/composer/components/QuerySettingsControls",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -6245,8 +6368,8 @@
       "@/features/tools/components/AwaitingHtmlContainer",
       "@/features/tools/components/buildin",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
       "@/shared/config/featureFlags",
+      "@/shared/data",
       "@/shared/i18n",
       "antd",
       "antd/es/input/TextArea",
@@ -6305,9 +6428,8 @@
     "src/features/composer/components/QuerySettingsControls.tsx": [
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -6344,7 +6466,7 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/composer/lib/composerAttachments",
-      "@/shared/api/desktopScreenshot",
+      "@/shared/data/desktopScreenshot",
       "@/shared/i18n",
       "react"
     ],
@@ -6359,7 +6481,7 @@
       "@/features/chats/lib/runAgentIdentity",
       "@/features/tools/lib/awaitingSubmitTracker",
       "@/features/tools/lib/planDecision",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/utils/compactId",
       "antd",
@@ -6400,8 +6522,7 @@
       "@/features/composer/lib/queryRouting",
       "@/features/composer/lib/slashCommands",
       "@/features/composer/lib/steerSubmission",
-      "@/features/transport/lib/apiClientProxy",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "antd",
       "antd/es/input/TextArea",
@@ -6414,7 +6535,7 @@
     "src/features/composer/hooks/useComposerWonders.ts": [
       "@/app/state/types",
       "@/features/composer/lib/wonders",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "react"
     ],
     "src/features/composer/hooks/useMessageActions.test.ts": [
@@ -6440,20 +6561,19 @@
       "@/features/transport/lib/detachRunEvent",
       "@/features/transport/lib/queryStreamExecutors",
       "@/features/voice/lib/voiceRuntime",
-      "@/shared/api/apiClient",
-      "@/shared/api/platformError",
+      "@/shared/data",
+      "@/shared/data/platformError",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils",
       "react"
     ],
     "src/features/composer/hooks/useRuntimeAccessLevel.test.ts": [
       "@/features/composer/hooks/useRuntimeAccessLevel",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n/locales/en-US"
     ],
     "src/features/composer/hooks/useRuntimeAccessLevel.ts": [
-      "@/features/transport/lib/apiClientProxy",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "react"
     ],
@@ -6465,8 +6585,8 @@
     ],
     "src/features/composer/lib/composerAttachments.test.ts": [
       "@/features/composer/lib/composerAttachments",
-      "@/shared/api/apiClient",
-      "@/shared/api/desktopScreenshot"
+      "@/shared/data",
+      "@/shared/data/desktopScreenshot"
     ],
     "src/features/composer/lib/composerAttachments.ts": [
       "@/app/state/actions",
@@ -6474,7 +6594,7 @@
       "@/features/artifacts/lib/attachmentUtils",
       "@/features/artifacts/lib/timelineAttachments",
       "@/features/composer/lib/queryRouting",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "react"
     ],
     "src/features/composer/lib/mentionCandidates.ts": [
@@ -6505,7 +6625,7 @@
       "@/features/composer/lib/steerSubmission"
     ],
     "src/features/composer/lib/steerSubmission.ts": [
-      "@/shared/api/apiClient"
+      "@/shared/data"
     ],
     "src/features/composer/lib/wonders.test.ts": [
       "@/features/composer/lib/wonders"
@@ -6531,8 +6651,7 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/chatListFormatter",
-      "@/features/transport/lib/apiClientProxy",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -6551,7 +6670,7 @@
     ],
     "src/features/settings/components/MemoryInfoModal.test.ts": [
       "@/features/settings/components/MemoryInfoModal",
-      "@/shared/api/memoryTypes",
+      "@/shared/data/memoryTypes",
       "@/shared/i18n",
       "react",
       "react-dom/server"
@@ -6559,8 +6678,8 @@
     "src/features/settings/components/MemoryInfoModal.tsx": [
       "@/app/state/AppContext",
       "@/features/settings/lib/memoryInfo",
-      "@/features/transport/lib/apiClientProxy",
-      "@/shared/api/memoryTypes",
+      "@/shared/data",
+      "@/shared/data/memoryTypes",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
@@ -6573,7 +6692,7 @@
       "@/app/state/types",
       "@/features/voice/lib/asrDebugSession",
       "@/features/voice/lib/voiceAsrProtocol",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/ui/UiButton",
       "react"
@@ -6605,8 +6724,8 @@
       "@/features/settings/lib/settingsClientGateDrafts",
       "@/features/voice/lib/voiceAsrProtocol",
       "@/features/voice/lib/voiceRuntime",
-      "@/shared/api/apiClient",
       "@/shared/config/featureFlags",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/styles/theme",
       "@/shared/ui/UiButton",
@@ -6648,7 +6767,7 @@
     "src/features/settings/hooks/useMemoryRecordsInitialization.ts": [
       "@/app/state/AppContext",
       "@/features/settings/lib/memoryInfo",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/utils/eventUtils",
       "@/shared/utils/routing",
@@ -6664,7 +6783,7 @@
     ],
     "src/features/settings/lib/memoryInfo.ts": [
       "@/app/state/types",
-      "@/shared/api/memoryTypes",
+      "@/shared/data/memoryTypes",
       "@/shared/utils/eventUtils"
     ],
     "src/features/settings/lib/settingsClientGateDrafts.test.ts": [
@@ -6711,8 +6830,8 @@
       "@/features/timeline/components/TimelineRow",
       "@/features/timeline/lib/runTranscript",
       "@/features/timeline/lib/timelineDisplay",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/currentWorker",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/icons/agent",
       "@/shared/ui/MaterialIcon",
@@ -6777,7 +6896,7 @@
       "@/features/timeline/components/ViewportEmbed"
     ],
     "src/features/timeline/components/ViewportEmbed.tsx": [
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/utils/safeJsonParse",
       "react"
     ],
@@ -6900,7 +7019,7 @@
       "@/features/artifacts/lib/timelineAttachments",
       "@/features/timeline/lib/eventProcessorShared",
       "@/features/timeline/lib/eventProcessorTypes",
-      "@/shared/api/platformError",
+      "@/shared/data/platformError",
       "@/shared/i18n",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils"
@@ -6970,7 +7089,7 @@
       "@/app/state/types",
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/protocol",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/utils/useKeyboard",
       "@ant-design/icons",
@@ -6981,7 +7100,7 @@
     "src/features/tools/components/FrontendToolContainer.tsx": [
       "@/app/state/AppContext",
       "@/features/timeline/lib/toolDisplay",
-      "@/features/transport/lib/apiClientProxy",
+      "@/shared/data",
       "react"
     ],
     "src/features/tools/components/awaitingTimeout.test.ts": [
@@ -7139,7 +7258,7 @@
       "@/features/chats/lib/runAgentIdentity",
       "@/features/timeline/hooks/useAgentEventHandler",
       "@/features/transport/lib/queryStreamRuntime.sse",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils",
       "react"
@@ -7165,19 +7284,11 @@
       "@/features/transport/lib/wsClient",
       "@/features/transport/lib/wsClientSingleton",
       "@/features/transport/lib/wsStreamReplay",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/utils/eventFieldReaders",
       "@/shared/utils/eventUtils",
       "@/shared/utils/routing",
       "react"
-    ],
-    "src/features/transport/lib/apiClientProxy.test.ts": null,
-    "src/features/transport/lib/apiClientProxy.ts": [
-      "@/app/state/types",
-      "@/features/transport/lib/transportClient",
-      "@/features/transport/lib/transportMode",
-      "@/shared/api/apiClient",
-      "@/shared/api/memoryTypes"
     ],
     "src/features/transport/lib/detachRunEvent.ts": null,
     "src/features/transport/lib/queryStreamExecutors.ts": [
@@ -7188,20 +7299,20 @@
     ],
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": [
       "@/features/transport/lib/queryStreamRuntime.sse",
-      "@/shared/api/apiClient"
+      "@/shared/data"
     ],
     "src/features/transport/lib/queryStreamRuntime.sse.ts": [
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/transport/lib/queryStreamShared",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "react"
     ],
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts": [
       "@/features/transport/lib/queryStreamRuntime.ws",
       "@/features/transport/lib/wsClientSingleton",
       "@/features/transport/lib/wsStreamReplay",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/utils/routing"
     ],
     "src/features/transport/lib/queryStreamRuntime.ws.ts": [
@@ -7209,29 +7320,15 @@
       "@/features/transport/lib/wsClient",
       "@/features/transport/lib/wsClientSingleton",
       "@/features/transport/lib/wsStreamReplay",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/utils/routing"
     ],
     "src/features/transport/lib/queryStreamShared.ts": [
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/shared/api/apiClient",
-      "@/shared/api/platformError",
+      "@/shared/data",
+      "@/shared/data/platformError",
       "react"
-    ],
-    "src/features/transport/lib/transportClient.test.ts": [
-      "@/features/transport/lib/transportClient",
-      "@/features/transport/lib/wsClient",
-      "@/features/transport/lib/wsClientSingleton",
-      "@/shared/api/apiClient",
-      "@/shared/utils/routing"
-    ],
-    "src/features/transport/lib/transportClient.ts": [
-      "@/features/transport/lib/transportMode",
-      "@/features/transport/lib/wsClient",
-      "@/features/transport/lib/wsClientSingleton",
-      "@/shared/api/apiClient",
-      "@/shared/utils/routing"
     ],
     "src/features/transport/lib/transportMode.test.ts": [
       "@/features/transport/lib/transportMode"
@@ -7243,8 +7340,9 @@
     ],
     "src/features/transport/lib/wsClient.ts": [
       "@/app/state/types",
-      "@/shared/api/apiClient",
-      "@/shared/api/platformError",
+      "@/shared/data/client",
+      "@/shared/data/endpoints",
+      "@/shared/data/platformError",
       "@/shared/i18n",
       "@/shared/utils/compactId"
     ],
@@ -7294,7 +7392,7 @@
       "@/features/voice/lib/voiceChatListeningReady",
       "@/features/voice/lib/voiceRuntime",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "react"
     ],
     "src/features/voice/hooks/useVoiceChatRuntime.ts": [
@@ -7318,7 +7416,7 @@
       "@/features/voice/lib/voiceChatRuntimeUtils",
       "@/features/voice/lib/voiceRuntime",
       "@/features/workers/lib/currentWorker",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@/shared/i18n",
       "@/shared/utils/routing",
       "react"
@@ -7331,6 +7429,7 @@
     ],
     "src/features/voice/hooks/useVoiceChatSocket.ts": [
       "@/features/voice/hooks/useVoiceChatRuntimeController",
+      "@/features/voice/lib/voiceAsrProtocol",
       "@/features/voice/lib/voiceChatAudio",
       "@/features/voice/lib/voiceChatRuntimeUtils",
       "@/features/voice/lib/voiceRuntime",
@@ -7358,7 +7457,8 @@
     "src/features/voice/lib/voiceAsrProtocol.ts": [
       "@/app/state/types",
       "@/features/voice/lib/voiceChatAudio",
-      "@/shared/config/runtimeConfig"
+      "@/shared/config/runtimeConfig",
+      "@/shared/data/endpoints"
     ],
     "src/features/voice/lib/voiceAudioCapture.test.ts": [
       "@/features/voice/lib/voiceAudioCapture"
@@ -7374,7 +7474,9 @@
     "src/features/voice/lib/voiceChatAudio.test.ts": [
       "@/features/voice/lib/voiceChatAudio"
     ],
-    "src/features/voice/lib/voiceChatAudio.ts": null,
+    "src/features/voice/lib/voiceChatAudio.ts": [
+      "@/shared/data/endpoints"
+    ],
     "src/features/voice/lib/voiceChatListeningReady.test.ts": [
       "@/features/voice/lib/voiceChatListeningReady"
     ],
@@ -7394,8 +7496,8 @@
     "src/features/voice/lib/voiceRuntime.test.ts": [
       "@/app/state/types",
       "@/features/voice/lib/voiceRuntime",
-      "@/shared/api/apiClient",
-      "@/shared/api/appAuth"
+      "@/shared/data",
+      "@/shared/data/appAuth"
     ],
     "src/features/voice/lib/voiceRuntime.ts": [
       "@/features/voice/lib/voiceRuntimeCore",
@@ -7404,13 +7506,14 @@
     "src/features/voice/lib/voiceRuntimeCore.ts": [
       "@/app/state/types",
       "@/features/timeline/lib/contentSegments",
+      "@/features/voice/lib/voiceAsrProtocol",
       "@/features/voice/lib/voiceAudioPlayer",
       "@/features/voice/lib/voiceChatAudio",
       "@/features/voice/lib/voiceChatTts",
       "@/features/voice/lib/voiceMessageHandler",
       "@/features/voice/lib/voiceSessionManager",
       "@/features/voice/lib/voiceSocket",
-      "@/shared/api/apiClient"
+      "@/shared/data"
     ],
     "src/features/voice/lib/voiceSessionManager.ts": [
       "@/features/voice/lib/voiceAudioPlayer"
@@ -7426,7 +7529,8 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/workers/lib/agentOrdering",
-      "@/shared/api/apiClient",
+      "@/shared/data",
+      "@/shared/data/endpoints",
       "@/shared/i18n",
       "@/shared/icons/agent",
       "@/shared/ui/MaterialIcon",
@@ -7444,10 +7548,10 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/chatSummary",
-      "@/features/transport/lib/apiClientProxy",
       "@/features/workers/lib/agentSummary",
       "@/features/workers/lib/workerDataCoordinator",
       "@/features/workers/lib/workerListFormatter",
+      "@/shared/data",
       "@/shared/utils/routing",
       "react",
       "react-dom"
@@ -7511,64 +7615,6 @@
       "@/features/workers/lib/teamUtils",
       "@/shared/utils/eventUtils"
     ],
-    "src/shared/api/accessTokenStorage.ts": null,
-    "src/shared/api/apiClient.test.ts": [
-      "@/shared/api/accessTokenStorage",
-      "@/shared/api/apiClient",
-      "@/shared/api/appAuth",
-      "@/shared/api/desktopQueryContext",
-      "@/shared/utils/compactId",
-      "buffer"
-    ],
-    "src/shared/api/apiClient.ts": [
-      "@/app/state/types",
-      "@/shared/api/accessTokenStorage",
-      "@/shared/api/appAuth",
-      "@/shared/api/memoryTypes",
-      "@/shared/api/platformError",
-      "@/shared/i18n",
-      "@/shared/utils/compactId",
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/appAuth.test.ts": [
-      "@/shared/api/appAuth"
-    ],
-    "src/shared/api/appAuth.ts": [
-      "@/shared/api/desktopHostBridge",
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/desktopFileSystem.test.ts": [
-      "@/shared/api/desktopFileSystem"
-    ],
-    "src/shared/api/desktopFileSystem.ts": [
-      "@/shared/api/apiClient",
-      "@/shared/api/desktopHostBridge",
-      "@/shared/i18n",
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/desktopHostBridge.ts": [
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/desktopQueryContext.ts": [
-      "@/shared/api/desktopHostBridge",
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/desktopScreenshot.test.ts": [
-      "@/shared/api/desktopScreenshot"
-    ],
-    "src/shared/api/desktopScreenshot.ts": [
-      "@/shared/api/desktopHostBridge",
-      "@/shared/i18n",
-      "@/shared/utils/routing"
-    ],
-    "src/shared/api/memoryTypes.ts": null,
-    "src/shared/api/platformError.test.ts": [
-      "@/shared/api/platformError",
-      "@/shared/i18n"
-    ],
-    "src/shared/api/platformError.ts": [
-      "@/shared/i18n"
-    ],
     "src/shared/components/skeleton/index.tsx": [
       "./index.module.css",
       "react"
@@ -7590,6 +7636,124 @@
       "@/shared/config/runtimeConfig"
     ],
     "src/shared/config/runtimeConfig.ts": null,
+    "src/shared/data/accessTokenStorage.ts": null,
+    "src/shared/data/appAuth.test.ts": [
+      "@/shared/data/appAuth"
+    ],
+    "src/shared/data/appAuth.ts": [
+      "@/shared/data/desktopHostBridge",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/client.test.ts": [
+      "@/shared/data/accessTokenStorage",
+      "@/shared/data/appAuth",
+      "@/shared/data/client",
+      "@/shared/data/desktopQueryContext",
+      "@/shared/utils/compactId",
+      "buffer"
+    ],
+    "src/shared/data/client.ts": [
+      "@/app/state/types",
+      "@/shared/data/accessTokenStorage",
+      "@/shared/data/appAuth",
+      "@/shared/data/endpoints",
+      "@/shared/data/memoryTypes",
+      "@/shared/data/platformError",
+      "@/shared/i18n",
+      "@/shared/utils/compactId",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/desktopFileSystem.test.ts": [
+      "@/shared/data/desktopFileSystem"
+    ],
+    "src/shared/data/desktopFileSystem.ts": [
+      "@/shared/data/client",
+      "@/shared/data/desktopHostBridge",
+      "@/shared/i18n",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/desktopHostBridge.ts": [
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/desktopQueryContext.ts": [
+      "@/shared/data/desktopHostBridge",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/desktopScreenshot.test.ts": [
+      "@/shared/data/desktopScreenshot"
+    ],
+    "src/shared/data/desktopScreenshot.ts": [
+      "@/shared/data/desktopHostBridge",
+      "@/shared/i18n",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/endpointRegistry.ts": null,
+    "src/shared/data/endpoints.ts": [
+      "@/shared/data/client",
+      "@/shared/data/endpointRegistry"
+    ],
+    "src/shared/data/index.ts": [
+      "@/shared/data/accessTokenStorage",
+      "@/shared/data/appAuth",
+      "@/shared/data/client",
+      "@/shared/data/desktopFileSystem",
+      "@/shared/data/desktopHostBridge",
+      "@/shared/data/desktopQueryContext",
+      "@/shared/data/desktopScreenshot",
+      "@/shared/data/endpointRegistry",
+      "@/shared/data/endpoints",
+      "@/shared/data/memoryTypes",
+      "@/shared/data/platformError",
+      "@/shared/data/queries",
+      "@/shared/data/routedClient",
+      "@/shared/data/serverState",
+      "@/shared/data/transportClient"
+    ],
+    "src/shared/data/memoryTypes.ts": null,
+    "src/shared/data/platformError.test.ts": [
+      "@/shared/data/platformError",
+      "@/shared/i18n"
+    ],
+    "src/shared/data/platformError.ts": [
+      "@/shared/i18n"
+    ],
+    "src/shared/data/queries.ts": [
+      "@/shared/data/client",
+      "@/shared/data/endpoints",
+      "@/shared/data/memoryTypes",
+      "@/shared/data/routedClient",
+      "@/shared/data/serverState",
+      "react"
+    ],
+    "src/shared/data/routedClient.test.ts": null,
+    "src/shared/data/routedClient.ts": [
+      "@/app/state/types",
+      "@/features/transport/lib/transportMode",
+      "@/shared/data/client",
+      "@/shared/data/endpointRegistry",
+      "@/shared/data/endpoints",
+      "@/shared/data/memoryTypes",
+      "@/shared/data/transportClient"
+    ],
+    "src/shared/data/serverState.ts": [
+      "@/shared/data/client",
+      "@/shared/data/endpointRegistry",
+      "react"
+    ],
+    "src/shared/data/transportClient.test.ts": [
+      "@/features/transport/lib/wsClient",
+      "@/features/transport/lib/wsClientSingleton",
+      "@/shared/data/client",
+      "@/shared/data/transportClient",
+      "@/shared/utils/routing"
+    ],
+    "src/shared/data/transportClient.ts": [
+      "@/features/transport/lib/transportMode",
+      "@/features/transport/lib/wsClient",
+      "@/features/transport/lib/wsClientSingleton",
+      "@/shared/data/client",
+      "@/shared/utils/routing"
+    ],
     "src/shared/hooks/agentPage/useDesktopAction.ts": [
       "react"
     ],
@@ -7712,7 +7876,7 @@
     "src/shared/ui/MarkdownContent.tsx": [
       "./markdown-code",
       "./markdownPreprocess",
-      "@/shared/api/apiClient",
+      "@/shared/data",
       "@ant-design/x-markdown",
       "@ant-design/x-markdown/plugins/Latex",
       "react"
@@ -7773,7 +7937,7 @@
       "@/shared/utils/copy"
     ],
     "src/shared/utils/copy.ts": [
-      "@/shared/api/desktopHostBridge",
+      "@/shared/data/desktopHostBridge",
       "@/shared/utils/routing"
     ],
     "src/shared/utils/debugTime.ts": [
@@ -8107,8 +8271,6 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": null,
     "src/features/transport/hooks/useWsTransport.test.ts": null,
     "src/features/transport/hooks/useWsTransport.ts": null,
-    "src/features/transport/lib/apiClientProxy.test.ts": null,
-    "src/features/transport/lib/apiClientProxy.ts": null,
     "src/features/transport/lib/detachRunEvent.ts": null,
     "src/features/transport/lib/queryStreamExecutors.ts": null,
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": null,
@@ -8116,8 +8278,6 @@
     "src/features/transport/lib/queryStreamRuntime.ws.test.ts": null,
     "src/features/transport/lib/queryStreamRuntime.ws.ts": null,
     "src/features/transport/lib/queryStreamShared.ts": null,
-    "src/features/transport/lib/transportClient.test.ts": null,
-    "src/features/transport/lib/transportClient.ts": null,
     "src/features/transport/lib/transportMode.test.ts": null,
     "src/features/transport/lib/transportMode.ts": null,
     "src/features/transport/lib/wsClient.test.ts": null,
@@ -8173,20 +8333,6 @@
     "src/features/workers/lib/workerDataCoordinator.ts": null,
     "src/features/workers/lib/workerListFormatter.test.ts": null,
     "src/features/workers/lib/workerListFormatter.ts": null,
-    "src/shared/api/accessTokenStorage.ts": null,
-    "src/shared/api/apiClient.test.ts": null,
-    "src/shared/api/apiClient.ts": null,
-    "src/shared/api/appAuth.test.ts": null,
-    "src/shared/api/appAuth.ts": null,
-    "src/shared/api/desktopFileSystem.test.ts": null,
-    "src/shared/api/desktopFileSystem.ts": null,
-    "src/shared/api/desktopHostBridge.ts": null,
-    "src/shared/api/desktopQueryContext.ts": null,
-    "src/shared/api/desktopScreenshot.test.ts": null,
-    "src/shared/api/desktopScreenshot.ts": null,
-    "src/shared/api/memoryTypes.ts": null,
-    "src/shared/api/platformError.test.ts": null,
-    "src/shared/api/platformError.ts": null,
     "src/shared/components/skeleton/index.tsx": [
       "src/shared/components/skeleton/index.module.css"
     ],
@@ -8199,6 +8345,29 @@
     "src/shared/config/featureFlags.test.ts": null,
     "src/shared/config/featureFlags.ts": null,
     "src/shared/config/runtimeConfig.ts": null,
+    "src/shared/data/accessTokenStorage.ts": null,
+    "src/shared/data/appAuth.test.ts": null,
+    "src/shared/data/appAuth.ts": null,
+    "src/shared/data/client.test.ts": null,
+    "src/shared/data/client.ts": null,
+    "src/shared/data/desktopFileSystem.test.ts": null,
+    "src/shared/data/desktopFileSystem.ts": null,
+    "src/shared/data/desktopHostBridge.ts": null,
+    "src/shared/data/desktopQueryContext.ts": null,
+    "src/shared/data/desktopScreenshot.test.ts": null,
+    "src/shared/data/desktopScreenshot.ts": null,
+    "src/shared/data/endpointRegistry.ts": null,
+    "src/shared/data/endpoints.ts": null,
+    "src/shared/data/index.ts": null,
+    "src/shared/data/memoryTypes.ts": null,
+    "src/shared/data/platformError.test.ts": null,
+    "src/shared/data/platformError.ts": null,
+    "src/shared/data/queries.ts": null,
+    "src/shared/data/routedClient.test.ts": null,
+    "src/shared/data/routedClient.ts": null,
+    "src/shared/data/serverState.ts": null,
+    "src/shared/data/transportClient.test.ts": null,
+    "src/shared/data/transportClient.ts": null,
     "src/shared/hooks/agentPage/useDesktopAction.ts": null,
     "src/shared/hooks/useDesktopRouteChange.test.ts": [
       "src/shared/hooks/useDesktopRouteChange.ts"

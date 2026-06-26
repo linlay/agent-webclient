@@ -26,7 +26,7 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: jest.fn(),
 }));
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
   getModelOptions: jest.fn(),
   updateAgentModelConfig: jest.fn(),
 }));
@@ -62,7 +62,7 @@ const { resolveCurrentWorkerSummary } = jest.requireMock(
   resolveCurrentWorkerSummary: jest.Mock;
 };
 const { getModelOptions, updateAgentModelConfig } = jest.requireMock(
-  "@/features/transport/lib/apiClientProxy",
+  "@/shared/data",
 ) as {
   getModelOptions: jest.Mock;
   updateAgentModelConfig: jest.Mock;

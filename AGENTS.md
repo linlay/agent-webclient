@@ -33,7 +33,7 @@
 - `public/`：HTML 模板等静态入口资源
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
-- `src/shared/api/`：跨功能复用的 API 客户端与鉴权封装
+- `src/shared/data/`：统一数据管理模块，包含接口注册、API 客户端、鉴权封装、请求路由与轻量 server-state 查询缓存
 - `src/shared/styles/`：全局主题变量、样式入口与主题工具；当前统一入口为 `globals.css`
 - `src/shared/ui/`：通用基础 UI 组件
 - `src/shared/utils/`：通用工具函数
@@ -53,7 +53,7 @@
 这些结构服务于事件回放、实时流式更新、工具渲染、语音联动和调试面板展示。
 
 ## 6. API 定义
-接口消费封装位于 [`src/shared/api/apiClient.ts`](./src/shared/api/apiClient.ts)，当前使用的主要接口包括：
+接口消费封装位于 [`src/shared/data/`](./src/shared/data/)，其中 [`src/shared/data/endpoints.ts`](./src/shared/data/endpoints.ts) 统一注册接口，[`src/shared/data/client.ts`](./src/shared/data/client.ts) 与 [`src/shared/data/routedClient.ts`](./src/shared/data/routedClient.ts) 负责请求执行和传输路由，当前使用的主要接口包括：
 - `GET /api/agents`
 - `GET /api/teams`
 - `GET /api/agent`

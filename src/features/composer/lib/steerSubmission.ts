@@ -1,4 +1,4 @@
-import type { ApiResponse } from "@/shared/api/apiClient";
+import type { ApiResponse } from "@/shared/data";
 
 type EventWithRunId = {
   type?: unknown;

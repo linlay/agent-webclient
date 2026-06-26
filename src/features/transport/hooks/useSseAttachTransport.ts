@@ -11,7 +11,7 @@ import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { executeAttachRunSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
-import { createRequestId } from "@/shared/api/apiClient";
+import { createRequestId } from "@/shared/data";
 import {
 	readEventTeamId,
 	readRequestQueryText,

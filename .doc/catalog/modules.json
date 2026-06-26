@@ -4,9 +4,9 @@
     {
       "id": "api",
       "title": "api",
-      "summary": "Module boundary confirmed during xgraph init.",
+      "summary": "Unified data management module for endpoint registration, API clients, request routing, auth helpers, and server-state query caching.",
       "pathHints": [
-        "src/shared/api/**"
+        "src/shared/data/**"
       ],
       "card": ".doc/modules/api.json"
     },

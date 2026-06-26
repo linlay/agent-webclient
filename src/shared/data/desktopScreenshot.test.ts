@@ -1,7 +1,7 @@
 import {
   DesktopScreenshotError,
   captureDesktopScreenshot,
-} from "@/shared/api/desktopScreenshot";
+} from "@/shared/data/desktopScreenshot";
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

@@ -3,11 +3,17 @@
   "module": "api",
   "status": "confirmed",
   "paths": [
-    "src/shared/api/**"
+    "src/shared/data/**"
   ],
   "summary": {
-    "purpose": "Module boundary confirmed during xgraph init.",
-    "ownedConcepts": [],
+    "purpose": "Unified data management module for endpoint registration, API clients, request routing, auth helpers, and server-state query caching.",
+    "ownedConcepts": [
+      "endpoint registry",
+      "request clients",
+      "transport-aware request routing",
+      "access token and desktop bridge helpers",
+      "server-state query cache"
+    ],
     "nonGoals": []
   },
   "facts": {
@@ -16,9 +22,13 @@
     "dependencies": [],
     "dependents": [],
     "tests": [
-      "src/shared/api/apiClient.test.ts",
-      "src/shared/api/appAuth.test.ts",
-      "src/shared/api/desktopFileSystem.test.ts"
+      "src/shared/data/client.test.ts",
+      "src/shared/data/appAuth.test.ts",
+      "src/shared/data/desktopFileSystem.test.ts",
+      "src/shared/data/desktopScreenshot.test.ts",
+      "src/shared/data/platformError.test.ts",
+      "src/shared/data/routedClient.test.ts",
+      "src/shared/data/transportClient.test.ts"
     ],
     "lastScannedAt": ""
   },

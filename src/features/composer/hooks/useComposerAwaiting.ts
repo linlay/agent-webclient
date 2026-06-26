@@ -7,7 +7,7 @@ import type {
   AppState,
   FormActiveAwaiting,
 } from "@/app/state/types";
-import { submitAwaiting } from "@/features/transport/lib/apiClientProxy";
+import { submitAwaiting } from "@/shared/data";
 import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import {
   getPlanningModeForPlanDecision,

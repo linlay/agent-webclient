@@ -1,3 +1,5 @@
+import { dataEndpoints } from "@/shared/data/endpoints";
+
 const MIN_GAIN = 0.0001;
 
 export const VOICE_CHAT_FRAME_BYTES = 640;
@@ -104,7 +106,7 @@ export function resolveVoiceChatWsUrl(
 	rawPath: string,
 	accessToken = "",
 ): string {
-	const normalizedPath = String(rawPath || "").trim() || "/api/voice/ws";
+	const normalizedPath = String(rawPath || "").trim() || dataEndpoints.voiceWs.path;
 	const base =
 		window.location.protocol === "https:" ? "wss:" : "ws:";
 	const url = new URL(`${base}//${window.location.host}${normalizedPath}`);
@@ -116,7 +118,7 @@ export function resolveVoiceChatWsUrl(
 }
 
 export function describeVoiceChatWsTarget(rawPath: string): string {
-	const normalizedPath = String(rawPath || "").trim() || "/api/voice/ws";
+	const normalizedPath = String(rawPath || "").trim() || dataEndpoints.voiceWs.path;
 	const base =
 		window.location.protocol === "https:" ? "wss:" : "ws:";
 	const url = new URL(`${base}//${window.location.host}${normalizedPath}`);

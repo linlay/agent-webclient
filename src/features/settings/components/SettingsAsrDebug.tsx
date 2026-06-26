@@ -14,7 +14,7 @@ import {
 import {
   ensureAccessToken,
   getVoiceCapabilitiesFlexible,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -87,7 +87,7 @@ export const SettingsAsrDebug: React.FC<SettingsAsrDebugProps> = ({
       new AsrDebugSession({
         getAccessToken: () => accessTokenRef.current,
         getVoiceWsPath: () =>
-          String(capabilitiesRef.current?.websocketPath || "/api/voice/ws"),
+          String(capabilitiesRef.current?.websocketPath || DEFAULT_VOICE_WS_PATH),
         getAsrDefaults: () => capabilitiesRef.current?.asr?.defaults,
         onState: (patch) => {
           if (patch.status !== undefined || patch.error !== undefined) {

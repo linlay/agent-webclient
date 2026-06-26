@@ -1,6 +1,6 @@
-import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from "@/shared/api/appAuth";
+import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from "@/shared/data/appAuth";
 import type { AppState, TtsVoiceBlock } from "@/app/state/types";
-import { setAccessToken } from "@/shared/api/apiClient";
+import { setAccessToken } from "@/shared/data";
 import { initVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {

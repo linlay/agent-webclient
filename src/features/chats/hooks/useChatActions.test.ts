@@ -31,7 +31,7 @@ jest.mock('@/app/state/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock('@/features/transport/lib/apiClientProxy', () => ({
+jest.mock('@/shared/data', () => ({
   getChat: jest.fn(),
   markChatRead: jest.fn(),
 }));
@@ -44,7 +44,7 @@ const { useAppContext } = jest.requireMock('@/app/state/AppContext') as {
   useAppContext: jest.Mock;
 };
 
-const { getChat } = jest.requireMock('@/features/transport/lib/apiClientProxy') as {
+const { getChat } = jest.requireMock('@/shared/data') as {
   getChat: jest.Mock;
 };
 

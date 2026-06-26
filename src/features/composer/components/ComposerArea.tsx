@@ -44,7 +44,7 @@ import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type {
   QueryAccessLevel,
   QueryModelOverride,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {

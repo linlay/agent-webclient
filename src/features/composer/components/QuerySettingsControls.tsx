@@ -10,7 +10,7 @@ import {
 import {
   getModelOptions,
   updateAgentModelConfig,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import type {
   AgentModelConfigResponse,
   CoderModelOption,
@@ -20,7 +20,7 @@ import type {
   QueryServiceTier,
   ReasoningEffortOption,
   ServiceTierOption,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";

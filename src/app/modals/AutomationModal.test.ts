@@ -10,8 +10,8 @@ import {
   shouldStartAutomationConsoleBootstrap,
 } from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { getAutomations } from "@/features/transport/lib/apiClientProxy";
-import { getAgents as getAgentsHttp } from "@/shared/api/apiClient";
+import { getAutomations } from "@/shared/data";
+import { getAgents as getAgentsHttp } from "@/shared/data";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
 const mockedDispatch = jest.fn();
@@ -54,18 +54,15 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
   createAutomation: jest.fn(),
   deleteAutomation: jest.fn(),
+  getAgents: jest.fn(),
   getAutomation: jest.fn(),
   getAutomationExecutions: jest.fn(),
   getAutomations: jest.fn(),
   toggleAutomation: jest.fn(),
   updateAutomation: jest.fn(),
-}));
-
-jest.mock("@/shared/api/apiClient", () => ({
-  getAgents: jest.fn(),
 }));
 
 const mockedGetAutomations = getAutomations as jest.Mock;

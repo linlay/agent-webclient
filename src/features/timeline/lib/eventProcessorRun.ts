@@ -9,7 +9,7 @@ import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineA
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
 import { t } from "@/shared/i18n";
-import { formatPlatformErrorForDisplay } from "@/shared/api/platformError";
+import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 
 export function processRunEvent(
   event: AgentEvent,

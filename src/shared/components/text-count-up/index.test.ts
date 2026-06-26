@@ -11,6 +11,12 @@ jest.mock("./index.module.css", () => ({
 }));
 
 describe("TextCountUp", () => {
+  function withoutGeneratedKeys(
+    chars: ReturnType<typeof getTextCountUpChars>,
+  ) {
+    return chars.map(({ key: _key, ...char }) => char);
+  }
+
   it("renders digits as count-up columns and keeps the final text accessible", () => {
     const html = renderToStaticMarkup(
       React.createElement(TextCountUp, {
@@ -50,13 +56,13 @@ describe("TextCountUp", () => {
   });
 
   it("calculates digit transitions from the previous text by right alignment", () => {
-    expect(getTextCountUpChars("A18", "A12")).toEqual([
+    expect(withoutGeneratedKeys(getTextCountUpChars("A18", "A12"))).toEqual([
       { char: "A", fromDigit: 0, isDigit: false, toDigit: 0 },
       { char: "1", fromDigit: 1, isDigit: true, toDigit: 1 },
       { char: "8", fromDigit: 2, isDigit: true, toDigit: 8 },
     ]);
 
-    expect(getTextCountUpChars("100", "99")).toEqual([
+    expect(withoutGeneratedKeys(getTextCountUpChars("100", "99"))).toEqual([
       { char: "1", fromDigit: 0, isDigit: true, toDigit: 1 },
       { char: "0", fromDigit: 9, isDigit: true, toDigit: 0 },
       { char: "0", fromDigit: 9, isDigit: true, toDigit: 0 },
@@ -64,7 +70,7 @@ describe("TextCountUp", () => {
   });
 
   it("keeps non-digit characters as entrances while digits use previous digits", () => {
-    expect(getTextCountUpChars("B2", "A9")).toEqual([
+    expect(withoutGeneratedKeys(getTextCountUpChars("B2", "A9"))).toEqual([
       { char: "B", fromDigit: 0, isDigit: false, toDigit: 0 },
       { char: "2", fromDigit: 9, isDigit: true, toDigit: 2 },
     ]);

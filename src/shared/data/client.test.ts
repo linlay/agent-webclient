@@ -1,10 +1,10 @@
 import { Blob } from 'buffer';
-import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/accessTokenStorage';
-import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/api/appAuth';
+import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/accessTokenStorage';
+import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/appAuth';
 import {
   initializeDesktopQueryContextBridge,
   resetDesktopQueryContextBridgeForTests,
-} from '@/shared/api/desktopQueryContext';
+} from '@/shared/data/desktopQueryContext';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
@@ -80,7 +80,7 @@ import {
   updateAutomation,
   uploadFile,
   validateAdminRegistry,
-} from '@/shared/api/apiClient';
+} from '@/shared/data/client';
 
 class MockFormData {
   private readonly values = new Map<string, unknown[]>();
@@ -195,7 +195,7 @@ function installStandaloneLocalStorage(initial: Record<string, string> = {}) {
   });
 }
 
-describe('apiClient query payloads', () => {
+describe('data client query payloads', () => {
   const fetchMock = jest.fn();
   const originalWindow = globalThis.window;
   const originalLocalStorage = globalThis.localStorage;

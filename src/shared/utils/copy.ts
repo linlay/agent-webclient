@@ -1,5 +1,5 @@
 import { isAppMode } from "@/shared/utils/routing";
-import { hasDesktopHostBridge, postDesktopHostMessage } from "@/shared/api/desktopHostBridge";
+import { hasDesktopHostBridge, postDesktopHostMessage } from "@/shared/data/desktopHostBridge";
 
 const AGENT_APP_CLIPBOARD_REQUEST_TYPE = "desktop:agent-app-clipboard:request";
 const AGENT_APP_CLIPBOARD_RESPONSE_TYPE = "desktop:agent-app-clipboard:response";

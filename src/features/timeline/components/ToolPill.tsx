@@ -17,6 +17,13 @@ type ToolGroupRenderEntry = Extract<
 
 type TranslateFn = (key: string, params?: TranslateParams) => string;
 type CopyState = "copied" | "error";
+const TERMINAL_TOOL_STATUSES = new Set([
+  "success",
+  "completed",
+  "failed",
+  "error",
+  "canceled",
+]);
 
 interface ToolPillProps {
   node?: TimelineNode;
@@ -34,6 +41,20 @@ export interface ToolPillRecord {
   argsInlineText: string;
   result: TimelineNode["result"];
   durationMs?: number;
+}
+
+interface ToolPillDurationOptions {
+  now?: number;
+  conversationActive?: boolean;
+  translate?: TranslateFn;
+}
+
+function isFinishedToolNode(node: TimelineNode): boolean {
+  return (
+    TERMINAL_TOOL_STATUSES.has(node.status || "") ||
+    node.endedAt != null ||
+    Boolean(node.result)
+  );
 }
 
 function resolveStatusLabel(
@@ -88,11 +109,18 @@ export function formatToolDuration(
 
   const value = Number(durationMs);
   if (value < 1000) {
-    return "";
+    return translate("timeline.toolPill.duration.milliseconds", {
+      count: Math.round(value),
+    });
   }
   if (value < 60_000) {
+    const rawSeconds = value / 1000;
+    const seconds =
+      rawSeconds < 10 && !Number.isInteger(rawSeconds)
+        ? Number(rawSeconds.toFixed(1))
+        : Math.round(rawSeconds);
     return translate("timeline.toolPill.duration.seconds", {
-      count: Math.floor(value / 1000),
+      count: seconds,
     });
   }
 
@@ -117,13 +145,17 @@ export function formatToolDuration(
 
 export function formatToolPillTitle(
   source: TimelineNode | ToolGroupRenderEntry,
+  translate: TranslateFn = runtimeT,
 ): string {
   if ("kind" in source && source.kind === "tool-group") {
     const baseLabel = resolveToolLabel({
       toolLabel: source.toolLabel,
       toolName: source.toolName,
     });
-    return baseLabel;
+    return translate("timeline.toolPill.groupTitle", {
+      label: baseLabel,
+      count: source.count,
+    });
   }
 
   return resolveToolLabel(source);
@@ -168,6 +200,33 @@ export function canExpandToolPill(
   return getExpandableToolPillRecords(buildToolPillRecords(source)).length > 0;
 }
 
+export function getToolPillDurationText(
+  source: TimelineNode | ToolGroupRenderEntry,
+  options: ToolPillDurationOptions = {},
+): string {
+  if (!options.conversationActive) return "";
+
+  const nodes =
+    "kind" in source && source.kind === "tool-group" ? source.nodes : [source];
+  if (nodes.length === 0 || nodes.every(isFinishedToolNode)) return "";
+
+  let earliestStart: number | null = null;
+  for (const node of nodes) {
+    if (
+      node.startedAt != null &&
+      (earliestStart == null || node.startedAt < earliestStart)
+    ) {
+      earliestStart = node.startedAt;
+    }
+  }
+  if (earliestStart == null) return "";
+
+  return formatToolDuration(
+    Math.max(0, (options.now ?? Date.now()) - earliestStart),
+    options.translate,
+  );
+}
+
 export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
@@ -185,13 +244,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         startTimeMs: null as number | null,
       };
 
-    const terminalStatuses = new Set([
-      "success",
-      "failed",
-      "error",
-      "canceled",
-    ]);
-
     let earliestStart: number | null = null;
     for (const n of nodes) {
       if (
@@ -202,7 +254,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       }
     }
 
-    const allDone = nodes.every((n) => terminalStatuses.has(n.status || ""));
+    const allDone = nodes.every(isFinishedToolNode);
 
     if (allDone) {
       return {

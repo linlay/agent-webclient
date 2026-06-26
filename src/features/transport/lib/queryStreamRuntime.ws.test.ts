@@ -7,7 +7,7 @@ import {
 import {
 	ensureAccessToken,
 	getCurrentAccessToken,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	getWsClient,
@@ -23,7 +23,42 @@ jest.mock("./wsClientSingleton", () => ({
 	updateCurrentWsClientOptions: jest.fn(),
 }));
 
-jest.mock("@/shared/api/apiClient", () => ({
+jest.mock("@/shared/data", () => ({
+	dataEndpoints: {
+		query: { path: "/api/query" },
+	},
+	buildQueryPayload: jest.fn((params: Record<string, unknown>) => {
+		const model = (() => {
+			const rawModel = params.model;
+			if (!rawModel || typeof rawModel !== "object") return null;
+			const record = rawModel as Record<string, unknown>;
+			const key = String(record.key || "").trim();
+			const reasoningEffort = String(record.reasoningEffort || "").trim();
+			return key || reasoningEffort
+				? {
+						...(key ? { key } : {}),
+						...(reasoningEffort ? { reasoningEffort } : {}),
+					}
+				: null;
+		})();
+		return {
+			requestId: params.requestId,
+			...(String(params.agentMode || "").trim().toUpperCase() === "CODER"
+				? { planningMode: params.planningMode === true }
+				: {}),
+			message: params.message,
+			...(params.agentKey ? { agentKey: params.agentKey } : {}),
+			...(params.teamId ? { teamId: params.teamId } : {}),
+			...(params.chatId ? { chatId: params.chatId } : {}),
+			...(params.accessLevel ? { accessLevel: params.accessLevel } : {}),
+			...(model ? { model } : {}),
+			...(params.role ? { role: params.role } : {}),
+			...(params.references !== undefined ? { references: params.references } : {}),
+			...(params.params !== undefined ? { params: params.params } : {}),
+			...(params.scene ? { scene: params.scene } : {}),
+			...(params.stream !== undefined ? { stream: params.stream } : {}),
+		};
+	}),
 	compactQueryModelOverride: jest.fn((model: unknown) => {
 		if (!model || typeof model !== "object") return null;
 		const record = model as Record<string, unknown>;

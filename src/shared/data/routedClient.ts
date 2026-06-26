@@ -104,7 +104,7 @@ import {
 	type UpdateAgentModelConfigRequest,
 	type UpdateAgentOrderRequest,
 	type UpdateAutomationRequest,
-} from "@/shared/api/apiClient";
+	} from "@/shared/data/client";
 import type {
 	MemoryContextPreviewResponse,
 	MemoryMeta,
@@ -115,11 +115,17 @@ import type {
 	MemoryScopeSaveResult,
 	MemoryScopesResponse,
 	MemoryScopeValidationResult,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import {
 	createTransportClient,
 	type TransportRequestOptions,
-} from "@/features/transport/lib/transportClient";
+} from "@/shared/data/transportClient";
+import {
+	compactPayload,
+	resolveEndpointPayload,
+	type EndpointDefinition,
+} from "@/shared/data/endpointRegistry";
+import { dataEndpoints } from "@/shared/data/endpoints";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
 let getTransportMode: () => TransportModeValue = () => "ws";
@@ -145,35 +151,55 @@ async function routeRequest<T>(
 	});
 }
 
-function compactPayload(params: Record<string, unknown>): Record<string, unknown> {
-	return Object.fromEntries(
-		Object.entries(params).filter(
-			([, value]) => value !== undefined && value !== null && value !== "",
-		),
+function emptyPayloadAsUndefined(payload: unknown): unknown {
+	if (
+		payload &&
+		typeof payload === "object" &&
+		!Array.isArray(payload) &&
+		Object.keys(payload as Record<string, unknown>).length === 0
+	) {
+		return undefined;
+	}
+	return payload;
+}
+
+function routeEndpoint<T, TInput>(
+	endpoint: EndpointDefinition<TInput>,
+	input: TInput,
+	fallback: () => Promise<ApiResponse<T>>,
+	options: RouteRequestOptions<T> = {},
+): Promise<ApiResponse<T>> {
+	if (endpoint.transport !== "auto" && endpoint.transport !== "ws") {
+		return fallback();
+	}
+	return routeRequest<T>(
+		endpoint.path,
+		emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input)),
+		fallback,
+		options,
 	);
 }
 
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
-	const payload = compactPayload({ includeChats: options.includeChats, scope: options.scope });
-	return routeRequest(
-		"/api/agents",
-		Object.keys(payload).length > 0 ? payload : undefined,
+	return routeEndpoint(
+		dataEndpoints.agents,
+		options,
 		() => getAgentsHttp(options),
 	);
 }
 
 export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
-	return routeRequest("/api/agents/order", undefined, () => getAgentOrderHttp());
+	return routeEndpoint(dataEndpoints.agentOrder, undefined, () => getAgentOrderHttp());
 }
 
 export function putAgentOrder(
 	params: UpdateAgentOrderRequest,
 ): Promise<ApiResponse<AgentOrderResponse>> {
-	return routeRequest("/api/agents/order", params, () => putAgentOrderHttp(params));
+	return routeEndpoint(dataEndpoints.agentOrderUpdate, params, () => putAgentOrderHttp(params));
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
-	return routeRequest("/api/agent", { agentKey }, () => getAgentHttp(agentKey));
+	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
 }
 
 export function createAgent(
@@ -191,8 +217,8 @@ export function updateAgent(
 export function updateAgentModelConfig(
 	params: UpdateAgentModelConfigRequest,
 ): Promise<ApiResponse<AgentModelConfigResponse>> {
-	return routeRequest<AgentModelConfigResponse>(
-		"/api/agent/model-config",
+	return routeEndpoint<AgentModelConfigResponse, UpdateAgentModelConfigRequest>(
+		dataEndpoints.agentModelConfig,
 		params,
 		() => updateAgentModelConfigHttp(params),
 	);
@@ -211,23 +237,21 @@ export function openAgentWorkspace(
 }
 
 export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {
-	const payload = compactPayload({ agentKey });
-	return routeRequest<CoderModelOptionsResponse>(
-		"/api/model-options",
-		Object.keys(payload).length > 0 ? payload : undefined,
+	return routeEndpoint<CoderModelOptionsResponse, string | undefined>(
+		dataEndpoints.modelOptions,
+		agentKey,
 		() => getModelOptionsHttp(agentKey),
 	);
 }
 
 export function getTeams(): Promise<ApiResponse> {
-	return routeRequest("/api/teams", undefined, () => getTeamsHttp());
+	return routeEndpoint(dataEndpoints.teams, undefined, () => getTeamsHttp());
 }
 
 export async function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
-	const payload = compactPayload({ agentKey: options.agentKey });
-	const response = await routeRequest(
-		"/api/chats",
-		Object.keys(payload).length > 0 ? payload : undefined,
+	const response = await routeEndpoint(
+		dataEndpoints.chats,
+		options,
 		() => getChatsHttp(options),
 	);
 	return {
@@ -240,8 +264,8 @@ export function getChat(
 	chatId: string,
 	includeRawMessages = false,
 ): Promise<ApiResponse> {
-	return routeRequest(
-		"/api/chat",
+	return routeEndpoint(
+		dataEndpoints.chat,
 		compactPayload({
 			chatId,
 			includeRawMessages: includeRawMessages ? true : undefined,
@@ -251,8 +275,8 @@ export function getChat(
 }
 
 export async function getChatRawJsonl(chatId: string): Promise<string> {
-	const response = await routeRequest<string>(
-		"/api/chat/jsonl",
+	const response = await routeEndpoint<string, { chatId: string }>(
+		dataEndpoints.chatJsonl,
 		{ chatId },
 		async () => ({
 			status: 200,
@@ -282,8 +306,8 @@ function stringifyRawResponseData(data: unknown): string {
 }
 
 export async function getChatLLMTraceRaw(file: string): Promise<string> {
-	const response = await routeRequest<string>(
-		"/api/chat/llm-trace",
+	const response = await routeEndpoint<string, { file: string }>(
+		dataEndpoints.chatLlmTrace,
 		{ file },
 		async () => ({
 			status: 200,
@@ -298,8 +322,8 @@ export async function getChatLLMTraceRaw(file: string): Promise<string> {
 export function archiveChats(
 	params: ArchiveChatsRequest,
 ): Promise<ApiResponse<ArchiveChatsResponse>> {
-	return routeRequest<ArchiveChatsResponse>(
-		"/api/chat/archive",
+	return routeEndpoint<ArchiveChatsResponse, ArchiveChatsRequest>(
+		dataEndpoints.chatArchive,
 		params,
 		() => archiveChatsHttp(params),
 		{
@@ -312,8 +336,8 @@ export function archiveChats(
 export function getArchives(
 	params: ArchivesRequest = {},
 ): Promise<ApiResponse<ArchivesResponse>> {
-	return routeRequest<ArchivesResponse>(
-		"/api/archives",
+	return routeEndpoint<ArchivesResponse, ArchivesRequest>(
+		dataEndpoints.archives,
 		params,
 		() => getArchivesHttp(params),
 	);
@@ -323,8 +347,8 @@ export function getArchive(
 	chatId: string,
 	includeRawMessages = false,
 ): Promise<ApiResponse<ArchiveDetailResponse>> {
-	return routeRequest<ArchiveDetailResponse>(
-		"/api/archive",
+	return routeEndpoint<ArchiveDetailResponse, Record<string, unknown>>(
+		dataEndpoints.archive,
 		{
 			chatId,
 			...(includeRawMessages ? { includeRawMessages: true } : {}),
@@ -336,8 +360,8 @@ export function getArchive(
 export function searchArchives(
 	params: ArchiveSearchParams,
 ): Promise<ApiResponse<ArchiveSearchResponse>> {
-	return routeRequest<ArchiveSearchResponse>(
-		"/api/archives/search",
+	return routeEndpoint<ArchiveSearchResponse, ArchiveSearchParams>(
+		dataEndpoints.archivesSearch,
 		params,
 		() => searchArchivesHttp(params),
 	);
@@ -346,8 +370,8 @@ export function searchArchives(
 export function deleteArchive(params: {
 	chatId: string;
 }): Promise<ApiResponse<ArchiveDeleteResponse>> {
-	return routeRequest<ArchiveDeleteResponse>(
-		"/api/archive/delete",
+	return routeEndpoint<ArchiveDeleteResponse, { chatId: string }>(
+		dataEndpoints.archiveDelete,
 		params,
 		() => deleteArchiveHttp(params),
 		{
@@ -360,8 +384,8 @@ export function deleteArchive(params: {
 export function restoreArchives(params: {
 	chatIds: string[];
 }): Promise<ApiResponse<ArchiveRestoreResponse>> {
-	return routeRequest<ArchiveRestoreResponse>(
-		"/api/archive/restore",
+	return routeEndpoint<ArchiveRestoreResponse, { chatIds: string[] }>(
+		dataEndpoints.archiveRestore,
 		params,
 		() => restoreArchivesHttp(params),
 		{
@@ -372,9 +396,9 @@ export function restoreArchives(params: {
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
-	return routeRequest(
-		"/api/viewport",
-		{ viewportKey },
+	return routeEndpoint(
+		dataEndpoints.viewport,
+		viewportKey,
 		() => getViewportHttp(viewportKey),
 	);
 }
@@ -424,9 +448,9 @@ export function getAutomationExecutions(
 export function getMemoryRecords(
 	params: GetMemoryRecordsParams,
 ): Promise<ApiResponse<MemoryRecordsPayload>> {
-	return routeRequest<MemoryRecordsPayload>(
-		"/api/memory/record/list",
-		compactPayload(params as Record<string, unknown>),
+	return routeEndpoint<MemoryRecordsPayload, GetMemoryRecordsParams>(
+		dataEndpoints.memoryRecords,
+		params,
 		() => getMemoryRecordsHttp(params),
 	);
 }
@@ -435,8 +459,8 @@ export function getMemoryRecord(
 	agentKey: string | undefined,
 	id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
-	return routeRequest<MemoryRecordDetail>(
-		"/api/memory/record/detail",
+	return routeEndpoint<MemoryRecordDetail, Record<string, unknown>>(
+		dataEndpoints.memoryRecordDetail,
 		compactPayload({ agentKey, recordId: id }),
 		() => getMemoryRecordHttp(agentKey, id),
 	);
@@ -445,16 +469,16 @@ export function getMemoryRecord(
 export function getMemoryScopes(
 	agentKey: string,
 ): Promise<ApiResponse<MemoryScopesResponse>> {
-	return routeRequest<MemoryScopesResponse>(
-		"/api/memory/scope/list",
+	return routeEndpoint<MemoryScopesResponse, Record<string, unknown>>(
+		dataEndpoints.memoryScopes,
 		compactPayload({ agentKey }),
 		() => getMemoryScopesHttp(agentKey),
 	);
 }
 
 export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
-	return routeRequest<MemoryMeta>(
-		"/api/memory/meta",
+	return routeEndpoint<MemoryMeta, undefined>(
+		dataEndpoints.memoryMeta,
 		undefined,
 		() => getMemoryMetaHttp(),
 	);
@@ -465,8 +489,8 @@ export function getMemoryScope(
 	scopeType: string,
 	scopeKey?: string,
 ): Promise<ApiResponse<MemoryScopeDetail>> {
-	return routeRequest<MemoryScopeDetail>(
-		"/api/memory/scope/detail",
+	return routeEndpoint<MemoryScopeDetail, Record<string, unknown>>(
+		dataEndpoints.memoryScope,
 		compactPayload({ agentKey, scopeType, scopeKey }),
 		() => getMemoryScopeHttp(agentKey, scopeType, scopeKey),
 	);
@@ -477,8 +501,8 @@ export function validateMemoryScope(
 	scopeType: string,
 	markdown: string,
 ): Promise<ApiResponse<MemoryScopeValidationResult>> {
-	return routeRequest<MemoryScopeValidationResult>(
-		"/api/memory/scope/validate",
+	return routeEndpoint<MemoryScopeValidationResult, Record<string, unknown>>(
+		dataEndpoints.memoryScopeValidate,
 		{ agentKey, scopeType, markdown },
 		() => validateMemoryScopeHttp(agentKey, scopeType, markdown),
 	);
@@ -488,8 +512,8 @@ export function previewMemoryContext(params: {
 	chatId: string;
 	message: string;
 }): Promise<ApiResponse<MemoryContextPreviewResponse>> {
-	return routeRequest<MemoryContextPreviewResponse>(
-		"/api/memory/context-preview",
+	return routeEndpoint<MemoryContextPreviewResponse, { chatId: string; message: string }>(
+		dataEndpoints.memoryContextPreview,
 		params,
 		() => previewMemoryContextHttp(params),
 	);
@@ -498,8 +522,8 @@ export function previewMemoryContext(params: {
 export function saveMemoryScope(
 	payload: MemoryScopeSavePayload,
 ): Promise<ApiResponse<MemoryScopeSaveResult>> {
-	return routeRequest<MemoryScopeSaveResult>(
-		"/api/memory/scope/save",
+	return routeEndpoint<MemoryScopeSaveResult, MemoryScopeSavePayload>(
+		dataEndpoints.memoryScopeSave,
 		payload,
 		() => saveMemoryScopeHttp(payload),
 	);
@@ -511,7 +535,7 @@ export function submitTool(params: {
 	toolId: string;
 	params: Record<string, unknown>;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/submit", params, () => submitToolHttp(params), {
+	return routeEndpoint(dataEndpoints.submit, params, () => submitToolHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -525,28 +549,28 @@ export function submitAwaiting(params: {
 	submitId?: string;
 	params: AIAwaitSubmitParamData[];
 }): Promise<ApiResponse> {
-	return routeRequest("/api/submit", params, () => submitAwaitingHttp(params), {
+	return routeEndpoint(dataEndpoints.submit, params, () => submitAwaitingHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
-	return routeRequest("/api/read", params, () => markChatReadHttp(params), {
+	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
 }
 
 export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
-	return routeRequest("/api/feedback", params, () => submitFeedbackHttp(params), {
+	return routeEndpoint(dataEndpoints.feedback, params, () => submitFeedbackHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
 }
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
-	return routeRequest("/api/chat/delete", params, () => deleteChatHttp(params), {
+	return routeEndpoint(dataEndpoints.chatDelete, params, () => deleteChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -555,8 +579,8 @@ export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
 export function renameChat(
 	params: RenameChatRequest,
 ): Promise<ApiResponse<RenameChatResponse>> {
-	return routeRequest<RenameChatResponse>(
-		"/api/chat/rename",
+	return routeEndpoint<RenameChatResponse, RenameChatRequest>(
+		dataEndpoints.chatRename,
 		params,
 		() => renameChatHttp(params),
 		{
@@ -569,15 +593,15 @@ export function renameChat(
 export function searchGlobal(
 	params: GlobalSearchParams,
 ): Promise<ApiResponse<GlobalSearchResponse>> {
-	return routeRequest<GlobalSearchResponse>(
-		"/api/search",
+	return routeEndpoint<GlobalSearchResponse, GlobalSearchParams>(
+		dataEndpoints.search,
 		params,
 		() => searchGlobalHttp(params),
 	);
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeRequest("/api/interrupt", params, () => interruptChatHttp(params), {
+	return routeEndpoint(dataEndpoints.interrupt, params, () => interruptChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -586,8 +610,8 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
 export function updateAccessLevel(
 	params: AccessLevelUpdateParams,
 ): Promise<ApiResponse<AccessLevelUpdateResponse>> {
-	return routeRequest<AccessLevelUpdateResponse>(
-		"/api/access-level",
+	return routeEndpoint<AccessLevelUpdateResponse, AccessLevelUpdateParams>(
+		dataEndpoints.accessLevelUpdate,
 		params,
 		() => updateAccessLevelHttp(params),
 		{
@@ -598,7 +622,7 @@ export function updateAccessLevel(
 }
 
 export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeRequest("/api/steer", params, () => steerChatHttp(params), {
+	return routeEndpoint(dataEndpoints.steer, params, () => steerChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -608,7 +632,7 @@ export function rememberChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/remember", params, () => rememberChatHttp(params), {
+	return routeEndpoint(dataEndpoints.remember, params, () => rememberChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -618,7 +642,7 @@ export function learnChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeRequest("/api/learn", params, () => learnChatHttp(params), {
+	return routeEndpoint(dataEndpoints.learn, params, () => learnChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});
@@ -628,7 +652,7 @@ export function compactChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse<CompactChatResponse>> {
-	return routeRequest("/api/compact", params, () => compactChatHttp(params), {
+	return routeEndpoint(dataEndpoints.compact, params, () => compactChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
 	});

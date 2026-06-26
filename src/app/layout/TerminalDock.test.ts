@@ -6,7 +6,7 @@ jest.mock("@/features/transport/lib/wsClientSingleton", () => ({
   initWsClient: jest.fn(),
   updateCurrentWsClientOptions: jest.fn(),
 }));
-jest.mock("@/shared/api/apiClient", () => ({
+jest.mock("@/shared/data", () => ({
   ensureAccessToken: jest.fn(),
   getCurrentAccessToken: jest.fn(),
 }));
@@ -69,7 +69,7 @@ describe("resolveTerminalTheme", () => {
 
   it("returns light theme for \"light\" mode", () => {
     const theme = resolveTerminalTheme("light");
-    expect(theme.background).toBe("#fafafa");
+    expect(theme.background).toBe("#fff");
     expect(theme.foreground).toBe("#2c2c2c");
     expect(theme.cursor).toBe("#2c2c2c");
     expect(theme.cursorAccent).toBe("#fafafa");
@@ -79,12 +79,12 @@ describe("resolveTerminalTheme", () => {
 
   it("falls back to light theme for unknown values", () => {
     const theme = resolveTerminalTheme("system");
-    expect(theme.background).toBe("#fafafa");
+    expect(theme.background).toBe("#fff");
     expect(theme.foreground).toBe("#2c2c2c");
   });
 
   it("falls back to light theme for empty string", () => {
     const theme = resolveTerminalTheme("");
-    expect(theme.background).toBe("#fafafa");
+    expect(theme.background).toBe("#fff");
   });
 });

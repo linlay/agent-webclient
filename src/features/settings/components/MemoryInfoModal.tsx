@@ -9,7 +9,7 @@ import {
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import type {
   MemoryConsoleTab,
   MemoryContextPreviewResponse,
@@ -25,7 +25,7 @@ import type {
   MemoryScopeSaveSummary,
   MemoryScopeSummary,
   MemoryScopeValidationResult,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";

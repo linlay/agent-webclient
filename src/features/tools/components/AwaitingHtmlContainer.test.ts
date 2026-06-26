@@ -78,7 +78,7 @@ jest.mock('antd', () => {
   };
 });
 
-jest.mock('@/features/transport/lib/apiClientProxy', () => ({
+jest.mock('@/shared/data', () => ({
   getViewport: jest.fn(),
 }));
 

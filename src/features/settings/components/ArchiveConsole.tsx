@@ -9,12 +9,12 @@ import {
 	getArchives,
 	restoreArchives,
 	searchArchives,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import type {
 	ArchiveDetailResponse,
 	ArchivedSummaryResponse,
 	ChatSummaryResponse,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

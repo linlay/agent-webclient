@@ -1,5 +1,5 @@
 import type { AppState, TtsVoiceBlock } from "@/app/state/types";
-import { getCurrentAccessToken } from "@/shared/api/apiClient";
+import { getCurrentAccessToken } from "@/shared/data";
 import { parseContentSegments } from "@/features/timeline/lib/contentSegments";
 import {
 	DEFAULT_CHANNELS,
@@ -30,7 +30,7 @@ import {
 	VoiceSessionManager,
 	type VoiceTaskStartOptions,
 } from "@/features/voice/lib/voiceSessionManager";
-const DEFAULT_VOICE_WS_PATH = "/api/voice/ws";
+import { DEFAULT_VOICE_WS_PATH } from "@/features/voice/lib/voiceAsrProtocol";
 
 export interface RuntimeOptions {
 	getState: () => AppState;

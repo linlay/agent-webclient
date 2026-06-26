@@ -8,7 +8,7 @@ import {
 	deleteChat,
 	downloadChatExport,
 	renameChat,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 
 export const ChatActionsMenu: React.FC<{
 	chatId: string;

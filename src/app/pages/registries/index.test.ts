@@ -6,7 +6,7 @@ import {
   registryItemKey,
   summaryLine,
 } from "@/app/pages/registries";
-import type { AdminRegistrySummary } from "@/shared/api/apiClient";
+import type { AdminRegistrySummary } from "@/shared/data";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {
@@ -20,6 +20,7 @@ jest.mock("antd", () => {
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
   return {
+    Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Input,
     Select: ({ options = [], ...props }: any) =>
       React.createElement(
@@ -37,7 +38,7 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/shared/api/apiClient", () => ({
+jest.mock("@/shared/data", () => ({
   getAdminRegistries: jest.fn(),
   getAdminRegistryDetail: jest.fn(),
   saveAdminRegistryDetail: jest.fn(),

@@ -2,11 +2,8 @@ import { appReducer } from "@/app/state/AppContext";
 import { createInitialState } from "@/app/state/state";
 import type { AppState } from "@/app/state/types";
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
 	setTransportModeProvider: jest.fn(),
-}));
-
-jest.mock("@/shared/api/apiClient", () => ({
 	setAccessToken: jest.fn(),
 }));
 

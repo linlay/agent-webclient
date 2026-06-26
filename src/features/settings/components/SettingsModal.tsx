@@ -7,7 +7,7 @@ import type {
   TransportMode,
   VoiceClientGateConfig,
 } from "@/app/state/types";
-import { getCurrentAccessToken, setAccessToken } from "@/shared/api/apiClient";
+import { getCurrentAccessToken, setAccessToken } from "@/shared/data";
 import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
 import {
   normalizeVoiceClientGateConfig,

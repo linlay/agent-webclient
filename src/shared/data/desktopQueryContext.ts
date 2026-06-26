@@ -2,7 +2,7 @@ import { isAppMode } from "@/shared/utils/routing";
 import {
   hasDesktopHostBridge,
   isDesktopHostMessageEvent,
-} from "@/shared/api/desktopHostBridge";
+} from "@/shared/data/desktopHostBridge";
 
 type DesktopPageKind = "native" | "webview" | "iframe";
 type DesktopPermissionMode = "default" | "page_control" | "full_access";

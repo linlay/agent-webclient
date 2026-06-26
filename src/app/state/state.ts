@@ -1,11 +1,11 @@
 import type { AppState, VoiceChatState } from "@/app/state/types";
-import { getAppAccessToken } from "@/shared/api/appAuth";
-import { readStoredAccessToken } from "@/shared/api/accessTokenStorage";
+import { getAppAccessToken } from "@/shared/data/appAuth";
+import { readStoredAccessToken } from "@/shared/data/accessTokenStorage";
 import {
 	createDefaultMemoryConsoleTab,
 	createDefaultMemoryInfoFilters,
 	createDefaultMemoryPreferenceMode,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
 import { resolveInitialThemeMode } from "@/shared/styles/theme";

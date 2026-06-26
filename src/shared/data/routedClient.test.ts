@@ -2,7 +2,7 @@ const mockGetWsClient = jest.fn();
 const mockGetWsClientAccessToken = jest.fn();
 const mockInitWsClient = jest.fn();
 
-jest.mock("@/shared/api/apiClient", () => {
+jest.mock("@/shared/data/client", () => {
 	class MockApiError extends Error {
 		status: number | null;
 		code: number | string | null;
@@ -99,7 +99,7 @@ jest.mock("@/shared/api/apiClient", () => {
 		validateMemoryScope: jest.fn(),
 	};
 });
-jest.mock("./wsClientSingleton", () => ({
+jest.mock("@/features/transport/lib/wsClientSingleton", () => ({
 	getWsClient: () => mockGetWsClient(),
 	getWsClientAccessToken: () => mockGetWsClientAccessToken(),
 	initWsClient: (options: unknown) => mockInitWsClient(options),
@@ -171,20 +171,20 @@ let mockApiClient: {
 		uploadFile: jest.Mock;
 		validateMemoryScope: jest.Mock;
 	};
-let WsClientDisconnectedError: typeof import("./wsClient").WsClientDisconnectedError;
-let WsClientRequestTimeoutError: typeof import("./wsClient").WsClientRequestTimeoutError;
+let WsClientDisconnectedError: typeof import("@/features/transport/lib/wsClient").WsClientDisconnectedError;
+let WsClientRequestTimeoutError: typeof import("@/features/transport/lib/wsClient").WsClientRequestTimeoutError;
 
-describe("apiClientProxy", () => {
+describe("routedClient", () => {
 	beforeEach(() => {
 		jest.resetModules();
 		mockGetWsClient.mockReset();
 		mockGetWsClientAccessToken.mockReset();
 		mockInitWsClient.mockReset();
-		mockApiClient = jest.requireMock("@/shared/api/apiClient") as typeof mockApiClient;
+		mockApiClient = jest.requireMock("@/shared/data/client") as typeof mockApiClient;
 		({
 			WsClientDisconnectedError,
 			WsClientRequestTimeoutError,
-		} = jest.requireActual("./wsClient") as typeof import("./wsClient"));
+		} = jest.requireActual("@/features/transport/lib/wsClient") as typeof import("@/features/transport/lib/wsClient"));
 		Object.values(mockApiClient).forEach((value) => {
 			if (typeof value === "function" && "mockReset" in value) {
 				(value as jest.Mock).mockClear();
@@ -195,7 +195,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes request/response calls over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -223,7 +223,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes agents includeChats over ws payload", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -250,7 +250,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes agent order reads and writes over ws", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -291,7 +291,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("keeps automation management calls on http even when ws mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -394,7 +394,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("keeps agent CRUD on http and routes model config over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -469,7 +469,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes memory console calls over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -579,7 +579,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -612,7 +612,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("waits for a disconnected ws client instead of falling back to http", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -638,7 +638,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("uses the current singleton when the initial ws client is replaced before request", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		let currentSingleton: {
@@ -683,7 +683,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when agents websocket connect fails", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
@@ -707,7 +707,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when teams websocket connect fails", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
@@ -731,7 +731,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when chats websocket connect fails", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
@@ -755,7 +755,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("normalizes chat summaries returned from ws /api/chats responses", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -808,7 +808,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes chat history loads over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -838,7 +838,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes raw chat jsonl loads over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -868,7 +868,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when raw chat jsonl ws request disconnects", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const request = jest
@@ -894,7 +894,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes raw llm trace loads over ws when connected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -924,7 +924,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("normalizes object raw llm trace ws responses to json text", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const tracePayload = {
@@ -959,7 +959,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when raw llm trace ws request disconnects", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const request = jest
@@ -985,7 +985,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes markChatRead over ws without falling back to http", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -1021,7 +1021,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes access level updates over ws without falling back to http", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -1074,7 +1074,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("refreshes the app token once when a ws action connect fails", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const firstConnect = jest.fn().mockRejectedValue(
@@ -1126,7 +1126,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes chat action requests over ws", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
@@ -1213,7 +1213,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when a read-only ws request times out", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientRequestTimeoutError(
@@ -1240,7 +1240,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("falls back to http when a read-only ws request disconnects after connect", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket transport disconnected");
@@ -1265,7 +1265,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("does not fall back for read-only requests when ws returns an ApiError", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new mockApiClient.ApiError("bad request", {
@@ -1285,7 +1285,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("does not fall back for side-effect requests when ws transport fails", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError();
@@ -1308,7 +1308,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("keeps ordinary requests on websocket transport when ws mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1337,7 +1337,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("keeps upload/download/resource helpers on the original http exports", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 
 		expect(proxy.buildResourceUrl("demo.txt")).toBe("/api/resource?file=demo.txt");
 		expect(proxy.uploadFile).toBe(mockApiClient.uploadFile);
@@ -1345,7 +1345,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes ordinary api requests over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getAgents.mockResolvedValue({
 			status: 200,
@@ -1363,7 +1363,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes getAgent over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getAgent.mockResolvedValue({
 			status: 200,
@@ -1381,7 +1381,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes getChat over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getChat.mockResolvedValue({
 			status: 200,
@@ -1399,7 +1399,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes raw chat jsonl over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getChatRawJsonl.mockResolvedValue('{"_type":"query"}\n');
 
@@ -1412,7 +1412,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes automation management over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getAutomations.mockResolvedValue({
 			status: 200,
@@ -1445,7 +1445,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes agent management over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.createAgent.mockResolvedValue({
 			status: 200,
@@ -1495,7 +1495,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes submit requests over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.submitTool.mockResolvedValue({
 			status: 200,
@@ -1547,7 +1547,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes interrupt and steer over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.interruptChat.mockResolvedValue({
 			status: 200,
@@ -1586,7 +1586,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes background commands over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.rememberChat.mockResolvedValue({
 			status: 200,
@@ -1629,7 +1629,7 @@ describe("apiClientProxy", () => {
 	});
 
 	it("routes archive requests over http when sse mode is selected", async () => {
-		const proxy = await import("./apiClientProxy");
+		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.archiveChats.mockResolvedValue({
 			status: 200,

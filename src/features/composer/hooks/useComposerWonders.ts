@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppState } from "@/app/state/types";
-import { getAgent } from "@/features/transport/lib/apiClientProxy";
+import { getAgent } from "@/shared/data";
 import {
   normalizeGreetings,
   normalizeWonders,

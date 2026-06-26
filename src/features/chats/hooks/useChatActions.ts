@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
-import { getChat, markChatRead } from '@/features/transport/lib/apiClientProxy';
+import { getChat, markChatRead } from '@/shared/data';
 import type {
   ArtifactFile,
   Chat,

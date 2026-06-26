@@ -19,7 +19,7 @@ import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { submitFeedback } from "@/features/transport/lib/apiClientProxy";
+import { submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { Button, Dropdown, Flex, Form, Input, message, Popover } from "antd";

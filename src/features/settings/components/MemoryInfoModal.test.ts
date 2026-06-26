@@ -6,7 +6,7 @@ import {
   createDefaultMemoryInfoFilters,
   createDefaultMemoryMeta,
   createDefaultMemoryPreferenceMode,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import { MemoryInfoModalView } from "@/features/settings/components/MemoryInfoModal";
 
 function renderView(

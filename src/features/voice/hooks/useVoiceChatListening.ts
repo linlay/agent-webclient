@@ -3,7 +3,7 @@ import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { createRequestId } from "@/shared/api/apiClient";
+import { createRequestId } from "@/shared/data";
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
 import { runVoiceChatListeningReady } from "@/features/voice/lib/voiceChatListeningReady";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";

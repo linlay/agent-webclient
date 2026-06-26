@@ -9,20 +9,17 @@ import {
 import { MAX_EVENTS } from '@/app/state/constants';
 import * as transportModeModule from '@/features/transport/lib/transportMode';
 
-jest.mock('@/features/transport/lib/apiClientProxy', () => ({
+jest.mock('@/shared/data', () => ({
   setTransportModeProvider: jest.fn(),
-}));
-
-jest.mock('@/shared/api/apiClient', () => ({
   setAccessToken: jest.fn(),
 }));
 
 const { setTransportModeProvider } = jest.requireMock(
-  '@/features/transport/lib/apiClientProxy',
+  '@/shared/data',
 ) as {
   setTransportModeProvider: jest.Mock;
 };
-const { setAccessToken } = jest.requireMock('@/shared/api/apiClient') as {
+const { setAccessToken } = jest.requireMock('@/shared/data') as {
   setAccessToken: jest.Mock;
 };
 

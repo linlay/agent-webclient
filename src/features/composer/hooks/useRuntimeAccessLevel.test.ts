@@ -2,7 +2,7 @@ import {
   applyRuntimeAccessLevelChange,
 } from "@/features/composer/hooks/useRuntimeAccessLevel";
 import { enUSMessages } from "@/shared/i18n/locales/en-US";
-import type { QueryAccessLevel } from "@/shared/api/apiClient";
+import type { QueryAccessLevel } from "@/shared/data";
 
 describe("applyRuntimeAccessLevelChange", () => {
   const t = (key: string, params: Record<string, unknown> = {}) =>

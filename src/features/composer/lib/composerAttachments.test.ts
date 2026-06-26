@@ -3,10 +3,10 @@ import {
 	keepLatestFilesByName,
 	uploadComposerAttachments,
 } from "@/features/composer/lib/composerAttachments";
-import { uploadFile } from "@/shared/api/apiClient";
-import { desktopScreenshotToFile } from "@/shared/api/desktopScreenshot";
+import { uploadFile } from "@/shared/data";
+import { desktopScreenshotToFile } from "@/shared/data/desktopScreenshot";
 
-jest.mock("@/shared/api/apiClient", () => ({
+jest.mock("@/shared/data", () => ({
 	createRequestId: jest.fn((prefix: string) => `${prefix}_mock`),
 	extractUploadChatId: jest.fn(
 		(data: { chatId?: string }) => data.chatId || "",

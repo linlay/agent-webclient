@@ -6,7 +6,7 @@ import {
 	extractUploadChatId,
 	extractUploadReferences,
 	uploadFile,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
 	formatAttachmentSize,
 	getAttachmentKind,

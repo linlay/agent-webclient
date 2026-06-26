@@ -12,7 +12,7 @@ import type {
   AIAwaitSubmitPayloadData,
   FormActiveAwaiting,
 } from "@/app/state/types";
-import { getViewport } from "@/features/transport/lib/apiClientProxy";
+import { getViewport } from "@/shared/data";
 import {
   type AwaitingCollectDecision,
   buildAwaitingCollectMessage,

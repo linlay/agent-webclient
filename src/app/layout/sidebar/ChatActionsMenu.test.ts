@@ -14,7 +14,7 @@ jest.mock("@/app/state/AppContext", () => ({
 	}),
 }));
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
 	archiveChats: jest.fn(),
 	deleteChat: jest.fn(),
 	downloadChatExport: jest.fn(),

@@ -4,7 +4,7 @@ import type { FileChangeSummary, PublishedArtifact } from "@/app/state/types";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
-import { getFileHistory } from "@/shared/api/apiClient";
+import { getFileHistory } from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";

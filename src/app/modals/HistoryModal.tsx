@@ -12,7 +12,7 @@ import {
   archiveChats,
   deleteChat,
   downloadChatExport,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import { useAppContext } from "../state/provider";
 
 export const HistoryModal: React.FC<{

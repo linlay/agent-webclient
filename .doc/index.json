@@ -40,7 +40,7 @@
   "moduleMap": {
     "api": {
       "paths": [
-        "src/shared/api/**"
+        "src/shared/data/**"
       ],
       "context": ".doc/modules/api.json",
       "confidence": "confirmed"
@@ -188,7 +188,7 @@
     "moduleCount": 19,
     "flowCount": 2,
     "taskCount": 3,
-    "sourceFileCount": 402,
+    "sourceFileCount": 407,
     "factsRef": ".doc/generated/project-facts.json",
     "contextIndexRef": ".doc/generated/context-index.json"
   }

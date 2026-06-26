@@ -6,14 +6,14 @@ import {
   getAdminRegistryDetail,
   saveAdminRegistryDetail,
   validateAdminRegistry,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import type {
   AdminRegistryCategory,
   AdminRegistryDetailResponse,
   AdminRegistryDiagnostic,
   AdminRegistryStatus,
   AdminRegistrySummary,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";

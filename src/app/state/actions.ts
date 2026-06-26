@@ -40,8 +40,8 @@ import type {
 	MemoryScopeValidationResult,
 	MemoryRecordDetail,
 	MemoryRecordListItem,
-} from "@/shared/api/memoryTypes";
-import type { AutomationSummaryResponse } from "@/shared/api/apiClient";
+} from "@/shared/data/memoryTypes";
+import type { AutomationSummaryResponse } from "@/shared/data";
 
 export type AppAction =
 	| { type: "SET_AGENTS"; agents: Agent[] }

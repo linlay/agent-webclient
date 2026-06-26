@@ -6,6 +6,7 @@ import {
 	normalizeVoiceChatUtteranceForLength,
 	resolveVoiceChatWsUrl,
 } from "@/features/voice/lib/voiceChatAudio";
+import { DEFAULT_VOICE_WS_PATH } from "@/features/voice/lib/voiceAsrProtocol";
 import {
 	formatVoiceSocketClose,
 	MAX_VOICE_WS_RECONNECT_ATTEMPTS,
@@ -36,9 +37,9 @@ export function useVoiceChatSocket({
 			return controller.socketPromiseRef.current;
 		}
 
-		const wsPath =
-			controller.stateRef.current.voiceChat.capabilities?.websocketPath ||
-			"/api/voice/ws";
+			const wsPath =
+				controller.stateRef.current.voiceChat.capabilities?.websocketPath ||
+				DEFAULT_VOICE_WS_PATH;
 		const accessToken = await controller.ensureVoiceAccessToken();
 		if (!accessToken) {
 			throw new Error("voice access_token is required");
@@ -360,4 +361,3 @@ export function useVoiceChatSocket({
 		scheduleVoiceReconnect,
 	};
 }
-

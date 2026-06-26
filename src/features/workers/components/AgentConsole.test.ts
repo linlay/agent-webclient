@@ -41,7 +41,7 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(() => ({ state: mockAppState, dispatch: mockDispatch })),
 }));
 
-jest.mock("@/shared/api/apiClient", () => ({
+jest.mock("@/shared/data", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
   getAdminAgentDetail: jest.fn(),
@@ -82,7 +82,7 @@ import {
 } from "@/features/workers/components/AgentConsole";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
-  "@/shared/api/apiClient",
+  "@/shared/data",
 ) as {
   getAdminAgents: jest.Mock;
   putAdminAgentOrder: jest.Mock;

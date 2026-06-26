@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
-import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '@/features/transport/lib/apiClientProxy';
+import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '@/shared/data';
 import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
 import { isAppMode } from '@/shared/utils/routing';
 import {

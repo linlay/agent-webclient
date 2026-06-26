@@ -18,10 +18,8 @@
     "tests": [
       "src/features/transport/hooks/useSseAttachTransport.test.ts",
       "src/features/transport/hooks/useWsTransport.test.ts",
-      "src/features/transport/lib/apiClientProxy.test.ts",
       "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
       "src/features/transport/lib/queryStreamRuntime.ws.test.ts",
-      "src/features/transport/lib/transportClient.test.ts",
       "src/features/transport/lib/transportMode.test.ts",
       "src/features/transport/lib/wsClient.test.ts",
       "src/features/transport/lib/wsClientSingleton.test.ts",

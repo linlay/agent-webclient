@@ -3,10 +3,11 @@ import type { Dispatch, MutableRefObject } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, VoiceCapabilities } from "@/app/state/types";
 import {
+	dataEndpoints,
 	ensureAccessToken,
 	getVoiceCapabilitiesFlexible,
 	getVoiceVoicesFlexible,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
@@ -319,9 +320,9 @@ export function useVoiceChatRuntimeController({
 
 		if (!stateRef.current.voiceChat.voicesLoaded) {
 			try {
-				const voicesPath =
-					String(capabilities?.tts?.voicesEndpoint || "").trim() ||
-					"/api/voice/tts/voices";
+					const voicesPath =
+						String(capabilities?.tts?.voicesEndpoint || "").trim() ||
+						dataEndpoints.voiceVoices.path;
 				const response = await getVoiceVoicesFlexible(voicesPath);
 				voices = ensureVoiceOptions(response);
 				selectedVoice = resolveDefaultVoice(

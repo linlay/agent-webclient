@@ -20,9 +20,10 @@ import {
   type WsClient,
 } from "@/features/transport/lib/wsClient";
 import {
+  dataEndpoints,
   ensureAccessToken,
   getCurrentAccessToken,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { useAppState } from "@/app/state/AppContext";
 import "@xterm/xterm/css/xterm.css";
 
@@ -204,7 +205,7 @@ const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     void client
       .request({
-        type: "/api/terminal/input",
+        type: dataEndpoints.terminalInput.path,
         payload: {
           terminalId,
           data,
@@ -242,7 +243,7 @@ const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     void client
       .request({
-        type: "/api/terminal/resize",
+        type: dataEndpoints.terminalResize.path,
         payload: {
           terminalId,
           cols: Math.max(1, terminal.cols || 80),
@@ -305,7 +306,7 @@ const TerminalPane: React.FC<TerminalPaneProps> = ({
       terminalId = "";
       void client
         .request({
-          type: "/api/terminal/close",
+          type: dataEndpoints.terminalClose.path,
           payload: { terminalId: id },
         })
         .catch(() => {
@@ -366,7 +367,7 @@ const TerminalPane: React.FC<TerminalPaneProps> = ({
           payload.chatId = terminalChatId;
         }
         const stream = resolvedClient.stream({
-          type: "/api/terminal/open",
+          type: dataEndpoints.terminalOpen.path,
           payload,
           onEvent: handleTerminalEvent,
           onDone: () => {

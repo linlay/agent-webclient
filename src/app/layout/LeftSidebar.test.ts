@@ -197,12 +197,12 @@ jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", null, "agent-icon"),
 }));
 
-jest.mock("@/shared/api/desktopFileSystem", () => ({
+jest.mock("@/shared/data/desktopFileSystem", () => ({
   selectProjectFolder: jest.fn(),
   openWorkspaceDirectory: jest.fn(),
 }));
 
-jest.mock("@/features/transport/lib/apiClientProxy", () => ({
+jest.mock("@/shared/data", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
   getAgent: jest.fn(),
@@ -224,7 +224,7 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
 const {
   selectProjectFolder,
   openWorkspaceDirectory,
-} = jest.requireMock("@/shared/api/desktopFileSystem") as {
+} = jest.requireMock("@/shared/data/desktopFileSystem") as {
   selectProjectFolder: jest.Mock;
   openWorkspaceDirectory: jest.Mock;
 };
@@ -234,7 +234,7 @@ const {
   getAgent,
   getAgents,
   updateAgent,
-} = jest.requireMock("@/features/transport/lib/apiClientProxy") as {
+} = jest.requireMock("@/shared/data") as {
   createAgent: jest.Mock;
   deleteAgent: jest.Mock;
   getAgent: jest.Mock;

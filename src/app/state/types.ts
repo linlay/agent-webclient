@@ -14,7 +14,7 @@ import type {
 	MemoryScopeValidationResult,
 	MemoryRecordDetail,
 	MemoryRecordListItem,
-} from "@/shared/api/memoryTypes";
+} from "@/shared/data/memoryTypes";
 import type { ThemeMode } from "@/shared/styles/theme";
 import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {
@@ -53,7 +53,7 @@ import type {
 	VoiceChatState,
 	WsConnectionStatus,
 } from "@/app/state/voiceTypes";
-import type { AutomationSummaryResponse } from "@/shared/api/apiClient";
+import type { AutomationSummaryResponse } from "@/shared/data";
 import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 
 export type { ThemeMode } from "@/shared/styles/theme";

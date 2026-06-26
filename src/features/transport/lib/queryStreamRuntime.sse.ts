@@ -4,7 +4,7 @@ import type { AgentEvent } from "@/app/state/types";
 import {
   createAttachStream,
   createQueryStream,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import {
   createStreamAbortScope,
   startQueryStreamState,

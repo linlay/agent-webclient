@@ -11,7 +11,7 @@ import type { AgentEvent } from "@/app/state/types";
 import {
 	getChatLLMTraceRaw,
 	getChatRawJsonl,
-} from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
+import { I18nProvider } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -83,8 +84,18 @@ describe("RightSidebar", () => {
     delete globalWithFeatureFlags.localStorage;
   });
 
+  function renderRightSidebar() {
+    return renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(RightSidebar),
+      ),
+    );
+  }
+
   it("does not render the debug tab by default", () => {
-    const html = renderToStaticMarkup(React.createElement(RightSidebar));
+    const html = renderRightSidebar();
 
     expect(html).toContain("概览");
     expect(html).not.toContain("调试");
@@ -96,7 +107,7 @@ describe("RightSidebar", () => {
       DEBUG_PANEL_ENABLED: "true",
     };
 
-    const html = renderToStaticMarkup(React.createElement(RightSidebar));
+    const html = renderRightSidebar();
 
     expect(html).not.toContain("调试");
     expect(html).toContain("debug tab");

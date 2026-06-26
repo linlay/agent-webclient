@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArchiveConsole } from "@/features/settings/components/ArchiveConsole";
-import type { ChatSummaryResponse } from "@/shared/api/apiClient";
+import type { ChatSummaryResponse } from "@/shared/data";
 
 export const ArchivesPage = () => {
 	const navigate = useNavigate();

@@ -5,8 +5,9 @@ import type {
 } from "@/app/state/types";
 import { bytesToBase64 } from "@/features/voice/lib/voiceChatAudio";
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
+import { dataEndpoints } from "@/shared/data/endpoints";
 
-export const DEFAULT_VOICE_WS_PATH = "/api/voice/ws";
+export const DEFAULT_VOICE_WS_PATH = dataEndpoints.voiceWs.path;
 export type VoiceAsrDefaultsInput = NonNullable<
 	NonNullable<VoiceCapabilities["asr"]>["defaults"]
 >;

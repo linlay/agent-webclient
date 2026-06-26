@@ -9,7 +9,7 @@ import {
 	type AppState,
 	type Chat,
 } from "@/app/state/types";
-import { ensureAccessToken } from "@/shared/api/apiClient";
+import { dataEndpoints, ensureAccessToken } from "@/shared/data";
 import { markDebugEventHidden } from "@/features/timeline/lib/debugEventDisplay";
 import { resolveChatSummaryActiveRun } from "@/features/chats/lib/chatRunState";
 import {
@@ -381,7 +381,7 @@ function requestWsDetachRun(
 	}
 
 	void wsClient.request<DetachRunResponse>({
-		type: "/api/detach",
+		type: dataEndpoints.detach.path,
 		payload: {
 			runId: target.runId,
 			agentKey: target.agentKey,
@@ -579,7 +579,7 @@ export function registerAttachRunListener(
 		const abortFns: Array<() => void> = [];
 		const startAttachStream = () => {
 			const streamResult = wsClient.stream({
-				type: "/api/attach",
+				type: dataEndpoints.attach.path,
 				payload: {
 					runId,
 					agentKey,

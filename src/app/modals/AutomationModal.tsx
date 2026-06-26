@@ -12,8 +12,8 @@ import {
   getAutomations,
   toggleAutomation,
   updateAutomation,
-} from "@/features/transport/lib/apiClientProxy";
-import { getAgents as getAgentsHttp } from "@/shared/api/apiClient";
+} from "@/shared/data";
+import { getAgents as getAgentsHttp } from "@/shared/data";
 import type {
   CreateAutomationRequest,
   AutomationDetailResponse,
@@ -21,7 +21,7 @@ import type {
   AutomationQueryRequest,
   AutomationSummaryResponse,
   UpdateAutomationRequest,
-} from "@/shared/api/apiClient";
+} from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";

@@ -9,6 +9,7 @@ import {
 import {
 	buildVoiceAsrStartPayload,
 	buildVoiceAsrStopFrames,
+	DEFAULT_VOICE_WS_PATH,
 	mergeVoiceAsrDefaults,
 	type VoiceAsrDefaultsInput,
 	type VoiceAsrDefaults,
@@ -261,7 +262,7 @@ export class AsrDebugSession {
 
 		const websocketPath =
 			String(config?.websocketPath || this.options.getVoiceWsPath() || "").trim() ||
-			"/api/voice/ws";
+			DEFAULT_VOICE_WS_PATH;
 		const asrDefaults = mergeVoiceAsrDefaults(
 			config?.asrDefaults || this.options.getAsrDefaults(),
 		);

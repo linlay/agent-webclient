@@ -5,8 +5,8 @@ import {
   type AccessLevelUpdateResponse,
   type ApiResponse,
   type QueryAccessLevel,
-} from "@/shared/api/apiClient";
-import { updateAccessLevel as updateAccessLevelRequest } from "@/features/transport/lib/apiClientProxy";
+} from "@/shared/data";
+import { updateAccessLevel as updateAccessLevelRequest } from "@/shared/data";
 import type { TranslateParams } from "@/shared/i18n";
 
 type SetAccessLevel = (value: QueryAccessLevel) => void;

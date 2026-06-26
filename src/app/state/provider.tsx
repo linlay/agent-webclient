@@ -12,14 +12,14 @@ import type { AppState } from "@/app/state/types";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
-import { getAppAccessToken, refreshAppAccessToken } from "@/shared/api/appAuth";
-import { setAccessToken } from "@/shared/api/apiClient";
+import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/appAuth";
+import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import {
 	applyThemeModeToDocument,
 } from "@/shared/styles/theme";
 import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
-import { setTransportModeProvider } from "@/features/transport/lib/apiClientProxy";
+import { setTransportModeProvider } from "@/shared/data";
 
 export interface AppContextValue {
 	state: AppState;
