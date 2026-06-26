@@ -391,7 +391,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
               <div className="tool-call-body">
                 <Flex className="tool-call-copy" align="center">
-                  {record.durationMs && (
+                  {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>
                       {formatToolDuration(record.durationMs, t)}
                     </span>
