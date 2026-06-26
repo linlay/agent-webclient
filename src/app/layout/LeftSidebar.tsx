@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
+  Checkbox,
   Collapse,
   CollapseProps,
   Dropdown,
@@ -18,6 +19,8 @@ import {
   message,
   Modal,
   Popover,
+  Radio,
+  Select,
   Spin,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
@@ -85,10 +88,18 @@ function workspaceNameFromPath(path: string): string {
   );
 }
 
-function buildCoderAgentCreateRequest(workspaceDir: string) {
+function buildCoderAgentCreateRequest(
+  workspaceDir: string,
+  options: { name?: string; acpProxyId?: string } = {},
+) {
+  const runtimeConfig: Record<string, unknown> = { workspaceRoot: workspaceDir };
+  if (options.acpProxyId) {
+    runtimeConfig.coderBackend = "acp";
+    runtimeConfig.acpProxyId = options.acpProxyId;
+  }
   return {
     definition: {
-      name: workspaceNameFromPath(workspaceDir),
+      name: options.name || workspaceNameFromPath(workspaceDir),
       mode: "CODER",
       icon: {
         name: "folder",
@@ -96,15 +107,18 @@ function buildCoderAgentCreateRequest(workspaceDir: string) {
       workspace: {
         root: workspaceDir,
       },
-      runtimeConfig: {
-        workspaceRoot: workspaceDir,
-      },
+      runtimeConfig,
       visibility: {
         scopes: ["nav", "copilot"],
       },
     },
   };
 }
+
+const ACP_PROXY_OPTIONS = [
+  { value: "proxy-acp-claudecode", label: "claude" },
+  { value: "proxy-acp-codex", label: "codex" },
+];
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -680,85 +694,115 @@ export const LeftSidebar: React.FC = () => {
       state.wsStatus,
     ],
   );
+
+  // --- Create Project Dialog State ---
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [workspaceDir, setWorkspaceDir] = useState("");
+  const [projectType, setProjectType] = useState<"coder" | "kbase">("coder");
+  const [useAcp, setUseAcp] = useState(false);
+  const [selectedAcpProxyId, setSelectedAcpProxyId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   const handleStartNewProject = () => {
+    if (creatingProject || createModalOpen) return;
+
+    setCreatingProject(true);
     void selectProjectFolder()
-      .then(async (selection) => {
+      .then((selection) => {
         if (!selection) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[new project] ${t("leftSidebar.projectFolderSelectionCanceled")}`,
-          });
           return;
         }
 
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[new project] ${t("leftSidebar.importingProject")}`,
-        });
-        const response = await createAgent(
-          buildCoderAgentCreateRequest(selection.workspaceDir),
-        );
-        const createdKey = String(response.data?.key || "").trim();
-        if (createdKey) {
-          dispatch({
-            type: "SET_TEMPORARY_PINNED_AGENT_KEY",
-            agentKey: createdKey,
-          });
-        }
-        try {
-          const agentsResponse = await getAgents({
-            includeChats: 5,
-            scope: "nav",
-          });
-          const agents = Array.isArray(agentsResponse.data)
-            ? (agentsResponse.data as AppState["agents"])
-            : [];
-          dispatch({ type: "SET_AGENTS", agents });
-          if (createdKey) {
-            dispatch({
-              type: "SET_WORKER_ROWS",
-              rows: buildWorkerRows({
-                agents,
-                teams: stateRef.current.teams,
-                chats: stateRef.current.chats,
-                workerPriorityKey: `agent:${createdKey}`,
-              }),
-            });
-          }
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[loadAgents error] ${(error as Error).message}`,
-          });
-        }
-
-        if (createdKey) {
-          const workerKey = `agent:${createdKey}`;
-          flushSync(() => {
-            dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
-            dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: [] });
-            dispatch({
-              type: "SET_WORKER_CHAT_PANEL_COLLAPSED",
-              collapsed: true,
-            });
-          });
-        }
-        window.dispatchEvent(
-          new CustomEvent("agent:start-new-conversation", {
-            detail: {
-              ...(createdKey ? { agentKey: createdKey } : {}),
-              preserveWorkerContext: Boolean(createdKey),
-              focusComposerOnComplete: false,
-            },
-          }),
-        );
+        const dir = selection.workspaceDir;
+        const basename = workspaceNameFromPath(dir);
+        setWorkspaceDir(dir);
+        setProjectName(basename);
+        setProjectType("coder");
+        setUseAcp(false);
+        setSelectedAcpProxyId(ACP_PROXY_OPTIONS[0]?.value || "");
+        setCreateModalOpen(true);
       })
       .catch((error) => {
         dispatch({
           type: "APPEND_DEBUG",
           line: `[new project error] ${(error as Error).message}`,
         });
+      })
+      .finally(() => {
+        setCreatingProject(false);
       });
+  };
+
+  const handleCloseModal = () => {
+    setCreateModalOpen(false);
+  };
+
+  const handleSubmitCreate = async () => {
+    const trimmedName = projectName.trim();
+    if (!trimmedName) {
+      void message.warning(t("leftSidebar.createProject.nameRequired"));
+      return;
+    }
+    if (projectType === "kbase") {
+      void message.warning(t("leftSidebar.createProject.kbaseNotImplemented"));
+      return;
+    }
+    if (useAcp && !selectedAcpProxyId) {
+      void message.warning(t("leftSidebar.createProject.acpRequired"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const definition = buildCoderAgentCreateRequest(workspaceDir, {
+        name: trimmedName,
+        acpProxyId: useAcp ? selectedAcpProxyId : undefined,
+      });
+      const response = await createAgent(definition);
+      const createdKey = String(response.data?.key || "").trim();
+
+      setCreateModalOpen(false);
+
+      if (createdKey) {
+        dispatch({
+          type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+          agentKey: createdKey,
+        });
+      }
+
+      const agentsResponse = await getAgents({
+        includeChats: 5,
+        scope: "nav",
+      });
+      const agents = Array.isArray(agentsResponse.data)
+        ? (agentsResponse.data as AppState["agents"])
+        : [];
+      dispatch({ type: "SET_AGENTS", agents });
+
+      if (createdKey) {
+        dispatch({
+          type: "SET_WORKER_ROWS",
+          rows: buildWorkerRows({
+            agents,
+            teams: stateRef.current.teams,
+            chats: stateRef.current.chats,
+            workerPriorityKey: `agent:${createdKey}`,
+          }),
+        });
+        navigate(
+          `/agent/${encodeURIComponent(createdKey)}${window.location.search || ""}`,
+        );
+      }
+    } catch (error) {
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[new project error] ${(error as Error).message}`,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -850,6 +894,8 @@ export const LeftSidebar: React.FC = () => {
                   title={t("topNav.newProject")}
                   variant="ghost"
                   iconOnly
+                  disabled={creatingProject || createModalOpen}
+                  loading={creatingProject}
                   onClick={handleStartNewProject}
                 >
                   <MaterialIcon name="create_new_folder" />
@@ -1204,6 +1250,147 @@ export const LeftSidebar: React.FC = () => {
           );
         }}
       />
+
+      <Modal
+        title={t("leftSidebar.createProject.title")}
+        open={createModalOpen}
+        width="min(420px, calc(100vw - 32px))"
+        centered
+        onCancel={handleCloseModal}
+        footer={[
+          <Button key="cancel" onClick={handleCloseModal} disabled={submitting}>
+            {t("leftSidebar.createProject.cancel")}
+          </Button>,
+          <Button
+            key="create"
+            type="primary"
+            loading={submitting}
+            onClick={handleSubmitCreate}
+          >
+            {submitting
+              ? t("leftSidebar.createProject.creating")
+              : t("leftSidebar.createProject.create")}
+          </Button>,
+        ]}
+        destroyOnClose
+      >
+        <Flex vertical gap={16} style={{ paddingTop: 8 }}>
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 4,
+                fontWeight: 500,
+                fontSize: 13,
+              }}
+            >
+              {t("leftSidebar.createProject.projectName")}
+            </label>
+            <Input
+              autoFocus
+              value={projectName}
+              placeholder={t(
+                "leftSidebar.createProject.projectNamePlaceholder",
+              )}
+              disabled={submitting}
+              onChange={(e) => setProjectName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 4,
+                fontWeight: 500,
+                fontSize: 13,
+              }}
+            >
+              {t("leftSidebar.createProject.projectDirectory")}
+            </label>
+            <Input value={workspaceDir} disabled />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 8,
+                fontWeight: 500,
+                fontSize: 13,
+              }}
+            >
+              {t("leftSidebar.createProject.projectType")}
+            </label>
+            <Radio.Group
+              value={projectType}
+              disabled={submitting}
+              onChange={(e) => setProjectType(e.target.value)}
+            >
+              <Radio value="coder">CODER</Radio>
+              <Radio value="kbase">KBASE</Radio>
+            </Radio.Group>
+          </div>
+
+          {projectType === "coder" && (
+            <>
+              <Checkbox
+                checked={useAcp}
+                disabled={submitting}
+                onChange={(e) => setUseAcp(e.target.checked)}
+              >
+                {t("leftSidebar.createProject.useAcp")}
+              </Checkbox>
+
+              {useAcp && (
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontWeight: 500,
+                      fontSize: 13,
+                    }}
+                  >
+                    {t("leftSidebar.createProject.acpProxy")}
+                  </label>
+                  <Select
+                    value={selectedAcpProxyId || undefined}
+                    disabled={submitting}
+                    style={{ width: "100%" }}
+                    options={ACP_PROXY_OPTIONS}
+                    placeholder={t("leftSidebar.createProject.noAcpProxy")}
+                    onChange={(value) => setSelectedAcpProxyId(value)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {projectType === "kbase" && (
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  fontWeight: 500,
+                  fontSize: 13,
+                }}
+              >
+                {t("leftSidebar.createProject.kbaseVectorStore")}
+              </label>
+              <Radio.Group defaultValue="local" disabled={submitting}>
+                <Radio value="local">
+                  {t("leftSidebar.createProject.kbaseVectorStoreLocal")}
+                </Radio>
+                <Radio value="remote">
+                  {t("leftSidebar.createProject.kbaseVectorStoreRemote")}
+                </Radio>
+              </Radio.Group>
+            </div>
+          )}
+        </Flex>
+      </Modal>
     </>
   );
 };

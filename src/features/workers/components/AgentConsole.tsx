@@ -510,6 +510,7 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
     id: sortableId,
     disabled: disabled || !agentKey,
   });
+  const isCoderMode = summary.mode.toUpperCase() === "CODER";
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -552,14 +553,16 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
       <span className="agent-console-list-item-main">
         <span className="agent-console-list-item-row agent-console-list-item-head">
           <strong>{name}</strong>
-          <span className="agent-console-list-item-head-meta">
-            {isInvalid && (
-              <span className="agent-console-status is-invalid">
-                {t("agentConsole.status.invalid")}
-              </span>
-            )}
-            <span>{agentKey || "--"}</span>
-          </span>
+          {(isInvalid || !isCoderMode) && (
+            <span className="agent-console-list-item-head-meta">
+              {isInvalid && (
+                <span className="agent-console-status is-invalid">
+                  {t("agentConsole.status.invalid")}
+                </span>
+              )}
+              {!isCoderMode && <span>{agentKey || "--"}</span>}
+            </span>
+          )}
         </span>
         <span className="agent-console-list-item-row agent-console-list-item-meta">
           <span>{summary.modelKey}</span>

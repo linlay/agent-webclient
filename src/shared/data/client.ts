@@ -206,6 +206,12 @@ export type AdminRegistryCategory =
 
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 
+export interface AdminServiceSummary {
+  id: string;
+  name: string;
+  status: string;
+}
+
 export interface AdminRegistryDiagnostic {
   severity: string;
   code: string;
@@ -1218,6 +1224,10 @@ export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
 
 export function getAdminRegistries(): Promise<ApiResponse<AdminRegistryListResponse>> {
   return requestJson<AdminRegistryListResponse>(dataEndpoints.adminRegistries.path);
+}
+
+export function getAdminServices(): Promise<ApiResponse<AdminServiceSummary[]>> {
+  return requestJson<AdminServiceSummary[]>(dataEndpoints.adminServices.path);
 }
 
 export function getAdminRegistryDetail(

@@ -136,6 +136,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
+  adminServices: defineEndpoint({
+    key: "admin.services.list",
+    path: "/api/admin/services",
+    method: "GET",
+    transport: "http",
+  }),
   adminRegistryDetail: defineEndpoint({
     key: "admin.registries.detail",
     path: "/api/admin/registries/detail",
