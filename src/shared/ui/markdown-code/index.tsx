@@ -10,7 +10,7 @@ import { App, Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "../UiButton";
 import { MaterialIcon } from "../MaterialIcon";
 import { useAppDispatch } from "@/app/state/AppContext";
-import { CaretRightOutlined } from "@ant-design/icons";
+
 import Style from "./index.module.css";
 
 type MarkdownCodeProps = React.HTMLAttributes<HTMLElement> & {
@@ -136,7 +136,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
         onChange={setActiveKey as any}
         ghost
         expandIcon={({ isActive }) => (
-          <CaretRightOutlined rotate={isActive ? 90 : 0} />
+          <MaterialIcon name="chevron_right" style={{ transform: isActive ? "rotate(90deg)" : undefined }} />
         )}
         items={[
           {

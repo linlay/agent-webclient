@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { Avatar, AvatarProps } from "antd/es";
-import { TeamOutlined } from "@ant-design/icons";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 import defaultIcon from "./agent-icons/default.svg";
 import atlasIcon from "./agent-icons/atlas.svg";
@@ -154,7 +154,7 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
     if (type === "team") {
       return (
         <Avatar
-          icon={<TeamOutlined />}
+          icon={<MaterialIcon name="person" />}
           {...props?.avatar}
           style={{
             background: typeof icon === "object" ? icon?.color : undefined,

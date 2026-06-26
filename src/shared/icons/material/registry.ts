@@ -58,6 +58,7 @@ export const materialIconSymbolIds = {
   javascript: "material-symbol-javascript",
   keyboard_arrow_down: "material-symbol-keyboard-arrow-down",
   keyboard_arrow_up: "material-symbol-keyboard-arrow-up",
+  keyboard_return: "material-symbol-keyboard-return",
   light_mode: "material-symbol-light-mode",
   list_arrow: "material-symbol-list-arrow",
   lock: "material-symbol-lock",

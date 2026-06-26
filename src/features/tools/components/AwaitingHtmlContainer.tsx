@@ -5,8 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Checkbox, Flex, Input, message, Radio } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Button, Flex, Input, message, Radio } from "antd";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type {
   AIAwaitFormSubmitParamData,
   AIAwaitSubmitPayloadData,
@@ -24,7 +24,6 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
-import Style from "./buildin/confirm-dialog/index.module.css";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { RadioRef } from "antd/es/radio";
 
@@ -903,7 +902,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             <div className="awaiting-panel-form-switcher">
               <Button
                 disabled={switchDisabled || activeFormIndex <= 0}
-                icon={<LeftOutlined style={{ fontSize: 12 }} />}
+                icon={<MaterialIcon name="chevron_left" style={{ fontSize: 12 }} />}
                 size="small"
                 type="text"
                 onClick={() => handleSwitchForm(activeFormIndex - 1)}
@@ -930,7 +929,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                 disabled={
                   switchDisabled || activeFormIndex >= data.forms.length - 1
                 }
-                icon={<RightOutlined style={{ fontSize: 12 }} />}
+                icon={<MaterialIcon name="chevron_right" style={{ fontSize: 12 }} />}
                 size="small"
                 type="text"
                 onClick={() => handleSwitchForm(activeFormIndex + 1)}

@@ -10,7 +10,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
-import { CloseCircleFilled } from "@ant-design/icons";
+
 
 interface ComposerActionsProps {
   accessLevel: QueryAccessLevel;
@@ -152,7 +152,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                 onClick={onTogglePlanningMode}
               >
                 <MaterialIcon name="checklist" className="plan-toggle-icon" />
-                <CloseCircleFilled className="plan-toggle-close-icon" />
+                <MaterialIcon name="close" className="plan-toggle-close-icon" />
                 <span>{t("composer.actions.plan")}</span>
               </UiButton>
             </Tooltip>

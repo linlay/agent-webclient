@@ -13,7 +13,6 @@
     "check:i18n": "node ./scripts/check-hardcoded-han.js"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.1",
     "@ant-design/x": "^1.0.0",
     "@ant-design/x-markdown": "^2.3.0",
     "@dnd-kit/core": "6.0.8",
