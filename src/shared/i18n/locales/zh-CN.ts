@@ -783,7 +783,6 @@ export const zhCNMessages: I18nMessages = {
   "timeline.toolPill.duration.minutes": "{minutes}分{seconds}秒",
   "timeline.toolPill.duration.seconds": "{count}秒",
   "timeline.toolPill.empty": "空",
-  "timeline.toolPill.groupTitle": "{label} x{count}",
   "timeline.toolPill.noOutput": "（无输出）",
   "timeline.toolPill.runTitle": "第 {index} 次",
   "timeline.toolPill.status.canceled": "已取消",

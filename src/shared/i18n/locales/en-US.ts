@@ -783,7 +783,6 @@ export const enUSMessages: I18nMessages = {
   "timeline.toolPill.duration.minutes": "{minutes}m {seconds}s",
   "timeline.toolPill.duration.seconds": "{count}s",
   "timeline.toolPill.empty": "Empty",
-  "timeline.toolPill.groupTitle": "{label} x{count}",
   "timeline.toolPill.noOutput": "(No output)",
   "timeline.toolPill.runTitle": "Run {index}",
   "timeline.toolPill.status.canceled": "Canceled",
