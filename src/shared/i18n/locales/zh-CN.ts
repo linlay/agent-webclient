@@ -291,7 +291,6 @@ export const zhCNMessages: I18nMessages = {
   "approvalDialog.loading": "等待审批加载中...",
   "approvalDialog.remoteAnswered": "已被其他终端提交",
   "approvalDialog.option.reject": "拒绝",
-  "approvalDialog.option.rejectWithReason": "拒绝并告知如何调整",
   "approvalDialog.rejectDefaultReason": "拒绝本次审批",
   "approvalDialog.rejectPlaceholder": "请告知如何调整",
   "approvalDialog.selected": "已选",

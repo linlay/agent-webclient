@@ -210,14 +210,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     void submitPayload(
       buildPartialApprovalSubmitParams(approvals, decisions, reasons),
     );
-  }, [
-    approvals,
-    resolved,
-    decisions,
-    reasons,
-    submitPayload,
-    submitting,
-  ]);
+  }, [approvals, resolved, decisions, reasons, submitPayload, submitting]);
 
   const timeoutCountdown = useAwaitingTimeoutCountdown({
     awaitingKey: data.key,
@@ -517,10 +510,7 @@ const ApprovalQuestion = forwardRef<
 
     return (
       <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-        <Flex
-          className={Style.Question}
-          justify="space-between"
-        >
+        <Flex className={Style.Question} justify="space-between">
           <div className={Style.QuestionHeading}>{approval?.description}</div>
           {pagnation}
         </Flex>
@@ -564,35 +554,13 @@ const ApprovalQuestion = forwardRef<
               </Flex>
             </Radio>
           ))}
-          <Radio
-            value="reject"
-            className={Style.Option}
-            onClick={() => {
-              onDecisionChange("reject");
-              onEnterDebounce("reject");
-            }}
-          >
-            <Flex
-              gap={10}
-              align="center"
-              tabIndex={0}
-              data-index={options.length}
-              style={{ outline: "none" }}
-            >
-              <span className={Style.Index}>{options.length + 1}</span>
-              <span className={Style.Info}>
-                {t("approvalDialog.option.reject")}
-              </span>
-              <span className={Style.ApprovalMeta}>{t("approvalDialog.rejectDefaultReason")}</span>
-              <span className="Selected">{t("approvalDialog.selected")}</span>
-            </Flex>
-          </Radio>
           <Flex align="center">
             <Radio
               className={[Style.Option, Style.FreeText].join(" ")}
-              value="reject_with_reason"
+              value="reject"
               onClick={() => {
-                onDecisionChange("reject_with_reason");
+                onDecisionChange("reject");
+                onEnterDebounce("reject");
               }}
             >
               <Flex gap={10} align="center">
@@ -600,7 +568,7 @@ const ApprovalQuestion = forwardRef<
                   <MaterialIcon name="edit" />
                 </span>
                 <span className={Style.Info}>
-                  {t("approvalDialog.option.rejectWithReason")}
+                  {t("approvalDialog.option.reject")}
                 </span>
                 <Input
                   variant="borderless"
@@ -611,7 +579,7 @@ const ApprovalQuestion = forwardRef<
                     const nextReason = e.target.value;
                     onReasonChange(nextReason);
                     if (nextReason.trim()) {
-                      onDecisionChange("reject_with_reason");
+                      onDecisionChange("reject");
                     }
                   }}
                   onPressEnter={(e) => {
@@ -619,7 +587,7 @@ const ApprovalQuestion = forwardRef<
                     if (!nextReason) {
                       return;
                     }
-                    onEnter("reject_with_reason");
+                    onEnterDebounce("reject");
                   }}
                   style={{ padding: 0 }}
                 />
