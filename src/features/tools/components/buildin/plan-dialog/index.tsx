@@ -1,6 +1,6 @@
 import { message } from "antd";
 import { Button, Checkbox, CheckboxRef, Flex, Input } from "antd/es";
-import { LoadingOutlined } from "@ant-design/icons";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import React, {
   forwardRef,
   useCallback,
@@ -157,7 +157,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
       gap={20}
       style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <LoadingOutlined style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
       <div>{t("approvalDialog.loading")}</div>
     </Flex>
   );

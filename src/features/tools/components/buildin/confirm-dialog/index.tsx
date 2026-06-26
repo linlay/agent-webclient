@@ -29,13 +29,6 @@ import {
   QuestionActiveAwaiting,
 } from "@/app/state/types";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
-import {
-  EnterOutlined,
-  InfoCircleOutlined,
-  LeftOutlined,
-  LoadingOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
 import Style from "@/features/tools/components/buildin/confirm-dialog/index.module.css";
 import {
   buildQuestionSubmitParams,
@@ -433,7 +426,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
               }}
             >
               <span>{t("approvalDialog.action.submit")}</span>
-              <EnterOutlined />
+              <MaterialIcon name="keyboard_return" />
             </Button>
           )}
         </Flex>
@@ -448,7 +441,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       gap={20}
       style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <LoadingOutlined style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
       <div>{t("confirmDialog.loading")}</div>
     </Flex>
   );
@@ -728,7 +721,7 @@ const Question = forwardRef<
                         tooltip.kind === "preview" ? { padding: 0 } : undefined,
                     }}
                   >
-                    <InfoCircleOutlined />
+                    <MaterialIcon name="info" />
                   </Tooltip>
                 )}
                 <span className="Selected">{t("approvalDialog.selected")}</span>

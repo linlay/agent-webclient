@@ -58,6 +58,7 @@
   <symbol id="material-symbol-javascript" viewBox="0 0 960 960"><path d="M300 600Q275 600 257.5 582.5Q240 565 240 540V530Q240 517 248.5 508.5Q257 500 270 500Q283 500 291.5 508.5Q300 517 300 530V540H360V390Q360 377 368.5 368.5Q377 360 390 360Q403 360 411.5 368.5Q420 377 420 390V540Q420 565 402.5 582.5Q385 600 360 600ZM520 600Q503 600 491.5 588.5Q480 577 480 560V540Q480 532 486 526Q492 520 500 520H520Q528 520 534 526Q540 532 540 540H620V500H520Q503 500 491.5 488.5Q480 477 480 460V400Q480 383 491.5 371.5Q503 360 520 360H640Q657 360 668.5 371.5Q680 383 680 400V420Q680 428 674 434Q668 440 660 440H640Q632 440 626 434Q620 428 620 420H540V460H640Q657 460 668.5 471.5Q680 483 680 500V560Q680 577 668.5 588.5Q657 600 640 600Z"/></symbol>
   <symbol id="material-symbol-keyboard-arrow-down" viewBox="0 0 960 960"><path d="M452 588L268 404Q257 393 257 376Q257 359 268 348Q279 337 296 337Q313 337 324 348L480 504L636 348Q647 337 664 337Q681 337 692 348Q703 359 703 376Q703 393 692 404L508 588Q502 594 495 596.5Q488 599 480 599Q472 599 465 596.5Q458 594 452 588"/></symbol>
   <symbol id="material-symbol-keyboard-arrow-up" viewBox="0 0 960 960"><path d="M480 432L324 588Q313 599 296 599Q279 599 268 588Q257 577 257 560Q257 543 268 532L452 348Q464 336 480 336Q496 336 508 348L692 532Q703 543 703 560Q703 577 692 588Q681 599 664 599Q647 599 636 588Z"/></symbol>
+  <symbol id="material-symbol-keyboard-return" viewBox="0 -960 960 960"><path d="M360-240 120-480l240-240 56 56-144 144h488v-160h80v240H272l144 144-56 56Z"/></symbol>
   <symbol id="material-symbol-light-mode" viewBox="0 0 960 960"><path d="M480 600Q530 600 565 565Q600 530 600 480Q600 430 565 395Q530 360 480 360Q430 360 395 395Q360 430 360 480Q360 530 395 565Q430 600 480 600M480 680Q397 680 338.5 621.5Q280 563 280 480Q280 397 338.5 338.5Q397 280 480 280Q563 280 621.5 338.5Q680 397 680 480Q680 563 621.5 621.5Q563 680 480 680M80 520Q63 520 51.5 508.5Q40 497 40 480Q40 463 51.5 451.5Q63 440 80 440H160Q177 440 188.5 451.5Q200 463 200 480Q200 497 188.5 508.5Q177 520 160 520ZM800 520Q783 520 771.5 508.5Q760 497 760 480Q760 463 771.5 451.5Q783 440 800 440H880Q897 440 908.5 451.5Q920 463 920 480Q920 497 908.5 508.5Q897 520 880 520ZM440 160V80Q440 63 451.5 51.5Q463 40 480 40Q497 40 508.5 51.5Q520 63 520 80V160Q520 177 508.5 188.5Q497 200 480 200Q463 200 451.5 188.5Q440 177 440 160M440 880V800Q440 783 451.5 771.5Q463 760 480 760Q497 760 508.5 771.5Q520 783 520 800V880Q520 897 508.5 908.5Q497 920 480 920Q463 920 451.5 908.5Q440 897 440 880M226 282L183 240Q171 229 171.5 212Q172 195 183 183Q195 171 212 171Q229 171 240 183L282 226Q293 238 293 254Q293 270 282 282Q271 294 254.5 293.5Q238 293 226 282M720 777L678 734Q667 722 667 705.5Q667 689 678 678Q689 666 705.5 666.5Q722 667 734 678L777 720Q789 731 788.5 748Q788 765 777 777Q765 789 748 789Q731 789 720 777M678 282Q666 271 666.5 254.5Q667 238 678 226L720 183Q731 171 748 171.5Q765 172 777 183Q789 195 789 212Q789 229 777 240L734 282Q722 293 706 293Q690 293 678 282M183 777Q171 765 171 748Q171 731 183 720L226 678Q238 667 254.5 667Q271 667 282 678Q294 689 293.5 705.5Q293 722 282 734L240 777Q229 789 212 788.5Q195 788 183 777"/></symbol>
   <symbol id="material-symbol-list-arrow" viewBox="0 0 960 960"><path d="M212 772L108 668Q97 657 96.5 640.5Q96 624 108 612Q119 601 135.5 600.5Q152 600 164 611L200 646V240Q200 223 211.5 211.5Q223 200 240 200Q257 200 268.5 211.5Q280 223 280 240V646L316 611Q327 600 343.5 600Q360 600 372 612Q383 623 383 640Q383 657 372 668L268 772Q262 778 255 780.5Q248 783 240 783Q232 783 225 780.5Q218 778 212 772M520 760Q503 760 491.5 748.5Q480 737 480 720Q480 703 491.5 691.5Q503 680 520 680H840Q857 680 868.5 691.5Q880 703 880 720Q880 737 868.5 748.5Q857 760 840 760ZM520 520Q503 520 491.5 508.5Q480 497 480 480Q480 463 491.5 451.5Q503 440 520 440H840Q857 440 868.5 451.5Q880 463 880 480Q880 497 868.5 508.5Q857 520 840 520ZM520 280Q503 280 491.5 268.5Q480 257 480 240Q480 223 491.5 211.5Q503 200 520 200H840Q857 200 868.5 211.5Q880 223 880 240Q880 257 868.5 268.5Q857 280 840 280Z"/></symbol>
   <symbol id="material-symbol-lock" viewBox="0 0 960 960"><path d="M240 880Q207 880 183.5 856.5Q160 833 160 800V400Q160 367 183.5 343.5Q207 320 240 320H280V240Q280 157 338.5 98.5Q397 40 480 40Q563 40 621.5 98.5Q680 157 680 240V320H720Q753 320 776.5 343.5Q800 367 800 400V800Q800 833 776.5 856.5Q753 880 720 880ZM240 800H720V400H240V800M560 600Q560 567 536.5 543.5Q513 520 480 520Q447 520 423.5 543.5Q400 567 400 600Q400 633 423.5 656.5Q447 680 480 680Q513 680 536.5 656.5Q560 633 560 600M360 320H600V240Q600 190 565 155Q530 120 480 120Q430 120 395 155Q360 190 360 240Z"/></symbol>
@@ -186,58 +187,59 @@
   </g>
   <!-- row 6 -->
   <g transform="translate(0, 432)">
-    <use href="#material-symbol-list-arrow" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">list_arrow</text>
-    <use href="#material-symbol-lock" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">lock</text>
-    <use href="#material-symbol-mic" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">mic</text>
-    <use href="#material-symbol-more-horiz" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">more_horiz</text>
-    <use href="#material-symbol-open-in-new" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">open_in_new</text>
-    <use href="#material-symbol-pause-circle" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">pause_circle</text>
-    <use href="#material-symbol-person" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">person</text>
-    <use href="#material-symbol-person-search" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">person_search</text>
-    <use href="#material-symbol-picture-as-pdf" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">picture_as_pdf</text>
-    <use href="#material-symbol-play-circle" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">play_circle</text>
+    <use href="#material-symbol-keyboard-return" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">keyboard_return</text>
+    <use href="#material-symbol-list-arrow" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">list_arrow</text>
+    <use href="#material-symbol-lock" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">lock</text>
+    <use href="#material-symbol-mic" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">mic</text>
+    <use href="#material-symbol-more-horiz" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">more_horiz</text>
+    <use href="#material-symbol-open-in-new" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">open_in_new</text>
+    <use href="#material-symbol-pause-circle" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">pause_circle</text>
+    <use href="#material-symbol-person" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">person</text>
+    <use href="#material-symbol-person-search" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">person_search</text>
+    <use href="#material-symbol-picture-as-pdf" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">picture_as_pdf</text>
   </g>
   <!-- row 7 -->
   <g transform="translate(0, 504)">
-    <use href="#material-symbol-preview" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">preview</text>
-    <use href="#material-symbol-progress-activity" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">progress_activity</text>
-    <use href="#material-symbol-psychology" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">psychology</text>
-    <use href="#material-symbol-forum" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">question_answer</text>
-    <use href="#material-symbol-redo" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">redo</text>
-    <use href="#material-symbol-refresh" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">refresh</text>
-    <use href="#material-symbol-reply" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">reply</text>
-    <use href="#material-symbol-robot-2" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">robot_2</text>
-    <use href="#material-symbol-rule" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">rule</text>
-    <use href="#material-symbol-save" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">save</text>
+    <use href="#material-symbol-play-circle" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">play_circle</text>
+    <use href="#material-symbol-preview" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">preview</text>
+    <use href="#material-symbol-progress-activity" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">progress_activity</text>
+    <use href="#material-symbol-psychology" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">psychology</text>
+    <use href="#material-symbol-forum" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">question_answer</text>
+    <use href="#material-symbol-redo" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">redo</text>
+    <use href="#material-symbol-refresh" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">refresh</text>
+    <use href="#material-symbol-reply" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">reply</text>
+    <use href="#material-symbol-robot-2" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">robot_2</text>
+    <use href="#material-symbol-rule" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">rule</text>
   </g>
   <!-- row 8 -->
   <g transform="translate(0, 576)">
-    <use href="#material-symbol-schedule" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">schedule</text>
-    <use href="#material-symbol-search" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">search</text>
-    <use href="#material-symbol-settings" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">settings</text>
-    <use href="#material-symbol-slideshow" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">slideshow</text>
-    <use href="#material-symbol-smart-toy" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">smart_toy</text>
-    <use href="#material-symbol-stop-circle" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">stop_circle</text>
-    <use href="#material-symbol-subject" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">subject</text>
-    <use href="#material-symbol-swap-horiz" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">swap_horiz</text>
-    <use href="#material-symbol-sync-alt" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">sync_alt</text>
-    <use href="#material-symbol-table-chart" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">table_chart</text>
+    <use href="#material-symbol-save" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">save</text>
+    <use href="#material-symbol-schedule" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">schedule</text>
+    <use href="#material-symbol-search" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">search</text>
+    <use href="#material-symbol-settings" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">settings</text>
+    <use href="#material-symbol-slideshow" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">slideshow</text>
+    <use href="#material-symbol-smart-toy" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">smart_toy</text>
+    <use href="#material-symbol-stop-circle" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">stop_circle</text>
+    <use href="#material-symbol-subject" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">subject</text>
+    <use href="#material-symbol-swap-horiz" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">swap_horiz</text>
+    <use href="#material-symbol-sync-alt" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">sync_alt</text>
   </g>
   <!-- row 9 -->
   <g transform="translate(0, 648)">
-    <use href="#material-symbol-terminal" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">terminal</text>
-    <use href="#material-symbol-thumb-down" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">thumb_down</text>
-    <use href="#material-symbol-tune" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">tune</text>
-    <use href="#material-symbol-unarchive" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">unarchive</text>
-    <use href="#material-symbol-verified-user" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">verified_user</text>
-    <use href="#material-symbol-visibility" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">visibility</text>
-    <use href="#material-symbol-volume-off" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">volume_off</text>
-    <use href="#material-symbol-volume-up" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">volume_up</text>
-    <use href="#material-symbol-warning" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">warning</text>
-    <use href="#material-symbol-zoom-in" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">zoom_in</text>
+    <use href="#material-symbol-table-chart" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">table_chart</text>
+    <use href="#material-symbol-terminal" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">terminal</text>
+    <use href="#material-symbol-thumb-down" x="164" y="4" width="40" height="40"/><text class="icon-label" x="184" y="60">thumb_down</text>
+    <use href="#material-symbol-tune" x="244" y="4" width="40" height="40"/><text class="icon-label" x="264" y="60">tune</text>
+    <use href="#material-symbol-unarchive" x="324" y="4" width="40" height="40"/><text class="icon-label" x="344" y="60">unarchive</text>
+    <use href="#material-symbol-verified-user" x="404" y="4" width="40" height="40"/><text class="icon-label" x="424" y="60">verified_user</text>
+    <use href="#material-symbol-visibility" x="484" y="4" width="40" height="40"/><text class="icon-label" x="504" y="60">visibility</text>
+    <use href="#material-symbol-volume-off" x="564" y="4" width="40" height="40"/><text class="icon-label" x="584" y="60">volume_off</text>
+    <use href="#material-symbol-volume-up" x="644" y="4" width="40" height="40"/><text class="icon-label" x="664" y="60">volume_up</text>
+    <use href="#material-symbol-warning" x="724" y="4" width="40" height="40"/><text class="icon-label" x="744" y="60">warning</text>
   </g>
   <!-- row 10 -->
   <g transform="translate(0, 720)">
-    <use href="#material-symbol-zoom-out" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">zoom_out</text>
+    <use href="#material-symbol-zoom-in" x="4" y="4" width="40" height="40"/><text class="icon-label" x="24" y="60">zoom_in</text>
+    <use href="#material-symbol-zoom-out" x="84" y="4" width="40" height="40"/><text class="icon-label" x="104" y="60">zoom_out</text>
   </g>
 </svg>

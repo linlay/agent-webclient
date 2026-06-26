@@ -145,17 +145,13 @@ export function formatToolDuration(
 
 export function formatToolPillTitle(
   source: TimelineNode | ToolGroupRenderEntry,
-  translate: TranslateFn = runtimeT,
 ): string {
   if ("kind" in source && source.kind === "tool-group") {
     const baseLabel = resolveToolLabel({
       toolLabel: source.toolLabel,
       toolName: source.toolName,
     });
-    return translate("timeline.toolPill.groupTitle", {
-      label: baseLabel,
-      count: source.count,
-    });
+    return baseLabel;
   }
 
   return resolveToolLabel(source);
@@ -395,7 +391,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
               <div className="tool-call-body">
                 <Flex className="tool-call-copy" align="center">
-                  {record.durationMs && (
+                  {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>
                       {formatToolDuration(record.durationMs, t)}
                     </span>

@@ -1,11 +1,5 @@
 import { Radio } from "antd";
-import { Button, Checkbox, CheckboxRef, Flex, Input, Tabs } from "antd/es";
-import {
-  EnterOutlined,
-  LeftOutlined,
-  LoadingOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { Button, CheckboxRef, Flex, Input, Tabs } from "antd/es";
 import React, {
   forwardRef,
   useCallback,
@@ -434,7 +428,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                       disabled={!canSubmit}
                     >
                       <span>{t("approvalDialog.action.submit")}</span>
-                      <EnterOutlined />
+                      <MaterialIcon name="keyboard_return" />
                     </Button>
                   )}
                 </Flex>
@@ -453,7 +447,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
       gap={20}
       style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <LoadingOutlined style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
       <div>{t("approvalDialog.loading")}</div>
     </Flex>
   );
