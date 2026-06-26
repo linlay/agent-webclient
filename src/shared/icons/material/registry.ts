@@ -75,6 +75,7 @@ export const materialIconSymbolIds = {
   question_answer: "material-symbol-forum",
   redo: "material-symbol-redo",
   refresh: "material-symbol-refresh",
+  reply: "material-symbol-reply",
   robot_2: "material-symbol-robot-2",
   rule: "material-symbol-rule",
   save: "material-symbol-save",
