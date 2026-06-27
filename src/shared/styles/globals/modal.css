@@ -624,7 +624,7 @@
 
 .registry-category-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
     border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
     border-radius: var(--radius-md);
@@ -678,6 +678,23 @@
 
 .registry-console-toolbar {
     grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.registry-tool-json {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--bg-input) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--ink-muted);
+    max-height: 320px;
+    overflow: auto;
 }
 
 /* ---- SearchFilterBar (VSCode-style) ---- */
@@ -1706,7 +1723,7 @@
 
 .settings-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
 }
 
@@ -1733,7 +1750,7 @@
 
 .settings-numeric-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 12px;
 }
 

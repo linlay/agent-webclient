@@ -204,7 +204,22 @@ export type AdminRegistryCategory =
   | "mcp-servers"
   | "viewport-servers";
 
+export type RegistryConsoleTab = AdminRegistryCategory | "tools";
+
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
+
+export interface AdminToolSummary {
+  key?: string;
+  name?: string;
+  label?: string;
+  description?: string;
+  kind?: string;
+  tags?: string[];
+  source?: string;
+  summary?: Record<string, unknown>;
+  status?: string;
+  [key: string]: unknown;
+}
 
 export interface AdminServiceSummary {
   id: string;
@@ -1346,9 +1361,9 @@ export function getAdminSkills(tag?: string): Promise<ApiResponse> {
 
 export function getAdminTools(
   options: { tag?: string; kind?: string } = {},
-): Promise<ApiResponse> {
+): Promise<ApiResponse<AdminToolSummary[]>> {
   const query = toQueryString({ tag: options.tag, kind: options.kind });
-  return requestJson(withQuery(dataEndpoints.adminTools.path, query));
+  return requestJson<AdminToolSummary[]>(withQuery(dataEndpoints.adminTools.path, query));
 }
 
 export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {

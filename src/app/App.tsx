@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
 import {
   createBrowserRouter,
@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import {
   AppProvider,
-  useAppDispatch,
+  useAppContext,
   useAppState,
 } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
@@ -34,6 +34,8 @@ import { AgentsPage } from "./pages/agents";
 import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
+import { setTransportModeProvider } from "@/shared/data/routedClient";
+import { resolveRouteDataTransportMode } from "./routeDataTransport";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 
@@ -43,9 +45,18 @@ const defaultDocumentTitle =
 const BaseShell = () => {
   useDesktopRouteChange();
   const location = useLocation();
-  const dispatch = useAppDispatch();
+  const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();
   const hadRouteThemeOverrideRef = useRef(false);
+
+  useLayoutEffect(() => {
+    setTransportModeProvider(() =>
+      resolveRouteDataTransportMode(
+        location.pathname,
+        stateRef.current.transportMode,
+      ),
+    );
+  }, [location.pathname, stateRef]);
 
   useEffect(() => {
     const routeThemeMode = readUrlThemeMode(location.search);

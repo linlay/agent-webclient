@@ -116,10 +116,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, [state.transportMode]);
 
 	useEffect(() => {
-		syncTransportModeProvider(stateRef);
-	}, [state.transportMode]);
-
-	useEffect(() => {
 		syncApiAccessToken(state);
 	}, [state.accessToken]);
 

@@ -6,7 +6,10 @@ import {
   registryItemKey,
   summaryLine,
 } from "@/app/pages/registries";
-import type { AdminRegistrySummary } from "@/shared/data";
+import type {
+  AdminRegistrySummary,
+  AdminToolSummary,
+} from "@/shared/data";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {
@@ -43,7 +46,11 @@ jest.mock("@/shared/data", () => ({
   getAdminRegistryDetail: jest.fn(),
   saveAdminRegistryDetail: jest.fn(),
   validateAdminRegistry: jest.fn(),
+  getAdminTools: jest.fn().mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] }),
 }));
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mockGetAdminTools = (require("@/shared/data") as any).getAdminTools as jest.Mock;
 
 const registryItems: AdminRegistrySummary[] = [
   {
@@ -73,7 +80,26 @@ const registryItems: AdminRegistrySummary[] = [
   },
 ];
 
+const toolItems: AdminToolSummary[] = [
+  {
+    key: "bash",
+    name: "Bash",
+    description: "Run shell commands",
+    kind: "builtin",
+    tags: ["coding", "shell"],
+    source: "builtin",
+  },
+  {
+    key: "file_read",
+    name: "File Read",
+    description: "Read file contents",
+    kind: "builtin",
+    tags: ["coding"],
+  },
+];
+
 function renderRegistriesPage(locale: Locale) {
+  mockGetAdminTools.mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] });
   return renderToStaticMarkup(
     React.createElement(
       I18nProvider,
@@ -84,6 +110,11 @@ function renderRegistriesPage(locale: Locale) {
 }
 
 describe("RegistriesPage", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetAdminTools.mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] });
+  });
+
   it("renders the registry console shell in Chinese", () => {
     const html = renderRegistriesPage("zh-CN");
 
@@ -105,6 +136,16 @@ describe("RegistriesPage", () => {
     expect(html).not.toContain("All categories");
     expect(html).toContain("All statuses");
     expect(html).toContain("Select or create a registry config");
+  });
+
+  it("renders the tools tab label in Chinese", () => {
+    const html = renderRegistriesPage("zh-CN");
+    expect(html).toContain("工具");
+  });
+
+  it("renders the tools tab label in English", () => {
+    const html = renderRegistriesPage("en-US");
+    expect(html).toContain("Tools");
   });
 
   it("filters registry items by category, status, summary, and diagnostics", () => {
