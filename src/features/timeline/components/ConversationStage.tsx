@@ -30,6 +30,8 @@ type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
 const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 const QUERY_ANCHOR_ACTIVE_OFFSET = 96;
+const QUERY_ANCHOR_TIMELINE_WIDTH = 800;
+const QUERY_ANCHOR_EDGE_INSET = 12;
 
 export interface TimelineAgentOption {
   key: string;
@@ -47,6 +49,12 @@ function normalizeSearchText(value: unknown): string {
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
+}
+
+function resolveQueryAnchorOffset(width: number): number {
+  if (!Number.isFinite(width)) return 56;
+  const sideGutter = Math.max(0, (width - QUERY_ANCHOR_TIMELINE_WIDTH) / 2);
+  return Math.max(56, sideGutter - QUERY_ANCHOR_EDGE_INSET);
 }
 
 function buildQueryAnchorId(nodeId: string): string {
@@ -526,6 +534,18 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       state.taskItemsById,
     );
   }, [timelineEntries, state.events, state.taskItemsById]);
+  const queryAnchorItems = useMemo(
+    () =>
+      displayItems
+        .filter((item): item is Extract<typeof item, { kind: "query" }> =>
+          item.kind === "query",
+        )
+        .map((item) => ({
+          key: item.key,
+          anchorId: buildQueryAnchorId(item.node.id),
+        })),
+    [displayItems],
+  );
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -773,6 +793,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
     const updateWidthState = (width = el.clientWidth) => {
       setQueryAnchorsEnabled(shouldEnableQueryAnchors(width));
+      el.style.setProperty(
+        "--query-anchor-offset",
+        `${resolveQueryAnchorOffset(width)}px`,
+      );
     };
 
     updateWidthState();
@@ -825,15 +849,40 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               </div>
             ) : null
           ) : (
-            <div className="timeline-lane">
+            <>
+              {queryAnchorItems.length > 0 && (
+                <nav
+                  className="timeline-query-anchor-rail"
+                  aria-label="提问锚点"
+                >
+                  {queryAnchorItems.map((anchor, index) => {
+                    const active = activeQueryAnchorId === anchor.anchorId;
+                    return (
+                      <button
+                        key={anchor.key}
+                        className={`timeline-query-anchor-line ${active ? "is-active" : ""}`.trim()}
+                        type="button"
+                        aria-label={`定位到第 ${index + 1} 个提问`}
+                        aria-current={active ? "location" : undefined}
+                        title={`定位到第 ${index + 1} 个提问`}
+                        onClick={() => handleQueryAnchorClick(anchor.anchorId)}
+                      >
+                        <span
+                          className="timeline-query-anchor-line-bar"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    );
+                  })}
+                </nav>
+              )}
+              <div className="timeline-lane">
               {displayItems.map((item) => {
                 if (item.kind === "query") {
                   const queryTime = formatTimelineTime(item.node.ts);
                   const queryCopyKey = `${item.key}:copy`;
                   const queryCopyStatus = actionStatus[queryCopyKey] || "复制";
                   const queryAnchorId = buildQueryAnchorId(item.node.id);
-                  const queryAnchorActive =
-                    activeQueryAnchorId === queryAnchorId;
                   return (
                     <div
                       key={item.key}
@@ -841,26 +890,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       className="timeline-query-anchor-row"
                       data-query-anchor-id={queryAnchorId}
                     >
-                      <button
-                        className={`timeline-query-anchor ${queryAnchorActive ? "is-active" : ""}`.trim()}
-                        type="button"
-                        aria-label="定位到此提问"
-                        title="定位到此提问"
-                        onClick={() => handleQueryAnchorClick(queryAnchorId)}
-                      >
-                        <span
-                          className="timeline-query-anchor-lines"
-                          aria-hidden="true"
-                        >
-                          <span />
-                          <span />
-                          <span />
-                        </span>
-                        <span
-                          className="timeline-query-anchor-active-line"
-                          aria-hidden="true"
-                        />
-                      </button>
                       <TimelineRow
                         node={item.node}
                         metaNode={
@@ -1033,7 +1062,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
                 return renderEntry(item.renderEntry);
               })}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>

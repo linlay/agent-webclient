@@ -159,7 +159,7 @@ describe("ConversationStage", () => {
     expect(shouldEnableQueryAnchors(960)).toBe(true);
   });
 
-  it("renders an anchor wrapper only for request query items", () => {
+  it("renders one animated anchor line for each request query item", () => {
     const state = createInitialState();
     const nodes: TimelineNode[] = [
       { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
@@ -170,12 +170,22 @@ describe("ConversationStage", () => {
         text: "answer",
         ts: 130,
       },
+      { id: "user_2", kind: "message", role: "user", text: "next", ts: 200 },
+      {
+        id: "content_2",
+        kind: "content",
+        role: "assistant",
+        text: "next answer",
+        ts: 230,
+      },
     ];
     useAppState.mockReturnValue({
       ...state,
       events: [
         { type: "request.query", timestamp: 100 },
-        { type: "run.complete", timestamp: 200 },
+        { type: "run.complete", timestamp: 180 },
+        { type: "request.query", timestamp: 200 },
+        { type: "run.complete", timestamp: 280 },
       ],
       timelineNodes: createTimelineMap(nodes),
       timelineOrder: nodes.map((node) => node.id),
@@ -183,13 +193,19 @@ describe("ConversationStage", () => {
 
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
+    expect(html).toContain("timeline-query-anchor-rail");
     expect(html).toContain("timeline-query-anchor-row");
-    expect(html).toContain("timeline-query-anchor");
     expect(html).toContain("id=\"query-user_1\"");
     expect(html).toContain("data-query-anchor-id=\"query-user_1\"");
-    expect(html).toContain("aria-label=\"定位到此提问\"");
-    expect(html.match(/timeline-query-anchor-row/g)).toHaveLength(1);
+    expect(html).toContain("id=\"query-user_2\"");
+    expect(html).toContain("data-query-anchor-id=\"query-user_2\"");
+    expect(html).toContain("aria-label=\"定位到第 1 个提问\"");
+    expect(html).toContain("aria-label=\"定位到第 2 个提问\"");
+    expect(html.match(/timeline-query-anchor-row/g)).toHaveLength(2);
+    expect(html.match(/class="timeline-query-anchor-line"/g)).toHaveLength(2);
+    expect(html).not.toContain("timeline-query-anchor-lines");
     expect(html).not.toContain("query-content_1");
+    expect(html).not.toContain("query-content_2");
   });
 
   it("does not render query anchors for non-query timeline nodes", () => {
@@ -228,8 +244,9 @@ describe("ConversationStage", () => {
 
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
+    expect(html).not.toContain("timeline-query-anchor-rail");
     expect(html).not.toContain("timeline-query-anchor-row");
-    expect(html).not.toContain("timeline-query-anchor");
+    expect(html).not.toContain("timeline-query-anchor-line");
     expect(html).not.toContain("data-query-anchor-id");
   });
 
