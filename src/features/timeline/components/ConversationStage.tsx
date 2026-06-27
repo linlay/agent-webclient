@@ -12,6 +12,7 @@ import {
 } from "@/features/timeline/components/TimelineRow";
 import {
   buildTimelineDisplayItems,
+  type TimelineDisplayItem,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
@@ -63,6 +64,19 @@ function buildQueryAnchorId(nodeId: string): string {
 
 function readQueryAnchorId(element: Element): string {
   return String((element as HTMLElement).dataset.queryAnchorId || "").trim();
+}
+
+function findLastRunContentText(
+  item: Extract<TimelineDisplayItem, { kind: "run" }>,
+): string {
+  const nodes = Array.isArray(item.nodes) ? item.nodes : [];
+  for (let index = nodes.length - 1; index >= 0; index -= 1) {
+    const node = nodes[index];
+    if (node?.kind !== "content") continue;
+    const text = String(node.text || "").trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 function buildTimelineAgentSearchText(input: {
@@ -535,15 +549,28 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     );
   }, [timelineEntries, state.events, state.taskItemsById]);
   const queryAnchorItems = useMemo(
-    () =>
-      displayItems
-        .filter((item): item is Extract<typeof item, { kind: "query" }> =>
-          item.kind === "query",
-        )
-        .map((item) => ({
+    () => {
+      const anchors: Array<{
+        key: string;
+        anchorId: string;
+        queryText: string;
+        lastRunContent: string;
+      }> = [];
+      for (let index = 0; index < displayItems.length; index += 1) {
+        const item = displayItems[index];
+        if (item.kind !== "query") continue;
+
+        const nextItem = displayItems[index + 1];
+        anchors.push({
           key: item.key,
           anchorId: buildQueryAnchorId(item.node.id),
-        })),
+          queryText: String(item.node.text || "").trim() || "无文本提问",
+          lastRunContent:
+            nextItem?.kind === "run" ? findLastRunContentText(nextItem) : "",
+        });
+      }
+      return anchors;
+    },
     [displayItems],
   );
 
@@ -807,9 +834,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       return () => window.removeEventListener("resize", handleResize);
     }
 
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      updateWidthState(entry?.contentRect?.width ?? el.clientWidth);
+    const observer = new ResizeObserver(() => {
+      updateWidthState(el.clientWidth);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -871,6 +897,19 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           className="timeline-query-anchor-line-bar"
                           aria-hidden="true"
                         />
+                        <span
+                          className="timeline-query-anchor-preview"
+                          aria-hidden="true"
+                        >
+                          <span className="timeline-query-anchor-preview-query">
+                            {anchor.queryText}
+                          </span>
+                          {anchor.lastRunContent && (
+                            <span className="timeline-query-anchor-preview-content">
+                              {anchor.lastRunContent}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}

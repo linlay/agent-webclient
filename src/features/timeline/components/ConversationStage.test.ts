@@ -157,6 +157,7 @@ describe("ConversationStage", () => {
   it("enables query anchors only when the scroll area is wide enough", () => {
     expect(shouldEnableQueryAnchors(959)).toBe(false);
     expect(shouldEnableQueryAnchors(960)).toBe(true);
+    expect(shouldEnableQueryAnchors(998)).toBe(true);
   });
 
   it("renders one animated anchor line for each request query item", () => {
@@ -203,6 +204,13 @@ describe("ConversationStage", () => {
     expect(html).toContain("aria-label=\"定位到第 2 个提问\"");
     expect(html.match(/timeline-query-anchor-row/g)).toHaveLength(2);
     expect(html.match(/class="timeline-query-anchor-line"/g)).toHaveLength(2);
+    expect(html.match(/class="timeline-query-anchor-preview"/g)).toHaveLength(2);
+    expect(html.match(/class="timeline-query-anchor-preview-query"/g)).toHaveLength(2);
+    expect(html.match(/class="timeline-query-anchor-preview-content"/g)).toHaveLength(2);
+    expect(html).toContain("hi");
+    expect(html).toContain("answer");
+    expect(html).toContain("next");
+    expect(html).toContain("next answer");
     expect(html).not.toContain("timeline-query-anchor-lines");
     expect(html).not.toContain("query-content_1");
     expect(html).not.toContain("query-content_2");
@@ -298,7 +306,6 @@ describe("ConversationStage", () => {
     expect(html).toContain("已完成");
     expect(html).toContain("70毫秒");
     expect(html).toContain("aria-expanded=\"false\"");
-    expect(html).not.toContain("answer");
     expect(html).not.toContain("Running 1 agents");
     expect(html).not.toContain("timeline-task-group-body");
   });
@@ -352,7 +359,6 @@ describe("ConversationStage", () => {
     expect(html).toContain("小智");
     expect(html).toContain("Sub agent task");
     expect(html).toContain("已完成");
-    expect(html).not.toContain("child answer");
     expect(html).not.toContain("Running 1 agents");
   });
 
