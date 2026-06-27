@@ -12,6 +12,7 @@ import {
   ConversationStage,
   dispatchTimelineAgentSwitch,
   filterTimelineAgentOptions,
+  shouldEnableQueryAnchors,
   TimelineAgentSwitcher,
 } from "@/features/timeline/components/ConversationStage";
 
@@ -151,6 +152,85 @@ describe("ConversationStage", () => {
       return;
     }
     delete globalWithStorage.localStorage;
+  });
+
+  it("enables query anchors only when the scroll area is wide enough", () => {
+    expect(shouldEnableQueryAnchors(959)).toBe(false);
+    expect(shouldEnableQueryAnchors(960)).toBe(true);
+  });
+
+  it("renders an anchor wrapper only for request query items", () => {
+    const state = createInitialState();
+    const nodes: TimelineNode[] = [
+      { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
+      {
+        id: "content_1",
+        kind: "content",
+        role: "assistant",
+        text: "answer",
+        ts: 130,
+      },
+    ];
+    useAppState.mockReturnValue({
+      ...state,
+      events: [
+        { type: "request.query", timestamp: 100 },
+        { type: "run.complete", timestamp: 200 },
+      ],
+      timelineNodes: createTimelineMap(nodes),
+      timelineOrder: nodes.map((node) => node.id),
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ConversationStage));
+
+    expect(html).toContain("timeline-query-anchor-row");
+    expect(html).toContain("timeline-query-anchor");
+    expect(html).toContain("id=\"query-user_1\"");
+    expect(html).toContain("data-query-anchor-id=\"query-user_1\"");
+    expect(html).toContain("aria-label=\"定位到此提问\"");
+    expect(html.match(/timeline-query-anchor-row/g)).toHaveLength(1);
+    expect(html).not.toContain("query-content_1");
+  });
+
+  it("does not render query anchors for non-query timeline nodes", () => {
+    const state = createInitialState();
+    const nodes: TimelineNode[] = [
+      {
+        id: "steer_1",
+        kind: "message",
+        role: "user",
+        messageVariant: "steer",
+        text: "/steer",
+        ts: 100,
+      },
+      {
+        id: "content_1",
+        kind: "content",
+        role: "assistant",
+        text: "answer",
+        ts: 130,
+      },
+      {
+        id: "tool_1",
+        kind: "tool",
+        toolName: "read_file",
+        toolLabel: "Read File",
+        text: "tool",
+        ts: 150,
+      },
+    ];
+    useAppState.mockReturnValue({
+      ...state,
+      events: [],
+      timelineNodes: createTimelineMap(nodes),
+      timelineOrder: nodes.map((node) => node.id),
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ConversationStage));
+
+    expect(html).not.toContain("timeline-query-anchor-row");
+    expect(html).not.toContain("timeline-query-anchor");
+    expect(html).not.toContain("data-query-anchor-id");
   });
 
   it("renders task group header and keeps task body collapsed by default", () => {

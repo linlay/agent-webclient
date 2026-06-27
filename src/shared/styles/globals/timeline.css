@@ -189,6 +189,100 @@
     gap: 10px;
 }
 
+.timeline-query-anchor-row {
+    position: relative;
+}
+
+.timeline-query-anchor {
+    position: absolute;
+    top: 0;
+    left: -56px;
+    width: 48px;
+    min-height: 52px;
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink-muted);
+    opacity: 0.66;
+    transform: none;
+}
+
+.timeline-stack.has-query-anchors .timeline-query-anchor {
+    display: inline-flex;
+}
+
+.timeline-query-anchor:hover,
+.timeline-query-anchor:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ink-2);
+    opacity: 0.95;
+    outline: none;
+    box-shadow: none;
+}
+
+.timeline-query-anchor:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 54%, transparent);
+    outline-offset: 4px;
+}
+
+.timeline-query-anchor:active {
+    transform: none;
+}
+
+.timeline-query-anchor-lines {
+    display: grid;
+    gap: 7px;
+    align-items: start;
+}
+
+.timeline-query-anchor-lines span,
+.timeline-query-anchor-active-line {
+    display: block;
+    height: 3px;
+    border-radius: 999px;
+}
+
+.timeline-query-anchor-lines span {
+    background: color-mix(in srgb, currentColor 36%, transparent);
+}
+
+.timeline-query-anchor-lines span:nth-child(1) {
+    width: 20px;
+}
+
+.timeline-query-anchor-lines span:nth-child(2) {
+    width: 38px;
+}
+
+.timeline-query-anchor-lines span:nth-child(3) {
+    width: 28px;
+}
+
+.timeline-query-anchor-active-line {
+    width: 48px;
+    background: transparent;
+    transition:
+        background-color 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.timeline-query-anchor.is-active {
+    color: var(--ink-muted);
+    opacity: 1;
+}
+
+.timeline-query-anchor.is-active .timeline-query-anchor-active-line {
+    background: var(--ink-1);
+}
+
 .timeline-row {
     position: relative;
     animation: node-rise 0.28s ease both;

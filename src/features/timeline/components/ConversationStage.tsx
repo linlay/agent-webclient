@@ -28,6 +28,9 @@ import type { Agent, WorkerRow } from "@/app/state/types";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
+const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
+const QUERY_ANCHOR_ACTIVE_OFFSET = 96;
+
 export interface TimelineAgentOption {
   key: string;
   name: string;
@@ -40,6 +43,18 @@ function normalizeSearchText(value: unknown): string {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+export function shouldEnableQueryAnchors(width: number): boolean {
+  return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
+}
+
+function buildQueryAnchorId(nodeId: string): string {
+  return `query-${nodeId}`;
+}
+
+function readQueryAnchorId(element: Element): string {
+  return String((element as HTMLElement).dataset.queryAnchorId || "").trim();
 }
 
 function buildTimelineAgentSearchText(input: {
@@ -404,6 +419,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const autoScrollEnabledRef = useRef(true);
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
+  const [queryAnchorsEnabled, setQueryAnchorsEnabled] = useState(false);
+  const [activeQueryAnchorId, setActiveQueryAnchorId] = useState("");
   const [expandedTaskGroups, setExpandedTaskGroups] = useState<
     Record<string, boolean>
   >({});
@@ -432,6 +449,70 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior });
   };
+
+  const updateActiveQueryAnchor = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || !queryAnchorsEnabled) {
+      setActiveQueryAnchorId("");
+      return;
+    }
+
+    const queryRows = Array.from(
+      el.querySelectorAll<HTMLElement>(".timeline-query-anchor-row"),
+    );
+    if (queryRows.length === 0) {
+      setActiveQueryAnchorId("");
+      return;
+    }
+
+    const threshold =
+      el.getBoundingClientRect().top + QUERY_ANCHOR_ACTIVE_OFFSET;
+    let nextActiveId = readQueryAnchorId(queryRows[0]);
+    for (const row of queryRows) {
+      const anchorId = readQueryAnchorId(row);
+      if (!anchorId) continue;
+      if (row.getBoundingClientRect().top <= threshold) {
+        nextActiveId = anchorId;
+        continue;
+      }
+      break;
+    }
+
+    setActiveQueryAnchorId((current) =>
+      current === nextActiveId ? current : nextActiveId,
+    );
+  }, [queryAnchorsEnabled]);
+
+  const handleQueryAnchorClick = useCallback((anchorId: string) => {
+    const normalizedAnchorId = String(anchorId || "").trim();
+    const el = scrollRef.current;
+    if (!normalizedAnchorId || !el || typeof document === "undefined") return;
+
+    const target = document.getElementById(normalizedAnchorId);
+    if (!target) return;
+
+    const scrollTop =
+      target.getBoundingClientRect().top -
+      el.getBoundingClientRect().top +
+      el.scrollTop -
+      12;
+    el.scrollTo({
+      top: Math.max(0, scrollTop),
+      behavior: "smooth",
+    });
+    setActiveQueryAnchorId(normalizedAnchorId);
+
+    if (typeof window === "undefined") return;
+    const nextUrl = `${window.location.pathname}${window.location.search}#${encodeURIComponent(normalizedAnchorId)}`;
+    if (
+      window.history &&
+      typeof window.history.replaceState === "function"
+    ) {
+      window.history.replaceState(null, "", nextUrl);
+      return;
+    }
+    window.location.hash = normalizedAnchorId;
+  }, []);
 
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
@@ -679,17 +760,46 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
     const handleScroll = () => {
       autoScrollEnabledRef.current = isNearBottom(el);
+      updateActiveQueryAnchor();
     };
 
     el.addEventListener("scroll", handleScroll, { passive: true });
     return () => el.removeEventListener("scroll", handleScroll);
+  }, [updateActiveQueryAnchor]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const updateWidthState = (width = el.clientWidth) => {
+      setQueryAnchorsEnabled(shouldEnableQueryAnchors(width));
+    };
+
+    updateWidthState();
+    if (typeof ResizeObserver === "undefined") {
+      if (typeof window === "undefined") return;
+      const handleResize = () => updateWidthState();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      updateWidthState(entry?.contentRect?.width ?? el.clientWidth);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    updateActiveQueryAnchor();
+  }, [displayItems, queryAnchorsEnabled, state.chatId, updateActiveQueryAnchor]);
 
   return (
     <div className="conversation-stage">
       <div className="messages-scroll" ref={scrollRef} id="messages">
         <div
-          className={`timeline-stack ${displayItems.length === 0 && showEmptyState ? "is-empty" : ""}`}
+          className={`timeline-stack ${queryAnchorsEnabled ? "has-query-anchors" : ""} ${displayItems.length === 0 && showEmptyState ? "is-empty" : ""}`.trim()}
         >
           {displayItems.length === 0 ? (
             showEmptyState ? (
@@ -721,74 +831,105 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   const queryTime = formatTimelineTime(item.node.ts);
                   const queryCopyKey = `${item.key}:copy`;
                   const queryCopyStatus = actionStatus[queryCopyKey] || "复制";
+                  const queryAnchorId = buildQueryAnchorId(item.node.id);
+                  const queryAnchorActive =
+                    activeQueryAnchorId === queryAnchorId;
                   return (
-                    <TimelineRow
+                    <div
                       key={item.key}
-                      node={item.node}
-                      metaNode={
-                        <div className="timeline-meta-row">
-                          <div className="timeline-meta-actions">
-                            <UiButton
-                              className="timeline-meta-btn"
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              title={queryCopyStatus}
-                              aria-label={queryCopyStatus}
-                              onClick={() =>
-                                handleCopy(queryCopyKey, item.node.text || "")
-                              }
-                            >
-                              <MaterialIcon name="content_copy" />
-                            </UiButton>
-                            <Dropdown
-                              placement="bottomRight"
-                              menu={{
-                                onClick: (info) => {
-                                  if (info.key === "resend") {
-                                    handleResend(item.node.text || "");
-                                  } else if (info.key === "resendInNewChat") {
-                                    handleResendInNewChat(item.node.text || "");
-                                  }
-                                },
-                                items: [
-                                  {
-                                    key: "resend",
-                                    icon: <MaterialIcon name="refresh" />,
-                                    label: "重问",
-                                  },
-                                  {
-                                    key: "resendInNewChat",
-                                    icon: <MaterialIcon name="open_in_new" />,
-                                    label: "新对话重问",
-                                  },
-                                ],
-                              }}
-                            >
+                      id={queryAnchorId}
+                      className="timeline-query-anchor-row"
+                      data-query-anchor-id={queryAnchorId}
+                    >
+                      <button
+                        className={`timeline-query-anchor ${queryAnchorActive ? "is-active" : ""}`.trim()}
+                        type="button"
+                        aria-label="定位到此提问"
+                        title="定位到此提问"
+                        onClick={() => handleQueryAnchorClick(queryAnchorId)}
+                      >
+                        <span
+                          className="timeline-query-anchor-lines"
+                          aria-hidden="true"
+                        >
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                        <span
+                          className="timeline-query-anchor-active-line"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <TimelineRow
+                        node={item.node}
+                        metaNode={
+                          <div className="timeline-meta-row">
+                            <div className="timeline-meta-actions">
                               <UiButton
                                 className="timeline-meta-btn"
                                 variant="ghost"
                                 size="sm"
                                 iconOnly
-                                disabled={state.streaming}
-                                title="重问"
-                                aria-label="重问"
+                                title={queryCopyStatus}
+                                aria-label={queryCopyStatus}
+                                onClick={() =>
+                                  handleCopy(queryCopyKey, item.node.text || "")
+                                }
                               >
-                                <MaterialIcon name="refresh" />
+                                <MaterialIcon name="content_copy" />
                               </UiButton>
-                            </Dropdown>
-                          </div>
-                          {queryTime.short && (
-                            <div
-                              className="timeline-row-time"
-                              title={queryTime.full}
-                            >
-                              {queryTime.short}
+                              <Dropdown
+                                placement="bottomRight"
+                                menu={{
+                                  onClick: (info) => {
+                                    if (info.key === "resend") {
+                                      handleResend(item.node.text || "");
+                                    } else if (info.key === "resendInNewChat") {
+                                      handleResendInNewChat(
+                                        item.node.text || "",
+                                      );
+                                    }
+                                  },
+                                  items: [
+                                    {
+                                      key: "resend",
+                                      icon: <MaterialIcon name="refresh" />,
+                                      label: "重问",
+                                    },
+                                    {
+                                      key: "resendInNewChat",
+                                      icon: <MaterialIcon name="open_in_new" />,
+                                      label: "新对话重问",
+                                    },
+                                  ],
+                                }}
+                              >
+                                <UiButton
+                                  className="timeline-meta-btn"
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  disabled={state.streaming}
+                                  title="重问"
+                                  aria-label="重问"
+                                >
+                                  <MaterialIcon name="refresh" />
+                                </UiButton>
+                              </Dropdown>
                             </div>
-                          )}
-                        </div>
-                      }
-                    />
+                            {queryTime.short && (
+                              <div
+                                className="timeline-row-time"
+                                title={queryTime.full}
+                              >
+                                {queryTime.short}
+                              </div>
+                            )}
+                          </div>
+                        }
+                      />
+                    </div>
                   );
                 }
 
