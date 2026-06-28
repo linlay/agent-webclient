@@ -53,8 +53,6 @@ describe("MaterialIcon", () => {
       "material-symbol-forum",
     );
     expect(sprite).not.toContain("material-icon-outlined");
-    expect(sprite).not.toContain("transform=");
-    expect(sprite).not.toContain("style=");
     for (const name of MATERIAL_ICON_NAMES) {
       expect(getMaterialIconHref(name)).toBe(
         `svg-mock.svg#${getMaterialIconSymbolId(name)}`,

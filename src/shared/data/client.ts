@@ -556,6 +556,12 @@ export interface ChatUsageEstimatedCost {
   [key: string]: unknown;
 }
 
+export interface ChatUsageTiming {
+  firstTokenLatencyMs?: number;
+  generationDurationMs?: number;
+  outputTokensPerSecond?: number;
+}
+
 export interface ChatUsageData {
   modelKey?: string;
   promptTokens?: number;
@@ -564,6 +570,7 @@ export interface ChatUsageData {
   promptTokensDetails?: ChatUsageTokenDetails;
   completionTokensDetails?: ChatUsageTokenDetails;
   estimatedCost?: ChatUsageEstimatedCost;
+  timing?: ChatUsageTiming;
   llmChatCompletionCount?: number;
   toolCallCount?: number;
   current?: ChatUsageData;

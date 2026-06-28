@@ -335,6 +335,11 @@ describe('replayEvent tool migration', () => {
             promptTokensDetails: { cacheHitTokens: 10, cacheMissTokens: 20 },
             promptCacheHitTokens: 999,
             promptCacheMissTokens: 999,
+            timing: {
+              firstTokenLatencyMs: 820,
+              generationDurationMs: 2380,
+              outputTokensPerSecond: 21.01,
+            },
             llmChatCompletionCount: 2,
             toolCallCount: 3,
           },
@@ -355,6 +360,11 @@ describe('replayEvent tool migration', () => {
           },
           promptCacheHitTokens: 999,
           promptCacheMissTokens: 999,
+          timing: {
+            firstTokenLatencyMs: 900,
+            generationDurationMs: 4000,
+            outputTokensPerSecond: 10,
+          },
           llmChatCompletionCount: 5,
           toolCallCount: 8,
         },
@@ -388,6 +398,11 @@ describe('replayEvent tool migration', () => {
             completionTokens: 12,
             totalTokens: 42,
             promptTokensDetails: { cacheHitTokens: 10, cacheMissTokens: 20 },
+            timing: {
+              firstTokenLatencyMs: 820,
+              generationDurationMs: 2380,
+              outputTokensPerSecond: 21.01,
+            },
             llmChatCompletionCount: 2,
             toolCallCount: 3,
           },
@@ -403,6 +418,11 @@ describe('replayEvent tool migration', () => {
               inputCacheMiss: 0.000086,
               output: 0.000122,
               total: 0.00027968,
+            },
+            timing: {
+              firstTokenLatencyMs: 900,
+              generationDurationMs: 4000,
+              outputTokensPerSecond: 10,
             },
             llmChatCompletionCount: 5,
             toolCallCount: 8,
@@ -520,6 +540,11 @@ describe('replayEvent tool migration', () => {
                 completionTokensDetails: {
                   reasoningTokens: 85,
                 },
+                timing: {
+                  firstTokenLatencyMs: 740,
+                  generationDurationMs: 2100,
+                  outputTokensPerSecond: 58.1,
+                },
               },
             },
           },
@@ -542,6 +567,11 @@ describe('replayEvent tool migration', () => {
             completionTokensDetails: {
               reasoningTokens: 85,
             },
+            timing: {
+              firstTokenLatencyMs: 760,
+              generationDurationMs: 2200,
+              outputTokensPerSecond: 55.5,
+            },
             llmChatCompletionCount: 1,
             toolCallCount: 2,
           },
@@ -551,6 +581,11 @@ describe('replayEvent tool migration', () => {
             totalTokens: 6374,
             completionTokensDetails: {
               reasoningTokens: 85,
+            },
+            timing: {
+              firstTokenLatencyMs: 800,
+              generationDurationMs: 2400,
+              outputTokensPerSecond: 50.8,
             },
             llmChatCompletionCount: 1,
             toolCallCount: 3,
@@ -583,6 +618,11 @@ describe('replayEvent tool migration', () => {
               completionTokensDetails: {
                 reasoningTokens: 85,
               },
+              timing: {
+                firstTokenLatencyMs: 740,
+                generationDurationMs: 2100,
+                outputTokensPerSecond: 58.1,
+              },
             },
             run: {
               promptTokens: 6252,
@@ -590,6 +630,11 @@ describe('replayEvent tool migration', () => {
               totalTokens: 6374,
               completionTokensDetails: {
                 reasoningTokens: 85,
+              },
+              timing: {
+                firstTokenLatencyMs: 760,
+                generationDurationMs: 2200,
+                outputTokensPerSecond: 55.5,
               },
               llmChatCompletionCount: 1,
               toolCallCount: 2,
@@ -600,6 +645,11 @@ describe('replayEvent tool migration', () => {
               totalTokens: 6374,
               completionTokensDetails: {
                 reasoningTokens: 85,
+              },
+              timing: {
+                firstTokenLatencyMs: 800,
+                generationDurationMs: 2400,
+                outputTokensPerSecond: 50.8,
               },
               llmChatCompletionCount: 1,
               toolCallCount: 3,
@@ -751,6 +801,11 @@ describe('replayEvent tool migration', () => {
               promptTokens: 70,
               completionTokens: 20,
               totalTokens: 90,
+              timing: {
+                firstTokenLatencyMs: 640,
+                generationDurationMs: 1600,
+                outputTokensPerSecond: 12.5,
+              },
               llmChatCompletionCount: 3,
               toolCallCount: 6,
             },
@@ -779,6 +834,11 @@ describe('replayEvent tool migration', () => {
               promptTokens: 70,
               completionTokens: 20,
               totalTokens: 90,
+              timing: {
+                firstTokenLatencyMs: 640,
+                generationDurationMs: 1600,
+                outputTokensPerSecond: 12.5,
+              },
               llmChatCompletionCount: 3,
               toolCallCount: 6,
             },
@@ -814,6 +874,43 @@ describe('replayEvent tool migration', () => {
               totalTokens: 0,
               llmChatCompletionCount: 0,
               toolCallCount: 2,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('hydrates timing-only usage snapshots', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          timing: {
+            firstTokenLatencyMs: 900,
+            generationDurationMs: 2100,
+            outputTokensPerSecond: 12.5,
+          },
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-timing-only-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          usage: {
+            current: {},
+            chat: {
+              timing: {
+                firstTokenLatencyMs: 900,
+                generationDurationMs: 2100,
+                outputTokensPerSecond: 12.5,
+              },
             },
           },
         }),

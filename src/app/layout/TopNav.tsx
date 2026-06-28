@@ -77,6 +77,36 @@ function formatUsageNumber(value: unknown): string {
   return numberValue == null ? "-" : numberValue.toLocaleString();
 }
 
+function readUsageTimingNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const numberValue = readUsageNumber(value);
+  return numberValue == null || numberValue < 0 ? null : numberValue;
+}
+
+function formatFirstTokenLatency(value: unknown): string | null {
+  const latencyMs = readUsageTimingNumber(value);
+  if (latencyMs == null) return null;
+  if (latencyMs < 1000) return `${Math.round(latencyMs)}ms`;
+  return `${(latencyMs / 1000).toFixed(1)}s`;
+}
+
+function formatOutputTokensPerSecond(value: unknown): string | null {
+  const tokensPerSecond = readUsageTimingNumber(value);
+  if (tokensPerSecond == null) return null;
+  return `${tokensPerSecond.toFixed(1)}/s`;
+}
+
+function resolveOutputTokensPerSecond(stats?: AIUsageStats): number | null {
+  const provided = readUsageTimingNumber(stats?.timing?.outputTokensPerSecond);
+  if (provided != null) return provided;
+  const completionTokens = readUsageTimingNumber(stats?.completionTokens);
+  const generationDurationMs = readUsageTimingNumber(stats?.timing?.generationDurationMs);
+  if (completionTokens == null || completionTokens <= 0 || generationDurationMs == null || generationDurationMs <= 0) {
+    return null;
+  }
+  return (completionTokens * 1000) / generationDurationMs;
+}
+
 function formatCompactUsageNumber(value: unknown): string {
   const numberValue = readUsageNumber(value);
   if (numberValue == null) return "-";
@@ -134,10 +164,35 @@ function getCacheMissTokens(stats?: AIUsageStats): unknown {
   return stats?.promptTokensDetails?.cacheMissTokens;
 }
 
+function hasUsageStatsData(stats?: AIUsageStats): boolean {
+  if (!stats) return false;
+  const numericValues = [
+    stats.promptTokens,
+    stats.completionTokens,
+    stats.totalTokens,
+    stats.llmChatCompletionCount,
+    stats.toolCallCount,
+    stats.promptTokensDetails?.cacheHitTokens,
+    stats.promptTokensDetails?.cacheMissTokens,
+    stats.completionTokensDetails?.reasoningTokens,
+    stats.timing?.firstTokenLatencyMs,
+    stats.timing?.generationDurationMs,
+    stats.timing?.outputTokensPerSecond,
+  ];
+  if (numericValues.some((value) => readUsageNumber(value) != null)) return true;
+  return Boolean(stats.estimatedCost);
+}
+
 interface UsageMetric {
   key: string;
   label: string;
   value: unknown;
+}
+
+interface UsageHeaderStat {
+  key: string;
+  label: string;
+  value: string;
 }
 
 function buildUsageMetrics(
@@ -301,8 +356,33 @@ const UsageSection: React.FC<{
 const UsageCallCounts: React.FC<{
   t: (key: string) => string;
   stats?: AIUsageStats;
-}> = ({ t, stats }) => {
-  const counts = [
+  showFirstTokenLatency?: boolean;
+  showOutputSpeed?: boolean;
+}> = ({ t, stats, showFirstTokenLatency = false, showOutputSpeed = false }) => {
+  const headerStats: UsageHeaderStat[] = [];
+  if (showFirstTokenLatency) {
+    const firstTokenLatency = formatFirstTokenLatency(stats?.timing?.firstTokenLatencyMs);
+    if (firstTokenLatency) {
+      headerStats.push({
+        key: "firstTokenLatency",
+        label: t("topNav.usage.metric.firstTokenLatency"),
+        value: firstTokenLatency,
+      });
+    }
+  }
+
+  if (showOutputSpeed) {
+    const outputSpeed = formatOutputTokensPerSecond(resolveOutputTokensPerSecond(stats));
+    if (outputSpeed) {
+      headerStats.push({
+        key: "outputTokensPerSecond",
+        label: t("topNav.usage.metric.outputTokensPerSecond"),
+        value: outputSpeed,
+      });
+    }
+  }
+
+  [
     {
       key: "llm",
       label: t("topNav.usage.metric.llmCalls"),
@@ -313,18 +393,29 @@ const UsageCallCounts: React.FC<{
       label: t("topNav.usage.metric.toolCalls"),
       value: stats?.toolCallCount,
     },
-  ].filter((count) => readUsageNumber(count.value) != null);
+  ].forEach((count) => {
+    let value = count.value;
+    if (count.key === "tool" && readUsageNumber(value) == null && hasUsageStatsData(stats)) {
+      value = 0;
+    }
+    if (readUsageNumber(value) == null) return;
+    headerStats.push({
+      key: count.key,
+      label: count.label,
+      value: formatUsageNumber(value),
+    });
+  });
 
-  if (counts.length === 0) {
+  if (headerStats.length === 0) {
     return null;
   }
 
   return (
     <span className="usage-section-call-counts">
-      {counts.map((count) => (
-        <span className="usage-section-llm-calls" key={count.key}>
-          {count.label}
-          <strong>{formatUsageNumber(count.value)}</strong>
+      {headerStats.map((stat) => (
+        <span className="usage-section-stat" key={stat.key}>
+          {stat.label}
+          <strong>{stat.value}</strong>
         </span>
       ))}
     </span>
@@ -576,6 +667,8 @@ export const TopNav: React.FC = () => {
                         <UsageCallCounts
                           t={t}
                           stats={usageSnapshot?.usage?.current}
+                          showFirstTokenLatency
+                          showOutputSpeed
                         />
                       }
                     />
@@ -586,6 +679,7 @@ export const TopNav: React.FC = () => {
                         <UsageCallCounts
                           t={t}
                           stats={usageSnapshot?.usage?.run}
+                          showOutputSpeed
                         />
                       }
                     />
@@ -596,6 +690,7 @@ export const TopNav: React.FC = () => {
                         <UsageCallCounts
                           t={t}
                           stats={usageSnapshot?.usage?.chat}
+                          showOutputSpeed
                         />
                       }
                     />

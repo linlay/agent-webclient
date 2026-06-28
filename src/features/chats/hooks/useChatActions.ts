@@ -235,6 +235,22 @@ function normalizeUsageEstimatedCost(value: unknown): AIUsageStats['estimatedCos
   return Object.keys(cost).length > 0 ? cost : undefined;
 }
 
+function normalizeUsageTiming(value: unknown): AIUsageStats['timing'] | undefined {
+  if (!isObjectRecord(value)) {
+    return undefined;
+  }
+
+  const timing: NonNullable<AIUsageStats['timing']> = {};
+  for (const key of ['firstTokenLatencyMs', 'generationDurationMs', 'outputTokensPerSecond'] as const) {
+    const next = readUsageNumber(value[key]);
+    if (next !== undefined) {
+      timing[key] = next;
+    }
+  }
+
+  return Object.keys(timing).length > 0 ? timing : undefined;
+}
+
 export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | null {
   if (!isObjectRecord(value)) {
     return null;
@@ -275,10 +291,15 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     stats.estimatedCost = estimatedCost;
   }
 
+  const timing = normalizeUsageTiming(value.timing);
+  if (timing) {
+    stats.timing = timing;
+  }
+
   const totalTokens = stats.totalTokens ?? 0;
   const llmChatCompletionCount = stats.llmChatCompletionCount ?? 0;
   const toolCallCount = stats.toolCallCount ?? 0;
-  return totalTokens > 0 || llmChatCompletionCount > 0 || toolCallCount > 0 || estimatedCost ? stats : null;
+  return totalTokens > 0 || llmChatCompletionCount > 0 || toolCallCount > 0 || estimatedCost || timing ? stats : null;
 }
 
 function getLatestUsageSnapshotEvent(events: unknown[]): AIUsageSnapshotEvent | null {

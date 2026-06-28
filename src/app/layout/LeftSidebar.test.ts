@@ -96,6 +96,71 @@ jest.mock("antd", () => {
       React.createElement("input", props),
     );
 
+  const Checkbox = ({ children, checked, disabled, onChange }: any) =>
+    React.createElement(
+      "label",
+      null,
+      React.createElement("input", {
+        type: "checkbox",
+        checked,
+        disabled,
+        onChange,
+      }),
+      children,
+    );
+
+  const Radio: any = ({ children, value, checked, disabled, onChange }: any) =>
+    React.createElement(
+      "label",
+      null,
+      React.createElement("input", {
+        type: "radio",
+        value,
+        checked,
+        disabled,
+        onChange,
+      }),
+      children,
+    );
+  Radio.Group = ({ children, value, defaultValue, disabled, onChange }: any) =>
+    React.createElement(
+      "div",
+      {
+        "data-radio-value": value ?? defaultValue,
+        "data-radio-disabled": disabled ? "true" : undefined,
+      },
+      React.Children.map(children, (child: any) =>
+        React.isValidElement(child)
+          ? React.cloneElement(child, {
+              checked: child.props.value === (value ?? defaultValue),
+              disabled,
+              onChange,
+            })
+          : child,
+      ),
+    );
+
+  const Select = ({ options = [], value, placeholder, disabled, onChange, style }: any) =>
+    React.createElement(
+      "select",
+      {
+        value,
+        disabled,
+        onChange: (event: any) => onChange?.(event.target.value),
+        style,
+      },
+      placeholder
+        ? React.createElement("option", { value: "" }, placeholder)
+        : null,
+      options.map((option: any) =>
+        React.createElement(
+          "option",
+          { key: option.value, value: option.value },
+          option.label,
+        ),
+      ),
+    );
+
   const Badge = ({ children, count, dot }: any) =>
     React.createElement(
       "span",
@@ -134,12 +199,15 @@ jest.mock("antd", () => {
   return {
     Button,
     Badge,
+    Checkbox,
     Collapse,
     Dropdown,
     Flex,
     Input,
     Modal,
     Popover,
+    Radio,
+    Select,
     Spin,
     Tag,
     Tooltip,
@@ -775,21 +843,13 @@ describe("LeftSidebar", () => {
     ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
   });
 
-  it("renders the top action as new project and creates a coder project from a selected folder", async () => {
+  it("renders the top action as new project and opens folder selection before creation", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
-    const createdAgent = {
-      key: "agent-coder",
-      name: "agent-coder",
-      type: "coder",
-      workspaceDir: "/Users/demo/Project/agent-coder",
-    };
     selectProjectFolder.mockResolvedValue({
       kind: "desktop-directory",
-      workspaceDir: createdAgent.workspaceDir,
+      workspaceDir: "/Users/demo/Project/agent-coder",
     });
-    createAgent.mockResolvedValue({ data: createdAgent });
-    getAgents.mockResolvedValue({ data: [createdAgent] });
     useAppContext.mockReturnValue({
       state: {
         ...state,
@@ -816,91 +876,14 @@ describe("LeftSidebar", () => {
     await Promise.resolve();
 
     expect(selectProjectFolder).toHaveBeenCalledTimes(1);
-    expect(createAgent).toHaveBeenCalledWith({
-      definition: {
-        name: "agent-coder",
-        mode: "CODER",
-        icon: {
-          name: "folder",
-        },
-        workspace: {
-          root: "/Users/demo/Project/agent-coder",
-        },
-        runtimeConfig: {
-          workspaceRoot: "/Users/demo/Project/agent-coder",
-        },
-        visibility: {
-          scopes: ["nav", "copilot"],
-        },
-      },
-    });
-    expect(getAgents).toHaveBeenCalledWith({ includeChats: 5, scope: "nav" });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [createdAgent],
-    });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_TEMPORARY_PINNED_AGENT_KEY",
-      agentKey: "agent-coder",
-    });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:agent-coder",
-    });
+    expect(createAgent).not.toHaveBeenCalled();
+    expect(getAgents).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "SET_WORKER_SELECTION_KEY" }),
+    );
   });
 
-  it("creates a coder project from a browser path selection", async () => {
-    const dispatch = jest.fn();
-    const state = createInitialState();
-    const createdAgent = {
-      key: "browser-coder",
-      name: "browser-coder",
-      type: "coder",
-      workspaceDir: "/Users/demo/Project/browser-coder",
-    };
-    selectProjectFolder.mockResolvedValue({
-      kind: "browser-directory-path",
-      workspaceDir: "/Users/demo/Project/browser-coder",
-    });
-    createAgent.mockResolvedValue({ data: createdAgent });
-    getAgents.mockResolvedValue({ data: [createdAgent] });
-    useAppContext.mockReturnValue({
-      state: {
-        ...state,
-        leftDrawerOpen: true,
-        conversationMode: "worker",
-      },
-      dispatch,
-      stateRef: { current: state },
-      querySessionsRef: { current: new Map() },
-      chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
-    });
-
-    renderSidebar();
-
-    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
-    (button?.onClick as () => void)();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(createAgent).toHaveBeenCalledWith({
-      definition: expect.objectContaining({
-        name: "browser-coder",
-        mode: "CODER",
-        icon: { name: "folder" },
-        workspace: { root: "/Users/demo/Project/browser-coder" },
-        runtimeConfig: { workspaceRoot: "/Users/demo/Project/browser-coder" },
-      }),
-    });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:browser-coder",
-    });
-  });
-
-  it("does not create a coder project when folder selection is canceled", async () => {
+  it("does not create a project when folder selection is canceled", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
     selectProjectFolder.mockResolvedValue(null);
@@ -923,11 +906,9 @@ describe("LeftSidebar", () => {
     (button?.onClick as () => void)();
     await Promise.resolve();
 
+    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
     expect(createAgent).not.toHaveBeenCalled();
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "APPEND_DEBUG",
-      line: "[new project] 已取消选择项目文件夹",
-    });
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("renders collapsed worker entries with names, popover header, and total history count", () => {

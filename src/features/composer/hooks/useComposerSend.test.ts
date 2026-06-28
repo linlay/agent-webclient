@@ -21,11 +21,21 @@ describe('compact usage snapshot helpers', () => {
           promptTokens: 13157,
           completionTokens: 210,
           totalTokens: 13367,
+          timing: {
+            firstTokenLatencyMs: 820,
+            generationDurationMs: 2380,
+            outputTokensPerSecond: 21.01,
+          },
         },
         run: {
           promptTokens: 13157,
           completionTokens: 210,
           totalTokens: 13367,
+          timing: {
+            firstTokenLatencyMs: 820,
+            generationDurationMs: 2380,
+            outputTokensPerSecond: 21.01,
+          },
           llmChatCompletionCount: 1,
           toolCallCount: 2,
         },
@@ -33,6 +43,11 @@ describe('compact usage snapshot helpers', () => {
           promptTokens: 53157,
           completionTokens: 1210,
           totalTokens: 54367,
+          timing: {
+            firstTokenLatencyMs: 900,
+            generationDurationMs: 4000,
+            outputTokensPerSecond: 10,
+          },
           llmChatCompletionCount: 4,
           toolCallCount: 7,
         },

@@ -44,7 +44,7 @@ describe("ToolPill helpers", () => {
 		expect(canExpandToolPill(node)).toBe(false);
 	});
 
-	it("formats grouped tools with xN and keeps every record in order", () => {
+	it("keeps the shared label for grouped tools and every record in order", () => {
 		const group = {
 			kind: "tool-group" as const,
 			key: "tool_group_tool_1",
@@ -76,7 +76,7 @@ describe("ToolPill helpers", () => {
 			],
 		};
 
-		expect(formatToolPillTitle(group)).toBe("执行命令 x2");
+		expect(formatToolPillTitle(group)).toBe("执行命令");
 		expect(buildToolPillRecords(group)).toEqual([
 			{
 				key: "tool_1",
@@ -223,7 +223,7 @@ describe("ToolPill helpers", () => {
 			],
 		};
 
-		expect(formatToolPillTitle(group)).toBe("执行命令 x3");
+		expect(formatToolPillTitle(group)).toBe("执行命令");
 		expect(getExpandableToolPillRecords(buildToolPillRecords(group))).toEqual([
 			expect.objectContaining({
 				key: "tool_2",
@@ -266,7 +266,6 @@ describe("ToolPill helpers", () => {
 			const messages: Record<string, string> = {
 				"timeline.toolPill.duration.hours":
 					"{hours}h {minutes}m {seconds}s",
-				"timeline.toolPill.groupTitle": "{label} x{count}",
 				"timeline.toolPill.runTitle": "Run {index}",
 				"timeline.toolPill.status.success": "Done",
 			};
@@ -293,7 +292,7 @@ describe("ToolPill helpers", () => {
 		};
 
 		expect(formatToolDuration(3_725_000, translate)).toBe("1h 2m 5s");
-		expect(formatToolPillTitle(group, translate)).toBe("Run command x1");
+		expect(formatToolPillTitle(group)).toBe("Run command");
 		expect(buildToolPillRecords(group, translate)[0]).toEqual(
 			expect.objectContaining({
 				title: "Run 1",

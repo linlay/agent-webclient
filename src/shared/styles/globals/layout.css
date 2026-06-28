@@ -459,7 +459,7 @@
     justify-content: flex-end;
 }
 
-.usage-section-llm-calls {
+.usage-section-stat {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -470,7 +470,7 @@
     white-space: nowrap;
 }
 
-.usage-section-llm-calls strong {
+.usage-section-stat strong {
     color: var(--ink-1);
     font:
         700 10px/1 var(--font-mono);

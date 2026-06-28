@@ -184,6 +184,12 @@ export interface AIUsageEstimatedCost {
   [key: string]: unknown;
 }
 
+export interface AIUsageTiming {
+  firstTokenLatencyMs?: number;
+  generationDurationMs?: number;
+  outputTokensPerSecond?: number;
+}
+
 export interface AIUsageStats {
   modelKey?: string;
   promptTokens?: number;
@@ -192,6 +198,7 @@ export interface AIUsageStats {
   promptTokensDetails?: AIUsageTokenDetails;
   completionTokensDetails?: AIUsageTokenDetails;
   estimatedCost?: AIUsageEstimatedCost;
+  timing?: AIUsageTiming;
   llmChatCompletionCount?: number;
   toolCallCount?: number;
   [key: string]: unknown;

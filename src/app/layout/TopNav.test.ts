@@ -422,6 +422,11 @@ describe("TopNav", () => {
 						promptTokens: 500,
 						completionTokens: 50,
 						totalTokens: 550,
+						timing: {
+							firstTokenLatencyMs: 700,
+							generationDurationMs: 2000,
+							outputTokensPerSecond: 25,
+						},
 						llmChatCompletionCount: 2,
 						toolCallCount: 4,
 					},
@@ -436,11 +441,69 @@ describe("TopNav", () => {
 		expect(html).toContain("Tool calls");
 		expect(html).toContain("<strong>2</strong>");
 		expect(html).toContain("<strong>4</strong>");
+		expect(html).not.toContain("Output speed");
 	});
 
 	it("toggles the usage popover state from the usage entry", () => {
 		expect(resolveNextUsagePopoverOpen(false)).toBe(true);
 		expect(resolveNextUsagePopoverOpen(true)).toBe(false);
+	});
+
+	it("derives live output speed and shows zero tool calls when tool count is missing", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				usage: {
+					current: {
+						promptTokens: 100,
+						completionTokens: 42,
+						totalTokens: 142,
+						timing: {
+							firstTokenLatencyMs: 3100,
+							generationDurationMs: 2000,
+						},
+					},
+					run: {
+						promptTokens: 300,
+						completionTokens: 100,
+						totalTokens: 400,
+						timing: {
+							generationDurationMs: 5000,
+						},
+						llmChatCompletionCount: 1,
+					},
+					chat: {
+						promptTokens: 800,
+						completionTokens: 300,
+						totalTokens: 1100,
+						timing: {
+							generationDurationMs: 10000,
+						},
+						llmChatCompletionCount: 2,
+					},
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("<strong>3.1s</strong>");
+		expect(html).toContain("<strong>21.0/s</strong>");
+		expect(html).toContain("<strong>20.0/s</strong>");
+		expect(html).toContain("<strong>30.0/s</strong>");
+		expect(html.match(/Tool calls/g)).toHaveLength(3);
+		expect(html.match(/<strong>0<\/strong>/g)).toHaveLength(3);
+		const firstTokenIndex = html.indexOf("First token");
+		const firstOutputSpeedIndex = html.indexOf("Output speed");
+		const firstToolCallsIndex = html.indexOf("Tool calls");
+		expect(firstTokenIndex).toBeGreaterThan(-1);
+		expect(firstTokenIndex).toBeLessThan(firstOutputSpeedIndex);
+		expect(firstOutputSpeedIndex).toBeLessThan(firstToolCallsIndex);
 	});
 
 	it("renders usage popover details when opened", () => {
@@ -468,6 +531,11 @@ describe("TopNav", () => {
 						totalTokens: 120,
 						promptTokensDetails: { cacheHitTokens: 30, cacheMissTokens: 70 },
 						completionTokensDetails: { reasoningTokens: 7 },
+						timing: {
+							firstTokenLatencyMs: 820,
+							generationDurationMs: 2380,
+							outputTokensPerSecond: 21.01,
+						},
 						llmChatCompletionCount: 1,
 						toolCallCount: 2,
 					},
@@ -477,6 +545,11 @@ describe("TopNav", () => {
 						totalTokens: 370,
 						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 220 },
 						completionTokensDetails: { reasoningTokens: 17 },
+						timing: {
+							firstTokenLatencyMs: 780,
+							generationDurationMs: 4000,
+							outputTokensPerSecond: 18.04,
+						},
 						llmChatCompletionCount: 3,
 						toolCallCount: 4,
 					},
@@ -486,6 +559,11 @@ describe("TopNav", () => {
 						totalTokens: 1000,
 						promptTokensDetails: { cacheHitTokens: 280, cacheMissTokens: 520 },
 						completionTokensDetails: { reasoningTokens: 27 },
+						timing: {
+							firstTokenLatencyMs: 900,
+							generationDurationMs: 20000,
+							outputTokensPerSecond: 9.94,
+						},
 						llmChatCompletionCount: 8,
 						toolCallCount: 11,
 					},
@@ -512,8 +590,22 @@ describe("TopNav", () => {
 		expect(html).toContain("Reasoning");
 		expect(html).toContain("Cache hit");
 		expect(html).toContain("Cache miss");
+		expect(html).toContain("First token");
+		expect(html).toContain("<strong>820ms</strong>");
+		expect(html.match(/Output speed/g)).toHaveLength(3);
+		expect(html).toContain("<strong>21.0/s</strong>");
+		expect(html).toContain("<strong>18.0/s</strong>");
+		expect(html).toContain("<strong>9.9/s</strong>");
 		expect(html.match(/LLM calls/g)).toHaveLength(3);
 		expect(html.match(/Tool calls/g)).toHaveLength(3);
+		const firstTokenIndex = html.indexOf("First token");
+		const firstOutputSpeedIndex = html.indexOf("Output speed");
+		const firstLlmCallsIndex = html.indexOf("LLM calls");
+		const firstToolCallsIndex = html.indexOf("Tool calls");
+		expect(firstTokenIndex).toBeGreaterThan(-1);
+		expect(firstTokenIndex).toBeLessThan(firstOutputSpeedIndex);
+		expect(firstOutputSpeedIndex).toBeLessThan(firstLlmCallsIndex);
+		expect(firstLlmCallsIndex).toBeLessThan(firstToolCallsIndex);
 		expect(html).toContain("Close usage stats");
 		expect(html).not.toContain(">close<");
 	});
