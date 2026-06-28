@@ -15,7 +15,6 @@ export interface VoiceAudioPlayerContext {
 	setDebugStatus: (status: string) => void;
 	setDebugStatusWithStats: (status: string) => void;
 	updateBlockByTaskId: (taskId: string, patch: Partial<TtsVoiceBlock>) => void;
-	handleAudioBytes: (byteLength: number) => void;
 }
 
 export function isArrayBufferView(value: unknown): value is ArrayBufferView {
@@ -118,20 +117,4 @@ export function playPcm(context: VoiceAudioPlayerContext, bufferLike: ArrayBuffe
 		context.setDebugStatusWithStats("playing");
 	}
 	return true;
-}
-
-export function handleSocketBinary(context: VoiceAudioPlayerContext, data: unknown): void {
-	if (typeof Blob !== "undefined" && data instanceof Blob) {
-		data.arrayBuffer()
-			.then((buffer) => {
-				context.handleAudioBytes(buffer.byteLength);
-				playPcm(context, buffer);
-			})
-			.catch((error) => context.appendDebug(`voice blob decode failed: ${(error as Error).message}`));
-		return;
-	}
-	if (data instanceof ArrayBuffer || isArrayBufferView(data)) {
-		context.handleAudioBytes(data.byteLength);
-		playPcm(context, data);
-	}
 }
