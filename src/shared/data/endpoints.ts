@@ -4,7 +4,10 @@ import {
   defineEndpoint,
 } from "@/shared/data/endpointRegistry";
 import type {
+  ArchivesRequest,
   AttachStreamParams,
+  GetAgentsOptions,
+  GetChatsOptions,
   GetMemoryRecordsParams,
   QueryModelOverride,
   QueryReasoningEffort,
@@ -97,6 +100,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/admin/agents/detail",
     method: "GET",
     transport: "http",
+    payload: (agentKey: string) => ({ agentKey }),
   }),
   adminAgentEditorOptions: defineEndpoint({
     key: "admin.agents.editorOptions",
@@ -147,6 +151,8 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/admin/registries/detail",
     method: "GET",
     transport: "http",
+    payload: (params: { category: string; file: string }) =>
+      compactPayload(params),
   }),
   adminRegistryValidate: defineEndpoint({
     key: "admin.registries.validate",
@@ -154,17 +160,22 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
-  adminSkills: defineEndpoint({
+  adminSkills: defineEndpoint<string | undefined, Record<string, unknown>>({
     key: "admin.skills.list",
     path: "/api/admin/skills",
     method: "GET",
     transport: "http",
+    payload: (tag) => compactPayload({ tag }),
   }),
-  adminTools: defineEndpoint({
+  adminTools: defineEndpoint<
+    { tag?: string; kind?: string },
+    Record<string, unknown>
+  >({
     key: "admin.tools.list",
     path: "/api/admin/tools",
     method: "GET",
     transport: "http",
+    payload: (params = {}) => compactPayload(params),
   }),
   agent: defineEndpoint<string, { agentKey: string }>({
     key: "agent.detail",
@@ -197,29 +208,38 @@ export const dataEndpoints = createEndpointRegistry({
     method: "PUT",
     transport: "auto",
   }),
-  agents: defineEndpoint({
+  agents: defineEndpoint<GetAgentsOptions, Record<string, unknown>>({
     key: "agents.list",
     path: "/api/agents",
     method: "GET",
     transport: "auto",
     cache: { ttlMs: 8_000, dedupe: true },
-    payload: (options: { includeChats?: number; scope?: string } = {}) =>
+    payload: (options = {}) =>
       compactPayload({
         includeChats: options.includeChats,
         scope: options.scope,
       }),
   }),
-  archive: defineEndpoint({
+  archive: defineEndpoint<
+    { chatId: string; includeRawMessages?: boolean },
+    Record<string, unknown>
+  >({
     key: "archive.detail",
     path: "/api/archive",
     method: "GET",
     transport: "auto",
+    payload: ({ chatId, includeRawMessages }) =>
+      compactPayload({
+        chatId,
+        includeRawMessages: includeRawMessages ? true : undefined,
+      }),
   }),
-  archiveDelete: defineEndpoint({
+  archiveDelete: defineEndpoint<{ chatId: string }, { chatId: string }>({
     key: "archive.delete",
     path: "/api/archive/delete",
     method: "POST",
     transport: "auto",
+    payload: ({ chatId }) => ({ chatId }),
   }),
   archiveRestore: defineEndpoint({
     key: "archive.restore",
@@ -227,11 +247,17 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  archives: defineEndpoint({
+  archives: defineEndpoint<ArchivesRequest, Record<string, unknown>>({
     key: "archives.list",
     path: "/api/archives",
     method: "GET",
     transport: "auto",
+    payload: (params = {}) =>
+      compactPayload({
+        agentKey: params.agentKey,
+        limit: params.limit,
+        offset: params.offset,
+      }),
   }),
   archivesSearch: defineEndpoint({
     key: "archives.search",
@@ -288,11 +314,19 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  chat: defineEndpoint({
+  chat: defineEndpoint<
+    { chatId: string; includeRawMessages?: boolean },
+    Record<string, unknown>
+  >({
     key: "chat.detail",
     path: "/api/chat",
     method: "GET",
     transport: "auto",
+    payload: ({ chatId, includeRawMessages }) =>
+      compactPayload({
+        chatId,
+        includeRawMessages: includeRawMessages ? true : undefined,
+      }),
   }),
   chatArchive: defineEndpoint({
     key: "chat.archive",
@@ -300,11 +334,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  chatDelete: defineEndpoint({
+  chatDelete: defineEndpoint<{ chatId: string }, { chatId: string }>({
     key: "chat.delete",
     path: "/api/chat/delete",
     method: "POST",
     transport: "auto",
+    payload: ({ chatId }) => ({ chatId }),
   }),
   chatExport: defineEndpoint({
     key: "chat.export",
@@ -312,17 +347,19 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "resource",
   }),
-  chatJsonl: defineEndpoint({
+  chatJsonl: defineEndpoint<{ chatId: string }, { chatId: string }>({
     key: "chat.jsonl",
     path: "/api/chat/jsonl",
     method: "GET",
     transport: "auto",
+    payload: ({ chatId }) => ({ chatId }),
   }),
-  chatLlmTrace: defineEndpoint({
+  chatLlmTrace: defineEndpoint<{ file: string }, { file: string }>({
     key: "chat.llmTrace",
     path: "/api/chat/llm-trace",
     method: "GET",
     transport: "auto",
+    payload: ({ file }) => ({ file }),
   }),
   chatRename: defineEndpoint({
     key: "chat.rename",
@@ -330,13 +367,13 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  chats: defineEndpoint({
+  chats: defineEndpoint<GetChatsOptions, Record<string, unknown>>({
     key: "chats.list",
     path: "/api/chats",
     method: "GET",
     transport: "auto",
     cache: { ttlMs: 5_000, dedupe: true },
-    payload: (options: { agentKey?: string } = {}) =>
+    payload: (options = {}) =>
       compactPayload({ agentKey: options.agentKey }),
   }),
   compact: defineEndpoint({
@@ -357,11 +394,26 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  fileHistory: defineEndpoint({
+  fileHistory: defineEndpoint<
+    {
+      chatId?: string;
+      runId: string;
+      filePath: string;
+      version: "original" | "current";
+    },
+    Record<string, unknown>
+  >({
     key: "file.history",
     path: "/api/file/history",
     method: "GET",
     transport: "http",
+    payload: (params) =>
+      compactPayload({
+        chatId: params.chatId,
+        runId: params.runId,
+        filePath: params.filePath,
+        version: params.version,
+      }),
   }),
   interrupt: defineEndpoint({
     key: "runs.interrupt",
@@ -388,11 +440,15 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     cache: { ttlMs: 30_000, dedupe: true },
   }),
-  memoryRecordDetail: defineEndpoint({
+  memoryRecordDetail: defineEndpoint<
+    { agentKey?: string; recordId: string },
+    Record<string, unknown>
+  >({
     key: "memory.record.detail",
     path: "/api/memory/record/detail",
     method: "GET",
     transport: "auto",
+    payload: (params) => compactPayload(params),
   }),
   memoryRecords: defineEndpoint<GetMemoryRecordsParams, Record<string, unknown>>({
     key: "memory.records",
@@ -401,11 +457,15 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     payload: (params) => compactPayload(params as Record<string, unknown>),
   }),
-  memoryScope: defineEndpoint({
+  memoryScope: defineEndpoint<
+    { agentKey: string; scopeType: string; scopeKey?: string },
+    Record<string, unknown>
+  >({
     key: "memory.scope.detail",
     path: "/api/memory/scope/detail",
     method: "GET",
     transport: "auto",
+    payload: (params) => compactPayload(params),
   }),
   memoryScopeSave: defineEndpoint({
     key: "memory.scope.save",
@@ -419,11 +479,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  memoryScopes: defineEndpoint({
+  memoryScopes: defineEndpoint<string, { agentKey: string }>({
     key: "memory.scopes",
     path: "/api/memory/scope/list",
     method: "GET",
     transport: "auto",
+    payload: (agentKey) => ({ agentKey }),
   }),
   modelOptions: defineEndpoint({
     key: "model.options",
@@ -431,7 +492,8 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "auto",
     cache: { ttlMs: 60_000, dedupe: true },
-    payload: (agentKey?: string) => compactPayload({ agentKey }),
+    payload: (agentKey?: string) =>
+      compactPayload({ agentKey: String(agentKey || "").trim() }),
   }),
   query: defineEndpoint<QueryStreamParams>({
     key: "runs.query",
@@ -452,11 +514,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  resource: defineEndpoint({
+  resource: defineEndpoint<{ file: string }, { file: string }>({
     key: "resource.read",
     path: "/api/resource",
     method: "GET",
     transport: "resource",
+    payload: ({ file }) => ({ file }),
   }),
   search: defineEndpoint({
     key: "global.search",

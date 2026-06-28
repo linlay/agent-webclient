@@ -42,6 +42,7 @@
     "src/app/modals/SwitchModal.test.ts",
     "src/app/pages/agents/index.test.ts",
     "src/app/pages/registries/index.test.ts",
+    "src/app/routeDataTransport.test.ts",
     "src/app/state/AppContext.test.ts",
     "src/app/state/reducerConversation.test.ts",
     "src/features/artifacts/components/ArtifactPanel.test.ts",
@@ -131,6 +132,7 @@
     "src/shared/data/desktopScreenshot.test.ts",
     "src/shared/data/platformError.test.ts",
     "src/shared/data/routedClient.test.ts",
+    "src/shared/data/serverState.test.ts",
     "src/shared/data/transportClient.test.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
     "src/shared/i18n/provider.test.tsx",
@@ -156,7 +158,6 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
-    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",
@@ -221,6 +222,8 @@
     "src/app/pages/memory/index.tsx",
     "src/app/pages/registries/index.test.ts",
     "src/app/pages/registries/index.tsx",
+    "src/app/routeDataTransport.test.ts",
+    "src/app/routeDataTransport.ts",
     "src/app/state/AppContext.test.ts",
     "src/app/state/AppContext.tsx",
     "src/app/state/actions.ts",
@@ -505,6 +508,7 @@
     "src/shared/data/queries.ts",
     "src/shared/data/routedClient.test.ts",
     "src/shared/data/routedClient.ts",
+    "src/shared/data/serverState.test.ts",
     "src/shared/data/serverState.ts",
     "src/shared/data/transportClient.test.ts",
     "src/shared/data/transportClient.ts",
@@ -522,7 +526,6 @@
     "src/shared/icons/__mocks__/svgMock.ts",
     "src/shared/icons/agent.test.ts",
     "src/shared/icons/agent.tsx",
-    "src/shared/icons/index.ts",
     "src/shared/icons/material.test.ts",
     "src/shared/icons/material/MaterialIcon.tsx",
     "src/shared/icons/material/index.ts",
@@ -583,10 +586,6 @@
             "name": "__mocks__",
             "type": "directory",
             "children": [
-              {
-                "name": "antDesignIconsMock.ts",
-                "type": "file"
-              },
               {
                 "name": "styleMock.ts",
                 "type": "file"
@@ -1027,6 +1026,14 @@
               },
               {
                 "name": "index.tsx",
+                "type": "file"
+              },
+              {
+                "name": "routeDataTransport.test.ts",
+                "type": "file"
+              },
+              {
+                "name": "routeDataTransport.ts",
                 "type": "file"
               }
             ]
@@ -2340,6 +2347,10 @@
                     "type": "file"
                   },
                   {
+                    "name": "serverState.test.ts",
+                    "type": "file"
+                  },
+                  {
                     "name": "serverState.ts",
                     "type": "file"
                   },
@@ -2463,10 +2474,6 @@
                   },
                   {
                     "name": "agent.tsx",
-                    "type": "file"
-                  },
-                  {
-                    "name": "index.ts",
                     "type": "file"
                   },
                   {
@@ -2667,6 +2674,7 @@
       "src/shared/data/queries.ts",
       "src/shared/data/routedClient.test.ts",
       "src/shared/data/routedClient.ts",
+      "src/shared/data/serverState.test.ts",
       "src/shared/data/serverState.ts",
       "src/shared/data/transportClient.test.ts",
       "src/shared/data/transportClient.ts"
@@ -2775,7 +2783,6 @@
       "src/shared/icons/__mocks__/svgMock.ts",
       "src/shared/icons/agent.test.ts",
       "src/shared/icons/agent.tsx",
-      "src/shared/icons/index.ts",
       "src/shared/icons/material.test.ts",
       "src/shared/icons/material/MaterialIcon.tsx",
       "src/shared/icons/material/index.ts",
@@ -3256,6 +3263,7 @@
     "src/shared/data/queries.ts": "api",
     "src/shared/data/routedClient.test.ts": "api",
     "src/shared/data/routedClient.ts": "api",
+    "src/shared/data/serverState.test.ts": "api",
     "src/shared/data/serverState.ts": "api",
     "src/shared/data/transportClient.test.ts": "api",
     "src/shared/data/transportClient.ts": "api",
@@ -3273,7 +3281,6 @@
     "src/shared/icons/__mocks__/svgMock.ts": "icons",
     "src/shared/icons/agent.test.ts": "icons",
     "src/shared/icons/agent.tsx": "icons",
-    "src/shared/icons/index.ts": "icons",
     "src/shared/icons/material.test.ts": "icons",
     "src/shared/icons/material/MaterialIcon.tsx": "icons",
     "src/shared/icons/material/index.ts": "icons",
@@ -3391,16 +3398,6 @@
     "jest.config.cjs": null,
     "postcss.config.js": null,
     "scripts/check-hardcoded-han.js": null,
-    "src/__mocks__/antDesignIconsMock.ts": [
-      "CaretRightOutlined",
-      "CloseCircleFilled",
-      "EnterOutlined",
-      "InfoCircleOutlined",
-      "LeftOutlined",
-      "LoadingOutlined",
-      "RightOutlined",
-      "TeamOutlined"
-    ],
     "src/__mocks__/styleMock.ts": [
       "default"
     ],
@@ -3432,7 +3429,8 @@
     ],
     "src/app/layout/LeftSidebar.test.ts": null,
     "src/app/layout/LeftSidebar.tsx": [
-      "LeftSidebar"
+      "LeftSidebar",
+      "buildCoderAgentCreateRequest"
     ],
     "src/app/layout/ShellOverlays.tsx": [
       "ShellOverlays"
@@ -3620,6 +3618,12 @@
       "registryItemKey",
       "summaryLine"
     ],
+    "src/app/routeDataTransport.test.ts": null,
+    "src/app/routeDataTransport.ts": [
+      "isRealtimeRoutePathname",
+      "normalizeRoutePathname",
+      "resolveRouteDataTransportMode"
+    ],
     "src/app/state/AppContext.test.ts": null,
     "src/app/state/AppContext.tsx": null,
     "src/app/state/actions.ts": [
@@ -3704,6 +3708,7 @@
       "AIUsageSnapshotEvent",
       "AIUsageSnapshotPayload",
       "AIUsageStats",
+      "AIUsageTiming",
       "AIUsageTokenDetails",
       "AWAITING_ANSWER_EVENT_TYPE",
       "AWAITING_ANSWER_PUSH_EVENT_TYPE",
@@ -4020,6 +4025,7 @@
       "loadCoderModelOptions",
       "normalizeCoderModelOptionsResponse",
       "resolveCoderAgentDefaultModelOverride",
+      "resolveEmbeddedCoderModelOptions",
       "shouldApplyCoderDefaultModelOverride",
       "shouldClearModelOverride",
       "shouldRetryModelOptionsOnOpen",
@@ -4246,7 +4252,8 @@
       "TimelineAgentSwitcher",
       "buildTimelineAgentOptions",
       "dispatchTimelineAgentSwitch",
-      "filterTimelineAgentOptions"
+      "filterTimelineAgentOptions",
+      "shouldEnableQueryAnchors"
     ],
     "src/features/timeline/components/SystemAlert.tsx": [
       "SystemAlert"
@@ -4719,7 +4726,6 @@
       "DEFAULT_SAMPLE_RATE",
       "VoiceAudioPlayerContext",
       "ensureAudioContext",
-      "handleSocketBinary",
       "isArrayBufferView",
       "playPcm",
       "prepareAudioPlayback",
@@ -4908,6 +4914,8 @@
       "AdminRegistrySummary",
       "AdminRegistryValidateRequest",
       "AdminRegistryValidateResponse",
+      "AdminServiceSummary",
+      "AdminToolSummary",
       "AgentDetailResponse",
       "AgentEditorModelOption",
       "AgentEditorOption",
@@ -4947,6 +4955,7 @@
       "ChatSummaryResponse",
       "ChatUsageData",
       "ChatUsageEstimatedCost",
+      "ChatUsageTiming",
       "ChatUsageTokenDetails",
       "CoderModelOption",
       "CoderModelOptionsResponse",
@@ -4974,6 +4983,7 @@
       "QueryServiceTier",
       "QueryStreamParams",
       "ReasoningEffortOption",
+      "RegistryConsoleTab",
       "RenameChatRequest",
       "RenameChatResponse",
       "ServiceTierOption",
@@ -5007,6 +5017,7 @@
       "getAdminAgents",
       "getAdminRegistries",
       "getAdminRegistryDetail",
+      "getAdminServices",
       "getAdminSkills",
       "getAdminTools",
       "getAgent",
@@ -5283,7 +5294,10 @@
       "uploadFile",
       "validateMemoryScope"
     ],
+    "src/shared/data/serverState.test.ts": null,
     "src/shared/data/serverState.ts": [
+      "DataQueryCache",
+      "DataQueryCacheOptions",
       "DataQuerySnapshot",
       "DataQueryStatus",
       "UseDataQueryOptions",
@@ -5357,19 +5371,6 @@
     "src/shared/icons/agent.tsx": [
       "AGENT_ICON_NAMES",
       "AgentIcon"
-    ],
-    "src/shared/icons/index.ts": [
-      "AGENT_ICON_NAMES",
-      "AgentIcon",
-      "MATERIAL_ICON_NAMES",
-      "MaterialIcon",
-      "getMaterialIconHref",
-      "getMaterialIconSymbolId",
-      "isMaterialIconName",
-      "materialIconSymbolIds",
-      "resolveMaterialIconName",
-      "type MaterialIconName",
-      "type MaterialIconProps"
     ],
     "src/shared/icons/material.test.ts": null,
     "src/shared/icons/material/MaterialIcon.tsx": [
@@ -5525,9 +5526,6 @@
       "path",
       "typescript"
     ],
-    "src/__mocks__/antDesignIconsMock.ts": [
-      "react"
-    ],
     "src/__mocks__/styleMock.ts": null,
     "src/app/App.routing.test.ts": [
       "@/shared/utils/routing",
@@ -5539,11 +5537,13 @@
       "./pages/automations",
       "./pages/memory",
       "./pages/registries",
+      "./routeDataTransport",
       "@/app/layout/AgentChatShell",
       "@/app/layout/AppShell",
       "@/app/layout/CopilotShell",
       "@/app/state/AppContext",
       "@/shared/data/desktopQueryContext",
+      "@/shared/data/routedClient",
       "@/shared/hooks/useDesktopRouteChange",
       "@/shared/i18n",
       "@/shared/styles/theme",
@@ -6062,6 +6062,12 @@
       "antd",
       "react"
     ],
+    "src/app/routeDataTransport.test.ts": [
+      "@/app/routeDataTransport"
+    ],
+    "src/app/routeDataTransport.ts": [
+      "@/features/transport/lib/transportMode"
+    ],
     "src/app/state/AppContext.test.ts": [
       "@/app/state/AppContext",
       "@/app/state/constants",
@@ -6331,7 +6337,6 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
-      "@ant-design/icons",
       "antd",
       "react"
     ],
@@ -7085,14 +7090,13 @@
       "react-dom/server"
     ],
     "src/features/tools/components/AwaitingHtmlContainer.tsx": [
-      "./buildin/confirm-dialog/index.module.css",
       "@/app/state/types",
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/protocol",
       "@/shared/data",
       "@/shared/i18n",
+      "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
-      "@ant-design/icons",
       "antd",
       "antd/es/radio",
       "react"
@@ -7119,7 +7123,6 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
-      "@ant-design/icons",
       "antd",
       "antd/es",
       "lodash",
@@ -7140,7 +7143,6 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
-      "@ant-design/icons",
       "antd",
       "antd/es",
       "dayjs",
@@ -7168,8 +7170,8 @@
       "@/features/tools/components/buildin/plan-dialog/state",
       "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
+      "@/shared/ui/MaterialIcon",
       "@/shared/utils/useKeyboard",
-      "@ant-design/icons",
       "antd",
       "antd/es",
       "react"
@@ -7656,6 +7658,7 @@
       "@/app/state/types",
       "@/shared/data/accessTokenStorage",
       "@/shared/data/appAuth",
+      "@/shared/data/endpointRegistry",
       "@/shared/data/endpoints",
       "@/shared/data/memoryTypes",
       "@/shared/data/platformError",
@@ -7733,7 +7736,11 @@
       "@/shared/data/endpointRegistry",
       "@/shared/data/endpoints",
       "@/shared/data/memoryTypes",
+      "@/shared/data/serverState",
       "@/shared/data/transportClient"
+    ],
+    "src/shared/data/serverState.test.ts": [
+      "@/shared/data/serverState"
     ],
     "src/shared/data/serverState.ts": [
       "@/shared/data/client",
@@ -7832,13 +7839,9 @@
       "./agent-icons/stratus.svg",
       "./agent-icons/terminal.svg",
       "./agent-icons/wave.svg",
-      "@ant-design/icons",
+      "@/shared/ui/MaterialIcon",
       "antd/es",
       "react"
-    ],
-    "src/shared/icons/index.ts": [
-      "./agent",
-      "./material"
     ],
     "src/shared/icons/material.test.ts": [
       "./material",
@@ -7924,7 +7927,6 @@
       "./MarkdownMermaid",
       "./index.module.css",
       "@/app/state/AppContext",
-      "@ant-design/icons",
       "antd",
       "react"
     ],
@@ -7979,7 +7981,6 @@
     "jest.config.cjs": null,
     "postcss.config.js": null,
     "scripts/check-hardcoded-han.js": null,
-    "src/__mocks__/antDesignIconsMock.ts": null,
     "src/__mocks__/styleMock.ts": null,
     "src/app/App.routing.test.ts": null,
     "src/app/App.tsx": [
@@ -7987,7 +7988,8 @@
       "src/app/pages/archives/index.tsx",
       "src/app/pages/automations/index.tsx",
       "src/app/pages/memory/index.tsx",
-      "src/app/pages/registries/index.tsx"
+      "src/app/pages/registries/index.tsx",
+      "src/app/routeDataTransport.ts"
     ],
     "src/app/effects/FireworksCanvas.tsx": null,
     "src/app/index.tsx": null,
@@ -8064,6 +8066,8 @@
     "src/app/pages/memory/index.tsx": null,
     "src/app/pages/registries/index.test.ts": null,
     "src/app/pages/registries/index.tsx": null,
+    "src/app/routeDataTransport.test.ts": null,
+    "src/app/routeDataTransport.ts": null,
     "src/app/state/AppContext.test.ts": null,
     "src/app/state/AppContext.tsx": null,
     "src/app/state/actions.ts": null,
@@ -8228,9 +8232,7 @@
     "src/features/timeline/lib/toolDisplay.ts": null,
     "src/features/timeline/lib/toolEvent.ts": null,
     "src/features/tools/components/AwaitingHtmlContainer.test.ts": null,
-    "src/features/tools/components/AwaitingHtmlContainer.tsx": [
-      "src/features/tools/components/buildin/confirm-dialog/index.module.css"
-    ],
+    "src/features/tools/components/AwaitingHtmlContainer.tsx": null,
     "src/features/tools/components/FrontendToolContainer.tsx": null,
     "src/features/tools/components/awaitingTimeout.test.ts": null,
     "src/features/tools/components/awaitingTimeout.ts": null,
@@ -8365,6 +8367,7 @@
     "src/shared/data/queries.ts": null,
     "src/shared/data/routedClient.test.ts": null,
     "src/shared/data/routedClient.ts": null,
+    "src/shared/data/serverState.test.ts": null,
     "src/shared/data/serverState.ts": null,
     "src/shared/data/transportClient.test.ts": null,
     "src/shared/data/transportClient.ts": null,
@@ -8417,10 +8420,6 @@
       "src/shared/icons/agent-icons/stratus.svg",
       "src/shared/icons/agent-icons/terminal.svg",
       "src/shared/icons/agent-icons/wave.svg"
-    ],
-    "src/shared/icons/index.ts": [
-      "src/shared/icons/agent.tsx",
-      "src/shared/icons/material/index.ts"
     ],
     "src/shared/icons/material.test.ts": [
       "src/shared/icons/material/index.ts"
@@ -8496,7 +8495,6 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
-    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",
@@ -8561,6 +8559,8 @@
     "src/app/pages/memory/index.tsx",
     "src/app/pages/registries/index.test.ts",
     "src/app/pages/registries/index.tsx",
+    "src/app/routeDataTransport.test.ts",
+    "src/app/routeDataTransport.ts",
     "src/app/state/AppContext.test.ts",
     "src/app/state/AppContext.tsx",
     "src/app/state/actions.ts",

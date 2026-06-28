@@ -88,7 +88,7 @@ function workspaceNameFromPath(path: string): string {
   );
 }
 
-function buildCoderAgentCreateRequest(
+export function buildCoderAgentCreateRequest(
   workspaceDir: string,
   options: { name?: string; acpProxyId?: string } = {},
 ) {
