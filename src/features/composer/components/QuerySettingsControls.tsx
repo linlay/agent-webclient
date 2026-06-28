@@ -68,11 +68,9 @@ type AppliedDefaultModelOverride = {
   value: QueryModelOverride;
 };
 
-const cachedCoderModelOptionsByAgent = new Map<string, LoadedCoderModelOptions>();
-const pendingCoderModelOptionsPromiseByAgent = new Map<
-  string,
-  Promise<LoadedCoderModelOptions>
->();
+let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
+let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null =
+  null;
 
 function isCoderMode(value: unknown): boolean {
   return (
@@ -541,6 +539,41 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
   };
 }
 
+function toLoadedCoderModelOptions(options: {
+  models: CoderModelOption[];
+  reasoningEfforts: ReasoningEffortOption[];
+  serviceTiers: ServiceTierOption[];
+  defaultModelKey?: string;
+  defaultReasoningEffort?: QueryReasoningEffort;
+  defaultServiceTier?: QueryServiceTier;
+}): LoadedCoderModelOptions {
+  return {
+    models: options.models,
+    reasoningEfforts: options.reasoningEfforts,
+    serviceTiers: options.serviceTiers,
+    defaultModelKey: options.defaultModelKey,
+    defaultReasoningEffort: options.defaultReasoningEffort,
+    defaultServiceTier: options.defaultServiceTier,
+  };
+}
+
+export function resolveEmbeddedCoderModelOptions(
+  rawAgent: unknown,
+): LoadedCoderModelOptions | null {
+  const raw = getRecord(rawAgent);
+  if (!Object.prototype.hasOwnProperty.call(raw, "modelOptions")) {
+    return null;
+  }
+  const options = normalizeCoderModelOptionsResponse(raw.modelOptions);
+  if (!options.recognized) {
+    console.warn(
+      "[QuerySettingsControls] Unrecognized embedded model options response",
+      raw.modelOptions,
+    );
+  }
+  return toLoadedCoderModelOptions(options);
+}
+
 export function resolveCoderAgentDefaultModelOverride(
   currentWorker: Pick<CurrentWorkerSummary, "raw"> | null | undefined,
   options:
@@ -588,31 +621,27 @@ export function resolveCoderAgentDefaultModelOverride(
 }
 
 export function clearCoderModelOptionsCacheForTest(): void {
-  cachedCoderModelOptionsByAgent.clear();
-  pendingCoderModelOptionsPromiseByAgent.clear();
+  cachedCoderModelOptions = null;
+  pendingCoderModelOptionsPromise = null;
 }
 
 export function getCachedCoderModelOptions(
-  agentKey = "",
+  _agentKey = "",
 ): LoadedCoderModelOptions | null {
-  return cachedCoderModelOptionsByAgent.get(toAgentConfigKey(agentKey)) ?? null;
+  return cachedCoderModelOptions;
 }
 
 export async function loadCoderModelOptions(
-  agentKey = "",
+  _agentKey = "",
 ): Promise<LoadedCoderModelOptions> {
-  const cacheKey = toAgentConfigKey(agentKey);
-  const cachedCoderModelOptions = cachedCoderModelOptionsByAgent.get(cacheKey);
   if (cachedCoderModelOptions) {
     return cachedCoderModelOptions;
   }
-  const pendingCoderModelOptionsPromise =
-    pendingCoderModelOptionsPromiseByAgent.get(cacheKey);
   if (pendingCoderModelOptionsPromise) {
     return pendingCoderModelOptionsPromise;
   }
 
-  const nextPromise = getModelOptions(cacheKey || undefined)
+  const nextPromise = getModelOptions(undefined)
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
@@ -621,21 +650,14 @@ export async function loadCoderModelOptions(
           rawResponse,
         );
       }
-      const loadedOptions = {
-        models: options.models,
-        reasoningEfforts: options.reasoningEfforts,
-        serviceTiers: options.serviceTiers,
-        defaultModelKey: options.defaultModelKey,
-        defaultReasoningEffort: options.defaultReasoningEffort,
-        defaultServiceTier: options.defaultServiceTier,
-      };
-      cachedCoderModelOptionsByAgent.set(cacheKey, loadedOptions);
+      const loadedOptions = toLoadedCoderModelOptions(options);
+      cachedCoderModelOptions = loadedOptions;
       return loadedOptions;
     })
     .finally(() => {
-      pendingCoderModelOptionsPromiseByAgent.delete(cacheKey);
+      pendingCoderModelOptionsPromise = null;
     });
-  pendingCoderModelOptionsPromiseByAgent.set(cacheKey, nextPromise);
+  pendingCoderModelOptionsPromise = nextPromise;
   return nextPromise;
 }
 
@@ -731,6 +753,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         toAgentConfigKey(currentWorker.key) ||
         toAgentConfigKey(currentWorker.row?.key)
       : "";
+  const embeddedModelOptions = useMemo(
+    () => resolveEmbeddedCoderModelOptions(currentWorker?.raw),
+    [currentWorker?.raw],
+  );
   const [models, setModels] = useState<CoderModelOption[]>([]);
   const [reasoningEfforts, setReasoningEfforts] = useState<
     ReasoningEffortOption[]
@@ -771,7 +797,25 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       setModelOptionsStatus("idle");
       return;
     }
-    const cachedOptions = getCachedCoderModelOptions(agentKey);
+    if (embeddedModelOptions) {
+      setModels(embeddedModelOptions.models);
+      setReasoningEfforts(embeddedModelOptions.reasoningEfforts);
+      setServiceTiers(embeddedModelOptions.serviceTiers);
+      setModelDefaults({
+        defaultModelKey: embeddedModelOptions.defaultModelKey,
+        defaultReasoningEffort: embeddedModelOptions.defaultReasoningEffort,
+        defaultServiceTier: embeddedModelOptions.defaultServiceTier,
+      });
+      setModelsLoading(false);
+      setModelOptionsStatus(
+        embeddedModelOptions.models.length > 0 ||
+          embeddedModelOptions.reasoningEfforts.length > 0
+          ? "loaded"
+          : "empty",
+      );
+      return;
+    }
+    const cachedOptions = getCachedCoderModelOptions();
     if (cachedOptions) {
       setModels(cachedOptions.models);
       setReasoningEfforts(cachedOptions.reasoningEfforts);
@@ -793,7 +837,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     let cancelled = false;
     setModelsLoading(true);
     setModelOptionsStatus("idle");
-    void loadCoderModelOptions(agentKey)
+    void loadCoderModelOptions()
       .then((options) => {
         if (cancelled) return;
         setModels(options.models);
@@ -825,7 +869,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [agentKey, shouldShowModelControls, loadAttempt]);
+  }, [agentKey, embeddedModelOptions, shouldShowModelControls, loadAttempt]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessItems = useMemo<MenuProps["items"]>(

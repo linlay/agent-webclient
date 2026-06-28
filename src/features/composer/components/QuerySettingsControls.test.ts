@@ -12,6 +12,7 @@ import {
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
   resolveCoderAgentDefaultModelOverride,
+  resolveEmbeddedCoderModelOptions,
   shouldApplyCoderDefaultModelOverride,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
@@ -250,34 +251,23 @@ describe("QuerySettingsControls", () => {
     expect(getModelOptions).toHaveBeenCalledWith(undefined);
   });
 
-  it("keeps CODER model option caches scoped by agent", async () => {
-    getModelOptions
-      .mockResolvedValueOnce({
-        data: {
-          models: [{ key: "codex-model", name: "Codex Model", modelId: "gpt-5.5" }],
-          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          models: [{ key: "native-model", name: "Native Model", modelId: "qwen3" }],
-          reasoningEfforts: [{ key: "LOW", label: "LOW" }],
-        },
-      });
+  it("shares one public CODER model option cache across agents", async () => {
+    getModelOptions.mockResolvedValueOnce({
+      data: {
+        models: [{ key: "native-model", name: "Native Model", modelId: "qwen3" }],
+        reasoningEfforts: [{ key: "LOW", label: "LOW" }],
+      },
+    });
 
     await expect(loadCoderModelOptions("codexCoder")).resolves.toMatchObject({
-      models: [{ key: "codex-model", name: "Codex Model" }],
+      models: [{ key: "native-model", name: "Native Model" }],
     });
     await expect(loadCoderModelOptions("nativeCoder")).resolves.toMatchObject({
       models: [{ key: "native-model", name: "Native Model" }],
     });
-    await expect(loadCoderModelOptions("codexCoder")).resolves.toMatchObject({
-      models: [{ key: "codex-model", name: "Codex Model" }],
-    });
 
-    expect(getModelOptions).toHaveBeenNthCalledWith(1, "codexCoder");
-    expect(getModelOptions).toHaveBeenNthCalledWith(2, "nativeCoder");
-    expect(getModelOptions).toHaveBeenCalledTimes(2);
+    expect(getModelOptions).toHaveBeenCalledWith(undefined);
+    expect(getModelOptions).toHaveBeenCalledTimes(1);
   });
 
   it("returns cached model options after the first successful load", async () => {
@@ -390,6 +380,54 @@ describe("QuerySettingsControls", () => {
       defaultReasoningEffort: "HIGH",
       recognized: true,
     });
+  });
+
+  it("uses embedded agent model options when they are present", () => {
+    const embedded = resolveEmbeddedCoderModelOptions({
+      mode: "CODER",
+      modelOptions: {
+        models: [{ key: "acp-model", name: "ACP Model", modelId: "gpt-5.5" }],
+        reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+        serviceTiers: [{ key: "FAST", label: "Fast" }],
+        defaultModelKey: "acp-model",
+        defaultReasoningEffort: "HIGH",
+        defaultServiceTier: "FAST",
+      },
+    });
+
+    expect(embedded).toMatchObject({
+      models: [{ key: "acp-model", name: "ACP Model" }],
+      reasoningEfforts: [{ key: "HIGH" }],
+      serviceTiers: [{ key: "STANDARD" }, { key: "FAST" }],
+      defaultModelKey: "acp-model",
+      defaultReasoningEffort: "HIGH",
+      defaultServiceTier: "FAST",
+    });
+    expect(getModelOptions).not.toHaveBeenCalled();
+  });
+
+  it("treats empty embedded agent model options as present", () => {
+    const embedded = resolveEmbeddedCoderModelOptions({
+      mode: "CODER",
+      modelOptions: {
+        models: [],
+        reasoningEfforts: [],
+      },
+    });
+
+    expect(embedded).toEqual({
+      models: [],
+      reasoningEfforts: [],
+      serviceTiers: [{ key: "STANDARD", label: "Standard" }],
+      defaultModelKey: "",
+      defaultReasoningEffort: undefined,
+      defaultServiceTier: "STANDARD",
+    });
+    expect(getModelOptions).not.toHaveBeenCalled();
+  });
+
+  it("returns null when embedded agent model options are absent", () => {
+    expect(resolveEmbeddedCoderModelOptions({ mode: "CODER" })).toBeNull();
   });
 
   it("renders ACP-provided service tiers instead of filtering them to a fixed list", () => {

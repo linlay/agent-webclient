@@ -278,6 +278,70 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("hydrates ACP CODER route agent summaries before route activation", async () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    getAgent.mockResolvedValueOnce({
+      data: {
+        key: "demo-agent",
+        name: "Demo Agent",
+        role: "Worker",
+        mode: "CODER",
+        meta: { acpProxyId: "codex" },
+        modelOptions: {
+          models: [{ key: "gpt-5.5", name: "GPT-5.5", modelId: "gpt-5.5" }],
+          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+          defaultModelKey: "gpt-5.5",
+          defaultReasoningEffort: "HIGH",
+        },
+      },
+    });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        {
+          key: "demo-agent",
+          name: "Demo Agent",
+          role: "Worker",
+          mode: "CODER",
+          meta: { acpProxyId: "codex" },
+        },
+      ],
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(getAgent).toHaveBeenCalledWith("demo-agent");
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+
+    await flushPromises();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: [
+        expect.objectContaining({
+          key: "demo-agent",
+          mode: "CODER",
+          meta: { acpProxyId: "codex" },
+          modelOptions: expect.objectContaining({
+            defaultModelKey: "gpt-5.5",
+            models: [expect.objectContaining({ key: "gpt-5.5" })],
+          }),
+        }),
+      ],
+    });
+
+    useEffectSpy.mockRestore();
+  });
+
   it("falls back to a non-CODER placeholder when route agent hydration fails", async () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest

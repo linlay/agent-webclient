@@ -47,6 +47,26 @@ function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasOwn(input: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(input, key);
+}
+
+function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean {
+  if (!agent) return false;
+  const meta = isRecord(agent.meta) ? agent.meta : {};
+  const mode = String(agent.mode || meta.mode || "").trim().toUpperCase();
+  const type = String(agent.type || "").trim().toLowerCase();
+  const acpProxyId = String(meta.acpProxyId || agent.acpProxyId || "").trim();
+  if (!acpProxyId || (mode !== "CODER" && type !== "coder")) {
+    return false;
+  }
+  return !hasOwn(agent, "modelOptions");
+}
+
 const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
   return (
     <main className="agent-route-loading-page" aria-busy="true">
@@ -107,18 +127,20 @@ export const AgentChatShell: React.FC = () => {
     [agentKey, state.agents],
   );
   const routeAgentHasDetailSignal = hasRouteAgentDetailSignal(routeAgent);
+  const routeAgentNeedsModelOptionsHydration =
+    needsRouteAgentModelOptionsHydration(routeAgent);
   const routeAgentHydrated =
     !agentKey ||
     Boolean(
       routeAgent &&
-        (routeAgentHasDetailSignal ||
+        ((routeAgentHasDetailSignal && !routeAgentNeedsModelOptionsHydration) ||
           routeAgentHydratedWithoutSignalRef.current.has(agentKey) ||
           routeAgentHydrationFailedRef.current.has(agentKey)),
     );
   const routeAgentNeedsHydration =
     Boolean(agentKey) &&
     (!routeAgent ||
-      (!routeAgentHasDetailSignal &&
+      ((!routeAgentHasDetailSignal || routeAgentNeedsModelOptionsHydration) &&
         !routeAgentHydratedWithoutSignalRef.current.has(agentKey) &&
         !routeAgentHydrationFailedRef.current.has(agentKey)));
   const routeAgentReady =
