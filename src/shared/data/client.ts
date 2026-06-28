@@ -558,8 +558,9 @@ export interface ChatUsageEstimatedCost {
 
 export interface ChatUsageTiming {
   firstTokenLatencyMs?: number;
+  firstTokenLatencyTotalMs?: number;
+  firstTokenLatencyCount?: number;
   generationDurationMs?: number;
-  outputTokensPerSecond?: number;
 }
 
 export interface ChatUsageData {

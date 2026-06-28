@@ -241,7 +241,7 @@ function normalizeUsageTiming(value: unknown): AIUsageStats['timing'] | undefine
   }
 
   const timing: NonNullable<AIUsageStats['timing']> = {};
-  for (const key of ['firstTokenLatencyMs', 'generationDurationMs', 'outputTokensPerSecond'] as const) {
+  for (const key of ['firstTokenLatencyMs', 'firstTokenLatencyTotalMs', 'firstTokenLatencyCount', 'generationDurationMs'] as const) {
     const next = readUsageNumber(value[key]);
     if (next !== undefined) {
       timing[key] = next;

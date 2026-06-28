@@ -90,6 +90,15 @@ function formatFirstTokenLatency(value: unknown): string | null {
   return `${(latencyMs / 1000).toFixed(1)}s`;
 }
 
+function resolveFirstTokenLatency(stats?: AIUsageStats): number | null {
+  const directLatency = readUsageTimingNumber(stats?.timing?.firstTokenLatencyMs);
+  if (directLatency != null) return directLatency;
+  const totalLatency = readUsageTimingNumber(stats?.timing?.firstTokenLatencyTotalMs);
+  const count = readUsageTimingNumber(stats?.timing?.firstTokenLatencyCount);
+  if (totalLatency == null || totalLatency <= 0 || count == null || count <= 0) return null;
+  return totalLatency / count;
+}
+
 function formatOutputTokensPerSecond(value: unknown): string | null {
   const tokensPerSecond = readUsageTimingNumber(value);
   if (tokensPerSecond == null) return null;
@@ -97,8 +106,6 @@ function formatOutputTokensPerSecond(value: unknown): string | null {
 }
 
 function resolveOutputTokensPerSecond(stats?: AIUsageStats): number | null {
-  const provided = readUsageTimingNumber(stats?.timing?.outputTokensPerSecond);
-  if (provided != null) return provided;
   const completionTokens = readUsageTimingNumber(stats?.completionTokens);
   const generationDurationMs = readUsageTimingNumber(stats?.timing?.generationDurationMs);
   if (completionTokens == null || completionTokens <= 0 || generationDurationMs == null || generationDurationMs <= 0) {
@@ -176,8 +183,9 @@ function hasUsageStatsData(stats?: AIUsageStats): boolean {
     stats.promptTokensDetails?.cacheMissTokens,
     stats.completionTokensDetails?.reasoningTokens,
     stats.timing?.firstTokenLatencyMs,
+    stats.timing?.firstTokenLatencyTotalMs,
+    stats.timing?.firstTokenLatencyCount,
     stats.timing?.generationDurationMs,
-    stats.timing?.outputTokensPerSecond,
   ];
   if (numericValues.some((value) => readUsageNumber(value) != null)) return true;
   return Boolean(stats.estimatedCost);
@@ -361,7 +369,7 @@ const UsageCallCounts: React.FC<{
 }> = ({ t, stats, showFirstTokenLatency = false, showOutputSpeed = false }) => {
   const headerStats: UsageHeaderStat[] = [];
   if (showFirstTokenLatency) {
-    const firstTokenLatency = formatFirstTokenLatency(stats?.timing?.firstTokenLatencyMs);
+    const firstTokenLatency = formatFirstTokenLatency(resolveFirstTokenLatency(stats));
     if (firstTokenLatency) {
       headerStats.push({
         key: "firstTokenLatency",
@@ -679,6 +687,7 @@ export const TopNav: React.FC = () => {
                         <UsageCallCounts
                           t={t}
                           stats={usageSnapshot?.usage?.run}
+                          showFirstTokenLatency
                           showOutputSpeed
                         />
                       }
@@ -690,6 +699,7 @@ export const TopNav: React.FC = () => {
                         <UsageCallCounts
                           t={t}
                           stats={usageSnapshot?.usage?.chat}
+                          showFirstTokenLatency
                           showOutputSpeed
                         />
                       }

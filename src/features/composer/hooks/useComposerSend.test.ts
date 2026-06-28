@@ -24,7 +24,6 @@ describe('compact usage snapshot helpers', () => {
           timing: {
             firstTokenLatencyMs: 820,
             generationDurationMs: 2380,
-            outputTokensPerSecond: 21.01,
           },
         },
         run: {
@@ -32,9 +31,9 @@ describe('compact usage snapshot helpers', () => {
           completionTokens: 210,
           totalTokens: 13367,
           timing: {
-            firstTokenLatencyMs: 820,
+            firstTokenLatencyTotalMs: 820,
+            firstTokenLatencyCount: 1,
             generationDurationMs: 2380,
-            outputTokensPerSecond: 21.01,
           },
           llmChatCompletionCount: 1,
           toolCallCount: 2,
@@ -44,9 +43,9 @@ describe('compact usage snapshot helpers', () => {
           completionTokens: 1210,
           totalTokens: 54367,
           timing: {
-            firstTokenLatencyMs: 900,
+            firstTokenLatencyTotalMs: 900,
+            firstTokenLatencyCount: 1,
             generationDurationMs: 4000,
-            outputTokensPerSecond: 10,
           },
           llmChatCompletionCount: 4,
           toolCallCount: 7,

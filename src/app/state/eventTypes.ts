@@ -186,8 +186,9 @@ export interface AIUsageEstimatedCost {
 
 export interface AIUsageTiming {
   firstTokenLatencyMs?: number;
+  firstTokenLatencyTotalMs?: number;
+  firstTokenLatencyCount?: number;
   generationDurationMs?: number;
-  outputTokensPerSecond?: number;
 }
 
 export interface AIUsageStats {

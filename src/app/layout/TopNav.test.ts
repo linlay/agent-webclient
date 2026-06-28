@@ -425,7 +425,6 @@ describe("TopNav", () => {
 						timing: {
 							firstTokenLatencyMs: 700,
 							generationDurationMs: 2000,
-							outputTokensPerSecond: 25,
 						},
 						llmChatCompletionCount: 2,
 						toolCallCount: 4,
@@ -473,6 +472,8 @@ describe("TopNav", () => {
 						completionTokens: 100,
 						totalTokens: 400,
 						timing: {
+							firstTokenLatencyTotalMs: 4000,
+							firstTokenLatencyCount: 2,
 							generationDurationMs: 5000,
 						},
 						llmChatCompletionCount: 1,
@@ -482,6 +483,8 @@ describe("TopNav", () => {
 						completionTokens: 300,
 						totalTokens: 1100,
 						timing: {
+							firstTokenLatencyTotalMs: 4500,
+							firstTokenLatencyCount: 3,
 							generationDurationMs: 10000,
 						},
 						llmChatCompletionCount: 2,
@@ -493,9 +496,12 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("<strong>3.1s</strong>");
+		expect(html).toContain("<strong>2.0s</strong>");
+		expect(html).toContain("<strong>1.5s</strong>");
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>20.0/s</strong>");
 		expect(html).toContain("<strong>30.0/s</strong>");
+		expect(html.match(/First token/g)).toHaveLength(3);
 		expect(html.match(/Tool calls/g)).toHaveLength(3);
 		expect(html.match(/<strong>0<\/strong>/g)).toHaveLength(3);
 		const firstTokenIndex = html.indexOf("First token");
@@ -533,8 +539,7 @@ describe("TopNav", () => {
 						completionTokensDetails: { reasoningTokens: 7 },
 						timing: {
 							firstTokenLatencyMs: 820,
-							generationDurationMs: 2380,
-							outputTokensPerSecond: 21.01,
+							generationDurationMs: 952,
 						},
 						llmChatCompletionCount: 1,
 						toolCallCount: 2,
@@ -546,9 +551,9 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 220 },
 						completionTokensDetails: { reasoningTokens: 17 },
 						timing: {
-							firstTokenLatencyMs: 780,
-							generationDurationMs: 4000,
-							outputTokensPerSecond: 18.04,
+							firstTokenLatencyTotalMs: 1560,
+							firstTokenLatencyCount: 2,
+							generationDurationMs: 3889,
 						},
 						llmChatCompletionCount: 3,
 						toolCallCount: 4,
@@ -560,9 +565,9 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 280, cacheMissTokens: 520 },
 						completionTokensDetails: { reasoningTokens: 27 },
 						timing: {
-							firstTokenLatencyMs: 900,
-							generationDurationMs: 20000,
-							outputTokensPerSecond: 9.94,
+							firstTokenLatencyTotalMs: 2700,
+							firstTokenLatencyCount: 3,
+							generationDurationMs: 20202,
 						},
 						llmChatCompletionCount: 8,
 						toolCallCount: 11,
@@ -592,6 +597,9 @@ describe("TopNav", () => {
 		expect(html).toContain("Cache miss");
 		expect(html).toContain("First token");
 		expect(html).toContain("<strong>820ms</strong>");
+		expect(html).toContain("<strong>780ms</strong>");
+		expect(html).toContain("<strong>900ms</strong>");
+		expect(html.match(/First token/g)).toHaveLength(3);
 		expect(html.match(/Output speed/g)).toHaveLength(3);
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>18.0/s</strong>");
