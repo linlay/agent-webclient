@@ -121,11 +121,12 @@ import {
 	type TransportRequestOptions,
 } from "@/shared/data/transportClient";
 import {
-	compactPayload,
+	createDataCacheKey,
 	resolveEndpointPayload,
 	type EndpointDefinition,
 } from "@/shared/data/endpointRegistry";
 import { dataEndpoints } from "@/shared/data/endpoints";
+import { dataQueryCache } from "@/shared/data/serverState";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
 let getTransportMode: () => TransportModeValue = () => "ws";
@@ -163,20 +164,54 @@ function emptyPayloadAsUndefined(payload: unknown): unknown {
 	return payload;
 }
 
+function createRouteCacheKey(
+	endpoint: Pick<EndpointDefinition, "key">,
+	payload: unknown,
+): string {
+	return `request:${createDataCacheKey(endpoint, payload)}`;
+}
+
+function createRouteCachePrefix(endpoint: Pick<EndpointDefinition, "key">): string {
+	return `request:${endpoint.key}`;
+}
+
+function invalidateRouteEndpoints(
+	...endpoints: Array<Pick<EndpointDefinition, "key">>
+): void {
+	for (const endpoint of endpoints) {
+		dataQueryCache.invalidatePrefix(createRouteCachePrefix(endpoint));
+	}
+}
+
 function routeEndpoint<T, TInput>(
 	endpoint: EndpointDefinition<TInput>,
 	input: TInput,
 	fallback: () => Promise<ApiResponse<T>>,
 	options: RouteRequestOptions<T> = {},
 ): Promise<ApiResponse<T>> {
-	if (endpoint.transport !== "auto" && endpoint.transport !== "ws") {
-		return fallback();
+	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
+	const request = () => {
+		if (endpoint.transport !== "auto" && endpoint.transport !== "ws") {
+			return fallback();
+		}
+		return routeRequest<T>(
+			endpoint.path,
+			payload,
+			fallback,
+			options,
+		);
+	};
+	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
+	if (!cache) {
+		return request();
 	}
-	return routeRequest<T>(
-		endpoint.path,
-		emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input)),
-		fallback,
-		options,
+	return dataQueryCache.fetch(
+		createRouteCacheKey(endpoint, payload),
+		request,
+		{
+			ttlMs: cache.ttlMs,
+			dedupe: cache.dedupe,
+		},
 	);
 }
 
@@ -195,7 +230,11 @@ export function getAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
 export function putAgentOrder(
 	params: UpdateAgentOrderRequest,
 ): Promise<ApiResponse<AgentOrderResponse>> {
-	return routeEndpoint(dataEndpoints.agentOrderUpdate, params, () => putAgentOrderHttp(params));
+	return routeEndpoint(dataEndpoints.agentOrderUpdate, params, () => putAgentOrderHttp(params))
+		.then((response) => {
+			invalidateRouteEndpoints(dataEndpoints.agents);
+			return response;
+		});
 }
 
 export function getAgent(agentKey: string): Promise<ApiResponse> {
@@ -205,13 +244,19 @@ export function getAgent(agentKey: string): Promise<ApiResponse> {
 export function createAgent(
 	params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-	return createAgentHttp(params);
+	return createAgentHttp(params).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		return response;
+	});
 }
 
 export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
-	return updateAgentHttp(params);
+	return updateAgentHttp(params).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		return response;
+	});
 }
 
 export function updateAgentModelConfig(
@@ -221,13 +266,23 @@ export function updateAgentModelConfig(
 		dataEndpoints.agentModelConfig,
 		params,
 		() => updateAgentModelConfigHttp(params),
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		return response;
+	});
 }
 
 export function deleteAgent(
 	params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
-	return deleteAgentHttp(params);
+	return deleteAgentHttp(params).then((response) => {
+		invalidateRouteEndpoints(
+			dataEndpoints.agents,
+			dataEndpoints.chats,
+			dataEndpoints.modelOptions,
+		);
+		return response;
+	});
 }
 
 export function openAgentWorkspace(
@@ -266,10 +321,10 @@ export function getChat(
 ): Promise<ApiResponse> {
 	return routeEndpoint(
 		dataEndpoints.chat,
-		compactPayload({
+		{
 			chatId,
-			includeRawMessages: includeRawMessages ? true : undefined,
-		}),
+			includeRawMessages,
+		},
 		() => getChatHttp(chatId, includeRawMessages),
 	);
 }
@@ -330,7 +385,10 @@ export function archiveChats(
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,
 		},
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
+	});
 }
 
 export function getArchives(
@@ -347,11 +405,11 @@ export function getArchive(
 	chatId: string,
 	includeRawMessages = false,
 ): Promise<ApiResponse<ArchiveDetailResponse>> {
-	return routeEndpoint<ArchiveDetailResponse, Record<string, unknown>>(
+	return routeEndpoint<ArchiveDetailResponse, { chatId: string; includeRawMessages: boolean }>(
 		dataEndpoints.archive,
 		{
 			chatId,
-			...(includeRawMessages ? { includeRawMessages: true } : {}),
+			includeRawMessages,
 		},
 		() => getArchiveHttp(chatId, includeRawMessages),
 	);
@@ -378,7 +436,10 @@ export function deleteArchive(params: {
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,
 		},
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
+	});
 }
 
 export function restoreArchives(params: {
@@ -392,7 +453,10 @@ export function restoreArchives(params: {
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,
 		},
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
+	});
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {
@@ -459,9 +523,9 @@ export function getMemoryRecord(
 	agentKey: string | undefined,
 	id: string,
 ): Promise<ApiResponse<MemoryRecordDetail>> {
-	return routeEndpoint<MemoryRecordDetail, Record<string, unknown>>(
+	return routeEndpoint<MemoryRecordDetail, { agentKey?: string; recordId: string }>(
 		dataEndpoints.memoryRecordDetail,
-		compactPayload({ agentKey, recordId: id }),
+		{ agentKey, recordId: id },
 		() => getMemoryRecordHttp(agentKey, id),
 	);
 }
@@ -469,9 +533,9 @@ export function getMemoryRecord(
 export function getMemoryScopes(
 	agentKey: string,
 ): Promise<ApiResponse<MemoryScopesResponse>> {
-	return routeEndpoint<MemoryScopesResponse, Record<string, unknown>>(
+	return routeEndpoint<MemoryScopesResponse, string>(
 		dataEndpoints.memoryScopes,
-		compactPayload({ agentKey }),
+		agentKey,
 		() => getMemoryScopesHttp(agentKey),
 	);
 }
@@ -489,9 +553,12 @@ export function getMemoryScope(
 	scopeType: string,
 	scopeKey?: string,
 ): Promise<ApiResponse<MemoryScopeDetail>> {
-	return routeEndpoint<MemoryScopeDetail, Record<string, unknown>>(
+	return routeEndpoint<
+		MemoryScopeDetail,
+		{ agentKey: string; scopeType: string; scopeKey?: string }
+	>(
 		dataEndpoints.memoryScope,
-		compactPayload({ agentKey, scopeType, scopeKey }),
+		{ agentKey, scopeType, scopeKey },
 		() => getMemoryScopeHttp(agentKey, scopeType, scopeKey),
 	);
 }
@@ -526,7 +593,10 @@ export function saveMemoryScope(
 		dataEndpoints.memoryScopeSave,
 		payload,
 		() => saveMemoryScopeHttp(payload),
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.memoryMeta);
+		return response;
+	});
 }
 
 export function submitTool(params: {
@@ -559,6 +629,9 @@ export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
 	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
+	}).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
 	});
 }
 
@@ -573,6 +646,9 @@ export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
 	return routeEndpoint(dataEndpoints.chatDelete, params, () => deleteChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
+	}).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
 	});
 }
 
@@ -587,7 +663,10 @@ export function renameChat(
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,
 		},
-	);
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
+	});
 }
 
 export function searchGlobal(
@@ -635,6 +714,9 @@ export function rememberChat(params: {
 	return routeEndpoint(dataEndpoints.remember, params, () => rememberChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
+	}).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
 	});
 }
 
@@ -645,6 +727,9 @@ export function learnChat(params: {
 	return routeEndpoint(dataEndpoints.learn, params, () => learnChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
+	}).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
 	});
 }
 
@@ -655,6 +740,9 @@ export function compactChat(params: {
 	return routeEndpoint(dataEndpoints.compact, params, () => compactChatHttp(params), {
 		fallbackOnConnectFailure: false,
 		fallbackOnRequestFailure: false,
+	}).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
 	});
 }
 

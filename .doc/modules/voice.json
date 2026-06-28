@@ -72,7 +72,6 @@
       "formatVoiceSocketClose",
       "getVoiceRuntime",
       "handleCapturedVoiceAudio",
-      "handleSocketBinary",
       "handleSocketText",
       "initVoiceRuntime",
       "initializeVoiceAudioCapture",

@@ -3,7 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import { LeftSidebar } from "@/app/layout/LeftSidebar";
+import {
+  buildCoderAgentCreateRequest,
+  LeftSidebar,
+} from "@/app/layout/LeftSidebar";
 import { sortWorkerRowsForMode } from "@/app/layout/hooks/useLeftSidebarData";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
@@ -96,29 +99,44 @@ jest.mock("antd", () => {
       React.createElement("input", props),
     );
 
-  const Checkbox = ({ children, checked, disabled, onChange }: any) =>
+  const Checkbox = ({ children, checked, disabled, onChange, ...props }: any) =>
     React.createElement(
       "label",
-      null,
+      {
+        "data-checkbox-checked": checked ? "true" : "false",
+        "data-checkbox-disabled": disabled ? "true" : "false",
+      },
       React.createElement("input", {
         type: "checkbox",
         checked,
         disabled,
         onChange,
+        ...props,
       }),
       children,
     );
 
-  const Radio: any = ({ children, value, checked, disabled, onChange }: any) =>
+  const Radio: any = ({
+    children,
+    value,
+    checked,
+    disabled,
+    onChange,
+    ...props
+  }: any) =>
     React.createElement(
       "label",
-      null,
+      {
+        "data-radio-value": value,
+        "data-radio-disabled": disabled ? "true" : "false",
+      },
       React.createElement("input", {
         type: "radio",
         value,
         checked,
         disabled,
         onChange,
+        ...props,
       }),
       children,
     );
@@ -126,14 +144,14 @@ jest.mock("antd", () => {
     React.createElement(
       "div",
       {
-        "data-radio-value": value ?? defaultValue,
-        "data-radio-disabled": disabled ? "true" : undefined,
+        "data-radio-group-value": value ?? defaultValue,
+        "data-radio-group-disabled": disabled ? "true" : "false",
       },
       React.Children.map(children, (child: any) =>
         React.isValidElement(child)
           ? React.cloneElement(child, {
               checked: child.props.value === (value ?? defaultValue),
-              disabled,
+              disabled: disabled || child.props.disabled,
               onChange,
             })
           : child,
@@ -843,7 +861,46 @@ describe("LeftSidebar", () => {
     ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
   });
 
-  it("renders the top action as new project and opens folder selection before creation", async () => {
+  it("builds a coder project create request from workspace metadata", () => {
+    expect(
+      buildCoderAgentCreateRequest("/Users/demo/Project/agent-coder", {
+        name: "agent-coder",
+      }),
+    ).toEqual({
+      definition: {
+        name: "agent-coder",
+        mode: "CODER",
+        icon: {
+          name: "folder",
+        },
+        workspace: {
+          root: "/Users/demo/Project/agent-coder",
+        },
+        runtimeConfig: {
+          workspaceRoot: "/Users/demo/Project/agent-coder",
+        },
+        visibility: {
+          scopes: ["nav", "copilot"],
+        },
+      },
+    });
+    expect(
+      buildCoderAgentCreateRequest("/Users/demo/Project/acp-coder", {
+        acpProxyId: "proxy-acp-codex",
+      }),
+    ).toEqual({
+      definition: expect.objectContaining({
+        name: "acp-coder",
+        runtimeConfig: {
+          workspaceRoot: "/Users/demo/Project/acp-coder",
+          coderBackend: "acp",
+          acpProxyId: "proxy-acp-codex",
+        },
+      }),
+    });
+  });
+
+  it("renders the top action as new project and opens the create flow from a selected folder", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
     selectProjectFolder.mockResolvedValue({
@@ -881,9 +938,55 @@ describe("LeftSidebar", () => {
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: "SET_WORKER_SELECTION_KEY" }),
     );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "SET_TEMPORARY_PINNED_AGENT_KEY" }),
+    );
   });
 
-  it("does not create a project when folder selection is canceled", async () => {
+  it("opens the create flow from a browser path selection", async () => {
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    const createdAgent = {
+      key: "browser-coder",
+      name: "browser-coder",
+      type: "coder",
+      workspaceDir: "/Users/demo/Project/browser-coder",
+    };
+    selectProjectFolder.mockResolvedValue({
+      kind: "browser-directory-path",
+      workspaceDir: "/Users/demo/Project/browser-coder",
+    });
+    createAgent.mockResolvedValue({ data: createdAgent });
+    getAgents.mockResolvedValue({ data: [createdAgent] });
+    useAppContext.mockReturnValue({
+      state: {
+        ...state,
+        leftDrawerOpen: true,
+        conversationMode: "worker",
+      },
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    renderSidebar();
+
+    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    (button?.onClick as () => void)();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
+    expect(createAgent).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "SET_TEMPORARY_PINNED_AGENT_KEY" }),
+    );
+  });
+
+  it("does not create a coder project when folder selection is canceled", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
     selectProjectFolder.mockResolvedValue(null);

@@ -74,6 +74,7 @@
       "resolveAwaitingSubmitAgentKey",
       "resolveCoderAgentDefaultModelOverride",
       "resolveDifferentChatDetachRunDetail",
+      "resolveEmbeddedCoderModelOptions",
       "resolveMentionCandidatesFromState",
       "resolvePreferredAgentKey",
       "resolvePreferredTeamId",

@@ -36,6 +36,8 @@
       "AdminRegistrySummary",
       "AdminRegistryValidateRequest",
       "AdminRegistryValidateResponse",
+      "AdminServiceSummary",
+      "AdminToolSummary",
       "AgentDetailResponse",
       "AgentEditorModelOption",
       "AgentEditorOption",
@@ -76,6 +78,7 @@
       "ChatSummaryResponse",
       "ChatUsageData",
       "ChatUsageEstimatedCost",
+      "ChatUsageTiming",
       "ChatUsageTokenDetails",
       "CoderModelOption",
       "CoderModelOptionsResponse",
@@ -84,6 +87,8 @@
       "CreateAutomationRequest",
       "DESKTOP_WEBVIEW_BRIDGE_FLAG",
       "DataEndpointKey",
+      "DataQueryCache",
+      "DataQueryCacheOptions",
       "DataQuerySnapshot",
       "DataQueryStatus",
       "DeleteAgentRequest",
@@ -147,6 +152,7 @@
       "QueryServiceTier",
       "QueryStreamParams",
       "ReasoningEffortOption",
+      "RegistryConsoleTab",
       "RenameChatRequest",
       "RenameChatResponse",
       "ServiceTierOption",
@@ -204,6 +210,7 @@
       "getAdminAgents",
       "getAdminRegistries",
       "getAdminRegistryDetail",
+      "getAdminServices",
       "getAdminSkills",
       "getAdminTools",
       "getAgent",
@@ -292,9 +299,10 @@
       "src/shared/data/desktopScreenshot.test.ts",
       "src/shared/data/platformError.test.ts",
       "src/shared/data/routedClient.test.ts",
+      "src/shared/data/serverState.test.ts",
       "src/shared/data/transportClient.test.ts"
     ],
-    "lastScannedAt": "2026-06-26T00:44:00Z"
+    "lastScannedAt": "2026-06-28T14:21:14Z"
   },
   "readHints": {
     "alwaysRead": [],

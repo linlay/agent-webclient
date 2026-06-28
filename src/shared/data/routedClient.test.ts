@@ -249,6 +249,81 @@ describe("routedClient", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
+	it("dedupes cached GET endpoints and reuses fresh route responses", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["agent-a"],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(Promise.all([proxy.getAgents(), proxy.getAgents()])).resolves.toEqual([
+			{
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: ["agent-a"],
+			},
+			{
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: ["agent-a"],
+			},
+		]);
+		await expect(proxy.getAgents()).resolves.toMatchObject({
+			data: ["agent-a"],
+		});
+
+		expect(request).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("invalidates route cache after agent mutations", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: ["agent-a"],
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.createAgent.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "agent-b" },
+		});
+
+		await proxy.getAgents();
+		await proxy.createAgent({
+			key: "agent-b",
+			definition: { key: "agent-b", name: "Agent B" },
+		});
+		await proxy.getAgents();
+
+		expect(request).toHaveBeenCalledTimes(2);
+		expect(mockApiClient.createAgent).toHaveBeenCalledTimes(1);
+	});
+
 	it("routes agent order reads and writes over ws", async () => {
 		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");

@@ -18,7 +18,10 @@ export interface DataQuerySnapshot<TData = unknown> {
 interface DataQueryEntry<TData = unknown> {
   snapshot: DataQuerySnapshot<TData>;
   promise: Promise<TData> | null;
+  abortController: AbortController | null;
   expiresAt: number;
+  lastAccessedAt: number;
+  revision: number;
   listeners: Set<() => void>;
 }
 
@@ -38,6 +41,14 @@ type QueryFetcher<TInput, TData> = (
   options?: { signal?: AbortSignal },
 ) => Promise<ApiResponse<TData>>;
 
+type CacheFetcher<TData> = (options?: {
+  signal?: AbortSignal;
+}) => Promise<TData>;
+
+export interface DataQueryCacheOptions {
+  maxEntries?: number;
+}
+
 const EMPTY_SNAPSHOT: DataQuerySnapshot<unknown> = Object.freeze({
   status: "idle",
   data: null,
@@ -46,25 +57,62 @@ const EMPTY_SNAPSHOT: DataQuerySnapshot<unknown> = Object.freeze({
   isStale: true,
 });
 
-class DataQueryCache {
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof DOMException !== "undefined" &&
+    error instanceof DOMException &&
+    error.name === "AbortError"
+  ) || (
+    error instanceof Error && error.name === "AbortError"
+  );
+}
+
+export class DataQueryCache {
   private entries = new Map<string, DataQueryEntry>();
+  private readonly maxEntries: number;
+  private accessCounter = 0;
+
+  constructor(options: DataQueryCacheOptions = {}) {
+    this.maxEntries = Math.max(1, Math.floor(options.maxEntries ?? 128));
+  }
+
+  get size(): number {
+    return this.entries.size;
+  }
+
+  clear(): void {
+    for (const entry of this.entries.values()) {
+      entry.abortController?.abort();
+    }
+    this.entries.clear();
+  }
 
   getSnapshot<TData>(key: string, ttlMs = 0): DataQuerySnapshot<TData> {
     const entry = this.entries.get(key) as DataQueryEntry<TData> | undefined;
     if (!entry) {
       return EMPTY_SNAPSHOT as DataQuerySnapshot<TData>;
     }
-    return {
-      ...entry.snapshot,
-      isStale: ttlMs > 0 ? Date.now() >= entry.expiresAt : true,
-    };
+    this.touch(entry);
+    const isStale = ttlMs > 0 ? Date.now() >= entry.expiresAt : true;
+    if (entry.snapshot.isStale !== isStale) {
+      entry.snapshot = {
+        ...entry.snapshot,
+        isStale,
+      };
+    }
+    return entry.snapshot;
   }
 
   subscribe(key: string, listener: () => void): () => void {
     const entry = this.ensureEntry(key);
+    this.touch(entry);
     entry.listeners.add(listener);
     return () => {
       entry.listeners.delete(listener);
+      if (entry.listeners.size === 0) {
+        entry.abortController?.abort();
+        this.pruneEntries();
+      }
     };
   }
 
@@ -74,6 +122,12 @@ class DataQueryCache {
       return;
     }
     entry.expiresAt = 0;
+    entry.revision += 1;
+    if (entry.listeners.size === 0) {
+      entry.abortController?.abort();
+    }
+    entry.promise = null;
+    entry.abortController = null;
     entry.snapshot = {
       ...entry.snapshot,
       isStale: true,
@@ -81,13 +135,34 @@ class DataQueryCache {
     this.emit(entry);
   }
 
+  invalidatePrefix(prefix: string): void {
+    for (const [key, entry] of this.entries.entries()) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      entry.expiresAt = 0;
+      entry.revision += 1;
+      if (entry.listeners.size === 0) {
+        entry.abortController?.abort();
+      }
+      entry.promise = null;
+      entry.abortController = null;
+      entry.snapshot = {
+        ...entry.snapshot,
+        isStale: true,
+      };
+      this.emit(entry);
+    }
+  }
+
   fetch<TData>(
     key: string,
-    fetcher: () => Promise<TData>,
+    fetcher: CacheFetcher<TData>,
     options: { ttlMs?: number; dedupe?: boolean } = {},
   ): Promise<TData> {
     const entry = this.ensureEntry<TData>(key);
     const now = Date.now();
+    this.touch(entry);
     const ttlMs = Math.max(0, Number(options.ttlMs || 0));
     const dedupe = options.dedupe !== false;
 
@@ -102,16 +177,26 @@ class DataQueryCache {
       return entry.promise;
     }
 
+    const previousSnapshot = entry.snapshot;
+    const abortController =
+      typeof AbortController === "function" ? new AbortController() : null;
     entry.snapshot = {
       ...entry.snapshot,
       status: "loading",
       error: null,
       isStale: true,
     };
+    entry.abortController = abortController;
     this.emit(entry);
 
-    entry.promise = fetcher()
+    const requestRevision = entry.revision;
+    const promise = fetcher(
+      abortController ? { signal: abortController.signal } : undefined,
+    )
       .then((data) => {
+        if (entry.revision !== requestRevision) {
+          return data;
+        }
         entry.snapshot = {
           status: "success",
           data,
@@ -120,9 +205,18 @@ class DataQueryCache {
           isStale: false,
         };
         entry.expiresAt = ttlMs > 0 ? Date.now() + ttlMs : 0;
+        this.touch(entry);
+        this.pruneEntries();
         return data;
       })
       .catch((error) => {
+        if (entry.revision !== requestRevision) {
+          throw error;
+        }
+        if (isAbortError(error)) {
+          entry.snapshot = previousSnapshot;
+          throw error;
+        }
         const normalizedError =
           error instanceof Error ? error : new Error(String(error));
         entry.snapshot = {
@@ -135,10 +229,14 @@ class DataQueryCache {
         throw normalizedError;
       })
       .finally(() => {
-        entry.promise = null;
+        if (entry.promise === promise) {
+          entry.promise = null;
+          entry.abortController = null;
+        }
         this.emit(entry);
       });
 
+    entry.promise = promise;
     return entry.promise;
   }
 
@@ -148,12 +246,42 @@ class DataQueryCache {
       entry = {
         snapshot: EMPTY_SNAPSHOT as DataQuerySnapshot<TData>,
         promise: null,
+        abortController: null,
         expiresAt: 0,
+        lastAccessedAt: this.nextAccessOrder(),
+        revision: 0,
         listeners: new Set(),
       };
       this.entries.set(key, entry);
+      this.pruneEntries();
     }
     return entry;
+  }
+
+  private pruneEntries(): void {
+    if (this.entries.size <= this.maxEntries) {
+      return;
+    }
+
+    const candidates = Array.from(this.entries.entries())
+      .filter(([, entry]) => entry.listeners.size === 0 && !entry.promise)
+      .sort(([, left], [, right]) => left.lastAccessedAt - right.lastAccessedAt);
+
+    for (const [key] of candidates) {
+      if (this.entries.size <= this.maxEntries) {
+        break;
+      }
+      this.entries.delete(key);
+    }
+  }
+
+  private touch(entry: DataQueryEntry): void {
+    entry.lastAccessedAt = this.nextAccessOrder();
+  }
+
+  private nextAccessOrder(): number {
+    this.accessCounter += 1;
+    return this.accessCounter;
   }
 
   private emit(entry: DataQueryEntry): void {
@@ -198,7 +326,8 @@ export function useDataQuery<TInput, TData>(
     () =>
       dataQueryCache.fetch<TData>(
         cacheKey,
-        () => fetcher(input).then((response) => response.data),
+        (requestOptions) =>
+          fetcher(input, requestOptions).then((response) => response.data),
         { ttlMs, dedupe },
       ),
     [cacheKey, dedupe, fetcher, input, ttlMs],

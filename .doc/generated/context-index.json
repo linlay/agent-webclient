@@ -14,6 +14,7 @@
         "src/shared/data/desktopScreenshot.test.ts",
         "src/shared/data/platformError.test.ts",
         "src/shared/data/routedClient.test.ts",
+        "src/shared/data/serverState.test.ts",
         "src/shared/data/transportClient.test.ts"
       ],
       "dependsOn": [],
@@ -179,6 +180,7 @@
         "selection",
         "server",
         "service",
+        "services",
         "set",
         "shared",
         "skills",
@@ -201,6 +203,7 @@
         "tests",
         "text",
         "tier",
+        "timing",
         "toggle",
         "token",
         "tool",
@@ -479,6 +482,7 @@
         "disabled",
         "draft",
         "during",
+        "embedded",
         "enabled",
         "events",
         "execution",
@@ -987,6 +991,7 @@
         "action",
         "agent",
         "alert",
+        "anchors",
         "answer",
         "answers",
         "append",
@@ -1026,6 +1031,7 @@
         "duration",
         "during",
         "embed",
+        "enable",
         "ensure",
         "entries",
         "entry",
@@ -1083,6 +1089,7 @@
         "process",
         "processor",
         "published",
+        "query",
         "read",
         "reasoning",
         "record",
@@ -1561,7 +1568,6 @@
         "audio",
         "base",
         "base64",
-        "binary",
         "bit",
         "boundary",
         "buffer",
@@ -2101,7 +2107,6 @@
     "jest.config.cjs",
     "postcss.config.js",
     "scripts/check-hardcoded-han.js",
-    "src/__mocks__/antDesignIconsMock.ts",
     "src/__mocks__/styleMock.ts",
     "src/app/App.routing.test.ts",
     "src/app/App.tsx",
@@ -2166,6 +2171,8 @@
     "src/app/pages/memory/index.tsx",
     "src/app/pages/registries/index.test.ts",
     "src/app/pages/registries/index.tsx",
+    "src/app/routeDataTransport.test.ts",
+    "src/app/routeDataTransport.ts",
     "src/app/state/AppContext.test.ts",
     "src/app/state/AppContext.tsx",
     "src/app/state/actions.ts",
@@ -2450,6 +2457,7 @@
     "src/shared/data/queries.ts",
     "src/shared/data/routedClient.test.ts",
     "src/shared/data/routedClient.ts",
+    "src/shared/data/serverState.test.ts",
     "src/shared/data/serverState.ts",
     "src/shared/data/transportClient.test.ts",
     "src/shared/data/transportClient.ts",
@@ -2467,7 +2475,6 @@
     "src/shared/icons/__mocks__/svgMock.ts",
     "src/shared/icons/agent.test.ts",
     "src/shared/icons/agent.tsx",
-    "src/shared/icons/index.ts",
     "src/shared/icons/material.test.ts",
     "src/shared/icons/material/MaterialIcon.tsx",
     "src/shared/icons/material/index.ts",
@@ -2766,6 +2773,7 @@
     "src/shared/data/queries.ts": "api",
     "src/shared/data/routedClient.test.ts": "api",
     "src/shared/data/routedClient.ts": "api",
+    "src/shared/data/serverState.test.ts": "api",
     "src/shared/data/serverState.ts": "api",
     "src/shared/data/transportClient.test.ts": "api",
     "src/shared/data/transportClient.ts": "api",
@@ -2783,7 +2791,6 @@
     "src/shared/icons/__mocks__/svgMock.ts": "icons",
     "src/shared/icons/agent.test.ts": "icons",
     "src/shared/icons/agent.tsx": "icons",
-    "src/shared/icons/index.ts": "icons",
     "src/shared/icons/material.test.ts": "icons",
     "src/shared/icons/material/MaterialIcon.tsx": "icons",
     "src/shared/icons/material/index.ts": "icons",
@@ -3058,6 +3065,13 @@
         "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
+      }
+    ],
+    "anchors": [
+      {
+        "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
       }
     ],
     "and": [
@@ -3534,13 +3548,6 @@
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
-      }
-    ],
-    "binary": [
-      {
-        "kind": "module",
-        "id": "voice",
-        "path": ".doc/modules/voice.json"
       }
     ],
     "bind": [
@@ -5553,6 +5560,13 @@
         "path": ".doc/modules/timeline.json"
       }
     ],
+    "embedded": [
+      {
+        "kind": "module",
+        "id": "composer",
+        "path": ".doc/modules/composer.json"
+      }
+    ],
     "embedding": [
       {
         "kind": "module",
@@ -5577,6 +5591,13 @@
         "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
+      }
+    ],
+    "enable": [
+      {
+        "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
       }
     ],
     "enabled": [
@@ -9165,6 +9186,11 @@
       },
       {
         "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
+      },
+      {
+        "kind": "module",
         "id": "transport",
         "path": ".doc/modules/transport.json"
       },
@@ -10172,6 +10198,13 @@
       }
     ],
     "service": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
+    "services": [
       {
         "kind": "module",
         "id": "api",
@@ -11478,6 +11511,13 @@
         "path": ".doc/modules/utils.json"
       }
     ],
+    "timing": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      }
+    ],
     "title": [
       {
         "kind": "module",
@@ -12383,6 +12423,6 @@
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
-    "sourceFileCount": 407
+    "sourceFileCount": 408
   }
 }
