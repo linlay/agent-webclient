@@ -20,7 +20,7 @@ import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Divider, Flex, Progress, Typography } from "antd";
+import { Divider, Flex, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
 
 interface TopNavStatusDisplay {

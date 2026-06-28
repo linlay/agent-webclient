@@ -15,12 +15,7 @@ import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
-import { Collapse, Flex, Tooltip } from "antd";
-import { UiButton } from "@/shared/ui/UiButton";
-import { copyText } from "@/shared/utils/copy";
-import useApp from "antd/es/app/useApp";
 import { useI18n, type Locale } from "@/shared/i18n";
-import { Skeleton } from "@/shared/components/skeleton";
 import { PlanningTimeline } from "./planning";
 
 type ToolGroupRenderEntry = Extract<

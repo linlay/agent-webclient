@@ -153,7 +153,7 @@ export const MarkdownMermaid: React.FC<{
     viewport.scrollTop = currentDrag.scrollTop - deltaY;
   };
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = () => {
     const currentDrag = dragState.current;
     if (!currentDrag || !viewportRef.current) return;
     const didDrag = currentDrag.dragged;

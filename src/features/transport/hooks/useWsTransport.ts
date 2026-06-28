@@ -31,7 +31,6 @@ import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHan
 import {
 	createWsFrameId,
 	describeWsConnectionFailure,
-	isWsConnectionFailure,
 	toWsConnectionError,
 	type WsClient,
 } from "@/features/transport/lib/wsClient";
@@ -623,7 +622,7 @@ export function registerAttachRunListener(
 						cleanupActiveAttach(requestId);
 					}
 				},
-				onDone: (reason, _lastSeq) => {
+				onDone: () => {
 					cleanupActiveAttach(requestId);
 				},
 				requestId,

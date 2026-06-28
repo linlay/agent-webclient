@@ -442,7 +442,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     setSlashDismissed,
     stopSpeechInput,
     textareaRef,
-    updateMentionSuggestions,
   });
 
   const composerContextValue = useMemo<ComposerContextValue>(

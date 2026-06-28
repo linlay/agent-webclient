@@ -23,7 +23,7 @@ import {
   snapshotConversationState,
 } from '@/features/chats/lib/conversationSession';
 import { resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
-import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan, type ReplayState } from '@/features/chats/lib/conversationReplay';
+import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/chats/lib/conversationReplay';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/transport/lib/detachRunEvent';
 
 /**

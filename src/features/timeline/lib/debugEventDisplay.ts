@@ -6,7 +6,6 @@ import {
   AIToolEventTypeEnum,
 } from '@/app/state/types';
 import type { TimelineNode } from '@/app/state/types';
-import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
 
 const hiddenDebugEvents = new WeakSet<AgentEvent>();

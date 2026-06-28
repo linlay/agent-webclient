@@ -750,7 +750,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const saveAgentOrder = useCallback(
-    async (agents: Agent[], preferredKey = "") => {
+    async (agents: Agent[]) => {
       setSavingOrder(true);
       setError("");
       try {
@@ -777,7 +777,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       const nextAgents = moveAgentForDrop(state.agents, sourceKey, targetKey);
       if (nextAgents === state.agents) return;
       dispatch({ type: "SET_AGENTS", agents: nextAgents });
-      await saveAgentOrder(nextAgents, sourceKey);
+      await saveAgentOrder(nextAgents);
     },
     [dispatch, saveAgentOrder, savingOrder, state.agents],
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, Dropdown, Input, Select, Spin, Tooltip } from "antd";
+import { Checkbox, Input, Select, Spin, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import type { Agent, Team } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";

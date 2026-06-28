@@ -45,7 +45,7 @@ export function processEvent(
     type === "content.snapshot" ||
     isAwaitingAnswerStreamEvent(type)
   ) {
-    return processContentEvent(event, state, config);
+    return processContentEvent(event, state);
   }
 
   if (

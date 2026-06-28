@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Input, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -229,7 +229,6 @@ export const RegistriesPage = () => {
 
   /* ---- tools-specific state ---- */
   const [toolItems, setToolItems] = useState<AdminToolSummary[]>([]);
-  const [selectedToolKey, setSelectedToolKey] = useState("");
   const [selectedTool, setSelectedTool] = useState<AdminToolSummary | null>(null);
   const [toolsLoading, setToolsLoading] = useState(false);
 
@@ -369,11 +368,9 @@ export const RegistriesPage = () => {
       if (list.length > 0) {
         const first = list[0];
         const toolKey = `tools/${first.key || first.name || "0"}`;
-        setSelectedToolKey(toolKey);
         setSelectedTool(first);
         setSelectedKey(toolKey);
       } else {
-        setSelectedToolKey("");
         setSelectedTool(null);
         setSelectedKey("");
       }
@@ -397,7 +394,6 @@ export const RegistriesPage = () => {
 
     if ((item.category as string) === "tools") {
       setSelectedKey(key);
-      setSelectedToolKey(key);
       const tool = toolItems.find(
         (t) => (t.key || t.name || "unknown") === item.file,
       ) || null;
@@ -428,7 +424,6 @@ export const RegistriesPage = () => {
         const first = toolItems[0];
         const key = `tools/${first.key || first.name || "0"}`;
         setSelectedKey(key);
-        setSelectedToolKey(key);
         setSelectedTool(first);
       }
       return;

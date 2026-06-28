@@ -107,10 +107,6 @@ function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
   }));
 }
 
-function cloneFileChanges(fileChanges: FileChangeSummary[]): FileChangeSummary[] {
-  return fileChanges.map((item) => ({ ...item }));
-}
-
 function upsertReplayFileChange(
   fileChanges: FileChangeSummary[],
   fileChange: FileChangeSummary,

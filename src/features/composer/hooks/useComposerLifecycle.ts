@@ -12,7 +12,6 @@ export function useComposerLifecycle({
   setSlashDismissed,
   stopSpeechInput,
   textareaRef,
-  updateMentionSuggestions,
 }: {
   applyComposerDraft: (draft: string) => void;
   chatId: string;
@@ -23,7 +22,6 @@ export function useComposerLifecycle({
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
   stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
-  updateMentionSuggestions: (value: string) => void;
 }) {
   useEffect(() => {
     textareaRef.current?.focus();
@@ -87,4 +85,3 @@ export function useComposerLifecycle({
     stopSpeechInput();
   }, [isFrontendActive, isVoiceMode, stopSpeechInput]);
 }
-

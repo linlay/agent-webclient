@@ -1,4 +1,3 @@
-import type { VoiceCapabilities } from "@/app/state/types";
 import {
 	cleanupVoiceAudioCapture,
 	createVoiceAudioCaptureState,

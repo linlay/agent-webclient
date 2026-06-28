@@ -1,7 +1,6 @@
 import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
 import type {
   EventCommand,
-  EventProcessorConfig,
   EventProcessorState,
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { parseContentSegments } from "@/features/timeline/lib/contentSegments";
@@ -19,7 +18,6 @@ import { t } from "@/shared/i18n";
 export function processContentEvent(
   event: AgentEvent,
   state: EventProcessorState,
-  config: EventProcessorConfig,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
   const type = toText(event.type);

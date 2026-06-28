@@ -1,5 +1,4 @@
 import React, { createContext, useContext } from "react";
-import type { ComposerAttachment } from "@/features/composer/lib/composerAttachments";
 import type { SlashCommandDefinition } from "@/features/composer/lib/slashCommands";
 
 export interface ComposerAttachmentScrollState {
