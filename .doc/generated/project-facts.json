@@ -74,6 +74,7 @@
     "src/features/settings/lib/settingsClientGateDrafts.test.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
     "src/features/timeline/components/ConversationStage.test.ts",
+    "src/features/timeline/components/SourceBlock.test.ts",
     "src/features/timeline/components/ToolPill.test.ts",
     "src/features/timeline/components/ViewportEmbed.test.ts",
     "src/features/timeline/hooks/useAgentEventHandler.test.ts",
@@ -338,6 +339,8 @@
     "src/features/timeline/components/ContentBlock.tsx",
     "src/features/timeline/components/ConversationStage.test.ts",
     "src/features/timeline/components/ConversationStage.tsx",
+    "src/features/timeline/components/SourceBlock.test.ts",
+    "src/features/timeline/components/SourceBlock.tsx",
     "src/features/timeline/components/SystemAlert.tsx",
     "src/features/timeline/components/ThinkingBlock.tsx",
     "src/features/timeline/components/TimelineRow.tsx",
@@ -363,6 +366,7 @@
     "src/features/timeline/lib/eventProcessorReasoning.ts",
     "src/features/timeline/lib/eventProcessorRun.ts",
     "src/features/timeline/lib/eventProcessorShared.ts",
+    "src/features/timeline/lib/eventProcessorSource.ts",
     "src/features/timeline/lib/eventProcessorTool.ts",
     "src/features/timeline/lib/eventProcessorTypes.ts",
     "src/features/timeline/lib/localEventCache.ts",
@@ -1518,6 +1522,14 @@
                         "type": "file"
                       },
                       {
+                        "name": "SourceBlock.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SourceBlock.tsx",
+                        "type": "file"
+                      },
+                      {
                         "name": "SystemAlert.tsx",
                         "type": "file"
                       },
@@ -1623,6 +1635,10 @@
                       },
                       {
                         "name": "eventProcessorShared.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "eventProcessorSource.ts",
                         "type": "file"
                       },
                       {
@@ -2835,6 +2851,8 @@
       "src/features/timeline/components/ContentBlock.tsx",
       "src/features/timeline/components/ConversationStage.test.ts",
       "src/features/timeline/components/ConversationStage.tsx",
+      "src/features/timeline/components/SourceBlock.test.ts",
+      "src/features/timeline/components/SourceBlock.tsx",
       "src/features/timeline/components/SystemAlert.tsx",
       "src/features/timeline/components/ThinkingBlock.tsx",
       "src/features/timeline/components/TimelineRow.tsx",
@@ -2860,6 +2878,7 @@
       "src/features/timeline/lib/eventProcessorReasoning.ts",
       "src/features/timeline/lib/eventProcessorRun.ts",
       "src/features/timeline/lib/eventProcessorShared.ts",
+      "src/features/timeline/lib/eventProcessorSource.ts",
       "src/features/timeline/lib/eventProcessorTool.ts",
       "src/features/timeline/lib/eventProcessorTypes.ts",
       "src/features/timeline/lib/localEventCache.ts",
@@ -3119,6 +3138,8 @@
     "src/features/timeline/components/ContentBlock.tsx": "timeline",
     "src/features/timeline/components/ConversationStage.test.ts": "timeline",
     "src/features/timeline/components/ConversationStage.tsx": "timeline",
+    "src/features/timeline/components/SourceBlock.test.ts": "timeline",
+    "src/features/timeline/components/SourceBlock.tsx": "timeline",
     "src/features/timeline/components/SystemAlert.tsx": "timeline",
     "src/features/timeline/components/ThinkingBlock.tsx": "timeline",
     "src/features/timeline/components/TimelineRow.tsx": "timeline",
@@ -3144,6 +3165,7 @@
     "src/features/timeline/lib/eventProcessorReasoning.ts": "timeline",
     "src/features/timeline/lib/eventProcessorRun.ts": "timeline",
     "src/features/timeline/lib/eventProcessorShared.ts": "timeline",
+    "src/features/timeline/lib/eventProcessorSource.ts": "timeline",
     "src/features/timeline/lib/eventProcessorTool.ts": "timeline",
     "src/features/timeline/lib/eventProcessorTypes.ts": "timeline",
     "src/features/timeline/lib/localEventCache.ts": "timeline",
@@ -3456,7 +3478,8 @@
     "src/app/layout/LeftSidebar.test.ts": null,
     "src/app/layout/LeftSidebar.tsx": [
       "LeftSidebar",
-      "buildCoderAgentCreateRequest"
+      "buildCoderAgentCreateRequest",
+      "buildKbaseAgentCreateRequest"
     ],
     "src/app/layout/ShellOverlays.tsx": [
       "ShellOverlays"
@@ -3708,6 +3731,8 @@
       "AIRequestEventTypeEnum",
       "AIRunEvent",
       "AIRunEventTypeEnum",
+      "AISourceEventTypeEnum",
+      "AISourcePublishEvent",
       "AITaskEvent",
       "AITaskEventTypeEnum",
       "AIToolEvent",
@@ -3728,6 +3753,8 @@
       "AWAITING_ASK_STREAM_EVENT_TYPE",
       "ReferenceData",
       "ResourceData",
+      "SourcePublishChunk",
+      "SourcePublishSource",
       "ViewportTypeEnum",
       "isAwaitingAnswerLike",
       "isAwaitingAnswerPushEvent",
@@ -3806,6 +3833,8 @@
       "TimelineNode",
       "TimelineNodeKind",
       "TimelineRole",
+      "TimelineSource",
+      "TimelineSourceChunk",
       "ToolResultPayload",
       "TtsVoiceBlock"
     ],
@@ -3833,6 +3862,7 @@
       "AIPlanningEventTypeEnum",
       "AIReasoningEventTypeEnum",
       "AIRunEventTypeEnum",
+      "AISourceEventTypeEnum",
       "AIToolEventTypeEnum",
       "AIUsageEventTypeEnum",
       "AWAITING_ANSWER_EVENT_TYPE",
@@ -4265,6 +4295,13 @@
       "filterTimelineAgentOptions",
       "shouldEnableQueryAnchors"
     ],
+    "src/features/timeline/components/SourceBlock.test.ts": null,
+    "src/features/timeline/components/SourceBlock.tsx": [
+      "SourceBlock",
+      "SourceBlockProps",
+      "formatSourceLocator",
+      "formatSourceScore"
+    ],
     "src/features/timeline/components/SystemAlert.tsx": [
       "SystemAlert"
     ],
@@ -4379,6 +4416,9 @@
       "readToolDescription",
       "resolveFinalToolArgsText",
       "resolveTaskGroupIdForStart"
+    ],
+    "src/features/timeline/lib/eventProcessorSource.ts": [
+      "processSourceEvent"
     ],
     "src/features/timeline/lib/eventProcessorTool.ts": [
       "processToolEvent"
@@ -6844,6 +6884,21 @@
       "antd",
       "react"
     ],
+    "src/features/timeline/components/SourceBlock.test.ts": [
+      "@/app/state/types",
+      "@/features/timeline/components/SourceBlock",
+      "@/shared/i18n",
+      "react",
+      "react-dom/server"
+    ],
+    "src/features/timeline/components/SourceBlock.tsx": [
+      "@/app/state/AppContext",
+      "@/app/state/types",
+      "@/shared/i18n",
+      "@/shared/ui/MaterialIcon",
+      "@/shared/ui/UiButton",
+      "react"
+    ],
     "src/features/timeline/components/SystemAlert.tsx": [
       "@/app/state/types",
       "@/shared/i18n",
@@ -6863,6 +6918,7 @@
       "@/features/artifacts/lib/attachmentUtils",
       "@/features/timeline/components/AwaitingAnswerBlock",
       "@/features/timeline/components/ContentBlock",
+      "@/features/timeline/components/SourceBlock",
       "@/features/timeline/components/SystemAlert",
       "@/features/timeline/components/ThinkingBlock",
       "@/features/timeline/components/ToolPill",
@@ -6974,6 +7030,7 @@
       "@/features/timeline/lib/eventProcessorPlanning",
       "@/features/timeline/lib/eventProcessorReasoning",
       "@/features/timeline/lib/eventProcessorRun",
+      "@/features/timeline/lib/eventProcessorSource",
       "@/features/timeline/lib/eventProcessorTool",
       "@/features/timeline/lib/eventProcessorTypes",
       "@/shared/utils/eventUtils"
@@ -7026,6 +7083,12 @@
       "@/app/state/types",
       "@/features/timeline/lib/eventProcessorTypes",
       "@/features/timeline/lib/toolEvent",
+      "@/shared/utils/eventUtils"
+    ],
+    "src/features/timeline/lib/eventProcessorSource.ts": [
+      "@/app/state/types",
+      "@/features/timeline/lib/eventProcessorShared",
+      "@/features/timeline/lib/eventProcessorTypes",
       "@/shared/utils/eventUtils"
     ],
     "src/features/timeline/lib/eventProcessorTool.ts": [
@@ -8229,6 +8292,8 @@
     "src/features/timeline/components/ContentBlock.tsx": null,
     "src/features/timeline/components/ConversationStage.test.ts": null,
     "src/features/timeline/components/ConversationStage.tsx": null,
+    "src/features/timeline/components/SourceBlock.test.ts": null,
+    "src/features/timeline/components/SourceBlock.tsx": null,
     "src/features/timeline/components/SystemAlert.tsx": null,
     "src/features/timeline/components/ThinkingBlock.tsx": null,
     "src/features/timeline/components/TimelineRow.tsx": [
@@ -8259,6 +8324,7 @@
     "src/features/timeline/lib/eventProcessorReasoning.ts": null,
     "src/features/timeline/lib/eventProcessorRun.ts": null,
     "src/features/timeline/lib/eventProcessorShared.ts": null,
+    "src/features/timeline/lib/eventProcessorSource.ts": null,
     "src/features/timeline/lib/eventProcessorTool.ts": null,
     "src/features/timeline/lib/eventProcessorTypes.ts": null,
     "src/features/timeline/lib/localEventCache.ts": null,

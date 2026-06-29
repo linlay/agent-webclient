@@ -145,6 +145,29 @@ describe('conversation session restore', () => {
     });
   });
 
+  it('does not let session routing override backend run agent metadata', () => {
+    const snapshot = snapshotConversationState(createInitialState());
+    const session = createLiveQuerySession({
+      requestId: 'req_1',
+      agentKey: 'composer-agent',
+    });
+    session.runId = 'run_1';
+    session.bufferedEvents = [
+      {
+        type: 'run.start',
+        chatId: 'chat_1',
+        runId: 'run_1',
+        agentKey: 'metadata-agent',
+        timestamp: 101,
+      },
+    ] as AgentEvent[];
+
+    const restored = applyPendingSessionUpdates(snapshot, session);
+
+    expect(restored.runAgentById.get('run_1')).toBe('metadata-agent');
+    expect(restored.currentRunAgentKey).toBe('metadata-agent');
+  });
+
   it('merges pending raw/debug buffers and clears render caches for restored state', () => {
     const baseState = createInitialState();
     const snapshot = snapshotConversationState({

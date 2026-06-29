@@ -112,7 +112,7 @@ export function resolveDifferentChatDetachRunDetail(input: {
   }
   const agentKey = resolveRunAgentKey({
     runId,
-    agentKey: input.currentActiveSession?.agentKey,
+    routingAgentKey: input.currentActiveSession?.agentKey,
     currentRunAgentKey: input.currentState.currentRunAgentKey,
     runAgentById: input.currentState.runAgentById,
     chatId,

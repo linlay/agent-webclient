@@ -657,7 +657,7 @@ export function useChatActions() {
     const runId = String(session?.runId || state.runId || '').trim();
     const agentKey = resolveRunAgentKey({
       runId,
-      agentKey: session?.agentKey,
+      routingAgentKey: session?.agentKey,
       currentRunAgentKey: state.currentRunAgentKey,
       runAgentById: state.runAgentById,
       chatId,

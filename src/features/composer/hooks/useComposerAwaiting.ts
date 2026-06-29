@@ -46,7 +46,7 @@ export function resolveAwaitingSubmitAgentKey(input: {
 }): string {
   return resolveRunAgentKey({
     runId: input.runId,
-    agentKey: input.activeAwaiting?.agentKey,
+    routingAgentKey: input.activeAwaiting?.agentKey,
     currentRunAgentKey: input.state.currentRunAgentKey,
     runAgentById: input.state.runAgentById,
     chatId: input.state.chatId,

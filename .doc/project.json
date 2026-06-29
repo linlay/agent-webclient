@@ -68,6 +68,7 @@
       "src/features/settings/lib/settingsClientGateDrafts.test.ts",
       "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
       "src/features/timeline/components/ConversationStage.test.ts",
+      "src/features/timeline/components/SourceBlock.test.ts",
       "src/features/timeline/components/ToolPill.test.ts",
       "src/features/timeline/components/ViewportEmbed.test.ts",
       "src/features/timeline/hooks/useAgentEventHandler.test.ts",

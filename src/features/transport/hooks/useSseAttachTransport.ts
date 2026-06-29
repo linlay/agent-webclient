@@ -72,7 +72,7 @@ function resolveAttachAgentKey(
 ): string {
 	return resolveRunAgentKey({
 		runId,
-		agentKey: detail?.agentKey,
+		routingAgentKey: detail?.agentKey,
 		currentRunAgentKey: state.currentRunAgentKey,
 		runAgentById: state.runAgentById,
 		chatId,

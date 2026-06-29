@@ -1221,7 +1221,7 @@ describe("registerAttachRunListener", () => {
 		cleanup();
 	});
 
-	it("resolves agentKey from run identity before chat fallback", () => {
+	it("resolves attach agentKey from run identity before attach detail and chat fallback", () => {
 		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
 		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
 		const wsClient = { stream: streamMock, request: requestMock };
@@ -1244,7 +1244,7 @@ describe("registerAttachRunListener", () => {
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_detail", lastSeq: 0 },
 		}));
 
 		expect(streamMock).toHaveBeenCalledWith(

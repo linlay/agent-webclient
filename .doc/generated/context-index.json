@@ -976,6 +976,7 @@
       "tests": [
         "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
         "src/features/timeline/components/ConversationStage.test.ts",
+        "src/features/timeline/components/SourceBlock.test.ts",
         "src/features/timeline/components/ToolPill.test.ts",
         "src/features/timeline/components/ViewportEmbed.test.ts",
         "src/features/timeline/hooks/useAgentEventHandler.test.ts",
@@ -1070,6 +1071,7 @@
         "listener",
         "live",
         "local",
+        "locator",
         "mapped",
         "mark",
         "mask",
@@ -1091,6 +1093,7 @@
         "post",
         "process",
         "processor",
+        "props",
         "published",
         "query",
         "read",
@@ -1103,6 +1106,7 @@
         "run",
         "runtime",
         "schedule",
+        "score",
         "segment",
         "segments",
         "serialize",
@@ -2306,6 +2310,8 @@
     "src/features/timeline/components/ContentBlock.tsx",
     "src/features/timeline/components/ConversationStage.test.ts",
     "src/features/timeline/components/ConversationStage.tsx",
+    "src/features/timeline/components/SourceBlock.test.ts",
+    "src/features/timeline/components/SourceBlock.tsx",
     "src/features/timeline/components/SystemAlert.tsx",
     "src/features/timeline/components/ThinkingBlock.tsx",
     "src/features/timeline/components/TimelineRow.tsx",
@@ -2331,6 +2337,7 @@
     "src/features/timeline/lib/eventProcessorReasoning.ts",
     "src/features/timeline/lib/eventProcessorRun.ts",
     "src/features/timeline/lib/eventProcessorShared.ts",
+    "src/features/timeline/lib/eventProcessorSource.ts",
     "src/features/timeline/lib/eventProcessorTool.ts",
     "src/features/timeline/lib/eventProcessorTypes.ts",
     "src/features/timeline/lib/localEventCache.ts",
@@ -2631,6 +2638,8 @@
     "src/features/timeline/components/ContentBlock.tsx": "timeline",
     "src/features/timeline/components/ConversationStage.test.ts": "timeline",
     "src/features/timeline/components/ConversationStage.tsx": "timeline",
+    "src/features/timeline/components/SourceBlock.test.ts": "timeline",
+    "src/features/timeline/components/SourceBlock.tsx": "timeline",
     "src/features/timeline/components/SystemAlert.tsx": "timeline",
     "src/features/timeline/components/ThinkingBlock.tsx": "timeline",
     "src/features/timeline/components/TimelineRow.tsx": "timeline",
@@ -2656,6 +2665,7 @@
     "src/features/timeline/lib/eventProcessorReasoning.ts": "timeline",
     "src/features/timeline/lib/eventProcessorRun.ts": "timeline",
     "src/features/timeline/lib/eventProcessorShared.ts": "timeline",
+    "src/features/timeline/lib/eventProcessorSource.ts": "timeline",
     "src/features/timeline/lib/eventProcessorTool.ts": "timeline",
     "src/features/timeline/lib/eventProcessorTypes.ts": "timeline",
     "src/features/timeline/lib/localEventCache.ts": "timeline",
@@ -7765,6 +7775,13 @@
         "path": ".doc/modules/i18n.json"
       }
     ],
+    "locator": [
+      {
+        "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
+      }
+    ],
     "logs": [
       {
         "kind": "module",
@@ -9185,6 +9202,11 @@
       },
       {
         "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
+      },
+      {
+        "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
       }
@@ -10170,6 +10192,13 @@
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "score": [
+      {
+        "kind": "module",
+        "id": "timeline",
+        "path": ".doc/modules/timeline.json"
       }
     ],
     "screenshot": [
@@ -12536,6 +12565,6 @@
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
-    "sourceFileCount": 410
+    "sourceFileCount": 413
   }
 }

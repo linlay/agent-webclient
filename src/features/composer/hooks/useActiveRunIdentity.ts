@@ -38,14 +38,11 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
     if (!activeRunId) {
       return "";
     }
-    const awaitingAgentKey = String(state.activeAwaiting?.agentKey || "").trim();
-    if (awaitingAgentKey) {
-      return awaitingAgentKey;
-    }
     return resolveRunAgentKey({
       runId: activeRunId,
       currentRunAgentKey: state.currentRunAgentKey,
       runAgentById: state.runAgentById,
+      routingAgentKey: state.activeAwaiting?.agentKey,
       chatId: state.chatId,
       chatAgentById: state.chatAgentById,
       chats: state.chats,

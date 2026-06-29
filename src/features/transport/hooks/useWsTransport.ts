@@ -295,7 +295,7 @@ function resolveAttachAgentKey(
 ): string {
 	return resolveRunAgentKey({
 		runId,
-		agentKey: detail?.agentKey,
+		routingAgentKey: detail?.agentKey,
 		currentRunAgentKey: state.currentRunAgentKey,
 		runAgentById: state.runAgentById,
 		chatId,
@@ -336,7 +336,7 @@ function resolveDetachRunTarget(
 	}
 	const agentKey = resolveRunAgentKey({
 		runId,
-		agentKey: detail.agentKey || session?.agentKey,
+		routingAgentKey: detail.agentKey || session?.agentKey,
 		currentRunAgentKey: state.currentRunAgentKey,
 		runAgentById: state.runAgentById,
 		chatId,
@@ -855,7 +855,7 @@ function buildWsClient(
 					const runId = String(liveEvent.runId || "").trim();
 					const agentKey = resolveRunAgentKey({
 						runId,
-						agentKey: liveEvent.agentKey,
+						metadataAgentKey: liveEvent.agentKey,
 						currentRunAgentKey: options.stateRef.current.currentRunAgentKey,
 						runAgentById: options.stateRef.current.runAgentById,
 						chatId: eventChatId,

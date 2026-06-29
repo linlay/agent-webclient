@@ -297,21 +297,22 @@ export function useComposerSend(input: UseComposerSendInput) {
   const resolveCurrentAgentKey = useCallback(() => {
     const currentState = stateRef.current || state;
     const runId = resolveCurrentRunId();
+    const routingAgentKey = resolvePreferredAgentKey({
+      chatId: currentState.chatId,
+      chatAgentById: currentState.chatAgentById,
+      chats: currentState.chats,
+      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
+      workerSelectionKey: currentState.workerSelectionKey,
+      workerIndexByKey: currentState.workerIndexByKey,
+    });
     return resolveRunAgentKey({
       runId,
       currentRunAgentKey: currentState.currentRunAgentKey,
       runAgentById: currentState.runAgentById,
+      routingAgentKey,
       chatId: currentState.chatId,
       chatAgentById: currentState.chatAgentById,
       chats: currentState.chats,
-      fallbackAgentKey: resolvePreferredAgentKey({
-        chatId: currentState.chatId,
-        chatAgentById: currentState.chatAgentById,
-        chats: currentState.chats,
-        pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
-        workerSelectionKey: currentState.workerSelectionKey,
-        workerIndexByKey: currentState.workerIndexByKey,
-      }),
     });
   }, [resolveCurrentRunId, state, stateRef]);
 

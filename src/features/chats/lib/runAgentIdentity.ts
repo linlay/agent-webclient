@@ -29,9 +29,10 @@ export function readRunAgentKeyFromEvent(
 
 export function resolveRunAgentKey(input: {
 	runId?: unknown;
-	currentRunAgentKey?: unknown;
+	metadataAgentKey?: unknown;
 	runAgentById?: Map<string, string>;
-	agentKey?: unknown;
+	routingAgentKey?: unknown;
+	currentRunAgentKey?: unknown;
 	chatId?: unknown;
 	chatAgentById?: Map<string, string>;
 	chats?: Array<Partial<Chat>>;
@@ -39,8 +40,9 @@ export function resolveRunAgentKey(input: {
 }): string {
 	const runId = toText(input.runId);
 	return (
-		toText(input.agentKey)
+		toText(input.metadataAgentKey)
 		|| (runId ? toText(input.runAgentById?.get(runId)) : "")
+		|| toText(input.routingAgentKey)
 		|| toText(input.currentRunAgentKey)
 		|| resolveChatAgentKey(input)
 		|| toText(input.fallbackAgentKey)

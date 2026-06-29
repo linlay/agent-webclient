@@ -326,8 +326,9 @@ export function useAgentEventHandler() {
       const awaitingFallbackAgentKey =
         resolveRunAgentKey({
           runId: toText(event.runId) || cache.runId || state.runId,
-          currentRunAgentKey: state.currentRunAgentKey || cache.agentKey,
           runAgentById: state.runAgentById,
+          routingAgentKey: cache.agentKey,
+          currentRunAgentKey: state.currentRunAgentKey,
           chatId: cache.chatId || toText(state.chatId),
           chatAgentById: state.chatAgentById,
           chats: state.chats,
@@ -404,9 +405,10 @@ export function useAgentEventHandler() {
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = resolveRunAgentKey({
           runId: cache.runId,
-          agentKey: event.agentKey,
-          currentRunAgentKey: state.currentRunAgentKey || cache.agentKey,
+          metadataAgentKey: event.agentKey,
           runAgentById: state.runAgentById,
+          routingAgentKey: cache.agentKey,
+          currentRunAgentKey: state.currentRunAgentKey,
           chatId: cache.chatId || state.chatId,
           chatAgentById: state.chatAgentById,
           chats: state.chats,

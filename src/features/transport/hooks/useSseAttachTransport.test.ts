@@ -183,7 +183,7 @@ describe("registerSseAttachRunListener", () => {
 		cleanup();
 	});
 
-	it("resolves attach agentKey from run identity before chat fallback", () => {
+	it("resolves attach agentKey from run identity before attach detail and chat fallback", () => {
 		const executeAttachRunSseImpl = jest.fn(() => new Promise<void>(() => undefined));
 		const cleanup = registerSseAttachRunListener({
 			dispatch,
@@ -204,7 +204,7 @@ describe("registerSseAttachRunListener", () => {
 		});
 
 		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", lastSeq: 0 },
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_detail", lastSeq: 0 },
 		}) as unknown as Event);
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({

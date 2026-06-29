@@ -18,7 +18,7 @@ import type {
 } from '@/app/state/types';
 import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
 import { createReplayState, replayEvent, type ReplayState } from '@/features/chats/lib/conversationReplay';
-import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
+import { bindRunAgentKey, readRunAgentKeyFromEvent, resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
 import { toText } from '@/shared/utils/eventUtils';
 import { MAX_EVENTS } from '@/app/state/constants';
 import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDisplay';
@@ -384,12 +384,17 @@ export function applyPendingSessionUpdates(
   next.runId = session.runId || next.runId;
   next.runAgentById = cloneMap(rs.runAgentById);
   if (session.runId) {
+    const sessionAgentKey = toText(session.agentKey);
     next.currentRunAgentKey =
-      next.runAgentById.get(session.runId) || session.agentKey || next.currentRunAgentKey;
-  }
-  if (session.runId && session.agentKey) {
-    next.runAgentById = bindRunAgentKey(next.runAgentById, session.runId, session.agentKey);
-    next.currentRunAgentKey = session.agentKey;
+      resolveRunAgentKey({
+        runId: session.runId,
+        runAgentById: next.runAgentById,
+        routingAgentKey: sessionAgentKey,
+        currentRunAgentKey: next.currentRunAgentKey,
+      }) || next.currentRunAgentKey;
+    if (sessionAgentKey && !next.runAgentById.get(session.runId)) {
+      next.runAgentById = bindRunAgentKey(next.runAgentById, session.runId, sessionAgentKey);
+    }
   }
   next.requestId = session.requestId;
   next.streaming = Boolean(session.streaming);

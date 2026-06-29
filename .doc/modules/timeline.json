@@ -26,6 +26,8 @@
       "EventProcessorState",
       "LocalCache",
       "PlanningTimeline",
+      "SourceBlock",
+      "SourceBlockProps",
       "SteerIcon",
       "SystemAlert",
       "ThinkingBlock",
@@ -63,6 +65,8 @@
       "ensureMappedNode",
       "filterTimelineAgentOptions",
       "findMatchingPendingSteer",
+      "formatSourceLocator",
+      "formatSourceScore",
       "formatStructuredEventText",
       "formatTimelineTime",
       "formatToolArgumentsInline",
@@ -88,6 +92,7 @@
       "processPlanningEvent",
       "processReasoningEvent",
       "processRunEvent",
+      "processSourceEvent",
       "processToolEvent",
       "readAwaitingAnswerText",
       "readSubAgentKey",
@@ -117,6 +122,7 @@
     "tests": [
       "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
       "src/features/timeline/components/ConversationStage.test.ts",
+      "src/features/timeline/components/SourceBlock.test.ts",
       "src/features/timeline/components/ToolPill.test.ts",
       "src/features/timeline/components/ViewportEmbed.test.ts",
       "src/features/timeline/hooks/useAgentEventHandler.test.ts",
@@ -128,7 +134,7 @@
       "src/features/timeline/lib/timelineDisplay.test.ts",
       "src/features/timeline/lib/toolDisplay.test.ts"
     ],
-    "lastScannedAt": "2026-06-28T14:21:14Z"
+    "lastScannedAt": "2026-06-29T08:02:14Z"
   },
   "readHints": {
     "alwaysRead": [],
