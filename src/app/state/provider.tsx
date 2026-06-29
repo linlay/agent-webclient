@@ -15,9 +15,7 @@ import type { LiveQuerySession } from "@/features/chats/lib/conversationSession"
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/appAuth";
 import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
-import {
-	applyThemeModeToDocument,
-} from "@/shared/styles/theme";
+import { syncThemeMode } from "@/shared/styles/theme";
 import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
 import { setTransportModeProvider } from "@/shared/data";
 
@@ -108,7 +106,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	);
 
 	useEffect(() => {
-		applyThemeModeToDocument(state.themeMode);
+		syncThemeMode(state.themeMode);
 	}, [state.themeMode]);
 
 	useEffect(() => {

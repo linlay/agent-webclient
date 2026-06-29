@@ -23,9 +23,9 @@ import {
   useI18n,
 } from "@/shared/i18n";
 import {
-  readHostThemeMode,
-  readStoredThemeMode,
-  readUrlThemeMode,
+  readThemeModeFromUrl,
+  resolveInitialThemeMode,
+  syncThemeMode,
 } from "@/shared/styles/theme";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { AutomationsPage } from "./pages/automations";
@@ -47,7 +47,7 @@ const BaseShell = () => {
   const location = useLocation();
   const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();
-  const hadRouteThemeOverrideRef = useRef(false);
+  const hadUrlThemeOverrideRef = useRef(false);
 
   useLayoutEffect(() => {
     setTransportModeProvider(() =>
@@ -59,22 +59,29 @@ const BaseShell = () => {
   }, [location.pathname, stateRef]);
 
   useEffect(() => {
-    const routeThemeMode = readUrlThemeMode(location.search);
-    if (routeThemeMode) {
-      hadRouteThemeOverrideRef.current = true;
-      dispatch({ type: "SET_THEME_MODE", themeMode: routeThemeMode });
+    const urlThemeMode = readThemeModeFromUrl(location.search);
+    if (urlThemeMode) {
+      hadUrlThemeOverrideRef.current = true;
+      if (stateRef.current.themeMode === urlThemeMode) {
+        syncThemeMode(urlThemeMode);
+      } else {
+        dispatch({ type: "SET_THEME_MODE", themeMode: urlThemeMode });
+      }
       return;
     }
 
-    if (!hadRouteThemeOverrideRef.current) {
+    if (!hadUrlThemeOverrideRef.current) {
       return;
     }
 
-    hadRouteThemeOverrideRef.current = false;
-    const nextThemeMode =
-      readHostThemeMode() || readStoredThemeMode() || "light";
-    dispatch({ type: "SET_THEME_MODE", themeMode: nextThemeMode });
-  }, [dispatch, location.search]);
+    hadUrlThemeOverrideRef.current = false;
+    const themeMode = resolveInitialThemeMode(location.search);
+    if (stateRef.current.themeMode === themeMode) {
+      syncThemeMode(themeMode);
+    } else {
+      dispatch({ type: "SET_THEME_MODE", themeMode });
+    }
+  }, [dispatch, location.search, stateRef]);
 
   useEffect(() => {
     const routeLocale = readUrlLocale(location.search);

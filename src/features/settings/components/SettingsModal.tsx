@@ -24,7 +24,6 @@ import {
 } from "@/features/settings/lib/settingsClientGateDrafts";
 import { useI18n } from "@/shared/i18n";
 import type { Locale } from "@/shared/i18n";
-import { writeStoredThemeMode } from "@/shared/styles/theme";
 import { SettingsTransport } from "@/features/settings/components/SettingsTransport";
 import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
@@ -129,7 +128,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleThemeChange = useCallback(
     (themeMode: ThemeMode) => {
-      writeStoredThemeMode(themeMode);
       dispatch({ type: "SET_THEME_MODE", themeMode });
     },
     [dispatch],

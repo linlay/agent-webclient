@@ -11,6 +11,15 @@
       "card": ".doc/modules/api.json"
     },
     {
+      "id": "app",
+      "title": "app",
+      "summary": "Application shell module for routing, global providers, layout, pages, modals, effects, and app state orchestration.",
+      "pathHints": [
+        "src/app/**"
+      ],
+      "card": ".doc/modules/app.json"
+    },
+    {
       "id": "artifacts",
       "title": "artifacts",
       "summary": "Module boundary confirmed during xgraph init.",

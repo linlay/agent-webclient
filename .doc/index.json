@@ -45,6 +45,13 @@
       "context": ".doc/modules/api.json",
       "confidence": "confirmed"
     },
+    "app": {
+      "paths": [
+        "src/app/**"
+      ],
+      "context": ".doc/modules/app.json",
+      "confidence": "confirmed"
+    },
     "artifacts": {
       "paths": [
         "src/features/artifacts/**"
@@ -185,7 +192,7 @@
   },
   "rulesRef": ".doc/rules.json",
   "generated": {
-    "moduleCount": 19,
+    "moduleCount": 20,
     "flowCount": 2,
     "taskCount": 3,
     "sourceFileCount": 413,

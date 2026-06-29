@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "module": "app",
+  "status": "confirmed",
+  "paths": [
+    "src/app/**"
+  ],
+  "summary": {
+    "purpose": "Application shell module for routing, global providers, layout, pages, modals, effects, and app state orchestration.",
+    "ownedConcepts": [
+      "application routing and shell composition",
+      "global app state provider and reducers",
+      "layout, page, modal, and effect orchestration"
+    ],
+    "nonGoals": [
+      "feature-specific domain behavior owned by src/features/**",
+      "shared utilities, API clients, styles, and UI primitives owned by src/shared/**"
+    ]
+  },
+  "facts": {
+    "entrypoints": [
+      "src/app/index.tsx",
+      "src/app/App.tsx"
+    ],
+    "publicApi": [],
+    "dependencies": [],
+    "dependents": [],
+    "tests": [],
+    "lastScannedAt": ""
+  },
+  "readHints": {
+    "alwaysRead": [
+      "src/app/App.tsx",
+      "src/app/state/AppContext.tsx",
+      "src/app/state/provider.tsx"
+    ],
+    "readFor": []
+  },
+  "riskRules": [],
+  "recentChanges": []
+}

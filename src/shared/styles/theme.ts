@@ -14,33 +14,13 @@ export function readThemeParam(value: unknown): ThemeMode | null {
 	return null;
 }
 
-export function readUrlThemeMode(
-	search: string = typeof window !== "undefined" ? window.location.search : "",
-): ThemeMode | null {
+export function readThemeModeFromUrl(search?: string): ThemeMode | null {
 	try {
-		const params = new URLSearchParams(search || "");
-		return readThemeParam(params.get("theme"));
-	} catch (_error) {
-		return null;
-	}
-}
-
-export function readHostThemeMode(): ThemeMode | null {
-	if (typeof window === "undefined") {
-		return null;
-	}
-
-	try {
-		const search = window.location?.search || "";
-		if (!search) {
-			return null;
-		}
-		const params = new URLSearchParams(search);
+		const params = new URLSearchParams(
+			search ?? (typeof window !== "undefined" ? window.location?.search || "" : ""),
+		);
 		const hostTheme = params.get("hostTheme");
-		if (!hostTheme) {
-			return null;
-		}
-		return normalizeThemeMode(hostTheme);
+		return readThemeParam(params.get("theme")) || (hostTheme ? normalizeThemeMode(hostTheme) : null);
 	} catch (_error) {
 		return null;
 	}
@@ -66,6 +46,9 @@ export function writeStoredThemeMode(themeMode: ThemeMode): void {
 		return;
 	}
 	try {
+		if (localStorage.getItem(THEME_STORAGE_KEY) === themeMode) {
+			return;
+		}
 		localStorage.setItem(THEME_STORAGE_KEY, themeMode);
 	} catch (_error) {
 		// Ignore storage write failures and keep the in-memory theme state.
@@ -76,18 +59,30 @@ export function applyThemeModeToDocument(themeMode: ThemeMode): void {
 	if (typeof document === "undefined") {
 		return;
 	}
-	document.documentElement.setAttribute("data-theme", themeMode);
+	const root = document.documentElement;
+	if (typeof root.setAttribute !== "function") {
+		return;
+	}
+	if (
+		typeof root.getAttribute === "function" &&
+		root.getAttribute("data-theme") === themeMode
+	) {
+		return;
+	}
+	root.setAttribute("data-theme", themeMode);
 }
 
-export function resolveInitialThemeMode(): ThemeMode {
-	const urlThemeMode = readUrlThemeMode();
+export function syncThemeMode(themeMode: ThemeMode): ThemeMode {
+	const normalizedThemeMode = normalizeThemeMode(themeMode);
+	applyThemeModeToDocument(normalizedThemeMode);
+	writeStoredThemeMode(normalizedThemeMode);
+	return normalizedThemeMode;
+}
+
+export function resolveInitialThemeMode(search?: string): ThemeMode {
+	const urlThemeMode = readThemeModeFromUrl(search);
 	if (urlThemeMode) {
 		return urlThemeMode;
-	}
-
-	const hostThemeMode = readHostThemeMode();
-	if (hostThemeMode) {
-		return hostThemeMode;
 	}
 
 	const storedThemeMode = readStoredThemeMode();

@@ -228,6 +228,336 @@
       ]
     },
     {
+      "id": "app",
+      "path": ".doc/modules/app.json",
+      "ownedPaths": [
+        "src/app/**"
+      ],
+      "tests": [
+        "src/app/App.routing.test.ts",
+        "src/app/layout/AgentChatShell.test.ts",
+        "src/app/layout/CopilotShell.test.ts",
+        "src/app/layout/LeftSidebar.test.ts",
+        "src/app/layout/TerminalDock.test.ts",
+        "src/app/layout/TopNav.test.ts",
+        "src/app/layout/sidebar/ChatActionsMenu.test.ts",
+        "src/app/layout/sidebar/right/DebugTab.test.ts",
+        "src/app/layout/sidebar/right/OverviewTab.test.ts",
+        "src/app/layout/sidebar/right/RightSidebar.test.ts",
+        "src/app/layout/sidebar/right/fileDiff.test.ts",
+        "src/app/modals/AutomationModal.test.ts",
+        "src/app/modals/EventPopover.test.ts",
+        "src/app/modals/HistoryModal.test.ts",
+        "src/app/pages/agents/index.test.ts",
+        "src/app/pages/registries/index.test.ts",
+        "src/app/routeDataTransport.test.ts",
+        "src/app/state/AppContext.test.ts",
+        "src/app/state/reducerConversation.test.ts"
+      ],
+      "dependsOn": [],
+      "dependedBy": [],
+      "recentChanges": [],
+      "tokens": [
+        "access",
+        "action",
+        "actions",
+        "active",
+        "add",
+        "agent",
+        "agents",
+        "aiaction",
+        "aiartifact",
+        "aiawait",
+        "aibase",
+        "aichat",
+        "aicontent",
+        "aicontext",
+        "aievent",
+        "aiplan",
+        "aiplanning",
+        "aireasoning",
+        "airequest",
+        "airun",
+        "aisource",
+        "aitask",
+        "aitool",
+        "aiusage",
+        "and",
+        "animated",
+        "animation",
+        "answer",
+        "api",
+        "app",
+        "application",
+        "apply",
+        "approval",
+        "archives",
+        "artifact",
+        "ask",
+        "attachment",
+        "auto",
+        "automation",
+        "automations",
+        "awaiting",
+        "behavior",
+        "block",
+        "body",
+        "bootstrap",
+        "bottom",
+        "build",
+        "cache",
+        "call",
+        "calls",
+        "can",
+        "canvas",
+        "capabilities",
+        "change",
+        "chat",
+        "chunk",
+        "client",
+        "clients",
+        "coder",
+        "collapse",
+        "collect",
+        "collected",
+        "collectible",
+        "command",
+        "common",
+        "compact",
+        "composer",
+        "composition",
+        "config",
+        "connection",
+        "console",
+        "constants",
+        "context",
+        "control",
+        "conversation",
+        "copilot",
+        "copy",
+        "cost",
+        "create",
+        "data",
+        "debug",
+        "decision",
+        "default",
+        "delete",
+        "detail",
+        "details",
+        "diff",
+        "dispatch",
+        "display",
+        "dock",
+        "domain",
+        "dot",
+        "effect",
+        "effects",
+        "embedded",
+        "empty",
+        "entry",
+        "enum",
+        "error",
+        "estimated",
+        "event",
+        "events",
+        "feature",
+        "features",
+        "feedback",
+        "fetch",
+        "fields",
+        "file",
+        "filter",
+        "fireworks",
+        "for",
+        "form",
+        "format",
+        "formatters",
+        "from",
+        "frontend",
+        "gate",
+        "get",
+        "global",
+        "group",
+        "grouping",
+        "groups",
+        "handle",
+        "header",
+        "helpers",
+        "history",
+        "hooks",
+        "icon",
+        "index",
+        "initial",
+        "input",
+        "item",
+        "items",
+        "kbase",
+        "key",
+        "kind",
+        "layout",
+        "left",
+        "lib",
+        "like",
+        "line",
+        "lines",
+        "list",
+        "llmtrace",
+        "load",
+        "map",
+        "max",
+        "memory",
+        "menu",
+        "message",
+        "meta",
+        "min",
+        "modal",
+        "modals",
+        "mode",
+        "model",
+        "module",
+        "nav",
+        "navigation",
+        "next",
+        "node",
+        "non",
+        "normalize",
+        "object",
+        "only",
+        "open",
+        "option",
+        "orchestration",
+        "overlay",
+        "overlays",
+        "overview",
+        "owned",
+        "page",
+        "pages",
+        "panel",
+        "param",
+        "patch",
+        "path",
+        "pathname",
+        "paths",
+        "payload",
+        "pending",
+        "phase",
+        "plan",
+        "popover",
+        "prefix",
+        "preview",
+        "primary",
+        "primitives",
+        "prompt",
+        "provider",
+        "providers",
+        "publish",
+        "published",
+        "push",
+        "question",
+        "queue",
+        "raw",
+        "read",
+        "readable",
+        "realtime",
+        "reason",
+        "reasoning",
+        "reduce",
+        "reducer",
+        "reducers",
+        "ref",
+        "reference",
+        "registries",
+        "registry",
+        "related",
+        "remove",
+        "render",
+        "request",
+        "reset",
+        "resolution",
+        "resolve",
+        "resource",
+        "result",
+        "right",
+        "role",
+        "route",
+        "routing",
+        "row",
+        "rows",
+        "run",
+        "runtime",
+        "runtimes",
+        "section",
+        "select",
+        "selectors",
+        "services",
+        "set",
+        "settings",
+        "shared",
+        "shell",
+        "should",
+        "sidebar",
+        "signatures",
+        "snapshot",
+        "sort",
+        "source",
+        "specific",
+        "src",
+        "start",
+        "state",
+        "stats",
+        "status",
+        "steer",
+        "storage",
+        "stream",
+        "string",
+        "stringify",
+        "strip",
+        "styles",
+        "submit",
+        "summary",
+        "sync",
+        "system",
+        "tab",
+        "tabs",
+        "task",
+        "team",
+        "terminal",
+        "test",
+        "text",
+        "theme",
+        "timeline",
+        "timeout",
+        "timer",
+        "timestamp",
+        "timing",
+        "title",
+        "toggle",
+        "token",
+        "tool",
+        "top",
+        "trace",
+        "transport",
+        "tsx",
+        "tts",
+        "type",
+        "types",
+        "unread",
+        "update",
+        "upsert",
+        "usage",
+        "use",
+        "utilities",
+        "valid",
+        "value",
+        "view",
+        "viewport",
+        "voice",
+        "window",
+        "worker",
+        "workspace"
+      ]
+    },
+    {
       "id": "artifacts",
       "path": ".doc/modules/artifacts.json",
       "ownedPaths": [
@@ -942,7 +1272,7 @@
         "confirmed",
         "document",
         "during",
-        "host",
+        "from",
         "init",
         "initial",
         "key",
@@ -960,6 +1290,7 @@
         "storage",
         "stored",
         "styles",
+        "sync",
         "test",
         "theme",
         "url",
@@ -2541,6 +2872,88 @@
     "webpack.config.js"
   ],
   "fileToModule": {
+    "src/app/App.routing.test.ts": "app",
+    "src/app/App.tsx": "app",
+    "src/app/effects/FireworksCanvas.tsx": "app",
+    "src/app/index.tsx": "app",
+    "src/app/layout/AgentChatShell.test.ts": "app",
+    "src/app/layout/AgentChatShell.tsx": "app",
+    "src/app/layout/AppShell.tsx": "app",
+    "src/app/layout/BottomDock.tsx": "app",
+    "src/app/layout/CommandStatusOverlay.tsx": "app",
+    "src/app/layout/CopilotShell.test.ts": "app",
+    "src/app/layout/CopilotShell.tsx": "app",
+    "src/app/layout/LeftSidebar.test.ts": "app",
+    "src/app/layout/LeftSidebar.tsx": "app",
+    "src/app/layout/ShellOverlays.tsx": "app",
+    "src/app/layout/TerminalDock.test.ts": "app",
+    "src/app/layout/TerminalDock.tsx": "app",
+    "src/app/layout/TopNav.test.ts": "app",
+    "src/app/layout/TopNav.tsx": "app",
+    "src/app/layout/hooks/useAppRuntimes.ts": "app",
+    "src/app/layout/hooks/useLeftSidebarData.ts": "app",
+    "src/app/layout/sidebar/ChatActionsMenu.test.ts": "app",
+    "src/app/layout/sidebar/ChatActionsMenu.tsx": "app",
+    "src/app/layout/sidebar/ChatItem.tsx": "app",
+    "src/app/layout/sidebar/SidebarHistorySection.tsx": "app",
+    "src/app/layout/sidebar/UnreadDot.tsx": "app",
+    "src/app/layout/sidebar/WorkerChatPreviewItem.tsx": "app",
+    "src/app/layout/sidebar/WorkerConversationPreviewList.tsx": "app",
+    "src/app/layout/sidebar/WorkerPanelHeader.tsx": "app",
+    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": "app",
+    "src/app/layout/sidebar/right/DebugTab.test.ts": "app",
+    "src/app/layout/sidebar/right/DebugTab.tsx": "app",
+    "src/app/layout/sidebar/right/FileDiffView.tsx": "app",
+    "src/app/layout/sidebar/right/OverviewTab.test.ts": "app",
+    "src/app/layout/sidebar/right/OverviewTab.tsx": "app",
+    "src/app/layout/sidebar/right/RightSidebar.test.ts": "app",
+    "src/app/layout/sidebar/right/RightSidebar.tsx": "app",
+    "src/app/layout/sidebar/right/fileDiff.test.ts": "app",
+    "src/app/layout/sidebar/right/fileDiff.ts": "app",
+    "src/app/modals/AutomationModal.test.ts": "app",
+    "src/app/modals/AutomationModal.tsx": "app",
+    "src/app/modals/EventPopover.test.ts": "app",
+    "src/app/modals/EventPopover.tsx": "app",
+    "src/app/modals/HistoryModal.test.ts": "app",
+    "src/app/modals/HistoryModal.tsx": "app",
+    "src/app/modals/SystemPromptModal.tsx": "app",
+    "src/app/modals/lib/eventPopoverCopyMenu.ts": "app",
+    "src/app/modals/lib/eventPopoverFormatters.ts": "app",
+    "src/app/modals/lib/eventPopoverGrouping.ts": "app",
+    "src/app/modals/lib/systemPromptTrace.ts": "app",
+    "src/app/pages/agents/index.test.ts": "app",
+    "src/app/pages/agents/index.tsx": "app",
+    "src/app/pages/archives/index.tsx": "app",
+    "src/app/pages/automations/index.tsx": "app",
+    "src/app/pages/memory/index.tsx": "app",
+    "src/app/pages/registries/index.test.ts": "app",
+    "src/app/pages/registries/index.tsx": "app",
+    "src/app/routeDataTransport.test.ts": "app",
+    "src/app/routeDataTransport.ts": "app",
+    "src/app/state/AppContext.test.ts": "app",
+    "src/app/state/AppContext.tsx": "app",
+    "src/app/state/actions.ts": "app",
+    "src/app/state/constants.ts": "app",
+    "src/app/state/conversationReset.ts": "app",
+    "src/app/state/domainReducers.ts": "app",
+    "src/app/state/eventTypes.ts": "app",
+    "src/app/state/navigationTypes.ts": "app",
+    "src/app/state/provider.tsx": "app",
+    "src/app/state/reducer.ts": "app",
+    "src/app/state/reducerConversation.test.ts": "app",
+    "src/app/state/reducerConversation.ts": "app",
+    "src/app/state/reducerHelpers.ts": "app",
+    "src/app/state/reducerNavigation.ts": "app",
+    "src/app/state/reducerTimeline.ts": "app",
+    "src/app/state/reducerUi.ts": "app",
+    "src/app/state/reducerVoice.ts": "app",
+    "src/app/state/selectors.ts": "app",
+    "src/app/state/state.ts": "app",
+    "src/app/state/timelineTypes.ts": "app",
+    "src/app/state/toolTypes.ts": "app",
+    "src/app/state/types.ts": "app",
+    "src/app/state/uiTypes.ts": "app",
+    "src/app/state/voiceTypes.ts": "app",
     "src/features/artifacts/components/ArtifactPanel.test.ts": "artifacts",
     "src/features/artifacts/components/ArtifactPanel.tsx": "artifacts",
     "src/features/artifacts/components/AttachmentCard.tsx": "artifacts",
@@ -2881,6 +3294,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -2891,6 +3309,11 @@
       }
     ],
     "action": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -2920,6 +3343,11 @@
     "actions": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -2947,6 +3375,11 @@
     "active": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -2959,6 +3392,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "add": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "adding": [
@@ -3004,6 +3444,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -3069,6 +3514,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       },
@@ -3093,6 +3543,125 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "aiaction": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aiartifact": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aiawait": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aibase": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aichat": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aicontent": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aicontext": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aievent": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aiplan": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aiplanning": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aireasoning": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "airequest": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "airun": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aisource": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aitask": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aitool": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "aiusage": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "alert": [
@@ -3130,6 +3699,11 @@
         "path": ".doc/modules/api.json"
       },
       {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
@@ -3145,7 +3719,26 @@
         "path": ".doc/rules.json"
       }
     ],
+    "animated": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "animation": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "answer": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "timeline",
@@ -3177,6 +3770,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "transport",
         "path": ".doc/modules/transport.json"
       }
@@ -3186,6 +3784,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -3207,6 +3810,13 @@
         "path": ".doc/modules/timeline.json"
       }
     ],
+    "application": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "applied": [
       {
         "kind": "module",
@@ -3215,6 +3825,11 @@
       }
     ],
     "apply": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -3237,6 +3852,11 @@
       }
     ],
     "approval": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "tools",
@@ -3267,6 +3887,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "are": [
@@ -3324,6 +3949,11 @@
     "artifact": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -3351,6 +3981,11 @@
       }
     ],
     "ask": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "rule",
         "id": "semantic-memory-needs-confirmation",
@@ -3389,6 +4024,11 @@
       }
     ],
     "attachment": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -3450,6 +4090,11 @@
     "auto": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -3467,6 +4112,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       }
@@ -3476,6 +4126,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "availability": [
@@ -3490,6 +4145,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -3599,6 +4259,11 @@
     ],
     "behavior": [
       {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
@@ -3638,6 +4303,11 @@
     "block": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -3674,11 +4344,30 @@
         "path": ".doc/tasks/update-agent-protocol.json"
       }
     ],
+    "body": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "bootstrap": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "bottom": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "boundary": [
@@ -3833,6 +4522,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -3930,6 +4624,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -3970,11 +4669,30 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "call": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "calls": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "can": [
       {
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4011,11 +4729,23 @@
         "path": ".doc/modules/settings.json"
       }
     ],
+    "canvas": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "capabilities": [
       {
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "capture": [
@@ -4075,6 +4805,11 @@
         "kind": "flow",
         "id": "code-change-sync",
         "path": ".doc/flows/code-change-sync.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4152,6 +4887,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -4203,6 +4943,13 @@
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
+      }
+    ],
+    "chunk": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "chunked": [
@@ -4277,6 +5024,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -4296,6 +5048,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "clone": [
@@ -4366,6 +5123,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -4378,6 +5140,11 @@
     "collapse": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       }
@@ -4385,8 +5152,27 @@
     "collect": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "collected": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "collectible": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "command": [
@@ -4394,6 +5180,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4430,11 +5221,23 @@
         "path": ".doc/modules/settings.json"
       }
     ],
+    "common": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "compact": [
       {
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4492,8 +5295,20 @@
     "composer": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
+      }
+    ],
+    "composition": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "compute": [
@@ -4513,6 +5328,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4704,6 +5524,11 @@
     "connection": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "transport",
         "path": ".doc/modules/transport.json"
       }
@@ -4716,6 +5541,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -4723,6 +5553,13 @@
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "constants": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "container": [
@@ -4764,6 +5601,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4816,6 +5658,13 @@
         "path": ".doc/tasks/update-agent-protocol.json"
       }
     ],
+    "control": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "controller": [
       {
         "kind": "module",
@@ -4831,6 +5680,11 @@
       }
     ],
     "conversation": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -4854,7 +5708,19 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "copilot": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "copy": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "utils",
@@ -4873,6 +5739,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "count": [
@@ -4899,6 +5770,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -4985,6 +5861,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       },
@@ -5002,6 +5883,11 @@
       }
     ],
     "debug": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "config",
@@ -5036,6 +5922,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -5050,6 +5941,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -5137,6 +6033,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "delta": [
@@ -5214,6 +6115,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -5250,6 +6156,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "detected": [
@@ -5297,6 +6208,13 @@
         "path": ".doc/modules/tools.json"
       }
     ],
+    "diff": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "different": [
       {
         "kind": "module",
@@ -5340,6 +6258,11 @@
     "dispatch": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -5354,6 +6277,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -5385,11 +6313,32 @@
         "path": ".doc/rules.json"
       }
     ],
+    "dock": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "document": [
       {
         "kind": "module",
         "id": "styles",
         "path": ".doc/modules/styles.json"
+      }
+    ],
+    "domain": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "dot": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "download": [
@@ -5600,6 +6549,20 @@
         "path": ".doc/rules.json"
       }
     ],
+    "effect": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "effects": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "effort": [
       {
         "kind": "module",
@@ -5615,6 +6578,11 @@
       }
     ],
     "embedded": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -5640,6 +6608,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -5731,6 +6704,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -5762,6 +6740,13 @@
         "path": ".doc/flows/context-initialization.json"
       }
     ],
+    "enum": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "env": [
       {
         "kind": "module",
@@ -5791,6 +6776,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -5810,6 +6800,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "event": [
@@ -5817,6 +6812,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -5845,6 +6845,11 @@
       }
     ],
     "events": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -5998,6 +7003,11 @@
     "feature": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -6013,6 +7023,11 @@
       }
     ],
     "features": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -6069,6 +7084,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "fence": [
@@ -6076,6 +7096,13 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "fetch": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "fetched": [
@@ -6102,11 +7129,23 @@
         "path": ".doc/modules/utils.json"
       }
     ],
+    "fields": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "file": [
       {
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -6152,6 +7191,11 @@
       }
     ],
     "filter": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -6204,6 +7248,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "fireworks": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "first": [
@@ -6302,6 +7353,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -6364,6 +7420,11 @@
     "form": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -6383,6 +7444,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -6430,6 +7496,13 @@
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "formatters": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "forms": [
@@ -6483,6 +7556,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -6495,6 +7573,11 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
+      },
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
       },
       {
         "kind": "module",
@@ -6520,11 +7603,21 @@
     "frontend": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
     ],
     "gate": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "settings",
@@ -6558,6 +7651,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -6632,6 +7730,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "greeting": [
@@ -6651,6 +7754,11 @@
     "group": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -6658,6 +7766,20 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "grouping": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "groups": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "han": [
@@ -6668,6 +7790,11 @@
       }
     ],
     "handle": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "transport",
@@ -6715,6 +7842,13 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "header": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "heading": [
       {
         "kind": "module",
@@ -6727,6 +7861,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "hidden": [
@@ -6751,6 +7890,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "hooks",
         "path": ".doc/modules/hooks.json"
       }
@@ -6768,6 +7912,11 @@
       }
     ],
     "hooks": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -6837,11 +7986,6 @@
       },
       {
         "kind": "module",
-        "id": "styles",
-        "path": ".doc/modules/styles.json"
-      },
-      {
-        "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
       }
@@ -6887,6 +8031,11 @@
       }
     ],
     "icon": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -6982,6 +8131,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -7151,6 +8305,11 @@
     "initial": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
       },
@@ -7211,6 +8370,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -7297,6 +8461,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -7317,6 +8486,11 @@
       }
     ],
     "items": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -7377,6 +8551,13 @@
         "path": ".doc/modules/api.json"
       }
     ],
+    "kbase": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "keep": [
       {
         "kind": "module",
@@ -7394,6 +8575,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -7468,6 +8654,11 @@
     "kind": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       }
@@ -7523,6 +8714,11 @@
     "layout": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "styles",
         "path": ".doc/modules/styles.json"
       }
@@ -7539,6 +8735,13 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      }
+    ],
+    "left": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "length": [
@@ -7561,6 +8764,11 @@
       }
     ],
     "lib": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -7632,6 +8840,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -7646,7 +8859,19 @@
         "path": ".doc/modules/utils.json"
       }
     ],
+    "line": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "lines": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "settings",
@@ -7658,6 +8883,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -7731,9 +8961,19 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "load": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -7825,6 +9065,11 @@
     "map": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
       }
@@ -7906,6 +9151,11 @@
     "max": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
       },
@@ -7935,6 +9185,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "config",
         "path": ".doc/modules/config.json"
       },
@@ -7957,6 +9212,11 @@
       }
     ],
     "menu": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -8010,6 +9270,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -8049,6 +9314,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
@@ -8061,6 +9331,11 @@
       }
     ],
     "min": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "ui",
@@ -8091,6 +9366,11 @@
     "modal": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -8100,11 +9380,23 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "modals": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "mode": [
       {
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8145,6 +9437,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       }
@@ -8171,6 +9468,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8360,6 +9662,20 @@
         "path": ".doc/modules/ui.json"
       }
     ],
+    "nav": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "navigation": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "needs": [
       {
         "kind": "rule",
@@ -8389,6 +9705,11 @@
     "next": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -8401,8 +9722,20 @@
     "node": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "non": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "normalize": [
@@ -8410,6 +9743,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8479,6 +9817,11 @@
     "object": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "utils",
         "path": ".doc/modules/utils.json"
       }
@@ -8499,6 +9842,11 @@
     ],
     "only": [
       {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
         "kind": "rule",
         "id": "managed-blocks-only",
         "path": ".doc/rules.json"
@@ -8509,6 +9857,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8531,6 +9884,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8585,6 +9943,13 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "orchestration": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "order": [
       {
         "kind": "module",
@@ -8628,6 +9993,11 @@
     "overlay": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -8635,6 +10005,13 @@
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "overlays": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "override": [
@@ -8656,11 +10033,37 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "overview": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "owned": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "page": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "hooks",
         "path": ".doc/modules/hooks.json"
+      }
+    ],
+    "pages": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "palette": [
@@ -8671,6 +10074,11 @@
       }
     ],
     "panel": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -8688,6 +10096,11 @@
       }
     ],
     "param": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "i18n",
@@ -8794,6 +10207,11 @@
     "patch": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -8816,6 +10234,11 @@
     "path": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "voice",
         "path": ".doc/modules/voice.json"
       },
@@ -8823,6 +10246,20 @@
         "kind": "module",
         "id": "workers",
         "path": ".doc/modules/workers.json"
+      }
+    ],
+    "pathname": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "paths": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "pause": [
@@ -8837,6 +10274,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -8881,6 +10323,11 @@
     "pending": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -8900,6 +10347,13 @@
         "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
+      }
+    ],
+    "phase": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "pick": [
@@ -8946,6 +10400,11 @@
       }
     ],
     "plan": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -9031,6 +10490,13 @@
         "path": ".doc/modules/api.json"
       }
     ],
+    "popover": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "post": [
       {
         "kind": "module",
@@ -9065,6 +10531,13 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
+      }
+    ],
+    "prefix": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "prepare": [
@@ -9103,6 +10576,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -9115,6 +10593,20 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
+      }
+    ],
+    "primary": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "primitives": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "process": [
@@ -9170,6 +10662,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9241,6 +10738,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -9260,6 +10762,13 @@
         "path": ".doc/modules/workers.json"
       }
     ],
+    "providers": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "proxy": [
       {
         "kind": "module",
@@ -9267,11 +10776,30 @@
         "path": ".doc/modules/api.json"
       }
     ],
+    "publish": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "published": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "push": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "put": [
@@ -9323,6 +10851,11 @@
     "question": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
@@ -9335,6 +10868,11 @@
       }
     ],
     "queue": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "voice",
@@ -9367,6 +10905,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "read": [
@@ -9374,6 +10917,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9426,6 +10974,13 @@
         "path": ".doc/rules.json"
       }
     ],
+    "readable": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "readers": [
       {
         "kind": "module",
@@ -9447,6 +11002,13 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "realtime": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "reapply": [
       {
         "kind": "module",
@@ -9462,6 +11024,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "transport",
         "path": ".doc/modules/transport.json"
       }
@@ -9471,6 +11038,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9536,8 +11108,34 @@
     "reduce": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "reducer": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "reducers": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "ref": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "refactor": [
@@ -9545,6 +11143,13 @@
         "kind": "task",
         "id": "modify-module-code",
         "path": ".doc/tasks/modify-module-code.json"
+      }
+    ],
+    "reference": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "references": [
@@ -9607,6 +11212,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "registry": [
@@ -9614,6 +11224,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9629,6 +11244,11 @@
       }
     ],
     "related": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "rule",
         "id": "agent-starts-from-index",
@@ -9657,6 +11277,11 @@
     "remove": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
       }
@@ -9669,6 +11294,11 @@
       }
     ],
     "render": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "timeline",
@@ -9743,6 +11373,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       },
@@ -9782,6 +11417,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "hooks",
         "path": ".doc/modules/hooks.json"
       },
@@ -9804,6 +11444,11 @@
     "resolution": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
@@ -9813,6 +11458,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9894,6 +11544,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "response": [
@@ -9920,6 +11575,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -9951,6 +11611,13 @@
         "path": ".doc/modules/composer.json"
       }
     ],
+    "right": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "risk": [
       {
         "kind": "rule",
@@ -9965,7 +11632,19 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "role": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "route": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "hooks",
@@ -9997,6 +11676,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -10009,11 +11693,21 @@
     "row": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       }
     ],
     "rows": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "chats",
@@ -10047,6 +11741,11 @@
     "run": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -10072,6 +11771,11 @@
       }
     ],
     "runtime": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -10106,6 +11810,13 @@
         "kind": "module",
         "id": "voice",
         "path": ".doc/modules/voice.json"
+      }
+    ],
+    "runtimes": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "safe": [
@@ -10235,6 +11946,11 @@
     "section": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       }
@@ -10268,6 +11984,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
@@ -10294,6 +12015,13 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      }
+    ],
+    "selectors": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "semantic": [
@@ -10341,6 +12069,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "session": [
@@ -10368,11 +12101,21 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       }
     ],
     "settings": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -10394,6 +12137,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10449,6 +12197,11 @@
     "shell": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       }
@@ -10465,6 +12218,11 @@
         "kind": "flow",
         "id": "code-change-sync",
         "path": ".doc/flows/code-change-sync.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10502,6 +12260,11 @@
     "sidebar": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       }
@@ -10516,6 +12279,13 @@
         "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
+      }
+    ],
+    "signatures": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "singleton": [
@@ -10568,6 +12338,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -10594,6 +12369,13 @@
         "path": ".doc/modules/voice.json"
       }
     ],
+    "sort": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "source": [
       {
         "kind": "flow",
@@ -10604,6 +12386,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10621,6 +12408,13 @@
         "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      }
+    ],
+    "specific": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "speech": [
@@ -10642,6 +12436,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10758,6 +12557,11 @@
     "start": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -10794,6 +12598,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10854,6 +12663,11 @@
     "stats": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       }
@@ -10863,6 +12677,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10898,6 +12717,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -10924,6 +12748,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -10966,6 +12795,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -10975,7 +12809,26 @@
         "path": ".doc/modules/transport.json"
       }
     ],
+    "string": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "stringify": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "strip": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "timeline",
@@ -10990,6 +12843,11 @@
       }
     ],
     "styles": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "styles",
@@ -11015,6 +12873,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11082,6 +12945,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11160,6 +13028,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -11167,6 +13040,11 @@
         "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
+      },
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
       },
       {
         "kind": "module",
@@ -11182,6 +13060,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       }
@@ -11194,6 +13077,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       }
@@ -11203,6 +13091,13 @@
         "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
+      }
+    ],
+    "tabs": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "tag": [
@@ -11254,6 +13149,11 @@
     "task": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -11286,6 +13186,11 @@
     "team": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -11310,6 +13215,11 @@
     "terminal": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "composer",
         "path": ".doc/modules/composer.json"
       },
@@ -11331,6 +13241,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11448,6 +13363,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "components",
         "path": ".doc/modules/components.json"
       },
@@ -11529,6 +13449,11 @@
     "theme": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "styles",
         "path": ".doc/modules/styles.json"
       }
@@ -11603,6 +13528,11 @@
     "timeline": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -11613,6 +13543,11 @@
       }
     ],
     "timeout": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "tools",
@@ -11632,11 +13567,21 @@
     "timer": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       }
     ],
     "timestamp": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "settings",
@@ -11653,9 +13598,19 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "title": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "timeline",
@@ -11674,6 +13629,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "token": [
@@ -11681,6 +13641,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11698,6 +13663,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11729,6 +13699,20 @@
         "path": ".doc/modules/tools.json"
       }
     ],
+    "top": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
+    "trace": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "tracker": [
       {
         "kind": "module",
@@ -11758,6 +13742,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -11775,6 +13764,11 @@
       }
     ],
     "tsx": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "artifacts",
@@ -11834,6 +13828,11 @@
     "tts": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "settings",
         "path": ".doc/modules/settings.json"
       },
@@ -11848,6 +13847,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11888,6 +13892,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "i18n",
         "path": ".doc/modules/i18n.json"
       },
@@ -11914,6 +13923,11 @@
     "unread": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       }
@@ -11928,6 +13942,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -11984,6 +14003,11 @@
     "upsert": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -12033,6 +14057,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -12047,6 +14076,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -12143,6 +14177,13 @@
         "path": ".doc/modules/i18n.json"
       }
     ],
+    "utilities": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "utils": [
       {
         "kind": "module",
@@ -12175,6 +14216,11 @@
     "valid": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "tools",
         "path": ".doc/modules/tools.json"
       }
@@ -12194,6 +14240,11 @@
       }
     ],
     "value": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "composer",
@@ -12235,6 +14286,11 @@
     "view": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -12267,6 +14323,11 @@
       },
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
       },
@@ -12293,6 +14354,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       },
       {
         "kind": "module",
@@ -12364,6 +14430,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "with": [
@@ -12395,6 +14466,11 @@
     "worker": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -12416,6 +14492,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
       }
     ],
     "write": [
@@ -12561,7 +14642,7 @@
     ]
   },
   "generated": {
-    "moduleCount": 19,
+    "moduleCount": 20,
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
