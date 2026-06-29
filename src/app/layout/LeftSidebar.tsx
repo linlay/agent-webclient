@@ -65,7 +65,6 @@ import {
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import {
   openWorkspaceDirectory,
-  selectProjectFolder,
 } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import type { AgentDetailResponse } from "@/shared/data";
@@ -110,6 +109,44 @@ export function buildCoderAgentCreateRequest(
       runtimeConfig,
       visibility: {
         scopes: ["nav", "copilot"],
+      },
+    },
+  };
+}
+
+function kbaseSlug(workspaceDir: string): string {
+  return (
+    workspaceNameFromPath(workspaceDir)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  );
+}
+
+export function buildKbaseAgentCreateRequest(
+  workspaceDir: string,
+  options: { name?: string } = {},
+) {
+  const slug = kbaseSlug(workspaceDir);
+  const base36Ts = Date.now().toString(36);
+  const key = `kbase-${slug}-${base36Ts}`;
+  return {
+    key,
+    definition: {
+      key,
+      name: options.name || workspaceNameFromPath(workspaceDir),
+      mode: "KBASE",
+      icon: {
+        name: "database",
+      },
+      runtimeConfig: {
+        workspaceRoot: workspaceDir,
+      },
+      kbaseConfig: {
+        embedding: { providerKey: "openai" },
+      },
+      visibility: {
+        scopes: ["nav"],
       },
     },
   };
@@ -696,43 +733,25 @@ export const LeftSidebar: React.FC = () => {
   );
 
   // --- Create Project Dialog State ---
-  const [creatingProject, setCreatingProject] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [workspaceDir, setWorkspaceDir] = useState("");
   const [projectType, setProjectType] = useState<"coder" | "kbase">("coder");
   const [useAcp, setUseAcp] = useState(false);
   const [selectedAcpProxyId, setSelectedAcpProxyId] = useState("");
+  const [projectNameTouched, setProjectNameTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleStartNewProject = () => {
-    if (creatingProject || createModalOpen) return;
+    if (createModalOpen) return;
 
-    setCreatingProject(true);
-    void selectProjectFolder()
-      .then((selection) => {
-        if (!selection) {
-          return;
-        }
-
-        const dir = selection.workspaceDir;
-        const basename = workspaceNameFromPath(dir);
-        setWorkspaceDir(dir);
-        setProjectName(basename);
-        setProjectType("coder");
-        setUseAcp(false);
-        setSelectedAcpProxyId(ACP_PROXY_OPTIONS[0]?.value || "");
-        setCreateModalOpen(true);
-      })
-      .catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[new project error] ${(error as Error).message}`,
-        });
-      })
-      .finally(() => {
-        setCreatingProject(false);
-      });
+    setWorkspaceDir("");
+    setProjectName("");
+    setProjectType("coder");
+    setUseAcp(false);
+    setSelectedAcpProxyId(ACP_PROXY_OPTIONS[0]?.value || "");
+    setProjectNameTouched(false);
+    setCreateModalOpen(true);
   };
 
   const handleCloseModal = () => {
@@ -740,26 +759,29 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleSubmitCreate = async () => {
+    const trimmedDir = workspaceDir.trim();
+    if (!trimmedDir) {
+      void message.warning(t("leftSidebar.createProject.directoryRequired"));
+      return;
+    }
+
     const trimmedName = projectName.trim();
-    if (!trimmedName) {
-      void message.warning(t("leftSidebar.createProject.nameRequired"));
-      return;
-    }
-    if (projectType === "kbase") {
-      void message.warning(t("leftSidebar.createProject.kbaseNotImplemented"));
-      return;
-    }
-    if (useAcp && !selectedAcpProxyId) {
+    const name = trimmedName || workspaceNameFromPath(trimmedDir);
+
+    if (projectType === "coder" && useAcp && !selectedAcpProxyId) {
       void message.warning(t("leftSidebar.createProject.acpRequired"));
       return;
     }
 
     setSubmitting(true);
     try {
-      const definition = buildCoderAgentCreateRequest(workspaceDir, {
-        name: trimmedName,
-        acpProxyId: useAcp ? selectedAcpProxyId : undefined,
-      });
+      const definition =
+        projectType === "kbase"
+          ? buildKbaseAgentCreateRequest(trimmedDir, { name })
+          : buildCoderAgentCreateRequest(trimmedDir, {
+              name,
+              acpProxyId: useAcp ? selectedAcpProxyId : undefined,
+            });
       const response = await createAgent(definition);
       const createdKey = String(response.data?.key || "").trim();
 
@@ -894,8 +916,7 @@ export const LeftSidebar: React.FC = () => {
                   title={t("topNav.newProject")}
                   variant="ghost"
                   iconOnly
-                  disabled={creatingProject || createModalOpen}
-                  loading={creatingProject}
+                  disabled={createModalOpen}
                   onClick={handleStartNewProject}
                 >
                   <MaterialIcon name="create_new_folder" />
@@ -1284,16 +1305,22 @@ export const LeftSidebar: React.FC = () => {
                 fontSize: 13,
               }}
             >
-              {t("leftSidebar.createProject.projectName")}
+              {t("leftSidebar.createProject.projectDirectory")}
             </label>
             <Input
               autoFocus
-              value={projectName}
+              value={workspaceDir}
               placeholder={t(
-                "leftSidebar.createProject.projectNamePlaceholder",
+                "leftSidebar.createProject.directoryPlaceholder",
               )}
               disabled={submitting}
-              onChange={(e) => setProjectName(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setWorkspaceDir(value);
+                if (!projectNameTouched) {
+                  setProjectName(workspaceNameFromPath(value));
+                }
+              }}
             />
           </div>
 
@@ -1306,9 +1333,19 @@ export const LeftSidebar: React.FC = () => {
                 fontSize: 13,
               }}
             >
-              {t("leftSidebar.createProject.projectDirectory")}
+              {t("leftSidebar.createProject.projectName")}
             </label>
-            <Input value={workspaceDir} disabled />
+            <Input
+              value={projectName}
+              placeholder={t(
+                "leftSidebar.createProject.projectNamePlaceholder",
+              )}
+              disabled={submitting}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                setProjectNameTouched(true);
+              }}
+            />
           </div>
 
           <div>
@@ -1367,28 +1404,7 @@ export const LeftSidebar: React.FC = () => {
             </>
           )}
 
-          {projectType === "kbase" && (
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: 8,
-                  fontWeight: 500,
-                  fontSize: 13,
-                }}
-              >
-                {t("leftSidebar.createProject.kbaseVectorStore")}
-              </label>
-              <Radio.Group defaultValue="local" disabled={submitting}>
-                <Radio value="local">
-                  {t("leftSidebar.createProject.kbaseVectorStoreLocal")}
-                </Radio>
-                <Radio value="remote">
-                  {t("leftSidebar.createProject.kbaseVectorStoreRemote")}
-                </Radio>
-              </Radio.Group>
-            </div>
-          )}
+
         </Flex>
       </Modal>
     </>

@@ -82,6 +82,10 @@ export enum AIArtifactEventTypeEnum {
   Publish = "artifact.publish",
 }
 
+export enum AISourceEventTypeEnum {
+  Publish = "source.publish",
+}
+
 export const AWAITING_ASK_STREAM_EVENT_TYPE = "awaiting.ask";
 export const AWAITING_ASK_PUSH_EVENT_TYPE = "awaiting.asking";
 export const AWAITING_ANSWER_STREAM_EVENT_TYPE = "awaiting.answer";
@@ -471,6 +475,48 @@ export interface AIArtifactEvent extends AIBaseEvent {
   artifacts?: Array<ResourceData & { artifactId?: string }>;
 }
 
+export interface SourcePublishChunk {
+  chunkId?: string;
+  index?: number;
+  content?: string;
+  score?: number;
+  timestamp?: number;
+  path?: string;
+  heading?: string;
+  startLine?: number;
+  endLine?: number;
+  pageStart?: number;
+  pageEnd?: number;
+  slideStart?: number;
+  slideEnd?: number;
+  sourceType?: string;
+  matchType?: string;
+}
+
+export interface SourcePublishSource {
+  id?: string;
+  name?: string;
+  title?: string;
+  icon?: string;
+  url?: string;
+  link?: string;
+  collectionId?: string;
+  collectionName?: string;
+  chunkIndexes?: number[];
+  minIndex?: number;
+  chunks?: SourcePublishChunk[];
+}
+
+export interface AISourcePublishEvent extends AIBaseEvent {
+  type: AISourceEventTypeEnum.Publish;
+  publishId?: string;
+  kind?: string;
+  query?: string;
+  sourceCount?: number;
+  chunkCount?: number;
+  sources?: SourcePublishSource[];
+}
+
 export interface AIAwaitAskEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Ask;
   approvals?: AIAwaitApproval[];
@@ -506,4 +552,5 @@ export type AIEvent =
   | AIToolEvent
   | AIActionEvent
   | AIArtifactEvent
+  | AISourcePublishEvent
   | AIAwaitEvent;

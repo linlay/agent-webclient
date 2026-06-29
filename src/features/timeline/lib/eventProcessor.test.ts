@@ -1343,4 +1343,90 @@ describe('processEvent', () => {
     });
     expect(state.taskItemsById.get('task_2')?.taskGroupId).toBe('task_group_task_1');
   });
+
+  it('creates a stable source timeline node for live and replay source.publish events', () => {
+    const state = createState();
+    const event = {
+      type: 'source.publish',
+      publishId: 'src_pub_1',
+      runId: 'run_1',
+      toolId: 'tool_1',
+      kind: 'kbase',
+      query: '退款流程',
+      sourceCount: 1,
+      chunkCount: 2,
+      sources: [
+        {
+          id: 'kbase:/docs/refund.md',
+          name: 'refund.md',
+          title: '/docs/refund.md',
+          chunkIndexes: [1, 2],
+          minIndex: 1,
+          chunks: [
+            {
+              chunkId: 'hit_1',
+              index: 1,
+              content: '退款需要先提交申请。',
+              path: '/docs/refund.md',
+              heading: '退款',
+              startLine: 12,
+              endLine: 14,
+              score: 0.82,
+            },
+            {
+              index: 2,
+              content: '审批通过后进入打款流程。',
+              pageStart: 3,
+            },
+          ],
+        },
+      ],
+      timestamp: 100,
+    } as AgentEvent;
+
+    processAndApply(state, event, 'live', true);
+
+    expect(state.timelineOrder).toEqual(['source_src_pub_1']);
+    expect(state.timelineNodes.get('source_src_pub_1')).toMatchObject({
+      id: 'source_src_pub_1',
+      kind: 'source',
+      sourcePublishId: 'src_pub_1',
+      sourceKind: 'kbase',
+      sourceQuery: '退款流程',
+      sourceCount: 1,
+      chunkCount: 2,
+      toolId: 'tool_1',
+      text: expect.stringContaining('退款需要先提交申请。'),
+      sources: [
+        expect.objectContaining({
+          id: 'kbase:/docs/refund.md',
+          name: 'refund.md',
+          title: '/docs/refund.md',
+          minIndex: 1,
+          chunkIndexes: [1, 2],
+          chunks: [
+            expect.objectContaining({
+              chunkId: 'hit_1',
+              index: 1,
+              path: '/docs/refund.md',
+              heading: '退款',
+              startLine: 12,
+              endLine: 14,
+              score: 0.82,
+            }),
+            expect.objectContaining({
+              chunkId: '/docs/refund.md_2',
+              index: 2,
+              pageStart: 3,
+            }),
+          ],
+        }),
+      ],
+    });
+
+    processAndApply(state, { ...event, timestamp: 120 }, 'replay', false);
+
+    expect(state.timelineOrder).toEqual(['source_src_pub_1']);
+    expect(state.timelineNodes.get('source_src_pub_1')?.ts).toBe(120);
+  });
 });

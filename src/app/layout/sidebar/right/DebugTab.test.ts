@@ -52,6 +52,7 @@ describe("buildDebugEventGroups", () => {
 		const events = [
 			{ type: "task.start", timestamp: 1, taskId: "task_1" },
 			{ type: "artifact.publish", timestamp: 2, runId: "run_1" },
+			{ type: "source.publish", timestamp: 2.5, publishId: "src_1" },
 			{ type: "run.error", timestamp: 3, runId: "run_1" },
 		] as AgentEvent[];
 
@@ -60,6 +61,7 @@ describe("buildDebugEventGroups", () => {
 		expect(groups.get("all")?.map(({ event }) => event.type)).toEqual([
 			"task.start",
 			"artifact.publish",
+			"source.publish",
 			"run.error",
 		]);
 		expect(groups.get("task")?.map(({ event }) => event.type)).toEqual([
@@ -67,6 +69,9 @@ describe("buildDebugEventGroups", () => {
 		]);
 		expect(groups.get("artifact")?.map(({ event }) => event.type)).toEqual([
 			"artifact.publish",
+		]);
+		expect(groups.get("source")?.map(({ event }) => event.type)).toEqual([
+			"source.publish",
 		]);
 		expect(groups.get("run")?.map(({ event }) => event.type)).toEqual([
 			"run.error",

@@ -819,6 +819,62 @@ describe("EventPopover display and copy helpers", () => {
     ]);
   });
 
+  it("builds source publish copy menu items", () => {
+    const sources = [
+      {
+        id: "kbase:/docs/refund.md",
+        name: "refund.md",
+        chunks: [
+          {
+            chunkId: "hit_1",
+            index: 1,
+            content: "退款需要先提交申请。",
+          },
+        ],
+      },
+    ];
+
+    expect(
+      buildEventCopyMenuItems(
+        {
+          type: "source.publish",
+          runId: "run_1",
+          toolId: "tool_1",
+          query: "退款流程",
+          sources,
+        },
+        [],
+        '{"type":"source.publish"}',
+      ),
+    ).toEqual([
+      {
+        key: "eventJson",
+        label: "Copy all",
+        text: '{"type":"source.publish"}',
+      },
+      {
+        key: "runId",
+        label: "Copy runId",
+        text: "run_1",
+      },
+      {
+        key: "toolId",
+        label: "Copy toolId",
+        text: "tool_1",
+      },
+      {
+        key: "query",
+        label: "Copy query",
+        text: "退款流程",
+      },
+      {
+        key: "sources",
+        label: "Copy sources JSON",
+        text: JSON.stringify(sources, null, 2),
+      },
+    ]);
+  });
+
   it("resolves raw jsonl chatId from current and related events", () => {
     expect(
       resolveRawJsonlChatId(

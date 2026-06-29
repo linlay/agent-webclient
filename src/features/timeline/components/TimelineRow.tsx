@@ -12,6 +12,7 @@ import { ThinkingBlock } from "@/features/timeline/components/ThinkingBlock";
 import { AwaitingAnswerBlock } from "@/features/timeline/components/AwaitingAnswerBlock";
 import { ToolPill } from "@/features/timeline/components/ToolPill";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
+import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -183,6 +184,10 @@ const NodeIcon: React.FC<{
     case "content":
       className += " node-icon-content";
       iconName = "description";
+      break;
+    case "source":
+      className += " node-icon-source";
+      iconName = "search";
       break;
     default:
       if (role === "system") {
@@ -407,6 +412,26 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         </div>
         <div className="timeline-flow-content">
           <ContentBlock node={node} />
+          {timeNode}
+        </div>
+      </div>
+    );
+  }
+
+  /* Source */
+  if (node && node.kind === "source") {
+    return (
+      <div
+        className="timeline-row timeline-row-flow"
+        data-kind="source"
+        data-node-id={anchorNodeId}
+        data-task-id={taskID || undefined}
+      >
+        <div className="timeline-marker">
+          <NodeIcon kind="source" />
+        </div>
+        <div className="timeline-flow-content">
+          <SourceBlock node={node} />
           {timeNode}
         </div>
       </div>

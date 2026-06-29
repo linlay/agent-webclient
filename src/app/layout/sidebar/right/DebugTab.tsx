@@ -36,6 +36,7 @@ export const DEBUG_EVENT_TABS: Array<{
 	{ key: "plan", labelKey: "rightSidebar.debug.tabs.plan", color: "#8E82C4" },
 	{ key: "task", labelKey: "rightSidebar.debug.tabs.task", color: "#A094D0" },
 	{ key: "artifact", labelKey: "rightSidebar.debug.tabs.artifact", color: "#D98A42" },
+	{ key: "source", labelKey: "rightSidebar.debug.tabs.source", color: "#4F9FC7" },
 ];
 
 export type DebugTabKey = (typeof DEBUG_EVENT_TABS)[number]["key"];

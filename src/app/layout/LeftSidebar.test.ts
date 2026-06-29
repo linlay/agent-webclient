@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import {
   buildCoderAgentCreateRequest,
+  buildKbaseAgentCreateRequest,
   LeftSidebar,
 } from "@/app/layout/LeftSidebar";
 import { sortWorkerRowsForMode } from "@/app/layout/hooks/useLeftSidebarData";
@@ -900,13 +901,40 @@ describe("LeftSidebar", () => {
     });
   });
 
-  it("renders the top action as new project and opens the create flow from a selected folder", async () => {
+  it("builds a kbase project create request with key and timestamp", () => {
+    const realNow = Date.now;
+    const fixedNow = 1750000000000;
+    Date.now = jest.fn(() => fixedNow);
+    try {
+      const result = buildKbaseAgentCreateRequest(
+        "/Users/demo/Knowledge/my-project",
+        { name: "My KB" },
+      );
+      const base36Ts = fixedNow.toString(36);
+      const expectedKey = "kbase-my-project-" + base36Ts;
+      expect(result.key).toBe(expectedKey);
+      expect(result.definition.key).toBe(expectedKey);
+      expect(result.definition.name).toBe("My KB");
+      expect(result.definition.mode).toBe("KBASE");
+      expect(result.definition.icon).toEqual({ name: "database" });
+      expect(result.definition.runtimeConfig).toEqual({
+        workspaceRoot: "/Users/demo/Knowledge/my-project",
+      });
+      expect(result.definition.visibility).toEqual({
+        scopes: ["nav"],
+      });
+      expect(result.definition.kbaseConfig).toEqual({
+        embedding: { providerKey: "openai" },
+      });
+      expect(result.definition).not.toHaveProperty("workspace");
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  it("renders the top action as new project and opens the create modal without calling selectProjectFolder", () => {
     const dispatch = jest.fn();
     const state = createInitialState();
-    selectProjectFolder.mockResolvedValue({
-      kind: "desktop-directory",
-      workspaceDir: "/Users/demo/Project/agent-coder",
-    });
     useAppContext.mockReturnValue({
       state: {
         ...state,
@@ -928,11 +956,8 @@ describe("LeftSidebar", () => {
     expect(typeof button?.onClick).toBe("function");
 
     (button?.onClick as () => void)();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
+    expect(selectProjectFolder).not.toHaveBeenCalled();
     expect(createAgent).not.toHaveBeenCalled();
     expect(getAgents).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(
@@ -943,7 +968,7 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("opens the create flow from a browser path selection", async () => {
+  it("opens the create flow from a browser path selection via modal", async () => {
     const dispatch = jest.fn();
     const state = createInitialState();
     const createdAgent = {
@@ -952,10 +977,6 @@ describe("LeftSidebar", () => {
       type: "coder",
       workspaceDir: "/Users/demo/Project/browser-coder",
     };
-    selectProjectFolder.mockResolvedValue({
-      kind: "browser-directory-path",
-      workspaceDir: "/Users/demo/Project/browser-coder",
-    });
     createAgent.mockResolvedValue({ data: createdAgent });
     getAgents.mockResolvedValue({ data: [createdAgent] });
     useAppContext.mockReturnValue({
@@ -975,43 +996,9 @@ describe("LeftSidebar", () => {
 
     const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
     (button?.onClick as () => void)();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
+    expect(selectProjectFolder).not.toHaveBeenCalled();
     expect(createAgent).not.toHaveBeenCalled();
-    expect(dispatch).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: "SET_TEMPORARY_PINNED_AGENT_KEY" }),
-    );
-  });
-
-  it("does not create a coder project when folder selection is canceled", async () => {
-    const dispatch = jest.fn();
-    const state = createInitialState();
-    selectProjectFolder.mockResolvedValue(null);
-    useAppContext.mockReturnValue({
-      state: {
-        ...state,
-        leftDrawerOpen: true,
-        conversationMode: "worker",
-      },
-      dispatch,
-      stateRef: { current: state },
-      querySessionsRef: { current: new Map() },
-      chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
-    });
-
-    renderSidebar();
-
-    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
-    (button?.onClick as () => void)();
-    await Promise.resolve();
-
-    expect(selectProjectFolder).toHaveBeenCalledTimes(1);
-    expect(createAgent).not.toHaveBeenCalled();
-    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("renders collapsed worker entries with names, popover header, and total history count", () => {

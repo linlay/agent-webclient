@@ -5,6 +5,7 @@ export type TimelineNodeKind =
 	| "thinking"
 	| "awaiting-answer"
 	| "tool"
+	| "source"
 	| "content"
 	| "agent-group"
 	| "planning";
@@ -46,6 +47,38 @@ export interface TtsVoiceBlock {
 	error: string;
 	sampleRate?: number;
 	channels?: number;
+}
+
+export interface TimelineSourceChunk {
+	chunkId: string;
+	index: number;
+	content: string;
+	score?: number;
+	timestamp?: number;
+	path?: string;
+	heading?: string;
+	startLine?: number;
+	endLine?: number;
+	pageStart?: number;
+	pageEnd?: number;
+	slideStart?: number;
+	slideEnd?: number;
+	sourceType?: string;
+	matchType?: string;
+}
+
+export interface TimelineSource {
+	id: string;
+	name: string;
+	title?: string;
+	icon?: string;
+	url?: string;
+	link?: string;
+	collectionId?: string;
+	collectionName?: string;
+	chunkIndexes: number[];
+	minIndex: number;
+	chunks: TimelineSourceChunk[];
 }
 
 export interface TimelineErrorDetail {
@@ -92,6 +125,12 @@ export interface TimelineNode {
 	durationMs?: number;
 	contentId?: string;
 	segments?: ContentSegment[];
+	sourcePublishId?: string;
+	sourceKind?: string;
+	sourceQuery?: string;
+	sourceCount?: number;
+	chunkCount?: number;
+	sources?: TimelineSource[];
 	errorDetail?: TimelineErrorDetail;
 	embeddedViewports?: Record<string, EmbeddedViewport>;
 	ttsVoiceBlocks?: Record<string, TtsVoiceBlock>;

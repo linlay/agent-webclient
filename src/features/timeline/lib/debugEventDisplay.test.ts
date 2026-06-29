@@ -34,6 +34,7 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('action.start')).toBe('action');
     expect(classifyEventGroup('task.start')).toBe('task');
     expect(classifyEventGroup('artifact.publish')).toBe('artifact');
+    expect(classifyEventGroup('source.publish')).toBe('source');
   });
 
   it('keeps debug.postCall as an unrecognized group', () => {
@@ -50,6 +51,7 @@ describe('getEventRowGroupClass', () => {
 
   it('keeps recognized event types on their existing group class', () => {
     expect(getEventRowGroupClass('request.query')).toBe('event-group-request');
+    expect(getEventRowGroupClass('source.publish')).toBe('event-group-source');
   });
 });
 
@@ -61,6 +63,15 @@ describe('getEventId', () => {
       runId: 'run_1',
       artifacts: [],
     })).toBe('run_1');
+  });
+
+  it('uses publishId for source.publish events', () => {
+    expect(getEventId({
+      type: 'source.publish',
+      runId: 'run_1',
+      publishId: 'src_1',
+      sources: [],
+    })).toBe('src_1');
   });
 });
 

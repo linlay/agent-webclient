@@ -11,6 +11,7 @@ import { processReasoningEvent } from "@/features/timeline/lib/eventProcessorRea
 import { processPlanningEvent } from "@/features/timeline/lib/eventProcessorPlanning";
 import { processToolEvent } from "@/features/timeline/lib/eventProcessorTool";
 import { processPlanEvent } from "@/features/timeline/lib/eventProcessorPlan";
+import { processSourceEvent } from "@/features/timeline/lib/eventProcessorSource";
 
 export type {
   EventCommand,
@@ -76,6 +77,10 @@ export function processEvent(
     type === "artifact.publish"
   ) {
     return processToolEvent(event, state);
+  }
+
+  if (type === "source.publish") {
+    return processSourceEvent(event, state);
   }
 
   if (

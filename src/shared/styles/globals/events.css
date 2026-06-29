@@ -100,6 +100,11 @@
     background: color-mix(in srgb, #d98a42 8%, var(--bg-elev-2));
 }
 
+.event-group-source {
+    color: #4f9fc7;
+    background: color-mix(in srgb, #4f9fc7 8%, var(--bg-elev-2));
+}
+
 .event-group-unrecognized {
     color: color-mix(in srgb, var(--ink-muted) 88%, var(--ink-2));
     background: color-mix(in srgb, var(--ink-muted) 5%, var(--bg-elev-2));

@@ -53,6 +53,7 @@ export const defaultEventPopoverT: EventPopoverT = (key, params = {}) => {
 		"eventPopover.copy.collectedSnapshot": "Copy collected snapshot JSON",
 		"eventPopover.copy.arguments": "Copy arguments",
 		"eventPopover.copy.result": "Copy result",
+		"eventPopover.copy.sources": "Copy sources JSON",
 		"eventPopover.copy.awaitingItems": "Copy question/approval/form/plan JSON",
 		"eventPopover.copy.field": "Copy {field}",
 		"eventPopover.feedback.copied": "Copied {label}",
@@ -211,6 +212,14 @@ export function buildEventCopyMenuItems(
 		pushCopyMenuItem(items, "runId", copyFieldLabel(t, "runId"), readEventIdValue(event || {}, "runId"));
 		pushCopyMenuItem(items, "artifacts", copyFieldLabel(t, "artifacts JSON"), stringifyCopyValue(event?.artifacts));
 		pushCopyMenuItem(items, "artifactUrls", copyFieldLabel(t, "artifact URLs"), readArtifactUrlsForCopy(event));
+		return items;
+	}
+
+	if (type === "source.publish") {
+		pushCopyMenuItem(items, "runId", copyFieldLabel(t, "runId"), readEventIdValue(event || {}, "runId"));
+		pushCopyMenuItem(items, "toolId", copyFieldLabel(t, "toolId"), readEventIdValue(event || {}, "toolId"));
+		pushCopyMenuItem(items, "query", copyFieldLabel(t, "query"), readNonEmptyStringValue(event?.query));
+		pushCopyMenuItem(items, "sources", t("eventPopover.copy.sources"), stringifyCopyValue(event?.sources));
 		return items;
 	}
 

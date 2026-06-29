@@ -94,6 +94,7 @@ export {
 	AIPlanningEventTypeEnum,
 	AIReasoningEventTypeEnum,
 	AIRunEventTypeEnum,
+	AISourceEventTypeEnum,
 	AIToolEventTypeEnum,
 	AIUsageEventTypeEnum,
 	ViewportTypeEnum,

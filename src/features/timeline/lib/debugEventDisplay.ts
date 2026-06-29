@@ -63,6 +63,7 @@ export type DebugEventGroup =
   | 'plan'
   | 'task'
   | 'artifact'
+  | 'source'
   | '';
 
 export type DebugEventTarget =
@@ -468,6 +469,7 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
   if (type.startsWith('plan.')) return 'plan';
   if (type.startsWith('task.')) return 'task';
   if (type.startsWith('artifact.')) return 'artifact';
+  if (type.startsWith('source.')) return 'source';
   return '';
 }
 
@@ -522,6 +524,9 @@ export function getEventRowGroupClass(eventType: string): string {
 export function getEventId(event: AgentEvent): string {
   if (String(event.type || '').toLowerCase() === 'artifact.publish') {
     return safeStr(event.runId);
+  }
+  if (String(event.type || '').toLowerCase() === 'source.publish') {
+    return safeStr((event as Record<string, unknown>).publishId) || safeStr(event.runId);
   }
   const keys = [
     'requestId',
