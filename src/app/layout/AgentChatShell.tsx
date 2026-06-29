@@ -121,6 +121,14 @@ export const AgentChatShell: React.FC = () => {
     () => String(searchParams.get("history") || "").trim() === "1",
     [searchParams],
   );
+  const routeNewChatRequested = useMemo(
+    () => String(searchParams.get("newChat") || "").trim() === "1",
+    [searchParams],
+  );
+  const routeNewChatRequest = useMemo(
+    () => String(searchParams.get("newChatRequest") || "").trim(),
+    [searchParams],
+  );
   const routeAgent = useMemo(
     () =>
       state.agents.find(
@@ -204,6 +212,9 @@ export const AgentChatShell: React.FC = () => {
       const nextSearchParams = new URLSearchParams(searchParams);
       nextSearchParams.delete("chatId");
       nextSearchParams.delete("history");
+      nextSearchParams.delete("historyRequest");
+      nextSearchParams.delete("newChat");
+      nextSearchParams.delete("newChatRequest");
       const nextSearch = nextSearchParams.toString();
       navigate(
         `/agent/${encodeURIComponent(nextAgentKey)}${nextSearch ? `?${nextSearch}` : ""}`,
@@ -317,10 +328,18 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
-    if (lastInitializedAgentKeyRef.current === agentKey) {
+    if (!routeNewChatRequested) {
+      lastInitializedAgentKeyRef.current = "";
+      lastLoadedChatKeyRef.current = "";
+      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
       return;
     }
-    lastInitializedAgentKeyRef.current = agentKey;
+
+    const routeNewChatKey = `${agentKey}\u0000${routeNewChatRequest || "new"}`;
+    if (lastInitializedAgentKeyRef.current === routeNewChatKey) {
+      return;
+    }
+    lastInitializedAgentKeyRef.current = routeNewChatKey;
     lastLoadedChatKeyRef.current = "";
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
@@ -337,6 +356,8 @@ export const AgentChatShell: React.FC = () => {
     dispatch,
     routeAgentHydrated,
     routeHistoryRequested,
+    routeNewChatRequest,
+    routeNewChatRequested,
     routeWorkerKey,
   ]);
 

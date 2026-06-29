@@ -1,5 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import fs from "fs";
+import path from "path";
 import { createInitialState } from "@/app/state/state";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import type { Chat, WorkerRow } from "@/app/state/types";
@@ -404,7 +406,7 @@ describe("AgentChatShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });
 
-  it("dispatches a new blank conversation event after the route agent is ready", () => {
+  it("does not start a blank conversation for a bare agent route", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -412,6 +414,43 @@ describe("AgentChatShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:demo-agent",
+    });
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
+    );
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:load-chat",
+      }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("dispatches a new blank conversation event after an explicit new chat route is ready", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([new URLSearchParams("newChat=1&newChatRequest=123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
@@ -438,6 +477,19 @@ describe("AgentChatShell", () => {
     );
 
     useEffectSpy.mockRestore();
+  });
+
+  it("uses newChatRequest to retrigger explicit new chat routes for the same agent", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "src", "app", "layout", "AgentChatShell.tsx"),
+      "utf8",
+    );
+
+    expect(source).toMatch(/const routeNewChatRequest = useMemo/);
+    expect(source).toMatch(/searchParams\.get\("newChatRequest"\)/);
+    expect(source).toMatch(/const routeNewChatKey = `\$\{agentKey\}\\u0000\$\{routeNewChatRequest \|\| "new"\}`;/);
+    expect(source).toMatch(/lastInitializedAgentKeyRef\.current === routeNewChatKey/);
+    expect(source).toMatch(/lastInitializedAgentKeyRef\.current = routeNewChatKey/);
   });
 
   it("loads a chat when chatId is present in the query string", () => {
