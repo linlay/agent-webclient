@@ -43,7 +43,7 @@ export interface SlashCommandAvailability {
   hasCurrentWorker: boolean;
   workerHistoryCount: number;
   workerCount: number;
-  commandModalOpen: boolean;
+  commandOverlayOpen: boolean;
   canShowUsage: boolean;
 }
 
@@ -227,7 +227,7 @@ export function isSlashCommandDisabled(
     return availability.streaming || !availability.hasLatestQuery;
   }
   if (commandId === 'remember' || commandId === 'learn' || commandId === 'compact') {
-    return availability.streaming || !availability.hasActiveChat || availability.commandModalOpen;
+    return availability.streaming || !availability.hasActiveChat || availability.commandOverlayOpen;
   }
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
@@ -236,13 +236,13 @@ export function isSlashCommandDisabled(
     return !availability.canUsePlanningMode;
   }
   if (commandId === 'automation' || commandId === 'detail') {
-    return !availability.hasCurrentWorker || availability.commandModalOpen;
+    return !availability.hasCurrentWorker || availability.commandOverlayOpen;
   }
   if (commandId === 'history') {
-    return !availability.hasCurrentWorker || availability.commandModalOpen;
+    return !availability.hasCurrentWorker || availability.commandOverlayOpen;
   }
   if (commandId === 'switch') {
-    return availability.workerCount === 0 || availability.commandModalOpen;
+    return availability.workerCount === 0 || availability.commandOverlayOpen;
   }
   if (commandId === 'usage') {
     return !availability.canShowUsage;

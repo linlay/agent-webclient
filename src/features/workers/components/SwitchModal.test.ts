@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SwitchModal } from "@/app/modals/SwitchModal";
+import { SwitchModal } from "@/features/workers/components/SwitchModal";
 import type { WorkerRow } from "@/app/state/types";
 
 jest.mock("@/shared/i18n", () => ({

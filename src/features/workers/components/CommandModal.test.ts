@@ -1,10 +1,21 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CommandModal } from "@/app/modals/CommandModal";
+import { CommandModal } from "@/features/workers/components/CommandModal";
+import { createCommandOverlayState } from "@/features/workers/lib/commandOverlay";
 import { createInitialState } from "@/app/state/state";
 import type { AppState, WorkerRow } from "@/app/state/types";
 
 const mockSwitchProps: any[] = [];
+
+jest.mock("antd", () => {
+  const actual = jest.requireActual("antd");
+  const React = require("react");
+  return {
+    ...actual,
+    Modal: ({ children, className, open }: any) =>
+      open ? React.createElement("section", { className }, children) : null,
+  };
+});
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppState: jest.fn(),
@@ -24,7 +35,7 @@ jest.mock("antd/es/app/useApp", () => ({
   }),
 }));
 
-jest.mock("@/app/modals/SwitchModal", () => {
+jest.mock("@/features/workers/components/SwitchModal", () => {
   const React = require("react");
   return {
     SWITCH_SCOPES: [
@@ -104,12 +115,18 @@ function createSwitchState(): AppState {
     workerRows: [worker],
     workerIndexByKey: new Map([[worker.key, worker]]),
     workerSelectionKey: worker.key,
-    commandModal: {
-      ...state.commandModal,
-      open: true,
-      type: "switch",
-    },
   };
+}
+
+function renderCommandModal(props: Partial<React.ComponentProps<typeof CommandModal>> = {}) {
+  return renderToStaticMarkup(
+    React.createElement(CommandModal, {
+      modal: createCommandOverlayState({ type: "switch" }),
+      onPatch: jest.fn(),
+      onClose: jest.fn(),
+      ...props,
+    }),
+  );
 }
 
 describe("CommandModal", () => {
@@ -134,9 +151,7 @@ describe("CommandModal", () => {
   });
 
   it("passes Copilot variant and worker icons into SwitchModal", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(CommandModal, { variant: "copilot" }),
-    );
+    const html = renderCommandModal({ variant: "copilot" });
 
     expect(html).toContain('data-variant="copilot"');
     expect(mockSwitchProps).toHaveLength(1);
@@ -148,7 +163,7 @@ describe("CommandModal", () => {
   });
 
   it("keeps SwitchModal default variant for desktop CommandModal", () => {
-    renderToStaticMarkup(React.createElement(CommandModal));
+    renderCommandModal();
 
     expect(mockSwitchProps).toHaveLength(1);
     expect(mockSwitchProps[0].variant).toBe("default");

@@ -126,7 +126,7 @@ describe('slashCommands', () => {
       hasCurrentWorker: false,
       workerHistoryCount: 0,
       workerCount: 0,
-      commandModalOpen: false,
+      commandOverlayOpen: false,
       canShowUsage: false,
     };
 
@@ -153,7 +153,7 @@ describe('slashCommands', () => {
       hasCurrentWorker: true,
       workerHistoryCount: 0,
       workerCount: 1,
-      commandModalOpen: false,
+      commandOverlayOpen: false,
       canShowUsage: true,
     };
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import { Modal } from "antd";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import type {
   ConversationMode,
@@ -31,7 +32,15 @@ import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebu
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 
-export const SettingsModal: React.FC = () => {
+interface SettingsModalProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  open = true,
+  onClose,
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { locale, setLocale, t } = useI18n();
@@ -75,7 +84,7 @@ export const SettingsModal: React.FC = () => {
 
   const handleSave = () => {
     if (appMode) {
-      dispatch({ type: "SET_SETTINGS_OPEN", open: false });
+      onClose?.();
       return;
     }
     const token = tokenInput.trim();
@@ -85,7 +94,7 @@ export const SettingsModal: React.FC = () => {
     getVoiceRuntime()?.resetVoiceRuntime();
     window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
     setError("");
-    dispatch({ type: "SET_SETTINGS_OPEN", open: false });
+    onClose?.();
   };
 
   const handleTtsDebugSend = async (textInput: string) => {
@@ -195,17 +204,9 @@ export const SettingsModal: React.FC = () => {
   );
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      dispatch({ type: "SET_SETTINGS_OPEN", open: false });
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [dispatch]);
-
-  useEffect(() => {
+    if (!open) return;
     setClientGateDrafts(formatClientGateDraftState(state.voiceChat.clientGate));
-  }, [state.settingsOpen]);
+  }, [open]);
 
   useEffect(() => {
     setTokenInput(
@@ -216,7 +217,7 @@ export const SettingsModal: React.FC = () => {
   }, [appMode, state.accessToken]);
 
   useEffect(() => {
-    if (!state.settingsOpen) return;
+    if (!open) return;
     setClientGateDrafts((current) =>
       syncClientGateDraftState(
         current,
@@ -224,22 +225,20 @@ export const SettingsModal: React.FC = () => {
         activeClientGateFieldRef.current,
       ),
     );
-  }, [state.settingsOpen, state.voiceChat.clientGate]);
+  }, [open, state.voiceChat.clientGate]);
 
   return (
-    <div className="modal" id="settings-modal">
-      <div className="modal-card settings-card">
-        <div className="settings-head">
-          <h3>{t("settings.title")}</h3>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            onClick={() => dispatch({ type: "SET_SETTINGS_OPEN", open: false })}
-          >
-            {t("settings.close")}
-          </UiButton>
-        </div>
-
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+      getContainer={false}
+      width="min(920px, calc(100vw - 32px))"
+      className="settings-modal"
+      title={t("settings.title")}
+    >
+      <div className="settings-card">
         <div className="settings-preferences-grid">
           <div className="field-group">
             <label>{t("settings.conversationMode.label")}</label>
@@ -403,7 +402,7 @@ export const SettingsModal: React.FC = () => {
             />
 
             <SettingsTtsDebug
-              settingsOpen={state.settingsOpen}
+              active={open}
               ttsDebugStatus={state.ttsDebugStatus}
               onSend={(text) => void handleTtsDebugSend(text)}
               onStop={handleTtsDebugStop}
@@ -430,6 +429,6 @@ export const SettingsModal: React.FC = () => {
           </>
         ) : null}
       </div>
-    </div>
+    </Modal>
   );
 };

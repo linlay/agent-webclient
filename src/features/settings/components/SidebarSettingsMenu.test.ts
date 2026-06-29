@@ -2,7 +2,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   buildSidebarSettingsMenuSections,
-  dispatchSidebarSettingsAction,
   resolveSettingsSummaryBadges,
   SidebarSettingsMenu,
 } from "@/features/settings/components/SidebarSettingsMenu";
@@ -64,31 +63,6 @@ describe("buildSidebarSettingsMenuSections", () => {
     const sections = buildSidebarSettingsMenuSections({});
     const labels = sections[0]?.items.map((item) => item.label) || [];
     expect(labels).not.toContain("记忆信息");
-  });
-});
-
-describe("dispatchSidebarSettingsAction", () => {
-  it("dispatches open-settings, open-memory-info, open-archive, and ignores placeholders", () => {
-    const dispatch = jest.fn();
-
-    expect(
-      dispatchSidebarSettingsAction({ type: "open-settings" }, dispatch),
-    ).toBe(true);
-    expect(
-      dispatchSidebarSettingsAction({ type: "open-memory-info" }, dispatch),
-    ).toBe(true);
-    expect(
-      dispatchSidebarSettingsAction({ type: "open-archive" }, dispatch),
-    ).toBe(true);
-    expect(dispatchSidebarSettingsAction({ type: "noop" }, dispatch)).toBe(
-      false,
-    );
-
-    expect(dispatch.mock.calls).toEqual([
-      [{ type: "SET_SETTINGS_OPEN", open: true }],
-      [{ type: "SET_MEMORY_INFO_OPEN", open: true }],
-      [{ type: "SET_ARCHIVE_OPEN", open: true }],
-    ]);
   });
 });
 

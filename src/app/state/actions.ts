@@ -80,10 +80,8 @@ export type AppAction =
 	| { type: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
-	| { type: "SET_SETTINGS_OPEN"; open: boolean }
-	| { type: "SET_ARCHIVE_OPEN"; open: boolean }
-	| { type: "SET_MEMORY_INFO_OPEN"; open: boolean }
 	| { type: "SET_MEMORY_CONSOLE_TAB"; tab: MemoryConsoleTab }
+	| { type: "RESET_MEMORY_INFO_SESSION" }
 	| { type: "SET_MEMORY_INFO_LOADING"; loading: boolean }
 	| { type: "SET_MEMORY_INFO_ERROR"; error: string }
 	| {
@@ -204,21 +202,6 @@ export type AppAction =
 	  }
 	| { type: "SET_COMMAND_STATUS_OVERLAY_TIMER"; timer: UiTimerHandle | null }
 	| { type: "HIDE_COMMAND_STATUS_OVERLAY" }
-	| {
-			type: "OPEN_COMMAND_MODAL";
-			modal: {
-				type: "history" | "switch" | "detail" | "automation" | "agents";
-				searchText?: string;
-				historySearch?: string;
-				activeIndex?: number;
-				scope?: "all" | "agent" | "team";
-				focusArea?: "search" | "list";
-				automationTask?: string;
-				automationRule?: string;
-			};
-	  }
-	| { type: "PATCH_COMMAND_MODAL"; modal: Partial<AppState["commandModal"]> }
-	| { type: "CLOSE_COMMAND_MODAL" }
 	| { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
 	| {
 			type: "PATCH_CONTENT_TTS_VOICE_BLOCK";

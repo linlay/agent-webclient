@@ -545,7 +545,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(removed.pendingSteers).toEqual({});
   });
 
-  it('manages memory info modal state while preserving filters on close', () => {
+  it('resets memory info session state while preserving filters', () => {
     const baseState = createInitialState();
 
     const withFilters = appReducer(baseState, {
@@ -555,11 +555,7 @@ describe('appReducer conversation reset behavior', () => {
         limit: 30,
       },
     });
-    const opened = appReducer(withFilters, {
-      type: 'SET_MEMORY_INFO_OPEN',
-      open: true,
-    });
-    const previewTab = appReducer(opened, {
+    const previewTab = appReducer(withFilters, {
       type: 'SET_MEMORY_CONSOLE_TAB',
       tab: 'preview',
     });
@@ -602,11 +598,9 @@ describe('appReducer conversation reset behavior', () => {
       memoryPreviewPromptLayer: 'session' as const,
     };
     const closed = appReducer(busyState, {
-      type: 'SET_MEMORY_INFO_OPEN',
-      open: false,
+      type: 'RESET_MEMORY_INFO_SESSION',
     });
 
-    expect(closed.memoryInfoOpen).toBe(false);
     expect(closed.memoryInfoFilters.keyword).toBe('bugfix');
     expect(closed.memoryInfoFilters.limit).toBe(30);
     expect(closed.memoryInfoLoading).toBe(false);
@@ -619,7 +613,6 @@ describe('appReducer conversation reset behavior', () => {
     expect(closed.memoryPreviewError).toBe('');
     expect(closed.memoryPreviewResult).toBeNull();
     expect(closed.memoryPreviewPromptLayer).toBe('stable');
-    expect(opened.memoryConsoleTab).toBe('records');
     expect(previewTab.memoryConsoleTab).toBe('preview');
     expect(baseState.memoryPreferenceActiveScopeType).toBe('agent');
   });
@@ -1173,67 +1166,6 @@ describe('appReducer conversation reset behavior', () => {
       viewportKey: 'leave_form',
       loading: false,
       viewportHtml: '<html><body>ready</body></html>',
-    });
-  });
-
-  it('opens, updates, and closes the command modal state', () => {
-    const baseState = createInitialState();
-
-    const opened = appReducer(baseState, {
-      type: 'OPEN_COMMAND_MODAL',
-      modal: {
-        type: 'switch',
-        searchText: 'alice',
-      },
-    });
-    const patched = appReducer(opened, {
-      type: 'PATCH_COMMAND_MODAL',
-      modal: {
-        activeIndex: 2,
-        scope: 'team',
-      },
-    });
-    const closed = appReducer(patched, {
-      type: 'CLOSE_COMMAND_MODAL',
-    });
-
-    expect(opened.commandModal).toMatchObject({
-      open: true,
-      type: 'switch',
-      searchText: 'alice',
-      activeIndex: 0,
-      scope: 'all',
-      focusArea: 'search',
-    });
-    expect(patched.commandModal).toMatchObject({
-      open: true,
-      type: 'switch',
-      searchText: 'alice',
-      activeIndex: 2,
-      scope: 'team',
-      focusArea: 'search',
-    });
-    expect(closed.commandModal).toMatchObject({
-      open: false,
-      type: null,
-      searchText: '',
-      activeIndex: 0,
-      scope: 'all',
-      focusArea: 'search',
-    });
-  });
-
-  it('opens the agent management command modal', () => {
-    const opened = appReducer(createInitialState(), {
-      type: 'OPEN_COMMAND_MODAL',
-      modal: {
-        type: 'agents',
-      },
-    });
-
-    expect(opened.commandModal).toMatchObject({
-      open: true,
-      type: 'agents',
     });
   });
 

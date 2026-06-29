@@ -9,6 +9,16 @@ import {
 } from "@/shared/data/memoryTypes";
 import { MemoryInfoModalView } from "@/features/settings/components/MemoryInfoModal";
 
+jest.mock("antd", () => {
+  const actual = jest.requireActual("antd");
+  const React = require("react");
+  return {
+    ...actual,
+    Modal: ({ children, className, open }: any) =>
+      open ? React.createElement("section", { className }, children) : null,
+  };
+});
+
 function renderView(
   overrides: Partial<React.ComponentProps<typeof MemoryInfoModalView>> = {},
 ) {

@@ -22,6 +22,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Divider, Flex, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
+import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
+import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -434,6 +436,8 @@ export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const { isAnyOverlayOpen } = useSettingsOverlayState();
+  const isCommandOverlayOpen = useCommandOverlayOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
@@ -504,12 +508,12 @@ export const TopNav: React.FC = () => {
   }, [dispatch]);
 
   React.useEffect(() => {
-    if (state.settingsOpen || state.commandModal.open) return;
+    if (isAnyOverlayOpen || isCommandOverlayOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return;
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest(".modal")) {
+      if (target instanceof HTMLElement && target.closest(".modal, .ant-modal")) {
         return;
       }
 
@@ -538,9 +542,9 @@ export const TopNav: React.FC = () => {
   }, [
     handleStartVoiceMode,
     handleHangupVoiceMode,
+    isAnyOverlayOpen,
+    isCommandOverlayOpen,
     isMacPlatform,
-    state.commandModal.open,
-    state.settingsOpen,
   ]);
 
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {

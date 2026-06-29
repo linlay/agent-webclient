@@ -28,11 +28,12 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import {
-  dispatchSidebarSettingsAction,
   resolveSettingsSummaryBadges,
   SidebarSettingsMenu,
   type SidebarSettingsMenuAction,
 } from "@/features/settings/components/SidebarSettingsMenu";
+import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
+import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
 import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
@@ -203,6 +204,8 @@ export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef, stateRef } = useAppContext();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { openOverlay } = useSettingsOverlayActions();
+  const { openCommandOverlay } = useCommandOverlayActions();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
   const memoryEnabled = isMemoryEnabled();
@@ -630,10 +633,15 @@ export const LeftSidebar: React.FC = () => {
       setSettingsMenuOpen(false);
       return;
     }
-
-    const shouldClose = dispatchSidebarSettingsAction(action, dispatch);
-    if (shouldClose) {
+    if (action.type === "open-settings") {
+      openOverlay("settings");
       setSettingsMenuOpen(false);
+      return;
+    }
+    if (action.type === "open-memory-info") {
+      openOverlay("memoryInfo");
+      setSettingsMenuOpen(false);
+      return;
     }
   };
 
@@ -941,12 +949,7 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    dispatch({
-                      type: "OPEN_COMMAND_MODAL",
-                      modal: { type: "automation" },
-                    });
-                  }}
+                  onClick={() => openCommandOverlay({ type: "automation" })}
                 >
                   <MaterialIcon name="schedule" />
                   <Flex gap={2} align="center">
@@ -958,9 +961,7 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true })
-                  }
+                  onClick={() => openOverlay("memoryInfo")}
                 >
                   <MaterialIcon name="psychology" />
                   <Flex gap={2} align="center">
@@ -972,12 +973,7 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    dispatch({
-                      type: "OPEN_COMMAND_MODAL",
-                      modal: { type: "agents" },
-                    });
-                  }}
+                  onClick={() => openCommandOverlay({ type: "agents" })}
                 >
                   <MaterialIcon name="robot_2" />
                   <Flex gap={2} align="center">

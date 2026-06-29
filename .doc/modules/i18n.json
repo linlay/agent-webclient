@@ -45,10 +45,9 @@
     "dependencies": [],
     "dependents": [],
     "tests": [
-      "src/shared/i18n/provider.test.tsx",
       "src/shared/i18n/runtime.test.ts"
     ],
-    "lastScannedAt": "2026-06-28T14:21:14Z"
+    "lastScannedAt": "2026-06-29T03:50:50Z"
   },
   "readHints": {
     "alwaysRead": [],

@@ -2,7 +2,6 @@ import type { AppState } from "@/app/state/types";
 
 export function selectUiState(state: AppState) {
   return {
-    settingsOpen: state.settingsOpen,
     leftDrawerOpen: state.leftDrawerOpen,
     rightSidebarOpen: state.rightSidebarOpen,
     terminalDockOpen: state.terminalDockOpen,

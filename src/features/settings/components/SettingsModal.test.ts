@@ -9,6 +9,23 @@ import {
   I18nProvider,
 } from "@/shared/i18n";
 
+jest.mock("antd", () => {
+  const actual = jest.requireActual("antd");
+  const React = require("react");
+  return {
+    ...actual,
+    Modal: ({ children, className, open, title }: any) =>
+      open
+        ? React.createElement(
+            "section",
+            { className },
+            title ? React.createElement("h2", null, title) : null,
+            children,
+          )
+        : null,
+  };
+});
+
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
   return {

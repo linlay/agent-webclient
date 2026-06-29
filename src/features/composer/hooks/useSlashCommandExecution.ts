@@ -1,7 +1,14 @@
 import { useCallback } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
-import { type SlashCommandAvailability, type SlashCommandId, isSlashCommandDisabled, isSlashCommandFeatureEnabled } from "@/features/composer/lib/slashCommands";
+import {
+	type SlashCommandAvailability,
+	type SlashCommandId,
+	isSlashCommandDisabled,
+	isSlashCommandFeatureEnabled,
+} from "@/features/composer/lib/slashCommands";
+import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
+import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
 
 export function useSlashCommandExecution(input: {
 	slashAvailability: SlashCommandAvailability;
@@ -15,7 +22,10 @@ export function useSlashCommandExecution(input: {
 	submitCompactCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
-	state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen">;
+	state: Pick<
+		AppState,
+		"rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen"
+	>;
 }) {
 	const {
 		slashAvailability,
@@ -31,6 +41,8 @@ export function useSlashCommandExecution(input: {
 		setSlashDismissed,
 		state,
 	} = input;
+	const { openOverlay } = useSettingsOverlayActions();
+	const { openCommandOverlay } = useCommandOverlayActions();
 
 	return useCallback(
 		async (commandId: SlashCommandId) => {
@@ -56,28 +68,16 @@ export function useSlashCommandExecution(input: {
 					await submitCompactCommand();
 					return;
 				case "automation":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "automation" },
-					});
+					openCommandOverlay({ type: "automation" });
 					return;
 				case "detail":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "detail" },
-					});
+					openCommandOverlay({ type: "detail" });
 					return;
 				case "history":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "history" },
-					});
+					openCommandOverlay({ type: "history" });
 					return;
 				case "switch":
-					dispatch({
-						type: "OPEN_COMMAND_MODAL",
-						modal: { type: "switch" },
-					});
+					openCommandOverlay({ type: "switch" });
 					return;
 				case "new":
 					resetForNewConversation();
@@ -100,7 +100,7 @@ export function useSlashCommandExecution(input: {
 					toggleVoiceMode();
 					return;
 				case "settings":
-					dispatch({ type: "SET_SETTINGS_OPEN", open: true });
+					openOverlay("settings");
 					return;
 				case "plan":
 					dispatch({
@@ -131,6 +131,8 @@ export function useSlashCommandExecution(input: {
 			submitCompactCommand,
 			submitRememberCommand,
 			toggleVoiceMode,
+			openCommandOverlay,
+			openOverlay,
 		],
 	);
 }

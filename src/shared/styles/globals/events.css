@@ -236,28 +236,13 @@
     z-index: 80;
 }
 
-.modal-card.event-popover-system-card {
-    width: min(78vw, 980px);
-    max-width: calc(100vw - 24px);
+.event-popover-system-card {
+    width: 100%;
     max-height: calc(100vh - 48px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 0;
-}
-
-.event-popover-system-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid var(--line-soft);
-}
-
-.event-popover-system-head h3 {
-    margin: 0;
-    font-size: 15px;
 }
 
 .event-popover-system-body {

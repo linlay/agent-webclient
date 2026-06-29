@@ -8,6 +8,14 @@ import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
+import {
+  SettingsOverlayProvider,
+  useSettingsOverlayActions,
+} from "@/features/settings/components/SettingsOverlayProvider";
+import {
+  CommandOverlayProvider,
+  useCommandOverlayActions,
+} from "@/features/workers/components/CommandOverlayProvider";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
@@ -23,6 +31,8 @@ const CopilotTopBar: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const { openOverlay } = useSettingsOverlayActions();
+  const { openCommandOverlay } = useCommandOverlayActions();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const debugPanelEnabled = isDebugPanelEnabled();
@@ -58,12 +68,7 @@ const CopilotTopBar: React.FC = () => {
             iconOnly
             aria-label={t("commandModal.switch.title")}
             title={t("commandModal.switch.title")}
-            onClick={() =>
-              dispatch({
-                type: "OPEN_COMMAND_MODAL",
-                modal: { type: "switch" },
-              })
-            }
+            onClick={() => openCommandOverlay({ type: "switch" })}
           >
             <MaterialIcon name="swap_horiz" />
           </UiButton>
@@ -95,12 +100,7 @@ const CopilotTopBar: React.FC = () => {
             iconOnly
             aria-label={t("commandModal.history.title")}
             title={t("commandModal.history.title")}
-            onClick={() =>
-              dispatch({
-                type: "OPEN_COMMAND_MODAL",
-                modal: { type: "history" },
-              })
-            }
+            onClick={() => openCommandOverlay({ type: "history" })}
           >
             <MaterialIcon name="history" />
           </UiButton>
@@ -136,7 +136,7 @@ const CopilotTopBar: React.FC = () => {
             iconOnly
             aria-label={t("settings.title")}
             title={t("settings.title")}
-            onClick={() => dispatch({ type: "SET_SETTINGS_OPEN", open: true })}
+            onClick={() => openOverlay("settings")}
           >
             <MaterialIcon name="settings" />
           </UiButton>
@@ -334,12 +334,16 @@ export const CopilotShell: React.FC = () => {
   }, [location.pathname, navigate]);
 
   return (
-    <div className="app-shell layout-copilot" id="app">
-      <CopilotTopBar />
-      <ConversationStage showEmptyState={false} />
-      <BottomDock mode="copilot" />
-      <CopilotSidePanel />
-      <ShellOverlays commandModalVariant="copilot" />
-    </div>
+    <SettingsOverlayProvider>
+      <CommandOverlayProvider>
+        <div className="app-shell layout-copilot" id="app">
+          <CopilotTopBar />
+          <ConversationStage showEmptyState={false} />
+          <BottomDock mode="copilot" />
+          <CopilotSidePanel />
+          <ShellOverlays commandOverlayVariant="copilot" />
+        </div>
+      </CommandOverlayProvider>
+    </SettingsOverlayProvider>
   );
 };

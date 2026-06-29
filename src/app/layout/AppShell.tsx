@@ -6,6 +6,8 @@ import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
+import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
+import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import {
@@ -38,23 +40,27 @@ export const AppShell: React.FC = () => {
 	}, [timelineEntries, state.events]);
 
 	return (
-		<div
-			className={`app-shell layout-desktop-fixed ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
-			id="app"
-		>
-			<TopNav />
-			<LeftSidebar />
-			<ConversationStage />
-			<RightSidebar />
-			<BottomDock />
-			{state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
-				<TerminalDock
-					agentKey={currentWorker.sourceId}
-					chatId={state.chatId}
-					workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-				/>
-			) : null}
-			<ShellOverlays />
-		</div>
+		<SettingsOverlayProvider>
+			<CommandOverlayProvider>
+				<div
+					className={`app-shell layout-desktop-fixed ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
+					id="app"
+				>
+					<TopNav />
+					<LeftSidebar />
+					<ConversationStage />
+					<RightSidebar />
+					<BottomDock />
+					{state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
+						<TerminalDock
+							agentKey={currentWorker.sourceId}
+							chatId={state.chatId}
+							workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+						/>
+					) : null}
+					<ShellOverlays />
+				</div>
+			</CommandOverlayProvider>
+		</SettingsOverlayProvider>
 	);
 };

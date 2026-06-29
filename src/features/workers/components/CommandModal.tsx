@@ -1,22 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { Modal } from "antd";
 import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
+import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
 import {
   buildCurrentWorkerDetailView,
   buildWorkerSwitchRows,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
-import { CommandModalHeader } from "@/app/modals/CommandModalHeader";
-import { DetailModal } from "@/app/modals/DetailModal";
+import { DetailModal } from "@/features/workers/components/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { AutomationModal } from "@/app/modals/AutomationModal";
-import { SWITCH_SCOPES, SwitchModal } from "@/app/modals/SwitchModal";
+import { SWITCH_SCOPES, SwitchModal } from "@/features/workers/components/SwitchModal";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import {
   markChatRead,
   searchGlobal,
 } from "@/shared/data";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
+import { useI18n } from "@/shared/i18n";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -41,44 +43,58 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
 }
 
 interface CommandModalProps {
+  modal: CommandOverlayState;
+  onPatch: (patch: Partial<CommandOverlayState>) => void;
+  onClose: (restoreComposerFocus?: boolean) => void;
   variant?: "default" | "copilot";
 }
 
 export const CommandModal: React.FC<CommandModalProps> = ({
+  modal,
+  onPatch,
+  onClose,
   variant = "default",
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const historyInputRef = useRef<HTMLInputElement>(null);
   const switchListRef = useRef<HTMLDivElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const switchItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const switchItemRefs = useRef<Array<HTMLElement | null>>([]);
+  const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyDefaultSelectionAppliedRef = useRef(false);
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<
     WorkerConversationRow[] | null
   >(null);
 
-  const modal = state.commandModal;
   const currentWorker = useMemo(
-    () => resolveCurrentWorkerSummary(state),
-    [state],
+    () => (modal.type === "agents" ? null : resolveCurrentWorkerSummary(state)),
+    [modal.type, state],
   );
+  const currentWorkerKey = currentWorker?.key || "";
   const currentWorkerType = currentWorker?.type || "";
   const currentWorkerSourceId = currentWorker?.sourceId || "";
   const detailView = useMemo(
-    () => (currentWorker ? buildCurrentWorkerDetailView(currentWorker) : null),
-    [currentWorker],
+    () =>
+      modal.type === "detail" && currentWorker
+        ? buildCurrentWorkerDetailView(currentWorker)
+        : null,
+    [currentWorker, modal.type],
   );
   const switchRows = useMemo(
     () =>
-      buildWorkerSwitchRows(state.workerRows, modal.scope, modal.searchText),
-    [modal.scope, modal.searchText, state.workerRows],
+      modal.type === "switch"
+        ? buildWorkerSwitchRows(state.workerRows, modal.scope, modal.searchText)
+        : [],
+    [modal.scope, modal.searchText, modal.type, state.workerRows],
   );
   const workerIconsByKey = useMemo(() => {
+    if (modal.type !== "switch") {
+      return undefined;
+    }
     const icons = new Map<string, Agent["icon"] | Team["icon"]>();
     for (const agent of state.agents) {
       icons.set(`agent:${agent.key}`, agent.icon);
@@ -87,9 +103,12 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       icons.set(`team:${team.teamId}`, team.icon);
     }
     return icons;
-  }, [state.agents, state.teams]);
+  }, [modal.type, state.agents, state.teams]);
 
   const workerChatsByKey = useMemo(() => {
+    if (modal.type !== "history") {
+      return null;
+    }
     const chatsByKey = new Map<string, WorkerConversationRow[]>();
     for (const row of state.workerRows) {
       chatsByKey.set(
@@ -101,9 +120,13 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       );
     }
     return chatsByKey;
-  }, [state.chats, state.workerRows]);
+  }, [modal.type, state.chats, state.workerRows]);
   const filteredHistoryRows = useMemo(() => {
-    const rows = workerChatsByKey.get(currentWorker?.key || "") || [];
+    if (modal.type !== "history") {
+      return [];
+    }
+    const rows =
+      remoteHistoryRows ?? workerChatsByKey?.get(currentWorkerKey) ?? [];
     const search = String(modal.historySearch || "")
       .trim()
       .toLowerCase();
@@ -114,7 +137,13 @@ export const CommandModal: React.FC<CommandModalProps> = ({
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [currentWorker, modal.historySearch, remoteHistoryRows]);
+  }, [
+    currentWorkerKey,
+    modal.historySearch,
+    modal.type,
+    remoteHistoryRows,
+    workerChatsByKey,
+  ]);
   const switchIndex = clampIndex(modal.activeIndex, switchRows.length);
   const historyIndex = clampIndex(
     modal.activeIndex,
@@ -122,10 +151,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   );
 
   const closeModal = (restoreComposerFocus = true) => {
-    dispatch({ type: "CLOSE_COMMAND_MODAL" });
-    if (restoreComposerFocus) {
-      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
-    }
+    onClose(restoreComposerFocus);
   };
 
   const selectHistory = (index: number) => {
@@ -192,11 +218,11 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       return;
     }
     if (modal.type === "automation") {
-      closeButtonRef.current?.focus();
+      cardRef.current?.focus();
       return;
     }
     if (modal.type === "detail") {
-      closeButtonRef.current?.focus();
+      cardRef.current?.focus();
       return;
     }
     cardRef.current?.focus();
@@ -219,17 +245,14 @@ export const CommandModal: React.FC<CommandModalProps> = ({
 
     historyDefaultSelectionAppliedRef.current = true;
     if (modal.activeIndex === currentChatIndex) return;
-    dispatch({
-      type: "PATCH_COMMAND_MODAL",
-      modal: { activeIndex: currentChatIndex },
-    });
+    onPatch({ activeIndex: currentChatIndex });
   }, [
-    dispatch,
     filteredHistoryRows,
     modal.activeIndex,
     modal.historySearch,
     modal.open,
     modal.type,
+    onPatch,
     state.chatId,
   ]);
 
@@ -245,6 +268,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       setRemoteHistoryRows(null);
       return;
     }
+    setRemoteHistoryRows(null);
     const timer = window.setTimeout(() => {
       const params =
         currentWorkerType === "team"
@@ -302,66 +326,55 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     modal.type === "automation" || modal.type === "agents"
       ? ""
       : currentWorker
-        ? `${currentWorker.type === "team" ? "小组" : "员工"} · ${currentWorker.displayName}`
-        : "当前未选中员工";
+        ? `${currentWorker.type === "team" ? t("switch.workerType.team") : t("switch.workerType.agent")} · ${currentWorker.displayName}`
+        : t("topNav.noSelection");
+  const isConsoleModal = modal.type === "automation" || modal.type === "agents";
+  const titleKey =
+    modal.type === "history"
+      ? "commandModal.history.title"
+      : modal.type === "switch"
+        ? "commandModal.switch.title"
+        : modal.type === "detail"
+          ? "commandModal.detail.title"
+          : modal.type === "automation"
+            ? "commandModal.automation.title"
+            : "commandModal.agents.title";
+  const title = (
+    <div className="command-modal-title">
+      <span>{t(titleKey)}</span>
+      {subtitle ? <p className="command-modal-subtitle">{subtitle}</p> : null}
+    </div>
+  );
+
   return (
-    <div
-      className="modal"
-      id="command-modal"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) closeModal();
-      }}
+    <Modal
+      open={modal.open}
+      onCancel={() => closeModal()}
+      title={title}
+      footer={null}
+      destroyOnHidden
+      getContainer={false}
+      width={
+        isConsoleModal
+          ? "min(1120px, calc(100vw - 32px))"
+          : "min(780px, calc(100vw - 32px))"
+      }
+      className={`command-modal ${isConsoleModal ? "is-automation-console" : ""}`.trim()}
     >
       <div
-	        ref={cardRef}
-	        className={`modal-card command-modal-card ${modal.type === "automation" || modal.type === "agents" ? "is-automation-console" : ""}`}
+        ref={cardRef}
+        className={`command-modal-card ${isConsoleModal ? "is-automation-console" : ""}`}
         tabIndex={-1}
         onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            closeModal();
-            return;
-          }
-
           if (modal.type === "history") {
             const target = event.target;
-            if (event.key === "Tab") {
-              event.preventDefault();
-              if (event.shiftKey) {
-                if (target === closeButtonRef.current) {
-                  historyListRef.current?.focus();
-                  return;
-                }
-                if (includesTarget(historyListRef.current, target)) {
-                  historyInputRef.current?.focus();
-                  historyInputRef.current?.select();
-                  return;
-                }
-                closeButtonRef.current?.focus();
-                return;
-              }
-              if (target === historyInputRef.current) {
-                historyListRef.current?.focus();
-                return;
-              }
-              if (includesTarget(historyListRef.current, target)) {
-                closeButtonRef.current?.focus();
-                return;
-              }
-              historyInputRef.current?.focus();
-              historyInputRef.current?.select();
-              return;
-            }
             if (event.key === "ArrowDown" && filteredHistoryRows.length > 0) {
               event.preventDefault();
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: {
-                  activeIndex: clampIndex(
-                    modal.activeIndex + 1,
-                    filteredHistoryRows.length,
-                  ),
-                },
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex + 1,
+                  filteredHistoryRows.length,
+                ),
               });
               if (
                 target === historyInputRef.current ||
@@ -375,14 +388,11 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             }
             if (event.key === "ArrowUp" && filteredHistoryRows.length > 0) {
               event.preventDefault();
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: {
-                  activeIndex: clampIndex(
-                    modal.activeIndex - 1,
-                    filteredHistoryRows.length,
-                  ),
-                },
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex - 1,
+                  filteredHistoryRows.length,
+                ),
               });
               if (
                 event.target === historyInputRef.current ||
@@ -402,24 +412,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           }
 
           if (modal.type === "switch") {
-            if (event.key === "Tab") {
-              event.preventDefault();
-              const nextFocusArea =
-                modal.focusArea === "search" ? "list" : "search";
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { focusArea: nextFocusArea },
-              });
-              window.requestAnimationFrame(() => {
-                if (nextFocusArea === "search") {
-                  searchInputRef.current?.focus();
-                  searchInputRef.current?.select();
-                } else {
-                  switchListRef.current?.focus();
-                }
-              });
-              return;
-            }
             if (event.key === "ArrowRight") {
               event.preventDefault();
               const currentScopeIndex = SWITCH_SCOPES.findIndex(
@@ -428,10 +420,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
               const nextScope =
                 SWITCH_SCOPES[(currentScopeIndex + 1) % SWITCH_SCOPES.length]
                   ?.key || "all";
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { scope: nextScope, activeIndex: 0 },
-              });
+              onPatch({ scope: nextScope, activeIndex: 0 });
               return;
             }
             if (event.key === "ArrowLeft") {
@@ -444,23 +433,17 @@ export const CommandModal: React.FC<CommandModalProps> = ({
                   (currentScopeIndex - 1 + SWITCH_SCOPES.length) %
                     SWITCH_SCOPES.length
                 ]?.key || "all";
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { scope: nextScope, activeIndex: 0 },
-              });
+              onPatch({ scope: nextScope, activeIndex: 0 });
               return;
             }
             if (event.key === "ArrowDown" && switchRows.length > 0) {
               event.preventDefault();
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: {
-                  activeIndex: clampIndex(
-                    modal.activeIndex + 1,
-                    switchRows.length,
-                  ),
-                  focusArea: "list",
-                },
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex + 1,
+                  switchRows.length,
+                ),
+                focusArea: "list",
               });
               window.requestAnimationFrame(() => {
                 switchListRef.current?.focus();
@@ -469,15 +452,12 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             }
             if (event.key === "ArrowUp" && switchRows.length > 0) {
               event.preventDefault();
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: {
-                  activeIndex: clampIndex(
-                    modal.activeIndex - 1,
-                    switchRows.length,
-                  ),
-                  focusArea: "list",
-                },
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex - 1,
+                  switchRows.length,
+                ),
+                focusArea: "list",
               });
               window.requestAnimationFrame(() => {
                 switchListRef.current?.focus();
@@ -494,13 +474,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           if (modal.type === "automation" || modal.type === "agents") return;
         }}
       >
-        <CommandModalHeader
-          type={modal.type}
-          subtitle={subtitle}
-          closeButtonRef={closeButtonRef}
-          onClose={() => closeModal()}
-        />
-
         {modal.type === "history" && (
           <HistoryModal
             historyRows={filteredHistoryRows}
@@ -513,17 +486,9 @@ export const CommandModal: React.FC<CommandModalProps> = ({
               if (!value.trim()) {
                 setRemoteHistoryRows(null);
               }
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { historySearch: value, activeIndex: 0 },
-              });
+              onPatch({ historySearch: value, activeIndex: 0 });
             }}
-            onActivateIndex={(index) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { activeIndex: index },
-              })
-            }
+            onActivateIndex={(index) => onPatch({ activeIndex: index })}
             onMarkAllRead={
               currentWorker?.type === "agent"
                 ? markCurrentWorkerAllRead
@@ -552,27 +517,16 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             switchListRef={switchListRef}
             switchItemRefs={switchItemRefs}
             onSearchChange={(value) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: {
-                  searchText: value,
-                  activeIndex: 0,
-                  focusArea: "search",
-                },
+              onPatch({
+                searchText: value,
+                activeIndex: 0,
+                focusArea: "search",
               })
             }
             onScopeChange={(scope) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { scope, activeIndex: 0 },
-              })
+              onPatch({ scope, activeIndex: 0 })
             }
-            onActivateIndex={(index) =>
-              dispatch({
-                type: "PATCH_COMMAND_MODAL",
-                modal: { activeIndex: index },
-              })
-            }
+            onActivateIndex={(index) => onPatch({ activeIndex: index })}
             onSelect={selectWorker}
           />
         )}
@@ -591,6 +545,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
 
         {modal.type === "agents" && <AgentConsole embedded />}
       </div>
-    </div>
+    </Modal>
   );
 };

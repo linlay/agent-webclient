@@ -25,7 +25,6 @@
   "testFiles": [
     "src/app/App.routing.test.ts",
     "src/app/layout/AgentChatShell.test.ts",
-    "src/app/layout/CommandStatusOverlay.test.tsx",
     "src/app/layout/CopilotShell.test.ts",
     "src/app/layout/LeftSidebar.test.ts",
     "src/app/layout/TerminalDock.test.ts",
@@ -36,10 +35,8 @@
     "src/app/layout/sidebar/right/RightSidebar.test.ts",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/modals/AutomationModal.test.ts",
-    "src/app/modals/CommandModal.test.ts",
     "src/app/modals/EventPopover.test.ts",
     "src/app/modals/HistoryModal.test.ts",
-    "src/app/modals/SwitchModal.test.ts",
     "src/app/pages/agents/index.test.ts",
     "src/app/pages/registries/index.test.ts",
     "src/app/routeDataTransport.test.ts",
@@ -69,7 +66,7 @@
     "src/features/composer/lib/steerSubmission.test.ts",
     "src/features/composer/lib/wonders.test.ts",
     "src/features/plan/components/PlanPanel.test.ts",
-    "src/features/settings/components/ArchiveModal.test.ts",
+    "src/features/settings/components/ArchiveConsole.test.ts",
     "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SidebarSettingsMenu.test.ts",
@@ -116,9 +113,12 @@
     "src/features/voice/lib/voiceChatTts.test.ts",
     "src/features/voice/lib/voiceRuntime.test.ts",
     "src/features/workers/components/AgentConsole.test.ts",
+    "src/features/workers/components/CommandModal.test.ts",
+    "src/features/workers/components/SwitchModal.test.ts",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
     "src/features/workers/lib/agentSummary.test.ts",
+    "src/features/workers/lib/commandOverlay.test.ts",
     "src/features/workers/lib/currentWorker.test.ts",
     "src/features/workers/lib/teamUtils.test.ts",
     "src/features/workers/lib/workerConversationFormatter.test.ts",
@@ -135,7 +135,6 @@
     "src/shared/data/serverState.test.ts",
     "src/shared/data/transportClient.test.ts",
     "src/shared/hooks/useDesktopRouteChange.test.ts",
-    "src/shared/i18n/provider.test.tsx",
     "src/shared/i18n/runtime.test.ts",
     "src/shared/icons/agent.test.ts",
     "src/shared/icons/material.test.ts",
@@ -167,7 +166,6 @@
     "src/app/layout/AgentChatShell.tsx",
     "src/app/layout/AppShell.tsx",
     "src/app/layout/BottomDock.tsx",
-    "src/app/layout/CommandStatusOverlay.test.tsx",
     "src/app/layout/CommandStatusOverlay.tsx",
     "src/app/layout/CopilotShell.test.ts",
     "src/app/layout/CopilotShell.tsx",
@@ -200,16 +198,10 @@
     "src/app/layout/sidebar/right/fileDiff.ts",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",
-    "src/app/modals/CommandModal.test.ts",
-    "src/app/modals/CommandModal.tsx",
-    "src/app/modals/CommandModalHeader.tsx",
-    "src/app/modals/DetailModal.tsx",
     "src/app/modals/EventPopover.test.ts",
     "src/app/modals/EventPopover.tsx",
     "src/app/modals/HistoryModal.test.ts",
     "src/app/modals/HistoryModal.tsx",
-    "src/app/modals/SwitchModal.test.ts",
-    "src/app/modals/SwitchModal.tsx",
     "src/app/modals/SystemPromptModal.tsx",
     "src/app/modals/lib/eventPopoverCopyMenu.ts",
     "src/app/modals/lib/eventPopoverFormatters.ts",
@@ -320,15 +312,16 @@
     "src/features/composer/lib/wonders.ts",
     "src/features/plan/components/PlanPanel.test.ts",
     "src/features/plan/components/PlanPanel.tsx",
+    "src/features/settings/components/ArchiveConsole.test.ts",
     "src/features/settings/components/ArchiveConsole.tsx",
-    "src/features/settings/components/ArchiveModal.test.ts",
-    "src/features/settings/components/ArchiveModal.tsx",
     "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/MemoryInfoModal.tsx",
     "src/features/settings/components/SettingsAsrDebug.tsx",
     "src/features/settings/components/SettingsClientGate.tsx",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SettingsModal.tsx",
+    "src/features/settings/components/SettingsOverlayHost.tsx",
+    "src/features/settings/components/SettingsOverlayProvider.tsx",
     "src/features/settings/components/SettingsToken.tsx",
     "src/features/settings/components/SettingsTransport.tsx",
     "src/features/settings/components/SettingsTtsDebug.tsx",
@@ -466,12 +459,21 @@
     "src/features/voice/lib/voiceSocket.ts",
     "src/features/workers/components/AgentConsole.test.ts",
     "src/features/workers/components/AgentConsole.tsx",
+    "src/features/workers/components/CommandModal.test.ts",
+    "src/features/workers/components/CommandModal.tsx",
+    "src/features/workers/components/CommandOverlayHost.tsx",
+    "src/features/workers/components/CommandOverlayProvider.tsx",
+    "src/features/workers/components/DetailModal.tsx",
+    "src/features/workers/components/SwitchModal.test.ts",
+    "src/features/workers/components/SwitchModal.tsx",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/hooks/useWorkerData.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
     "src/features/workers/lib/agentOrdering.ts",
     "src/features/workers/lib/agentSummary.test.ts",
     "src/features/workers/lib/agentSummary.ts",
+    "src/features/workers/lib/commandOverlay.test.ts",
+    "src/features/workers/lib/commandOverlay.ts",
     "src/features/workers/lib/currentWorker.test.ts",
     "src/features/workers/lib/currentWorker.ts",
     "src/features/workers/lib/teamUtils.test.ts",
@@ -518,7 +520,6 @@
     "src/shared/i18n/index.ts",
     "src/shared/i18n/locales/en-US.ts",
     "src/shared/i18n/locales/zh-CN.ts",
-    "src/shared/i18n/provider.test.tsx",
     "src/shared/i18n/provider.tsx",
     "src/shared/i18n/runtime.test.ts",
     "src/shared/i18n/runtime.ts",
@@ -725,10 +726,6 @@
                     "type": "file"
                   },
                   {
-                    "name": "CommandStatusOverlay.test.tsx",
-                    "type": "file"
-                  },
-                  {
                     "name": "CommandStatusOverlay.tsx",
                     "type": "file"
                   },
@@ -805,22 +802,6 @@
                     "type": "file"
                   },
                   {
-                    "name": "CommandModal.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "CommandModal.tsx",
-                    "type": "file"
-                  },
-                  {
-                    "name": "CommandModalHeader.tsx",
-                    "type": "file"
-                  },
-                  {
-                    "name": "DetailModal.tsx",
-                    "type": "file"
-                  },
-                  {
                     "name": "EventPopover.test.ts",
                     "type": "file"
                   },
@@ -834,14 +815,6 @@
                   },
                   {
                     "name": "HistoryModal.tsx",
-                    "type": "file"
-                  },
-                  {
-                    "name": "SwitchModal.test.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "SwitchModal.tsx",
                     "type": "file"
                   },
                   {
@@ -1407,15 +1380,11 @@
                     "type": "directory",
                     "children": [
                       {
+                        "name": "ArchiveConsole.test.ts",
+                        "type": "file"
+                      },
+                      {
                         "name": "ArchiveConsole.tsx",
-                        "type": "file"
-                      },
-                      {
-                        "name": "ArchiveModal.test.ts",
-                        "type": "file"
-                      },
-                      {
-                        "name": "ArchiveModal.tsx",
                         "type": "file"
                       },
                       {
@@ -1440,6 +1409,14 @@
                       },
                       {
                         "name": "SettingsModal.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SettingsOverlayHost.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SettingsOverlayProvider.tsx",
                         "type": "file"
                       },
                       {
@@ -2127,6 +2104,34 @@
                       {
                         "name": "AgentConsole.tsx",
                         "type": "file"
+                      },
+                      {
+                        "name": "CommandModal.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "CommandModal.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "CommandOverlayHost.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "CommandOverlayProvider.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "DetailModal.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SwitchModal.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SwitchModal.tsx",
+                        "type": "file"
                       }
                     ]
                   },
@@ -2162,6 +2167,14 @@
                       },
                       {
                         "name": "agentSummary.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "commandOverlay.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "commandOverlay.ts",
                         "type": "file"
                       },
                       {
@@ -2408,10 +2421,6 @@
                   },
                   {
                     "name": "index.ts",
-                    "type": "file"
-                  },
-                  {
-                    "name": "provider.test.tsx",
                     "type": "file"
                   },
                   {
@@ -2773,7 +2782,6 @@
       "src/shared/i18n/index.ts",
       "src/shared/i18n/locales/en-US.ts",
       "src/shared/i18n/locales/zh-CN.ts",
-      "src/shared/i18n/provider.test.tsx",
       "src/shared/i18n/provider.tsx",
       "src/shared/i18n/runtime.test.ts",
       "src/shared/i18n/runtime.ts",
@@ -2794,15 +2802,16 @@
       "src/features/plan/components/PlanPanel.tsx"
     ],
     "settings": [
+      "src/features/settings/components/ArchiveConsole.test.ts",
       "src/features/settings/components/ArchiveConsole.tsx",
-      "src/features/settings/components/ArchiveModal.test.ts",
-      "src/features/settings/components/ArchiveModal.tsx",
       "src/features/settings/components/MemoryInfoModal.test.ts",
       "src/features/settings/components/MemoryInfoModal.tsx",
       "src/features/settings/components/SettingsAsrDebug.tsx",
       "src/features/settings/components/SettingsClientGate.tsx",
       "src/features/settings/components/SettingsModal.test.ts",
       "src/features/settings/components/SettingsModal.tsx",
+      "src/features/settings/components/SettingsOverlayHost.tsx",
+      "src/features/settings/components/SettingsOverlayProvider.tsx",
       "src/features/settings/components/SettingsToken.tsx",
       "src/features/settings/components/SettingsTransport.tsx",
       "src/features/settings/components/SettingsTtsDebug.tsx",
@@ -2985,12 +2994,21 @@
     "workers": [
       "src/features/workers/components/AgentConsole.test.ts",
       "src/features/workers/components/AgentConsole.tsx",
+      "src/features/workers/components/CommandModal.test.ts",
+      "src/features/workers/components/CommandModal.tsx",
+      "src/features/workers/components/CommandOverlayHost.tsx",
+      "src/features/workers/components/CommandOverlayProvider.tsx",
+      "src/features/workers/components/DetailModal.tsx",
+      "src/features/workers/components/SwitchModal.test.ts",
+      "src/features/workers/components/SwitchModal.tsx",
       "src/features/workers/hooks/useWorkerData.test.ts",
       "src/features/workers/hooks/useWorkerData.ts",
       "src/features/workers/lib/agentOrdering.test.ts",
       "src/features/workers/lib/agentOrdering.ts",
       "src/features/workers/lib/agentSummary.test.ts",
       "src/features/workers/lib/agentSummary.ts",
+      "src/features/workers/lib/commandOverlay.test.ts",
+      "src/features/workers/lib/commandOverlay.ts",
       "src/features/workers/lib/currentWorker.test.ts",
       "src/features/workers/lib/currentWorker.ts",
       "src/features/workers/lib/teamUtils.test.ts",
@@ -3075,15 +3093,16 @@
     "src/features/composer/lib/wonders.ts": "composer",
     "src/features/plan/components/PlanPanel.test.ts": "plan",
     "src/features/plan/components/PlanPanel.tsx": "plan",
+    "src/features/settings/components/ArchiveConsole.test.ts": "settings",
     "src/features/settings/components/ArchiveConsole.tsx": "settings",
-    "src/features/settings/components/ArchiveModal.test.ts": "settings",
-    "src/features/settings/components/ArchiveModal.tsx": "settings",
     "src/features/settings/components/MemoryInfoModal.test.ts": "settings",
     "src/features/settings/components/MemoryInfoModal.tsx": "settings",
     "src/features/settings/components/SettingsAsrDebug.tsx": "settings",
     "src/features/settings/components/SettingsClientGate.tsx": "settings",
     "src/features/settings/components/SettingsModal.test.ts": "settings",
     "src/features/settings/components/SettingsModal.tsx": "settings",
+    "src/features/settings/components/SettingsOverlayHost.tsx": "settings",
+    "src/features/settings/components/SettingsOverlayProvider.tsx": "settings",
     "src/features/settings/components/SettingsToken.tsx": "settings",
     "src/features/settings/components/SettingsTransport.tsx": "settings",
     "src/features/settings/components/SettingsTtsDebug.tsx": "settings",
@@ -3221,12 +3240,21 @@
     "src/features/voice/lib/voiceSocket.ts": "voice",
     "src/features/workers/components/AgentConsole.test.ts": "workers",
     "src/features/workers/components/AgentConsole.tsx": "workers",
+    "src/features/workers/components/CommandModal.test.ts": "workers",
+    "src/features/workers/components/CommandModal.tsx": "workers",
+    "src/features/workers/components/CommandOverlayHost.tsx": "workers",
+    "src/features/workers/components/CommandOverlayProvider.tsx": "workers",
+    "src/features/workers/components/DetailModal.tsx": "workers",
+    "src/features/workers/components/SwitchModal.test.ts": "workers",
+    "src/features/workers/components/SwitchModal.tsx": "workers",
     "src/features/workers/hooks/useWorkerData.test.ts": "workers",
     "src/features/workers/hooks/useWorkerData.ts": "workers",
     "src/features/workers/lib/agentOrdering.test.ts": "workers",
     "src/features/workers/lib/agentOrdering.ts": "workers",
     "src/features/workers/lib/agentSummary.test.ts": "workers",
     "src/features/workers/lib/agentSummary.ts": "workers",
+    "src/features/workers/lib/commandOverlay.test.ts": "workers",
+    "src/features/workers/lib/commandOverlay.ts": "workers",
     "src/features/workers/lib/currentWorker.test.ts": "workers",
     "src/features/workers/lib/currentWorker.ts": "workers",
     "src/features/workers/lib/teamUtils.test.ts": "workers",
@@ -3273,7 +3301,6 @@
     "src/shared/i18n/index.ts": "i18n",
     "src/shared/i18n/locales/en-US.ts": "i18n",
     "src/shared/i18n/locales/zh-CN.ts": "i18n",
-    "src/shared/i18n/provider.test.tsx": "i18n",
     "src/shared/i18n/provider.tsx": "i18n",
     "src/shared/i18n/runtime.test.ts": "i18n",
     "src/shared/i18n/runtime.ts": "i18n",
@@ -3419,7 +3446,6 @@
     "src/app/layout/BottomDock.tsx": [
       "BottomDock"
     ],
-    "src/app/layout/CommandStatusOverlay.test.tsx": null,
     "src/app/layout/CommandStatusOverlay.tsx": [
       "CommandStatusOverlay"
     ],
@@ -3525,16 +3551,6 @@
       "shouldLoadAutomationAgents",
       "shouldStartAutomationConsoleBootstrap"
     ],
-    "src/app/modals/CommandModal.test.ts": null,
-    "src/app/modals/CommandModal.tsx": [
-      "CommandModal"
-    ],
-    "src/app/modals/CommandModalHeader.tsx": [
-      "CommandModalHeader"
-    ],
-    "src/app/modals/DetailModal.tsx": [
-      "DetailModal"
-    ],
     "src/app/modals/EventPopover.test.ts": null,
     "src/app/modals/EventPopover.tsx": [
       "EventPopover",
@@ -3543,11 +3559,6 @@
     "src/app/modals/HistoryModal.test.ts": null,
     "src/app/modals/HistoryModal.tsx": [
       "HistoryModal"
-    ],
-    "src/app/modals/SwitchModal.test.ts": null,
-    "src/app/modals/SwitchModal.tsx": [
-      "SWITCH_SCOPES",
-      "SwitchModal"
     ],
     "src/app/modals/SystemPromptModal.tsx": [
       "SystemPromptModal"
@@ -3842,10 +3853,6 @@
     "src/app/state/uiTypes.ts": [
       "AgentEvent",
       "ArtifactFile",
-      "CommandModalFocusArea",
-      "CommandModalScope",
-      "CommandModalState",
-      "CommandModalType",
       "CommandStatusOverlayCommandType",
       "CommandStatusOverlayPhase",
       "CommandStatusOverlayState",
@@ -4152,15 +4159,10 @@
       "PlanSummaryView",
       "buildPlanSummaryView"
     ],
+    "src/features/settings/components/ArchiveConsole.test.ts": null,
     "src/features/settings/components/ArchiveConsole.tsx": [
       "ArchiveConsole",
       "ArchiveConsoleProps",
-      "buildArchiveBulkCandidates",
-      "extractArchivePreviewLines"
-    ],
-    "src/features/settings/components/ArchiveModal.test.ts": null,
-    "src/features/settings/components/ArchiveModal.tsx": [
-      "ArchiveModal",
       "buildArchiveBulkCandidates",
       "extractArchivePreviewLines"
     ],
@@ -4184,6 +4186,15 @@
       "SettingsModal",
       "formatWsStatusText"
     ],
+    "src/features/settings/components/SettingsOverlayHost.tsx": [
+      "SettingsOverlayHost"
+    ],
+    "src/features/settings/components/SettingsOverlayProvider.tsx": [
+      "SettingsOverlayKey",
+      "SettingsOverlayProvider",
+      "useSettingsOverlayActions",
+      "useSettingsOverlayState"
+    ],
     "src/features/settings/components/SettingsToken.tsx": [
       "SettingsToken"
     ],
@@ -4202,7 +4213,6 @@
       "SidebarSettingsMenuProps",
       "SidebarSettingsMenuSection",
       "buildSidebarSettingsMenuSections",
-      "dispatchSidebarSettingsAction",
       "resolveSettingsSummaryBadges"
     ],
     "src/features/settings/hooks/useMemoryRecordsInitialization.ts": [
@@ -4811,6 +4821,27 @@
       "saveAgentOrderRequest",
       "shouldStartAgentConsoleBootstrap"
     ],
+    "src/features/workers/components/CommandModal.test.ts": null,
+    "src/features/workers/components/CommandModal.tsx": [
+      "CommandModal"
+    ],
+    "src/features/workers/components/CommandOverlayHost.tsx": [
+      "CommandOverlayHost"
+    ],
+    "src/features/workers/components/CommandOverlayProvider.tsx": [
+      "CommandOverlayProvider",
+      "useCommandOverlayActions",
+      "useCommandOverlayHostState",
+      "useCommandOverlayOpen"
+    ],
+    "src/features/workers/components/DetailModal.tsx": [
+      "DetailModal"
+    ],
+    "src/features/workers/components/SwitchModal.test.ts": null,
+    "src/features/workers/components/SwitchModal.tsx": [
+      "SWITCH_SCOPES",
+      "SwitchModal"
+    ],
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": [
       "buildAgentListFallbackRequestOptions",
@@ -4831,6 +4862,15 @@
       "AgentSummaryPatch",
       "mergeAgentSummary",
       "upsertAgentSummary"
+    ],
+    "src/features/workers/lib/commandOverlay.test.ts": null,
+    "src/features/workers/lib/commandOverlay.ts": [
+      "CommandOverlayFocusArea",
+      "CommandOverlayOpenOptions",
+      "CommandOverlayScope",
+      "CommandOverlayState",
+      "CommandOverlayType",
+      "createCommandOverlayState"
     ],
     "src/features/workers/lib/currentWorker.test.ts": null,
     "src/features/workers/lib/currentWorker.ts": [
@@ -5330,7 +5370,6 @@
     "src/shared/i18n/locales/zh-CN.ts": [
       "zhCNMessages"
     ],
-    "src/shared/i18n/provider.test.tsx": null,
     "src/shared/i18n/provider.tsx": [
       "I18nContextValue",
       "I18nProvider",
@@ -5583,8 +5622,10 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/chatSummary",
+      "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/agentSummary",
       "@/features/workers/lib/currentWorker",
       "@/shared/data",
@@ -5602,8 +5643,10 @@
       "@/app/layout/hooks/useAppRuntimes",
       "@/app/layout/sidebar/right/RightSidebar",
       "@/app/state/AppContext",
+      "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/currentWorker",
       "react"
     ],
@@ -5614,12 +5657,6 @@
       "@/features/plan/components/PlanPanel",
       "@/features/tools/components/FrontendToolContainer",
       "react"
-    ],
-    "src/app/layout/CommandStatusOverlay.test.tsx": [
-      "@/app/layout/CommandStatusOverlay",
-      "@/app/state/AppContext",
-      "react",
-      "react-dom/server"
     ],
     "src/app/layout/CommandStatusOverlay.tsx": [
       "@/app/state/AppContext",
@@ -5640,7 +5677,9 @@
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/layout/sidebar/right/OverviewTab",
       "@/app/state/AppContext",
+      "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/currentWorker",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
@@ -5671,7 +5710,9 @@
       "@/app/state/types",
       "@/features/chats/lib/chatRunState",
       "@/features/chats/lib/chatSummary",
+      "@/features/settings/components/SettingsOverlayProvider",
       "@/features/settings/components/SidebarSettingsMenu",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/workerListFormatter",
       "@/shared/config/featureFlags",
       "@/shared/data",
@@ -5689,12 +5730,9 @@
     "src/app/layout/ShellOverlays.tsx": [
       "@/app/effects/FireworksCanvas",
       "@/app/layout/CommandStatusOverlay",
-      "@/app/modals/CommandModal",
       "@/app/modals/EventPopover",
-      "@/app/state/AppContext",
-      "@/features/settings/components/ArchiveModal",
-      "@/features/settings/components/MemoryInfoModal",
-      "@/features/settings/components/SettingsModal",
+      "@/features/settings/components/SettingsOverlayHost",
+      "@/features/workers/components/CommandOverlayHost",
       "react"
     ],
     "src/app/layout/TerminalDock.test.ts": [
@@ -5722,6 +5760,8 @@
       "@/app/state/AppContext",
       "@/app/state/selectors",
       "@/app/state/types",
+      "@/features/settings/components/SettingsOverlayProvider",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/currentWorker",
       "@/shared/components/text-count-up",
       "@/shared/config/featureFlags",
@@ -5905,39 +5945,6 @@
       "antd",
       "react"
     ],
-    "src/app/modals/CommandModal.test.ts": [
-      "@/app/modals/CommandModal",
-      "@/app/state/state",
-      "@/app/state/types",
-      "react",
-      "react-dom/server"
-    ],
-    "src/app/modals/CommandModal.tsx": [
-      "@/app/modals/AutomationModal",
-      "@/app/modals/CommandModalHeader",
-      "@/app/modals/DetailModal",
-      "@/app/modals/HistoryModal",
-      "@/app/modals/SwitchModal",
-      "@/app/state/AppContext",
-      "@/app/state/types",
-      "@/features/workers/components/AgentConsole",
-      "@/features/workers/lib/currentWorker",
-      "@/features/workers/lib/workerConversationFormatter",
-      "@/shared/data",
-      "react"
-    ],
-    "src/app/modals/CommandModalHeader.tsx": [
-      "@/app/state/types",
-      "@/shared/i18n",
-      "@/shared/ui/UiButton",
-      "react"
-    ],
-    "src/app/modals/DetailModal.tsx": [
-      "@/features/workers/lib/currentWorker",
-      "@/shared/i18n",
-      "@/shared/ui/UiTag",
-      "react"
-    ],
     "src/app/modals/EventPopover.test.ts": [
       "@/app/modals/EventPopover",
       "@/app/state/AppContext",
@@ -5981,26 +5988,12 @@
       "antd/es/app/useApp",
       "react"
     ],
-    "src/app/modals/SwitchModal.test.ts": [
-      "@/app/modals/SwitchModal",
-      "@/app/state/types",
-      "react",
-      "react-dom/server"
-    ],
-    "src/app/modals/SwitchModal.tsx": [
-      "@/app/state/types",
-      "@/shared/i18n",
-      "@/shared/icons/agent",
-      "@/shared/ui/UiInput",
-      "@/shared/ui/UiListItem",
-      "@/shared/ui/UiTag",
-      "react"
-    ],
     "src/app/modals/SystemPromptModal.tsx": [
       "@/app/modals/lib/systemPromptTrace",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
+      "antd",
       "react"
     ],
     "src/app/modals/lib/eventPopoverCopyMenu.ts": [
@@ -6372,6 +6365,7 @@
       "@/features/timeline/lib/timelineDisplay",
       "@/features/tools/components/AwaitingHtmlContainer",
       "@/features/tools/components/buildin",
+      "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/currentWorker",
       "@/shared/config/featureFlags",
       "@/shared/data",
@@ -6388,7 +6382,6 @@
       "react"
     ],
     "src/features/composer/components/ComposerContext.tsx": [
-      "@/features/composer/lib/composerAttachments",
       "@/features/composer/lib/slashCommands",
       "react"
     ],
@@ -6586,6 +6579,8 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/composer/lib/slashCommands",
+      "@/features/settings/components/SettingsOverlayProvider",
+      "@/features/workers/components/CommandOverlayProvider",
       "react"
     ],
     "src/features/composer/lib/composerAttachments.test.ts": [
@@ -6652,6 +6647,9 @@
       "antd",
       "react"
     ],
+    "src/features/settings/components/ArchiveConsole.test.ts": [
+      "@/features/settings/components/ArchiveConsole"
+    ],
     "src/features/settings/components/ArchiveConsole.tsx": [
       "@/app/state/AppContext",
       "@/app/state/types",
@@ -6660,16 +6658,6 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
-      "antd",
-      "react"
-    ],
-    "src/features/settings/components/ArchiveModal.test.ts": [
-      "@/features/settings/components/ArchiveModal"
-    ],
-    "src/features/settings/components/ArchiveModal.tsx": [
-      "@/app/state/AppContext",
-      "@/features/settings/components/ArchiveConsole",
-      "@/shared/i18n",
       "antd",
       "react"
     ],
@@ -6690,6 +6678,7 @@
       "@/shared/ui/UiButton",
       "@/shared/ui/UiTag",
       "@/shared/utils/eventUtils",
+      "antd",
       "react"
     ],
     "src/features/settings/components/SettingsAsrDebug.tsx": [
@@ -6735,6 +6724,17 @@
       "@/shared/styles/theme",
       "@/shared/ui/UiButton",
       "@/shared/utils/routing",
+      "antd",
+      "react"
+    ],
+    "src/features/settings/components/SettingsOverlayHost.tsx": [
+      "@/features/settings/components/MemoryInfoModal",
+      "@/features/settings/components/SettingsModal",
+      "@/features/settings/components/SettingsOverlayProvider",
+      "react"
+    ],
+    "src/features/settings/components/SettingsOverlayProvider.tsx": [
+      "@/app/state/AppContext",
       "react"
     ],
     "src/features/settings/components/SettingsToken.tsx": [
@@ -6761,7 +6761,6 @@
       "react-dom/server"
     ],
     "src/features/settings/components/SidebarSettingsMenu.tsx": [
-      "@/app/state/actions",
       "@/app/state/types",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
@@ -6869,13 +6868,8 @@
       "@/features/timeline/components/ToolPill",
       "@/features/timeline/components/UserBubble",
       "@/features/timeline/lib/timelineDisplay",
-      "@/shared/components/skeleton",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
-      "@/shared/ui/UiButton",
-      "@/shared/utils/copy",
-      "antd",
-      "antd/es/app/useApp",
       "react"
     ],
     "src/features/timeline/components/ToolPill.test.ts": [
@@ -6959,7 +6953,6 @@
     ],
     "src/features/timeline/lib/debugEventDisplay.ts": [
       "@/app/state/types",
-      "@/features/timeline/lib/toolDisplay",
       "@/shared/config/featureFlags"
     ],
     "src/features/timeline/lib/eventDispatchHandlers.ts": [
@@ -7448,7 +7441,6 @@
       "@/features/voice/lib/voiceAudioCapture"
     ],
     "src/features/voice/lib/asrDebugSession.ts": [
-      "@/app/state/types",
       "@/features/voice/lib/voiceAsrProtocol",
       "@/features/voice/lib/voiceAudioCapture",
       "@/features/voice/lib/voiceChatAudio"
@@ -7543,6 +7535,61 @@
       "antd",
       "react"
     ],
+    "src/features/workers/components/CommandModal.test.ts": [
+      "@/app/state/state",
+      "@/app/state/types",
+      "@/features/workers/components/CommandModal",
+      "@/features/workers/lib/commandOverlay",
+      "react",
+      "react-dom/server"
+    ],
+    "src/features/workers/components/CommandModal.tsx": [
+      "@/app/modals/AutomationModal",
+      "@/app/modals/HistoryModal",
+      "@/app/state/AppContext",
+      "@/app/state/types",
+      "@/features/workers/components/AgentConsole",
+      "@/features/workers/components/DetailModal",
+      "@/features/workers/components/SwitchModal",
+      "@/features/workers/lib/commandOverlay",
+      "@/features/workers/lib/currentWorker",
+      "@/features/workers/lib/workerConversationFormatter",
+      "@/shared/data",
+      "@/shared/i18n",
+      "antd",
+      "react"
+    ],
+    "src/features/workers/components/CommandOverlayHost.tsx": [
+      "@/features/workers/components/CommandModal",
+      "@/features/workers/components/CommandOverlayProvider",
+      "react"
+    ],
+    "src/features/workers/components/CommandOverlayProvider.tsx": [
+      "@/features/workers/lib/commandOverlay",
+      "react"
+    ],
+    "src/features/workers/components/DetailModal.tsx": [
+      "@/features/workers/lib/currentWorker",
+      "@/shared/i18n",
+      "@/shared/ui/UiTag",
+      "react"
+    ],
+    "src/features/workers/components/SwitchModal.test.ts": [
+      "@/app/state/types",
+      "@/features/workers/components/SwitchModal",
+      "react",
+      "react-dom/server"
+    ],
+    "src/features/workers/components/SwitchModal.tsx": [
+      "@/app/state/types",
+      "@/features/workers/lib/commandOverlay",
+      "@/shared/i18n",
+      "@/shared/icons/agent",
+      "@/shared/ui/UiInput",
+      "@/shared/ui/UiListItem",
+      "@/shared/ui/UiTag",
+      "react"
+    ],
     "src/features/workers/hooks/useWorkerData.test.ts": [
       "@/features/workers/hooks/useWorkerData"
     ],
@@ -7572,6 +7619,10 @@
     "src/features/workers/lib/agentSummary.ts": [
       "@/app/state/types"
     ],
+    "src/features/workers/lib/commandOverlay.test.ts": [
+      "@/features/workers/lib/commandOverlay"
+    ],
+    "src/features/workers/lib/commandOverlay.ts": null,
     "src/features/workers/lib/currentWorker.test.ts": [
       "@/app/state/AppContext",
       "@/app/state/types",
@@ -7781,11 +7832,6 @@
     ],
     "src/shared/i18n/locales/zh-CN.ts": [
       "@/shared/i18n/types"
-    ],
-    "src/shared/i18n/provider.test.tsx": [
-      "@/shared/i18n",
-      "react",
-      "react-dom/server"
     ],
     "src/shared/i18n/provider.tsx": [
       "@/shared/i18n/runtime",
@@ -8001,7 +8047,6 @@
       "src/app/layout/TerminalDock.tsx"
     ],
     "src/app/layout/BottomDock.tsx": null,
-    "src/app/layout/CommandStatusOverlay.test.tsx": null,
     "src/app/layout/CommandStatusOverlay.tsx": null,
     "src/app/layout/CopilotShell.test.ts": null,
     "src/app/layout/CopilotShell.tsx": null,
@@ -8042,18 +8087,12 @@
     "src/app/layout/sidebar/right/fileDiff.ts": null,
     "src/app/modals/AutomationModal.test.ts": null,
     "src/app/modals/AutomationModal.tsx": null,
-    "src/app/modals/CommandModal.test.ts": null,
-    "src/app/modals/CommandModal.tsx": null,
-    "src/app/modals/CommandModalHeader.tsx": null,
-    "src/app/modals/DetailModal.tsx": null,
     "src/app/modals/EventPopover.test.ts": null,
     "src/app/modals/EventPopover.tsx": null,
     "src/app/modals/HistoryModal.test.ts": null,
     "src/app/modals/HistoryModal.tsx": [
       "src/app/state/provider.tsx"
     ],
-    "src/app/modals/SwitchModal.test.ts": null,
-    "src/app/modals/SwitchModal.tsx": null,
     "src/app/modals/SystemPromptModal.tsx": null,
     "src/app/modals/lib/eventPopoverCopyMenu.ts": null,
     "src/app/modals/lib/eventPopoverFormatters.ts": null,
@@ -8164,15 +8203,16 @@
     "src/features/composer/lib/wonders.ts": null,
     "src/features/plan/components/PlanPanel.test.ts": null,
     "src/features/plan/components/PlanPanel.tsx": null,
+    "src/features/settings/components/ArchiveConsole.test.ts": null,
     "src/features/settings/components/ArchiveConsole.tsx": null,
-    "src/features/settings/components/ArchiveModal.test.ts": null,
-    "src/features/settings/components/ArchiveModal.tsx": null,
     "src/features/settings/components/MemoryInfoModal.test.ts": null,
     "src/features/settings/components/MemoryInfoModal.tsx": null,
     "src/features/settings/components/SettingsAsrDebug.tsx": null,
     "src/features/settings/components/SettingsClientGate.tsx": null,
     "src/features/settings/components/SettingsModal.test.ts": null,
     "src/features/settings/components/SettingsModal.tsx": null,
+    "src/features/settings/components/SettingsOverlayHost.tsx": null,
+    "src/features/settings/components/SettingsOverlayProvider.tsx": null,
     "src/features/settings/components/SettingsToken.tsx": null,
     "src/features/settings/components/SettingsTransport.tsx": null,
     "src/features/settings/components/SettingsTtsDebug.tsx": null,
@@ -8319,12 +8359,21 @@
     "src/features/voice/lib/voiceSocket.ts": null,
     "src/features/workers/components/AgentConsole.test.ts": null,
     "src/features/workers/components/AgentConsole.tsx": null,
+    "src/features/workers/components/CommandModal.test.ts": null,
+    "src/features/workers/components/CommandModal.tsx": null,
+    "src/features/workers/components/CommandOverlayHost.tsx": null,
+    "src/features/workers/components/CommandOverlayProvider.tsx": null,
+    "src/features/workers/components/DetailModal.tsx": null,
+    "src/features/workers/components/SwitchModal.test.ts": null,
+    "src/features/workers/components/SwitchModal.tsx": null,
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": null,
     "src/features/workers/lib/agentOrdering.test.ts": null,
     "src/features/workers/lib/agentOrdering.ts": null,
     "src/features/workers/lib/agentSummary.test.ts": null,
     "src/features/workers/lib/agentSummary.ts": null,
+    "src/features/workers/lib/commandOverlay.test.ts": null,
+    "src/features/workers/lib/commandOverlay.ts": null,
     "src/features/workers/lib/currentWorker.test.ts": null,
     "src/features/workers/lib/currentWorker.ts": null,
     "src/features/workers/lib/teamUtils.test.ts": null,
@@ -8379,7 +8428,6 @@
     "src/shared/i18n/index.ts": null,
     "src/shared/i18n/locales/en-US.ts": null,
     "src/shared/i18n/locales/zh-CN.ts": null,
-    "src/shared/i18n/provider.test.tsx": null,
     "src/shared/i18n/provider.tsx": null,
     "src/shared/i18n/runtime.test.ts": null,
     "src/shared/i18n/runtime.ts": null,
@@ -8504,7 +8552,6 @@
     "src/app/layout/AgentChatShell.tsx",
     "src/app/layout/AppShell.tsx",
     "src/app/layout/BottomDock.tsx",
-    "src/app/layout/CommandStatusOverlay.test.tsx",
     "src/app/layout/CommandStatusOverlay.tsx",
     "src/app/layout/CopilotShell.test.ts",
     "src/app/layout/CopilotShell.tsx",
@@ -8537,16 +8584,10 @@
     "src/app/layout/sidebar/right/fileDiff.ts",
     "src/app/modals/AutomationModal.test.ts",
     "src/app/modals/AutomationModal.tsx",
-    "src/app/modals/CommandModal.test.ts",
-    "src/app/modals/CommandModal.tsx",
-    "src/app/modals/CommandModalHeader.tsx",
-    "src/app/modals/DetailModal.tsx",
     "src/app/modals/EventPopover.test.ts",
     "src/app/modals/EventPopover.tsx",
     "src/app/modals/HistoryModal.test.ts",
     "src/app/modals/HistoryModal.tsx",
-    "src/app/modals/SwitchModal.test.ts",
-    "src/app/modals/SwitchModal.tsx",
     "src/app/modals/SystemPromptModal.tsx",
     "src/app/modals/lib/eventPopoverCopyMenu.ts",
     "src/app/modals/lib/eventPopoverFormatters.ts",

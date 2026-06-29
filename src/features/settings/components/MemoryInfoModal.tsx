@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { Modal } from "antd";
 import {
   getMemoryMeta,
   getMemoryRecord,
@@ -1496,21 +1497,20 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
   }
 
   return (
-    <div
-      className="modal"
-      id="memory-info-modal"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+      getContainer={false}
+      width="min(1220px, calc(100vw - 36px))"
+      className="memory-info-modal"
     >
       <MemoryInfoConsoleView
         {...consoleProps}
-        cardClassName="modal-card"
         onClose={onClose}
       />
-    </div>
+    </Modal>
   );
 };
 
@@ -2503,15 +2503,15 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
   );
 };
 
-export const MemoryInfoModal: React.FC = () => {
-  const state = useAppState();
-  const dispatch = useAppDispatch();
-
+export const MemoryInfoModal: React.FC<{
+  open?: boolean;
+  onClose?: () => void;
+}> = ({ open = true, onClose }) => {
   return (
     <MemoryInfoConsole
-      open={state.memoryInfoOpen}
+      open={open}
       surface="modal"
-      onClose={() => dispatch({ type: "SET_MEMORY_INFO_OPEN", open: false })}
+      onClose={onClose}
     />
   );
 };

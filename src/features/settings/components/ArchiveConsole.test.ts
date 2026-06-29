@@ -1,7 +1,7 @@
 import {
 	buildArchiveBulkCandidates,
 	extractArchivePreviewLines,
-} from "@/features/settings/components/ArchiveModal";
+} from "@/features/settings/components/ArchiveConsole";
 
 describe("buildArchiveBulkCandidates", () => {
 	it("selects old chats from the current chat filter scope", () => {

@@ -89,16 +89,5 @@ export function buildConversationResetState(
 			text: "",
 			timer: null,
 		},
-		commandModal: {
-			open: false,
-			type: null,
-			searchText: "",
-			historySearch: "",
-			activeIndex: 0,
-			scope: "all",
-			focusArea: "search",
-			automationTask: "",
-			automationRule: "",
-		},
 	};
 }

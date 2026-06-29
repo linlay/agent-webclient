@@ -1,5 +1,4 @@
 import React from "react";
-import type { AppAction } from "@/app/state/actions";
 import type {
   ThemeMode,
   TransportMode,
@@ -143,25 +142,6 @@ export function buildSidebarSettingsMenuSections(input: {
       ],
     }
   ];
-}
-
-export function dispatchSidebarSettingsAction(
-  action: SidebarSettingsMenuAction,
-  dispatch: React.Dispatch<AppAction>,
-): boolean {
-  if (action.type === "open-settings") {
-    dispatch({ type: "SET_SETTINGS_OPEN", open: true });
-    return true;
-  }
-  if (action.type === "open-memory-info") {
-    dispatch({ type: "SET_MEMORY_INFO_OPEN", open: true });
-    return true;
-  }
-  if (action.type === "open-archive") {
-    dispatch({ type: "SET_ARCHIVE_OPEN", open: true });
-    return true;
-  }
-  return false;
 }
 
 export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({

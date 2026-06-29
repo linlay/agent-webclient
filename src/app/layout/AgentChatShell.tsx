@@ -13,6 +13,8 @@ import { BottomDock } from "@/app/layout/BottomDock";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
+import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
+import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import {
   TerminalDock,
@@ -450,49 +452,53 @@ export const AgentChatShell: React.FC = () => {
   }
 
   return (
-    <div
-      className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
-      id="app"
-    >
-      <TopNav />
-      <ConversationStage showEmptyState={!chatId} />
-      <RightSidebar />
-      <BottomDock />
-      {state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
-        <TerminalDock
-          agentKey={currentWorker.sourceId}
-          chatId={state.chatId}
-          workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-        />
-      ) : null}
-      <ShellOverlays />
-      <SidebarHistorySection
-        open={Boolean(historyWorkerKey)}
-        historyWorker={historyWorker}
-        historyRows={remoteHistoryRows ?? filteredHistoryRows}
-        historyIndex={historyIndex}
-        historySearch={historySearch}
-        historyInputRef={historyInputRef}
-        historyListRef={historyListRef}
-        historyItemRefs={historyItemRefs}
-        onClose={handleCloseHistory}
-        onHistorySearchChange={(value) => {
-          setHistorySearch(value);
-          setHistoryIndex(0);
-          if (!value.trim()) {
-            setRemoteHistoryRows(null);
-          }
-        }}
-        onActivateIndex={setHistoryIndex}
-        onSelectChat={handleSelectHistoryChat}
-        onChatDeleted={(deletedChatId) => {
-          setRemoteHistoryRows((rows) =>
-            rows
-              ? rows.filter((row) => String(row.chatId || "") !== deletedChatId)
-              : rows,
-          );
-        }}
-      />
-    </div>
+    <SettingsOverlayProvider>
+      <CommandOverlayProvider>
+        <div
+          className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
+          id="app"
+        >
+          <TopNav />
+          <ConversationStage showEmptyState={!chatId} />
+          <RightSidebar />
+          <BottomDock />
+          {state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
+            <TerminalDock
+              agentKey={currentWorker.sourceId}
+              chatId={state.chatId}
+              workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+            />
+          ) : null}
+          <ShellOverlays />
+          <SidebarHistorySection
+            open={Boolean(historyWorkerKey)}
+            historyWorker={historyWorker}
+            historyRows={remoteHistoryRows ?? filteredHistoryRows}
+            historyIndex={historyIndex}
+            historySearch={historySearch}
+            historyInputRef={historyInputRef}
+            historyListRef={historyListRef}
+            historyItemRefs={historyItemRefs}
+            onClose={handleCloseHistory}
+            onHistorySearchChange={(value) => {
+              setHistorySearch(value);
+              setHistoryIndex(0);
+              if (!value.trim()) {
+                setRemoteHistoryRows(null);
+              }
+            }}
+            onActivateIndex={setHistoryIndex}
+            onSelectChat={handleSelectHistoryChat}
+            onChatDeleted={(deletedChatId) => {
+              setRemoteHistoryRows((rows) =>
+                rows
+                  ? rows.filter((row) => String(row.chatId || "") !== deletedChatId)
+                  : rows,
+              );
+            }}
+          />
+        </div>
+      </CommandOverlayProvider>
+    </SettingsOverlayProvider>
   );
 };

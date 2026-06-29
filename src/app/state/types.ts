@@ -37,7 +37,6 @@ import type {
 } from "@/app/state/navigationTypes";
 import type {
 	AgentEvent,
-	CommandModalState,
 	CommandStatusOverlayState,
 	Message,
 	PendingSteer,
@@ -164,9 +163,6 @@ export interface AppState {
 	workerRelatedChats: WorkerConversationRow[];
 	workerChatPanelCollapsed: boolean;
 	chatLoadSeq: number;
-	settingsOpen: boolean;
-	archiveOpen: boolean;
-	memoryInfoOpen: boolean;
 	memoryConsoleTab: MemoryConsoleTab;
 	memoryInfoLoading: boolean;
 	memoryInfoError: string;
@@ -236,7 +232,6 @@ export interface AppState {
 	eventPopoverEventRef: AgentEvent | null;
 	eventPopoverAnchor: { x: number; y: number } | null;
 	commandStatusOverlay: CommandStatusOverlayState;
-	commandModal: CommandModalState;
 }
 
 export interface Services {

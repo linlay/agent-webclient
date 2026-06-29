@@ -104,9 +104,6 @@ export function createInitialState(): AppState {
 		workerRelatedChats: [],
 		workerChatPanelCollapsed: true,
 		chatLoadSeq: 0,
-		settingsOpen: false,
-		archiveOpen: false,
-		memoryInfoOpen: false,
 		memoryConsoleTab: createDefaultMemoryConsoleTab(),
 		memoryInfoLoading: false,
 		memoryInfoError: "",
@@ -181,17 +178,6 @@ export function createInitialState(): AppState {
 			phase: "success",
 			text: "",
 			timer: null,
-		},
-		commandModal: {
-			open: false,
-			type: null,
-			searchText: "",
-			historySearch: "",
-			activeIndex: 0,
-			scope: "all",
-			focusArea: "search",
-			automationTask: "",
-			automationRule: "",
 		},
 	};
 }

@@ -17,7 +17,10 @@
     "dependents": [],
     "tests": [
       "src/features/workers/components/AgentConsole.test.ts",
+      "src/features/workers/components/CommandModal.test.ts",
+      "src/features/workers/components/SwitchModal.test.ts",
       "src/features/workers/hooks/useWorkerData.test.ts",
+      "src/features/workers/lib/commandOverlay.test.ts",
       "src/features/workers/lib/agentOrdering.test.ts",
       "src/features/workers/lib/agentSummary.test.ts",
       "src/features/workers/lib/currentWorker.test.ts",

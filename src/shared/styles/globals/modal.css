@@ -1,33 +1,14 @@
 /* ========================================
    Settings Modal
    ======================================== */
-.modal {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: grid;
-    place-items: center;
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(6px);
-}
-
-.modal-card {
-    width: min(440px, calc(100vw - 32px));
-    border: 1px solid var(--line-soft);
-    border-radius: 14px;
-    background: var(--bg-base);
-    padding: 22px;
-    box-shadow: var(--shadow-strong);
-}
-
 .settings-card {
-    width: min(920px, calc(100vw - 32px));
+    width: 100%;
     max-height: min(82vh, 860px);
     overflow: auto;
 }
 
 .command-modal-card {
-    width: min(780px, calc(100vw - 32px));
+    width: 100%;
     max-height: min(76vh, 720px);
     display: flex;
     flex-direction: column;
@@ -36,20 +17,13 @@
 }
 
 .command-modal-card.is-automation-console {
-    width: min(1120px, calc(100vw - 32px));
+    width: 100%;
     max-height: min(84vh, 900px);
 }
 
-.command-modal-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.command-modal-head h3 {
-    margin: 0;
+.command-modal-title span {
     font-size: 18px;
+    font-weight: 650;
 }
 
 .command-modal-subtitle {
@@ -1755,7 +1729,7 @@
 }
 
 .memory-info-card {
-    width: min(1220px, calc(100vw - 36px));
+    width: 100%;
     height: min(88vh, 940px);
     min-height: min(88vh, 940px);
     display: flex;

@@ -19,6 +19,7 @@ const dropdownMenuProps: Array<Record<string, unknown>> = [];
 const mockModalConfirm = jest.fn();
 const mockMessageSuccess = jest.fn();
 const mockNavigate = jest.fn();
+const mockOpenCommandOverlay = jest.fn();
 
 function collectText(value: React.ReactNode): string {
   if (value === null || value === undefined || typeof value === "boolean") {
@@ -280,6 +281,14 @@ jest.mock("@/app/state/AppContext", () => {
   };
 });
 
+jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+  useCommandOverlayActions: () => ({
+    openCommandOverlay: mockOpenCommandOverlay,
+    patchCommandOverlay: jest.fn(),
+    closeCommandOverlay: jest.fn(),
+  }),
+}));
+
 jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", null, "agent-icon"),
 }));
@@ -529,6 +538,7 @@ describe("LeftSidebar", () => {
     mockModalConfirm.mockReset();
     mockMessageSuccess.mockReset();
     mockNavigate.mockReset();
+    mockOpenCommandOverlay.mockReset();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -715,10 +725,7 @@ describe("LeftSidebar", () => {
 
     (agentsButton?.onClick as () => void)();
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "OPEN_COMMAND_MODAL",
-      modal: { type: "agents" },
-    });
+    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "agents" });
   });
 
   it("sorts worker rows by current freshness logic or by the /api/agents order", () => {

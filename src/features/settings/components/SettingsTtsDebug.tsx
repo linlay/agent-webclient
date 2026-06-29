@@ -3,14 +3,14 @@ import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 
 interface SettingsTtsDebugProps {
-  settingsOpen: boolean;
+  active: boolean;
   ttsDebugStatus: string;
   onSend: (text: string) => void;
   onStop: () => void;
 }
 
 export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
-  settingsOpen,
+  active,
   ttsDebugStatus,
   onSend,
   onStop,
@@ -20,11 +20,11 @@ export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
   const defaultTtsDebugText = t("voice.debug.defaultTtsText");
 
   useEffect(() => {
-    if (!settingsOpen) return;
+    if (!active) return;
     setTtsDebugText((current) =>
       current.trim() ? current : defaultTtsDebugText,
     );
-  }, [defaultTtsDebugText, settingsOpen]);
+  }, [active, defaultTtsDebugText]);
 
   return (
     <div className="field-group" style={{ marginTop: "14px" }}>

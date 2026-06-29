@@ -99,13 +99,19 @@ jest.mock("@/features/settings/components/MemoryInfoModal", () => ({
     React.createElement("div", { className: "memory-info-modal" }, "memory"),
 }));
 
-jest.mock("@/features/settings/components/ArchiveModal", () => ({
-  ArchiveModal: () =>
-    React.createElement("div", { className: "archive-modal" }, "archive"),
+jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+  CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+  useCommandOverlayActions: () => ({
+    openCommandOverlay: jest.fn(),
+    patchCommandOverlay: jest.fn(),
+    closeCommandOverlay: jest.fn(),
+  }),
+  useCommandOverlayOpen: () => false,
 }));
 
-jest.mock("@/app/modals/CommandModal", () => ({
-  CommandModal: (props: { variant?: string }) =>
+jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
+  CommandOverlayHost: (props: { variant?: string }) =>
     React.createElement(
       "div",
       {

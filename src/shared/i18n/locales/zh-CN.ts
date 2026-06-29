@@ -379,7 +379,6 @@ export const zhCNMessages: I18nMessages = {
   "chatActions.rename.placeholder": "输入新的对话名称",
   "chatActions.rename.required": "请输入对话名称",
   "chatActions.rename.title": "重命名对话",
-  "commandModal.close": "关闭",
   "commandModal.detail.title": "当前详情",
   "commandModal.history.title": "历史对话",
   "commandModal.automation.title": "自动化",

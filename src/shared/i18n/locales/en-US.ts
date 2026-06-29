@@ -379,7 +379,6 @@ export const enUSMessages: I18nMessages = {
   "chatActions.rename.placeholder": "Enter a new conversation name",
   "chatActions.rename.required": "Enter a conversation name",
   "chatActions.rename.title": "Rename conversation",
-  "commandModal.close": "Close",
   "commandModal.detail.title": "Current details",
   "commandModal.history.title": "Conversation history",
   "commandModal.automation.title": "Automation",

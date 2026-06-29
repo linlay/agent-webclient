@@ -40,6 +40,7 @@ import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAcces
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
+import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type {
   QueryAccessLevel,
@@ -60,6 +61,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const isCommandOverlayOpen = useCommandOverlayOpen();
   const { stateRef } = useAppContext();
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
@@ -206,7 +208,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     slashPaletteRef,
     slashPopoverWidth,
   } = useComposerSlash({
-    commandModalOpen: state.commandModal.open,
+    commandOverlayOpen: isCommandOverlayOpen,
     composerPillRef,
     composerRef,
     inputValue,
@@ -295,7 +297,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       hasCurrentWorker: Boolean(currentWorker),
       workerHistoryCount: currentWorker?.relatedChats.length || 0,
       workerCount: state.workerRows.length,
-      commandModalOpen: state.commandModal.open,
+      commandOverlayOpen: isCommandOverlayOpen,
       canShowUsage:
         Boolean(state.usageSnapshot) ||
         state.streaming ||
@@ -306,11 +308,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       isFrontendActive,
       latestQueryText,
       state.chatId,
-      state.commandModal.open,
       state.streaming,
       state.usageSnapshot,
       state.events,
       state.workerRows.length,
+      isCommandOverlayOpen,
       voiceModeAvailable,
       planningModeAvailable,
     ],

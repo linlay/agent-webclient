@@ -12,7 +12,7 @@ interface UseComposerSlashInput {
   isAwaitingActive: boolean;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
-  commandModalOpen: boolean;
+  commandOverlayOpen: boolean;
   canUsePlanningMode: boolean;
 }
 
@@ -24,7 +24,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     isAwaitingActive,
     isFrontendActive,
     isVoiceMode,
-    commandModalOpen,
+    commandOverlayOpen,
     canUsePlanningMode,
   } = input;
   const slashPaletteRef = useRef<HTMLDivElement>(null);
@@ -40,7 +40,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     !isVoiceMode &&
     !isFrontendActive &&
     !isAwaitingActive &&
-    !commandModalOpen &&
+    !commandOverlayOpen &&
     !slashDismissed &&
     slashCommands.length > 0;
 

@@ -7,37 +7,21 @@ export function reduceUiState(
 	action: AppAction,
 ): AppState | null {
 	switch (action.type) {
-		case "SET_SETTINGS_OPEN":
-			return { ...state, settingsOpen: action.open };
-		case "SET_ARCHIVE_OPEN":
-			return { ...state, archiveOpen: action.open };
-		case "SET_MEMORY_INFO_OPEN":
+		case "RESET_MEMORY_INFO_SESSION":
 			return {
 				...state,
-				memoryInfoOpen: action.open,
-				memoryConsoleTab: action.open ? "records" : state.memoryConsoleTab,
-				memoryInfoLoading: action.open ? state.memoryInfoLoading : false,
-				memoryInfoError: action.open ? state.memoryInfoError : "",
-				memoryInfoDetailLoading: action.open
-					? state.memoryInfoDetailLoading
-					: false,
-				memoryInfoDetailError: action.open ? state.memoryInfoDetailError : "",
-				memoryPreferenceLoading: action.open
-					? state.memoryPreferenceLoading
-					: false,
-				memoryPreferenceError: action.open
-					? state.memoryPreferenceError
-					: "",
-				memoryPreferenceSaving: action.open
-					? state.memoryPreferenceSaving
-					: false,
-				memoryPreviewDraft: action.open ? state.memoryPreviewDraft : "",
-				memoryPreviewLoading: action.open ? state.memoryPreviewLoading : false,
-				memoryPreviewError: action.open ? state.memoryPreviewError : "",
-				memoryPreviewResult: action.open ? state.memoryPreviewResult : null,
-				memoryPreviewPromptLayer: action.open
-					? state.memoryPreviewPromptLayer
-					: "stable",
+				memoryInfoLoading: false,
+				memoryInfoError: "",
+				memoryInfoDetailLoading: false,
+				memoryInfoDetailError: "",
+				memoryPreferenceLoading: false,
+				memoryPreferenceError: "",
+				memoryPreferenceSaving: false,
+				memoryPreviewDraft: "",
+				memoryPreviewLoading: false,
+				memoryPreviewError: "",
+				memoryPreviewResult: null,
+				memoryPreviewPromptLayer: "stable",
 			};
 		case "SET_MEMORY_CONSOLE_TAB":
 			return { ...state, memoryConsoleTab: action.tab };
@@ -222,47 +206,6 @@ export function reduceUiState(
 					phase: "success",
 					text: "",
 					timer: null,
-				},
-			};
-		case "OPEN_COMMAND_MODAL":
-			return {
-				...state,
-				commandModal: {
-					open: true,
-					type: action.modal.type,
-					searchText: action.modal.searchText ?? "",
-					historySearch: action.modal.historySearch ?? "",
-					activeIndex: action.modal.activeIndex ?? 0,
-					scope: action.modal.scope ?? "all",
-					focusArea: action.modal.focusArea ?? "search",
-					automationTask: action.modal.automationTask ?? "",
-					automationRule: action.modal.automationRule ?? "",
-				},
-			};
-		case "PATCH_COMMAND_MODAL":
-			return {
-				...state,
-				commandModal: {
-					...state.commandModal,
-					...action.modal,
-				},
-			};
-		case "CLOSE_COMMAND_MODAL":
-			if (!state.commandModal.open && !state.commandModal.type) {
-				return state;
-			}
-			return {
-				...state,
-				commandModal: {
-					open: false,
-					type: null,
-					searchText: "",
-					historySearch: "",
-					activeIndex: 0,
-					scope: "all",
-					focusArea: "search",
-					automationTask: "",
-					automationRule: "",
 				},
 			};
 		case "SET_EVENT_POPOVER":

@@ -15,7 +15,6 @@
     "publicApi": [
       "ArchiveConsole",
       "ArchiveConsoleProps",
-      "ArchiveModal",
       "ClientGateDraftField",
       "ClientGateDraftState",
       "LivePreferenceDraftValues",
@@ -30,6 +29,9 @@
       "SettingsAsrDebug",
       "SettingsClientGate",
       "SettingsModal",
+      "SettingsOverlayHost",
+      "SettingsOverlayKey",
+      "SettingsOverlayProvider",
       "SettingsSummaryBadge",
       "SettingsToken",
       "SettingsTransport",
@@ -43,7 +45,6 @@
       "buildSidebarSettingsMenuSections",
       "commitClientGateDraft",
       "createMemoryPreferenceDraftRecord",
-      "dispatchSidebarSettingsAction",
       "extractArchivePreviewLines",
       "formatClientGateDraftState",
       "formatMemoryJson",
@@ -61,19 +62,21 @@
       "syncClientGateDraftState",
       "syncSelectedPreferenceDraftFromLiveValues",
       "toScopeRecordInputs",
-      "useMemoryRecordsInitialization"
+      "useMemoryRecordsInitialization",
+      "useSettingsOverlayActions",
+      "useSettingsOverlayState"
     ],
     "dependencies": [],
     "dependents": [],
     "tests": [
-      "src/features/settings/components/ArchiveModal.test.ts",
+      "src/features/settings/components/ArchiveConsole.test.ts",
       "src/features/settings/components/MemoryInfoModal.test.ts",
       "src/features/settings/components/SettingsModal.test.ts",
       "src/features/settings/components/SidebarSettingsMenu.test.ts",
       "src/features/settings/lib/memoryInfo.test.ts",
       "src/features/settings/lib/settingsClientGateDrafts.test.ts"
     ],
-    "lastScannedAt": "2026-06-26T00:44:00Z"
+    "lastScannedAt": "2026-06-29T03:50:50Z"
   },
   "readHints": {
     "alwaysRead": [],

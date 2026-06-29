@@ -61,28 +61,6 @@ export interface CommandStatusOverlayState {
 	timer: UiTimerHandle | null;
 }
 
-export type CommandModalType =
-	| "history"
-	| "switch"
-	| "detail"
-	| "automation"
-	| "agents"
-	| null;
-export type CommandModalScope = "all" | "agent" | "team";
-export type CommandModalFocusArea = "search" | "list";
-
-export interface CommandModalState {
-	open: boolean;
-	type: CommandModalType;
-	searchText: string;
-	historySearch: string;
-	activeIndex: number;
-	scope: CommandModalScope;
-	focusArea: CommandModalFocusArea;
-	automationTask: string;
-	automationRule: string;
-}
-
 export interface RenderQueue {
 	dirtyNodeIds: Set<string>;
 	scheduled: boolean;

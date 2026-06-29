@@ -1,4 +1,5 @@
 import React from "react";
+import { Modal } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -39,36 +40,17 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 		: { status: "empty" as const };
 
 	return (
-		<div
-			className="modal event-popover-system-modal"
-			id="event-popover-system-modal"
-			onClick={(event) => {
-				if (event.target === event.currentTarget) {
-					onClose();
-				}
-			}}
+		<Modal
+			open={open}
+			onCancel={onClose}
+			footer={null}
+			destroyOnHidden
+			getContainer={false}
+			width="min(78vw, 980px)"
+			className="event-popover-system-modal"
+			title={t("eventPopover.systemPromptModal.title")}
 		>
-			<div
-				className="modal-card event-popover-system-card"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="event-popover-system-title"
-			>
-				<div className="event-popover-system-head">
-					<h3 id="event-popover-system-title">
-						{t("eventPopover.systemPromptModal.title")}
-					</h3>
-					<UiButton
-						variant="ghost"
-						size="sm"
-						iconOnly
-						aria-label={t("eventPopover.systemPromptModal.close")}
-						title={t("eventPopover.systemPromptModal.close")}
-						onClick={onClose}
-					>
-						<MaterialIcon name="close" />
-					</UiButton>
-				</div>
+			<div className="event-popover-system-card">
 				<div className="event-popover-system-body">
 					{calls.length > 1 ? (
 						<div className="event-popover-system-shell">
@@ -103,7 +85,7 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 					)}
 				</div>
 			</div>
-		</div>
+		</Modal>
 	);
 };
 
