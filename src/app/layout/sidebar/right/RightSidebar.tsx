@@ -5,6 +5,7 @@ import { Tabs, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
+import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -66,6 +67,7 @@ export const RightSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const state = useAppState();
   const preview = state.attachmentPreview;
+  const sourceDetail = state.activeSourceDetail;
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
   const initialPanel =
@@ -73,7 +75,9 @@ export const RightSidebar: React.FC = () => {
       ? "debug"
       : state.rightSidebarOpenTab === "preview" && preview
         ? "preview"
-        : "overview";
+        : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
+          ? "sourceDetail"
+          : "overview";
   const [activePanel, setActivePanel] =
     React.useState<RightSidebarTabKey>(initialPanel);
   const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
@@ -100,12 +104,19 @@ export const RightSidebar: React.FC = () => {
       return;
     }
 
+    if (state.rightSidebarOpenTab === "sourceDetail" && !sourceDetail) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+
     setActivePanel(state.rightSidebarOpenTab);
     if (state.rightSidebarOpenTab !== "debug") {
       setActiveTab(state.rightSidebarOpenTab);
     }
   }, [
     preview,
+    sourceDetail,
     debugPanelEnabled,
     state.rightSidebarOpen,
     state.rightSidebarOpenTab,
@@ -121,7 +132,11 @@ export const RightSidebar: React.FC = () => {
       setActivePanel("overview");
       setActiveTab("overview");
     }
-  }, [activePanel, debugPanelEnabled, preview]);
+    if (activePanel === "sourceDetail" && !sourceDetail) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+    }
+  }, [activePanel, debugPanelEnabled, preview, sourceDetail]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -208,6 +223,15 @@ export const RightSidebar: React.FC = () => {
       },
     ];
 
+    if (sourceDetail) {
+      items.push({
+        key: "sourceDetail",
+        label: t("copilot.panel.sourceDetail"),
+        icon: <MaterialIcon name="description" />,
+        children: <SourceDetailTab />,
+      });
+    }
+
     if (preview) {
       items.push({
         key: "preview",
@@ -218,7 +242,7 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [preview, t]);
+  }, [preview, sourceDetail, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
     const nextTab = key as RightSidebarTabsKey;

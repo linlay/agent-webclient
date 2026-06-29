@@ -1,0 +1,33 @@
+.Collapse {
+  :global(>.ant-collapse-item>.ant-collapse-header) {
+    padding: 0;
+    color: var(--ink-2);
+    font-size: 12px;
+    width: fit-content;
+  }
+
+  :global(>.ant-collapse-item>.ant-collapse-header:hover) {
+    color: var(--ink-1);
+  }
+
+  :global(>.ant-collapse-item>.ant-collapse-header:hover .ant-collapse-expand-icon) {
+    opacity: 1;
+  }
+
+  :global(>.ant-collapse-item.ant-collapse-item-active>.ant-collapse-header .ant-collapse-expand-icon) {
+    opacity: 1;
+  }
+
+  :global(>.ant-collapse-item >.ant-collapse-header .ant-collapse-expand-icon) {
+    height: 18px;
+    opacity: 0;
+  }
+
+  :global(>.ant-collapse-item >.ant-collapse-header .ant-collapse-arrow) {
+    font-size: 10px;
+  }
+  
+  :global(.ant-collapse-content>.ant-collapse-content-box) {
+    padding: 0;
+  }
+}

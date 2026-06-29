@@ -1,7 +1,7 @@
 import type { AIEvent } from "@/app/state/eventTypes";
 
 export type AgentEvent = AIEvent;
-export type RightSidebarTabKey = "overview" | "debug" | "preview";
+export type RightSidebarTabKey = "overview" | "debug" | "preview" | "sourceDetail";
 
 export interface ResourceFile {
 	mimeType: string;

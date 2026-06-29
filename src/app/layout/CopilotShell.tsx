@@ -6,6 +6,7 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
+import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -198,7 +199,9 @@ const CopilotSidePanel: React.FC = () => {
       ? t("copilot.panel.debug")
       : activeTab === "preview"
         ? t("copilot.panel.preview")
-        : t("copilot.panel.overview");
+        : activeTab === "sourceDetail"
+          ? t("copilot.panel.sourceDetail")
+          : t("copilot.panel.overview");
 
   return (
     <section className="copilot-side-panel" aria-label={title}>
@@ -220,6 +223,8 @@ const CopilotSidePanel: React.FC = () => {
           <DebugTab />
         ) : activeTab === "preview" && state.attachmentPreview ? (
           <AttachmentPreviewPanel />
+        ) : activeTab === "sourceDetail" && state.activeSourceDetail ? (
+          <SourceDetailTab />
         ) : (
           <OverviewTab />
         )}

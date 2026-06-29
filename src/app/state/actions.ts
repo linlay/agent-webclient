@@ -16,6 +16,7 @@ import type {
 	TaskItemMeta,
 	Team,
 	TimelineNode,
+	TimelineSource,
 	ToolState,
 	TtsVoiceBlock,
 	UiTimerHandle,
@@ -147,6 +148,7 @@ export type AppAction =
 			type: "OPEN_RIGHT_SIDEBAR";
 			tab?: RightSidebarTabKey;
 			preview?: AttachmentPreviewState | null;
+			sourceDetail?: TimelineSource | null;
 	  }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }

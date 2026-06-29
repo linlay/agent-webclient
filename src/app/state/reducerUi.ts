@@ -109,6 +109,7 @@ export function reduceUiState(
 			return { ...state, terminalDockOpen: action.open };
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
+			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
 			return {
 				...state,
 				rightSidebarOpen: true,
@@ -116,6 +117,9 @@ export function reduceUiState(
 				attachmentPreview: hasPreview
 					? action.preview ?? null
 					: state.attachmentPreview,
+				activeSourceDetail: hasSourceDetail
+					? action.sourceDetail ?? null
+					: state.activeSourceDetail,
 			};
 		}
 		case "CLOSE_RIGHT_SIDEBAR":
@@ -125,6 +129,7 @@ export function reduceUiState(
 				rightSidebarOpenTab: null,
 				artifactExpanded: false,
 				artifactManualOverride: false,
+				activeSourceDetail: null,
 			};
 		case "SET_THEME_MODE":
 			return {

@@ -46,7 +46,7 @@ import type {
 	RenderQueue,
 	UiTimerHandle,
 } from "@/app/state/uiTypes";
-import type { TimelineNode } from "@/app/state/timelineTypes";
+import type { TimelineNode, TimelineSource } from "@/app/state/timelineTypes";
 import type {
 	InputMode,
 	VoiceChatState,
@@ -198,6 +198,7 @@ export interface AppState {
 	leftDrawerOpen: boolean;
 	rightSidebarOpen: boolean;
 	rightSidebarOpenTab: RightSidebarTabKey | null;
+	activeSourceDetail: TimelineSource | null;
 	terminalDockOpen: boolean;
 	attachmentPreview: AttachmentPreviewState | null;
 	artifactExpanded: boolean;
