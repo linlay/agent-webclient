@@ -23,7 +23,16 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import { submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
-import { Button, Dropdown, Flex, Form, Input, message, Popover } from "antd";
+import {
+  Button,
+  Dropdown,
+  Flex,
+  Form,
+  Input,
+  message,
+  Popover,
+  Tooltip,
+} from "antd";
 import type { InputRef } from "antd";
 import type { Agent, WorkerRow } from "@/app/state/types";
 
@@ -85,12 +94,7 @@ function buildTimelineAgentSearchText(input: {
   role: string;
   searchText?: string;
 }): string {
-  return [
-    input.name,
-    input.role,
-    input.key,
-    input.searchText,
-  ]
+  return [input.name, input.role, input.key, input.searchText]
     .map(normalizeSearchText)
     .filter(Boolean)
     .join(" ");
@@ -212,9 +216,7 @@ export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
     return;
   }
 
-  const event = new Event("agent:select-worker") as CustomEvent<
-    typeof detail
-  >;
+  const event = new Event("agent:select-worker") as CustomEvent<typeof detail>;
   Object.defineProperty(event, "detail", { value: detail });
   window.dispatchEvent(event);
 }
@@ -438,6 +440,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const state = useAppState();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const autoScrollEnabledRef = useRef(true);
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
@@ -526,10 +529,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
     if (typeof window === "undefined") return;
     const nextUrl = `${window.location.pathname}${window.location.search}#${encodeURIComponent(normalizedAnchorId)}`;
-    if (
-      window.history &&
-      typeof window.history.replaceState === "function"
-    ) {
+    if (window.history && typeof window.history.replaceState === "function") {
       window.history.replaceState(null, "", nextUrl);
       return;
     }
@@ -548,31 +548,28 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       state.taskItemsById,
     );
   }, [timelineEntries, state.events, state.taskItemsById]);
-  const queryAnchorItems = useMemo(
-    () => {
-      const anchors: Array<{
-        key: string;
-        anchorId: string;
-        queryText: string;
-        lastRunContent: string;
-      }> = [];
-      for (let index = 0; index < displayItems.length; index += 1) {
-        const item = displayItems[index];
-        if (item.kind !== "query") continue;
+  const queryAnchorItems = useMemo(() => {
+    const anchors: Array<{
+      key: string;
+      anchorId: string;
+      queryText: string;
+      lastRunContent: string;
+    }> = [];
+    for (let index = 0; index < displayItems.length; index += 1) {
+      const item = displayItems[index];
+      if (item.kind !== "query") continue;
 
-        const nextItem = displayItems[index + 1];
-        anchors.push({
-          key: item.key,
-          anchorId: buildQueryAnchorId(item.node.id),
-          queryText: String(item.node.text || "").trim() || "无文本提问",
-          lastRunContent:
-            nextItem?.kind === "run" ? findLastRunContentText(nextItem) : "",
-        });
-      }
-      return anchors;
-    },
-    [displayItems],
-  );
+      const nextItem = displayItems[index + 1];
+      anchors.push({
+        key: item.key,
+        anchorId: buildQueryAnchorId(item.node.id),
+        queryText: String(item.node.text || "").trim() || "无文本提问",
+        lastRunContent:
+          nextItem?.kind === "run" ? findLastRunContentText(nextItem) : "",
+      });
+    }
+    return anchors;
+  }, [displayItems]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -691,12 +688,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     (entry: TimelineRenderEntry) => {
       if (entry.kind === "node") {
         if (entry.node.kind === "agent-group") return null;
-        return (
-          <TimelineRow
-            key={entry.key}
-            node={entry.node}
-          />
-        );
+        return <TimelineRow key={entry.key} node={entry.node} />;
       }
       if (entry.kind === "task-group") {
         const expanded = Boolean(expandedTaskGroups[entry.key]);
@@ -767,12 +759,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           </section>
         );
       }
-      return (
-        <TimelineRow
-          key={entry.key}
-          toolGroup={entry}
-        />
-      );
+      return <TimelineRow key={entry.key} toolGroup={entry} />;
     },
     [
       currentWorker,
@@ -843,7 +830,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   useEffect(() => {
     updateActiveQueryAnchor();
-  }, [displayItems, queryAnchorsEnabled, state.chatId, updateActiveQueryAnchor]);
+  }, [
+    displayItems,
+    queryAnchorsEnabled,
+    state.chatId,
+    updateActiveQueryAnchor,
+  ]);
 
   return (
     <div className="conversation-stage">
@@ -878,229 +870,268 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             <>
               {queryAnchorItems.length > 0 && (
                 <nav
+                  ref={anchorRef}
                   className="timeline-query-anchor-rail"
-                  aria-label="提问锚点"
+                  style={
+                    {
+                      "--hover-index": (queryAnchorItems.length + 5).toString(),
+                    } as React.CSSProperties
+                  }
+                  onMouseLeave={() => {
+                    if (!anchorRef.current) return;
+                    anchorRef.current.style.setProperty(
+                      "--hover-index",
+                      (queryAnchorItems.length + 5).toString(),
+                    );
+                  }}
                 >
                   {queryAnchorItems.map((anchor, index) => {
                     const active = activeQueryAnchorId === anchor.anchorId;
                     return (
-                      <button
-                        key={anchor.key}
-                        className={`timeline-query-anchor-line ${active ? "is-active" : ""}`.trim()}
-                        type="button"
-                        aria-label={`定位到第 ${index + 1} 个提问`}
-                        aria-current={active ? "location" : undefined}
-                        title={`定位到第 ${index + 1} 个提问`}
-                        onClick={() => handleQueryAnchorClick(anchor.anchorId)}
-                      >
-                        <span
-                          className="timeline-query-anchor-line-bar"
-                          aria-hidden="true"
-                        />
-                        <span
-                          className="timeline-query-anchor-preview"
-                          aria-hidden="true"
-                        >
-                          <span className="timeline-query-anchor-preview-query">
-                            {anchor.queryText}
-                          </span>
-                          {anchor.lastRunContent && (
-                            <span className="timeline-query-anchor-preview-content">
+                      <Tooltip
+                        rootClassName="timeline-query-anchor-preview"
+                        trigger="hover"
+                        placement="right"
+                        title={
+                          <div>
+                            <div className="timeline-query-anchor-preview-query">
+                              {anchor.queryText}
+                            </div>
+                            <div className="timeline-query-anchor-preview-content">
                               {anchor.lastRunContent}
-                            </span>
-                          )}
-                        </span>
-                      </button>
+                            </div>
+                          </div>
+                        }
+                      >
+                        <button
+                          key={anchor.key}
+                          className={`timeline-query-anchor-line ${active ? "is-active" : ""}`.trim()}
+                          type="button"
+                          aria-current={active ? "location" : undefined}
+                          onMouseEnter={() => {
+                            if (!anchorRef.current) return;
+                            anchorRef.current.style.setProperty(
+                              "--hover-index",
+                              index.toString(),
+                            );
+                          }}
+                          onClick={() =>
+                            handleQueryAnchorClick(anchor.anchorId)
+                          }
+                        >
+                          <span
+                            className="timeline-query-anchor-line-bar"
+                            aria-hidden="true"
+                            style={
+                              {
+                                "--index": index,
+                              } as React.CSSProperties
+                            }
+                          />
+                        </button>
+                      </Tooltip>
                     );
                   })}
                 </nav>
               )}
               <div className="timeline-lane">
-              {displayItems.map((item) => {
-                if (item.kind === "query") {
-                  const queryTime = formatTimelineTime(item.node.ts);
-                  const queryCopyKey = `${item.key}:copy`;
-                  const queryCopyStatus = actionStatus[queryCopyKey] || "复制";
-                  const queryAnchorId = buildQueryAnchorId(item.node.id);
-                  return (
-                    <div
-                      key={item.key}
-                      id={queryAnchorId}
-                      className="timeline-query-anchor-row"
-                      data-query-anchor-id={queryAnchorId}
-                    >
-                      <TimelineRow
-                        node={item.node}
-                        metaNode={
-                          <div className="timeline-meta-row">
+                {displayItems.map((item) => {
+                  if (item.kind === "query") {
+                    const queryTime = formatTimelineTime(item.node.ts);
+                    const queryCopyKey = `${item.key}:copy`;
+                    const queryCopyStatus =
+                      actionStatus[queryCopyKey] || "复制";
+                    const queryAnchorId = buildQueryAnchorId(item.node.id);
+                    return (
+                      <div
+                        key={item.key}
+                        id={queryAnchorId}
+                        className="timeline-query-anchor-row"
+                        data-query-anchor-id={queryAnchorId}
+                      >
+                        <TimelineRow
+                          node={item.node}
+                          metaNode={
+                            <div className="timeline-meta-row">
+                              <div className="timeline-meta-actions">
+                                <UiButton
+                                  className="timeline-meta-btn"
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  title={queryCopyStatus}
+                                  aria-label={queryCopyStatus}
+                                  onClick={() =>
+                                    handleCopy(
+                                      queryCopyKey,
+                                      item.node.text || "",
+                                    )
+                                  }
+                                >
+                                  <MaterialIcon name="content_copy" />
+                                </UiButton>
+                                <Dropdown
+                                  placement="bottomRight"
+                                  menu={{
+                                    onClick: (info) => {
+                                      if (info.key === "resend") {
+                                        handleResend(item.node.text || "");
+                                      } else if (
+                                        info.key === "resendInNewChat"
+                                      ) {
+                                        handleResendInNewChat(
+                                          item.node.text || "",
+                                        );
+                                      }
+                                    },
+                                    items: [
+                                      {
+                                        key: "resend",
+                                        icon: <MaterialIcon name="refresh" />,
+                                        label: "重问",
+                                      },
+                                      {
+                                        key: "resendInNewChat",
+                                        icon: (
+                                          <MaterialIcon name="open_in_new" />
+                                        ),
+                                        label: "新对话重问",
+                                      },
+                                    ],
+                                  }}
+                                >
+                                  <UiButton
+                                    className="timeline-meta-btn"
+                                    variant="ghost"
+                                    size="sm"
+                                    iconOnly
+                                    disabled={state.streaming}
+                                    title="重问"
+                                    aria-label="重问"
+                                  >
+                                    <MaterialIcon name="refresh" />
+                                  </UiButton>
+                                </Dropdown>
+                              </div>
+                              {queryTime.short && (
+                                <div
+                                  className="timeline-row-time"
+                                  title={queryTime.full}
+                                >
+                                  {queryTime.short}
+                                </div>
+                              )}
+                            </div>
+                          }
+                        />
+                      </div>
+                    );
+                  }
+
+                  if (item.kind === "run") {
+                    const isCompleted = Boolean(item.completedAt);
+                    const time = formatTimelineTime(item.completedAt);
+                    const responseDuration = formatResponseDuration(
+                      item.responseDurationMs,
+                    );
+                    const runCopyKey = `${item.key}:copy`;
+                    const runId = String(item.runId || "").trim();
+                    const isDownvoted = Boolean(
+                      runId && state.downvotedRunKeys.has(runId),
+                    );
+                    const runCopyStatus = actionStatus[runCopyKey] || "复制";
+                    return (
+                      <section key={item.key} className="timeline-run-group">
+                        <div className="timeline-run-items">
+                          {item.renderEntries.map((entry) =>
+                            renderEntry(entry),
+                          )}
+                        </div>
+                        {isCompleted && (
+                          <div className="timeline-run-meta">
                             <div className="timeline-meta-actions">
                               <UiButton
                                 className="timeline-meta-btn"
                                 variant="ghost"
                                 size="sm"
                                 iconOnly
-                                title={queryCopyStatus}
-                                aria-label={queryCopyStatus}
+                                title={runCopyStatus}
+                                aria-label={runCopyStatus}
                                 onClick={() =>
-                                  handleCopy(queryCopyKey, item.node.text || "")
+                                  handleCopy(
+                                    runCopyKey,
+                                    serializeRunTranscript(
+                                      item.queryNode,
+                                      item.nodes,
+                                    ),
+                                  )
                                 }
                               >
                                 <MaterialIcon name="content_copy" />
                               </UiButton>
-                              <Dropdown
-                                placement="bottomRight"
-                                menu={{
-                                  onClick: (info) => {
-                                    if (info.key === "resend") {
-                                      handleResend(item.node.text || "");
-                                    } else if (info.key === "resendInNewChat") {
-                                      handleResendInNewChat(
-                                        item.node.text || "",
-                                      );
-                                    }
-                                  },
-                                  items: [
-                                    {
-                                      key: "resend",
-                                      icon: <MaterialIcon name="refresh" />,
-                                      label: "重问",
-                                    },
-                                    {
-                                      key: "resendInNewChat",
-                                      icon: <MaterialIcon name="open_in_new" />,
-                                      label: "新对话重问",
-                                    },
-                                  ],
-                                }}
-                              >
+                              {isDownvoted ? (
                                 <UiButton
-                                  className="timeline-meta-btn"
+                                  className="timeline-meta-btn is-downvoted"
                                   variant="ghost"
                                   size="sm"
                                   iconOnly
-                                  disabled={state.streaming}
-                                  title="重问"
-                                  aria-label="重问"
-                                >
-                                  <MaterialIcon name="refresh" />
-                                </UiButton>
-                              </Dropdown>
-                            </div>
-                            {queryTime.short && (
-                              <div
-                                className="timeline-row-time"
-                                title={queryTime.full}
-                              >
-                                {queryTime.short}
-                              </div>
-                            )}
-                          </div>
-                        }
-                      />
-                    </div>
-                  );
-                }
-
-                if (item.kind === "run") {
-                  const isCompleted = Boolean(item.completedAt);
-                  const time = formatTimelineTime(item.completedAt);
-                  const responseDuration = formatResponseDuration(
-                    item.responseDurationMs,
-                  );
-                  const runCopyKey = `${item.key}:copy`;
-                  const runId = String(item.runId || "").trim();
-                  const isDownvoted = Boolean(
-                    runId && state.downvotedRunKeys.has(runId),
-                  );
-                  const runCopyStatus = actionStatus[runCopyKey] || "复制";
-                  return (
-                    <section key={item.key} className="timeline-run-group">
-                      <div className="timeline-run-items">
-                        {item.renderEntries.map((entry) => renderEntry(entry))}
-                      </div>
-                      {isCompleted && (
-                        <div className="timeline-run-meta">
-                          <div className="timeline-meta-actions">
-                            <UiButton
-                              className="timeline-meta-btn"
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              title={runCopyStatus}
-                              aria-label={runCopyStatus}
-                              onClick={() =>
-                                handleCopy(
-                                  runCopyKey,
-                                  serializeRunTranscript(
-                                    item.queryNode,
-                                    item.nodes,
-                                  ),
-                                )
-                              }
-                            >
-                              <MaterialIcon name="content_copy" />
-                            </UiButton>
-                            {isDownvoted ? (
-                              <UiButton
-                                className="timeline-meta-btn is-downvoted"
-                                variant="ghost"
-                                size="sm"
-                                iconOnly
-                                active
-                                title="取消点踩"
-                                aria-label="取消点踩"
-                                disabled={!runId}
-                                onClick={() => handleDownvote(runId, false)}
-                              >
-                                <MaterialIcon name="thumb_down" />
-                              </UiButton>
-                            ) : (
-                              <Popover
-                                destroyOnHidden
-                                trigger={["click"]}
-                                content={
-                                  <FeedbackModal
-                                    onFinish={() => {
-                                      handleDownvote(runId, true);
-                                    }}
-                                  />
-                                }
-                              >
-                                <UiButton
-                                  className="timeline-meta-btn"
-                                  variant="ghost"
-                                  size="sm"
-                                  iconOnly
-                                  title="点踩"
-                                  aria-label="点踩"
+                                  active
+                                  title="取消点踩"
+                                  aria-label="取消点踩"
                                   disabled={!runId}
+                                  onClick={() => handleDownvote(runId, false)}
                                 >
                                   <MaterialIcon name="thumb_down" />
                                 </UiButton>
-                              </Popover>
+                              ) : (
+                                <Popover
+                                  destroyOnHidden
+                                  trigger={["click"]}
+                                  content={
+                                    <FeedbackModal
+                                      onFinish={() => {
+                                        handleDownvote(runId, true);
+                                      }}
+                                    />
+                                  }
+                                >
+                                  <UiButton
+                                    className="timeline-meta-btn"
+                                    variant="ghost"
+                                    size="sm"
+                                    iconOnly
+                                    title="点踩"
+                                    aria-label="点踩"
+                                    disabled={!runId}
+                                  >
+                                    <MaterialIcon name="thumb_down" />
+                                  </UiButton>
+                                </Popover>
+                              )}
+                            </div>
+                            {time.short && (
+                              <div
+                                className="timeline-run-time"
+                                title={
+                                  responseDuration
+                                    ? `${time.full} · 响应耗时 ${responseDuration}`
+                                    : time.full
+                                }
+                              >
+                                {time.short}
+                                {responseDuration
+                                  ? ` · ${responseDuration}`
+                                  : ""}
+                              </div>
                             )}
                           </div>
-                          {time.short && (
-                            <div
-                              className="timeline-run-time"
-                              title={
-                                responseDuration
-                                  ? `${time.full} · 响应耗时 ${responseDuration}`
-                                  : time.full
-                              }
-                            >
-                              {time.short}
-                              {responseDuration ? ` · ${responseDuration}` : ""}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </section>
-                  );
-                }
+                        )}
+                      </section>
+                    );
+                  }
 
-                return renderEntry(item.renderEntry);
-              })}
+                  return renderEntry(item.renderEntry);
+                })}
               </div>
             </>
           )}
