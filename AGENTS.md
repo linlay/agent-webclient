@@ -31,6 +31,7 @@
 
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
+- `docs/`：中文专题文档，按前端协议消费、运行态 UI、管理台与部署专题拆分
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
 - `src/shared/data/`：统一数据管理模块，包含接口注册、API 客户端、鉴权封装、请求路由与轻量 server-state 查询缓存
@@ -110,6 +111,41 @@ Git 提交与推送规范：
 - 开发与部署都依赖外部 AGENT API / 语音服务，脱离后端无法完成核心联调。
 - 若上游返回非标准 JSON、SSE 帧格式异常或 WebSocket 事件不完整，前端会以错误态显示，但无法替代后端修复协议问题。
 - 语音、前端工具和运行态调试能力对浏览器能力、代理配置和后端实时链路较敏感，回归时需要重点验证。
+
+## 专题文档索引
+- [应用入口路由与布局壳层](docs/应用入口路由与布局壳层.md)
+- [全局状态与Reducer](docs/全局状态与Reducer.md)
+- [事件数据结构与协议枚举](docs/事件数据结构与协议枚举.md)
+- [运行时配置与功能开关](docs/运行时配置与功能开关.md)
+- [开发代理与生产反向代理](docs/开发代理与生产反向代理.md)
+- [API端点注册与DTO](docs/API端点注册与DTO.md)
+- [请求路由缓存与鉴权错误](docs/请求路由缓存与鉴权错误.md)
+- [流式传输SSE与WebSocket](docs/流式传输SSE与WebSocket.md)
+- [会话加载回放与LiveSummary](docs/会话加载回放与LiveSummary.md)
+- [Composer输入与快捷交互](docs/Composer输入与快捷交互.md)
+- [消息发送路由与运行控制](docs/消息发送路由与运行控制.md)
+- [运行参数模型与访问级别](docs/运行参数模型与访问级别.md)
+- [附件上传与引用](docs/附件上传与引用.md)
+- [Artifact发布与资源预览](docs/Artifact发布与资源预览.md)
+- [时间线事件处理与渲染](docs/时间线事件处理与渲染.md)
+- [Reasoning与Planning节点](docs/Reasoning与Planning节点.md)
+- [计划事件与任务视图](docs/计划事件与任务视图.md)
+- [Viewport视图容器](docs/Viewport视图容器.md)
+- [FrontendTool容器协议](docs/FrontendTool容器协议.md)
+- [HITL-Awaiting协议与状态机](docs/HITL-Awaiting协议与状态机.md)
+- [HITL-Question问题交互](docs/HITL-Question问题交互.md)
+- [HITL-Approval审批交互](docs/HITL-Approval审批交互.md)
+- [HITL-Form表单HTML交互](docs/HITL-Form表单HTML交互.md)
+- [HITL-Plan计划决策](docs/HITL-Plan计划决策.md)
+- [AgentTeam选择与Worker列表](docs/AgentTeam选择与Worker列表.md)
+- [Agent管理台](docs/Agent管理台.md)
+- [Registry管理台与工具目录](docs/Registry管理台与工具目录.md)
+- [语音输入ASR与TTS](docs/语音输入ASR与TTS.md)
+- [Memory归档与Automation页面](docs/Memory归档与Automation页面.md)
+- [样式主题基础UI与国际化](docs/样式主题基础UI与国际化.md)
+- [Desktop宿主桥接](docs/Desktop宿主桥接.md)
+- [版本化打包与部署](docs/版本化打包与部署.md)
+- [手工测试用例](docs/手工测试用例.md)
 
 <!-- xgraph:start -->
 ## Project Context

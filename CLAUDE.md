@@ -1,5 +1,7 @@
 @AGENTS.md
 
+专题文档位于 [docs/](docs/)，完整索引见 [AGENTS.md](AGENTS.md#专题文档索引) 与 [README.md](README.md#专题文档)。
+
 <!-- xgraph:start -->
 ## Project Context
 

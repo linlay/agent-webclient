@@ -8,6 +8,43 @@
 - Program Bundle：ZenMind Desktop 内置服务包，包含静态资源和 manifest；HTTP 托管由 Desktop main process 负责
 - Image Bundle：包含离线 Docker 镜像、compose 和运行脚本的镜像部署包
 
+## 专题文档
+项目细节拆分在 `docs/` 下，入口文档只保留快速开始、配置和部署说明。前端文档只说明如何消费、展示和联调后端 AGENT 协议，不在本仓库重新定义后端协议语义。
+
+- [应用入口路由与布局壳层](docs/应用入口路由与布局壳层.md)
+- [全局状态与Reducer](docs/全局状态与Reducer.md)
+- [事件数据结构与协议枚举](docs/事件数据结构与协议枚举.md)
+- [运行时配置与功能开关](docs/运行时配置与功能开关.md)
+- [开发代理与生产反向代理](docs/开发代理与生产反向代理.md)
+- [API端点注册与DTO](docs/API端点注册与DTO.md)
+- [请求路由缓存与鉴权错误](docs/请求路由缓存与鉴权错误.md)
+- [流式传输SSE与WebSocket](docs/流式传输SSE与WebSocket.md)
+- [会话加载回放与LiveSummary](docs/会话加载回放与LiveSummary.md)
+- [Composer输入与快捷交互](docs/Composer输入与快捷交互.md)
+- [消息发送路由与运行控制](docs/消息发送路由与运行控制.md)
+- [运行参数模型与访问级别](docs/运行参数模型与访问级别.md)
+- [附件上传与引用](docs/附件上传与引用.md)
+- [Artifact发布与资源预览](docs/Artifact发布与资源预览.md)
+- [时间线事件处理与渲染](docs/时间线事件处理与渲染.md)
+- [Reasoning与Planning节点](docs/Reasoning与Planning节点.md)
+- [计划事件与任务视图](docs/计划事件与任务视图.md)
+- [Viewport视图容器](docs/Viewport视图容器.md)
+- [FrontendTool容器协议](docs/FrontendTool容器协议.md)
+- [HITL-Awaiting协议与状态机](docs/HITL-Awaiting协议与状态机.md)
+- [HITL-Question问题交互](docs/HITL-Question问题交互.md)
+- [HITL-Approval审批交互](docs/HITL-Approval审批交互.md)
+- [HITL-Form表单HTML交互](docs/HITL-Form表单HTML交互.md)
+- [HITL-Plan计划决策](docs/HITL-Plan计划决策.md)
+- [AgentTeam选择与Worker列表](docs/AgentTeam选择与Worker列表.md)
+- [Agent管理台](docs/Agent管理台.md)
+- [Registry管理台与工具目录](docs/Registry管理台与工具目录.md)
+- [语音输入ASR与TTS](docs/语音输入ASR与TTS.md)
+- [Memory归档与Automation页面](docs/Memory归档与Automation页面.md)
+- [样式主题基础UI与国际化](docs/样式主题基础UI与国际化.md)
+- [Desktop宿主桥接](docs/Desktop宿主桥接.md)
+- [版本化打包与部署](docs/版本化打包与部署.md)
+- [手工测试用例](docs/手工测试用例.md)
+
 ## 2. 快速开始
 ### 前置要求
 - Node.js 18+
