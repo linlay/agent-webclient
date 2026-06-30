@@ -1376,64 +1376,11 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 /* ========================================
    Thinking Block
    ======================================== */
-.thinking-trigger {
-    min-height: 26px !important;
-    border: 0;
-    background: transparent !important;
-    padding: 0 !important;
-    color: var(--ink-muted);
-    font-size: 12px;
-    letter-spacing: 0.01em;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.thinking-trigger:hover {
-    color: var(--ink-2);
-    box-shadow: none;
-
-    .chevron {
-        opacity: 1;
-    }
-}
-
-.thinking-trigger .chevron {
-    display: inline-flex;
-    transition:
-        transform 0.22s ease,
-        opacity 0.22s ease;
-    opacity: 0;
-}
-
-.thinking-trigger.is-open .chevron {
-    transform: rotate(90deg);
-    opacity: 1;
-}
-
 .thinking-detail {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    margin-top: 0;
-    padding: 0;
     color: var(--ink-2);
     font-size: 11px;
     line-height: 1.5;
     white-space: pre-wrap;
-    transition:
-        max-height 0.28s ease,
-        opacity 0.24s ease,
-        margin-top 0.24s ease,
-        padding 0.24s ease;
-}
-
-.thinking-detail.is-open {
-    max-height: 50vh;
-    opacity: 1;
-    margin-top: 6px;
-    padding: 0;
-    overflow: auto;
 }
 
 /* ========================================

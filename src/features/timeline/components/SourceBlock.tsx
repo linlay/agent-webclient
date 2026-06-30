@@ -1,17 +1,11 @@
 import React from "react";
-import type {
-  TimelineNode,
-  TimelineSource,
-  TimelineSourceChunk,
-} from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/app/state/types";
 import { useAppDispatch } from "@/app/state/AppContext";
-import { t as runtimeT, useI18n } from "@/shared/i18n";
-import type { TranslateParams } from "@/shared/i18n";
-import { Collapse, Flex } from "antd";
+import { useI18n } from "@/shared/i18n";
+import { Flex } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import Style from "./SourceBlock.module.css";
-
+import { TimelineCollapse } from "./collapse";
 
 function basename(value: string): string {
   const normalized = value.replace(/\\/g, "/");
@@ -51,36 +45,38 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   };
 
   return (
-    <Collapse
-      ghost
-      className={Style.Collapse}
-      expandIconPosition="end"
-      items={[
-        {
-          key: "source-list",
-          label: (
-            <Flex gap={6}>
-              <span>{t("timeline.source.title", { count: sourceCount })}</span>
-              <span className="source-query">"{node.sourceQuery}"</span>
-            </Flex>
-          ),
-          children: (
-            <div className="source-list">
-              {sources.map((source) => (
-                <UiButton
-                  className="source-item"
-                  key={source.id}
-                  size="sm"
-                  onClick={() => openSource(source)}
-                >
-                  <MaterialIcon name="article" />
-                  <span>{sourceName(source)}</span>
-                </UiButton>
-              ))}
-            </div>
-          ),
-        },
-      ]}
-    />
+    <TimelineCollapse
+      expanded={node.expanded}
+      label={
+        <Flex gap={6}>
+          <span>{t("timeline.source.title", { count: sourceCount })}</span>
+          <span className="source-query">"{node.sourceQuery}"</span>
+        </Flex>
+      }
+      onExpand={(expanded) => {
+        dispatch({
+          type: "SET_TIMELINE_NODE",
+          id: node.id,
+          node: {
+            ...node,
+            expanded,
+          },
+        });
+      }}
+    >
+      <div className="source-list">
+        {sources.map((source) => (
+          <UiButton
+            className="source-item"
+            key={source.id}
+            size="sm"
+            onClick={() => openSource(source)}
+          >
+            <MaterialIcon name="article" />
+            <span>{sourceName(source)}</span>
+          </UiButton>
+        ))}
+      </div>
+    </TimelineCollapse>
   );
 };

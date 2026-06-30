@@ -22,55 +22,7 @@
     }
 }
 
-.tool-trigger {
-    min-height: 26px !important;
-    border: 0;
-    background: transparent !important;
-    padding: 0 !important;
-    color: var(--ink-muted);
-    font-size: 12px;
-    letter-spacing: 0.01em;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    max-width: min(100%, 520px);
-}
-
-.tool-trigger .ui-btn-label {
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.tool-trigger:hover {
-    color: var(--ink-2);
-    box-shadow: none;
-
-    .chevron {
-        opacity: 1;
-    }
-}
-
-.tool-trigger[data-expandable="false"] {
-    cursor: default;
-}
-
-.tool-trigger .chevron {
-    display: inline-flex;
-    transition:
-        transform 0.22s ease,
-        opacity 0.22s ease;
-    opacity: 0;
-}
-
-.tool-trigger.is-open .chevron {
-    transform: rotate(90deg);
-    opacity: 1;
-}
-
 .tool-pill-label {
-    min-width: 0;
     max-width: min(46vw, 260px);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -103,16 +55,6 @@
 .tool-status-dot[data-tool-status="error"],
 .tool-status-dot[data-tool-status="canceled"] {
     background: var(--accent-danger);
-}
-
-.tool-detail {
-    display: none;
-}
-
-.tool-detail.is-open {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
 }
 
 .tool-call-head {
