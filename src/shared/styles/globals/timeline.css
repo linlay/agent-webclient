@@ -197,8 +197,7 @@
 .timeline-query-anchor-rail {
     position: sticky;
     top: 50%;
-    width: 48px;
-    height: 0;
+    width: fit-content;
     margin-left: calc(-1 * var(--query-anchor-offset, 56px));
     display: none;
     flex-direction: column;
@@ -213,9 +212,8 @@
 }
 
 .timeline-query-anchor-line {
-    --query-anchor-line-width: 6px;
     position: relative;
-    width: 48px;
+    width: 27px;
     min-height: 12px;
     display: inline-flex;
     align-items: center;
@@ -231,18 +229,12 @@
     animation: timeline-query-anchor-enter 0.28s ease forwards;
 }
 
-.timeline-query-anchor-line:hover,
-.timeline-query-anchor-line:focus-visible {
+.timeline-query-anchor-line:hover {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
     color: var(--ink-2);
     outline: none;
-}
-
-.timeline-query-anchor-line:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--accent-electric) 54%, transparent);
-    outline-offset: 4px;
 }
 
 .timeline-query-anchor-line:active {
@@ -251,22 +243,19 @@
 
 .timeline-query-anchor-line-bar {
     display: block;
-    width: calc(var(--query-anchor-line-width) * max(calc(5 - abs(var(--index) - var(--hover-index))), 1));
+    width: calc(100% - min(calc(abs(var(--index) - var(--hover-index)) * 15%), 80%));
     height: 2px;
-    border-radius: 999px;
-    background: color-mix(in srgb, currentColor 34%, transparent);
+    background: var(--ink-1);
     transform-origin: left center;
+    opacity: .3;
     transition:
         width 0.1s,
-        background-color 0.1s;
+        opacity 0.1s;
 }
 
-.timeline-query-anchor-line:hover .timeline-query-anchor-line-bar {
-    background: var(--ink-1);
-}
-
+.timeline-query-anchor-line:hover .timeline-query-anchor-line-bar,
 .timeline-query-anchor-rail:not(:hover) .timeline-query-anchor-line.is-active .timeline-query-anchor-line-bar {
-    background: var(--ink-1);
+    opacity: 1;
 }
 
 .timeline-query-anchor-preview {

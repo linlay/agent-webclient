@@ -901,14 +901,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   className="timeline-query-anchor-rail"
                   style={
                     {
-                      "--hover-index": (queryAnchorItems.length + 5).toString(),
+                      "--hover-index": (queryAnchorItems.length + 999).toString(),
                     } as React.CSSProperties
                   }
                   onMouseLeave={() => {
                     if (!anchorRef.current) return;
                     anchorRef.current.style.setProperty(
                       "--hover-index",
-                      (queryAnchorItems.length + 5).toString(),
+                      (queryAnchorItems.length + 999).toString(),
                     );
                   }}
                 >
