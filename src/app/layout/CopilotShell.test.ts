@@ -69,7 +69,7 @@ jest.mock("@/app/layout/CommandStatusOverlay", () => ({
   ),
 }));
 
-jest.mock("@/app/layout/sidebar/right/AttachmentPreviewPanel", () => ({
+jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => (
     React.createElement(
       "div",

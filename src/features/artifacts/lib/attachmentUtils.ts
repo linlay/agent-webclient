@@ -3,6 +3,7 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 export interface AttachmentLike {
   name?: string;
   size?: number;
+  sizeBytes?: number;
   type?: string;
   mimeType?: string;
   url?: string;
@@ -50,6 +51,13 @@ export function formatAttachmentSize(size?: number): string {
 
   const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
   return `${value.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+export function getAttachmentSizeBytes(
+  attachment: AttachmentLike,
+): number | undefined {
+  const size = Number(attachment.sizeBytes ?? attachment.size);
+  return Number.isFinite(size) && size >= 0 ? size : undefined;
 }
 
 export function getAttachmentExtension(name?: string): string {

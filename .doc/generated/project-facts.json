@@ -187,7 +187,6 @@
     "src/app/layout/sidebar/WorkerChatPreviewItem.tsx",
     "src/app/layout/sidebar/WorkerConversationPreviewList.tsx",
     "src/app/layout/sidebar/WorkerPanelHeader.tsx",
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx",
     "src/app/layout/sidebar/right/DebugTab.test.ts",
     "src/app/layout/sidebar/right/DebugTab.tsx",
     "src/app/layout/sidebar/right/FileDiffView.tsx",
@@ -245,6 +244,7 @@
     "src/features/artifacts/components/ArtifactPanel.test.ts",
     "src/features/artifacts/components/ArtifactPanel.tsx",
     "src/features/artifacts/components/AttachmentCard.tsx",
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx",
     "src/features/artifacts/lib/attachmentPreview.test.ts",
     "src/features/artifacts/lib/attachmentPreview.ts",
     "src/features/artifacts/lib/attachmentUtils.test.ts",
@@ -637,10 +637,6 @@
                         "name": "right",
                         "type": "directory",
                         "children": [
-                          {
-                            "name": "AttachmentPreviewPanel.tsx",
-                            "type": "file"
-                          },
                           {
                             "name": "DebugTab.test.ts",
                             "type": "file"
@@ -1037,6 +1033,10 @@
                       },
                       {
                         "name": "AttachmentCard.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "AttachmentPreviewPanel.tsx",
                         "type": "file"
                       }
                     ]
@@ -2733,7 +2733,6 @@
       "src/app/layout/sidebar/WorkerChatPreviewItem.tsx",
       "src/app/layout/sidebar/WorkerConversationPreviewList.tsx",
       "src/app/layout/sidebar/WorkerPanelHeader.tsx",
-      "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx",
       "src/app/layout/sidebar/right/DebugTab.test.ts",
       "src/app/layout/sidebar/right/DebugTab.tsx",
       "src/app/layout/sidebar/right/FileDiffView.tsx",
@@ -2792,6 +2791,7 @@
       "src/features/artifacts/components/ArtifactPanel.test.ts",
       "src/features/artifacts/components/ArtifactPanel.tsx",
       "src/features/artifacts/components/AttachmentCard.tsx",
+      "src/features/artifacts/components/AttachmentPreviewPanel.tsx",
       "src/features/artifacts/lib/attachmentPreview.test.ts",
       "src/features/artifacts/lib/attachmentPreview.ts",
       "src/features/artifacts/lib/attachmentUtils.test.ts",
@@ -3153,7 +3153,6 @@
     "src/app/layout/sidebar/WorkerChatPreviewItem.tsx": "app",
     "src/app/layout/sidebar/WorkerConversationPreviewList.tsx": "app",
     "src/app/layout/sidebar/WorkerPanelHeader.tsx": "app",
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": "app",
     "src/app/layout/sidebar/right/DebugTab.test.ts": "app",
     "src/app/layout/sidebar/right/DebugTab.tsx": "app",
     "src/app/layout/sidebar/right/FileDiffView.tsx": "app",
@@ -3210,6 +3209,7 @@
     "src/features/artifacts/components/ArtifactPanel.test.ts": "artifacts",
     "src/features/artifacts/components/ArtifactPanel.tsx": "artifacts",
     "src/features/artifacts/components/AttachmentCard.tsx": "artifacts",
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx": "artifacts",
     "src/features/artifacts/lib/attachmentPreview.test.ts": "artifacts",
     "src/features/artifacts/lib/attachmentPreview.ts": "artifacts",
     "src/features/artifacts/lib/attachmentUtils.test.ts": "artifacts",
@@ -3696,9 +3696,6 @@
     "src/app/layout/sidebar/WorkerPanelHeader.tsx": [
       "WorkerPanelHeader"
     ],
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": [
-      "AttachmentPreviewPanel"
-    ],
     "src/app/layout/sidebar/right/DebugTab.test.ts": null,
     "src/app/layout/sidebar/right/DebugTab.tsx": [
       "DEBUG_EVENT_TABS",
@@ -4086,6 +4083,9 @@
     "src/features/artifacts/components/AttachmentCard.tsx": [
       "AttachmentCard"
     ],
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx": [
+      "AttachmentPreviewPanel"
+    ],
     "src/features/artifacts/lib/attachmentPreview.test.ts": null,
     "src/features/artifacts/lib/attachmentPreview.ts": [
       "AttachmentPreviewKind",
@@ -4103,6 +4103,7 @@
       "getAttachmentIconName",
       "getAttachmentKind",
       "getAttachmentKindLabel",
+      "getAttachmentSizeBytes",
       "getAttachmentUrl",
       "isImageAttachment"
     ],
@@ -5885,10 +5886,10 @@
       "@/app/layout/ShellOverlays",
       "@/app/layout/TopNav",
       "@/app/layout/hooks/useAppRuntimes",
-      "@/app/layout/sidebar/right/AttachmentPreviewPanel",
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/layout/sidebar/right/OverviewTab",
       "@/app/state/AppContext",
+      "@/features/artifacts/components/AttachmentPreviewPanel",
       "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/workers/components/CommandOverlayProvider",
@@ -6066,15 +6067,6 @@
       "antd",
       "react"
     ],
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": [
-      "@/app/state/AppContext",
-      "@/features/artifacts/lib/attachmentUtils",
-      "@/shared/data",
-      "@/shared/i18n",
-      "@/shared/ui/UiButton",
-      "antd",
-      "react"
-    ],
     "src/app/layout/sidebar/right/DebugTab.test.ts": [
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/state/AppContext",
@@ -6120,11 +6112,11 @@
       "react-dom/server"
     ],
     "src/app/layout/sidebar/right/RightSidebar.tsx": [
-      "@/app/layout/sidebar/right/AttachmentPreviewPanel",
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/layout/sidebar/right/OverviewTab",
       "@/app/state/AppContext",
       "@/app/state/uiTypes",
+      "@/features/artifacts/components/AttachmentPreviewPanel",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
@@ -6425,6 +6417,15 @@
       "@/features/artifacts/lib/attachmentUtils",
       "@/shared/data",
       "@/shared/ui/MaterialIcon",
+      "react"
+    ],
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx": [
+      "@/app/state/AppContext",
+      "@/features/artifacts/lib/attachmentUtils",
+      "@/shared/data",
+      "@/shared/i18n",
+      "@/shared/ui/UiButton",
+      "antd",
       "react"
     ],
     "src/features/artifacts/lib/attachmentPreview.test.ts": [
@@ -8309,7 +8310,6 @@
       "src/app/layout/sidebar/WorkerChatPreviewItem.tsx"
     ],
     "src/app/layout/sidebar/WorkerPanelHeader.tsx": null,
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": null,
     "src/app/layout/sidebar/right/DebugTab.test.ts": null,
     "src/app/layout/sidebar/right/DebugTab.tsx": null,
     "src/app/layout/sidebar/right/FileDiffView.tsx": null,
@@ -8369,6 +8369,7 @@
     "src/features/artifacts/components/ArtifactPanel.test.ts": null,
     "src/features/artifacts/components/ArtifactPanel.tsx": null,
     "src/features/artifacts/components/AttachmentCard.tsx": null,
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx": null,
     "src/features/artifacts/lib/attachmentPreview.test.ts": null,
     "src/features/artifacts/lib/attachmentPreview.ts": null,
     "src/features/artifacts/lib/attachmentUtils.test.ts": null,

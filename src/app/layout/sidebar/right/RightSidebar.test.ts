@@ -42,7 +42,7 @@ jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
   DebugTab: () => React.createElement("div", null, "debug tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/AttachmentPreviewPanel", () => ({
+jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
 }));
 
