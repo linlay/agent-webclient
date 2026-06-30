@@ -21,9 +21,12 @@ function normalizeUpdatedAt(updatedAt: unknown): number {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-function normalizeAgentType(type: unknown, mode?: unknown): 'agent' | 'coder' {
+function normalizeAgentType(type: unknown, mode?: unknown): 'agent' | 'coder' | 'kbase' {
   if (type === 'coder') return 'coder';
-  return toText(mode).toUpperCase() === 'CODER' ? 'coder' : 'agent';
+  const upperMode = toText(mode).toUpperCase();
+  if (upperMode === 'CODER') return 'coder';
+  if (upperMode === 'KBASE') return 'kbase';
+  return 'agent';
 }
 
 function normalizeSourceKind(source: unknown): string {

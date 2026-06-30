@@ -47,6 +47,7 @@ export interface TimelineAgentOption {
   key: string;
   name: string;
   role: string;
+  hideRole?: boolean;
   icon?: Agent["icon"];
   searchText: string;
 }
@@ -106,6 +107,7 @@ function pushUniqueTimelineAgentOption(
     key?: unknown;
     name?: unknown;
     role?: unknown;
+    hideRole?: boolean;
     icon?: Agent["icon"];
     searchText?: unknown;
   },
@@ -121,6 +123,7 @@ function pushUniqueTimelineAgentOption(
     key,
     name,
     role,
+    hideRole: option.hideRole,
     icon: option.icon,
     searchText: buildTimelineAgentSearchText({
       key,
@@ -144,12 +147,27 @@ export function buildTimelineAgentOptions(input: {
     }
   }
 
+  const agentTypeByKey = new Map<string, WorkerRow["agentType"]>();
+  for (const row of Array.isArray(input.workerRows) ? input.workerRows : []) {
+    if (row?.type !== "agent") continue;
+    const key = String(row.sourceId || "").trim();
+    if (key && row.agentType) {
+      agentTypeByKey.set(key, row.agentType);
+    }
+  }
+
+  function shouldHide(agentKey: string): boolean {
+    const agentType = agentTypeByKey.get(agentKey);
+    return agentType === "coder" || agentType === "kbase";
+  }
+
   const options: TimelineAgentOption[] = [];
   if (input.currentWorker?.type === "agent") {
     pushUniqueTimelineAgentOption(options, {
       key: input.currentWorker.sourceId,
       name: input.currentWorker.displayName,
       role: input.currentWorker.role,
+      hideRole: shouldHide(input.currentWorker.sourceId),
       icon: iconByAgentKey.get(input.currentWorker.sourceId),
     });
   }
@@ -161,6 +179,7 @@ export function buildTimelineAgentOptions(input: {
       key: row.sourceId,
       name: row.displayName,
       role: row.role,
+      hideRole: row.agentType === "coder" || row.agentType === "kbase",
       icon: iconByAgentKey.get(row.sourceId),
       searchText: row.searchText,
     });
@@ -168,10 +187,15 @@ export function buildTimelineAgentOptions(input: {
 
   if (options.length <= 1) {
     for (const agent of Array.isArray(input.agents) ? input.agents : []) {
+      const agentKey = String(agent?.key || "").trim();
       pushUniqueTimelineAgentOption(options, {
         key: agent?.key,
         name: agent?.name,
         role: agent?.role || "",
+        hideRole:
+          agent?.type === "coder" ||
+          String(agent?.mode || "").toUpperCase() === "CODER" ||
+          String(agent?.mode || "").toUpperCase() === "KBASE",
         icon: agent?.icon,
       });
     }
@@ -405,18 +429,18 @@ export const TimelineAgentSwitcher: React.FC<{
                       props={{
                         icon: {
                           className: "timeline-agent-switcher-avatar",
-                          width: 28,
-                          height: 28,
+                          width: 20,
+                          height: 20,
                         },
                         avatar: {
                           className: "timeline-agent-switcher-avatar",
-                          size: 28,
+                          size: 20,
                         },
                       }}
                     />
                     <span className="timeline-agent-switcher-option-copy">
                       <strong>{option.name}</strong>
-                      <span>{option.role || "--"}</span>
+                      {!option.hideRole && <span>{option.role || "--"}</span>}
                     </span>
                   </button>
                 );

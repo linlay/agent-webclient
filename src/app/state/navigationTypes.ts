@@ -103,7 +103,7 @@ export type ConversationMode = "chat" | "worker";
 export interface WorkerRow {
 	key: string;
 	type: "agent" | "team";
-	agentType?: "agent" | "coder";
+	agentType?: "agent" | "coder" | "kbase";
 	sourceId: string;
 	displayName: string;
 	role: string;

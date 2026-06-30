@@ -90,6 +90,7 @@ function createAgentWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
   return {
     key: `agent:${sourceId}`,
     type: "agent",
+    agentType: "agent",
     sourceId,
     displayName: "小宅",
     role: "生活助理",
@@ -527,6 +528,84 @@ describe("ConversationStage", () => {
       }),
     );
     expect(emptyHtml).toContain("没有匹配的智能体");
+  });
+
+  it("sets hideRole true for coder and kbase agents in buildTimelineAgentOptions", () => {
+    const currentRow = createAgentWorkerRow();
+    // NB: agents in the fallback list need mode/type to signal coder/kbase.
+    const options = buildTimelineAgentOptions({
+      agents: [
+        { key: "coder-1", name: "Coder", mode: "CODER" },
+        { key: "kbase-1", name: "KB", mode: "KBASE" },
+        { key: "normal", name: "Normal", role: "角色" },
+      ],
+      workerRows: [
+        createAgentWorkerRow({
+          key: "agent:coder-1",
+          sourceId: "coder-1",
+          displayName: "Coder",
+          agentType: "coder",
+          role: "不该显示",
+          searchText: "coder-1 Coder",
+        }),
+        createAgentWorkerRow({
+          key: "agent:kbase-1",
+          sourceId: "kbase-1",
+          displayName: "KB",
+          agentType: "kbase",
+          role: "不该显示",
+          searchText: "kbase-1 KB",
+        }),
+        createAgentWorkerRow({
+          key: "agent:normal",
+          sourceId: "normal",
+          displayName: "Normal",
+          agentType: "agent",
+          role: "角色",
+          searchText: "normal Normal 角色",
+        }),
+      ],
+      currentWorker: {
+        key: currentRow.key,
+        type: "agent",
+        sourceId: currentRow.sourceId,
+        displayName: currentRow.displayName,
+        role: currentRow.role,
+        raw: null,
+        row: currentRow,
+        relatedChats: [],
+      },
+    });
+
+    const coderOption = options.find((o) => o.key === "coder-1");
+    expect(coderOption?.hideRole).toBe(true);
+
+    const kbaseOption = options.find((o) => o.key === "kbase-1");
+    expect(kbaseOption?.hideRole).toBe(true);
+
+    const normalOption = options.find((o) => o.key === "normal");
+    expect(normalOption?.hideRole).toBeFalsy();
+
+    // rendering: coder agent should not render the role span
+    const html = renderToStaticMarkup(
+      React.createElement(TimelineAgentSwitcher, {
+        currentWorker: {
+          key: currentRow.key,
+          type: "agent",
+          sourceId: currentRow.sourceId,
+          displayName: currentRow.displayName,
+          role: currentRow.role,
+          raw: null,
+          row: currentRow,
+          relatedChats: [],
+        },
+        options,
+        initialOpen: true,
+      }),
+    );
+    expect(html).not.toContain("不该显示"); // coder/kbase 的角色不应该出现
+    // regular agent should still show its role
+    expect(html).toContain("角色");
   });
 
   it("dispatches the existing worker selection event when selecting an agent", () => {
