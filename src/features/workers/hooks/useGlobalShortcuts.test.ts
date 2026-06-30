@@ -22,13 +22,6 @@ const mockCreateElement = jest.fn((tag: string) => {
 
 (globalThis as Record<string, unknown>).navigator = { platform: "MacIntel" };
 
-const mockWindowDispatchEvent = jest.fn();
-(globalThis as Record<string, unknown>).window = {
-  dispatchEvent: mockWindowDispatchEvent,
-  addEventListener: mockAddEventListener,
-  removeEventListener: mockRemoveEventListener,
-};
-
 /* ---- End global mocks ---- */
 
 import React from "react";
@@ -83,7 +76,6 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
-  resolveCurrentWorkerSummary: jest.fn(() => null),
   isCoderAgent: jest.fn(() => false),
 }));
 
@@ -96,12 +88,6 @@ jest.mock("@/shared/i18n", () => ({
     t: (key: string) => key,
   }),
 }));
-
-const { resolveCurrentWorkerSummary } = jest.requireMock(
-  "@/features/workers/lib/currentWorker",
-) as {
-  resolveCurrentWorkerSummary: jest.Mock;
-};
 
 const { isEditableKeyboardTarget } = jest.requireMock(
   "@/features/tools/components/buildin/confirm-dialog/state",
@@ -158,7 +144,6 @@ describe("useGlobalShortcuts", () => {
     mockSettingsOverlay.isAnyOverlayOpen = false;
     mockCommandOverlayOpen = false;
     mockOpenCommandOverlay.mockClear();
-    resolveCurrentWorkerSummary.mockReturnValue(null);
     isEditableKeyboardTarget.mockReturnValue(false);
     mockCreateElement.mockClear();
     mockCreateElement.mockImplementation((tag: string) => {
@@ -229,12 +214,7 @@ describe("useGlobalShortcuts", () => {
     nav.platform = savedPlatform;
   });
 
-  it("dispatches start-new-conversation on Meta+N with current worker", () => {
-    resolveCurrentWorkerSummary.mockReturnValue({
-      type: "agent",
-      sourceId: "agent-one",
-    });
-    mockWindowDispatchEvent.mockClear();
+  it("does not trigger on Meta+N", () => {
     renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
     const event = createFakeEvent({
       code: "KeyN",
@@ -244,38 +224,11 @@ describe("useGlobalShortcuts", () => {
       shiftKey: false,
     });
     currentHandler?.(event);
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(mockWindowDispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:start-new-conversation",
-        detail: expect.objectContaining({
-          agentKey: "agent-one",
-          preserveWorkerContext: true,
-          focusComposerOnComplete: true,
-        }),
-      }),
-    );
+    expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
-  it("opens switch overlay on Meta+N without current worker", () => {
-    resolveCurrentWorkerSummary.mockReturnValue(null);
-    renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
-    const event = createFakeEvent({
-      code: "KeyN",
-      metaKey: true,
-      ctrlKey: false,
-      altKey: false,
-      shiftKey: false,
-    });
-    currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "switch" });
-  });
-
-  it("opens history overlay on Meta+Shift+H with current worker", () => {
-    resolveCurrentWorkerSummary.mockReturnValue({
-      type: "agent",
-      sourceId: "agent-one",
-    });
+  it("does not trigger on Meta+Shift+H", () => {
     renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
     const event = createFakeEvent({
       code: "KeyH",
@@ -285,24 +238,11 @@ describe("useGlobalShortcuts", () => {
       shiftKey: true,
     });
     currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "history" });
+    expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
-  it("opens switch overlay on Meta+Shift+H without current worker", () => {
-    resolveCurrentWorkerSummary.mockReturnValue(null);
-    renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
-    const event = createFakeEvent({
-      code: "KeyH",
-      metaKey: true,
-      ctrlKey: false,
-      altKey: false,
-      shiftKey: true,
-    });
-    currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "switch" });
-  });
-
-  it("opens switch overlay on Meta+Shift+W", () => {
+  it("does not trigger on Meta+Shift+W", () => {
     renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
     const event = createFakeEvent({
       code: "KeyW",
@@ -312,7 +252,8 @@ describe("useGlobalShortcuts", () => {
       shiftKey: true,
     });
     currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "switch" });
+    expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
   it("does not trigger on plain key A", () => {

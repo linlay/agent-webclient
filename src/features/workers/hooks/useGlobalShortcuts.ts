@@ -6,7 +6,6 @@ import {
   useCommandOverlayActions,
   useCommandOverlayOpen,
 } from "@/features/workers/components/CommandOverlayProvider";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
 
 function isMacPlatform(): boolean {
@@ -14,23 +13,14 @@ function isMacPlatform(): boolean {
   return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 }
 
-function matchModifier(event: KeyboardEvent, isMac: boolean, shift: boolean): boolean {
-  if (isMac) {
-    if (shift) return event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey;
-    return event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-  }
-  if (shift) return event.ctrlKey && !event.metaKey && !event.altKey && event.shiftKey;
+function matchModifier(event: KeyboardEvent, isMac: boolean): boolean {
+  if (isMac) return event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
   return event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
 }
 
 function isInsideModalOrDrawer(target: EventTarget | null): boolean {
   if (typeof Element === "undefined" || !(target instanceof Element)) return false;
   return Boolean(target.closest(".ant-modal-wrap, .ant-drawer, .modal"));
-}
-
-function safeDispatchEvent(type: string, detail: Record<string, unknown>): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(type, { detail }));
 }
 
 export function useGlobalShortcuts(): void {
@@ -63,46 +53,10 @@ export function useGlobalShortcuts(): void {
       if (currentState.activeFrontendTool || currentState.activeAwaiting) return;
 
       const code = event.code;
-      const mod = matchModifier(event, isMac, false);
-      const modShift = matchModifier(event, isMac, true);
 
-      if (mod && code === "KeyK") {
+      if (matchModifier(event, isMac) && code === "KeyK") {
         event.preventDefault();
         openCommandOverlay({ type: "global" });
-        return;
-      }
-
-      if (mod && code === "KeyN") {
-        event.preventDefault();
-        const worker = resolveCurrentWorkerSummary(currentState);
-        if (worker) {
-          safeDispatchEvent("agent:start-new-conversation", {
-            ...(worker.type === "agent" && worker.sourceId
-              ? { agentKey: worker.sourceId }
-              : {}),
-            preserveWorkerContext: true,
-            focusComposerOnComplete: true,
-          });
-        } else {
-          openCommandOverlay({ type: "switch" });
-        }
-        return;
-      }
-
-      if (modShift && code === "KeyH") {
-        event.preventDefault();
-        const worker = resolveCurrentWorkerSummary(currentState);
-        if (worker) {
-          openCommandOverlay({ type: "history" });
-        } else {
-          openCommandOverlay({ type: "switch" });
-        }
-        return;
-      }
-
-      if (modShift && code === "KeyW") {
-        event.preventDefault();
-        openCommandOverlay({ type: "switch" });
         return;
       }
     };
