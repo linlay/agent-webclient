@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
+import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";

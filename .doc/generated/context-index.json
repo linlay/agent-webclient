@@ -579,6 +579,7 @@
         "attachments",
         "boundary",
         "build",
+        "bytes",
         "can",
         "card",
         "components",
@@ -2489,7 +2490,6 @@
     "src/app/layout/sidebar/WorkerChatPreviewItem.tsx",
     "src/app/layout/sidebar/WorkerConversationPreviewList.tsx",
     "src/app/layout/sidebar/WorkerPanelHeader.tsx",
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx",
     "src/app/layout/sidebar/right/DebugTab.test.ts",
     "src/app/layout/sidebar/right/DebugTab.tsx",
     "src/app/layout/sidebar/right/FileDiffView.tsx",
@@ -2547,6 +2547,7 @@
     "src/features/artifacts/components/ArtifactPanel.test.ts",
     "src/features/artifacts/components/ArtifactPanel.tsx",
     "src/features/artifacts/components/AttachmentCard.tsx",
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx",
     "src/features/artifacts/lib/attachmentPreview.test.ts",
     "src/features/artifacts/lib/attachmentPreview.ts",
     "src/features/artifacts/lib/attachmentUtils.test.ts",
@@ -2900,7 +2901,6 @@
     "src/app/layout/sidebar/WorkerChatPreviewItem.tsx": "app",
     "src/app/layout/sidebar/WorkerConversationPreviewList.tsx": "app",
     "src/app/layout/sidebar/WorkerPanelHeader.tsx": "app",
-    "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx": "app",
     "src/app/layout/sidebar/right/DebugTab.test.ts": "app",
     "src/app/layout/sidebar/right/DebugTab.tsx": "app",
     "src/app/layout/sidebar/right/FileDiffView.tsx": "app",
@@ -2957,6 +2957,7 @@
     "src/features/artifacts/components/ArtifactPanel.test.ts": "artifacts",
     "src/features/artifacts/components/ArtifactPanel.tsx": "artifacts",
     "src/features/artifacts/components/AttachmentCard.tsx": "artifacts",
+    "src/features/artifacts/components/AttachmentPreviewPanel.tsx": "artifacts",
     "src/features/artifacts/lib/attachmentPreview.test.ts": "artifacts",
     "src/features/artifacts/lib/attachmentPreview.ts": "artifacts",
     "src/features/artifacts/lib/attachmentUtils.test.ts": "artifacts",
@@ -4610,6 +4611,11 @@
       }
     ],
     "bytes": [
+      {
+        "kind": "module",
+        "id": "artifacts",
+        "path": ".doc/modules/artifacts.json"
+      },
       {
         "kind": "module",
         "id": "voice",

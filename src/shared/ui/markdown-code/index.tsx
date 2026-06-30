@@ -100,11 +100,10 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
                     name: "预览Html",
                     url: url.current,
                     downloadUrl: url.current,
-                    size: blob.size,
+                    sizeBytes: blob.size,
                     kind: "html",
                   },
                 });
-                setTimeout(() => {}, 10);
               }}
             >
               <MaterialIcon name="preview" />
@@ -120,7 +119,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
         </UiButton>
       </Tooltip>
     );
-  }, [language, onCopy]);
+  }, [dispatch, language, onCopy, text]);
 
   return block ? (
     <Flex vertical gap={10}>

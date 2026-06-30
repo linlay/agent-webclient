@@ -4,6 +4,7 @@ import {
   getAttachmentIconName,
   getAttachmentKind,
   getAttachmentKindLabel,
+  getAttachmentSizeBytes,
   getAttachmentUrl,
 } from '@/features/artifacts/lib/attachmentUtils';
 
@@ -12,6 +13,12 @@ describe('attachmentUtils', () => {
     expect(formatAttachmentSize(0)).toBe('');
     expect(formatAttachmentSize(512)).toBe('512 B');
     expect(formatAttachmentSize(1536)).toBe('1.5 KB');
+  });
+
+  it('normalizes artifact-style sizeBytes before legacy size', () => {
+    expect(getAttachmentSizeBytes({ sizeBytes: 2048, size: 512 })).toBe(2048);
+    expect(getAttachmentSizeBytes({ size: 512 })).toBe(512);
+    expect(getAttachmentSizeBytes({ sizeBytes: -1 })).toBeUndefined();
   });
 
   it('infers attachment kind from backend type, mime type, and extension', () => {

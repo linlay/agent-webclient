@@ -110,7 +110,6 @@
       "ApprovalActiveAwaiting",
       "ArchivesPage",
       "ArtifactFile",
-      "AttachmentPreviewPanel",
       "AutomationModal",
       "AutomationsPage",
       "BottomDock",
@@ -334,7 +333,7 @@
       "src/app/state/AppContext.test.ts",
       "src/app/state/reducerConversation.test.ts"
     ],
-    "lastScannedAt": "2026-06-29T09:50:09Z"
+    "lastScannedAt": "2026-06-29T10:46:15Z"
   },
   "readHints": {
     "alwaysRead": [

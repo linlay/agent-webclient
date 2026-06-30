@@ -2,7 +2,7 @@ import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Tabs, type TabsProps } from "antd";
-import { AttachmentPreviewPanel } from "@/app/layout/sidebar/right/AttachmentPreviewPanel";
+import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";

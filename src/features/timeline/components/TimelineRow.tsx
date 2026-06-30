@@ -5,6 +5,7 @@ import {
   formatAttachmentSize,
   getAttachmentKind,
   getAttachmentKindLabel,
+  getAttachmentSizeBytes,
 } from "@/features/artifacts/lib/attachmentUtils";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { UserBubble } from "@/features/timeline/components/UserBubble";
@@ -139,7 +140,7 @@ function getTimelineAttachmentSubtitle(
     return getAttachmentKindLabel(attachment);
   }
 
-  const attachmentSize = formatAttachmentSize(attachment.size);
+  const attachmentSize = formatAttachmentSize(getAttachmentSizeBytes(attachment));
   if (
     getAttachmentKind(attachment) === "image" &&
     String(attachment.url || "").trim()

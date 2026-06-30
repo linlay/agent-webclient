@@ -3,6 +3,7 @@ import {
 	getAttachmentDownloadUrl,
 	getAttachmentExtension,
 	getAttachmentKind,
+	getAttachmentSizeBytes,
 	getAttachmentUrl,
 } from "@/features/artifacts/lib/attachmentUtils";
 
@@ -20,7 +21,7 @@ export interface AttachmentPreviewState {
 	name: string;
 	url: string;
 	downloadUrl: string;
-	size?: number;
+	sizeBytes?: number;
 	type?: string;
 	mimeType?: string;
 	kind: Exclude<AttachmentPreviewKind, "unsupported">;
@@ -188,7 +189,7 @@ export function buildAttachmentPreviewState(
 		name: String(attachment.name || "").trim() || "未命名资源",
 		url,
 		downloadUrl: getAttachmentDownloadUrl(attachment),
-		size: attachment.size,
+		sizeBytes: getAttachmentSizeBytes(attachment),
 		type: attachment.type,
 		mimeType: attachment.mimeType,
 		kind,

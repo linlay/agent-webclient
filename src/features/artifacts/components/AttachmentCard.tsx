@@ -3,7 +3,6 @@ import { useAppDispatch } from "@/app/state/AppContext";
 import { downloadResource } from "@/shared/data";
 import {
 	buildAttachmentPreviewState,
-	canPreviewAttachment,
 } from "@/features/artifacts/lib/attachmentPreview";
 import {
 	type AttachmentLike,
@@ -103,14 +102,13 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 		if (!canActivate) {
 			return;
 		}
-		if (preview && canPreviewAttachment(attachment)) {
+		if (preview) {
 			dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
 			return;
 		}
 
 		triggerDownload();
 	}, [
-		attachment,
 		canActivate,
 		dispatch,
 		preview,

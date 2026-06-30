@@ -88,7 +88,7 @@ export const AttachmentPreviewPanel: React.FC = () => {
     return null;
   }
 
-  const metadata = [preview.mimeType || "", formatAttachmentSize(preview.size)]
+  const metadata = [preview.mimeType || "", formatAttachmentSize(preview.sizeBytes)]
     .filter(Boolean)
     .join(" · ");
 

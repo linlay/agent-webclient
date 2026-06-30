@@ -106,9 +106,20 @@ describe("attachmentPreview", () => {
 			url: "blob:draft-preview",
 			downloadUrl: "/resource/draft.txt",
 			mimeType: "text/plain",
-			size: 128,
+			sizeBytes: 128,
 			type: undefined,
 			kind: "text",
 		});
+	});
+
+	it("normalizes artifact-style sizeBytes into preview state", () => {
+		expect(
+			buildAttachmentPreviewState({
+				name: "artifact.pdf",
+				mimeType: "application/pdf",
+				url: "/resource/artifact.pdf",
+				sizeBytes: 4096,
+			})?.sizeBytes,
+		).toBe(4096);
 	});
 });
