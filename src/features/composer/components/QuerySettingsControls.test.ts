@@ -251,23 +251,33 @@ describe("QuerySettingsControls", () => {
     expect(getModelOptions).toHaveBeenCalledWith(undefined);
   });
 
-  it("shares one public CODER model option cache across agents", async () => {
+  it("loads and caches CODER model options by agent key", async () => {
     getModelOptions.mockResolvedValueOnce({
       data: {
-        models: [{ key: "native-model", name: "Native Model", modelId: "qwen3" }],
+        models: [{ key: "claude-sonnet-4-6", name: "MiniMax-M2.7", modelId: "claude-sonnet-4-6" }],
         reasoningEfforts: [{ key: "LOW", label: "LOW" }],
       },
     });
+    getModelOptions.mockResolvedValueOnce({
+      data: {
+        models: [{ key: "codex-model", name: "Codex Model", modelId: "gpt-5.5" }],
+        reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+      },
+    });
 
+    await expect(loadCoderModelOptions("claudeCoder")).resolves.toMatchObject({
+      models: [{ key: "claude-sonnet-4-6", name: "MiniMax-M2.7" }],
+    });
+    await expect(loadCoderModelOptions("claudeCoder")).resolves.toMatchObject({
+      models: [{ key: "claude-sonnet-4-6", name: "MiniMax-M2.7" }],
+    });
     await expect(loadCoderModelOptions("codexCoder")).resolves.toMatchObject({
-      models: [{ key: "native-model", name: "Native Model" }],
-    });
-    await expect(loadCoderModelOptions("nativeCoder")).resolves.toMatchObject({
-      models: [{ key: "native-model", name: "Native Model" }],
+      models: [{ key: "codex-model", name: "Codex Model" }],
     });
 
-    expect(getModelOptions).toHaveBeenCalledWith(undefined);
-    expect(getModelOptions).toHaveBeenCalledTimes(1);
+    expect(getModelOptions).toHaveBeenNthCalledWith(1, "claudeCoder");
+    expect(getModelOptions).toHaveBeenNthCalledWith(2, "codexCoder");
+    expect(getModelOptions).toHaveBeenCalledTimes(2);
   });
 
   it("returns cached model options after the first successful load", async () => {

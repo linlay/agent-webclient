@@ -152,6 +152,59 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Current call");
 	});
 
+	it("renders the real context percent when current size exceeds the max", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 200000,
+					currentSize: 598735,
+					modelKey: "MiniMax-M2.7",
+				},
+				usage: {
+					chat: { totalTokens: 600932 },
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain(">299</span>");
+		expect(html).toContain(">299%</span>");
+		expect(html).toContain("--usage-context-percent:100%");
+	});
+
+	it("does not invent context percent when current size is absent", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 200000,
+					modelKey: "MiniMax-M2.7",
+				},
+				usage: {
+					chat: { totalTokens: 600932 },
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain(">--%</span>");
+		expect(html).toContain("- / 200,000");
+		expect(html).toContain("--usage-context-percent:0%");
+	});
+
 	it("keeps the previous usage total visible while streaming", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({

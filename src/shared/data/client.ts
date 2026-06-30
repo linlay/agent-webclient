@@ -410,6 +410,7 @@ export interface AgentEditorModelOption {
   protocol?: string;
   isVision: boolean;
   contextWindow?: number;
+  reasoningEfforts?: string[];
   serviceTiers?: string[];
 }
 
@@ -1732,7 +1733,13 @@ export interface QueryLikeParams {
 }
 
 export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
-export type QueryReasoningEffort = "NONE" | "LOW" | "MEDIUM" | "HIGH";
+export type QueryReasoningEffort =
+  | "NONE"
+  | "LOW"
+  | "MEDIUM"
+  | "HIGH"
+  | "XHIGH"
+  | "MAX";
 
 export interface AccessLevelUpdateParams {
   requestId: string;

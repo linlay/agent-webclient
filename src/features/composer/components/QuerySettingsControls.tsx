@@ -68,9 +68,12 @@ type AppliedDefaultModelOverride = {
   value: QueryModelOverride;
 };
 
-let cachedCoderModelOptions: LoadedCoderModelOptions | null = null;
-let pendingCoderModelOptionsPromise: Promise<LoadedCoderModelOptions> | null =
-  null;
+const globalCoderModelOptionsCacheKey = "__global__";
+const cachedCoderModelOptions = new Map<string, LoadedCoderModelOptions>();
+const pendingCoderModelOptionsPromises = new Map<
+  string,
+  Promise<LoadedCoderModelOptions>
+>();
 
 function isCoderMode(value: unknown): boolean {
   return (
@@ -93,6 +96,10 @@ function toConfigText(value: unknown): string {
   return typeof value === "string" || typeof value === "number"
     ? String(value).trim()
     : "";
+}
+
+function modelOptionsCacheKey(agentKey = ""): string {
+  return toAgentConfigKey(agentKey) || globalCoderModelOptionsCacheKey;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -170,9 +177,14 @@ function normalizeReasoningEffort(
     text === "NONE" ||
     text === "LOW" ||
     text === "MEDIUM" ||
-    text === "HIGH"
+    text === "HIGH" ||
+    text === "XHIGH" ||
+    text === "MAX"
   ) {
     return text;
+  }
+  if (text === "EXTRA_HIGH") {
+    return "XHIGH";
   }
   return undefined;
 }
@@ -621,27 +633,31 @@ export function resolveCoderAgentDefaultModelOverride(
 }
 
 export function clearCoderModelOptionsCacheForTest(): void {
-  cachedCoderModelOptions = null;
-  pendingCoderModelOptionsPromise = null;
+  cachedCoderModelOptions.clear();
+  pendingCoderModelOptionsPromises.clear();
 }
 
 export function getCachedCoderModelOptions(
-  _agentKey = "",
+  agentKey = "",
 ): LoadedCoderModelOptions | null {
-  return cachedCoderModelOptions;
+  return cachedCoderModelOptions.get(modelOptionsCacheKey(agentKey)) || null;
 }
 
 export async function loadCoderModelOptions(
-  _agentKey = "",
+  agentKey = "",
 ): Promise<LoadedCoderModelOptions> {
-  if (cachedCoderModelOptions) {
-    return cachedCoderModelOptions;
+  const cacheKey = modelOptionsCacheKey(agentKey);
+  const cachedOptions = cachedCoderModelOptions.get(cacheKey);
+  if (cachedOptions) {
+    return cachedOptions;
   }
-  if (pendingCoderModelOptionsPromise) {
-    return pendingCoderModelOptionsPromise;
+  const pendingOptions = pendingCoderModelOptionsPromises.get(cacheKey);
+  if (pendingOptions) {
+    return pendingOptions;
   }
 
-  const nextPromise = getModelOptions(undefined)
+  const requestAgentKey = toAgentConfigKey(agentKey) || undefined;
+  const nextPromise = getModelOptions(requestAgentKey)
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
@@ -651,13 +667,13 @@ export async function loadCoderModelOptions(
         );
       }
       const loadedOptions = toLoadedCoderModelOptions(options);
-      cachedCoderModelOptions = loadedOptions;
+      cachedCoderModelOptions.set(cacheKey, loadedOptions);
       return loadedOptions;
     })
     .finally(() => {
-      pendingCoderModelOptionsPromise = null;
+      pendingCoderModelOptionsPromises.delete(cacheKey);
     });
-  pendingCoderModelOptionsPromise = nextPromise;
+  pendingCoderModelOptionsPromises.set(cacheKey, nextPromise);
   return nextPromise;
 }
 
@@ -815,7 +831,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       );
       return;
     }
-    const cachedOptions = getCachedCoderModelOptions();
+    const cachedOptions = getCachedCoderModelOptions(agentKey);
     if (cachedOptions) {
       setModels(cachedOptions.models);
       setReasoningEfforts(cachedOptions.reasoningEfforts);
@@ -837,7 +853,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     let cancelled = false;
     setModelsLoading(true);
     setModelOptionsStatus("idle");
-    void loadCoderModelOptions()
+    void loadCoderModelOptions(agentKey)
       .then((options) => {
         if (cancelled) return;
         setModels(options.models);

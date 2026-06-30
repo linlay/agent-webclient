@@ -205,6 +205,11 @@ interface UsageHeaderStat {
   value: string;
 }
 
+interface UsageContextPercent {
+  label: string;
+  progress: number;
+}
+
 function buildUsageMetrics(
   t: (key: string) => string,
   stats?: AIUsageStats,
@@ -262,11 +267,15 @@ function resolveLatestCompactUsage(
 
 function resolveContextPercent(
   snapshot: AIUsageSnapshotEvent | null,
-): number | null {
+): UsageContextPercent | null {
   const currentSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
   const maxSize = readUsageNumber(snapshot?.contextWindow?.maxSize);
   if (currentSize == null || maxSize == null || maxSize <= 0) return null;
-  return Math.max(0, Math.min(100, Math.round((currentSize / maxSize) * 100)));
+  const percent = Math.max(0, Math.round((currentSize / maxSize) * 100));
+  return {
+    label: percent > 999 ? ">999" : `${percent}`,
+    progress: Math.min(100, percent),
+  };
 }
 
 function resolveChatCacheHitPercent(
@@ -324,8 +333,8 @@ const UsageTriggerRing: React.FC<{
   snapshot: AIUsageSnapshotEvent | null;
   label: string;
 }> = ({ snapshot, label }) => {
-  const percent = resolveContextPercent(snapshot);
-  const progressValue = percent ?? 0;
+  const contextPercent = resolveContextPercent(snapshot);
+  const progressValue = contextPercent?.progress ?? 0;
 
   return (
     <span
@@ -337,7 +346,7 @@ const UsageTriggerRing: React.FC<{
       }
       aria-label={label}
     >
-      <span>{percent == null ? "-" : `${percent}`}</span>
+      <span>{contextPercent?.label ?? "-"}</span>
     </span>
   );
 };
@@ -558,7 +567,7 @@ export const TopNav: React.FC = () => {
       tab,
     });
   };
-  const percent = resolveContextPercent(usageSnapshot);
+  const contextPercent = resolveContextPercent(usageSnapshot);
   const estimatedCostLabel = formatChatEstimatedCost(
     resolveChatEstimatedCost(usageSnapshot),
   );
@@ -618,12 +627,12 @@ export const TopNav: React.FC = () => {
                         className="usage-context-ring"
                         style={
                           {
-                            "--usage-context-percent": `${percent ?? 0}%`,
+                            "--usage-context-percent": `${contextPercent?.progress ?? 0}%`,
                           } as React.CSSProperties
                         }
                         aria-label={t("topNav.usage.contextWindow")}
                       >
-                        <span>{percent == null ? "--%" : `${percent}%`}</span>
+                        <span>{contextPercent == null ? "--%" : `${contextPercent.label}%`}</span>
                       </div>
                       <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
                         <div className="usage-popover-header">
