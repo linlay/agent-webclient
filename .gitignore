@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 .vite/
+.trae/
 pnpm-lock.yaml
 package-lock.json
 !backend/package-lock.json

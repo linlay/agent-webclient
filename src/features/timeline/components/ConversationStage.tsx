@@ -12,9 +12,11 @@ import {
 } from "@/features/timeline/components/TimelineRow";
 import {
   buildTimelineDisplayItems,
+  buildRunRenderEntries,
   type TimelineDisplayItem,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
+import { TimelineCollapse } from "@/features/timeline/components/collapse";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -25,6 +27,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
   Button,
+  Collapse,
   Dropdown,
   Flex,
   Form,
@@ -252,22 +255,22 @@ function formatResponseDuration(durationMs?: number): string {
 
   const value = Number(durationMs);
   if (value < 1000) {
-    return `${Math.round(value)}毫秒`;
+    return `${Math.round(value)} 毫秒`;
   }
   if (value < 60_000) {
-    return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}秒`;
+    return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)} 秒`;
   }
 
   const totalSeconds = Math.round(value / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   if (minutes < 60) {
-    return `${minutes}分${seconds}秒`;
+    return `${minutes} 分 ${seconds} 秒`;
   }
 
   const hours = Math.floor(minutes / 60);
   const remainMinutes = minutes % 60;
-  return `${hours}小时${remainMinutes}分`;
+  return `${hours} 小时 ${remainMinutes} 分`;
 }
 
 function formatTaskStatus(status: string): string {
@@ -898,14 +901,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   className="timeline-query-anchor-rail"
                   style={
                     {
-                      "--hover-index": (queryAnchorItems.length + 5).toString(),
+                      "--hover-index": (queryAnchorItems.length + 999).toString(),
                     } as React.CSSProperties
                   }
                   onMouseLeave={() => {
                     if (!anchorRef.current) return;
                     anchorRef.current.style.setProperty(
                       "--hover-index",
-                      (queryAnchorItems.length + 5).toString(),
+                      (queryAnchorItems.length + 999).toString(),
                     );
                   }}
                 >
@@ -1064,93 +1067,129 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       runId && state.downvotedRunKeys.has(runId),
                     );
                     const runCopyStatus = actionStatus[runCopyKey] || "复制";
+
+                    const lastContentNode = [...item.nodes].findLast(
+                      (n) => n.kind === "content",
+                    );
+                    const shouldCollapse =
+                      isCompleted &&
+                      lastContentNode != null &&
+                      item.nodes.length > 1;
+
                     return (
-                      <section key={item.key} className="timeline-run-group">
-                        <div className="timeline-run-items">
-                          {item.renderEntries.map((entry) =>
-                            renderEntry(entry),
+                      <Flex vertical gap={8}>
+                        {shouldCollapse && (
+                          <Collapse
+                            ghost
+                            destroyOnHidden
+                            className="timeline-run-collapse"
+                            items={[
+                              {
+                                key: "run-entries",
+                                label: `已处理 ${responseDuration}`,
+                                children: (
+                                  <div className="timeline-run-items">
+                                    {buildRunRenderEntries(
+                                      item.nodes.filter(
+                                        (n) => n.id !== lastContentNode!.id,
+                                      ),
+                                    ).map((entry) => renderEntry(entry))}
+                                  </div>
+                                ),
+                              },
+                            ]}
+                          />
+                        )}
+                        <section key={item.key} className="timeline-run-group">
+                          {shouldCollapse ? (
+                            buildRunRenderEntries([lastContentNode!]).map(
+                              (entry) => renderEntry(entry),
+                            )
+                          ) : (
+                            <div className="timeline-run-items">
+                              {item.renderEntries.map((entry) =>
+                                renderEntry(entry),
+                              )}
+                            </div>
                           )}
-                        </div>
-                        {isCompleted && (
-                          <div className="timeline-run-meta">
-                            <div className="timeline-meta-actions">
-                              <UiButton
-                                className="timeline-meta-btn"
-                                variant="ghost"
-                                size="sm"
-                                iconOnly
-                                title={runCopyStatus}
-                                aria-label={runCopyStatus}
-                                onClick={() =>
-                                  handleCopy(
-                                    runCopyKey,
-                                    serializeRunTranscript(
-                                      item.queryNode,
-                                      item.nodes,
-                                    ),
-                                  )
-                                }
-                              >
-                                <MaterialIcon name="content_copy" />
-                              </UiButton>
-                              {isDownvoted ? (
+                          {isCompleted && (
+                            <div className="timeline-run-meta">
+                              <div className="timeline-meta-actions">
                                 <UiButton
-                                  className="timeline-meta-btn is-downvoted"
+                                  className="timeline-meta-btn"
                                   variant="ghost"
                                   size="sm"
                                   iconOnly
-                                  active
-                                  title="取消点踩"
-                                  aria-label="取消点踩"
-                                  disabled={!runId}
-                                  onClick={() => handleDownvote(runId, false)}
-                                >
-                                  <MaterialIcon name="thumb_down" />
-                                </UiButton>
-                              ) : (
-                                <Popover
-                                  destroyOnHidden
-                                  trigger={["click"]}
-                                  content={
-                                    <FeedbackModal
-                                      onFinish={() => {
-                                        handleDownvote(runId, true);
-                                      }}
-                                    />
+                                  title={runCopyStatus}
+                                  aria-label={runCopyStatus}
+                                  onClick={() =>
+                                    handleCopy(
+                                      runCopyKey,
+                                      serializeRunTranscript(
+                                        item.queryNode,
+                                        item.nodes,
+                                      ),
+                                    )
                                   }
                                 >
+                                  <MaterialIcon name="content_copy" />
+                                </UiButton>
+                                {isDownvoted ? (
                                   <UiButton
-                                    className="timeline-meta-btn"
+                                    className="timeline-meta-btn is-downvoted"
                                     variant="ghost"
                                     size="sm"
                                     iconOnly
-                                    title="点踩"
-                                    aria-label="点踩"
+                                    active
+                                    title="取消点踩"
+                                    aria-label="取消点踩"
                                     disabled={!runId}
+                                    onClick={() => handleDownvote(runId, false)}
                                   >
                                     <MaterialIcon name="thumb_down" />
                                   </UiButton>
-                                </Popover>
+                                ) : (
+                                  <Popover
+                                    destroyOnHidden
+                                    trigger={["click"]}
+                                    content={
+                                      <FeedbackModal
+                                        onFinish={() => {
+                                          handleDownvote(runId, true);
+                                        }}
+                                      />
+                                    }
+                                  >
+                                    <UiButton
+                                      className="timeline-meta-btn"
+                                      variant="ghost"
+                                      size="sm"
+                                      iconOnly
+                                      title="点踩"
+                                      aria-label="点踩"
+                                      disabled={!runId}
+                                    >
+                                      <MaterialIcon name="thumb_down" />
+                                    </UiButton>
+                                  </Popover>
+                                )}
+                              </div>
+                              {time.short && (
+                                <div
+                                  className="timeline-run-time"
+                                  title={
+                                    responseDuration
+                                      ? `${time.full} · 响应耗时 ${responseDuration}`
+                                      : time.full
+                                  }
+                                >
+                                  {time.short}
+                                </div>
                               )}
                             </div>
-                            {time.short && (
-                              <div
-                                className="timeline-run-time"
-                                title={
-                                  responseDuration
-                                    ? `${time.full} · 响应耗时 ${responseDuration}`
-                                    : time.full
-                                }
-                              >
-                                {time.short}
-                                {responseDuration
-                                  ? ` · ${responseDuration}`
-                                  : ""}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </section>
+                          )}
+                        </section>
+                      </Flex>
                     );
                   }
 

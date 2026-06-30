@@ -194,6 +194,7 @@
     "src/app/layout/sidebar/right/OverviewTab.tsx",
     "src/app/layout/sidebar/right/RightSidebar.test.ts",
     "src/app/layout/sidebar/right/RightSidebar.tsx",
+    "src/app/layout/sidebar/right/SourceDetailTab.tsx",
     "src/app/layout/sidebar/right/fileDiff.test.ts",
     "src/app/layout/sidebar/right/fileDiff.ts",
     "src/app/modals/AutomationModal.test.ts",
@@ -349,6 +350,7 @@
     "src/features/timeline/components/UserBubble.tsx",
     "src/features/timeline/components/ViewportEmbed.test.ts",
     "src/features/timeline/components/ViewportEmbed.tsx",
+    "src/features/timeline/components/collapse/index.tsx",
     "src/features/timeline/components/planning/index.tsx",
     "src/features/timeline/hooks/useAgentEventHandler.test.ts",
     "src/features/timeline/hooks/useAgentEventHandler.ts",
@@ -663,6 +665,10 @@
                           },
                           {
                             "name": "RightSidebar.tsx",
+                            "type": "file"
+                          },
+                          {
+                            "name": "SourceDetailTab.tsx",
                             "type": "file"
                           },
                           {
@@ -1491,6 +1497,16 @@
                     "name": "components",
                     "type": "directory",
                     "children": [
+                      {
+                        "name": "collapse",
+                        "type": "directory",
+                        "children": [
+                          {
+                            "name": "index.tsx",
+                            "type": "file"
+                          }
+                        ]
+                      },
                       {
                         "name": "planning",
                         "type": "directory",
@@ -2740,6 +2756,7 @@
       "src/app/layout/sidebar/right/OverviewTab.tsx",
       "src/app/layout/sidebar/right/RightSidebar.test.ts",
       "src/app/layout/sidebar/right/RightSidebar.tsx",
+      "src/app/layout/sidebar/right/SourceDetailTab.tsx",
       "src/app/layout/sidebar/right/fileDiff.test.ts",
       "src/app/layout/sidebar/right/fileDiff.ts",
       "src/app/modals/AutomationModal.test.ts",
@@ -2945,6 +2962,7 @@
       "src/features/timeline/components/UserBubble.tsx",
       "src/features/timeline/components/ViewportEmbed.test.ts",
       "src/features/timeline/components/ViewportEmbed.tsx",
+      "src/features/timeline/components/collapse/index.tsx",
       "src/features/timeline/components/planning/index.tsx",
       "src/features/timeline/hooks/useAgentEventHandler.test.ts",
       "src/features/timeline/hooks/useAgentEventHandler.ts",
@@ -3160,6 +3178,7 @@
     "src/app/layout/sidebar/right/OverviewTab.tsx": "app",
     "src/app/layout/sidebar/right/RightSidebar.test.ts": "app",
     "src/app/layout/sidebar/right/RightSidebar.tsx": "app",
+    "src/app/layout/sidebar/right/SourceDetailTab.tsx": "app",
     "src/app/layout/sidebar/right/fileDiff.test.ts": "app",
     "src/app/layout/sidebar/right/fileDiff.ts": "app",
     "src/app/modals/AutomationModal.test.ts": "app",
@@ -3314,6 +3333,7 @@
     "src/features/timeline/components/UserBubble.tsx": "timeline",
     "src/features/timeline/components/ViewportEmbed.test.ts": "timeline",
     "src/features/timeline/components/ViewportEmbed.tsx": "timeline",
+    "src/features/timeline/components/collapse/index.tsx": "timeline",
     "src/features/timeline/components/planning/index.tsx": "timeline",
     "src/features/timeline/hooks/useAgentEventHandler.test.ts": "timeline",
     "src/features/timeline/hooks/useAgentEventHandler.ts": "timeline",
@@ -3724,6 +3744,10 @@
     "src/app/layout/sidebar/right/RightSidebar.test.ts": null,
     "src/app/layout/sidebar/right/RightSidebar.tsx": [
       "RightSidebar"
+    ],
+    "src/app/layout/sidebar/right/SourceDetailTab.tsx": [
+      "SourceDetailTab",
+      "formatSourceScore"
     ],
     "src/app/layout/sidebar/right/fileDiff.test.ts": null,
     "src/app/layout/sidebar/right/fileDiff.ts": [
@@ -4469,9 +4493,7 @@
     "src/features/timeline/components/SourceBlock.test.ts": null,
     "src/features/timeline/components/SourceBlock.tsx": [
       "SourceBlock",
-      "SourceBlockProps",
-      "formatSourceLocator",
-      "formatSourceScore"
+      "SourceBlockProps"
     ],
     "src/features/timeline/components/SystemAlert.tsx": [
       "SystemAlert"
@@ -4505,6 +4527,9 @@
       "ViewportInitFrame",
       "bindViewportInitListener",
       "shouldPostViewportUpdate"
+    ],
+    "src/features/timeline/components/collapse/index.tsx": [
+      "TimelineCollapse"
     ],
     "src/features/timeline/components/planning/index.tsx": [
       "PlanningTimeline"
@@ -5888,6 +5913,7 @@
       "@/app/layout/hooks/useAppRuntimes",
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/layout/sidebar/right/SourceDetailTab",
       "@/app/state/AppContext",
       "@/features/artifacts/components/AttachmentPreviewPanel",
       "@/features/settings/components/SettingsOverlayProvider",
@@ -6114,6 +6140,7 @@
     "src/app/layout/sidebar/right/RightSidebar.tsx": [
       "@/app/layout/sidebar/right/DebugTab",
       "@/app/layout/sidebar/right/OverviewTab",
+      "@/app/layout/sidebar/right/SourceDetailTab",
       "@/app/state/AppContext",
       "@/app/state/uiTypes",
       "@/features/artifacts/components/AttachmentPreviewPanel",
@@ -6121,6 +6148,14 @@
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
+      "antd",
+      "react"
+    ],
+    "src/app/layout/sidebar/right/SourceDetailTab.tsx": [
+      "@/app/state/AppContext",
+      "@/app/state/types",
+      "@/shared/i18n",
+      "@/shared/ui/MarkdownContent",
       "antd",
       "react"
     ],
@@ -7014,10 +7049,9 @@
       "react-dom/server"
     ],
     "src/features/timeline/components/AwaitingAnswerBlock.tsx": [
+      "./collapse",
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/shared/ui/MaterialIcon",
-      "@/shared/ui/UiButton",
       "antd",
       "react"
     ],
@@ -7064,11 +7098,13 @@
       "react-dom/server"
     ],
     "src/features/timeline/components/SourceBlock.tsx": [
+      "./collapse",
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
+      "antd",
       "react"
     ],
     "src/features/timeline/components/SystemAlert.tsx": [
@@ -7077,10 +7113,9 @@
       "react"
     ],
     "src/features/timeline/components/ThinkingBlock.tsx": [
+      "./collapse",
       "@/app/state/AppContext",
       "@/app/state/types",
-      "@/shared/ui/MaterialIcon",
-      "@/shared/ui/UiButton",
       "react"
     ],
     "src/features/timeline/components/TimelineRow.tsx": [
@@ -7105,6 +7140,7 @@
       "@/features/timeline/components/ToolPill"
     ],
     "src/features/timeline/components/ToolPill.tsx": [
+      "./collapse",
       "@/app/state/provider",
       "@/app/state/types",
       "@/features/timeline/lib/timelineDisplay",
@@ -7125,6 +7161,11 @@
     "src/features/timeline/components/ViewportEmbed.tsx": [
       "@/shared/data",
       "@/shared/utils/safeJsonParse",
+      "react"
+    ],
+    "src/features/timeline/components/collapse/index.tsx": [
+      "./index.module.css",
+      "antd",
       "react"
     ],
     "src/features/timeline/components/planning/index.tsx": [
@@ -8317,6 +8358,7 @@
     "src/app/layout/sidebar/right/OverviewTab.tsx": null,
     "src/app/layout/sidebar/right/RightSidebar.test.ts": null,
     "src/app/layout/sidebar/right/RightSidebar.tsx": null,
+    "src/app/layout/sidebar/right/SourceDetailTab.tsx": null,
     "src/app/layout/sidebar/right/fileDiff.test.ts": null,
     "src/app/layout/sidebar/right/fileDiff.ts": null,
     "src/app/modals/AutomationModal.test.ts": null,
@@ -8460,22 +8502,33 @@
     "src/features/settings/lib/settingsClientGateDrafts.test.ts": null,
     "src/features/settings/lib/settingsClientGateDrafts.ts": null,
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts": null,
-    "src/features/timeline/components/AwaitingAnswerBlock.tsx": null,
+    "src/features/timeline/components/AwaitingAnswerBlock.tsx": [
+      "src/features/timeline/components/collapse/index.tsx"
+    ],
     "src/features/timeline/components/ContentBlock.tsx": null,
     "src/features/timeline/components/ConversationStage.test.ts": null,
     "src/features/timeline/components/ConversationStage.tsx": null,
     "src/features/timeline/components/SourceBlock.test.ts": null,
-    "src/features/timeline/components/SourceBlock.tsx": null,
+    "src/features/timeline/components/SourceBlock.tsx": [
+      "src/features/timeline/components/collapse/index.tsx"
+    ],
     "src/features/timeline/components/SystemAlert.tsx": null,
-    "src/features/timeline/components/ThinkingBlock.tsx": null,
+    "src/features/timeline/components/ThinkingBlock.tsx": [
+      "src/features/timeline/components/collapse/index.tsx"
+    ],
     "src/features/timeline/components/TimelineRow.tsx": [
       "src/features/timeline/components/planning/index.tsx"
     ],
     "src/features/timeline/components/ToolPill.test.ts": null,
-    "src/features/timeline/components/ToolPill.tsx": null,
+    "src/features/timeline/components/ToolPill.tsx": [
+      "src/features/timeline/components/collapse/index.tsx"
+    ],
     "src/features/timeline/components/UserBubble.tsx": null,
     "src/features/timeline/components/ViewportEmbed.test.ts": null,
     "src/features/timeline/components/ViewportEmbed.tsx": null,
+    "src/features/timeline/components/collapse/index.tsx": [
+      "src/features/timeline/components/collapse/index.module.css"
+    ],
     "src/features/timeline/components/planning/index.tsx": [
       "src/features/timeline/components/ContentBlock.tsx",
       "src/features/timeline/components/planning/index.module.css"

@@ -7,6 +7,7 @@ interface TimelineCollapseProps {
   children: React.ReactNode;
   expanded?: boolean;
   onExpand?: (expanded: boolean) => void;
+  destroyOnHidden?: boolean;
 }
 
 const KEY = "TimelineCollapse";
@@ -15,6 +16,7 @@ export const TimelineCollapse: React.FC<TimelineCollapseProps> = ({
   expanded,
   children,
   onExpand,
+  destroyOnHidden,
 }) => {
   const [activeKey, setActiveKey] = useState(expanded ? [KEY] : []);
   return (
@@ -26,6 +28,7 @@ export const TimelineCollapse: React.FC<TimelineCollapseProps> = ({
         setActiveKey(keys);
       }}
       className={Style.Collapse}
+      destroyOnHidden={destroyOnHidden}
       expandIconPosition="end"
       items={[
         {
