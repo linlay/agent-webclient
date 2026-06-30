@@ -28,7 +28,6 @@
   "src/features/timeline/components/AwaitingAnswerBlock.tsx",
   "src/features/timeline/components/ContentBlock.tsx",
   "src/features/timeline/components/ConversationStage.tsx",
-  "src/features/timeline/components/ThinkingBlock.tsx",
   "src/features/timeline/components/TimelineRow.tsx",
   "src/features/timeline/components/ViewportEmbed.tsx",
   "src/features/timeline/lib/eventProcessor.ts",

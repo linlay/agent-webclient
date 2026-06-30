@@ -65,9 +65,7 @@ import {
   isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
-import {
-  openWorkspaceDirectory,
-} from "@/shared/data/desktopFileSystem";
+import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import type { AgentDetailResponse } from "@/shared/data";
 
@@ -93,7 +91,9 @@ export function buildCoderAgentCreateRequest(
   workspaceDir: string,
   options: { name?: string; acpProxyId?: string } = {},
 ) {
-  const runtimeConfig: Record<string, unknown> = { workspaceRoot: workspaceDir };
+  const runtimeConfig: Record<string, unknown> = {
+    workspaceRoot: workspaceDir,
+  };
   if (options.acpProxyId) {
     runtimeConfig.acpProxyId = options.acpProxyId;
   }
@@ -152,9 +152,14 @@ function buildFallbackAgentDefinition(
   const visibility = asRecord(meta.visibility);
   const budget = asRecord(meta.budget);
   const modelConfig = asRecord(detail.modelConfig);
-  const modelKey = String(modelConfig.modelKey || meta.modelKey || detail.model || "").trim();
+  const modelKey = String(
+    modelConfig.modelKey || meta.modelKey || detail.model || "",
+  ).trim();
   if (modelKey || Object.keys(modelConfig).length > 0) {
-    definition.modelConfig = { ...modelConfig, ...(modelKey ? { modelKey } : {}) };
+    definition.modelConfig = {
+      ...modelConfig,
+      ...(modelKey ? { modelKey } : {}),
+    };
   }
   if (Array.isArray(detail.tools))
     definition.toolConfig = { tools: detail.tools };
@@ -930,17 +935,17 @@ export const LeftSidebar: React.FC = () => {
                   </Flex>
                 </UiButton>
                 {memoryEnabled && (
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => openOverlay("memoryInfo")}
-                >
-                  <MaterialIcon name="psychology" />
-                  <Flex gap={2} align="center">
-                    <span>{t("leftSidebar.quickActions.memory")}</span>
-                    <Badge count={state.memoryInfoRecords?.length || 0} />
-                  </Flex>
-                </UiButton>
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => openOverlay("memoryInfo")}
+                  >
+                    <MaterialIcon name="psychology" />
+                    <Flex gap={2} align="center">
+                      <span>{t("leftSidebar.quickActions.memory")}</span>
+                      <Badge count={state.memoryInfoRecords?.length || 0} />
+                    </Flex>
+                  </UiButton>
                 )}
                 <UiButton
                   size="sm"
@@ -1261,7 +1266,7 @@ export const LeftSidebar: React.FC = () => {
               : t("leftSidebar.createProject.create")}
           </Button>,
         ]}
-        destroyOnClose
+        destroyOnHidden
       >
         <Flex vertical gap={16} style={{ paddingTop: 8 }}>
           <div>
@@ -1278,9 +1283,7 @@ export const LeftSidebar: React.FC = () => {
             <Input
               autoFocus
               value={workspaceDir}
-              placeholder={t(
-                "leftSidebar.createProject.directoryPlaceholder",
-              )}
+              placeholder={t("leftSidebar.createProject.directoryPlaceholder")}
               disabled={submitting}
               onChange={(e) => {
                 const value = e.target.value;
@@ -1371,8 +1374,6 @@ export const LeftSidebar: React.FC = () => {
               )}
             </>
           )}
-
-
         </Flex>
       </Modal>
     </>
