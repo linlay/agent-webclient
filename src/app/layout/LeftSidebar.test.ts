@@ -878,67 +878,50 @@ describe("LeftSidebar", () => {
       }),
     ).toEqual({
       definition: {
-        name: "agent-coder",
         mode: "CODER",
-        icon: {
-          name: "folder",
-        },
-        workspace: {
-          root: "/Users/demo/Project/agent-coder",
-        },
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/agent-coder",
         },
-        visibility: {
-          scopes: ["nav", "copilot"],
+      },
+    });
+    const acpRequest = buildCoderAgentCreateRequest(
+      "/Users/demo/Project/acp-coder",
+      {
+        acpProxyId: "proxy-acp-codex",
+      },
+    );
+    expect(acpRequest).toEqual({
+      definition: {
+        mode: "CODER",
+        runtimeConfig: {
+          workspaceRoot: "/Users/demo/Project/acp-coder",
+          acpProxyId: "proxy-acp-codex",
         },
       },
     });
-    expect(
-      buildCoderAgentCreateRequest("/Users/demo/Project/acp-coder", {
-        acpProxyId: "proxy-acp-codex",
-      }),
-    ).toEqual({
-      definition: expect.objectContaining({
-        name: "acp-coder",
-        runtimeConfig: {
-          workspaceRoot: "/Users/demo/Project/acp-coder",
-          coderBackend: "acp",
-          acpProxyId: "proxy-acp-codex",
-        },
-      }),
-    });
+    expect(JSON.stringify(acpRequest)).not.toContain("coderBackend");
   });
 
-  it("builds a kbase project create request with key and timestamp", () => {
-    const realNow = Date.now;
-    const fixedNow = 1750000000000;
-    Date.now = jest.fn(() => fixedNow);
-    try {
-      const result = buildKbaseAgentCreateRequest(
-        "/Users/demo/Knowledge/my-project",
-        { name: "My KB" },
-      );
-      const base36Ts = fixedNow.toString(36);
-      const expectedKey = "kbase-my-project-" + base36Ts;
-      expect(result.key).toBe(expectedKey);
-      expect(result.definition.key).toBe(expectedKey);
-      expect(result.definition.name).toBe("My KB");
-      expect(result.definition.mode).toBe("KBASE");
-      expect(result.definition.icon).toEqual({ name: "database" });
-      expect(result.definition.runtimeConfig).toEqual({
-        workspaceRoot: "/Users/demo/Knowledge/my-project",
-      });
-      expect(result.definition.visibility).toEqual({
-        scopes: ["nav"],
-      });
-      expect(result.definition.kbaseConfig).toEqual({
-        embedding: { providerKey: "openai" },
-      });
-      expect(result.definition).not.toHaveProperty("workspace");
-    } finally {
-      Date.now = realNow;
-    }
+  it("builds a minimal kbase project create request", () => {
+    const result = buildKbaseAgentCreateRequest(
+      "/Users/demo/Knowledge/my-project",
+      { name: "My KB" },
+    );
+    expect(result).toEqual({
+      definition: {
+        mode: "KBASE",
+        runtimeConfig: {
+          workspaceRoot: "/Users/demo/Knowledge/my-project",
+        },
+      },
+    });
+    expect(result).not.toHaveProperty("key");
+    expect(result.definition).not.toHaveProperty("key");
+    expect(result.definition).not.toHaveProperty("name");
+    expect(result.definition).not.toHaveProperty("icon");
+    expect(result.definition).not.toHaveProperty("workspace");
+    expect(result.definition).not.toHaveProperty("kbaseConfig");
+    expect(JSON.stringify(result)).not.toContain("openai");
   });
 
   it("renders the top action as new project and opens the create modal without calling selectProjectFolder", () => {

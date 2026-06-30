@@ -95,60 +95,25 @@ export function buildCoderAgentCreateRequest(
 ) {
   const runtimeConfig: Record<string, unknown> = { workspaceRoot: workspaceDir };
   if (options.acpProxyId) {
-    runtimeConfig.coderBackend = "acp";
     runtimeConfig.acpProxyId = options.acpProxyId;
   }
   return {
     definition: {
-      name: options.name || workspaceNameFromPath(workspaceDir),
       mode: "CODER",
-      icon: {
-        name: "folder",
-      },
-      workspace: {
-        root: workspaceDir,
-      },
       runtimeConfig,
-      visibility: {
-        scopes: ["nav", "copilot"],
-      },
     },
   };
 }
 
-function kbaseSlug(workspaceDir: string): string {
-  return (
-    workspaceNameFromPath(workspaceDir)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-  );
-}
-
 export function buildKbaseAgentCreateRequest(
   workspaceDir: string,
-  options: { name?: string } = {},
+  _options: { name?: string } = {},
 ) {
-  const slug = kbaseSlug(workspaceDir);
-  const base36Ts = Date.now().toString(36);
-  const key = `kbase-${slug}-${base36Ts}`;
   return {
-    key,
     definition: {
-      key,
-      name: options.name || workspaceNameFromPath(workspaceDir),
       mode: "KBASE",
-      icon: {
-        name: "database",
-      },
       runtimeConfig: {
         workspaceRoot: workspaceDir,
-      },
-      kbaseConfig: {
-        embedding: { providerKey: "openai" },
-      },
-      visibility: {
-        scopes: ["nav"],
       },
     },
   };
