@@ -16,7 +16,6 @@ import {
   type TimelineDisplayItem,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
-import { TimelineCollapse } from "@/features/timeline/components/collapse";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -248,43 +247,43 @@ export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
   window.dispatchEvent(event);
 }
 
-function formatResponseDuration(durationMs?: number): string {
+function formatResponseDuration(durationMs: number | undefined, t: (key: string, params?: Record<string, unknown>) => string): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
     return "";
   }
 
   const value = Number(durationMs);
   if (value < 1000) {
-    return `${Math.round(value)} 毫秒`;
+    return t("timeline.toolPill.duration.milliseconds", { count: Math.round(value) });
   }
   if (value < 60_000) {
-    return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)} 秒`;
+    return t("timeline.toolPill.duration.seconds", { count: Number((value / 1000).toFixed(value >= 10_000 ? 0 : 1)) });
   }
 
   const totalSeconds = Math.round(value / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   if (minutes < 60) {
-    return `${minutes} 分 ${seconds} 秒`;
+    return t("timeline.toolPill.duration.minutes", { minutes, seconds });
   }
 
   const hours = Math.floor(minutes / 60);
   const remainMinutes = minutes % 60;
-  return `${hours} 小时 ${remainMinutes} 分`;
+  return t("timeline.responseDuration.hours", { hours, minutes: remainMinutes });
 }
 
-function formatTaskStatus(status: string): string {
+function formatTaskStatus(status: string, t: (key: string, params?: Record<string, unknown>) => string): string {
   switch (status) {
     case "running":
-      return "进行中";
+      return t("timeline.taskStatus.running");
     case "completed":
-      return "已完成";
+      return t("timeline.taskStatus.completed");
     case "failed":
-      return "失败";
+      return t("timeline.taskStatus.failed");
     case "canceled":
-      return "已取消";
+      return t("timeline.taskStatus.canceled");
     default:
-      return status || "任务";
+      return status || t("timeline.taskStatus.default");
   }
 }
 
@@ -590,13 +589,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       anchors.push({
         key: item.key,
         anchorId: buildQueryAnchorId(item.node.id),
-        queryText: String(item.node.text || "").trim() || "无文本提问",
+        queryText: String(item.node.text || "").trim() || t("timeline.query.noText"),
         lastRunContent:
           nextItem?.kind === "run" ? findLastRunContentText(nextItem) : "",
       });
     }
     return anchors;
-  }, [displayItems]);
+  }, [displayItems, t]);
 
   const flashActionStatus = useCallback((key: string, text: string) => {
     const existing = statusTimerRef.current.get(key);
@@ -619,12 +618,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     async (key: string, text: string) => {
       try {
         await copyText(text);
-        flashActionStatus(key, "已复制");
+        flashActionStatus(key, t("timeline.toolPill.copy.copied"));
       } catch {
-        flashActionStatus(key, "复制失败");
+        flashActionStatus(key, t("timeline.toolPill.copy.failed"));
       }
     },
-    [flashActionStatus],
+    [flashActionStatus, t],
   );
 
   const handleDownvote = useCallback(
@@ -649,7 +648,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           runId: normalizedRunId,
           type: nextDownvoted ? "thumbs_down" : "clear",
         });
-        message.success(nextDownvoted ? "已点踩" : "已取消点踩");
+        message.success(nextDownvoted ? t("timeline.feedback.downvoted") : t("timeline.feedback.cleared"));
       } catch (error) {
         dispatch({
           type: "SET_RUN_DOWNVOTED",
@@ -662,7 +661,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         });
       }
     },
-    [dispatch, state.chatId],
+    [dispatch, state.chatId, t],
   );
 
   const handleResend = useCallback(
@@ -719,8 +718,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       }
       if (entry.kind === "task-group") {
         const expanded = Boolean(expandedTaskGroups[entry.key]);
-        const taskDuration = formatResponseDuration(entry.durationMs);
-        const statusText = formatTaskStatus(entry.status);
+        const taskDuration = formatResponseDuration(entry.durationMs, t);
+        const statusText = formatTaskStatus(entry.status, t);
         const taskAgent = resolveTaskGroupAgent(
           entry,
           state.agents,
@@ -793,6 +792,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       expandedTaskGroups,
       state.agents,
       state.streaming,
+      t,
       toggleTaskGroup,
     ],
   );
@@ -901,7 +901,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   className="timeline-query-anchor-rail"
                   style={
                     {
-                      "--hover-index": (queryAnchorItems.length + 999).toString(),
+                      "--hover-index": (
+                        queryAnchorItems.length + 999
+                      ).toString(),
                     } as React.CSSProperties
                   }
                   onMouseLeave={() => {
@@ -916,6 +918,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const active = activeQueryAnchorId === anchor.anchorId;
                     return (
                       <Tooltip
+                        key={anchor.key}
                         rootClassName="timeline-query-anchor-preview"
                         trigger="hover"
                         placement="right"
@@ -931,7 +934,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         }
                       >
                         <button
-                          key={anchor.key}
                           className={`timeline-query-anchor-line ${active ? "is-active" : ""}`.trim()}
                           type="button"
                           aria-current={active ? "location" : undefined}
@@ -967,7 +969,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const queryTime = formatTimelineTime(item.node.ts);
                     const queryCopyKey = `${item.key}:copy`;
                     const queryCopyStatus =
-                      actionStatus[queryCopyKey] || "复制";
+                      actionStatus[queryCopyKey] || t("timeline.toolPill.copy.action");
                     const queryAnchorId = buildQueryAnchorId(item.node.id);
                     return (
                       <div
@@ -1015,14 +1017,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                       {
                                         key: "resend",
                                         icon: <MaterialIcon name="refresh" />,
-                                        label: "重问",
+                                        label: t("timeline.query.resend"),
                                       },
                                       {
                                         key: "resendInNewChat",
                                         icon: (
                                           <MaterialIcon name="open_in_new" />
                                         ),
-                                        label: "新对话重问",
+                                        label: t("timeline.query.resendInNewChat"),
                                       },
                                     ],
                                   }}
@@ -1033,8 +1035,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     size="sm"
                                     iconOnly
                                     disabled={state.streaming}
-                                    title="重问"
-                                    aria-label="重问"
+                                    title={t("timeline.query.resend")}
+                                    aria-label={t("timeline.query.resend")}
                                   >
                                     <MaterialIcon name="refresh" />
                                   </UiButton>
@@ -1059,14 +1061,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const isCompleted = Boolean(item.completedAt);
                     const time = formatTimelineTime(item.completedAt);
                     const responseDuration = formatResponseDuration(
-                      item.responseDurationMs,
+                      item.responseDurationMs, t,
                     );
                     const runCopyKey = `${item.key}:copy`;
                     const runId = String(item.runId || "").trim();
                     const isDownvoted = Boolean(
                       runId && state.downvotedRunKeys.has(runId),
                     );
-                    const runCopyStatus = actionStatus[runCopyKey] || "复制";
+                    const runCopyStatus = actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
 
                     const lastContentNode = [...item.nodes].findLast(
                       (n) => n.kind === "content",
@@ -1077,7 +1079,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       item.nodes.length > 1;
 
                     return (
-                      <Flex vertical gap={8}>
+                      <Flex key={item.key} vertical gap={8}>
                         {shouldCollapse && (
                           <Collapse
                             ghost
@@ -1086,7 +1088,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             items={[
                               {
                                 key: "run-entries",
-                                label: `已处理 ${responseDuration}`,
+                                label: t("timeline.run.processed", { duration: responseDuration }),
                                 children: (
                                   <div className="timeline-run-items">
                                     {buildRunRenderEntries(
@@ -1141,8 +1143,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     size="sm"
                                     iconOnly
                                     active
-                                    title="取消点踩"
-                                    aria-label="取消点踩"
+                                    title={t("timeline.feedback.clearDownvote")}
+                                    aria-label={t("timeline.feedback.clearDownvote")}
                                     disabled={!runId}
                                     onClick={() => handleDownvote(runId, false)}
                                   >
@@ -1165,8 +1167,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                       variant="ghost"
                                       size="sm"
                                       iconOnly
-                                      title="点踩"
-                                      aria-label="点踩"
+                                      title={t("timeline.feedback.downvote")}
+                                      aria-label={t("timeline.feedback.downvote")}
                                       disabled={!runId}
                                     >
                                       <MaterialIcon name="thumb_down" />
@@ -1179,7 +1181,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                   className="timeline-run-time"
                                   title={
                                     responseDuration
-                                      ? `${time.full} · 响应耗时 ${responseDuration}`
+                                      ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
                                       : time.full
                                   }
                                 >
@@ -1208,19 +1210,20 @@ const FeedbackModal: React.FC<{
   onFinish: (values: any) => void;
 }> = (props) => {
   const { onFinish } = props;
+  const { t } = useI18n();
 
   return (
     <Form onFinish={onFinish} size="small" style={{ width: 320 }}>
-      <strong>反馈（选填）</strong>
+      <strong>{t("timeline.feedback.title")}</strong>
       <Form.Item name="reason" style={{ margin: "10px 0" }}>
         <Input.TextArea
-          placeholder="我们想知道你对此回答不满意的原因，你认为更好的回答是什么？"
+          placeholder={t("timeline.feedback.placeholder")}
           rows={4}
         />
       </Form.Item>
       <Flex gap={10} justify="flex-end">
         <Button type="primary" htmlType="submit">
-          提交
+          {t("timeline.feedback.submit")}
         </Button>
       </Flex>
     </Form>

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useI18n } from "@/shared/i18n";
 import { TimelineCollapse } from "./collapse";
 
 interface ThinkingBlockProps {
@@ -10,6 +11,7 @@ interface ThinkingBlockProps {
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
   const state = useAppState();
+  const { t } = useI18n();
   const expanded = Boolean(node.expanded);
   const reasoningKey = useMemo(() => {
     for (const [key, nodeId] of state.reasoningNodeById.entries()) {
@@ -21,8 +23,8 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
   const text = node.text || "";
   const isLoading = node.status === "running" || node.status === "streaming";
   const triggerLabel = isLoading
-    ? node.reasoningLabel || "思考中..."
-    : "思考过程";
+    ? node.reasoningLabel || t("timeline.thinking.inProgress")
+    : t("timeline.thinking.title");
 
   return (
     <TimelineCollapse
