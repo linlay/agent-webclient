@@ -3,7 +3,8 @@ export type CommandOverlayType =
   | "switch"
   | "detail"
   | "automation"
-  | "agents";
+  | "agents"
+  | "global";
 
 export type CommandOverlayScope = "all" | "agent" | "team";
 export type CommandOverlayFocusArea = "search" | "list";

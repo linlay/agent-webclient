@@ -60,12 +60,51 @@ jest.mock("@/features/workers/components/AgentConsole", () => {
   };
 });
 
+jest.mock("@/features/settings/components/SettingsOverlayProvider", () => ({
+  useSettingsOverlayActions: () => ({
+    openOverlay: jest.fn(),
+    closeOverlay: jest.fn(),
+  }),
+  useSettingsOverlayState: () => ({
+    activeOverlay: null,
+    isAnyOverlayOpen: false,
+  }),
+  SettingsOverlayProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+}));
+
+jest.mock("@/features/tools/components/buildin/confirm-dialog/state", () => ({
+  isEditableKeyboardTarget: jest.fn(() => false),
+}));
+
 jest.mock("@/shared/i18n", () => ({
   t: (key: string) => key,
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }));
+
+jest.mock("@/shared/icons/agent", () => {
+  const React = require("react");
+  return {
+    AgentIcon: ({ type }: any) =>
+      React.createElement("span", {
+        className: "agent-icon-mock",
+        "data-agent-type": type,
+      }),
+  };
+});
+
+jest.mock("@/shared/ui/MaterialIcon", () => {
+  const React = require("react");
+  return {
+    MaterialIcon: ({ name }: any) =>
+      React.createElement("span", {
+        className: "material-icon-mock",
+        "data-icon-name": name,
+      }),
+  };
+});
 
 const { useAppState } = jest.requireMock("@/app/state/AppContext") as {
   useAppState: jest.Mock;
@@ -167,5 +206,86 @@ describe("CommandModal", () => {
 
     expect(mockSwitchProps).toHaveLength(1);
     expect(mockSwitchProps[0].variant).toBe("default");
+  });
+
+  it("renders the global command palette when type is global", () => {
+    useAppState.mockReturnValue({
+      ...createSwitchState(),
+      workerRows: [
+        createWorkerRow(),
+        createWorkerRow({
+          key: "team:team-beta",
+          type: "team",
+          sourceId: "team-beta",
+          displayName: "Team Beta",
+          searchText: "team beta",
+        }),
+      ],
+    });
+
+    const html = renderCommandModal({
+      modal: createCommandOverlayState({ type: "global", searchText: "" }),
+    });
+
+    expect(html).toContain("global-command-panel");
+    expect(html).toContain("global-command-input");
+    expect(html).toContain("commandModal.global.placeholder");
+    expect(html).toContain("global-command-list");
+  });
+
+  it("passes Copilot variant to global command palette", () => {
+    useAppState.mockReturnValue({
+      ...createSwitchState(),
+      workerRows: [createWorkerRow()],
+    });
+
+    const html = renderCommandModal({
+      modal: createCommandOverlayState({ type: "global" }),
+      variant: "copilot",
+    });
+
+    expect(html).toContain("global-command-panel");
+    expect(html).toContain("global-command-input");
+  });
+
+  it("renders global empty state when no rows match", () => {
+    useAppState.mockReturnValue({
+      ...createSwitchState(),
+      workerRows: [],
+    });
+    // No current worker -> no action rows for newConversation
+    // No worker rows
+    // No history
+
+    const html = renderCommandModal({
+      modal: createCommandOverlayState({ type: "global", searchText: "zzz_nonexistent" }),
+    });
+
+    expect(html).toContain("global-command-panel");
+    expect(html).toContain("commandModal.global.empty");
+  });
+
+  it("renders global command panel with worker rows", () => {
+    useAppState.mockReturnValue({
+      ...createSwitchState(),
+      workerRows: [
+        createWorkerRow(),
+        createWorkerRow({
+          key: "agent:agent-beta",
+          type: "agent",
+          sourceId: "agent-beta",
+          displayName: "Beta",
+          searchText: "beta",
+        }),
+      ],
+    });
+
+    const html = renderCommandModal({
+      modal: createCommandOverlayState({ type: "global" }),
+    });
+
+    expect(html).toContain("global-command-worker");
+    expect(html).toContain("Alpha");
+    expect(html).toContain("Beta");
   });
 });

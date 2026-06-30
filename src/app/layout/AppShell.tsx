@@ -18,6 +18,7 @@ import {
   isCoderAgent,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
+import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
 
 export const AppShell: React.FC = () => {
 	const state = useAppState();
@@ -42,6 +43,7 @@ export const AppShell: React.FC = () => {
 	return (
 		<SettingsOverlayProvider>
 			<CommandOverlayProvider>
+				<GlobalShortcutLayer />
 				<div
 					className={`app-shell layout-desktop-fixed ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
 					id="app"
