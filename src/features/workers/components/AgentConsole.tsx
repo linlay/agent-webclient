@@ -324,8 +324,11 @@ function fallbackDefinition(detail: EditableAgentDetail): Record<string, unknown
   const meta = asRecord(detail.meta);
   const visibility = asRecord(meta.visibility);
   const budget = asRecord(meta.budget);
-  const modelKey = toText(meta.modelKey) || toText(detail.model);
-  if (modelKey) definition.modelConfig = { modelKey };
+  const detailModelConfig = asRecord(detail.modelConfig);
+  const modelKey = toText(detailModelConfig.modelKey) || toText(meta.modelKey) || toText(detail.model);
+  if (modelKey || Object.keys(detailModelConfig).length > 0) {
+    definition.modelConfig = { ...detailModelConfig, ...(modelKey ? { modelKey } : {}) };
+  }
   if (Array.isArray(detail.tools)) definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills)) definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;

@@ -538,7 +538,8 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
       defaultReasoningEffort: normalizeReasoningEffort(
         candidate.defaultReasoningEffort,
       ),
-      defaultServiceTier: normalizeServiceTier(candidate.defaultServiceTier),
+      defaultServiceTier:
+        normalizeServiceTier(candidate.defaultServiceTier) || "STANDARD",
       recognized: true,
     };
   }
@@ -547,6 +548,7 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
     models: [],
     reasoningEfforts: [],
     serviceTiers: filterServiceTierOptions([]),
+    defaultServiceTier: "STANDARD",
     recognized: false,
   };
 }
@@ -601,6 +603,8 @@ export function resolveCoderAgentDefaultModelOverride(
   const modelConfig = getRecord(raw.modelConfig);
   const definition = getRecord(raw.definition);
   const definitionModelConfig = getRecord(definition.modelConfig);
+  const modelReasoning = getRecord(modelConfig.reasoning);
+  const definitionModelReasoning = getRecord(definitionModelConfig.reasoning);
 
   const key =
     getModelKey(raw.modelKey) ||
@@ -615,7 +619,9 @@ export function resolveCoderAgentDefaultModelOverride(
     normalizeReasoningEffort(raw.defaultReasoningEffort) ||
     normalizeReasoningEffort(meta.reasoningEffort) ||
     normalizeReasoningEffort(modelConfig.reasoningEffort) ||
+    normalizeModelConfigReasoning(modelReasoning) ||
     normalizeReasoningEffort(definitionModelConfig.reasoningEffort) ||
+    normalizeModelConfigReasoning(definitionModelReasoning) ||
     normalizeReasoningEffort(options?.defaultReasoningEffort);
   const serviceTier =
     normalizeServiceTier(raw.serviceTier) ||
@@ -630,6 +636,15 @@ export function resolveCoderAgentDefaultModelOverride(
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(serviceTier && serviceTier !== "STANDARD" ? { serviceTier } : {}),
   };
+}
+
+function normalizeModelConfigReasoning(
+  reasoning: Record<string, unknown>,
+): QueryReasoningEffort | undefined {
+  if (reasoning.enabled === false) {
+    return "NONE";
+  }
+  return normalizeReasoningEffort(reasoning.effort);
 }
 
 export function clearCoderModelOptionsCacheForTest(): void {
