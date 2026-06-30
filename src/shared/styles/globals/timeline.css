@@ -802,15 +802,25 @@
     gap: 8px;
 }
 
-.timeline-run-group::before {
+.timeline-run-group::before,
+.timeline-run-collapse.ant-collapse>.ant-collapse-item>.ant-collapse-content>.ant-collapse-content-box::before {
     content: "";
     position: absolute;
     left: 8px;
     top: 0;
     bottom: 0;
     width: 1px;
-    transform: translateX(-0.5px);
-    background: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: var(--line-soft);
+}
+
+.timeline-run-collapse.ant-collapse>.ant-collapse-item>.ant-collapse-header {
+    padding: 0 0 0 2px;
+    color: var(--text-muted);
+}
+
+.timeline-run-collapse.ant-collapse>.ant-collapse-item>.ant-collapse-content>.ant-collapse-content-box {
+    position: relative;
+    padding: 10px 0 0;
 }
 
 .timeline-run-items {
