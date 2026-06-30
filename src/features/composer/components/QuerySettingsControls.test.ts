@@ -575,6 +575,32 @@ describe("QuerySettingsControls", () => {
     });
   });
 
+  it("uses embedded agent modelConfig before API defaults", () => {
+    expect(
+      resolveCoderAgentDefaultModelOverride(
+        {
+          raw: {
+            mode: "CODER",
+            modelConfig: {
+              modelKey: "MiniMax-M2.7",
+              reasoning: { enabled: true, effort: "HIGH" },
+              serviceTier: "FAST",
+            },
+          },
+        },
+        {
+          defaultModelKey: "api-model",
+          defaultReasoningEffort: "MEDIUM",
+          defaultServiceTier: "STANDARD",
+        },
+      ),
+    ).toEqual({
+      key: "MiniMax-M2.7",
+      reasoningEffort: "HIGH",
+      serviceTier: "FAST",
+    });
+  });
+
   it("falls back to API model defaults when the agent has none", () => {
     expect(
       resolveCoderAgentDefaultModelOverride(

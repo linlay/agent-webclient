@@ -185,8 +185,11 @@ function buildFallbackAgentDefinition(
   const meta = asRecord(detail.meta);
   const visibility = asRecord(meta.visibility);
   const budget = asRecord(meta.budget);
-  const modelKey = String(meta.modelKey || detail.model || "").trim();
-  if (modelKey) definition.modelConfig = { modelKey };
+  const modelConfig = asRecord(detail.modelConfig);
+  const modelKey = String(modelConfig.modelKey || meta.modelKey || detail.model || "").trim();
+  if (modelKey || Object.keys(modelConfig).length > 0) {
+    definition.modelConfig = { ...modelConfig, ...(modelKey ? { modelKey } : {}) };
+  }
   if (Array.isArray(detail.tools))
     definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills))

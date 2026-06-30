@@ -55,6 +55,8 @@ export interface Agent {
 	role?: string;
 	wonders?: string[];
 	controls?: AgentControl[];
+	modelConfig?: Record<string, unknown>;
+	modelOptions?: Record<string, unknown>;
 	stats?: AgentStats;
 	icon?: string | {
 		color?: string;

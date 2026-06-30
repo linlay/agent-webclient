@@ -303,6 +303,7 @@ export interface AgentDetailResponse {
   skills: string[];
   controls: Array<Record<string, unknown>>;
   meta: Record<string, unknown>;
+  modelConfig?: Record<string, unknown>;
   modelOptions?: CoderModelOptionsResponse;
   definition?: Record<string, unknown>;
   soulPrompt?: string;
