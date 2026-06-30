@@ -4,6 +4,7 @@ import type { TimelineSource, TimelineSourceChunk } from "@/app/state/types";
 import { MarkdownContent } from "@/shared/ui/MarkdownContent";
 import { t, TranslateParams } from "@/shared/i18n";
 import { Flex, Tag } from "antd";
+import { SourceScore } from "@/features/source/component/source-score";
 
 type TranslateFn = (key: string, params?: TranslateParams) => string;
 
@@ -152,10 +153,10 @@ const ChunkItem: React.FC<ChunkItemProps> = ({ chunk, active, onClick }) => {
             {heading || t("rightSidebar.sourceDetail.untitledChunk")}
           </span>
         </div>
-        <span className="right-sidebar-source-detail-chunk-meta">
-          {chunk.matchType && <Tag>{chunk.matchType}</Tag>}
+        <Flex className="right-sidebar-source-detail-chunk-meta" wrap gap={4} align="center">
+          {chunk.matchType && <Tag color="gold">{chunk.matchType}</Tag>}
           {chunk.score && (
-            <Tag color="gold">{formatSourceScore(chunk.score)}</Tag>
+            <SourceScore score={chunk.score} />
           )}
           <span>
             {formatRange(
@@ -165,6 +166,8 @@ const ChunkItem: React.FC<ChunkItemProps> = ({ chunk, active, onClick }) => {
               "timeline.source.locator.lineRange",
               t,
             )}
+          </span>
+          <span>
             {formatRange(
               chunk.pageStart,
               chunk.pageEnd,
@@ -172,6 +175,8 @@ const ChunkItem: React.FC<ChunkItemProps> = ({ chunk, active, onClick }) => {
               "timeline.source.locator.pageRange",
               t,
             )}
+          </span>
+          <span>
             {formatRange(
               chunk.slideStart,
               chunk.slideEnd,
@@ -180,7 +185,7 @@ const ChunkItem: React.FC<ChunkItemProps> = ({ chunk, active, onClick }) => {
               t,
             )}
           </span>
-        </span>
+        </Flex>
       </button>
     </li>
   );
