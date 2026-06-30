@@ -7,6 +7,7 @@ import {
   buildCoderAgentCreateRequest,
   buildKbaseAgentCreateRequest,
   LeftSidebar,
+  handleCreateAgentSuccess,
 } from "@/app/layout/LeftSidebar";
 import { sortWorkerRowsForMode } from "@/app/layout/hooks/useLeftSidebarData";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
@@ -191,13 +192,14 @@ jest.mock("antd", () => {
       children,
     );
 
-  const Modal = ({ open, title, children }: any) =>
+  const Modal = ({ open, title, children, footer }: any) =>
     open
       ? React.createElement(
           "div",
           { className: "mock-modal" },
           title,
           children,
+          footer,
         )
       : null;
   Modal.confirm = (...args: unknown[]) => mockModalConfirm(...args);
@@ -1006,6 +1008,46 @@ describe("LeftSidebar", () => {
 
     expect(selectProjectFolder).not.toHaveBeenCalled();
     expect(createAgent).not.toHaveBeenCalled();
+  });
+
+  it("handleCreateAgentSuccess dispatches list refresh without navigating", async () => {
+    const dispatch = jest.fn();
+    const state = createInitialState();
+    const stateRef = { current: state };
+    const createdKey = "browser-coder";
+
+    const agentsData = [
+      { key: "browser-coder", name: "Browser Coder" },
+    ];
+    getAgents.mockResolvedValue({ data: agentsData });
+
+    await handleCreateAgentSuccess(createdKey, dispatch, stateRef);
+
+    // 调用了 createAgent → getAgents 刷新列表
+    expect(getAgents).toHaveBeenCalledWith({
+      includeChats: 5,
+      scope: "nav",
+    });
+
+    // dispatch 了临时置顶
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+      agentKey: createdKey,
+    });
+
+    // dispatch 了 SET_AGENTS
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_AGENTS",
+      agents: agentsData,
+    });
+
+    // dispatch 了 SET_WORKER_ROWS
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "SET_WORKER_ROWS" }),
+    );
+
+    // 没有调用 navigate
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("renders collapsed worker entries with names, popover header, and total history count", () => {

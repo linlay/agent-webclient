@@ -24,6 +24,7 @@ import {
   Spin,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
+import type { AppAction } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
@@ -201,6 +202,38 @@ function buildFallbackAgentDefinition(
   }
   if (Object.keys(budget).length > 0) definition.budget = budget;
   return definition;
+}
+
+export async function handleCreateAgentSuccess(
+  createdKey: string,
+  dispatch: React.Dispatch<AppAction>,
+  stateRef: React.MutableRefObject<AppState>,
+) {
+  if (!createdKey) return;
+
+  dispatch({
+    type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+    agentKey: createdKey,
+  });
+
+  const agentsResponse = await getAgents({
+    includeChats: 5,
+    scope: "nav",
+  });
+  const agents = Array.isArray(agentsResponse.data)
+    ? (agentsResponse.data as AppState["agents"])
+    : [];
+  dispatch({ type: "SET_AGENTS", agents });
+
+  dispatch({
+    type: "SET_WORKER_ROWS",
+    rows: buildWorkerRows({
+      agents,
+      teams: stateRef.current.teams,
+      chats: stateRef.current.chats,
+      workerPriorityKey: `agent:${createdKey}`,
+    }),
+  });
 }
 
 export const LeftSidebar: React.FC = () => {
@@ -798,36 +831,7 @@ export const LeftSidebar: React.FC = () => {
 
       setCreateModalOpen(false);
 
-      if (createdKey) {
-        dispatch({
-          type: "SET_TEMPORARY_PINNED_AGENT_KEY",
-          agentKey: createdKey,
-        });
-      }
-
-      const agentsResponse = await getAgents({
-        includeChats: 5,
-        scope: "nav",
-      });
-      const agents = Array.isArray(agentsResponse.data)
-        ? (agentsResponse.data as AppState["agents"])
-        : [];
-      dispatch({ type: "SET_AGENTS", agents });
-
-      if (createdKey) {
-        dispatch({
-          type: "SET_WORKER_ROWS",
-          rows: buildWorkerRows({
-            agents,
-            teams: stateRef.current.teams,
-            chats: stateRef.current.chats,
-            workerPriorityKey: `agent:${createdKey}`,
-          }),
-        });
-        navigate(
-          `/agent/${encodeURIComponent(createdKey)}${window.location.search || ""}`,
-        );
-      }
+      void handleCreateAgentSuccess(createdKey, dispatch, stateRef);
     } catch (error) {
       dispatch({
         type: "APPEND_DEBUG",
