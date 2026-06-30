@@ -195,7 +195,7 @@
     "moduleCount": 20,
     "flowCount": 2,
     "taskCount": 3,
-    "sourceFileCount": 413,
+    "sourceFileCount": 415,
     "factsRef": ".doc/generated/project-facts.json",
     "contextIndexRef": ".doc/generated/context-index.json"
   }
