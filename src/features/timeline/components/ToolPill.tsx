@@ -9,6 +9,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
 import { useAppState } from "@/app/state/provider";
+import { TimelineCollapse } from "./collapse";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -330,40 +331,35 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   };
 
   return (
-    <div className="tool-call">
-      <UiButton
-        className={`tool-trigger ${canExpand && expanded ? "is-open" : ""}`}
-        variant="ghost"
-        size="sm"
-        data-tool-status={status}
-        data-expandable={canExpand ? "true" : "false"}
-        aria-expanded={canExpand ? expanded : undefined}
-        onClick={() => {
-          if (!canExpand) return;
-          setExpanded(!expanded);
-        }}
-      >
-        <span className="tool-pill-label" title={toolLabel}>
-          {toolLabel}
-        </span>
-        {isGrouped ? (
-          expandableRecords.map((record) => (
-            <span
-              key={record.key}
-              className="tool-status-dot"
-              data-tool-status={record.status}
-            />
-          ))
-        ) : (
-          <span className="tool-status-dot" data-tool-status={status} />
-        )}
-        <span className="tool-pill-duration">
-          {displayDurationMs ? formatToolDuration(displayDurationMs, t) : ""}
-        </span>
-        {canExpand && <MaterialIcon name="chevron_right" className="chevron" />}
-      </UiButton>
-
-      <div className={`tool-detail ${canExpand && expanded ? "is-open" : ""}`}>
+    <TimelineCollapse
+      expanded={canExpand && expanded}
+      onExpand={() => {
+        if (!canExpand) return;
+        setExpanded(!expanded);
+      }}
+      label={
+        <Flex align="center" gap={6}>
+          <span className="tool-pill-label" title={toolLabel}>
+            {toolLabel}
+          </span>
+          {isGrouped ? (
+            expandableRecords.map((record) => (
+              <span
+                key={record.key}
+                className="tool-status-dot"
+                data-tool-status={record.status}
+              />
+            ))
+          ) : (
+            <span className="tool-status-dot" data-tool-status={status} />
+          )}
+          <span className="tool-pill-duration">
+            {displayDurationMs ? formatToolDuration(displayDurationMs, t) : ""}
+          </span>
+        </Flex>
+      }
+    >
+      <Flex vertical gap={16}>
         {expandableRecords.map((record) => {
           const resultText = formatToolResultText(record.result, t);
           const resultCopyKey = `${record.key}:result`;
@@ -463,8 +459,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
             </div>
           );
         })}
-      </div>
-    </div>
+      </Flex>
+    </TimelineCollapse>
   );
 };
 
