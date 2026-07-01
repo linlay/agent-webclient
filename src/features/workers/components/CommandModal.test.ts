@@ -265,6 +265,60 @@ describe("CommandModal", () => {
     expect(html).toContain("commandModal.global.empty");
   });
 
+  it("renders global command panel with grouped awaiting and unread rows", () => {
+    const worker = createWorkerRow();
+    useAppState.mockReturnValue({
+      ...createSwitchState(),
+      agents: [
+        {
+          key: "agent-alpha",
+          name: "Alpha Agent",
+          role: "研究员",
+          chats: [
+            {
+              chatId: "chat-awaiting",
+              chatName: "Needs Approval",
+              agentKey: "agent-alpha",
+              updatedAt: 200,
+              lastRunId: "run-awaiting",
+              lastRunContent: "Please approve",
+              hasPendingAwaiting: true,
+              awaiting: { mode: "approval" },
+              read: { isRead: false },
+            },
+            {
+              chatId: "chat-unread",
+              chatName: "Unread Thread",
+              agentKey: "agent-alpha",
+              updatedAt: 100,
+              lastRunId: "run-unread",
+              lastRunContent: "Unread preview",
+              read: { isRead: false },
+            },
+          ],
+        },
+      ],
+      workerRows: [worker],
+      workerIndexByKey: new Map([[worker.key, worker]]),
+      workerSelectionKey: worker.key,
+    });
+
+    const html = renderCommandModal({
+      modal: createCommandOverlayState({ type: "global" }),
+    });
+
+    expect(html).toContain("commandModal.global.section.awaiting");
+    expect(html).toContain("commandModal.global.section.unread");
+    expect(html).toContain("commandModal.global.section.actions");
+    expect(html).toContain("commandModal.global.section.workers");
+    expect(html).toContain("global-command-section-awaiting");
+    expect(html).toContain("global-command-section-unread");
+    expect(html).toContain("Needs Approval");
+    expect(html).toContain("Unread Thread");
+    expect(html).toContain("Alpha Agent");
+    expect(html).toContain("leftSidebar.awaitingStatus.approval");
+  });
+
   it("renders global command panel with worker rows", () => {
     useAppState.mockReturnValue({
       ...createSwitchState(),

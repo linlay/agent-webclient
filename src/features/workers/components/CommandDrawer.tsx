@@ -23,8 +23,7 @@ import { useSettingsOverlayActions } from "@/features/settings/components/Settin
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { buildGlobalRows } from "@/features/workers/lib/globalCommandRows";
 import type { GlobalRow } from "@/features/workers/lib/globalCommandRows";
-import { AgentIcon } from "@/shared/icons/agent";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { GlobalCommandPanel } from "@/features/workers/components/GlobalCommandPanel";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -159,30 +158,17 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     onClose(restoreComposerFocus);
   };
 
-  const globalLocalHistoryRows = useMemo(() => {
-    if (modal.type !== "global") return [];
-    if (!currentWorker) return [];
-    return buildWorkerConversationRows({
-      chats: state.chats,
-      worker: currentWorker.row,
-    });
-  }, [currentWorker, modal.type, state.chats]);
-
   const [globalRemoteState, setGlobalRemoteState] = useState<
     WorkerConversationRow[] | null
   >(null);
 
-  const globalHistoryRows = useMemo(() => {
-    if (modal.type !== "global") return globalLocalHistoryRows;
-    if (globalRemoteState) return globalRemoteState;
-    return globalLocalHistoryRows;
-  }, [globalLocalHistoryRows, globalRemoteState, modal.type]);
-
   const globalRows = useMemo(() => {
     if (modal.type !== "global") return [];
     return buildGlobalRows({
+      agents: state.agents,
       workerRows: state.workerRows,
-      historyRows: globalHistoryRows,
+      chats: state.chats,
+      historyRows: globalRemoteState,
       searchText: modal.searchText,
       hasCurrentWorker: Boolean(currentWorker),
       workerIcons: workerIconsByKey,
@@ -190,9 +176,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     });
   }, [
     currentWorker,
-    globalHistoryRows,
+    globalRemoteState,
     modal.searchText,
     modal.type,
+    state.agents,
+    state.chats,
     state.workerRows,
     t,
     workerIconsByKey,
@@ -446,8 +434,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     if (
       !modal.open ||
       modal.type !== "global" ||
-      !currentWorkerType ||
-      !currentWorkerSourceId ||
       !query
     ) {
       setGlobalRemoteState(null);
@@ -455,11 +441,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     }
     setGlobalRemoteState(null);
     const timer = window.setTimeout(() => {
-      const params =
-        currentWorkerType === "team"
-          ? { query, teamId: currentWorkerSourceId, limit: 30 }
-          : { query, agentKey: currentWorkerSourceId, limit: 30 };
-      void searchGlobal(params)
+      void searchGlobal({ query, limit: 30 })
         .then((response) => {
           const results = Array.isArray(response.data?.results)
             ? response.data.results
@@ -490,8 +472,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     }, 250);
     return () => window.clearTimeout(timer);
   }, [
-    currentWorkerSourceId,
-    currentWorkerType,
     dispatch,
     modal.open,
     modal.searchText,
@@ -763,93 +743,20 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         {modal.type === "agents" && <AgentConsole embedded />}
 
         {modal.type === "global" && (
-          <div className="global-command-panel">
-            <div className="global-command-search">
-              <input
-                ref={searchInputRef}
-                className="global-command-input"
-                type="text"
-                placeholder={t("commandModal.global.placeholder")}
-                value={modal.searchText}
-                onChange={(e) =>
-                  onPatch({ searchText: e.target.value, activeIndex: 0 })
-                }
-                aria-label={t("commandModal.global.placeholder")}
-              />
-            </div>
-            {globalRows.length === 0 ? (
-              <div className="global-command-empty">
-                {t("commandModal.global.empty")}
-              </div>
-            ) : (
-              <div className="global-command-list">
-                {globalRows.map((row, index) => {
-                  const isActive = index === globalIndex;
-                  if (row.kind === "action") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className={`global-command-row global-command-action${isActive ? " is-active" : ""}`}
-                        onClick={() => selectGlobalRow(row)}
-                        onMouseEnter={() =>
-                          onPatch({ activeIndex: index })
-                        }
-                      >
-                        <span className="global-command-icon" aria-hidden="true">
-                          <MaterialIcon name={row.icon} />
-                        </span>
-                        <span className="global-command-label">{row.label}</span>
-                      </button>
-                    );
-                  }
-                  if (row.kind === "worker") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className={`global-command-row global-command-worker${isActive ? " is-active" : ""}`}
-                        onClick={() => selectGlobalRow(row)}
-                        onMouseEnter={() =>
-                          onPatch({ activeIndex: index })
-                        }
-                      >
-                        <span className="global-command-icon" aria-hidden="true">
-                          <AgentIcon icon={row.icon} type={row.type} />
-                        </span>
-                        <span className="global-command-label">{row.label}</span>
-                        <span className="global-command-role">{row.role}</span>
-                      </button>
-                    );
-                  }
-                  if (row.kind === "history") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className={`global-command-row global-command-history${isActive ? " is-active" : ""}`}
-                        onClick={() => selectGlobalRow(row)}
-                        onMouseEnter={() =>
-                          onPatch({ activeIndex: index })
-                        }
-                      >
-                        <span className="global-command-icon" aria-hidden="true">
-                          <MaterialIcon name="history" />
-                        </span>
-                        <span className="global-command-label">{row.label}</span>
-                        {row.snippet ? (
-                          <span className="global-command-snippet">
-                            {row.snippet}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-            )}
-          </div>
+          <GlobalCommandPanel
+            rows={globalRows}
+            activeIndex={globalIndex}
+            searchText={modal.searchText}
+            searchInputRef={searchInputRef}
+            placeholder={t("commandModal.global.placeholder")}
+            emptyText={t("commandModal.global.empty")}
+            t={t as (key: string, params?: Record<string, unknown>) => string}
+            onSearchChange={(value) =>
+              onPatch({ searchText: value, activeIndex: 0 })
+            }
+            onActivateIndex={(index) => onPatch({ activeIndex: index })}
+            onSelect={selectGlobalRow}
+          />
         )}
       </div>
     </Drawer>

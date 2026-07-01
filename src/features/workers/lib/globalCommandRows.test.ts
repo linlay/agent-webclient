@@ -1,6 +1,6 @@
 import { buildGlobalRows } from "@/features/workers/lib/globalCommandRows";
 import type { GlobalRow } from "@/features/workers/lib/globalCommandRows";
-import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent, Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 function t(key: string): string {
   return key;
@@ -26,6 +26,33 @@ function createWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
   };
 }
 
+function createAgent(
+  key: string,
+  chats: Chat[] = [],
+  overrides: Partial<Agent> = {},
+): Agent {
+  return {
+    key,
+    name: `${key} name`,
+    role: "agent role",
+    chats,
+    ...overrides,
+  };
+}
+
+function createChat(chatId: string, overrides: Partial<Chat> = {}): Chat {
+  return {
+    chatId,
+    chatName: `Chat ${chatId}`,
+    agentKey: "agent-alpha",
+    updatedAt: 1000,
+    lastRunId: `run-${chatId}`,
+    lastRunContent: `Content of ${chatId}`,
+    read: { isRead: true },
+    ...overrides,
+  } as Chat;
+}
+
 function createHistoryRow(
   chatId: string,
   overrides: Partial<WorkerConversationRow> = {},
@@ -41,15 +68,19 @@ function createHistoryRow(
 }
 
 function createInput(overrides: {
+  agents?: Agent[];
   workerRows?: WorkerRow[];
-  historyRows?: WorkerConversationRow[];
+  chats?: Chat[];
+  historyRows?: WorkerConversationRow[] | null;
   searchText?: string;
   hasCurrentWorker?: boolean;
   workerIcons?: ReadonlyMap<string, unknown>;
 }) {
   return {
+    agents: overrides.agents ?? [],
     workerRows: overrides.workerRows ?? [],
-    historyRows: overrides.historyRows ?? [],
+    chats: overrides.chats ?? [],
+    historyRows: overrides.historyRows,
     searchText: overrides.searchText ?? "",
     hasCurrentWorker: overrides.hasCurrentWorker ?? true,
     workerIcons: overrides.workerIcons as ReadonlyMap<string, unknown> | undefined,
@@ -57,45 +88,169 @@ function createInput(overrides: {
   };
 }
 
+function rowsBySection(
+  rows: GlobalRow[],
+  section: GlobalRow["section"],
+): GlobalRow[] {
+  return rows.filter((row) => row.section === section);
+}
+
 describe("buildGlobalRows", () => {
-  /* ---- Action visibility ---- */
+  it("orders default sections as awaiting, unread, actions, then workers", () => {
+    const worker = createWorkerRow();
+    const rows = buildGlobalRows(
+      createInput({
+        agents: [
+          createAgent("agent-alpha", [
+            createChat("chat_awaiting", {
+              hasPendingAwaiting: true,
+              awaiting: { mode: "approval" },
+              read: { isRead: true },
+            }),
+            createChat("chat_unread", { read: { isRead: false } }),
+          ]),
+        ],
+        workerRows: [worker],
+      }),
+    );
+
+    const sections = rows.map((row) => row.section);
+    expect(sections.indexOf("awaiting")).toBeLessThan(sections.indexOf("unread"));
+    expect(sections.indexOf("unread")).toBeLessThan(sections.indexOf("actions"));
+    expect(sections.indexOf("actions")).toBeLessThan(sections.indexOf("workers"));
+  });
+
+  it("shows awaiting chats only in awaiting even when they are unread", () => {
+    const rows = buildGlobalRows(
+      createInput({
+        agents: [
+          createAgent("agent-alpha", [
+            createChat("chat_both", {
+              hasPendingAwaiting: true,
+              awaiting: { mode: "question" },
+              read: { isRead: false },
+            }),
+            createChat("chat_unread", { read: { isRead: false } }),
+          ]),
+        ],
+      }),
+    );
+
+    expect(rowsBySection(rows, "awaiting").map((row) => row.key)).toEqual([
+      "awaiting:chat_both",
+    ]);
+    expect(rowsBySection(rows, "unread").map((row) => row.key)).toEqual([
+      "unread:chat_unread",
+    ]);
+  });
+
+  it("limits awaiting and unread to 5 rows per agent by /api/agents chat scope", () => {
+    const agentAlphaAwaiting = Array.from({ length: 6 }, (_, index) =>
+      createChat(`alpha_awaiting_${index}`, {
+        agentKey: "agent-alpha",
+        updatedAt: 1000 - index,
+        hasPendingAwaiting: true,
+        awaiting: { mode: "plan" },
+      }),
+    );
+    const agentBetaUnread = Array.from({ length: 6 }, (_, index) =>
+      createChat(`beta_unread_${index}`, {
+        agentKey: "agent-beta",
+        updatedAt: 900 - index,
+        read: { isRead: false },
+      }),
+    );
+    const rows = buildGlobalRows(
+      createInput({
+        agents: [
+          createAgent("agent-alpha", agentAlphaAwaiting),
+          createAgent("agent-beta", agentBetaUnread),
+        ],
+      }),
+    );
+
+    expect(rowsBySection(rows, "awaiting").map((row) => row.chatId)).toEqual([
+      "alpha_awaiting_0",
+      "alpha_awaiting_1",
+      "alpha_awaiting_2",
+      "alpha_awaiting_3",
+      "alpha_awaiting_4",
+    ]);
+    expect(rowsBySection(rows, "unread").map((row) => row.chatId)).toEqual([
+      "beta_unread_0",
+      "beta_unread_1",
+      "beta_unread_2",
+      "beta_unread_3",
+      "beta_unread_4",
+    ]);
+  });
+
+  it("uses agent display names as source labels for default attention rows", () => {
+    const rows = buildGlobalRows(
+      createInput({
+        agents: [
+          createAgent(
+            "agent-alpha",
+            [
+              createChat("chat_awaiting", {
+                hasPendingAwaiting: true,
+                awaiting: { mode: "form" },
+              }),
+            ],
+            { name: "Alpha Agent" },
+          ),
+        ],
+      }),
+    );
+
+    expect(rowsBySection(rows, "awaiting")[0]).toMatchObject({
+      sourceLabel: "Alpha Agent",
+      awaitingMode: "form",
+    });
+  });
+
+  it("does not show ordinary read history in the default view", () => {
+    const rows = buildGlobalRows(
+      createInput({
+        agents: [createAgent("agent-alpha", [createChat("chat_read")])],
+        workerRows: [createWorkerRow()],
+      }),
+    );
+
+    expect(rowsBySection(rows, "history")).toHaveLength(0);
+    expect(rowsBySection(rows, "awaiting")).toHaveLength(0);
+    expect(rowsBySection(rows, "unread")).toHaveLength(0);
+  });
 
   it("includes newConversation and history actions when hasCurrentWorker is true", () => {
-    const rows = buildGlobalRows(
-      createInput({ hasCurrentWorker: true }),
-    );
+    const rows = buildGlobalRows(createInput({ hasCurrentWorker: true }));
     const actionKeys = rows
-      .filter((r): r is Extract<GlobalRow, { kind: "action" }> => r.kind === "action")
-      .map((r) => r.key);
+      .filter((row): row is Extract<GlobalRow, { kind: "action" }> => row.kind === "action")
+      .map((row) => row.key);
+
     expect(actionKeys).toContain("newConversation");
     expect(actionKeys).toContain("history");
   });
 
   it("excludes newConversation and history actions when hasCurrentWorker is false", () => {
-    const rows = buildGlobalRows(
-      createInput({ hasCurrentWorker: false }),
-    );
+    const rows = buildGlobalRows(createInput({ hasCurrentWorker: false }));
     const actionKeys = rows
-      .filter((r): r is Extract<GlobalRow, { kind: "action" }> => r.kind === "action")
-      .map((r) => r.key);
+      .filter((row): row is Extract<GlobalRow, { kind: "action" }> => row.kind === "action")
+      .map((row) => row.key);
+
     expect(actionKeys).not.toContain("newConversation");
     expect(actionKeys).not.toContain("history");
   });
 
   it("always includes switch, settings, and debug actions regardless of hasCurrentWorker", () => {
-    const rowsWith = buildGlobalRows(
-      createInput({ hasCurrentWorker: true }),
-    );
+    const rowsWith = buildGlobalRows(createInput({ hasCurrentWorker: true }));
+    const rowsWithout = buildGlobalRows(createInput({ hasCurrentWorker: false }));
     const actionKeysWith = rowsWith
-      .filter((r): r is Extract<GlobalRow, { kind: "action" }> => r.kind === "action")
-      .map((r) => r.key);
-
-    const rowsWithout = buildGlobalRows(
-      createInput({ hasCurrentWorker: false }),
-    );
+      .filter((row): row is Extract<GlobalRow, { kind: "action" }> => row.kind === "action")
+      .map((row) => row.key);
     const actionKeysWithout = rowsWithout
-      .filter((r): r is Extract<GlobalRow, { kind: "action" }> => r.kind === "action")
-      .map((r) => r.key);
+      .filter((row): row is Extract<GlobalRow, { kind: "action" }> => row.kind === "action")
+      .map((row) => row.key);
 
     for (const key of ["switch", "settings", "debug"]) {
       expect(actionKeysWith).toContain(key);
@@ -103,13 +258,12 @@ describe("buildGlobalRows", () => {
     }
   });
 
-  /* ---- Search filtering on actions ---- */
-
   it("filters actions by search text", () => {
     const rows = buildGlobalRows(
       createInput({ hasCurrentWorker: true, searchText: "switch" }),
     );
-    const actionRows = rows.filter((r) => r.kind === "action");
+    const actionRows = rows.filter((row) => row.kind === "action");
+
     expect(actionRows).toHaveLength(1);
     expect(actionRows[0].action).toBe("switch");
   });
@@ -123,10 +277,9 @@ describe("buildGlobalRows", () => {
         historyRows: [],
       }),
     );
+
     expect(rows).toHaveLength(0);
   });
-
-  /* ---- Worker rows ---- */
 
   it("includes worker rows when no search text", () => {
     const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
@@ -140,7 +293,8 @@ describe("buildGlobalRows", () => {
     const rows = buildGlobalRows(
       createInput({ workerRows: [worker1, worker2] }),
     );
-    const workerRows = rows.filter((r) => r.kind === "worker");
+    const workerRows = rows.filter((row) => row.kind === "worker");
+
     expect(workerRows).toHaveLength(2);
     expect(workerRows[0].key).toBe("agent:a");
     expect(workerRows[1].key).toBe("agent:b");
@@ -158,167 +312,112 @@ describe("buildGlobalRows", () => {
     const rows = buildGlobalRows(
       createInput({ workerRows: [worker1, worker2], searchText: "beta" }),
     );
-    const workerRows = rows.filter((r) => r.kind === "worker");
+    const workerRows = rows.filter((row) => row.kind === "worker");
+
     expect(workerRows).toHaveLength(1);
     expect(workerRows[0].key).toBe("agent:b");
   });
 
   it("caps worker results at 20", () => {
-    const manyWorkers = Array.from({ length: 25 }, (_, i) =>
+    const manyWorkers = Array.from({ length: 25 }, (_, index) =>
       createWorkerRow({
-        key: `agent:${i}`,
-        sourceId: `${i}`,
-        displayName: `Agent ${i}`,
-        searchText: `agent ${i}`,
+        key: `agent:${index}`,
+        sourceId: `${index}`,
+        displayName: `Agent ${index}`,
+        searchText: `agent ${index}`,
       }),
     );
-    const rows = buildGlobalRows(
-      createInput({ workerRows: manyWorkers }),
-    );
-    const workerRows = rows.filter((r) => r.kind === "worker");
+    const rows = buildGlobalRows(createInput({ workerRows: manyWorkers }));
+    const workerRows = rows.filter((row) => row.kind === "worker");
+
     expect(workerRows).toHaveLength(20);
   });
 
   it("carries worker icon from workerIcons map", () => {
-    const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
+    const worker = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
     const iconData = { color: "#ff0000", name: "pulse" };
     const icons = new Map<string, unknown>([["agent:a", iconData]]);
     const rows = buildGlobalRows(
-      createInput({ workerRows: [worker1], workerIcons: icons }),
+      createInput({ workerRows: [worker], workerIcons: icons }),
     );
-    const workerRows = rows.filter((r) => r.kind === "worker");
+    const workerRows = rows.filter((row) => row.kind === "worker");
+
     expect(workerRows[0].icon).toEqual(iconData);
   });
 
-  /* ---- History rows ---- */
-
-  it("includes history rows when hasCurrentWorker is true", () => {
+  it("shows matching chat history after workers while searching", () => {
+    const worker = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
     const history = [
-      createHistoryRow("chat-1"),
-      createHistoryRow("chat-2", { chatName: "Second Chat" }),
-    ];
-    const rows = buildGlobalRows(
-      createInput({ historyRows: history }),
-    );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows).toHaveLength(2);
-    expect(historyRows[0].chatId).toBe("chat-1");
-    expect(historyRows[1].chatId).toBe("chat-2");
-  });
-
-  it("excludes history rows when hasCurrentWorker is false", () => {
-    const history = [createHistoryRow("chat-1")];
-    const rows = buildGlobalRows(
-      createInput({ hasCurrentWorker: false, historyRows: history }),
-    );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows).toHaveLength(0);
-  });
-
-  it("filters history rows by search text (chatName)", () => {
-    const history = [
-      createHistoryRow("chat-1", { chatName: "Project Alpha" }),
+      createHistoryRow("chat-1", {
+        chatName: "Project Alpha",
+        agentKey: "a",
+        lastRunContent: "fix login bug",
+      }),
       createHistoryRow("chat-2", { chatName: "Project Beta" }),
     ];
     const rows = buildGlobalRows(
-      createInput({ historyRows: history, searchText: "alpha" }),
+      createInput({
+        workerRows: [worker],
+        historyRows: history,
+        searchText: "alpha",
+      }),
     );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows).toHaveLength(1);
-    expect(historyRows[0].chatId).toBe("chat-1");
+
+    expect(rowsBySection(rows, "history").map((row) => row.chatId)).toEqual([
+      "chat-1",
+    ]);
+    expect(rows.map((row) => row.section).lastIndexOf("workers")).toBeLessThan(
+      rows.map((row) => row.section).indexOf("history"),
+    );
   });
 
-  it("filters history rows by search text (chatId)", () => {
-    const history = [
-      createHistoryRow("chat-abc"),
-      createHistoryRow("chat-xyz"),
-    ];
-    const rows = buildGlobalRows(
-      createInput({ historyRows: history, searchText: "abc" }),
+  it("filters history rows by chatId and lastRunContent during search", () => {
+    const rowsByChatId = buildGlobalRows(
+      createInput({
+        historyRows: [
+          createHistoryRow("chat-abc"),
+          createHistoryRow("chat-xyz"),
+        ],
+        searchText: "abc",
+      }),
     );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows).toHaveLength(1);
-    expect(historyRows[0].chatId).toBe("chat-abc");
+    const rowsByContent = buildGlobalRows(
+      createInput({
+        historyRows: [
+          createHistoryRow("chat-1", { lastRunContent: "fix login bug" }),
+          createHistoryRow("chat-2", { lastRunContent: "add pagination" }),
+        ],
+        searchText: "login",
+      }),
+    );
+
+    expect(rowsBySection(rowsByChatId, "history").map((row) => row.chatId)).toEqual([
+      "chat-abc",
+    ]);
+    expect(rowsBySection(rowsByContent, "history").map((row) => row.chatId)).toEqual([
+      "chat-1",
+    ]);
   });
 
-  it("filters history rows by search text (lastRunContent)", () => {
-    const history = [
-      createHistoryRow("chat-1", { lastRunContent: "fix login bug" }),
-      createHistoryRow("chat-2", { lastRunContent: "add pagination" }),
-    ];
-    const rows = buildGlobalRows(
-      createInput({ historyRows: history, searchText: "login" }),
+  it("caps search history results at 10", () => {
+    const manyHistory = Array.from({ length: 15 }, (_, index) =>
+      createHistoryRow(`chat-${index}`, { chatName: "Search Match" }),
     );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows).toHaveLength(1);
-    expect(historyRows[0].chatId).toBe("chat-1");
-  });
+    const rows = buildGlobalRows(
+      createInput({ historyRows: manyHistory, searchText: "match" }),
+    );
+    const historyRows = rows.filter((row) => row.kind === "history");
 
-  it("caps history results at 10", () => {
-    const manyHistory = Array.from({ length: 15 }, (_, i) =>
-      createHistoryRow(`chat-${i}`),
-    );
-    const rows = buildGlobalRows(
-      createInput({ historyRows: manyHistory }),
-    );
-    const historyRows = rows.filter((r) => r.kind === "history");
     expect(historyRows).toHaveLength(10);
   });
-
-  it("includes snippet field on history rows", () => {
-    const history = [
-      createHistoryRow("chat-1", { lastRunContent: "some content" }),
-    ];
-    const rows = buildGlobalRows(
-      createInput({ historyRows: history }),
-    );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows[0].snippet).toBe("some content");
-  });
-
-  it("omits snippet when lastRunContent is empty", () => {
-    const history = [
-      createHistoryRow("chat-1", { lastRunContent: "" }),
-    ];
-    const rows = buildGlobalRows(
-      createInput({ historyRows: history }),
-    );
-    const historyRows = rows.filter((r) => r.kind === "history");
-    expect(historyRows[0].snippet).toBeUndefined();
-  });
-
-  /* ---- Row ordering ---- */
-
-  it("orders rows as actions, then workers, then history", () => {
-    const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
-    const history = [createHistoryRow("chat-1")];
-    const rows = buildGlobalRows(
-      createInput({ workerRows: [worker1], historyRows: history }),
-    );
-
-    const kinds = rows.map((r) => r.kind);
-    const firstActionIndex = kinds.indexOf("action");
-    const firstWorkerIndex = kinds.indexOf("worker");
-    const firstHistoryIndex = kinds.indexOf("history");
-
-    // All three kinds should be present
-    expect(firstActionIndex).not.toBe(-1);
-    expect(firstWorkerIndex).not.toBe(-1);
-    expect(firstHistoryIndex).not.toBe(-1);
-
-    // Actions come before workers, workers before history
-    expect(firstActionIndex).toBeLessThan(firstWorkerIndex);
-    expect(firstWorkerIndex).toBeLessThan(firstHistoryIndex);
-  });
-
-  /* ---- Edge cases ---- */
 
   it("trims and lowercases search text", () => {
     const history = [createHistoryRow("chat-1", { chatName: "Alpha" })];
     const rows = buildGlobalRows(
       createInput({ historyRows: history, searchText: "  ALPHA  " }),
     );
-    const historyRows = rows.filter((r) => r.kind === "history");
+    const historyRows = rows.filter((row) => row.kind === "history");
+
     expect(historyRows).toHaveLength(1);
   });
 });

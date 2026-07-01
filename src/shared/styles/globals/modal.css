@@ -2628,10 +2628,25 @@
 .global-command-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 10px;
     max-height: 52vh;
     overflow: auto;
 }
+
+.global-command-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.global-command-section-title {
+    padding: 4px 12px 3px;
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
 .global-command-row {
     display: flex;
     align-items: center;
@@ -2647,6 +2662,11 @@
     font-size: 13px;
     line-height: 1.35;
 }
+
+.global-command-attention {
+    min-height: 44px;
+}
+
 .global-command-row.is-active,
 .global-command-row:hover { background: var(--bg-hover); }
 .global-command-row.is-active {
@@ -2661,6 +2681,26 @@
     height: 24px;
     color: var(--ink-muted);
 }
+
+.global-command-attention .global-command-icon {
+    color: var(--accent-electric);
+}
+
+.global-command-unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-electric);
+}
+
+.global-command-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .global-command-label {
     flex: 1 1 auto;
     min-width: 0;
@@ -2668,6 +2708,12 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.global-command-main .global-command-label {
+    flex: 0 1 auto;
+    display: block;
+}
+
 .global-command-role {
     flex: 0 0 auto;
     font-size: 11px;
@@ -2677,6 +2723,36 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.global-command-meta {
+    flex: 0 0 auto;
+    max-width: 38%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.global-command-status {
+    flex: 0 0 auto;
+    color: var(--accent-warn);
+    background: color-mix(in srgb, var(--accent-warn) 10%, transparent);
+    border-radius: 999px;
+    padding: 2px 7px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.global-command-source {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
 .global-command-snippet {
     flex: 0 0 auto;
     font-size: 11px;
@@ -2686,6 +2762,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.global-command-main .global-command-snippet {
+    flex: 0 1 auto;
+    max-width: 100%;
+    display: block;
+}
+
 .global-command-empty {
     padding: 24px 16px;
     text-align: center;
@@ -2694,5 +2777,6 @@
 }
 @media (max-width: 640px) {
     .global-command-role,
-    .global-command-snippet { display: none; }
+    .global-command-snippet,
+    .global-command-meta { display: none; }
 }
