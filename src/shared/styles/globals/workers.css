@@ -207,6 +207,12 @@
     flex: 0 0 auto;
 }
 
+.worker-terminal-active.is-busy {
+    animation: status-pulse 1s ease-in-out infinite;
+    color: var(--accent-lime);
+    background: color-mix(in srgb, var(--accent-lime) 16%, transparent);
+}
+
 .worker-terminal-active .material-icon {
     font-size: 14px;
 }

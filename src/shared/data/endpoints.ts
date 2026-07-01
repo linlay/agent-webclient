@@ -576,14 +576,17 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "ws",
   }),
-  terminalSessions: defineEndpoint<{ deviceId?: string }, { deviceId?: string }>({
-    key: "terminal.sessions",
-    path: "/api/terminal/sessions",
-    method: "GET",
-    transport: "http",
-    payload: ({ deviceId }) => ({
-      ...(deviceId ? { deviceId } : {}),
-    }),
+  terminalStatus: defineEndpoint({
+    key: "terminal.status",
+    path: "/api/terminal/status",
+    method: "POST",
+    transport: "ws-stream",
+  }),
+  terminalStatusDetach: defineEndpoint({
+    key: "terminal.status.detach",
+    path: "/api/terminal/status/detach",
+    method: "POST",
+    transport: "ws",
   }),
   upload: defineEndpoint({
     key: "upload.file",

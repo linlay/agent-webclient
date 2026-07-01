@@ -68,7 +68,7 @@ import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import type { AgentDetailResponse } from "@/shared/data";
-import { useActiveTerminalAgents } from "@/features/terminal/hooks/useActiveTerminalAgents";
+import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -210,7 +210,7 @@ export async function handleCreateAgentSuccess(
 export const LeftSidebar: React.FC = () => {
   const { state, dispatch, querySessionsRef, stateRef } = useAppContext();
   const { t } = useI18n();
-  const activeTerminalAgents = useActiveTerminalAgents();
+  const terminalAgentStatuses = useTerminalAgentStatuses();
   const navigate = useNavigate();
   const { openOverlay } = useSettingsOverlayActions();
   const { openCommandOverlay } = useCommandOverlayActions();
@@ -702,8 +702,10 @@ export const LeftSidebar: React.FC = () => {
             awaitingChat={awaitingChat}
             activeRunChat={activeRunChat}
             unreadCount={unreadCount}
-            terminalActive={
-              row.type === "agent" && activeTerminalAgents.has(row.sourceId)
+            terminalStatus={
+              row.type === "agent"
+                ? terminalAgentStatuses.get(row.sourceId)
+                : undefined
             }
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
