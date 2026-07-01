@@ -563,14 +563,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       behavior: "smooth",
     });
     setActiveQueryAnchorId(normalizedAnchorId);
-
-    if (typeof window === "undefined") return;
-    const nextUrl = `${window.location.pathname}${window.location.search}#${encodeURIComponent(normalizedAnchorId)}`;
-    if (window.history && typeof window.history.replaceState === "function") {
-      window.history.replaceState(null, "", nextUrl);
-      return;
-    }
-    window.location.hash = normalizedAnchorId;
   }, []);
 
   const timelineEntries = useMemo(() => {

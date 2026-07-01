@@ -259,8 +259,8 @@
 }
 
 .timeline-query-anchor-preview {
-    width: min(360px, calc(100vw - 160px));
     font-size: 12px;
+    max-width: 360px;
 }
 
 .timeline-query-anchor-preview-query,
