@@ -7,18 +7,8 @@
     overflow: auto;
 }
 
-.command-modal-card {
-    width: 100%;
-    max-height: min(76vh, 720px);
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    overflow: hidden;
-}
-
 .command-modal-card.is-automation-console {
     width: 100%;
-    max-height: min(84vh, 900px);
 }
 
 .command-modal-title span {
@@ -33,12 +23,10 @@
 }
 
 .command-modal-section {
-    min-height: 0;
-    flex: 1;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
+    height: 100%;
 }
 
 .history-list-container .ant-divider {
@@ -77,7 +65,6 @@
     flex-direction: column;
     overflow: auto;
     padding-right: 4px;
-    max-height: 70vh;
     gap: 2px;
 }
 

@@ -227,7 +227,7 @@ export const RightSidebar: React.FC = () => {
       items.push({
         key: "sourceDetail",
         label: t("copilot.panel.sourceDetail"),
-        icon: <MaterialIcon name="description" />,
+        icon: <MaterialIcon name="book_2" />,
         children: <SourceDetailTab />,
       });
     }

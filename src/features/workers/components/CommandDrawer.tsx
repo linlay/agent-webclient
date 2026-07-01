@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { Modal } from "antd";
+import { Drawer } from "antd";
 import type { Agent, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
 import {
@@ -48,18 +48,16 @@ function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   );
 }
 
-interface CommandModalProps {
+interface CommandDrawerProps {
   modal: CommandOverlayState;
   onPatch: (patch: Partial<CommandOverlayState>) => void;
   onClose: (restoreComposerFocus?: boolean) => void;
-  variant?: "default" | "copilot";
 }
 
-export const CommandModal: React.FC<CommandModalProps> = ({
+export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   modal,
   onPatch,
   onClose,
-  variant = "default",
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -157,11 +155,10 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     filteredHistoryRows.length,
   );
 
-  const closeModal = (restoreComposerFocus = true) => {
+  const closeDrawer = (restoreComposerFocus = true) => {
     onClose(restoreComposerFocus);
   };
 
-  /* ---- Global command palette state ---- */
   const globalLocalHistoryRows = useMemo(() => {
     if (modal.type !== "global") return [];
     if (!currentWorker) return [];
@@ -207,7 +204,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     const cw = currentWorker;
     switch (action) {
       case "newConversation":
-        closeModal(false);
+        closeDrawer(false);
         window.dispatchEvent(
           new CustomEvent("agent:start-new-conversation", {
             detail: {
@@ -239,11 +236,11 @@ export const CommandModal: React.FC<CommandModalProps> = ({
         });
         break;
       case "settings":
-        closeModal(false);
+        closeDrawer(false);
         openOverlay("settings");
         break;
       case "debug":
-        closeModal(false);
+        closeDrawer(false);
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "debug" });
         break;
     }
@@ -255,7 +252,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       return;
     }
     if (row.kind === "worker") {
-      closeModal(false);
+      closeDrawer(false);
       window.dispatchEvent(
         new CustomEvent("agent:select-worker", {
           detail: {
@@ -267,7 +264,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       return;
     }
     if (row.kind === "history") {
-      closeModal(false);
+      closeDrawer(false);
       window.dispatchEvent(
         new CustomEvent("agent:load-chat", {
           detail: {
@@ -280,12 +277,10 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     }
   };
 
-  /* ---- End global state ---- */
-
   const selectHistory = (index: number) => {
     const target = filteredHistoryRows[index];
     if (!target) return;
-    closeModal(false);
+    closeDrawer(false);
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", {
         detail: {
@@ -299,7 +294,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   const selectWorker = (index: number) => {
     const target = switchRows[index];
     if (!target) return;
-    closeModal(false);
+    closeDrawer(false);
     window.dispatchEvent(
       new CustomEvent("agent:select-worker", {
         detail: {
@@ -446,7 +441,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     switchItemRefs.current[switchIndex]?.scrollIntoView({ block: "nearest" });
   }, [modal.open, modal.type, switchIndex]);
 
-  /* Global search debounce */
   useEffect(() => {
     const query = String(modal.searchText || "").trim();
     if (
@@ -504,7 +498,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     modal.type,
   ]);
 
-  /* Global focus on open */
   useEffect(() => {
     if (!modal.open || modal.type !== "global") return;
     searchInputRef.current?.focus();
@@ -543,21 +536,19 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   );
 
   return (
-    <Modal
+    <Drawer
       open={modal.open}
-      onCancel={() => closeModal()}
+      onClose={() => closeDrawer()}
       title={title}
-      footer={null}
+      closable={{
+        placement: 'end'
+      }}
+      mask
+      maskClosable
       destroyOnHidden
-      getContainer={false}
-      width={
-        isConsoleModal
-          ? "min(1120px, calc(100vw - 32px))"
-          : isGlobalModal
-            ? "min(640px, calc(100vw - 32px))"
-            : "min(780px, calc(100vw - 32px))"
-      }
-      className={`command-modal ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
+      placement="right"
+      width="100%"
+      className={`copilot-drawer ${isConsoleModal ? "is-automation-console" : ""}`.trim()}
     >
       <div
         ref={cardRef}
@@ -737,7 +728,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             searchText={modal.searchText}
             switchRows={switchRows}
             switchIndex={switchIndex}
-            variant={variant === "copilot" ? "copilot" : "default"}
+            variant="copilot"
             workerIconsByKey={workerIconsByKey}
             searchInputRef={searchInputRef}
             switchListRef={switchListRef}
@@ -861,6 +852,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           </div>
         )}
       </div>
-    </Modal>
+    </Drawer>
   );
 };

@@ -325,67 +325,6 @@
     overflow: auto;
 }
 
-.copilot-debug-drawer-backdrop {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 50;
-    width: min(100vw, 360px);
-    max-width: 360px;
-    padding: 0;
-    border: 0;
-    background: color-mix(in srgb, var(--ink-1) 42%, transparent);
-    cursor: default;
-    backdrop-filter: blur(6px);
-}
-
-.copilot-debug-drawer {
-    position: fixed;
-    inset: auto auto 0 0;
-    z-index: 55;
-    width: min(100vw, 360px);
-    max-width: 360px;
-    height: min(68dvh, 560px);
-    min-height: 260px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-bottom: 0;
-    border-radius: 10px 10px 0 0;
-    background: var(--bg-elev-2);
-    box-shadow: var(--shadow-strong);
-}
-
-.copilot-debug-drawer-head {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-}
-
-.copilot-debug-drawer-head strong {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    color: var(--ink-1);
-}
-
-.copilot-debug-drawer-body {
-    min-height: 0;
-    flex: 1;
-    overflow: auto;
-}
-
-.copilot-debug-drawer .debug-panel,
-.copilot-debug-drawer .debug-tab {
-    height: 100%;
-}
-
 .layout-copilot .right-sidebar-overview,
 .layout-copilot .attachment-preview-panel,
 .layout-copilot .debug-tab {
@@ -403,10 +342,10 @@
 .layout-copilot .command-modal-card.is-automation-console,
 .layout-copilot .memory-info-card {
     width: 100%;
-    max-width: 100%;
-    max-height: min(86dvh, 760px);
-    border-radius: 14px 14px 0 0;
-    padding: 10px 4px;
+}
+
+.layout-copilot .settings-card {
+    max-height: unset;
 }
 
 .layout-copilot .command-modal-title span {
@@ -473,9 +412,11 @@
     font-size: 13px;
     line-height: 1.35;
 }
+
 .layout-copilot .history-list-action-time {
     font-size: 12px;
 }
+
 .layout-copilot .command-modal-section {
     gap: 10px;
 }
@@ -505,4 +446,12 @@ html[data-theme="dark"] .layout-copilot .bottom-dock {
 
 html[data-theme="dark"] .copilot-side-panel {
     background: var(--bg-base);
+}
+
+.ant-drawer .copilot-drawer .ant-drawer-header {
+    padding: 10px;
+}
+
+.ant-drawer .copilot-drawer .ant-drawer-body {
+    padding: 10px;
 }
