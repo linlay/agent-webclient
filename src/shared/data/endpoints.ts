@@ -552,6 +552,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "ws",
   }),
+  terminalDetach: defineEndpoint({
+    key: "terminal.detach",
+    path: "/api/terminal/detach",
+    method: "POST",
+    transport: "ws",
+  }),
   terminalInput: defineEndpoint({
     key: "terminal.input",
     path: "/api/terminal/input",

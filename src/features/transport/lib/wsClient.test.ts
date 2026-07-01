@@ -272,7 +272,7 @@ describe("WsClient", () => {
 		const onDone = jest.fn();
 		const client = createClient();
 
-		client.stream({
+		const stream = client.stream({
 			type: "/api/query",
 			payload: { message: "hello" },
 			onEvent,
@@ -285,6 +285,7 @@ describe("WsClient", () => {
 
 		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
 		expect(sentFrame.id).toBe(`wss_${(1_776_474_697 * 1000).toString(36)}`);
+		expect(stream.requestId).toBe(sentFrame.id);
 		socket.message(
 			JSON.stringify({
 				frame: "stream",

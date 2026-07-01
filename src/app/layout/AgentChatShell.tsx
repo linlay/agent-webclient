@@ -20,10 +20,7 @@ import {
   TerminalDock,
   resolveTerminalDockWorkspaceKey,
 } from "./TerminalDock";
-import {
-  isCoderAgent,
-  resolveCurrentWorkerSummary,
-} from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
@@ -483,11 +480,11 @@ export const AgentChatShell: React.FC = () => {
           <ConversationStage showEmptyState={!chatId} />
           <RightSidebar />
           <BottomDock />
-          {state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
+          {state.terminalDockOpen && currentWorker?.type === "agent" ? (
             <TerminalDock
               agentKey={currentWorker.sourceId}
-              chatId={state.chatId}
               workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+              worker={currentWorker}
             />
           ) : null}
           <ShellOverlays />

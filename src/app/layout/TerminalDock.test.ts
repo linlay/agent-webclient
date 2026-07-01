@@ -11,6 +11,9 @@ jest.mock("@/shared/data", () => ({
   getCurrentAccessToken: jest.fn(),
 }));
 
+import {
+  resolveTerminalAvailability,
+} from "@/features/terminal/lib/terminalWorkspace";
 import { resolveTerminalDockWorkspaceKey, resolveTerminalTheme } from "@/app/layout/TerminalDock";
 
 describe("resolveTerminalDockWorkspaceKey", () => {
@@ -44,6 +47,16 @@ describe("resolveTerminalDockWorkspaceKey", () => {
     ).toBe("@chat");
   });
 
+  it("falls back to meta.workspace.root from agent detail payloads", () => {
+    expect(
+      resolveTerminalDockWorkspaceKey({
+        type: "agent",
+        raw: { meta: { workspace: { root: "/Users/demo/detail" } } },
+        row: { workspaceDir: undefined },
+      } as never),
+    ).toBe("/Users/demo/detail");
+  });
+
   it("ignores non-agent workers", () => {
     expect(resolveTerminalDockWorkspaceKey(null)).toBe("");
     expect(
@@ -53,6 +66,58 @@ describe("resolveTerminalDockWorkspaceKey", () => {
         row: { workspaceDir: "/tmp/team" },
       } as never),
     ).toBe("");
+  });
+});
+
+describe("resolveTerminalAvailability", () => {
+  it("supports any agent with a stable workspace", () => {
+    const availability = resolveTerminalAvailability({
+      type: "agent",
+      raw: { mode: "REACT", workspace: { root: "/Users/demo/project" } },
+      row: { workspaceDir: "/Users/demo/project" },
+    } as never, "/Users/demo/project");
+
+    expect(availability.supported).toBe(true);
+  });
+
+  it("supports @chat workspace because the backend applies a cwd fallback", () => {
+    const availability = resolveTerminalAvailability({
+      type: "agent",
+      raw: { mode: "CODER", workspace: { root: "@chat" } },
+      row: { workspaceDir: "@chat" },
+    } as never, "@chat");
+
+    expect(availability.supported).toBe(true);
+  });
+
+  it("supports ACP agents with the same terminal logic", () => {
+    const availability = resolveTerminalAvailability({
+      type: "agent",
+      raw: { mode: "CODER", meta: { acpProxyId: "codex" } },
+      row: { workspaceDir: "/Users/demo/project" },
+    } as never, "/Users/demo/project");
+
+    expect(availability.supported).toBe(true);
+  });
+
+  it("supports sandbox agents with the same terminal logic", () => {
+    const availability = resolveTerminalAvailability({
+      type: "agent",
+      raw: { mode: "CODER", meta: { sandbox: { environmentId: "shell" } } },
+      row: { workspaceDir: "/Users/demo/project" },
+    } as never, "/Users/demo/project");
+
+    expect(availability.supported).toBe(true);
+  });
+
+  it("supports agents without workspace metadata because the backend applies a cwd fallback", () => {
+    const availability = resolveTerminalAvailability({
+      type: "agent",
+      raw: { mode: "REACT" },
+      row: { workspaceDir: undefined },
+    } as never, "");
+
+    expect(availability.supported).toBe(true);
   });
 });
 

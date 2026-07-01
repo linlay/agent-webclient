@@ -14,10 +14,7 @@ import {
   TerminalDock,
   resolveTerminalDockWorkspaceKey,
 } from "./TerminalDock";
-import {
-  isCoderAgent,
-  resolveCurrentWorkerSummary,
-} from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 
 export const AppShell: React.FC = () => {
 	const state = useAppState();
@@ -51,11 +48,11 @@ export const AppShell: React.FC = () => {
 					<ConversationStage />
 					<RightSidebar />
 					<BottomDock />
-					{state.terminalDockOpen && currentWorker && isCoderAgent(currentWorker) ? (
+					{state.terminalDockOpen && currentWorker?.type === "agent" ? (
 						<TerminalDock
 							agentKey={currentWorker.sourceId}
-							chatId={state.chatId}
 							workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+							worker={currentWorker}
 						/>
 					) : null}
 					<ShellOverlays />

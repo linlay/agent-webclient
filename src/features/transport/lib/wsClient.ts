@@ -553,7 +553,7 @@ export class WsClient {
 		onError?: (err: Error) => void;
 		onDone?: (reason: string, lastSeq: number) => void;
 		requestId?: string;
-	}): { abort: () => void } {
+	}): { requestId: string; abort: () => void } {
 		const id = opts.requestId || createWsFrameId("wsstream");
 		let aborted = false;
 
@@ -572,7 +572,7 @@ export class WsClient {
 
 		if (opts.signal?.aborted) {
 			abortHandler();
-			return { abort };
+			return { requestId: id, abort };
 		}
 
 		this.activeStreams.set(id, {
@@ -615,7 +615,7 @@ export class WsClient {
 				);
 			});
 
-		return { abort };
+		return { requestId: id, abort };
 	}
 
 	attachRun(
