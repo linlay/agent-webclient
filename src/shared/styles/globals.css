@@ -1,3 +1,6 @@
+/* Tailwind uses the tw: prefix and scans src only to avoid legacy class collisions. */
+@import "tailwindcss/theme" prefix(tw);
+
 @import "./globals/base.css";
 @import "./globals/layout.css";
 @import "./globals/scrollbar.css";
@@ -12,3 +15,5 @@
 @import "./globals/workers.css";
 @import "./globals/responsive.css";
 @import "./globals/copilot.css";
+
+@import "tailwindcss/utilities" source("../..");

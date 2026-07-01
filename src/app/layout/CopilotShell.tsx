@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
+import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
 import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
@@ -341,6 +342,7 @@ export const CopilotShell: React.FC = () => {
   return (
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
+        <GlobalShortcutLayer />
         <div className="app-shell layout-copilot" id="app">
           <CopilotTopBar />
           <ConversationStage showEmptyState={false} />
