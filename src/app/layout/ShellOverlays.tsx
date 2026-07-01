@@ -7,11 +7,12 @@ import { CommandOverlayHost } from "@/features/workers/components/CommandOverlay
 
 export const ShellOverlays: React.FC<{
 	commandOverlayVariant?: "copilot";
-}> = ({ commandOverlayVariant }) => {
+	settingsOverlayVariant?: "copilot";
+}> = ({ commandOverlayVariant, settingsOverlayVariant }) => {
 	return (
 		<>
 			<CommandStatusOverlay />
-			<SettingsOverlayHost />
+			<SettingsOverlayHost variant={settingsOverlayVariant} />
 			<CommandOverlayHost variant={commandOverlayVariant} />
 			<EventPopover />
 			<FireworksCanvas />

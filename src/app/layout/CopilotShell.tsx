@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { Drawer } from "antd";
 import { resolveTopNavStatus } from "@/app/layout/TopNav";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
@@ -40,7 +46,9 @@ const CopilotTopBar: React.FC = () => {
   const debugPanelEnabled = isDebugPanelEnabled();
   const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
   const statusLabel = t(statusText);
-  const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
+  const statusTitle = statusDetail
+    ? `${statusLabel}: ${statusDetail}`
+    : statusLabel;
 
   const handleStartNewConversation = () => {
     window.dispatchEvent(
@@ -114,7 +122,8 @@ const CopilotTopBar: React.FC = () => {
               iconOnly
               active={
                 debugDrawerOpen ||
-                (state.rightSidebarOpen && state.rightSidebarOpenTab === "debug")
+                (state.rightSidebarOpen &&
+                  state.rightSidebarOpenTab === "debug")
               }
               aria-label={
                 debugDrawerOpen
@@ -144,38 +153,23 @@ const CopilotTopBar: React.FC = () => {
           </UiButton>
         </div>
       </div>
-      {debugPanelEnabled && debugDrawerOpen ? (
-        <>
-          <button
-            type="button"
-            className="copilot-debug-drawer-backdrop"
-            aria-label={t("copilot.panel.close")}
-            onClick={() => setDebugDrawerOpen(false)}
-          />
-          <section
-            className="copilot-debug-drawer"
-            role="dialog"
-            aria-label={t("copilot.panel.debug")}
-          >
-            <div className="copilot-debug-drawer-head">
-              <strong>{t("copilot.panel.debug")}</strong>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                iconOnly
-                aria-label={t("copilot.panel.close")}
-                title={t("copilot.panel.close")}
-                onClick={() => setDebugDrawerOpen(false)}
-              >
-                <MaterialIcon name="close" />
-              </UiButton>
-            </div>
-            <div className="copilot-debug-drawer-body">
-              <DebugTab />
-            </div>
-          </section>
-        </>
-      ) : null}
+      <Drawer
+        open={debugPanelEnabled && debugDrawerOpen}
+        onClose={() => setDebugDrawerOpen(false)}
+        title={t("copilot.panel.debug")}
+        closable={{ placement: "end" }}
+        mask
+        maskClosable
+        destroyOnHidden
+        placement="right"
+        width="100%"
+        className="copilot-drawer"
+        styles={{
+          body: { padding: 0 },
+        }}
+      >
+        <DebugTab />
+      </Drawer>
     </header>
   );
 };
@@ -269,7 +263,10 @@ export const CopilotShell: React.FC = () => {
   useAppRuntimes();
 
   useEffect(() => {
-    if (resolvedAgentKey && state.temporaryPinnedAgentKey === resolvedAgentKey) {
+    if (
+      resolvedAgentKey &&
+      state.temporaryPinnedAgentKey === resolvedAgentKey
+    ) {
       dispatch({ type: "SET_TEMPORARY_PINNED_AGENT_KEY", agentKey: "" });
     }
   }, [dispatch, resolvedAgentKey, state.temporaryPinnedAgentKey]);
@@ -291,7 +288,10 @@ export const CopilotShell: React.FC = () => {
       dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
       dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
       dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
-      dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey: resolvedAgentKey });
+      dispatch({
+        type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+        agentKey: resolvedAgentKey,
+      });
     }
 
     if (routeChatId) {
@@ -323,7 +323,9 @@ export const CopilotShell: React.FC = () => {
         workerKey?: unknown;
         agentKey?: unknown;
       };
-      const explicitAgentKey = normalizeRouteValue(String(detail.agentKey || ""));
+      const explicitAgentKey = normalizeRouteValue(
+        String(detail.agentKey || ""),
+      );
       const workerKey = normalizeRouteValue(String(detail.workerKey || ""));
       const nextPath = explicitAgentKey
         ? `/copilot/${encodeURIComponent(explicitAgentKey)}`
@@ -348,7 +350,10 @@ export const CopilotShell: React.FC = () => {
           <ConversationStage showEmptyState={false} />
           <BottomDock mode="copilot" />
           <CopilotSidePanel />
-          <ShellOverlays commandOverlayVariant="copilot" />
+          <ShellOverlays
+            commandOverlayVariant="copilot"
+            settingsOverlayVariant="copilot"
+          />
         </div>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
