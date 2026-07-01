@@ -21,6 +21,7 @@ import { Divider, Flex, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
+import { useActiveTerminalAgents } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -442,6 +443,7 @@ export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const activeTerminalAgents = useActiveTerminalAgents();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const ui = selectUiState(state);
@@ -453,6 +455,8 @@ export const TopNav: React.FC = () => {
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const showTerminalButton = currentWorker?.type === "agent";
+  const isCurrentWorkerTerminalActive =
+    showTerminalButton && activeTerminalAgents.has(currentWorker?.sourceId || "");
   const isMacPlatform = React.useMemo(
     () =>
       typeof navigator !== "undefined" &&
@@ -804,6 +808,9 @@ export const TopNav: React.FC = () => {
           ) : null}
           {showTerminalButton ? (
             <UiButton
+              className={`icon-btn current-worker-tool-terminal ${
+                isCurrentWorkerTerminalActive ? "has-running-terminal" : ""
+              }`}
               variant="ghost"
               size="sm"
               iconOnly
@@ -826,6 +833,9 @@ export const TopNav: React.FC = () => {
               }
             >
               <MaterialIcon name="terminal" />
+              {isCurrentWorkerTerminalActive ? (
+                <span className="current-worker-terminal-dot" aria-hidden />
+              ) : null}
             </UiButton>
           ) : null}
           <UiButton

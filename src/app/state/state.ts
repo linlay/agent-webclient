@@ -10,6 +10,7 @@ import { isAppMode } from "@/shared/utils/routing";
 import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
 import { resolveInitialThemeMode } from "@/shared/styles/theme";
 import { readStoredTransportMode } from "@/features/transport/lib/transportMode";
+import { restoreTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
 
 function createInitialVoiceChatState(): VoiceChatState {
 	return {
@@ -140,7 +141,7 @@ export function createInitialState(): AppState {
 		rightSidebarOpen: false,
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
-		terminalDockOpen: false,
+		terminalDockOpen: restoreTerminalDockOpen(),
 		attachmentPreview: null,
 		artifactExpanded: false,
 		artifactManualOverride: null,

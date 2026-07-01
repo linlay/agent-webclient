@@ -11,6 +11,7 @@ import {
 import { resolveTerminalWsClient } from "@/features/terminal/lib/terminalTransport";
 import { resolveTerminalTheme } from "@/features/terminal/lib/terminalTheme";
 import type { TerminalAvailability } from "@/features/terminal/lib/terminalWorkspace";
+import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { toText } from "@/shared/utils/eventUtils";
 import "@xterm/xterm/css/xterm.css";
 
@@ -61,6 +62,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const inputBufferRef = useRef("");
   const inputFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activityNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionVersionRef = useRef(0);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
@@ -75,15 +77,28 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     terminal.write(`\r\n[terminal] ${normalizedMessage}\r\n`);
   }, []);
 
+  const queueActivityRefresh = useCallback(() => {
+    if (activityNotifyTimerRef.current) return;
+    activityNotifyTimerRef.current = setTimeout(() => {
+      activityNotifyTimerRef.current = null;
+      notifyTerminalActivityChanged();
+    }, 250);
+  }, []);
+
   const flushInput = useCallback(() => {
     inputFlushTimerRef.current = null;
     const data = inputBufferRef.current;
     inputBufferRef.current = "";
     if (!data) return;
+    const submitsCommand = data.includes("\r") || data.includes("\n");
     void remoteSessionRef.current?.sendInput(data).catch((error) => {
       writeStatus(terminalErrorMessage(error));
+    }).finally(() => {
+      if (submitsCommand) {
+        queueActivityRefresh();
+      }
     });
-  }, [writeStatus]);
+  }, [queueActivityRefresh, writeStatus]);
 
   const queueInput = useCallback(
     (data: string) => {
@@ -149,16 +164,19 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed || !isCurrentSession()) return;
       const type = toText(event.type);
       if (type === "terminal.opened") {
+        notifyTerminalActivityChanged();
         queueResize();
         return;
       }
       if (type === "terminal.output") {
         terminal.write(String(event.data ?? ""));
+        queueActivityRefresh();
         return;
       }
       if (type === "terminal.exit") {
         remoteSessionRef.current = null;
         onSessionChange(tabId, null);
+        notifyTerminalActivityChanged();
       }
     };
 
@@ -183,11 +201,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               if (!isCurrentSession()) return;
               remoteSessionRef.current = null;
               onSessionChange(tabId, null);
+              notifyTerminalActivityChanged();
             },
             onError: (error) => {
               if (disposed || !isCurrentSession() || error.name === "AbortError") return;
               remoteSessionRef.current = null;
               onSessionChange(tabId, null);
+              notifyTerminalActivityChanged();
               writeStatus(terminalErrorMessage(error));
             },
           });
@@ -212,6 +232,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         clearTimeout(resizeTimerRef.current);
         resizeTimerRef.current = null;
       }
+      if (activityNotifyTimerRef.current) {
+        clearTimeout(activityNotifyTimerRef.current);
+        activityNotifyTimerRef.current = null;
+      }
       inputBufferRef.current = "";
       remoteSessionRef.current = null;
       onSessionChange(tabId, null);
@@ -231,6 +255,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     normalizedAgentKey,
     normalizedTerminalKey,
     onSessionChange,
+    queueActivityRefresh,
     queueInput,
     queueResize,
     tabId,

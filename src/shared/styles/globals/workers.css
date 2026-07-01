@@ -195,6 +195,22 @@
     font-size: 16px;
 }
 
+.worker-terminal-active {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    color: var(--accent-electric-strong);
+    background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+    flex: 0 0 auto;
+}
+
+.worker-terminal-active .material-icon {
+    font-size: 14px;
+}
+
 .worker-panel-time {
     display: inline-flex;
     align-items: center;

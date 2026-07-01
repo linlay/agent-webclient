@@ -13,6 +13,13 @@ import {
 } from "@/features/terminal/lib/terminalWorkspace";
 import { resolveTerminalTheme } from "@/features/terminal/lib/terminalTheme";
 import { toText } from "@/shared/utils/eventUtils";
+import {
+  persistTerminalDockState,
+  restoreTerminalDockState,
+  type TerminalDockStoredState,
+  type TerminalDockTabState,
+} from "@/features/terminal/lib/terminalDockPersistence";
+import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
 export { resolveTerminalDockWorkspaceKey, resolveTerminalTheme };
 
@@ -22,19 +29,7 @@ type TerminalDockProps = {
   readonly worker?: CurrentWorkerSummary | null;
 };
 
-type TerminalTab = {
-  readonly id: string;
-  readonly label: string;
-  readonly terminalKey: string;
-};
-
-type TerminalDockState = {
-  readonly tabs: readonly TerminalTab[];
-  readonly activeTabId: string;
-  readonly nextIndex: number;
-};
-
-const terminalDockStateByAgentKey = new Map<string, TerminalDockState>();
+type TerminalTab = TerminalDockTabState;
 
 function generateTabId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -48,7 +43,7 @@ function createTerminalTab(index: number): TerminalTab {
   };
 }
 
-function defaultDockState(): TerminalDockState {
+function defaultDockState(): TerminalDockStoredState {
   const tab = createTerminalTab(0);
   return {
     tabs: [tab],
@@ -57,18 +52,18 @@ function defaultDockState(): TerminalDockState {
   };
 }
 
-function restoreDockState(agentKey: string): TerminalDockState {
+function restoreDockState(agentKey: string): TerminalDockStoredState {
   const normalizedAgentKey = toText(agentKey);
   if (!normalizedAgentKey) {
     return { tabs: [], activeTabId: "", nextIndex: 0 };
   }
-  return terminalDockStateByAgentKey.get(normalizedAgentKey) || defaultDockState();
+  return restoreTerminalDockState(normalizedAgentKey, defaultDockState());
 }
 
-function persistDockState(agentKey: string, state: TerminalDockState): void {
+function persistDockState(agentKey: string, state: TerminalDockStoredState): void {
   const normalizedAgentKey = toText(agentKey);
   if (!normalizedAgentKey) return;
-  terminalDockStateByAgentKey.set(normalizedAgentKey, state);
+  persistTerminalDockState(normalizedAgentKey, state);
 }
 
 export const TerminalDock: React.FC<TerminalDockProps> = ({
@@ -182,7 +177,10 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
     const session = remoteSessionsRef.current.get(tabId);
     remoteSessionsRef.current.delete(tabId);
     if (session) {
-      void session.close().catch(reportTerminalTeardownError);
+      void session
+        .close()
+        .catch(reportTerminalTeardownError)
+        .finally(notifyTerminalActivityChanged);
     }
     setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
     setActiveTabId((prevActive) => (prevActive === tabId ? "" : prevActive));

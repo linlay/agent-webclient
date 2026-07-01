@@ -4,6 +4,7 @@ import { dataEndpoints } from "@/shared/data/endpoints";
 import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
+import { getClientDeviceId } from "@/features/transport/lib/clientDeviceId";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -300,6 +301,10 @@ function buildWsUrl(accessToken = ""): string {
 	const normalizedToken = String(accessToken || "").trim();
 	if (normalizedToken) {
 		url.searchParams.set("token", normalizedToken);
+	}
+	const deviceId = getClientDeviceId();
+	if (deviceId) {
+		url.searchParams.set("deviceId", deviceId);
 	}
 	return url.toString();
 }

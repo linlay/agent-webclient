@@ -463,6 +463,7 @@ export const enUSMessages: I18nMessages = {
   "leftSidebar.awaitingStatus.form": "Await Submit",
   "leftSidebar.browserFolderUnsupported": "Browser folder selection is not supported",
   "leftSidebar.browserWorkspaceOpenUnavailable": "Browser-imported projects do not expose a local workspace folder",
+  "leftSidebar.terminalActive": "This agent has a running terminal",
   "leftSidebar.importingProject": "Importing project...",
   "leftSidebar.filterChats": "Search conversations...",
   "leftSidebar.filterWorkers": "Filter agents by name / key / teamId...",

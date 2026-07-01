@@ -463,6 +463,7 @@ export const zhCNMessages: I18nMessages = {
   "leftSidebar.awaitingStatus.form": "等待提交",
   "leftSidebar.browserFolderUnsupported": "当前浏览器不支持选择文件夹",
   "leftSidebar.browserWorkspaceOpenUnavailable": "浏览器导入项目无法打开本机工作目录",
+  "leftSidebar.terminalActive": "该智能体有运行中的终端",
   "leftSidebar.importingProject": "正在导入项目...",
   "leftSidebar.filterChats": "搜索会话...",
   "leftSidebar.filterWorkers": "按 名称 / key / teamId 过滤...",

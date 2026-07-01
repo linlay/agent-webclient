@@ -8,6 +8,10 @@ import {
 	type WsConnectionStatus,
 } from "@/features/transport/lib/wsClient";
 
+jest.mock("@/features/transport/lib/clientDeviceId", () => ({
+	getClientDeviceId: () => "device-test",
+}));
+
 type Listener = (event?: any) => void;
 
 class MockWebSocket {
@@ -92,6 +96,15 @@ async function waitForSentFrame(socket: MockWebSocket): Promise<string> {
 		await flushMicrotasks();
 	}
 	throw new Error("expected a ws frame to be sent");
+}
+
+function expectSocketUrl(socket: MockWebSocket, token = ""): void {
+	const url = new URL(socket.url);
+	expect(`${url.protocol}//${url.host}${url.pathname}`).toBe(
+		"ws://localhost:3000/ws",
+	);
+	expect(url.searchParams.get("token") || "").toBe(token);
+	expect(url.searchParams.get("deviceId")).toBe("device-test");
 }
 
 describe("WsClient", () => {
@@ -182,7 +195,7 @@ describe("WsClient", () => {
 		});
 
 		const socket = MockWebSocket.instances[0];
-		expect(socket.url).toBe("ws://localhost:3000/ws?token=token_1");
+		expectSocketUrl(socket, "token_1");
 
 		socket.open();
 		await flushMicrotasks();
@@ -227,7 +240,7 @@ describe("WsClient", () => {
 
 		expect(resolveAccessToken).toHaveBeenCalledWith("missing");
 		const socket = MockWebSocket.instances[0];
-		expect(socket.url).toBe("ws://localhost:3000/ws?token=token_from_refresh");
+		expectSocketUrl(socket, "token_from_refresh");
 		socket.open();
 		await expect(promise).resolves.toBeUndefined();
 	});
@@ -261,7 +274,7 @@ describe("WsClient", () => {
 
 		expect(resolveAccessToken).not.toHaveBeenCalled();
 		const socket = MockWebSocket.instances[0];
-		expect(socket.url).toBe("ws://localhost:3000/ws");
+		expectSocketUrl(socket);
 		socket.open();
 		await expect(promise).resolves.toBeUndefined();
 	});
@@ -667,14 +680,14 @@ describe("WsClient", () => {
 
 		const promise = client.connect();
 		const firstSocket = MockWebSocket.instances[0];
-		expect(firstSocket.url).toBe("ws://localhost:3000/ws?token=token_a");
+		expectSocketUrl(firstSocket, "token_a");
 		firstSocket.error();
 		await flushMicrotasks();
 		await waitForSocketCount(2);
 
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
 		const secondSocket = MockWebSocket.instances[1];
-		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		expectSocketUrl(secondSocket, "token_b");
 		secondSocket.open();
 		await expect(promise).resolves.toBeUndefined();
 	});
@@ -683,7 +696,7 @@ describe("WsClient", () => {
 		const client = createClient({ accessToken: "token_a" });
 		client.connect();
 		const firstSocket = MockWebSocket.instances[0];
-		expect(firstSocket.url).toBe("ws://localhost:3000/ws?token=token_a");
+		expectSocketUrl(firstSocket, "token_a");
 
 		firstSocket.open();
 		await flushMicrotasks();
@@ -693,7 +706,7 @@ describe("WsClient", () => {
 		const secondConnect = client.connect();
 
 		const secondSocket = MockWebSocket.instances[1];
-		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		expectSocketUrl(secondSocket, "token_b");
 		secondSocket.open();
 		await expect(secondConnect).resolves.toBeUndefined();
 	});
@@ -720,7 +733,7 @@ describe("WsClient", () => {
 
 		const secondSocket = MockWebSocket.instances[1];
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
-		expect(secondSocket.url).toBe("ws://localhost:3000/ws?token=token_b");
+		expectSocketUrl(secondSocket, "token_b");
 		secondSocket.open();
 		await flushMicrotasks();
 	});
@@ -747,9 +760,7 @@ describe("WsClient", () => {
 		await waitForSocketCount(2);
 
 		expect(resolveAccessToken).not.toHaveBeenCalled();
-		expect(MockWebSocket.instances[1].url).toBe(
-			"ws://localhost:3000/ws?token=token_a",
-		);
+		expectSocketUrl(MockWebSocket.instances[1], "token_a");
 	});
 
 	it("does not reconnect with a naked websocket URL when unauthorized refresh returns empty", async () => {
@@ -799,9 +810,7 @@ describe("WsClient", () => {
 		await waitForSocketCount(2);
 
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
-		expect(MockWebSocket.instances[1].url).toBe(
-			"ws://localhost:3000/ws?token=token_b",
-		);
+		expectSocketUrl(MockWebSocket.instances[1], "token_b");
 		MockWebSocket.instances[1].open();
 		await flushMicrotasks();
 	});

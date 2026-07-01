@@ -31,6 +31,7 @@ export const WorkerPanelHeader: React.FC<{
   awaitingChat?: WorkerConversationRow;
   activeRunChat?: WorkerConversationRow;
   unreadCount?: number;
+  terminalActive?: boolean;
   onStartNewConversation: (
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
@@ -52,6 +53,7 @@ export const WorkerPanelHeader: React.FC<{
   awaitingChat,
   activeRunChat,
   unreadCount = 0,
+  terminalActive = false,
   onStartNewConversation,
   onMarkAllRead,
   onOpenWorkspace,
@@ -152,6 +154,16 @@ export const WorkerPanelHeader: React.FC<{
             )}
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
+          {terminalActive ? (
+            <Tooltip title={t("leftSidebar.terminalActive")}>
+              <span
+                className="worker-terminal-active"
+                aria-label={t("leftSidebar.terminalActive")}
+              >
+                <MaterialIcon name="terminal" />
+              </span>
+            </Tooltip>
+          ) : null}
           <Flex gap={6}>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>

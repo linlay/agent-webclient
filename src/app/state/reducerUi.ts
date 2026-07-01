@@ -1,6 +1,7 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { normalizeThemeMode } from "@/shared/styles/theme";
+import { persistTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
 
 export function reduceUiState(
 	state: AppState,
@@ -106,6 +107,7 @@ export function reduceUiState(
 		case "SET_LEFT_DRAWER_OPEN":
 			return { ...state, leftDrawerOpen: action.open };
 		case "SET_TERMINAL_DOCK_OPEN":
+			persistTerminalDockOpen(action.open);
 			return { ...state, terminalDockOpen: action.open };
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");

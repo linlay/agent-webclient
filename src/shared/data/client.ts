@@ -72,6 +72,21 @@ export interface FileHistoryResponse {
   content: string;
 }
 
+export interface TerminalSessionInfo {
+  terminalId: string;
+  agentKey: string;
+  terminalKey: string;
+  scope?: string;
+  cwd?: string;
+  shell?: string;
+  status?: "idle" | "busy" | string;
+  startedAt?: number;
+}
+
+export interface TerminalSessionsResponse {
+  sessions: TerminalSessionInfo[];
+}
+
 export interface GetAgentsOptions {
   includeChats?: number;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
@@ -1269,6 +1284,15 @@ export function extractUploadReferences(data: unknown): unknown[] {
 export function getAgents(options: GetAgentsOptions = {}): Promise<ApiResponse> {
   const query = endpointQuery(dataEndpoints.agents, options);
   return requestJson(withQuery(dataEndpoints.agents.path, query));
+}
+
+export function getTerminalSessions(
+  deviceId: string,
+): Promise<ApiResponse<TerminalSessionsResponse>> {
+  const query = endpointQuery(dataEndpoints.terminalSessions, { deviceId });
+  return requestJson<TerminalSessionsResponse>(
+    withQuery(dataEndpoints.terminalSessions.path, query),
+  );
 }
 
 export function getAdminAgents(): Promise<ApiResponse<AdminAgentSummary[]>> {
