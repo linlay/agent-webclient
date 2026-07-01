@@ -21,6 +21,7 @@ describe("AgentIcon", () => {
       "focus",
       "library",
       "coder",
+      "kbase",
       "canvas",
       "ide",
       "fast",

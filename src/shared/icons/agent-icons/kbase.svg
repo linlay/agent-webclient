@@ -1,0 +1,15 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g-kbase" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#4F46E5"/></linearGradient></defs>
+  <path d="M9 18 C14 16 19 17 23 20 V38 C19 34 14 33 9 35 Z" fill="url(#g-kbase)" opacity="0.84"/>
+  <path d="M25 20 C29 17 34 16 39 18 V35 C34 33 29 34 25 38 Z" fill="url(#g-kbase)" opacity="0.58"/>
+  <path d="M23 20 V38" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.72"/>
+  <path d="M13 23 C16 22 19 22 21 24" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.72"/>
+  <path d="M13 28 C16 27 19 27 21 29" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.56"/>
+  <path d="M27 24 C30 22 33 22 36 23" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.72"/>
+  <path d="M27 29 C30 27 33 27 36 28" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.56"/>
+  <line x1="17" y1="12" x2="24" y2="8" stroke="url(#g-kbase)" stroke-width="2" opacity="0.55"/>
+  <line x1="24" y1="8" x2="32" y2="12" stroke="url(#g-kbase)" stroke-width="2" opacity="0.55"/>
+  <circle cx="17" cy="12" r="3.2" fill="url(#g-kbase)" opacity="0.72"/>
+  <circle cx="24" cy="8" r="3.6" fill="url(#g-kbase)" opacity="0.95"/>
+  <circle cx="32" cy="12" r="3.2" fill="url(#g-kbase)" opacity="0.72"/>
+</svg>

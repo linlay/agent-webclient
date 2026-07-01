@@ -19,6 +19,7 @@ import folderIcon from "./agent-icons/folder.svg";
 import horizonIcon from "./agent-icons/horizon.svg";
 import ideIcon from "./agent-icons/ide.svg";
 import identityIcon from "./agent-icons/identity.svg";
+import kbaseIcon from "./agent-icons/kbase.svg";
 import libraryIcon from "./agent-icons/library.svg";
 import lunaIcon from "./agent-icons/luna.svg";
 import peaksIcon from "./agent-icons/peaks.svg";
@@ -60,6 +61,7 @@ export const AGENT_ICON_NAMES = [
   "focus",
   "library",
   "coder",
+  "kbase",
   "canvas",
   "ide",
   "fast",
@@ -93,6 +95,7 @@ const IconMap: Record<(typeof AGENT_ICON_NAMES)[number], string> = {
   focus: focusIcon,
   library: libraryIcon,
   coder: coderIcon,
+  kbase: kbaseIcon,
   canvas: canvasIcon,
   ide: ideIcon,
   fast: fastIcon,
