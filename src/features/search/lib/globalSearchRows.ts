@@ -45,20 +45,19 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
   const normalizedSearch = searchText.toLowerCase().trim();
   const rows: GlobalRow[] = [];
 
-  /* Actions section */
   const actions: GlobalRow[] = [];
   if (hasCurrentWorker) {
     actions.push({
       kind: "action",
       key: "newConversation",
-      label: t("commandModal.global.action.newConversation"),
+      label: t("globalSearch.action.newConversation"),
       icon: "edit_square",
       action: "newConversation",
     });
     actions.push({
       kind: "action",
       key: "history",
-      label: t("commandModal.global.action.history"),
+      label: t("globalSearch.action.history"),
       icon: "history",
       action: "history",
     });
@@ -67,21 +66,21 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
     {
       kind: "action",
       key: "switch",
-      label: t("commandModal.global.action.switch"),
+      label: t("globalSearch.action.switch"),
       icon: "swap_horiz",
       action: "switch",
     },
     {
       kind: "action",
       key: "settings",
-      label: t("commandModal.global.action.settings"),
+      label: t("globalSearch.action.settings"),
       icon: "settings",
       action: "settings",
     },
     {
       kind: "action",
       key: "debug",
-      label: t("commandModal.global.action.debug"),
+      label: t("globalSearch.action.debug"),
       icon: "bug_report",
       action: "debug",
     },
@@ -96,7 +95,6 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
     rows.push(...filteredActions);
   }
 
-  /* Workers/teams section */
   const filteredWorkers = workerRows
     .filter((row) => {
       if (!normalizedSearch) return true;
@@ -118,7 +116,6 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
     });
   }
 
-  /* Recent chats section */
   if (hasCurrentWorker) {
     const filteredHistory = historyRows
       .filter((row) => {

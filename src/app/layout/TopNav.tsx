@@ -21,6 +21,7 @@ import { Divider, Flex, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
+import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useActiveTerminalAgents } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
 interface TopNavStatusDisplay {
@@ -446,6 +447,7 @@ export const TopNav: React.FC = () => {
   const activeTerminalAgents = useActiveTerminalAgents();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
+  const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
@@ -518,7 +520,7 @@ export const TopNav: React.FC = () => {
   }, [dispatch]);
 
   React.useEffect(() => {
-    if (isAnyOverlayOpen || isCommandOverlayOpen) return;
+    if (isAnyOverlayOpen || isCommandOverlayOpen || isGlobalSearchOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return;

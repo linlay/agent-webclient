@@ -4,6 +4,7 @@ import { EventPopover } from "@/app/modals/EventPopover";
 import { FireworksCanvas } from "@/app/effects/FireworksCanvas";
 import { SettingsOverlayHost } from "@/features/settings/components/SettingsOverlayHost";
 import { CommandOverlayHost } from "@/features/workers/components/CommandOverlayHost";
+import { GlobalSearchOverlay } from "@/features/search/components/GlobalSearchOverlay";
 
 export const ShellOverlays: React.FC<{
 	commandOverlayVariant?: "copilot";
@@ -14,6 +15,7 @@ export const ShellOverlays: React.FC<{
 			<CommandStatusOverlay />
 			<SettingsOverlayHost variant={settingsOverlayVariant} />
 			<CommandOverlayHost variant={commandOverlayVariant} />
+			{commandOverlayVariant !== "copilot" && <GlobalSearchOverlay />}
 			<EventPopover />
 			<FireworksCanvas />
 		</>
