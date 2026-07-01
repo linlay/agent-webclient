@@ -36,7 +36,7 @@ import {
   Tooltip,
 } from "antd";
 import type { InputRef } from "antd";
-import type { Agent, WorkerRow } from "@/app/state/types";
+import type { Agent, TimelineNode, WorkerRow } from "@/app/state/types";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
@@ -89,6 +89,17 @@ function findLastRunContentText(
     if (text) return text;
   }
   return "";
+}
+
+function findLastRunContentNode(
+  item: Extract<TimelineDisplayItem, { kind: "run" }>,
+): TimelineNode | null {
+  const nodes = Array.isArray(item.nodes) ? item.nodes : [];
+  for (let index = nodes.length - 1; index >= 0; index -= 1) {
+    const node = nodes[index];
+    if (node?.kind === "content") return node;
+  }
+  return null;
 }
 
 function buildTimelineAgentSearchText(input: {
@@ -1070,9 +1081,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     );
                     const runCopyStatus = actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
 
-                    const lastContentNode = [...item.nodes].findLast(
-                      (n) => n.kind === "content",
-                    );
+                    const lastContentNode = findLastRunContentNode(item);
                     const shouldCollapse =
                       isCompleted &&
                       lastContentNode != null &&
