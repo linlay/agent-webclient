@@ -70,6 +70,7 @@ export const WorkerConversationPreviewList: React.FC<{
       : t("leftSidebar.workspaceUnavailable");
   const isAgent = row.type === "agent";
   const isCoder = row.agentType === "coder";
+  const isKbase = row.agentType === "kbase";
   const actionMenuItems: MenuProps["items"] = [
     {
       key: "openWorkspace",
@@ -95,7 +96,7 @@ export const WorkerConversationPreviewList: React.FC<{
           },
         ]
       : []),
-    ...(isAgent && isCoder && onDeleteAgent
+    ...(isAgent && (isCoder || isKbase) && onDeleteAgent
       ? [
           {
             key: "deleteAgent",

@@ -81,6 +81,7 @@ export const WorkerPanelHeader: React.FC<{
       : "";
   const isAgent = row.type === "agent";
   const isCoder = row.agentType === "coder";
+  const isKbase = row.agentType === "kbase";
   const actionMenuItems: MenuProps["items"] = [
     {
       key: "openWorkspace",
@@ -106,7 +107,7 @@ export const WorkerPanelHeader: React.FC<{
           },
         ]
       : []),
-    ...(isAgent && isCoder && onDeleteAgent
+    ...(isAgent && (isCoder || isKbase) && onDeleteAgent
       ? [
           {
             key: "deleteAgent",
