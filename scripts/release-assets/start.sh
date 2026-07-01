@@ -21,6 +21,7 @@ set -a
 set +a
 
 [[ -n "${BASE_URL:-}" ]] || die "BASE_URL is required in .env"
+DESKTOP_APP="${DESKTOP_APP:-true}"
 VOICE_BASE_URL="${VOICE_BASE_URL:-}"
 
 WEBCLIENT_VERSION="${WEBCLIENT_VERSION:-latest}"
@@ -40,7 +41,7 @@ load_image() {
 
 load_image "$IMAGE_REF" "$IMAGE_TAR"
 
-export WEBCLIENT_VERSION VOICE_BASE_URL
+export WEBCLIENT_VERSION DESKTOP_APP VOICE_BASE_URL
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo "[start] started agent-webclient $WEBCLIENT_VERSION"
