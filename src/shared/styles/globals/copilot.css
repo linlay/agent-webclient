@@ -403,10 +403,6 @@
 .layout-copilot .command-modal-card.is-automation-console,
 .layout-copilot .memory-info-card {
     width: 100%;
-    max-width: 100%;
-    max-height: min(86dvh, 760px);
-    border-radius: 14px 14px 0 0;
-    padding: 10px 4px;
 }
 
 .layout-copilot .command-modal-title span {

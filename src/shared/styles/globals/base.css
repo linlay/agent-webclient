@@ -489,6 +489,22 @@ textarea {
     box-shadow: var(--shadow-soft);
     border: 1px solid var(--line-soft);
 }
+
+.copilot-modal.ant-modal .ant-modal-content {
+    padding: 10px;
+}
+.ant-modal .ant-modal-content {
+    max-height: calc(100vh - 150px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ant-modal .ant-modal-body {
+    display: flex;
+    overflow: auto;
+}
+
 /* 滚动条 */
 ::-webkit-scrollbar {
     width: 6px;

@@ -557,7 +557,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             ? "min(640px, calc(100vw - 32px))"
             : "min(780px, calc(100vw - 32px))"
       }
-      className={`command-modal ${isConsoleModal ? "is-automation-console" : ""}`.trim()}
+      className={`command-modal ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
     >
       <div
         ref={cardRef}
