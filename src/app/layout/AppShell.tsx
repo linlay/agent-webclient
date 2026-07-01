@@ -8,6 +8,7 @@ import { ConversationStage } from "@/features/timeline/components/ConversationSt
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
 import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
+import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import {
@@ -42,6 +43,7 @@ export const AppShell: React.FC = () => {
 	return (
 		<SettingsOverlayProvider>
 			<CommandOverlayProvider>
+			<GlobalSearchOverlayProvider>
 				<GlobalShortcutLayer />
 				<div
 					className={`app-shell layout-desktop-fixed ${leftDrawerClass} ${desktopRightSidebarVisible ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
@@ -61,7 +63,8 @@ export const AppShell: React.FC = () => {
 					) : null}
 					<ShellOverlays />
 				</div>
-			</CommandOverlayProvider>
+				</GlobalSearchOverlayProvider>
+		</CommandOverlayProvider>
 		</SettingsOverlayProvider>
 	);
 };

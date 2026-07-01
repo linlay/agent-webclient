@@ -106,6 +106,20 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
   useCommandOverlayOpen: () => false,
 }));
 
+jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
+  GlobalSearchOverlayProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+  useGlobalSearchActions: () => ({
+    openGlobalSearch: jest.fn(),
+    closeGlobalSearch: jest.fn(),
+  }),
+  useGlobalSearchOpen: () => false,
+}));
+
+jest.mock("@/features/search/components/GlobalSearchOverlay", () => ({
+  GlobalSearchOverlay: () => null,
+}));
+
 jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
   CommandOverlayHost: () =>
     React.createElement("div", { className: "command-modal" }, "command"),

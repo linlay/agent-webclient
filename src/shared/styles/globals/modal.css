@@ -2603,14 +2603,14 @@
     text-align: center;
 }
 
-/* Global Command Palette */
-.global-command-panel {
+/* Global Search Palette */
+.global-search-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
-.global-command-search { flex: 0 0 auto; }
-.global-command-input {
+.global-search-box { flex: 0 0 auto; }
+.global-search-input {
     width: 100%;
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);
@@ -2620,19 +2620,19 @@
     padding: 10px 14px;
     outline: none;
 }
-.global-command-input:focus {
+.global-search-input:focus {
     border-color: var(--accent-electric);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-electric) 14%, transparent);
 }
-.global-command-input::placeholder { color: var(--ink-muted); }
-.global-command-list {
+.global-search-input::placeholder { color: var(--ink-muted); }
+.global-search-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
     max-height: 52vh;
     overflow: auto;
 }
-.global-command-row {
+.global-search-row {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -2647,12 +2647,12 @@
     font-size: 13px;
     line-height: 1.35;
 }
-.global-command-row.is-active,
-.global-command-row:hover { background: var(--bg-hover); }
-.global-command-row.is-active {
+.global-search-row.is-active,
+.global-search-row:hover { background: var(--bg-hover); }
+.global-search-row.is-active {
     background: color-mix(in srgb, var(--accent-soft) 30%, var(--bg-hover));
 }
-.global-command-icon {
+.global-search-icon {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -2661,14 +2661,14 @@
     height: 24px;
     color: var(--ink-muted);
 }
-.global-command-label {
+.global-search-label {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.global-command-role {
+.global-search-role {
     flex: 0 0 auto;
     font-size: 11px;
     color: var(--ink-muted);
@@ -2677,7 +2677,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.global-command-snippet {
+.global-search-snippet {
     flex: 0 0 auto;
     font-size: 11px;
     color: var(--text-muted);
@@ -2686,13 +2686,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.global-command-empty {
+.global-search-empty {
     padding: 24px 16px;
     text-align: center;
     font-size: 13px;
     color: var(--ink-muted);
 }
 @media (max-width: 640px) {
-    .global-command-role,
-    .global-command-snippet { display: none; }
+    .global-search-role,
+    .global-search-snippet { display: none; }
 }

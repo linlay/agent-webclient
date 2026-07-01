@@ -75,6 +75,19 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
     React.createElement(React.Fragment, null, children),
 }));
 
+const mockOpenGlobalSearch = jest.fn();
+let mockGlobalSearchOpen = false;
+
+jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
+  useGlobalSearchActions: () => ({
+    openGlobalSearch: mockOpenGlobalSearch,
+    closeGlobalSearch: jest.fn(),
+  }),
+  useGlobalSearchOpen: () => mockGlobalSearchOpen,
+  GlobalSearchOverlayProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+}));
+
 jest.mock("@/features/workers/lib/currentWorker", () => ({
   isCoderAgent: jest.fn(() => false),
 }));
@@ -186,7 +199,7 @@ describe("useGlobalShortcuts", () => {
       shiftKey: false,
     });
     currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "global" });
+    expect(mockOpenGlobalSearch).toHaveBeenCalled();
     expect(event.preventDefault).toHaveBeenCalled();
   });
 
@@ -209,7 +222,7 @@ describe("useGlobalShortcuts", () => {
       shiftKey: false,
     });
     currentHandler?.(event);
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "global" });
+    expect(mockOpenGlobalSearch).toHaveBeenCalled();
 
     nav.platform = savedPlatform;
   });

@@ -1,5 +1,5 @@
-import { buildGlobalRows } from "@/features/workers/lib/globalCommandRows";
-import type { GlobalRow } from "@/features/workers/lib/globalCommandRows";
+import { buildGlobalRows } from "@/features/search/lib/globalSearchRows";
+import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 function t(key: string): string {
@@ -58,8 +58,6 @@ function createInput(overrides: {
 }
 
 describe("buildGlobalRows", () => {
-  /* ---- Action visibility ---- */
-
   it("includes newConversation and history actions when hasCurrentWorker is true", () => {
     const rows = buildGlobalRows(
       createInput({ hasCurrentWorker: true }),
@@ -103,8 +101,6 @@ describe("buildGlobalRows", () => {
     }
   });
 
-  /* ---- Search filtering on actions ---- */
-
   it("filters actions by search text", () => {
     const rows = buildGlobalRows(
       createInput({ hasCurrentWorker: true, searchText: "switch" }),
@@ -125,8 +121,6 @@ describe("buildGlobalRows", () => {
     );
     expect(rows).toHaveLength(0);
   });
-
-  /* ---- Worker rows ---- */
 
   it("includes worker rows when no search text", () => {
     const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
@@ -189,8 +183,6 @@ describe("buildGlobalRows", () => {
     const workerRows = rows.filter((r) => r.kind === "worker");
     expect(workerRows[0].icon).toEqual(iconData);
   });
-
-  /* ---- History rows ---- */
 
   it("includes history rows when hasCurrentWorker is true", () => {
     const history = [
@@ -287,8 +279,6 @@ describe("buildGlobalRows", () => {
     expect(historyRows[0].snippet).toBeUndefined();
   });
 
-  /* ---- Row ordering ---- */
-
   it("orders rows as actions, then workers, then history", () => {
     const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
     const history = [createHistoryRow("chat-1")];
@@ -301,17 +291,13 @@ describe("buildGlobalRows", () => {
     const firstWorkerIndex = kinds.indexOf("worker");
     const firstHistoryIndex = kinds.indexOf("history");
 
-    // All three kinds should be present
     expect(firstActionIndex).not.toBe(-1);
     expect(firstWorkerIndex).not.toBe(-1);
     expect(firstHistoryIndex).not.toBe(-1);
 
-    // Actions come before workers, workers before history
     expect(firstActionIndex).toBeLessThan(firstWorkerIndex);
     expect(firstWorkerIndex).toBeLessThan(firstHistoryIndex);
   });
-
-  /* ---- Edge cases ---- */
 
   it("trims and lowercases search text", () => {
     const history = [createHistoryRow("chat-1", { chatName: "Alpha" })];
