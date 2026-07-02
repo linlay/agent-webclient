@@ -582,12 +582,12 @@ describe('data client query payloads', () => {
     await getAdminSkills();
     await getAdminSkills('planning');
     await getAdminTools();
-    await getAdminTools({ tag: 'coding', kind: 'builtin' });
+    await getAdminTools({ sourceCategory: 'mcp' });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/skills');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/skills?tag=planning');
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/admin/tools');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/admin/tools?tag=coding&kind=builtin');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/admin/tools?sourceCategory=mcp');
   });
 
   it('loads global model options', async () => {

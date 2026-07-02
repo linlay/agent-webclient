@@ -69,6 +69,7 @@ jest.mock("@/shared/ui/UiButton", () => ({
 import {
   AgentConsole,
   AGENT_CONSOLE_ADMIN_LIST_ROUTE,
+  buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
   firstAdminAgentDiagnosticMessage,
@@ -79,6 +80,7 @@ import {
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
   shouldStartAgentConsoleBootstrap,
+  toolOptionLabel,
 } from "@/features/workers/components/AgentConsole";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
@@ -292,6 +294,42 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("Budget");
     expect(html).not.toContain("Budget runTimeoutMs");
     expect(html).toContain("runTimeoutMs");
+  });
+});
+
+describe("AgentConsole tool options", () => {
+  it("builds tool select labels from sourceCategory and meta.kind fields only", () => {
+    const option = buildAdminToolOption({
+      key: "web_search",
+      label: "Search",
+      sourceCategory: "external",
+      meta: { kind: "backend" },
+    });
+
+    expect(option).toEqual({
+      key: "web_search",
+      label: "Search",
+      sourceCategory: "external",
+      kind: "backend",
+    });
+    expect(toolOptionLabel(option!, (key) => ({ "toolSource.external": "External" }[key] || key))).toBe(
+      "Search · web_search · External",
+    );
+
+    const legacyOnly = buildAdminToolOption({
+      key: "legacy",
+      label: "Legacy",
+      source: "platform",
+      kind: "frontend",
+    });
+
+    expect(legacyOnly).toMatchObject({
+      key: "legacy",
+      label: "Legacy",
+      sourceCategory: "",
+      kind: "",
+    });
+    expect(toolOptionLabel(legacyOnly!, (key) => key)).toBe("Legacy · legacy");
   });
 });
 

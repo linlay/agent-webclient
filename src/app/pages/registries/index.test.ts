@@ -3,8 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   RegistriesPage,
   filterRegistryItems,
+  normalizeToolToSummary,
+  readToolKind,
+  readToolSourceCategory,
   registryItemKey,
   summaryLine,
+  toolSearchHaystack,
+  toolSourceLabel,
 } from "@/app/pages/registries";
 import type {
   AdminRegistrySummary,
@@ -51,6 +56,7 @@ jest.mock("@/shared/data", () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const mockGetAdminTools = (require("@/shared/data") as any).getAdminTools as jest.Mock;
+const translate = (key: string) => key;
 
 const registryItems: AdminRegistrySummary[] = [
   {
@@ -77,24 +83,6 @@ const registryItems: AdminRegistrySummary[] = [
     key: "disabled-mcp",
     status: "disabled",
     summary: { baseUrl: "http://localhost:11969" },
-  },
-];
-
-const toolItems: AdminToolSummary[] = [
-  {
-    key: "bash",
-    name: "Bash",
-    description: "Run shell commands",
-    kind: "builtin",
-    tags: ["coding", "shell"],
-    source: "builtin",
-  },
-  {
-    key: "file_read",
-    name: "File Read",
-    description: "Read file contents",
-    kind: "builtin",
-    tags: ["coding"],
   },
 ];
 
@@ -172,5 +160,41 @@ describe("RegistriesPage", () => {
     expect(
       filterRegistryItems(registryItems, { searchText: "api.openai" }).map(registryItemKey),
     ).toEqual(["providers/openai.yml"]);
+  });
+
+  it("normalizes tool summaries from current sourceCategory and meta.kind fields only", () => {
+    const tool = {
+      key: "remote_tool",
+      name: "Remote Tool",
+      description: "Remote MCP tool",
+      sourceCategory: "mcp",
+      meta: { kind: "backend", sourceType: "mcp" },
+      tags: ["remote"],
+    };
+
+    expect(readToolSourceCategory(tool)).toBe("mcp");
+    expect(readToolKind(tool)).toBe("backend");
+    expect(toolSourceLabel("mcp", translate)).toBe("toolSource.mcp");
+
+    const summary = normalizeToolToSummary(tool);
+    expect(summary.summary).toMatchObject({
+      sourceCategory: "mcp",
+      kind: "backend",
+      description: "Remote MCP tool",
+      tags: ["remote"],
+    });
+    expect(toolSearchHaystack(tool)).toContain("mcp");
+    expect(toolSearchHaystack(tool)).toContain("backend");
+
+    const legacyOnly = {
+      key: "legacy_tool",
+      name: "Legacy Tool",
+      kind: "frontend",
+      source: "platform",
+    } as unknown as AdminToolSummary;
+    expect(readToolSourceCategory(legacyOnly)).toBe("");
+    expect(readToolKind(legacyOnly)).toBe("");
+    expect(toolSearchHaystack(legacyOnly)).not.toContain("frontend");
+    expect(toolSearchHaystack(legacyOnly)).not.toContain("platform");
   });
 });

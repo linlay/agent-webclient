@@ -34,6 +34,7 @@ import { dataEndpoints } from "@/shared/data/endpoints";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,
+  AdminToolSummary,
   AgentDetailResponse,
   AgentEditorOptionsResponse,
 } from "@/shared/data";
@@ -51,6 +52,12 @@ type AgentFormMode = "create" | "edit";
 type IconKind = "none" | "builtin" | "image";
 type Translate = I18nContextValue["t"];
 type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
+export type AgentToolOption = {
+  key: string;
+  label: string;
+  sourceCategory: string;
+  kind: string;
+};
 
 interface AgentFormState {
   key: string;
@@ -128,6 +135,36 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? { ...(value as Record<string, unknown>) }
     : {};
+}
+
+function readAdminToolKind(tool: AdminToolSummary): string {
+  return toText(asRecord(tool.meta).kind);
+}
+
+function readAdminToolSourceCategory(tool: AdminToolSummary): string {
+  return toText(tool.sourceCategory);
+}
+
+function toolSourceLabel(sourceCategory: string, t: Translate): string {
+  switch (sourceCategory.toLowerCase()) {
+    case "platform":
+      return t("toolSource.platform");
+    case "external":
+      return t("toolSource.external");
+    case "mcp":
+      return t("toolSource.mcp");
+    default:
+      return sourceCategory;
+  }
+}
+
+export function toolOptionLabel(option: AgentToolOption, t: Translate): string {
+  const sourceLabel = toolSourceLabel(option.sourceCategory, t);
+  return [
+    option.label,
+    option.label === option.key ? "" : option.key,
+    sourceLabel,
+  ].filter(Boolean).join(" · ");
 }
 
 export function readAdminAgentStatus(value: unknown): string {
@@ -251,6 +288,18 @@ function buildIconValue(form: AgentFormState): unknown {
 
 function optionLabel(item: Record<string, unknown>): string {
   return toText(item.label) || toText(item.name) || toText(item.key);
+}
+
+export function buildAdminToolOption(item: unknown): AgentToolOption | null {
+  const record = asRecord(item) as AdminToolSummary;
+  const key = toText(record.key) || toText(record.name);
+  if (!key) return null;
+  return {
+    key,
+    label: optionLabel(record) || key,
+    sourceCategory: readAdminToolSourceCategory(record),
+    kind: readAdminToolKind(record),
+  };
 }
 
 function countListItems(value: unknown): number {
@@ -615,7 +664,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [editorOptions, setEditorOptions] = useState<AgentEditorOptionsResponse | null>(null);
-  const [toolOptions, setToolOptions] = useState<Array<{ key: string; label: string }>>([]);
+  const [toolOptions, setToolOptions] = useState<AgentToolOption[]>([]);
   const [skillOptions, setSkillOptions] = useState<Array<{ key: string; label: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -799,12 +848,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setEditorOptions((optionsResponse.data || null) as AgentEditorOptionsResponse | null);
       setToolOptions(
         (Array.isArray(toolsResponse.data) ? toolsResponse.data : [])
-          .map((item) => {
-            const record = asRecord(item);
-            const key = toText(record.key) || toText(record.name);
-            return key ? { key, label: optionLabel(record) || key } : null;
-          })
-          .filter((item): item is { key: string; label: string } => Boolean(item)),
+          .map(buildAdminToolOption)
+          .filter((item): item is AgentToolOption => Boolean(item)),
       );
       setSkillOptions(
         (Array.isArray(skillsResponse.data) ? skillsResponse.data : [])
@@ -1141,7 +1186,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     allowClear
                     loading={loadingOptions}
                     value={form.tools}
-                    options={toolOptions.map((item) => ({ value: item.key, label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`}` }))}
+                    options={toolOptions.map((item) => ({ value: item.key, label: toolOptionLabel(item, t) }))}
                     optionFilterProp="label"
                     onChange={(value) => updateForm({ tools: value })}
                   />

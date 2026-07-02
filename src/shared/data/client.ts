@@ -218,14 +218,23 @@ export type RegistryConsoleTab = AdminRegistryCategory | "tools";
 
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 
+export type AdminToolSourceCategory = "platform" | "external" | "mcp" | (string & {});
+
+export interface AdminToolMeta {
+  kind?: string;
+  sourceCategory?: string;
+  sourceType?: string;
+  [key: string]: unknown;
+}
+
 export interface AdminToolSummary {
   key?: string;
   name?: string;
   label?: string;
   description?: string;
-  kind?: string;
+  sourceCategory?: AdminToolSourceCategory;
+  meta?: AdminToolMeta;
   tags?: string[];
-  source?: string;
   summary?: Record<string, unknown>;
   status?: string;
   [key: string]: unknown;
@@ -1421,7 +1430,7 @@ export function getAdminSkills(tag?: string): Promise<ApiResponse> {
 }
 
 export function getAdminTools(
-  options: { tag?: string; kind?: string } = {},
+  options: { tag?: string; kind?: string; sourceCategory?: "platform" | "external" | "mcp" } = {},
 ): Promise<ApiResponse<AdminToolSummary[]>> {
   const query = endpointQuery(dataEndpoints.adminTools, options);
   return requestJson<AdminToolSummary[]>(withQuery(dataEndpoints.adminTools.path, query));

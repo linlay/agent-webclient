@@ -174,7 +174,7 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (tag) => compactPayload({ tag }),
   }),
   adminTools: defineEndpoint<
-    { tag?: string; kind?: string },
+    { tag?: string; kind?: string; sourceCategory?: "platform" | "external" | "mcp" },
     Record<string, unknown>
   >({
     key: "admin.tools.list",

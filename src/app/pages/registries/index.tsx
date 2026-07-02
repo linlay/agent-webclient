@@ -17,7 +17,7 @@ import type {
   AdminToolSummary,
   RegistryConsoleTab,
 } from "@/shared/data";
-import { useI18n } from "@/shared/i18n";
+import { useI18n, type I18nContextValue } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -25,6 +25,7 @@ import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 
 type StatusFilter = "all" | AdminRegistryStatus;
+type Translate = I18nContextValue["t"];
 
 const REGISTRY_CATEGORIES: AdminRegistryCategory[] = [
   "providers",
@@ -145,7 +146,45 @@ function firstDiagnostic(diagnostics: AdminRegistryDiagnostic[] | undefined): st
 
 /* ---- tool-normalization helpers ---- */
 
-function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistrySummary {
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function readToolKind(tool: AdminToolSummary): string {
+  return stringValue(tool.meta?.kind);
+}
+
+export function readToolSourceCategory(tool: AdminToolSummary): string {
+  return stringValue(tool.sourceCategory);
+}
+
+export function toolSourceLabel(sourceCategory: string, t: Translate): string {
+  switch (sourceCategory.toLowerCase()) {
+    case "platform":
+      return t("toolSource.platform");
+    case "external":
+      return t("toolSource.external");
+    case "mcp":
+      return t("toolSource.mcp");
+    default:
+      return sourceCategory || "--";
+  }
+}
+
+function toolSourceTone(sourceCategory: string): "accent" | "default" | "muted" {
+  switch (sourceCategory.toLowerCase()) {
+    case "mcp":
+      return "accent";
+    case "external":
+      return "default";
+    default:
+      return "muted";
+  }
+}
+
+export function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistrySummary {
+  const kind = readToolKind(tool);
+  const sourceCategory = readToolSourceCategory(tool);
   return {
     category: "tools" as AdminRegistryCategory,
     file: tool.key || tool.name || "unknown",
@@ -153,27 +192,35 @@ function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistrySummary {
     name: tool.name || tool.label || tool.key,
     status: "ready",
     summary: {
-      kind: tool.kind,
+      sourceCategory,
+      kind,
       description: tool.description,
       tags: tool.tags,
-      source: tool.source,
-      ...(tool.summary || {}),
     },
   };
 }
 
-function toolSearchHaystack(tool: AdminToolSummary): string {
+export function toolSearchHaystack(tool: AdminToolSummary): string {
   const parts = [
     tool.key,
     tool.name,
     tool.label,
     tool.description,
-    tool.kind,
-    tool.source,
+    tool.sourceCategory,
+    readToolKind(tool),
     ...(Array.isArray(tool.tags) ? tool.tags : []),
-    tool.summary ? JSON.stringify(tool.summary) : "",
   ];
   return parts.filter((v) => typeof v === "string" && v.trim() !== "").join(" ").toLowerCase();
+}
+
+function toolListMeta(item: AdminRegistrySummary, t: Translate): string {
+  const sourceCategory = stringValue(item.summary?.sourceCategory);
+  const kind = stringValue(item.summary?.kind);
+  return [
+    item.file,
+    toolSourceLabel(sourceCategory, t),
+    kind,
+  ].filter((value) => value.trim() !== "" && value !== "--").join(" · ");
 }
 
 export function filterRegistryItems(
@@ -542,6 +589,9 @@ export const RegistriesPage = () => {
       label: t(`registryConsole.filter.status.${status}`),
     })),
   }), [t, statusFilter]);
+  const selectedToolKind = selectedTool ? readToolKind(selectedTool) : "";
+  const selectedToolSourceCategory = selectedTool ? readToolSourceCategory(selectedTool) : "";
+  const selectedToolSourceLabel = toolSourceLabel(selectedToolSourceCategory, t);
 
   return (
     <main className="automations-page registries-page">
@@ -672,9 +722,17 @@ export const RegistriesPage = () => {
                               {t(`registryConsole.status.${item.status}`)}
                             </UiTag>
                           </span>
-                          <span className="automation-list-item-meta" title={summaryLine(item.summary)}>
-                            {item.file}
-                            {!isToolsTab && ` · ${summaryLine(item.summary) || firstDiagnostic(item.diagnostics) || "--"}`}
+                          <span
+                            className="automation-list-item-meta"
+                            title={
+                              isToolsTab
+                                ? toolListMeta(item, t)
+                                : summaryLine(item.summary)
+                            }
+                          >
+                            {isToolsTab
+                              ? toolListMeta(item, t)
+                              : `${item.file} · ${summaryLine(item.summary) || firstDiagnostic(item.diagnostics) || "--"}`}
                           </span>
                         </button>
                       );
@@ -700,6 +758,9 @@ export const RegistriesPage = () => {
                         <span>{selectedTool.key || ""}</span>
                       </div>
                       <div className="automation-detail-actions">
+                        <UiTag tone={toolSourceTone(selectedToolSourceCategory)}>
+                          {selectedToolSourceLabel}
+                        </UiTag>
                         {selectedTool.status && (
                           <UiTag tone={selectedTool.status === "invalid" ? "danger" : "accent"}>
                             {selectedTool.status}
@@ -714,12 +775,10 @@ export const RegistriesPage = () => {
 
                     <div className="registry-meta-grid">
                       <span>{t("registryConsole.tools.field.key")}: {selectedTool.key || "--"}</span>
-                      {selectedTool.kind && (
-                        <span>{t("registryConsole.tools.field.kind")}: {selectedTool.kind}</span>
+                      {selectedToolKind && (
+                        <span>{t("registryConsole.tools.field.kind")}: {selectedToolKind}</span>
                       )}
-                      {selectedTool.source && (
-                        <span>{t("registryConsole.tools.field.source")}: {selectedTool.source}</span>
-                      )}
+                      <span>{t("registryConsole.tools.field.source")}: {selectedToolSourceLabel}</span>
                     </div>
 
                     {selectedTool.description && (
