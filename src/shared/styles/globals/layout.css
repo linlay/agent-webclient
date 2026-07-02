@@ -422,6 +422,15 @@
     overflow-wrap: anywhere;
 }
 
+.usage-context-compact-btn.ui-btn.ui-btn-sm {
+    flex: 0 0 auto;
+    min-height: 18px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-size: 9px;
+    line-height: 1;
+}
+
 .usage-context-copy small {
     flex: 0 0 auto;
     color: var(--ink-2);

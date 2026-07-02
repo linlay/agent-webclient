@@ -933,6 +933,7 @@ export const zhCNMessages: I18nMessages = {
   "topNav.terminal.open": "打开终端面板",
   "topNav.usage.close": "关闭用量统计",
   "topNav.usage.cacheHitRate": "缓存命中率",
+  "topNav.usage.compact": "压缩",
   "topNav.usage.contextWindow": "上下文窗口",
   "topNav.usage.estimatedNext": "预计下次调用 {value}",
   "topNav.usage.metric.cacheHit": "缓存命中",

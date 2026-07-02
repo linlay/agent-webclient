@@ -22,6 +22,7 @@ import { TextCountUp } from "@/shared/components/text-count-up";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 import { useActiveTerminalAgents } from "@/features/terminal/hooks/useActiveTerminalAgents";
+import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 
 interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -299,9 +300,11 @@ function resolveChatEstimatedCost(
 }
 
 const UsageContextWindow: React.FC<{
+  compactDisabled: boolean;
+  onCompact: () => void;
   snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
-}> = ({ snapshot, t }) => {
+}> = ({ compactDisabled, onCompact, snapshot, t }) => {
   const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
 
@@ -314,6 +317,17 @@ const UsageContextWindow: React.FC<{
           {" / "}
           {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
         </strong>
+        <UiButton
+          className="usage-context-compact-btn"
+          variant="ghost"
+          size="sm"
+          disabled={compactDisabled}
+          aria-label={t("topNav.usage.compact")}
+          title={t("topNav.usage.compact")}
+          onClick={onCompact}
+        >
+          {t("topNav.usage.compact")}
+        </UiButton>
       </div>
 
       <div
@@ -474,6 +488,41 @@ export const TopNav: React.FC = () => {
   const showUsageControl =
     Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
+  const {
+    submitCompactCommand,
+    submittingCommand,
+  } = useBackgroundCommandActions({
+    dispatch,
+    state: {
+      chatId: state.chatId,
+      events: state.events,
+      usageSnapshot: state.usageSnapshot,
+    },
+    text: {
+      remember: {
+        pending: t("composer.background.remember.pending"),
+        error: t("composer.background.remember.error"),
+      },
+      learn: {
+        pending: t("composer.background.learn.pending"),
+        error: t("composer.background.learn.error"),
+      },
+      compact: {
+        pending: t("composer.background.compact.pending"),
+        error: t("composer.background.compact.error"),
+      },
+    },
+  });
+  const compactStatusOverlayPending =
+    state.commandStatusOverlay.visible &&
+    state.commandStatusOverlay.commandType === "compact" &&
+    state.commandStatusOverlay.phase === "pending";
+  const compactDisabled =
+    !String(state.chatId || "").trim() ||
+    state.streaming ||
+    isCommandOverlayOpen ||
+    submittingCommand === "compact" ||
+    compactStatusOverlayPending;
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
     dispatch({
@@ -676,7 +725,12 @@ export const TopNav: React.FC = () => {
                             </UiButton>
                           </Flex>
                         </div>
-                        <UsageContextWindow snapshot={usageSnapshot} t={t} />
+                        <UsageContextWindow
+                          compactDisabled={compactDisabled}
+                          onCompact={submitCompactCommand}
+                          snapshot={usageSnapshot}
+                          t={t}
+                        />
                       </Flex>
                     </Flex>
                     <UsageSection

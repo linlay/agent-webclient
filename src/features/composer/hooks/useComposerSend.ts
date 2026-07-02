@@ -3,23 +3,14 @@ import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "reac
 import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type {
-	AppState,
-	AIContextCompactEvent,
-	AIUsageSnapshotEvent,
-} from "@/app/state/types";
-import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
 import {
   createRequestId,
-  type CompactChatResponse,
   type QueryAccessLevel,
   type QueryModelOverride,
 } from "@/shared/data";
 import {
-  compactChat,
   interruptChat,
-  learnChat,
-  rememberChat,
   steerChat,
 } from "@/shared/data";
 import {
@@ -36,7 +27,13 @@ import {
   normalizeSteerSubmissionResponse,
   resolveActiveRunId,
 } from "@/features/composer/lib/steerSubmission";
+import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useI18n } from "@/shared/i18n";
+
+export {
+  buildCompactUsageSnapshot,
+  latestUsageSnapshotFromEvents,
+} from "@/features/composer/hooks/useBackgroundCommandActions";
 
 type ComposerSendAttachmentMeta = {
   name: string;
@@ -108,120 +105,6 @@ interface UseComposerSendInput {
   updateMentionSuggestions: (value: string) => void;
 }
 
-function compactTimelineText(
-  data: CompactChatResponse,
-  t: (key: string, params?: Record<string, unknown>) => string,
-): string {
-  if (!data.accepted || data.status === "skipped") {
-    return data.detail || t("contextCompact.noHistory");
-  }
-  const source =
-    data.summarySource === "deterministic_fallback"
-      ? t("contextCompact.source.deterministicFallback")
-      : t("contextCompact.source.model");
-  const parts = [
-    t("contextCompact.completed"),
-    t("contextCompact.summarySource", { source }),
-  ];
-  if (typeof data.originalMessages === "number" && data.originalMessages > 0) {
-    parts.push(
-      t("contextCompact.originalMessages", { count: data.originalMessages }),
-    );
-  }
-  if (typeof data.toolDigestCount === "number" && data.toolDigestCount > 0) {
-    parts.push(
-      t("contextCompact.toolDigestCount", { count: data.toolDigestCount }),
-    );
-  }
-  if (typeof data.compressionRatio === "number" && data.compressionRatio > 0) {
-    parts.push(
-      t("contextCompact.compressionRatio", {
-        ratio: Math.round(data.compressionRatio * 100),
-      }),
-    );
-  }
-  return parts.join(" · ");
-}
-
-function readCompactNumber(value: unknown): number | null {
-  const numberValue = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
-}
-
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-export function latestUsageSnapshotFromEvents(events: readonly unknown[]): AIUsageSnapshotEvent | null {
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const event = events[index];
-    if (!isObjectRecord(event) || event.type !== AIUsageEventTypeEnum.Snapshot) {
-      continue;
-    }
-    const snapshot = event as unknown as AIUsageSnapshotEvent;
-    if (snapshot.contextWindow || snapshot.usage) {
-      return snapshot;
-    }
-  }
-  return null;
-}
-
-export function buildCompactUsageSnapshot(
-  data: CompactChatResponse,
-  previous: AIUsageSnapshotEvent | null,
-): AIUsageSnapshotEvent | null {
-  if (!data.accepted || data.status === "skipped") {
-    return null;
-  }
-  const currentSize = readCompactNumber(data.postCompactEstimatedTokens);
-  if (currentSize == null) {
-    return null;
-  }
-  const previousContext = previous?.contextWindow || {};
-  return {
-    type: AIUsageEventTypeEnum.Snapshot,
-    chatId: data.chatId || previous?.chatId || "",
-    runId: previous?.runId || data.boundaryRunId || "",
-    ...(previous?.model ? { model: previous.model } : {}),
-    contextWindow: {
-      ...previousContext,
-      currentSize,
-      estimatedNextCallSize: currentSize,
-    },
-    ...(previous?.usage ? { usage: previous.usage } : {}),
-  };
-}
-
-function buildCompactCompleteEvent(
-  data: CompactChatResponse,
-  requestId: string,
-  chatId: string,
-): AIContextCompactEvent | null {
-  if (!data.accepted || data.status === "skipped") {
-    return null;
-  }
-  return {
-    type: AIContextEventTypeEnum.CompactComplete,
-    requestId: data.requestId || requestId,
-    chatId: data.chatId || chatId,
-    runId: data.boundaryRunId,
-    compactId: data.compactId,
-    summarySource: data.summarySource,
-    generation: data.generation,
-    toolDigestCount: data.toolDigestCount,
-    compactedRunCount: data.compactedRunCount,
-    digestedRunIds: data.digestedRunIds,
-    originalMessages: data.originalMessages,
-    projectedMessages: data.projectedMessages,
-    preCompactEstimatedTokens: data.preCompactEstimatedTokens,
-    postCompactEstimatedTokens: data.postCompactEstimatedTokens,
-    compressionRatio: data.compressionRatio,
-    elapsedMs: data.elapsedMs,
-    compactionUsage: data.compactionUsage as AIContextCompactEvent["compactionUsage"],
-    cacheMetrics: data.cacheMetrics,
-  };
-}
-
 export function useComposerSend(input: UseComposerSendInput) {
   const {
     attachmentChatId,
@@ -255,6 +138,32 @@ export function useComposerSend(input: UseComposerSendInput) {
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
+  const {
+    submitRememberCommand,
+    submitLearnCommand,
+    submitCompactCommand,
+  } = useBackgroundCommandActions({
+    dispatch,
+    state: {
+      chatId: state.chatId,
+      events: state.events,
+      usageSnapshot: state.usageSnapshot,
+    },
+    text: {
+      remember: {
+        pending: backgroundCommandText.rememberPending,
+        error: backgroundCommandText.rememberError,
+      },
+      learn: {
+        pending: backgroundCommandText.learnPending,
+        error: backgroundCommandText.learnError,
+      },
+      compact: {
+        pending: backgroundCommandText.compactPending,
+        error: backgroundCommandText.compactError,
+      },
+    },
+  });
 
   useEffect(() => {
     const message = inputValue.trim();
@@ -397,108 +306,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.planningMode,
   ]);
 
-  const scheduleCommandStatusOverlayHide = useCallback(() => {
-    const timer = window.setTimeout(() => {
-      dispatch({ type: "HIDE_COMMAND_STATUS_OVERLAY" });
-    }, 2000);
-    dispatch({
-      type: "SET_COMMAND_STATUS_OVERLAY_TIMER",
-      timer,
-    });
-  }, [dispatch]);
-
-  const triggerCommandStatusOverlay = useCallback(
-    (
-      commandType: "remember" | "learn" | "compact",
-      phase: "pending" | "success" | "error",
-      text: string,
-    ) => {
-      dispatch({
-        type: "SHOW_COMMAND_STATUS_OVERLAY",
-        commandType,
-        phase,
-        text,
-      });
-    },
-    [dispatch],
-  );
-
-  const submitBackgroundCommand = useCallback(
-    async (
-      commandType: "remember" | "learn" | "compact",
-      texts: { pending: string; error: string },
-    ) => {
-      const chatId = String(state.chatId || "").trim();
-      if (!chatId) {
-        return;
-      }
-
-      const requestId = createRequestId(commandType);
-      triggerCommandStatusOverlay(commandType, "pending", texts.pending);
-
-      try {
-        const request =
-          commandType === "remember"
-            ? rememberChat
-            : commandType === "learn"
-              ? learnChat
-              : compactChat;
-        const response = await request({
-          requestId,
-          chatId,
-        });
-        if (commandType === "compact" && response.data) {
-          const compactData = response.data as CompactChatResponse;
-          const compactEvent = buildCompactCompleteEvent(compactData, requestId, chatId);
-          if (compactEvent) {
-            dispatch({ type: "PUSH_EVENT", event: compactEvent });
-          }
-          const usageSnapshot = buildCompactUsageSnapshot(
-            compactData,
-            state.usageSnapshot || latestUsageSnapshotFromEvents(state.events),
-          );
-          if (usageSnapshot) {
-            dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: usageSnapshot });
-          }
-          const nodeId = `compact_${compactData.compactId || requestId}`;
-          const text = compactTimelineText(compactData, t);
-          dispatch({
-            type: "SET_TIMELINE_NODE",
-            id: nodeId,
-            node: {
-              id: nodeId,
-              kind: "message",
-              role: "system",
-              messageVariant: "compact",
-              text,
-              ts: Date.now(),
-            },
-          });
-          dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });
-        }
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[${commandType}] submitted for chatId=${chatId}, requestId=${requestId}`,
-        });
-        triggerCommandStatusOverlay(commandType, "success", texts.pending);
-      } catch (error) {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[${commandType}] failed: ${(error as Error).message}`,
-        });
-        triggerCommandStatusOverlay(commandType, "error", texts.error);
-      } finally {
-        scheduleCommandStatusOverlayHide();
-      }
-    },
-    [
-      dispatch,
-      scheduleCommandStatusOverlayHide,
-      state.chatId,
-      triggerCommandStatusOverlay,
-    ],
-  );
-
   const executeSlashCommand = useSlashCommandExecution({
     slashAvailability: executeSlashCommandInput.slashAvailability,
     closeMention,
@@ -506,21 +313,9 @@ export function useComposerSend(input: UseComposerSendInput) {
     resetForNewConversation,
     dispatch,
     toggleVoiceMode: executeSlashCommandInput.toggleVoiceMode,
-    submitRememberCommand: () =>
-      submitBackgroundCommand("remember", {
-        pending: backgroundCommandText.rememberPending,
-        error: backgroundCommandText.rememberError,
-      }),
-    submitLearnCommand: () =>
-      submitBackgroundCommand("learn", {
-        pending: backgroundCommandText.learnPending,
-        error: backgroundCommandText.learnError,
-      }),
-    submitCompactCommand: () =>
-      submitBackgroundCommand("compact", {
-        pending: backgroundCommandText.compactPending,
-        error: backgroundCommandText.compactError,
-      }),
+    submitRememberCommand,
+    submitLearnCommand,
+    submitCompactCommand,
     setInputValue,
     setSlashDismissed,
     state: executeSlashCommandInput.state,

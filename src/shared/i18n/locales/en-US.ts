@@ -933,6 +933,7 @@ export const enUSMessages: I18nMessages = {
   "topNav.terminal.open": "Open terminal panel",
   "topNav.usage.close": "Close usage stats",
   "topNav.usage.cacheHitRate": "Cache hit",
+  "topNav.usage.compact": "Compact",
   "topNav.usage.contextWindow": "Ctx Window",
   "topNav.usage.estimatedNext": "next ctx {value}",
   "topNav.usage.metric.cacheHit": "Cache hit",

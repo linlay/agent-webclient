@@ -259,6 +259,68 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Waiting for usage stats");
 	});
 
+	it("renders the compact action after the context window value", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue({
+			...state,
+			chatId: "chat_1",
+			usagePopoverOpen: true,
+			usageSnapshot: {
+				type: "usage.snapshot",
+				chatId: "chat_1",
+				runId: "run_1",
+				contextWindow: {
+					maxSize: 128000,
+					currentSize: 64000,
+				},
+				usage: {
+					chat: { totalTokens: 64000 },
+				},
+			},
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+		const contextValueIndex = html.indexOf("64,000 / 128,000");
+		const compactIndex = html.indexOf(">Compact</span>");
+
+		expect(html).toContain("usage-context-compact-btn");
+		expect(contextValueIndex).toBeGreaterThan(-1);
+		expect(compactIndex).toBeGreaterThan(contextValueIndex);
+	});
+
+	it("disables the compact action without an active chat or while streaming", () => {
+		const state = createInitialState();
+		const usageSnapshot = {
+			type: "usage.snapshot" as const,
+			chatId: "chat_1",
+			runId: "run_1",
+			contextWindow: {
+				maxSize: 128000,
+				currentSize: 64000,
+			},
+		};
+
+		useAppState.mockReturnValue({
+			...state,
+			chatId: "",
+			usagePopoverOpen: true,
+			usageSnapshot,
+		});
+		const missingChatHtml = renderToStaticMarkup(React.createElement(TopNav));
+
+		useAppState.mockReturnValue({
+			...state,
+			chatId: "chat_1",
+			streaming: true,
+			usagePopoverOpen: true,
+			usageSnapshot,
+		});
+		const streamingHtml = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(missingChatHtml).toMatch(/usage-context-compact-btn[^>]*disabled/);
+		expect(streamingHtml).toMatch(/usage-context-compact-btn[^>]*disabled/);
+	});
+
 	it("renders an empty cache hit rate in the usage popover when chat cache tokens are zero or missing", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
