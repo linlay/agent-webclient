@@ -246,7 +246,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const title = (
     <div className="command-modal-title">
       <span>{t(titleKey)}</span>
-      {subtitle ? <p className="command-modal-subtitle">{subtitle}</p> : null}
+      {subtitle ? <span className="command-modal-subtitle">{subtitle}</span> : null}
     </div>
   );
 

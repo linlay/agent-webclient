@@ -1,5 +1,5 @@
 <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs><linearGradient id="g-coder" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2DD4BF"/><stop offset="100%" stop-color="#0D9488"/></linearGradient></defs>
+  <defs><linearGradient id="g-coder" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FACC15"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs>
   <path d="M7 14 L24 6 L41 14 V34 L24 42 L7 34 Z" fill="url(#g-coder)" opacity="0.18"/>
   <path d="M9 15 L24 8 L39 15 L24 22 Z" fill="url(#g-coder)" opacity="0.8"/>
   <path d="M9 15 V32 L24 40 V22 Z" fill="url(#g-coder)" opacity="0.66"/>

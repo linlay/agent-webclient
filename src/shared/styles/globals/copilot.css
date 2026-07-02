@@ -449,7 +449,13 @@ html[data-theme="dark"] .copilot-side-panel {
 }
 
 .ant-drawer .copilot-drawer .ant-drawer-header {
-    padding: 10px;
+    min-height: 0;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.ant-drawer .copilot-drawer .ant-drawer-header-title {
+    line-height: 1.35;
 }
 
 .ant-drawer .copilot-drawer .ant-drawer-body {

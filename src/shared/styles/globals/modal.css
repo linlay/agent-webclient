@@ -11,15 +11,25 @@
     width: 100%;
 }
 
-.command-modal-title span {
+.command-modal-title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.command-modal-title > span {
     font-size: 18px;
     font-weight: 650;
 }
 
-.command-modal-subtitle {
-    margin: 4px 0 0;
+.command-modal-title > span.command-modal-subtitle {
     font-size: 12px;
+    font-weight: 500;
     color: var(--ink-muted);
+    display: inline;
 }
 
 .command-modal-section {
