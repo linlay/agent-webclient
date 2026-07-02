@@ -243,7 +243,7 @@
 
 .timeline-query-anchor-line-bar {
     display: block;
-    width: calc(100% - min(calc(abs(var(--index) - var(--hover-index)) * 15%), 80%));
+    width: calc(100% - min(calc(abs(var(--index) - var(--hover-index)) * 20%), 80%));
     height: 2px;
     background: var(--ink-1);
     transform-origin: left center;

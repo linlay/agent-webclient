@@ -279,6 +279,102 @@ describe("buildGlobalRows", () => {
     expect(historyRows[0].snippet).toBeUndefined();
   });
 
+  it("passes updatedAt on history rows", () => {
+    const history = [
+      createHistoryRow("chat-1", { updatedAt: 1712345678 }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].updatedAt).toBe(1712345678);
+  });
+
+  it("marks isUnread when isRead is false", () => {
+    const history = [
+      createHistoryRow("chat-1", { isRead: false }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].isUnread).toBe(true);
+  });
+
+  it("leaves isUnread false when isRead is true", () => {
+    const history = [
+      createHistoryRow("chat-1", { isRead: true }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].isUnread).toBe(false);
+  });
+
+  it("passes hasPendingAwaiting and statusLabel", () => {
+    const history = [
+      createHistoryRow("chat-1", {
+        hasPendingAwaiting: true,
+        awaitingMode: "approval",
+      }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].hasPendingAwaiting).toBe(true);
+    expect(historyRows[0].statusLabel).toBe(
+      "leftSidebar.awaitingStatus.approval",
+    );
+  });
+
+  it("passes hasPendingAwaiting with default statusLabel", () => {
+    const history = [
+      createHistoryRow("chat-1", { hasPendingAwaiting: true }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].hasPendingAwaiting).toBe(true);
+    expect(historyRows[0].statusLabel).toBe("leftSidebar.awaitingApproval");
+  });
+
+  it("leaves statusLabel undefined when hasPendingAwaiting is false", () => {
+    const history = [
+      createHistoryRow("chat-1", { hasPendingAwaiting: false }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].hasPendingAwaiting).toBe(false);
+    expect(historyRows[0].statusLabel).toBeUndefined();
+  });
+
+  it("passes hasActiveRun on history rows", () => {
+    const history = [
+      createHistoryRow("chat-1", { hasActiveRun: true }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].hasActiveRun).toBe(true);
+  });
+
+  it("defaults hasActiveRun to false", () => {
+    const history = [
+      createHistoryRow("chat-1"),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+    expect(historyRows[0].hasActiveRun).toBe(false);
+  });
+
   it("orders rows as actions, then workers, then history", () => {
     const worker1 = createWorkerRow({ key: "agent:a", displayName: "Alpha" });
     const history = [createHistoryRow("chat-1")];

@@ -26,6 +26,11 @@ function isInsideModalOrDrawer(target: EventTarget | null): boolean {
   return Boolean(target.closest(".ant-modal-wrap, .ant-drawer, .modal"));
 }
 
+function isMessageInput(target: EventTarget | null): boolean {
+  if (!target) return false;
+  return (target as HTMLElement).id === "message-input";
+}
+
 export function useGlobalShortcuts(): void {
   const state = useAppState();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
@@ -43,8 +48,8 @@ export function useGlobalShortcuts(): void {
       /* Guard: already handled */
       if (event.defaultPrevented || event.repeat) return;
 
-      /* Guard: editable target */
-      if (isEditableKeyboardTarget(event.target)) return;
+      /* Guard: editable target (allow message input for global search) */
+      if (isEditableKeyboardTarget(event.target) && !isMessageInput(event.target)) return;
 
       /* Guard: inside Ant modal/drawer */
       if (isInsideModalOrDrawer(event.target)) return;
