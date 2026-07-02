@@ -130,7 +130,7 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
       kind: "worker",
       key: w.key,
       label: w.displayName,
-      role: w.role || "--",
+      role: w.role,
       type: w.type as "agent" | "team",
       icon: workerIcons?.get(w.key),
     });

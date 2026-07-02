@@ -48,16 +48,14 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   const { t } = useI18n();
 
   const groupEntries = useMemo(() => {
-    return GROUP_KINDS
-      .map((kind) => {
-        const groupRows = rows.filter((r) => r.kind === kind);
-        return {
-          kind,
-          label: t(GROUP_LABEL_KEYS[kind]),
-          rows: groupRows,
-        };
-      })
-      .filter((entry) => entry.rows.length > 0);
+    return GROUP_KINDS.map((kind) => {
+      const groupRows = rows.filter((r) => r.kind === kind);
+      return {
+        kind,
+        label: t(GROUP_LABEL_KEYS[kind]),
+        rows: groupRows,
+      };
+    }).filter((entry) => entry.rows.length > 0);
   }, [rows, t]);
 
   useEffect(() => {
@@ -108,104 +106,96 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
         <div className="global-search-empty">{emptyText}</div>
       ) : (
         <div className="global-search-list">
-          {(() => {
-            let globalIndex = 0;
-            return groupEntries.map(({ kind, label, rows: groupRows }) => (
-              <div key={kind} className="global-search-group">
-                <div className="global-search-group-label">{label}</div>
-                {groupRows.map((row) => {
-                  const index = globalIndex;
-                  globalIndex += 1;
-                  if (row.kind === "action") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className="global-search-row global-search-action"
-                        onClick={() => onSelectRow(row)}
-                      >
+          {groupEntries.map(({ kind, label, rows: groupRows }) => (
+            <div key={kind} className="global-search-group">
+              <div className="global-search-group-label">{label}</div>
+              {groupRows.map((row) => {
+                if (row.kind === "action") {
+                  return (
+                    <button
+                      key={row.key}
+                      type="button"
+                      className="global-search-row global-search-action"
+                      onClick={() => onSelectRow(row)}
+                    >
+                      <span className="global-search-icon" aria-hidden="true">
+                        <MaterialIcon name={row.icon} />
+                      </span>
+                      <span className="global-search-label">{row.label}</span>
+                    </button>
+                  );
+                }
+                if (row.kind === "worker") {
+                  return (
+                    <button
+                      key={row.key}
+                      type="button"
+                      className="global-search-row global-search-worker"
+                      onClick={() => onSelectRow(row)}
+                    >
+                      <span className="global-search-icon" aria-hidden="true">
+                        <AgentIcon
+                          icon={row.icon}
+                          type={row.type}
+                          props={{
+                            icon: {
+                              width: 18,
+                              height: 18,
+                            },
+                            avatar: {
+                              size: 18,
+                            },
+                          }}
+                        />
+                      </span>
+                      <span className="global-search-label">{row.label}</span>
+                      <span className="global-search-role">{row.role}</span>
+                    </button>
+                  );
+                }
+                if (row.kind === "history") {
+                  return (
+                    <button
+                      key={row.key}
+                      type="button"
+                      className="global-search-row global-search-history"
+                      onClick={() => onSelectRow(row)}
+                    >
+                      {row.isUnread ? (
+                        <Tag color="blue">{t("globalSearch.row.unread")}</Tag>
+                      ) : (
                         <span className="global-search-icon" aria-hidden="true">
-                          <MaterialIcon name={row.icon} />
+                          <MaterialIcon name="history" />
                         </span>
-                        <span className="global-search-label">{row.label}</span>
-                      </button>
-                    );
-                  }
-                  if (row.kind === "worker") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className="global-search-row global-search-worker"
-                        onClick={() => onSelectRow(row)}
-                      >
-                        <span className="global-search-icon" aria-hidden="true">
-                          <AgentIcon
-                            icon={row.icon}
-                            type={row.type}
-                            props={{
-                              icon: {
-                                width: 18,
-                                height: 18,
-                              },
-                              avatar: {
-                                size: 18,
-                              },
-                            }}
-                          />
+                      )}
+                      <span className="global-search-label">{row.label}</span>
+                      {row.snippet ? (
+                        <span className="global-search-snippet">
+                          {row.snippet}
                         </span>
-                        <span className="global-search-label">{row.label}</span>
-                        <span className="global-search-role">{row.role}</span>
-                      </button>
-                    );
-                  }
-                  if (row.kind === "history") {
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        className="global-search-row global-search-history"
-                        onClick={() => onSelectRow(row)}
-                      >
-                        {row.isUnread ? (
-                          <Tag color="blue">{t("globalSearch.row.unread")}</Tag>
-                        ) : (
-                          <span
-                            className="global-search-icon"
-                            aria-hidden="true"
-                          >
-                            <MaterialIcon name="history" />
-                          </span>
-                        )}
-                        <span className="global-search-label">{row.label}</span>
-                        {row.snippet ? (
-                          <span className="global-search-snippet">
-                            {row.snippet}
-                          </span>
-                        ) : null}
-                        {row.statusLabel ? (
-                          <span className="global-search-awaiting">
-                            {row.statusLabel}
-                          </span>
-                        ) : null}
-                        {row.hasActiveRun ? (
-                          <MaterialIcon
-                            name="progress_activity"
-                            className="global-search-loading"
-                          />
-                        ) : (
-                          <span className="global-search-time">
-                            {formatChatTimeLabel(row.updatedAt)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-            ));
-          })()}
+                      ) : null}
+                      {row.statusLabel ? (
+                        <span className="global-search-awaiting">
+                          {row.statusLabel}
+                        </span>
+                      ) : null}
+                      {row.hasActiveRun ? (
+                        <MaterialIcon
+                          name="progress_activity"
+                          className="global-search-loading"
+                        />
+                      ) : (
+                        <span className="global-search-time">
+                          {formatChatTimeLabel(row.updatedAt)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>
