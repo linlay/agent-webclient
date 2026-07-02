@@ -7,17 +7,10 @@ import type {
 
 const DEFAULT_PLAN_OPTIONS: AIAwaitPlanOption[] = [
   {
-    label: "Yes, implement this plan",
     decision: "approve",
   },
   {
-    label: "No, request changes",
     decision: "reject",
-    input: {
-      type: "text",
-      placeholder: "Describe the requested changes",
-      required: false,
-    },
   },
 ];
 
@@ -27,8 +20,7 @@ export function resolvePlanOptions(
   const normalized = Array.isArray(plan.options)
     ? plan.options.filter(
         (option): option is AIAwaitPlanOption =>
-          Boolean(option?.label)
-          && (option?.decision === "approve" || option?.decision === "reject"),
+          option?.decision === "approve" || option?.decision === "reject",
       )
     : [];
   return (normalized.length > 0 ? normalized : DEFAULT_PLAN_OPTIONS).map(

@@ -7,18 +7,30 @@ describe("plan dialog state helpers", () => {
   it("falls back to approve and reject options when plan options are missing", () => {
     expect(resolvePlanOptions({ options: undefined })).toEqual([
       {
-        label: "Yes, implement this plan",
         decision: "approve",
         input: undefined,
       },
       {
-        label: "No, request changes",
         decision: "reject",
-        input: {
-          type: "text",
-          placeholder: "Describe the requested changes",
-          required: false,
-        },
+        input: undefined,
+      },
+    ]);
+  });
+
+  it("accepts decision-only approve and reject options", () => {
+    expect(resolvePlanOptions({
+      options: [
+        { decision: "approve" },
+        { decision: "reject" },
+      ],
+    })).toEqual([
+      {
+        decision: "approve",
+        input: undefined,
+      },
+      {
+        decision: "reject",
+        input: undefined,
       },
     ]);
   });

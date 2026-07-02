@@ -3,6 +3,7 @@ import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch } from "@/app/state/AppContext";
 import { Flex } from "antd";
 import { TimelineCollapse } from "./collapse";
+import { useI18n } from "@/shared/i18n";
 
 interface AwaitingAnswerBlockProps {
   node: TimelineNode;
@@ -35,14 +36,16 @@ function formatUnknownJson(value: unknown): string {
   }
 }
 
-function formatDecisionLabel(raw: string): string {
+type AwaitingAnswerTranslate = (key: string) => string;
+
+function formatDecisionLabel(raw: string, t: AwaitingAnswerTranslate): string {
   switch (raw) {
     case "approve":
-      return "同意";
+      return t("approvalDialog.option.approve");
     case "approve_rule_run":
-      return "同意（本次运行同规则都放行）";
+      return t("approvalDialog.option.approveRuleRun");
     case "reject":
-      return "拒绝";
+      return t("approvalDialog.option.reject");
     default:
       return raw;
   }
@@ -50,6 +53,7 @@ function formatDecisionLabel(raw: string): string {
 
 function formatAwaitingAnswerItem(
   item: Record<string, unknown>,
+  t: AwaitingAnswerTranslate,
 ): AwaitingAnswerDisplayItem {
   const id = String(item.id || "").trim();
   const question = String(item.question || "").trim();
@@ -64,7 +68,7 @@ function formatAwaitingAnswerItem(
 
   if (typeof item.decision === "string" && item.decision.trim()) {
     const reason = String(item.reason || "").trim();
-    const decisionLabel = formatDecisionLabel(item.decision);
+    const decisionLabel = formatDecisionLabel(item.decision, t);
     return {
       key: `${id}:${item.decision}`,
       title,
@@ -176,6 +180,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
 }) => {
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const expanded = Boolean(node.expanded);
   const envelope = useMemo(
     () => parseAwaitingAnswerEnvelope(node.text || "[]"),
@@ -194,10 +199,12 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       ];
     }
     if (envelope.plan) {
-      return [formatAwaitingAnswerItem(envelope.plan)];
+      return [formatAwaitingAnswerItem(envelope.plan, t)];
     }
-    return (envelope.items || []).map(formatAwaitingAnswerItem);
-  }, [envelope]);
+    return (envelope.items || []).map((item) =>
+      formatAwaitingAnswerItem(item, t),
+    );
+  }, [envelope, t]);
   const summaryText =
     envelope.status === "error"
       ? node.title || "等待异常"

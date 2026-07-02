@@ -2,6 +2,7 @@ import type {
   ActiveAwaiting,
   AgentEvent,
   AIAwaitApproval,
+  AIAwaitApprovalDecision,
   AIAwaitForm,
   AIAwaitMode,
   AIAwaitPlan,
@@ -240,19 +241,20 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
                 && typeof option === 'object'
                 && !Array.isArray(option),
             )
-            .map((option) => ({
-              label: toText(option.label),
-              decision: toText(option.decision),
-              description: toText(option.description) || undefined,
-            }))
+            .map((option) => {
+              const label = toText(option.label);
+              const description = toText(option.description);
+              return {
+                decision: toText(option.decision) as AIAwaitApprovalDecision,
+                ...(label ? { label } : {}),
+                ...(description ? { description } : {}),
+              };
+            })
             .filter(
               (option) =>
-                Boolean(option.label)
-                && (
-                  option.decision === 'approve'
-                  || option.decision === 'reject'
-                  || option.decision === 'approve_rule_run'
-                ),
+                option.decision === 'approve'
+                || option.decision === 'reject'
+                || option.decision === 'approve_rule_run',
             )
         : undefined;
       return {
@@ -361,17 +363,20 @@ function normalizePlan(value: unknown): AIAwaitPlan | null {
                         : undefined,
                   }
                 : undefined;
+            const label = toText(item.label);
+            const description = toText(item.description);
             return {
-              label: toText(item.label),
-              description: toText(item.description) || undefined,
               decision: toText(item.decision) as AIAwaitPlanDecision,
-              input: normalizedInput?.type === 'text' ? normalizedInput : undefined,
+              ...(label ? { label } : {}),
+              ...(description ? { description } : {}),
+              ...(normalizedInput?.type === 'text'
+                ? { input: normalizedInput }
+                : {}),
             };
           })
           .filter(
             (option) =>
-              Boolean(option.label)
-              && (option.decision === 'approve' || option.decision === 'reject'),
+              option.decision === 'approve' || option.decision === 'reject',
           )
       : undefined,
   };

@@ -239,9 +239,9 @@ export interface AIAwaitQuestionOption {
 }
 
 export interface AIAwaitApprovalOption {
-  label: string;
+  label?: string;
   description?: string;
-  decision: string;
+  decision: AIAwaitApprovalDecision;
 }
 
 export interface AIAwaitPlanInput {
@@ -251,7 +251,7 @@ export interface AIAwaitPlanInput {
 }
 
 export interface AIAwaitPlanOption {
-  label: string;
+  label?: string;
   description?: string;
   decision: AIAwaitPlanDecision;
   input?: AIAwaitPlanInput;

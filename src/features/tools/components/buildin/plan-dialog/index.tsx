@@ -195,7 +195,7 @@ const PlanQuestion = forwardRef<
       <Flex className={Style.Question} align="baseline">
         <Flex vertical gap={4} className={Style.QuestionText}>
           <span className={Style.QuestionHeading}>
-            {plan.title || t("planDialog.titleFallback")}
+            {t("planDialog.titleFallback")}
           </span>
         </Flex>
       </Flex>

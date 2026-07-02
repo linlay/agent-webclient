@@ -484,9 +484,12 @@ const ApprovalQuestion = forwardRef<
     ref,
   ) => {
     const hostRef = useRef<HTMLDivElement>(null);
-    const { t } = useI18n();
+    const { locale, t } = useI18n();
     const checkboxsRef = useRef<CheckboxRef[]>([]);
-    const options = useMemo(() => resolveApprovalOptions(approval), [approval]);
+    const options = useMemo(
+      () => resolveApprovalOptions(approval, t),
+      [approval, locale, t],
+    );
     const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
 
     useImperativeHandle(

@@ -4,13 +4,61 @@ import {
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 
+const terms: Record<string, string> = {
+  "approvalDialog.option.approve": "Approve",
+  "approvalDialog.option.approve.description": "Allow once",
+  "approvalDialog.option.approveRuleRun": "Approve matching requests",
+  "approvalDialog.option.approveRuleRun.description": "Allow matching requests in this run",
+  "approvalDialog.option.reject": "Reject",
+};
+
+const t = (key: string) => terms[key] ?? key;
+
 describe("approval dialog state helpers", () => {
   it("falls back to default options when approval options are missing", () => {
-    expect(resolveApprovalOptions({ options: undefined })).toEqual([
+    expect(resolveApprovalOptions({ options: undefined }, t)).toEqual([
       {
-        label: "同意",
         decision: "approve",
-        description: "允许执行当前命令",
+        label: "Approve",
+        description: "Allow once",
+      },
+    ]);
+  });
+
+  it("localizes decision-only approval options", () => {
+    expect(resolveApprovalOptions({
+      options: [
+        { decision: "approve" },
+        { decision: "approve_rule_run" },
+      ],
+    }, t)).toEqual([
+      {
+        decision: "approve",
+        label: "Approve",
+        description: "Allow once",
+      },
+      {
+        decision: "approve_rule_run",
+        label: "Approve matching requests",
+        description: "Allow matching requests in this run",
+      },
+    ]);
+  });
+
+  it("uses local labels instead of backend labels for known decisions", () => {
+    expect(resolveApprovalOptions({
+      options: [
+        {
+          decision: "approve",
+          label: "同意",
+          description: "旧后端描述",
+        },
+      ],
+    }, t)).toEqual([
+      {
+        decision: "approve",
+        label: "Approve",
+        description: "Allow once",
       },
     ]);
   });

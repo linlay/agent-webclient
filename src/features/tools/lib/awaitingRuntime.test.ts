@@ -29,6 +29,10 @@ describe('reduceActiveAwaiting', () => {
               previewHtml: '<div>继续预览</div>',
               value: 'continue',
             },
+            {
+              description: '没有 label 的问题选项不能作为答案',
+              value: 'missing-label',
+            },
           ],
         },
       ],
@@ -238,12 +242,12 @@ describe('reduceActiveAwaiting', () => {
           ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
           description: '清理线上 Redis 缓存',
           options: [
-            { label: '同意', decision: 'approve' },
-            { label: '同意（本次运行同规则都放行）', decision: 'approve_rule_run' },
-            { label: '拒绝', decision: 'reject' },
+            { decision: 'approve' },
+            { decision: 'approve_rule_run' },
+            { label: '旧后端拒绝', decision: 'reject' },
+            { label: '无效选项', decision: 'unknown' },
           ],
           allowFreeText: true,
-          freeTextPlaceholder: '可选：填写理由',
         },
       ],
     });
@@ -263,12 +267,12 @@ describe('reduceActiveAwaiting', () => {
         ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
         description: '清理线上 Redis 缓存',
         options: [
-          { label: '同意', decision: 'approve' },
-          { label: '同意（本次运行同规则都放行）', decision: 'approve_rule_run' },
-          { label: '拒绝', decision: 'reject' },
+          { decision: 'approve' },
+          { decision: 'approve_rule_run' },
+          { label: '旧后端拒绝', decision: 'reject' },
         ],
         allowFreeText: true,
-        freeTextPlaceholder: '可选：填写理由',
+        freeTextPlaceholder: undefined,
       },
     ]);
   });
@@ -344,18 +348,10 @@ describe('reduceActiveAwaiting', () => {
       plan: {
         id: 'confirm',
         planningId: 'run_plan_1_planning_1',
-        title: '实施此计划？',
         options: [
-          { label: '是，实施此计划', decision: 'approve' },
-          {
-            label: '否，请告知如何调整',
-            decision: 'reject',
-            input: {
-              type: 'text',
-              placeholder: '请告知如何调整',
-              required: false,
-            },
-          },
+          { decision: 'approve' },
+          { decision: 'reject' },
+          { label: '无效选项', decision: 'unknown' },
         ],
       },
     });
@@ -369,18 +365,9 @@ describe('reduceActiveAwaiting', () => {
       plan: {
         id: 'confirm',
         planningId: 'run_plan_1_planning_1',
-        title: '实施此计划？',
         options: [
-          { label: '是，实施此计划', decision: 'approve' },
-          {
-            label: '否，请告知如何调整',
-            decision: 'reject',
-            input: {
-              type: 'text',
-              placeholder: '请告知如何调整',
-              required: false,
-            },
-          },
+          { decision: 'approve' },
+          { decision: 'reject' },
         ],
       },
     });

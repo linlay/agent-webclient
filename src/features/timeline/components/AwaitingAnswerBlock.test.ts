@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AwaitingAnswerBlock } from '@/features/timeline/components/AwaitingAnswerBlock';
+import { I18nProvider } from '@/shared/i18n';
 
 jest.mock('@/app/state/AppContext', () => ({
   useAppDispatch: () => jest.fn(),
@@ -119,22 +120,26 @@ describe('AwaitingAnswerBlock', () => {
 
   it('renders approval decisions with Chinese labels while keeping reasons visible', () => {
     const html = renderToStaticMarkup(
-      React.createElement(AwaitingAnswerBlock, {
-        node: {
-          id: 'node_5',
-          kind: 'awaiting.answered',
-          text: JSON.stringify({
-            status: 'answered',
-            items: [
-              { id: 'a1', title: '普通审批', decision: 'approve' },
-              { id: 'a2', title: '规则放行', decision: 'approve_rule_run' },
-              { id: 'a4', title: '拒绝审批', decision: 'reject', reason: '风险过高' },
-            ],
-          }),
-          expanded: true,
-          ts: 0,
-        } as any,
-      }),
+      React.createElement(
+        I18nProvider,
+        { locale: 'zh-CN', persistLocale: false },
+        React.createElement(AwaitingAnswerBlock, {
+          node: {
+            id: 'node_5',
+            kind: 'awaiting.answered',
+            text: JSON.stringify({
+              status: 'answered',
+              items: [
+                { id: 'a1', title: '普通审批', decision: 'approve' },
+                { id: 'a2', title: '规则放行', decision: 'approve_rule_run' },
+                { id: 'a4', title: '拒绝审批', decision: 'reject', reason: '风险过高' },
+              ],
+            }),
+            expanded: true,
+            ts: 0,
+          } as any,
+        }),
+      ),
     );
 
     expect(html).toContain('同意');
@@ -143,25 +148,60 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).not.toContain('approve_rule_run');
   });
 
+  it('renders approval decisions with English labels when the locale is English', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: 'en-US', persistLocale: false },
+        React.createElement(AwaitingAnswerBlock, {
+          node: {
+            id: 'node_5_en',
+            kind: 'awaiting.answered',
+            text: JSON.stringify({
+              status: 'answered',
+              items: [
+                { id: 'a1', title: 'Regular approval', decision: 'approve' },
+                { id: 'a2', title: 'Rule approval', decision: 'approve_rule_run' },
+                { id: 'a4', title: 'Rejected', decision: 'reject', reason: 'Too risky' },
+              ],
+            }),
+            expanded: true,
+            ts: 0,
+          } as any,
+        }),
+      ),
+    );
+
+    expect(html).toContain('Approve');
+    expect(html).toContain('Approve matching requests for this run');
+    expect(html).toContain('Reject · Too risky');
+    expect(html).not.toContain('同意');
+    expect(html).not.toContain('approve_rule_run');
+  });
+
   it('renders plan decisions from the single plan envelope', () => {
     const html = renderToStaticMarkup(
-      React.createElement(AwaitingAnswerBlock, {
-        node: {
-          id: 'node_6',
-          kind: 'awaiting.answered',
-          text: JSON.stringify({
-            status: 'answered',
-            plan: {
-              id: 'confirm',
-              planningId: 'run_1_planning_1',
-              decision: 'reject',
-              reason: '请补充测试范围',
-            },
-          }),
-          expanded: true,
-          ts: 0,
-        } as any,
-      }),
+      React.createElement(
+        I18nProvider,
+        { locale: 'zh-CN', persistLocale: false },
+        React.createElement(AwaitingAnswerBlock, {
+          node: {
+            id: 'node_6',
+            kind: 'awaiting.answered',
+            text: JSON.stringify({
+              status: 'answered',
+              plan: {
+                id: 'confirm',
+                planningId: 'run_1_planning_1',
+                decision: 'reject',
+                reason: '请补充测试范围',
+              },
+            }),
+            expanded: true,
+            ts: 0,
+          } as any,
+        }),
+      ),
     );
 
     expect(html).toContain('run_1_planning_1');
