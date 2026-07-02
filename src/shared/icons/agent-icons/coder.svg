@@ -1,10 +1,17 @@
 <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs><linearGradient id="g-coder" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FACC15"/><stop offset="100%" stop-color="#D97706"/></linearGradient></defs>
-  <path d="M7 14 L24 6 L41 14 V34 L24 42 L7 34 Z" fill="url(#g-coder)" opacity="0.18"/>
-  <path d="M9 15 L24 8 L39 15 L24 22 Z" fill="url(#g-coder)" opacity="0.8"/>
-  <path d="M9 15 V32 L24 40 V22 Z" fill="url(#g-coder)" opacity="0.66"/>
-  <path d="M24 22 L39 15 V32 L24 40 Z" fill="url(#g-coder)" opacity="0.42"/>
-  <path d="M16 23 L11 27 L16 31" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
-  <path d="M32 23 L37 27 L32 31" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
-  <path d="M27 22 L21 34" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.92"/>
+  <defs>
+    <linearGradient id="g-coder-agent" x1="7" y1="6" x2="41" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="0.48" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 14V7.5" stroke="url(#g-coder-agent)" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
+  <circle cx="24" cy="7.5" r="3" fill="url(#g-coder-agent)" opacity="0.94"/>
+  <rect x="10" y="14" width="28" height="24" rx="6" stroke="url(#g-coder-agent)" stroke-width="3"/>
+  <rect x="6" y="22" width="4" height="8" rx="2" fill="url(#g-coder-agent)" opacity="0.58"/>
+  <rect x="38" y="22" width="4" height="8" rx="2" fill="url(#g-coder-agent)" opacity="0.58"/>
+  <path d="M20.2 22.5L16.5 26L20.2 29.5" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27.8 22.5L31.5 26L27.8 29.5" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M25.8 21.6L22.2 30.4" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round"/>
 </svg>
