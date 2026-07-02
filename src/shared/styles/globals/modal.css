@@ -866,13 +866,88 @@
 .registry-capability-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding-inline: 5px;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 22px;
+    min-width: 22px;
+    height: 20px;
+    padding: 0;
+    border-radius: var(--radius-sm);
 }
 
 .registry-capability-chip .material-icon-svg {
     width: 12px;
     height: 12px;
+}
+
+.registry-mcp-tools {
+    background: color-mix(in srgb, var(--bg-input) 34%, transparent);
+}
+
+.registry-mcp-tool-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.registry-mcp-tool-row {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
+    border-radius: var(--radius-sm);
+    padding: 9px 10px;
+    background: color-mix(in srgb, var(--bg-base) 82%, transparent);
+}
+
+.registry-mcp-tool-head {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.registry-mcp-tool-title {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.registry-mcp-tool-title strong {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--ink-1);
+    overflow-wrap: anywhere;
+}
+
+.registry-mcp-tool-title span,
+.registry-mcp-tool-description,
+.registry-mcp-tools-empty {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+    overflow-wrap: anywhere;
+}
+
+.registry-mcp-tool-badges,
+.registry-tool-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.registry-mcp-tool-badges {
+    justify-content: flex-end;
+    flex: 0 0 auto;
+}
+
+.registry-mcp-tool-description {
+    margin: 7px 0 0;
+}
+
+.registry-mcp-tool-row .registry-tool-tags {
+    margin-top: 8px;
 }
 
 .automation-detail-head {

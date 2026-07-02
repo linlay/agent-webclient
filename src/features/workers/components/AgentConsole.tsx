@@ -137,11 +137,11 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function readAdminToolKind(tool: AdminToolSummary): string {
-  return toText(asRecord(tool.meta).kind);
+function readAdminToolKind(tool: Partial<AdminToolSummary>): string {
+  return toText(tool.kind);
 }
 
-function readAdminToolSourceCategory(tool: AdminToolSummary): string {
+function readAdminToolSourceCategory(tool: Partial<AdminToolSummary>): string {
   return toText(tool.sourceCategory);
 }
 
@@ -291,14 +291,15 @@ function optionLabel(item: Record<string, unknown>): string {
 }
 
 export function buildAdminToolOption(item: unknown): AgentToolOption | null {
-  const record = asRecord(item) as AdminToolSummary;
+  const record = asRecord(item);
+  const tool = record as Partial<AdminToolSummary>;
   const key = toText(record.key) || toText(record.name);
   if (!key) return null;
   return {
     key,
     label: optionLabel(record) || key,
-    sourceCategory: readAdminToolSourceCategory(record),
-    kind: readAdminToolKind(record),
+    sourceCategory: readAdminToolSourceCategory(tool),
+    kind: readAdminToolKind(tool),
   };
 }
 

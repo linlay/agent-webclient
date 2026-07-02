@@ -3,13 +3,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   RegistriesPage,
   filterRegistryItems,
+  filterToolsForMcpServer,
+  getMcpServerToolEmptyState,
+  hasMcpToolsWithoutServerKey,
   listItemOwnerLabel,
   normalizeToolToSummary,
   readToolKind,
+  readToolMcpServerKey,
   readToolSourceCategory,
+  readToolSourceType,
   registryCapabilityChips,
+  RegistryCapabilityIconTag,
   registryListMeta,
   registryListTitle,
+  registryMcpServerKey,
   registryItemKey,
   summaryLine,
   toolListMeta,
@@ -70,7 +77,7 @@ const translate = (key: string, params?: Record<string, unknown>) => {
 const zhToolTranslate = (key: string) => {
   const messages: Record<string, string> = {
     "toolSource.platform": "内置",
-    "toolSource.external": "扩展",
+    "toolSource.external": "外部",
     "toolSource.mcp": "MCP",
   };
   return messages[key] ?? key;
@@ -227,6 +234,21 @@ describe("RegistriesPage", () => {
     expect(registryCapabilityChips(registryItems[3])).toEqual([]);
   });
 
+  it("renders model capability chips as icon-only tags with accessible labels", () => {
+    const chip = registryCapabilityChips(registryItems[1])[0];
+    const html = renderToStaticMarkup(
+      React.createElement(RegistryCapabilityIconTag, {
+        chip,
+        label: "视觉",
+      }),
+    );
+
+    expect(html).toContain('aria-label="视觉"');
+    expect(html).toContain('title="视觉"');
+    expect(html).toContain('data-material-icon="visibility"');
+    expect(html).not.toContain(">视觉<");
+  });
+
   it("maps registry detail responses back to slim list items", () => {
     expect(
       registryDetailToListItem({
@@ -265,41 +287,50 @@ describe("RegistriesPage", () => {
     });
   });
 
-  it("normalizes tool summaries from current sourceCategory and meta.kind fields only", () => {
-    const tool = {
+  it("normalizes tool summaries from current flat tool fields only", () => {
+    const tool: AdminToolSummary = {
       key: "remote_tool",
       name: "Remote Tool",
       description: "Remote MCP tool",
       sourceCategory: "mcp",
-      meta: { kind: "backend", sourceType: "mcp" },
-      tags: ["remote"],
+      sourceType: "mcp",
+      serverKey: "alpha",
+      kind: "backend",
     };
 
     expect(readToolSourceCategory(tool)).toBe("mcp");
+    expect(readToolSourceType(tool)).toBe("mcp");
+    expect(readToolMcpServerKey(tool)).toBe("alpha");
     expect(readToolKind(tool)).toBe("backend");
     expect(toolSourceLabel("mcp", translate)).toBe("toolSource.mcp");
-    expect(toolSourceLabel("external", zhToolTranslate)).toBe("扩展");
+    expect(toolSourceLabel("external", zhToolTranslate)).toBe("外部");
 
     const summary = normalizeToolToSummary(tool);
     expect(summary.summary).toMatchObject({
       sourceCategory: "mcp",
+      sourceType: "mcp",
+      serverKey: "alpha",
       kind: "backend",
       description: "Remote MCP tool",
-      tags: ["remote"],
     });
     expect(toolSearchHaystack(tool)).toContain("mcp");
+    expect(toolSearchHaystack(tool)).toContain("alpha");
     expect(toolSearchHaystack(tool)).toContain("backend");
 
     const legacyOnly = {
       key: "legacy_tool",
       name: "Legacy Tool",
-      kind: "frontend",
       source: "platform",
+      meta: { kind: "frontend", sourceType: "mcp", serverKey: "old" },
+      summary: { serverKey: "old" },
     } as unknown as AdminToolSummary;
     expect(readToolSourceCategory(legacyOnly)).toBe("");
+    expect(readToolSourceType(legacyOnly)).toBe("");
+    expect(readToolMcpServerKey(legacyOnly)).toBe("");
     expect(readToolKind(legacyOnly)).toBe("");
     expect(toolSearchHaystack(legacyOnly)).not.toContain("frontend");
     expect(toolSearchHaystack(legacyOnly)).not.toContain("platform");
+    expect(toolSearchHaystack(legacyOnly)).not.toContain("old");
   });
 
   it("formats tools list owner labels from sourceCategory without repeating source in metadata", () => {
@@ -307,44 +338,143 @@ describe("RegistriesPage", () => {
       key: "builtin_datetime",
       name: "Datetime",
       sourceCategory: "platform",
-      meta: { kind: "backend" },
+      sourceType: "local",
+      kind: "backend",
     });
     const mcpTool = normalizeToolToSummary({
       key: "remote_search",
       name: "Remote Search",
       sourceCategory: "mcp",
-      meta: { kind: "backend" },
+      sourceType: "mcp",
+      serverKey: "demo",
+      kind: "backend",
     });
     const extensionTool = normalizeToolToSummary({
       key: "extension_tool",
       name: "Extension Tool",
       sourceCategory: "external",
-      meta: { kind: "frontend" },
+      sourceType: "agent-local",
+      kind: "frontend",
     });
     const customTool = normalizeToolToSummary({
       key: "custom_tool",
       name: "Custom Tool",
       sourceCategory: "custom",
-      meta: { kind: "backend" },
+      sourceType: "custom-source",
+      kind: "backend",
     });
     const noSourceTool = normalizeToolToSummary({
       key: "unknown_tool",
       name: "Unknown Tool",
-      meta: { kind: "backend" },
+      sourceCategory: "",
+      sourceType: "",
+      kind: "backend",
     });
 
     expect(toolListOwnerLabel(platformTool, zhToolTranslate)).toBe("内置");
     expect(toolListOwnerLabel(mcpTool, zhToolTranslate)).toBe("MCP");
-    expect(toolListOwnerLabel(extensionTool, zhToolTranslate)).toBe("扩展");
+    expect(toolListOwnerLabel(extensionTool, zhToolTranslate)).toBe("外部");
     expect(toolListOwnerLabel(customTool, zhToolTranslate)).toBe("custom");
     expect(toolListOwnerLabel(noSourceTool, zhToolTranslate)).toBe("");
     expect(listItemOwnerLabel(platformTool, true, zhToolTranslate)).toBe("内置");
 
-    expect(toolListMeta(platformTool)).toBe("builtin_datetime · backend");
-    expect(toolListMeta(mcpTool)).toBe("remote_search · backend");
-    expect(toolListMeta(extensionTool)).toBe("extension_tool · frontend");
+    expect(toolListMeta(platformTool)).toBe("builtin_datetime · local · platform · backend");
+    expect(toolListMeta(mcpTool)).toBe("remote_search · mcp:demo · mcp · backend");
+    expect(toolListMeta(extensionTool)).toBe("extension_tool · agent-local · external · frontend");
     expect(toolListMeta(platformTool)).not.toContain("内置");
     expect(toolListMeta(mcpTool)).not.toContain("MCP");
-    expect(toolListMeta(extensionTool)).not.toContain("扩展");
+    expect(toolListMeta(extensionTool)).not.toContain("外部");
+  });
+
+  it("filters MCP server tools only by explicit server key fields", () => {
+    const tools: AdminToolSummary[] = [
+      {
+        key: "alpha_search",
+        name: "Alpha Search",
+        sourceCategory: "mcp",
+        sourceType: "mcp",
+        serverKey: "alpha",
+        kind: "backend",
+      },
+      {
+        key: "alpha_summary",
+        name: "Alpha Summary",
+        sourceCategory: "mcp",
+        sourceType: "mcp",
+        serverKey: "alpha",
+        kind: "backend",
+      },
+      {
+        key: "beta_search",
+        name: "Beta Search",
+        sourceCategory: "mcp",
+        sourceType: "mcp",
+        serverKey: "beta",
+        kind: "backend",
+      },
+      {
+        key: "alpha_prefix_only",
+        name: "Prefix Only",
+        sourceCategory: "mcp",
+        sourceType: "mcp",
+        kind: "backend",
+      },
+      {
+        key: "platform_alpha",
+        name: "Platform Alpha",
+        sourceCategory: "platform",
+        sourceType: "local",
+        kind: "backend",
+      },
+    ];
+
+    expect(registryMcpServerKey({
+      category: "mcp-servers",
+      file: "alpha.yml",
+      key: "",
+      name: "",
+      summary: { serverKey: "alpha" },
+    })).toBe("alpha");
+    expect(readToolMcpServerKey(tools[0])).toBe("alpha");
+    expect(readToolMcpServerKey(tools[1])).toBe("alpha");
+    expect(readToolMcpServerKey(tools[3])).toBe("");
+    expect(readToolMcpServerKey({
+      key: "legacy_server",
+      name: "Legacy Server",
+      sourceCategory: "mcp",
+      sourceType: "mcp",
+      kind: "backend",
+      meta: { serverKey: "alpha" },
+      summary: { serverKey: "alpha" },
+    } as unknown as AdminToolSummary)).toBe("");
+    expect(filterToolsForMcpServer(tools, "alpha").map((tool) => tool.key)).toEqual([
+      "alpha_search",
+      "alpha_summary",
+    ]);
+  });
+
+  it("resolves MCP server tool empty states without guessing from prefixes", () => {
+    const missingServerTools: AdminToolSummary[] = [
+      {
+        key: "alpha_prefix_only",
+        name: "Prefix Only",
+        sourceCategory: "mcp",
+        sourceType: "mcp",
+        kind: "backend",
+      },
+    ];
+
+    expect(hasMcpToolsWithoutServerKey(missingServerTools)).toBe(true);
+    expect(filterToolsForMcpServer(missingServerTools, "alpha")).toEqual([]);
+    expect(getMcpServerToolEmptyState({
+      matchedTools: [],
+      allTools: missingServerTools,
+      expectedToolCount: 1,
+    })).toBe("missing-server-key");
+    expect(getMcpServerToolEmptyState({
+      matchedTools: [],
+      allTools: [],
+      expectedToolCount: 0,
+    })).toBe("empty");
   });
 });

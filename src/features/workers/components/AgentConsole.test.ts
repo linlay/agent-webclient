@@ -298,12 +298,13 @@ describe("AgentConsole i18n rendering", () => {
 });
 
 describe("AgentConsole tool options", () => {
-  it("builds tool select labels from sourceCategory and meta.kind fields only", () => {
+  it("builds tool select labels from flat sourceCategory and kind fields only", () => {
     const option = buildAdminToolOption({
       key: "web_search",
       label: "Search",
       sourceCategory: "external",
-      meta: { kind: "backend" },
+      sourceType: "agent-local",
+      kind: "backend",
     });
 
     expect(option).toEqual({
@@ -320,7 +321,7 @@ describe("AgentConsole tool options", () => {
       key: "legacy",
       label: "Legacy",
       source: "platform",
-      kind: "frontend",
+      meta: { kind: "frontend" },
     });
 
     expect(legacyOnly).toMatchObject({

@@ -220,24 +220,15 @@ export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 
 export type AdminToolSourceCategory = "platform" | "external" | "mcp" | (string & {});
 
-export interface AdminToolMeta {
-  kind?: string;
-  sourceCategory?: string;
-  sourceType?: string;
-  [key: string]: unknown;
-}
-
 export interface AdminToolSummary {
-  key?: string;
-  name?: string;
+  key: string;
+  name: string;
   label?: string;
   description?: string;
-  sourceCategory?: AdminToolSourceCategory;
-  meta?: AdminToolMeta;
-  tags?: string[];
-  summary?: Record<string, unknown>;
-  status?: string;
-  [key: string]: unknown;
+  kind: string;
+  sourceType: string;
+  sourceCategory: AdminToolSourceCategory;
+  serverKey?: string;
 }
 
 export interface AdminServiceSummary {
@@ -1444,7 +1435,7 @@ export function getAdminSkills(tag?: string): Promise<ApiResponse> {
 }
 
 export function getAdminTools(
-  options: { tag?: string; kind?: string; sourceCategory?: "platform" | "external" | "mcp" } = {},
+  options: { kind?: string; sourceCategory?: "platform" | "external" | "mcp" } = {},
 ): Promise<ApiResponse<AdminToolSummary[]>> {
   const query = endpointQuery(dataEndpoints.adminTools, options);
   return requestJson<AdminToolSummary[]>(withQuery(dataEndpoints.adminTools.path, query));
