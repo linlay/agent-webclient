@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Modal } from "antd";
-import type { Agent, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
 import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
 import {
   buildCurrentWorkerDetailView,
@@ -19,11 +19,6 @@ import {
 } from "@/shared/data";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { useI18n } from "@/shared/i18n";
-import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
-import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
-import { buildGlobalRows } from "@/features/workers/lib/globalCommandRows";
-import type { GlobalRow } from "@/features/workers/lib/globalCommandRows";
-import { GlobalCommandPanel } from "@/features/workers/components/GlobalCommandPanel";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -63,7 +58,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
-  const { openOverlay } = useSettingsOverlayActions();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const historyInputRef = useRef<HTMLInputElement>(null);
   const switchListRef = useRef<HTMLDivElement>(null);
@@ -98,7 +92,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     [modal.scope, modal.searchText, modal.type, state.workerRows],
   );
   const workerIconsByKey = useMemo(() => {
-    if (modal.type !== "switch" && modal.type !== "global") {
+    if (modal.type !== "switch") {
       return undefined;
     }
     const icons = new Map<string, Agent["icon"] | Team["icon"]>();
@@ -159,116 +153,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   const closeModal = (restoreComposerFocus = true) => {
     onClose(restoreComposerFocus);
   };
-
-  /* ---- Global command palette state ---- */
-  const [globalRemoteState, setGlobalRemoteState] = useState<
-    WorkerConversationRow[] | null
-  >(null);
-
-  const globalRows = useMemo(() => {
-    if (modal.type !== "global") return [];
-    return buildGlobalRows({
-      agents: state.agents,
-      workerRows: state.workerRows,
-      chats: state.chats,
-      historyRows: globalRemoteState,
-      searchText: modal.searchText,
-      hasCurrentWorker: Boolean(currentWorker),
-      workerIcons: workerIconsByKey,
-      t: t as (key: string, params?: Record<string, unknown>) => string,
-    });
-  }, [
-    currentWorker,
-    globalRemoteState,
-    modal.searchText,
-    modal.type,
-    state.agents,
-    state.chats,
-    state.workerRows,
-    t,
-    workerIconsByKey,
-  ]);
-
-  const globalIndex = clampIndex(modal.activeIndex, globalRows.length);
-
-  const handleGlobalAction = (action: string) => {
-    const cw = currentWorker;
-    switch (action) {
-      case "newConversation":
-        closeModal(false);
-        window.dispatchEvent(
-          new CustomEvent("agent:start-new-conversation", {
-            detail: {
-              ...(cw?.type === "agent" && cw.sourceId
-                ? { agentKey: cw.sourceId }
-                : {}),
-              preserveWorkerContext: true,
-              focusComposerOnComplete: false,
-            },
-          }),
-        );
-        break;
-      case "history":
-        onPatch({
-          type: "history",
-          historySearch: "",
-          searchText: "",
-          activeIndex: 0,
-          focusArea: "search",
-        });
-        break;
-      case "switch":
-        onPatch({
-          type: "switch",
-          searchText: "",
-          activeIndex: 0,
-          scope: "all",
-          focusArea: "search",
-        });
-        break;
-      case "settings":
-        closeModal(false);
-        openOverlay("settings");
-        break;
-      case "debug":
-        closeModal(false);
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "debug" });
-        break;
-    }
-  };
-
-  const selectGlobalRow = (row: GlobalRow) => {
-    if (row.kind === "action") {
-      handleGlobalAction(row.action);
-      return;
-    }
-    if (row.kind === "worker") {
-      closeModal(false);
-      window.dispatchEvent(
-        new CustomEvent("agent:select-worker", {
-          detail: {
-            workerKey: row.key,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
-      return;
-    }
-    if (row.kind === "history") {
-      closeModal(false);
-      window.dispatchEvent(
-        new CustomEvent("agent:load-chat", {
-          detail: {
-            chatId: row.chatId,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
-      return;
-    }
-  };
-
-  /* ---- End global state ---- */
 
   const selectHistory = (index: number) => {
     const target = filteredHistoryRows[index];
@@ -434,75 +318,17 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     switchItemRefs.current[switchIndex]?.scrollIntoView({ block: "nearest" });
   }, [modal.open, modal.type, switchIndex]);
 
-  /* Global search debounce */
-  useEffect(() => {
-    const query = String(modal.searchText || "").trim();
-    if (
-      !modal.open ||
-      modal.type !== "global" ||
-      !query
-    ) {
-      setGlobalRemoteState(null);
-      return;
-    }
-    setGlobalRemoteState(null);
-    const timer = window.setTimeout(() => {
-      void searchGlobal({ query, limit: 30 })
-        .then((response) => {
-          const results = Array.isArray(response.data?.results)
-            ? response.data.results
-            : [];
-          setGlobalRemoteState(
-            results
-              .map((result) => ({
-                chatId: String(result.chatId || ""),
-                chatName: String(result.chatName || result.chatId || ""),
-                agentKey: result.agentKey,
-                teamId: result.teamId,
-                updatedAt: Number(result.timestamp) || 0,
-                lastRunId: String(result.runId || ""),
-                lastRunContent: String(result.snippet || ""),
-                searchSnippet: String(result.snippet || ""),
-                isRead: true,
-              }))
-              .filter((row) => row.chatId),
-          );
-        })
-        .catch((error) => {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[global search error] ${(error as Error).message}`,
-          });
-          setGlobalRemoteState([]);
-        });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [
-    dispatch,
-    modal.open,
-    modal.searchText,
-    modal.type,
-  ]);
-
-  /* Global focus on open */
-  useEffect(() => {
-    if (!modal.open || modal.type !== "global") return;
-    searchInputRef.current?.focus();
-    searchInputRef.current?.select();
-  }, [modal.open, modal.type]);
-
   if (!modal.open || !modal.type) {
     return null;
   }
 
   const subtitle =
-    modal.type === "automation" || modal.type === "agents" || modal.type === "global"
+    modal.type === "automation" || modal.type === "agents"
       ? ""
       : currentWorker
         ? `${currentWorker.type === "team" ? t("switch.workerType.team") : t("switch.workerType.agent")} · ${currentWorker.displayName}`
         : t("topNav.noSelection");
   const isConsoleModal = modal.type === "automation" || modal.type === "agents";
-  const isGlobalModal = modal.type === "global";
   const titleKey =
     modal.type === "history"
       ? "commandModal.history.title"
@@ -512,9 +338,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           ? "commandModal.detail.title"
           : modal.type === "automation"
             ? "commandModal.automation.title"
-            : modal.type === "global"
-              ? "commandModal.global.title"
-              : "commandModal.agents.title";
+            : "commandModal.agents.title";
   const title = (
     <div className="command-modal-title">
       <span>{t(titleKey)}</span>
@@ -533,9 +357,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       width={
         isConsoleModal
           ? "min(1120px, calc(100vw - 32px))"
-          : isGlobalModal
-            ? "min(640px, calc(100vw - 32px))"
-            : "min(780px, calc(100vw - 32px))"
+          : "min(780px, calc(100vw - 32px))"
       }
       className={`command-modal ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
     >
@@ -651,33 +473,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
 
           if (modal.type === "automation" || modal.type === "agents") return;
 
-          if (modal.type === "global") {
-            if (event.key === "ArrowDown" && globalRows.length > 0) {
-              event.preventDefault();
-              onPatch({
-                activeIndex: clampIndex(
-                  modal.activeIndex + 1,
-                  globalRows.length,
-                ),
-              });
-              return;
-            }
-            if (event.key === "ArrowUp" && globalRows.length > 0) {
-              event.preventDefault();
-              onPatch({
-                activeIndex: clampIndex(
-                  modal.activeIndex - 1,
-                  globalRows.length,
-                ),
-              });
-              return;
-            }
-            if (event.key === "Enter" && globalRows.length > 0) {
-              event.preventDefault();
-              selectGlobalRow(globalRows[globalIndex]);
-            }
-            return;
-          }
         }}
       >
         {modal.type === "history" && (
@@ -750,23 +545,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
         )}
 
         {modal.type === "agents" && <AgentConsole embedded />}
-
-        {modal.type === "global" && (
-          <GlobalCommandPanel
-            rows={globalRows}
-            activeIndex={globalIndex}
-            searchText={modal.searchText}
-            searchInputRef={searchInputRef}
-            placeholder={t("commandModal.global.placeholder")}
-            emptyText={t("commandModal.global.empty")}
-            t={t as (key: string, params?: Record<string, unknown>) => string}
-            onSearchChange={(value) =>
-              onPatch({ searchText: value, activeIndex: 0 })
-            }
-            onActivateIndex={(index) => onPatch({ activeIndex: index })}
-            onSelect={selectGlobalRow}
-          />
-        )}
       </div>
     </Modal>
   );

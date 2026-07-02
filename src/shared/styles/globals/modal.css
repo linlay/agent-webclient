@@ -2603,14 +2603,14 @@
     text-align: center;
 }
 
-/* Global Command Palette */
-.global-command-panel {
+/* Global Search Palette */
+.global-search-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
-.global-command-search { flex: 0 0 auto; }
-.global-command-input {
+.global-search-box { flex: 0 0 auto; }
+.global-search-input {
     width: 100%;
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);
@@ -2620,34 +2620,19 @@
     padding: 10px 14px;
     outline: none;
 }
-.global-command-input:focus {
+.global-search-input:focus {
     border-color: var(--accent-electric);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-electric) 14%, transparent);
 }
-.global-command-input::placeholder { color: var(--ink-muted); }
-.global-command-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 52vh;
-    overflow: auto;
-}
-
-.global-command-section {
+.global-search-input::placeholder { color: var(--ink-muted); }
+.global-search-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    max-height: 52vh;
+    overflow: auto;
 }
-
-.global-command-section-title {
-    padding: 4px 12px 3px;
-    color: var(--ink-muted);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0;
-}
-
-.global-command-row {
+.global-search-row {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -2662,17 +2647,12 @@
     font-size: 13px;
     line-height: 1.35;
 }
-
-.global-command-attention {
-    min-height: 44px;
-}
-
-.global-command-row.is-active,
-.global-command-row:hover { background: var(--bg-hover); }
-.global-command-row.is-active {
+.global-search-row.is-active,
+.global-search-row:hover { background: var(--bg-hover); }
+.global-search-row.is-active {
     background: color-mix(in srgb, var(--accent-soft) 30%, var(--bg-hover));
 }
-.global-command-icon {
+.global-search-icon {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -2681,40 +2661,14 @@
     height: 24px;
     color: var(--ink-muted);
 }
-
-.global-command-attention .global-command-icon {
-    color: var(--accent-electric);
-}
-
-.global-command-unread-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent-electric);
-}
-
-.global-command-main {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.global-command-label {
+.global-search-label {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.global-command-main .global-command-label {
-    flex: 0 1 auto;
-    display: block;
-}
-
-.global-command-role {
+.global-search-role {
     flex: 0 0 auto;
     font-size: 11px;
     color: var(--ink-muted);
@@ -2723,37 +2677,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.global-command-meta {
-    flex: 0 0 auto;
-    max-width: 38%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    min-width: 0;
-}
-
-.global-command-status {
-    flex: 0 0 auto;
-    color: var(--accent-warn);
-    background: color-mix(in srgb, var(--accent-warn) 10%, transparent);
-    border-radius: 999px;
-    padding: 2px 7px;
-    font-size: 11px;
-    white-space: nowrap;
-}
-
-.global-command-source {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--ink-muted);
-    font-size: 11px;
-}
-
-.global-command-snippet {
+.global-search-snippet {
     flex: 0 0 auto;
     font-size: 11px;
     color: var(--text-muted);
@@ -2762,21 +2686,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.global-command-main .global-command-snippet {
-    flex: 0 1 auto;
-    max-width: 100%;
-    display: block;
-}
-
-.global-command-empty {
+.global-search-empty {
     padding: 24px 16px;
     text-align: center;
     font-size: 13px;
     color: var(--ink-muted);
 }
 @media (max-width: 640px) {
-    .global-command-role,
-    .global-command-snippet,
-    .global-command-meta { display: none; }
+    .global-search-role,
+    .global-search-snippet { display: none; }
 }

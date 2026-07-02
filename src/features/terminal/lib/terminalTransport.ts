@@ -29,6 +29,12 @@ export type TerminalStreamHandle = {
   readonly abort: () => void;
 };
 
+export type TerminalStatusOptions = {
+  readonly onEvent: (event: AgentEvent) => void;
+  readonly onDone?: (reason: string, lastSeq: number) => void;
+  readonly onError?: (error: Error) => void;
+};
+
 export type TerminalInputPayload = {
   readonly terminalId: string;
   readonly data: string;
@@ -87,6 +93,19 @@ export function openTerminalStream(
   });
 }
 
+export function openTerminalStatusStream(
+  client: WsClient,
+  options: TerminalStatusOptions,
+): TerminalStreamHandle {
+  return client.stream({
+    type: dataEndpoints.terminalStatus.path,
+    payload: {},
+    onEvent: options.onEvent,
+    onDone: options.onDone,
+    onError: options.onError,
+  });
+}
+
 export function sendTerminalInput(
   client: WsClient,
   payload: TerminalInputPayload,
@@ -113,6 +132,16 @@ export function sendTerminalDetach(
 ): Promise<unknown> {
   return client.request({
     type: dataEndpoints.terminalDetach.path,
+    payload,
+  });
+}
+
+export function sendTerminalStatusDetach(
+  client: WsClient,
+  payload: { readonly streamRequestId: string },
+): Promise<unknown> {
+  return client.request({
+    type: dataEndpoints.terminalStatusDetach.path,
     payload,
   });
 }

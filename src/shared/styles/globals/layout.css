@@ -201,6 +201,12 @@
     background: var(--accent-electric-strong);
 }
 
+.current-worker-terminal-dot.is-busy {
+    animation: status-pulse 1s ease-in-out infinite;
+    background: var(--accent-lime);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-lime) 16%, transparent);
+}
+
 .current-worker-card {
     display: flex;
     align-items: center;

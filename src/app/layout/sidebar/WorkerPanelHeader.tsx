@@ -31,7 +31,7 @@ export const WorkerPanelHeader: React.FC<{
   awaitingChat?: WorkerConversationRow;
   activeRunChat?: WorkerConversationRow;
   unreadCount?: number;
-  terminalActive?: boolean;
+  terminalStatus?: "idle" | "busy";
   onStartNewConversation: (
     e: React.MouseEvent<HTMLElement>,
     workerKey: string,
@@ -53,7 +53,7 @@ export const WorkerPanelHeader: React.FC<{
   awaitingChat,
   activeRunChat,
   unreadCount = 0,
-  terminalActive = false,
+  terminalStatus,
   onStartNewConversation,
   onMarkAllRead,
   onOpenWorkspace,
@@ -79,6 +79,11 @@ export const WorkerPanelHeader: React.FC<{
     : activeRunChat
       ? "running"
       : "";
+  const terminalActive = Boolean(terminalStatus);
+  const terminalBusy = terminalStatus === "busy";
+  const terminalTitle = terminalBusy
+    ? t("leftSidebar.terminalBusy")
+    : t("leftSidebar.terminalActive");
   const isAgent = row.type === "agent";
   const isCoder = row.agentType === "coder";
   const isKbase = row.agentType === "kbase";
@@ -156,10 +161,12 @@ export const WorkerPanelHeader: React.FC<{
           </Typography.Text>
           <Badge count={unreadCount} size="small" color="blue" />
           {terminalActive ? (
-            <Tooltip title={t("leftSidebar.terminalActive")}>
+            <Tooltip title={terminalTitle}>
               <span
-                className="worker-terminal-active"
-                aria-label={t("leftSidebar.terminalActive")}
+                className={`worker-terminal-active ${
+                  terminalBusy ? "is-busy" : ""
+                }`}
+                aria-label={terminalTitle}
               >
                 <MaterialIcon name="terminal" />
               </span>
