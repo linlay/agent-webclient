@@ -73,6 +73,7 @@ import {
   submitTool,
   toggleAutomation,
   updateAgent,
+  updateAgentName,
   updateAccessLevel,
   updateAgentModelConfig,
   putAdminAgentOrder,
@@ -503,6 +504,10 @@ describe('data client query payloads', () => {
         description: 'updated',
       },
     });
+    await updateAgentName({
+      key: 'editable-agent',
+      name: 'Renamed Agent',
+    });
     await updateAgentModelConfig({
       agentKey: 'editable-agent',
       modelKey: 'coder-model',
@@ -539,6 +544,13 @@ describe('data client query payloads', () => {
             mode: 'REACT',
             description: 'updated',
           },
+        },
+      },
+      {
+        url: '/api/admin/agents/update-name',
+        body: {
+          key: 'editable-agent',
+          name: 'Renamed Agent',
         },
       },
       {

@@ -91,6 +91,7 @@ jest.mock("@/shared/data/client", () => {
 			submitTool: jest.fn(),
 			toggleAutomation: jest.fn(),
 			updateAgent: jest.fn(),
+			updateAgentName: jest.fn(),
 			updateAccessLevel: jest.fn(),
 			updateAgentModelConfig: jest.fn(),
 			putAgentOrder: jest.fn(),
@@ -164,6 +165,7 @@ let mockApiClient: {
 		submitTool: jest.Mock;
 		toggleAutomation: jest.Mock;
 		updateAgent: jest.Mock;
+		updateAgentName: jest.Mock;
 		updateAccessLevel: jest.Mock;
 		updateAgentModelConfig: jest.Mock;
 		putAgentOrder: jest.Mock;
@@ -541,6 +543,49 @@ describe("routedClient", () => {
 			definition: { key: "editable-agent", name: "Updated Agent" },
 		});
 		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({ key: "editable-agent" });
+	});
+
+	it("forwards updateAgentName to http and invalidates cached routes", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.updateAgentName.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
+
+		const result = await proxy.updateAgentName({
+			key: "editable-agent",
+			name: "Renamed Agent",
+		});
+
+		expect(connect).not.toHaveBeenCalled();
+		expect(request).not.toHaveBeenCalled();
+		expect(mockApiClient.updateAgentName).toHaveBeenCalledWith({
+			key: "editable-agent",
+			name: "Renamed Agent",
+		});
+		expect(result).toEqual({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { key: "editable-agent" },
+		});
 	});
 
 	it("routes memory console calls over ws when connected", async () => {

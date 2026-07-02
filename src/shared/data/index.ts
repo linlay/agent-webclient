@@ -65,6 +65,7 @@ export {
   toggleAutomation,
   updateAccessLevel,
   updateAgent,
+  updateAgentName,
   updateAgentModelConfig,
   updateAutomation,
   uploadFile,

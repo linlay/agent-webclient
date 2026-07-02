@@ -364,6 +364,12 @@ export interface UpdateAgentRequest {
   agentsPrompt?: string;
 }
 
+export interface UpdateAgentNameRequest {
+  key?: string;
+  agentKey?: string;
+  name: string;
+}
+
 export interface UpdateAgentModelConfigRequest {
   key?: string;
   agentKey?: string;
@@ -1354,6 +1360,12 @@ export function updateAgent(
   params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
   return postJson<AgentDetailResponse>(dataEndpoints.adminAgentUpdate.path, params);
+}
+
+export function updateAgentName(
+  params: UpdateAgentNameRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentUpdateName.path, params);
 }
 
 export function updateAgentModelConfig(

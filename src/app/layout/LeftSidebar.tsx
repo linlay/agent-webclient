@@ -52,12 +52,11 @@ import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySectio
 import {
   createAgent,
   deleteAgent,
-  getAgent,
-  getChats,
   getAgents,
+  getChats,
   markChatRead,
   searchGlobal,
-  updateAgent,
+  updateAgentName,
 } from "@/shared/data";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import {
@@ -67,7 +66,6 @@ import {
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
-import type { AgentDetailResponse } from "@/shared/data";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
@@ -124,56 +122,6 @@ const ACP_PROXY_OPTIONS = [
   { value: "proxy-acp-claudecode", label: "claude" },
   { value: "proxy-acp-codex", label: "codex" },
 ];
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function normalizeAgentMode(mode: unknown): string {
-  const normalized = String(mode || "")
-    .trim()
-    .toUpperCase();
-  return normalized || "REACT";
-}
-
-function buildFallbackAgentDefinition(
-  detail: AgentDetailResponse,
-): Record<string, unknown> {
-  const definition: Record<string, unknown> = {
-    key: detail.key,
-    name: detail.name,
-    icon: detail.icon,
-    role: detail.role || "",
-    description: detail.description || "",
-    mode: normalizeAgentMode(detail.mode),
-  };
-  const meta = asRecord(detail.meta);
-  const visibility = asRecord(meta.visibility);
-  const budget = asRecord(meta.budget);
-  const modelConfig = asRecord(detail.modelConfig);
-  const modelKey = String(
-    modelConfig.modelKey || meta.modelKey || detail.model || "",
-  ).trim();
-  if (modelKey || Object.keys(modelConfig).length > 0) {
-    definition.modelConfig = {
-      ...modelConfig,
-      ...(modelKey ? { modelKey } : {}),
-    };
-  }
-  if (Array.isArray(detail.tools))
-    definition.toolConfig = { tools: detail.tools };
-  if (Array.isArray(detail.skills))
-    definition.skillConfig = { skills: detail.skills };
-  if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
-  if (Array.isArray(detail.controls)) definition.controls = detail.controls;
-  if (Array.isArray(visibility.scopes)) {
-    definition.visibility = { scopes: visibility.scopes };
-  }
-  if (Object.keys(budget).length > 0) definition.budget = budget;
-  return definition;
-}
 
 export async function handleCreateAgentSuccess(
   createdKey: string,
@@ -568,14 +516,7 @@ export const LeftSidebar: React.FC = () => {
         const newName = nextName.trim();
         if (!newName) return;
         try {
-          const detail = await getAgent(agentKey);
-          const agentDetail = detail.data as AgentDetailResponse;
-          const definition = {
-            ...(agentDetail.definition ||
-              buildFallbackAgentDefinition(agentDetail)),
-            name: newName,
-          };
-          await updateAgent({ key: agentKey, definition });
+          await updateAgentName({ key: agentKey, name: newName });
           message.success(t("leftSidebar.renameAgentSuccess"));
           window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
         } catch (error) {

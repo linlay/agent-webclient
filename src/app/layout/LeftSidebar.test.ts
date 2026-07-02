@@ -308,7 +308,7 @@ jest.mock("@/shared/data", () => ({
   getChats: jest.fn(),
   markChatRead: jest.fn(),
   searchGlobal: jest.fn(),
-  updateAgent: jest.fn(),
+  updateAgentName: jest.fn(),
 }));
 
 jest.mock("react-router-dom", () => ({
@@ -331,13 +331,13 @@ const {
   deleteAgent,
   getAgent,
   getAgents,
-  updateAgent,
+  updateAgentName,
 } = jest.requireMock("@/shared/data") as {
   createAgent: jest.Mock;
   deleteAgent: jest.Mock;
   getAgent: jest.Mock;
   getAgents: jest.Mock;
-  updateAgent: jest.Mock;
+  updateAgentName: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
@@ -536,7 +536,7 @@ describe("LeftSidebar", () => {
     deleteAgent.mockReset();
     getAgent.mockReset();
     getAgents.mockReset();
-    updateAgent.mockReset();
+    updateAgentName.mockReset();
     mockModalConfirm.mockReset();
     mockMessageSuccess.mockReset();
     mockNavigate.mockReset();
@@ -1139,30 +1139,11 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("renames an agent without dropping fallback definition fields", async () => {
+  it("renames an agent through the lightweight update-name endpoint", async () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     mockState(state);
-    getAgent.mockResolvedValue({
-      data: {
-        key: "worker_a",
-        name: "Alpha Agent",
-        icon: { name: "smart_toy" },
-        role: "Builder",
-        description: "Builds things",
-        mode: "CODER",
-        model: "coder-model",
-        tools: ["shell"],
-        skills: ["typescript"],
-        wonders: ["focus"],
-        controls: [{ key: "approval" }],
-        meta: {
-          visibility: { scopes: ["nav", "copilot"] },
-          budget: { maxCalls: 10 },
-        },
-      },
-    });
-    updateAgent.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
+    updateAgentName.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
 
     renderSidebar();
     const menu = firstWorkerActionMenu();
@@ -1189,24 +1170,10 @@ describe("LeftSidebar", () => {
     });
     await confirmConfig.onOk();
 
-    expect(getAgent).toHaveBeenCalledWith("worker_a");
-    expect(updateAgent).toHaveBeenCalledWith({
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(updateAgentName).toHaveBeenCalledWith({
       key: "worker_a",
-      definition: {
-        key: "worker_a",
-        name: "Beta Agent",
-        icon: { name: "smart_toy" },
-        role: "Builder",
-        description: "Builds things",
-        mode: "CODER",
-        modelConfig: { modelKey: "coder-model" },
-        toolConfig: { tools: ["shell"] },
-        skillConfig: { skills: ["typescript"] },
-        wonders: ["focus"],
-        controls: [{ key: "approval" }],
-        visibility: { scopes: ["nav", "copilot"] },
-        budget: { maxCalls: 10 },
-      },
+      name: "Beta Agent",
     });
     expect(mockMessageSuccess).toHaveBeenCalledWith("名称已修改");
     expect(globalWithWindow.window?.dispatchEvent).toHaveBeenCalledWith(
@@ -1214,30 +1181,11 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("keeps existing agent definition fields when renaming", async () => {
+  it("renames through update-name even when the agent has a rich definition", async () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     mockState(state);
-    getAgent.mockResolvedValue({
-      data: {
-        key: "worker_a",
-        name: "Alpha Agent",
-        model: "",
-        mode: "REACT",
-        tools: [],
-        skills: [],
-        controls: [],
-        meta: {},
-        definition: {
-          key: "worker_a",
-          name: "Alpha Agent",
-          mode: "REACT",
-          runtimeConfig: { workspaceRoot: "/tmp/demo" },
-          modelConfig: { modelKey: "react-model" },
-        },
-      },
-    });
-    updateAgent.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
+    updateAgentName.mockResolvedValue({ data: { key: "worker_a", name: "Beta Agent" } });
 
     renderSidebar();
     firstWorkerActionMenu()?.onClick?.({
@@ -1251,15 +1199,10 @@ describe("LeftSidebar", () => {
     });
     await confirmConfig.onOk();
 
-    expect(updateAgent).toHaveBeenCalledWith({
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(updateAgentName).toHaveBeenCalledWith({
       key: "worker_a",
-      definition: {
-        key: "worker_a",
-        name: "Beta Agent",
-        mode: "REACT",
-        runtimeConfig: { workspaceRoot: "/tmp/demo" },
-        modelConfig: { modelKey: "react-model" },
-      },
+      name: "Beta Agent",
     });
   });
 

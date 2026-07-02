@@ -54,6 +54,7 @@ import {
 	submitTool as submitToolHttp,
 	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
+	updateAgentName as updateAgentNameHttp,
 	updateAccessLevel as updateAccessLevelHttp,
 	updateAgentModelConfig as updateAgentModelConfigHttp,
 	putAgentOrder as putAgentOrderHttp,
@@ -101,6 +102,7 @@ import {
 	type CompactChatResponse,
 	type ToggleAutomationRequest,
 	type UpdateAgentRequest,
+	type UpdateAgentNameRequest,
 	type UpdateAgentModelConfigRequest,
 	type UpdateAgentOrderRequest,
 	type UpdateAutomationRequest,
@@ -254,6 +256,15 @@ export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return updateAgentHttp(params).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		return response;
+	});
+}
+
+export function updateAgentName(
+	params: UpdateAgentNameRequest,
+): Promise<ApiResponse<AgentDetailResponse>> {
+	return updateAgentNameHttp(params).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
 		return response;
 	});

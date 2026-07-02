@@ -134,6 +134,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminAgentUpdateName: defineEndpoint({
+    key: "admin.agents.updateName",
+    path: "/api/admin/agents/update-name",
+    method: "POST",
+    transport: "http",
+  }),
   adminRegistries: defineEndpoint({
     key: "admin.registries.list",
     path: "/api/admin/registries",
