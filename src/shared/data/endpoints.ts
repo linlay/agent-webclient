@@ -166,22 +166,17 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
-  adminSkills: defineEndpoint<string | undefined, Record<string, unknown>>({
+  adminSkills: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.skills.list",
     path: "/api/admin/skills",
     method: "GET",
     transport: "http",
-    payload: (tag) => compactPayload({ tag }),
   }),
-  adminTools: defineEndpoint<
-    { kind?: string; sourceCategory?: "platform" | "external" | "mcp" },
-    Record<string, unknown>
-  >({
+  adminTools: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.tools.list",
     path: "/api/admin/tools",
     method: "GET",
     transport: "http",
-    payload: (params = {}) => compactPayload(params),
   }),
   agent: defineEndpoint<string, { agentKey: string }>({
     key: "agent.detail",

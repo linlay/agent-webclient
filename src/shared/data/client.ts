@@ -1429,16 +1429,12 @@ export function getTeams(): Promise<ApiResponse> {
   return requestJson(dataEndpoints.teams.path);
 }
 
-export function getAdminSkills(tag?: string): Promise<ApiResponse> {
-  const query = endpointQuery(dataEndpoints.adminSkills, tag);
-  return requestJson(withQuery(dataEndpoints.adminSkills.path, query));
+export function getAdminSkills(): Promise<ApiResponse> {
+  return requestJson(dataEndpoints.adminSkills.path);
 }
 
-export function getAdminTools(
-  options: { kind?: string; sourceCategory?: "platform" | "external" | "mcp" } = {},
-): Promise<ApiResponse<AdminToolSummary[]>> {
-  const query = endpointQuery(dataEndpoints.adminTools, options);
-  return requestJson<AdminToolSummary[]>(withQuery(dataEndpoints.adminTools.path, query));
+export function getAdminTools(): Promise<ApiResponse<AdminToolSummary[]>> {
+  return requestJson<AdminToolSummary[]>(dataEndpoints.adminTools.path);
 }
 
 export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {

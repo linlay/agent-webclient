@@ -6,12 +6,10 @@
       <stop offset="1" stop-color="#EA580C"/>
     </linearGradient>
   </defs>
-  <path d="M24 14V7.5" stroke="url(#g-coder-agent)" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
-  <circle cx="24" cy="7.5" r="3" fill="url(#g-coder-agent)" opacity="0.94"/>
-  <rect x="10" y="14" width="28" height="24" rx="6" stroke="url(#g-coder-agent)" stroke-width="3"/>
-  <rect x="6" y="22" width="4" height="8" rx="2" fill="url(#g-coder-agent)" opacity="0.58"/>
-  <rect x="38" y="22" width="4" height="8" rx="2" fill="url(#g-coder-agent)" opacity="0.58"/>
-  <path d="M20.2 22.5L16.5 26L20.2 29.5" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M27.8 22.5L31.5 26L27.8 29.5" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M25.8 21.6L22.2 30.4" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round"/>
+  <rect x="6" y="10" width="36" height="28" rx="5.5" stroke="url(#g-coder-agent)" stroke-width="3"/>
+  <rect x="2.5" y="20.5" width="4.5" height="11" rx="2.25" fill="url(#g-coder-agent)" opacity="0.58"/>
+  <rect x="41" y="20.5" width="4.5" height="11" rx="2.25" fill="url(#g-coder-agent)" opacity="0.58"/>
+  <path d="M17.9 18.8L12.8 24L17.9 29.2" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30.1 18.8L35.2 24L30.1 29.2" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M25.6 18.2L22.4 29.8" stroke="#FB923C" stroke-width="3.2" stroke-linecap="round"/>
 </svg>
