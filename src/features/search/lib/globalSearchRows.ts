@@ -28,6 +28,11 @@ export type GlobalRow =
       chatId: string;
       label: string;
       snippet?: string;
+      updatedAt: number;
+      isUnread: boolean;
+      hasPendingAwaiting: boolean;
+      statusLabel?: string;
+      hasActiveRun: boolean;
     };
 
 export interface BuildGlobalRowsInput {
@@ -37,6 +42,21 @@ export interface BuildGlobalRowsInput {
   hasCurrentWorker: boolean;
   workerIcons?: ReadonlyMap<string, Agent["icon"] | Team["icon"]>;
   t: (key: string, params?: Record<string, unknown>) => string;
+}
+
+function getAwaitingStatusKey(mode?: string): string {
+  switch (mode) {
+    case "plan":
+      return "leftSidebar.awaitingStatus.plan";
+    case "question":
+      return "leftSidebar.awaitingStatus.question";
+    case "approval":
+      return "leftSidebar.awaitingStatus.approval";
+    case "form":
+      return "leftSidebar.awaitingStatus.form";
+    default:
+      return "leftSidebar.awaitingApproval";
+  }
 }
 
 export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
@@ -133,6 +153,13 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
         chatId: h.chatId,
         label: h.chatName || h.chatId || "",
         snippet: h.lastRunContent || undefined,
+        updatedAt: h.updatedAt,
+        isUnread: h.isRead === false,
+        hasPendingAwaiting: h.hasPendingAwaiting || false,
+        statusLabel: h.hasPendingAwaiting
+          ? t(getAwaitingStatusKey(h.awaitingMode))
+          : undefined,
+        hasActiveRun: h.hasActiveRun || false,
       });
     }
   }

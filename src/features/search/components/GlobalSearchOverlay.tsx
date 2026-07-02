@@ -10,13 +10,11 @@ import { GlobalSearchPanel } from "@/features/search/components/GlobalSearchPane
 import { searchGlobal } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
-import { useGlobalSearchActions, useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
+import {
+  useGlobalSearchActions,
+  useGlobalSearchOpen,
+} from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
-
-function clampIndex(index: number, length: number): number {
-  if (length <= 0) return 0;
-  return Math.max(0, Math.min(index, length - 1));
-}
 
 export const GlobalSearchOverlay: React.FC = () => {
   const state = useAppState();
@@ -27,9 +25,7 @@ export const GlobalSearchOverlay: React.FC = () => {
   const { closeGlobalSearch } = useGlobalSearchActions();
   const { openCommandOverlay } = useCommandOverlayActions();
   const searchInputRef = useRef<HTMLInputElement>(null);
-
   const [searchText, setSearchText] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const currentWorker = useMemo(
     () => resolveCurrentWorkerSummary(state),
@@ -73,9 +69,14 @@ export const GlobalSearchOverlay: React.FC = () => {
       workerIcons: workerIconsByKey,
       t: t as (key: string, params?: Record<string, unknown>) => string,
     });
-  }, [currentWorker, globalHistoryRows, searchText, state.workerRows, t, workerIconsByKey]);
-
-  const globalIndex = clampIndex(activeIndex, globalRows.length);
+  }, [
+    currentWorker,
+    globalHistoryRows,
+    searchText,
+    state.workerRows,
+    t,
+    workerIconsByKey,
+  ]);
 
   const handleClose = () => {
     closeGlobalSearch();
@@ -154,7 +155,6 @@ export const GlobalSearchOverlay: React.FC = () => {
   useEffect(() => {
     if (!isOpen) {
       setSearchText("");
-      setActiveIndex(0);
       setGlobalRemoteState(null);
       return;
     }
@@ -164,12 +164,7 @@ export const GlobalSearchOverlay: React.FC = () => {
 
   useEffect(() => {
     const query = searchText.trim();
-    if (
-      !isOpen ||
-      !currentWorker?.type ||
-      !currentWorker?.sourceId ||
-      !query
-    ) {
+    if (!isOpen || !currentWorker?.type || !currentWorker?.sourceId || !query) {
       setGlobalRemoteState(null);
       return;
     }
@@ -209,53 +204,44 @@ export const GlobalSearchOverlay: React.FC = () => {
         });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [currentWorker?.sourceId, currentWorker?.type, dispatch, isOpen, searchText]);
+  }, [
+    currentWorker?.sourceId,
+    currentWorker?.type,
+    dispatch,
+    isOpen,
+    searchText,
+  ]);
 
   return (
     <Modal
       open={isOpen}
       onCancel={handleClose}
-      title={t("globalSearch.title")}
       footer={null}
       destroyOnHidden
-      getContainer={false}
       width="min(640px, calc(100vw - 32px))"
-      className="command-modal"
+      closable={false}
+      styles={{
+        mask: {
+          background: "transparent",
+          backdropFilter: "blur(2px)",
+        },
+        content: {
+          padding: 4,
+          borderRadius: 20,
+        },
+      }}
     >
-      <div
-        tabIndex={-1}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown" && globalRows.length > 0) {
-            event.preventDefault();
-            setActiveIndex(clampIndex(activeIndex + 1, globalRows.length));
-            return;
-          }
-          if (event.key === "ArrowUp" && globalRows.length > 0) {
-            event.preventDefault();
-            setActiveIndex(clampIndex(activeIndex - 1, globalRows.length));
-            return;
-          }
-          if (event.key === "Enter" && globalRows.length > 0) {
-            event.preventDefault();
-            selectGlobalRow(globalRows[globalIndex]);
-          }
+      <GlobalSearchPanel
+        searchText={searchText}
+        searchInputRef={searchInputRef}
+        placeholder={t("globalSearch.placeholder")}
+        emptyText={t("globalSearch.empty")}
+        rows={globalRows}
+        onSearchChange={(value) => {
+          setSearchText(value);
         }}
-      >
-        <GlobalSearchPanel
-          searchText={searchText}
-          searchInputRef={searchInputRef}
-          placeholder={t("globalSearch.placeholder")}
-          emptyText={t("globalSearch.empty")}
-          rows={globalRows}
-          activeIndex={globalIndex}
-          onSearchChange={(value) => {
-            setSearchText(value);
-            setActiveIndex(0);
-          }}
-          onActivateIndex={setActiveIndex}
-          onSelectRow={selectGlobalRow}
-        />
-      </div>
+        onSelectRow={selectGlobalRow}
+      />
     </Modal>
   );
 };

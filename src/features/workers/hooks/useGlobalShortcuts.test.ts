@@ -310,6 +310,30 @@ describe("useGlobalShortcuts", () => {
     expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
   });
 
+  it("triggers Meta+K on message input despite editable target guard", () => {
+    isEditableKeyboardTarget.mockReturnValue(true);
+    renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
+    const event = createFakeEvent({
+      code: "KeyK",
+      metaKey: true,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: false,
+    });
+    const messageInput = {
+      id: "message-input",
+      tagName: "TEXTAREA",
+      closest: jest.fn(() => null),
+    };
+    Object.defineProperty(event, "target", {
+      value: messageInput,
+      configurable: true,
+    });
+    currentHandler?.(event);
+    expect(mockOpenGlobalSearch).toHaveBeenCalled();
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
   it("does not trigger when settings overlay is open", () => {
     mockSettingsOverlay.isAnyOverlayOpen = true;
     renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
