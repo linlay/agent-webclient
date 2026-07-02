@@ -280,24 +280,6 @@ write_program_manifest() {
         }
       ]
     },
-    "envBindings": [
-      {
-        "key": "BASE_URL",
-        "fromService": "agent-platform",
-        "template": "http://127.0.0.1:{{port}}",
-        "onlyIfDefault": true,
-        "defaults": [
-          "",
-          "http://127.0.0.1:11949",
-          "http://localhost:11949"
-        ]
-      },
-      {
-        "key": "PORT",
-        "value": "{{serviceDefaultPort}}",
-        "onlyIfDefault": true
-      }
-    ],
     "capabilities": {
       "provides": [],
       "requires": [
