@@ -15,6 +15,7 @@ import {
   useGlobalSearchOpen,
 } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export const GlobalSearchOverlay: React.FC = () => {
   const state = useAppState();
@@ -186,7 +187,7 @@ export const GlobalSearchOverlay: React.FC = () => {
                 chatName: String(result.chatName || result.chatId || ""),
                 agentKey: result.agentKey,
                 teamId: result.teamId,
-                updatedAt: Number(result.timestamp) || 0,
+                updatedAt: readEpochMillis(result.timestamp),
                 lastRunId: String(result.runId || ""),
                 lastRunContent: String(result.snippet || ""),
                 searchSnippet: String(result.snippet || ""),

@@ -7,6 +7,7 @@ import type {
   MemoryScopeSummary,
 } from "@/shared/data/memoryTypes";
 import { toText } from "@/shared/utils/eventUtils";
+import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 
 export interface MemoryAgentContext {
   agentKey: string;
@@ -141,11 +142,7 @@ export function resolveMemoryPreviewContext(
 }
 
 export function formatMemoryTimestamp(value?: number | null): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return "--";
-  }
-  return new Date(numeric).toLocaleString();
+  return formatEpochMillisLocal(value);
 }
 
 export function formatMemoryJson(value: unknown): string {

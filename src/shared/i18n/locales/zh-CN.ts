@@ -372,6 +372,7 @@ export const zhCNMessages: I18nMessages = {
   "archive.search.placeholder": "搜索归档标题或内容...",
   "archive.item.agent": "智能体",
   "archive.item.created": "创建",
+  "archive.item.lastRun": "最后运行",
   "archive.item.updated": "最后活动",
   "archive.tag.attachments": "附件",
   "archive.title": "归档",

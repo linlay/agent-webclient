@@ -10,6 +10,7 @@ import type {
   EventProcessorState,
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { isTerminalStatus, safeText, toText } from "@/shared/utils/eventUtils";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 import { pickToolName, resolveViewportKey } from "@/features/timeline/lib/toolEvent";
 
 const INCOMPLETE_TOOL_ARGS_NOTE = "[incomplete tool args]";
@@ -252,7 +253,7 @@ export function normalizePublishedArtifacts(event: AgentEvent): PublishedArtifac
     return [];
   }
 
-  const timestamp = Number(event.timestamp) || Date.now();
+  const timestamp = readEpochMillis(event.timestamp) || Date.now();
   return rawArtifacts
     .map((item) => {
       if (!item || typeof item !== "object" || Array.isArray(item)) {

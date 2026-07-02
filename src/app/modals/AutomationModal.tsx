@@ -27,6 +27,7 @@ import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { useI18n, type I18nContextValue } from "@/shared/i18n";
+import { formatPlatformReadableTimeWithFallback } from "@/shared/utils/platformTime";
 
 type AutomationStatusFilter = "all" | "enabled" | "disabled";
 type AutomationFormMode = "create" | "edit";
@@ -180,12 +181,16 @@ function isFiveFieldCron(value: string): boolean {
   return value.trim().split(/\s+/).length === 5;
 }
 
-function toTimeLabel(value?: string | number | null, locale?: string): string {
-  if (value === undefined || value === null || value === "") return "--";
-  const date =
-    typeof value === "number" ? new Date(value) : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString(locale);
+export function automationTimeLabel(
+  readable?: string | null,
+  fallbackEpochMillis?: number | null,
+  locale?: string,
+): string {
+  return formatPlatformReadableTimeWithFallback(
+    readable,
+    fallbackEpochMillis,
+    locale,
+  );
 }
 
 function toDurationLabel(value?: number | null): string {
@@ -207,7 +212,7 @@ function automationListMeta(automation: AutomationSummaryResponse, t: Translate,
   return [
     automation.cron || "--",
     t("automationConsole.list.nextFire", {
-      time: toTimeLabel(automation.nextFireTime, locale),
+      time: automationTimeLabel(automation.nextFireTime, automation.nextFireAt, locale),
     }),
     t("automationConsole.list.lastStatus", { status: lastStatus }),
   ].join(" · ");
@@ -1059,7 +1064,7 @@ export const AutomationModal: React.FC<{
                   {executions.map((item) => (
                     <div className="automation-execution-row" key={item.id}>
                       <span>{item.status}</span>
-                      <span>{toTimeLabel(item.startedAt, locale)}</span>
+                      <span>{automationTimeLabel(item.startedTime, item.startedAt, locale)}</span>
                       <span>{toDurationLabel(item.durationMs)}</span>
                       <span>{item.error || "--"}</span>
                     </div>

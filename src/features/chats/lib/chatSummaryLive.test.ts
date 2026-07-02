@@ -30,6 +30,16 @@ describe('chatSummaryLive helpers', () => {
     expect(resolveChatSummaryUpdatedAt(event)).toBe(12345);
   });
 
+  it('ignores string timestamp fields from live summary events', () => {
+    const event = {
+      type: 'chat.updated',
+      updatedAt: '2026-07-02T09:00:00+08:00',
+      createdAt: '2026-07-02T08:00:00+08:00',
+    } as unknown as AgentEvent;
+
+    expect(resolveChatSummaryUpdatedAt(event)).toBeUndefined();
+  });
+
   it('clears pending approval state for stream and push awaiting answer events', () => {
     expect(
       resolveChatSummaryPendingAwaiting({ type: 'awaiting.answer' } as AgentEvent),

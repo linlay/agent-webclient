@@ -2,10 +2,10 @@ import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
 import { isChatActiveRun } from '@/features/chats/lib/chatRunState';
 import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
 import { toText } from '@/shared/utils/eventUtils';
+import { readEpochMillis } from '@/shared/utils/platformTime';
 
 function normalizeUpdatedAt(updatedAt: unknown): number {
-  const numeric = Number(updatedAt);
-  return Number.isFinite(numeric) ? numeric : 0;
+  return readEpochMillis(updatedAt);
 }
 
 function compareChatFreshness(a: Chat, b: Chat): number {

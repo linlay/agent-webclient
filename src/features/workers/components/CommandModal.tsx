@@ -19,6 +19,7 @@ import {
 } from "@/shared/data";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { useI18n } from "@/shared/i18n";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -286,7 +287,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
                 chatName: String(result.chatName || result.chatId || ""),
                 agentKey: result.agentKey,
                 teamId: result.teamId,
-                updatedAt: Number(result.timestamp) || 0,
+                updatedAt: readEpochMillis(result.timestamp),
                 lastRunId: String(result.runId || ""),
                 lastRunContent: String(result.snippet || ""),
                 searchSnippet: String(result.snippet || ""),

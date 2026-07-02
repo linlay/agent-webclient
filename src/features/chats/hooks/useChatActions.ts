@@ -25,6 +25,7 @@ import {
 import { resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/chats/lib/conversationReplay';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/transport/lib/detachRunEvent';
+import { readEpochMillis } from '@/shared/utils/platformTime';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -119,7 +120,10 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   }
 
   const sizeBytes = Number(value.sizeBytes ?? value.size);
-  const timestamp = Number(value.timestamp ?? value.createdAt ?? value.updatedAt);
+  const timestamp =
+    readEpochMillis(value.timestamp) ||
+    readEpochMillis(value.createdAt) ||
+    readEpochMillis(value.updatedAt);
 
   return {
     artifactId,
@@ -131,7 +135,7 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
       sizeBytes: Number.isFinite(sizeBytes) && sizeBytes >= 0 ? sizeBytes : 0,
       url,
     },
-    timestamp: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0,
+    timestamp,
   };
 }
 

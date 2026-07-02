@@ -4,6 +4,7 @@ import type { Plan, PlanRuntime, TaskItemMeta } from "@/app/state/types";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 import { Flex } from "antd";
 
 function normalizePlanStatus(status?: string): string {
@@ -70,10 +71,11 @@ export function buildPlanSummaryView(
     const runtime = planRuntimeByTaskId.get(task.taskId);
     const taskMeta = taskItemsById?.get(task.taskId);
     const status = normalizePlanStatus(runtime?.status || task.status);
+    const startedAt = readEpochMillis(taskMeta?.startedAt);
     const durationMs = Number.isFinite(taskMeta?.durationMs)
       ? taskMeta?.durationMs
-      : status === "running" && Number.isFinite(taskMeta?.startedAt)
-        ? Math.max(0, now - Number(taskMeta?.startedAt))
+      : status === "running" && startedAt > 0
+        ? Math.max(0, now - startedAt)
         : undefined;
     return {
       taskId: task.taskId,

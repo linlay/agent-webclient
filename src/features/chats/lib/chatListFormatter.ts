@@ -1,3 +1,5 @@
+import { isEpochMillis } from "@/shared/utils/platformTime";
+
 function toLocalDateKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
@@ -24,7 +26,7 @@ export interface ChatInfo {
   agentKey?: string;
   chatName?: string;
   chatId?: string;
-  updatedAt?: string | number | Date;
+  updatedAt?: number;
 }
 
 function findAgentNameByKey(agents: Array<{ key?: string; name?: string }>, candidateKey: string): string {
@@ -57,8 +59,8 @@ export function pickChatAgentLabel(chat: ChatInfo, agents: Array<{ key?: string;
   return 'n/a';
 }
 
-export function formatChatTimeLabel(updatedAt: string | number | Date | undefined, nowDate: Date = new Date()): string {
-  if (!updatedAt) {
+export function formatChatTimeLabel(updatedAt: number | undefined, nowDate: Date = new Date()): string {
+  if (!isEpochMillis(updatedAt) || updatedAt <= 0) {
     return '--';
   }
 

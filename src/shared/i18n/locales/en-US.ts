@@ -372,6 +372,7 @@ export const enUSMessages: I18nMessages = {
   "archive.search.placeholder": "Search archived titles or content...",
   "archive.item.agent": "Agent",
   "archive.item.created": "Created",
+  "archive.item.lastRun": "Last run",
   "archive.item.updated": "Last run",
   "archive.tag.attachments": "Attachments",
   "archive.title": "Archive",

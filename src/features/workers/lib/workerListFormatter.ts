@@ -1,6 +1,7 @@
 import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
 import { toText } from '@/shared/utils/eventUtils';
 import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
+import { readEpochMillis } from '@/shared/utils/platformTime';
 
 function toDisplayName(name: unknown, fallback: unknown): string {
   if (name !== undefined && name !== null) return toText(name);
@@ -17,8 +18,7 @@ function toRunSortValue(lastRunId: unknown): number {
 }
 
 function normalizeUpdatedAt(updatedAt: unknown): number {
-  const numeric = Number(updatedAt);
-  return Number.isFinite(numeric) ? numeric : 0;
+  return readEpochMillis(updatedAt);
 }
 
 function normalizeAgentType(type: unknown, mode?: unknown): 'agent' | 'coder' | 'kbase' {

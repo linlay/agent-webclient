@@ -11,13 +11,15 @@ describe("buildArchiveBulkCandidates", () => {
 				{
 					chatId: "chat_old",
 					chatName: "Quarterly review",
-					updatedAt: nowMs - 40 * 24 * 60 * 60 * 1000,
+					updatedAt: nowMs - 2 * 24 * 60 * 60 * 1000,
+					lastRunAt: nowMs - 40 * 24 * 60 * 60 * 1000,
 					lastRunContent: "budget",
 				},
 				{
 					chatId: "chat_recent",
 					chatName: "Quarterly current",
-					updatedAt: nowMs - 2 * 24 * 60 * 60 * 1000,
+					updatedAt: nowMs - 100 * 24 * 60 * 60 * 1000,
+					lastRunAt: nowMs - 2 * 24 * 60 * 60 * 1000,
 				},
 				{
 					chatId: "chat_other",
@@ -50,6 +52,7 @@ describe("buildArchiveBulkCandidates", () => {
 					chatId: "chat_worker",
 					chatName: "Worker chat",
 					updatedAt: nowMs - 100 * 24 * 60 * 60 * 1000,
+					lastRunAt: nowMs - 100 * 24 * 60 * 60 * 1000,
 					lastRunId: "run_1",
 					lastRunContent: "old",
 				},
@@ -62,6 +65,28 @@ describe("buildArchiveBulkCandidates", () => {
 		});
 
 		expect(candidates.map((item) => item.chatId)).toEqual(["chat_worker"]);
+	});
+
+	it("keeps epoch milliseconds unchanged instead of converting small numbers as seconds", () => {
+		const candidates = buildArchiveBulkCandidates({
+			chats: [
+				{
+					chatId: "chat_epoch_ms",
+					chatName: "Epoch ms",
+					updatedAt: 100,
+					lastRunContent: "tiny timestamp",
+				},
+			],
+			workerRelatedChats: [],
+			conversationMode: "chat",
+			workerSelectionKey: "",
+			chatFilter: "",
+			days: 30,
+			nowMs: Date.UTC(2026, 3, 29),
+		});
+
+		expect(candidates).toHaveLength(1);
+		expect(candidates[0].lastRunAt).toBe(100);
 	});
 });
 

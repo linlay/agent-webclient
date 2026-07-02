@@ -12,6 +12,7 @@ import {
 } from "@/shared/data";
 import type {
 	ArchiveDetailResponse,
+	ArchiveSearchResult,
 	ArchivedSummaryResponse,
 	ChatSummaryResponse,
 } from "@/shared/data";
@@ -19,17 +20,20 @@ import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t } from "@/shared/i18n";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 const ARCHIVE_PAGE_SIZE = 30;
 const BULK_DAY_OPTIONS = [7, 30, 90, 180, 365];
 
 function toTimestamp(value: unknown): number {
-	if (value instanceof Date) return value.getTime();
-	if (typeof value === "number") {
-		return value > 0 && value < 1_000_000_000_000 ? value * 1000 : value;
-	}
-	const parsed = new Date(String(value || "")).getTime();
-	return Number.isFinite(parsed) ? parsed : 0;
+	return readEpochMillis(value);
+}
+
+function archiveLastRunAt(item: unknown): number {
+	if (!item || typeof item !== "object") return 0;
+	const record = item as Partial<ArchivedSummaryResponse>;
+	const lastRunAt = toTimestamp(record.lastRunAt);
+	return lastRunAt || toTimestamp(record.updatedAt);
 }
 
 function toPreviewText(value: unknown): string {
@@ -55,7 +59,7 @@ function toPreviewText(value: unknown): string {
 }
 
 function asArchiveSummary(
-	item: ArchivedSummaryResponse | WorkerConversationRow | Chat,
+	item: ArchivedSummaryResponse | ArchiveSearchResult | WorkerConversationRow | Chat,
 ): ArchivedSummaryResponse {
 	return {
 		chatId: String(item.chatId || ""),
@@ -63,7 +67,8 @@ function asArchiveSummary(
 		agentKey: typeof item.agentKey === "string" ? item.agentKey : undefined,
 		teamId: typeof item.teamId === "string" ? item.teamId : undefined,
 		createdAt: toTimestamp((item as Partial<ArchivedSummaryResponse>).createdAt),
-		updatedAt: toTimestamp(item.updatedAt),
+		updatedAt: toTimestamp((item as Partial<ArchivedSummaryResponse>).updatedAt),
+		lastRunAt: archiveLastRunAt(item),
 		archivedAt: toTimestamp((item as Partial<ArchivedSummaryResponse>).archivedAt),
 		lastRunId: String(item.lastRunId || ""),
 		lastRunContent: String(item.lastRunContent || ""),
@@ -94,8 +99,8 @@ export function buildArchiveBulkCandidates(input: {
 		.map(asArchiveSummary)
 		.filter((item) => {
 			if (!item.chatId) return false;
-			const updatedAt = toTimestamp(item.updatedAt);
-			if (!updatedAt || updatedAt >= cutoff) return false;
+			const lastRunAt = toTimestamp(item.lastRunAt);
+			if (!lastRunAt || lastRunAt >= cutoff) return false;
 			if (!filter || input.conversationMode === "worker") return true;
 			const haystack = [
 				item.chatId,
@@ -165,7 +170,7 @@ function normalizeRestoredChat(
 		chatName: String(summary?.chatName || fallback?.chatName || fallback?.chatId || ""),
 		agentKey: summary?.agentKey || fallback?.agentKey,
 		teamId: summary?.teamId || fallback?.teamId,
-		updatedAt: toTimestamp(summary?.updatedAt ?? fallback?.updatedAt),
+		updatedAt: toTimestamp(summary?.updatedAt ?? fallback?.lastRunAt ?? fallback?.updatedAt),
 		createdAt: toTimestamp(summary?.createdAt ?? fallback?.createdAt),
 		lastRunId: String(summary?.lastRunId || fallback?.lastRunId || ""),
 		lastRunContent: String(summary?.lastRunContent || fallback?.lastRunContent || ""),
@@ -270,12 +275,14 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 						agentKey: archiveAgentKey || undefined,
 						limit: ARCHIVE_PAGE_SIZE,
 					});
-					const results = (response.data?.results || []).map((item) => ({
-						...item,
-						createdAt: 0,
-						updatedAt: 0,
-						hasAttachments: false,
-					}));
+					const results = (response.data?.results || []).map((item) =>
+						asArchiveSummary({
+							...item,
+							updatedAt: item.updatedAt ?? item.lastRunAt,
+							lastRunContent: item.lastRunContent || item.snippet,
+							hasAttachments: false,
+						}),
+					);
 					setItems(results);
 					setTotal(response.data?.count || results.length);
 					setOffset(results.length);
@@ -532,7 +539,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 									<span className="archive-list-meta">
 										{item.agentKey && <span className="archive-list-meta-item">{item.agentKey}</span>}
 										<span className="archive-list-meta-item">{t("archive.item.created")}: {formatChatTimeLabel(item.createdAt)}</span>
-										<span className="archive-list-meta-item">{t("archive.item.updated")}: {formatChatTimeLabel(item.updatedAt)}</span>
+										<span className="archive-list-meta-item">{t("archive.item.lastRun")}: {formatChatTimeLabel(item.lastRunAt)}</span>
 										<span className="archive-list-meta-item">{t("archive.detail.archivedAt", { time: formatChatTimeLabel(item.archivedAt) })}</span>
 									</span>
 								</button>

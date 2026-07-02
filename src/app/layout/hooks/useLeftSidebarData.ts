@@ -3,6 +3,7 @@ import type { AppState, WorkerConversationRow } from "@/app/state/types";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 type AgentIconConfig = string | {
   color?: string;
@@ -127,10 +128,8 @@ export function useLeftSidebarData({
 
   const workerChatOrderByKey = useMemo(() => {
     const sortedChats = chats.slice().sort((a, b) => {
-      const updatedA = Number(a?.updatedAt);
-      const updatedB = Number(b?.updatedAt);
-      const normalizedA = Number.isFinite(updatedA) ? updatedA : 0;
-      const normalizedB = Number.isFinite(updatedB) ? updatedB : 0;
+      const normalizedA = readEpochMillis(a?.updatedAt);
+      const normalizedB = readEpochMillis(b?.updatedAt);
 
       if (normalizedA !== normalizedB) return normalizedB - normalizedA;
 

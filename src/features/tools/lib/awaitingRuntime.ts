@@ -17,6 +17,7 @@ import {
   isAwaitingAskStreamEvent,
 } from '@/app/state/types';
 import { toText } from '@/shared/utils/eventUtils';
+import { readEpochMillis } from '@/shared/utils/platformTime';
 import {
   clearAwaitingQuestionMeta,
   registerAwaitingApprovalMeta,
@@ -390,13 +391,13 @@ function readAwaitingTimeout(event: AgentEvent): number | null {
 }
 
 function readAwaitingCreatedAt(event: AgentEvent): number | null {
-  const createdAt = Number((event as Record<string, unknown>).createdAt);
-  if (Number.isFinite(createdAt) && createdAt > 0) {
+  const createdAt = readEpochMillis((event as Record<string, unknown>).createdAt);
+  if (createdAt > 0) {
     return createdAt;
   }
 
-  const timestamp = Number(event.timestamp);
-  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+  const timestamp = readEpochMillis(event.timestamp);
+  return timestamp > 0 ? timestamp : null;
 }
 
 export function reduceActiveAwaiting(

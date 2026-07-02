@@ -22,6 +22,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 
 type StatusFilter = "all" | AdminRegistryStatus;
 
@@ -112,10 +113,7 @@ function templateForCategory(category: AdminRegistryCategory, file: string): str
 }
 
 function formatTimestamp(value: number | undefined, locale: string): string {
-  if (!value) return "--";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "--";
-  return date.toLocaleString(locale);
+  return formatEpochMillisLocal(value, locale);
 }
 
 function formatSize(value: number | undefined): string {

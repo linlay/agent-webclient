@@ -67,6 +67,7 @@ import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -228,7 +229,7 @@ export const LeftSidebar: React.FC = () => {
                 chatName: String(result.chatName || result.chatId || ""),
                 agentKey: result.agentKey,
                 teamId: result.teamId,
-                updatedAt: Number(result.timestamp) || 0,
+                updatedAt: readEpochMillis(result.timestamp),
                 lastRunId: String(result.runId || ""),
                 lastRunContent: String(result.snippet || ""),
                 searchSnippet: String(result.snippet || ""),

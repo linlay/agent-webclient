@@ -12,6 +12,7 @@ import {
   readEventTeamId,
 } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
+import { isEpochMillis } from '@/shared/utils/platformTime';
 
 export interface LiveChatSummaryCache {
   chatId: string;
@@ -27,21 +28,15 @@ export interface LiveChatSummaryContext {
 
 export function resolveChatSummaryUpdatedAt(
   event: AgentEvent,
-): string | number | undefined {
+): number | undefined {
   const raw = event as Record<string, unknown>;
-  if (typeof raw.updatedAt === 'string') {
+  if (isEpochMillis(raw.updatedAt)) {
     return raw.updatedAt;
   }
-  if (typeof raw.updatedAt === 'number' && Number.isFinite(raw.updatedAt)) {
-    return raw.updatedAt;
-  }
-  if (typeof raw.createdAt === 'string') {
+  if (isEpochMillis(raw.createdAt)) {
     return raw.createdAt;
   }
-  if (typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt)) {
-    return raw.createdAt;
-  }
-  if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
+  if (isEpochMillis(event.timestamp)) {
     return event.timestamp;
   }
   return undefined;

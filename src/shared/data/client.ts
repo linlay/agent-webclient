@@ -116,6 +116,7 @@ export interface AutomationSummaryResponse {
   zoneId?: string;
   sourceFile?: string;
   remainingRuns?: number;
+  nextFireAt?: number;
   nextFireTime?: string;
   lastExecution?: AutomationExecutionBrief;
 }
@@ -136,6 +137,9 @@ export interface AutomationExecutionBrief {
   id: string;
   status: string;
   startedAt: number;
+  startedTime?: string;
+  completedAt?: number;
+  completedTime?: string;
   durationMs?: number;
   error?: string;
 }
@@ -150,7 +154,9 @@ export interface AutomationExecutionResponse {
   status: string;
   error: string;
   startedAt: number;
+  startedTime?: string;
   completedAt?: number;
+  completedTime?: string;
   durationMs?: number;
 }
 
@@ -504,6 +510,7 @@ export interface ArchivedSummaryResponse {
   teamId?: string;
   createdAt: number;
   updatedAt: number;
+  lastRunAt: number;
   archivedAt: number;
   lastRunId?: string;
   lastRunContent?: string;
@@ -528,6 +535,9 @@ export interface ArchiveSearchResult {
   chatName: string;
   agentKey?: string;
   teamId?: string;
+  createdAt: number;
+  updatedAt?: number;
+  lastRunAt: number;
   lastRunId?: string;
   lastRunContent?: string;
   archivedAt: number;
@@ -545,6 +555,10 @@ export interface ArchiveSearchResponse {
 export interface ArchiveDetailResponse {
   chatId: string;
   chatName?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  lastRunAt?: number;
+  archivedAt?: number;
   events?: unknown[];
   rawMessages?: unknown[];
   runs?: unknown[];

@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   AutomationModal,
+  automationTimeLabel,
   automationSourcePath,
   buildCreateAutomationPayloadForSubmit,
   buildUpdateAutomationPayloadForSubmit,
@@ -260,5 +261,25 @@ describe("AutomationModal", () => {
 
     expect(automationSourcePath(automation)).toBe("gitpull_zenmind_20260429_2146.yml");
     expect(automationSourcePath({ ...automation, sourceFile: "" })).toBe("gitpull_zenmind_20260429_2146");
+  });
+
+  it("keeps platform readable automation times in their source timezone", () => {
+    expect(
+      automationTimeLabel(
+        "2026-07-02T09:00:00+08:00",
+        Date.UTC(2026, 6, 2, 1, 0, 0),
+        "en-US",
+      ),
+    ).toBe("2026-07-02T09:00:00+08:00");
+  });
+
+  it("prefers execution startedTime over startedAt fallback", () => {
+    expect(
+      automationTimeLabel(
+        "2026-07-02T09:00:00.123+08:00",
+        Date.UTC(2026, 6, 2, 1, 0, 0),
+        "en-US",
+      ),
+    ).toBe("2026-07-02T09:00:00.123+08:00");
   });
 });

@@ -3,7 +3,7 @@ export interface ChatAwaitingSummary {
 	runId?: string;
 	mode?: string;
 	status?: string;
-	createdAt?: number | string;
+	createdAt?: number;
 	[key: string]: unknown;
 }
 
@@ -22,7 +22,7 @@ export interface Chat {
 	firstAgentKey?: string;
 	agentKey?: string;
 	teamId?: string;
-	updatedAt?: string | number;
+	updatedAt?: number;
 	lastRunId?: string;
 	lastRunContent?: string;
 	read?: ChatReadState;

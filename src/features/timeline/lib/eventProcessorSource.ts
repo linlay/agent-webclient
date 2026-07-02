@@ -9,6 +9,7 @@ import type {
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
 import { toText } from "@/shared/utils/eventUtils";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return Boolean(value && typeof value === "object" && !Array.isArray(value))
@@ -71,13 +72,13 @@ function normalizeChunk(
   const slideStart = readPositiveInt(record.slideStart);
   const slideEnd = readPositiveInt(record.slideEnd);
   const score = readNumber(record.score);
-  const timestamp = readNumber(record.timestamp);
+  const timestamp = readEpochMillis(record.timestamp);
   return {
     chunkId,
     index: readPositiveInt(record.index) || fallbackIndex,
     content,
     ...(score !== undefined ? { score } : {}),
-    ...(timestamp !== undefined ? { timestamp } : {}),
+    ...(timestamp > 0 ? { timestamp } : {}),
     ...(path ? { path } : {}),
     ...(toText(record.heading) ? { heading: toText(record.heading) } : {}),
     ...(startLine ? { startLine } : {}),
