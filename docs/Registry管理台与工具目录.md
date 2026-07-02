@@ -10,7 +10,7 @@ Registry 管理台由 `/registries` 路由进入，管理 providers、models、m
 - 展示 provider/model/MCP/viewport server 等配置类别的数量和状态。
 
 ## 核心流程
-页面加载后拉取 admin registries 和 tools。用户选择类别和条目后，详情区域加载文件内容为 draft；保存或校验时调用 admin registry API。Tools tab 不编辑文件，只展示后端同步出的工具摘要。
+页面加载后拉取 admin registries 列表摘要和 tools。registry 列表按分类展示关键字段：provider 显示 key/baseUrl；model 显示 name、provider、protocol、type 与能力图标；MCP server 显示 serverKey/baseUrl 和当前已同步工具数；viewport server 显示 serverKey/baseUrl，不显示 viewport 数量。用户选择类别和条目后，详情区域再加载文件内容、完整诊断、来源路径和文件大小为 draft。保存或校验时调用 admin registry API。Tools tab 不编辑文件，只展示后端同步出的工具摘要。
 
 ## 边界与非目标
 - Registry 管理台不执行模型请求、MCP 调用或 viewport 服务探测。
@@ -24,4 +24,3 @@ Registry 管理台由 `/registries` 路由进入，管理 providers、models、m
 - `../src/shared/data/endpoints.ts`
 - `../src/shared/ui/SearchFilterBar.tsx`
 - `../src/shared/ui/UiTag.tsx`
-

@@ -253,21 +253,35 @@ export interface AdminRegistryDiagnostic {
   sourcePath?: string;
 }
 
-export interface AdminRegistrySummary {
+export interface AdminRegistryListDiagnostic {
+  severity: string;
+  code: string;
+  message: string;
+}
+
+interface AdminRegistryBase {
   category: AdminRegistryCategory;
   file: string;
   key?: string;
   name?: string;
   status: AdminRegistryStatus;
-  diagnostics?: AdminRegistryDiagnostic[];
-  source?: AgentSource;
   summary?: Record<string, unknown>;
   updatedAt?: number;
+}
+
+export interface AdminRegistryListItem extends AdminRegistryBase {
+  diagnostic?: AdminRegistryListDiagnostic;
+  diagnosticCount?: number;
+}
+
+export interface AdminRegistrySummary extends AdminRegistryBase {
+  diagnostics?: AdminRegistryDiagnostic[];
+  source?: AgentSource;
   size?: number;
 }
 
 export interface AdminRegistryListResponse {
-  items: AdminRegistrySummary[];
+  items: AdminRegistryListItem[];
   total: number;
 }
 

@@ -11,14 +11,15 @@ import {
 import type {
   AdminRegistryCategory,
   AdminRegistryDetailResponse,
-  AdminRegistryDiagnostic,
+  AdminRegistryListDiagnostic,
+  AdminRegistryListItem,
   AdminRegistryStatus,
   AdminRegistrySummary,
   AdminToolSummary,
   RegistryConsoleTab,
 } from "@/shared/data";
 import { useI18n, type I18nContextValue } from "@/shared/i18n";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
@@ -41,11 +42,11 @@ const CATEGORIES: RegistryConsoleTab[] = [
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
-export function registryItemKey(item: Pick<AdminRegistrySummary, "category" | "file">): string {
+export function registryItemKey(item: Pick<AdminRegistryListItem, "category" | "file">): string {
   return `${item.category}/${item.file}`;
 }
 
-function defaultFileName(category: AdminRegistryCategory, existing: AdminRegistrySummary[]): string {
+function defaultFileName(category: AdminRegistryCategory, existing: AdminRegistryListItem[]): string {
   const stemByCategory: Record<AdminRegistryCategory, string> = {
     providers: "new-provider",
     models: "new-model",
@@ -138,10 +139,38 @@ function statusTone(status: AdminRegistryStatus): "accent" | "danger" | "muted" 
   return "accent";
 }
 
-function firstDiagnostic(diagnostics: AdminRegistryDiagnostic[] | undefined): string {
-  const item = diagnostics?.[0];
+function diagnosticText(item: AdminRegistryListDiagnostic | undefined): string {
   if (!item) return "";
   return item.message || item.code;
+}
+
+function summaryString(summary: Record<string, unknown> | undefined, key: string): string {
+  return stringValue(summary?.[key]);
+}
+
+function summaryBool(summary: Record<string, unknown> | undefined, key: string): boolean {
+  const value = summary?.[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return ["true", "yes", "1", "on", "enabled"].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
+function summaryNumber(summary: Record<string, unknown> | undefined, key: string): number | undefined {
+  const value = summary?.[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function modelTypeLabel(rawType: unknown): string {
+  const type = stringValue(rawType);
+  if (type === "image-generation") return "image";
+  return type;
 }
 
 /* ---- tool-normalization helpers ---- */
@@ -171,6 +200,17 @@ export function toolSourceLabel(sourceCategory: string, t: Translate): string {
   }
 }
 
+export function toolListOwnerLabel(item: AdminRegistryListItem, t: Translate): string {
+  const sourceCategory = stringValue(item.summary?.sourceCategory);
+  if (!sourceCategory) return "";
+  return toolSourceLabel(sourceCategory, t);
+}
+
+export function listItemOwnerLabel(item: AdminRegistryListItem, isToolsTab: boolean, t: Translate): string {
+  if (!isToolsTab) return "";
+  return toolListOwnerLabel(item, t);
+}
+
 function toolSourceTone(sourceCategory: string): "accent" | "default" | "muted" {
   switch (sourceCategory.toLowerCase()) {
     case "mcp":
@@ -182,7 +222,7 @@ function toolSourceTone(sourceCategory: string): "accent" | "default" | "muted" 
   }
 }
 
-export function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistrySummary {
+export function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistryListItem {
   const kind = readToolKind(tool);
   const sourceCategory = readToolSourceCategory(tool);
   return {
@@ -213,24 +253,82 @@ export function toolSearchHaystack(tool: AdminToolSummary): string {
   return parts.filter((v) => typeof v === "string" && v.trim() !== "").join(" ").toLowerCase();
 }
 
-function toolListMeta(item: AdminRegistrySummary, t: Translate): string {
-  const sourceCategory = stringValue(item.summary?.sourceCategory);
+export function toolListMeta(item: AdminRegistryListItem): string {
   const kind = stringValue(item.summary?.kind);
   return [
     item.file,
-    toolSourceLabel(sourceCategory, t),
     kind,
   ].filter((value) => value.trim() !== "" && value !== "--").join(" · ");
 }
 
+export function registryListTitle(item: AdminRegistryListItem): string {
+  switch (item.category) {
+    case "providers":
+    case "mcp-servers":
+    case "viewport-servers":
+      return item.key || item.name || item.file;
+    case "models":
+      return item.name || item.key || item.file;
+    default:
+      return item.name || item.key || item.file;
+  }
+}
+
+export function registryListMeta(item: AdminRegistryListItem, t: Translate): string {
+  const summary = item.summary;
+  switch (item.category) {
+    case "providers":
+      return summaryString(summary, "baseUrl") || diagnosticText(item.diagnostic) || "--";
+    case "models":
+      return [
+        summaryString(summary, "provider"),
+        summaryString(summary, "protocol"),
+        modelTypeLabel(summary?.type),
+      ].filter(Boolean).join(" · ") || diagnosticText(item.diagnostic) || "--";
+    case "mcp-servers": {
+      const toolCount = summaryNumber(summary, "toolCount");
+      return [
+        summaryString(summary, "baseUrl"),
+        toolCount === undefined ? "" : t("registryConsole.meta.toolsCount", { count: toolCount }),
+      ].filter(Boolean).join(" · ") || diagnosticText(item.diagnostic) || "--";
+    }
+    case "viewport-servers":
+      return summaryString(summary, "baseUrl") || diagnosticText(item.diagnostic) || "--";
+    default:
+      return summaryLine(summary) || diagnosticText(item.diagnostic) || "--";
+  }
+}
+
+export interface RegistryCapabilityChip {
+  key: "vision" | "reasoner" | "function";
+  icon: MaterialIconName;
+  labelKey: string;
+}
+
+export function registryCapabilityChips(item: AdminRegistryListItem): RegistryCapabilityChip[] {
+  if (item.category !== "models") return [];
+  const summary = item.summary;
+  const chips: RegistryCapabilityChip[] = [];
+  if (summaryBool(summary, "isVision")) {
+    chips.push({ key: "vision", icon: "visibility", labelKey: "registryConsole.capability.vision" });
+  }
+  if (summaryBool(summary, "isReasoner")) {
+    chips.push({ key: "reasoner", icon: "psychology", labelKey: "registryConsole.capability.reasoner" });
+  }
+  if (summaryBool(summary, "isFunction")) {
+    chips.push({ key: "function", icon: "code", labelKey: "registryConsole.capability.function" });
+  }
+  return chips;
+}
+
 export function filterRegistryItems(
-  items: AdminRegistrySummary[],
+  items: AdminRegistryListItem[],
   filters: {
     searchText?: string;
     categoryFilter?: AdminRegistryCategory;
     statusFilter?: StatusFilter;
   },
-): AdminRegistrySummary[] {
+): AdminRegistryListItem[] {
   const needle = (filters.searchText || "").trim().toLowerCase();
   const categoryFilter = filters.categoryFilter;
   const statusFilter = filters.statusFilter || "all";
@@ -243,8 +341,16 @@ export function filterRegistryItems(
       item.file,
       item.key,
       item.name,
+      registryListTitle(item),
+      registryListMeta(item, (key, params) => {
+        if (key === "registryConsole.meta.toolsCount") {
+          const count = String(params?.count ?? "");
+          return `tools ${count} 工具 ${count} 个`;
+        }
+        return key;
+      }),
       summaryLine(item.summary),
-      firstDiagnostic(item.diagnostics),
+      diagnosticText(item.diagnostic),
     ]
       .filter(Boolean)
       .join(" ")
@@ -253,9 +359,30 @@ export function filterRegistryItems(
   });
 }
 
+export function registryDetailToListItem(detail: AdminRegistrySummary): AdminRegistryListItem {
+  const first = detail.diagnostics?.[0];
+  return {
+    category: detail.category,
+    file: detail.file,
+    key: detail.key,
+    name: detail.name,
+    status: detail.status,
+    summary: detail.summary,
+    diagnostic: first
+      ? {
+          severity: first.severity,
+          code: first.code,
+          message: first.message,
+        }
+      : undefined,
+    diagnosticCount: detail.diagnostics?.length || undefined,
+    updatedAt: detail.updatedAt,
+  };
+}
+
 export const RegistriesPage = () => {
   const { t, locale } = useI18n();
-  const [items, setItems] = useState<AdminRegistrySummary[]>([]);
+  const [items, setItems] = useState<AdminRegistryListItem[]>([]);
   const [selectedKey, setSelectedKey] = useState("");
   const [detail, setDetail] = useState<AdminRegistryDetailResponse | null>(null);
   const [draft, setDraft] = useState("");
@@ -315,7 +442,7 @@ export const RegistriesPage = () => {
 
   /* ---- tool-aware item key ---- */
   const getItemKey = useCallback(
-    (item: AdminRegistrySummary): string => {
+    (item: AdminRegistryListItem): string => {
       if ((item.category as string) === "tools") {
         return `tools/${item.file}`;
       }
@@ -347,7 +474,7 @@ export const RegistriesPage = () => {
   }, [isToolsTab, activeCategory, filteredToolItems, items, searchText, statusFilter]);
 
   const loadDetail = useCallback(
-    async (item: Pick<AdminRegistrySummary, "category" | "file">) => {
+    async (item: Pick<AdminRegistryListItem, "category" | "file">) => {
       setDetailLoading(true);
       setError("");
       try {
@@ -430,7 +557,7 @@ export const RegistriesPage = () => {
     void loadRegistries(undefined, "providers");
   }, []);
 
-  const selectItem = (item: AdminRegistrySummary) => {
+  const selectItem = (item: AdminRegistryListItem) => {
     if (dirty && !window.confirm(t("registryConsole.confirm.discard"))) {
       return;
     }
@@ -555,9 +682,10 @@ export const RegistriesPage = () => {
       setNewDraft(false);
       setSelectedKey(registryItemKey(response.data));
       setItems((current) => {
-        const key = registryItemKey(response.data);
+        const listItem = registryDetailToListItem(response.data);
+        const key = registryItemKey(listItem);
         const without = current.filter((item) => registryItemKey(item) !== key);
-        return [...without, response.data].sort((a, b) =>
+        return [...without, listItem].sort((a, b) =>
           a.category === b.category
             ? a.file.localeCompare(b.file)
             : a.category.localeCompare(b.category),
@@ -704,6 +832,11 @@ export const RegistriesPage = () => {
                   <div className="automation-list-items">
                     {filteredItems.map((item) => {
                       const itemKey = getItemKey(item);
+                      const title = registryListTitle(item);
+                      const meta = isToolsTab ? toolListMeta(item) : registryListMeta(item, t);
+                      const ownerLabel = listItemOwnerLabel(item, isToolsTab, t);
+                      const capabilityChips = isToolsTab ? [] : registryCapabilityChips(item);
+                      const capabilityTitle = capabilityChips.map((chip) => t(chip.labelKey)).join(", ");
                       return (
                         <button
                           type="button"
@@ -713,26 +846,37 @@ export const RegistriesPage = () => {
                         >
                           <span className="automation-list-item-head">
                             <span className="automation-list-item-title" title={`${item.category} ${item.file}`}>
-                              <span className="automation-list-item-owner">
-                                [{t(`registryConsole.category.${item.category}`)}]
-                              </span>
-                              <strong>{item.name || item.key || item.file}</strong>
+                              {ownerLabel && (
+                                <span className="automation-list-item-owner">
+                                  [{ownerLabel}]
+                                </span>
+                              )}
+                              <strong>{title}</strong>
                             </span>
                             <UiTag tone={statusTone(item.status)}>
                               {t(`registryConsole.status.${item.status}`)}
                             </UiTag>
                           </span>
                           <span
-                            className="automation-list-item-meta"
-                            title={
-                              isToolsTab
-                                ? toolListMeta(item, t)
-                                : summaryLine(item.summary)
-                            }
+                            className="automation-list-item-meta registry-list-meta"
+                            title={[meta, capabilityTitle].filter(Boolean).join(" · ")}
                           >
-                            {isToolsTab
-                              ? toolListMeta(item, t)
-                              : `${item.file} · ${summaryLine(item.summary) || firstDiagnostic(item.diagnostics) || "--"}`}
+                            <span className="registry-list-meta-text">{meta}</span>
+                            {capabilityChips.length > 0 && (
+                              <span className="registry-capability-chips" aria-label={capabilityTitle}>
+                                {capabilityChips.map((chip) => (
+                                  <UiTag
+                                    key={chip.key}
+                                    tone="muted"
+                                    className="registry-capability-chip"
+                                    title={t(chip.labelKey)}
+                                  >
+                                    <MaterialIcon name={chip.icon} />
+                                    <span>{t(chip.labelKey)}</span>
+                                  </UiTag>
+                                ))}
+                              </span>
+                            )}
                           </span>
                         </button>
                       );

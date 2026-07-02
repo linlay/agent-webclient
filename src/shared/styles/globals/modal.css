@@ -843,6 +843,38 @@
     line-height: 1.35;
 }
 
+.registry-list-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.registry-list-meta-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.registry-capability-chips {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.registry-capability-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding-inline: 5px;
+}
+
+.registry-capability-chip .material-icon-svg {
+    width: 12px;
+    height: 12px;
+}
+
 .automation-detail-head {
     display: flex;
     justify-content: space-between;
