@@ -226,7 +226,7 @@ export const LeftSidebar: React.FC = () => {
             results
               .map((result) => ({
                 chatId: String(result.chatId || ""),
-                chatName: String(result.chatName || result.chatId || ""),
+                chatName: String(result.chatName || ""),
                 agentKey: result.agentKey,
                 teamId: result.teamId,
                 updatedAt: readEpochMillis(result.timestamp),

@@ -51,6 +51,23 @@ describe('buildWorkerConversationRows', () => {
     expect(rows[0]?.hasPendingAwaiting).toBe(true);
   });
 
+  it('does not use chatId as the display chatName fallback', () => {
+    const rows = buildWorkerConversationRows({
+      worker: createWorker(),
+      chats: [
+        {
+          chatId: '6a9dc04b-2dcf-4d8f-812e-c521ee143000',
+          agentKey: 'agent-alpha',
+          lastRunContent: 'Readable conversation preview',
+          updatedAt: 100,
+        } as Chat,
+      ],
+    });
+
+    expect(rows[0]?.chatName).toBe('');
+    expect(rows[0]?.lastRunContent).toBe('Readable conversation preview');
+  });
+
   it('marks rows as active when chat summaries carry active run state', () => {
     const worker = createWorker();
     const rows = buildWorkerConversationRows({

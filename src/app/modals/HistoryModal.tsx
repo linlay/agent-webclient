@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
 import type { WorkerConversationRow } from "@/app/state/types";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
+import {
+  formatChatTimeLabel,
+  resolveConversationDisplayTitle,
+} from "@/features/chats/lib/chatListFormatter";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -19,6 +22,8 @@ export const HistoryModal: React.FC<{
   historyRows: WorkerConversationRow[];
   historyIndex: number;
   historySearch: string;
+  historyLoading?: boolean;
+  historyError?: string;
   historyInputRef: React.RefObject<HTMLInputElement>;
   historyListRef: React.RefObject<HTMLDivElement>;
   historyItemRefs: React.MutableRefObject<Array<HTMLElement | null>>;
@@ -31,6 +36,8 @@ export const HistoryModal: React.FC<{
   historyRows,
   historyIndex,
   historySearch,
+  historyLoading = false,
+  historyError = "",
   historyListRef,
   historyItemRefs,
   onHistorySearchChange,
@@ -50,6 +57,8 @@ export const HistoryModal: React.FC<{
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+  const getHistoryTitle = (chat: WorkerConversationRow) =>
+    resolveConversationDisplayTitle(chat, t("leftSidebar.titleUntitled"));
   const handleExport = async (chatId: string) => {
     if (!chatId || pending) return;
     setPending(true);
@@ -70,7 +79,7 @@ export const HistoryModal: React.FC<{
     if (!chat || !chat?.chatId || pending) return;
     modal.confirm({
       title: t("chatActions.archive.title"),
-      content: chat.chatName || chat.chatId,
+      content: getHistoryTitle(chat),
       okText: t("chatActions.archive.ok"),
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
@@ -110,7 +119,7 @@ export const HistoryModal: React.FC<{
     if (!chat || !chat?.chatId || pending) return;
     modal.confirm({
       title: t("chatActions.delete.title"),
-      content: chat.chatName || chat.chatId,
+      content: getHistoryTitle(chat),
       okText: t("chatActions.delete.ok"),
       okButtonProps: { danger: true },
       cancelText: t("chatActions.cancel"),
@@ -162,7 +171,11 @@ export const HistoryModal: React.FC<{
           </div>
         )}
       </div>
-      {historyRows.length === 0 ? (
+      {historyLoading ? (
+        <div className="command-empty-state">正在加载历史对话...</div>
+      ) : historyError ? (
+        <div className="command-empty-state">{historyError}</div>
+      ) : historyRows.length === 0 ? (
         <div className="command-empty-state">当前对象暂无匹配历史对话。</div>
       ) : (
         <div
@@ -172,87 +185,88 @@ export const HistoryModal: React.FC<{
           role="listbox"
           aria-label="历史对话"
         >
-          {historyRows.map((chat, index) => (
-            <UiListItem
-              ref={(element) => {
-                historyItemRefs.current[index] = element;
-              }}
-              key={chat.chatId}
-              className={`command-list-item ${index === historyIndex ? "is-active" : ""}`}
-              selected={index === historyIndex}
-              role="option"
-              aria-selected={index === historyIndex}
-              onClick={() => onSelect(index)}
-            >
-              <Flex
-                justify="space-between"
-                align="center"
-                gap={10}
-                style={{ height: 28 }}
+          {historyRows.map((chat, index) => {
+            const historyTitle = getHistoryTitle(chat);
+            return (
+              <UiListItem
+                ref={(element) => {
+                  historyItemRefs.current[index] = element;
+                }}
+                key={chat.chatId}
+                className={`command-list-item ${index === historyIndex ? "is-active" : ""}`}
+                selected={index === historyIndex}
+                role="option"
+                aria-selected={index === historyIndex}
+                onClick={() => onSelect(index)}
               >
-                <Flex align="center" gap={6} style={{ overflow: "hidden" }}>
-                  <span className="history-list-title">
-                    {chat.chatName || chat.chatId}
-                  </span>
-                  {isChatUnread(chat) ? <Tag color="blue">未读</Tag> : null}
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  gap={10}
+                  style={{ height: 28 }}
+                >
+                  <Flex align="center" gap={6} style={{ overflow: "hidden" }}>
+                    <span className="history-list-title">{historyTitle}</span>
+                    {isChatUnread(chat) ? <Tag color="blue">未读</Tag> : null}
+                  </Flex>
+                  <Flex align="center" className="history-list-actions">
+                    <span className="history-list-action-time">
+                      {formatChatTimeLabel(chat.updatedAt)}
+                    </span>
+                    <Tooltip title="导出">
+                      <UiButton
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        loading={pending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExport?.(chat.chatId);
+                        }}
+                      >
+                        <MaterialIcon
+                          name="download"
+                          style={{ color: "var(--accent)" }}
+                        />
+                      </UiButton>
+                    </Tooltip>
+                    <Tooltip title="归档">
+                      <UiButton
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchive?.(chat);
+                        }}
+                      >
+                        <MaterialIcon name="inventory_2" />
+                      </UiButton>
+                    </Tooltip>
+                    <Tooltip title="删除">
+                      <UiButton
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete?.(chat);
+                        }}
+                      >
+                        <MaterialIcon
+                          name="delete"
+                          style={{ color: "var(--accent-danger)" }}
+                        />
+                      </UiButton>
+                    </Tooltip>
+                  </Flex>
                 </Flex>
-                <Flex align="center" className="history-list-actions">
-                  <span className="history-list-action-time">
-                    {formatChatTimeLabel(chat.updatedAt)}
-                  </span>
-                  <Tooltip title="导出">
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      iconOnly
-                      loading={pending}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleExport?.(chat.chatId);
-                      }}
-                    >
-                      <MaterialIcon
-                        name="download"
-                        style={{ color: "var(--accent)" }}
-                      />
-                    </UiButton>
-                  </Tooltip>
-                  <Tooltip title="归档">
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      iconOnly
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleArchive?.(chat);
-                      }}
-                    >
-                      <MaterialIcon name="inventory_2" />
-                    </UiButton>
-                  </Tooltip>
-                  <Tooltip title="删除">
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      iconOnly
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete?.(chat);
-                      }}
-                    >
-                      <MaterialIcon
-                        name="delete"
-                        style={{ color: "var(--accent-danger)" }}
-                      />
-                    </UiButton>
-                  </Tooltip>
-                </Flex>
-              </Flex>
-              <div className="command-list-preview">
-                {chat.searchSnippet || chat.lastRunContent || "(无预览)"}
-              </div>
-            </UiListItem>
-          ))}
+                <div className="command-list-preview">
+                  {chat.searchSnippet || chat.lastRunContent || "(无预览)"}
+                </div>
+              </UiListItem>
+            );
+          })}
         </div>
       )}
     </div>

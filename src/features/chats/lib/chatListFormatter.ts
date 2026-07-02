@@ -29,6 +29,28 @@ export interface ChatInfo {
   updatedAt?: number;
 }
 
+export interface ConversationTitleInfo {
+  chatName?: unknown;
+  searchSnippet?: unknown;
+  lastRunContent?: unknown;
+}
+
+function normalizeDisplayTitle(value: unknown): string {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+export function resolveConversationDisplayTitle(
+  chat: ConversationTitleInfo,
+  fallback = '',
+): string {
+  return (
+    normalizeDisplayTitle(chat?.chatName) ||
+    normalizeDisplayTitle(chat?.searchSnippet) ||
+    normalizeDisplayTitle(chat?.lastRunContent) ||
+    fallback
+  );
+}
+
 function findAgentNameByKey(agents: Array<{ key?: string; name?: string }>, candidateKey: string): string {
   const normalizedKey = String(candidateKey || '').trim();
   if (!normalizedKey) return '';

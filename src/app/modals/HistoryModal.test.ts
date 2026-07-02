@@ -98,4 +98,57 @@ describe("HistoryModal", () => {
     expect(html).toContain("A compact history title");
     expect(html).toContain("command-list-preview");
   });
+
+  it("uses readable preview text instead of chatId when chatName is missing", () => {
+    const html = renderHistoryModal({
+      historyRows: [
+        createHistoryRow({
+          chatId: "6a9dc04b-2dcf-4d8f-812e-c521ee143000",
+          chatName: "",
+          lastRunContent: "Readable conversation preview",
+          searchSnippet: "",
+        }),
+      ],
+    });
+
+    expect(html).toContain("Readable conversation preview");
+    expect(html).not.toContain("6a9dc04b-2dcf-4d8f-812e-c521ee143000");
+  });
+
+  it("uses the untitled label when chatName and preview are missing", () => {
+    const html = renderHistoryModal({
+      historyRows: [
+        createHistoryRow({
+          chatId: "6a9dc04b-2dcf-4d8f-812e-c521ee143000",
+          chatName: "",
+          lastRunContent: "",
+          searchSnippet: "",
+        }),
+      ],
+    });
+
+    expect(html).toContain("(无标题)");
+    expect(html).toContain("(无预览)");
+    expect(html).not.toContain("6a9dc04b-2dcf-4d8f-812e-c521ee143000");
+  });
+
+  it("shows a loading state before remote history arrives", () => {
+    const html = renderHistoryModal({
+      historyRows: [],
+      historyLoading: true,
+    });
+
+    expect(html).toContain("正在加载历史对话...");
+    expect(html).not.toContain("当前对象暂无匹配历史对话。");
+  });
+
+  it("shows the remote history error instead of the empty state", () => {
+    const html = renderHistoryModal({
+      historyRows: [],
+      historyError: "历史对话加载失败，请稍后重试。",
+    });
+
+    expect(html).toContain("历史对话加载失败，请稍后重试。");
+    expect(html).not.toContain("当前对象暂无匹配历史对话。");
+  });
 });

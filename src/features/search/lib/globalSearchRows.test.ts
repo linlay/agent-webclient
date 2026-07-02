@@ -222,8 +222,8 @@ describe("buildGlobalRows", () => {
 
   it("filters history rows by search text (chatId)", () => {
     const history = [
-      createHistoryRow("chat-abc"),
-      createHistoryRow("chat-xyz"),
+      createHistoryRow("chat-abc", { chatName: "", lastRunContent: "" }),
+      createHistoryRow("chat-xyz", { chatName: "", lastRunContent: "" }),
     ];
     const rows = buildGlobalRows(
       createInput({ historyRows: history, searchText: "abc" }),
@@ -231,6 +231,39 @@ describe("buildGlobalRows", () => {
     const historyRows = rows.filter((r) => r.kind === "history");
     expect(historyRows).toHaveLength(1);
     expect(historyRows[0].chatId).toBe("chat-abc");
+  });
+
+  it("uses readable history content instead of chatId for missing labels", () => {
+    const history = [
+      createHistoryRow("6a9dc04b-2dcf-4d8f-812e-c521ee143000", {
+        chatName: "",
+        lastRunContent: "Readable conversation preview",
+      }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+
+    expect(historyRows[0].label).toBe("Readable conversation preview");
+    expect(historyRows[0].label).not.toBe(
+      "6a9dc04b-2dcf-4d8f-812e-c521ee143000",
+    );
+  });
+
+  it("uses untitled label when history label and preview are missing", () => {
+    const history = [
+      createHistoryRow("6a9dc04b-2dcf-4d8f-812e-c521ee143000", {
+        chatName: "",
+        lastRunContent: "",
+      }),
+    ];
+    const rows = buildGlobalRows(
+      createInput({ historyRows: history }),
+    );
+    const historyRows = rows.filter((r) => r.kind === "history");
+
+    expect(historyRows[0].label).toBe("leftSidebar.titleUntitled");
   });
 
   it("filters history rows by search text (lastRunContent)", () => {

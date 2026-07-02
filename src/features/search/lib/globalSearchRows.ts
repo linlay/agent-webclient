@@ -4,6 +4,7 @@ import type {
   WorkerConversationRow,
   WorkerRow,
 } from "@/app/state/types";
+import { resolveConversationDisplayTitle } from "@/features/chats/lib/chatListFormatter";
 import type { MaterialIconName } from "@/shared/icons/material";
 
 export type GlobalRow =
@@ -151,7 +152,10 @@ export function buildGlobalRows(input: BuildGlobalRowsInput): GlobalRow[] {
         kind: "history",
         key: h.chatId,
         chatId: h.chatId,
-        label: h.chatName || h.chatId || "",
+        label: resolveConversationDisplayTitle(
+          h,
+          t("leftSidebar.titleUntitled"),
+        ),
         snippet: h.lastRunContent || undefined,
         updatedAt: h.updatedAt,
         isUnread: h.isRead === false,

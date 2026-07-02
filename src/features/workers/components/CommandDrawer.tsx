@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Drawer } from "antd";
 import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
@@ -8,18 +8,14 @@ import {
   buildWorkerSwitchRows,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
+import { useWorkerHistoryRows } from "@/features/workers/hooks/useWorkerHistoryRows";
 import { DetailModal } from "@/features/workers/components/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { AutomationModal } from "@/app/modals/AutomationModal";
 import { SWITCH_SCOPES, SwitchModal } from "@/features/workers/components/SwitchModal";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
-import {
-  markChatRead,
-  searchGlobal,
-} from "@/shared/data";
-import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
+import { markChatRead } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -65,17 +61,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const switchItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyDefaultSelectionAppliedRef = useRef(false);
-  const [remoteHistoryRows, setRemoteHistoryRows] = useState<
-    WorkerConversationRow[] | null
-  >(null);
 
   const currentWorker = useMemo(
     () => (modal.type === "agents" ? null : resolveCurrentWorkerSummary(state)),
     [modal.type, state],
   );
-  const currentWorkerKey = currentWorker?.key || "";
-  const currentWorkerType = currentWorker?.type || "";
-  const currentWorkerSourceId = currentWorker?.sourceId || "";
   const detailView = useMemo(
     () =>
       modal.type === "detail" && currentWorker
@@ -104,45 +94,17 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     return icons;
   }, [modal.type, state.agents, state.teams]);
 
-  const workerChatsByKey = useMemo(() => {
-    if (modal.type !== "history") {
-      return null;
-    }
-    const chatsByKey = new Map<string, WorkerConversationRow[]>();
-    for (const row of state.workerRows) {
-      chatsByKey.set(
-        row.key,
-        buildWorkerConversationRows({
-          chats: state.chats,
-          worker: row,
-        }),
-      );
-    }
-    return chatsByKey;
-  }, [modal.type, state.chats, state.workerRows]);
-  const filteredHistoryRows = useMemo(() => {
-    if (modal.type !== "history") {
-      return [];
-    }
-    const rows =
-      remoteHistoryRows ?? workerChatsByKey?.get(currentWorkerKey) ?? [];
-    const search = String(modal.historySearch || "")
-      .trim()
-      .toLowerCase();
-    if (!search) return rows;
-    return rows.filter((row) => {
-      const haystack = [row.chatName, row.chatId, row.lastRunContent]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(search);
-    });
-  }, [
-    currentWorkerKey,
-    modal.historySearch,
-    modal.type,
-    remoteHistoryRows,
-    workerChatsByKey,
-  ]);
+  const {
+    historyRows: filteredHistoryRows,
+    historyLoading,
+    historyError,
+    removeHistoryRow,
+  } = useWorkerHistoryRows({
+    modal,
+    currentWorker,
+    state,
+    dispatch,
+  });
   const switchIndex = clampIndex(modal.activeIndex, switchRows.length);
   const historyIndex = clampIndex(
     modal.activeIndex,
@@ -253,63 +215,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     modal.type,
     onPatch,
     state.chatId,
-  ]);
-
-  useEffect(() => {
-    const query = String(modal.historySearch || "").trim();
-    if (
-      !modal.open ||
-      modal.type !== "history" ||
-      !currentWorkerType ||
-      !currentWorkerSourceId ||
-      !query
-    ) {
-      setRemoteHistoryRows(null);
-      return;
-    }
-    setRemoteHistoryRows(null);
-    const timer = window.setTimeout(() => {
-      const params =
-        currentWorkerType === "team"
-          ? { query, teamId: currentWorkerSourceId, limit: 30 }
-          : { query, agentKey: currentWorkerSourceId, limit: 30 };
-      void searchGlobal(params)
-        .then((response) => {
-          const results = Array.isArray(response.data?.results)
-            ? response.data.results
-            : [];
-          setRemoteHistoryRows(
-            results
-              .map((result) => ({
-                chatId: String(result.chatId || ""),
-                chatName: String(result.chatName || result.chatId || ""),
-                agentKey: result.agentKey,
-                teamId: result.teamId,
-                updatedAt: readEpochMillis(result.timestamp),
-                lastRunId: String(result.runId || ""),
-                lastRunContent: String(result.snippet || ""),
-                searchSnippet: String(result.snippet || ""),
-                isRead: true,
-              }))
-              .filter((row) => row.chatId),
-          );
-        })
-        .catch((error) => {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[search error] ${(error as Error).message}`,
-          });
-          setRemoteHistoryRows([]);
-        });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [
-    currentWorkerSourceId,
-    currentWorkerType,
-    dispatch,
-    modal.historySearch,
-    modal.open,
-    modal.type,
   ]);
 
   useEffect(() => {
@@ -479,13 +384,12 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             historyRows={filteredHistoryRows}
             historyIndex={historyIndex}
             historySearch={modal.historySearch}
+            historyLoading={historyLoading}
+            historyError={historyError}
             historyInputRef={historyInputRef}
             historyListRef={historyListRef}
             historyItemRefs={historyItemRefs}
             onHistorySearchChange={(value) => {
-              if (!value.trim()) {
-                setRemoteHistoryRows(null);
-              }
               onPatch({ historySearch: value, activeIndex: 0 });
             }}
             onActivateIndex={(index) => onPatch({ activeIndex: index })}
@@ -495,11 +399,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 : undefined
             }
             onChatDeleted={(chatId) => {
-              setRemoteHistoryRows((rows) =>
-                rows
-                  ? rows.filter((row) => String(row.chatId || "") !== chatId)
-                  : rows,
-              );
+              removeHistoryRow(chatId);
             }}
             onSelect={selectHistory}
           />

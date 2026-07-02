@@ -43,19 +43,17 @@
     display: none;
 }
 
-.history-list-actions button:first-of-type {
-    display: flex;
-}
-
 .command-list-item:hover .chat-actions-trigger {
     opacity: 1;
 }
 
-.command-list-item:hover .history-list-action-time {
+.command-list-item:hover .history-list-action-time,
+.command-list-item:focus-within .history-list-action-time {
     display: none;
 }
 
-.command-list-item:hover .history-list-actions button {
+.command-list-item:hover .history-list-actions button,
+.command-list-item:focus-within .history-list-actions button {
     display: flex;
 }
 

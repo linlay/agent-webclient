@@ -44,7 +44,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
       const read = normalizeChatReadState(chat?.read);
       return {
         chatId: toText(chat?.chatId),
-        chatName: toText(chat?.chatName) || toText(chat?.chatId),
+        chatName: toText(chat?.chatName),
         agentKey: toText(chat?.agentKey || chat?.firstAgentKey) || undefined,
         teamId: toText(chat?.teamId) || undefined,
         updatedAt: normalizeUpdatedAt(chat?.updatedAt),
