@@ -6,14 +6,13 @@
       <stop offset="1" stop-color="#4F46E5"/>
     </linearGradient>
   </defs>
-  <rect x="6" y="10" width="36" height="28" rx="5.5" stroke="url(#g-kbase-agent)" stroke-width="3"/>
-  <rect x="2.5" y="20.5" width="4.5" height="11" rx="2.25" fill="url(#g-kbase-agent)" opacity="0.56"/>
-  <rect x="41" y="20.5" width="4.5" height="11" rx="2.25" fill="url(#g-kbase-agent)" opacity="0.56"/>
-  <path d="M12.4 18.4C17.2 16.9 21.2 18.1 23.7 21.4V34.6C20.8 31.8 16.9 31.1 12.4 32.8V18.4Z" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M35.6 18.4C30.8 16.9 26.8 18.1 24.3 21.4V34.6C27.2 31.8 31.1 31.1 35.6 32.8V18.4Z" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M24 21.6V34.6" stroke="#60A5FA" stroke-width="2.3" stroke-linecap="round"/>
-  <path d="M15.6 23.4C17.6 22.8 19.9 23.2 21.4 24.5" stroke="#93C5FD" stroke-width="1.7" stroke-linecap="round"/>
-  <path d="M15.6 27C17.6 26.4 19.9 26.8 21.4 28.1" stroke="#93C5FD" stroke-width="1.7" stroke-linecap="round"/>
-  <path d="M26.6 24.5C28.1 23.2 30.4 22.8 32.4 23.4" stroke="#93C5FD" stroke-width="1.7" stroke-linecap="round"/>
-  <path d="M26.6 28.1C28.1 26.8 30.4 26.4 32.4 27" stroke="#93C5FD" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M7 12.8C13.4 10.3 19.2 11.7 23.6 16.2V39.2C19 35.6 13.4 34.3 7 36.9V12.8Z" stroke="url(#g-kbase-agent)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M41 12.8C34.6 10.3 28.8 11.7 24.4 16.2V39.2C29 35.6 34.6 34.3 41 36.9V12.8Z" stroke="url(#g-kbase-agent)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 16.5V39.2" stroke="url(#g-kbase-agent)" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M11.6 19.8C15.7 18.5 19.3 19.3 21.7 21.7" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+  <path d="M11.6 25.3C15.7 24 19.3 24.8 21.7 27.2" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+  <path d="M11.6 30.8C15.7 29.5 19.3 30.3 21.7 32.7" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26.3 21.7C28.7 19.3 32.3 18.5 36.4 19.8" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26.3 27.2C28.7 24.8 32.3 24 36.4 25.3" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26.3 32.7C28.7 30.3 32.3 29.5 36.4 30.8" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
 </svg>
