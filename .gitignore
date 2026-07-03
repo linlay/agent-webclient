@@ -38,8 +38,9 @@ Thumbs.db
 .local
 
 <!-- xgraph:start -->
+.doc
 # xgraph local state
-.doc/.cache/
-.doc/local/
-.doc/tmp/
+# .doc/.cache/
+# .doc/local/
+# .doc/tmp/
 <!-- xgraph:end -->

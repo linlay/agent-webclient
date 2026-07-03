@@ -16,7 +16,7 @@ interface ContentBlockProps {
 const TIMELINE_CONTENT_STACK_CLASS_NAME =
 	"timeline-content-stack tw:mt-1 tw:flex tw:flex-col tw:gap-1.5";
 const TIMELINE_TEXT_CLASS_NAME =
-	"timeline-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-ink-1";
+	"timeline-text tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-ink-1";
 const TIMELINE_MARKDOWN_CLASS_NAME = "timeline-markdown tw:whitespace-normal";
 const TIMELINE_CONTENT_MARKDOWN_CLASS_NAME =
 	"tw:max-w-[74ch] tw:text-[15px] tw:leading-[1.72]";
