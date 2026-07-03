@@ -1046,11 +1046,15 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 /* ========================================
    Thinking Block
    ======================================== */
-.thinking-detail {
+.thinking-detail, .awaiting-detail {
     color: var(--ink-2);
     font-size: 11px;
     line-height: 1.5;
     white-space: pre-wrap;
+}
+.thinking-detail {
+    max-height: 50vh;
+    overflow: auto;
 }
 
 .status-line {

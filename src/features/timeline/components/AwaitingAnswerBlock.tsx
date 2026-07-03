@@ -225,7 +225,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       }}
       label={summaryText}
     >
-      <Flex vertical gap={10} className="thinking-detail">
+      <Flex vertical gap={10} className="awaiting-detail">
         {items.map((item) => (
           <Flex vertical key={item.key} className="awaiting-answer-item">
             <div className="awaiting-answer-question">{item.title}</div>

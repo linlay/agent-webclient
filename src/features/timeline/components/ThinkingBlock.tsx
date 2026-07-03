@@ -51,7 +51,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
         });
       }}
     >
-      <div className={`thinking-detail ${expanded ? "is-open" : ""}`}>
+      <div className="thinking-detail">
         {text}
       </div>
     </TimelineCollapse>
