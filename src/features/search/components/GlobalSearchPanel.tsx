@@ -4,7 +4,6 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { useI18n } from "@/shared/i18n";
-import { Tag } from "antd";
 
 interface GlobalSearchPanelProps {
   searchText: string;
@@ -16,7 +15,13 @@ interface GlobalSearchPanelProps {
   onSelectRow: (row: GlobalRow) => void;
 }
 
-const GROUP_KINDS: GlobalRow["kind"][] = ["action", "worker", "history"];
+const GROUP_SECTIONS: GlobalRow["section"][] = [
+  "awaiting",
+  "unread",
+  "actions",
+  "workers",
+  "history",
+];
 
 function clampIndex(nextIndex: number, length: number): number {
   if (length <= 0) return 0;
@@ -30,9 +35,11 @@ function clampIndex(nextIndex: number, length: number): number {
 }
 
 const GROUP_LABEL_KEYS: Record<string, string> = {
-  action: "globalSearch.group.recommended",
-  worker: "globalSearch.group.agents",
-  history: "globalSearch.group.conversations",
+  awaiting: "globalSearch.group.awaiting",
+  unread: "globalSearch.group.unread",
+  actions: "globalSearch.group.actions",
+  workers: "globalSearch.group.workers",
+  history: "globalSearch.group.history",
 };
 
 const GLOBAL_SEARCH_PANEL_CLASS =
@@ -58,6 +65,10 @@ const GLOBAL_SEARCH_ROLE_CLASS =
   "global-search-role tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_SNIPPET_CLASS =
   "global-search-snippet tw:max-w-[52%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden";
+const GLOBAL_SEARCH_SOURCE_CLASS =
+  "global-search-source tw:max-w-[30%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
+const GLOBAL_SEARCH_UNREAD_DOT_CLASS =
+  "global-search-unread-dot tw:mx-1 tw:size-1.5 tw:flex-none tw:rounded-full tw:bg-accent";
 const GLOBAL_SEARCH_AWAITING_CLASS =
   "global-search-awaiting tw:flex-none tw:whitespace-nowrap tw:rounded tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-px tw:text-[10px] tw:leading-[1.4] tw:text-accent-warn tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_LOADING_CLASS =
@@ -78,11 +89,11 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   const { t } = useI18n();
 
   const groupEntries = useMemo(() => {
-    return GROUP_KINDS.map((kind) => {
-      const groupRows = rows.filter((r) => r.kind === kind);
+    return GROUP_SECTIONS.map((section) => {
+      const groupRows = rows.filter((r) => r.section === section);
       return {
-        kind,
-        label: t(GROUP_LABEL_KEYS[kind]),
+        section,
+        label: t(GROUP_LABEL_KEYS[section]),
         rows: groupRows,
       };
     }).filter((entry) => entry.rows.length > 0);
@@ -136,8 +147,8 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
         <div className={GLOBAL_SEARCH_EMPTY_CLASS}>{emptyText}</div>
       ) : (
         <div className={GLOBAL_SEARCH_LIST_CLASS}>
-          {groupEntries.map(({ kind, label, rows: groupRows }) => (
-            <div key={kind} className={GLOBAL_SEARCH_GROUP_CLASS}>
+          {groupEntries.map(({ section, label, rows: groupRows }) => (
+            <div key={section} className={GLOBAL_SEARCH_GROUP_CLASS}>
               <div className={GLOBAL_SEARCH_GROUP_LABEL_CLASS}>{label}</div>
               {groupRows.map((row) => {
                 if (row.kind === "action") {
@@ -188,11 +199,14 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                     <button
                       key={row.key}
                       type="button"
-                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-history`}
+                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-history global-search-${row.section}`}
                       onClick={() => onSelectRow(row)}
                     >
-                      {row.isUnread ? (
-                        <Tag color="blue">{t("globalSearch.row.unread")}</Tag>
+                      {row.section === "unread" || row.isUnread ? (
+                        <span
+                          className={GLOBAL_SEARCH_UNREAD_DOT_CLASS}
+                          aria-label={t("globalSearch.row.unread")}
+                        />
                       ) : (
                         <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
                           <MaterialIcon name="history" />
@@ -207,6 +221,11 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                       {row.statusLabel ? (
                         <span className={GLOBAL_SEARCH_AWAITING_CLASS}>
                           {row.statusLabel}
+                        </span>
+                      ) : null}
+                      {row.sourceLabel ? (
+                        <span className={GLOBAL_SEARCH_SOURCE_CLASS}>
+                          {row.sourceLabel}
                         </span>
                       ) : null}
                       {row.hasActiveRun ? (

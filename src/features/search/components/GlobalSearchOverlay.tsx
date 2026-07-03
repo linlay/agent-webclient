@@ -3,7 +3,6 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Modal } from "antd";
 import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { buildGlobalRows } from "@/features/search/lib/globalSearchRows";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
 import { GlobalSearchPanel } from "@/features/search/components/GlobalSearchPanel";
@@ -44,27 +43,16 @@ export const GlobalSearchOverlay: React.FC = () => {
     return icons;
   }, [state.agents, state.teams]);
 
-  const globalLocalHistoryRows = useMemo(() => {
-    if (!currentWorker) return [];
-    return buildWorkerConversationRows({
-      chats: state.chats,
-      worker: currentWorker.row,
-    });
-  }, [currentWorker, state.chats]);
-
   const [globalRemoteState, setGlobalRemoteState] = useState<
     WorkerConversationRow[] | null
   >(null);
 
-  const globalHistoryRows = useMemo(() => {
-    if (globalRemoteState) return globalRemoteState;
-    return globalLocalHistoryRows;
-  }, [globalLocalHistoryRows, globalRemoteState]);
-
   const globalRows = useMemo(() => {
     return buildGlobalRows({
+      agents: state.agents,
+      chats: state.chats,
       workerRows: state.workerRows,
-      historyRows: globalHistoryRows,
+      historyRows: globalRemoteState,
       searchText,
       hasCurrentWorker: Boolean(currentWorker),
       workerIcons: workerIconsByKey,
@@ -72,7 +60,9 @@ export const GlobalSearchOverlay: React.FC = () => {
     });
   }, [
     currentWorker,
-    globalHistoryRows,
+    globalRemoteState,
+    state.agents,
+    state.chats,
     searchText,
     state.workerRows,
     t,
@@ -165,17 +155,13 @@ export const GlobalSearchOverlay: React.FC = () => {
 
   useEffect(() => {
     const query = searchText.trim();
-    if (!isOpen || !currentWorker?.type || !currentWorker?.sourceId || !query) {
+    if (!isOpen || !query) {
       setGlobalRemoteState(null);
       return;
     }
     setGlobalRemoteState(null);
-    const params =
-      currentWorker.type === "team"
-        ? { query, teamId: currentWorker.sourceId, limit: 30 }
-        : { query, agentKey: currentWorker.sourceId, limit: 30 };
     const timer = window.setTimeout(() => {
-      void searchGlobal(params)
+      void searchGlobal({ query, limit: 30 })
         .then((response) => {
           const results = Array.isArray(response.data?.results)
             ? response.data.results
@@ -206,8 +192,6 @@ export const GlobalSearchOverlay: React.FC = () => {
     }, 250);
     return () => window.clearTimeout(timer);
   }, [
-    currentWorker?.sourceId,
-    currentWorker?.type,
     dispatch,
     isOpen,
     searchText,
