@@ -213,7 +213,7 @@
 
 .timeline-query-anchor-line {
     position: relative;
-    width: 40px;
+    width: 26px;
     min-height: 12px;
     display: inline-flex;
     align-items: center;
@@ -244,7 +244,7 @@
 .timeline-query-anchor-line-bar {
     --diff: calc(var(--index) - var(--hover-index));
     --abs-diff: max(var(--diff), calc(-1 * var(--diff)));
-    --offset: min(calc(var(--abs-diff) * 20%), 80%);
+    --offset: min(calc(var(--abs-diff) * 20%), 76%);
     display: block;
     width: calc(100% - var(--offset));
     height: 2px;
