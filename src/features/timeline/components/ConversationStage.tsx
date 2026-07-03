@@ -96,11 +96,11 @@ const TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME =
 const TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME =
   "timeline-query-anchor-preview-content tw:overflow-hidden tw:text-ink-muted tw:[display:-webkit-box] tw:[-webkit-box-orient:vertical] tw:[-webkit-line-clamp:3]";
 const TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME =
-  "timeline-query-anchor-line tw:relative tw:inline-flex tw:min-h-3 tw:w-[27px] tw:translate-x-[-6px] tw:animate-[timeline-query-anchor-enter_0.28s_ease_forwards] tw:items-center tw:justify-start tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:shadow-none tw:hover:bg-transparent tw:hover:text-ink-2 tw:hover:shadow-none tw:hover:outline-none tw:hover:[&_.timeline-query-anchor-line-bar]:opacity-100 tw:active:transform-none";
+  "timeline-query-anchor-line tw:relative tw:inline-flex tw:min-h-3 tw:w-[40px] tw:translate-x-[-6px] tw:animate-[timeline-query-anchor-enter_0.28s_ease_forwards] tw:items-center tw:justify-start tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:shadow-none tw:hover:bg-transparent tw:hover:text-ink-2 tw:hover:shadow-none tw:hover:outline-none tw:hover:[&_.timeline-query-anchor-line-bar]:opacity-100 tw:active:transform-none";
 const TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME =
   "is-active tw:[.timeline-query-anchor-rail:not(:hover)_&_.timeline-query-anchor-line-bar]:opacity-100";
 const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =
-  "timeline-query-anchor-line-bar tw:block tw:h-0.5 tw:w-[calc(100%-min(calc(abs(var(--index)-var(--hover-index))*20%),80%))] tw:origin-left tw:bg-ink-1 tw:opacity-30 tw:transition-[width,opacity] tw:duration-100";
+  "timeline-query-anchor-line-bar tw:block tw:h-0.5 tw:origin-left tw:bg-ink-1 tw:opacity-30 tw:transition-[width,opacity] tw:duration-100";
 const TIMELINE_LANE_CLASS_NAME =
   "timeline-lane tw:relative tw:flex tw:flex-col tw:gap-2.5";
 const TIMELINE_QUERY_ANCHOR_ROW_CLASS_NAME =

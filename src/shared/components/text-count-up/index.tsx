@@ -17,7 +17,6 @@ const TEXT_COUNT_UP_CLASS_NAME =
 const CHAR_CLASS_NAME = [
   Style.Char,
   "tw:inline-block",
-  "tw:translate-y-[0.35em]",
   "tw:opacity-0",
 ].join(" ");
 const DIGIT_CLASS_NAME =
