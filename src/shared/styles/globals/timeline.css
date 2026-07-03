@@ -242,8 +242,11 @@
 }
 
 .timeline-query-anchor-line-bar {
+    --diff: calc(var(--index) - var(--hover-index));
+    --abs-diff: max(var(--diff), calc(-1 * var(--diff)));
+    --offset: min(calc(var(--abs-diff) * 20%), 80%);
     display: block;
-    width: calc(100% - min(calc(abs(var(--index) - var(--hover-index)) * 20%), 80%));
+    width: calc(100% - var(--offset));
     height: 2px;
     background: var(--ink-1);
     transform-origin: left center;
@@ -1046,12 +1049,14 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 /* ========================================
    Thinking Block
    ======================================== */
-.thinking-detail, .awaiting-detail {
+.thinking-detail,
+.awaiting-detail {
     color: var(--ink-2);
     font-size: 11px;
     line-height: 1.5;
     white-space: pre-wrap;
 }
+
 .thinking-detail {
     max-height: 50vh;
     overflow: auto;
