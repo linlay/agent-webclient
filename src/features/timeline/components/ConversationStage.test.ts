@@ -189,7 +189,10 @@ describe("ConversationStage", () => {
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
     expect(html).toContain("aria-label=\"派生新会话\"");
-    expect(html).toContain("material-symbol-hub");
+    expect(html).toContain("material-symbol-git-fork");
+    expect(html.indexOf('data-material-icon="thumb_down"')).toBeLessThan(
+      html.indexOf('data-material-icon="git_fork"'),
+    );
     expect(html).not.toContain("aria-label=\"派生新会话\" disabled=\"\"");
   });
 

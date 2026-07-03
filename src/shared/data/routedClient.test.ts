@@ -1302,7 +1302,7 @@ describe("routedClient", () => {
 			payload: { chatId: "chat_1", chatName: "Renamed chat" },
 		});
 		expect(request).toHaveBeenNthCalledWith(5, {
-			type: "/api/search",
+			type: "/api/chats/search",
 			payload: { query: "needle", agentKey: "agent_a", limit: 5 },
 		});
 		expect(request).toHaveBeenNthCalledWith(6, {

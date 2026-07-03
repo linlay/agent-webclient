@@ -538,7 +538,7 @@ export const dataEndpoints = createEndpointRegistry({
   }),
   search: defineEndpoint({
     key: "global.search",
-    path: "/api/search",
+    path: "/api/chats/search",
     method: "POST",
     transport: "auto",
   }),

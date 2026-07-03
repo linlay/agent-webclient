@@ -1389,19 +1389,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                 >
                                   <MaterialIcon name="content_copy" />
                                 </UiButton>
-                                <UiButton
-                                  className={TIMELINE_META_BUTTON_CLASS_NAME}
-                                  variant="ghost"
-                                  size="sm"
-                                  iconOnly
-                                  loading={derivingRunId === runId}
-                                  title={deriveChatTitle}
-                                  aria-label={deriveChatTitle}
-                                  disabled={deriveChatDisabled}
-                                  onClick={() => handleDeriveChat(runId)}
-                                >
-                                  <MaterialIcon name="hub" />
-                                </UiButton>
                                 {isDownvoted ? (
                                   <UiButton
                                     className={[
@@ -1444,6 +1431,19 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     </UiButton>
                                   </Popover>
                                 )}
+                                <UiButton
+                                  className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  loading={derivingRunId === runId}
+                                  title={deriveChatTitle}
+                                  aria-label={deriveChatTitle}
+                                  disabled={deriveChatDisabled}
+                                  onClick={() => handleDeriveChat(runId)}
+                                >
+                                  <MaterialIcon name="git_fork" />
+                                </UiButton>
                               </div>
                               {time.short && (
                                 <div

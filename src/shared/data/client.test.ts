@@ -729,7 +729,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
       chatName: ' Renamed chat ',
     });
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/search');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/chats/search');
     expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
       query: 'needle',
       agentKey: 'agent_a',

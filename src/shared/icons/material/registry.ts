@@ -47,6 +47,7 @@ export const materialIconSymbolIds = {
   format_text_overflow: "material-symbol-format-text-overflow",
   format_text_wrap: "material-symbol-format-text-wrap",
   front_hand: "material-symbol-front-hand",
+  git_fork: "material-symbol-git-fork",
   gpp_maybe: "material-symbol-gpp-maybe",
   help: "material-symbol-help",
   history: "material-symbol-history",
