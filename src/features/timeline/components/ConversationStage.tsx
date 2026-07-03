@@ -22,7 +22,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { submitFeedback } from "@/shared/data";
+import { deriveChat, submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
@@ -174,6 +174,39 @@ function normalizeSearchText(value: unknown): string {
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
+}
+
+export function isDeriveChatActionDisabled(input: {
+  chatId?: unknown;
+  runId?: unknown;
+  streaming?: boolean;
+  activeAwaiting?: unknown;
+}): boolean {
+  return !String(input.chatId || "").trim()
+    || !String(input.runId || "").trim()
+    || input.streaming === true
+    || Boolean(input.activeAwaiting);
+}
+
+export function dispatchDerivedChatNavigation(chatId: string): void {
+  const normalizedChatId = String(chatId || "").trim();
+  if (
+    !normalizedChatId ||
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function"
+  ) {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
+  window.dispatchEvent(
+    new CustomEvent("agent:load-chat", {
+      detail: {
+        chatId: normalizedChatId,
+        focusComposerOnComplete: true,
+      },
+    }),
+  );
 }
 
 function resolveQueryAnchorOffset(width: number): number {
@@ -608,6 +641,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
   const [queryAnchorsEnabled, setQueryAnchorsEnabled] = useState(false);
   const [activeQueryAnchorId, setActiveQueryAnchorId] = useState("");
+  const [derivingRunId, setDerivingRunId] = useState("");
   const [expandedTaskGroups, setExpandedTaskGroups] = useState<
     Record<string, boolean>
   >({});
@@ -829,6 +863,52 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       );
     },
     [currentWorker, state.streaming],
+  );
+
+  const handleDeriveChat = useCallback(
+    async (runId: string) => {
+      const sourceChatId = String(state.chatId || "").trim();
+      const sourceRunId = String(runId || "").trim();
+      if (
+        isDeriveChatActionDisabled({
+          chatId: sourceChatId,
+          runId: sourceRunId,
+          streaming: state.streaming,
+          activeAwaiting: state.activeAwaiting,
+        })
+      ) {
+        return;
+      }
+
+      setDerivingRunId(sourceRunId);
+      try {
+        const response = await deriveChat({ sourceChatId, sourceRunId });
+        const derivedChatId = String(response.data?.chatId || "").trim();
+        if (!derivedChatId) {
+          throw new Error("derive response missing chatId");
+        }
+        dispatchDerivedChatNavigation(derivedChatId);
+        message.success(t("timeline.run.deriveChatSuccess"));
+      } catch (error) {
+        const errorMessage = (error as Error)?.message || String(error);
+        message.error(t("timeline.run.deriveChatFailed"));
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[deriveChat error] ${errorMessage}`,
+        });
+      } finally {
+        setDerivingRunId((current) => (
+          current === sourceRunId ? "" : current
+        ));
+      }
+    },
+    [
+      dispatch,
+      state.activeAwaiting,
+      state.chatId,
+      state.streaming,
+      t,
+    ],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -1234,6 +1314,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       runId && state.downvotedRunKeys.has(runId),
                     );
                     const runCopyStatus = actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
+                    const deriveChatDisabled = isDeriveChatActionDisabled({
+                      chatId: state.chatId,
+                      runId,
+                      streaming: state.streaming,
+                      activeAwaiting: state.activeAwaiting,
+                    });
+                    const deriveChatTitle = t("timeline.run.deriveChat");
 
                     const lastContentNode = findLastRunContentNode(item);
                     const shouldCollapse =
@@ -1301,6 +1388,19 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                   }
                                 >
                                   <MaterialIcon name="content_copy" />
+                                </UiButton>
+                                <UiButton
+                                  className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  loading={derivingRunId === runId}
+                                  title={deriveChatTitle}
+                                  aria-label={deriveChatTitle}
+                                  disabled={deriveChatDisabled}
+                                  onClick={() => handleDeriveChat(runId)}
+                                >
+                                  <MaterialIcon name="hub" />
                                 </UiButton>
                                 {isDownvoted ? (
                                   <UiButton

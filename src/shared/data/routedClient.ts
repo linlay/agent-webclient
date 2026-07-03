@@ -5,6 +5,7 @@ import {
 	createAgent as createAgentHttp,
 	createQueryStream,
 	createAutomation as createAutomationHttp,
+	deriveChat as deriveChatHttp,
 	deleteAgent as deleteAgentHttp,
 	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
@@ -78,6 +79,8 @@ import {
 	type ArchiveRestoreResponse,
 	type CreateAgentRequest,
 	type CreateAutomationRequest,
+	type DeriveChatRequest,
+	type DeriveChatResponse,
 	type DeleteAgentRequest,
 	type DeleteAgentResponse,
 	type DeleteAutomationRequest,
@@ -396,6 +399,19 @@ export function archiveChats(
 			fallbackOnConnectFailure: false,
 			fallbackOnRequestFailure: false,
 		},
+	).then((response) => {
+		invalidateRouteEndpoints(dataEndpoints.chats);
+		return response;
+	});
+}
+
+export function deriveChat(
+	params: DeriveChatRequest,
+): Promise<ApiResponse<DeriveChatResponse>> {
+	return routeEndpoint<DeriveChatResponse, DeriveChatRequest>(
+		dataEndpoints.chatDerive,
+		params,
+		() => deriveChatHttp(params),
 	).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;

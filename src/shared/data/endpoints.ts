@@ -6,6 +6,7 @@ import {
 import type {
   ArchivesRequest,
   AttachStreamParams,
+  DeriveChatRequest,
   GetAgentsOptions,
   GetChatsOptions,
   GetMemoryRecordsParams,
@@ -341,6 +342,19 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
     payload: ({ chatId }) => ({ chatId }),
+  }),
+  chatDerive: defineEndpoint<DeriveChatRequest, Record<string, unknown>>({
+    key: "chat.derive",
+    path: "/api/chat/derive",
+    method: "POST",
+    transport: "auto",
+    payload: (params) =>
+      compactPayload({
+        sourceChatId: params.sourceChatId,
+        sourceRunId: params.sourceRunId,
+        chatId: params.chatId,
+        chatName: params.chatName,
+      }),
   }),
   chatExport: defineEndpoint({
     key: "chat.export",

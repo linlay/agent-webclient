@@ -31,6 +31,7 @@ jest.mock("@/shared/data/client", () => {
 			createAgent: jest.fn(),
 			createAutomation: jest.fn(),
 			createQueryStream: jest.fn(),
+			deriveChat: jest.fn(),
 			deleteAgent: jest.fn(),
 			deleteArchive: jest.fn(),
 			deleteChat: jest.fn(),
@@ -116,6 +117,7 @@ let mockApiClient: {
 		createAgent: jest.Mock;
 		createAutomation: jest.Mock;
 		createQueryStream: jest.Mock;
+		deriveChat: jest.Mock;
 		deleteArchive: jest.Mock;
 		deleteAgent: jest.Mock;
 		deleteChat: jest.Mock;
@@ -1268,6 +1270,10 @@ describe("routedClient", () => {
 			runId: "run_1",
 			type: "thumbs_down",
 		});
+		await proxy.deriveChat({
+			sourceChatId: "chat_1",
+			sourceRunId: "run_1",
+		});
 		await proxy.deleteChat({ chatId: "chat_1" });
 		await proxy.renameChat({ chatId: "chat_1", chatName: "Renamed chat" });
 		await proxy.searchGlobal({ query: "needle", agentKey: "agent_a", limit: 5 });
@@ -1284,52 +1290,89 @@ describe("routedClient", () => {
 			payload: { chatId: "chat_1", runId: "run_1", type: "thumbs_down" },
 		});
 		expect(request).toHaveBeenNthCalledWith(2, {
+			type: "/api/chat/derive",
+			payload: { sourceChatId: "chat_1", sourceRunId: "run_1" },
+		});
+		expect(request).toHaveBeenNthCalledWith(3, {
 			type: "/api/chat/delete",
 			payload: { chatId: "chat_1" },
 		});
-		expect(request).toHaveBeenNthCalledWith(3, {
+		expect(request).toHaveBeenNthCalledWith(4, {
 			type: "/api/chat/rename",
 			payload: { chatId: "chat_1", chatName: "Renamed chat" },
 		});
-		expect(request).toHaveBeenNthCalledWith(4, {
+		expect(request).toHaveBeenNthCalledWith(5, {
 			type: "/api/search",
 			payload: { query: "needle", agentKey: "agent_a", limit: 5 },
 		});
-		expect(request).toHaveBeenNthCalledWith(5, {
+		expect(request).toHaveBeenNthCalledWith(6, {
 			type: "/api/read",
 			payload: { agentKey: "agent_a" },
 		});
-		expect(request).toHaveBeenNthCalledWith(6, {
+		expect(request).toHaveBeenNthCalledWith(7, {
 			type: "/api/chat/archive",
 			payload: { chatIds: ["chat_1"] },
 		});
-		expect(request).toHaveBeenNthCalledWith(7, {
+		expect(request).toHaveBeenNthCalledWith(8, {
 			type: "/api/archives",
 			payload: { agentKey: "agent_a", limit: 10, offset: 20 },
 		});
-		expect(request).toHaveBeenNthCalledWith(8, {
+		expect(request).toHaveBeenNthCalledWith(9, {
 			type: "/api/archive",
 			payload: { chatId: "chat_1", includeRawMessages: true },
 		});
-		expect(request).toHaveBeenNthCalledWith(9, {
+		expect(request).toHaveBeenNthCalledWith(10, {
 			type: "/api/archives/search",
 			payload: { query: "old", agentKey: "agent_a", limit: 6 },
 		});
-		expect(request).toHaveBeenNthCalledWith(10, {
+		expect(request).toHaveBeenNthCalledWith(11, {
 			type: "/api/archive/delete",
 			payload: { chatId: "chat_1" },
 		});
-		expect(request).toHaveBeenNthCalledWith(11, {
+		expect(request).toHaveBeenNthCalledWith(12, {
 			type: "/api/archive/restore",
 			payload: { chatIds: ["chat_1"] },
 		});
 		expect(mockApiClient.submitFeedback).not.toHaveBeenCalled();
+		expect(mockApiClient.deriveChat).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteChat).not.toHaveBeenCalled();
 		expect(mockApiClient.renameChat).not.toHaveBeenCalled();
 		expect(mockApiClient.searchGlobal).not.toHaveBeenCalled();
 		expect(mockApiClient.archiveChats).not.toHaveBeenCalled();
 		expect(mockApiClient.deleteArchive).not.toHaveBeenCalled();
 		expect(mockApiClient.restoreArchives).not.toHaveBeenCalled();
+	});
+
+	it("falls back to http when derive chat websocket connect fails", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockRejectedValue(new Error("ws unavailable"));
+		const request = jest.fn();
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.deriveChat.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { chatId: "chat_new" },
+		});
+
+		const response = await proxy.deriveChat({
+			sourceChatId: "chat_1",
+			sourceRunId: "run_1",
+		});
+
+		expect(response.data).toEqual({ chatId: "chat_new" });
+		expect(request).not.toHaveBeenCalled();
+		expect(mockApiClient.deriveChat).toHaveBeenCalledWith({
+			sourceChatId: "chat_1",
+			sourceRunId: "run_1",
+		});
 	});
 
 	it("falls back to http when a read-only ws request times out", async () => {

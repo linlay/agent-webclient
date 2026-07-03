@@ -18,6 +18,7 @@ export {
   compactChat,
   createAgent,
   createAutomation,
+  deriveChat,
   deleteAgent,
   deleteArchive,
   deleteAutomation,

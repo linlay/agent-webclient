@@ -10,8 +10,10 @@ import type {
 import {
   buildTimelineAgentOptions,
   ConversationStage,
+  dispatchDerivedChatNavigation,
   dispatchTimelineAgentSwitch,
   filterTimelineAgentOptions,
+  isDeriveChatActionDisabled,
   shouldEnableQueryAnchors,
   TimelineAgentSwitcher,
 } from "@/features/timeline/components/ConversationStage";
@@ -159,6 +161,63 @@ describe("ConversationStage", () => {
     expect(shouldEnableQueryAnchors(959)).toBe(false);
     expect(shouldEnableQueryAnchors(960)).toBe(true);
     expect(shouldEnableQueryAnchors(998)).toBe(true);
+  });
+
+  it("renders derive chat action for completed runs", () => {
+    const state = createInitialState();
+    const nodes: TimelineNode[] = [
+      { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
+      {
+        id: "content_1",
+        kind: "content",
+        role: "assistant",
+        text: "answer",
+        ts: 130,
+      },
+    ];
+    useAppState.mockReturnValue({
+      ...state,
+      chatId: "chat_1",
+      events: [
+        { type: "request.query", timestamp: 100 },
+        { type: "run.complete", timestamp: 180, runId: "run_1" },
+      ],
+      timelineNodes: createTimelineMap(nodes),
+      timelineOrder: nodes.map((node) => node.id),
+    });
+
+    const html = renderToStaticMarkup(React.createElement(ConversationStage));
+
+    expect(html).toContain("aria-label=\"派生新会话\"");
+    expect(html).toContain("material-symbol-hub");
+    expect(html).not.toContain("aria-label=\"派生新会话\" disabled=\"\"");
+  });
+
+  it("disables derive chat action without required run state", () => {
+    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1" })).toBe(false);
+    expect(isDeriveChatActionDisabled({ chatId: "", runId: "run_1" })).toBe(true);
+    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "" })).toBe(true);
+    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1", streaming: true })).toBe(true);
+    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1", activeAwaiting: { mode: "question" } })).toBe(true);
+  });
+
+  it("dispatches chat refresh and load events after derive succeeds", () => {
+    dispatchDerivedChatNavigation("chat_new");
+
+    expect(globalWithStorage.window?.dispatchEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ type: "agent:refresh-chats" }),
+    );
+    expect(globalWithStorage.window?.dispatchEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: "agent:load-chat",
+        detail: {
+          chatId: "chat_new",
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
   });
 
   it("renders one animated anchor line for each request query item", () => {

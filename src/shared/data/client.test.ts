@@ -15,6 +15,7 @@ import {
   createAutomation,
   createRequestId,
   createQueryStream,
+  deriveChat,
   deleteArchive,
   deleteAgent,
   deleteChat,
@@ -734,6 +735,19 @@ describe('data client query payloads', () => {
       agentKey: 'agent_a',
       teamId: 'team_a',
       limit: 7,
+    });
+  });
+
+  it('posts derive chat payload', async () => {
+    await deriveChat({
+      sourceChatId: 'chat_1',
+      sourceRunId: 'run_1',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat/derive');
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
+      sourceChatId: 'chat_1',
+      sourceRunId: 'run_1',
     });
   });
 

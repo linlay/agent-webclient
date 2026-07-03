@@ -490,6 +490,26 @@ export interface ArchiveChatsRequest {
   chatIds: string[];
 }
 
+export interface DeriveChatRequest {
+  sourceChatId: string;
+  sourceRunId?: string;
+  chatId?: string;
+  chatName?: string;
+}
+
+export interface DeriveChatResponse {
+  chatId: string;
+  chatName: string;
+  agentKey: string;
+  teamId: string;
+  sourceChatId: string;
+  sourceRunId: string;
+  lastRunId: string;
+  copiedRuns: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface RenameChatRequest {
   chatId: string;
   chatName: string;
@@ -1458,6 +1478,17 @@ export function archiveChats(
 ): Promise<ApiResponse<ArchiveChatsResponse>> {
   return postJson<ArchiveChatsResponse>(dataEndpoints.chatArchive.path, {
     chatIds: params.chatIds,
+  });
+}
+
+export function deriveChat(
+  params: DeriveChatRequest,
+): Promise<ApiResponse<DeriveChatResponse>> {
+  return postJson<DeriveChatResponse>(dataEndpoints.chatDerive.path, {
+    sourceChatId: params.sourceChatId,
+    sourceRunId: params.sourceRunId,
+    chatId: params.chatId,
+    chatName: params.chatName,
   });
 }
 
