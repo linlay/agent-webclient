@@ -16,6 +16,7 @@
       "AGENT_CONSOLE_ADMIN_LIST_ROUTE",
       "AgentConsole",
       "AgentSummaryPatch",
+      "CommandDrawer",
       "CommandModal",
       "CommandOverlayFocusArea",
       "CommandOverlayHost",
@@ -27,6 +28,7 @@
       "CurrentWorkerDetailView",
       "CurrentWorkerSummary",
       "DetailModal",
+      "GlobalShortcutLayer",
       "SWITCH_SCOPES",
       "SwitchModal",
       "WorkerDataSnapshot",
@@ -68,6 +70,7 @@
       "useCommandOverlayActions",
       "useCommandOverlayHostState",
       "useCommandOverlayOpen",
+      "useGlobalShortcuts",
       "useWorkerData"
     ],
     "dependencies": [],
@@ -76,6 +79,7 @@
       "src/features/workers/components/AgentConsole.test.ts",
       "src/features/workers/components/CommandModal.test.ts",
       "src/features/workers/components/SwitchModal.test.ts",
+      "src/features/workers/hooks/useGlobalShortcuts.test.ts",
       "src/features/workers/hooks/useWorkerData.test.ts",
       "src/features/workers/lib/agentOrdering.test.ts",
       "src/features/workers/lib/agentSummary.test.ts",
@@ -86,7 +90,7 @@
       "src/features/workers/lib/workerDataCoordinator.test.ts",
       "src/features/workers/lib/workerListFormatter.test.ts"
     ],
-    "lastScannedAt": "2026-06-29T03:50:50Z"
+    "lastScannedAt": "2026-07-02T05:32:02Z"
   },
   "readHints": {
     "alwaysRead": [],

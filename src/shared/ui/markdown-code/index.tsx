@@ -20,6 +20,8 @@ type MarkdownCodeProps = React.HTMLAttributes<HTMLElement> & {
   domNode?: unknown;
 };
 
+const CODE_COLLAPSE_CLASS_NAME = [Style.Collapse, "tw:bg-bg-elev-1"].join(" ");
+
 function isEChartsLanguage(lang?: string): boolean {
   const language = (lang || "").trim().split(/\s+/)[0]?.toLowerCase();
   return language === "echart" || language === "echarts";
@@ -130,7 +132,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
         <MarkdownMermaid code={text} streamStatus={streamStatus} />
       )}
       <Collapse
-        className={Style.Collapse}
+        className={CODE_COLLAPSE_CLASS_NAME}
         activeKey={activeKey}
         onChange={setActiveKey as any}
         ghost

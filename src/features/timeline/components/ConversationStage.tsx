@@ -20,6 +20,7 @@ import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
@@ -44,6 +45,117 @@ const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 const QUERY_ANCHOR_ACTIVE_OFFSET = 96;
 const QUERY_ANCHOR_TIMELINE_WIDTH = 800;
 const QUERY_ANCHOR_EDGE_INSET = 12;
+
+const TIMELINE_EMPTY_CLASS_NAME =
+  "timeline-empty tw:relative tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
+const TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME =
+  "timeline-empty-agent-switcher tw:relative tw:inline-flex tw:align-baseline";
+const TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME =
+  "timeline-agent-switcher-trigger tw:m-0 tw:inline-flex tw:max-w-[min(300px,62vw)] tw:items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-[5px] tw:py-px tw:font-[inherit] tw:font-extrabold tw:leading-[1.25] tw:text-ink-1 tw:align-baseline tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:hover:text-accent-electric-strong tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:focus-visible:text-accent-electric-strong tw:focus-visible:outline-none tw:active:transform-none";
+const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
+  "timeline-agent-switcher-trigger-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
+const TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME =
+  "timeline-agent-switcher-arrow tw:ml-px tw:shrink-0 tw:translate-y-px tw:text-[19px] tw:text-[color-mix(in_srgb,var(--ink-muted)_72%,transparent)] tw:opacity-[0.58]";
+const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
+  "timeline-agent-switcher-menu tw:absolute tw:bottom-[calc(100%+10px)] tw:left-1/2 tw:z-30 tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)] tw:-translate-x-1/2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,white)] tw:p-2.5 tw:shadow-floating";
+const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
+  "timeline-agent-switcher-search tw:w-full";
+const TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME =
+  "timeline-agent-switcher-empty tw:px-2.5 tw:pb-2.5 tw:pt-[18px] tw:text-[13px] tw:font-semibold tw:text-ink-muted";
+const TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME =
+  "timeline-agent-switcher-list tw:mt-2 tw:grid tw:max-h-[248px] tw:gap-1 tw:overflow-y-auto tw:pr-0.5";
+const TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME =
+  "timeline-agent-switcher-option tw:flex tw:min-h-8 tw:w-full tw:min-w-0 tw:items-center tw:gap-1.5 tw:rounded-lg tw:border tw:border-transparent tw:bg-transparent tw:p-1.5 tw:text-left tw:shadow-none tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:outline-none tw:active:transform-none";
+const TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME =
+  "is-active tw:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)]";
+const TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME =
+  "timeline-agent-switcher-avatar tw:shrink-0";
+const TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME =
+  "timeline-agent-switcher-option-copy tw:flex tw:min-w-0 tw:items-baseline tw:gap-1.5 tw:leading-[1.2]";
+const TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME =
+  "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:font-bold tw:text-ink-1";
+const TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME =
+  "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted";
+const CONVERSATION_STAGE_CLASS_NAME =
+  "conversation-stage tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
+const MESSAGES_SCROLL_CLASS_NAME = [
+  "messages-scroll tw:h-full tw:overflow-y-auto tw:bg-transparent tw:px-5 tw:pb-[26px] tw:pt-5 tw:scroll-smooth",
+  SCROLLBAR_THIN_CLASS_NAME,
+].join(" ");
+const TIMELINE_STACK_CLASS_NAME =
+  "timeline-stack tw:relative tw:m-auto tw:min-h-full tw:w-full tw:max-w-[800px]";
+const TIMELINE_STACK_ANCHORS_CLASS_NAME = "has-query-anchors";
+const TIMELINE_STACK_EMPTY_CLASS_NAME =
+  "is-empty tw:flex tw:items-end tw:justify-center";
+const TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME =
+  "timeline-query-anchor-rail tw:sticky tw:top-1/2 tw:z-[2] tw:ml-[calc(-1*var(--query-anchor-offset,56px))] tw:hidden tw:w-fit tw:-translate-y-1/2 tw:flex-col tw:justify-center tw:overflow-visible tw:[.has-query-anchors_&]:flex";
+const TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME =
+  "timeline-query-anchor-preview tw:max-w-[360px] tw:text-xs";
+const TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME =
+  "timeline-query-anchor-preview-query tw:overflow-hidden tw:[display:-webkit-box] tw:[-webkit-box-orient:vertical] tw:[-webkit-line-clamp:2]";
+const TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME =
+  "timeline-query-anchor-preview-content tw:overflow-hidden tw:text-ink-muted tw:[display:-webkit-box] tw:[-webkit-box-orient:vertical] tw:[-webkit-line-clamp:3]";
+const TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME =
+  "timeline-query-anchor-line tw:relative tw:inline-flex tw:min-h-3 tw:w-[27px] tw:translate-x-[-6px] tw:animate-[timeline-query-anchor-enter_0.28s_ease_forwards] tw:items-center tw:justify-start tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:shadow-none tw:hover:bg-transparent tw:hover:text-ink-2 tw:hover:shadow-none tw:hover:outline-none tw:hover:[&_.timeline-query-anchor-line-bar]:opacity-100 tw:active:transform-none";
+const TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME =
+  "is-active tw:[.timeline-query-anchor-rail:not(:hover)_&_.timeline-query-anchor-line-bar]:opacity-100";
+const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =
+  "timeline-query-anchor-line-bar tw:block tw:h-0.5 tw:w-[calc(100%-min(calc(abs(var(--index)-var(--hover-index))*20%),80%))] tw:origin-left tw:bg-ink-1 tw:opacity-30 tw:transition-[width,opacity] tw:duration-100";
+const TIMELINE_LANE_CLASS_NAME =
+  "timeline-lane tw:relative tw:flex tw:flex-col tw:gap-2.5";
+const TIMELINE_QUERY_ANCHOR_ROW_CLASS_NAME =
+  "timeline-query-anchor-row tw:relative";
+const TIMELINE_META_ROW_CLASS_NAME =
+  "timeline-meta-row tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
+const TIMELINE_RUN_META_CLASS_NAME =
+  "timeline-run-meta tw:ml-6 tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
+const TIMELINE_META_ACTIONS_CLASS_NAME =
+  "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-0.5";
+const TIMELINE_META_BUTTON_CLASS_NAME =
+  "timeline-meta-btn tw:!min-h-[22px] tw:!min-w-[22px] tw:!w-[22px] tw:!rounded-pill tw:!px-1.5 tw:text-ink-muted tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
+const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
+  "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
+const TIMELINE_ROW_TIME_CLASS_NAME =
+  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+const TIMELINE_RUN_GROUP_CLASS_NAME =
+  "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:before:absolute tw:before:bottom-0 tw:before:left-2 tw:before:top-0 tw:before:w-px tw:before:bg-line-soft tw:before:content-['']";
+const TIMELINE_RUN_ITEMS_CLASS_NAME =
+  "timeline-run-items tw:flex tw:flex-col tw:gap-2";
+const TIMELINE_RUN_TIME_CLASS_NAME =
+  "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+const TIMELINE_TASK_GROUP_CLASS_NAME =
+  "timeline-task-group tw:flex tw:flex-col tw:gap-2";
+const TIMELINE_TASK_GROUP_HEADER_CLASS_NAME =
+  "timeline-task-group-header tw:group tw:cursor-pointer tw:appearance-none tw:py-[5px]";
+const TIMELINE_TASK_GROUP_HEADER_EXPANDED_CLASS_NAME = "is-expanded";
+const TIMELINE_TASK_GROUP_AGENT_CLASS_NAME =
+  "timeline-task-group-agent tw:inline-flex tw:max-w-[160px] tw:shrink-0 tw:items-center tw:gap-[5px] tw:min-w-0";
+const TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME =
+  "timeline-task-group-agent-avatar tw:shrink-0";
+const TIMELINE_TASK_GROUP_AGENT_NAME_CLASS_NAME =
+  "timeline-task-group-agent-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-semibold";
+const TIMELINE_TASK_GROUP_TITLE_CLASS_NAME =
+  "timeline-task-group-title tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-semibold";
+const TIMELINE_TASK_GROUP_STATUS_BASE_CLASS_NAME =
+  "timeline-task-group-status tw:h-[7px] tw:w-[7px] tw:shrink-0 tw:rounded-full tw:bg-[color-mix(in_srgb,var(--ink-muted)_84%,transparent)]";
+const TIMELINE_TASK_GROUP_STATUS_CLASS_BY_STATUS: Record<string, string> = {
+  running:
+    "tw:animate-[timeline-task-status-flash_1s_infinite] tw:bg-accent-electric",
+  completed: "tw:bg-accent-lime",
+  success: "tw:bg-accent-lime",
+  failed: "tw:bg-accent-danger",
+  error: "tw:bg-accent-danger",
+  canceled: "tw:bg-accent-warn",
+};
+const TIMELINE_TASK_GROUP_DURATION_CLASS_NAME =
+  "timeline-task-group-duration tw:shrink-0 tw:text-[11px] tw:leading-none tw:text-ink-muted";
+const TIMELINE_TASK_GROUP_ICON_CLASS_NAME =
+  "tw:shrink-0 tw:text-lg tw:opacity-0 tw:group-hover:opacity-100";
+const TIMELINE_TASK_GROUP_ICON_EXPANDED_CLASS_NAME = "tw:opacity-100";
+const TIMELINE_TASK_GROUP_ERROR_CLASS_NAME =
+  "timeline-task-group-error tw:ml-[34px] tw:break-words tw:text-xs tw:leading-[1.45] tw:text-[color-mix(in_srgb,var(--accent-danger)_82%,var(--ink-1))]";
+const TIMELINE_TASK_GROUP_BODY_CLASS_NAME =
+  "timeline-task-group-body tw:flex tw:flex-col tw:gap-2";
 
 export interface TimelineAgentOption {
   key: string;
@@ -384,9 +496,9 @@ export const TimelineAgentSwitcher: React.FC<{
   };
 
   return (
-    <span className="timeline-empty-agent-switcher" ref={rootRef}>
+    <span className={TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME} ref={rootRef}>
       <button
-        className="timeline-agent-switcher-trigger"
+        className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -395,20 +507,20 @@ export const TimelineAgentSwitcher: React.FC<{
         })}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="timeline-agent-switcher-trigger-name">
+        <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
           {displayName}
         </span>
         <MaterialIcon
-          className="timeline-agent-switcher-arrow"
+          className={TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME}
           name="keyboard_arrow_down"
           aria-hidden="true"
         />
       </button>
       {open && (
-        <div className="timeline-agent-switcher-menu">
+        <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
           <Input
             ref={searchInputRef}
-            className="timeline-agent-switcher-search"
+            className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
             size="small"
             variant="filled"
             value={searchText}
@@ -416,12 +528,12 @@ export const TimelineAgentSwitcher: React.FC<{
             onChange={(event) => setSearchText(event.target.value)}
           />
           {filteredOptions.length === 0 ? (
-            <div className="timeline-agent-switcher-empty">
+            <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
               {t("timeline.agentSwitcher.empty")}
             </div>
           ) : (
             <div
-              className="timeline-agent-switcher-list"
+              className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
               role="listbox"
               aria-label={t("timeline.agentSwitcher.listAriaLabel")}
             >
@@ -430,7 +542,14 @@ export const TimelineAgentSwitcher: React.FC<{
                 return (
                   <button
                     key={option.key}
-                    className={`timeline-agent-switcher-option ${selected ? "is-active" : ""}`.trim()}
+                    className={[
+                      TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
+                      selected
+                        ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     type="button"
                     role="option"
                     aria-selected={selected}
@@ -438,22 +557,28 @@ export const TimelineAgentSwitcher: React.FC<{
                   >
                     <AgentIcon
                       icon={option.icon}
-                      type="agent"
-                      props={{
-                        icon: {
-                          className: "timeline-agent-switcher-avatar",
-                          width: 20,
-                          height: 20,
-                        },
-                        avatar: {
-                          className: "timeline-agent-switcher-avatar",
-                          size: 20,
-                        },
-                      }}
-                    />
-                    <span className="timeline-agent-switcher-option-copy">
-                      <strong>{option.name}</strong>
-                      {!option.hideRole && <span>{option.role || "--"}</span>}
+                    type="agent"
+                    props={{
+                      icon: {
+                        className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                        width: 20,
+                        height: 20,
+                      },
+                      avatar: {
+                        className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                        size: 20,
+                      },
+                    }}
+                  />
+                    <span className={TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME}>
+                      <strong className={TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME}>
+                        {option.name}
+                      </strong>
+                      {!option.hideRole && (
+                        <span className={TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME}>
+                          {option.role || "--"}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -729,57 +854,78 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           currentWorker,
         );
         return (
-          <section key={entry.key} className="timeline-task-group">
+          <section key={entry.key} className={TIMELINE_TASK_GROUP_CLASS_NAME}>
             <Flex
-              className={`timeline-task-group-header ${expanded ? "is-expanded" : ""}`.trim()}
+              className={[
+                TIMELINE_TASK_GROUP_HEADER_CLASS_NAME,
+                expanded ? TIMELINE_TASK_GROUP_HEADER_EXPANDED_CLASS_NAME : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               align="center"
               gap={8}
               aria-expanded={expanded}
               onClick={() => toggleTaskGroup(entry.key)}
             >
               {taskAgent && (
-                <span className="timeline-task-group-agent">
+                <span className={TIMELINE_TASK_GROUP_AGENT_CLASS_NAME}>
                   <AgentIcon
                     icon={taskAgent.icon}
                     type="agent"
                     props={{
                       icon: {
-                        className: "timeline-task-group-agent-avatar",
+                        className: TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME,
                         width: 20,
                         height: 20,
                       },
                       avatar: {
-                        className: "timeline-task-group-agent-avatar",
+                        className: TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME,
                         size: 20,
                       },
                     }}
                   />
-                  <span className="timeline-task-group-agent-name">
+                  <span className={TIMELINE_TASK_GROUP_AGENT_NAME_CLASS_NAME}>
                     {taskAgent.name || taskAgent.key}
                   </span>
                 </span>
               )}
-              <span className="timeline-task-group-title">
+              <span className={TIMELINE_TASK_GROUP_TITLE_CLASS_NAME}>
                 {entry.taskName || entry.taskId}
               </span>
               <span
-                className={`timeline-task-group-status tool-status-dot is-${entry.status || "unknown"}`.trim()}
-                data-tool-status={entry.status || "unknown"}
+                className={[
+                  TIMELINE_TASK_GROUP_STATUS_BASE_CLASS_NAME,
+                  TIMELINE_TASK_GROUP_STATUS_CLASS_BY_STATUS[
+                    entry.status || "unknown"
+                  ] || "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 aria-label={statusText}
                 title={statusText}
               />
               {taskDuration && (
-                <span className="timeline-task-group-duration">
+                <span className={TIMELINE_TASK_GROUP_DURATION_CLASS_NAME}>
                   {taskDuration}
                 </span>
               )}
-              <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+              <MaterialIcon
+                className={[
+                  TIMELINE_TASK_GROUP_ICON_CLASS_NAME,
+                  expanded ? TIMELINE_TASK_GROUP_ICON_EXPANDED_CLASS_NAME : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                name={expanded ? "expand_more" : "chevron_right"}
+              />
             </Flex>
             {entry.error && (
-              <div className="timeline-task-group-error">{entry.error}</div>
+              <div className={TIMELINE_TASK_GROUP_ERROR_CLASS_NAME}>
+                {entry.error}
+              </div>
             )}
             {expanded && (
-              <div className="timeline-task-group-body">
+              <div className={TIMELINE_TASK_GROUP_BODY_CLASS_NAME}>
                 {entry.renderEntries.map((childEntry) =>
                   renderEntry(childEntry),
                 )}
@@ -868,14 +1014,22 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   ]);
 
   return (
-    <div className="conversation-stage">
-      <div className="messages-scroll" ref={scrollRef} id="messages">
+    <div className={CONVERSATION_STAGE_CLASS_NAME}>
+      <div className={MESSAGES_SCROLL_CLASS_NAME} ref={scrollRef} id="messages">
         <div
-          className={`timeline-stack ${queryAnchorsEnabled ? "has-query-anchors" : ""} ${displayItems.length === 0 && showEmptyState ? "is-empty" : ""}`.trim()}
+          className={[
+            TIMELINE_STACK_CLASS_NAME,
+            queryAnchorsEnabled ? TIMELINE_STACK_ANCHORS_CLASS_NAME : "",
+            displayItems.length === 0 && showEmptyState
+              ? TIMELINE_STACK_EMPTY_CLASS_NAME
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           {displayItems.length === 0 ? (
             showEmptyState ? (
-              <div className="timeline-empty">
+              <div className={TIMELINE_EMPTY_CLASS_NAME}>
                 {currentWorker?.displayName ? (
                   canSwitchEmptyAgent ? (
                     <>
@@ -901,7 +1055,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               {queryAnchorItems.length > 0 && (
                 <nav
                   ref={anchorRef}
-                  className="timeline-query-anchor-rail"
+                  className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
                   style={
                     {
                       "--hover-index": (
@@ -922,24 +1076,32 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     return (
                       <Tooltip
                         key={anchor.key}
-                        rootClassName="timeline-query-anchor-preview"
+                        rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
                         trigger="hover"
                         placement="right"
                         title={
                           <div>
-                            <div className="timeline-query-anchor-preview-query">
+                            <div className={TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME}>
                               {anchor.queryText}
                             </div>
-                            <div className="timeline-query-anchor-preview-content">
+                            <div className={TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME}>
                               {anchor.lastRunContent}
                             </div>
                           </div>
                         }
                       >
                         <button
-                          className={`timeline-query-anchor-line ${active ? "is-active" : ""}`.trim()}
+                          className={[
+                            TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
+                            active
+                              ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                           type="button"
                           aria-current={active ? "location" : undefined}
+                          aria-label={`定位到第 ${index + 1} 个提问`}
                           onMouseEnter={() => {
                             if (!anchorRef.current) return;
                             anchorRef.current.style.setProperty(
@@ -952,7 +1114,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           }
                         >
                           <span
-                            className="timeline-query-anchor-line-bar"
+                            className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
                             aria-hidden="true"
                             style={
                               {
@@ -966,7 +1128,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   })}
                 </nav>
               )}
-              <div className="timeline-lane">
+              <div className={TIMELINE_LANE_CLASS_NAME}>
                 {displayItems.map((item) => {
                   if (item.kind === "query") {
                     const queryTime = formatTimelineTime(item.node.ts);
@@ -978,16 +1140,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       <div
                         key={item.key}
                         id={queryAnchorId}
-                        className="timeline-query-anchor-row"
+                        className={TIMELINE_QUERY_ANCHOR_ROW_CLASS_NAME}
                         data-query-anchor-id={queryAnchorId}
                       >
                         <TimelineRow
                           node={item.node}
                           metaNode={
-                            <div className="timeline-meta-row">
-                              <div className="timeline-meta-actions">
+                            <div className={TIMELINE_META_ROW_CLASS_NAME}>
+                              <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
                                 <UiButton
-                                  className="timeline-meta-btn"
+                                  className={TIMELINE_META_BUTTON_CLASS_NAME}
                                   variant="ghost"
                                   size="sm"
                                   iconOnly
@@ -1033,7 +1195,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                   }}
                                 >
                                   <UiButton
-                                    className="timeline-meta-btn"
+                                    className={TIMELINE_META_BUTTON_CLASS_NAME}
                                     variant="ghost"
                                     size="sm"
                                     iconOnly
@@ -1047,7 +1209,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               </div>
                               {queryTime.short && (
                                 <div
-                                  className="timeline-row-time"
+                                  className={TIMELINE_ROW_TIME_CLASS_NAME}
                                   title={queryTime.full}
                                 >
                                   {queryTime.short}
@@ -1091,7 +1253,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                 key: "run-entries",
                                 label: t("timeline.run.processed", { duration: responseDuration }),
                                 children: (
-                                  <div className="timeline-run-items">
+                                  <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
                                     {buildRunRenderEntries(
                                       item.nodes.filter(
                                         (n) => n.id !== lastContentNode!.id,
@@ -1103,23 +1265,26 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             ]}
                           />
                         )}
-                        <section key={item.key} className="timeline-run-group">
+                        <section
+                          key={item.key}
+                          className={TIMELINE_RUN_GROUP_CLASS_NAME}
+                        >
                           {shouldCollapse ? (
                             buildRunRenderEntries([lastContentNode!]).map(
                               (entry) => renderEntry(entry),
                             )
                           ) : (
-                            <div className="timeline-run-items">
+                            <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
                               {item.renderEntries.map((entry) =>
                                 renderEntry(entry),
                               )}
                             </div>
                           )}
                           {isCompleted && (
-                            <div className="timeline-run-meta">
-                              <div className="timeline-meta-actions">
+                            <div className={TIMELINE_RUN_META_CLASS_NAME}>
+                              <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
                                 <UiButton
-                                  className="timeline-meta-btn"
+                                  className={TIMELINE_META_BUTTON_CLASS_NAME}
                                   variant="ghost"
                                   size="sm"
                                   iconOnly
@@ -1139,7 +1304,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                 </UiButton>
                                 {isDownvoted ? (
                                   <UiButton
-                                    className="timeline-meta-btn is-downvoted"
+                                    className={[
+                                      TIMELINE_META_BUTTON_CLASS_NAME,
+                                      TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
+                                    ].join(" ")}
                                     variant="ghost"
                                     size="sm"
                                     iconOnly
@@ -1164,7 +1332,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     }
                                   >
                                     <UiButton
-                                      className="timeline-meta-btn"
+                                      className={TIMELINE_META_BUTTON_CLASS_NAME}
                                       variant="ghost"
                                       size="sm"
                                       iconOnly
@@ -1179,7 +1347,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               </div>
                               {time.short && (
                                 <div
-                                  className="timeline-run-time"
+                                  className={TIMELINE_RUN_TIME_CLASS_NAME}
                                   title={
                                     responseDuration
                                       ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
@@ -1187,6 +1355,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                   }
                                 >
                                   {time.short}
+                                  {responseDuration
+                                    ? ` · ${responseDuration}`
+                                    : ""}
                                 </div>
                               )}
                             </div>

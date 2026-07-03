@@ -23,6 +23,30 @@ type AgentIconConfig =
       name?: string;
     };
 
+const WORKER_PANEL_HEADER_CLASS =
+  "worker-panel-header tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:[&_.chat-awaiting-status]:mr-[5px] tw:[&_.chat-awaiting-status]:whitespace-nowrap tw:[&_.chat-awaiting-status]:rounded-pill tw:[&_.chat-awaiting-status]:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:[&_.chat-awaiting-status]:px-1.5 tw:[&_.chat-awaiting-status]:py-0.5 tw:[&_.chat-awaiting-status]:text-[11px] tw:[&_.chat-awaiting-status]:text-accent-warn tw:[&_.worker-chat-loading]:mr-0.5 tw:[&_.worker-chat-loading]:animate-ui-spin tw:[&_.worker-chat-loading]:text-sm tw:[&_.worker-chat-loading]:text-text-sub tw:[&_.worker-panel-preview]:h-5 tw:[&_.worker-panel-preview]:overflow-hidden tw:[&_.worker-panel-preview]:text-ellipsis tw:[&_.worker-panel-preview]:whitespace-nowrap tw:[&_.worker-panel-preview]:text-xs tw:[&_.worker-panel-preview]:text-text-muted tw:[&_.worker-panel-preview]:transition-[height] tw:[&_.worker-panel-preview]:duration-200 tw:[&_.worker-panel-preview]:ease-in-out";
+
+const WORKER_PANEL_ICON_CLASS =
+  "worker-panel-icon tw:transition-transform tw:duration-200 tw:ease-in-out";
+
+const WORKER_PANEL_HEADER_BODY_CLASS =
+  "worker-panel-header-body tw:flex-1 tw:overflow-hidden tw:text-text-main tw:[&_.ant-badge]:scale-[0.8] tw:[&_.ant-badge_.ant-badge-count-sm]:h-[18px] tw:[&_.ant-badge_.ant-badge-count-sm]:min-w-[18px] tw:[&_.ant-badge_.ant-badge-count-sm]:rounded-[10px] tw:[&_.ant-badge_.ant-badge-count-sm]:leading-[18px]";
+
+const WORKER_PANEL_ROLE_CLASS =
+  "worker-panel-role tw:ml-2 tw:text-[11px] tw:text-text-muted";
+
+const WORKER_PANEL_NEW_CLASS =
+  "worker-panel-new";
+
+const WORKER_CHAT_LOADING_CLASS =
+  "worker-chat-loading tw:mr-0.5 tw:text-sm tw:text-text-sub tw:animate-ui-spin";
+
+const CHAT_AWAITING_STATUS_CLASS =
+  "chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn";
+
+const WORKER_TERMINAL_ACTIVE_CLASS =
+  "worker-terminal-active tw:inline-flex tw:size-[18px] tw:flex-none tw:items-center tw:justify-center tw:rounded-md tw:bg-[color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:text-accent-electric-strong tw:[&_.material-icon]:text-sm";
+
 export const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
   isActive: boolean;
@@ -126,7 +150,7 @@ export const WorkerPanelHeader: React.FC<{
 
   return (
     <div
-      className={`worker-panel-header ${isActive ? "is-active" : ""} ${
+      className={`${WORKER_PANEL_HEADER_CLASS} ${isActive ? "is-active" : ""} ${
         row.hasHistory ? "" : "is-empty"
       }`}
     >
@@ -135,20 +159,20 @@ export const WorkerPanelHeader: React.FC<{
         type={row.type}
         props={{
           icon: {
-            className: "worker-panel-icon",
+            className: WORKER_PANEL_ICON_CLASS,
           },
           avatar: {
-            className: "worker-panel-icon",
+            className: WORKER_PANEL_ICON_CLASS,
           },
         }}
       />
       <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
-        <Flex align="center" className="worker-panel-header-body">
+        <Flex align="center" className={WORKER_PANEL_HEADER_BODY_CLASS}>
           <Typography.Text ellipsis style={{ flex: 1 }}>
             {row.displayName}
             {subtitle && (
               <span
-                className="worker-panel-role"
+                className={WORKER_PANEL_ROLE_CLASS}
                 title={
                   row.agentType === "coder"
                     ? row.workspaceDir || row.workspaceName
@@ -163,7 +187,7 @@ export const WorkerPanelHeader: React.FC<{
           {terminalActive ? (
             <Tooltip title={terminalTitle}>
               <span
-                className={`worker-terminal-active ${
+                className={`${WORKER_TERMINAL_ACTIVE_CLASS} ${
                   terminalBusy ? "is-busy" : ""
                 }`}
                 aria-label={terminalTitle}
@@ -176,7 +200,7 @@ export const WorkerPanelHeader: React.FC<{
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
-                  className="worker-panel-new"
+                  className={WORKER_PANEL_NEW_CLASS}
                   type="text"
                   icon={<MaterialIcon name="done_all" />}
                   onClick={(e) => onMarkAllRead(e, row.key)}
@@ -185,7 +209,7 @@ export const WorkerPanelHeader: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className="worker-panel-new"
+                className={WORKER_PANEL_NEW_CLASS}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}
@@ -217,7 +241,7 @@ export const WorkerPanelHeader: React.FC<{
                 }
               >
                 <Button
-                  className="worker-panel-new"
+                  className={WORKER_PANEL_NEW_CLASS}
                   type="text"
                   icon={<MaterialIcon name="more_horiz" />}
                   onClick={(event) => event.stopPropagation()}
@@ -232,19 +256,19 @@ export const WorkerPanelHeader: React.FC<{
           </Typography.Text>
           {previewStatus === "awaiting" && (
             <>
-              <span className="chat-awaiting-status">
+              <span className={CHAT_AWAITING_STATUS_CLASS}>
                 {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
               </span>
               <MaterialIcon
                 name="progress_activity"
-                className="worker-chat-loading"
+                className={WORKER_CHAT_LOADING_CLASS}
               />
             </>
           )}
           {previewStatus === "running" && (
             <MaterialIcon
               name="progress_activity"
-              className="worker-chat-loading"
+              className={WORKER_CHAT_LOADING_CLASS}
             />
           )}
         </Flex>

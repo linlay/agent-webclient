@@ -158,6 +158,162 @@ const PREVIEW_PROMPT_LAYER_ORDER: MemoryContextPromptLayer[] = [
   "session",
   "observation",
 ];
+const MEMORY_INFO_CARD_CLASS_NAME =
+  "memory-info-card tw:flex tw:h-[min(88vh,940px)] tw:min-h-[min(88vh,940px)] tw:w-full tw:flex-col tw:gap-4 tw:overflow-hidden tw:[&_.settings-segmented-btn.ui-btn]:min-w-0 tw:[&_.settings-segmented-btn.ui-btn]:text-[13px] tw:[&_.settings-segmented]:w-full tw:[&_.settings-segmented]:max-w-[640px]";
+const MEMORY_HEAD_CLASS_NAME =
+  "settings-head memory-info-head tw:mb-0 tw:flex tw:items-center tw:justify-between tw:[&_button]:rounded-lg tw:[&_button]:border-0 tw:[&_button]:bg-transparent tw:[&_button]:px-2.5 tw:[&_button]:py-1 tw:[&_button]:text-xs tw:[&_button]:font-semibold tw:[&_button]:text-ink-muted tw:[&_button:hover]:bg-bg-hover tw:[&_button:hover]:text-ink-1 tw:[&_button:hover]:shadow-none tw:[&_h3]:m-0 tw:[&_h3]:text-base";
+const MEMORY_SUBTITLE_CLASS_NAME =
+  "memory-info-subtitle tw:mb-0 tw:mt-1.5 tw:text-[13px] tw:leading-[1.5] tw:text-ink-muted";
+const MEMORY_CONSOLE_TABS_CLASS_NAME =
+  "memory-console-tabs settings-segmented tw:min-w-0 tw:w-[min(640px,100%)]";
+const MEMORY_CONSOLE_PANE_CLASS_NAME =
+  "memory-console-pane tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-hidden";
+const MEMORY_INFO_LAYOUT_CLASS_NAME =
+  "memory-info-layout tw:grid tw:min-h-0 tw:flex-1 tw:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] tw:gap-[18px] tw:max-[980px]:grid-cols-1";
+const MEMORY_INFO_PANE_CLASS_NAME =
+  "memory-info-pane tw:flex tw:min-h-0 tw:flex-col tw:gap-3.5 tw:rounded-2xl tw:border tw:p-4 tw:shadow-elevated tw:[border-color:color-mix(in_srgb,var(--line-soft)_90%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,var(--bg-input))]";
+const MEMORY_INFO_PANE_HEADER_CLASS_NAME =
+  "memory-info-pane-header tw:flex tw:items-start tw:justify-between tw:gap-3 tw:border-b tw:pb-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_88%,transparent)] tw:[&_strong]:block tw:[&_strong]:text-[15px] tw:[&_strong]:leading-[1.35] tw:[&_strong]:text-ink-1";
+const MEMORY_INFO_PANE_HINT_CLASS_NAME =
+  "memory-info-pane-hint tw:mb-0 tw:mt-1 tw:text-xs tw:leading-[1.5] tw:text-ink-muted";
+const MEMORY_INFO_ACTIONS_CLASS_NAME =
+  "memory-info-actions tw:inline-flex tw:items-center tw:gap-2";
+const MEMORY_FILTER_GRID_CLASS_NAME =
+  "memory-info-filter-grid tw:grid tw:grid-cols-2 tw:gap-3.5 tw:max-[980px]:grid-cols-1";
+const MEMORY_PANE_LIST_FILTER_GRID_CLASS_NAME =
+  `${MEMORY_FILTER_GRID_CLASS_NAME} tw:gap-x-3 tw:gap-y-2.5`;
+const MEMORY_FIELD_CLASS_NAME =
+  "memory-info-field tw:flex tw:flex-col tw:gap-[7px] tw:[&>span]:text-xs tw:[&>span]:font-semibold tw:[&>span]:tracking-[0.02em] tw:[&>span]:text-ink-muted";
+const MEMORY_PANE_LIST_FIELD_CLASS_NAME =
+  `${MEMORY_FIELD_CLASS_NAME} tw:gap-[5px] tw:[&>span]:text-[11px]`;
+const MEMORY_FIELD_WIDE_CLASS_NAME =
+  `${MEMORY_PANE_LIST_FIELD_CLASS_NAME} memory-info-field-wide tw:col-span-full`;
+const MEMORY_INFO_INPUT_CLASS_NAME =
+  "memory-info-input tw:w-full tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))] tw:px-2.5 tw:py-2 tw:text-xs tw:text-ink-1 tw:outline-none tw:focus:border-accent-electric tw:focus:shadow-[0_0_0_2px_color-mix(in_srgb,var(--accent-electric)_14%,transparent)]";
+const MEMORY_INFO_SELECT_CLASS_NAME =
+  "memory-info-select tw:h-9 tw:w-full tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))] tw:px-2.5 tw:py-2 tw:text-xs tw:text-ink-1 tw:outline-none tw:focus:border-accent-electric tw:focus:shadow-[0_0_0_2px_color-mix(in_srgb,var(--accent-electric)_14%,transparent)]";
+const MEMORY_INFO_ERROR_CLASS_NAME =
+  "memory-info-error tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_32%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_8%,var(--bg-elev-2))]";
+const COMMAND_EMPTY_STATE_CLASS_NAME =
+  "command-empty-state tw:rounded-[14px] tw:border tw:border-dashed tw:px-4 tw:py-6 tw:text-center tw:text-[13px] tw:text-ink-muted tw:[border-color:color-mix(in_srgb,var(--line-strong)_76%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_56%,var(--bg-elev-2))]";
+const COMMAND_DETAIL_LABEL_CLASS_NAME =
+  "command-detail-label tw:mb-1.5 tw:block tw:text-[11px] tw:text-ink-muted";
+const SETTINGS_SEGMENTED_BUTTON_CLASS_NAME =
+  "settings-segmented-btn tw:flex-1 tw:min-w-24 tw:rounded-pill";
+const MEMORY_INFO_RECORD_LIST_CLASS_NAME =
+  "memory-info-record-list tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:gap-2 tw:overflow-auto tw:pb-3 tw:pl-0 tw:pr-1.5 tw:pt-1 tw:[scrollbar-gutter:stable]";
+const MEMORY_INFO_RECORD_ITEM_CLASS_NAME =
+  "memory-info-record-item tw:w-full tw:rounded-xl tw:border tw:p-3 tw:pt-[11px] tw:text-left tw:transition-[border-color,background,box-shadow,transform] tw:duration-[140ms] tw:ease-out tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,var(--bg-input))] tw:hover:[border-color:color-mix(in_srgb,var(--accent-electric)_52%,var(--line-soft))] tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,var(--bg-elev-2))] tw:hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-soft)_82%,transparent)] tw:[&.is-selected]:[border-color:color-mix(in_srgb,var(--accent-electric)_52%,var(--line-soft))] tw:[&.is-selected]:bg-[color-mix(in_srgb,var(--accent-soft)_58%,var(--bg-elev-2))] tw:[&.is-selected]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-soft)_82%,transparent)] tw:[&_.ui-tag]:min-h-5 tw:[&_.ui-tag]:px-[7px] tw:[&_.ui-tag]:py-0.5 tw:[&_.ui-tag]:text-[11px]";
+const MEMORY_RECORD_HEAD_CLASS_NAME =
+  "memory-info-record-head tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>span]:flex-none tw:[&>span]:whitespace-nowrap tw:[&>span]:text-[11px] tw:[&>span]:text-ink-muted tw:[&>strong]:line-clamp-2 tw:[&>strong]:break-words tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.45] tw:[&>strong]:text-ink-1";
+const MEMORY_RECORD_META_CLASS_NAME =
+  "memory-info-record-meta tw:mt-1.5 tw:flex tw:flex-wrap tw:gap-2";
+const MEMORY_RECORD_SUMMARY_CLASS_NAME =
+  "memory-info-record-summary tw:mt-2.5 tw:line-clamp-4 tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.7] tw:text-ink-2";
+const MEMORY_DETAIL_STACK_CLASS_NAME =
+  "memory-info-detail-stack tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:gap-4 tw:overflow-auto tw:pb-[18px] tw:pl-0 tw:pr-2 tw:pt-0 tw:[scrollbar-gutter:stable]";
+const MEMORY_DETAIL_TITLE_CLASS_NAME =
+  "memory-info-detail-title tw:[&_h4]:m-0 tw:[&_h4]:text-[17px] tw:[&_h4]:leading-[1.45] tw:[&_h4]:text-ink-1";
+const MEMORY_DETAIL_BADGES_CLASS_NAME =
+  "memory-info-detail-badges tw:mt-2.5 tw:flex tw:flex-wrap tw:gap-2";
+const MEMORY_DETAIL_SUMMARY_CLASS_NAME =
+  "memory-info-detail-summary tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.7] tw:text-ink-2";
+const MEMORY_DETAIL_GRID_CLASS_NAME =
+  "memory-info-detail-grid tw:grid tw:grid-cols-2 tw:gap-2.5 tw:max-[980px]:grid-cols-1";
+const MEMORY_DETAIL_CARD_CLASS_NAME =
+  "memory-info-detail-card tw:box-border tw:flex-none tw:rounded-[14px] tw:border tw:px-[15px] tw:py-3.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_74%,var(--bg-elev-2))] tw:[&>small]:block tw:[&>small]:text-[11px] tw:[&>small]:leading-[1.45] tw:[&>small]:text-ink-muted tw:[&>strong]:block tw:[&>strong]:break-words tw:[&>strong]:text-sm tw:[&>strong]:leading-[1.55] tw:[&>strong]:text-ink-1";
+const MEMORY_DETAIL_BLOCK_CLASS_NAME =
+  "memory-info-detail-block tw:box-border tw:flex tw:flex-none tw:flex-col tw:gap-2.5 tw:rounded-[14px] tw:border tw:px-[15px] tw:py-3.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_74%,var(--bg-elev-2))]";
+const MEMORY_RAW_BLOCK_CLASS_NAME =
+  `${MEMORY_DETAIL_BLOCK_CLASS_NAME} memory-info-raw-block tw:mb-0.5 tw:overflow-hidden tw:[&_pre]:m-0 tw:[&_pre]:max-h-[260px] tw:[&_pre]:overflow-auto tw:[&_pre]:whitespace-pre-wrap tw:[&_pre]:break-words tw:[&_pre]:font-code tw:[&_pre]:text-xs tw:[&_pre]:leading-[1.55] tw:[&_pre]:text-ink-2`;
+const MEMORY_RAW_SUMMARY_CLASS_NAME =
+  "memory-info-raw-summary tw:inline-flex tw:cursor-pointer tw:list-none tw:items-center tw:gap-2 tw:text-xs tw:font-bold tw:text-ink-1 tw:[&::-webkit-details-marker]:hidden";
+const MEMORY_PREVIEW_LAYOUT_CLASS_NAME =
+  "memory-preview-layout tw:grid tw:min-h-0 tw:flex-1 tw:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] tw:gap-[18px] tw:max-[980px]:grid-cols-1";
+const MEMORY_PREVIEW_PANE_INPUT_CLASS_NAME =
+  `${MEMORY_INFO_PANE_CLASS_NAME} memory-preview-pane memory-preview-pane-input tw:min-w-0 tw:overflow-auto`;
+const MEMORY_PREVIEW_PANE_RESULT_CLASS_NAME =
+  `${MEMORY_INFO_PANE_CLASS_NAME} memory-preview-pane memory-preview-pane-result tw:min-w-0 tw:overflow-hidden`;
+const MEMORY_PREVIEW_CONTEXT_LIST_CLASS_NAME =
+  "memory-preview-context-list tw:grid tw:grid-cols-3 tw:gap-2.5 tw:max-[980px]:grid-cols-1";
+const MEMORY_PREVIEW_CONTEXT_ITEM_CLASS_NAME =
+  "memory-preview-context-item tw:rounded-[14px] tw:border tw:px-[13px] tw:py-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_72%,var(--bg-elev-2))] tw:[&>span]:block tw:[&>span]:text-[11px] tw:[&>span]:leading-[1.45] tw:[&>span]:text-ink-muted tw:[&>strong]:mt-2 tw:[&>strong]:block tw:[&>strong]:break-words tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.45] tw:[&>strong]:text-ink-1";
+const MEMORY_PREVIEW_TEXTAREA_CLASS_NAME =
+  "settings-textarea memory-preview-textarea tw:min-h-[124px]";
+const MEMORY_PREVIEW_SUMMARY_GRID_CLASS_NAME =
+  "memory-preview-summary-grid tw:grid tw:grid-cols-2 tw:gap-2.5 tw:max-[980px]:grid-cols-1 tw:[&_.memory-info-detail-card]:gap-2";
+const MEMORY_PREVIEW_LAYER_TABS_CLASS_NAME =
+  "memory-preview-layer-tabs settings-segmented tw:w-[min(420px,100%)]";
+const MEMORY_PREVIEW_LAYER_TAB_CLASS_NAME =
+  `${SETTINGS_SEGMENTED_BUTTON_CLASS_NAME} memory-preview-layer-tab`;
+const MEMORY_PREVIEW_PROMPT_BLOCK_CLASS_NAME =
+  "memory-preview-prompt-block tw:rounded-[14px] tw:border tw:px-[15px] tw:py-3.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_72%,var(--bg-elev-2))] tw:[&_pre]:mt-2.5 tw:[&_pre]:max-h-[260px] tw:[&_pre]:overflow-auto tw:[&_pre]:whitespace-pre-wrap tw:[&_pre]:break-words tw:[&_pre]:font-code tw:[&_pre]:text-xs tw:[&_pre]:leading-[1.65] tw:[&_pre]:text-ink-2";
+const MEMORY_PREVIEW_LIST_CLASS_NAME =
+  "tw:flex tw:flex-col tw:gap-2.5";
+const MEMORY_PREVIEW_ITEM_CARD_CLASS_NAME =
+  "tw:rounded-[14px] tw:border tw:px-[13px] tw:py-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_72%,var(--bg-elev-2))]";
+const MEMORY_PREVIEW_HEAD_CLASS_NAME =
+  "tw:flex tw:items-start tw:justify-between tw:gap-2.5 tw:[&>span]:text-[11px] tw:[&>span]:leading-[1.45] tw:[&>span]:text-ink-muted tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.45] tw:[&>strong]:text-ink-1";
+const MEMORY_PREVIEW_EMPTY_CLASS_NAME =
+  "memory-preview-layer-empty tw:text-xs tw:leading-[1.55] tw:text-ink-muted";
+const MEMORY_PREFERENCE_SCOPE_TABS_CLASS_NAME =
+  "memory-preference-scope-tabs tw:mb-3.5 tw:flex tw:flex-wrap tw:gap-2.5";
+const MEMORY_PREFERENCE_SCOPE_TAB_CLASS_NAME =
+  "memory-preference-scope-tab tw:rounded-[14px] tw:px-4";
+const MEMORY_PREFERENCE_LAYOUT_CLASS_NAME =
+  "memory-preference-layout tw:grid tw:min-h-0 tw:flex-1 tw:grid-cols-[minmax(290px,340px)_minmax(320px,0.92fr)_minmax(360px,1.08fr)] tw:gap-[18px] tw:max-[1320px]:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] tw:max-[980px]:grid-cols-1";
+const MEMORY_PREFERENCE_PANE_LIST_CLASS_NAME =
+  `${MEMORY_INFO_PANE_CLASS_NAME} memory-preference-pane memory-preference-pane-list tw:min-w-0 tw:overflow-hidden`;
+const MEMORY_PREFERENCE_PANE_DETAIL_CLASS_NAME =
+  `${MEMORY_INFO_PANE_CLASS_NAME} memory-preference-pane memory-preference-pane-detail tw:min-w-0 tw:overflow-auto`;
+const MEMORY_PREFERENCE_PANE_EDITOR_CLASS_NAME =
+  `${MEMORY_INFO_PANE_CLASS_NAME} memory-preference-pane memory-preference-pane-editor tw:min-w-0 tw:overflow-auto tw:max-[1320px]:col-span-full tw:max-[980px]:col-auto`;
+const MEMORY_PREFERENCE_MODE_TOGGLE_CLASS_NAME =
+  "memory-preference-mode-toggle settings-segmented tw:w-fit tw:min-w-[292px]";
+const MEMORY_PREFERENCE_FORM_CLASS_NAME =
+  "memory-preference-form tw:flex tw:flex-col tw:gap-3.5";
+const MEMORY_PREFERENCE_FORM_GRID_CLASS_NAME =
+  "memory-preference-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[980px]:grid-cols-1";
+const MEMORY_PREFERENCE_TEXTAREA_CLASS_NAME =
+  "settings-textarea memory-preference-textarea tw:min-h-28";
+const MEMORY_PREFERENCE_MARKDOWN_PANEL_CLASS_NAME =
+  "memory-preference-markdown-panel tw:flex tw:flex-col tw:gap-3.5";
+const MEMORY_PREFERENCE_MARKDOWN_CLASS_NAME =
+  "settings-textarea memory-preference-markdown tw:min-h-[360px] tw:font-code tw:text-xs tw:leading-[1.6]";
+const MEMORY_PREFERENCE_MARKDOWN_HINT_CLASS_NAME =
+  "memory-preference-markdown-hint tw:flex tw:items-start tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_90%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_92%,var(--accent-soft))] tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:leading-[1.6] tw:[&_p]:text-ink-2";
+const MEMORY_PREFERENCE_VALIDATION_CLASS_NAME =
+  "memory-preference-validation tw:flex tw:flex-col tw:gap-2";
+const MEMORY_PREFERENCE_VALIDATION_ITEM_CLASS_BY_KIND = {
+  error:
+    "memory-preference-validation-item is-error tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--accent-danger)_8%,var(--bg-elev-2))] tw:px-2.5 tw:py-2 tw:text-xs tw:leading-[1.5] tw:text-accent-danger",
+  warning:
+    "memory-preference-validation-item is-warning tw:rounded-[10px] tw:bg-[color-mix(in_srgb,#fff6d8_72%,var(--bg-elev-2))] tw:px-2.5 tw:py-2 tw:text-xs tw:leading-[1.5] tw:text-[color-mix(in_srgb,#9a6700_72%,var(--ink-1))]",
+} as const;
+const MEMORY_PREFERENCE_RECORD_ROW_CLASS_NAME =
+  "memory-preference-record-row tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-2.5 tw:rounded-[14px] tw:border tw:py-2.5 tw:pl-3 tw:pr-2.5 tw:transition-[border-color,background,box-shadow,transform] tw:duration-[140ms] tw:ease-out tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_88%,var(--bg-input))] tw:[&.is-selected]:-translate-y-px tw:[&.is-selected]:[border-color:color-mix(in_srgb,var(--accent-electric)_52%,var(--line-soft))] tw:[&.is-selected]:bg-[color-mix(in_srgb,var(--accent-soft)_74%,var(--bg-elev-2))] tw:[&.is-selected]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-soft)_88%,transparent),0_8px_18px_color-mix(in_srgb,var(--accent-soft)_12%,transparent)] tw:[&.is-selected_.memory-preference-record-marker]:bg-[color-mix(in_srgb,var(--accent-electric)_78%,white)]";
+const MEMORY_PREFERENCE_RECORD_MAIN_CLASS_NAME =
+  "memory-preference-record-main tw:grid tw:min-w-0 tw:grid-cols-[4px_minmax(0,1fr)] tw:items-stretch tw:gap-2.5 tw:border-0 tw:bg-transparent tw:p-0 tw:text-left";
+const MEMORY_PREFERENCE_RECORD_MARKER_CLASS_NAME =
+  "memory-preference-record-marker tw:min-h-full tw:w-1 tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-electric)_26%,var(--line-soft))]";
+const MEMORY_PREFERENCE_RECORD_BODY_CLASS_NAME =
+  "memory-preference-record-body tw:flex tw:min-w-0 tw:flex-col tw:gap-2";
+const MEMORY_PREFERENCE_RECORD_TOPLINE_CLASS_NAME =
+  "memory-preference-record-topline tw:flex tw:items-start tw:justify-between tw:gap-2.5 tw:[&>span]:flex-none tw:[&>span]:whitespace-nowrap tw:[&>span]:text-[11px] tw:[&>span]:leading-[1.35] tw:[&>span]:text-ink-muted tw:[&>strong]:line-clamp-2 tw:[&>strong]:min-w-0 tw:[&>strong]:text-xs tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.45] tw:[&>strong]:text-ink-1";
+const MEMORY_PREFERENCE_RECORD_SUMMARY_CLASS_NAME =
+  "memory-info-record-summary tw:mt-0 tw:line-clamp-2 tw:whitespace-pre-wrap tw:break-words tw:text-xs tw:leading-[1.55] tw:text-ink-muted";
+const MEMORY_PREFERENCE_RECORD_META_CLASS_NAME =
+  "memory-info-record-meta tw:mt-0 tw:flex tw:flex-wrap tw:gap-1.5";
+const MEMORY_PREFERENCE_RECORD_DELETE_CLASS_NAME =
+  "memory-preference-record-delete tw:self-start tw:rounded-[10px] tw:px-2 tw:py-1.5";
+const MEMORY_INFO_BANNER_CLASS_BY_TONE = {
+  warning:
+    "memory-info-banner memory-info-banner-warning tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-[color-mix(in_srgb,#9a6700_72%,var(--ink-1))] tw:[border-color:color-mix(in_srgb,#f5c451_45%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff6d8_72%,var(--bg-elev-2))]",
+  success:
+    "memory-info-banner memory-info-banner-success tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-[color-mix(in_srgb,#156f48_72%,var(--ink-1))] tw:[border-color:color-mix(in_srgb,#82d4ab_40%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#ecfff3_74%,var(--bg-elev-2))]",
+  danger:
+    "memory-info-banner memory-info-banner-danger tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_32%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_8%,var(--bg-elev-2))]",
+} as const;
 
 function toneForStatus(
   status: string,
@@ -364,19 +520,19 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
   );
 
   return (
-    <div className="memory-console-pane">
-      <div className="memory-info-layout">
-        <section className="memory-info-pane memory-info-pane-list">
-          <div className="memory-info-pane-header">
+    <div className={MEMORY_CONSOLE_PANE_CLASS_NAME}>
+      <div className={MEMORY_INFO_LAYOUT_CLASS_NAME}>
+        <section className={`${MEMORY_INFO_PANE_CLASS_NAME} memory-info-pane-list`}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryInfo.panel.records")}</strong>
               {agentKey ? (
-                <p className="memory-info-pane-hint">
+                <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                   {t("memoryInfo.currentAgent", { agentKey })}
                 </p>
               ) : null}
             </div>
-            <div className="memory-info-actions">
+            <div className={MEMORY_INFO_ACTIONS_CLASS_NAME}>
               <UiButton variant="secondary" size="sm" onClick={onQuery}>
                 {t("memoryInfo.actions.query")}
               </UiButton>
@@ -386,11 +542,11 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
             </div>
           </div>
 
-          <div className="memory-info-filter-grid">
-            <label className="memory-info-field memory-info-field-wide">
+          <div className={MEMORY_PANE_LIST_FILTER_GRID_CLASS_NAME}>
+            <label className={MEMORY_FIELD_WIDE_CLASS_NAME}>
               <span>{t("memoryInfo.filters.keyword")}</span>
               <input
-                className="memory-info-input"
+                className={MEMORY_INFO_INPUT_CLASS_NAME}
                 value={filters.keyword}
                 onChange={(event) =>
                   onFilterChange("keyword", event.currentTarget.value)
@@ -398,10 +554,10 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 placeholder={t("memoryInfo.filters.keywordPlaceholder")}
               />
             </label>
-            <label className="memory-info-field">
+            <label className={MEMORY_PANE_LIST_FIELD_CLASS_NAME}>
               <span>{t("memoryInfo.filters.kind")}</span>
               <select
-                className="memory-info-select"
+                className={MEMORY_INFO_SELECT_CLASS_NAME}
                 value={filters.kind}
                 onChange={(event) =>
                   onFilterChange("kind", event.currentTarget.value)
@@ -415,10 +571,10 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 ))}
               </select>
             </label>
-            <label className="memory-info-field">
+            <label className={MEMORY_PANE_LIST_FIELD_CLASS_NAME}>
               <span>{t("memoryInfo.filters.scopeType")}</span>
               <select
-                className="memory-info-select"
+                className={MEMORY_INFO_SELECT_CLASS_NAME}
                 value={filters.scopeType}
                 onChange={(event) =>
                   onFilterChange("scopeType", event.currentTarget.value)
@@ -432,10 +588,10 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 ))}
               </select>
             </label>
-            <label className="memory-info-field">
+            <label className={MEMORY_PANE_LIST_FIELD_CLASS_NAME}>
               <span>{t("memoryInfo.filters.status")}</span>
               <select
-                className="memory-info-select"
+                className={MEMORY_INFO_SELECT_CLASS_NAME}
                 value={filters.status}
                 onChange={(event) =>
                   onFilterChange("status", event.currentTarget.value)
@@ -449,10 +605,10 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 ))}
               </select>
             </label>
-            <label className="memory-info-field">
+            <label className={MEMORY_PANE_LIST_FIELD_CLASS_NAME}>
               <span>{t("memoryInfo.filters.category")}</span>
               <select
-                className="memory-info-select"
+                className={MEMORY_INFO_SELECT_CLASS_NAME}
                 value={filters.category}
                 onChange={(event) =>
                   onFilterChange("category", event.currentTarget.value)
@@ -468,19 +624,19 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
             </label>
           </div>
 
-          {error ? <div className="memory-info-error">{error}</div> : null}
+          {error ? <div className={MEMORY_INFO_ERROR_CLASS_NAME}>{error}</div> : null}
 
-          <div className="memory-info-record-list">
+          <div className={MEMORY_INFO_RECORD_LIST_CLASS_NAME}>
             {missingAgent ? (
-              <div className="command-empty-state">
+              <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
                 {t("memoryInfo.empty.noAgent")}
               </div>
             ) : loading && records.length === 0 ? (
-              <div className="command-empty-state">
+              <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
                 {t("memoryInfo.loading.records")}
               </div>
             ) : records.length === 0 ? (
-              <div className="command-empty-state">
+              <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
                 {t("memoryInfo.empty.noRecords")}
               </div>
             ) : (
@@ -489,14 +645,14 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                   <button
                     key={record.id}
                     type="button"
-                    className={`memory-info-record-item ${record.id === selectedRecordId ? "is-selected" : ""}`.trim()}
+                    className={`${MEMORY_INFO_RECORD_ITEM_CLASS_NAME} ${record.id === selectedRecordId ? "is-selected" : ""}`.trim()}
                     onClick={() => onSelectRecord(record.id)}
                   >
-                    <div className="memory-info-record-head">
+                    <div className={MEMORY_RECORD_HEAD_CLASS_NAME}>
                       <strong>{toText(record.title) || record.id}</strong>
                       <span>{formatMemoryTimestamp(record.updatedAt)}</span>
                     </div>
-                    <div className="memory-info-record-meta">
+                    <div className={MEMORY_RECORD_META_CLASS_NAME}>
                       {record.kind ? <UiTag>{record.kind}</UiTag> : null}
                       {record.scopeType ? (
                         <UiTag tone="muted">{record.scopeType}</UiTag>
@@ -524,35 +680,35 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
           </div>
         </section>
 
-        <section className="memory-info-pane memory-info-pane-detail">
-          <div className="memory-info-pane-header">
+        <section className={`${MEMORY_INFO_PANE_CLASS_NAME} memory-info-pane-detail`}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryInfo.panel.detail")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {t("memoryInfo.panel.detailHint")}
               </p>
             </div>
           </div>
 
           {missingAgent ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryInfo.empty.noAgent")}
             </div>
           ) : detailLoading && !detail ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryInfo.loading.detail")}
             </div>
           ) : detailError ? (
-            <div className="memory-info-error">{detailError}</div>
+            <div className={MEMORY_INFO_ERROR_CLASS_NAME}>{detailError}</div>
           ) : !detail ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryInfo.empty.unselected")}
             </div>
           ) : (
-            <div className="memory-info-detail-stack">
-              <div className="memory-info-detail-title">
+            <div className={MEMORY_DETAIL_STACK_CLASS_NAME}>
+              <div className={MEMORY_DETAIL_TITLE_CLASS_NAME}>
                 <h4>{toText(detail.record.title) || detail.record.id}</h4>
-                <div className="memory-info-detail-badges">
+                <div className={MEMORY_DETAIL_BADGES_CLASS_NAME}>
                   {detail.record.kind ? (
                     <UiTag>{detail.record.kind}</UiTag>
                   ) : null}
@@ -567,26 +723,26 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 </div>
               </div>
 
-              <div className="memory-info-detail-summary">
+              <div className={MEMORY_DETAIL_SUMMARY_CLASS_NAME}>
                 {toText(detail.record.summary) ||
                   t("memoryInfo.empty.noSummary")}
               </div>
 
-              <div className="memory-info-detail-grid">
+              <div className={MEMORY_DETAIL_GRID_CLASS_NAME}>
                 {renderMemoryDetailRows(t, detail).map(([label, value]) => (
-                  <div className="memory-info-detail-card" key={label}>
-                    <span className="command-detail-label">{label}</span>
+                  <div className={MEMORY_DETAIL_CARD_CLASS_NAME} key={label}>
+                    <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>{label}</span>
                     <strong>{formatDetailValue(value)}</strong>
                   </div>
                 ))}
               </div>
 
               {normalizeMemoryTagList(detail.record.tags).length > 0 ? (
-                <div className="memory-info-detail-block">
-                  <span className="command-detail-label">
+                <div className={MEMORY_DETAIL_BLOCK_CLASS_NAME}>
+                  <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                     {t("memoryInfo.field.tags")}
                   </span>
-                  <div className="memory-info-record-tags">
+                  <div className={MEMORY_RECORD_META_CLASS_NAME}>
                     {normalizeMemoryTagList(detail.record.tags).map((tag) => (
                       <UiTag key={`${detail.id}-${tag}`} tone="default">
                         #{tag}
@@ -596,17 +752,17 @@ const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
                 </div>
               ) : null}
 
-              <div className="memory-info-detail-block">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_BLOCK_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {t("memoryInfo.field.summary")}
                 </span>
-                <div className="memory-info-detail-content">
+                <div className={MEMORY_DETAIL_SUMMARY_CLASS_NAME}>
                   {toText(detail.record.summary) || "--"}
                 </div>
               </div>
 
-              <details className="memory-info-detail-block memory-info-raw-block">
-                <summary className="memory-info-raw-summary">
+              <details className={MEMORY_RAW_BLOCK_CLASS_NAME}>
+                <summary className={MEMORY_RAW_SUMMARY_CLASS_NAME}>
                   <MaterialIcon name="code" />
                   <span>{t("memoryInfo.rawJson")}</span>
                 </summary>
@@ -674,8 +830,8 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
   );
 
   return (
-    <div className="memory-console-pane">
-      <div className="memory-preference-scope-tabs">
+    <div className={MEMORY_CONSOLE_PANE_CLASS_NAME}>
+      <div className={MEMORY_PREFERENCE_SCOPE_TABS_CLASS_NAME}>
         {PREFERENCE_SCOPE_ORDER.map((scopeType) => {
           const summary =
             availableScopes.find(
@@ -689,7 +845,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
               key={scopeType}
               variant="ghost"
               size="sm"
-              className={`memory-preference-scope-tab ${scopeType === normalizePreferenceScopeType(activeScopeType) ? "is-active" : ""}`}
+              className={`${MEMORY_PREFERENCE_SCOPE_TAB_CLASS_NAME} ${scopeType === normalizePreferenceScopeType(activeScopeType) ? "is-active" : ""}`}
               active={scopeType === normalizePreferenceScopeType(activeScopeType)}
               onClick={() => onScopeSelect(scopeType)}
             >
@@ -699,12 +855,12 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
         })}
       </div>
 
-      <div className="memory-preference-layout">
-        <section className="memory-info-pane memory-preference-pane memory-preference-pane-list">
-          <div className="memory-info-pane-header">
+      <div className={MEMORY_PREFERENCE_LAYOUT_CLASS_NAME}>
+        <section className={MEMORY_PREFERENCE_PANE_LIST_CLASS_NAME}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryPreferences.panel.records")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {meta
                   ? t("memoryPreferences.meta", {
                       count: meta.recordCount,
@@ -721,45 +877,45 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
           </div>
 
           {missingAgent ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.empty.noAgent")}
             </div>
           ) : loading && recordsDraft.length === 0 ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.loading.scope")}
             </div>
           ) : recordsDraft.length === 0 ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.empty.noPreference")}
             </div>
           ) : (
-            <div className="memory-info-record-list">
+            <div className={MEMORY_INFO_RECORD_LIST_CLASS_NAME}>
               {recordsDraft.map((record) => (
                 <div
                   key={record.clientId}
-                  className={`memory-preference-record-row ${record.clientId === selectedRecordId ? "is-selected" : ""}`.trim()}
+                  className={`${MEMORY_PREFERENCE_RECORD_ROW_CLASS_NAME} ${record.clientId === selectedRecordId ? "is-selected" : ""}`.trim()}
                 >
                   <button
                     type="button"
-                    className="memory-preference-record-main"
+                    className={MEMORY_PREFERENCE_RECORD_MAIN_CLASS_NAME}
                     onClick={() => onSelectRecord(record.clientId)}
                   >
                     <span
-                      className="memory-preference-record-marker"
+                      className={MEMORY_PREFERENCE_RECORD_MARKER_CLASS_NAME}
                       aria-hidden="true"
                     />
-                    <div className="memory-preference-record-body">
-                      <div className="memory-preference-record-topline">
+                    <div className={MEMORY_PREFERENCE_RECORD_BODY_CLASS_NAME}>
+                      <div className={MEMORY_PREFERENCE_RECORD_TOPLINE_CLASS_NAME}>
                         <strong>
                           {toText(record.title) || t("memoryPreferences.newRecord")}
                         </strong>
                         <span>{formatMemoryTimestamp(record.updatedAt)}</span>
                       </div>
-                      <div className="memory-info-record-summary">
+                      <div className={MEMORY_PREFERENCE_RECORD_SUMMARY_CLASS_NAME}>
                         {toText(record.summary) ||
                           t("memoryInfo.empty.noSummary")}
                       </div>
-                      <div className="memory-info-record-meta">
+                      <div className={MEMORY_PREFERENCE_RECORD_META_CLASS_NAME}>
                         <UiTag tone="muted">{record.category || "general"}</UiTag>
                         <UiTag tone="accent">
                           {t("memoryInfo.labels.importanceShort", {
@@ -772,7 +928,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                   <UiButton
                     variant="ghost"
                     size="sm"
-                    className="memory-preference-record-delete"
+                    className={MEMORY_PREFERENCE_RECORD_DELETE_CLASS_NAME}
                     onClick={() => onDeleteRecord(record.clientId)}
                   >
                     {t("memoryPreferences.actions.delete")}
@@ -783,25 +939,25 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
           )}
         </section>
 
-        <section className="memory-info-pane memory-preference-pane memory-preference-pane-detail">
-          <div className="memory-info-pane-header">
+        <section className={MEMORY_PREFERENCE_PANE_DETAIL_CLASS_NAME}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryPreferences.panel.detail")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {t("memoryPreferences.panel.detailHint")}
               </p>
             </div>
           </div>
 
           {!selectedDraft ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.empty.unselected")}
             </div>
           ) : (
-            <div className="memory-info-detail-stack">
-              <div className="memory-info-detail-title">
+            <div className={MEMORY_DETAIL_STACK_CLASS_NAME}>
+              <div className={MEMORY_DETAIL_TITLE_CLASS_NAME}>
                 <h4>{toText(selectedDraft.title) || t("memoryPreferences.newRecord")}</h4>
-                <div className="memory-info-detail-badges">
+                <div className={MEMORY_DETAIL_BADGES_CLASS_NAME}>
                   <UiTag tone={toneForStatus(selectedDraft.status || "active")}>
                     {selectedDraft.status || "active"}
                   </UiTag>
@@ -811,30 +967,30 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                 </div>
               </div>
 
-              <div className="memory-info-detail-summary">
+              <div className={MEMORY_DETAIL_SUMMARY_CLASS_NAME}>
                 {toText(selectedDraft.summary) || t("memoryInfo.empty.noSummary")}
               </div>
 
-              <div className="memory-info-detail-grid">
+              <div className={MEMORY_DETAIL_GRID_CLASS_NAME}>
                 {renderPreferenceInspectorRows(
                   t,
                   selectedDraft,
                   activeScopeType,
                   activeScopeKey,
                 ).map(([labelValue, value]) => (
-                  <div className="memory-info-detail-card" key={String(labelValue)}>
-                    <span className="command-detail-label">{labelValue}</span>
+                  <div className={MEMORY_DETAIL_CARD_CLASS_NAME} key={String(labelValue)}>
+                    <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>{labelValue}</span>
                     <strong>{formatDetailValue(value)}</strong>
                   </div>
                 ))}
               </div>
 
               {normalizeMemoryTagList(selectedDraft.tags).length > 0 ? (
-                <div className="memory-info-detail-block">
-                  <span className="command-detail-label">
+                <div className={MEMORY_DETAIL_BLOCK_CLASS_NAME}>
+                  <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                     {t("memoryPreferences.field.tags")}
                   </span>
-                  <div className="memory-info-record-tags">
+                  <div className={MEMORY_RECORD_META_CLASS_NAME}>
                     {normalizeMemoryTagList(selectedDraft.tags).map((tag) => (
                       <UiTag key={`${selectedDraft.clientId}-${tag}`} tone="default">
                         #{tag}
@@ -844,8 +1000,8 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                 </div>
               ) : null}
 
-              <details className="memory-info-detail-block memory-info-raw-block">
-                <summary className="memory-info-raw-summary">
+              <details className={MEMORY_RAW_BLOCK_CLASS_NAME}>
+                <summary className={MEMORY_RAW_SUMMARY_CLASS_NAME}>
                   <MaterialIcon name="code" />
                   <span>{t("memoryPreferences.rawJson")}</span>
                 </summary>
@@ -855,23 +1011,23 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
           )}
         </section>
 
-        <section className="memory-info-pane memory-preference-pane memory-preference-pane-editor">
-          <div className="memory-info-pane-header">
+        <section className={MEMORY_PREFERENCE_PANE_EDITOR_CLASS_NAME}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryPreferences.panel.editor")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {t("memoryPreferences.currentScope", {
                   label,
                   fileName,
                 })}
               </p>
               {agentKey ? (
-                <p className="memory-info-pane-hint">
+                <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                   {t("memoryInfo.currentAgent", { agentKey })}
                 </p>
               ) : null}
             </div>
-            <div className="memory-info-actions">
+            <div className={MEMORY_INFO_ACTIONS_CLASS_NAME}>
               {mode === "markdown" ? (
                 <UiButton variant="ghost" size="sm" onClick={onValidate}>
                   {t("memoryPreferences.actions.validate")}
@@ -888,11 +1044,11 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             </div>
           </div>
 
-          <div className="memory-preference-mode-toggle settings-segmented">
+          <div className={MEMORY_PREFERENCE_MODE_TOGGLE_CLASS_NAME}>
             <UiButton
               variant="ghost"
               size="sm"
-              className={`settings-segmented-btn ${mode === "records" ? "is-active" : ""}`}
+              className={SETTINGS_SEGMENTED_BUTTON_CLASS_NAME}
               active={mode === "records"}
               onClick={() => onModeChange("records")}
             >
@@ -901,7 +1057,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             <UiButton
               variant="ghost"
               size="sm"
-              className={`settings-segmented-btn ${mode === "markdown" ? "is-active" : ""}`}
+              className={SETTINGS_SEGMENTED_BUTTON_CLASS_NAME}
               active={mode === "markdown"}
               onClick={() => onModeChange("markdown")}
             >
@@ -910,25 +1066,25 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
           </div>
 
           {missingAgent ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.empty.noAgent")}
             </div>
           ) : loading ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreferences.loading.scope")}
             </div>
           ) : null}
 
           {error && !shouldHideDuplicateValidationError ? (
-            <div className="memory-info-error">{error}</div>
+            <div className={MEMORY_INFO_ERROR_CLASS_NAME}>{error}</div>
           ) : null}
           {dirty ? (
-            <div className="memory-info-banner memory-info-banner-warning">
+            <div className={MEMORY_INFO_BANNER_CLASS_BY_TONE.warning}>
               {t("memoryPreferences.notice.unsaved")}
             </div>
           ) : null}
           {saveSummary ? (
-            <div className="memory-info-banner memory-info-banner-success">
+            <div className={MEMORY_INFO_BANNER_CLASS_BY_TONE.success}>
               {t("memoryPreferences.saveSummary", {
                 created: saveSummary.created,
                 updated: saveSummary.updated,
@@ -938,22 +1094,22 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
             </div>
           ) : null}
           {mode === "markdown" && validation && !validation.valid ? (
-            <div className="memory-info-banner memory-info-banner-danger">
+            <div className={MEMORY_INFO_BANNER_CLASS_BY_TONE.danger}>
               {validationFailedMessage}
             </div>
           ) : null}
 
           {mode === "records" ? (
             !selectedDraft ? (
-              <div className="command-empty-state">
+              <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
                 {t("memoryPreferences.empty.unselected")}
               </div>
             ) : (
-              <div className="memory-preference-form">
-                <label className="memory-info-field">
+              <div className={MEMORY_PREFERENCE_FORM_CLASS_NAME}>
+                <label className={MEMORY_FIELD_CLASS_NAME}>
                   <span>{t("memoryPreferences.field.title")}</span>
                   <input
-                    className="memory-info-input"
+                    className={MEMORY_INFO_INPUT_CLASS_NAME}
                     ref={editorRefs.title}
                     value={selectedDraft.title}
                     onChange={(event) =>
@@ -961,10 +1117,10 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     }
                   />
                 </label>
-                <label className="memory-info-field">
+                <label className={MEMORY_FIELD_CLASS_NAME}>
                   <span>{t("memoryPreferences.field.summary")}</span>
                   <textarea
-                    className="settings-textarea memory-preference-textarea"
+                    className={MEMORY_PREFERENCE_TEXTAREA_CLASS_NAME}
                     ref={editorRefs.summary}
                     value={selectedDraft.summary}
                     onChange={(event) =>
@@ -972,11 +1128,11 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                     }
                   />
                 </label>
-                <div className="memory-preference-form-grid">
-                  <label className="memory-info-field">
+                <div className={MEMORY_PREFERENCE_FORM_GRID_CLASS_NAME}>
+                  <label className={MEMORY_FIELD_CLASS_NAME}>
                     <span>{t("memoryPreferences.field.category")}</span>
                     <select
-                      className="memory-info-select"
+                      className={MEMORY_INFO_SELECT_CLASS_NAME}
                       ref={editorRefs.category}
                       value={selectedDraft.category}
                       onChange={(event) =>
@@ -990,10 +1146,10 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                       ))}
                     </select>
                   </label>
-                  <label className="memory-info-field">
+                  <label className={MEMORY_FIELD_CLASS_NAME}>
                     <span>{t("memoryPreferences.field.importance")}</span>
                     <input
-                      className="memory-info-input"
+                      className={MEMORY_INFO_INPUT_CLASS_NAME}
                       inputMode="numeric"
                       ref={editorRefs.importance}
                       value={String(selectedDraft.importance ?? "")}
@@ -1005,10 +1161,10 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                       }
                     />
                   </label>
-                  <label className="memory-info-field">
+                  <label className={MEMORY_FIELD_CLASS_NAME}>
                     <span>{t("memoryPreferences.field.confidence")}</span>
                     <input
-                      className="memory-info-input"
+                      className={MEMORY_INFO_INPUT_CLASS_NAME}
                       inputMode="decimal"
                       ref={editorRefs.confidence}
                       value={String(selectedDraft.confidence ?? "")}
@@ -1020,10 +1176,10 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                       }
                     />
                   </label>
-                  <label className="memory-info-field">
+                  <label className={MEMORY_FIELD_CLASS_NAME}>
                     <span>{t("memoryPreferences.field.tags")}</span>
                     <input
-                      className="memory-info-input"
+                      className={MEMORY_INFO_INPUT_CLASS_NAME}
                       ref={editorRefs.tags}
                       value={normalizeMemoryTagList(selectedDraft.tags).join(",")}
                       onChange={(event) =>
@@ -1035,9 +1191,9 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
               </div>
             )
           ) : (
-            <div className="memory-preference-markdown-panel">
+            <div className={MEMORY_PREFERENCE_MARKDOWN_PANEL_CLASS_NAME}>
               {showMarkdownModeHint ? (
-                <div className="memory-preference-markdown-hint">
+                <div className={MEMORY_PREFERENCE_MARKDOWN_HINT_CLASS_NAME}>
                   <p>{t("memoryPreferences.markdown.hint")}</p>
                   <UiButton
                     variant="ghost"
@@ -1049,7 +1205,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                 </div>
               ) : null}
               <textarea
-                className="settings-textarea memory-preference-markdown"
+                className={MEMORY_PREFERENCE_MARKDOWN_CLASS_NAME}
                 ref={editorRefs.markdown}
                 value={markdownDraft}
                 onChange={(event) => onMarkdownChange(event.currentTarget.value)}
@@ -1057,10 +1213,10 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
               {validation &&
               ((validation.errors?.length ?? 0) > 0 ||
                 (validation.warnings?.length ?? 0) > 0) ? (
-                <div className="memory-preference-validation">
+                <div className={MEMORY_PREFERENCE_VALIDATION_CLASS_NAME}>
                   {(validation.errors || []).map((issue, index) => (
                     <div
-                      className="memory-preference-validation-item is-error"
+                      className={MEMORY_PREFERENCE_VALIDATION_ITEM_CLASS_BY_KIND.error}
                       key={`error-${issue.line}-${index}`}
                     >
                       {t("memoryPreferences.validation.error", {
@@ -1072,7 +1228,7 @@ const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> = ({
                   ))}
                   {(validation.warnings || []).map((issue, index) => (
                     <div
-                      className="memory-preference-validation-item is-warning"
+                      className={MEMORY_PREFERENCE_VALIDATION_ITEM_CLASS_BY_KIND.warning}
                       key={`warning-${issue.line}-${index}`}
                     >
                       {t("memoryPreferences.validation.warning", {
@@ -1115,44 +1271,44 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
   const decisions = Array.isArray(result?.decisions) ? result.decisions : [];
 
   return (
-    <div className="memory-console-pane">
-      <div className="memory-preview-layout">
-        <section className="memory-info-pane memory-preview-pane memory-preview-pane-input">
-          <div className="memory-info-pane-header">
+    <div className={MEMORY_CONSOLE_PANE_CLASS_NAME}>
+      <div className={MEMORY_PREVIEW_LAYOUT_CLASS_NAME}>
+        <section className={MEMORY_PREVIEW_PANE_INPUT_CLASS_NAME}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryPreview.panel.input")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {t("memoryPreview.panel.inputHint")}
               </p>
             </div>
           </div>
 
-          <div className="memory-preview-context-list">
-            <div className="memory-preview-context-item">
+          <div className={MEMORY_PREVIEW_CONTEXT_LIST_CLASS_NAME}>
+            <div className={MEMORY_PREVIEW_CONTEXT_ITEM_CLASS_NAME}>
               <span>{t("memoryPreview.context.chatId")}</span>
               <strong>{chatId || "--"}</strong>
             </div>
-            <div className="memory-preview-context-item">
+            <div className={MEMORY_PREVIEW_CONTEXT_ITEM_CLASS_NAME}>
               <span>{t("memoryPreview.context.agentKey")}</span>
               <strong>{agentKey || "--"}</strong>
             </div>
-            <div className="memory-preview-context-item">
+            <div className={MEMORY_PREVIEW_CONTEXT_ITEM_CLASS_NAME}>
               <span>{t("memoryPreview.context.teamId")}</span>
               <strong>{teamId || "--"}</strong>
             </div>
           </div>
 
-          <label className="memory-info-field">
+          <label className={MEMORY_FIELD_CLASS_NAME}>
             <span>{t("memoryPreview.field.message")}</span>
             <textarea
-              className="settings-textarea memory-preview-textarea"
+              className={MEMORY_PREVIEW_TEXTAREA_CLASS_NAME}
               value={draft}
               onChange={(event) => onDraftChange(event.currentTarget.value)}
               placeholder={t("memoryPreview.field.messagePlaceholder")}
             />
           </label>
 
-          <div className="memory-info-actions">
+          <div className={MEMORY_INFO_ACTIONS_CLASS_NAME}>
             <UiButton
               variant="secondary"
               size="sm"
@@ -1165,21 +1321,21 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
           </div>
 
           {!hasChat ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.noChat")}
             </div>
           ) : null}
           {hasChat && !hasDraft ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.noMessage")}
             </div>
           ) : null}
-          {error ? <div className="memory-info-error">{error}</div> : null}
+          {error ? <div className={MEMORY_INFO_ERROR_CLASS_NAME}>{error}</div> : null}
 
           {result ? (
-            <div className="memory-preview-summary-grid">
-              <div className="memory-info-detail-card">
-                <span className="command-detail-label">
+            <div className={MEMORY_PREVIEW_SUMMARY_GRID_CLASS_NAME}>
+              <div className={MEMORY_DETAIL_CARD_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {formatPreviewLayerLabel(t, "stable")}
                 </span>
                 <strong>
@@ -1198,8 +1354,8 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                   })}
                 </small>
               </div>
-              <div className="memory-info-detail-card">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_CARD_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {formatPreviewLayerLabel(t, "session")}
                 </span>
                 <strong>
@@ -1218,8 +1374,8 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                   })}
                 </small>
               </div>
-              <div className="memory-info-detail-card">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_CARD_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {formatPreviewLayerLabel(t, "observation")}
                 </span>
                 <strong>
@@ -1238,14 +1394,14 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                   })}
                 </small>
               </div>
-              <div className="memory-info-detail-card">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_CARD_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {t("memoryPreview.summary.stopReason")}
                 </span>
                 <strong>{result.summary.stopReason || "--"}</strong>
               </div>
-              <div className="memory-info-detail-card">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_CARD_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {t("memoryPreview.summary.snapshotId")}
                 </span>
                 <strong>{result.summary.snapshotId || "--"}</strong>
@@ -1254,23 +1410,23 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
           ) : null}
         </section>
 
-        <section className="memory-info-pane memory-preview-pane memory-preview-pane-result">
-          <div className="memory-info-pane-header">
+        <section className={MEMORY_PREVIEW_PANE_RESULT_CLASS_NAME}>
+          <div className={MEMORY_INFO_PANE_HEADER_CLASS_NAME}>
             <div>
               <strong>{t("memoryPreview.panel.prompt")}</strong>
-              <p className="memory-info-pane-hint">
+              <p className={MEMORY_INFO_PANE_HINT_CLASS_NAME}>
                 {t("memoryPreview.panel.promptHint")}
               </p>
             </div>
           </div>
 
-          <div className="memory-preview-layer-tabs settings-segmented">
+          <div className={MEMORY_PREVIEW_LAYER_TABS_CLASS_NAME}>
             {PREVIEW_PROMPT_LAYER_ORDER.map((layer) => (
               <UiButton
                 key={layer}
                 variant="ghost"
                 size="sm"
-                className={`settings-segmented-btn memory-preview-layer-tab ${promptLayer === layer ? "is-active" : ""}`}
+                className={MEMORY_PREVIEW_LAYER_TAB_CLASS_NAME}
                 active={promptLayer === layer}
                 onClick={() => onPromptLayerChange(layer)}
               >
@@ -1280,42 +1436,42 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
           </div>
 
           {!hasChat ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.noChat")}
             </div>
           ) : loading && !result ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.loading.preview")}
             </div>
           ) : !hasDraft ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.noMessage")}
             </div>
           ) : result && !result.enabled ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.disabled")}
             </div>
           ) : !result ? (
-            <div className="command-empty-state">
+            <div className={COMMAND_EMPTY_STATE_CLASS_NAME}>
               {t("memoryPreview.empty.noResult")}
             </div>
           ) : (
-            <div className="memory-info-detail-stack">
-              <div className="memory-preview-prompt-block">
-                <span className="command-detail-label">
+            <div className={MEMORY_DETAIL_STACK_CLASS_NAME}>
+              <div className={MEMORY_PREVIEW_PROMPT_BLOCK_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {formatPreviewLayerLabel(t, promptLayer)}
                 </span>
                 <pre>{activePrompt || t("memoryPreview.empty.noPrompt")}</pre>
               </div>
 
-              <div className="memory-info-detail-block">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_BLOCK_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {t("memoryPreview.section.selectedMemory")}
                 </span>
-                <div className="memory-preview-layer-list">
+                <div className={`memory-preview-layer-list ${MEMORY_PREVIEW_LIST_CLASS_NAME}`}>
                   {previewLayers.map((layer) => (
-                    <div className="memory-preview-layer-block" key={layer.layer}>
-                      <div className="memory-preview-layer-head">
+                    <div className={`memory-preview-layer-block ${MEMORY_PREVIEW_ITEM_CARD_CLASS_NAME}`} key={layer.layer}>
+                      <div className={`memory-preview-layer-head ${MEMORY_PREVIEW_HEAD_CLASS_NAME}`}>
                         <UiTag tone={promptToneForLayer(layer.layer)}>
                           {formatPreviewLayerLabel(t, layer.layer)}
                         </UiTag>
@@ -1331,21 +1487,21 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                         </span>
                       </div>
                       {layer.items.length === 0 ? (
-                        <div className="memory-preview-layer-empty">
+                        <div className={MEMORY_PREVIEW_EMPTY_CLASS_NAME}>
                           {t("memoryPreview.empty.noItems")}
                         </div>
                       ) : (
-                        <div className="memory-preview-item-list">
+                        <div className={`memory-preview-item-list ${MEMORY_PREVIEW_LIST_CLASS_NAME}`}>
                           {layer.items.map((item) => (
                             <div
-                              className="memory-preview-item"
+                              className={`memory-preview-item ${MEMORY_PREVIEW_ITEM_CARD_CLASS_NAME}`}
                               key={`${layer.layer}-${item.id}-${item.order}`}
                             >
-                              <div className="memory-preview-item-head">
+                              <div className={`memory-preview-item-head ${MEMORY_PREVIEW_HEAD_CLASS_NAME}`}>
                                 <strong>{toText(item.title) || item.id}</strong>
                                 <span>#{item.order}</span>
                               </div>
-                              <div className="memory-info-record-meta">
+                              <div className={MEMORY_RECORD_META_CLASS_NAME}>
                                 <UiTag>{item.kind || "--"}</UiTag>
                                 <UiTag tone="muted">
                                   {item.scopeType || "--"}
@@ -1357,7 +1513,7 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                                   {item.status || "--"}
                                 </UiTag>
                               </div>
-                              <div className="memory-info-record-summary">
+                              <div className={MEMORY_RECORD_SUMMARY_CLASS_NAME}>
                                 {toText(item.summary) ||
                                   t("memoryInfo.empty.noSummary")}
                               </div>
@@ -1370,28 +1526,28 @@ const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
                 </div>
               </div>
 
-              <div className="memory-info-detail-block">
-                <span className="command-detail-label">
+              <div className={MEMORY_DETAIL_BLOCK_CLASS_NAME}>
+                <span className={COMMAND_DETAIL_LABEL_CLASS_NAME}>
                   {t("memoryPreview.section.decisions")}
                 </span>
                 {decisions.length === 0 ? (
-                  <div className="memory-preview-layer-empty">
+                  <div className={MEMORY_PREVIEW_EMPTY_CLASS_NAME}>
                     {t("memoryPreview.empty.noDecisions")}
                   </div>
                 ) : (
-                  <div className="memory-preview-decision-list">
+                  <div className={`memory-preview-decision-list ${MEMORY_PREVIEW_LIST_CLASS_NAME}`}>
                     {decisions.map((decision, index) => (
                       <div
-                        className="memory-preview-decision-item"
+                        className={`memory-preview-decision-item ${MEMORY_PREVIEW_ITEM_CARD_CLASS_NAME}`}
                         key={`${decision.layer}-${decision.reason}-${index}`}
                       >
-                        <div className="memory-preview-decision-head">
+                        <div className={`memory-preview-decision-head ${MEMORY_PREVIEW_HEAD_CLASS_NAME}`}>
                           <UiTag tone={promptToneForLayer(decision.layer)}>
                             {formatPreviewLayerLabel(t, decision.layer)}
                           </UiTag>
                           <strong>{decision.reason || "--"}</strong>
                         </div>
-                        <div className="memory-info-detail-content">
+                        <div className={MEMORY_DETAIL_SUMMARY_CLASS_NAME}>
                           {Array.isArray(decision.itemIds) &&
                           decision.itemIds.length > 0
                             ? decision.itemIds.join(", ")
@@ -1425,7 +1581,7 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
 
   return (
     <div
-      className={`memory-info-card ${cardClassName}`.trim()}
+      className={`${MEMORY_INFO_CARD_CLASS_NAME} ${cardClassName}`.trim()}
       onKeyDown={(event) => {
         if (event.key === "Escape" && onClose) {
           event.preventDefault();
@@ -1434,10 +1590,10 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
       }}
       tabIndex={-1}
     >
-      <div className="settings-head memory-info-head">
+      <div className={MEMORY_HEAD_CLASS_NAME}>
         <div>
           <h3>{title}</h3>
-          <p className="memory-info-subtitle">{subtitle}</p>
+          <p className={MEMORY_SUBTITLE_CLASS_NAME}>{subtitle}</p>
         </div>
         {onClose ? (
           <UiButton variant="ghost" size="sm" onClick={onClose}>
@@ -1446,11 +1602,11 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
         ) : null}
       </div>
 
-      <div className="memory-console-tabs settings-segmented">
+      <div className={MEMORY_CONSOLE_TABS_CLASS_NAME}>
         <UiButton
           variant="ghost"
           size="sm"
-          className={`settings-segmented-btn ${activeTab === "preferences" ? "is-active" : ""}`}
+          className={SETTINGS_SEGMENTED_BUTTON_CLASS_NAME}
           active={activeTab === "preferences"}
           onClick={() => onTabChange("preferences")}
         >
@@ -1459,7 +1615,7 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
         <UiButton
           variant="ghost"
           size="sm"
-          className={`settings-segmented-btn ${activeTab === "preview" ? "is-active" : ""}`}
+          className={SETTINGS_SEGMENTED_BUTTON_CLASS_NAME}
           active={activeTab === "preview"}
           onClick={() => onTabChange("preview")}
         >
@@ -1468,7 +1624,7 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
         <UiButton
           variant="ghost"
           size="sm"
-          className={`settings-segmented-btn ${activeTab === "records" ? "is-active" : ""}`}
+          className={SETTINGS_SEGMENTED_BUTTON_CLASS_NAME}
           active={activeTab === "records"}
           onClick={() => onTabChange("records")}
         >

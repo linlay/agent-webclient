@@ -20,7 +20,7 @@ import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/co
 import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
-import Style from "./index.module.css";
+import { hitlDialogClassNames } from "@/features/tools/components/buildin/dialogClassNames";
 
 interface PlanDialogProps {
   data: PlanActiveAwaiting;
@@ -138,7 +138,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
   }, [handleKeyDown]);
 
   return ready ? (
-    <Flex className={Style.ConfirmDialog} vertical gap={4}>
+    <Flex className={hitlDialogClassNames.surface} vertical gap={4}>
       <PlanQuestion
         ref={planQuestionRef}
         plan={plan}
@@ -150,14 +150,16 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     </Flex>
   ) : (
     <Flex
-      className={Style.ConfirmDialog}
+      className={hitlDialogClassNames.loadingSurface}
       vertical
       align="center"
       justify="center"
       gap={20}
-      style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon
+        name="progress_activity"
+        className={hitlDialogClassNames.loadingIcon}
+      />
       <div>{t("approvalDialog.loading")}</div>
     </Flex>
   );
@@ -191,22 +193,32 @@ const PlanQuestion = forwardRef<
   );
 
   return (
-    <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-      <Flex className={Style.Question} align="baseline">
-        <Flex vertical gap={4} className={Style.QuestionText}>
-          <span className={Style.QuestionHeading}>
-            {t("planDialog.titleFallback")}
+    <Flex
+      vertical
+      ref={hostRef}
+      className={hitlDialogClassNames.questionWrapper}
+    >
+      <Flex
+        className={hitlDialogClassNames.planQuestionHeader}
+        align="baseline"
+      >
+        <Flex vertical gap={4} className={hitlDialogClassNames.questionText}>
+          <span className={hitlDialogClassNames.planQuestionHeading}>
+            {plan.title || t("planDialog.titleFallback")}
           </span>
         </Flex>
       </Flex>
-      <Checkbox.Group className={Style.CheckboxGroup} disabled={readOnly}>
+      <Checkbox.Group
+        className={hitlDialogClassNames.planCheckboxGroup}
+        disabled={readOnly}
+      >
         <Checkbox
           ref={(checkboxRef) => {
             if (checkboxRef) {
               checkboxsRef.current[0] = checkboxRef;
             }
           }}
-          className={Style.Option}
+          className={hitlDialogClassNames.planOption}
           onClick={() => {
             onEnter("approve");
           }}
@@ -216,10 +228,12 @@ const PlanQuestion = forwardRef<
             align="center"
             tabIndex={0}
             data-index={0}
-            style={{ outline: "none" }}
+            className="tw:outline-none"
           >
-            <span className={Style.Index}>1</span>
-            <span className={Style.Info}>{t("planDialog.option.approve")}</span>
+            <span className={hitlDialogClassNames.optionIndex}>1</span>
+            <span className={hitlDialogClassNames.optionInfoPlain}>
+              {t("planDialog.option.approve")}
+            </span>
           </Flex>
         </Checkbox>
         <Checkbox
@@ -228,13 +242,13 @@ const PlanQuestion = forwardRef<
               checkboxsRef.current[1] = checkboxRef;
             }
           }}
-          className={Style.Option}
+          className={hitlDialogClassNames.planOption}
           onClick={() => {
             onEnter("reject", reason);
           }}
         >
           <Flex gap={10} align="center">
-            <span className={Style.Index}>2</span>
+            <span className={hitlDialogClassNames.optionIndex}>2</span>
             <span>{t("planDialog.option.reject")}</span>
             <Input
               variant="borderless"
@@ -253,12 +267,12 @@ const PlanQuestion = forwardRef<
               onClick={(e) => {
                 e.stopPropagation();
               }}
-              style={{ padding: 0, fontSize: 12, borderRadius: 0 }}
+              className="tw:rounded-none tw:p-0 tw:text-xs"
             />
             <Button
               type="link"
               shape="round"
-              className={Style.IgnoreButton}
+              className={hitlDialogClassNames.skipButton}
               size="small"
               onClick={(e) => {
                 e.stopPropagation();

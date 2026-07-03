@@ -4,6 +4,9 @@ import { HistoryModal } from "@/app/modals/HistoryModal";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
+const HISTORY_MODAL_TITLE_TAG_CLASS =
+  "history-modal-title-tag tw:rounded-[10px] tw:bg-accent-soft tw:px-1.5 tw:py-0.5 tw:text-xs tw:font-normal tw:text-accent";
+
 export const SidebarHistorySection: React.FC<{
   open: boolean;
   historyWorker: WorkerRow | null;
@@ -58,7 +61,9 @@ export const SidebarHistorySection: React.FC<{
                 })
               : t("leftSidebar.historyTitle")}
           </span>
-          <div className="history-modal-title-tag">共 {historyRows.length} 条会话</div>
+          <div className={HISTORY_MODAL_TITLE_TAG_CLASS}>
+            共 {historyRows.length} 条会话
+          </div>
         </Flex>
       }
     >

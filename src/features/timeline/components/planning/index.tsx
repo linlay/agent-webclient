@@ -6,13 +6,15 @@ import { ContentBlock } from "../ContentBlock";
 import { copyText } from "@/shared/utils/copy";
 import useApp from "antd/es/app/useApp";
 import { TimelineNode } from "@/app/state/timelineTypes";
-import Style from "./index.module.css";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
 
 interface PlanningTimelineProps {
   node: TimelineNode;
 }
+
+const EXPAND_DIV_CLASS_NAME =
+  "tw:absolute tw:inset-x-0 tw:bottom-0 tw:bg-[linear-gradient(180deg,transparent,var(--bg-base))] tw:p-4";
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { message } = useApp();
   const { t } = useI18n();
@@ -56,8 +58,13 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
             <div style={expanded ? {} : { maxHeight: 300, overflow: "hidden" }}>
               <ContentBlock node={node} />
               {!expanded && (
-                <Flex className={Style.ExpandDiv} justify="center">
-                  <UiButton size="sm" variant="primary" onClick={() => setExpanded(true)}>
+                <Flex className={EXPAND_DIV_CLASS_NAME} justify="center">
+                  <UiButton
+                    size="sm"
+                    variant="primary"
+                    className="tw:rounded-[20px]"
+                    onClick={() => setExpanded(true)}
+                  >
                     {t("planningTimeline.expand")}
                   </UiButton>
                 </Flex>

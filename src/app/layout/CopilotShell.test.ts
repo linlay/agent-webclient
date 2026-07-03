@@ -89,6 +89,15 @@ jest.mock("@/app/layout/sidebar/right/OverviewTab", () => ({
     React.createElement("div", { className: "overview-tab" }, "overview tab"),
 }));
 
+jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
+  SourceDetailTab: () =>
+    React.createElement(
+      "div",
+      { className: "source-detail-tab" },
+      "source detail",
+    ),
+}));
+
 jest.mock("@/features/settings/components/SettingsModal", () => ({
   SettingsModal: () =>
     React.createElement("div", { className: "settings-modal" }, "settings"),
@@ -122,6 +131,14 @@ jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
     ),
 }));
 
+jest.mock("@/features/search/components/GlobalSearchOverlay", () => ({
+  GlobalSearchOverlay: () => null,
+}));
+
+jest.mock("@/features/workers/hooks/useGlobalShortcuts", () => ({
+  GlobalShortcutLayer: () => null,
+}));
+
 jest.mock("@/app/modals/EventPopover", () => ({
   EventPopover: () =>
     React.createElement("div", { className: "event-popover" }, "event"),
@@ -136,12 +153,17 @@ jest.mock("@/shared/config/featureFlags", () => ({
   isDebugPanelEnabled: jest.fn(() => true),
 }));
 
-jest.mock("@/shared/i18n", () => ({
-  useI18n: () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
-      params?.shortcut ? `${key} ${params.shortcut}` : key,
-  }),
-}));
+jest.mock("@/shared/i18n", () => {
+  const mockTranslate = (key: string, params?: Record<string, unknown>) =>
+    params?.shortcut ? `${key} ${params.shortcut}` : key;
+
+  return {
+    t: mockTranslate,
+    useI18n: () => ({
+      t: mockTranslate,
+    }),
+  };
+});
 
 const { useAppState, useAppDispatch } = jest.requireMock(
   "@/app/state/AppContext",

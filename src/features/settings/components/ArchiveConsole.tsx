@@ -24,6 +24,50 @@ import { readEpochMillis } from "@/shared/utils/platformTime";
 
 const ARCHIVE_PAGE_SIZE = 30;
 const BULK_DAY_OPTIONS = [7, 30, 90, 180, 365];
+const ARCHIVE_CONSOLE_CLASS_BY_SURFACE = {
+	modal:
+		"archive-console archive-console-modal tw:grid tw:min-h-[520px] tw:max-h-[min(72vh,720px)] tw:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] tw:gap-4",
+	page:
+		"archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] tw:gap-4 tw:[&_.archive-detail-content]:max-h-none tw:[&_.archive-list]:max-h-none",
+} as const;
+const ARCHIVE_LIST_PANE_CLASS_NAME =
+	"archive-modal-list-pane tw:flex tw:min-h-0 tw:flex-col tw:gap-3";
+const ARCHIVE_DETAIL_PANE_CLASS_NAME =
+	"archive-detail-pane tw:flex tw:min-h-0 tw:flex-col tw:gap-3 tw:border-l tw:pl-4 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)]";
+const ARCHIVE_TOOLBAR_CLASS_NAME =
+	"archive-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:[&_.ant-input-affix-wrapper]:min-w-0 tw:[&_.ant-input-prefix]:mr-1.5 tw:[&_.ant-input-prefix]:text-ink-muted";
+const ARCHIVE_AGENT_FILTER_INPUT_CLASS_NAME =
+	"archive-agent-filter-input tw:w-40 tw:flex-none";
+const ARCHIVE_BULK_PANEL_CLASS_NAME =
+	"archive-bulk-panel tw:min-w-80 tw:py-1";
+const ARCHIVE_BULK_LABEL_CLASS_NAME =
+	"archive-bulk-label tw:text-xs tw:text-ink-muted";
+const ARCHIVE_BULK_TRIGGER_CLASS_NAME =
+	"archive-bulk-trigger tw:relative tw:flex tw:h-8 tw:flex-none tw:items-center tw:gap-1 tw:rounded-control tw:border tw:px-2 tw:py-1 tw:text-lg tw:text-text-muted tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))] tw:hover:bg-[color-mix(in_srgb,var(--bg-hover)_60%,transparent)] tw:hover:text-ink-1";
+const ARCHIVE_BULK_BADGE_CLASS_NAME =
+	"archive-bulk-badge tw:absolute tw:-right-1.5 tw:-top-1 tw:flex tw:h-4 tw:min-w-4 tw:items-center tw:justify-center tw:rounded-pill tw:bg-accent-electric tw:px-1 tw:text-[10px] tw:font-bold tw:leading-none tw:text-white";
+const ARCHIVE_RESULT_BAR_CLASS_NAME =
+	"archive-result-bar tw:flex tw:items-center tw:gap-3 tw:text-xs tw:text-ink-muted";
+const ARCHIVE_LIST_CLASS_NAME =
+	"archive-list tw:flex tw:min-h-0 tw:max-h-[430px] tw:flex-col tw:gap-1 tw:overflow-auto tw:pr-1";
+const ARCHIVE_LIST_ITEM_CLASS_NAME =
+	"archive-list-item tw:w-full tw:rounded-[10px] tw:border-0 tw:bg-transparent tw:px-3 tw:py-[11px] tw:text-left tw:text-ink-1 tw:hover:bg-bg-base tw:[&.is-active]:bg-bg-base";
+const ARCHIVE_LIST_ITEM_HEAD_CLASS_NAME =
+	"archive-list-item-head tw:flex tw:items-center tw:justify-between tw:gap-2.5 tw:[&>span]:flex-none tw:[&>span]:text-[11px] tw:[&>span]:text-ink-muted tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:whitespace-nowrap tw:[&>strong]:text-[13px]";
+const ARCHIVE_LIST_META_CLASS_NAME =
+	"archive-list-meta tw:mt-2 tw:flex tw:flex-wrap tw:gap-x-1.5 tw:gap-y-1.5";
+const ARCHIVE_LIST_META_ITEM_CLASS_NAME =
+	"archive-list-meta-item tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted";
+const ARCHIVE_DETAIL_HEAD_CLASS_NAME =
+	"archive-detail-head tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_p]:mb-0 tw:[&_p]:mt-1 tw:[&_p]:text-xs tw:[&_p]:text-ink-muted";
+const ARCHIVE_DETAIL_CONTENT_CLASS_NAME =
+	"archive-detail-content tw:flex tw:min-h-0 tw:max-h-[520px] tw:flex-col tw:gap-2.5 tw:overflow-auto tw:pr-1";
+const ARCHIVE_PREVIEW_LINE_CLASS_NAME =
+	"archive-preview-line tw:rounded-[10px] tw:border tw:p-2.5 tw:px-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_62%,var(--bg-elev-2))]";
+const ARCHIVE_PREVIEW_LABEL_CLASS_NAME =
+	"archive-preview-label tw:mb-1.5 tw:font-code tw:text-[11px] tw:font-semibold tw:leading-[1.2] tw:text-ink-muted";
+const ARCHIVE_PREVIEW_TEXT_CLASS_NAME =
+	"archive-preview-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.55] tw:text-ink-1";
 
 function toTimestamp(value: unknown): number {
 	return readEpochMillis(value);
@@ -452,9 +496,9 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 	const usageSummary = formatUsageSummary(selectedItem);
 
 	return (
-		<div className={`archive-console archive-console-${surface}`}>
-			<section className="archive-modal-list-pane">
-				<div className="archive-toolbar">
+		<div className={ARCHIVE_CONSOLE_CLASS_BY_SURFACE[surface]}>
+			<section className={ARCHIVE_LIST_PANE_CLASS_NAME}>
+				<div className={ARCHIVE_TOOLBAR_CLASS_NAME}>
 					<Input
 						prefix={<MaterialIcon name="search" />}
 						value={query}
@@ -468,16 +512,16 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 							placeholder={t("archive.filter.agentPlaceholder")}
 							onChange={(event) => setAgentFilter(event.target.value)}
 							allowClear
-							className="archive-agent-filter-input"
+							className={ARCHIVE_AGENT_FILTER_INPUT_CLASS_NAME}
 						/>
 					) : null}
 					<Popover
 						trigger="click"
 						placement="bottomRight"
 						content={
-							<div className="archive-bulk-panel">
+							<div className={ARCHIVE_BULK_PANEL_CLASS_NAME}>
 								<Flex gap={8} align="center" wrap="wrap">
-									<span className="archive-bulk-label">{t("archive.bulk.label")}</span>
+									<span className={ARCHIVE_BULK_LABEL_CLASS_NAME}>{t("archive.bulk.label")}</span>
 									<Select
 										value={bulkDays}
 										style={{ width: 116 }}
@@ -507,22 +551,22 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 							</div>
 						}
 					>
-						<button type="button" className="archive-bulk-trigger">
+						<button type="button" className={ARCHIVE_BULK_TRIGGER_CLASS_NAME}>
 							<MaterialIcon name="archive" />
 							{bulkCandidates.length > 0 ? (
-								<span className="archive-bulk-badge">{bulkCandidates.length}</span>
+								<span className={ARCHIVE_BULK_BADGE_CLASS_NAME}>{bulkCandidates.length}</span>
 							) : null}
 						</button>
 					</Popover>
 				</div>
 				{bulkResult || actionResult ? (
-					<div className="archive-result-bar">
+					<div className={ARCHIVE_RESULT_BAR_CLASS_NAME}>
 						{bulkResult ? <span>{bulkResult}</span> : null}
 						{actionResult ? <span>{actionResult}</span> : null}
 					</div>
 				) : null}
 				<Spin spinning={loadingList}>
-					<div className="archive-list" role="listbox" aria-label={t("archive.list.ariaLabel")}>
+					<div className={ARCHIVE_LIST_CLASS_NAME} role="listbox" aria-label={t("archive.list.ariaLabel")}>
 						{items.length === 0 ? (
 							<div className="command-empty-state">{t("archive.empty.list")}</div>
 						) : (
@@ -530,17 +574,17 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 								<button
 									key={item.chatId}
 									type="button"
-									className={`archive-list-item ${item.chatId === selected ? "is-active" : ""}`}
+									className={`${ARCHIVE_LIST_ITEM_CLASS_NAME} ${item.chatId === selected ? "is-active" : ""}`}
 									onClick={() => void loadArchiveDetail(item.chatId)}
 								>
-									<span className="archive-list-item-head">
+									<span className={ARCHIVE_LIST_ITEM_HEAD_CLASS_NAME}>
 										<strong>{item.chatName || item.chatId}</strong>
 									</span>
-									<span className="archive-list-meta">
-										{item.agentKey && <span className="archive-list-meta-item">{item.agentKey}</span>}
-										<span className="archive-list-meta-item">{t("archive.item.created")}: {formatChatTimeLabel(item.createdAt)}</span>
-										<span className="archive-list-meta-item">{t("archive.item.lastRun")}: {formatChatTimeLabel(item.lastRunAt)}</span>
-										<span className="archive-list-meta-item">{t("archive.detail.archivedAt", { time: formatChatTimeLabel(item.archivedAt) })}</span>
+									<span className={ARCHIVE_LIST_META_CLASS_NAME}>
+										{item.agentKey && <span className={ARCHIVE_LIST_META_ITEM_CLASS_NAME}>{item.agentKey}</span>}
+										<span className={ARCHIVE_LIST_META_ITEM_CLASS_NAME}>{t("archive.item.created")}: {formatChatTimeLabel(item.createdAt)}</span>
+										<span className={ARCHIVE_LIST_META_ITEM_CLASS_NAME}>{t("archive.item.lastRun")}: {formatChatTimeLabel(item.lastRunAt)}</span>
+										<span className={ARCHIVE_LIST_META_ITEM_CLASS_NAME}>{t("archive.detail.archivedAt", { time: formatChatTimeLabel(item.archivedAt) })}</span>
 									</span>
 								</button>
 							))
@@ -553,12 +597,12 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 					</Button>
 				) : null}
 			</section>
-			<section className="archive-detail-pane">
+			<section className={ARCHIVE_DETAIL_PANE_CLASS_NAME}>
 				{!selected ? (
 					<div className="command-empty-state">{t("archive.empty.select")}</div>
 				) : (
 					<Spin spinning={loadingDetail}>
-						<div className="archive-detail-head">
+						<div className={ARCHIVE_DETAIL_HEAD_CLASS_NAME}>
 							<div>
 								<h3>{detail?.chatName || selectedItem?.chatName || selected}</h3>
 								<p>
@@ -598,14 +642,14 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 								</UiButton>
 							</Flex>
 						</div>
-						<div className="archive-detail-content">
+						<div className={ARCHIVE_DETAIL_CONTENT_CLASS_NAME}>
 							{previewLines.length === 0 ? (
 								<div className="command-empty-state">{t("archive.empty.detail")}</div>
 							) : (
 								previewLines.map((line) => (
-									<div className="archive-preview-line" key={line.key}>
-										<div className="archive-preview-label">{line.label}</div>
-										<div className="archive-preview-text">{line.text}</div>
+									<div className={ARCHIVE_PREVIEW_LINE_CLASS_NAME} key={line.key}>
+										<div className={ARCHIVE_PREVIEW_LABEL_CLASS_NAME}>{line.label}</div>
+										<div className={ARCHIVE_PREVIEW_TEXT_CLASS_NAME}>{line.text}</div>
 									</div>
 								))
 							)}

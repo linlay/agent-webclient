@@ -153,8 +153,8 @@ describe('AwaitingHtmlContainer', () => {
       }),
     );
 
-    expect(html).toContain(
-      '<strong class="awaiting-panel-title">mock 请假申请</strong>',
+    expect(html).toMatch(
+      /<strong class="awaiting-panel-title[^"]*">mock 请假申请<\/strong>/,
     );
   });
 
@@ -166,8 +166,8 @@ describe('AwaitingHtmlContainer', () => {
     );
 
     expect(html).toContain('awaiting-panel-radiogroup');
-    expect(html).toContain('awaiting-panel-option-label">同意</span>');
-    expect(html).toContain('awaiting-panel-option-label">拒绝</span>');
+    expect(html).toMatch(/awaiting-panel-option-label[^"]*">同意<\/span>/);
+    expect(html).toMatch(/awaiting-panel-option-label[^"]*">拒绝<\/span>/);
     expect(html).toContain('可以修改表单内容并提交');
     expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
   });
@@ -216,8 +216,8 @@ describe('AwaitingHtmlContainer', () => {
       ),
     );
 
-    expect(html).toContain('awaiting-panel-option-label">Approve</span>');
-    expect(html).toContain('awaiting-panel-option-label">Reject</span>');
+    expect(html).toMatch(/awaiting-panel-option-label[^"]*">Approve<\/span>/);
+    expect(html).toMatch(/awaiting-panel-option-label[^"]*">Reject<\/span>/);
     expect(html).toContain('Edit the form contents and submit.');
     expect(html).toContain(
       'placeholder="Enter a reject reason. You can still edit the form contents."',

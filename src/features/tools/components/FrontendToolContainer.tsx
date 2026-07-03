@@ -3,6 +3,25 @@ import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { getViewport, submitTool } from "@/shared/data";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 
+const FRONTEND_TOOL_CONTAINER_CLASS_NAME =
+	"frontend-tool-container tw:mb-0 tw:overflow-hidden tw:rounded-2xl tw:border tw:[border-color:color-mix(in_srgb,var(--accent-electric)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_96%,transparent)] tw:shadow-elevated tw:[.layout-copilot_&]:rounded-[10px]";
+
+const FRONTEND_TOOL_HEADER_CLASS_NAME =
+	"frontend-tool-header tw:flex tw:items-center tw:justify-between tw:border-b tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--accent-soft)_28%,transparent)] tw:px-3.5 tw:py-2 tw:[.layout-copilot_&]:px-2.5 tw:[.layout-copilot_&]:py-[7px]";
+
+const FRONTEND_TOOL_META_CLASS_NAME =
+	"frontend-tool-meta tw:font-code tw:text-[10px] tw:text-ink-muted";
+
+const FRONTEND_TOOL_FRAME_CLASS_NAME =
+	"frontend-tool-frame tw:w-full tw:max-h-[70vh] tw:border-0 tw:[.layout-copilot_&]:h-[min(320px,44vh)]";
+
+const FRONTEND_TOOL_STATUS_CLASS_NAME_BY_TONE = {
+	normal:
+		"frontend-tool-status tw:min-h-0 tw:border-t tw:border-line-soft tw:px-3.5 tw:py-1.5 tw:text-[11px] tw:text-ink-muted",
+	ok: "frontend-tool-status tw:min-h-0 tw:border-t tw:border-line-soft tw:px-3.5 tw:py-1.5 tw:text-[11px] tw:text-accent-lime",
+	err: "frontend-tool-status tw:min-h-0 tw:border-t tw:border-line-soft tw:px-3.5 tw:py-1.5 tw:text-[11px] tw:text-accent-danger",
+} satisfies Record<"normal" | "ok" | "err", string>;
+
 export const FrontendToolContainer: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
@@ -154,23 +173,26 @@ export const FrontendToolContainer: React.FC = () => {
 	const toolLabel = resolveToolLabel(tool);
 
 	return (
-		<div className="frontend-tool-container" id="frontend-tool-container">
-			<div className="frontend-tool-header">
+		<div
+			className={FRONTEND_TOOL_CONTAINER_CLASS_NAME}
+			id="frontend-tool-container"
+		>
+			<div className={FRONTEND_TOOL_HEADER_CLASS_NAME}>
 				<strong className="frontend-tool-title">
 					{toolLabel}
 				</strong>
-				<span className="frontend-tool-meta">
+				<span className={FRONTEND_TOOL_META_CLASS_NAME}>
 					{tool.toolType} · {tool.toolId}
 				</span>
 			</div>
 
 			{tool.loading && (
-				<div className="status-line" style={{ margin: "8px" }}>
+				<div className="status-line tw:m-2">
 					加载中...
 				</div>
 			)}
 			{tool.loadError && (
-				<div className="system-alert" style={{ margin: "8px" }}>
+				<div className="system-alert tw:m-2">
 					{tool.loadError}
 				</div>
 			)}
@@ -178,7 +200,7 @@ export const FrontendToolContainer: React.FC = () => {
 			{tool.viewportHtml && (
 				<iframe
 					ref={iframeRef}
-					className="frontend-tool-frame"
+					className={FRONTEND_TOOL_FRAME_CLASS_NAME}
 					id="frontend-tool-frame"
 					srcDoc={tool.viewportHtml}
 					sandbox="allow-scripts allow-popups allow-same-origin"
@@ -187,7 +209,7 @@ export const FrontendToolContainer: React.FC = () => {
 			)}
 
 			<div
-				className={`frontend-tool-status ${statusTone === "ok" ? "ok" : statusTone === "err" ? "err" : ""}`.trim()}
+				className={FRONTEND_TOOL_STATUS_CLASS_NAME_BY_TONE[statusTone]}
 				id="frontend-tool-status"
 			>
 				{statusText}

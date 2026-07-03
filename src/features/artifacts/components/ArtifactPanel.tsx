@@ -6,6 +6,19 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { Flex } from "antd";
 
+const FLOATING_ARTIFACT_CLASS_NAME =
+  "floating-artifact tw:relative tw:m-0 tw:flex tw:w-full tw:flex-row tw:items-stretch tw:gap-1 tw:overflow-hidden tw:border-0 tw:bg-transparent tw:shadow-none";
+
+const ARTIFACT_LIST_CLASS_NAME =
+  "artifact-list tw:m-0 tw:flex tw:list-none tw:flex-nowrap tw:items-stretch tw:gap-1 tw:p-0";
+
+const ARTIFACT_ITEM_CLASS_NAME =
+  "artifact-item tw:min-w-[220px] tw:flex-[0_0_220px] tw:list-none tw:[.layout-copilot_&]:min-w-[180px] tw:[.layout-copilot_&]:flex-[0_0_180px]";
+
+const ARTIFACT_ACTIONS_CLASS_NAME = "artifact-actions";
+
+const ARTIFACT_ACTION_BUTTON_CLASS_NAME = "tw:text-text-muted";
+
 function formatBytes(sizeBytes: number): string {
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -77,12 +90,12 @@ export const ArtifactPanel: React.FC = () => {
   if (state.artifacts.length === 0) return null;
 
   return isCollapsed ? (
-    <div className="floating-artifact" onWheel={handleFloatingArtifactWheel}>
-      <ul className="artifact-list">
+    <div className={FLOATING_ARTIFACT_CLASS_NAME} onWheel={handleFloatingArtifactWheel}>
+      <ul className={ARTIFACT_LIST_CLASS_NAME}>
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
           return (
-            <li key={item.artifactId} className="artifact-item">
+            <li key={item.artifactId} className={ARTIFACT_ITEM_CLASS_NAME}>
               <AttachmentCard
                 attachment={artifact}
                 variant="composer"
@@ -94,8 +107,9 @@ export const ArtifactPanel: React.FC = () => {
           );
         })}
       </ul>
-      <Flex className="artifact-actions" align="stretch">
+      <Flex className={ARTIFACT_ACTIONS_CLASS_NAME} align="stretch">
         <UiButton
+          className={ARTIFACT_ACTION_BUTTON_CLASS_NAME}
           variant="ghost"
           size="sm"
           iconOnly

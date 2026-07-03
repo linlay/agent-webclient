@@ -15,6 +15,7 @@ import {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useI18n } from "@/shared/i18n";
 import {
 	buildCopyMenuTitle,
@@ -56,6 +57,48 @@ import {
 
 type RawJsonlLoader = (chatId: string) => Promise<string>;
 type RawLLMTraceLoader = (file: string) => Promise<string>;
+
+const EVENT_POPOVER_CLASS_NAME =
+	"event-popover tw:fixed tw:z-[60] tw:flex tw:flex-col tw:overflow-hidden tw:rounded-[var(--radius-md)] tw:border tw:border-line-soft tw:bg-bg-elev-2 tw:shadow-overlay";
+
+const EVENT_POPOVER_HEAD_CLASS_NAME =
+	"event-popover-head tw:flex tw:items-center tw:gap-3 tw:border-b tw:border-line-soft tw:px-3 tw:py-2";
+
+const EVENT_POPOVER_HEAD_MAIN_CLASS_NAME =
+	"event-popover-head-main tw:flex tw:flex-1 tw:flex-col tw:gap-0.5";
+
+const EVENT_POPOVER_TITLE_CLASS_NAME = "tw:text-xs";
+
+const EVENT_POPOVER_META_CLASS_NAME =
+	"event-popover-meta tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted";
+
+const EVENT_POPOVER_ACTIONS_CLASS_NAME =
+	"event-popover-actions tw:inline-flex tw:flex-shrink-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-1";
+
+const EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME =
+	"event-popover-action-btn tw:!min-h-7 tw:!min-w-7 tw:!w-7 tw:!px-0 tw:!py-0 tw:text-ink-muted tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:hover:shadow-none";
+
+const EVENT_POPOVER_SYSTEM_ACTION_BUTTON_CLASS_NAME = [
+	EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME,
+	"event-popover-system-action",
+].join(" ");
+
+const EVENT_POPOVER_CLOSE_BUTTON_CLASS_NAME = [
+	EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME,
+	"event-popover-close",
+].join(" ");
+
+const EVENT_POPOVER_COPY_MENU_CLASS_NAME =
+	"event-popover-copy-menu tw:flex tw:min-w-[168px] tw:flex-col tw:gap-0.5";
+
+const EVENT_POPOVER_COPY_MENU_ITEM_CLASS_NAME =
+	"event-popover-copy-menu-item tw:w-full tw:!justify-start tw:whitespace-nowrap tw:!text-[11px]";
+
+const EVENT_POPOVER_BODY_CLASS_NAME = [
+	"event-popover-body",
+	"tw:m-0 tw:max-h-[50vh] tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-all tw:px-3 tw:py-2.5 tw:font-code tw:text-[10px] tw:font-normal tw:leading-[1.48] tw:text-ink-2",
+	SCROLLBAR_THIN_CLASS_NAME,
+].join(" ");
 
 function resolveRawJsonlChatId(
 	event: AgentEvent | null,
@@ -422,7 +465,7 @@ export const EventPopover: React.FC = () => {
 	return (
 		<div
 			ref={popoverRef}
-			className="event-popover"
+			className={EVENT_POPOVER_CLASS_NAME}
 			id="event-popover"
 			onDoubleClick={() => {
 				if (primaryCopyMenuItem) {
@@ -436,22 +479,22 @@ export const EventPopover: React.FC = () => {
 				width: `min(420px, calc(100vw - 16px))`,
 			}}
 		>
-			<div className="event-popover-head">
-				<div className="event-popover-head-main">
-					<strong>{`#${seq} ${event.type}`}</strong>
-					<span className="event-popover-meta">
+			<div className={EVENT_POPOVER_HEAD_CLASS_NAME}>
+				<div className={EVENT_POPOVER_HEAD_MAIN_CLASS_NAME}>
+					<strong className={EVENT_POPOVER_TITLE_CLASS_NAME}>{`#${seq} ${event.type}`}</strong>
+					<span className={EVENT_POPOVER_META_CLASS_NAME}>
 						{showSwitcher && activeRelatedIndex >= 0
 							? `${groupSummary} · ${activeRelatedIndex + 1}/${relatedEvents.length}`
 							: groupSummary}
 					</span>
-					<span className="event-popover-meta">
+					<span className={EVENT_POPOVER_META_CLASS_NAME}>
 						{t("eventPopover.meta.time", { time: readableTimestamp })}
 					</span>
 				</div>
-				<div className="event-popover-actions">
+				<div className={EVENT_POPOVER_ACTIONS_CLASS_NAME}>
 					{showCollect && (
 						<UiButton
-							className="event-popover-action-btn"
+							className={EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME}
 							variant="ghost"
 							size="sm"
 							iconOnly
@@ -480,13 +523,13 @@ export const EventPopover: React.FC = () => {
 						}}
 						onOpenChange={setCopyMenuOpen}
 						content={
-							<div className="event-popover-copy-menu" role="menu" aria-label={t("eventPopover.copy.menuAria")}>
+							<div className={EVENT_POPOVER_COPY_MENU_CLASS_NAME} role="menu" aria-label={t("eventPopover.copy.menuAria")}>
 								{copyMenuItems.map((item) => (
 									<UiButton
 										key={item.key}
 										variant="ghost"
 										size="sm"
-										className="event-popover-copy-menu-item"
+										className={EVENT_POPOVER_COPY_MENU_ITEM_CLASS_NAME}
 										aria-label={item.label}
 										title={item.label}
 										onClick={() => {
@@ -501,7 +544,7 @@ export const EventPopover: React.FC = () => {
 						}
 					>
 						<UiButton
-							className="event-popover-action-btn"
+							className={EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME}
 							variant="ghost"
 							size="sm"
 							iconOnly
@@ -515,7 +558,7 @@ export const EventPopover: React.FC = () => {
 					</Popover>
 					{systemPromptCalls.length > 0 && (
 						<UiButton
-							className="event-popover-action-btn event-popover-system-action"
+							className={EVENT_POPOVER_SYSTEM_ACTION_BUTTON_CLASS_NAME}
 							variant="ghost"
 							size="sm"
 							iconOnly
@@ -527,7 +570,7 @@ export const EventPopover: React.FC = () => {
 						</UiButton>
 					)}
 					<UiButton
-						className="event-popover-action-btn event-popover-close"
+						className={EVENT_POPOVER_CLOSE_BUTTON_CLASS_NAME}
 						variant="ghost"
 						size="sm"
 						iconOnly
@@ -546,7 +589,7 @@ export const EventPopover: React.FC = () => {
 					</UiButton>
 				</div>
 			</div>
-			<pre className="event-popover-body">{popoverState.displayJsonStr}</pre>
+			<pre className={EVENT_POPOVER_BODY_CLASS_NAME}>{popoverState.displayJsonStr}</pre>
 			<SystemPromptModal
 				calls={systemPromptCalls}
 				loadStates={systemPromptLoadStates}

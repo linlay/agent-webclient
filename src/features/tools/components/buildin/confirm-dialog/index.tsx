@@ -29,7 +29,6 @@ import {
   QuestionActiveAwaiting,
 } from "@/app/state/types";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
-import Style from "@/features/tools/components/buildin/confirm-dialog/index.module.css";
 import {
   buildQuestionSubmitParams,
   clampAwaitingIndex,
@@ -56,6 +55,10 @@ import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin
 import { debounce } from "lodash";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import {
+  getHitlPaginationDotClassName,
+  hitlDialogClassNames,
+} from "@/features/tools/components/buildin/dialogClassNames";
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
@@ -314,7 +317,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   return ready ? (
     <Form
       form={form}
-      className={Style.ConfirmDialog}
+      className={hitlDialogClassNames.surface}
       disabled={loading}
       onFinish={doSubmit}
     >
@@ -331,7 +334,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                 key: field.key.toString(),
                 label: field.name,
                 children: (
-                  <Form.Item {...field} className={Style.FormItem}>
+                  <Form.Item {...field} className={hitlDialogClassNames.formItem}>
                     <Question
                       ref={(ref) => {
                         if (ref) {
@@ -342,7 +345,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                       question={
                         questions.length > 1 ? (
                           <Flex
-                            className={Style.Pagination}
+                            className={hitlDialogClassNames.pagination}
                             align="center"
                             gap={6}
                           >
@@ -359,12 +362,11 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                               return (
                                 <span
                                   key={item.id}
-                                  className={[
-                                    Style.Item,
-                                    index === curIndex ? Style.Active : "",
-                                    done ? Style.Done : "",
-                                    skip ? Style.Skip : "",
-                                  ].join(" ")}
+                                  className={getHitlPaginationDotClassName({
+                                    active: index === curIndex,
+                                    done: Boolean(done),
+                                    skip,
+                                  })}
                                   onClick={() => setCurIndex(index)}
                                 ></span>
                               );
@@ -385,7 +387,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       </Form.List>
       <Flex gap={10} align="center" justify="space-between">
         {timeoutCountdown.label && (
-          <Flex className={Style.TimeoutRow}>
+          <Flex className={hitlDialogClassNames.timeoutRowWithOffset}>
             {timeoutExpired && loading
               ? t("approvalDialog.status.autoSubmitting")
               : t("approvalDialog.timeout.countdown", {
@@ -397,7 +399,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
           <Button
             type="link"
             shape="round"
-            className={Style.SkipButton}
+            className={hitlDialogClassNames.skipButton}
             size="small"
             onClick={doSkip}
           >
@@ -408,6 +410,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
               type="primary"
               shape="round"
               size="small"
+              className={hitlDialogClassNames.button}
               onClick={() => {
                 void moveForward();
               }}
@@ -420,6 +423,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
               type="primary"
               shape="round"
               size="small"
+              className={hitlDialogClassNames.button}
               loading={loading}
               onClick={() => {
                 void doSubmit();
@@ -434,14 +438,16 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     </Form>
   ) : (
     <Flex
-      className={Style.ConfirmDialog}
+      className={hitlDialogClassNames.loadingSurface}
       vertical
       align="center"
       justify="center"
       gap={20}
-      style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon
+        name="progress_activity"
+        className={hitlDialogClassNames.loadingIcon}
+      />
       <div>{t("confirmDialog.loading")}</div>
     </Flex>
   );
@@ -461,10 +467,10 @@ function SelectOptionTooltipTitle({
 
   if (tooltip.kind === "preview") {
     return (
-      <div className={Style.OptionPreview}>
+      <div className={hitlDialogClassNames.optionPreview}>
         <iframe
           title={`${option.label} preview`}
-          className={Style.OptionPreviewFrame}
+          className={hitlDialogClassNames.optionPreviewFrame}
           srcDoc={tooltip.html}
           sandbox=""
         />
@@ -533,10 +539,16 @@ const Question = forwardRef<
 
   const renderQuestionHeader = () => {
     return (
-      <Flex className={Style.Question} justify="space-between" align="baseline">
+      <Flex
+        className={hitlDialogClassNames.questionHeader}
+        justify="space-between"
+        align="baseline"
+      >
         <Flex vertical>
-          <div className={Style.QuestionHeading}>{heading}</div>
-          {prompt && <div className={Style.QuestionPrompt}>{prompt}</div>}
+          <div className={hitlDialogClassNames.questionHeading}>{heading}</div>
+          {prompt && (
+            <div className={hitlDialogClassNames.questionPrompt}>{prompt}</div>
+          )}
         </Flex>
         {question}
       </Flex>
@@ -545,10 +557,14 @@ const Question = forwardRef<
 
   if (data.type === AIAwaitQuestionType.Text) {
     return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+      <Flex
+        vertical
+        ref={hostRef}
+        className={hitlDialogClassNames.questionWrapper}
+      >
         {renderQuestionHeader()}
         <Input
-          className={Style.InputField}
+          className={hitlDialogClassNames.inputField}
           ref={(ref) => ref?.focus()}
           tabIndex={0}
           placeholder={placeholder}
@@ -567,11 +583,15 @@ const Question = forwardRef<
 
   if (data.type === AIAwaitQuestionType.Password) {
     return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+      <Flex
+        vertical
+        ref={hostRef}
+        className={hitlDialogClassNames.questionWrapper}
+      >
         {renderQuestionHeader()}
         <Input.Password
           ref={(ref) => ref?.focus()}
-          className={Style.InputField}
+          className={hitlDialogClassNames.inputField}
           tabIndex={0}
           placeholder={placeholder}
           value={typeof value?.answer === "string" ? value.answer : ""}
@@ -589,12 +609,15 @@ const Question = forwardRef<
 
   if (data.type === AIAwaitQuestionType.Number) {
     return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+      <Flex
+        vertical
+        ref={hostRef}
+        className={hitlDialogClassNames.questionWrapper}
+      >
         {renderQuestionHeader()}
         <InputNumber
           ref={(ref) => ref?.focus()}
-          className={Style.InputField}
-          style={{ width: "100%" }}
+          className={hitlDialogClassNames.inputFieldFull}
           tabIndex={0}
           controls={false}
           placeholder={placeholder}
@@ -633,12 +656,15 @@ const Question = forwardRef<
         ? value.answer
         : "";
     return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+      <Flex
+        vertical
+        ref={hostRef}
+        className={hitlDialogClassNames.questionWrapper}
+      >
         {renderQuestionHeader()}
         <DatePicker
           ref={(ref) => ref?.focus()}
-          className={Style.InputField}
-          style={{ width: "auto" }}
+          className={hitlDialogClassNames.inputField}
           tabIndex={0}
           placeholder={placeholder || format}
           format={format}
@@ -665,10 +691,14 @@ const Question = forwardRef<
   }
 
   return (
-    <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
+    <Flex
+      vertical
+      ref={hostRef}
+      className={hitlDialogClassNames.questionWrapper}
+    >
       {renderQuestionHeader()}
       <Checkbox.Group
-        className={Style.CheckboxGroup}
+        className={hitlDialogClassNames.checkboxGroup}
         value={getSelectGroupValue(data, value)}
         onChange={(keys) => {
           const optionKeys = keys.filter(
@@ -701,7 +731,7 @@ const Question = forwardRef<
                 }
               }}
               value={optionValue}
-              className={Style.Option}
+              className={hitlDialogClassNames.checkboxOption}
             >
               <Flex
                 gap={10}
@@ -709,10 +739,14 @@ const Question = forwardRef<
                 tabIndex={0}
                 data-index={i}
                 data-multi-select={isMultiSelectQuestionType(data)}
-                style={{ outline: "none" }}
+                className="tw:outline-none"
               >
-                <span className={Style.Index}>{i + 1}</span>
-                <span className={Style.Info}>{option.label}</span>
+                <span className={hitlDialogClassNames.optionIndex}>
+                  {i + 1}
+                </span>
+                <span className={hitlDialogClassNames.optionInfo}>
+                  {option.label}
+                </span>
                 {tooltip && (
                   <Tooltip
                     title={<SelectOptionTooltipTitle option={option} />}
@@ -721,19 +755,24 @@ const Question = forwardRef<
                         tooltip.kind === "preview" ? { padding: 0 } : undefined,
                     }}
                   >
-                    <MaterialIcon name="info" />
+                    <MaterialIcon name="info" className="tw:text-xs" />
                   </Tooltip>
                 )}
-                <span className="Selected">{t("approvalDialog.selected")}</span>
+                <span className={hitlDialogClassNames.selectedBadge}>
+                  {t("approvalDialog.selected")}
+                </span>
               </Flex>
             </Checkbox>
           );
         })}
       </Checkbox.Group>
       {data.allowFreeText && (
-        <Flex className={[Style.Option, Style.FreeText].join(" ")} gap={10}>
-          <span className={Style.Index}>
-            <MaterialIcon name="edit" />
+        <Flex className={hitlDialogClassNames.freeTextOption} gap={10}>
+          <span className={hitlDialogClassNames.optionIndex}>
+            <MaterialIcon
+              name="edit"
+              className={hitlDialogClassNames.optionIndexIcon}
+            />
           </span>
           <Input
             variant="borderless"
@@ -757,7 +796,7 @@ const Question = forwardRef<
                 onEnter();
               }
             }}
-            style={{ padding: 0 }}
+            className="tw:p-0 tw:text-xs"
           />
         </Flex>
       )}

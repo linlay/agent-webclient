@@ -10,6 +10,7 @@ jest.mock("antd", () => ({
       mockTextAreaProps.push(props);
       return React.createElement("textarea", {
         id: props.id,
+        className: props.className,
         placeholder: props.placeholder,
       });
     },
@@ -81,6 +82,14 @@ describe("ComposerInput", () => {
 
     expect(markup).toContain("composer-input-expand-btn");
     expect(markup).toContain('data-expanded="false"');
+  });
+
+  it("keeps the main input typography aligned with the composer", () => {
+    renderComposerInput();
+
+    expect(mockTextAreaProps[0].className).toContain("tw:!p-1.5");
+    expect(mockTextAreaProps[0].className).toContain("tw:!text-[13px]");
+    expect(mockTextAreaProps[0].className).toContain("tw:!leading-[1.45]");
   });
 
   it("uses a sampled greeting placeholder when provided", () => {

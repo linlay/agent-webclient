@@ -12,6 +12,20 @@ interface TextCountUpProps {
 
 const DIGIT_PATTERN = /^\d$/;
 const DIGITS = Array.from({ length: 10 }, (_, index) => index);
+const TEXT_COUNT_UP_CLASS_NAME =
+  "tw:inline-flex tw:items-baseline tw:whitespace-pre tw:[font-variant-numeric:tabular-nums]";
+const CHAR_CLASS_NAME = [
+  Style.Char,
+  "tw:inline-block",
+  "tw:translate-y-[0.35em]",
+  "tw:opacity-0",
+].join(" ");
+const DIGIT_CLASS_NAME =
+  "tw:inline-block tw:h-[1em] tw:overflow-hidden tw:leading-none tw:align-baseline";
+const DIGIT_LIST_CLASS_NAME = [Style.DigitList, "tw:flex", "tw:flex-col"].join(
+  " ",
+);
+const DIGIT_VALUE_CLASS_NAME = "tw:block tw:h-[1em] tw:leading-none";
 
 export interface TextCountUpChar {
   key: string;
@@ -70,7 +84,9 @@ export const TextCountUp: React.FC<TextCountUpProps> = ({
     [text],
   );
   const lastIndex = chars.length - 1;
-  const classes = [Style.TextCountUp, className].filter(Boolean).join(" ");
+  const classes = [TEXT_COUNT_UP_CLASS_NAME, className]
+    .filter(Boolean)
+    .join(" ");
   const safeDuration = Math.max(duration, 0);
   const safeDelayStep = Math.max(delayStep, 0);
 
@@ -86,7 +102,7 @@ export const TextCountUp: React.FC<TextCountUpProps> = ({
         if (!isDigit) {
           return (
             <span
-              className={Style.Char}
+              className={CHAR_CLASS_NAME}
               aria-hidden="true"
               key={key}
               style={{ animationDelay: `${delay}s` }}
@@ -98,7 +114,7 @@ export const TextCountUp: React.FC<TextCountUpProps> = ({
 
         return (
           <span
-            className={Style.Digit}
+            className={DIGIT_CLASS_NAME}
             aria-hidden="true"
             key={key}
             style={
@@ -110,9 +126,9 @@ export const TextCountUp: React.FC<TextCountUpProps> = ({
               } as DigitStyle
             }
           >
-            <span className={Style.DigitList}>
+            <span className={DIGIT_LIST_CLASS_NAME}>
               {DIGITS.map((digit) => (
-                <span className={Style.DigitValue} key={digit}>
+                <span className={DIGIT_VALUE_CLASS_NAME} key={digit}>
                   {digit}
                 </span>
               ))}

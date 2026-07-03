@@ -11,6 +11,30 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
 
+const COMPOSER_CONTROL_ROW_CLASS =
+  "composer-control-row tw:flex tw:w-full tw:items-center tw:gap-2.5 tw:overflow-hidden";
+const COMPOSER_PLUS_BUTTON_CLASS =
+  "composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!bg-transparent tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover tw:hover:!text-ink-1 tw:[&_.material-icon]:text-lg";
+const COMPOSER_PLUS_WRAP_CLASS =
+  "composer-plus-wrap tw:relative tw:inline-flex tw:flex-1 tw:items-center tw:overflow-auto tw:whitespace-nowrap";
+const PLAN_TOGGLE_BUTTON_CLASS =
+  "plan-toggle-btn tw:group tw:!px-2 tw:!text-[13px] tw:!text-text-muted tw:hover:!bg-bg-hover tw:hover:!text-ink-1";
+const PLAN_TOGGLE_ICON_CLASS = "plan-toggle-icon tw:group-hover:hidden";
+const PLAN_TOGGLE_CLOSE_ICON_CLASS =
+  "plan-toggle-close-icon tw:hidden tw:scale-[.8] tw:text-lg tw:group-hover:inline-flex";
+const PLAN_TOGGLE_SHORTCUT_CLASS =
+  "plan-toggle-shortcut tw:rounded-md tw:bg-[var(--colorFillSecondary)] tw:px-[7px] tw:py-[5px] tw:text-[10px] tw:text-text-sub";
+const VOICE_BUTTON_BASE_CLASS =
+  "voice-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-full tw:!border tw:!border-[color-mix(in_srgb,var(--line-soft)_90%,transparent)] tw:!bg-[color-mix(in_srgb,var(--bg-elev-2)_92%,var(--bg-input))] tw:!p-0 tw:hover:!border-[color-mix(in_srgb,var(--accent-electric)_22%,var(--line-strong))] tw:disabled:opacity-55 tw:[&_.material-icon]:text-[17px]";
+const VOICE_BUTTON_STATE_CLASS = {
+  idle: "",
+  listening:
+    "is-listening tw:!border-[color-mix(in_srgb,var(--accent-danger)_56%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--accent-danger)_12%,var(--bg-elev-2))] tw:!shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-danger)_22%,transparent)]",
+} as const;
+const SEND_BUTTON_CLASS =
+  "send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-white tw:!shadow-[0_6px_16px_rgba(38,99,235,0.22)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[color-mix(in_srgb,var(--accent-electric)_88%,#0b4aa2)] tw:hover:!shadow-[0_6px_12px_rgba(22,119,255,0.28)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]";
+const INTERRUPT_BUTTON_CLASS =
+  "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
 
 interface ComposerActionsProps {
   accessLevel: QueryAccessLevel;
@@ -72,6 +96,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       window.location.pathname.startsWith("/copilot"),
     [],
   );
+  const voiceButtonStateClass = speechListening
+    ? VOICE_BUTTON_STATE_CLASS.listening
+    : VOICE_BUTTON_STATE_CLASS.idle;
 
   return (
     <Flex vertical style={{ width: "100%" }}>
@@ -83,9 +110,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           />
         </Flex>
       )}
-      <div className="composer-control-row">
+      <div className={COMPOSER_CONTROL_ROW_CLASS}>
         <UiButton
-          className="composer-plus-btn"
+          className={COMPOSER_PLUS_BUTTON_CLASS}
           variant="ghost"
           size="sm"
           iconOnly
@@ -105,7 +132,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         >
           <MaterialIcon name="add" />
         </UiButton>
-        <div className="composer-plus-wrap">
+        <div className={COMPOSER_PLUS_WRAP_CLASS}>
           {canCaptureDesktopScreenshot ? (
             <UiButton
               className="desktop-screenshot-btn"
@@ -139,20 +166,20 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                 <Flex align="center" vertical style={{ fontSize: 12 }}>
                   <div>{t("composer.tooltip.createPlan")}</div>
                   <div>
-                    <code className="plan-toggle-shortcut">Shift + Tab</code>{" "}
+                    <code className={PLAN_TOGGLE_SHORTCUT_CLASS}>Shift + Tab</code>{" "}
                     {t("composer.tooltip.planShortcut")}
                   </div>
                 </Flex>
               }
             >
               <UiButton
-                className="plan-toggle-btn"
+                className={PLAN_TOGGLE_BUTTON_CLASS}
                 variant="ghost"
                 size="sm"
                 onClick={onTogglePlanningMode}
               >
-                <MaterialIcon name="checklist" className="plan-toggle-icon" />
-                <MaterialIcon name="close" className="plan-toggle-close-icon" />
+                <MaterialIcon name="checklist" className={PLAN_TOGGLE_ICON_CLASS} />
+                <MaterialIcon name="close" className={PLAN_TOGGLE_CLOSE_ICON_CLASS} />
                 <span>{t("composer.actions.plan")}</span>
               </UiButton>
             </Tooltip>
@@ -175,7 +202,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onModelOverrideChange={onModelOverrideChange}
             />
             <UiButton
-              className="interrupt-btn"
+              className={INTERRUPT_BUTTON_CLASS}
               id="interrupt-btn"
               variant="danger"
               size="sm"
@@ -198,7 +225,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             />
             {voiceEnabled ? (
               <UiButton
-                className={`voice-btn ${speechListening ? "is-listening" : ""}`}
+                className={`${VOICE_BUTTON_BASE_CLASS} ${voiceButtonStateClass}`}
                 variant="secondary"
                 size="sm"
                 iconOnly
@@ -221,7 +248,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               </UiButton>
             ) : null}
             <UiButton
-              className="send-btn"
+              className={SEND_BUTTON_CLASS}
               id="send-btn"
               variant="primary"
               size="sm"

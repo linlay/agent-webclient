@@ -28,6 +28,7 @@
       "MemoryPreviewContext",
       "SettingsAsrDebug",
       "SettingsClientGate",
+      "SettingsDrawer",
       "SettingsModal",
       "SettingsOverlayHost",
       "SettingsOverlayKey",
@@ -76,7 +77,7 @@
       "src/features/settings/lib/memoryInfo.test.ts",
       "src/features/settings/lib/settingsClientGateDrafts.test.ts"
     ],
-    "lastScannedAt": "2026-06-29T09:50:09Z"
+    "lastScannedAt": "2026-07-02T05:32:02Z"
   },
   "readHints": {
     "alwaysRead": [],

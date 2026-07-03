@@ -13,12 +13,16 @@ import {
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
 	chatName?: string;
+	triggerClassName?: string;
 	onArchived?: (chatId: string) => void;
 	onDeleted?: (chatId: string) => void;
-}> = ({ chatId, chatName, onArchived, onDeleted }) => {
+}> = ({ chatId, chatName, triggerClassName, onArchived, onDeleted }) => {
 	const { state, dispatch } = useAppContext();
 	const [pending, setPending] = useState(false);
 	const normalizedChatId = String(chatId || "").trim();
+	const triggerClass = triggerClassName
+		? `chat-actions-trigger ${triggerClassName}`
+		: "chat-actions-trigger";
 
 	const clearActiveChatIfNeeded = () => {
 		if (String(state.chatId || "") !== normalizedChatId) {
@@ -189,7 +193,7 @@ export const ChatActionsMenu: React.FC<{
 			<Button
 				type="text"
 				size="small"
-				className="chat-actions-trigger"
+				className={triggerClass}
 				loading={pending}
 				onClick={(event) => {
 					event.preventDefault();

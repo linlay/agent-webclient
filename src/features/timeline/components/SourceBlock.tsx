@@ -30,6 +30,11 @@ export interface SourceBlockProps {
   node: TimelineNode;
 }
 
+const SOURCE_QUERY_CLASS_NAME = "source-query tw:text-ink-1 tw:opacity-60";
+const SOURCE_LIST_CLASS_NAME = "source-list tw:flex tw:flex-wrap tw:gap-2";
+const SOURCE_ITEM_CLASS_NAME = "source-item tw:flex tw:flex-col tw:gap-1.5";
+const SOURCE_ITEM_ICON_CLASS_NAME = "tw:text-accent-electric-strong";
+
 export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
@@ -50,7 +55,7 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
       label={
         <Flex gap={6}>
           <span>{t("timeline.source.title", { count: sourceCount })}</span>
-          <span className="source-query">"{node.sourceQuery}"</span>
+          <span className={SOURCE_QUERY_CLASS_NAME}>"{node.sourceQuery}"</span>
         </Flex>
       }
       onExpand={(expanded) => {
@@ -64,15 +69,15 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
         });
       }}
     >
-      <div className="source-list">
+      <div className={SOURCE_LIST_CLASS_NAME}>
         {sources.map((source) => (
           <UiButton
-            className="source-item"
+            className={SOURCE_ITEM_CLASS_NAME}
             key={source.id}
             size="sm"
             onClick={() => openSource(source)}
           >
-            <MaterialIcon name="article" />
+            <MaterialIcon className={SOURCE_ITEM_ICON_CLASS_NAME} name="article" />
             <span>{sourceName(source)}</span>
           </UiButton>
         ))}

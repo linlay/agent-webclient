@@ -63,7 +63,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain('id="api-status"');
 		expect(html).toContain(">Idle<");
-		expect(html).toContain("status-pill is-idle");
+		expect(html).toContain("is-idle");
 		expect(html).not.toContain("WebSocket connection error");
 	});
 
@@ -89,7 +89,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Run error");
-		expect(html).toContain("status-pill is-error");
+		expect(html).toContain("is-error");
 		expect(html).toContain("The model service quota is exhausted.");
 		expect(html).not.toContain("model request failed");
 		expect(html).toContain('title="Run error:');
@@ -106,7 +106,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Running");
-		expect(html).toContain("status-pill is-running");
+		expect(html).toContain("is-running");
 	});
 
 	it("does not render usage stats when there is no usage snapshot and not streaming", () => {
@@ -514,7 +514,9 @@ describe("TopNav", () => {
 		expect(html).toContain("<span>Cache hit:</span><strong>44.49%</strong>");
 		expect(html).not.toContain("1.2K tokens");
 		expect(html).toContain("Current call");
-		expect(html).toContain("<h3>Current call</h3></div><dl class=\"usage-metric-grid\"><div class=\"usage-metric\"><dt>Prompt</dt><dd>-</dd>");
+		expect(html).toContain("Current call");
+		expect(html).toContain("usage-metric-grid");
+		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
 		expect(html).toContain("Chat total");
 		expect(html).toContain("1,200");
 		expect(html).toContain("400");
@@ -522,7 +524,7 @@ describe("TopNav", () => {
 		expect(html).toContain("33");
 		expect(html.match(/LLM calls/g)).toHaveLength(1);
 		expect(html.match(/Tool calls/g)).toHaveLength(1);
-		expect(html).not.toContain("Current call</h3><span class=\"usage-section-call-counts\"");
+		expect(html).not.toContain("Current call</h3><span");
 	});
 
 	it("renders compact usage tool call counts", () => {
@@ -743,7 +745,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain("Run error");
-		expect(html).toContain("status-pill is-error");
+		expect(html).toContain("is-error");
 	});
 
 	it("renders idle status with websocket-ready styling by default", () => {
@@ -755,7 +757,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">Idle<");
-		expect(html).toContain("status-pill is-idle");
+		expect(html).toContain("is-idle");
 	});
 
 	it("does not render the debug panel button by default", () => {

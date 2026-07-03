@@ -8,6 +8,51 @@ import { SourceScore } from "@/features/source/component/source-score";
 
 type TranslateFn = (key: string, params?: TranslateParams) => string;
 
+const SOURCE_DETAIL_CLASS_NAME =
+  "right-sidebar-source-detail tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:overflow-hidden";
+
+const SOURCE_DETAIL_EMPTY_CLASS_NAME =
+  "right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted";
+
+const SOURCE_DETAIL_HEAD_CLASS_NAME =
+  "right-sidebar-source-detail-head tw:flex-none tw:flex tw:flex-col tw:gap-1 tw:p-3";
+
+const SOURCE_DETAIL_TITLE_CLASS_NAME =
+  "right-sidebar-source-detail-title tw:font-bold tw:text-ink-1";
+
+const SOURCE_DETAIL_META_CLASS_NAME =
+  "right-sidebar-source-detail-meta tw:mt-0.5 tw:text-[11px] tw:text-ink-muted";
+
+const SOURCE_DETAIL_BODY_CLASS_NAME =
+  "right-sidebar-source-detail-body tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-hidden";
+
+const SOURCE_DETAIL_CHUNK_LIST_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-list tw:m-0 tw:flex tw:max-h-[50%] tw:list-none tw:flex-col tw:gap-1 tw:overflow-y-auto tw:px-2 tw:pb-2 tw:pt-0";
+
+const SOURCE_DETAIL_CONTENT_CLASS_NAME =
+  "right-sidebar-source-detail-content tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-y-auto";
+
+const SOURCE_DETAIL_CHUNK_CONTENT_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-content tw:flex-1 tw:overflow-auto tw:px-2.5 tw:py-0";
+
+const SOURCE_DETAIL_CHUNK_ITEM_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-item tw:min-w-0 tw:overflow-hidden tw:rounded-md tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)]";
+
+const SOURCE_DETAIL_CHUNK_ITEM_ACTIVE_CLASS_NAME =
+  "is-active tw:border-accent-electric tw:bg-[color-mix(in_srgb,var(--accent-soft)_30%,transparent)]";
+
+const SOURCE_DETAIL_CHUNK_ROW_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-row tw:flex tw:w-full tw:min-w-0 tw:cursor-pointer tw:flex-col tw:items-start tw:gap-1.5 tw:border-0 tw:bg-transparent tw:px-2 tw:py-1.5 tw:text-left tw:text-inherit tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_24%,transparent)]";
+
+const SOURCE_DETAIL_CHUNK_INDEX_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-index tw:mr-2.5 tw:text-accent";
+
+const SOURCE_DETAIL_CHUNK_TEXT_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-text tw:w-full tw:text-xs tw:text-ink-1";
+
+const SOURCE_DETAIL_CHUNK_META_CLASS_NAME =
+  "right-sidebar-source-detail-chunk-meta tw:w-full tw:min-w-0 tw:text-xs tw:text-ink-muted tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
+
 export function formatSourceScore(
   score: number | undefined,
   translate: TranslateFn = t,
@@ -80,8 +125,8 @@ export const SourceDetailTab: React.FC = () => {
 
   if (!source) {
     return (
-      <div className="right-sidebar-source-detail">
-        <div className="right-sidebar-empty">
+      <div className={SOURCE_DETAIL_CLASS_NAME}>
+        <div className={SOURCE_DETAIL_EMPTY_CLASS_NAME}>
           {t("rightSidebar.sourceDetail.empty")}
         </div>
       </div>
@@ -89,19 +134,19 @@ export const SourceDetailTab: React.FC = () => {
   }
 
   return (
-    <div className="right-sidebar-source-detail">
-      <div className="right-sidebar-source-detail-head">
-        <div className="right-sidebar-source-detail-title">
+    <div className={SOURCE_DETAIL_CLASS_NAME}>
+      <div className={SOURCE_DETAIL_HEAD_CLASS_NAME}>
+        <div className={SOURCE_DETAIL_TITLE_CLASS_NAME}>
           <Tag color="blue">{sourceSubtitle(source)}</Tag>
           <span>{sourceDisplayName(source)}</span>
         </div>
-        <div className="right-sidebar-source-detail-meta">
+        <div className={SOURCE_DETAIL_META_CLASS_NAME}>
           {t("rightSidebar.sourceDetail.chunkCount", { count: chunks.length })}
         </div>
       </div>
 
-      <div className="right-sidebar-source-detail-body">
-        <ul className="right-sidebar-source-detail-chunk-list">
+      <div className={SOURCE_DETAIL_BODY_CLASS_NAME}>
+        <ul className={SOURCE_DETAIL_CHUNK_LIST_CLASS_NAME}>
           {chunks.map((chunk) => (
             <ChunkItem
               key={chunk.chunkId}
@@ -112,13 +157,13 @@ export const SourceDetailTab: React.FC = () => {
           ))}
         </ul>
 
-        <div className="right-sidebar-source-detail-content">
+        <div className={SOURCE_DETAIL_CONTENT_CLASS_NAME}>
           {activeChunk?.content ? (
-            <div className="right-sidebar-source-detail-chunk-content">
+            <div className={SOURCE_DETAIL_CHUNK_CONTENT_CLASS_NAME}>
               <MarkdownContent content={activeChunk.content} />
             </div>
           ) : (
-            <div className="right-sidebar-empty">
+            <div className={SOURCE_DETAIL_EMPTY_CLASS_NAME}>
               {t("rightSidebar.sourceDetail.selectChunk")}
             </div>
           )}
@@ -140,24 +185,34 @@ const ChunkItem: React.FC<ChunkItemProps> = ({ chunk, active, onClick }) => {
 
   return (
     <li
-      className={`right-sidebar-source-detail-chunk-item ${active ? "is-active" : ""}`.trim()}
+      className={[
+        SOURCE_DETAIL_CHUNK_ITEM_CLASS_NAME,
+        active ? SOURCE_DETAIL_CHUNK_ITEM_ACTIVE_CLASS_NAME : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       <button
         type="button"
-        className="right-sidebar-source-detail-chunk-row"
+        className={SOURCE_DETAIL_CHUNK_ROW_CLASS_NAME}
         onClick={onClick}
       >
         <div>
-          <span className="right-sidebar-source-detail-chunk-index">#{chunk.index}</span>
-          <span className="right-sidebar-source-detail-chunk-text">
+          <span className={SOURCE_DETAIL_CHUNK_INDEX_CLASS_NAME}>
+            #{chunk.index}
+          </span>
+          <span className={SOURCE_DETAIL_CHUNK_TEXT_CLASS_NAME}>
             {heading || t("rightSidebar.sourceDetail.untitledChunk")}
           </span>
         </div>
-        <Flex className="right-sidebar-source-detail-chunk-meta" wrap gap={4} align="center">
+        <Flex
+          className={SOURCE_DETAIL_CHUNK_META_CLASS_NAME}
+          wrap
+          gap={4}
+          align="center"
+        >
           {chunk.matchType && <Tag color="gold">{chunk.matchType}</Tag>}
-          {chunk.score && (
-            <SourceScore score={chunk.score} />
-          )}
+          {chunk.score && <SourceScore score={chunk.score} />}
           <span>
             {formatRange(
               chunk.startLine,

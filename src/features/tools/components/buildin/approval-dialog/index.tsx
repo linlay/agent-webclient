@@ -29,8 +29,11 @@ import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitin
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
-import Style from "./index.module.css";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import {
+  getHitlPaginationDotClassName,
+  hitlDialogClassNames,
+} from "@/features/tools/components/buildin/dialogClassNames";
 
 interface ApprovalDialogProps {
   data: ApprovalActiveAwaiting;
@@ -332,7 +335,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   }, [handleKeyDown]);
 
   return ready ? (
-    <div className={Style.ConfirmDialog}>
+    <div className={hitlDialogClassNames.surface}>
       <Tabs
         activeKey={curIndex.toString()}
         onChange={(key) =>
@@ -366,10 +369,14 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                 void moveForward(nextDecision);
               }}
               pagnation={
-                <Flex className={Style.HeaderSide} align="center" gap={16}>
+                <Flex
+                  className={hitlDialogClassNames.headerSide}
+                  align="center"
+                  gap={16}
+                >
                   {timeoutCountdown.label && (
-                    <Flex className={Style.TimeoutRow}>
-                      <span className={Style.TimeoutBadge}>
+                    <Flex className={hitlDialogClassNames.timeoutRow}>
+                      <span>
                         {timeoutExpired && submitting
                           ? t("approvalDialog.status.autoSubmitting")
                           : t("approvalDialog.timeout.countdown", {
@@ -379,7 +386,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                     </Flex>
                   )}
                   {approvals.length > 1 && (
-                    <Flex className={Style.Pagination} gap={6}>
+                    <Flex className={hitlDialogClassNames.pagination} gap={6}>
                       {approvals?.map((item, index) => {
                         const value = decisions?.[item.id];
                         const skip = value === "reject";
@@ -387,12 +394,11 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                         return (
                           <span
                             key={item.id}
-                            className={[
-                              Style.Item,
-                              index === curIndex ? Style.Active : "",
-                              done ? Style.Done : "",
-                              skip ? Style.Skip : "",
-                            ].join(" ")}
+                            className={getHitlPaginationDotClassName({
+                              active: index === curIndex,
+                              done: Boolean(done),
+                              skip,
+                            })}
                             onClick={() => setCurIndex(index)}
                           ></span>
                         );
@@ -408,6 +414,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                       type="primary"
                       shape="round"
                       size="small"
+                      className={hitlDialogClassNames.button}
                       onClick={() => {
                         void moveForward();
                       }}
@@ -421,6 +428,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
                       type="primary"
                       shape="round"
                       size="small"
+                      className={hitlDialogClassNames.button}
                       onClick={() => {
                         void submitDecision();
                       }}
@@ -440,14 +448,16 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     </div>
   ) : (
     <Flex
-      className={Style.ConfirmDialog}
+      className={hitlDialogClassNames.loadingSurface}
       vertical
       align="center"
       justify="center"
       gap={20}
-      style={{ minHeight: 200, color: "var(--colorTextSecondary)" }}
     >
-      <MaterialIcon name="progress_activity" style={{ color: "var(--colorPrimary)" }} />
+      <MaterialIcon
+        name="progress_activity"
+        className={hitlDialogClassNames.loadingIcon}
+      />
       <div>{t("approvalDialog.loading")}</div>
     </Flex>
   );
@@ -506,14 +516,25 @@ const ApprovalQuestion = forwardRef<
     );
 
     return (
-      <Flex vertical ref={hostRef} className={Style.QuestionWrapper}>
-        <Flex className={Style.Question} justify="space-between">
-          <div className={Style.QuestionHeading}>{approval?.description}</div>
+      <Flex
+        vertical
+        ref={hostRef}
+        className={hitlDialogClassNames.questionWrapper}
+      >
+        <Flex
+          className={hitlDialogClassNames.questionHeader}
+          justify="space-between"
+        >
+          <div className={hitlDialogClassNames.questionHeading}>
+            {approval?.description}
+          </div>
           {pagnation}
         </Flex>
-        <div className={Style.ApprovalDetails}>{approval?.command}</div>
+        <div className={hitlDialogClassNames.approvalDetails}>
+          {approval?.command}
+        </div>
         <Radio.Group
-          className={Style.RadioGroup}
+          className={hitlDialogClassNames.radioGroup}
           value={decision}
           disabled={readOnly}
         >
@@ -526,7 +547,7 @@ const ApprovalQuestion = forwardRef<
                 }
               }}
               value={option.decision}
-              className={Style.Option}
+              className={hitlDialogClassNames.radioOption}
               onClick={() => {
                 const val = option?.decision as ApprovalDialogDecision;
                 onDecisionChange(val);
@@ -538,22 +559,28 @@ const ApprovalQuestion = forwardRef<
                 align="center"
                 tabIndex={0}
                 data-index={index}
-                style={{ outline: "none" }}
+                className="tw:outline-none"
               >
-                <span className={Style.Index}>{index + 1}</span>
-                <span className={Style.Info}>{option.label}</span>
+                <span className={hitlDialogClassNames.optionIndex}>
+                  {index + 1}
+                </span>
+                <span className={hitlDialogClassNames.optionInfo}>
+                  {option.label}
+                </span>
                 {option.description && (
-                  <span className={Style.ApprovalMeta}>
+                  <span className={hitlDialogClassNames.approvalMeta}>
                     {option.description}
                   </span>
                 )}
-                <span className="Selected">{t("approvalDialog.selected")}</span>
+                <span className={hitlDialogClassNames.selectedBadge}>
+                  {t("approvalDialog.selected")}
+                </span>
               </Flex>
             </Radio>
           ))}
           <Flex align="center">
             <Radio
-              className={[Style.Option, Style.FreeText].join(" ")}
+              className={hitlDialogClassNames.approvalFreeTextOption}
               value="reject"
               onClick={() => {
                 onDecisionChange("reject");
@@ -561,10 +588,13 @@ const ApprovalQuestion = forwardRef<
               }}
             >
               <Flex gap={10} align="center">
-                <span className={Style.Index}>
-                  <MaterialIcon name="edit" />
+                <span className={hitlDialogClassNames.optionIndex}>
+                  <MaterialIcon
+                    name="edit"
+                    className={hitlDialogClassNames.optionIndexIcon}
+                  />
                 </span>
-                <span className={Style.Info}>
+                <span className={hitlDialogClassNames.optionInfo}>
                   {t("approvalDialog.option.reject")}
                 </span>
                 <Input
@@ -586,7 +616,7 @@ const ApprovalQuestion = forwardRef<
                     }
                     onEnterDebounce("reject");
                   }}
-                  style={{ padding: 0 }}
+                  className="tw:p-0 tw:text-xs"
                 />
               </Flex>
             </Radio>

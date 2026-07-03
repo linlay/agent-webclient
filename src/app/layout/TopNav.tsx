@@ -25,11 +25,109 @@ import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgr
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 
-interface TopNavStatusDisplay {
+export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
   statusText: string;
   statusDetail?: string;
 }
+
+const STATUS_PILL_BASE_CLASS =
+  "tw:relative tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:break-keep tw:font-code tw:font-semibold tw:tracking-[0.02em] tw:[writing-mode:horizontal-tb] tw:before:absolute tw:before:top-1/2 tw:before:rounded-full tw:before:content-[''] tw:before:-translate-y-1/2";
+
+const STATUS_PILL_SIZE_CLASS_BY_DENSITY = {
+  default:
+    "tw:rounded-[10px] tw:py-1.5 tw:pl-6 tw:pr-[11px] tw:text-[11px] tw:leading-[1.25] tw:before:left-2.5 tw:before:h-2 tw:before:w-2",
+  compact:
+    "tw:rounded-lg tw:py-[5px] tw:pl-[22px] tw:pr-[9px] tw:text-[10px] tw:leading-[1.25] tw:before:left-[9px] tw:before:h-[7px] tw:before:w-[7px]",
+} as const;
+
+const STATUS_PILL_TONE_CLASS_BY_STATUS: Record<
+  TopNavStatusDisplay["statusClass"],
+  string
+> = {
+  "is-idle":
+    "tw:text-ink-2 tw:before:bg-[color-mix(in_srgb,var(--ink-muted)_90%,white)]",
+  "is-running":
+    "tw:text-accent-electric-strong tw:before:animate-[flash_1s_infinite] tw:before:bg-accent-electric",
+  "is-error":
+    "tw:text-[color-mix(in_srgb,var(--accent-danger)_80%,#3e1120)] tw:before:bg-accent-danger",
+};
+
+export function resolveStatusPillClassName(
+  statusClass: TopNavStatusDisplay["statusClass"],
+  density: keyof typeof STATUS_PILL_SIZE_CLASS_BY_DENSITY = "default",
+): string {
+  return [
+    "status-pill",
+    statusClass,
+    STATUS_PILL_BASE_CLASS,
+    STATUS_PILL_SIZE_CLASS_BY_DENSITY[density],
+    STATUS_PILL_TONE_CLASS_BY_STATUS[statusClass],
+  ].join(" ");
+}
+
+const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5";
+const TOP_NAV_INNER_CLASS =
+  "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center tw:justify-between tw:gap-3";
+const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center";
+const NAV_LEFT_CLASS =
+  "nav-group nav-left tw:flex tw:min-w-[150px] tw:items-center tw:justify-between tw:gap-3 tw:pl-3";
+const NAV_CENTER_CLASS =
+  "nav-group nav-center tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:justify-center tw:max-[1279px]:flex-auto";
+const CURRENT_WORKER_CARD_CLASS =
+  "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
+const CURRENT_WORKER_NAME_CLASS =
+  "current-worker-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
+const TOP_NAV_ICON_BUTTON_CLASS =
+  "top-nav-icon-btn tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
+const CURRENT_WORKER_TOOL_BASE_CLASS =
+  "current-worker-tool tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
+const VOICE_TOOL_CLASS_BY_MODE = {
+  call: [
+    CURRENT_WORKER_TOOL_BASE_CLASS,
+    "current-worker-tool-voice is-call tw:text-[#2f7c49]",
+  ].join(" "),
+  hangup: [
+    CURRENT_WORKER_TOOL_BASE_CLASS,
+    "current-worker-tool-voice is-hangup tw:border tw:[border-color:color-mix(in_srgb,#f06b67_44%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0ef_86%,var(--bg-elev-2))] tw:text-[#d53f3f] tw:hover:[border-color:color-mix(in_srgb,#e4564f_52%,var(--line-soft))] tw:hover:shadow-[0_8px_18px_rgba(229,86,79,0.18)]",
+  ].join(" "),
+} as const;
+const MUTED_TOOL_ACTIVE_CLASS =
+  "is-muted tw:border tw:[border-color:color-mix(in_srgb,#ff945f_38%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0e6_84%,var(--bg-elev-2))] tw:text-[#cf5f18]";
+const USAGE_CONTEXT_WINDOW_CLASS =
+  "usage-context-window tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:px-1.5 tw:py-1";
+const USAGE_CONTEXT_COPY_CLASS =
+  "usage-context-copy tw:inline-flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-baseline tw:gap-2 tw:[&>small]:flex-none tw:[&>small]:text-[9px] tw:[&>small]:leading-[1.1] tw:[&>small]:text-ink-2 tw:[&>span]:flex-none tw:[&>span]:text-[9px] tw:[&>span]:leading-[1.1] tw:[&>span]:text-ink-muted tw:[&>strong]:flex-none tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1]";
+const USAGE_CONTEXT_COMPACT_BTN_CLASS =
+  "usage-context-compact-btn tw:min-h-[18px] tw:flex-none tw:rounded-md tw:px-1.5 tw:py-0 tw:text-[9px] tw:leading-none";
+const USAGE_CACHE_HIT_INLINE_CLASS =
+  "usage-cache-hit-inline tw:inline-flex tw:min-w-max tw:items-baseline tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-[1.1] tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1] tw:[&>strong]:text-ink-1";
+const USAGE_TRIGGER_RING_CLASS =
+  "usage-trigger-ring tw:grid tw:h-[26px] tw:w-[26px] tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_46%,transparent_50%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),var(--line-soft)_0)] tw:[&>span]:font-code tw:[&>span]:text-[11px] tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
+const USAGE_POPOVER_SECTION_CLASS =
+  "usage-popover-section tw:mt-1.5 tw:[&_h3]:m-0 tw:[&_h3]:text-[11px] tw:[&_h3]:font-bold tw:[&_h3]:text-ink-2";
+const USAGE_POPOVER_SECTION_TITLE_CLASS =
+  "usage-popover-section-title tw:mb-[3px] tw:mr-1 tw:flex tw:items-center tw:justify-between tw:gap-2";
+const USAGE_METRIC_GRID_CLASS =
+  "usage-metric-grid tw:m-0 tw:grid tw:grid-cols-3 tw:gap-1";
+const USAGE_METRIC_CLASS =
+  "usage-metric tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-1 tw:rounded-[7px] tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev)_68%,transparent)] tw:px-[5px] tw:py-[3px] tw:[&_dd]:m-0 tw:[&_dd]:[overflow-wrap:anywhere] tw:[&_dd]:font-code tw:[&_dd]:text-[10px] tw:[&_dd]:font-bold tw:[&_dd]:leading-[1.15] tw:[&_dd]:text-ink-1 tw:[&_dt]:m-0 tw:[&_dt]:overflow-hidden tw:[&_dt]:text-ellipsis tw:[&_dt]:whitespace-nowrap tw:[&_dt]:text-[9px] tw:[&_dt]:leading-[1.2] tw:[&_dt]:text-ink-muted";
+const USAGE_SECTION_CALL_COUNTS_CLASS =
+  "usage-section-call-counts tw:inline-flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2";
+const USAGE_SECTION_STAT_CLASS =
+  "usage-section-stat tw:inline-flex tw:min-w-0 tw:items-center tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-none tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-none tw:[&>strong]:text-ink-1";
+const USAGE_POPOVER_ANCHOR_CLASS =
+  "usage-popover-anchor tw:relative tw:inline-flex tw:items-center";
+const USAGE_TRIGGER_CLASS =
+  "usage-trigger tw:min-h-[30px] tw:rounded-lg tw:px-2 tw:py-0 tw:text-ink-2 tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_78%,var(--bg-elev-2))] tw:hover:text-accent-electric-strong tw:[&.is-active]:bg-[color-mix(in_srgb,var(--accent-soft)_78%,var(--bg-elev-2))] tw:[&.is-active]:text-accent-electric-strong tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
+const USAGE_POPOVER_CLASS =
+  "usage-popover tw:absolute tw:right-0 tw:top-[calc(100%+10px)] tw:z-50 tw:max-h-[min(70vh,620px)] tw:w-[min(420px,calc(100vw-24px))] tw:overflow-auto tw:rounded-lg tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_98%,white)] tw:p-2 tw:text-ink-1 tw:shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
+const USAGE_CONTEXT_RING_CLASS =
+  "usage-context-ring tw:grid tw:h-11 tw:w-11 tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_54%,transparent_55%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),color-mix(in_srgb,var(--line-soft)_76%,transparent)_0)] tw:[&>span]:font-code tw:[&>span]:text-sm tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
+const USAGE_POPOVER_HEADER_CLASS =
+  "usage-popover-header tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_span]:max-w-[340px] tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-[9px] tw:[&_span]:font-medium tw:[&_span]:leading-[1.15] tw:[&_span]:text-ink-muted tw:[&_strong]:text-[11px] tw:[&_strong]:leading-[1.15]";
+const USAGE_POPOVER_CLOSE_CLASS =
+  "usage-popover-close tw:h-5 tw:min-h-5 tw:w-5 tw:min-w-5 tw:rounded-[7px] tw:p-0";
 
 export function resolveTopNavStatus(
   state: Pick<AppState, "streaming" | "events">,
@@ -310,8 +408,8 @@ const UsageContextWindow: React.FC<{
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
 
   return (
-    <div className="usage-context-window">
-      <div className="usage-context-copy">
+    <div className={USAGE_CONTEXT_WINDOW_CLASS}>
+      <div className={USAGE_CONTEXT_COPY_CLASS}>
         <span>{t("topNav.usage.contextWindow")}</span>
         <strong>
           {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
@@ -319,7 +417,7 @@ const UsageContextWindow: React.FC<{
           {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
         </strong>
         <UiButton
-          className="usage-context-compact-btn"
+          className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
           variant="ghost"
           size="sm"
           disabled={compactDisabled}
@@ -332,7 +430,7 @@ const UsageContextWindow: React.FC<{
       </div>
 
       <div
-        className="usage-cache-hit-inline"
+        className={USAGE_CACHE_HIT_INLINE_CLASS}
         aria-label={t("topNav.usage.cacheHitRate")}
       >
         <span>{t("topNav.usage.cacheHitRate")}:</span>
@@ -351,7 +449,7 @@ const UsageTriggerRing: React.FC<{
 
   return (
     <span
-      className="usage-trigger-ring"
+      className={USAGE_TRIGGER_RING_CLASS}
       style={
         {
           "--usage-context-percent": `${progressValue}%`,
@@ -369,14 +467,14 @@ const UsageSection: React.FC<{
   metrics: UsageMetric[];
   aside?: React.ReactNode;
 }> = ({ title, metrics, aside }) => (
-  <section className="usage-popover-section">
-    <div className="usage-popover-section-title">
+  <section className={USAGE_POPOVER_SECTION_CLASS}>
+    <div className={USAGE_POPOVER_SECTION_TITLE_CLASS}>
       <h3>{title}</h3>
       {aside}
     </div>
-    <dl className="usage-metric-grid">
+    <dl className={USAGE_METRIC_GRID_CLASS}>
       {metrics.map((metric) => (
-        <div className="usage-metric" key={metric.key}>
+        <div className={USAGE_METRIC_CLASS} key={metric.key}>
           <dt>{metric.label}</dt>
           <dd>{formatUsageNumber(metric.value)}</dd>
         </div>
@@ -443,9 +541,9 @@ const UsageCallCounts: React.FC<{
   }
 
   return (
-    <span className="usage-section-call-counts">
+    <span className={USAGE_SECTION_CALL_COUNTS_CLASS}>
       {headerStats.map((stat) => (
-        <span className="usage-section-stat" key={stat.key}>
+        <span className={USAGE_SECTION_STAT_CLASS} key={stat.key}>
           {stat.label}
           <strong>{stat.value}</strong>
         </span>
@@ -633,17 +731,17 @@ export const TopNav: React.FC = () => {
   const statusLabel = t(statusText);
   const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
   return (
-    <nav className="top-nav">
-      <div className="top-nav-inner">
-        <div className="nav-group nav-left"></div>
+    <nav className={TOP_NAV_CLASS}>
+      <div className={TOP_NAV_INNER_CLASS}>
+        <div className={NAV_LEFT_CLASS}></div>
 
-        <div className="nav-group nav-center">
-          <div className={`current-worker-card`} aria-live="polite">
-            <strong className="current-worker-name">
+        <div className={NAV_CENTER_CLASS}>
+          <div className={CURRENT_WORKER_CARD_CLASS} aria-live="polite">
+            <strong className={CURRENT_WORKER_NAME_CLASS}>
               {currentWorker?.displayName || t("topNav.noSelection")}
             </strong>
             <span
-              className={`status-pill ${statusClass}`}
+              className={resolveStatusPillClassName(statusClass)}
               id="api-status"
               title={statusTitle}
               aria-label={statusTitle}
@@ -651,9 +749,9 @@ export const TopNav: React.FC = () => {
               {statusLabel}
             </span>
             {showUsageControl ? (
-              <div className="usage-popover-anchor">
+              <div className={USAGE_POPOVER_ANCHOR_CLASS}>
                 <UiButton
-                  className="usage-trigger"
+                  className={USAGE_TRIGGER_CLASS}
                   variant="ghost"
                   size="sm"
                   active={state.usagePopoverOpen}
@@ -673,13 +771,13 @@ export const TopNav: React.FC = () => {
                 </UiButton>
                 {state.usagePopoverOpen ? (
                   <div
-                    className="usage-popover"
+                    className={USAGE_POPOVER_CLASS}
                     role="dialog"
                     aria-label={t("topNav.usage.title")}
                   >
                     <Flex gap={10} align="center">
                       <div
-                        className="usage-context-ring"
+                        className={USAGE_CONTEXT_RING_CLASS}
                         style={
                           {
                             "--usage-context-percent": `${contextPercent?.progress ?? 0}%`,
@@ -690,7 +788,7 @@ export const TopNav: React.FC = () => {
                         <span>{contextPercent == null ? "--%" : `${contextPercent.label}%`}</span>
                       </div>
                       <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
-                        <div className="usage-popover-header">
+                        <div className={USAGE_POPOVER_HEADER_CLASS}>
                           <Flex
                             gap={4}
                             align="center"
@@ -711,14 +809,14 @@ export const TopNav: React.FC = () => {
                           </Flex>
                           <Flex align="center" gap={8}>
                             <div
-                              className="usage-cache-hit-inline"
+                              className={USAGE_CACHE_HIT_INLINE_CLASS}
                               aria-label={t("topNav.usage.totalCost")}
                             >
                               <span>{t("topNav.usage.totalCost")}:</span>
                               <strong>{estimatedCostLabel}</strong>
                             </div>
                             <UiButton
-                              className="usage-popover-close"
+                              className={USAGE_POPOVER_CLOSE_CLASS}
                               variant="ghost"
                               size="sm"
                               iconOnly
@@ -791,10 +889,14 @@ export const TopNav: React.FC = () => {
           </div>
         </div>
 
-        <div className="nav-group">
+        <div className={NAV_GROUP_CLASS}>
           {voiceModeAvailable ? (
             <UiButton
-              className={`current-worker-tool current-worker-tool-voice ${conversation.inputMode === "voice" ? "is-hangup" : "is-call"}`}
+              className={
+                conversation.inputMode === "voice"
+                  ? VOICE_TOOL_CLASS_BY_MODE.hangup
+                  : VOICE_TOOL_CLASS_BY_MODE.call
+              }
               variant="ghost"
               size="sm"
               iconOnly
@@ -825,7 +927,12 @@ export const TopNav: React.FC = () => {
           ) : null}
           {showMuteControl ? (
             <UiButton
-              className={`current-worker-tool ${ui.audioMuted ? "is-muted" : ""}`}
+              className={[
+                CURRENT_WORKER_TOOL_BASE_CLASS,
+                ui.audioMuted ? MUTED_TOOL_ACTIVE_CLASS : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               variant="ghost"
               size="sm"
               iconOnly
@@ -848,7 +955,7 @@ export const TopNav: React.FC = () => {
           <Divider type="vertical" />
           {debugPanelEnabled ? (
             <UiButton
-              className="icon-btn"
+              className={TOP_NAV_ICON_BUTTON_CLASS}
               size="sm"
               variant="ghost"
               iconOnly
@@ -867,11 +974,14 @@ export const TopNav: React.FC = () => {
           ) : null}
           {showTerminalButton ? (
             <UiButton
-              className={`icon-btn current-worker-tool-terminal ${
-                isCurrentWorkerTerminalActive ? "has-terminal" : ""
-              } ${
-                isCurrentWorkerTerminalBusy ? "has-running-terminal" : ""
-              }`}
+              className={[
+                TOP_NAV_ICON_BUTTON_CLASS,
+                "current-worker-tool-terminal tw:relative",
+                isCurrentWorkerTerminalActive ? "has-terminal" : "",
+                isCurrentWorkerTerminalBusy ? "has-running-terminal" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               variant="ghost"
               size="sm"
               iconOnly
@@ -896,16 +1006,21 @@ export const TopNav: React.FC = () => {
               <MaterialIcon name="terminal" />
               {isCurrentWorkerTerminalActive ? (
                 <span
-                  className={`current-worker-terminal-dot ${
-                    isCurrentWorkerTerminalBusy ? "is-busy" : ""
-                  }`}
+                  className={[
+                    "current-worker-terminal-dot tw:absolute tw:right-[5px] tw:top-[5px] tw:h-[7px] tw:w-[7px] tw:rounded-full tw:border tw:border-bg-elev-1 tw:bg-accent-electric-strong",
+                    isCurrentWorkerTerminalBusy
+                      ? "is-busy tw:animate-[status-pulse_1s_ease-in-out_infinite] tw:bg-accent-lime tw:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-lime)_16%,transparent)]"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   aria-hidden
                 />
               ) : null}
             </UiButton>
           ) : null}
           <UiButton
-            className="icon-btn"
+            className={TOP_NAV_ICON_BUTTON_CLASS}
             size="sm"
             variant="ghost"
             iconOnly

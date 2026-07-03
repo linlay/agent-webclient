@@ -14,6 +14,15 @@ interface ControlsFormProps {
   onChange?: (params: Record<string, unknown>) => void;
 }
 
+const COMPOSER_CONTROL_FIELD_CLASS =
+  "composer-control-field tw:inline-flex tw:flex-shrink-0 tw:items-center tw:gap-2.5 tw:whitespace-nowrap tw:after:block tw:after:h-1/2 tw:after:w-px tw:after:bg-line-soft tw:after:content-[''] tw:last:after:hidden";
+const COMPOSER_CONTROL_LABEL_CLASS =
+  "composer-control-label tw:text-[11px] tw:font-bold tw:text-ink-2 tw:[&_.material-icon]:text-[15px] tw:[&_.material-icon]:text-ink-muted";
+const COMPOSER_CONTROL_INPUT_CLASS =
+  "composer-control-input tw:w-[90px] tw:min-w-0 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_88%,var(--bg-elev-2))] tw:px-2 tw:py-[5px] tw:text-xs tw:leading-[1.2] tw:text-ink-1 tw:focus:border-accent-electric tw:focus:outline-none tw:focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_24%,transparent)] tw:disabled:bg-[color-mix(in_srgb,var(--bg-elev-2)_92%,transparent)] tw:disabled:text-ink-muted";
+const COMPOSER_CONTROL_TOGGLE_CLASS =
+  "composer-control-toggle tw:accent-accent-electric";
+
 function readText(value: unknown, fallback = ""): string {
   if (
     typeof value === "string" ||
@@ -174,7 +183,7 @@ function renderFieldInput(
     return (
       <input
         type="checkbox"
-        className="composer-control-toggle"
+        className={COMPOSER_CONTROL_TOGGLE_CLASS}
         checked={Boolean(value)}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
@@ -186,7 +195,7 @@ function renderFieldInput(
     const options = Array.isArray(control.options) ? control.options : [];
     return (
       <select
-        className="composer-control-input"
+        className={COMPOSER_CONTROL_INPUT_CLASS}
         value={String(value ?? "")}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -206,7 +215,7 @@ function renderFieldInput(
 
   return (
     <input
-      className="composer-control-input"
+      className={COMPOSER_CONTROL_INPUT_CLASS}
       type={
         control.type === "date"
           ? "date"
@@ -283,9 +292,9 @@ export const ControlsForm: React.FC<ControlsFormProps> = ({
     return (
       <label
         key={key}
-        className={`composer-control-field is-${control.type}`.trim()}
+        className={`${COMPOSER_CONTROL_FIELD_CLASS} is-${control.type}`.trim()}
       >
-        <span className="composer-control-label">{control.label}</span>
+        <span className={COMPOSER_CONTROL_LABEL_CLASS}>{control.label}</span>
         {renderFieldInput(control, fieldValues[key], disabled, (nextValue) => {
           setFieldValues((current) => ({
             ...current,

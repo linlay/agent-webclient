@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import Style from './index.module.css';
 import { Flex } from 'antd';
 
 interface SourceScoreProps {
@@ -12,9 +11,16 @@ export const SourceScore: React.FC<SourceScoreProps> = (props) => {
     return Math.round(val * 100) / 100;
   }, [score]);
   return (
-    <Flex className={Style.host} align="center" justify="center">
-      <div className={Style.progress} style={{ width: scoreMemo * 100 + '%' }}></div>
-      <strong className={Style.text}>SCORE {scoreMemo?.toFixed(2)}</strong>
+    <Flex
+      className="tw:relative tw:min-w-[82px] tw:overflow-hidden tw:whitespace-nowrap tw:rounded-[4px] tw:border tw:border-[var(--colorPrimaryBgHover,#d4ebff)] tw:px-1 tw:leading-[20px] tw:text-[var(--colorPrimaryActive,#1e66d9)]"
+      align="center"
+      justify="center"
+    >
+      <div
+        className="tw:absolute tw:inset-y-0 tw:left-0 tw:border-r tw:border-[var(--colorPrimary,#3087ff)] tw:bg-[var(--colorPrimaryBgHover,#d4ebff)]"
+        style={{ width: scoreMemo * 100 + '%' }}
+      ></div>
+      <strong className="tw:relative tw:z-10 tw:text-xs">SCORE {scoreMemo?.toFixed(2)}</strong>
     </Flex>
   );
 };

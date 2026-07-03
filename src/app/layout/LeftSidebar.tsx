@@ -124,6 +124,47 @@ const ACP_PROXY_OPTIONS = [
   { value: "proxy-acp-codex", label: "codex" },
 ];
 
+const LEFT_SIDEBAR_BASE_CLASS =
+  "sidebar left-sidebar tw:!relative tw:!translate-x-0 tw:gap-1.5 tw:px-0 tw:py-1.5";
+
+const LEFT_SIDEBAR_WIDTH_CLASS = {
+  open: "is-open tw:w-[var(--left-sidebar-width)]",
+  closed: "tw:w-[var(--left-sidebar-close-width)]",
+} as const;
+
+const LEFT_SIDEBAR_TOP_ROW_CLASS =
+  "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:pb-0 tw:pt-1";
+
+const LEFT_SIDEBAR_BUTTONS_CLASS =
+  "left-sidebar-buttons tw:px-1.5 tw:[&_.ant-badge_.ant-badge-count]:bg-accent-soft tw:[&_.ant-badge_.ant-badge-count]:text-[10px] tw:[&_.ant-badge_.ant-badge-count]:text-accent tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn.ui-btn-sm]:min-w-0 tw:[&_.ui-btn.ui-btn-sm]:flex-1 tw:[&_.ui-btn.ui-btn-sm]:px-0.5";
+
+const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
+
+const CHAT_META_CLASS =
+  "chat-meta tw:flex tw:items-center tw:gap-1.5 tw:px-4 tw:pb-2 tw:pt-0";
+
+const CHAT_META_LABEL_CLASS =
+  "chat-meta-label tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-[0.06em] tw:text-ink-muted";
+
+const CHAT_META_CHIP_CLASS =
+  "chip tw:!px-2 tw:!py-[3px] tw:font-code tw:!text-[10px] tw:font-medium tw:leading-none";
+
+const CHAT_LIST_CLASS =
+  "chat-list tw:flex-1 tw:overflow-y-auto tw:p-1.5 tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
+
+const WORKER_COLLAPSE_CLASS =
+  "worker-collapse tw:flex tw:flex-col tw:gap-1.5 tw:[&_.ant-collapse-item-active_.worker-panel-icon]:scale-[0.8] tw:[&_.ant-collapse-item-active_.worker-panel-preview]:h-0 tw:[&_.ant-collapse-item-active>.ant-collapse-header_.ant-badge]:hidden tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-collapse-history]:text-text-muted";
+
+const WORKER_COLLAPSED_ICON_BASE_CLASS =
+  "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";
+
+const WORKER_COLLAPSED_ICON_STATE_CLASS = {
+  active: "is-active tw:bg-accent-soft tw:!text-accent",
+  idle: "",
+} as const;
+
+const WORKER_COLLAPSED_NAME_CLASS =
+  "worker-collapsed-name tw:w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-center tw:text-[10px] tw:leading-[1.2]";
 export async function handleCreateAgentSuccess(
   createdKey: string,
   dispatch: React.Dispatch<AppAction>,
@@ -764,7 +805,11 @@ export const LeftSidebar: React.FC = () => {
   return (
     <>
       <aside
-        className={`sidebar left-sidebar ${state.leftDrawerOpen ? "is-open" : ""}`}
+        className={`${LEFT_SIDEBAR_BASE_CLASS} ${
+          state.leftDrawerOpen
+            ? LEFT_SIDEBAR_WIDTH_CLASS.open
+            : LEFT_SIDEBAR_WIDTH_CLASS.closed
+        }`}
         id="left-sidebar"
       >
         {state.leftDrawerOpen && (
@@ -773,7 +818,7 @@ export const LeftSidebar: React.FC = () => {
               align="center"
               justify="space-between"
               gap={12}
-              style={{ padding: "4px 12px 0" }}
+              className={LEFT_SIDEBAR_TOP_ROW_CLASS}
             >
               <div className="brand-cluster">
                 <div className="brand-mark">
@@ -871,7 +916,7 @@ export const LeftSidebar: React.FC = () => {
               </Flex>
             </Flex>
             {quickActionsEnabled && (
-              <Flex className="left-sidebar-buttons">
+              <Flex className={LEFT_SIDEBAR_BUTTONS_CLASS}>
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -909,7 +954,7 @@ export const LeftSidebar: React.FC = () => {
                 </UiButton>
               </Flex>
             )}
-            <Flex gap={2} style={{ padding: "0 6px" }}>
+            <Flex gap={2} className={LEFT_SIDEBAR_FILTER_ROW_CLASS}>
               <Input
                 variant="filled"
                 placeholder={
@@ -980,19 +1025,19 @@ export const LeftSidebar: React.FC = () => {
         )}
 
         {state.conversationMode !== "worker" && (
-          <div className="chat-meta">
-            <span className="chat-meta-label">
+          <div className={CHAT_META_CLASS}>
+            <span className={CHAT_META_LABEL_CLASS}>
               {t("leftSidebar.workerLabel")}
             </span>
             {state.chatId && state.chatAgentById.has(state.chatId) && (
-              <UiTag className="chip" tone="accent">
+              <UiTag className={CHAT_META_CHIP_CLASS} tone="accent">
                 {state.chatAgentById.get(state.chatId)}
               </UiTag>
             )}
           </div>
         )}
 
-        <div className="chat-list" id="chat-list">
+        <div className={CHAT_LIST_CLASS} id="chat-list">
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.conversationMode === "worker" ? (
               filteredWorkerRows.length === 0 ? (
@@ -1001,7 +1046,7 @@ export const LeftSidebar: React.FC = () => {
                 <Collapse
                   accordion
                   ghost
-                  className="worker-collapse"
+                  className={WORKER_COLLAPSE_CLASS}
                   activeKey={expandedWorkerKey || undefined}
                   items={workerCollapseItems}
                   onChange={handleWorkerCollapseChange}
@@ -1063,7 +1108,11 @@ export const LeftSidebar: React.FC = () => {
                       >
                         <Button
                           type="text"
-                          className={`worker-collapsed-icon ${item.key === state.workerSelectionKey ? "is-active" : ""}`}
+                          className={`${WORKER_COLLAPSED_ICON_BASE_CLASS} ${
+                            item.key === state.workerSelectionKey
+                              ? WORKER_COLLAPSED_ICON_STATE_CLASS.active
+                              : WORKER_COLLAPSED_ICON_STATE_CLASS.idle
+                          }`}
                           onClick={() => handleSelectCollapsedWorker(item.key)}
                         >
                           <AgentIcon
@@ -1082,7 +1131,7 @@ export const LeftSidebar: React.FC = () => {
                             }}
                           />
                           <Badge dot={unreadCount > 0} offset={[5, 9]}>
-                            <span className="worker-collapsed-name">
+                            <span className={WORKER_COLLAPSED_NAME_CLASS}>
                               {item.displayName}
                             </span>
                           </Badge>

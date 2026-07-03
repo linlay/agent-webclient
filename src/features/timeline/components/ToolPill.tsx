@@ -7,6 +7,7 @@ import type { TranslateParams } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
 import { useAppState } from "@/app/state/provider";
 import { TimelineCollapse } from "./collapse";
@@ -18,6 +19,10 @@ type ToolGroupRenderEntry = Extract<
 
 type TranslateFn = (key: string, params?: TranslateParams) => string;
 type CopyState = "copied" | "error";
+const TOOL_CALL_RESULT_CLASS_NAME = [
+  "tool-call-result",
+  SCROLLBAR_THIN_CLASS_NAME,
+].join(" ");
 const TERMINAL_TOOL_STATUSES = new Set([
   "success",
   "completed",
@@ -445,7 +450,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   </Tooltip>
                 </Flex>
                 <code
-                  className="tool-call-result"
+                  className={TOOL_CALL_RESULT_CLASS_NAME}
                   style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
                 >
                   <JsonToTable

@@ -55,6 +55,20 @@ interface ComposerAreaProps {
   showWonders?: boolean;
 }
 
+const COMPOSER_AREA_CLASS = "composer-area tw:relative";
+const COMPOSER_AREA_FRONTEND_CLASS = "is-frontend-active";
+const COMPOSER_LAYOUT_CLASS =
+  "composer-layout tw:flex tw:items-stretch tw:gap-3.5";
+const COMPOSER_STACK_CLASS =
+  "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-3.5";
+const COMPOSER_PILL_CLASS =
+  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:shadow-elevated tw:backdrop-blur-[10px] tw:transition-[box-shadow,border-color] tw:duration-[220ms] tw:ease-in-out tw:focus-within:shadow-floating tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none";
+const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
+const COMPOSER_PILL_VOICE_CLASS =
+  "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
+const VOICE_HINT_CLASS =
+  "voice-hint tw:mt-1 tw:px-2 tw:py-0 tw:text-[10px] tw:text-ink-muted";
+
 export const ComposerArea: React.FC<ComposerAreaProps> = ({
   emptyInputMinRows = 5,
   inputMaxRows = 10,
@@ -539,7 +553,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     <ComposerProvider value={composerContextValue}>
       <div
         ref={composerRef}
-        className={`composer-area ${isFrontendActive ? "is-frontend-active" : ""}`}
+        className={`${COMPOSER_AREA_CLASS} ${isFrontendActive ? COMPOSER_AREA_FRONTEND_CLASS : ""}`}
       >
         <input
           ref={fileInputRef}
@@ -562,7 +576,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           />
         )}
         <div
-          className={`composer-layout ${isFrontendActive ? "is-frontend-active" : ""}`}
+          className={`${COMPOSER_LAYOUT_CLASS} ${isFrontendActive ? COMPOSER_AREA_FRONTEND_CLASS : ""}`}
         >
           <SlashPalette
             open={showSlashPalette}
@@ -575,10 +589,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             getPopupContainer={() => composerRef.current ?? document.body}
             onSelect={(commandId) => void executeSlashCommand(commandId)}
           >
-            <div className="composer-stack">
+            <div className={COMPOSER_STACK_CLASS}>
               <div
                 ref={composerPillRef}
-                className={`composer-pill ${isFrontendActive ? "hidden" : ""} ${isVoiceMode ? "is-voice-mode" : ""}`}
+                className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
               >
                 <ComposerAttachments
                   attachments={attachments}
@@ -652,7 +666,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onTogglePlanningMode={togglePlanningMode}
                 />
                 {showSpeechHint && (
-                  <div className="voice-hint">{speechStatus}</div>
+                  <div className={VOICE_HINT_CLASS}>{speechStatus}</div>
                 )}
               </div>
               {showWonders &&

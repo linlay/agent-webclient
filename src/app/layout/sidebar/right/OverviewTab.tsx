@@ -84,6 +84,84 @@ export interface OverviewFileChangeItem {
 
 const FILE_CHANGE_JUMP_DURATION_MS = 560;
 
+const RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME =
+	"right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto tw:p-3";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME =
+	"right-sidebar-overview-section tw:flex tw:min-w-0 tw:flex-col tw:gap-2";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME =
+	"right-sidebar-overview-section-head tw:flex tw:items-center tw:justify-between tw:gap-2";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_TITLE_CLASS_NAME =
+	"tw:m-0 tw:text-[13px] tw:font-bold tw:text-ink-1";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME =
+	"right-sidebar-overview-section-count tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-soft)_62%,transparent)] tw:px-[7px] tw:py-px tw:text-[11px] tw:font-bold tw:text-accent-electric-strong";
+
+const RIGHT_SIDEBAR_EMPTY_CLASS_NAME =
+	"right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted";
+
+const FILE_CHANGE_LIST_CLASS_NAME =
+	"right-sidebar-file-change-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2 tw:p-0";
+
+const FILE_CHANGE_ITEM_CLASS_NAME =
+	"right-sidebar-file-change-item tw:flex tw:min-w-0 tw:flex-col tw:overflow-hidden tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)]";
+
+const FILE_CHANGE_ROW_CLASS_NAME =
+	"right-sidebar-file-change-row tw:flex tw:w-full tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-inherit tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_38%,transparent)]";
+
+const FILE_CHANGE_EXPAND_CLASS_NAME =
+	"right-sidebar-file-change-expand tw:flex-none tw:text-base tw:text-ink-muted";
+
+const FILE_CHANGE_ICON_CLASS_NAME =
+	"right-sidebar-file-change-icon tw:flex-none tw:text-base tw:text-ink-muted";
+
+const FILE_CHANGE_PATH_WRAP_CLASS_NAME =
+	"right-sidebar-file-change-path-wrap tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-0.5";
+
+const FILE_CHANGE_PATH_CLASS_NAME =
+	"right-sidebar-file-change-path tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[11px] tw:leading-[1.35] tw:text-ink-1";
+
+const FILE_CHANGE_RUN_CLASS_NAME =
+	"right-sidebar-file-change-run tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[10px] tw:leading-[1.25] tw:text-ink-muted";
+
+const FILE_CHANGE_STATS_CLASS_NAME =
+	"right-sidebar-file-change-stats tw:inline-flex tw:flex-none tw:items-center tw:gap-1 tw:whitespace-nowrap tw:font-code tw:text-[11px] tw:font-bold tw:leading-[1.2]";
+
+const FILE_CHANGE_STAT_ANIMATION_CLASS_NAME =
+	"tw:origin-bottom tw:animate-[right-sidebar-file-change-jump_560ms_cubic-bezier(.2,.72,.18,1)] tw:motion-reduce:animate-none";
+
+const FILE_CHANGE_DELETE_ANIMATION_CLASS_NAME =
+	"tw:[animation-delay:40ms]";
+
+const FILE_CHANGE_ADD_CLASS_NAME = "right-sidebar-file-change-add tw:text-ok";
+
+const FILE_CHANGE_DELETE_CLASS_NAME =
+	"right-sidebar-file-change-delete tw:text-danger";
+
+const FILE_CHANGE_DIFF_CLASS_NAME =
+	"right-sidebar-file-change-diff tw:w-full tw:min-w-0 tw:border-t tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-surface)_86%,transparent)]";
+
+const FILE_DIFF_STATUS_CLASS_NAME =
+	"right-sidebar-file-diff-status tw:flex tw:min-h-10 tw:items-center tw:justify-center tw:gap-2 tw:p-2.5 tw:text-xs tw:text-ink-muted";
+
+const FILE_DIFF_STATUS_ERROR_CLASS_NAME = "is-error tw:text-danger";
+
+const FILE_DIFF_ERROR_STATUS_CLASS_NAME = [
+	FILE_DIFF_STATUS_CLASS_NAME,
+	FILE_DIFF_STATUS_ERROR_CLASS_NAME,
+].join(" ");
+
+const FILE_DIFF_SPINNER_CLASS_NAME =
+	"right-sidebar-file-diff-spinner tw:h-3.5 tw:w-3.5 tw:animate-[ui-spin_900ms_linear_infinite] tw:rounded-full tw:border-2 tw:[border-color:color-mix(in_srgb,var(--ink-muted)_22%,transparent)] tw:[border-top-color:var(--accent-electric)] tw:motion-reduce:animate-none";
+
+const ARTIFACT_DRAWER_LIST_CLASS_NAME =
+	"artifact-drawer-list right-sidebar-artifact-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2.5 tw:overflow-visible tw:p-0";
+
+const ARTIFACT_DRAWER_ITEM_CLASS_NAME =
+	"artifact-drawer-item tw:min-w-0 tw:list-none tw:[&_.attachment-card-file-shell]:flex-nowrap";
+
 export type FileHistoryCacheEntry =
 	| { status: "loading" }
 	| { status: "loaded"; original: string; current: string }
@@ -224,15 +302,29 @@ function renderFileChangeStats(
 	deletedLines: number,
 	options: { animated?: boolean; animationKey?: string } = {},
 ) {
+	const addClassName = [
+		FILE_CHANGE_ADD_CLASS_NAME,
+		options.animated ? FILE_CHANGE_STAT_ANIMATION_CLASS_NAME : "",
+	]
+		.filter(Boolean)
+		.join(" ");
+	const deleteClassName = [
+		FILE_CHANGE_DELETE_CLASS_NAME,
+		options.animated ? FILE_CHANGE_STAT_ANIMATION_CLASS_NAME : "",
+		options.animated ? FILE_CHANGE_DELETE_ANIMATION_CLASS_NAME : "",
+	]
+		.filter(Boolean)
+		.join(" ");
+
 	return (
 		<span
 			key={options.animationKey}
-			className={`right-sidebar-file-change-stats ${options.animated ? "is-jumping" : ""}`.trim()}
+			className={FILE_CHANGE_STATS_CLASS_NAME}
 		>
-			<span className="right-sidebar-file-change-add">
+			<span className={addClassName}>
 				+{formatLineCount(addedLines)}
 			</span>
-			<span className="right-sidebar-file-change-delete">
+			<span className={deleteClassName}>
 				-{formatLineCount(deletedLines)}
 			</span>
 		</span>
@@ -242,15 +334,15 @@ function renderFileChangeStats(
 function renderFileHistoryPanel(entry: FileHistoryCacheEntry | undefined) {
 	if (!entry || entry.status === "loading") {
 		return (
-			<div className="right-sidebar-file-diff-status">
-				<span className="right-sidebar-file-diff-spinner" aria-hidden="true" />
+			<div className={FILE_DIFF_STATUS_CLASS_NAME}>
+				<span className={FILE_DIFF_SPINNER_CLASS_NAME} aria-hidden="true" />
 				{t("rightSidebar.overview.fileChanges.diffLoading")}
 			</div>
 		);
 	}
 	if (entry.status === "error") {
 		return (
-			<div className="right-sidebar-file-diff-status is-error">
+			<div className={FILE_DIFF_ERROR_STATUS_CLASS_NAME}>
 				{t("rightSidebar.overview.fileChanges.diffUnavailable")}
 			</div>
 		);
@@ -264,10 +356,10 @@ const OverviewSection: React.FC<{
 	children: React.ReactNode;
 }> = ({ title, count, children }) => {
 	return (
-		<section className="right-sidebar-overview-section">
-			<div className="right-sidebar-overview-section-head">
-				<h3>{title}</h3>
-				<div className="right-sidebar-overview-section-count">{count}</div>
+		<section className={RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME}>
+			<div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME}>
+				<h3 className={RIGHT_SIDEBAR_OVERVIEW_SECTION_TITLE_CLASS_NAME}>{title}</h3>
+				<div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME}>{count}</div>
 			</div>
 			{children}
 		</section>
@@ -385,7 +477,7 @@ export const OverviewTab: React.FC = () => {
 	);
 
 	return (
-		<div className="right-sidebar-overview">
+		<div className={RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME}>
 			<OverviewSection
 				title={isCoder ? t("rightSidebar.overview.fileChanges.titleCoder") : t("rightSidebar.overview.fileChanges.title")}
 				count={renderFileChangeStats(
@@ -398,11 +490,11 @@ export const OverviewTab: React.FC = () => {
 				)}
 			>
 				{fileChanges.length === 0 ? (
-					<div className="right-sidebar-empty">
+					<div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
 						{t(isCoder ? "rightSidebar.overview.fileChanges.emptyCoder" : "rightSidebar.overview.fileChanges.empty")}
 					</div>
 				) : (
-					<ul className="right-sidebar-file-change-list">
+					<ul className={FILE_CHANGE_LIST_CLASS_NAME}>
 						{fileChanges.map((item) => {
 							const itemKey = buildFileChangeKey(item.runId, item.filePath);
 							const cacheKey = buildFileHistoryCacheKey(state.chatId, item);
@@ -410,32 +502,32 @@ export const OverviewTab: React.FC = () => {
 							return (
 								<li
 									key={itemKey}
-									className={`right-sidebar-file-change-item ${expanded ? "is-expanded" : ""}`.trim()}
+									className={FILE_CHANGE_ITEM_CLASS_NAME}
 								>
 									<button
 										type="button"
-										className="right-sidebar-file-change-row"
+										className={FILE_CHANGE_ROW_CLASS_NAME}
 										aria-expanded={expanded}
 										onClick={() => toggleFileChange(item)}
 									>
 										<MaterialIcon
 											name={expanded ? "expand_more" : "chevron_right"}
-											className="right-sidebar-file-change-expand"
+											className={FILE_CHANGE_EXPAND_CLASS_NAME}
 											aria-hidden="true"
 										/>
 										<MaterialIcon
 											name={getFileIcon(item.filePath)}
-											className="right-sidebar-file-change-icon"
+											className={FILE_CHANGE_ICON_CLASS_NAME}
 											aria-hidden="true"
 										/>
 										<span
-											className="right-sidebar-file-change-path-wrap"
+											className={FILE_CHANGE_PATH_WRAP_CLASS_NAME}
 											title={`${item.filePath} · ${item.runId}`}
 										>
-											<span className="right-sidebar-file-change-path">
+											<span className={FILE_CHANGE_PATH_CLASS_NAME}>
 												{displayFileName(item.filePath)}
 											</span>
-											<span className="right-sidebar-file-change-run">
+											<span className={FILE_CHANGE_RUN_CLASS_NAME}>
 												{item.runId}
 											</span>
 										</span>
@@ -445,7 +537,7 @@ export const OverviewTab: React.FC = () => {
 										})}
 									</button>
 									{expanded && (
-										<div className="right-sidebar-file-change-diff">
+										<div className={FILE_CHANGE_DIFF_CLASS_NAME}>
 											{renderFileHistoryPanel(fileHistoryCache[cacheKey])}
 										</div>
 									)}
@@ -460,13 +552,13 @@ export const OverviewTab: React.FC = () => {
 				count={artifacts.length}
 			>
 				{artifacts.length === 0 ? (
-					<div className="right-sidebar-empty">
+					<div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
 						{t("rightSidebar.overview.artifacts.empty")}
 					</div>
 				) : (
-					<ul className="artifact-drawer-list right-sidebar-artifact-list">
+					<ul className={ARTIFACT_DRAWER_LIST_CLASS_NAME}>
 						{artifacts.map((item) => (
-							<li key={item.artifactId} className="artifact-drawer-item">
+							<li key={item.artifactId} className={ARTIFACT_DRAWER_ITEM_CLASS_NAME}>
 								<AttachmentCard
 									attachment={item.artifact}
 									variant="composer"

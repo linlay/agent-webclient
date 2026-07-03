@@ -74,6 +74,7 @@
       "getAwaitingQuestionPlaceholder",
       "getAwaitingQuestionPrompt",
       "getAwaitingRenderMode",
+      "getHitlPaginationDotClassName",
       "getPlanningModeForPlanDecision",
       "getSelectFreeTextAnswer",
       "getSelectGroupValue",
@@ -83,6 +84,7 @@
       "getSelectOptions",
       "getSelectedOptionAnswers",
       "hasAwaitingQuestions",
+      "hitlDialogClassNames",
       "isAwaitingAnswerTimeoutError",
       "isAwaitingFrameCloseMessage",
       "isEditableKeyboardTarget",
@@ -136,7 +138,7 @@
       "src/features/tools/lib/frontendToolParams.test.ts",
       "src/features/tools/lib/planDecision.test.ts"
     ],
-    "lastScannedAt": "2026-06-26T00:44:00Z"
+    "lastScannedAt": "2026-07-02T05:32:02Z"
   },
   "readHints": {
     "alwaysRead": [],

@@ -1,6 +1,4 @@
 .Collapse {
-  background-color: var(--bg-elev-1);
-
   :global(>.ant-collapse-item:last-child>.ant-collapse-header) {
     padding: 4px;
     padding-left: 12px;

@@ -73,6 +73,58 @@ const CRON_PRESETS = [
   { labelKey: "automationConsole.cronPreset.everyFiveMinutes", value: "*/5 * * * *" },
   { labelKey: "automationConsole.cronPreset.hourly", value: "0 * * * *" },
 ];
+const AUTOMATION_CONSOLE_CLASS_NAME =
+  "command-modal-section automation-console tw:overflow-hidden";
+const AUTOMATION_ERROR_CLASS_NAME =
+  "automation-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
+const AUTOMATION_BODY_CLASS_NAME =
+  "automation-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+const AUTOMATION_LIST_CLASS_NAME =
+  "automation-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
+const AUTOMATION_TOOLBAR_CLASS_NAME =
+  "automation-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:max-[860px]:grid-cols-[1fr_auto_auto] tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
+const AUTOMATION_COUNT_CLASS_NAME =
+  "automation-console-count tw:text-xs tw:text-ink-muted";
+const AUTOMATION_LIST_SCROLL_CLASS_NAME =
+  "automation-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5";
+const AUTOMATION_LIST_ITEMS_CLASS_NAME =
+  "automation-list-items tw:flex tw:flex-col tw:gap-1.5";
+const AUTOMATION_LIST_ITEM_CLASS_NAME =
+  "automation-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover";
+const AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME =
+  "automation-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
+const AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME =
+  "automation-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
+const AUTOMATION_LIST_ITEM_OWNER_CLASS_NAME =
+  "automation-list-item-owner tw:max-w-[42%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:text-xs tw:leading-[1.35] tw:text-ink-muted";
+const AUTOMATION_LIST_ITEM_META_CLASS_NAME =
+  "automation-list-item-meta tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+const AUTOMATION_DETAIL_CLASS_NAME =
+  "automation-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
+const AUTOMATION_DETAIL_HEAD_CLASS_NAME =
+  "automation-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px] tw:[&_span]:text-ink-muted";
+const AUTOMATION_ACTIONS_CLASS_NAME =
+  "automation-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const AUTOMATION_FORM_GRID_CLASS_NAME =
+  "automation-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+const AUTOMATION_CRON_CONTROL_CLASS_NAME =
+  "automation-cron-control tw:grid tw:grid-cols-[minmax(0,1fr)_132px] tw:items-center tw:gap-2 tw:[&_.ant-select]:min-w-0 tw:[&_select]:min-w-0";
+const AUTOMATION_ENABLED_FIELD_CLASS_NAME =
+  "field-group automation-enabled-field tw:flex tw:items-end tw:[&_.ant-checkbox-wrapper]:flex tw:[&_.ant-checkbox-wrapper]:min-h-8 tw:[&_.ant-checkbox-wrapper]:items-center tw:[&_.ant-checkbox-wrapper]:gap-2 tw:[&_.ant-checkbox-wrapper]:m-0 tw:[&_input]:w-auto tw:[&_label]:m-0 tw:[&_label]:flex tw:[&_label]:min-h-8 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:[&_label]:normal-case tw:[&_label]:tracking-normal";
+const AUTOMATION_MONO_TEXTAREA_CLASS_NAME =
+  "settings-textarea automation-mono-textarea tw:font-code";
+const AUTOMATION_REQUEST_BOX_CLASS_NAME =
+  "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 tw:[&_.field-group:last-child]:mb-0 tw:[&_.material-icon]:scale-[.8] tw:[&_legend]:px-1.5 tw:[&_legend]:text-[11px] tw:[&_legend]:font-bold tw:[&_legend]:text-ink-muted";
+const AUTOMATION_SAVE_ACTIONS_CLASS_NAME =
+  "automation-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const AUTOMATION_EXECUTIONS_CLASS_NAME =
+  "automation-executions tw:mt-[18px] tw:border-t tw:border-line-soft tw:pt-3";
+const AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME =
+  "automation-executions-head tw:mb-2 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2";
+const AUTOMATION_EXECUTION_LIST_CLASS_NAME =
+  "automation-execution-list tw:flex tw:flex-col tw:gap-1";
+const AUTOMATION_EXECUTION_ROW_CLASS_NAME =
+  "automation-execution-row tw:grid tw:grid-cols-[82px_1.1fr_70px_minmax(120px,1fr)] tw:items-center tw:gap-2 tw:rounded-[var(--radius-sm)] tw:bg-[color-mix(in_srgb,var(--bg-input)_55%,transparent)] tw:px-2 tw:py-[7px] tw:text-[11px] tw:text-ink-muted tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
 
 const COMMON_ZONE_OPTIONS = [
   "Asia/Shanghai",
@@ -690,9 +742,9 @@ export const AutomationModal: React.FC<{
   }), [t, workerFilter, workerOptions]);
 
   return (
-    <div className="command-modal-section automation-console">
+    <div className={AUTOMATION_CONSOLE_CLASS_NAME}>
       {error && (
-        <div className="automation-console-error">
+        <div className={AUTOMATION_ERROR_CLASS_NAME}>
           <span>{error}</span>
           <UiButton
             size="sm"
@@ -704,9 +756,9 @@ export const AutomationModal: React.FC<{
         </div>
       )}
 
-      <div className="automation-console-body">
-        <div className="automation-console-list">
-          <div className="automation-console-toolbar">
+      <div className={AUTOMATION_BODY_CLASS_NAME}>
+        <div className={AUTOMATION_LIST_CLASS_NAME}>
+          <div className={AUTOMATION_TOOLBAR_CLASS_NAME}>
             <SearchFilterBar
               searchText={searchText}
               onSearchChange={setSearchText}
@@ -746,10 +798,10 @@ export const AutomationModal: React.FC<{
               <MaterialIcon name="add" />
             </UiButton>
           </div>
-          <div className="automation-console-count">
+          <div className={AUTOMATION_COUNT_CLASS_NAME}>
             {t("automationConsole.list.count", { count: automations.length })}
           </div>
-          <div className="automation-console-list-scroll">
+          <div className={AUTOMATION_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={loading}>
               {filteredAutomations.length === 0 ? (
                 <div className="command-empty-state">
@@ -759,20 +811,20 @@ export const AutomationModal: React.FC<{
                   </UiButton>
                 </div>
               ) : (
-                <div className="automation-list-items">
+                <div className={AUTOMATION_LIST_ITEMS_CLASS_NAME}>
                   {filteredAutomations.map((item) => (
                     <button
                       type="button"
                       key={item.id}
-                      className={`automation-list-item ${item.id === selectedId ? "is-active" : ""}`}
+                      className={`${AUTOMATION_LIST_ITEM_CLASS_NAME} ${item.id === selectedId ? "is-active" : ""}`}
                       onClick={() => selectAutomation(item.id)}
                     >
-                      <span className="automation-list-item-head">
+                      <span className={AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME}>
                         <span
-                          className="automation-list-item-title"
+                          className={AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME}
                           title={`${getAutomationWorkerName(item)} ${item.name || item.id}`}
                         >
-                          <span className="automation-list-item-owner">
+                          <span className={AUTOMATION_LIST_ITEM_OWNER_CLASS_NAME}>
                             [{getAutomationWorkerName(item)}]
                           </span>
                           <strong>{item.name || item.id}</strong>
@@ -782,7 +834,7 @@ export const AutomationModal: React.FC<{
                         </UiTag>
                       </span>
                       <span
-                        className="automation-list-item-meta"
+                        className={AUTOMATION_LIST_ITEM_META_CLASS_NAME}
                         title={automationListMeta(item, t, locale)}
                       >
                         {automationListMeta(item, t, locale)}
@@ -795,8 +847,8 @@ export const AutomationModal: React.FC<{
           </div>
         </div>
 
-        <div className="automation-console-detail">
-          <div className="automation-detail-head">
+        <div className={AUTOMATION_DETAIL_CLASS_NAME}>
+          <div className={AUTOMATION_DETAIL_HEAD_CLASS_NAME}>
             <div>
               <strong>
                 {formMode === "create"
@@ -812,7 +864,7 @@ export const AutomationModal: React.FC<{
               </span>
             </div>
             {selectedSummary && (
-              <div className="automation-detail-actions">
+              <div className={AUTOMATION_ACTIONS_CLASS_NAME}>
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -843,7 +895,7 @@ export const AutomationModal: React.FC<{
             )}
           </div>
 
-          <div className="automation-form-grid">
+          <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
             <div className="field-group">
               <label htmlFor="automation-name-input">{t("automationConsole.field.name")}</label>
               <Input
@@ -854,7 +906,7 @@ export const AutomationModal: React.FC<{
             </div>
             <div className="field-group">
               <label htmlFor="automation-cron-input">Cron</label>
-              <div className="automation-cron-control">
+              <div className={AUTOMATION_CRON_CONTROL_CLASS_NAME}>
                 <Input
                   id="automation-cron-input"
                   value={form.cron}
@@ -928,7 +980,7 @@ export const AutomationModal: React.FC<{
             />
           </div>
 
-          <fieldset className="automation-request-box">
+          <fieldset className={AUTOMATION_REQUEST_BOX_CLASS_NAME}>
             <legend>{t("automationConsole.section.request")}</legend>
             <div className="field-group">
               <label htmlFor="automation-message-input">{t("automationConsole.field.message")}</label>
@@ -943,7 +995,7 @@ export const AutomationModal: React.FC<{
               />
             </div>
 
-            <div className="automation-form-grid">
+            <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
               <div className="field-group">
                 <label htmlFor="automation-chat-input">{t("automationConsole.field.chatId")}</label>
                 <Input
@@ -983,7 +1035,7 @@ export const AutomationModal: React.FC<{
                   ]}
                 />
               </div>
-              <div className="field-group automation-enabled-field">
+              <div className={AUTOMATION_ENABLED_FIELD_CLASS_NAME}>
                 <Checkbox
                   checked={form.enabled}
                   onChange={(event) =>
@@ -995,7 +1047,7 @@ export const AutomationModal: React.FC<{
               </div>
             </div>
 
-            <div className="field-group" style={{ marginTop: 10 }}>
+            <div className="field-group tw:mt-2.5">
               <label htmlFor="automation-params-input">
                 <span>{t("automationConsole.field.params")}</span>
                 <Tooltip title={t("automationConsole.field.paramsTooltip")} arrow={false}>
@@ -1004,7 +1056,7 @@ export const AutomationModal: React.FC<{
               </label>
               <Input.TextArea
                 id="automation-params-input"
-                className="settings-textarea automation-mono-textarea"
+                className={AUTOMATION_MONO_TEXTAREA_CLASS_NAME}
                 rows={3}
                 placeholder='{"kind":"daily"}'
                 value={form.paramsText}
@@ -1017,7 +1069,7 @@ export const AutomationModal: React.FC<{
 
           {formError && <div className="settings-error">{formError}</div>}
 
-          <div className="automation-save-actions">
+          <div className={AUTOMATION_SAVE_ACTIONS_CLASS_NAME}>
             <UiButton
               size="sm"
               variant="primary"
@@ -1039,8 +1091,8 @@ export const AutomationModal: React.FC<{
             )}
           </div>
 
-          <div className="automation-executions">
-            <div className="automation-executions-head">
+          <div className={AUTOMATION_EXECUTIONS_CLASS_NAME}>
+            <div className={AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME}>
               <strong>{t("automationConsole.executions.title")}</strong>
               <UiButton
                 size="sm"
@@ -1060,9 +1112,9 @@ export const AutomationModal: React.FC<{
               ) : executions.length === 0 ? (
                 <div className="command-empty-state">{t("automationConsole.executions.empty")}</div>
               ) : (
-                <div className="automation-execution-list">
+                <div className={AUTOMATION_EXECUTION_LIST_CLASS_NAME}>
                   {executions.map((item) => (
-                    <div className="automation-execution-row" key={item.id}>
+                    <div className={AUTOMATION_EXECUTION_ROW_CLASS_NAME} key={item.id}>
                       <span>{item.status}</span>
                       <span>{automationTimeLabel(item.startedTime, item.startedAt, locale)}</span>
                       <span>{toDurationLabel(item.durationMs)}</span>

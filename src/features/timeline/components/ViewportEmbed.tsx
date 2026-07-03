@@ -14,6 +14,13 @@ export interface ViewportInitFrame {
   removeEventListener: (type: "load", listener: () => void) => void;
 }
 
+const TIMELINE_CONTENT_VIEWPORT_CLASS_NAME =
+  "timeline-content-viewport tw:overflow-hidden";
+const TIMELINE_CONTENT_VIEWPORT_BODY_CLASS_NAME =
+  "timeline-content-viewport-body tw:min-h-[58px]";
+const TIMELINE_CONTENT_VIEWPORT_FRAME_CLASS_NAME =
+  "timeline-content-viewport-frame tw:h-[min(320px,48vh)] tw:w-full tw:border-0 tw:pointer-events-none";
+
 export function bindViewportInitListener(
   frame: ViewportInitFrame,
   sendInit: () => void,
@@ -135,14 +142,14 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
   }, [html, postToFrame, signature, viewportKey]);
 
   return (
-    <div className="timeline-content-viewport">
-      <div className="timeline-content-viewport-body">
+    <div className={TIMELINE_CONTENT_VIEWPORT_CLASS_NAME}>
+      <div className={TIMELINE_CONTENT_VIEWPORT_BODY_CLASS_NAME}>
         {loading && <div className="status-line">加载视图中...</div>}
         {error && <div className="system-alert">{error}</div>}
         {html && (
           <iframe
             ref={iframeRef}
-            className="timeline-content-viewport-frame"
+            className={TIMELINE_CONTENT_VIEWPORT_FRAME_CLASS_NAME}
             srcDoc={html}
             sandbox="allow-scripts allow-same-origin"
             title={`viewport-${viewportKey}`}

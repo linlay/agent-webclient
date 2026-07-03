@@ -41,6 +41,84 @@ const CATEGORIES: RegistryConsoleTab[] = [
 ];
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
+const REGISTRY_CONSOLE_CLASS_NAME =
+  "command-modal-section automation-console registry-console tw:overflow-hidden";
+const REGISTRY_CATEGORY_TABS_CLASS_NAME =
+  "registry-category-tabs tw:grid tw:grid-cols-5 tw:gap-1.5 tw:rounded-control tw:border tw:p-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,var(--bg-elev-2))] tw:max-[860px]:grid-cols-2";
+const REGISTRY_CATEGORY_TAB_CLASS_NAME =
+  "registry-category-tab tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-[var(--radius-sm)] tw:border tw:border-transparent tw:bg-transparent tw:px-2 tw:py-[7px] tw:text-xs tw:leading-[1.25] tw:text-ink-muted tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:hover:bg-bg-base tw:hover:text-ink-1 tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:[&.is-active]:bg-bg-base tw:[&.is-active]:text-ink-1 tw:[&.is-active>strong]:bg-[color-mix(in_srgb,var(--accent-electric)_14%,var(--bg-input))] tw:[&.is-active>strong]:text-accent-electric-strong tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap tw:[&>strong]:flex-none tw:[&>strong]:rounded-pill tw:[&>strong]:bg-[color-mix(in_srgb,var(--line-soft)_78%,transparent)] tw:[&>strong]:px-1.5 tw:[&>strong]:py-0.5 tw:[&>strong]:text-[10px] tw:[&>strong]:leading-[1.2] tw:[&>strong]:text-ink-muted";
+const REGISTRY_ERROR_CLASS_NAME =
+  "automation-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
+const REGISTRY_MESSAGE_CLASS_NAME =
+  "registry-console-message tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--accent-electric)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-electric)_7%,transparent)]";
+const REGISTRY_BODY_CLASS_NAME =
+  "automation-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+const REGISTRY_LIST_CLASS_NAME =
+  "automation-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
+const REGISTRY_TOOLBAR_CLASS_NAME =
+  "automation-console-toolbar registry-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:max-[860px]:grid-cols-[minmax(0,1fr)_auto_auto]";
+const REGISTRY_COUNT_CLASS_NAME =
+  "automation-console-count tw:text-xs tw:text-ink-muted";
+const REGISTRY_LIST_SCROLL_CLASS_NAME =
+  "automation-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5";
+const REGISTRY_LIST_ITEMS_CLASS_NAME =
+  "automation-list-items tw:flex tw:flex-col tw:gap-1.5";
+const REGISTRY_LIST_ITEM_CLASS_NAME =
+  "automation-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover";
+const REGISTRY_LIST_ITEM_HEAD_CLASS_NAME =
+  "automation-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
+const REGISTRY_LIST_ITEM_TITLE_CLASS_NAME =
+  "automation-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
+const REGISTRY_LIST_ITEM_OWNER_CLASS_NAME =
+  "automation-list-item-owner tw:max-w-[42%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:text-xs tw:leading-[1.35] tw:text-ink-muted";
+const REGISTRY_LIST_ITEM_META_CLASS_NAME =
+  "automation-list-item-meta registry-list-meta tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:overflow-hidden tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+const REGISTRY_LIST_META_TEXT_CLASS_NAME =
+  "registry-list-meta-text tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
+const REGISTRY_CAPABILITY_CHIPS_CLASS_NAME =
+  "registry-capability-chips tw:inline-flex tw:flex-none tw:items-center tw:gap-1";
+const REGISTRY_CAPABILITY_CHIP_CLASS_NAME =
+  "registry-capability-chip tw:inline-flex tw:h-5 tw:w-[22px] tw:min-w-[22px] tw:flex-none tw:items-center tw:justify-center tw:rounded-[var(--radius-sm)] tw:p-0 tw:[&_.material-icon-svg]:h-3 tw:[&_.material-icon-svg]:w-3";
+const REGISTRY_DETAIL_CLASS_NAME =
+  "automation-console-detail registry-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto";
+const REGISTRY_DETAIL_HEAD_CLASS_NAME =
+  "automation-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px] tw:[&_span]:text-ink-muted";
+const REGISTRY_DETAIL_ACTIONS_CLASS_NAME =
+  "automation-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const REGISTRY_META_GRID_CLASS_NAME =
+  "registry-meta-grid tw:mb-3 tw:grid tw:grid-cols-2 tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:[overflow-wrap:anywhere]";
+const REGISTRY_REQUEST_BOX_BASE_CLASS_NAME =
+  "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 tw:[&_.field-group:last-child]:mb-0 tw:[&_legend]:px-1.5 tw:[&_legend]:text-[11px] tw:[&_legend]:font-bold tw:[&_legend]:text-ink-muted";
+const REGISTRY_REQUEST_BOX_CLASS_NAME =
+  `${REGISTRY_REQUEST_BOX_BASE_CLASS_NAME} registry-summary tw:[&_div]:min-h-[18px] tw:[&_div]:[overflow-wrap:anywhere] tw:[&_div]:text-xs tw:[&_div]:text-ink-2`;
+const REGISTRY_DIAGNOSTICS_CLASS_NAME =
+  `${REGISTRY_REQUEST_BOX_BASE_CLASS_NAME} registry-diagnostics tw:[border-color:color-mix(in_srgb,var(--accent-danger)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_5%,transparent)]`;
+const REGISTRY_DIAGNOSTIC_ROW_CLASS_NAME =
+  "registry-diagnostic-row tw:grid tw:grid-cols-[auto_auto_minmax(0,1fr)] tw:items-center tw:gap-2 tw:py-[5px] tw:text-xs tw:[&+&]:border-t tw:[&+&]:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:[&>strong]:text-[11px] tw:[&>strong]:text-accent-danger tw:[&>span:last-child]:min-w-0 tw:[&>span:last-child]:[overflow-wrap:anywhere] tw:[&>span:last-child]:text-ink-2";
+const REGISTRY_MCP_TOOLS_CLASS_NAME =
+  `${REGISTRY_REQUEST_BOX_BASE_CLASS_NAME} registry-mcp-tools tw:bg-[color-mix(in_srgb,var(--bg-input)_34%,transparent)]`;
+const REGISTRY_MCP_TOOL_LIST_CLASS_NAME =
+  "registry-mcp-tool-list tw:flex tw:flex-col tw:gap-2";
+const REGISTRY_MCP_TOOL_ROW_CLASS_NAME =
+  "registry-mcp-tool-row tw:rounded-[var(--radius-sm)] tw:border tw:px-2.5 tw:py-[9px] tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-base)_82%,transparent)]";
+const REGISTRY_MCP_TOOL_HEAD_CLASS_NAME =
+  "registry-mcp-tool-head tw:flex tw:min-w-0 tw:items-start tw:justify-between tw:gap-2.5";
+const REGISTRY_MCP_TOOL_TITLE_CLASS_NAME =
+  "registry-mcp-tool-title tw:flex tw:min-w-0 tw:flex-col tw:gap-0.5 tw:[&>strong]:min-w-0 tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:text-xs tw:[&>strong]:leading-[1.35] tw:[&>strong]:text-ink-1 tw:[&>span]:[overflow-wrap:anywhere] tw:[&>span]:text-[11px] tw:[&>span]:leading-[1.45] tw:[&>span]:text-ink-muted";
+const REGISTRY_MCP_TOOL_BADGES_CLASS_NAME =
+  "registry-mcp-tool-badges tw:flex tw:flex-none tw:flex-wrap tw:items-center tw:justify-end tw:gap-[5px]";
+const REGISTRY_MCP_TOOL_DESCRIPTION_CLASS_NAME =
+  "registry-mcp-tool-description tw:mb-0 tw:mt-[7px] tw:[overflow-wrap:anywhere] tw:text-[11px] tw:leading-[1.45] tw:text-ink-muted";
+const REGISTRY_MCP_TOOLS_EMPTY_CLASS_NAME =
+  "registry-mcp-tools-empty tw:[overflow-wrap:anywhere] tw:text-[11px] tw:leading-[1.45] tw:text-ink-muted";
+const REGISTRY_EDITOR_FIELD_CLASS_NAME =
+  "field-group registry-editor-field tw:mt-3.5";
+const REGISTRY_YAML_EDITOR_CLASS_NAME =
+  "settings-textarea automation-mono-textarea registry-yaml-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
+const REGISTRY_SAVE_ACTIONS_CLASS_NAME =
+  "automation-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const REGISTRY_DIRTY_CLASS_NAME =
+  "registry-dirty tw:text-xs tw:text-ink-muted";
 
 export function registryItemKey(item: Pick<AdminRegistryListItem, "category" | "file">): string {
   return `${item.category}/${item.file}`;
@@ -406,7 +484,7 @@ export function RegistryCapabilityIconTag({
   return (
     <UiTag
       tone="muted"
-      className="registry-capability-chip"
+      className={REGISTRY_CAPABILITY_CHIP_CLASS_NAME}
       title={label}
       role="img"
       aria-label={label}
@@ -845,15 +923,15 @@ export const RegistriesPage = () => {
 
   return (
     <main className="automations-page registries-page">
-      <div className="command-modal-section automation-console registry-console">
-        <div className="registry-category-tabs" role="tablist" aria-label={t("registryConsole.section.categories")}>
+      <div className={REGISTRY_CONSOLE_CLASS_NAME}>
+        <div className={REGISTRY_CATEGORY_TABS_CLASS_NAME} role="tablist" aria-label={t("registryConsole.section.categories")}>
           {CATEGORIES.map((category) => (
             <button
               type="button"
               key={category}
               role="tab"
               aria-selected={category === activeCategory}
-              className={`registry-category-tab ${category === activeCategory ? "is-active" : ""}`}
+              className={`${REGISTRY_CATEGORY_TAB_CLASS_NAME} ${category === activeCategory ? "is-active" : ""}`}
               onClick={() => switchCategory(category)}
             >
               <span>{t(`registryConsole.category.${category}`)}</span>
@@ -863,7 +941,7 @@ export const RegistriesPage = () => {
         </div>
 
         {error && (
-          <div className="automation-console-error">
+          <div className={REGISTRY_ERROR_CLASS_NAME}>
             <span>{error}</span>
             <UiButton
               size="sm"
@@ -881,11 +959,11 @@ export const RegistriesPage = () => {
           </div>
         )}
 
-        {message && !error && <div className="registry-console-message">{message}</div>}
+        {message && !error && <div className={REGISTRY_MESSAGE_CLASS_NAME}>{message}</div>}
 
-        <div className="automation-console-body">
-          <div className="automation-console-list">
-            <div className="automation-console-toolbar registry-console-toolbar">
+        <div className={REGISTRY_BODY_CLASS_NAME}>
+          <div className={REGISTRY_LIST_CLASS_NAME}>
+            <div className={REGISTRY_TOOLBAR_CLASS_NAME}>
               <SearchFilterBar
                 searchText={searchText}
                 onSearchChange={setSearchText}
@@ -933,13 +1011,13 @@ export const RegistriesPage = () => {
               )}
             </div>
 
-            <div className="automation-console-count">
+            <div className={REGISTRY_COUNT_CLASS_NAME}>
               {isToolsTab
                 ? t("registryConsole.list.count.tools", { count: currentCategoryItems.length })
                 : t("registryConsole.list.count", { count: currentCategoryItems.length })}
             </div>
 
-            <div className="automation-console-list-scroll">
+            <div className={REGISTRY_LIST_SCROLL_CLASS_NAME}>
               <Spin spinning={isToolsTab ? toolsLoading : loading}>
                 {filteredItems.length === 0 ? (
                   <div className="command-empty-state">
@@ -951,7 +1029,7 @@ export const RegistriesPage = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="automation-list-items">
+                  <div className={REGISTRY_LIST_ITEMS_CLASS_NAME}>
                     {filteredItems.map((item) => {
                       const itemKey = getItemKey(item);
                       const title = registryListTitle(item);
@@ -963,13 +1041,13 @@ export const RegistriesPage = () => {
                         <button
                           type="button"
                           key={itemKey}
-                          className={`automation-list-item ${itemKey === selectedKey ? "is-active" : ""}`}
+                          className={`${REGISTRY_LIST_ITEM_CLASS_NAME} ${itemKey === selectedKey ? "is-active" : ""}`}
                           onClick={() => selectItem(item)}
                         >
-                          <span className="automation-list-item-head">
-                            <span className="automation-list-item-title" title={`${item.category} ${item.file}`}>
+                          <span className={REGISTRY_LIST_ITEM_HEAD_CLASS_NAME}>
+                            <span className={REGISTRY_LIST_ITEM_TITLE_CLASS_NAME} title={`${item.category} ${item.file}`}>
                               {ownerLabel && (
-                                <span className="automation-list-item-owner">
+                                <span className={REGISTRY_LIST_ITEM_OWNER_CLASS_NAME}>
                                   [{ownerLabel}]
                                 </span>
                               )}
@@ -980,12 +1058,12 @@ export const RegistriesPage = () => {
                             </UiTag>
                           </span>
                           <span
-                            className="automation-list-item-meta registry-list-meta"
+                            className={REGISTRY_LIST_ITEM_META_CLASS_NAME}
                             title={[meta, capabilityTitle].filter(Boolean).join(" · ")}
                           >
-                            <span className="registry-list-meta-text">{meta}</span>
+                            <span className={REGISTRY_LIST_META_TEXT_CLASS_NAME}>{meta}</span>
                             {capabilityChips.length > 0 && (
-                              <span className="registry-capability-chips" aria-label={capabilityTitle}>
+                              <span className={REGISTRY_CAPABILITY_CHIPS_CLASS_NAME} aria-label={capabilityTitle}>
                                 {capabilityChips.map((chip) => (
                                   <RegistryCapabilityIconTag
                                     key={chip.key}
@@ -1006,7 +1084,7 @@ export const RegistriesPage = () => {
           </div>
 
           {/* ---- detail panel ---- */}
-          <div className="automation-console-detail registry-console-detail">
+          <div className={REGISTRY_DETAIL_CLASS_NAME}>
             <Spin spinning={detailLoading}>
               {isToolsTab ? (
                 /* ---- tools detail (read-only) ---- */
@@ -1014,12 +1092,12 @@ export const RegistriesPage = () => {
                   <div className="command-empty-state">{t("registryConsole.tools.detail.empty")}</div>
                 ) : (
                   <>
-                    <div className="automation-detail-head">
+                    <div className={REGISTRY_DETAIL_HEAD_CLASS_NAME}>
                       <div>
                         <strong>{selectedTool.name || selectedTool.label || selectedTool.key || "--"}</strong>
                         <span>{selectedTool.key || ""}</span>
                       </div>
-                      <div className="automation-detail-actions">
+                      <div className={REGISTRY_DETAIL_ACTIONS_CLASS_NAME}>
                         <UiTag tone={toolSourceTone(selectedToolSourceCategory)}>
                           {selectedToolSourceLabel}
                         </UiTag>
@@ -1030,7 +1108,7 @@ export const RegistriesPage = () => {
                       </div>
                     </div>
 
-                    <div className="registry-meta-grid">
+                    <div className={REGISTRY_META_GRID_CLASS_NAME}>
                       <span>{t("registryConsole.tools.field.name")}: {selectedTool.name || "--"}</span>
                       <span>{t("registryConsole.tools.field.key")}: {selectedTool.key || "--"}</span>
                       <span>{t("registryConsole.tools.field.kind")}: {selectedToolKind || "--"}</span>
@@ -1042,7 +1120,7 @@ export const RegistriesPage = () => {
                     </div>
 
                     {selectedTool.description && (
-                      <fieldset className="automation-request-box registry-summary">
+                      <fieldset className={REGISTRY_REQUEST_BOX_CLASS_NAME}>
                         <legend>{t("registryConsole.tools.field.description")}</legend>
                         <div>{selectedTool.description}</div>
                       </fieldset>
@@ -1055,7 +1133,7 @@ export const RegistriesPage = () => {
                   <div className="command-empty-state">{t("registryConsole.detail.empty")}</div>
                 ) : (
                   <>
-                    <div className="automation-detail-head">
+                    <div className={REGISTRY_DETAIL_HEAD_CLASS_NAME}>
                       <div>
                         <strong>
                           {newDraft
@@ -1064,7 +1142,7 @@ export const RegistriesPage = () => {
                         </strong>
                         <span>{detail.source?.path || `${detail.category}/${detail.file}`}</span>
                       </div>
-                      <div className="automation-detail-actions">
+                      <div className={REGISTRY_DETAIL_ACTIONS_CLASS_NAME}>
                         <UiTag tone={statusTone(detail.status)}>
                           {t(`registryConsole.status.${detail.status}`)}
                         </UiTag>
@@ -1075,7 +1153,7 @@ export const RegistriesPage = () => {
                       </div>
                     </div>
 
-                    <div className="registry-meta-grid">
+                    <div className={REGISTRY_META_GRID_CLASS_NAME}>
                       <span>{t("registryConsole.field.category")}: {t(`registryConsole.category.${detail.category}`)}</span>
                       <span>{t("registryConsole.field.file")}: {detail.file}</span>
                       <span>{t("registryConsole.field.updatedAt")}: {formatTimestamp(detail.updatedAt, locale)}</span>
@@ -1083,10 +1161,10 @@ export const RegistriesPage = () => {
                     </div>
 
                     {detail.diagnostics && detail.diagnostics.length > 0 && (
-                      <fieldset className="automation-request-box registry-diagnostics">
+                      <fieldset className={REGISTRY_DIAGNOSTICS_CLASS_NAME}>
                         <legend>{t("registryConsole.section.diagnostics")}</legend>
                         {detail.diagnostics.map((item, index) => (
-                          <div className="registry-diagnostic-row" key={`${item.code}-${index}`}>
+                          <div className={REGISTRY_DIAGNOSTIC_ROW_CLASS_NAME} key={`${item.code}-${index}`}>
                             <UiTag tone={item.severity === "error" ? "danger" : "muted"}>{item.severity}</UiTag>
                             <strong>{item.code}</strong>
                             <span>{item.message}</span>
@@ -1095,13 +1173,13 @@ export const RegistriesPage = () => {
                       </fieldset>
                     )}
 
-                    <fieldset className="automation-request-box registry-summary">
+                    <fieldset className={REGISTRY_REQUEST_BOX_CLASS_NAME}>
                       <legend>{t("registryConsole.section.summary")}</legend>
                       <div>{summaryLine(detail.summary) || "--"}</div>
                     </fieldset>
 
                     {detail.category === "mcp-servers" && (
-                      <fieldset className="automation-request-box registry-mcp-tools">
+                      <fieldset className={REGISTRY_MCP_TOOLS_CLASS_NAME}>
                         <legend>
                           {t("registryConsole.mcpTools.section.title", {
                             count: selectedMcpServerTools.length,
@@ -1109,31 +1187,31 @@ export const RegistriesPage = () => {
                         </legend>
                         <Spin spinning={toolsLoading}>
                           {selectedMcpServerTools.length > 0 ? (
-                            <div className="registry-mcp-tool-list">
+                            <div className={REGISTRY_MCP_TOOL_LIST_CLASS_NAME}>
                               {selectedMcpServerTools.map((tool, index) => {
                                 const toolKey = tool.key || tool.name || `${selectedMcpServerKey}-${index}`;
                                 const kind = readToolKind(tool);
                                 const description = stringValue(tool.description);
                                 return (
-                                  <div className="registry-mcp-tool-row" key={toolKey}>
-                                    <div className="registry-mcp-tool-head">
-                                      <div className="registry-mcp-tool-title">
+                                  <div className={REGISTRY_MCP_TOOL_ROW_CLASS_NAME} key={toolKey}>
+                                    <div className={REGISTRY_MCP_TOOL_HEAD_CLASS_NAME}>
+                                      <div className={REGISTRY_MCP_TOOL_TITLE_CLASS_NAME}>
                                         <strong>{tool.name || tool.label || tool.key || "--"}</strong>
                                         <span>{tool.key || "--"}</span>
                                       </div>
-                                      <div className="registry-mcp-tool-badges">
+                                      <div className={REGISTRY_MCP_TOOL_BADGES_CLASS_NAME}>
                                         {kind && <UiTag tone="muted">{kind}</UiTag>}
                                       </div>
                                     </div>
                                     {description && (
-                                      <p className="registry-mcp-tool-description">{description}</p>
+                                      <p className={REGISTRY_MCP_TOOL_DESCRIPTION_CLASS_NAME}>{description}</p>
                                     )}
                                   </div>
                                 );
                               })}
                             </div>
                           ) : (
-                            <div className="registry-mcp-tools-empty">
+                            <div className={REGISTRY_MCP_TOOLS_EMPTY_CLASS_NAME}>
                               {selectedMcpToolEmptyState === "missing-server-key"
                                 ? t("registryConsole.mcpTools.empty.missingServerKey")
                                 : t("registryConsole.mcpTools.empty.noTools")}
@@ -1143,11 +1221,11 @@ export const RegistriesPage = () => {
                       </fieldset>
                     )}
 
-                    <div className="field-group registry-editor-field">
+                    <div className={REGISTRY_EDITOR_FIELD_CLASS_NAME}>
                       <label htmlFor="registry-yaml-editor">{t("registryConsole.editor.label")}</label>
                       <Input.TextArea
                         id="registry-yaml-editor"
-                        className="settings-textarea automation-mono-textarea registry-yaml-editor"
+                        className={REGISTRY_YAML_EDITOR_CLASS_NAME}
                         value={draft}
                         onChange={(event) => {
                           setDraft(event.target.value);
@@ -1157,7 +1235,7 @@ export const RegistriesPage = () => {
                       />
                     </div>
 
-                    <div className="automation-save-actions">
+                    <div className={REGISTRY_SAVE_ACTIONS_CLASS_NAME}>
                       <UiButton size="sm" variant="ghost" onClick={validateDraft} disabled={validating || saving}>
                         <MaterialIcon name="rule" />
                         <span>{t("registryConsole.action.validate")}</span>
@@ -1166,7 +1244,7 @@ export const RegistriesPage = () => {
                         <MaterialIcon name="save" />
                         <span>{t("registryConsole.action.save")}</span>
                       </UiButton>
-                      {dirty && <span className="registry-dirty">{t("registryConsole.message.unsaved")}</span>}
+                      {dirty && <span className={REGISTRY_DIRTY_CLASS_NAME}>{t("registryConsole.message.unsaved")}</span>}
                     </div>
                   </>
                 )

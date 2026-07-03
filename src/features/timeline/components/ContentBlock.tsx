@@ -13,11 +13,42 @@ interface ContentBlockProps {
 	node: TimelineNode;
 }
 
+const TIMELINE_CONTENT_STACK_CLASS_NAME =
+	"timeline-content-stack tw:mt-1 tw:flex tw:flex-col tw:gap-1.5";
+const TIMELINE_TEXT_CLASS_NAME =
+	"timeline-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-ink-1";
+const TIMELINE_MARKDOWN_CLASS_NAME = "timeline-markdown tw:whitespace-normal";
+const TIMELINE_CONTENT_MARKDOWN_CLASS_NAME =
+	"tw:max-w-[74ch] tw:text-[15px] tw:leading-[1.72]";
+const TTS_VOICE_SECTION_CLASS_NAME = "tw:my-2";
+const TTS_VOICE_TOOLBAR_CLASS_NAME = "tw:flex tw:items-center tw:gap-2";
+const TTS_VOICE_PILL_CLASS_NAME =
+	"tw:!flex tw:!w-auto tw:!cursor-pointer tw:!items-center tw:!justify-between tw:!gap-2 tw:!rounded-xl tw:!border tw:!border-[color-mix(in_srgb,var(--accent-electric)_24%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,var(--bg-input))] tw:!px-2.5 tw:!py-2";
+const TTS_VOICE_REPLAY_CLASS_NAME = "tw:flex-none";
+const TTS_VOICE_LABEL_CLASS_NAME =
+	"tw:text-xs tw:uppercase tw:text-accent-electric-strong";
+const TTS_VOICE_STATUS_CLASS_NAME = "tw:ml-auto tw:text-xs tw:text-ink-2";
+const TTS_VOICE_CHEVRON_CLASS_NAME =
+	"tw:inline-flex tw:text-ink-muted tw:transition-transform tw:duration-200 tw:ease-in-out";
+const TTS_VOICE_CHEVRON_OPEN_CLASS_NAME = "tw:rotate-90";
+const TTS_VOICE_DETAIL_CLASS_NAME =
+	"tw:max-h-0 tw:overflow-hidden tw:transition-[max-height] tw:duration-200 tw:ease-in-out";
+const TTS_VOICE_DETAIL_OPEN_CLASS_NAME = "tw:mt-2 tw:max-h-[260px]";
+const TTS_VOICE_TEXT_CLASS_NAME =
+	"tw:whitespace-pre-wrap tw:break-words tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--bg-input)_86%,var(--bg-elev-2))] tw:px-3 tw:py-2.5 tw:text-[13px] tw:leading-[1.5]";
+
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const dispatch = useAppDispatch();
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
+	const markdownClassName = [
+		TIMELINE_TEXT_CLASS_NAME,
+		TIMELINE_MARKDOWN_CLASS_NAME,
+		node.kind === "content" ? TIMELINE_CONTENT_MARKDOWN_CLASS_NAME : "",
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	const segments = node.segments;
 	const hasSpecialSegment = segments?.some((s) => s.kind !== "text");
@@ -25,8 +56,8 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
 		return (
-			<div className="timeline-content-stack">
-				<div className="timeline-text timeline-markdown">
+			<div className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
+				<div className={markdownClassName}>
 					<MarkdownContent content={streamingSafeText} />
 				</div>
 			</div>
@@ -35,13 +66,13 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 
 	/* With viewport segments */
 	return (
-		<div className="timeline-content-stack">
+		<div className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
 			{segments?.map((segment, idx) => {
 				if (segment.kind === "text") {
 					return (
 						<div
 							key={idx}
-							className="timeline-text timeline-markdown"
+							className={markdownClassName}
 						>
 							<MarkdownContent content={segment.text || ""} />
 						</div>
@@ -78,11 +109,11 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					return (
 						<section
 							key={signature || idx}
-							className="timeline-tts-voice"
+							className={TTS_VOICE_SECTION_CLASS_NAME}
 						>
-							<div className="tts-voice-toolbar">
+							<div className={TTS_VOICE_TOOLBAR_CLASS_NAME}>
 								<UiButton
-									className="tts-voice-pill"
+									className={TTS_VOICE_PILL_CLASS_NAME}
 									variant="secondary"
 									size="sm"
 									data-voice-status={status}
@@ -118,19 +149,19 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 										});
 									}}
 								>
-									<span className="tts-voice-label">
+									<span className={TTS_VOICE_LABEL_CLASS_NAME}>
 										tts voice
 									</span>
-									<span className="tts-voice-status">
+									<span className={TTS_VOICE_STATUS_CLASS_NAME}>
 										{statusText}
 									</span>
 									<MaterialIcon
 										name="chevron_right"
-										className="chevron"
+										className={`${TTS_VOICE_CHEVRON_CLASS_NAME} ${expanded ? TTS_VOICE_CHEVRON_OPEN_CLASS_NAME : ""}`}
 									/>
 								</UiButton>
 								<UiButton
-									className="tts-voice-replay"
+									className={TTS_VOICE_REPLAY_CLASS_NAME}
 									variant="ghost"
 									size="sm"
 									iconOnly
@@ -155,9 +186,9 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 								</UiButton>
 							</div>
 							<div
-								className={`tts-voice-detail ${expanded ? "is-open" : ""}`}
+								className={`${TTS_VOICE_DETAIL_CLASS_NAME} ${expanded ? TTS_VOICE_DETAIL_OPEN_CLASS_NAME : ""}`}
 							>
-								<div className="tts-voice-text">
+								<div className={TTS_VOICE_TEXT_CLASS_NAME}>
 									{blockText || "(empty)"}
 								</div>
 							</div>

@@ -20,7 +20,6 @@ require_file "$REPO_ROOT/scripts/release-assets/program/windows/start.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
 require_file "$REPO_ROOT/package.json"
-require_file "$REPO_ROOT/package-lock.json"
 
 cd "$REPO_ROOT"
 
@@ -53,7 +52,7 @@ prepare_build_root() {
 
   mkdir -p "$BUILD_ROOT"
   cp "$REPO_ROOT/package.json" "$BUILD_ROOT/package.json"
-  cp "$REPO_ROOT/package-lock.json" "$BUILD_ROOT/package-lock.json"
+  copy_file_if_exists "$REPO_ROOT/package-lock.json" "$BUILD_ROOT/package-lock.json"
   cp "$REPO_ROOT/webpack.config.js" "$BUILD_ROOT/webpack.config.js"
   cp "$REPO_ROOT/tsconfig.json" "$BUILD_ROOT/tsconfig.json"
   cp "$REPO_ROOT/postcss.config.js" "$BUILD_ROOT/postcss.config.js"
@@ -72,7 +71,12 @@ install_build_dependencies() {
   echo "[release] installing isolated frontend dependencies..."
   (
     cd "$BUILD_ROOT"
-    npm ci
+    if [[ -f package-lock.json ]]; then
+      npm ci
+    else
+      echo "[release] package-lock.json not found; using npm install without writing a lockfile."
+      npm install --no-package-lock
+    fi
   )
 }
 

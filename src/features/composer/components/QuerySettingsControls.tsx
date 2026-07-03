@@ -46,11 +46,34 @@ const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, MaterialIconName> = {
   auto_approve: "verified_user",
   full_access: "gpp_maybe",
 };
-const ACCESS_LEVEL_COLOR: Record<QueryAccessLevel, string> = {
+const ACCESS_LEVEL_BUTTON_CLASS: Record<QueryAccessLevel, string> = {
   default: "",
-  auto_approve: "color-mix(in srgb, var(--accent-warn) 72%, transparent)",
-  full_access: "color-mix(in srgb, var(--accent-danger) 72%, transparent)",
+  auto_approve:
+    "tw:!text-[color-mix(in_srgb,var(--accent-warn)_72%,transparent)]",
+  full_access:
+    "tw:!text-[color-mix(in_srgb,var(--accent-danger)_72%,transparent)]",
 };
+const ACCESS_LEVEL_MENU_ITEM_CLASS: Record<QueryAccessLevel, string> = {
+  default: "query-settings-access-item query-settings-access-item-default tw:text-text-main",
+  auto_approve:
+    "query-settings-access-item query-settings-access-item-auto_approve tw:text-[color-mix(in_srgb,var(--accent-warn)_72%,transparent)]",
+  full_access:
+    "query-settings-access-item query-settings-access-item-full_access tw:text-[color-mix(in_srgb,var(--accent-danger)_72%,transparent)]",
+};
+const QUERY_SETTINGS_CONTROLS_CLASS =
+  "query-settings-controls tw:inline-flex tw:items-center";
+const QUERY_SETTINGS_BUTTON_CLASS =
+  "query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:!text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap";
+const QUERY_MODEL_BUTTON_CLASS = "query-model-btn tw:overflow-hidden";
+const QUERY_MODEL_BUTTON_STATE_CLASS = {
+  idle: "",
+  loading: "is-loading tw:pointer-events-auto",
+} as const;
+const QUERY_MODEL_LABEL_CLASS = "query-model-label tw:text-text-main";
+const QUERY_MODEL_ERROR_CLASS =
+  "query-model-error tw:max-w-[220px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-danger";
+const QUERY_SETTINGS_MENU_ITEM_CLASS =
+  "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
@@ -201,6 +224,12 @@ function normalizeServiceTier(value: unknown): QueryServiceTier | undefined {
   }
   if (text === "PRIORITY") return "FAST";
   return text || undefined;
+}
+
+function normalizeOptionalServiceTier(
+  value: unknown,
+): QueryServiceTier | undefined {
+  return toConfigText(value) ? normalizeServiceTier(value) : undefined;
 }
 
 function filterModelOptions(value: unknown): CoderModelOption[] {
@@ -386,7 +415,7 @@ export function buildModelMenuItems({
         key: "model-status:loading",
         disabled: true,
         label: (
-          <span className="query-settings-menu-item">
+          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
             {t("composer.query.model.loading")}
           </span>
         ),
@@ -397,7 +426,7 @@ export function buildModelMenuItems({
         key: "model-status:failed",
         disabled: true,
         label: (
-          <span className="query-settings-menu-item">
+          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
             {t("composer.query.model.loadFailed")}
           </span>
         ),
@@ -408,7 +437,7 @@ export function buildModelMenuItems({
         key: "model-status:empty",
         disabled: true,
         label: (
-          <span className="query-settings-menu-item">
+          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
             {t("composer.query.model.empty")}
           </span>
         ),
@@ -424,7 +453,7 @@ export function buildModelMenuItems({
       const label = getModelDisplayName(model);
       return {
         key: `model:${encodeURIComponent(key)}`,
-        label: <span className="query-settings-menu-item">{label}</span>,
+        label: <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>{label}</span>,
         extra:
           (selectedModelKey || modelOverride.key) === key ? (
             <MaterialIcon name="check" />
@@ -447,7 +476,7 @@ export function buildModelMenuItems({
       children: reasoningEfforts.map((option) => ({
         key: `reasoning:${option.key}`,
         label: (
-          <span className="query-settings-menu-item">
+          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
             {t(`composer.query.reasoning.${option.key}`) || option.label}
           </span>
         ),
@@ -465,7 +494,7 @@ export function buildModelMenuItems({
       children: availableServiceTiers.map((option) => ({
         key: `serviceTier:${option.key}`,
         label: (
-          <span className="query-settings-menu-item">
+          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
             {serviceTierLabelText(option, t)}
           </span>
         ),
@@ -480,7 +509,7 @@ export function buildModelMenuItems({
       key: "model-submenu",
       popupClassName: "query-settings-submenu",
       label: (
-        <span className="query-settings-menu-item">
+        <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
           <span>{resolvedSelectedModelLabel}</span>
         </span>
       ),
@@ -605,6 +634,20 @@ export function resolveCoderAgentDefaultModelOverride(
   const definitionModelConfig = getRecord(definition.modelConfig);
   const modelReasoning = getRecord(modelConfig.reasoning);
   const definitionModelReasoning = getRecord(definitionModelConfig.reasoning);
+  const rawServiceTier = normalizeOptionalServiceTier(raw.serviceTier);
+  const rawDefaultServiceTier = normalizeOptionalServiceTier(
+    raw.defaultServiceTier,
+  );
+  const metaServiceTier = normalizeOptionalServiceTier(meta.serviceTier);
+  const modelConfigServiceTier = normalizeOptionalServiceTier(
+    modelConfig.serviceTier,
+  );
+  const definitionServiceTier = normalizeOptionalServiceTier(
+    definitionModelConfig.serviceTier,
+  );
+  const fallbackServiceTier = normalizeOptionalServiceTier(
+    options?.defaultServiceTier,
+  );
 
   const key =
     getModelKey(raw.modelKey) ||
@@ -624,12 +667,12 @@ export function resolveCoderAgentDefaultModelOverride(
     normalizeModelConfigReasoning(definitionModelReasoning) ||
     normalizeReasoningEffort(options?.defaultReasoningEffort);
   const serviceTier =
-    normalizeServiceTier(raw.serviceTier) ||
-    normalizeServiceTier(raw.defaultServiceTier) ||
-    normalizeServiceTier(meta.serviceTier) ||
-    normalizeServiceTier(modelConfig.serviceTier) ||
-    normalizeServiceTier(definitionModelConfig.serviceTier) ||
-    normalizeServiceTier(options?.defaultServiceTier);
+    rawServiceTier ||
+    rawDefaultServiceTier ||
+    metaServiceTier ||
+    modelConfigServiceTier ||
+    definitionServiceTier ||
+    fallbackServiceTier;
 
   return {
     ...(key ? { key } : {}),
@@ -909,9 +952,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         key: value,
         label: (
           <span
-            className={`query-settings-access-item query-settings-access-item-${value}`}
+            className={ACCESS_LEVEL_MENU_ITEM_CLASS[value]}
           >
-            <span className="query-settings-menu-item">
+            <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
               <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
               <span>{t(`composer.query.access.${value}`)}</span>
             </span>
@@ -1001,6 +1044,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     ? t(`composer.query.reasoning.${selectedReasoningEffort}`)
     : t("composer.query.model.loading");
   const showFastBadge = selectedServiceTier === "FAST";
+  const queryModelButtonStateClass = modelsLoading
+    ? QUERY_MODEL_BUTTON_STATE_CLASS.loading
+    : QUERY_MODEL_BUTTON_STATE_CLASS.idle;
 
   const persistModelConfig = async (nextOverride: QueryModelOverride) => {
     const nextModelKey = String(nextOverride.key || "").trim();
@@ -1183,7 +1229,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   };
 
   return (
-    <div className="query-settings-controls">
+    <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
       <Dropdown
         menu={{
           className: "query-settings-menu",
@@ -1195,13 +1241,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         trigger={["click"]}
       >
         <UiButton
-          className="query-settings-btn"
+          className={`${QUERY_SETTINGS_BUTTON_CLASS} ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
           variant="ghost"
           size="sm"
           color="var(--accent)"
           title={t("composer.query.access.title")}
           onClick={(event) => event.preventDefault()}
-          style={{ color: ACCESS_LEVEL_COLOR[accessLevel] }}
         >
           <MaterialIcon name={ACCESS_LEVEL_ICON[accessLevel]} />
           <span>{accessLabel}</span>
@@ -1220,7 +1265,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           trigger={["click"]}
         >
           <UiButton
-            className={`query-settings-btn query-model-btn ${modelsLoading ? "is-loading" : ""}`.trim()}
+            className={`${QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
             variant="ghost"
             size="sm"
             disabled={disabled || modelConfigSaving}
@@ -1228,7 +1273,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             onClick={(event) => event.preventDefault()}
           >
             {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-            <span className="query-model-label">
+            <span className={QUERY_MODEL_LABEL_CLASS}>
               {selectedModelLabel}
             </span>
             <span>
@@ -1241,7 +1286,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         </Dropdown>
       ) : null}
       {shouldShowModelControls && modelConfigError ? (
-        <span className="query-model-error">{modelConfigError}</span>
+        <span className={QUERY_MODEL_ERROR_CLASS}>{modelConfigError}</span>
       ) : null}
     </div>
   );

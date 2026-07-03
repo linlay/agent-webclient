@@ -31,6 +31,30 @@ import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
+const AGENT_ROUTE_LOADING_PAGE_CLASS =
+  "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+const AGENT_ROUTE_LOADING_CARD_CLASS =
+  "agent-route-loading-card tw:inline-flex tw:min-w-[min(320px,100%)] tw:items-center tw:gap-3.5 tw:px-5 tw:py-[18px]";
+const AGENT_ROUTE_LOADING_SPINNER_CLASS =
+  "agent-route-loading-spinner tw:h-7 tw:w-7 tw:animate-ui-spin tw:rounded-full tw:border-[3px] tw:[border-color:color-mix(in_srgb,var(--accent)_22%,transparent)] tw:[border-top-color:var(--accent)]";
+const AGENT_ROUTE_LOADING_COPY_CLASS =
+  "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
+const AGENT_ROUTE_SHELL_BASE_CLASS =
+  "app-shell layout-desktop-fixed layout-agent-route tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
+const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
+  default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
+  terminal: "tw:grid-rows-[auto_minmax(0,1fr)_auto_auto]",
+  empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
+  emptyTerminal:
+    "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
+} as const;
+const AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE = {
+  enabled:
+    "desktop-debug-enabled tw:grid-cols-[0_minmax(0,1fr)_var(--right-sidebar-width)]",
+  disabled:
+    "desktop-debug-disabled tw:grid-cols-[0_minmax(0,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
+} as const;
+
 function createFallbackRouteAgent(agentKey: string): Agent {
   const normalizedAgentKey = String(agentKey || "").trim();
   return {
@@ -69,10 +93,10 @@ function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean
 
 const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
   return (
-    <main className="agent-route-loading-page" aria-busy="true">
-      <div className="agent-route-loading-card">
-        <div className="agent-route-loading-spinner" aria-hidden="true" />
-        <div className="agent-route-loading-copy">
+    <main className={AGENT_ROUTE_LOADING_PAGE_CLASS} aria-busy="true">
+      <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
+        <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
+        <div className={AGENT_ROUTE_LOADING_COPY_CLASS}>
           <strong>{title}</strong>
         </div>
       </div>
@@ -470,12 +494,30 @@ export const AgentChatShell: React.FC = () => {
     return <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} />;
   }
 
+  const rowClass = isTimelineEmpty
+    ? state.terminalDockOpen
+      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.emptyTerminal
+      : AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
+    : state.terminalDockOpen
+      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.terminal
+      : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
+  const columnClass = state.rightSidebarOpen
+    ? AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.enabled
+    : AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.disabled;
+
   return (
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
         <div
-          className={`app-shell layout-desktop-fixed layout-agent-route ${state.rightSidebarOpen ? "desktop-debug-enabled" : "desktop-debug-disabled"} ${state.terminalDockOpen ? "terminal-dock-open" : ""} ${isTimelineEmpty ? "timeline-empty-layout" : ""}`.trim()}
+          className={[
+            AGENT_ROUTE_SHELL_BASE_CLASS,
+            columnClass,
+            rowClass,
+            state.terminalDockOpen ? "terminal-dock-open" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           id="app"
         >
           <TopNav />

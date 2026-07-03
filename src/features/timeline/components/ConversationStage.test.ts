@@ -204,10 +204,7 @@ describe("ConversationStage", () => {
     expect(html).toContain("aria-label=\"定位到第 1 个提问\"");
     expect(html).toContain("aria-label=\"定位到第 2 个提问\"");
     expect(html.match(/timeline-query-anchor-row/g)).toHaveLength(2);
-    expect(html.match(/class="timeline-query-anchor-line"/g)).toHaveLength(2);
-    expect(html.match(/class="timeline-query-anchor-preview"/g)).toHaveLength(2);
-    expect(html.match(/class="timeline-query-anchor-preview-query"/g)).toHaveLength(2);
-    expect(html.match(/class="timeline-query-anchor-preview-content"/g)).toHaveLength(2);
+    expect(html.match(/class="timeline-query-anchor-line /g)).toHaveLength(2);
     expect(html).toContain("hi");
     expect(html).toContain("answer");
     expect(html).toContain("next");

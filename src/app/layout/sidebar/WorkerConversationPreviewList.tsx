@@ -13,6 +13,30 @@ type AgentIconConfig = string | {
   name?: string;
 };
 
+const WORKER_CHAT_PREVIEW_LIST_CLASS =
+  "worker-chat-preview-list tw:pb-0.5 tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-chat-item+.worker-chat-item]:mt-0";
+
+const WORKER_POPOVER_HEADER_CLASS =
+  "worker-popover-header tw:flex tw:items-center tw:justify-between tw:gap-2.5 tw:px-3 tw:pb-2 tw:pt-2.5";
+
+const WORKER_POPOVER_HEADER_MAIN_CLASS =
+  "worker-popover-header-main tw:flex tw:min-w-0 tw:items-center tw:gap-2.5";
+
+const WORKER_POPOVER_HEADER_ICON_CLASS =
+  "worker-panel-icon worker-popover-header-icon tw:scale-[0.78] tw:transition-transform tw:duration-200 tw:ease-in-out";
+
+const WORKER_POPOVER_HEADER_TITLE_CLASS =
+  "worker-popover-header-title tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:font-bold tw:text-ink-1";
+
+const WORKER_POPOVER_NEW_CLASS =
+  "worker-panel-new worker-popover-new tw:!inline-flex tw:!h-6 tw:!w-6 tw:text-text-muted";
+
+const WORKER_CHAT_DIVIDER_CLASS =
+  "worker-chat-divider tw:mx-5 tw:h-px tw:bg-border";
+
+const WORKER_CHAT_MORE_CLASS =
+  "worker-chat-more tw:cursor-pointer tw:px-[9px] tw:pb-[9px] tw:pt-0 tw:text-center tw:text-[12px] tw:text-text-muted tw:opacity-[0.72]";
+
 export const WorkerConversationPreviewList: React.FC<{
   row: WorkerRow;
   chats: WorkerConversationRow[];
@@ -109,23 +133,23 @@ export const WorkerConversationPreviewList: React.FC<{
   ];
 
   return (
-    <div className="worker-chat-preview-list">
+    <div className={WORKER_CHAT_PREVIEW_LIST_CLASS}>
       {showHeader && (
-        <div className="worker-popover-header">
-          <div className="worker-popover-header-main">
+        <div className={WORKER_POPOVER_HEADER_CLASS}>
+          <div className={WORKER_POPOVER_HEADER_MAIN_CLASS}>
             <AgentIcon
               icon={icon}
               type={row.type}
               props={{
                 icon: {
-                  className: "worker-panel-icon worker-popover-header-icon",
+                  className: WORKER_POPOVER_HEADER_ICON_CLASS,
                 },
                 avatar: {
-                  className: "worker-panel-icon worker-popover-header-icon",
+                  className: WORKER_POPOVER_HEADER_ICON_CLASS,
                 },
               }}
             />
-            <span className="worker-popover-header-title">
+            <span className={WORKER_POPOVER_HEADER_TITLE_CLASS}>
               {row.displayName}
             </span>
           </div>
@@ -133,7 +157,7 @@ export const WorkerConversationPreviewList: React.FC<{
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
-                  className="worker-panel-new worker-popover-new"
+                  className={WORKER_POPOVER_NEW_CLASS}
                   type="text"
                   icon={<MaterialIcon name="done_all" />}
                   onClick={(e) => onMarkAllRead(e, row.key)}
@@ -142,7 +166,7 @@ export const WorkerConversationPreviewList: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className="worker-panel-new worker-popover-new"
+                className={WORKER_POPOVER_NEW_CLASS}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}
@@ -168,7 +192,7 @@ export const WorkerConversationPreviewList: React.FC<{
             >
               <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
                 <Button
-                  className="worker-panel-new worker-popover-new"
+                  className={WORKER_POPOVER_NEW_CLASS}
                   type="text"
                   icon={<MaterialIcon name="more_horiz" />}
                   onClick={(event) => event.stopPropagation()}
@@ -178,7 +202,7 @@ export const WorkerConversationPreviewList: React.FC<{
           </Flex>
         </div>
       )}
-      <div className="worker-chat-divider"></div>
+      <div className={WORKER_CHAT_DIVIDER_CLASS}></div>
       {recentChats.length === 0 ? (
         <div className="status-line">
           {t("leftSidebar.noRelatedConversations")}
@@ -196,7 +220,7 @@ export const WorkerConversationPreviewList: React.FC<{
       )}
       {showMoreCount > 5 && (
         <div
-          className="worker-chat-more"
+          className={WORKER_CHAT_MORE_CLASS}
           onClick={(e) => onOpenHistory(e, row.key)}
         >
           {t("leftSidebar.showMore", {

@@ -35,6 +35,36 @@ const GROUP_LABEL_KEYS: Record<string, string> = {
   history: "globalSearch.group.conversations",
 };
 
+const GLOBAL_SEARCH_PANEL_CLASS =
+  "global-search-panel tw:flex tw:flex-col";
+const GLOBAL_SEARCH_BOX_CLASS = "global-search-box tw:flex-none";
+const GLOBAL_SEARCH_INPUT_CLASS =
+  "global-search-input tw:w-full tw:border-0 tw:bg-transparent tw:p-2.5 tw:text-sm tw:text-ink-1 tw:outline-none tw:placeholder:text-ink-muted";
+const GLOBAL_SEARCH_EMPTY_CLASS =
+  "global-search-empty tw:px-4 tw:py-6 tw:text-center tw:text-[13px] tw:text-ink-muted";
+const GLOBAL_SEARCH_LIST_CLASS =
+  "global-search-list tw:flex tw:max-h-[60vh] tw:flex-col tw:gap-0.5 tw:overflow-auto";
+const GLOBAL_SEARCH_GROUP_CLASS =
+  "global-search-group tw:flex tw:flex-col tw:gap-0.5";
+const GLOBAL_SEARCH_GROUP_LABEL_CLASS =
+  "global-search-group-label tw:px-2 tw:py-1 tw:text-ink-muted";
+const GLOBAL_SEARCH_ROW_CLASS =
+  "global-search-row tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:rounded-2xl tw:border-0 tw:bg-transparent tw:p-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:outline-none tw:hover:bg-bg-hover tw:focus:bg-[color-mix(in_srgb,var(--accent-soft)_30%,var(--bg-hover))]";
+const GLOBAL_SEARCH_ICON_CLASS =
+  "global-search-icon tw:flex tw:size-6 tw:flex-none tw:items-center tw:justify-center tw:text-ink-muted";
+const GLOBAL_SEARCH_LABEL_CLASS =
+  "global-search-label tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
+const GLOBAL_SEARCH_ROLE_CLASS =
+  "global-search-role tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
+const GLOBAL_SEARCH_SNIPPET_CLASS =
+  "global-search-snippet tw:max-w-[52%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden";
+const GLOBAL_SEARCH_AWAITING_CLASS =
+  "global-search-awaiting tw:flex-none tw:whitespace-nowrap tw:rounded tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-px tw:text-[10px] tw:leading-[1.4] tw:text-accent-warn tw:max-[640px]:hidden";
+const GLOBAL_SEARCH_LOADING_CLASS =
+  "global-search-loading tw:flex-none tw:animate-ui-spin tw:text-xs tw:text-text-sub";
+const GLOBAL_SEARCH_TIME_CLASS =
+  "global-search-time tw:ml-auto tw:flex-none tw:pl-1 tw:font-code tw:text-[10px] tw:text-ink-muted tw:max-[640px]:hidden";
+
 export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   searchText,
   searchInputRef,
@@ -65,7 +95,7 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   return (
     <div
       ref={hostRef}
-      className="global-search-panel"
+      className={GLOBAL_SEARCH_PANEL_CLASS}
       onKeyDown={(event) => {
         if (!rows.length) return;
         const liArr: HTMLElement[] = Array.from(
@@ -91,10 +121,10 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
         }
       }}
     >
-      <div className="global-search-box">
+      <div className={GLOBAL_SEARCH_BOX_CLASS}>
         <input
           ref={searchInputRef}
-          className="global-search-input"
+          className={GLOBAL_SEARCH_INPUT_CLASS}
           type="text"
           placeholder={placeholder}
           value={searchText}
@@ -103,25 +133,25 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
         />
       </div>
       {rows.length === 0 ? (
-        <div className="global-search-empty">{emptyText}</div>
+        <div className={GLOBAL_SEARCH_EMPTY_CLASS}>{emptyText}</div>
       ) : (
-        <div className="global-search-list">
+        <div className={GLOBAL_SEARCH_LIST_CLASS}>
           {groupEntries.map(({ kind, label, rows: groupRows }) => (
-            <div key={kind} className="global-search-group">
-              <div className="global-search-group-label">{label}</div>
+            <div key={kind} className={GLOBAL_SEARCH_GROUP_CLASS}>
+              <div className={GLOBAL_SEARCH_GROUP_LABEL_CLASS}>{label}</div>
               {groupRows.map((row) => {
                 if (row.kind === "action") {
                   return (
                     <button
                       key={row.key}
                       type="button"
-                      className="global-search-row global-search-action"
+                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-action`}
                       onClick={() => onSelectRow(row)}
                     >
-                      <span className="global-search-icon" aria-hidden="true">
+                      <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
                         <MaterialIcon name={row.icon} />
                       </span>
-                      <span className="global-search-label">{row.label}</span>
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
                     </button>
                   );
                 }
@@ -130,10 +160,10 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                     <button
                       key={row.key}
                       type="button"
-                      className="global-search-row global-search-worker"
+                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-worker`}
                       onClick={() => onSelectRow(row)}
                     >
-                      <span className="global-search-icon" aria-hidden="true">
+                      <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
                         <AgentIcon
                           icon={row.icon}
                           type={row.type}
@@ -148,8 +178,8 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                           }}
                         />
                       </span>
-                      <span className="global-search-label">{row.label}</span>
-                      <span className="global-search-role">{row.role}</span>
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
+                      <span className={GLOBAL_SEARCH_ROLE_CLASS}>{row.role}</span>
                     </button>
                   );
                 }
@@ -158,34 +188,34 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                     <button
                       key={row.key}
                       type="button"
-                      className="global-search-row global-search-history"
+                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-history`}
                       onClick={() => onSelectRow(row)}
                     >
                       {row.isUnread ? (
                         <Tag color="blue">{t("globalSearch.row.unread")}</Tag>
                       ) : (
-                        <span className="global-search-icon" aria-hidden="true">
+                        <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
                           <MaterialIcon name="history" />
                         </span>
                       )}
-                      <span className="global-search-label">{row.label}</span>
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
                       {row.snippet ? (
-                        <span className="global-search-snippet">
+                        <span className={GLOBAL_SEARCH_SNIPPET_CLASS}>
                           {row.snippet}
                         </span>
                       ) : null}
                       {row.statusLabel ? (
-                        <span className="global-search-awaiting">
+                        <span className={GLOBAL_SEARCH_AWAITING_CLASS}>
                           {row.statusLabel}
                         </span>
                       ) : null}
                       {row.hasActiveRun ? (
                         <MaterialIcon
                           name="progress_activity"
-                          className="global-search-loading"
+                          className={GLOBAL_SEARCH_LOADING_CLASS}
                         />
                       ) : (
-                        <span className="global-search-time">
+                        <span className={GLOBAL_SEARCH_TIME_CLASS}>
                           {formatChatTimeLabel(row.updatedAt)}
                         </span>
                       )}

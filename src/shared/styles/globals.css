@@ -1,9 +1,67 @@
 /* Tailwind uses the tw: prefix and scans src only to avoid legacy class collisions. */
 @import "tailwindcss/theme" prefix(tw);
 
+@theme inline {
+    --color-bg-base: var(--bg-base);
+    --color-bg-elev-1: var(--bg-elev-1);
+    --color-bg-elev-2: var(--bg-elev-2);
+    --color-bg-input: var(--bg-input);
+    --color-bg-hover: var(--bg-hover);
+    --color-bg-page: var(--bg-page);
+    --color-bg-card: var(--bg-card);
+    --color-ink-1: var(--ink-1);
+    --color-ink-2: var(--ink-2);
+    --color-ink-muted: var(--ink-muted);
+    --color-text-main: var(--text-main);
+    --color-text-sub: var(--text-sub);
+    --color-text-muted: var(--text-muted);
+    --color-line-soft: var(--line-soft);
+    --color-line-strong: var(--line-strong);
+    --color-border: var(--border);
+    --color-line: var(--line);
+    --color-accent: var(--accent);
+    --color-accent-strong: var(--accent-strong);
+    --color-accent-electric: var(--accent-electric);
+    --color-accent-electric-strong: var(--accent-electric-strong);
+    --color-accent-lime: var(--accent-lime);
+    --color-accent-warn: var(--accent-warn);
+    --color-accent-danger: var(--accent-danger);
+    --color-accent-soft: var(--accent-soft);
+    --color-glass: var(--glass);
+    --color-danger: var(--danger);
+    --color-ok: var(--ok);
+    --color-warn: var(--warn);
+    --font-ui: var(--font-sans);
+    --font-code: var(--font-mono);
+    --radius-control: var(--radius-md);
+    --radius-panel: var(--radius-lg);
+    --radius-surface: var(--radius-xl);
+    --radius-pill: 999px;
+    --shadow-elevated: var(--shadow-soft);
+    --shadow-floating: var(--shadow-medium);
+    --shadow-overlay: var(--shadow-strong);
+    --spacing-left-sidebar: var(--left-sidebar-width);
+    --spacing-left-sidebar-collapsed: var(--left-sidebar-close-width);
+    --spacing-right-sidebar: var(--right-sidebar-width);
+    --spacing-top-nav: var(--top-nav-height);
+    --z-raised: 2;
+    --z-sticky: 10;
+    --z-dock: 30;
+    --z-popover: 80;
+    --z-overlay: 950;
+    --z-command: 999;
+    --animate-fade-slide-in: fade-slide-in 0.5s 0.08s ease both;
+    --animate-node-rise: node-rise 0.28s ease both;
+    --animate-status-pulse: status-pulse 1.2s ease-in-out infinite;
+    --animate-ui-spin: ui-spin 0.8s linear infinite;
+    --animate-command-status-in: command-status-in 0.28s ease both;
+    --animate-command-status-pulse: command-status-pulse 1.35s ease-in-out infinite;
+    --animate-command-status-core: command-status-core 1.2s ease-in-out infinite;
+    --animate-command-status-error: command-status-error 0.42s ease both;
+}
+
 @import "./globals/base.css";
 @import "./globals/layout.css";
-@import "./globals/scrollbar.css";
 @import "./globals/timeline.css";
 @import "./globals/tools.css";
 @import "./globals/composer.css";

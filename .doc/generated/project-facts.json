@@ -66,12 +66,16 @@
     "src/features/composer/lib/steerSubmission.test.ts",
     "src/features/composer/lib/wonders.test.ts",
     "src/features/plan/components/PlanPanel.test.ts",
+    "src/features/search/lib/globalSearchRows.test.ts",
     "src/features/settings/components/ArchiveConsole.test.ts",
     "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SidebarSettingsMenu.test.ts",
     "src/features/settings/lib/memoryInfo.test.ts",
     "src/features/settings/lib/settingsClientGateDrafts.test.ts",
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts",
+    "src/features/terminal/lib/terminalDockPersistence.test.ts",
+    "src/features/terminal/lib/terminalRemoteSession.test.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
     "src/features/timeline/components/ConversationStage.test.ts",
     "src/features/timeline/components/SourceBlock.test.ts",
@@ -116,6 +120,7 @@
     "src/features/workers/components/AgentConsole.test.ts",
     "src/features/workers/components/CommandModal.test.ts",
     "src/features/workers/components/SwitchModal.test.ts",
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
     "src/features/workers/lib/agentSummary.test.ts",
@@ -314,12 +319,18 @@
     "src/features/composer/lib/wonders.ts",
     "src/features/plan/components/PlanPanel.test.ts",
     "src/features/plan/components/PlanPanel.tsx",
+    "src/features/search/components/GlobalSearchOverlay.tsx",
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx",
+    "src/features/search/components/GlobalSearchPanel.tsx",
+    "src/features/search/lib/globalSearchRows.test.ts",
+    "src/features/search/lib/globalSearchRows.ts",
     "src/features/settings/components/ArchiveConsole.test.ts",
     "src/features/settings/components/ArchiveConsole.tsx",
     "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/MemoryInfoModal.tsx",
     "src/features/settings/components/SettingsAsrDebug.tsx",
     "src/features/settings/components/SettingsClientGate.tsx",
+    "src/features/settings/components/SettingsDrawer.tsx",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SettingsModal.tsx",
     "src/features/settings/components/SettingsOverlayHost.tsx",
@@ -335,6 +346,17 @@
     "src/features/settings/lib/memoryInfo.ts",
     "src/features/settings/lib/settingsClientGateDrafts.test.ts",
     "src/features/settings/lib/settingsClientGateDrafts.ts",
+    "src/features/source/component/source-score/index.tsx",
+    "src/features/terminal/components/TerminalPane.tsx",
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts",
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts",
+    "src/features/terminal/lib/terminalDockPersistence.test.ts",
+    "src/features/terminal/lib/terminalDockPersistence.ts",
+    "src/features/terminal/lib/terminalRemoteSession.test.ts",
+    "src/features/terminal/lib/terminalRemoteSession.ts",
+    "src/features/terminal/lib/terminalTheme.ts",
+    "src/features/terminal/lib/terminalTransport.ts",
+    "src/features/terminal/lib/terminalWorkspace.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.tsx",
     "src/features/timeline/components/ContentBlock.tsx",
@@ -392,6 +414,7 @@
     "src/features/tools/components/buildin/confirm-dialog/index.tsx",
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts",
     "src/features/tools/components/buildin/confirm-dialog/state.ts",
+    "src/features/tools/components/buildin/dialogClassNames.ts",
     "src/features/tools/components/buildin/index.tsx",
     "src/features/tools/components/buildin/plan-dialog/index.tsx",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts",
@@ -419,6 +442,7 @@
     "src/features/transport/hooks/useSseAttachTransport.ts",
     "src/features/transport/hooks/useWsTransport.test.ts",
     "src/features/transport/hooks/useWsTransport.ts",
+    "src/features/transport/lib/clientDeviceId.ts",
     "src/features/transport/lib/detachRunEvent.ts",
     "src/features/transport/lib/queryStreamExecutors.ts",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -465,6 +489,7 @@
     "src/features/voice/lib/voiceSocket.ts",
     "src/features/workers/components/AgentConsole.test.ts",
     "src/features/workers/components/AgentConsole.tsx",
+    "src/features/workers/components/CommandDrawer.tsx",
     "src/features/workers/components/CommandModal.test.ts",
     "src/features/workers/components/CommandModal.tsx",
     "src/features/workers/components/CommandOverlayHost.tsx",
@@ -472,6 +497,8 @@
     "src/features/workers/components/DetailModal.tsx",
     "src/features/workers/components/SwitchModal.test.ts",
     "src/features/workers/components/SwitchModal.tsx",
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts",
+    "src/features/workers/hooks/useGlobalShortcuts.ts",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/hooks/useWorkerData.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
@@ -539,6 +566,7 @@
     "src/shared/icons/material/registry.ts",
     "src/shared/icons/material/sprite.tsx",
     "src/shared/styles/layoutStatusPill.test.ts",
+    "src/shared/styles/scrollbarClassNames.ts",
     "src/shared/styles/theme.test.ts",
     "src/shared/styles/theme.ts",
     "src/shared/ui/MarkdownContent.test.ts",
@@ -1382,6 +1410,44 @@
                 ]
               },
               {
+                "name": "search",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "components",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "GlobalSearchOverlay.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "GlobalSearchOverlayProvider.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "GlobalSearchPanel.tsx",
+                        "type": "file"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "lib",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "globalSearchRows.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "globalSearchRows.ts",
+                        "type": "file"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "name": "settings",
                 "type": "directory",
                 "children": [
@@ -1411,6 +1477,10 @@
                       },
                       {
                         "name": "SettingsClientGate.tsx",
+                        "type": "file"
+                      },
+                      {
+                        "name": "SettingsDrawer.tsx",
                         "type": "file"
                       },
                       {
@@ -1483,6 +1553,92 @@
                       },
                       {
                         "name": "settingsClientGateDrafts.ts",
+                        "type": "file"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "source",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "component",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "source-score",
+                        "type": "directory",
+                        "children": [
+                          {
+                            "name": "index.tsx",
+                            "type": "file"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "terminal",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "components",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "TerminalPane.tsx",
+                        "type": "file"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "hooks",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "useActiveTerminalAgents.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "useActiveTerminalAgents.ts",
+                        "type": "file"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "lib",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "terminalDockPersistence.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalDockPersistence.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalRemoteSession.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalRemoteSession.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalTheme.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalTransport.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "terminalWorkspace.ts",
                         "type": "file"
                       }
                     ]
@@ -1776,6 +1932,10 @@
                             ]
                           },
                           {
+                            "name": "dialogClassNames.ts",
+                            "type": "file"
+                          },
+                          {
                             "name": "index.tsx",
                             "type": "file"
                           },
@@ -1923,6 +2083,10 @@
                     "name": "lib",
                     "type": "directory",
                     "children": [
+                      {
+                        "name": "clientDeviceId.ts",
+                        "type": "file"
+                      },
                       {
                         "name": "detachRunEvent.ts",
                         "type": "file"
@@ -2138,6 +2302,10 @@
                         "type": "file"
                       },
                       {
+                        "name": "CommandDrawer.tsx",
+                        "type": "file"
+                      },
+                      {
                         "name": "CommandModal.test.ts",
                         "type": "file"
                       },
@@ -2171,6 +2339,14 @@
                     "name": "hooks",
                     "type": "directory",
                     "children": [
+                      {
+                        "name": "useGlobalShortcuts.test.ts",
+                        "type": "file"
+                      },
+                      {
+                        "name": "useGlobalShortcuts.ts",
+                        "type": "file"
+                      },
                       {
                         "name": "useWorkerData.test.ts",
                         "type": "file"
@@ -2529,6 +2705,10 @@
                 "children": [
                   {
                     "name": "layoutStatusPill.test.ts",
+                    "type": "file"
+                  },
+                  {
+                    "name": "scrollbarClassNames.ts",
                     "type": "file"
                   },
                   {
@@ -2925,6 +3105,7 @@
       "src/features/settings/components/MemoryInfoModal.tsx",
       "src/features/settings/components/SettingsAsrDebug.tsx",
       "src/features/settings/components/SettingsClientGate.tsx",
+      "src/features/settings/components/SettingsDrawer.tsx",
       "src/features/settings/components/SettingsModal.test.ts",
       "src/features/settings/components/SettingsModal.tsx",
       "src/features/settings/components/SettingsOverlayHost.tsx",
@@ -2943,6 +3124,7 @@
     ],
     "styles": [
       "src/shared/styles/layoutStatusPill.test.ts",
+      "src/shared/styles/scrollbarClassNames.ts",
       "src/shared/styles/theme.test.ts",
       "src/shared/styles/theme.ts"
     ],
@@ -3006,6 +3188,7 @@
       "src/features/tools/components/buildin/confirm-dialog/index.tsx",
       "src/features/tools/components/buildin/confirm-dialog/state.test.ts",
       "src/features/tools/components/buildin/confirm-dialog/state.ts",
+      "src/features/tools/components/buildin/dialogClassNames.ts",
       "src/features/tools/components/buildin/index.tsx",
       "src/features/tools/components/buildin/plan-dialog/index.tsx",
       "src/features/tools/components/buildin/plan-dialog/state.test.ts",
@@ -3035,6 +3218,7 @@
       "src/features/transport/hooks/useSseAttachTransport.ts",
       "src/features/transport/hooks/useWsTransport.test.ts",
       "src/features/transport/hooks/useWsTransport.ts",
+      "src/features/transport/lib/clientDeviceId.ts",
       "src/features/transport/lib/detachRunEvent.ts",
       "src/features/transport/lib/queryStreamExecutors.ts",
       "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -3115,6 +3299,7 @@
     "workers": [
       "src/features/workers/components/AgentConsole.test.ts",
       "src/features/workers/components/AgentConsole.tsx",
+      "src/features/workers/components/CommandDrawer.tsx",
       "src/features/workers/components/CommandModal.test.ts",
       "src/features/workers/components/CommandModal.tsx",
       "src/features/workers/components/CommandOverlayHost.tsx",
@@ -3122,6 +3307,8 @@
       "src/features/workers/components/DetailModal.tsx",
       "src/features/workers/components/SwitchModal.test.ts",
       "src/features/workers/components/SwitchModal.tsx",
+      "src/features/workers/hooks/useGlobalShortcuts.test.ts",
+      "src/features/workers/hooks/useGlobalShortcuts.ts",
       "src/features/workers/hooks/useWorkerData.test.ts",
       "src/features/workers/hooks/useWorkerData.ts",
       "src/features/workers/lib/agentOrdering.test.ts",
@@ -3303,6 +3490,7 @@
     "src/features/settings/components/MemoryInfoModal.tsx": "settings",
     "src/features/settings/components/SettingsAsrDebug.tsx": "settings",
     "src/features/settings/components/SettingsClientGate.tsx": "settings",
+    "src/features/settings/components/SettingsDrawer.tsx": "settings",
     "src/features/settings/components/SettingsModal.test.ts": "settings",
     "src/features/settings/components/SettingsModal.tsx": "settings",
     "src/features/settings/components/SettingsOverlayHost.tsx": "settings",
@@ -3375,6 +3563,7 @@
     "src/features/tools/components/buildin/confirm-dialog/index.tsx": "tools",
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts": "tools",
     "src/features/tools/components/buildin/confirm-dialog/state.ts": "tools",
+    "src/features/tools/components/buildin/dialogClassNames.ts": "tools",
     "src/features/tools/components/buildin/index.tsx": "tools",
     "src/features/tools/components/buildin/plan-dialog/index.tsx": "tools",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts": "tools",
@@ -3402,6 +3591,7 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": "transport",
     "src/features/transport/hooks/useWsTransport.test.ts": "transport",
     "src/features/transport/hooks/useWsTransport.ts": "transport",
+    "src/features/transport/lib/clientDeviceId.ts": "transport",
     "src/features/transport/lib/detachRunEvent.ts": "transport",
     "src/features/transport/lib/queryStreamExecutors.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": "transport",
@@ -3448,6 +3638,7 @@
     "src/features/voice/lib/voiceSocket.ts": "voice",
     "src/features/workers/components/AgentConsole.test.ts": "workers",
     "src/features/workers/components/AgentConsole.tsx": "workers",
+    "src/features/workers/components/CommandDrawer.tsx": "workers",
     "src/features/workers/components/CommandModal.test.ts": "workers",
     "src/features/workers/components/CommandModal.tsx": "workers",
     "src/features/workers/components/CommandOverlayHost.tsx": "workers",
@@ -3455,6 +3646,8 @@
     "src/features/workers/components/DetailModal.tsx": "workers",
     "src/features/workers/components/SwitchModal.test.ts": "workers",
     "src/features/workers/components/SwitchModal.tsx": "workers",
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts": "workers",
+    "src/features/workers/hooks/useGlobalShortcuts.ts": "workers",
     "src/features/workers/hooks/useWorkerData.test.ts": "workers",
     "src/features/workers/hooks/useWorkerData.ts": "workers",
     "src/features/workers/lib/agentOrdering.test.ts": "workers",
@@ -3522,6 +3715,7 @@
     "src/shared/icons/material/registry.ts": "icons",
     "src/shared/icons/material/sprite.tsx": "icons",
     "src/shared/styles/layoutStatusPill.test.ts": "styles",
+    "src/shared/styles/scrollbarClassNames.ts": "styles",
     "src/shared/styles/theme.test.ts": "styles",
     "src/shared/styles/theme.ts": "styles",
     "src/shared/ui/MarkdownContent.test.ts": "ui",
@@ -3669,7 +3863,8 @@
     "src/app/layout/LeftSidebar.tsx": [
       "LeftSidebar",
       "buildCoderAgentCreateRequest",
-      "buildKbaseAgentCreateRequest"
+      "buildKbaseAgentCreateRequest",
+      "handleCreateAgentSuccess"
     ],
     "src/app/layout/ShellOverlays.tsx": [
       "ShellOverlays"
@@ -3683,7 +3878,9 @@
     "src/app/layout/TopNav.test.ts": null,
     "src/app/layout/TopNav.tsx": [
       "TopNav",
+      "TopNavStatusDisplay",
       "resolveNextUsagePopoverOpen",
+      "resolveStatusPillClassName",
       "resolveTopNavStatus"
     ],
     "src/app/layout/hooks/useAppRuntimes.ts": [
@@ -4384,6 +4581,23 @@
       "PlanSummaryView",
       "buildPlanSummaryView"
     ],
+    "src/features/search/components/GlobalSearchOverlay.tsx": [
+      "GlobalSearchOverlay"
+    ],
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx": [
+      "GlobalSearchOverlayProvider",
+      "useGlobalSearchActions",
+      "useGlobalSearchOpen"
+    ],
+    "src/features/search/components/GlobalSearchPanel.tsx": [
+      "GlobalSearchPanel"
+    ],
+    "src/features/search/lib/globalSearchRows.test.ts": null,
+    "src/features/search/lib/globalSearchRows.ts": [
+      "BuildGlobalRowsInput",
+      "GlobalRow",
+      "buildGlobalRows"
+    ],
     "src/features/settings/components/ArchiveConsole.test.ts": null,
     "src/features/settings/components/ArchiveConsole.tsx": [
       "ArchiveConsole",
@@ -4405,6 +4619,9 @@
     ],
     "src/features/settings/components/SettingsClientGate.tsx": [
       "SettingsClientGate"
+    ],
+    "src/features/settings/components/SettingsDrawer.tsx": [
+      "SettingsDrawer"
     ],
     "src/features/settings/components/SettingsModal.test.ts": null,
     "src/features/settings/components/SettingsModal.tsx": [
@@ -4472,6 +4689,61 @@
       "formatClientGateDraftState",
       "parseClientGateDraftValue",
       "syncClientGateDraftState"
+    ],
+    "src/features/source/component/source-score/index.tsx": [
+      "SourceScore"
+    ],
+    "src/features/terminal/components/TerminalPane.tsx": [
+      "TerminalPane",
+      "TerminalPaneProps"
+    ],
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts": null,
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts": [
+      "notifyTerminalActivityChanged",
+      "resetTerminalActivityForTests",
+      "terminalBusyAgentKeysFromSessions",
+      "useActiveTerminalAgents"
+    ],
+    "src/features/terminal/lib/terminalDockPersistence.test.ts": null,
+    "src/features/terminal/lib/terminalDockPersistence.ts": [
+      "TerminalDockStoredState",
+      "TerminalDockTabState",
+      "persistTerminalDockOpen",
+      "persistTerminalDockState",
+      "resetTerminalDockPersistenceForTests",
+      "restoreTerminalDockOpen",
+      "restoreTerminalDockState"
+    ],
+    "src/features/terminal/lib/terminalRemoteSession.test.ts": null,
+    "src/features/terminal/lib/terminalRemoteSession.ts": [
+      "TerminalRemoteSession",
+      "TerminalRemoteSessionOptions",
+      "createTerminalRemoteSession",
+      "reportTerminalTeardownError",
+      "terminalErrorMessage"
+    ],
+    "src/features/terminal/lib/terminalTheme.ts": [
+      "resolveTerminalTheme"
+    ],
+    "src/features/terminal/lib/terminalTransport.ts": [
+      "TerminalDetachPayload",
+      "TerminalInputPayload",
+      "TerminalOpenOptions",
+      "TerminalResizePayload",
+      "TerminalStreamHandle",
+      "openTerminalStream",
+      "resolveTerminalWsClient",
+      "sendTerminalClose",
+      "sendTerminalDetach",
+      "sendTerminalInput",
+      "sendTerminalResize"
+    ],
+    "src/features/terminal/lib/terminalWorkspace.ts": [
+      "TerminalAvailability",
+      "isChatWorkspaceKey",
+      "resolveTerminalAvailability",
+      "resolveTerminalAvailabilityKey",
+      "resolveTerminalDockWorkspaceKey"
     ],
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts": null,
     "src/features/timeline/components/AwaitingAnswerBlock.tsx": [
@@ -4724,6 +4996,10 @@
       "isSelectQuestionType",
       "isValidAwaitingDateAnswer"
     ],
+    "src/features/tools/components/buildin/dialogClassNames.ts": [
+      "getHitlPaginationDotClassName",
+      "hitlDialogClassNames"
+    ],
     "src/features/tools/components/buildin/index.tsx": [
       "Buildin"
     ],
@@ -4829,6 +5105,10 @@
       "registerAttachRunListener",
       "registerDetachRunListener",
       "useWsTransport"
+    ],
+    "src/features/transport/lib/clientDeviceId.ts": [
+      "getClientDeviceId",
+      "resetClientDeviceIdForTests"
     ],
     "src/features/transport/lib/detachRunEvent.ts": [
       "AGENT_DETACH_RUN_EVENT",
@@ -5057,6 +5337,9 @@
       "saveAgentOrderRequest",
       "shouldStartAgentConsoleBootstrap"
     ],
+    "src/features/workers/components/CommandDrawer.tsx": [
+      "CommandDrawer"
+    ],
     "src/features/workers/components/CommandModal.test.ts": null,
     "src/features/workers/components/CommandModal.tsx": [
       "CommandModal"
@@ -5077,6 +5360,11 @@
     "src/features/workers/components/SwitchModal.tsx": [
       "SWITCH_SCOPES",
       "SwitchModal"
+    ],
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts": null,
+    "src/features/workers/hooks/useGlobalShortcuts.ts": [
+      "GlobalShortcutLayer",
+      "useGlobalShortcuts"
     ],
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": [
@@ -5263,6 +5551,8 @@
       "RenameChatRequest",
       "RenameChatResponse",
       "ServiceTierOption",
+      "TerminalSessionInfo",
+      "TerminalSessionsResponse",
       "ToggleAutomationRequest",
       "UpdateAgentModelConfigRequest",
       "UpdateAgentOrderRequest",
@@ -5318,6 +5608,7 @@
       "getModelOptions",
       "getResourceText",
       "getTeams",
+      "getTerminalSessions",
       "getViewport",
       "getVoiceCapabilities",
       "getVoiceCapabilitiesFlexible",
@@ -5675,6 +5966,9 @@
       "getMaterialIconHref"
     ],
     "src/shared/styles/layoutStatusPill.test.ts": null,
+    "src/shared/styles/scrollbarClassNames.ts": [
+      "SCROLLBAR_THIN_CLASS_NAME"
+    ],
     "src/shared/styles/theme.test.ts": null,
     "src/shared/styles/theme.ts": [
       "THEME_STORAGE_KEY",
@@ -5860,6 +6154,7 @@
       "@/app/state/AppContext",
       "@/app/state/types",
       "@/features/chats/lib/chatSummary",
+      "@/features/search/components/GlobalSearchOverlayProvider",
       "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
@@ -5881,10 +6176,12 @@
       "@/app/layout/hooks/useAppRuntimes",
       "@/app/layout/sidebar/right/RightSidebar",
       "@/app/state/AppContext",
+      "@/features/search/components/GlobalSearchOverlayProvider",
       "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/timeline/lib/timelineDisplay",
       "@/features/workers/components/CommandOverlayProvider",
+      "@/features/workers/hooks/useGlobalShortcuts",
       "@/features/workers/lib/currentWorker",
       "react"
     ],
@@ -5919,11 +6216,13 @@
       "@/features/settings/components/SettingsOverlayProvider",
       "@/features/timeline/components/ConversationStage",
       "@/features/workers/components/CommandOverlayProvider",
+      "@/features/workers/hooks/useGlobalShortcuts",
       "@/features/workers/lib/currentWorker",
       "@/shared/config/featureFlags",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
+      "antd",
       "react",
       "react-router-dom"
     ],
@@ -5951,6 +6250,7 @@
       "@/features/chats/lib/chatSummary",
       "@/features/settings/components/SettingsOverlayProvider",
       "@/features/settings/components/SidebarSettingsMenu",
+      "@/features/terminal/hooks/useActiveTerminalAgents",
       "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/workerListFormatter",
       "@/shared/config/featureFlags",
@@ -5970,23 +6270,25 @@
       "@/app/effects/FireworksCanvas",
       "@/app/layout/CommandStatusOverlay",
       "@/app/modals/EventPopover",
+      "@/features/search/components/GlobalSearchOverlay",
       "@/features/settings/components/SettingsOverlayHost",
       "@/features/workers/components/CommandOverlayHost",
       "react"
     ],
     "src/app/layout/TerminalDock.test.ts": [
-      "@/app/layout/TerminalDock"
+      "@/app/layout/TerminalDock",
+      "@/features/terminal/lib/terminalWorkspace"
     ],
     "src/app/layout/TerminalDock.tsx": [
       "@/app/state/AppContext",
-      "@/app/state/types",
-      "@/features/transport/lib/wsClient",
-      "@/features/transport/lib/wsClientSingleton",
+      "@/features/terminal/components/TerminalPane",
+      "@/features/terminal/hooks/useActiveTerminalAgents",
+      "@/features/terminal/lib/terminalDockPersistence",
+      "@/features/terminal/lib/terminalRemoteSession",
+      "@/features/terminal/lib/terminalTheme",
+      "@/features/terminal/lib/terminalWorkspace",
       "@/features/workers/lib/currentWorker",
-      "@/shared/data",
-      "@xterm/addon-fit",
-      "@xterm/xterm",
-      "@xterm/xterm/css/xterm.css",
+      "@/shared/utils/eventUtils",
       "react"
     ],
     "src/app/layout/TopNav.test.ts": [
@@ -5999,7 +6301,9 @@
       "@/app/state/AppContext",
       "@/app/state/selectors",
       "@/app/state/types",
+      "@/features/search/components/GlobalSearchOverlayProvider",
       "@/features/settings/components/SettingsOverlayProvider",
+      "@/features/terminal/hooks/useActiveTerminalAgents",
       "@/features/workers/components/CommandOverlayProvider",
       "@/features/workers/lib/currentWorker",
       "@/shared/components/text-count-up",
@@ -6105,6 +6409,7 @@
       "@/app/state/types",
       "@/features/timeline/lib/debugEventDisplay",
       "@/shared/i18n",
+      "@/shared/styles/scrollbarClassNames",
       "@/shared/utils/debugTime",
       "antd",
       "react"
@@ -6154,6 +6459,7 @@
     "src/app/layout/sidebar/right/SourceDetailTab.tsx": [
       "@/app/state/AppContext",
       "@/app/state/types",
+      "@/features/source/component/source-score",
       "@/shared/i18n",
       "@/shared/ui/MarkdownContent",
       "antd",
@@ -6202,6 +6508,7 @@
       "@/app/state/types",
       "@/shared/data",
       "@/shared/i18n",
+      "@/shared/styles/scrollbarClassNames",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
       "antd",
@@ -6389,6 +6696,7 @@
     "src/app/state/reducerUi.ts": [
       "@/app/state/actions",
       "@/app/state/types",
+      "@/features/terminal/lib/terminalDockPersistence",
       "@/shared/styles/theme"
     ],
     "src/app/state/reducerVoice.ts": [
@@ -6400,6 +6708,7 @@
     ],
     "src/app/state/state.ts": [
       "@/app/state/types",
+      "@/features/terminal/lib/terminalDockPersistence",
       "@/features/transport/lib/transportMode",
       "@/features/voice/lib/voiceAsrProtocol",
       "@/shared/data/accessTokenStorage",
@@ -6610,6 +6919,7 @@
       "@/features/composer/hooks/useComposerWonders",
       "@/features/composer/hooks/useRuntimeAccessLevel",
       "@/features/composer/lib/slashCommands",
+      "@/features/search/components/GlobalSearchOverlayProvider",
       "@/features/timeline/lib/timelineDisplay",
       "@/features/tools/components/AwaitingHtmlContainer",
       "@/features/tools/components/buildin",
@@ -6662,6 +6972,7 @@
     ],
     "src/features/composer/components/MentionSuggest.tsx": [
       "@/app/state/AppContext",
+      "@/shared/styles/scrollbarClassNames",
       "@/shared/ui/UiButton",
       "react"
     ],
@@ -6895,6 +7206,38 @@
       "antd",
       "react"
     ],
+    "src/features/search/components/GlobalSearchOverlay.tsx": [
+      "@/app/state/AppContext",
+      "@/app/state/types",
+      "@/features/search/components/GlobalSearchOverlayProvider",
+      "@/features/search/components/GlobalSearchPanel",
+      "@/features/search/lib/globalSearchRows",
+      "@/features/settings/components/SettingsOverlayProvider",
+      "@/features/workers/components/CommandOverlayProvider",
+      "@/features/workers/lib/currentWorker",
+      "@/features/workers/lib/workerConversationFormatter",
+      "@/shared/data",
+      "@/shared/i18n",
+      "antd",
+      "react"
+    ],
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx": [
+      "react"
+    ],
+    "src/features/search/components/GlobalSearchPanel.tsx": [
+      "@/features/search/lib/globalSearchRows",
+      "@/shared/icons/agent",
+      "@/shared/ui/MaterialIcon",
+      "react"
+    ],
+    "src/features/search/lib/globalSearchRows.test.ts": [
+      "@/app/state/types",
+      "@/features/search/lib/globalSearchRows"
+    ],
+    "src/features/search/lib/globalSearchRows.ts": [
+      "@/app/state/types",
+      "@/shared/icons/material"
+    ],
     "src/features/settings/components/ArchiveConsole.test.ts": [
       "@/features/settings/components/ArchiveConsole"
     ],
@@ -6946,6 +7289,26 @@
       "@/shared/ui/UiInput",
       "react"
     ],
+    "src/features/settings/components/SettingsDrawer.tsx": [
+      "@/app/state/AppContext",
+      "@/app/state/constants",
+      "@/app/state/types",
+      "@/features/settings/components/SettingsAsrDebug",
+      "@/features/settings/components/SettingsClientGate",
+      "@/features/settings/components/SettingsToken",
+      "@/features/settings/components/SettingsTransport",
+      "@/features/settings/components/SettingsTtsDebug",
+      "@/features/settings/lib/settingsClientGateDrafts",
+      "@/features/voice/lib/voiceAsrProtocol",
+      "@/features/voice/lib/voiceRuntime",
+      "@/shared/config/featureFlags",
+      "@/shared/data",
+      "@/shared/i18n",
+      "@/shared/ui/UiButton",
+      "@/shared/utils/routing",
+      "antd",
+      "react"
+    ],
     "src/features/settings/components/SettingsModal.test.ts": [
       "@/app/state/AppContext",
       "@/features/settings/components/SettingsModal",
@@ -6976,6 +7339,7 @@
     ],
     "src/features/settings/components/SettingsOverlayHost.tsx": [
       "@/features/settings/components/MemoryInfoModal",
+      "@/features/settings/components/SettingsDrawer",
       "@/features/settings/components/SettingsModal",
       "@/features/settings/components/SettingsOverlayProvider",
       "react"
@@ -7043,6 +7407,65 @@
     "src/features/settings/lib/settingsClientGateDrafts.ts": [
       "@/app/state/types"
     ],
+    "src/features/source/component/source-score/index.tsx": [
+      "./index.module.css",
+      "antd",
+      "react"
+    ],
+    "src/features/terminal/components/TerminalPane.tsx": [
+      "@/app/state/types",
+      "@/features/terminal/hooks/useActiveTerminalAgents",
+      "@/features/terminal/lib/terminalRemoteSession",
+      "@/features/terminal/lib/terminalTheme",
+      "@/features/terminal/lib/terminalTransport",
+      "@/features/terminal/lib/terminalWorkspace",
+      "@/shared/utils/eventUtils",
+      "@xterm/addon-fit",
+      "@xterm/xterm",
+      "@xterm/xterm/css/xterm.css",
+      "react"
+    ],
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts": [
+      "@/features/terminal/hooks/useActiveTerminalAgents"
+    ],
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts": [
+      "@/features/transport/lib/clientDeviceId",
+      "@/shared/data",
+      "@/shared/data/client",
+      "@/shared/utils/eventUtils",
+      "react"
+    ],
+    "src/features/terminal/lib/terminalDockPersistence.test.ts": [
+      "@/features/terminal/lib/terminalDockPersistence"
+    ],
+    "src/features/terminal/lib/terminalDockPersistence.ts": [
+      "@/shared/utils/eventUtils"
+    ],
+    "src/features/terminal/lib/terminalRemoteSession.test.ts": [
+      "@/app/state/types",
+      "@/features/terminal/lib/terminalRemoteSession",
+      "@/features/transport/lib/wsClient",
+      "@/shared/data"
+    ],
+    "src/features/terminal/lib/terminalRemoteSession.ts": [
+      "@/app/state/types",
+      "@/features/terminal/lib/terminalTransport",
+      "@/features/transport/lib/wsClient",
+      "@/shared/utils/eventUtils"
+    ],
+    "src/features/terminal/lib/terminalTheme.ts": [
+      "@xterm/xterm"
+    ],
+    "src/features/terminal/lib/terminalTransport.ts": [
+      "@/app/state/types",
+      "@/features/transport/lib/wsClient",
+      "@/features/transport/lib/wsClientSingleton",
+      "@/shared/data"
+    ],
+    "src/features/terminal/lib/terminalWorkspace.ts": [
+      "@/features/workers/lib/currentWorker",
+      "@/shared/utils/eventUtils"
+    ],
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts": [
       "@/features/timeline/components/AwaitingAnswerBlock",
       "react",
@@ -7084,6 +7507,7 @@
       "@/shared/data",
       "@/shared/i18n",
       "@/shared/icons/agent",
+      "@/shared/styles/scrollbarClassNames",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
       "@/shared/utils/copy",
@@ -7116,6 +7540,7 @@
       "./collapse",
       "@/app/state/AppContext",
       "@/app/state/types",
+      "@/shared/i18n",
       "react"
     ],
     "src/features/timeline/components/TimelineRow.tsx": [
@@ -7146,6 +7571,7 @@
       "@/features/timeline/lib/timelineDisplay",
       "@/features/timeline/lib/toolDisplay",
       "@/shared/i18n",
+      "@/shared/styles/scrollbarClassNames",
       "@/shared/ui/MaterialIcon",
       "@/shared/ui/UiButton",
       "@/shared/utils/copy",
@@ -7170,7 +7596,6 @@
     ],
     "src/features/timeline/components/planning/index.tsx": [
       "../ContentBlock",
-      "./index.module.css",
       "@/app/state/timelineTypes",
       "@/shared/components/skeleton",
       "@/shared/i18n",
@@ -7359,6 +7784,7 @@
       "react-dom/server"
     ],
     "src/features/tools/components/AwaitingHtmlContainer.tsx": [
+      "./hitlCompat.module.css",
       "@/app/state/types",
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/protocol",
@@ -7383,11 +7809,11 @@
       "react"
     ],
     "src/features/tools/components/buildin/approval-dialog/index.tsx": [
-      "./index.module.css",
       "@/app/state/types",
       "@/features/tools/components/awaitingTimeout",
       "@/features/tools/components/buildin/approval-dialog/state",
       "@/features/tools/components/buildin/confirm-dialog/state",
+      "@/features/tools/components/buildin/dialogClassNames",
       "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
@@ -7406,8 +7832,8 @@
     "src/features/tools/components/buildin/confirm-dialog/index.tsx": [
       "@/app/state/types",
       "@/features/tools/components/awaitingTimeout",
-      "@/features/tools/components/buildin/confirm-dialog/index.module.css",
       "@/features/tools/components/buildin/confirm-dialog/state",
+      "@/features/tools/components/buildin/dialogClassNames",
       "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
       "@/shared/ui/MaterialIcon",
@@ -7427,15 +7853,18 @@
       "@/app/state/types",
       "@/shared/i18n"
     ],
+    "src/features/tools/components/buildin/dialogClassNames.ts": [
+      "../hitlCompat.module.css"
+    ],
     "src/features/tools/components/buildin/index.tsx": [
       "@/features/tools/components/buildin/approval-dialog",
       "@/features/tools/components/buildin/confirm-dialog",
       "@/features/tools/components/buildin/plan-dialog"
     ],
     "src/features/tools/components/buildin/plan-dialog/index.tsx": [
-      "./index.module.css",
       "@/app/state/types",
       "@/features/tools/components/buildin/confirm-dialog/state",
+      "@/features/tools/components/buildin/dialogClassNames",
       "@/features/tools/components/buildin/plan-dialog/state",
       "@/features/tools/components/buildin/useAwaitingResolutionNotice",
       "@/shared/i18n",
@@ -7561,6 +7990,7 @@
       "@/shared/utils/routing",
       "react"
     ],
+    "src/features/transport/lib/clientDeviceId.ts": null,
     "src/features/transport/lib/detachRunEvent.ts": null,
     "src/features/transport/lib/queryStreamExecutors.ts": [
       "@/features/transport/lib/queryStreamRuntime.sse",
@@ -7611,6 +8041,7 @@
     ],
     "src/features/transport/lib/wsClient.ts": [
       "@/app/state/types",
+      "@/features/transport/lib/clientDeviceId",
       "@/shared/data/client",
       "@/shared/data/endpoints",
       "@/shared/data/platformError",
@@ -7811,6 +8242,22 @@
       "antd",
       "react"
     ],
+    "src/features/workers/components/CommandDrawer.tsx": [
+      "@/app/modals/AutomationModal",
+      "@/app/modals/HistoryModal",
+      "@/app/state/AppContext",
+      "@/app/state/types",
+      "@/features/workers/components/AgentConsole",
+      "@/features/workers/components/DetailModal",
+      "@/features/workers/components/SwitchModal",
+      "@/features/workers/lib/commandOverlay",
+      "@/features/workers/lib/currentWorker",
+      "@/features/workers/lib/workerConversationFormatter",
+      "@/shared/data",
+      "@/shared/i18n",
+      "antd",
+      "react"
+    ],
     "src/features/workers/components/CommandModal.test.ts": [
       "@/app/state/state",
       "@/app/state/types",
@@ -7836,6 +8283,7 @@
       "react"
     ],
     "src/features/workers/components/CommandOverlayHost.tsx": [
+      "@/features/workers/components/CommandDrawer",
       "@/features/workers/components/CommandModal",
       "@/features/workers/components/CommandOverlayProvider",
       "react"
@@ -7864,6 +8312,19 @@
       "@/shared/ui/UiInput",
       "@/shared/ui/UiListItem",
       "@/shared/ui/UiTag",
+      "react"
+    ],
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts": [
+      "@/features/workers/hooks/useGlobalShortcuts",
+      "react",
+      "react-dom/server"
+    ],
+    "src/features/workers/hooks/useGlobalShortcuts.ts": [
+      "@/app/state/AppContext",
+      "@/features/search/components/GlobalSearchOverlayProvider",
+      "@/features/settings/components/SettingsOverlayProvider",
+      "@/features/tools/components/buildin/confirm-dialog/state",
+      "@/features/workers/components/CommandOverlayProvider",
       "react"
     ],
     "src/features/workers/hooks/useWorkerData.test.ts": [
@@ -8188,9 +8649,9 @@
       "./sprite.svg"
     ],
     "src/shared/styles/layoutStatusPill.test.ts": [
-      "node:fs",
-      "node:path"
+      "@/app/layout/TopNav"
     ],
+    "src/shared/styles/scrollbarClassNames.ts": null,
     "src/shared/styles/theme.test.ts": [
       "@/shared/styles/theme"
     ],
@@ -8480,12 +8941,18 @@
     "src/features/composer/lib/wonders.ts": null,
     "src/features/plan/components/PlanPanel.test.ts": null,
     "src/features/plan/components/PlanPanel.tsx": null,
+    "src/features/search/components/GlobalSearchOverlay.tsx": null,
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx": null,
+    "src/features/search/components/GlobalSearchPanel.tsx": null,
+    "src/features/search/lib/globalSearchRows.test.ts": null,
+    "src/features/search/lib/globalSearchRows.ts": null,
     "src/features/settings/components/ArchiveConsole.test.ts": null,
     "src/features/settings/components/ArchiveConsole.tsx": null,
     "src/features/settings/components/MemoryInfoModal.test.ts": null,
     "src/features/settings/components/MemoryInfoModal.tsx": null,
     "src/features/settings/components/SettingsAsrDebug.tsx": null,
     "src/features/settings/components/SettingsClientGate.tsx": null,
+    "src/features/settings/components/SettingsDrawer.tsx": null,
     "src/features/settings/components/SettingsModal.test.ts": null,
     "src/features/settings/components/SettingsModal.tsx": null,
     "src/features/settings/components/SettingsOverlayHost.tsx": null,
@@ -8501,6 +8968,19 @@
     "src/features/settings/lib/memoryInfo.ts": null,
     "src/features/settings/lib/settingsClientGateDrafts.test.ts": null,
     "src/features/settings/lib/settingsClientGateDrafts.ts": null,
+    "src/features/source/component/source-score/index.tsx": [
+      "src/features/source/component/source-score/index.module.css"
+    ],
+    "src/features/terminal/components/TerminalPane.tsx": null,
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts": null,
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts": null,
+    "src/features/terminal/lib/terminalDockPersistence.test.ts": null,
+    "src/features/terminal/lib/terminalDockPersistence.ts": null,
+    "src/features/terminal/lib/terminalRemoteSession.test.ts": null,
+    "src/features/terminal/lib/terminalRemoteSession.ts": null,
+    "src/features/terminal/lib/terminalTheme.ts": null,
+    "src/features/terminal/lib/terminalTransport.ts": null,
+    "src/features/terminal/lib/terminalWorkspace.ts": null,
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts": null,
     "src/features/timeline/components/AwaitingAnswerBlock.tsx": [
       "src/features/timeline/components/collapse/index.tsx"
@@ -8530,8 +9010,7 @@
       "src/features/timeline/components/collapse/index.module.css"
     ],
     "src/features/timeline/components/planning/index.tsx": [
-      "src/features/timeline/components/ContentBlock.tsx",
-      "src/features/timeline/components/planning/index.module.css"
+      "src/features/timeline/components/ContentBlock.tsx"
     ],
     "src/features/timeline/hooks/useAgentEventHandler.test.ts": null,
     "src/features/timeline/hooks/useAgentEventHandler.ts": null,
@@ -8563,22 +9042,23 @@
     "src/features/timeline/lib/toolDisplay.ts": null,
     "src/features/timeline/lib/toolEvent.ts": null,
     "src/features/tools/components/AwaitingHtmlContainer.test.ts": null,
-    "src/features/tools/components/AwaitingHtmlContainer.tsx": null,
+    "src/features/tools/components/AwaitingHtmlContainer.tsx": [
+      "src/features/tools/components/hitlCompat.module.css"
+    ],
     "src/features/tools/components/FrontendToolContainer.tsx": null,
     "src/features/tools/components/awaitingTimeout.test.ts": null,
     "src/features/tools/components/awaitingTimeout.ts": null,
-    "src/features/tools/components/buildin/approval-dialog/index.tsx": [
-      "src/features/tools/components/buildin/approval-dialog/index.module.css"
-    ],
+    "src/features/tools/components/buildin/approval-dialog/index.tsx": null,
     "src/features/tools/components/buildin/approval-dialog/state.test.ts": null,
     "src/features/tools/components/buildin/approval-dialog/state.ts": null,
     "src/features/tools/components/buildin/confirm-dialog/index.tsx": null,
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts": null,
     "src/features/tools/components/buildin/confirm-dialog/state.ts": null,
-    "src/features/tools/components/buildin/index.tsx": null,
-    "src/features/tools/components/buildin/plan-dialog/index.tsx": [
-      "src/features/tools/components/buildin/plan-dialog/index.module.css"
+    "src/features/tools/components/buildin/dialogClassNames.ts": [
+      "src/features/tools/components/hitlCompat.module.css"
     ],
+    "src/features/tools/components/buildin/index.tsx": null,
+    "src/features/tools/components/buildin/plan-dialog/index.tsx": null,
     "src/features/tools/components/buildin/plan-dialog/state.test.ts": null,
     "src/features/tools/components/buildin/plan-dialog/state.ts": null,
     "src/features/tools/components/buildin/useAwaitingResolutionNotice.test.ts": null,
@@ -8604,6 +9084,7 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": null,
     "src/features/transport/hooks/useWsTransport.test.ts": null,
     "src/features/transport/hooks/useWsTransport.ts": null,
+    "src/features/transport/lib/clientDeviceId.ts": null,
     "src/features/transport/lib/detachRunEvent.ts": null,
     "src/features/transport/lib/queryStreamExecutors.ts": null,
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": null,
@@ -8650,6 +9131,7 @@
     "src/features/voice/lib/voiceSocket.ts": null,
     "src/features/workers/components/AgentConsole.test.ts": null,
     "src/features/workers/components/AgentConsole.tsx": null,
+    "src/features/workers/components/CommandDrawer.tsx": null,
     "src/features/workers/components/CommandModal.test.ts": null,
     "src/features/workers/components/CommandModal.tsx": null,
     "src/features/workers/components/CommandOverlayHost.tsx": null,
@@ -8657,6 +9139,8 @@
     "src/features/workers/components/DetailModal.tsx": null,
     "src/features/workers/components/SwitchModal.test.ts": null,
     "src/features/workers/components/SwitchModal.tsx": null,
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts": null,
+    "src/features/workers/hooks/useGlobalShortcuts.ts": null,
     "src/features/workers/hooks/useWorkerData.test.ts": null,
     "src/features/workers/hooks/useWorkerData.ts": null,
     "src/features/workers/lib/agentOrdering.test.ts": null,
@@ -8778,6 +9262,7 @@
       "src/shared/icons/material/sprite.svg"
     ],
     "src/shared/styles/layoutStatusPill.test.ts": null,
+    "src/shared/styles/scrollbarClassNames.ts": null,
     "src/shared/styles/theme.test.ts": null,
     "src/shared/styles/theme.ts": null,
     "src/shared/ui/MarkdownContent.test.ts": null,
@@ -8836,6 +9321,22 @@
     "scripts/check-hardcoded-han.js",
     "src/__mocks__/styleMock.ts",
     "src/env.d.ts",
+    "src/features/search/components/GlobalSearchOverlay.tsx",
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx",
+    "src/features/search/components/GlobalSearchPanel.tsx",
+    "src/features/search/lib/globalSearchRows.test.ts",
+    "src/features/search/lib/globalSearchRows.ts",
+    "src/features/source/component/source-score/index.tsx",
+    "src/features/terminal/components/TerminalPane.tsx",
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts",
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts",
+    "src/features/terminal/lib/terminalDockPersistence.test.ts",
+    "src/features/terminal/lib/terminalDockPersistence.ts",
+    "src/features/terminal/lib/terminalRemoteSession.test.ts",
+    "src/features/terminal/lib/terminalRemoteSession.ts",
+    "src/features/terminal/lib/terminalTheme.ts",
+    "src/features/terminal/lib/terminalTransport.ts",
+    "src/features/terminal/lib/terminalWorkspace.ts",
     "src/typings.d.ts",
     "src/webpack.config.test.ts",
     "webpack.config.js"

@@ -416,7 +416,7 @@ describe("AgentChatShell", () => {
     expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
     expect(html).toContain("right-sidebar");
-    expect(html).not.toContain("left-sidebar");
+    expect(html).not.toContain('<aside class="left-sidebar"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });
 

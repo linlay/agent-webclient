@@ -1,0 +1,31 @@
+:global(.hitl-radio-group .ant-radio),
+:global(.hitl-checkbox-group .ant-checkbox),
+:global(.awaiting-panel-radiogroup .ant-radio) {
+  display: none;
+}
+
+:global(.hitl-radio-group .ant-radio-wrapper > :last-child),
+:global(.hitl-checkbox-group .ant-checkbox-wrapper > :last-child),
+:global(.awaiting-panel-radiogroup .ant-radio-label) {
+  flex: 1;
+  width: 100%;
+}
+
+:global(.hitl-radio-group .ant-radio-wrapper-checked .hitl-selected-badge),
+:global(.hitl-checkbox-group .ant-checkbox-wrapper-checked .hitl-selected-badge) {
+  display: block;
+}
+
+:global(.hitl-radio-option.ant-radio-wrapper-checked .hitl-option-index),
+:global(.hitl-checkbox-option.ant-checkbox-wrapper-checked .hitl-option-index),
+:global(.hitl-plan-option:focus-within .hitl-option-index),
+:global(.awaiting-panel-option:focus-within .awaiting-panel-option-index),
+:global(.awaiting-panel-radiogroup .ant-radio-wrapper-checked .awaiting-panel-option-index) {
+  background: var(--text-main);
+  color: var(--bg-base);
+  border-color: var(--text-main);
+}
+
+:global(.hitl-radio-option.ant-radio-wrapper-checked .hitl-option-index .material-icon) {
+  color: var(--bg-base);
+}

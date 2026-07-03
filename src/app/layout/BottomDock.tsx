@@ -9,14 +9,28 @@ interface BottomDockProps {
 	mode?: "desktop" | "copilot";
 }
 
+const BOTTOM_DOCK_CLASS_BY_MODE = {
+	desktop: "bottom-dock",
+	copilot:
+		"bottom-dock tw:relative tw:bottom-auto tw:z-[22] tw:row-start-3 tw:min-w-0 tw:border-t tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)] tw:px-2 tw:pb-2.5 tw:pt-1.5 tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]",
+} as const;
+const BOTTOM_DOCK_INNER_CLASS_BY_MODE = {
+	desktop: "bottom-dock-inner",
+	copilot: "bottom-dock-inner tw:max-w-none",
+} as const;
+const BOTTOM_DOCK_STACK_CLASS_BY_MODE = {
+	desktop: "bottom-dock-stack",
+	copilot: "bottom-dock-stack tw:gap-2",
+} as const;
+
 export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 	const state = useAppState();
 	const isCopilot = mode === "copilot";
 
 	return (
-		<div className="bottom-dock">
-			<div className="bottom-dock-inner">
-				<div className="bottom-dock-stack">
+		<div className={BOTTOM_DOCK_CLASS_BY_MODE[mode]}>
+			<div className={BOTTOM_DOCK_INNER_CLASS_BY_MODE[mode]}>
+				<div className={BOTTOM_DOCK_STACK_CLASS_BY_MODE[mode]}>
 					<div className="bottom-dock-artifact-rail">
 						<ArtifactPanel />
 					</div>

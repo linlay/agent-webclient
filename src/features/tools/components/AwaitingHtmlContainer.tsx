@@ -26,6 +26,7 @@ import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitin
 import { useI18n } from "@/shared/i18n";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { RadioRef } from "antd/es/radio";
+import "./hitlCompat.module.css";
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -34,6 +35,60 @@ interface AwaitingHtmlContainerProps {
   onClose?: () => void;
   onResolved?: () => void;
 }
+
+const AWAITING_PANEL_CLASS_NAME =
+  "awaiting-panel tw:flex tw:min-h-[var(--composer-main-min-height)] tw:w-full tw:flex-1 tw:flex-col tw:gap-2.5 tw:rounded-2xl tw:border tw:border-line-soft tw:bg-bg-card tw:px-3 tw:py-2.5 tw:shadow-elevated";
+
+const AWAITING_PANEL_HEADER_CLASS_NAME =
+  "awaiting-panel-header tw:flex tw:flex-wrap tw:items-baseline tw:justify-between tw:gap-x-3 tw:gap-y-2";
+
+const AWAITING_PANEL_HEADER_MAIN_CLASS_NAME =
+  "awaiting-panel-header-main tw:flex tw:flex-wrap tw:items-baseline tw:gap-x-3 tw:gap-y-2";
+
+const AWAITING_PANEL_HEADER_SIDE_CLASS_NAME =
+  "awaiting-panel-header-side tw:ml-auto tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+
+const AWAITING_PANEL_TITLE_CLASS_NAME =
+  "awaiting-panel-title tw:text-sm tw:font-extrabold tw:text-ink-1";
+
+const AWAITING_TIMEOUT_BADGE_CLASS_NAME =
+  "awaiting-timeout-badge tw:whitespace-nowrap tw:text-xs tw:font-bold tw:text-text-muted";
+
+const AWAITING_PANEL_FORM_SWITCHER_CLASS_NAME =
+  "awaiting-panel-form-switcher tw:flex tw:items-center tw:gap-1";
+
+const AWAITING_PANEL_FORM_SWITCHER_LABEL_CLASS_NAME =
+  "awaiting-panel-form-switcher-label tw:max-w-[min(320px,55vw)] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-bold tw:text-ink-muted";
+
+const FRONTEND_TOOL_FRAME_CLASS_NAME =
+  "frontend-tool-frame tw:w-full tw:max-h-[70vh] tw:border-0 tw:[.layout-copilot_&]:h-[min(320px,44vh)]";
+
+const AWAITING_PANEL_ERROR_CLASS_NAME =
+  "awaiting-panel-error tw:rounded-xl tw:border tw:border-[rgba(246,222,227,0.95)] tw:bg-[linear-gradient(180deg,rgba(255,248,249,0.96),rgba(255,239,243,0.96))] tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-semibold tw:text-accent-danger";
+
+const AWAITING_PANEL_EMPTY_CLASS_NAME =
+  "awaiting-panel-empty tw:rounded-xl tw:bg-[rgba(248,250,254,0.92)] tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-semibold tw:text-ink-muted";
+
+const AWAITING_PANEL_FOOTER_CLASS_NAME =
+  "awaiting-panel-footer tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5";
+
+const AWAITING_PANEL_RADIOGROUP_CLASS_NAME =
+  "awaiting-panel-radiogroup tw:flex tw:flex-col tw:gap-0.5 tw:text-xs";
+
+const AWAITING_PANEL_OPTION_CLASS_NAME =
+  "awaiting-panel-option tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover";
+
+const AWAITING_PANEL_FREE_TEXT_OPTION_CLASS_NAME =
+  "awaiting-panel-option free-text tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover tw:focus-within:border-accent";
+
+const AWAITING_PANEL_OPTION_INDEX_CLASS_NAME =
+  "awaiting-panel-option-index tw:flex tw:h-5 tw:w-5 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-line tw:bg-bg-hover";
+
+const AWAITING_PANEL_OPTION_LABEL_CLASS_NAME =
+  "awaiting-panel-option-label tw:whitespace-nowrap tw:font-semibold tw:text-text-main";
+
+const AWAITING_PANEL_SUBMIT_TAIL_CLASS_NAME =
+  "awaiting-panel-submit-tail tw:text-text-muted";
 
 export const INVALID_AWAITING_SUBMIT_ERROR = "Invalid awaiting submit payload";
 
@@ -880,14 +935,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     // },
   });
   return (
-    <div className="awaiting-panel" id="awaiting-html-panel">
-      <div className="awaiting-panel-header">
-        <div className="awaiting-panel-header-main">
-          <strong className="awaiting-panel-title">{panelCaption}</strong>
+    <div className={AWAITING_PANEL_CLASS_NAME} id="awaiting-html-panel">
+      <div className={AWAITING_PANEL_HEADER_CLASS_NAME}>
+        <div className={AWAITING_PANEL_HEADER_MAIN_CLASS_NAME}>
+          <strong className={AWAITING_PANEL_TITLE_CLASS_NAME}>
+            {panelCaption}
+          </strong>
         </div>
-        <div className="awaiting-panel-header-side">
+        <div className={AWAITING_PANEL_HEADER_SIDE_CLASS_NAME}>
           {timeoutCountdown.label && (
-            <span className="awaiting-timeout-badge">
+            <span className={AWAITING_TIMEOUT_BADGE_CLASS_NAME}>
               {timeoutExpired &&
               (submitStatus === "collecting" ||
                 submitStatus === "submitting" ||
@@ -899,16 +956,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             </span>
           )}
           {data.forms.length > 1 && (
-            <div className="awaiting-panel-form-switcher">
+            <div className={AWAITING_PANEL_FORM_SWITCHER_CLASS_NAME}>
               <Button
                 disabled={switchDisabled || activeFormIndex <= 0}
-                icon={<MaterialIcon name="chevron_left" style={{ fontSize: 12 }} />}
+                icon={<MaterialIcon name="chevron_left" className="tw:text-xs" />}
                 size="small"
                 type="text"
                 onClick={() => handleSwitchForm(activeFormIndex - 1)}
               />
               <span
-                className="awaiting-panel-form-switcher-label"
+                className={AWAITING_PANEL_FORM_SWITCHER_LABEL_CLASS_NAME}
                 title={
                   currentForm?.title ||
                   currentForm?.action ||
@@ -929,7 +986,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                 disabled={
                   switchDisabled || activeFormIndex >= data.forms.length - 1
                 }
-                icon={<MaterialIcon name="chevron_right" style={{ fontSize: 12 }} />}
+                icon={<MaterialIcon name="chevron_right" className="tw:text-xs" />}
                 size="small"
                 type="text"
                 onClick={() => handleSwitchForm(activeFormIndex + 1)}
@@ -940,18 +997,22 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       </div>
 
       {data.loading && (
-        <div className="status-line">{t("awaiting.load.loading")}</div>
+        <div className="status-line tw:mt-0.5">
+          {t("awaiting.load.loading")}
+        </div>
       )}
       {data.loadError && (
-        <div className="awaiting-panel-error">{data.loadError}</div>
+        <div className={AWAITING_PANEL_ERROR_CLASS_NAME}>{data.loadError}</div>
       )}
       {!data.loading && !data.loadError && !data.viewportHtml && (
-        <div className="awaiting-panel-empty">{t("awaiting.load.waiting")}</div>
+        <div className={AWAITING_PANEL_EMPTY_CLASS_NAME}>
+          {t("awaiting.load.waiting")}
+        </div>
       )}
       {data.viewportHtml && (
         <iframe
           ref={iframeRef}
-          className="frontend-tool-frame"
+          className={FRONTEND_TOOL_FRAME_CLASS_NAME}
           id="awaiting-html-frame"
           srcDoc={data.viewportHtml}
           sandbox="allow-scripts allow-popups allow-same-origin"
@@ -959,9 +1020,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         />
       )}
 
-      <div ref={hostRef} className="awaiting-panel-footer">
+      <div ref={hostRef} className={AWAITING_PANEL_FOOTER_CLASS_NAME}>
         <Radio.Group
-          className="awaiting-panel-radiogroup"
+          className={AWAITING_PANEL_RADIOGROUP_CLASS_NAME}
           value={footerDecision}
           disabled={footerReadOnly}
         >
@@ -972,7 +1033,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                 radioItemsRef.current[0] = radioRef;
               }
             }}
-            className="awaiting-panel-option"
+            className={AWAITING_PANEL_OPTION_CLASS_NAME}
             disabled={footerReadOnly || !data.viewportHtml}
             onClick={() => {
               handleFooterDecisionSubmit("submit");
@@ -983,15 +1044,15 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               align="center"
               tabIndex={0}
               data-index={0}
-              style={{ outline: "none" }}
+              className="tw:outline-none"
             >
-              <span className="awaiting-panel-option-index">1</span>
-              <span className="awaiting-panel-option-label">
+              <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>1</span>
+              <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
                 {submitStatusText
                   ? submitStatusText
                   : t("awaiting.action.approve")}
               </span>
-              <span className="awaiting-panel-submit-tail">
+              <span className={AWAITING_PANEL_SUBMIT_TAIL_CLASS_NAME}>
                 {t("awaiting.hint.submitEditable")}
               </span>
             </Flex>
@@ -1003,15 +1064,15 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                 radioItemsRef.current[1] = radioRef;
               }
             }}
-            className="awaiting-panel-option free-text"
+            className={AWAITING_PANEL_FREE_TEXT_OPTION_CLASS_NAME}
             disabled={footerReadOnly || !data.viewportHtml}
             onClick={() => {
               handleFooterDecisionSubmit("reject");
             }}
           >
             <Flex gap={10} align="center">
-              <span className="awaiting-panel-option-index">2</span>
-              <span className="awaiting-panel-option-label">
+              <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>2</span>
+              <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
                 {t("awaiting.action.reject")}
               </span>
               <Input
@@ -1034,13 +1095,15 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
                   }
                   handleFooterDecisionSubmit("reject");
                 }}
-                style={{ padding: 0, fontSize: 12 }}
+                className="tw:p-0 tw:text-xs"
               />
             </Flex>
           </Radio>
         </Radio.Group>
       </div>
-      {submitError && <div className="system-alert">{submitError}</div>}
+      {submitError && (
+        <div className="system-alert tw:mt-0.5">{submitError}</div>
+      )}
     </div>
   );
 };

@@ -31,6 +31,11 @@ import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebu
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 
+const SETTINGS_CARD_CLASS_NAME =
+  "settings-card tw:max-h-[min(82vh,860px)] tw:w-full tw:overflow-auto";
+const SETTINGS_PREFERENCES_GRID_CLASS_NAME =
+  "settings-preferences-grid tw:grid tw:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] tw:gap-4 tw:[&_.field-group]:mb-0";
+
 interface SettingsModalProps {
   open?: boolean;
   onClose?: () => void;
@@ -236,8 +241,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       className="settings-modal"
       title={t("settings.title")}
     >
-      <div className="settings-card">
-        <div className="settings-preferences-grid">
+      <div className={SETTINGS_CARD_CLASS_NAME}>
+        <div className={SETTINGS_PREFERENCES_GRID_CLASS_NAME}>
           <div className="field-group">
             <label>{t("settings.conversationMode.label")}</label>
             <div

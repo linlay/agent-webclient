@@ -4,10 +4,7 @@ import { getTextCountUpChars, TextCountUp } from "./index";
 
 jest.mock("./index.module.css", () => ({
   Char: "Char",
-  Digit: "Digit",
   DigitList: "DigitList",
-  DigitValue: "DigitValue",
-  TextCountUp: "TextCountUp",
 }));
 
 describe("TextCountUp", () => {
@@ -27,8 +24,10 @@ describe("TextCountUp", () => {
     );
 
     expect(html).toContain('aria-label="A12"');
-    expect(html).toContain('class="Char"');
-    expect(html).toContain('class="Digit"');
+    expect(html).toContain('class="Char tw:inline-block');
+    expect(html).toContain(
+      'class="tw:inline-block tw:h-[1em] tw:overflow-hidden tw:leading-none tw:align-baseline"',
+    );
     expect(html).toContain("--from-digit:0");
     expect(html).toContain("--to-digit:1");
     expect(html).toContain("--to-digit:2");
@@ -49,7 +48,9 @@ describe("TextCountUp", () => {
       }),
     );
 
-    expect(html).toContain('class="TextCountUp metric"');
+    expect(html).toContain(
+      'class="tw:inline-flex tw:items-baseline tw:whitespace-pre tw:[font-variant-numeric:tabular-nums] metric"',
+    );
     expect(html).toContain("--digit-duration:0s");
     expect(html).toContain("--digit-delay:0s");
     expect(html).toContain("animation-delay:0s");

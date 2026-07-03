@@ -181,6 +181,8 @@
         "server",
         "service",
         "services",
+        "session",
+        "sessions",
         "set",
         "shared",
         "skills",
@@ -199,6 +201,7 @@
         "system",
         "tab",
         "teams",
+        "terminal",
         "test",
         "tests",
         "text",
@@ -314,6 +317,7 @@
         "change",
         "chat",
         "chunk",
+        "class",
         "client",
         "clients",
         "coder",
@@ -415,6 +419,7 @@
         "mode",
         "model",
         "module",
+        "name",
         "nav",
         "navigation",
         "next",
@@ -441,6 +446,7 @@
         "payload",
         "pending",
         "phase",
+        "pill",
         "plan",
         "popover",
         "prefix",
@@ -515,6 +521,7 @@
         "strip",
         "styles",
         "submit",
+        "success",
         "summary",
         "sync",
         "system",
@@ -1189,6 +1196,7 @@
         "debug",
         "draft",
         "drafts",
+        "drawer",
         "during",
         "extract",
         "features",
@@ -1271,6 +1279,7 @@
       "tokens": [
         "apply",
         "boundary",
+        "class",
         "confirmed",
         "document",
         "during",
@@ -1281,11 +1290,14 @@
         "layout",
         "mode",
         "module",
+        "name",
+        "names",
         "normalize",
         "param",
         "pill",
         "read",
         "resolve",
+        "scrollbar",
         "shared",
         "src",
         "status",
@@ -1295,6 +1307,7 @@
         "sync",
         "test",
         "theme",
+        "thin",
         "url",
         "write",
         "xgraph"
@@ -1528,6 +1541,7 @@
         "builtin",
         "cancel",
         "clamp",
+        "class",
         "clear",
         "clone",
         "close",
@@ -1542,6 +1556,7 @@
         "date",
         "decision",
         "dialog",
+        "dot",
         "during",
         "editable",
         "entries",
@@ -1562,6 +1577,7 @@
         "has",
         "heading",
         "historical",
+        "hitl",
         "hooks",
         "html",
         "ids",
@@ -1585,10 +1601,13 @@
         "mode",
         "module",
         "multi",
+        "name",
+        "names",
         "normalize",
         "notice",
         "option",
         "options",
+        "pagination",
         "param",
         "params",
         "parse",
@@ -1684,6 +1703,7 @@
         "destroy",
         "detach",
         "detail",
+        "device",
         "disconnected",
         "dispatch",
         "during",
@@ -1715,6 +1735,7 @@
         "register",
         "replay",
         "request",
+        "reset",
         "resolve",
         "retry",
         "run",
@@ -1733,6 +1754,7 @@
         "stored",
         "stream",
         "test",
+        "tests",
         "text",
         "timeout",
         "token",
@@ -2030,6 +2052,7 @@
         "src/features/workers/components/AgentConsole.test.ts",
         "src/features/workers/components/CommandModal.test.ts",
         "src/features/workers/components/SwitchModal.test.ts",
+        "src/features/workers/hooks/useGlobalShortcuts.test.ts",
         "src/features/workers/hooks/useWorkerData.test.ts",
         "src/features/workers/lib/agentOrdering.test.ts",
         "src/features/workers/lib/agentSummary.test.ts",
@@ -2070,6 +2093,7 @@
         "diagnostic",
         "diagnostics",
         "draft",
+        "drawer",
         "drop",
         "during",
         "editable",
@@ -2083,6 +2107,7 @@
         "form",
         "formatter",
         "from",
+        "global",
         "has",
         "hooks",
         "host",
@@ -2091,6 +2116,7 @@
         "invalid",
         "key",
         "keys",
+        "layer",
         "lib",
         "list",
         "merge",
@@ -2119,6 +2145,8 @@
         "scope",
         "scopes",
         "search",
+        "shortcut",
+        "shortcuts",
         "should",
         "snapshot",
         "source",
@@ -2616,12 +2644,18 @@
     "src/features/composer/lib/wonders.ts",
     "src/features/plan/components/PlanPanel.test.ts",
     "src/features/plan/components/PlanPanel.tsx",
+    "src/features/search/components/GlobalSearchOverlay.tsx",
+    "src/features/search/components/GlobalSearchOverlayProvider.tsx",
+    "src/features/search/components/GlobalSearchPanel.tsx",
+    "src/features/search/lib/globalSearchRows.test.ts",
+    "src/features/search/lib/globalSearchRows.ts",
     "src/features/settings/components/ArchiveConsole.test.ts",
     "src/features/settings/components/ArchiveConsole.tsx",
     "src/features/settings/components/MemoryInfoModal.test.ts",
     "src/features/settings/components/MemoryInfoModal.tsx",
     "src/features/settings/components/SettingsAsrDebug.tsx",
     "src/features/settings/components/SettingsClientGate.tsx",
+    "src/features/settings/components/SettingsDrawer.tsx",
     "src/features/settings/components/SettingsModal.test.ts",
     "src/features/settings/components/SettingsModal.tsx",
     "src/features/settings/components/SettingsOverlayHost.tsx",
@@ -2637,6 +2671,17 @@
     "src/features/settings/lib/memoryInfo.ts",
     "src/features/settings/lib/settingsClientGateDrafts.test.ts",
     "src/features/settings/lib/settingsClientGateDrafts.ts",
+    "src/features/source/component/source-score/index.tsx",
+    "src/features/terminal/components/TerminalPane.tsx",
+    "src/features/terminal/hooks/useActiveTerminalAgents.test.ts",
+    "src/features/terminal/hooks/useActiveTerminalAgents.ts",
+    "src/features/terminal/lib/terminalDockPersistence.test.ts",
+    "src/features/terminal/lib/terminalDockPersistence.ts",
+    "src/features/terminal/lib/terminalRemoteSession.test.ts",
+    "src/features/terminal/lib/terminalRemoteSession.ts",
+    "src/features/terminal/lib/terminalTheme.ts",
+    "src/features/terminal/lib/terminalTransport.ts",
+    "src/features/terminal/lib/terminalWorkspace.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.test.ts",
     "src/features/timeline/components/AwaitingAnswerBlock.tsx",
     "src/features/timeline/components/ContentBlock.tsx",
@@ -2694,6 +2739,7 @@
     "src/features/tools/components/buildin/confirm-dialog/index.tsx",
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts",
     "src/features/tools/components/buildin/confirm-dialog/state.ts",
+    "src/features/tools/components/buildin/dialogClassNames.ts",
     "src/features/tools/components/buildin/index.tsx",
     "src/features/tools/components/buildin/plan-dialog/index.tsx",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts",
@@ -2721,6 +2767,7 @@
     "src/features/transport/hooks/useSseAttachTransport.ts",
     "src/features/transport/hooks/useWsTransport.test.ts",
     "src/features/transport/hooks/useWsTransport.ts",
+    "src/features/transport/lib/clientDeviceId.ts",
     "src/features/transport/lib/detachRunEvent.ts",
     "src/features/transport/lib/queryStreamExecutors.ts",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts",
@@ -2767,6 +2814,7 @@
     "src/features/voice/lib/voiceSocket.ts",
     "src/features/workers/components/AgentConsole.test.ts",
     "src/features/workers/components/AgentConsole.tsx",
+    "src/features/workers/components/CommandDrawer.tsx",
     "src/features/workers/components/CommandModal.test.ts",
     "src/features/workers/components/CommandModal.tsx",
     "src/features/workers/components/CommandOverlayHost.tsx",
@@ -2774,6 +2822,8 @@
     "src/features/workers/components/DetailModal.tsx",
     "src/features/workers/components/SwitchModal.test.ts",
     "src/features/workers/components/SwitchModal.tsx",
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts",
+    "src/features/workers/hooks/useGlobalShortcuts.ts",
     "src/features/workers/hooks/useWorkerData.test.ts",
     "src/features/workers/hooks/useWorkerData.ts",
     "src/features/workers/lib/agentOrdering.test.ts",
@@ -2841,6 +2891,7 @@
     "src/shared/icons/material/registry.ts",
     "src/shared/icons/material/sprite.tsx",
     "src/shared/styles/layoutStatusPill.test.ts",
+    "src/shared/styles/scrollbarClassNames.ts",
     "src/shared/styles/theme.test.ts",
     "src/shared/styles/theme.ts",
     "src/shared/ui/MarkdownContent.test.ts",
@@ -3034,6 +3085,7 @@
     "src/features/settings/components/MemoryInfoModal.tsx": "settings",
     "src/features/settings/components/SettingsAsrDebug.tsx": "settings",
     "src/features/settings/components/SettingsClientGate.tsx": "settings",
+    "src/features/settings/components/SettingsDrawer.tsx": "settings",
     "src/features/settings/components/SettingsModal.test.ts": "settings",
     "src/features/settings/components/SettingsModal.tsx": "settings",
     "src/features/settings/components/SettingsOverlayHost.tsx": "settings",
@@ -3106,6 +3158,7 @@
     "src/features/tools/components/buildin/confirm-dialog/index.tsx": "tools",
     "src/features/tools/components/buildin/confirm-dialog/state.test.ts": "tools",
     "src/features/tools/components/buildin/confirm-dialog/state.ts": "tools",
+    "src/features/tools/components/buildin/dialogClassNames.ts": "tools",
     "src/features/tools/components/buildin/index.tsx": "tools",
     "src/features/tools/components/buildin/plan-dialog/index.tsx": "tools",
     "src/features/tools/components/buildin/plan-dialog/state.test.ts": "tools",
@@ -3133,6 +3186,7 @@
     "src/features/transport/hooks/useSseAttachTransport.ts": "transport",
     "src/features/transport/hooks/useWsTransport.test.ts": "transport",
     "src/features/transport/hooks/useWsTransport.ts": "transport",
+    "src/features/transport/lib/clientDeviceId.ts": "transport",
     "src/features/transport/lib/detachRunEvent.ts": "transport",
     "src/features/transport/lib/queryStreamExecutors.ts": "transport",
     "src/features/transport/lib/queryStreamRuntime.sse.test.ts": "transport",
@@ -3179,6 +3233,7 @@
     "src/features/voice/lib/voiceSocket.ts": "voice",
     "src/features/workers/components/AgentConsole.test.ts": "workers",
     "src/features/workers/components/AgentConsole.tsx": "workers",
+    "src/features/workers/components/CommandDrawer.tsx": "workers",
     "src/features/workers/components/CommandModal.test.ts": "workers",
     "src/features/workers/components/CommandModal.tsx": "workers",
     "src/features/workers/components/CommandOverlayHost.tsx": "workers",
@@ -3186,6 +3241,8 @@
     "src/features/workers/components/DetailModal.tsx": "workers",
     "src/features/workers/components/SwitchModal.test.ts": "workers",
     "src/features/workers/components/SwitchModal.tsx": "workers",
+    "src/features/workers/hooks/useGlobalShortcuts.test.ts": "workers",
+    "src/features/workers/hooks/useGlobalShortcuts.ts": "workers",
     "src/features/workers/hooks/useWorkerData.test.ts": "workers",
     "src/features/workers/hooks/useWorkerData.ts": "workers",
     "src/features/workers/lib/agentOrdering.test.ts": "workers",
@@ -3253,6 +3310,7 @@
     "src/shared/icons/material/registry.ts": "icons",
     "src/shared/icons/material/sprite.tsx": "icons",
     "src/shared/styles/layoutStatusPill.test.ts": "styles",
+    "src/shared/styles/scrollbarClassNames.ts": "styles",
     "src/shared/styles/theme.test.ts": "styles",
     "src/shared/styles/theme.ts": "styles",
     "src/shared/ui/MarkdownContent.test.ts": "ui",
@@ -4978,8 +5036,23 @@
     "class": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      },
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
       }
     ],
     "classify": [
@@ -6191,6 +6264,13 @@
         "path": ".doc/rules.json"
       }
     ],
+    "device": [
+      {
+        "kind": "module",
+        "id": "transport",
+        "path": ".doc/modules/transport.json"
+      }
+    ],
     "diagnostic": [
       {
         "kind": "module",
@@ -6348,6 +6428,11 @@
         "kind": "module",
         "id": "app",
         "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
       }
     ],
     "download": [
@@ -6403,6 +6488,18 @@
         "kind": "module",
         "id": "ui",
         "path": ".doc/modules/ui.json"
+      }
+    ],
+    "drawer": [
+      {
+        "kind": "module",
+        "id": "settings",
+        "path": ".doc/modules/settings.json"
+      },
+      {
+        "kind": "module",
+        "id": "workers",
+        "path": ".doc/modules/workers.json"
       }
     ],
     "drift": [
@@ -7744,6 +7841,11 @@
         "kind": "module",
         "id": "app",
         "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
+        "id": "workers",
+        "path": ".doc/modules/workers.json"
       }
     ],
     "greeting": [
@@ -7906,6 +8008,13 @@
         "kind": "module",
         "id": "hooks",
         "path": ".doc/modules/hooks.json"
+      }
+    ],
+    "hitl": [
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
       }
     ],
     "hook": [
@@ -8718,6 +8827,11 @@
         "kind": "module",
         "id": "api",
         "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
+        "id": "workers",
+        "path": ".doc/modules/workers.json"
       }
     ],
     "layout": [
@@ -9618,6 +9732,11 @@
     "name": [
       {
         "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
+      {
+        "kind": "module",
         "id": "artifacts",
         "path": ".doc/modules/artifacts.json"
       },
@@ -9633,8 +9752,18 @@
       },
       {
         "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
+      },
+      {
+        "kind": "module",
         "id": "timeline",
         "path": ".doc/modules/timeline.json"
+      },
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
       },
       {
         "kind": "module",
@@ -9657,6 +9786,16 @@
         "kind": "module",
         "id": "icons",
         "path": ".doc/modules/icons.json"
+      },
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
+      },
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
       },
       {
         "kind": "module",
@@ -10068,6 +10207,13 @@
         "path": ".doc/modules/app.json"
       }
     ],
+    "pagination": [
+      {
+        "kind": "module",
+        "id": "tools",
+        "path": ".doc/modules/tools.json"
+      }
+    ],
     "palette": [
       {
         "kind": "module",
@@ -10376,6 +10522,11 @@
       }
     ],
     "pill": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      },
       {
         "kind": "module",
         "id": "styles",
@@ -11434,6 +11585,11 @@
       },
       {
         "kind": "module",
+        "id": "transport",
+        "path": ".doc/modules/transport.json"
+      },
+      {
+        "kind": "module",
         "id": "utils",
         "path": ".doc/modules/utils.json"
       },
@@ -11928,6 +12084,13 @@
         "path": ".doc/modules/composer.json"
       }
     ],
+    "scrollbar": [
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
+      }
+    ],
     "search": [
       {
         "kind": "module",
@@ -12081,6 +12244,11 @@
     "session": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "chats",
         "path": ".doc/modules/chats.json"
       },
@@ -12093,6 +12261,13 @@
         "kind": "module",
         "id": "voice",
         "path": ".doc/modules/voice.json"
+      }
+    ],
+    "sessions": [
+      {
+        "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
       }
     ],
     "set": [
@@ -12213,6 +12388,20 @@
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
+      }
+    ],
+    "shortcut": [
+      {
+        "kind": "module",
+        "id": "workers",
+        "path": ".doc/modules/workers.json"
+      }
+    ],
+    "shortcuts": [
+      {
+        "kind": "module",
+        "id": "workers",
+        "path": ".doc/modules/workers.json"
       }
     ],
     "should": [
@@ -12918,6 +13107,13 @@
         "path": ".doc/modules/composer.json"
       }
     ],
+    "success": [
+      {
+        "kind": "module",
+        "id": "app",
+        "path": ".doc/modules/app.json"
+      }
+    ],
     "suggest": [
       {
         "kind": "module",
@@ -13217,6 +13413,11 @@
     "terminal": [
       {
         "kind": "module",
+        "id": "api",
+        "path": ".doc/modules/api.json"
+      },
+      {
+        "kind": "module",
         "id": "app",
         "path": ".doc/modules/app.json"
       },
@@ -13353,6 +13554,11 @@
       },
       {
         "kind": "module",
+        "id": "transport",
+        "path": ".doc/modules/transport.json"
+      },
+      {
+        "kind": "module",
         "id": "utils",
         "path": ".doc/modules/utils.json"
       }
@@ -13465,6 +13671,13 @@
         "kind": "rule",
         "id": "agent-starts-from-index",
         "path": ".doc/rules.json"
+      }
+    ],
+    "thin": [
+      {
+        "kind": "module",
+        "id": "styles",
+        "path": ".doc/modules/styles.json"
       }
     ],
     "thinking": [
@@ -14648,6 +14861,6 @@
     "taskCount": 3,
     "flowCount": 2,
     "ruleCount": 3,
-    "sourceFileCount": 415
+    "sourceFileCount": 438
   }
 }

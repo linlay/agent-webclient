@@ -198,6 +198,7 @@
       "ToolResultPayload",
       "ToolState",
       "TopNav",
+      "TopNavStatusDisplay",
       "TtsVoiceBlock",
       "UiTimerHandle",
       "UnreadDot",
@@ -252,6 +253,7 @@
       "getCollectibleRelatedEvents",
       "getFileIcon",
       "getPrimaryCopyMenuItem",
+      "handleCreateAgentSuccess",
       "isAwaitingAnswerLike",
       "isAwaitingAnswerPushEvent",
       "isAwaitingAnswerStreamEvent",
@@ -282,6 +284,7 @@
       "resolveNextUsagePopoverOpen",
       "resolveRawLLMTraceFile",
       "resolveRouteDataTransportMode",
+      "resolveStatusPillClassName",
       "resolveSystemPromptCalls",
       "resolveSystemPromptTextFromRequestBody",
       "resolveSystemPromptTextFromTrace",
@@ -335,7 +338,7 @@
       "src/app/state/AppContext.test.ts",
       "src/app/state/reducerConversation.test.ts"
     ],
-    "lastScannedAt": "2026-06-29T10:46:15Z"
+    "lastScannedAt": "2026-07-02T05:32:02Z"
   },
   "readHints": {
     "alwaysRead": [

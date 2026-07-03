@@ -206,55 +206,6 @@
     word-break: break-word;
 }
 
-/* ========================================
-   Frontend Tool Container
-   ======================================== */
-.frontend-tool-container {
-    border: 1px solid color-mix(in srgb, var(--accent-electric) 26%, var(--line-soft));
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
-    overflow: hidden;
-    box-shadow: var(--shadow-soft);
-    margin-bottom: 0;
-}
-
-.frontend-tool-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--line-soft);
-    background: color-mix(in srgb, var(--accent-soft) 28%, transparent);
-}
-
-.frontend-tool-meta {
-    font-size: 10px;
-    font-family: var(--font-mono);
-    color: var(--ink-muted);
-}
-
-.frontend-tool-frame {
-    width: 100%;
-    max-height: 70vh;
-    border: 0;
-}
-
-.frontend-tool-status {
-    padding: 6px 14px;
-    font-size: 11px;
-    color: var(--ink-muted);
-    border-top: 1px solid var(--line-soft);
-    min-height: 0;
-}
-
-.frontend-tool-status.ok {
-    color: var(--accent-lime);
-}
-
-.frontend-tool-status.err {
-    color: var(--accent-danger);
-}
-
 .is-frontend-active .composer-pill {
     display: none;
 }

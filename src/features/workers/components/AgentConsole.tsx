@@ -508,13 +508,95 @@ const MODE_LABEL: Record<string, string> = {
   PLAN_EXECUTE: "P-E",
   PROXY: "PROXY",
 };
+const AGENT_CONSOLE_CLASS_NAME =
+  "command-modal-section agent-console tw:overflow-hidden";
+const AGENT_ERROR_CLASS_NAME =
+  "agent-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
+const AGENT_BODY_CLASS_NAME =
+  "agent-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+const AGENT_LIST_CLASS_NAME =
+  "agent-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
+const AGENT_TOOLBAR_CLASS_NAME =
+  "agent-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:max-[860px]:grid-cols-[1fr_auto_auto] tw:max-[860px]:[&_.ant-input-affix-wrapper]:col-span-full";
+const AGENT_COUNT_CLASS_NAME =
+  "agent-console-count tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-ink-muted";
+const AGENT_LIST_SCROLL_CLASS_NAME =
+  "agent-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5";
+const AGENT_LIST_ITEMS_CLASS_NAME =
+  "agent-console-list-items tw:flex tw:flex-col tw:gap-1.5";
+const AGENT_LIST_ITEM_CLASS_NAME =
+  "agent-console-list-item tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-2.5 tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[color-mix(in_srgb,var(--accent-electric)_68%,transparent)] tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover tw:[&.is-dragging]:opacity-[0.55] tw:[&.is-invalid]:[border-color:color-mix(in_srgb,var(--accent-danger)_34%,transparent)] tw:[&.is-invalid]:bg-[color-mix(in_srgb,var(--accent-danger)_7%,transparent)]";
+const AGENT_LIST_ITEM_ICON_COL_CLASS_NAME =
+  "agent-console-list-item-icon-col tw:flex tw:flex-none tw:flex-col tw:items-center tw:gap-[3px]";
+const AGENT_LIST_ITEM_ICON_CLASS_NAME =
+  "agent-console-list-item-icon tw:inline-flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-soft)_22%,var(--bg-input))] tw:text-accent-electric tw:[&.is-drag-handle]:cursor-grab tw:[&.is-drag-handle:active]:cursor-grabbing";
+const AGENT_LIST_ITEM_SVG_CLASS_NAME =
+  "agent-console-list-item-svg tw:block";
+const AGENT_LIST_ITEM_MAIN_CLASS_NAME =
+  "agent-console-list-item-main tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-1";
+const AGENT_LIST_ITEM_ROW_CLASS_NAME =
+  "agent-console-list-item-row tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
+const AGENT_LIST_ITEM_HEAD_CLASS_NAME =
+  `${AGENT_LIST_ITEM_ROW_CLASS_NAME} agent-console-list-item-head tw:text-ink-1 tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:whitespace-nowrap tw:[&>strong]:text-[13px]`;
+const AGENT_LIST_ITEM_HEAD_META_CLASS_NAME =
+  "agent-console-list-item-head-meta tw:inline-flex tw:min-w-0 tw:items-center tw:justify-end tw:gap-1.5 tw:[&>span]:flex-[0_1_auto] tw:[&>span]:text-xs tw:[&>span]:font-semibold tw:[&>span]:text-ink-muted";
+const AGENT_STATUS_INVALID_CLASS_NAME =
+  "agent-console-status is-invalid tw:flex-none tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-danger)_14%,var(--bg-input))] tw:px-1.5 tw:py-0.5 tw:text-[10px] tw:font-bold tw:leading-[1.2] tw:text-accent-danger";
+const AGENT_LIST_ITEM_META_CLASS_NAME =
+  `${AGENT_LIST_ITEM_ROW_CLASS_NAME} agent-console-list-item-meta tw:text-[11px] tw:text-ink-muted tw:[&>span]:text-[11px] tw:[&>span]:font-medium tw:[&>span]:text-ink-muted`;
+const AGENT_LIST_ITEM_COUNTS_CLASS_NAME =
+  "agent-console-list-item-counts tw:inline-flex tw:items-center tw:gap-0.5";
+const AGENT_LIST_ITEM_COUNT_CLASS_NAME =
+  "agent-console-list-item-count tw:inline-flex tw:items-center tw:gap-px tw:text-[9px]";
+const AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME =
+  "agent-console-list-item-count-icon tw:h-[9px] tw:w-[9px]";
+const AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME =
+  "agent-console-list-item-count-sep tw:text-[8px] tw:text-ink-muted tw:opacity-60";
+const AGENT_LIST_ITEM_MODE_BADGE_CLASS_NAME =
+  "agent-console-list-item-mode-badge tw:inline-flex tw:items-center tw:justify-center tw:gap-0.5 tw:text-ink-muted tw:[&_span]:text-[9px] tw:[&_span]:font-semibold tw:[&_span]:tracking-[0.04em] tw:[&_svg]:h-2 tw:[&_svg]:w-2";
+const AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME =
+  "agent-console-list-item-diagnostic tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-medium tw:text-accent-danger";
+const AGENT_DETAIL_CLASS_NAME =
+  "agent-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
+const AGENT_DETAIL_HEAD_CLASS_NAME =
+  "agent-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px] tw:[&_span]:text-ink-muted";
+const AGENT_DETAIL_ACTIONS_CLASS_NAME =
+  "agent-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const AGENT_DETAIL_ADMIN_META_CLASS_NAME =
+  "agent-detail-admin-meta tw:mb-3.5 tw:flex tw:flex-col tw:gap-2";
+const AGENT_DIAGNOSTICS_CLASS_NAME =
+  "agent-diagnostics tw:flex tw:flex-col tw:gap-1.5 tw:rounded-control tw:border tw:p-2.5 tw:text-xs tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)] tw:[&>strong]:font-bold tw:[&>strong]:text-accent-danger";
+const AGENT_DIAGNOSTIC_ITEM_CLASS_NAME =
+  "agent-diagnostic-item tw:flex tw:min-w-0 tw:flex-col tw:gap-[3px]";
+const AGENT_DIAGNOSTIC_CODE_CLASS_NAME =
+  "agent-diagnostic-code tw:text-[11px] tw:font-bold tw:text-ink-muted";
+const AGENT_FORM_GRID_CLASS_NAME =
+  "agent-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+const AGENT_CONFIG_BOX_CLASS_NAME =
+  "agent-config-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 tw:[&_.field-group:last-child]:mb-0 tw:[&_legend]:px-1.5 tw:[&_legend]:text-[11px] tw:[&_legend]:font-bold tw:[&_legend]:text-ink-muted";
+const AGENT_ICON_EDITOR_CLASS_NAME =
+  "agent-icon-editor tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:items-center tw:gap-2";
+const AGENT_ICON_PREVIEW_CLASS_NAME =
+  "agent-icon-preview tw:inline-flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:overflow-hidden";
+const AGENT_WONDERS_EDITOR_CLASS_NAME =
+  "agent-wonders-editor tw:flex tw:flex-col tw:gap-2";
+const AGENT_WONDER_ROW_CLASS_NAME =
+  "agent-wonder-row tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-2";
+const AGENT_MONO_TEXTAREA_CLASS_NAME =
+  "settings-textarea agent-mono-textarea tw:font-code";
+const AGENT_PROMPT_TEXTAREA_CLASS_NAME =
+  "settings-textarea agent-prompt-textarea tw:min-h-[120px]";
+const AGENT_UNEDITABLE_CLASS_NAME =
+  "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
+const AGENT_SAVE_ACTIONS_CLASS_NAME =
+  "agent-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 
 const ModeBadge: React.FC<{ mode: string }> = ({ mode }) => {
   const normalized = normalizeModeKey(mode);
   const label = MODE_LABEL[normalized];
   if (!label) return null;
   return (
-    <span className="agent-console-list-item-mode-badge">
+    <span className={AGENT_LIST_ITEM_MODE_BADGE_CLASS_NAME}>
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <circle cx="12" cy="12" r="5" />
       </svg>
@@ -575,7 +657,7 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
       style={style}
       role="button"
       tabIndex={0}
-      className={`agent-console-list-item ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isInvalid ? "is-invalid" : ""}`}
+      className={`${AGENT_LIST_ITEM_CLASS_NAME} ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isInvalid ? "is-invalid" : ""}`}
       onClick={() => onSelect(agentKey)}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -585,10 +667,10 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
         }
       }}
     >
-      <span className="agent-console-list-item-icon-col">
+      <span className={AGENT_LIST_ITEM_ICON_COL_CLASS_NAME}>
         <span
           ref={setActivatorNodeRef}
-          className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
+          className={`${AGENT_LIST_ITEM_ICON_CLASS_NAME} ${disabled || !agentKey ? "" : "is-drag-handle"}`}
           aria-label={t("agentConsole.list.dragHandle", { name })}
           {...attributes}
           {...listeners}
@@ -597,19 +679,19 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
             icon={agent.icon}
             type="agent"
             props={{
-              icon: { width: 28, height: 28, className: "agent-console-list-item-svg" },
+              icon: { width: 28, height: 28, className: AGENT_LIST_ITEM_SVG_CLASS_NAME },
               avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
             }}
           />
         </span>
       </span>
-      <span className="agent-console-list-item-main">
-        <span className="agent-console-list-item-row agent-console-list-item-head">
+      <span className={AGENT_LIST_ITEM_MAIN_CLASS_NAME}>
+        <span className={AGENT_LIST_ITEM_HEAD_CLASS_NAME}>
           <strong>{name}</strong>
           {(isInvalid || !isCoderMode) && (
-            <span className="agent-console-list-item-head-meta">
+            <span className={AGENT_LIST_ITEM_HEAD_META_CLASS_NAME}>
               {isInvalid && (
-                <span className="agent-console-status is-invalid">
+                <span className={AGENT_STATUS_INVALID_CLASS_NAME}>
                   {t("agentConsole.status.invalid")}
                 </span>
               )}
@@ -617,28 +699,28 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
             </span>
           )}
         </span>
-        <span className="agent-console-list-item-row agent-console-list-item-meta">
+        <span className={AGENT_LIST_ITEM_META_CLASS_NAME}>
           <span>{summary.modelKey}</span>
-          <span className="agent-console-list-item-counts">
-            <span className="agent-console-list-item-count">
-              <svg className="agent-console-list-item-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <span className={AGENT_LIST_ITEM_COUNTS_CLASS_NAME}>
+            <span className={AGENT_LIST_ITEM_COUNT_CLASS_NAME}>
+              <svg className={AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
               </svg>
               {summary.toolsCount}
             </span>
-            <span className="agent-console-list-item-count-sep">·</span>
-            <span className="agent-console-list-item-count">
-              <svg className="agent-console-list-item-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <span className={AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME}>·</span>
+            <span className={AGENT_LIST_ITEM_COUNT_CLASS_NAME}>
+              <svg className={AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
               {summary.skillsCount}
             </span>
-            <span className="agent-console-list-item-count-sep">·</span>
+            <span className={AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME}>·</span>
             <ModeBadge mode={summary.mode} />
           </span>
         </span>
         {isInvalid && diagnosticMessage && (
-          <span className="agent-console-list-item-diagnostic">
+          <span className={AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME}>
             {diagnosticMessage}
           </span>
         )}
@@ -993,17 +1075,17 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   };
 
   return (
-    <div className={`command-modal-section agent-console ${embedded ? "is-embedded" : ""}`}>
+    <div className={`${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}>
       {error && (
-        <div className="agent-console-error">
+        <div className={AGENT_ERROR_CLASS_NAME}>
           <span>{error}</span>
           <UiButton size="sm" variant="ghost" onClick={() => loadAgents()}>{t("agentConsole.action.retry")}</UiButton>
         </div>
       )}
 
-      <div className="agent-console-body">
-        <div className="agent-console-list">
-          <div className="agent-console-toolbar">
+      <div className={AGENT_BODY_CLASS_NAME}>
+        <div className={AGENT_LIST_CLASS_NAME}>
+          <div className={AGENT_TOOLBAR_CLASS_NAME}>
             <Input
               prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
               variant="filled"
@@ -1024,11 +1106,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <MaterialIcon name="add" />
             </UiButton>
           </div>
-          <div className="agent-console-count">
+          <div className={AGENT_COUNT_CLASS_NAME}>
             <span>{t("agentConsole.list.count", { count: state.agents.length })}</span>
             {savingOrder && <span>{t("agentConsole.list.savingOrder")}</span>}
           </div>
-          <div className="agent-console-list-scroll">
+          <div className={AGENT_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={loadingList || savingOrder}>
               {filteredAgents.length === 0 ? (
                 <div className="command-empty-state">
@@ -1046,7 +1128,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   }}
                 >
                   <SortableContext items={filteredAgentSortableIds} strategy={verticalListSortingStrategy}>
-                    <div className="agent-console-list-items">
+                    <div className={AGENT_LIST_ITEMS_CLASS_NAME}>
                       {filteredAgents.map((agent, index) => {
                         const agentKey = toText(agent.key);
                         const name = toText(agent.name) || agentKey;
@@ -1080,15 +1162,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           </div>
         </div>
 
-        <div className="agent-console-detail">
+        <div className={AGENT_DETAIL_CLASS_NAME}>
           <Spin spinning={loadingDetail}>
-            <div className="agent-detail-head">
+            <div className={AGENT_DETAIL_HEAD_CLASS_NAME}>
               <div>
                 <strong>{formMode === "create" ? t("agentConsole.detail.titleCreate") : selectedSummary?.name || form.name || form.key || t("agentConsole.detail.titleEdit")}</strong>
                 <span>{detailSubtitle}</span>
               </div>
               {formMode === "edit" && (
-                <div className="agent-detail-actions">
+                <div className={AGENT_DETAIL_ACTIONS_CLASS_NAME}>
                   <UiButton size="sm" variant="danger" onClick={confirmDelete} disabled={saving}>
                     <MaterialIcon name="delete" />
                     <span>{pendingDeleteKey === form.key ? t("agentConsole.action.confirmDelete") : t("agentConsole.action.delete")}</span>
@@ -1098,12 +1180,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             </div>
 
             {formMode === "edit" && detailDiagnostics.length > 0 && (
-              <div className="agent-detail-admin-meta">
-                <div className="agent-diagnostics" role="status">
+              <div className={AGENT_DETAIL_ADMIN_META_CLASS_NAME}>
+                <div className={AGENT_DIAGNOSTICS_CLASS_NAME} role="status">
                   <strong>{t("agentConsole.diagnostics.title")}</strong>
                   {detailDiagnostics.map((diagnostic, index) => (
-                    <div className="agent-diagnostic-item" key={`${diagnostic.code}-${index}`}>
-                      <span className="agent-diagnostic-code">
+                    <div className={AGENT_DIAGNOSTIC_ITEM_CLASS_NAME} key={`${diagnostic.code}-${index}`}>
+                      <span className={AGENT_DIAGNOSTIC_CODE_CLASS_NAME}>
                         {[diagnostic.severity, diagnostic.code].filter(Boolean).join(" · ")}
                       </span>
                       <span>{diagnostic.message}</span>
@@ -1115,7 +1197,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
             {canEditStructuredAgent ? (
               <>
-                <div className="agent-form-grid">
+                <div className={AGENT_FORM_GRID_CLASS_NAME}>
               <div className="field-group">
                 <label htmlFor="agent-key-input">Key</label>
                 <Input id="agent-key-input" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
@@ -1142,8 +1224,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
               <div className="field-group">
                 <label htmlFor="agent-icon-kind-input">Icon</label>
-                <div className="agent-icon-editor">
-                  <span className="agent-icon-preview"><AgentIcon icon={selectedIconValue as any} type="agent" /></span>
+                <div className={AGENT_ICON_EDITOR_CLASS_NAME}>
+                  <span className={AGENT_ICON_PREVIEW_CLASS_NAME}><AgentIcon icon={selectedIconValue as any} type="agent" /></span>
                   <Select
                     id="agent-icon-kind-input"
                     value={form.iconKind}
@@ -1175,9 +1257,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <Input.TextArea id="agent-description-input" rows={3} value={form.description} onChange={(event) => updateForm({ description: event.target.value })} />
             </div>
 
-            <fieldset className="agent-config-box">
+            <fieldset className={AGENT_CONFIG_BOX_CLASS_NAME}>
               <legend>{t("agentConsole.section.capabilities")}</legend>
-              <div className="agent-form-grid">
+              <div className={AGENT_FORM_GRID_CLASS_NAME}>
                 <div className="field-group">
                   <label htmlFor="agent-tools-input">Tools</label>
                   <Select
@@ -1209,9 +1291,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
               <div className="field-group">
                 <label>Wonders</label>
-                <div className="agent-wonders-editor">
+                <div className={AGENT_WONDERS_EDITOR_CLASS_NAME}>
                   {(form.wonders.length > 0 ? form.wonders : [""]).map((wonder, index) => (
-                    <div className="agent-wonder-row" key={index}>
+                    <div className={AGENT_WONDER_ROW_CLASS_NAME} key={index}>
                       <Input
                         value={wonder}
                         onChange={(event) => {
@@ -1233,20 +1315,20 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             </fieldset>
 
-            <fieldset className="agent-config-box">
+            <fieldset className={AGENT_CONFIG_BOX_CLASS_NAME}>
               <legend>{t("agentConsole.section.advancedConfig")}</legend>
-              <div className="agent-form-grid">
+              <div className={AGENT_FORM_GRID_CLASS_NAME}>
                 <div className="field-group">
                   <label htmlFor="agent-controls-input">Controls</label>
-                  <Input.TextArea id="agent-controls-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
+                  <Input.TextArea id="agent-controls-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-runtime-input">Runtime Config</label>
-                  <Input.TextArea id="agent-runtime-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
+                  <Input.TextArea id="agent-runtime-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-memory-input">Memory Config</label>
-                  <Input.TextArea id="agent-memory-input" className="settings-textarea agent-mono-textarea" rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
+                  <Input.TextArea id="agent-memory-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-visibility-input">Visibility</label>
@@ -1262,31 +1344,31 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
                 <div className="field-group">
                   <label htmlFor="agent-budget-input">Budget</label>
-                  <Input.TextArea id="agent-budget-input" className="settings-textarea agent-mono-textarea" rows={7} placeholder={BUDGET_PLACEHOLDER} value={form.budgetText} onChange={(event) => updateForm({ budgetText: event.target.value })} />
+                  <Input.TextArea id="agent-budget-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={7} placeholder={BUDGET_PLACEHOLDER} value={form.budgetText} onChange={(event) => updateForm({ budgetText: event.target.value })} />
                 </div>
                 {form.mode === "PROXY" && (
                   <div className="field-group">
                     <label htmlFor="agent-proxy-input">ACP-PROXY Config</label>
-                    <Input.TextArea id="agent-proxy-input" className="settings-textarea agent-mono-textarea" rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
+                    <Input.TextArea id="agent-proxy-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
                   </div>
                 )}
               </div>
             </fieldset>
 
-            <fieldset className="agent-config-box">
+            <fieldset className={AGENT_CONFIG_BOX_CLASS_NAME}>
               <legend>Prompt</legend>
               <div className="field-group">
                 <label htmlFor="agent-soul-input">SOUL.md</label>
-                <Input.TextArea id="agent-soul-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
+                <Input.TextArea id="agent-soul-input" className={AGENT_PROMPT_TEXTAREA_CLASS_NAME} rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
               </div>
               <div className="field-group">
                 <label htmlFor="agent-agents-input">AGENTS.md</label>
-                <Input.TextArea id="agent-agents-input" className="settings-textarea agent-prompt-textarea" rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
+                <Input.TextArea id="agent-agents-input" className={AGENT_PROMPT_TEXTAREA_CLASS_NAME} rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
               </div>
             </fieldset>
               </>
             ) : (
-              <div className="agent-console-uneditable">
+              <div className={AGENT_UNEDITABLE_CLASS_NAME}>
                 <MaterialIcon name="warning" />
                 <span>{t("agentConsole.diagnostics.uneditable")}</span>
               </div>
@@ -1294,7 +1376,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
             {formError && <div className="settings-error">{formError}</div>}
 
-            <div className="agent-save-actions">
+            <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
               <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving || !canEditStructuredAgent}>
                 <MaterialIcon name="save" />
                 <span>{formMode === "create" ? t("agentConsole.action.create") : t("agentConsole.action.saveChanges")}</span>
