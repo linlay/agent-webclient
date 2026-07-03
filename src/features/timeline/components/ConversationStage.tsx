@@ -57,7 +57,7 @@ const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
 const TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME =
   "timeline-agent-switcher-arrow tw:ml-px tw:shrink-0 tw:translate-y-px tw:text-[19px] tw:text-[color-mix(in_srgb,var(--ink-muted)_72%,transparent)] tw:opacity-[0.58]";
 const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
-  "timeline-agent-switcher-menu tw:absolute tw:bottom-[calc(100%+10px)] tw:left-1/2 tw:z-30 tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)] tw:-translate-x-1/2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,white)] tw:p-2.5 tw:shadow-floating";
+  "timeline-agent-switcher-menu tw:absolute tw:bottom-[calc(100%+10px)] tw:left-1/2 tw:z-30 tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)] tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,white)] tw:p-2.5 tw:shadow-floating";
 const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
   "timeline-agent-switcher-search tw:w-full";
 const TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME =
