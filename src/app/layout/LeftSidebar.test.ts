@@ -639,6 +639,24 @@ describe("LeftSidebar", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/registries");
   });
 
+  it("navigates to skills from the settings menu and preserves the current search string", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true",
+    };
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
+
+    renderSidebar();
+
+    const skillsButton = uiButtonProps.find((props) =>
+      props.text.includes("技能"),
+    );
+    expect(skillsButton).toBeTruthy();
+
+    (skillsButton?.onClick as () => void)();
+
+    expect(mockNavigate).toHaveBeenCalledWith("/skills?lang=zh-CN");
+  });
+
   it("preserves the current search string when opening registry config", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",

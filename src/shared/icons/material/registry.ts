@@ -7,6 +7,7 @@ export const materialIconSymbolIds = {
   bar_chart: "material-symbol-bar-chart",
   bolt: "material-symbol-bolt",
   book_2: "material-symbol-book-2",
+  branches: "material-symbol-branches",
   bug_report: "material-symbol-bug-report",
   build: "material-symbol-build",
   call: "material-symbol-call",

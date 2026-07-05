@@ -1442,7 +1442,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                   disabled={deriveChatDisabled}
                                   onClick={() => handleDeriveChat(runId)}
                                 >
-                                  <MaterialIcon name="git_fork" />
+                                  <MaterialIcon name="branches" />
                                 </UiButton>
                               </div>
                               {time.short && (

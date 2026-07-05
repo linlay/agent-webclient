@@ -300,6 +300,86 @@ export interface AdminRegistryValidateResponse {
   parsed?: Record<string, unknown>;
 }
 
+/* ---- Skill types ---- */
+
+export type AdminSkillStatus = "ready" | "invalid" | "disabled";
+
+export interface AdminSkillListItem {
+  key: string;
+  name: string;
+  description?: string;
+  status: AdminSkillStatus;
+  sourcePath?: string;
+  fileCount?: number;
+  diagnostic?: AdminRegistryListDiagnostic;
+  diagnosticCount?: number;
+  updatedAt?: number;
+}
+
+export interface AdminSkillListResponse {
+  items: AdminSkillListItem[];
+  total: number;
+}
+
+export interface AdminSkillFileNode {
+  path: string;
+  name: string;
+  type: "file" | "directory";
+  size?: number;
+  mtime?: number;
+  children?: AdminSkillFileNode[];
+}
+
+export interface AdminSkillDetailResponse {
+  key: string;
+  name: string;
+  description?: string;
+  status: AdminSkillStatus;
+  sourcePath?: string;
+  revision?: string;
+  updatedAt?: number;
+  fileTree: AdminSkillFileNode[];
+  diagnostics?: AdminRegistryDiagnostic[];
+}
+
+export interface AdminSkillFileResponse {
+  content: string;
+  path: string;
+  mtime?: number;
+  size?: number;
+  revision?: string;
+}
+
+export interface AdminSkillSaveFileRequest {
+  skillKey: string;
+  path: string;
+  content: string;
+  baseRevision?: string;
+}
+
+export type AdminSkillFileOp = "create-file" | "create-dir" | "rename" | "delete";
+
+export interface AdminSkillFileOpRequest {
+  skillKey: string;
+  op: AdminSkillFileOp;
+  path: string;
+  newPath?: string;
+}
+
+export interface AdminSkillValidateResponse {
+  status: AdminSkillStatus;
+  diagnostics: AdminRegistryDiagnostic[];
+}
+
+export interface AdminSkillCreateRequest {
+  key: string;
+  name: string;
+  description?: string;
+  skillMdContent?: string;
+}
+
+/* ---- End Skill types ---- */
+
 export interface AgentSource {
   kind: string;
   path?: string;
@@ -1449,8 +1529,50 @@ export function getTeams(): Promise<ApiResponse> {
   return requestJson(dataEndpoints.teams.path);
 }
 
-export function getAdminSkills(): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.adminSkills.path);
+export function getAdminSkills(): Promise<ApiResponse<AdminSkillListResponse>> {
+  return requestJson<AdminSkillListResponse>(dataEndpoints.adminSkills.path);
+}
+
+export function getAdminSkillDetail(skillKey: string): Promise<ApiResponse<AdminSkillDetailResponse>> {
+  const query = endpointQuery(dataEndpoints.adminSkillDetail, skillKey);
+  return requestJson<AdminSkillDetailResponse>(
+    withQuery(dataEndpoints.adminSkillDetail.path, query),
+  );
+}
+
+export function getAdminSkillFile(skillKey: string, path: string): Promise<ApiResponse<AdminSkillFileResponse>> {
+  const query = endpointQuery(dataEndpoints.adminSkillFile, { skillKey, path });
+  return requestJson<AdminSkillFileResponse>(
+    withQuery(dataEndpoints.adminSkillFile.path, query),
+  );
+}
+
+export function saveAdminSkillFile(
+  params: AdminSkillSaveFileRequest,
+): Promise<ApiResponse<AdminSkillFileResponse>> {
+  return requestJson<AdminSkillFileResponse>(dataEndpoints.adminSkillSaveFile.path, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+export function adminSkillFileOp(
+  params: AdminSkillFileOpRequest,
+): Promise<ApiResponse<{ ok: boolean }>> {
+  return requestJson<{ ok: boolean }>(dataEndpoints.adminSkillFileOp.path, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+export function validateAdminSkill(skillKey: string): Promise<ApiResponse<AdminSkillValidateResponse>> {
+  return postJson<AdminSkillValidateResponse>(dataEndpoints.adminSkillValidate.path, { skillKey });
+}
+
+export function createAdminSkill(
+  params: AdminSkillCreateRequest,
+): Promise<ApiResponse<AdminSkillListItem>> {
+  return postJson<AdminSkillListItem>(dataEndpoints.adminSkillCreate.path, params);
 }
 
 export function getAdminTools(): Promise<ApiResponse<AdminToolSummary[]>> {

@@ -68,6 +68,12 @@ import {
   searchGlobal,
   setAccessToken,
   saveAdminRegistryDetail,
+  adminSkillFileOp,
+  createAdminSkill,
+  getAdminSkillDetail,
+  getAdminSkillFile,
+  saveAdminSkillFile,
+  validateAdminSkill,
   steerChat,
   submitAwaiting,
   submitFeedback,
@@ -585,6 +591,86 @@ describe('data client query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/skills');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/tools');
+  });
+
+  it('loads admin skill detail, file, save, file-op, validate, and create', async () => {
+    await getAdminSkillDetail('demo-skill');
+    await getAdminSkillFile('demo-skill', 'SKILL.md');
+    await saveAdminSkillFile({
+      skillKey: 'demo-skill',
+      path: 'SKILL.md',
+      content: '# My Skill',
+      baseRevision: 'abc123',
+    });
+    await adminSkillFileOp({
+      skillKey: 'demo-skill',
+      op: 'create-file',
+      path: 'new-file.md',
+    });
+    await adminSkillFileOp({
+      skillKey: 'demo-skill',
+      op: 'rename',
+      path: 'old.md',
+      newPath: 'new.md',
+    });
+    await validateAdminSkill('demo-skill');
+    await createAdminSkill({ key: 'new-skill', name: 'New Skill' });
+
+    const calls = fetchMock.mock.calls.map(([url, options]) => ({
+      url,
+      method: (options as RequestInit).method || 'GET',
+      body: JSON.parse(String((options as RequestInit).body || '{}')),
+    }));
+
+    expect(calls[0]).toEqual({
+      url: '/api/admin/skills/detail?skillKey=demo-skill',
+      method: 'GET',
+      body: {},
+    });
+    expect(calls[1]).toEqual({
+      url: '/api/admin/skills/file?skillKey=demo-skill&path=SKILL.md',
+      method: 'GET',
+      body: {},
+    });
+    expect(calls[2]).toEqual({
+      url: '/api/admin/skills/save-file',
+      method: 'POST',
+      body: {
+        skillKey: 'demo-skill',
+        path: 'SKILL.md',
+        content: '# My Skill',
+        baseRevision: 'abc123',
+      },
+    });
+    expect(calls[3]).toEqual({
+      url: '/api/admin/skills/file-op',
+      method: 'POST',
+      body: {
+        skillKey: 'demo-skill',
+        op: 'create-file',
+        path: 'new-file.md',
+      },
+    });
+    expect(calls[4]).toEqual({
+      url: '/api/admin/skills/file-op',
+      method: 'POST',
+      body: {
+        skillKey: 'demo-skill',
+        op: 'rename',
+        path: 'old.md',
+        newPath: 'new.md',
+      },
+    });
+    expect(calls[5]).toEqual({
+      url: '/api/admin/skills/validate',
+      method: 'POST',
+      body: { skillKey: 'demo-skill' },
+    });
+    expect(calls[6]).toEqual({
+      url: '/api/admin/skills/create',
+      method: 'POST',
+      body: { key: 'new-skill', name: 'New Skill' },
+    });
   });
 
   it('loads global model options', async () => {

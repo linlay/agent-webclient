@@ -385,7 +385,8 @@
 }
 
 .automations-console-page,
-.registries-page {
+.registries-page,
+.skills-page {
     height: 100vh;
     min-height: 0;
     overflow: hidden;
@@ -394,7 +395,8 @@
 }
 
 .automations-console-page>.automation-console,
-.registries-page>.registry-console {
+.registries-page>.registry-console,
+.skills-page>.skill-console {
     flex: 1 1 auto;
     min-height: 0;
 }

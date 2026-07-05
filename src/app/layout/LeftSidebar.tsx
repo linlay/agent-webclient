@@ -614,6 +614,11 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
+    if (action.type === "open-skills") {
+      navigate(`/skills${window.location.search || ""}`);
+      setSettingsMenuOpen(false);
+      return;
+    }
     if (action.type === "open-registries") {
       navigate(`/registries${window.location.search || ""}`);
       setSettingsMenuOpen(false);

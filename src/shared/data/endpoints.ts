@@ -14,6 +14,7 @@ import type {
   QueryReasoningEffort,
   QueryServiceTier,
   QueryStreamParams,
+  AdminSkillListResponse,
 } from "@/shared/data/client";
 
 export function compactQueryModelOverride(
@@ -167,10 +168,51 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
-  adminSkills: defineEndpoint<void, Record<string, unknown>>({
+  adminSkills: defineEndpoint<void, AdminSkillListResponse>({
     key: "admin.skills.list",
     path: "/api/admin/skills",
     method: "GET",
+    transport: "http",
+  }),
+  adminSkillDetail: defineEndpoint<string, { skillKey: string }>({
+    key: "admin.skills.detail",
+    path: "/api/admin/skills/detail",
+    method: "GET",
+    transport: "http",
+    payload: (skillKey) => ({ skillKey }),
+  }),
+  adminSkillFile: defineEndpoint<
+    { skillKey: string; path: string },
+    { skillKey: string; path: string }
+  >({
+    key: "admin.skills.file",
+    path: "/api/admin/skills/file",
+    method: "GET",
+    transport: "http",
+    payload: (params) => ({ skillKey: params.skillKey, path: params.path }),
+  }),
+  adminSkillSaveFile: defineEndpoint({
+    key: "admin.skills.saveFile",
+    path: "/api/admin/skills/save-file",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillFileOp: defineEndpoint({
+    key: "admin.skills.fileOp",
+    path: "/api/admin/skills/file-op",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillValidate: defineEndpoint({
+    key: "admin.skills.validate",
+    path: "/api/admin/skills/validate",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillCreate: defineEndpoint({
+    key: "admin.skills.create",
+    path: "/api/admin/skills/create",
+    method: "POST",
     transport: "http",
   }),
   adminTools: defineEndpoint<void, Record<string, unknown>>({

@@ -42,19 +42,20 @@ describe("buildSidebarSettingsMenuSections", () => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
-  it("includes settings, registry config, memory info, and archive items", () => {
+  it("includes skills, registry config, archive, settings, and memory info in order", () => {
     const sections = buildSidebarSettingsMenuSections({
       wsStatus: "error",
       wsErrorMessage: "握手失败",
     });
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
-    expect(sections[0]?.items[0]?.description).toContain("握手失败");
+    expect(sections[0]?.items[3]?.description).toContain("握手失败");
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
-      "打开设置...",
+      "技能",
       "注册配置",
-      "记忆信息",
       "归档",
+      "打开设置...",
+      "记忆信息",
     ]);
   });
 
@@ -85,6 +86,7 @@ describe("SidebarSettingsMenu", () => {
     );
 
     expect(html).toContain("设置菜单");
+    expect(html).toContain("技能");
     expect(html).toContain("打开设置...");
     expect(html).toContain("注册配置");
     expect(html).toContain("记忆信息");

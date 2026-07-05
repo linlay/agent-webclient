@@ -33,6 +33,7 @@ import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
+import { SkillsPage } from "./pages/skills";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { setTransportModeProvider } from "@/shared/data/routedClient";
 import { resolveRouteDataTransportMode } from "./routeDataTransport";
@@ -207,6 +208,22 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.registries">
               <RegistriesPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/skills",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.skills">
+              <SkillsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/skills/:skillKey",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.skills">
+              <SkillsPage />
             </DocumentTitleRoute>
           ),
         },

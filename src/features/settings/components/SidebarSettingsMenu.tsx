@@ -18,6 +18,7 @@ export interface SettingsSummaryBadge {
 }
 
 export type SidebarSettingsMenuAction =
+  | { type: "open-skills" }
   | { type: "open-settings" }
   | { type: "open-registries" }
   | { type: "open-archive" }
@@ -108,11 +109,11 @@ export function buildSidebarSettingsMenuSections(input: {
       title: t("settingsMenu.section.entry"),
       items: [
         {
-          key: "open-settings",
-          label: t("settingsMenu.openSettings"),
-          description: wsDescription,
-          icon: "tune",
-          action: { type: "open-settings" },
+          key: "open-skills",
+          label: t("settingsMenu.skills"),
+          description: t("settingsMenu.skillsDescription"),
+          icon: "psychology",
+          action: { type: "open-skills" },
         },
         {
           key: "open-registries",
@@ -120,6 +121,20 @@ export function buildSidebarSettingsMenuSections(input: {
           description: t("settingsMenu.registriesDescription"),
           icon: "hub",
           action: { type: "open-registries" },
+        },
+        {
+          key: "open-archive",
+          label: t("settingsMenu.archive"),
+          description: t("settingsMenu.archiveDescription"),
+          icon: "inventory_2",
+          action: { type: "open-archive" },
+        },
+        {
+          key: "open-settings",
+          label: t("settingsMenu.openSettings"),
+          description: wsDescription,
+          icon: "tune",
+          action: { type: "open-settings" },
         },
         ...(isMemoryEnabled()
           ? [
@@ -132,13 +147,6 @@ export function buildSidebarSettingsMenuSections(input: {
               },
             ]
           : []),
-        {
-          key: "open-archive",
-          label: t("settingsMenu.archive"),
-          description: t("settingsMenu.archiveDescription"),
-          icon: "inventory_2",
-          action: { type: "open-archive" },
-        },
       ],
     }
   ];
