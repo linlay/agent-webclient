@@ -614,19 +614,20 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
-    if (action.type === "open-skills") {
-      navigate(`/skills${window.location.search || ""}`);
+    const openStandalonePage = (path: string) => {
+      window.open(`${path}${window.location.search || ""}`, "_blank", "noopener,noreferrer");
       setSettingsMenuOpen(false);
+    };
+    if (action.type === "open-skills") {
+      openStandalonePage("/skills");
       return;
     }
     if (action.type === "open-registries") {
-      navigate(`/registries${window.location.search || ""}`);
-      setSettingsMenuOpen(false);
+      openStandalonePage("/registries");
       return;
     }
     if (action.type === "open-archive") {
-      navigate(`/archives${window.location.search || ""}`);
-      setSettingsMenuOpen(false);
+      openStandalonePage("/archives");
       return;
     }
     if (action.type === "open-settings") {

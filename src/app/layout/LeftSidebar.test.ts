@@ -621,7 +621,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("settings-summary-chip");
   });
 
-  it("navigates to registry config from the settings menu", () => {
+  it("opens registry config in a new page from the settings menu", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -636,10 +636,14 @@ describe("LeftSidebar", () => {
 
     (registriesButton?.onClick as () => void)();
 
-    expect(mockNavigate).toHaveBeenCalledWith("/registries");
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/registries",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
-  it("navigates to skills from the settings menu and preserves the current search string", () => {
+  it("opens skills in a new page from the settings menu and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -654,10 +658,14 @@ describe("LeftSidebar", () => {
 
     (skillsButton?.onClick as () => void)();
 
-    expect(mockNavigate).toHaveBeenCalledWith("/skills?lang=zh-CN");
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/skills?lang=zh-CN",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
-  it("preserves the current search string when opening registry config", () => {
+  it("preserves the current search string when opening registry config in a new page", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -672,10 +680,14 @@ describe("LeftSidebar", () => {
 
     (registriesButton?.onClick as () => void)();
 
-    expect(mockNavigate).toHaveBeenCalledWith("/registries?lang=zh-CN");
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/registries?lang=zh-CN",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
-  it("navigates to archives from the settings menu and preserves the current search string", () => {
+  it("opens archives in a new page from the settings menu and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -690,7 +702,11 @@ describe("LeftSidebar", () => {
 
     (archiveButton?.onClick as () => void)();
 
-    expect(mockNavigate).toHaveBeenCalledWith("/archives?lang=zh-CN");
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/archives?lang=zh-CN",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   it("does not render quick actions by default", () => {
