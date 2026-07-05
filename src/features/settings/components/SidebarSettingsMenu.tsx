@@ -89,20 +89,10 @@ export function resolveSettingsSummaryBadges(input: {
   ];
 }
 
-export function buildSidebarSettingsMenuSections(input: {
+export function buildSidebarSettingsMenuSections(_input: {
   wsStatus?: WsConnectionStatus;
   wsErrorMessage?: string;
 }): SidebarSettingsMenuSection[] {
-  const detail = String(input.wsErrorMessage || "").trim();
-  const wsDescription =
-    input.wsStatus === "connecting"
-      ? t("settingsMenu.ws.connecting")
-      : input.wsStatus === "connected"
-        ? t("settingsMenu.ws.connected")
-        : detail
-          ? t("settingsMenu.ws.error", { detail })
-          : t("settingsMenu.ws.default");
-
   return [
     {
       key: "entry",
@@ -111,28 +101,24 @@ export function buildSidebarSettingsMenuSections(input: {
         {
           key: "open-skills",
           label: t("settingsMenu.skills"),
-          description: t("settingsMenu.skillsDescription"),
           icon: "psychology",
           action: { type: "open-skills" },
         },
         {
           key: "open-registries",
           label: t("settingsMenu.registries"),
-          description: t("settingsMenu.registriesDescription"),
           icon: "hub",
           action: { type: "open-registries" },
         },
         {
           key: "open-archive",
           label: t("settingsMenu.archive"),
-          description: t("settingsMenu.archiveDescription"),
           icon: "inventory_2",
           action: { type: "open-archive" },
         },
         {
           key: "open-settings",
           label: t("settingsMenu.openSettings"),
-          description: wsDescription,
           icon: "tune",
           action: { type: "open-settings" },
         },
@@ -141,7 +127,6 @@ export function buildSidebarSettingsMenuSections(input: {
               {
                 key: "open-memory-info",
                 label: t("settingsMenu.memoryInfo"),
-                description: t("settingsMenu.memoryInfoDescription"),
                 icon: "database" as const,
                 action: { type: "open-memory-info" as const },
               },
@@ -174,7 +159,7 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                 variant="ghost"
                 size="sm"
                 className={`sidebar-settings-item ${item.active ? "is-active" : ""} ${item.disabled ? "is-disabled" : ""}`}
-                title={item.title || item.description || item.label}
+                title={item.title || item.label}
                 disabled={item.disabled}
                 aria-pressed={item.active}
                 onClick={() => onAction(item.action)}
@@ -194,11 +179,6 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                       <span className="sidebar-settings-item-badge">{t("settingsMenu.status.current")}</span>
                     ) : null}
                   </span>
-                  {item.description ? (
-                    <span className="sidebar-settings-item-description">
-                      {item.description}
-                    </span>
-                  ) : null}
                 </span>
               </UiButton>
             ))}

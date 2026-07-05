@@ -49,7 +49,6 @@ describe("buildSidebarSettingsMenuSections", () => {
     });
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
-    expect(sections[0]?.items[3]?.description).toContain("握手失败");
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
       "技能",
       "注册配置",
@@ -91,5 +90,9 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("注册配置");
     expect(html).toContain("记忆信息");
     expect(html).toContain("归档");
+    expect(html).not.toContain("管理 registry YAML 配置。");
+    expect(html).not.toContain("编辑技能目录");
+    expect(html).not.toContain("查看已归档会话");
+    expect(html).not.toContain("当前连接状态");
   });
 });

@@ -1,29 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Input, Modal, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
-  getAdminSkills,
-  getAdminSkillDetail,
-  getAdminSkillFile,
-  saveAdminSkillFile,
-  adminSkillFileOp,
-  validateAdminSkill,
-  createAdminSkill,
+  buildAdminSkillFileDownloadUrlV2,
+  createAdminSkillFileV2,
+  createAdminSkillV2,
+  deleteAdminSkillFileV2,
+  getAdminSkillDetailV2,
+  getAdminSkillFileV2,
+  getAdminSkillsV2,
+  mkdirAdminSkillFileV2,
+  renameAdminSkillFileV2,
+  saveAdminSkillFileV2,
+  uploadAdminSkillFileV2,
+  validateAdminSkillV2,
 } from "@/shared/data";
 import type {
-  AdminSkillListItem,
-  AdminSkillDetailResponse,
-  AdminSkillFileNode,
-  AdminSkillFileResponse,
   AdminSkillStatus,
-  AdminRegistryDiagnostic,
+  AdminSkillV2DetailResponse,
+  AdminSkillV2FileEntry,
+  AdminSkillV2MutationResponse,
+  AdminSkillV2Summary,
+  AdminSkillV2TextFile,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
-import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 
 type StatusFilter = "all" | AdminSkillStatus;
 
@@ -33,7 +39,7 @@ const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 const SKILL_CONSOLE_CLASS_NAME =
   "skill-console tw:flex tw:flex-auto tw:flex-col tw:min-h-0 tw:gap-3 tw:overflow-hidden";
 const SKILL_BODY_CLASS_NAME =
-  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(220px,0.36fr)_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const SKILL_LIST_CLASS_NAME =
   "skill-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
 const SKILL_TOOLBAR_CLASS_NAME =
@@ -53,29 +59,31 @@ const SKILL_LIST_ITEM_META_CLASS_NAME =
 const SKILL_COUNT_CLASS_NAME =
   "skill-console-count tw:text-xs tw:text-ink-muted";
 const SKILL_DETAIL_CLASS_NAME =
-  "skill-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto";
-const SKILL_DETAIL_HEAD_CLASS_NAME =
-  "skill-console-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px] tw:[&_span]:text-ink-muted";
+  "skill-console-detail tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_DETAIL_ACTIONS_CLASS_NAME =
   "skill-console-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
-const SKILL_META_GRID_CLASS_NAME =
-  "skill-console-meta-grid tw:mb-3 tw:grid tw:grid-cols-2 tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:[overflow-wrap:anywhere]";
-const SKILL_DIAGNOSTICS_CLASS_NAME =
-  "skill-console-diagnostics tw:mb-3.5 tw:rounded-control tw:border tw:p-3 tw:[border-color:color-mix(in_srgb,var(--accent-danger)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_5%,transparent)]";
-const SKILL_DIAGNOSTIC_ROW_CLASS_NAME =
-  "skill-console-diagnostic-row tw:grid tw:grid-cols-[auto_auto_minmax(0,1fr)] tw:items-center tw:gap-2 tw:py-[5px] tw:text-xs tw:[&+&]:border-t tw:[&+&]:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:[&>strong]:text-[11px] tw:[&>strong]:text-accent-danger tw:[&>span:last-child]:min-w-0 tw:[&>span:last-child]:[overflow-wrap:anywhere] tw:[&>span:last-child]:text-ink-2";
 const SKILL_FILE_PANELS_CLASS_NAME =
-  "skill-console-file-panels tw:mt-3 tw:grid tw:min-h-0 tw:grid-cols-[minmax(180px,0.35fr)_minmax(320px,1.3fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-visible";
+  "skill-console-file-panels tw:grid tw:min-h-0 tw:h-full tw:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-visible";
+const SKILL_FILE_TREE_PANEL_CLASS_NAME =
+  "skill-console-file-tree-panel tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
+const SKILL_FILE_TREE_TOOLBAR_CLASS_NAME =
+  "skill-console-file-tree-toolbar tw:flex tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-btn-label]:gap-1";
 const SKILL_FILE_TREE_CLASS_NAME =
-  "skill-console-file-tree tw:min-h-0 tw:overflow-auto tw:rounded-control tw:border tw:p-1.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:max-[860px]:max-h-[220px]";
+  "skill-console-file-tree tw:min-h-0 tw:flex-auto tw:overflow-auto tw:rounded-control tw:border tw:p-1.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
 const SKILL_FILE_EDITOR_CLASS_NAME =
   "skill-console-file-editor tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_FILE_EDITOR_HEAD_CLASS_NAME =
-  "skill-console-file-editor-head tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:text-[11px] tw:text-ink-muted";
+  "skill-console-file-editor-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:text-ink-muted";
+const SKILL_FILE_EDITOR_META_CLASS_NAME =
+  "skill-console-file-editor-meta tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-2";
 const SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME =
   "skill-console-file-editor-head-path tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-ink-1";
 const SKILL_TEXTAREA_CLASS_NAME =
-  "skill-console-textarea tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
+  "skill-console-textarea tw:min-h-[520px] tw:flex-auto tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
+const SKILL_BINARY_PANEL_CLASS_NAME =
+  "skill-console-binary-panel tw:flex tw:flex-col tw:gap-3 tw:rounded-control tw:border tw:p-3 tw:text-sm tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
+const SKILL_BINARY_GRID_CLASS_NAME =
+  "skill-console-binary-grid tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-2 tw:text-xs tw:[&>span:nth-child(odd)]:text-ink-muted tw:[&>span:nth-child(even)]:min-w-0 tw:[&>span:nth-child(even)]:overflow-hidden tw:[&>span:nth-child(even)]:text-ellipsis tw:[&>span:nth-child(even)]:whitespace-nowrap";
 const SKILL_DIRTY_CLASS_NAME =
   "skill-console-dirty tw:text-xs tw:text-ink-muted";
 const SKILL_ERROR_CLASS_NAME =
@@ -91,33 +99,29 @@ function statusTone(status: AdminSkillStatus): "accent" | "danger" | "muted" {
   return "accent";
 }
 
-function formatTimestamp(value: number | undefined, locale: string): string {
-  return formatEpochMillisLocal(value, locale);
-}
-
 function formatSize(value: number | undefined): string {
   if (value === undefined || value === null) return "--";
   if (value < 1024) return `${value} B`;
   return `${(value / 1024).toFixed(1)} KB`;
 }
 
-function getLanguageFromPath(path: string): string {
-  const ext = path.split(".").pop()?.toLowerCase() || "";
-  switch (ext) {
-    case "md": return "Markdown";
-    case "py": return "Python";
-    case "ts": return "TypeScript";
-    case "tsx": return "TSX";
-    case "js": return "JavaScript";
-    case "jsx": return "JSX";
-    case "json": return "JSON";
-    case "yaml": case "yml": return "YAML";
-    case "sh": case "bash": return "Shell";
-    case "toml": return "TOML";
-    case "env": return "Env";
-    case "css": return "CSS";
-    default: return ext ? ext.toUpperCase() : "Plain Text";
+function languageLabel(entry: AdminSkillV2FileEntry | undefined): string {
+  if (!entry) return "Plain Text";
+  if (entry.language) {
+    switch (entry.language) {
+      case "markdown": return "Markdown";
+      case "python": return "Python";
+      case "typescript": return "TypeScript";
+      case "javascript": return "JavaScript";
+      case "json": return "JSON";
+      case "yaml": return "YAML";
+      case "shell": return "Shell";
+      case "plain": return "Plain Text";
+      default: return entry.language.toUpperCase();
+    }
   }
+  const ext = entry.path.split(".").pop()?.toLowerCase() || "";
+  return ext ? ext.toUpperCase() : "Plain Text";
 }
 
 function isFilePathSafe(rawPath: string): boolean {
@@ -125,55 +129,41 @@ function isFilePathSafe(rawPath: string): boolean {
   if (!trimmed) return false;
   if (trimmed.startsWith("/")) return false;
   if (trimmed.includes("..")) return false;
-  // reject backslash as path separator for cross-platform safety
   if (trimmed.includes("\\")) return false;
   return true;
 }
 
-function normalizeSkillList(data: unknown): AdminSkillListItem[] {
-  if (Array.isArray(data)) return data as AdminSkillListItem[];
+function normalizeSkillList(data: unknown): AdminSkillV2Summary[] {
+  if (Array.isArray(data)) return data as AdminSkillV2Summary[];
   if (data && typeof data === "object" && "items" in data) {
-    return (data as { items: AdminSkillListItem[] }).items || [];
+    return (data as { items: AdminSkillV2Summary[] }).items || [];
   }
   return [];
 }
 
-function flattenFileNodes(nodes: AdminSkillFileNode[]): AdminSkillFileNode[] {
-  const result: AdminSkillFileNode[] = [];
-  const stack = [...nodes].reverse();
-  while (stack.length > 0) {
-    const node = stack.pop()!;
-    result.push(node);
-    if (node.children && node.children.length > 0) {
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push(node.children[i]);
-      }
-    }
-  }
-  return result;
-}
-
-function findFileNodeByPath(nodes: AdminSkillFileNode[], path: string): AdminSkillFileNode | undefined {
+function findEntryByPath(
+  entries: AdminSkillV2FileEntry[],
+  path: string,
+): AdminSkillV2FileEntry | undefined {
   const normalizedPath = path.trim();
   if (!normalizedPath) return undefined;
-  return flattenFileNodes(nodes).find((node) => node.path === normalizedPath);
+  return entries.find((entry) => entry.path === normalizedPath);
 }
 
-function findFileNodeByName(nodes: AdminSkillFileNode[], name: string): AdminSkillFileNode | undefined {
-  return flattenFileNodes(nodes).find((node) => node.name === name && node.type === "file");
+function findFirstTextEntry(entries: AdminSkillV2FileEntry[]): AdminSkillV2FileEntry | undefined {
+  return entries.find((entry) => entry.kind === "file" && entry.contentKind === "text");
 }
 
-function findFirstFileNode(nodes: AdminSkillFileNode[]): AdminSkillFileNode | undefined {
-  return flattenFileNodes(nodes).find((node) => node.type === "file");
-}
-
-export function findPreferredSkillFileNode(
-  nodes: AdminSkillFileNode[],
+export function findPreferredSkillFileEntry(
+  entries: AdminSkillV2FileEntry[],
   preferredPath = "",
-): AdminSkillFileNode | undefined {
-  const preferred = findFileNodeByPath(nodes, preferredPath);
-  if (preferred?.type === "file") return preferred;
-  return findFileNodeByName(nodes, "SKILL.md") || findFirstFileNode(nodes);
+  defaultOpenPath = "",
+): AdminSkillV2FileEntry | undefined {
+  const preferred = findEntryByPath(entries, preferredPath);
+  if (preferred?.kind === "file") return preferred;
+  const defaultEntry = findEntryByPath(entries, defaultOpenPath);
+  if (defaultEntry?.kind === "file") return defaultEntry;
+  return findEntryByPath(entries, "SKILL.md") || findFirstTextEntry(entries);
 }
 
 export function updateSkillDirtyFiles(
@@ -204,6 +194,338 @@ export function toggleSkillExpandedDir(current: Set<string>, path: string): Set<
   return next;
 }
 
+export function isSkillEntryVisible(
+  entry: AdminSkillV2FileEntry,
+  expandedDirs: Set<string>,
+): boolean {
+  if (!entry.parentPath) return true;
+  let current = entry.parentPath;
+  while (current) {
+    if (!expandedDirs.has(current)) return false;
+    const index = current.lastIndexOf("/");
+    current = index >= 0 ? current.slice(0, index) : "";
+  }
+  return true;
+}
+
+function iconForEntry(entry: AdminSkillV2FileEntry): MaterialIconName {
+  if (entry.kind === "directory") return "folder_open";
+  if (entry.contentKind === "binary") return "folder_zip";
+  return "description";
+}
+
+function applyOpenedFileState(
+  file: AdminSkillV2TextFile,
+  setSelectedFilePath: (value: string) => void,
+  setFileContent: (value: string) => void,
+  setOriginalFileContent: (value: string) => void,
+  setFileSha256: (value: string | null) => void,
+  setFileSize: (value: number | undefined) => void,
+  setFileUpdatedAt: (value: number | undefined) => void,
+  setDirtyFiles: Dispatch<SetStateAction<Set<string>>>,
+): void {
+  setSelectedFilePath(file.path);
+  setFileContent(file.content);
+  setOriginalFileContent(file.content);
+  setFileSha256(file.sha256 || null);
+  setFileSize(file.size);
+  setFileUpdatedAt(file.updatedAt);
+  setDirtyFiles((prev) => {
+    const next = new Set(prev);
+    next.delete(file.path);
+    return next;
+  });
+}
+
+function mergeDetailWithMutation(
+  detail: AdminSkillV2DetailResponse,
+  mutation: AdminSkillV2MutationResponse,
+): AdminSkillV2DetailResponse {
+  const fileManifest = mutation.fileManifest || detail.fileManifest;
+  const entries = mutation.entry && !mutation.fileManifest
+    ? fileManifest.entries.map((entry) =>
+        entry.path === mutation.entry?.path ? mutation.entry : entry,
+      )
+    : fileManifest.entries;
+  return {
+    ...detail,
+    skill: mutation.skill || detail.skill,
+    diagnostics: mutation.diagnostics ?? detail.diagnostics,
+    fileManifest: {
+      ...fileManifest,
+      entries,
+    },
+    openedFile: mutation.openedFile || detail.openedFile,
+  };
+}
+
+type SkillConsoleTranslate = (key: string, params?: Record<string, unknown>) => string;
+
+interface SkillFileWorkspaceProps {
+  detail: AdminSkillV2DetailResponse;
+  selectedFilePath: string;
+  fileContent: string;
+  fileSize: number | undefined;
+  fileSha256: string | null;
+  dirtyFiles: Set<string>;
+  expandedDirs: Set<string>;
+  isFileDirty: boolean;
+  saving: boolean;
+  validating: boolean;
+  t: SkillConsoleTranslate;
+  onCreateFile: () => void;
+  onCreateDir: () => void;
+  onValidate: () => void;
+  onRefreshFile: () => void;
+  onSave: () => void;
+  onRenameFile: () => void;
+  onDeleteFile: () => void;
+  onDownloadFile: () => void;
+  onReplaceFile: (file: File) => void;
+  onFileChange: (value: string) => void;
+  onSelectFileEntry: (entry: AdminSkillV2FileEntry) => void | Promise<void>;
+}
+
+export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
+  detail,
+  selectedFilePath,
+  fileContent,
+  fileSize,
+  fileSha256,
+  dirtyFiles,
+  expandedDirs,
+  isFileDirty,
+  saving,
+  validating,
+  t,
+  onCreateFile,
+  onCreateDir,
+  onValidate,
+  onRefreshFile,
+  onSave,
+  onRenameFile,
+  onDeleteFile,
+  onDownloadFile,
+  onReplaceFile,
+  onFileChange,
+  onSelectFileEntry,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const entries = detail.fileManifest.entries || [];
+  const selectedEntry = findEntryByPath(entries, selectedFilePath);
+  const visibleEntries = entries.filter((entry) => isSkillEntryVisible(entry, expandedDirs));
+  const isTextSelected = selectedEntry?.contentKind === "text";
+  const isBinarySelected = selectedEntry?.contentKind === "binary";
+
+  return (
+    <div className={SKILL_FILE_PANELS_CLASS_NAME}>
+      <div className={SKILL_FILE_TREE_PANEL_CLASS_NAME}>
+        <div className={SKILL_FILE_TREE_TOOLBAR_CLASS_NAME}>
+          <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
+            {t("skillConsole.fileTree.root")}
+          </span>
+          <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
+            <UiButton
+              size="sm"
+              variant="ghost"
+              iconOnly
+              onClick={onCreateFile}
+              aria-label={t("skillConsole.action.createFile")}
+            >
+              <MaterialIcon name="article" />
+            </UiButton>
+            <UiButton
+              size="sm"
+              variant="ghost"
+              iconOnly
+              onClick={onCreateDir}
+              aria-label={t("skillConsole.action.createDir")}
+            >
+              <MaterialIcon name="create_new_folder" />
+            </UiButton>
+            <UiButton
+              size="sm"
+              variant="ghost"
+              iconOnly
+              onClick={onValidate}
+              disabled={validating}
+              aria-label={t("skillConsole.action.validate")}
+            >
+              <MaterialIcon name="rule" />
+            </UiButton>
+          </div>
+        </div>
+
+        <div className={SKILL_FILE_TREE_CLASS_NAME}>
+          {visibleEntries.length > 0 ? (
+            visibleEntries.map((entry) => {
+              const isSelected = entry.path === selectedFilePath;
+              const isDirty = dirtyFiles.has(entry.path);
+              const paddingLeft = 8 + entry.depth * 16;
+              return (
+                <div key={entry.path}>
+                  <button
+                    type="button"
+                    className={`tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
+                      isSelected ? "tw:bg-bg-hover tw:font-medium" : ""
+                    }`}
+                    style={{ paddingLeft, paddingRight: 8 }}
+                    onClick={() => { void onSelectFileEntry(entry); }}
+                  >
+                    <MaterialIcon name={iconForEntry(entry)} />
+                    <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
+                      {entry.name}
+                    </span>
+                    {isDirty && (
+                      <span
+                        className="tw:inline-block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
+                        style={{ backgroundColor: "var(--accent-warning, #ff7d00)" }}
+                        title={t("skillConsole.message.unsaved")}
+                      />
+                    )}
+                  </button>
+                </div>
+              );
+            })
+          ) : (
+            <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
+              {t("skillConsole.fileTree.empty")}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={SKILL_FILE_EDITOR_CLASS_NAME}>
+        {selectedEntry ? (
+          <>
+            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
+              <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
+                <MaterialIcon name={iconForEntry(selectedEntry)} />
+                <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
+                  {selectedEntry.path}
+                </span>
+                <span>{isTextSelected ? languageLabel(selectedEntry) : selectedEntry.mimeType || "Binary"}</span>
+                {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
+              </div>
+              <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
+                {isFileDirty && (
+                  <span className={SKILL_DIRTY_CLASS_NAME}>
+                    {t("skillConsole.message.unsaved")}
+                  </span>
+                )}
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  iconOnly
+                  onClick={onRefreshFile}
+                  disabled={saving}
+                  aria-label={t("skillConsole.action.refresh")}
+                >
+                  <MaterialIcon name="refresh" />
+                </UiButton>
+                {isTextSelected && (
+                  <UiButton
+                    size="sm"
+                    variant="primary"
+                    iconOnly
+                    onClick={onSave}
+                    disabled={saving || !isFileDirty}
+                    aria-label={t("skillConsole.action.save")}
+                  >
+                    <MaterialIcon name="save" />
+                  </UiButton>
+                )}
+                {isBinarySelected && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    onClick={onDownloadFile}
+                    aria-label={t("skillConsole.action.download")}
+                  >
+                    <MaterialIcon name="download" />
+                  </UiButton>
+                )}
+                {isBinarySelected && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="tw:hidden"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = "";
+                        if (file) onReplaceFile(file);
+                      }}
+                    />
+                    <UiButton
+                      size="sm"
+                      variant="ghost"
+                      iconOnly
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label={t("skillConsole.action.replaceFile")}
+                    >
+                      <MaterialIcon name="article" />
+                    </UiButton>
+                  </>
+                )}
+                {selectedEntry.renamable && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    onClick={onRenameFile}
+                    aria-label={t("skillConsole.action.rename")}
+                  >
+                    <MaterialIcon name="edit" />
+                  </UiButton>
+                )}
+                {selectedEntry.deletable && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    onClick={onDeleteFile}
+                    aria-label={t("skillConsole.action.delete")}
+                  >
+                    <MaterialIcon name="delete" />
+                  </UiButton>
+                )}
+              </div>
+            </div>
+
+            {isTextSelected ? (
+              <Input.TextArea
+                className={SKILL_TEXTAREA_CLASS_NAME}
+                value={fileContent}
+                onChange={(e) => onFileChange(e.target.value)}
+              />
+            ) : (
+              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
+                <strong>{selectedEntry.name}</strong>
+                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
+                  <span>{t("skillConsole.field.path")}</span>
+                  <span>{selectedEntry.path}</span>
+                  <span>{t("skillConsole.field.size")}</span>
+                  <span>{formatSize(selectedEntry.size)}</span>
+                  <span>Mime</span>
+                  <span>{selectedEntry.mimeType || "--"}</span>
+                  <span>SHA256</span>
+                  <span>{fileSha256 || selectedEntry.sha256 || "--"}</span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="command-empty-state">
+            {t("skillConsole.fileTree.empty")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /* ---- component ---- */
 
 export interface SkillConsoleProps {
@@ -216,38 +538,38 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   selectedSkillKey,
   onSelectSkillKey,
 }) => {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
-  /* ---- list state ---- */
-  const [skills, setSkills] = useState<AdminSkillListItem[]>([]);
+  const [skills, setSkills] = useState<AdminSkillV2Summary[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-  /* ---- detail state ---- */
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detail, setDetail] = useState<AdminSkillDetailResponse | null>(null);
+  const [detail, setDetail] = useState<AdminSkillV2DetailResponse | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState("");
   const [fileContent, setFileContent] = useState("");
   const [originalFileContent, setOriginalFileContent] = useState("");
-  const [fileRevision, setFileRevision] = useState<string | null>(null);
-  const [fileMtime, setFileMtime] = useState<number | undefined>(undefined);
+  const [fileSha256, setFileSha256] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | undefined>(undefined);
+  const [fileUpdatedAt, setFileUpdatedAt] = useState<number | undefined>(undefined);
   const [dirtyFiles, setDirtyFiles] = useState<Set<string>>(new Set());
 
-  /* ---- action state ---- */
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["references", "scripts"]));
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["references", "scripts", "assets"]));
 
-  const detailRef = useRef<AdminSkillDetailResponse | null>(null);
+  const detailRef = useRef<AdminSkillV2DetailResponse | null>(null);
   detailRef.current = detail;
 
-  /* ---- derived ---- */
+  const selectedEntry = useMemo(
+    () => findEntryByPath(detail?.fileManifest.entries || [], selectedFilePath),
+    [detail?.fileManifest.entries, selectedFilePath],
+  );
   const isFileDirty = dirtyFiles.has(selectedFilePath);
 
   const filteredSkills = useMemo(() => {
@@ -259,7 +581,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         item.key,
         item.name,
         item.description || "",
-        item.sourcePath || "",
+        item.source?.path || "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -268,13 +590,42 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   }, [skills, searchText, statusFilter]);
 
-  /* ---- API calls ---- */
+  const applyOpenedFile = useCallback((file: AdminSkillV2TextFile) => {
+    applyOpenedFileState(
+      file,
+      setSelectedFilePath,
+      setFileContent,
+      setOriginalFileContent,
+      setFileSha256,
+      setFileSize,
+      setFileUpdatedAt,
+      setDirtyFiles,
+    );
+  }, []);
+
+  const applyBinaryEntry = useCallback((entry: AdminSkillV2FileEntry) => {
+    setSelectedFilePath(entry.path);
+    setFileContent("");
+    setOriginalFileContent("");
+    setFileSha256(entry.sha256 || null);
+    setFileSize(entry.size);
+    setFileUpdatedAt(entry.updatedAt);
+  }, []);
+
+  const clearFileState = useCallback(() => {
+    setSelectedFilePath("");
+    setFileContent("");
+    setOriginalFileContent("");
+    setFileSha256(null);
+    setFileSize(undefined);
+    setFileUpdatedAt(undefined);
+  }, []);
 
   const loadSkills = useCallback(async () => {
     setListLoading(true);
     setError("");
     try {
-      const response = await getAdminSkills();
+      const response = await getAdminSkillsV2();
       setSkills(normalizeSkillList(response.data));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -283,42 +634,22 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   }, []);
 
-  const loadFileByPath = useCallback(async (skillKey: string, path: string) => {
-    const normalizedPath = path.trim();
-    if (!skillKey || !normalizedPath) return null;
-    setSelectedFilePath(normalizedPath);
-    setError("");
-    try {
-      const response = await getAdminSkillFile(skillKey, normalizedPath);
-      const fileData: AdminSkillFileResponse = response.data;
-      setFileContent(fileData.content);
-      setOriginalFileContent(fileData.content);
-      setFileRevision(fileData.revision || null);
-      setFileMtime(fileData.mtime);
-      setFileSize(fileData.size);
-      return fileData;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      return null;
-    }
-  }, []);
-
-  const clearFileState = useCallback(() => {
-    setSelectedFilePath("");
-    setFileContent("");
-    setOriginalFileContent("");
-    setFileRevision(null);
-    setFileMtime(undefined);
-    setFileSize(undefined);
-  }, []);
-
-  const refreshDetailOnly = useCallback(async (skillKey: string) => {
-    const response = await getAdminSkillDetail(skillKey);
-    const nextDetail = response.data;
-    setDetail(nextDetail);
-    detailRef.current = nextDetail;
-    return nextDetail;
-  }, []);
+  const loadFileByPath = useCallback(
+    async (skillKey: string, path: string) => {
+      const normalizedPath = path.trim();
+      if (!skillKey || !normalizedPath) return null;
+      setError("");
+      try {
+        const response = await getAdminSkillFileV2(skillKey, normalizedPath);
+        applyOpenedFile(response.data);
+        return response.data;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
+      }
+    },
+    [applyOpenedFile],
+  );
 
   const loadDetail = useCallback(
     async (skillKey: string, preferredFilePath = "") => {
@@ -327,17 +658,26 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setDetailLoading(true);
       setError("");
       try {
-        const response = await getAdminSkillDetail(normalizedSkillKey);
+        const requestedOpenPath = preferredFilePath || "SKILL.md";
+        const response = await getAdminSkillDetailV2(normalizedSkillKey, requestedOpenPath);
         const d = response.data;
         setDetail(d);
         detailRef.current = d;
-
-        clearFileState();
         setDirtyFiles(new Set());
 
-        const targetFile = findPreferredSkillFileNode(d.fileTree || [], preferredFilePath);
-        if (targetFile) {
-          await loadFileByPath(d.key, targetFile.path);
+        const targetEntry = findPreferredSkillFileEntry(
+          d.fileManifest.entries || [],
+          preferredFilePath || d.openedFile?.path || requestedOpenPath,
+          d.fileManifest.defaultOpenPath,
+        );
+        if (d.openedFile && (!targetEntry || d.openedFile.path === targetEntry.path)) {
+          applyOpenedFile(d.openedFile);
+        } else if (targetEntry?.contentKind === "text") {
+          await loadFileByPath(d.skill.key, targetEntry.path);
+        } else if (targetEntry?.contentKind === "binary") {
+          applyBinaryEntry(targetEntry);
+        } else {
+          clearFileState();
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -345,21 +685,20 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         setDetailLoading(false);
       }
     },
-    [clearFileState, loadFileByPath],
+    [applyBinaryEntry, applyOpenedFile, clearFileState, loadFileByPath],
   );
 
-  const selectFileNode = useCallback(
-    async (node: AdminSkillFileNode) => {
+  const selectFileEntry = useCallback(
+    async (entry: AdminSkillV2FileEntry) => {
       const currentDetail = detailRef.current;
       if (!currentDetail) return;
 
-      if (node.type === "directory") {
-        setExpandedDirs((prev) => toggleSkillExpandedDir(prev, node.path));
+      if (entry.kind === "directory") {
+        setExpandedDirs((prev) => toggleSkillExpandedDir(prev, entry.path));
         return;
       }
 
-      // Check for unsaved changes
-      if (isFileDirty && selectedFilePath !== node.path) {
+      if (isFileDirty && selectedFilePath !== entry.path) {
         const ok = await new Promise<boolean>((resolve) => {
           Modal.confirm({
             title: t("skillConsole.confirm.switchFile"),
@@ -375,12 +714,15 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         });
       }
 
-      await loadFileByPath(currentDetail.key, node.path);
+      if (entry.contentKind === "text") {
+        await loadFileByPath(currentDetail.skill.key, entry.path);
+      } else {
+        applyBinaryEntry(entry);
+      }
     },
-    [isFileDirty, loadFileByPath, selectedFilePath, t],
+    [applyBinaryEntry, isFileDirty, loadFileByPath, selectedFilePath, t],
   );
 
-  /* ---- initial load & URL selection ---- */
   useEffect(() => {
     void loadSkills();
   }, [loadSkills]);
@@ -394,16 +736,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   useEffect(() => {
     if (skills.length === 0 || selectedSkillKey) return;
-    // Auto-select first ready skill
     const firstReady = skills.find((s) => s.status === "ready");
     if (firstReady) {
       onSelectSkillKey(firstReady.key);
     }
   }, [onSelectSkillKey, selectedSkillKey, skills]);
 
-  /* ---- handlers ---- */
-
-  const handleSelectSkill = (item: AdminSkillListItem) => {
+  const handleSelectSkill = (item: AdminSkillV2Summary) => {
     if (dirtyFiles.size > 0) {
       Modal.confirm({
         title: t("skillConsole.confirm.switchSkill"),
@@ -416,36 +755,75 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     onSelectSkillKey(item.key);
   };
 
-  const handleRefresh = () => {
-    if (detail) {
-      void loadDetail(detail.key);
-    }
-  };
+  const applyMutation = useCallback(
+    async (mutation: AdminSkillV2MutationResponse) => {
+      const currentDetail = detailRef.current;
+      if (!currentDetail) return;
+      const nextDetail = mergeDetailWithMutation(currentDetail, mutation);
+      setDetail(nextDetail);
+      detailRef.current = nextDetail;
+      if (mutation.skill) {
+        setSkills((prev) =>
+          prev.map((item) => (item.key === mutation.skill?.key ? mutation.skill : item)),
+        );
+      }
+      if (mutation.openedFile) {
+        applyOpenedFile(mutation.openedFile);
+        return;
+      }
+      const targetEntry = findPreferredSkillFileEntry(
+        nextDetail.fileManifest.entries,
+        mutation.selectedPath || selectedFilePath,
+        nextDetail.fileManifest.defaultOpenPath,
+      );
+      if (targetEntry?.contentKind === "text") {
+        await loadFileByPath(nextDetail.skill.key, targetEntry.path);
+      } else if (targetEntry?.contentKind === "binary") {
+        applyBinaryEntry(targetEntry);
+      } else {
+        clearFileState();
+      }
+    },
+    [applyBinaryEntry, applyOpenedFile, clearFileState, loadFileByPath, selectedFilePath],
+  );
 
-  const handleSave = async () => {
-    if (!detail || !selectedFilePath || !isFileDirty) return;
-    setSaving(true);
-    setError("");
-    try {
-      const response = await saveAdminSkillFile({
-        skillKey: detail.key,
-        path: selectedFilePath,
-        content: fileContent,
-        baseRevision: fileRevision || undefined,
+  const handleRefreshFile = async () => {
+    if (!detail || !selectedFilePath || !selectedEntry) return;
+    if (isFileDirty) {
+      const ok = await new Promise<boolean>((resolve) => {
+        Modal.confirm({
+          title: t("skillConsole.confirm.switchFile"),
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false),
+        });
       });
-      const saved: AdminSkillFileResponse = response.data;
-      setFileContent(saved.content);
-      setOriginalFileContent(saved.content);
-      setFileRevision(saved.revision || null);
-      setFileMtime(saved.mtime);
-      setFileSize(saved.size);
+      if (!ok) return;
       setDirtyFiles((prev) => {
         const next = new Set(prev);
         next.delete(selectedFilePath);
         return next;
       });
+    }
+    if (selectedEntry.contentKind === "text") {
+      await loadFileByPath(detail.skill.key, selectedFilePath);
+    } else {
+      await loadDetail(detail.skill.key, selectedFilePath);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!detail || !selectedFilePath || !isFileDirty || selectedEntry?.contentKind !== "text") return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await saveAdminSkillFileV2({
+        key: detail.skill.key,
+        path: selectedFilePath,
+        content: fileContent,
+        baseSha256: fileSha256 || undefined,
+      });
+      await applyMutation(response.data);
       setMessage(t("skillConsole.message.saveSuccess"));
-      await refreshDetailOnly(detail.key);
     } catch (err) {
       setMessage(t("skillConsole.message.saveFailed"));
       setError(err instanceof Error ? err.message : String(err));
@@ -459,10 +837,24 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setValidating(true);
     setError("");
     try {
-      const response = await validateAdminSkill(detail.key);
+      const response = await validateAdminSkillV2(detail.skill.key);
       const result = response.data;
-      await refreshDetailOnly(detail.key);
-
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          skill: {
+            ...prev.skill,
+            status: result.status,
+            updatedAt: result.updatedAt ?? prev.skill.updatedAt,
+            size: result.size ?? prev.skill.size,
+            diagnosticCount: result.diagnostics?.length ?? prev.skill.diagnosticCount,
+          },
+          diagnostics: result.diagnostics,
+        };
+        detailRef.current = next;
+        return next;
+      });
       if (result.status === "invalid") {
         setMessage(t("skillConsole.message.validateInvalid", { count: result.diagnostics?.length || 0 }));
       } else {
@@ -472,34 +864,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setValidating(false);
-    }
-  };
-
-  const handleFileOp = async (
-    op: "create-file" | "create-dir" | "rename" | "delete",
-    path: string,
-    newPath?: string,
-    preferredFilePath?: string,
-  ) => {
-    if (!detail) return;
-    setError("");
-    try {
-      await adminSkillFileOp({
-        skillKey: detail.key,
-        op,
-        path,
-        newPath,
-      });
-      if (op === "create-dir") {
-        setExpandedDirs((prev) => {
-          const next = new Set(prev);
-          next.add(path);
-          return next;
-        });
-      }
-      await loadDetail(detail.key, preferredFilePath);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -518,7 +882,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
-        await handleFileOp("create-file", name, undefined, name);
+        const response = await createAdminSkillFileV2({
+          key: detail.skill.key,
+          path: name,
+          content: "",
+        });
+        await applyMutation(response.data);
       },
     });
   };
@@ -538,13 +907,22 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
-        await handleFileOp("create-dir", name, undefined, selectedFilePath);
+        const response = await mkdirAdminSkillFileV2({
+          key: detail.skill.key,
+          path: name,
+        });
+        setExpandedDirs((prev) => {
+          const next = new Set(prev);
+          next.add(name);
+          return next;
+        });
+        await applyMutation(response.data);
       },
     });
   };
 
   const handleRenameFile = () => {
-    if (!detail || !selectedFilePath) return;
+    if (!detail || !selectedEntry || !selectedEntry.renamable) return;
     let inputValue = selectedFilePath;
     Modal.confirm({
       title: t("skillConsole.fileOp.rename"),
@@ -558,20 +936,58 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const newPath = inputValue.trim();
         if (!newPath || !isFilePathSafe(newPath) || newPath === selectedFilePath) return;
-        await handleFileOp("rename", selectedFilePath, newPath, newPath);
+        const response = await renameAdminSkillFileV2({
+          key: detail.skill.key,
+          fromPath: selectedFilePath,
+          toPath: newPath,
+        });
+        await applyMutation(response.data);
       },
     });
   };
 
   const handleDeleteFile = () => {
-    if (!detail || !selectedFilePath) return;
+    if (!detail || !selectedEntry || !selectedEntry.deletable) return;
     Modal.confirm({
       title: t("skillConsole.fileOp.deleteConfirm", { type: t("skillConsole.fileTree.root"), name: selectedFilePath }),
       okButtonProps: { danger: true },
       onOk: async () => {
-        await handleFileOp("delete", selectedFilePath);
+        const response = await deleteAdminSkillFileV2({
+          key: detail.skill.key,
+          path: selectedFilePath,
+          recursive: selectedEntry.kind === "directory",
+          baseSha256: selectedEntry.contentKind === "text" ? fileSha256 || undefined : undefined,
+        });
+        await applyMutation(response.data);
       },
     });
+  };
+
+  const handleDownloadFile = () => {
+    if (!detail || !selectedFilePath) return;
+    const url = buildAdminSkillFileDownloadUrlV2(detail.skill.key, selectedFilePath);
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleReplaceFile = async (file: File) => {
+    if (!detail || !selectedFilePath) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await uploadAdminSkillFileV2({
+        key: detail.skill.key,
+        path: selectedFilePath,
+        file,
+        overwrite: true,
+      });
+      await applyMutation(response.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateSkill = () => {
@@ -600,8 +1016,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!key) return;
         setCreating(true);
         try {
-          const response = await createAdminSkill({ key, name });
-          setSkills((prev) => [...prev, response.data].sort((a, b) => a.key.localeCompare(b.key)));
+          const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
+          const response = await createAdminSkillV2({ key, skillMd });
+          setSkills((prev) =>
+            [...prev.filter((item) => item.key !== key), response.data.skill]
+              .sort((a, b) => a.key.localeCompare(b.key)),
+          );
           onSelectSkillKey(key);
         } catch (err) {
           setError(err instanceof Error ? err.message : String(err));
@@ -620,49 +1040,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setMessage("");
   };
 
-  /* ---- file tree rendering ---- */
-
-  const renderFileNode = (node: AdminSkillFileNode, depth: number = 0): React.ReactNode => {
-    const isDir = node.type === "directory";
-    const isExpanded = expandedDirs.has(node.path);
-    const isSelected = node.path === selectedFilePath;
-    const isDirty = dirtyFiles.has(node.path);
-    const iconName = isDir ? "folder_open" : "description";
-    const paddingLeft = 8 + depth * 16;
-
-    return (
-      <div key={node.path}>
-        <button
-          type="button"
-          className={`tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
-            isSelected ? "tw:bg-bg-hover tw:font-medium" : ""
-          }`}
-          style={{ paddingLeft, paddingRight: 8 }}
-          onClick={() => selectFileNode(node)}
-        >
-          <MaterialIcon name={iconName as "description"} />
-          <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-            {node.name}
-          </span>
-          {isDirty && (
-            <span
-              className="tw:inline-block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
-              style={{ backgroundColor: "var(--accent-warning, #ff7d00)" }}
-              title={t("skillConsole.message.unsaved")}
-            />
-          )}
-        </button>
-        {isDir && isExpanded && node.children && (
-          <div>
-            {node.children.map((child) => renderFileNode(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  /* ---- status filter menu ---- */
-
   const statusMenu: MenuProps = useMemo(
     () => ({
       onClick: (info) => setStatusFilter(info.key as StatusFilter),
@@ -674,20 +1051,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }),
     [t, statusFilter],
   );
-
-  /* ---- file-level diagnostics ---- */
-  const fileDiagnostics = useMemo(() => {
-    if (!detail?.diagnostics || !selectedFilePath) return [];
-    return detail.diagnostics.filter((d) => {
-      if (!d.sourcePath) return false;
-      return d.sourcePath === selectedFilePath || d.sourcePath.endsWith("/" + selectedFilePath);
-    });
-  }, [detail?.diagnostics, selectedFilePath]);
-
-  const skillLevelDiagnostics = useMemo(() => {
-    if (!detail?.diagnostics) return [];
-    return detail.diagnostics.filter((d) => !d.sourcePath);
-  }, [detail?.diagnostics]);
 
   return (
     <div className={SKILL_CONSOLE_CLASS_NAME}>
@@ -705,7 +1068,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       )}
 
       <div className={SKILL_BODY_CLASS_NAME}>
-        {/* ---- left list ---- */}
         <div className={SKILL_LIST_CLASS_NAME}>
           <div className={SKILL_TOOLBAR_CLASS_NAME}>
             <SearchFilterBar
@@ -783,8 +1145,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       <span className={SKILL_LIST_ITEM_META_CLASS_NAME}>
                         <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
                           {item.key}
-                          {item.sourcePath ? ` · ${item.sourcePath}` : ""}
-                          {item.fileCount !== undefined ? ` · ${item.fileCount} ${t("skillConsole.field.fileCount")}` : ""}
                         </span>
                       </span>
                     </button>
@@ -795,165 +1155,38 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           </div>
         </div>
 
-        {/* ---- right detail ---- */}
         <div className={SKILL_DETAIL_CLASS_NAME}>
-          <Spin spinning={detailLoading}>
+          <Spin
+            spinning={detailLoading}
+            wrapperClassName="tw:h-full tw:min-h-0 tw:[&_.ant-spin-container]:h-full tw:[&_.ant-spin-container]:min-h-0"
+          >
             {!detail ? (
               <div className="command-empty-state">{t("skillConsole.detail.empty")}</div>
             ) : (
-              <>
-                {/* detail head */}
-                <div className={SKILL_DETAIL_HEAD_CLASS_NAME}>
-                  <div>
-                    <strong>{detail.name || detail.key}</strong>
-                    <span>{detail.sourcePath || detail.key}</span>
-                  </div>
-                  <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
-                    <UiTag tone={statusTone(detail.status)}>
-                      {t(`skillConsole.status.${detail.status}`)}
-                    </UiTag>
-                    <UiButton size="sm" variant="ghost" onClick={handleRefresh}>
-                      <MaterialIcon name="refresh" />
-                      <span>{t("skillConsole.action.refresh")}</span>
-                    </UiButton>
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleValidate}
-                      disabled={validating}
-                    >
-                      <MaterialIcon name="rule" />
-                      <span>{t("skillConsole.action.validate")}</span>
-                    </UiButton>
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={handleSave}
-                      disabled={saving || !isFileDirty}
-                    >
-                      <MaterialIcon name="save" />
-                      <span>{t("skillConsole.action.save")}</span>
-                    </UiButton>
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCreateFile}
-                    >
-                      <MaterialIcon name="article" />
-                      <span>{t("skillConsole.action.createFile")}</span>
-                    </UiButton>
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCreateDir}
-                    >
-                      <MaterialIcon name="create_new_folder" />
-                      <span>{t("skillConsole.action.createDir")}</span>
-                    </UiButton>
-                  </div>
-                </div>
-
-                {/* meta grid */}
-                <div className={SKILL_META_GRID_CLASS_NAME}>
-                  <span>{t("skillConsole.field.key")}: {detail.key}</span>
-                  <span>{t("skillConsole.field.name")}: {detail.name || "--"}</span>
-                  <span>{t("skillConsole.field.path")}: {detail.sourcePath || "--"}</span>
-                  <span>{t("skillConsole.field.status")}: {t(`skillConsole.status.${detail.status}`)}</span>
-                  <span>{t("skillConsole.field.fileCount")}: {detail.fileTree?.length || 0}</span>
-                  <span>{t("skillConsole.field.updatedAt")}: {formatTimestamp(detail.updatedAt, locale)}</span>
-                </div>
-
-                {/* skill-level diagnostics */}
-                {skillLevelDiagnostics.length > 0 && (
-                  <fieldset className={SKILL_DIAGNOSTICS_CLASS_NAME}>
-                    <legend className="tw:px-1.5 tw:text-[11px] tw:font-bold tw:text-ink-muted">
-                      {t("skillConsole.diagnostics.title")}
-                    </legend>
-                    {skillLevelDiagnostics.map((item, index) => (
-                      <div className={SKILL_DIAGNOSTIC_ROW_CLASS_NAME} key={`${item.code}-${index}`}>
-                        <UiTag tone={item.severity === "error" ? "danger" : "muted"}>{item.severity}</UiTag>
-                        <strong>{item.code}</strong>
-                        <span>{item.message}</span>
-                      </div>
-                    ))}
-                  </fieldset>
-                )}
-
-                {/* file panels: tree + editor */}
-                <div className={SKILL_FILE_PANELS_CLASS_NAME}>
-                  {/* file tree */}
-                  <div className={SKILL_FILE_TREE_CLASS_NAME}>
-                    {detail.fileTree && detail.fileTree.length > 0 ? (
-                      detail.fileTree.map((node) => renderFileNode(node))
-                    ) : (
-                      <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
-                        {t("skillConsole.fileTree.empty")}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* file editor */}
-                  <div className={SKILL_FILE_EDITOR_CLASS_NAME}>
-                    {selectedFilePath ? (
-                      <>
-                        {/* editor head */}
-                        <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
-                          <MaterialIcon name="description" />
-                          <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
-                            {selectedFilePath}
-                          </span>
-                          <span>{getLanguageFromPath(selectedFilePath)}</span>
-                          {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
-                        </div>
-
-                        {/* file-level diagnostics */}
-                        {fileDiagnostics.length > 0 && (
-                          <fieldset className={SKILL_DIAGNOSTICS_CLASS_NAME}>
-                            <legend className="tw:px-1.5 tw:text-[11px] tw:font-bold tw:text-ink-muted">
-                              {t("skillConsole.diagnostics.fileTitle")}
-                            </legend>
-                            {fileDiagnostics.map((item, index) => (
-                              <div className={SKILL_DIAGNOSTIC_ROW_CLASS_NAME} key={`file-${item.code}-${index}`}>
-                                <UiTag tone={item.severity === "error" ? "danger" : "muted"}>{item.severity}</UiTag>
-                                <strong>{item.code}</strong>
-                                <span>{item.message}</span>
-                              </div>
-                            ))}
-                          </fieldset>
-                        )}
-
-                        {/* textarea */}
-                        <Input.TextArea
-                          className={SKILL_TEXTAREA_CLASS_NAME}
-                          value={fileContent}
-                          onChange={(e) => handleFileChange(e.target.value)}
-                        />
-
-                        {/* file actions bar */}
-                        <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
-                          {isFileDirty && (
-                            <span className={SKILL_DIRTY_CLASS_NAME}>
-                              {t("skillConsole.message.unsaved")}
-                            </span>
-                          )}
-                          <UiButton size="sm" variant="ghost" onClick={handleRenameFile}>
-                            <MaterialIcon name="edit" />
-                            <span>{t("skillConsole.action.rename")}</span>
-                          </UiButton>
-                          <UiButton size="sm" variant="ghost" onClick={handleDeleteFile}>
-                            <MaterialIcon name="delete" />
-                            <span>{t("skillConsole.action.delete")}</span>
-                          </UiButton>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="command-empty-state">
-                        {t("skillConsole.fileTree.empty")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
+              <SkillFileWorkspace
+                detail={detail}
+                selectedFilePath={selectedFilePath}
+                fileContent={fileContent}
+                fileSize={fileSize}
+                fileSha256={fileSha256}
+                dirtyFiles={dirtyFiles}
+                expandedDirs={expandedDirs}
+                isFileDirty={isFileDirty}
+                saving={saving}
+                validating={validating}
+                t={t}
+                onCreateFile={handleCreateFile}
+                onCreateDir={handleCreateDir}
+                onValidate={handleValidate}
+                onRefreshFile={handleRefreshFile}
+                onSave={handleSave}
+                onRenameFile={handleRenameFile}
+                onDeleteFile={handleDeleteFile}
+                onDownloadFile={handleDownloadFile}
+                onReplaceFile={handleReplaceFile}
+                onFileChange={handleFileChange}
+                onSelectFileEntry={selectFileEntry}
+              />
             )}
           </Spin>
         </div>

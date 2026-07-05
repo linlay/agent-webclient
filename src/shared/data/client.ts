@@ -378,6 +378,155 @@ export interface AdminSkillCreateRequest {
   skillMdContent?: string;
 }
 
+export interface AdminSkillV2Summary {
+  key: string;
+  name: string;
+  description?: string;
+  meta?: Record<string, unknown>;
+  status: AdminSkillStatus;
+  diagnostic?: AdminRegistryListDiagnostic;
+  diagnosticCount?: number;
+  updatedAt?: number;
+  size?: number;
+  usedByAgents?: string[];
+  source?: AgentSource;
+}
+
+export interface AdminSkillV2Capabilities {
+  maxTextBytes: number;
+  maxUploadBytes: number;
+  canCreate: boolean;
+  canRename: boolean;
+  canDelete: boolean;
+  canUpload: boolean;
+  canDownload: boolean;
+}
+
+export type AdminSkillV2ContentKind = "text" | "binary" | "directory";
+export type AdminSkillV2FileRole = "skillMd" | "readme" | "reference" | "script" | "asset" | "other";
+
+export interface AdminSkillV2FileEntry {
+  path: string;
+  name: string;
+  kind: "file" | "directory";
+  parentPath: string;
+  depth: number;
+  order: number;
+  size?: number;
+  updatedAt?: number;
+  mimeType?: string;
+  sha256?: string;
+  contentKind: AdminSkillV2ContentKind;
+  language?: string;
+  role?: AdminSkillV2FileRole;
+  editable: boolean;
+  downloadable: boolean;
+  uploadable: boolean;
+  renamable: boolean;
+  deletable: boolean;
+}
+
+export interface AdminSkillV2FileCounts {
+  files: number;
+  directories: number;
+  textFiles: number;
+  binaryFiles: number;
+  totalSize: number;
+}
+
+export interface AdminSkillV2FileManifest {
+  revision: string;
+  defaultOpenPath?: string;
+  counts: AdminSkillV2FileCounts;
+  entries: AdminSkillV2FileEntry[];
+}
+
+export interface AdminSkillV2TextFile {
+  key: string;
+  path: string;
+  content: string;
+  encoding: "utf-8" | string;
+  sha256: string;
+  size: number;
+  updatedAt?: number;
+  editable: boolean;
+}
+
+export interface AdminSkillV2DetailResponse {
+  schemaVersion: 2;
+  skill: AdminSkillV2Summary;
+  capabilities: AdminSkillV2Capabilities;
+  fileManifest: AdminSkillV2FileManifest;
+  diagnostics?: AdminRegistryDiagnostic[];
+  openedFile?: AdminSkillV2TextFile;
+}
+
+export interface AdminSkillV2SaveFileRequest {
+  key: string;
+  path: string;
+  content: string;
+  encoding?: string;
+  baseSha256?: string;
+}
+
+export interface AdminSkillV2CreateFileRequest {
+  key: string;
+  path: string;
+  content?: string;
+  encoding?: string;
+}
+
+export interface AdminSkillV2MkdirRequest {
+  key: string;
+  path: string;
+}
+
+export interface AdminSkillV2RenameRequest {
+  key: string;
+  fromPath: string;
+  toPath: string;
+  overwrite?: boolean;
+}
+
+export interface AdminSkillV2DeleteFileRequest {
+  key: string;
+  path: string;
+  recursive?: boolean;
+  baseSha256?: string;
+}
+
+export interface AdminSkillV2MutationResponse {
+  key: string;
+  action: "create" | "save" | "mkdir" | "rename" | "delete" | "upload";
+  selectedPath?: string;
+  entry?: AdminSkillV2FileEntry;
+  openedFile?: AdminSkillV2TextFile;
+  fileManifest?: AdminSkillV2FileManifest;
+  skill?: AdminSkillV2Summary;
+  diagnostics?: AdminRegistryDiagnostic[];
+  reloaded: boolean;
+}
+
+export interface AdminSkillV2ValidateResponse {
+  key: string;
+  status: AdminSkillStatus;
+  diagnostics?: AdminRegistryDiagnostic[];
+  updatedAt?: number;
+  size?: number;
+}
+
+export interface AdminSkillV2CreateRequest {
+  key: string;
+  skillMd: string;
+  files?: Array<{ path: string; content: string; encoding?: string }>;
+}
+
+export interface AdminSkillV2DeleteResponse {
+  key: string;
+  deleted: boolean;
+  usedByAgents?: string[];
+}
+
 /* ---- End Skill types ---- */
 
 export interface AgentSource {
@@ -1573,6 +1722,105 @@ export function createAdminSkill(
   params: AdminSkillCreateRequest,
 ): Promise<ApiResponse<AdminSkillListItem>> {
   return postJson<AdminSkillListItem>(dataEndpoints.adminSkillCreate.path, params);
+}
+
+export function getAdminSkillsV2(): Promise<ApiResponse<AdminSkillV2Summary[]>> {
+  return requestJson<AdminSkillV2Summary[]>(dataEndpoints.adminSkillsV2.path);
+}
+
+export function getAdminSkillDetailV2(
+  key: string,
+  openPath?: string,
+): Promise<ApiResponse<AdminSkillV2DetailResponse>> {
+  const query = endpointQuery(dataEndpoints.adminSkillV2Detail, {
+    key,
+    ...(openPath ? { openPath } : {}),
+  });
+  return requestJson<AdminSkillV2DetailResponse>(
+    withQuery(dataEndpoints.adminSkillV2Detail.path, query),
+  );
+}
+
+export function getAdminSkillFileV2(
+  key: string,
+  path: string,
+): Promise<ApiResponse<AdminSkillV2TextFile>> {
+  const query = endpointQuery(dataEndpoints.adminSkillV2File, { key, path });
+  return requestJson<AdminSkillV2TextFile>(
+    withQuery(dataEndpoints.adminSkillV2File.path, query),
+  );
+}
+
+export function saveAdminSkillFileV2(
+  params: AdminSkillV2SaveFileRequest,
+): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  return requestJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2SaveFile.path, {
+    method: "PUT",
+    body: JSON.stringify(params),
+  });
+}
+
+export function createAdminSkillFileV2(
+  params: AdminSkillV2CreateFileRequest,
+): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  return postJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2CreateFile.path, params);
+}
+
+export function mkdirAdminSkillFileV2(
+  params: AdminSkillV2MkdirRequest,
+): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  return postJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2Mkdir.path, params);
+}
+
+export function renameAdminSkillFileV2(
+  params: AdminSkillV2RenameRequest,
+): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  return postJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2Rename.path, params);
+}
+
+export function deleteAdminSkillFileV2(
+  params: AdminSkillV2DeleteFileRequest,
+): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  return postJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2DeleteFile.path, params);
+}
+
+export function uploadAdminSkillFileV2(params: {
+  key: string;
+  path: string;
+  file: File | Blob;
+  overwrite?: boolean;
+}): Promise<ApiResponse<AdminSkillV2MutationResponse>> {
+  const form = new FormData();
+  form.append("key", params.key);
+  form.append("path", params.path);
+  if (params.overwrite !== undefined) {
+    form.append("overwrite", String(params.overwrite));
+  }
+  form.append("file", params.file);
+  return requestJson<AdminSkillV2MutationResponse>(dataEndpoints.adminSkillV2Upload.path, {
+    method: "POST",
+    body: form,
+    jsonContentType: false,
+  });
+}
+
+export function buildAdminSkillFileDownloadUrlV2(key: string, path: string): string {
+  const query = endpointQuery(dataEndpoints.adminSkillV2Download, { key, path });
+  return withQuery(dataEndpoints.adminSkillV2Download.path, query);
+}
+
+export function validateAdminSkillV2(key: string): Promise<ApiResponse<AdminSkillV2ValidateResponse>> {
+  return postJson<AdminSkillV2ValidateResponse>(dataEndpoints.adminSkillV2Validate.path, { key });
+}
+
+export function createAdminSkillV2(
+  params: AdminSkillV2CreateRequest,
+): Promise<ApiResponse<AdminSkillV2DetailResponse>> {
+  return postJson<AdminSkillV2DetailResponse>(dataEndpoints.adminSkillV2Create.path, params);
+}
+
+export function deleteAdminSkillV2(key: string): Promise<ApiResponse<AdminSkillV2DeleteResponse>> {
+  return postJson<AdminSkillV2DeleteResponse>(dataEndpoints.adminSkillV2Delete.path, { key });
 }
 
 export function getAdminTools(): Promise<ApiResponse<AdminToolSummary[]>> {
