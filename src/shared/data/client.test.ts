@@ -1849,6 +1849,7 @@ describe('data client query payloads', () => {
             {
               chatId: 'chat_1',
               chatName: 'Need approval',
+              source: 'automation:daily',
               read: {
                 isRead: false,
                 readAt: 456,
@@ -1875,6 +1876,7 @@ describe('data client query payloads', () => {
       {
         chatId: 'chat_1',
         chatName: 'Need approval',
+        source: 'automation:daily',
         read: {
           isRead: false,
           readAt: 456,

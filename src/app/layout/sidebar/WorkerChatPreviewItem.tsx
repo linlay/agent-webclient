@@ -16,6 +16,12 @@ const WORKER_CHAT_ITEM_HEAD_CLASS =
 const WORKER_CHAT_NAME_CLASS =
   "worker-chat-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]";
 
+const WORKER_CHAT_SOURCE_ICON_CLASS =
+  "worker-chat-source-icon tw:mr-1 tw:inline-flex tw:h-3 tw:w-3 tw:shrink-0 tw:align-[-2px] tw:text-text-sub";
+
+const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
+  "tw:h-full tw:w-full";
+
 const WORKER_CHAT_ACTION_CLASS =
   "worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px] tw:items-center tw:justify-end";
 
@@ -41,6 +47,34 @@ function getAwaitingStatusKey(mode?: string): string {
   }
 }
 
+function isAutomationSource(source?: string): boolean {
+  return String(source || '').trim().startsWith('automation:');
+}
+
+const AutomationSourceIcon: React.FC<{ label: string }> = ({ label }) => (
+  <span
+    className={WORKER_CHAT_SOURCE_ICON_CLASS}
+    title={label}
+    aria-label={label}
+    role="img"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={WORKER_CHAT_SOURCE_ICON_SVG_CLASS}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  </span>
+);
+
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
   isActive: boolean;
@@ -59,6 +93,8 @@ export const WorkerChatPreviewItem: React.FC<{
   const timeLabelClassName = action === "time"
     ? `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-100`
     : `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-0`;
+  const previewText = chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview");
+  const showAutomationSource = isAutomationSource(chat.source);
 
   return (
     <UiListItem
@@ -69,7 +105,10 @@ export const WorkerChatPreviewItem: React.FC<{
       <div className={WORKER_CHAT_ITEM_HEAD_CLASS}>
         <UnreadDot chat={chat} />
         <span className={WORKER_CHAT_NAME_CLASS}>
-          {chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview")}
+          {showAutomationSource && (
+            <AutomationSourceIcon label={t("leftSidebar.automationSource")} />
+          )}
+          {previewText}
         </span>
         <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
           {chat.hasPendingAwaiting && (

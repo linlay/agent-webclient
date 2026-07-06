@@ -60,6 +60,7 @@ const ACCESS_LEVEL_MENU_ITEM_CLASS: Record<QueryAccessLevel, string> = {
   full_access:
     "query-settings-access-item query-settings-access-item-full_access tw:text-[color-mix(in_srgb,var(--accent-danger)_72%,transparent)]",
 };
+const ACCESS_LEVEL_MENU_OPTION_CLASS = "query-settings-access-menu-option";
 const QUERY_SETTINGS_CONTROLS_CLASS =
   "query-settings-controls tw:inline-flex tw:items-center";
 const QUERY_SETTINGS_BUTTON_CLASS =
@@ -950,6 +951,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     () =>
       ACCESS_LEVELS.map((value) => ({
         key: value,
+        className: ACCESS_LEVEL_MENU_OPTION_CLASS,
         label: (
           <span
             className={ACCESS_LEVEL_MENU_ITEM_CLASS[value]}

@@ -417,6 +417,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_new",
 				chatName: "New Chat",
 				agentKey: "agent_alpha",
+				source: "automation:daily",
 			},
 		});
 
@@ -427,6 +428,7 @@ describe("connectWsTransport", () => {
 				chatName: "New Chat",
 				agentKey: "agent_alpha",
 				firstAgentKey: "agent_alpha",
+				source: "automation:daily",
 			}),
 		});
 		expect(handleEvent).not.toHaveBeenCalled();

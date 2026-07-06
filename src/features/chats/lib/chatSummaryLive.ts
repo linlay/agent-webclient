@@ -92,6 +92,7 @@ export function upsertLiveChatSummary(input: {
     cache.teamId ||
     toText(existingChat?.teamId) ||
     selectedContext.teamId;
+  const source = toText(event.source) || toText(existingChat?.source);
   const updatedAt = resolveChatSummaryUpdatedAt(event);
   const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
   const hasActiveRun = resolveChatSummaryActiveRun(event);
@@ -107,6 +108,7 @@ export function upsertLiveChatSummary(input: {
       firstAgentKey: agentKey || undefined,
       agentKey: agentKey || undefined,
       teamId: teamId || undefined,
+      source: source || undefined,
       lastRunId: runId || undefined,
       lastRunContent,
       updatedAt,

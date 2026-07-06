@@ -79,7 +79,7 @@ const CURRENT_WORKER_CARD_CLASS =
 const CURRENT_WORKER_NAME_CLASS =
   "current-worker-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
 const TOP_NAV_ICON_BUTTON_CLASS =
-  "top-nav-icon-btn tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
+  "top-nav-icon-btn tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:h-4 tw:[&_.material-icon]:w-4 tw:[&_.material-icon]:text-base";
 const CURRENT_WORKER_TOOL_BASE_CLASS =
   "current-worker-tool tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
 const VOICE_TOOL_CLASS_BY_MODE = {

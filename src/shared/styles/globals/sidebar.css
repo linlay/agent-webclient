@@ -158,6 +158,12 @@
     margin-inline-end: 4px;
 }
 
+.right-sidebar-tabs .ant-tabs-nav-wrap .material-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
 .right-sidebar-tabs.ant-tabs .ant-tabs-tab-btn {
     display: flex;
     color: var(--text-muted);

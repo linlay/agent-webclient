@@ -66,6 +66,7 @@ describe('chatSummaryLive helpers', () => {
         firstAgentName: 'Alice',
         firstAgentKey: 'agent-alice',
         agentKey: 'agent-alice',
+        source: 'automation:daily',
         hasPendingAwaiting: true,
       },
     ];
@@ -102,9 +103,75 @@ describe('chatSummaryLive helpers', () => {
         firstAgentName: 'Alice',
         firstAgentKey: 'agent-alice',
         agentKey: 'agent-alice',
+        source: 'automation:daily',
         hasPendingAwaiting: false,
         updatedAt: 200,
       },
     });
+  });
+
+  it('records source from chat.created and preserves it when later events omit source', () => {
+    const created = upsertLiveChatSummary({
+      event: {
+        type: 'chat.created',
+        chatId: 'chat_auto',
+        runId: 'run_1',
+        agentKey: 'agent-alpha',
+        source: 'automation:daily',
+        timestamp: 100,
+      } as AgentEvent,
+      cache: {
+        chatId: '',
+        runId: '',
+        agentKey: '',
+        teamId: '',
+      },
+      state: {
+        chatId: '',
+        runId: '',
+        chats: [],
+        chatAgentById: new Map(),
+      },
+      selectedContext: {
+        agentKey: '',
+        teamId: '',
+      },
+    });
+
+    expect(created?.chat.source).toBe('automation:daily');
+
+    const later = upsertLiveChatSummary({
+      event: {
+        type: 'run.start',
+        chatId: 'chat_auto',
+        runId: 'run_1',
+        agentKey: 'agent-alpha',
+        timestamp: 200,
+      } as AgentEvent,
+      cache: created?.resolved || {
+        chatId: '',
+        runId: '',
+        agentKey: '',
+        teamId: '',
+      },
+      state: {
+        chatId: 'chat_auto',
+        runId: 'run_1',
+        chats: [
+          {
+            chatId: 'chat_auto',
+            agentKey: 'agent-alpha',
+            source: 'automation:daily',
+          } as Chat,
+        ],
+        chatAgentById: new Map([['chat_auto', 'agent-alpha']]),
+      },
+      selectedContext: {
+        agentKey: '',
+        teamId: '',
+      },
+    });
+
+    expect(later?.chat.source).toBe('automation:daily');
   });
 });

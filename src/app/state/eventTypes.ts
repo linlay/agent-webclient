@@ -354,6 +354,7 @@ export interface AIEventCommonFields {
   groupId?: string;
   agentKey?: string;
   subAgentKey?: string;
+  source?: string;
   message?: string;
   delta?: string;
   text?: string;

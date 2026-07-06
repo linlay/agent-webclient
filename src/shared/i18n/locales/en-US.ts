@@ -486,6 +486,7 @@ export const enUSMessages: I18nMessages = {
   "leftSidebar.awaitingStatus.question": "Await Ques",
   "leftSidebar.awaitingStatus.approval": "Await Appr",
   "leftSidebar.awaitingStatus.form": "Await Submit",
+  "leftSidebar.automationSource": "Created by automation",
   "leftSidebar.browserFolderUnsupported": "Browser folder selection is not supported",
   "leftSidebar.browserWorkspaceOpenUnavailable": "Browser-imported projects do not expose a local workspace folder",
   "leftSidebar.terminalActive": "This agent has a terminal",

@@ -22,6 +22,7 @@ export interface Chat {
 	firstAgentKey?: string;
 	agentKey?: string;
 	teamId?: string;
+	source?: string;
 	updatedAt?: number;
 	lastRunId?: string;
 	lastRunContent?: string;
@@ -128,6 +129,7 @@ export interface WorkerConversationRow {
 	chatName: string;
 	agentKey?: string;
 	teamId?: string;
+	source?: string;
 	updatedAt: number;
 	lastRunId: string;
 	lastRunContent: string;

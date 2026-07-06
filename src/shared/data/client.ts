@@ -880,6 +880,7 @@ export interface ChatSummaryResponse {
   chatName?: string;
   agentKey?: string;
   teamId?: string;
+  source?: string;
   createdAt?: number;
   updatedAt?: number;
   lastRunId?: string;

@@ -47,6 +47,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
         chatName: toText(chat?.chatName),
         agentKey: toText(chat?.agentKey || chat?.firstAgentKey) || undefined,
         teamId: toText(chat?.teamId) || undefined,
+        source: toText(chat?.source) || undefined,
         updatedAt: normalizeUpdatedAt(chat?.updatedAt),
         lastRunId: toText(chat?.lastRunId),
         lastRunContent: toText(chat?.lastRunContent),

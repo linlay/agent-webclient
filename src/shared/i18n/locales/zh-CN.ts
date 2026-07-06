@@ -486,6 +486,7 @@ export const zhCNMessages: I18nMessages = {
   "leftSidebar.awaitingStatus.question": "等待回答",
   "leftSidebar.awaitingStatus.approval": "等待批准",
   "leftSidebar.awaitingStatus.form": "等待提交",
+  "leftSidebar.automationSource": "自动化创建",
   "leftSidebar.browserFolderUnsupported": "当前浏览器不支持选择文件夹",
   "leftSidebar.browserWorkspaceOpenUnavailable": "浏览器导入项目无法打开本机工作目录",
   "leftSidebar.terminalActive": "该智能体有终端",

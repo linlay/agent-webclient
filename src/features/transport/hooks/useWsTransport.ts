@@ -135,6 +135,11 @@ function toChatPatchFromPushEvent(
 		chatPatch.teamId = teamId;
 	}
 
+	const source = String(raw.source || "").trim();
+	if (source) {
+		chatPatch.source = source;
+	}
+
 	const runId = String(event.runId || raw.lastRunId || "").trim();
 	if (runId) {
 		chatPatch.lastRunId = runId;

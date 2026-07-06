@@ -29,6 +29,7 @@ describe('buildWorkerConversationRows', () => {
         chatId: 'chat_newer',
         chatName: 'Newer chat',
         agentKey: 'agent-alpha',
+        source: 'automation:daily',
         lastRunId: 'a1',
         updatedAt: 200,
         hasPendingAwaiting: true,
@@ -49,6 +50,7 @@ describe('buildWorkerConversationRows', () => {
       'chat_older',
     ]);
     expect(rows[0]?.hasPendingAwaiting).toBe(true);
+    expect(rows[0]?.source).toBe('automation:daily');
   });
 
   it('does not use chatId as the display chatName fallback', () => {

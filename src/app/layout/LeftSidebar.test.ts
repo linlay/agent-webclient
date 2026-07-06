@@ -1472,6 +1472,38 @@ describe("LeftSidebar", () => {
     );
   });
 
+  it("renders an automation source icon before worker chat preview text", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats[state.chats.length - 1].source = "automation:daily";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("worker-chat-source-icon");
+    expect(html).toContain('aria-label="自动化创建"');
+    expect(html).toContain('title="自动化创建"');
+    expect(html).toContain('<circle cx="12" cy="12" r="10"></circle>');
+    expect(html).toContain('<path d="M12 6v6l4 2"></path>');
+    expect(html).toMatch(
+      /<span class="[^"]*\bworker-chat-name\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span>Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
+    );
+  });
+
+  it("does not render the automation source icon for query worker chats", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats[state.chats.length - 1].source = "query:user_1";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).not.toContain("worker-chat-source-icon");
+    expect(html).toMatch(
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
+    );
+  });
+
   it("shows running status in folded accordion header for the latest active run chat", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;

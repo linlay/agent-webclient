@@ -92,6 +92,12 @@
     padding: 3px 6px;
 }
 
+.query-settings-menu.ant-dropdown-menu .query-settings-access-menu-option .material-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
 .query-settings-menu.ant-dropdown-menu .ant-dropdown-menu-item-group-title {
     padding: 2px 5px;
 }
