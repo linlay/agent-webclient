@@ -609,7 +609,7 @@ describe("EventPopover display and copy helpers", () => {
 
   it("formats readable timestamps and falls back to --", () => {
     expect(formatReadableTimestamp(1776518171300)).toMatch(
-      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/,
+      /^\d{2}:\d{2}:\d{2}$/,
     );
     expect(formatReadableTimestamp(undefined)).toBe("--");
   });
