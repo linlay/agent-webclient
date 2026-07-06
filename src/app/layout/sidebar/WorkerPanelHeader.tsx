@@ -8,11 +8,16 @@ import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
-    case 'plan': return 'leftSidebar.awaitingStatus.plan';
-    case 'question': return 'leftSidebar.awaitingStatus.question';
-    case 'approval': return 'leftSidebar.awaitingStatus.approval';
-    case 'form': return 'leftSidebar.awaitingStatus.form';
-    default: return 'leftSidebar.awaitingApproval';
+    case "plan":
+      return "leftSidebar.awaitingStatus.plan";
+    case "question":
+      return "leftSidebar.awaitingStatus.question";
+    case "approval":
+      return "leftSidebar.awaitingStatus.approval";
+    case "form":
+      return "leftSidebar.awaitingStatus.form";
+    default:
+      return "leftSidebar.awaitingApproval";
   }
 }
 
@@ -35,8 +40,7 @@ const WORKER_PANEL_HEADER_BODY_CLASS =
 const WORKER_PANEL_ROLE_CLASS =
   "worker-panel-role tw:ml-2 tw:text-[11px] tw:text-text-muted";
 
-const WORKER_PANEL_NEW_CLASS =
-  "worker-panel-new";
+const WORKER_PANEL_NEW_CLASS = "worker-panel-new";
 
 const WORKER_CHAT_LOADING_CLASS =
   "worker-chat-loading tw:mr-0.5 tw:text-sm tw:text-text-sub tw:animate-ui-spin";
@@ -183,7 +187,6 @@ export const WorkerPanelHeader: React.FC<{
               </span>
             )}
           </Typography.Text>
-          <Badge count={unreadCount} size="small" color="blue" />
           {terminalActive ? (
             <Tooltip title={terminalTitle}>
               <span
@@ -196,6 +199,7 @@ export const WorkerPanelHeader: React.FC<{
               </span>
             </Tooltip>
           ) : null}
+          <Badge count={unreadCount} size="small" color="blue" />
           <Flex gap={6}>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
