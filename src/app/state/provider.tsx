@@ -7,6 +7,7 @@ import React, {
 	useReducer,
 	useRef,
 } from "react";
+import { debounce } from "lodash";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { appReducer } from "@/app/state/reducer";
@@ -61,6 +62,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	const activeQuerySessionRequestIdRef = useRef("");
 	stateRef.current = state;
 
+	const debouncedSetStreamingRef = useRef(
+		debounce(
+			(action: Extract<AppAction, { type: "SET_STREAMING" }>) => {
+				baseDispatch(action);
+			},
+			300,
+		),
+	);
+
+	useEffect(() => {
+		const debounced = debouncedSetStreamingRef.current;
+		return () => {
+			debounced.cancel();
+		};
+	}, []);
+
 	const dispatch = useCallback<React.Dispatch<AppAction>>((action) => {
 		if (
 			action.type === "SHOW_COMMAND_STATUS_OVERLAY" ||
@@ -77,6 +94,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			action.type === "RESET_CONVERSATION" ||
 			action.type === "RESET_ACTIVE_CONVERSATION"
 		) {
+			debouncedSetStreamingRef.current.cancel();
 			const artifactTimer = stateRef.current.artifactAutoCollapseTimer;
 			if (artifactTimer) {
 				clearTimeout(artifactTimer);
@@ -88,6 +106,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			for (const timer of stateRef.current.reasoningCollapseTimers.values()) {
 				clearTimeout(timer);
 			}
+		}
+		if (action.type === "SET_STREAMING") {
+			applyActionToStateRef(stateRef, action);
+			debouncedSetStreamingRef.current(action);
+			return;
 		}
 		applyActionToStateRef(stateRef, action);
 		baseDispatch(action);

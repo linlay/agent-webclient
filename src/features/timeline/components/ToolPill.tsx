@@ -453,11 +453,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   className={TOOL_CALL_RESULT_CLASS_NAME}
                   style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
                 >
-                  <JsonToTable
-                    className="input"
-                    text={record.argsInlineText}
-                    emptyText={t("timeline.toolPill.empty")}
-                  />
+                  <JsonToTable className="input" text={record.argsInlineText} />
                   <span>{resultText}</span>
                 </code>
               </div>
@@ -472,8 +468,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 const JsonToTable: React.FC<{
   text: any;
   className?: string;
-  emptyText: string;
+  emptyText?: string;
 }> = ({ text, className, emptyText }) => {
+  const { t } = useI18n();
   const json = useMemo<Record<string, any>>(() => {
     if (typeof text === "object") return text;
     try {
@@ -491,10 +488,17 @@ const JsonToTable: React.FC<{
             <td>
               {Array.isArray(value) ? (
                 value.map((v, i) => (
-                  <JsonToTable key={i} text={v} emptyText={emptyText} />
+                  <JsonToTable
+                    key={i}
+                    text={v}
+                    emptyText={t("timeline.toolPill.empty")}
+                  />
                 ))
               ) : (
-                <JsonToTable text={value} emptyText={emptyText} />
+                <JsonToTable
+                  text={value}
+                  emptyText={t("timeline.toolPill.empty")}
+                />
               )}
             </td>
           </tr>

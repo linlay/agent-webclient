@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { Tabs, type TabsProps } from "antd";
+import { Flex, Tabs, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
@@ -217,8 +217,12 @@ export const RightSidebar: React.FC = () => {
     const items: NonNullable<TabsProps["items"]> = [
       {
         key: "overview",
-        label: t("copilot.panel.overview"),
-        icon: <MaterialIcon name="dashboard" />,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="dashboard" />
+            <span>{t("copilot.panel.overview")}</span>
+          </Flex>
+        ),
         children: <OverviewTab />,
       },
     ];
@@ -226,8 +230,12 @@ export const RightSidebar: React.FC = () => {
     if (sourceDetail) {
       items.push({
         key: "sourceDetail",
-        label: t("copilot.panel.sourceDetail"),
-        icon: <MaterialIcon name="book_2" />,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="book_2" />
+            <span>{t("copilot.panel.sourceDetail")}</span>
+          </Flex>
+        ),
         children: <SourceDetailTab />,
       });
     }
@@ -235,8 +243,12 @@ export const RightSidebar: React.FC = () => {
     if (preview) {
       items.push({
         key: "preview",
-        label: t("copilot.panel.preview"),
-        icon: <MaterialIcon name="visibility" />,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="visibility" />
+            <span>{t("copilot.panel.preview")}</span>
+          </Flex>
+        ),
         children: <AttachmentPreviewPanel />,
       });
     }

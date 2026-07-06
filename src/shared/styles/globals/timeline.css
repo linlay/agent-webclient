@@ -305,8 +305,7 @@
 
 .attachment-card {
     position: relative;
-    min-width: 0;
-    max-width: 100%;
+    width: 200px;
 }
 
 .attachment-card.is-interactive {
