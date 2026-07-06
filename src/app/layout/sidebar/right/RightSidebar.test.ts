@@ -17,6 +17,8 @@ jest.mock("antd", () => {
   const React = require("react");
 
   return {
+    Flex: ({ children, gap, ...props }: any) =>
+      React.createElement("div", { ...props, "data-gap": gap }, children),
     Tabs: ({ items = [], activeKey, className }: any) =>
       React.createElement(
         "div",
