@@ -11,9 +11,10 @@ import type {
 } from "@/features/timeline/lib/eventProcessorTypes";
 import { isTerminalStatus, safeText, toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
-import { pickToolName, resolveViewportKey } from "@/features/timeline/lib/toolEvent";
-
-const INCOMPLETE_TOOL_ARGS_NOTE = "[incomplete tool args]";
+import {
+  pickToolName,
+  resolveViewportKey,
+} from "@/features/timeline/lib/toolEvent";
 
 interface ResolvedTaskBinding {
   taskId: string;
@@ -61,7 +62,10 @@ function resolveVisibleTaskBinding(
       existing?.taskName ||
       explicitTaskId;
     const subAgentKey =
-      readSubAgentKey(event) || task?.subAgentKey || existing?.subAgentKey || "";
+      readSubAgentKey(event) ||
+      task?.subAgentKey ||
+      existing?.subAgentKey ||
+      "";
     return {
       taskId: explicitTaskId,
       taskName,
@@ -88,7 +92,8 @@ function resolveVisibleTaskBinding(
   const taskId = task?.taskId || activeTaskIds[0];
   return {
     taskId,
-    taskName: task?.taskName || state.getPlanTaskDescription?.(taskId) || taskId,
+    taskName:
+      task?.taskName || state.getPlanTaskDescription?.(taskId) || taskId,
     taskGroupId: task?.taskGroupId || "",
     subAgentKey: task?.subAgentKey,
   };
@@ -139,9 +144,10 @@ export function buildNextTaskItem(input: {
     taskId;
   const startedAt =
     status === "running"
-      ? existing?.startedAt ?? (event.timestamp || updatedAt)
-      : existing?.startedAt ?? event.timestamp ?? updatedAt;
-  const endedAt = status === "running" ? undefined : event.timestamp || updatedAt;
+      ? (existing?.startedAt ?? (event.timestamp || updatedAt))
+      : (existing?.startedAt ?? event.timestamp ?? updatedAt);
+  const endedAt =
+    status === "running" ? undefined : event.timestamp || updatedAt;
 
   return {
     taskId,
@@ -154,7 +160,8 @@ export function buildNextTaskItem(input: {
     endedAt,
     durationMs: computeTaskDurationMs(startedAt, endedAt),
     updatedAt,
-    error: status === "failed" ? toText(event.error) || existing?.error || "" : "",
+    error:
+      status === "failed" ? toText(event.error) || existing?.error || "" : "",
   };
 }
 
@@ -188,6 +195,10 @@ export function ensureMappedNode(params: {
   return nodeId;
 }
 
+export function isEmptyRecord(value: Record<string, unknown> | null): boolean {
+  return !value || Object.keys(value).length === 0;
+}
+
 export function parseToolArgsBuffer(
   nextArgsBuffer: string,
   existingToolParams: Record<string, unknown> | null,
@@ -203,19 +214,10 @@ export function parseToolArgsBuffer(
   return existingToolParams;
 }
 
-function parseToolArgsObject(nextArgsBuffer: string): Record<string, unknown> | null {
+function parseToolArgsObject(
+  nextArgsBuffer: string,
+): Record<string, unknown> | null {
   return parseToolArgsBuffer(nextArgsBuffer, null);
-}
-
-function appendIncompleteToolArgsNote(argsText: string): string {
-  const trimmed = argsText.trim();
-  if (!trimmed) {
-    return INCOMPLETE_TOOL_ARGS_NOTE;
-  }
-  if (trimmed.endsWith(INCOMPLETE_TOOL_ARGS_NOTE)) {
-    return argsText;
-  }
-  return `${argsText}\n\n${INCOMPLETE_TOOL_ARGS_NOTE}`;
 }
 
 function normalizeArtifactRecord(
@@ -247,7 +249,9 @@ function normalizeArtifactRecord(
   };
 }
 
-export function normalizePublishedArtifacts(event: AgentEvent): PublishedArtifact[] {
+export function normalizePublishedArtifacts(
+  event: AgentEvent,
+): PublishedArtifact[] {
   const rawArtifacts = event.artifacts;
   if (!Array.isArray(rawArtifacts) || rawArtifacts.length === 0) {
     return [];
@@ -271,19 +275,23 @@ export function resolveFinalToolArgsText(
 ): string {
   const parsedBuffer = parseToolArgsObject(argsBuffer);
   if (parsedBuffer) {
-    return JSON.stringify(parsedBuffer, null, 2);
+    return isEmptyRecord(parsedBuffer)
+      ? ""
+      : JSON.stringify(parsedBuffer, null, 2);
   }
 
   const parsedEventArgs = parseToolArgsObject(eventArgsText);
   if (parsedEventArgs) {
-    return JSON.stringify(parsedEventArgs, null, 2);
+    return isEmptyRecord(parsedEventArgs)
+      ? ""
+      : JSON.stringify(parsedEventArgs, null, 2);
   }
 
   const chosen = existingArgsText || argsBuffer || eventArgsText;
   if (!argsBuffer.trim()) {
     return chosen;
   }
-  return appendIncompleteToolArgsNote(chosen || argsBuffer);
+  return chosen || argsBuffer;
 }
 
 export function pickEventText(...candidates: Array<unknown>): string {
@@ -327,7 +335,9 @@ export function formatStructuredEventText(value: unknown): string {
     }
     try {
       const parsed = JSON.parse(trimmed);
-      return typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
+      return typeof parsed === "string"
+        ? parsed
+        : JSON.stringify(parsed, null, 2);
     } catch {
       return value;
     }
@@ -390,9 +400,16 @@ export function buildToolTimelineNode(input: {
     id: nodeId,
     kind: "tool",
     ...taskBinding,
-    toolId: toText(event.toolId) || existing?.toolId || existingToolState?.toolId || "",
+    toolId:
+      toText(event.toolId) ||
+      existing?.toolId ||
+      existingToolState?.toolId ||
+      "",
     toolLabel:
-      toText(event.toolLabel) || existing?.toolLabel || existingToolState?.toolLabel || "",
+      toText(event.toolLabel) ||
+      existing?.toolLabel ||
+      existingToolState?.toolLabel ||
+      "",
     toolName: pickToolName(
       existing?.toolName,
       existingToolState?.toolName,

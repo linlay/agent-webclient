@@ -17,6 +17,7 @@ import {
   applyTaskBindingToNode,
   buildToolTimelineNode,
   ensureMappedNode,
+  isEmptyRecord,
   normalizePublishedArtifacts,
   parseToolArgsBuffer,
   pickEventText,
@@ -161,7 +162,7 @@ export function processToolEvent(
     const prettyArgsText = resolvedParams
       ? JSON.stringify(resolvedParams, null, 2)
       : "";
-    const argsText = resolvedParams
+    const argsText = resolvedParams && !isEmptyRecord(resolvedParams)
       ? prettyArgsText
       : rawArgsText ||
         existing?.argsText ||
@@ -283,7 +284,7 @@ export function processToolEvent(
         viewportKey: viewportKey || existingNode?.viewportKey || "",
         description:
           nextToolState.description || existingNode?.description || "",
-        argsText: parsedToolParams
+        argsText: parsedToolParams && !isEmptyRecord(parsedToolParams)
           ? JSON.stringify(parsedToolParams, null, 2)
           : nextArgsBuffer || existingNode?.argsText || "",
        status: "running",
