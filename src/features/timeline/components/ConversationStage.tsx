@@ -38,6 +38,7 @@ import {
 } from "antd";
 import type { InputRef } from "antd";
 import type { Agent, TimelineNode, WorkerRow } from "@/app/state/types";
+import { LogoLoading } from "@/shared/components/logo-loading";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
@@ -182,10 +183,12 @@ export function isDeriveChatActionDisabled(input: {
   streaming?: boolean;
   activeAwaiting?: unknown;
 }): boolean {
-  return !String(input.chatId || "").trim()
-    || !String(input.runId || "").trim()
-    || input.streaming === true
-    || Boolean(input.activeAwaiting);
+  return (
+    !String(input.chatId || "").trim() ||
+    !String(input.runId || "").trim() ||
+    input.streaming === true ||
+    Boolean(input.activeAwaiting)
+  );
 }
 
 export function dispatchDerivedChatNavigation(chatId: string): void {
@@ -403,17 +406,24 @@ export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
   window.dispatchEvent(event);
 }
 
-function formatResponseDuration(durationMs: number | undefined, t: (key: string, params?: Record<string, unknown>) => string): string {
+function formatResponseDuration(
+  durationMs: number | undefined,
+  t: (key: string, params?: Record<string, unknown>) => string,
+): string {
   if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
     return "";
   }
 
   const value = Number(durationMs);
   if (value < 1000) {
-    return t("timeline.toolPill.duration.milliseconds", { count: Math.round(value) });
+    return t("timeline.toolPill.duration.milliseconds", {
+      count: Math.round(value),
+    });
   }
   if (value < 60_000) {
-    return t("timeline.toolPill.duration.seconds", { count: Number((value / 1000).toFixed(value >= 10_000 ? 0 : 1)) });
+    return t("timeline.toolPill.duration.seconds", {
+      count: Number((value / 1000).toFixed(value >= 10_000 ? 0 : 1)),
+    });
   }
 
   const totalSeconds = Math.round(value / 1000);
@@ -425,10 +435,16 @@ function formatResponseDuration(durationMs: number | undefined, t: (key: string,
 
   const hours = Math.floor(minutes / 60);
   const remainMinutes = minutes % 60;
-  return t("timeline.responseDuration.hours", { hours, minutes: remainMinutes });
+  return t("timeline.responseDuration.hours", {
+    hours,
+    minutes: remainMinutes,
+  });
 }
 
-function formatTaskStatus(status: string, t: (key: string, params?: Record<string, unknown>) => string): string {
+function formatTaskStatus(
+  status: string,
+  t: (key: string, params?: Record<string, unknown>) => string,
+): string {
   switch (status) {
     case "running":
       return t("timeline.taskStatus.running");
@@ -590,25 +606,35 @@ export const TimelineAgentSwitcher: React.FC<{
                   >
                     <AgentIcon
                       icon={option.icon}
-                    type="agent"
-                    props={{
-                      icon: {
-                        className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                        width: 20,
-                        height: 20,
-                      },
-                      avatar: {
-                        className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                        size: 20,
-                      },
-                    }}
-                  />
-                    <span className={TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME}>
-                      <strong className={TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME}>
+                      type="agent"
+                      props={{
+                        icon: {
+                          className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                          width: 20,
+                          height: 20,
+                        },
+                        avatar: {
+                          className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                          size: 20,
+                        },
+                      }}
+                    />
+                    <span
+                      className={TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME}
+                    >
+                      <strong
+                        className={
+                          TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
+                        }
+                      >
                         {option.name}
                       </strong>
                       {!option.hideRole && (
-                        <span className={TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME}>
+                        <span
+                          className={
+                            TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
+                          }
+                        >
                           {option.role || "--"}
                         </span>
                       )}
@@ -751,7 +777,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       anchors.push({
         key: item.key,
         anchorId: buildQueryAnchorId(item.node.id),
-        queryText: String(item.node.text || "").trim() || t("timeline.query.noText"),
+        queryText:
+          String(item.node.text || "").trim() || t("timeline.query.noText"),
         lastRunContent:
           nextItem?.kind === "run" ? findLastRunContentText(nextItem) : "",
       });
@@ -810,7 +837,11 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           runId: normalizedRunId,
           type: nextDownvoted ? "thumbs_down" : "clear",
         });
-        message.success(nextDownvoted ? t("timeline.feedback.downvoted") : t("timeline.feedback.cleared"));
+        message.success(
+          nextDownvoted
+            ? t("timeline.feedback.downvoted")
+            : t("timeline.feedback.cleared"),
+        );
       } catch (error) {
         dispatch({
           type: "SET_RUN_DOWNVOTED",
@@ -897,18 +928,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           line: `[deriveChat error] ${errorMessage}`,
         });
       } finally {
-        setDerivingRunId((current) => (
-          current === sourceRunId ? "" : current
-        ));
+        setDerivingRunId((current) => (current === sourceRunId ? "" : current));
       }
     },
-    [
-      dispatch,
-      state.activeAwaiting,
-      state.chatId,
-      state.streaming,
-      t,
-    ],
+    [dispatch, state.activeAwaiting, state.chatId, state.streaming, t],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -1100,35 +1123,37 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           className={[
             TIMELINE_STACK_CLASS_NAME,
             queryAnchorsEnabled ? TIMELINE_STACK_ANCHORS_CLASS_NAME : "",
-            displayItems.length === 0 && showEmptyState
-              ? TIMELINE_STACK_EMPTY_CLASS_NAME
-              : "",
+            !state.chatId ? TIMELINE_STACK_EMPTY_CLASS_NAME : "",
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          {displayItems.length === 0 ? (
+          {!state.chatId ? (
             showEmptyState ? (
-              <div className={TIMELINE_EMPTY_CLASS_NAME}>
-                {currentWorker?.displayName ? (
-                  canSwitchEmptyAgent ? (
-                    <>
-                      {t("timeline.empty.withAgentPrefix")}
-                      <TimelineAgentSwitcher
-                        currentWorker={currentWorker}
-                        options={timelineAgentOptions}
-                      />
-                      {t("timeline.empty.withAgentSuffix")}
-                    </>
+              state.streaming ? (
+                <LogoLoading />
+              ) : (
+                <div className={TIMELINE_EMPTY_CLASS_NAME}>
+                  {currentWorker?.displayName ? (
+                    canSwitchEmptyAgent ? (
+                      <>
+                        {t("timeline.empty.withAgentPrefix")}
+                        <TimelineAgentSwitcher
+                          currentWorker={currentWorker}
+                          options={timelineAgentOptions}
+                        />
+                        {t("timeline.empty.withAgentSuffix")}
+                      </>
+                    ) : (
+                      t("timeline.empty.withWorker", {
+                        name: currentWorker.displayName,
+                      })
+                    )
                   ) : (
-                    t("timeline.empty.withWorker", {
-                      name: currentWorker.displayName,
-                    })
-                  )
-                ) : (
-                  t("timeline.empty.default")
-                )}
-              </div>
+                    t("timeline.empty.default")
+                  )}
+                </div>
+              )
             ) : null
           ) : (
             <>
@@ -1161,10 +1186,18 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         placement="right"
                         title={
                           <div>
-                            <div className={TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME}>
+                            <div
+                              className={
+                                TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME
+                              }
+                            >
                               {anchor.queryText}
                             </div>
-                            <div className={TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME}>
+                            <div
+                              className={
+                                TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
+                              }
+                            >
                               {anchor.lastRunContent}
                             </div>
                           </div>
@@ -1194,7 +1227,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           }
                         >
                           <span
-                            className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
+                            className={
+                              TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME
+                            }
                             aria-hidden="true"
                             style={
                               {
@@ -1209,12 +1244,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                 </nav>
               )}
               <div className={TIMELINE_LANE_CLASS_NAME}>
-                {displayItems.map((item) => {
+                {displayItems?.map((item) => {
                   if (item.kind === "query") {
                     const queryTime = formatTimelineTime(item.node.ts);
                     const queryCopyKey = `${item.key}:copy`;
                     const queryCopyStatus =
-                      actionStatus[queryCopyKey] || t("timeline.toolPill.copy.action");
+                      actionStatus[queryCopyKey] ||
+                      t("timeline.toolPill.copy.action");
                     const queryAnchorId = buildQueryAnchorId(item.node.id);
                     return (
                       <div
@@ -1269,7 +1305,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                         icon: (
                                           <MaterialIcon name="open_in_new" />
                                         ),
-                                        label: t("timeline.query.resendInNewChat"),
+                                        label: t(
+                                          "timeline.query.resendInNewChat",
+                                        ),
                                       },
                                     ],
                                   }}
@@ -1306,14 +1344,17 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const isCompleted = Boolean(item.completedAt);
                     const time = formatTimelineTime(item.completedAt);
                     const responseDuration = formatResponseDuration(
-                      item.responseDurationMs, t,
+                      item.responseDurationMs,
+                      t,
                     );
                     const runCopyKey = `${item.key}:copy`;
                     const runId = String(item.runId || "").trim();
                     const isDownvoted = Boolean(
                       runId && state.downvotedRunKeys.has(runId),
                     );
-                    const runCopyStatus = actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
+                    const runCopyStatus =
+                      actionStatus[runCopyKey] ||
+                      t("timeline.toolPill.copy.action");
                     const deriveChatDisabled = isDeriveChatActionDisabled({
                       chatId: state.chatId,
                       runId,
@@ -1338,9 +1379,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             items={[
                               {
                                 key: "run-entries",
-                                label: t("timeline.run.processed", { duration: responseDuration }),
+                                label: t("timeline.run.processed", {
+                                  duration: responseDuration,
+                                }),
                                 children: (
-                                  <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
+                                  <div
+                                    className={TIMELINE_RUN_ITEMS_CLASS_NAME}
+                                  >
                                     {buildRunRenderEntries(
                                       item.nodes.filter(
                                         (n) => n.id !== lastContentNode!.id,
@@ -1400,7 +1445,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     iconOnly
                                     active
                                     title={t("timeline.feedback.clearDownvote")}
-                                    aria-label={t("timeline.feedback.clearDownvote")}
+                                    aria-label={t(
+                                      "timeline.feedback.clearDownvote",
+                                    )}
                                     disabled={!runId}
                                     onClick={() => handleDownvote(runId, false)}
                                   >
@@ -1419,12 +1466,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     }
                                   >
                                     <UiButton
-                                      className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                      className={
+                                        TIMELINE_META_BUTTON_CLASS_NAME
+                                      }
                                       variant="ghost"
                                       size="sm"
                                       iconOnly
                                       title={t("timeline.feedback.downvote")}
-                                      aria-label={t("timeline.feedback.downvote")}
+                                      aria-label={t(
+                                        "timeline.feedback.downvote",
+                                      )}
                                       disabled={!runId}
                                     >
                                       <MaterialIcon name="thumb_down" />
@@ -1470,6 +1521,11 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   return renderEntry(item.renderEntry);
                 })}
               </div>
+              {state.streaming && !displayItems?.length && (
+                <Flex justify="center" className="tw:mt-20">
+                  <LogoLoading size={80} />
+                </Flex>
+              )}
             </>
           )}
         </div>

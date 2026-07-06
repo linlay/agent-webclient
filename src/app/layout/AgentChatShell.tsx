@@ -22,7 +22,6 @@ import {
   resolveTerminalDockWorkspaceKey,
 } from "./TerminalDock";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/shared/data";
@@ -475,16 +474,7 @@ export const AgentChatShell: React.FC = () => {
     );
   };
 
-  const timelineEntries = useMemo(() => {
-    return state.timelineOrder
-      .map((id) => state.timelineNodes.get(id))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node));
-  }, [state.timelineOrder, state.timelineNodes]);
-  const isTimelineEmpty = useMemo(() => {
-    return (
-      buildTimelineDisplayItems(timelineEntries, state.events).length === 0
-    );
-  }, [timelineEntries, state.events]);
+  const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
 
   if (!routeAgentReady) {
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;

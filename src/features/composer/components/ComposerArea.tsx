@@ -28,7 +28,6 @@ import { ComposerActions } from "@/features/composer/components/ComposerActions"
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
-import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
@@ -43,10 +42,7 @@ import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import type {
-  QueryAccessLevel,
-  QueryModelOverride,
-} from "@/shared/data";
+import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 
 interface ComposerAreaProps {
@@ -153,17 +149,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => getLatestQueryText(timelineEntries),
     [timelineEntries],
   );
-  const isTimelineEmpty = useMemo(() => {
-    return (
-      buildTimelineDisplayItems(
-        timelineEntries,
-        state.events,
-        state.taskItemsById,
-      ).length === 0
-    );
-  }, [state.events, state.taskItemsById, timelineEntries]);
-  const isBlankConversation =
-    isTimelineEmpty && !String(state.chatId || "").trim();
+  const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
+  const isBlankConversation = isTimelineEmpty;
 
   useEffect(() => {
     if (!voiceEnabled && state.inputMode === "voice") {
@@ -416,9 +403,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const hasPendingSteers =
     (state.pendingSteers[String(state.chatId || "")] || []).length > 0;
   const shouldShowSteerBar =
-    !isFrontendActive &&
-    !isAwaitingActive &&
-    hasPendingSteers;
+    !isFrontendActive && !isAwaitingActive && hasPendingSteers;
   const showSpeechHint =
     voiceEnabled &&
     !isVoiceMode &&

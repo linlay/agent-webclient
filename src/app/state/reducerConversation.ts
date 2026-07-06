@@ -127,7 +127,26 @@ export function reduceConversationState(
 			return { ...state, events, debugEvents };
 		}
 		case "CLEAR_EVENTS":
-			return { ...state, events: [], debugEvents: [] };
+			return {
+				...state,
+				events: [],
+				debugEvents: [],
+				timelineOrder: [],
+				timelineNodes: new Map(),
+				timelineNodeByMessageId: new Map(),
+				timelineDomCache: new Map(),
+				timelineCounter: 0,
+				contentNodeById: new Map(),
+				reasoningNodeById: new Map(),
+				toolNodeById: new Map(),
+				toolStates: new Map(),
+				taskItemsById: new Map(),
+				activeTaskIds: new Set(),
+				actionStates: new Map(),
+				activeReasoningKey: "",
+				activeFrontendTool: null,
+				activeAwaiting: null,
+			};
 		case "APPEND_DEBUG": {
 			const debugLines =
 				state.debugLines.length >= MAX_DEBUG_LINES

@@ -783,6 +783,10 @@ export function useChatActions() {
       dispatchDetachActiveRun('chat_switch', chatId);
       detachActiveConversationSession();
 
+      if (currentChatId && currentChatId !== chatId) {
+        dispatch({ type: 'CLEAR_EVENTS' });
+      }
+
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
       const workerKey = createWorkerKeyFromChat((currentChat || {}) as Chat);
       if (workerKey) {
