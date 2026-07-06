@@ -12,10 +12,14 @@ import { useWorkerHistoryRows } from "@/features/workers/hooks/useWorkerHistoryR
 import { DetailModal } from "@/features/workers/components/DetailModal";
 import { HistoryModal } from "@/app/modals/HistoryModal";
 import { AutomationModal } from "@/app/modals/AutomationModal";
-import { SWITCH_SCOPES, SwitchModal } from "@/features/workers/components/SwitchModal";
+import {
+  SWITCH_SCOPES,
+  SwitchModal,
+} from "@/features/workers/components/SwitchModal";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import { markChatRead } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/icons/material";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;
@@ -246,7 +250,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const title = (
     <div className="command-modal-title">
       <span>{t(titleKey)}</span>
-      {subtitle ? <span className="command-modal-subtitle">{subtitle}</span> : null}
+      {subtitle ? (
+        <span className="command-modal-subtitle">{subtitle}</span>
+      ) : null}
     </div>
   );
 
@@ -256,7 +262,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       onClose={() => closeDrawer()}
       title={title}
       closable={{
-        placement: 'end'
+        closeIcon: <MaterialIcon name="keyboard_arrow_down" />,
       }}
       mask
       maskClosable
@@ -264,6 +270,13 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       placement="right"
       width="100%"
       className={`copilot-drawer ${isConsoleModal ? "is-automation-console" : ""}`.trim()}
+      styles={{
+        header: {
+          borderBottom: 0,
+          flex: "unset",
+          padding: 10,
+        },
+      }}
     >
       <div
         ref={cardRef}
@@ -376,7 +389,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           }
 
           if (modal.type === "automation" || modal.type === "agents") return;
-
         }}
       >
         {modal.type === "history" && (
@@ -423,9 +435,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 focusArea: "search",
               })
             }
-            onScopeChange={(scope) =>
-              onPatch({ scope, activeIndex: 0 })
-            }
+            onScopeChange={(scope) => onPatch({ scope, activeIndex: 0 })}
             onActivateIndex={(index) => onPatch({ activeIndex: index })}
             onSelect={selectWorker}
           />

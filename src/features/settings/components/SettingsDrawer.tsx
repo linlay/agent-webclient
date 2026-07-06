@@ -27,6 +27,7 @@ import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
+import { MaterialIcon } from "@/shared/icons/material";
 
 interface SettingsDrawerProps {
   open?: boolean;
@@ -226,7 +227,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     <Drawer
       open={open}
       onClose={onClose}
-      closable={{ placement: "end" }}
+      closable={{ closeIcon: <MaterialIcon name="keyboard_arrow_down" /> }}
       mask
       maskClosable
       destroyOnHidden
@@ -235,6 +236,13 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
       width="100%"
       className="settings-drawer copilot-drawer"
       title={t("settings.title")}
+      styles={{
+        header: {
+          borderBottom: 0,
+          flex: "unset",
+          padding: 10,
+        },
+      }}
     >
       <div className="settings-card">
         <div className="settings-preferences-grid">

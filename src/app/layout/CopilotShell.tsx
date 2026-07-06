@@ -185,7 +185,7 @@ const CopilotTopBar: React.FC = () => {
         open={debugPanelEnabled && debugDrawerOpen}
         onClose={() => setDebugDrawerOpen(false)}
         title={t("copilot.panel.debug")}
-        closable={{ placement: "end" }}
+        closable={{ closeIcon: <MaterialIcon name="keyboard_arrow_down" /> }}
         mask
         maskClosable
         destroyOnHidden
@@ -193,6 +193,11 @@ const CopilotTopBar: React.FC = () => {
         width="100%"
         className="copilot-drawer"
         styles={{
+          header: {
+            borderBottom: 0,
+            flex: "unset",
+            padding: 10,
+          },
           body: { padding: 0 },
         }}
       >
