@@ -437,6 +437,14 @@ textarea {
 .ant-modal .ant-modal-body>* {
     width: 100%;
 }
+.ant-modal-root .ant-modal-mask{
+    background-color: transparent;
+    backdrop-filter: blur(3px);
+}
+
+.ant-btn-color-link.ant-btn-variant-link{
+    color: var(--accent);
+}
 
 /* Compat owner: browser scrollbar pseudo-elements. Component-scoped scrollbars use Tailwind arbitrary variants. */
 ::-webkit-scrollbar {

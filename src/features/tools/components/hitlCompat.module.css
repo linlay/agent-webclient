@@ -29,3 +29,11 @@
 :global(.hitl-radio-option.ant-radio-wrapper-checked .hitl-option-index .material-icon) {
   color: var(--bg-base);
 }
+
+:global(.hitl-radio-option.hitl-free-text){
+  flex: 1;
+  white-space: nowrap;
+  input{
+    border-radius: 0;
+  }
+}
