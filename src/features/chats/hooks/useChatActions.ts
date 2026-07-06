@@ -936,7 +936,9 @@ export function useChatActions() {
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
-        dispatch({ type: 'SET_STREAMING', streaming: false });
+        if (!activeRunId) {
+          dispatch({ type: 'SET_STREAMING', streaming: false });
+        }
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
         dispatch({ type: 'SET_STREAMING', streaming: false });
