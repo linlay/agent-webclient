@@ -795,6 +795,8 @@ export function useChatActions() {
         dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
       }
 
+      dispatch({ type: 'SET_STREAMING', streaming: true });
+
       try {
         const response = await getChat(chatId, false);
         if (seq !== loadSeqRef.current) return;
@@ -930,8 +932,10 @@ export function useChatActions() {
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
+        dispatch({ type: 'SET_STREAMING', streaming: false });
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
+        dispatch({ type: 'SET_STREAMING', streaming: false });
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
