@@ -26,13 +26,13 @@ const APP_SHELL_ROW_CLASS_BY_STATE = {
 } as const;
 const APP_SHELL_COLUMN_CLASS_BY_STATE = {
   closedDebug:
-    "left-drawer-closed desktop-debug-enabled tw:grid-cols-[var(--left-sidebar-close-width)_minmax(0,1fr)_var(--right-sidebar-width)]",
+    "left-drawer-closed desktop-debug-enabled tw:grid-cols-[var(--left-sidebar-close-width)_minmax(420px,1fr)_var(--right-sidebar-width)]",
   openDebug:
-    "left-drawer-open desktop-debug-enabled tw:grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)_var(--right-sidebar-width)] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto",
+    "left-drawer-open desktop-debug-enabled tw:grid-cols-[var(--left-sidebar-width)_minmax(420px,1fr)_var(--right-sidebar-width)] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto",
   closedNoDebug:
-    "left-drawer-closed desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-close-width)_minmax(0,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
+    "left-drawer-closed desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-close-width)_minmax(420px,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
   openNoDebug:
-    "left-drawer-open desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)_0] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
+    "left-drawer-open desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-width)_minmax(420px,1fr)_0] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
 export const AppShell: React.FC = () => {
