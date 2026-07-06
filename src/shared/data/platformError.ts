@@ -226,10 +226,23 @@ function includesRetryIntent(message: string): boolean {
 	);
 }
 
+function isChannelNotConnectedError(error: PlatformError): boolean {
+	const normalizedMessage = error.message.toLowerCase();
+	return (
+		error.status === 503 &&
+		error.code === "invalid_request" &&
+		normalizedMessage.includes("channel") &&
+		normalizedMessage.includes("not connected")
+	);
+}
+
 export function formatPlatformErrorForDisplay(
 	input: unknown,
 ): PlatformErrorDisplay {
 	const error = normalizePlatformError(input);
+	const specificMessage = isChannelNotConnectedError(error)
+		? translateIfAvailable("platformError.special.channelNotConnected")
+		: "";
 	const codeMessage = translateIfAvailable(
 		error.code ? `platformError.code.${error.code}` : "",
 	);
@@ -243,7 +256,8 @@ export function formatPlatformErrorForDisplay(
 		error.retryable === true
 			? translateIfAvailable("platformError.retryableHint")
 			: "";
-	const baseMessage = codeMessage || categoryMessage || genericMessage;
+	const baseMessage =
+		specificMessage || codeMessage || categoryMessage || genericMessage;
 	const message =
 		retryHint && !includesRetryIntent(baseMessage)
 			? `${baseMessage} ${retryHint}`

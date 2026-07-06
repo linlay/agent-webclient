@@ -113,6 +113,46 @@ describe("platformError", () => {
 		expect(display.technicalText).toContain("insufficient_quota");
 	});
 
+	it("keeps invalid request copy neutral and specializes disconnected service channels", () => {
+		const invalidRequestDisplay = formatPlatformErrorForDisplay({
+			error: {
+				category: "request",
+				code: "invalid_request",
+				scope: "request",
+				status: 400,
+				retryable: false,
+				message: "missing run id",
+			},
+		});
+		const channelDisconnectedDisplay = formatPlatformErrorForDisplay({
+			frame: "error",
+			type: "invalid_request",
+			code: 503,
+			msg: "channel public-entry is not connected",
+			data: {
+				error: {
+					category: "request",
+					code: "invalid_request",
+					scope: "request",
+					status: 503,
+					retryable: false,
+					message: "channel public-entry is not connected",
+				},
+			},
+		});
+
+		expect(invalidRequestDisplay.message).toBe(
+			"请求无效，服务无法处理当前请求。",
+		);
+		expect(invalidRequestDisplay.message).not.toContain("检查输入");
+		expect(channelDisconnectedDisplay.message).toBe(
+			"服务通道未连接，请检查后端通道状态。",
+		);
+		expect(channelDisconnectedDisplay.error.message).toBe(
+			"channel public-entry is not connected",
+		);
+	});
+
 	it("falls back to category and then generic text for unknown codes", () => {
 		const categoryDisplay = formatPlatformErrorForDisplay({
 			error: {

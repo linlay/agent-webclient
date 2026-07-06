@@ -166,7 +166,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: 'zenmind:agent-app-auth:response',
+            type: 'desktop:agent-auth:response',
             requestId: payload.requestId,
             token: 'token-from-host',
           },
@@ -177,7 +177,7 @@ describe('appAuth', () => {
     await expect(refreshAppAccessToken('missing')).resolves.toBe('token-from-host');
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'zenmind:agent-app-auth:request',
+        type: 'desktop:agent-auth:request',
         action: 'getAccessToken',
         reason: 'missing',
       }),
@@ -196,7 +196,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: 'zenmind:agent-app-auth:response',
+            type: 'desktop:agent-app-auth:response',
             requestId: payload.requestId,
             token: 'webview-token-from-host',
           },
@@ -207,7 +207,7 @@ describe('appAuth', () => {
     await expect(refreshAppAccessToken('missing')).resolves.toBe('webview-token-from-host');
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'zenmind:agent-app-auth:request',
+        type: 'desktop:agent-auth:request',
         action: 'getAccessToken',
         reason: 'missing',
       }),
@@ -250,7 +250,7 @@ describe('appAuth', () => {
 
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'zenmind:agent-app-auth:request',
+        type: 'desktop:agent-auth:request',
         action: 'refreshAccessToken',
         reason: 'unauthorized',
       }),
@@ -284,7 +284,7 @@ describe('appAuth', () => {
     await expect(refreshAppAccessToken('unauthorized')).resolves.toBe('fresh-webview-token');
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'zenmind:agent-app-auth:request',
+        type: 'desktop:agent-auth:request',
         action: 'refreshAccessToken',
         reason: 'unauthorized',
       }),
