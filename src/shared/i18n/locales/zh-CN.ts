@@ -1066,4 +1066,5 @@ export const zhCNMessages: I18nMessages = {
   "ws.missingAccessToken.browser": "缺少 Access Token，无法建立 WebSocket 连接。请先在设置中填写有效令牌。",
   "ws.missingAccessToken.host": "缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
   "ws.transportNotInitialized": "WebSocket 传输尚未初始化，请先切换到 WebSocket 模式并确认连接成功。",
+  "logoLoading.text": "加载中...",
 };

@@ -1,26 +1,15 @@
-.wrapper {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  animation: breathe 3s ease-in-out infinite;
-}
 
-@keyframes breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
+.Root {
+  
+  color: var(--text-sub);
+  .Loading {
+    transform-origin: center;
+    animation: spin 1s linear infinite;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #49b7f9;
+    margin-right: 10px;
   }
-  50% {
-    transform: scale(.8);
-    opacity: .8;
-  }
-}
-
-.cloud {
-  transform-origin: center;
-  animation: spin 8s linear infinite;
 }
 
 @keyframes spin {

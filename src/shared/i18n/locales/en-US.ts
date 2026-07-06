@@ -1066,4 +1066,5 @@ export const enUSMessages: I18nMessages = {
   "ws.missingAccessToken.browser": "Missing access token. Cannot establish a WebSocket connection. Enter a valid token in Settings first.",
   "ws.missingAccessToken.host": "Missing access token. Cannot establish a WebSocket connection. Confirm the host application has provided a valid token.",
   "ws.transportNotInitialized": "WebSocket transport is not initialized yet. Switch to WebSocket mode and confirm the connection first.",
+  "logoLoading.text": "Loading...",
 };

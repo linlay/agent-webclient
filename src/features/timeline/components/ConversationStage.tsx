@@ -1523,7 +1523,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               </div>
               {state.streaming && !displayItems?.length && (
                 <Flex justify="center" className="tw:mt-20">
-                  <LogoLoading size={80} />
+                  <LogoLoading />
                 </Flex>
               )}
             </>
