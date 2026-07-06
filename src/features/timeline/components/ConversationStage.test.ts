@@ -245,6 +245,7 @@ describe("ConversationStage", () => {
     ];
     useAppState.mockReturnValue({
       ...state,
+      chatId: "chat_anchors",
       events: [
         { type: "request.query", timestamp: 100 },
         { type: "run.complete", timestamp: 180 },
@@ -305,6 +306,7 @@ describe("ConversationStage", () => {
     ];
     useAppState.mockReturnValue({
       ...state,
+      chatId: "chat_no_anchors",
       events: [],
       timelineNodes: createTimelineMap(nodes),
       timelineOrder: nodes.map((node) => node.id),
@@ -350,6 +352,7 @@ describe("ConversationStage", () => {
     ]);
     useAppState.mockReturnValue({
       ...state,
+      chatId: "chat_task_group",
       events: [
         { type: "request.query", timestamp: 100 },
         { type: "run.complete", timestamp: 200 },
@@ -402,6 +405,7 @@ describe("ConversationStage", () => {
     ]);
     useAppState.mockReturnValue({
       ...state,
+      chatId: "chat_subagent_task_group",
       agents: [{ key: "subagent_1", name: "小智" }],
       events: [
         { type: "request.query", timestamp: 100 },

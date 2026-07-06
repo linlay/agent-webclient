@@ -274,6 +274,28 @@ describe('buildTimelineDisplayItems', () => {
     });
   });
 
+  it('uses task terminal events as status fallback when task metadata is missing', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', text: 'answer', taskId: 'task_1', taskName: 'Task A', ts: 130 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'task.start', taskId: 'task_1', timestamp: 110 },
+        { type: 'task.complete', taskId: 'task_1', timestamp: 180 },
+        { type: 'run.complete', timestamp: 200 },
+      ],
+    );
+
+    const entries = items[1].kind === 'run' ? items[1].renderEntries : [];
+    expect(entries[0]).toMatchObject({
+      kind: 'task-group',
+      taskId: 'task_1',
+      status: 'completed',
+    });
+  });
+
   it('preserves order across mixed task and non-task nodes', () => {
     const items = buildTimelineDisplayItems(
       [

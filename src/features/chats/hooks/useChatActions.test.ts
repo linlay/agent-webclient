@@ -1,7 +1,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/state';
-import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
+import type { Agent, AgentEvent, Chat, Team, WorkerRow } from '@/app/state/types';
+import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
 import {
   createReplayState,
   getAutoReadTriggerKey,
@@ -1698,6 +1699,170 @@ describe('replayEvent tool migration', () => {
 
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
     expect(state.planCurrentRunningTaskId).toBe('');
+  });
+
+  it('replays completed parallel sub-agent tasks into completed task groups', () => {
+    const state = createReplayState();
+    const events: AgentEvent[] = [
+      {
+        type: 'request.query',
+        requestId: 'req_parent',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'parent task',
+        agentKey: 'orchestrator',
+        timestamp: 100,
+      },
+      {
+        type: 'run.start',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        agentKey: 'orchestrator',
+        timestamp: 100,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_1',
+        runId: 'run_1',
+        taskName: 'Child A',
+        subAgentKey: 'agent_a',
+        timestamp: 110,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_1',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child A query',
+        agentKey: 'agent_a',
+        taskId: 'task_1',
+        timestamp: 111,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_2',
+        runId: 'run_1',
+        taskName: 'Child B',
+        subAgentKey: 'agent_b',
+        timestamp: 120,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_2',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child B query',
+        agentKey: 'agent_b',
+        taskId: 'task_2',
+        timestamp: 121,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_3',
+        runId: 'run_1',
+        taskName: 'Child C',
+        subAgentKey: 'agent_c',
+        timestamp: 130,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_3',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child C query',
+        agentKey: 'agent_c',
+        taskId: 'task_3',
+        timestamp: 131,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_3_final',
+        runId: 'run_1',
+        taskId: 'task_3',
+        text: 'child C answer',
+        timestamp: 180,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_3',
+        timestamp: 180,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_2_final',
+        runId: 'run_1',
+        taskId: 'task_2',
+        text: 'child B answer',
+        timestamp: 190,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_2',
+        timestamp: 190,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_1_final',
+        runId: 'run_1',
+        taskId: 'task_1',
+        text: 'child A answer',
+        timestamp: 200,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_1',
+        timestamp: 200,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'run_final',
+        runId: 'run_1',
+        text: 'final answer',
+        timestamp: 220,
+      },
+      {
+        type: 'run.complete',
+        runId: 'run_1',
+        timestamp: 220,
+      },
+    ];
+
+    events.forEach((event) => replayEvent(state, event));
+
+    expect(
+      ['task_1', 'task_2', 'task_3'].map((taskId) => state.taskItemsById.get(taskId)?.status),
+    ).toEqual(['completed', 'completed', 'completed']);
+    expect(Array.from(state.activeTaskIds)).toEqual([]);
+
+    const nodes = state.timelineOrder
+      .map((id) => state.timelineNodes.get(id))
+      .filter((node): node is NonNullable<typeof node> => Boolean(node));
+    const displayItems = buildTimelineDisplayItems(
+      nodes,
+      state.events,
+      state.taskItemsById,
+    );
+    const taskGroups = displayItems.flatMap((item) => {
+      if (item.kind === 'run') return item.renderEntries;
+      if (item.kind === 'standalone') return [item.renderEntry];
+      return [];
+    }).filter((entry) => entry.kind === 'task-group');
+
+    expect(taskGroups).toHaveLength(3);
+    expect(taskGroups.map((entry) => (
+      entry.kind === 'task-group' ? [entry.taskId, entry.status] : ['', '']
+    ))).toEqual([
+      ['task_1', 'completed'],
+      ['task_2', 'completed'],
+      ['task_3', 'completed'],
+    ]);
+    expect(taskGroups.some((entry) => (
+      entry.kind === 'task-group' && entry.status === 'running'
+    ))).toBe(false);
   });
 
   it('replays artifact.publish into persistent artifact state', () => {

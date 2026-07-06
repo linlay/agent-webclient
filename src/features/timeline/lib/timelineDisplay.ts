@@ -134,6 +134,7 @@ function buildRenderEntries(
   nodes: TimelineNode[],
   taskItemsById: Map<string, TaskItemMeta>,
   groupTasks: boolean,
+  taskStatusById: Map<string, string> = new Map(),
 ): TimelineRenderEntry[] {
   if (!groupTasks) {
     return buildToolRenderEntries(nodes);
@@ -154,22 +155,28 @@ function buildRenderEntries(
     const existingGroup = taskGroupsById.get(taskId);
     if (existingGroup) {
       existingGroup.nodes.push(node);
-      existingGroup.renderEntries = buildRenderEntries(existingGroup.nodes, taskItemsById, false);
+      existingGroup.renderEntries = buildRenderEntries(
+        existingGroup.nodes,
+        taskItemsById,
+        false,
+        taskStatusById,
+      );
       return;
     }
 
     const task = taskItemsById.get(taskId);
+    const status = task?.status || taskStatusById.get(taskId) || 'unknown';
     const group: Extract<TimelineRenderEntry, { kind: 'task-group' }> = {
       kind: 'task-group',
       key: `task_group_${taskId}_${node.id}`,
       taskId,
       taskName: task?.taskName || node.taskName || taskId,
       subAgentKey: task?.subAgentKey || node.subAgentKey || undefined,
-      status: task?.status || 'running',
+      status,
       durationMs: task?.durationMs,
       error: task?.error || '',
       nodes: [node],
-      renderEntries: buildRenderEntries([node], taskItemsById, false),
+      renderEntries: buildRenderEntries([node], taskItemsById, false, taskStatusById),
     };
     taskGroupsById.set(taskId, group);
     entries.push(group);
@@ -202,6 +209,28 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
     }));
 }
 
+function collectTaskStatuses(events: AgentEvent[]): Map<string, string> {
+  const statusByTaskId = new Map<string, string>();
+
+  for (const event of events) {
+    const type = String(event.type || '');
+    const taskId = String(event.taskId || '').trim();
+    if (!taskId) continue;
+
+    if (type === 'task.start') {
+      statusByTaskId.set(taskId, 'running');
+    } else if (type === 'task.complete') {
+      statusByTaskId.set(taskId, 'completed');
+    } else if (type === 'task.fail') {
+      statusByTaskId.set(taskId, 'failed');
+    } else if (type === 'task.cancel') {
+      statusByTaskId.set(taskId, 'canceled');
+    }
+  }
+
+  return statusByTaskId;
+}
+
 export function buildTimelineDisplayItems(
   nodes: TimelineNode[],
   events: AgentEvent[],
@@ -209,6 +238,7 @@ export function buildTimelineDisplayItems(
 ): TimelineDisplayItem[] {
   const items: TimelineDisplayItem[] = [];
   const runTerminals = collectRunTerminals(events);
+  const taskStatusById = collectTaskStatuses(events);
   let pendingRunNodes: TimelineNode[] = [];
   let pendingStandaloneNodes: TimelineNode[] = [];
   let activeQueryNode: TimelineNode | null = null;
@@ -216,7 +246,12 @@ export function buildTimelineDisplayItems(
 
   const flushStandalone = (): void => {
     if (pendingStandaloneNodes.length === 0) return;
-    for (const renderEntry of buildRenderEntries(pendingStandaloneNodes, taskItemsById, true)) {
+    for (const renderEntry of buildRenderEntries(
+      pendingStandaloneNodes,
+      taskItemsById,
+      true,
+      taskStatusById,
+    )) {
       items.push({ kind: 'standalone', key: `standalone_${renderEntry.key}`, renderEntry });
     }
     pendingStandaloneNodes = [];
@@ -250,7 +285,12 @@ export function buildTimelineDisplayItems(
       key: `run_${runKeySource}`,
       queryNode,
       nodes: pendingRunNodes,
-      renderEntries: buildRenderEntries(pendingRunNodes, taskItemsById, true),
+      renderEntries: buildRenderEntries(
+        pendingRunNodes,
+        taskItemsById,
+        true,
+        taskStatusById,
+      ),
       runId: terminal?.runId,
       completedAt,
       responseDurationMs,
