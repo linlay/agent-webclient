@@ -58,7 +58,7 @@ const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
 const TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME =
   "timeline-agent-switcher-arrow tw:ml-px tw:shrink-0 tw:translate-y-px tw:text-[19px] tw:text-[color-mix(in_srgb,var(--ink-muted)_72%,transparent)] tw:opacity-[0.58]";
 const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
-  "timeline-agent-switcher-menu tw:absolute tw:bottom-[calc(100%+10px)] tw:left-1/2 tw:z-30 tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)] tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,white)] tw:p-2.5 tw:shadow-floating";
+  "timeline-agent-switcher-menu tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)]";
 const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
   "timeline-agent-switcher-search tw:w-full";
 const TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME =
@@ -492,7 +492,6 @@ export const TimelineAgentSwitcher: React.FC<{
   const [open, setOpen] = useState(initialOpen);
   const [searchText, setSearchText] = useState(initialSearchText);
   const searchInputRef = useRef<InputRef>(null);
-  const rootRef = useRef<HTMLSpanElement>(null);
   const currentAgentKey =
     currentWorker?.type === "agent" ? currentWorker.sourceId : "";
   const activeOption =
@@ -512,28 +511,14 @@ export const TimelineAgentSwitcher: React.FC<{
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
 
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (
-        rootRef.current &&
-        target instanceof Node &&
-        rootRef.current.contains(target)
-      ) {
-        return;
-      }
-      setOpen(false);
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
       }
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
@@ -545,107 +530,118 @@ export const TimelineAgentSwitcher: React.FC<{
   };
 
   return (
-    <span className={TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME} ref={rootRef}>
-      <button
-        className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={t("timeline.agentSwitcher.ariaLabel", {
-          name: displayName,
-        })}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
-          {displayName}
-        </span>
-        <MaterialIcon
-          className={TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME}
-          name="keyboard_arrow_down"
-          aria-hidden="true"
-        />
-      </button>
-      {open && (
-        <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
-          <Input
-            ref={searchInputRef}
-            className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
-            size="small"
-            variant="filled"
-            value={searchText}
-            placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-          {filteredOptions.length === 0 ? (
-            <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
-              {t("timeline.agentSwitcher.empty")}
-            </div>
-          ) : (
-            <div
-              className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
-              role="listbox"
-              aria-label={t("timeline.agentSwitcher.listAriaLabel")}
-            >
-              {filteredOptions.map((option) => {
-                const selected = option.key === currentAgentKey;
-                return (
-                  <button
-                    key={option.key}
-                    className={[
-                      TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
-                      selected
-                        ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => handleSelectAgent(option)}
-                  >
-                    <AgentIcon
-                      icon={option.icon}
-                      type="agent"
-                      props={{
-                        icon: {
-                          className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                          width: 20,
-                          height: 20,
-                        },
-                        avatar: {
-                          className: TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                          size: 20,
-                        },
-                      }}
-                    />
-                    <span
-                      className={TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME}
+    <span className={TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}>
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        trigger={["click"]}
+        placement="top"
+        arrow={false}
+        content={
+          <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
+            <Input
+              ref={searchInputRef}
+              className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
+              size="small"
+              variant="filled"
+              value={searchText}
+              placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+            {filteredOptions.length === 0 ? (
+              <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
+                {t("timeline.agentSwitcher.empty")}
+              </div>
+            ) : (
+              <div
+                className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
+                role="listbox"
+                aria-label={t("timeline.agentSwitcher.listAriaLabel")}
+              >
+                {filteredOptions.map((option) => {
+                  const selected = option.key === currentAgentKey;
+                  return (
+                    <button
+                      key={option.key}
+                      className={[
+                        TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
+                        selected
+                          ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      onClick={() => handleSelectAgent(option)}
                     >
-                      <strong
+                      <AgentIcon
+                        icon={option.icon}
+                        type="agent"
+                        props={{
+                          icon: {
+                            className:
+                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                            width: 20,
+                            height: 20,
+                          },
+                          avatar: {
+                            className:
+                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                            size: 20,
+                          },
+                        }}
+                      />
+                      <span
                         className={
-                          TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
+                          TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME
                         }
                       >
-                        {option.name}
-                      </strong>
-                      {!option.hideRole && (
-                        <span
+                        <strong
                           className={
-                            TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
+                            TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
                           }
                         >
-                          {option.role || "--"}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                          {option.name}
+                        </strong>
+                        {!option.hideRole && (
+                          <span
+                            className={
+                              TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
+                            }
+                          >
+                            {option.role || "--"}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        }
+      >
+        <button
+          className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={t("timeline.agentSwitcher.ariaLabel", {
+            name: displayName,
+          })}
+        >
+          <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
+            {displayName}
+          </span>
+          <MaterialIcon
+            className={TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME}
+            name="keyboard_arrow_down"
+            aria-hidden="true"
+          />
+        </button>
+      </Popover>
     </span>
   );
 };
@@ -1376,7 +1372,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       isCompleted &&
                       lastContentNode != null &&
                       item.nodes.length > 1;
-
                     return (
                       <Flex key={item.key} vertical gap={8}>
                         {shouldCollapse && (
@@ -1398,6 +1393,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                       item.nodes.filter(
                                         (n) => n.id !== lastContentNode!.id,
                                       ),
+                                      state.taskItemsById,
                                     ).map((entry) => renderEntry(entry))}
                                   </div>
                                 ),

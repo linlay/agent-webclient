@@ -1,57 +1,53 @@
-import type {
-  AgentEvent,
-  TaskItemMeta,
-  TimelineNode,
-} from '@/app/state/types';
+import type { AgentEvent, TaskItemMeta, TimelineNode } from "@/app/state/types";
 
 export type TimelineRenderEntry =
   | {
-    kind: 'node';
-    key: string;
-    node: TimelineNode;
-  }
+      kind: "node";
+      key: string;
+      node: TimelineNode;
+    }
   | {
-    kind: 'tool-group';
-    key: string;
-    toolName: string;
-    toolLabel: string;
-    count: number;
-    nodes: TimelineNode[];
-  }
+      kind: "tool-group";
+      key: string;
+      toolName: string;
+      toolLabel: string;
+      count: number;
+      nodes: TimelineNode[];
+    }
   | {
-    kind: 'task-group';
-    key: string;
-    taskId: string;
-    taskName: string;
-    subAgentKey?: string;
-    status: string;
-    durationMs?: number;
-    error: string;
-    nodes: TimelineNode[];
-    renderEntries: TimelineRenderEntry[];
-  };
+      kind: "task-group";
+      key: string;
+      taskId: string;
+      taskName: string;
+      subAgentKey?: string;
+      status: string;
+      durationMs?: number;
+      error: string;
+      nodes: TimelineNode[];
+      renderEntries: TimelineRenderEntry[];
+    };
 
 export type TimelineDisplayItem =
   | {
-    kind: 'query';
-    key: string;
-    node: TimelineNode;
-  }
+      kind: "query";
+      key: string;
+      node: TimelineNode;
+    }
   | {
-    kind: 'run';
-    key: string;
-    queryNode: TimelineNode | null;
-    nodes: TimelineNode[];
-    renderEntries: TimelineRenderEntry[];
-    runId?: string;
-    completedAt?: number;
-    responseDurationMs?: number;
-  }
+      kind: "run";
+      key: string;
+      queryNode: TimelineNode | null;
+      nodes: TimelineNode[];
+      renderEntries: TimelineRenderEntry[];
+      runId?: string;
+      completedAt?: number;
+      responseDurationMs?: number;
+    }
   | {
-    kind: 'standalone';
-    key: string;
-    renderEntry: TimelineRenderEntry;
-  };
+      kind: "standalone";
+      key: string;
+      renderEntry: TimelineRenderEntry;
+    };
 
 interface RunTerminalInfo {
   runId?: string;
@@ -59,18 +55,21 @@ interface RunTerminalInfo {
 }
 
 function normalizeToolGroupValue(value: unknown): string {
-  return String(value || '').trim();
+  return String(value || "").trim();
 }
 
-export function buildRunRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
-  return buildRenderEntries(nodes, new Map(), true);
+export function buildRunRenderEntries(
+  nodes: TimelineNode[],
+  taskItemsById: Map<string, TaskItemMeta> = new Map(),
+): TimelineRenderEntry[] {
+  return buildRenderEntries(nodes, taskItemsById, true);
 }
 
 function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
   const entries: TimelineRenderEntry[] = [];
   let pendingToolNodes: TimelineNode[] = [];
-  let pendingToolName = '';
-  let pendingToolLabel = '';
+  let pendingToolName = "";
+  let pendingToolLabel = "";
 
   const flushPendingTools = (): void => {
     if (pendingToolNodes.length === 0) return;
@@ -78,32 +77,32 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
     if (pendingToolNodes.length === 1) {
       const node = pendingToolNodes[0];
       entries.push({
-        kind: 'node',
+        kind: "node",
         key: `node_${node.id}`,
         node,
       });
     } else {
       const firstNode = pendingToolNodes[0];
       entries.push({
-        kind: 'tool-group',
+        kind: "tool-group",
         key: `tool_group_${firstNode.id}`,
-        toolName: firstNode.toolName || '',
-        toolLabel: firstNode.toolLabel || '',
+        toolName: firstNode.toolName || "",
+        toolLabel: firstNode.toolLabel || "",
         count: pendingToolNodes.length,
         nodes: pendingToolNodes,
       });
     }
 
     pendingToolNodes = [];
-    pendingToolName = '';
-    pendingToolLabel = '';
+    pendingToolName = "";
+    pendingToolLabel = "";
   };
 
   for (const node of nodes) {
-    if (node.kind !== 'tool') {
+    if (node.kind !== "tool") {
       flushPendingTools();
       entries.push({
-        kind: 'node',
+        kind: "node",
         key: `node_${node.id}`,
         node,
       });
@@ -112,9 +111,10 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
 
     const nextToolName = normalizeToolGroupValue(node.toolName);
     const nextToolLabel = normalizeToolGroupValue(node.toolLabel);
-    const shouldMerge = pendingToolNodes.length > 0
-      && pendingToolName === nextToolName
-      && pendingToolLabel === nextToolLabel;
+    const shouldMerge =
+      pendingToolNodes.length > 0 &&
+      pendingToolName === nextToolName &&
+      pendingToolLabel === nextToolLabel;
 
     if (!shouldMerge) {
       flushPendingTools();
@@ -141,7 +141,10 @@ function buildRenderEntries(
   }
 
   const entries: TimelineRenderEntry[] = [];
-  const taskGroupsById = new Map<string, Extract<TimelineRenderEntry, { kind: 'task-group' }>>();
+  const taskGroupsById = new Map<
+    string,
+    Extract<TimelineRenderEntry, { kind: "task-group" }>
+  >();
   let pendingPlainNodes: TimelineNode[] = [];
 
   const flushPendingPlain = (): void => {
@@ -165,25 +168,30 @@ function buildRenderEntries(
     }
 
     const task = taskItemsById.get(taskId);
-    const status = task?.status || taskStatusById.get(taskId) || 'unknown';
-    const group: Extract<TimelineRenderEntry, { kind: 'task-group' }> = {
-      kind: 'task-group',
+    const status = task?.status || taskStatusById.get(taskId) || "unknown";
+    const group: Extract<TimelineRenderEntry, { kind: "task-group" }> = {
+      kind: "task-group",
       key: `task_group_${taskId}_${node.id}`,
       taskId,
       taskName: task?.taskName || node.taskName || taskId,
       subAgentKey: task?.subAgentKey || node.subAgentKey || undefined,
       status,
       durationMs: task?.durationMs,
-      error: task?.error || '',
+      error: task?.error || "",
       nodes: [node],
-      renderEntries: buildRenderEntries([node], taskItemsById, false, taskStatusById),
+      renderEntries: buildRenderEntries(
+        [node],
+        taskItemsById,
+        false,
+        taskStatusById,
+      ),
     };
     taskGroupsById.set(taskId, group);
     entries.push(group);
   };
 
   for (const node of nodes) {
-    const taskId = String(node.taskId || '').trim();
+    const taskId = String(node.taskId || "").trim();
     if (!taskId) {
       pendingPlainNodes.push(node);
       continue;
@@ -200,12 +208,15 @@ function buildRenderEntries(
 function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
   return events
     .filter((event) => {
-      const type = String(event.type || '');
-      return type === 'run.complete' || type === 'run.error' || type === 'run.cancel';
+      const type = String(event.type || "");
+      return (
+        type === "run.complete" || type === "run.error" || type === "run.cancel"
+      );
     })
     .map((event) => ({
-      runId: typeof event.runId === 'string' ? event.runId : undefined,
-      timestamp: typeof event.timestamp === 'number' ? event.timestamp : undefined,
+      runId: typeof event.runId === "string" ? event.runId : undefined,
+      timestamp:
+        typeof event.timestamp === "number" ? event.timestamp : undefined,
     }));
 }
 
@@ -213,18 +224,18 @@ function collectTaskStatuses(events: AgentEvent[]): Map<string, string> {
   const statusByTaskId = new Map<string, string>();
 
   for (const event of events) {
-    const type = String(event.type || '');
-    const taskId = String(event.taskId || '').trim();
+    const type = String(event.type || "");
+    const taskId = String(event.taskId || "").trim();
     if (!taskId) continue;
 
-    if (type === 'task.start') {
-      statusByTaskId.set(taskId, 'running');
-    } else if (type === 'task.complete') {
-      statusByTaskId.set(taskId, 'completed');
-    } else if (type === 'task.fail') {
-      statusByTaskId.set(taskId, 'failed');
-    } else if (type === 'task.cancel') {
-      statusByTaskId.set(taskId, 'canceled');
+    if (type === "task.start") {
+      statusByTaskId.set(taskId, "running");
+    } else if (type === "task.complete") {
+      statusByTaskId.set(taskId, "completed");
+    } else if (type === "task.fail") {
+      statusByTaskId.set(taskId, "failed");
+    } else if (type === "task.cancel") {
+      statusByTaskId.set(taskId, "canceled");
     }
   }
 
@@ -252,7 +263,11 @@ export function buildTimelineDisplayItems(
       true,
       taskStatusById,
     )) {
-      items.push({ kind: 'standalone', key: `standalone_${renderEntry.key}`, renderEntry });
+      items.push({
+        kind: "standalone",
+        key: `standalone_${renderEntry.key}`,
+        renderEntry,
+      });
     }
     pendingStandaloneNodes = [];
   };
@@ -268,10 +283,12 @@ export function buildTimelineDisplayItems(
     const terminal = runTerminals[runTerminalCursor];
     const lastNode = pendingRunNodes[pendingRunNodes.length - 1];
     const completedAt = terminal
-      ? (typeof terminal.timestamp === 'number' ? terminal.timestamp : lastNode?.ts)
+      ? typeof terminal.timestamp === "number"
+        ? terminal.timestamp
+        : lastNode?.ts
       : undefined;
     const responseDurationMs =
-      typeof completedAt === 'number' && typeof queryNode?.ts === 'number'
+      typeof completedAt === "number" && typeof queryNode?.ts === "number"
         ? Math.max(0, completedAt - queryNode.ts)
         : undefined;
 
@@ -279,9 +296,10 @@ export function buildTimelineDisplayItems(
       runTerminalCursor += 1;
     }
 
-    const runKeySource = queryNode?.id || pendingRunNodes[0]?.id || String(runTerminalCursor);
+    const runKeySource =
+      queryNode?.id || pendingRunNodes[0]?.id || String(runTerminalCursor);
     items.push({
-      kind: 'run',
+      kind: "run",
       key: `run_${runKeySource}`,
       queryNode,
       nodes: pendingRunNodes,
@@ -300,17 +318,18 @@ export function buildTimelineDisplayItems(
   };
 
   for (const node of nodes) {
-    const isUserQuery = node.kind === 'message'
-      && node.role === 'user'
-      && !node.taskId
-      && node.messageVariant !== 'steer'
-      && node.messageVariant !== 'remember'
-      && node.messageVariant !== 'learn';
+    const isUserQuery =
+      node.kind === "message" &&
+      node.role === "user" &&
+      !node.taskId &&
+      node.messageVariant !== "steer" &&
+      node.messageVariant !== "remember" &&
+      node.messageVariant !== "learn";
     const nextTerminal = runTerminals[runTerminalCursor];
     if (
-      pendingRunNodes.length > 0
-      && typeof nextTerminal?.timestamp === 'number'
-      && node.ts > nextTerminal.timestamp
+      pendingRunNodes.length > 0 &&
+      typeof nextTerminal?.timestamp === "number" &&
+      node.ts > nextTerminal.timestamp
     ) {
       flushRun();
     }
@@ -319,7 +338,7 @@ export function buildTimelineDisplayItems(
       flushStandalone();
       flushRun();
       activeQueryNode = node;
-      items.push({ kind: 'query', key: `query_${node.id}`, node });
+      items.push({ kind: "query", key: `query_${node.id}`, node });
       continue;
     }
 

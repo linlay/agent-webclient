@@ -76,21 +76,6 @@
     transform: translateY(1px);
 }
 
-.timeline-agent-switcher-menu {
-    position: absolute;
-    z-index: 30;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    width: min(340px, calc(100vw - 40px));
-    max-width: calc(100vw - 40px);
-    padding: 10px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--bg-elev-2) 94%, white);
-    box-shadow: var(--shadow-medium);
-    transform: translateX(-50%);
-}
-
 .timeline-agent-switcher-search.ant-input {
     width: 100%;
 }
