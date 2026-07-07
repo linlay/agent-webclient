@@ -5,7 +5,11 @@ import React, {
   useCallback,
   useState,
 } from "react";
-import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import {
+  useOptionalAppContext,
+  useAppState,
+  useAppDispatch,
+} from "@/app/state/AppContext";
 import {
   TimelineRow,
   formatTimelineTime,
@@ -39,6 +43,7 @@ import {
 import type { InputRef } from "antd";
 import type { Agent, TimelineNode, WorkerRow } from "@/app/state/types";
 import { LogoLoading } from "@/shared/components/logo-loading";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
@@ -656,6 +661,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const { t } = useI18n();
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const appContext = useOptionalAppContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const autoScrollEnabledRef = useRef(true);
@@ -668,6 +674,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     Record<string, boolean>
   >({});
   const currentWorker = resolveCurrentWorkerSummary(state);
+  const isMainChatRunning = appContext
+    ? resolveMainChatRuntime(
+        appContext.stateRef,
+        appContext.activeQuerySessionRequestIdRef,
+        appContext.querySessionsRef,
+      ).running
+    : false;
   const timelineAgentOptions = useMemo(
     () =>
       buildTimelineAgentOptions({
@@ -855,18 +868,18 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const handleResend = useCallback(
     (text: string) => {
-      if (state.streaming || !text.trim()) return;
+      if (isMainChatRunning || !text.trim()) return;
       window.dispatchEvent(
         new CustomEvent("agent:send-message", { detail: { message: text } }),
       );
     },
-    [state.streaming],
+    [isMainChatRunning],
   );
 
   const handleResendInNewChat = useCallback(
     (text: string) => {
       const messageText = text.trim();
-      if (state.streaming || !messageText) return;
+      if (isMainChatRunning || !messageText) return;
 
       const workerDetail: Record<string, string | boolean> = {
         preserveWorkerContext: true,
@@ -889,7 +902,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         new CustomEvent("agent:send-message", { detail: sendDetail }),
       );
     },
-    [currentWorker, state.streaming],
+    [currentWorker, isMainChatRunning],
   );
 
   const handleDeriveChat = useCallback(
@@ -900,7 +913,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         isDeriveChatActionDisabled({
           chatId: sourceChatId,
           runId: sourceRunId,
-          streaming: state.streaming,
+          streaming: isMainChatRunning,
           activeAwaiting: state.activeAwaiting,
         })
       ) {
@@ -927,7 +940,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         setDerivingRunId((current) => (current === sourceRunId ? "" : current));
       }
     },
-    [dispatch, state.activeAwaiting, state.chatId, state.streaming, t],
+    [dispatch, isMainChatRunning, state.activeAwaiting, state.chatId, t],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -1038,8 +1051,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     [
       currentWorker,
       expandedTaskGroups,
+      isMainChatRunning,
       state.agents,
-      state.streaming,
       t,
       toggleTaskGroup,
     ],
@@ -1061,7 +1074,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   useEffect(() => {
     if (!autoScrollEnabledRef.current) return;
     scrollToBottom("auto");
-  }, [state.streaming, timelineEntries.length, state.chatId]);
+  }, [isMainChatRunning, timelineEntries.length, state.chatId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -1126,7 +1139,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         >
           {!state.chatId ? (
             showEmptyState ? (
-              state.streaming ? (
+              isMainChatRunning ? (
                 <LogoLoading />
               ) : (
                 <div className={TIMELINE_EMPTY_CLASS_NAME}>
@@ -1321,7 +1334,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     variant="ghost"
                                     size="sm"
                                     iconOnly
-                                    disabled={state.streaming}
+                                    disabled={isMainChatRunning}
                                     title={t("timeline.query.resend")}
                                     aria-label={t("timeline.query.resend")}
                                   >
@@ -1362,7 +1375,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const deriveChatDisabled = isDeriveChatActionDisabled({
                       chatId: state.chatId,
                       runId,
-                      streaming: state.streaming,
+                      streaming: isMainChatRunning,
                       activeAwaiting: state.activeAwaiting,
                     });
                     const deriveChatTitle = t("timeline.run.deriveChat");
@@ -1525,7 +1538,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   return renderEntry(item.renderEntry);
                 })}
               </div>
-              {state.streaming && !displayItems?.length && (
+              {isMainChatRunning && !displayItems?.length && (
                 <Flex justify="center" className="tw:mt-20">
                   <LogoLoading />
                 </Flex>

@@ -9,7 +9,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
-import { useAppState } from "@/app/state/provider";
+import { useOptionalAppContext } from "@/app/state/provider";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 import { TimelineCollapse } from "./collapse";
 
 type ToolGroupRenderEntry = Extract<
@@ -240,7 +241,14 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const copyTimerRef = useRef<Map<string, number>>(new Map());
   const source = toolGroup || node;
   const { t } = useI18n();
-  const { streaming } = useAppState();
+  const appContext = useOptionalAppContext();
+  const mainChatStreaming = appContext
+    ? resolveMainChatRuntime(
+        appContext.stateRef,
+        appContext.activeQuerySessionRequestIdRef,
+        appContext.querySessionsRef,
+      ).streaming
+    : false;
 
   const { isLive, startTimeMs } = useMemo(() => {
     const nodes = toolGroup?.nodes || (node ? [node] : []);
@@ -269,7 +277,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       };
     }
 
-    if (streaming && earliestStart != null) {
+    if (mainChatStreaming && earliestStart != null) {
       return {
         isLive: true,
         startTimeMs: earliestStart,
@@ -277,7 +285,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
     }
 
     return { isLive: false, startTimeMs: null };
-  }, [streaming, node, toolGroup]);
+  }, [mainChatStreaming, node, toolGroup]);
 
   const [liveNow, setLiveNow] = useState(Date.now());
 

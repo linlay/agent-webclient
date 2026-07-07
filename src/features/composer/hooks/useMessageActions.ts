@@ -82,7 +82,6 @@ export function canSendToTargetChat(input: {
   currentChatActiveRun?: Pick<NonNullable<AppState["currentChatActiveRun"]>, "chatId" | "runId"> | null;
   currentStateChatId?: string;
   targetChatId?: string;
-  stateStreaming: boolean;
 }): boolean {
   const currentSessionChatId = String(
     input.currentActiveSession?.chatId || input.currentStateChatId || "",
@@ -100,12 +99,6 @@ export function canSendToTargetChat(input: {
   }
 
   if (!input.currentActiveSession?.streaming || !isSameChat) {
-    return true;
-  }
-
-  if (!input.stateStreaming) {
-    input.currentActiveSession.streaming = false;
-    input.currentActiveSession.abortController = null;
     return true;
   }
 
@@ -127,7 +120,7 @@ export function resolveDifferentChatDetachRunDetail(input: {
   if (!targetChatId || !chatId || targetChatId === chatId) {
     return null;
   }
-  if (!input.currentActiveSession?.streaming && !input.currentState.streaming) {
+  if (!input.currentActiveSession?.streaming) {
     return null;
   }
 
@@ -249,7 +242,6 @@ export function useMessageActions() {
         currentChatActiveRun: stateRef.current.currentChatActiveRun,
         currentStateChatId: String(stateRef.current.chatId || "").trim(),
         targetChatId,
-        stateStreaming: Boolean(stateRef.current.streaming),
       });
 
       if (!canSend) {
@@ -262,7 +254,7 @@ export function useMessageActions() {
         String(stateRef.current.chatId || "").trim();
       const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
 
-      if (stateRef.current.streaming && !isSameChat) {
+      if (currentActiveSession?.streaming && !isSameChat) {
         // Different chat requested while current is streaming — detach current session
         const detachDetail = resolveDifferentChatDetachRunDetail({
           currentActiveSession,

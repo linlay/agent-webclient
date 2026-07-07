@@ -21,12 +21,12 @@ interface UseComposerAttachmentsInput {
   dispatch: Dispatch<AppAction>;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
+  mainChatRunning: boolean;
   state: Pick<
     AppState,
     | "chatId"
     | "chatAgentById"
     | "pendingNewChatAgentKey"
-    | "streaming"
     | "workerIndexByKey"
     | "workerSelectionKey"
   >;
@@ -51,7 +51,14 @@ function addTimestampToFilename(filename: string) {
 }
 
 export function useComposerAttachments(input: UseComposerAttachmentsInput) {
-  const { dispatch, isFrontendActive, isVoiceMode, onError, state } = input;
+  const {
+    dispatch,
+    isFrontendActive,
+    isVoiceMode,
+    mainChatRunning,
+    onError,
+    state,
+  } = input;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentViewportRef = useRef<HTMLDivElement>(null);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
@@ -148,11 +155,11 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   }, []);
 
   const openFilePicker = useCallback(() => {
-    if (state.streaming || isFrontendActive || isVoiceMode) {
+    if (mainChatRunning || isFrontendActive || isVoiceMode) {
       return;
     }
     fileInputRef.current?.click();
-  }, [isFrontendActive, isVoiceMode, state.streaming]);
+  }, [isFrontendActive, isVoiceMode, mainChatRunning]);
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
@@ -186,7 +193,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     (files: File[]) => {
       if (
         files.length === 0 ||
-        state.streaming ||
+        mainChatRunning ||
         isFrontendActive ||
         isVoiceMode
       ) {
@@ -251,10 +258,10 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       dispatch,
       isFrontendActive,
       isVoiceMode,
+      mainChatRunning,
       state.chatAgentById,
       state.chatId,
       state.pendingNewChatAgentKey,
-      state.streaming,
       state.workerIndexByKey,
       state.workerSelectionKey,
     ],
@@ -267,7 +274,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     }
     if (
       isCapturingDesktopScreenshot ||
-      state.streaming ||
+      mainChatRunning ||
       isFrontendActive ||
       isVoiceMode
     ) {
@@ -292,8 +299,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     isCapturingDesktopScreenshot,
     isFrontendActive,
     isVoiceMode,
+    mainChatRunning,
     onError,
-    state.streaming,
     uploadFiles,
   ]);
 

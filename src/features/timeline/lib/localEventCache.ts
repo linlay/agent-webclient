@@ -113,6 +113,7 @@ export function getCachedNodeText(
 export function shouldSyncLiveCache(
 	cache: LocalCache,
 	state: AppState,
+	streaming = false,
 ): boolean {
 	const visibleChatId = toText(state.chatId);
 	const visibleRunId = toText(state.runId);
@@ -120,7 +121,7 @@ export function shouldSyncLiveCache(
 		state.timelineOrder.length > 0 ||
 		Boolean(visibleChatId) ||
 		Boolean(visibleRunId) ||
-		state.streaming;
+		streaming;
 
 	if (!hasVisibleConversation) {
 		return false;
@@ -135,7 +136,7 @@ export function shouldSyncLiveCache(
 		hasStateAheadNodeMap(cache.reasoningNodeById, state.reasoningNodeById) ||
 		hasStateAheadNodeMap(cache.toolNodeById, state.toolNodeById) ||
 		hasStateAheadObjectMap(cache.taskItemsById, state.taskItemsById) ||
-		hasStateAheadNodeText(cache, state)
+		hasStateAheadNodeText(cache, state, streaming)
 	);
 }
 
@@ -219,7 +220,11 @@ function shouldSyncNodeTextFromState(
 	return !streaming;
 }
 
-function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
+function hasStateAheadNodeText(
+	cache: LocalCache,
+	state: AppState,
+	streaming: boolean,
+): boolean {
 	for (const [nodeId, node] of state.timelineNodes.entries()) {
 		if (
 			node.kind !== "content" &&
@@ -231,7 +236,7 @@ function hasStateAheadNodeText(cache: LocalCache, state: AppState): boolean {
 		}
 		const stateText = node.text || "";
 		const cacheText = cache.nodeText.get(nodeId);
-		if (shouldSyncNodeTextFromState(cacheText, stateText, state.streaming)) {
+		if (shouldSyncNodeTextFromState(cacheText, stateText, streaming)) {
 			return true;
 		}
 	}

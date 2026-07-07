@@ -23,6 +23,7 @@ import {
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '@/features/chats/lib/conversationSession';
+import { resolveMainChatRuntime } from '@/features/chats/lib/chatRuntimeState';
 import { resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/chats/lib/conversationReplay';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/transport/lib/detachRunEvent';
@@ -652,7 +653,6 @@ export function useChatActions() {
     session.snapshot = snapshotConversationState(state);
     session.chatId = session.chatId || String(state.chatId || '').trim();
     session.runId = session.runId || String(state.runId || '').trim();
-    session.streaming = Boolean(state.streaming);
     session.abortController = state.abortController;
     markSessionSnapshotApplied(session);
     if (state.transportMode === 'sse') {
@@ -674,7 +674,7 @@ export function useChatActions() {
     if (normalizedTargetChatId && chatId && normalizedTargetChatId === chatId) {
       return;
     }
-    if (!session?.streaming && !state.streaming) {
+    if (!session?.streaming) {
       return;
     }
 
@@ -792,7 +792,12 @@ export function useChatActions() {
       if (!chatId) return;
       const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
       const currentChatId = String(stateRef.current.chatId || '').trim();
-      if (currentChatId && currentChatId === chatId && stateRef.current.streaming) {
+      const mainRuntime = resolveMainChatRuntime(
+        stateRef,
+        activeQuerySessionRequestIdRef,
+        querySessionsRef,
+      );
+      if (currentChatId && currentChatId === chatId && mainRuntime.running) {
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -976,11 +981,13 @@ export function useChatActions() {
     [
       clearArtifactAutoCollapseTimer,
       clearPlanAutoCollapseTimer,
+      activeQuerySessionRequestIdRef,
       detachActiveConversationSession,
       dispatchDetachActiveRun,
       dispatch,
       focusComposerSoon,
       applyLoadedChatState,
+      querySessionsRef,
       stateRef,
     ]
   );

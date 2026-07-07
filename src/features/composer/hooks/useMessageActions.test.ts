@@ -213,14 +213,13 @@ describe("canSendToTargetChat", () => {
       currentActiveSession: session,
       currentStateChatId: "chat_1",
       targetChatId: "chat_1",
-      stateStreaming: true,
     });
 
     expect(allowed).toBe(false);
     expect(session.streaming).toBe(true);
   });
 
-  it("recovers from stale live-session streaming state after the run has already ended", () => {
+  it("keeps duplicate sends blocked while the active session is still marked streaming", () => {
     const session = {
       streaming: true,
       abortController: new AbortController(),
@@ -231,12 +230,11 @@ describe("canSendToTargetChat", () => {
       currentActiveSession: session,
       currentStateChatId: "chat_1",
       targetChatId: "chat_1",
-      stateStreaming: false,
     });
 
-    expect(allowed).toBe(true);
-    expect(session.streaming).toBe(false);
-    expect(session.abortController).toBeNull();
+    expect(allowed).toBe(false);
+    expect(session.streaming).toBe(true);
+    expect(session.abortController).not.toBeNull();
   });
 });
 

@@ -1,5 +1,9 @@
 import React from "react";
-import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import {
+  useOptionalAppContext,
+  useAppState,
+  useAppDispatch,
+} from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
 import type {
   AIUsageEstimatedCost,
@@ -24,6 +28,7 @@ import { useCommandOverlayOpen } from "@/features/workers/components/CommandOver
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 
 export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -132,7 +137,8 @@ const USAGE_POPOVER_CLOSE_CLASS =
   "usage-popover-close tw:h-5 tw:min-h-5 tw:w-5 tw:min-w-5 tw:rounded-[7px] tw:p-0";
 
 export function resolveTopNavStatus(
-  state: Pick<AppState, "streaming" | "events">,
+  state: Pick<AppState, "events"> & Partial<Pick<AppState, "streaming">>,
+  running = false,
 ): TopNavStatusDisplay {
   let runErrorDetail = "";
   let hasRunError = false;
@@ -148,7 +154,7 @@ export function resolveTopNavStatus(
     }
   }
 
-  if (state.streaming) {
+  if (running) {
     return {
       statusClass: "is-running",
       statusText: "topNav.status.running",
@@ -167,6 +173,16 @@ export function resolveTopNavStatus(
     statusClass: "is-idle",
     statusText: "topNav.status.idle",
   };
+}
+
+function formatStatusDisplayLabel(
+  statusClass: TopNavStatusDisplay["statusClass"],
+  label: string,
+): string {
+  if (label === "idle") return "Idle";
+  if (label === "running") return "Running";
+  if (label === "error" && statusClass === "is-error") return "Run error";
+  return label;
 }
 
 function readUsageNumber(value: unknown): number | null {
@@ -557,6 +573,7 @@ const UsageCallCounts: React.FC<{
 export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
@@ -564,7 +581,17 @@ export const TopNav: React.FC = () => {
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
-  const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
+  const isMainChatRunning = appContext
+    ? resolveMainChatRuntime(
+        appContext.stateRef,
+        appContext.activeQuerySessionRequestIdRef,
+        appContext.querySessionsRef,
+      ).running
+    : false;
+  const { statusClass, statusText, statusDetail } = resolveTopNavStatus(
+    state,
+    isMainChatRunning,
+  );
   const currentWorker = resolveCurrentWorkerSummary(state);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
@@ -587,11 +614,11 @@ export const TopNav: React.FC = () => {
     ? "Meta+Shift+Space"
     : "Control+Shift+Space";
   const voiceToggleDisabled =
-    !voiceModeAvailable || state.streaming || Boolean(state.activeFrontendTool);
+    !voiceModeAvailable || isMainChatRunning || Boolean(state.activeFrontendTool);
   const usageSnapshot = state.usageSnapshot;
   const compactUsage = resolveLatestCompactUsage(state.events);
   const showUsageControl =
-    Boolean(usageSnapshot) || Boolean(compactUsage) || state.streaming;
+    Boolean(usageSnapshot) || Boolean(compactUsage) || isMainChatRunning;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
   const {
     submitCompactCommand,
@@ -624,7 +651,7 @@ export const TopNav: React.FC = () => {
     state.commandStatusOverlay.phase === "pending";
   const compactDisabled =
     !String(state.chatId || "").trim() ||
-    state.streaming ||
+    isMainChatRunning ||
     isCommandOverlayOpen ||
     submittingCommand === "compact" ||
     compactStatusOverlayPending;
@@ -730,7 +757,7 @@ export const TopNav: React.FC = () => {
   const reasoningEffortLabel = reasoningEffort
     ? t(`composer.query.reasoning.${reasoningEffort}`)
     : '';
-  const statusLabel = t(statusText);
+  const statusLabel = formatStatusDisplayLabel(statusClass, t(statusText));
   const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
   return (
     <nav className={TOP_NAV_CLASS}>

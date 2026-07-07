@@ -46,6 +46,7 @@ import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/chats/lib/conversationSession";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 import { dispatchRunStartedPushEvent } from "@/features/chats/lib/mainChatRunActivation";
 import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
@@ -287,19 +288,16 @@ function syncCurrentTerminalPushObservation(
 	}
 
 	const currentActiveRun = options.stateRef.current.currentChatActiveRun;
-	const stateRunId = String(options.stateRef.current.runId || "").trim();
-	const activeRequestId = String(
-		options.activeQuerySessionRequestIdRef?.current || "",
-	).trim();
-	const activeSession = activeRequestId && options.querySessionsRef
-		? options.querySessionsRef.current.get(activeRequestId) || null
-		: null;
-	const matchesCurrentRun = stateRunId === runId;
+	const mainRuntime = resolveMainChatRuntime(
+		options.stateRef,
+		options.activeQuerySessionRequestIdRef,
+		options.querySessionsRef,
+	);
 	const matchesActiveRun =
 		currentActiveRun?.runId === runId &&
 		currentActiveRun.chatId === chatId;
 	const matchesActiveSession = isTerminalPushForSession(
-		activeSession,
+		mainRuntime.session,
 		chatId,
 		runId,
 	);
@@ -309,7 +307,6 @@ function syncCurrentTerminalPushObservation(
 		currentAttach.chatId === chatId;
 
 	if (
-		!matchesCurrentRun &&
 		!matchesActiveRun &&
 		!matchesActiveSession &&
 		!matchesActiveAttach
@@ -1046,7 +1043,12 @@ function buildWsClient(
 				return;
 			}
 
-			if (options.stateRef.current.streaming) {
+			const mainRuntime = resolveMainChatRuntime(
+				options.stateRef,
+				options.activeQuerySessionRequestIdRef,
+				options.querySessionsRef,
+			);
+			if (mainRuntime.streaming) {
 				return;
 			}
 

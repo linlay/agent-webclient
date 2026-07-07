@@ -178,6 +178,7 @@ describe("buildDebugEventGroups", () => {
 		const html = renderToStaticMarkup(React.createElement(DebugTab));
 
 		expect(html).toContain("run.start");
+		expect(html).toContain("runId=run_1");
 		expect(html).toContain("reasoning.snapshot");
 		expect(html).not.toContain("reasoning.delta");
 		expect(html).not.toContain("暂无事件");

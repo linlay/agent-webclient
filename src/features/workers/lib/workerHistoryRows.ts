@@ -5,30 +5,32 @@ import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 
 export interface HistoryRowVisibilityState {
-  streaming: boolean;
+  running: boolean;
   chatId: string;
 }
 
-function shouldHideStreamingChat(
+function shouldHideRunningChat(
   row: Pick<WorkerConversationRow, 'chatId'>,
   state: HistoryRowVisibilityState,
 ): boolean {
   return Boolean(
-    state.streaming &&
+    state.running &&
       toText(state.chatId) &&
       toText(row?.chatId) === toText(state.chatId),
   );
 }
 
-export function excludeStreamingCurrentChat<T extends Pick<WorkerConversationRow, 'chatId'>>(
+export function excludeRunningCurrentChat<T extends Pick<WorkerConversationRow, 'chatId'>>(
   rows: T[],
   state: HistoryRowVisibilityState,
 ): T[] {
-  if (!state.streaming || !toText(state.chatId)) {
+  if (!state.running || !toText(state.chatId)) {
     return rows;
   }
-  return rows.filter((row) => !shouldHideStreamingChat(row, state));
+  return rows.filter((row) => !shouldHideRunningChat(row, state));
 }
+
+export const excludeStreamingCurrentChat = excludeRunningCurrentChat;
 
 export function buildWorkerHistoryRowsFromChats(input: {
   chats: Chat[];
@@ -45,7 +47,7 @@ export function buildRemoteWorkerHistoryRows(input: {
   worker: WorkerRow | null;
   visibility: HistoryRowVisibilityState;
 }): WorkerConversationRow[] {
-  return excludeStreamingCurrentChat(
+  return excludeRunningCurrentChat(
     buildWorkerHistoryRowsFromChats({
       chats: input.chats,
       worker: input.worker,

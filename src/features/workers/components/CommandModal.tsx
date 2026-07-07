@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import {
+  useAppDispatch,
+  useAppState,
+  useOptionalAppContext,
+} from "@/app/state/AppContext";
 import { Modal } from "antd";
 import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
 import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
@@ -54,6 +58,13 @@ export const CommandModal: React.FC<CommandModalProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const appContext =
+    typeof useOptionalAppContext === "function"
+      ? useOptionalAppContext()
+      : null;
+  const querySessionsRef = appContext?.querySessionsRef || {
+    current: new Map(),
+  };
   const { t } = useI18n();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const historyInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +116,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     modal,
     currentWorker,
     state,
+    querySessionsRef,
     dispatch,
   });
   const switchIndex = clampIndex(modal.activeIndex, switchRows.length);

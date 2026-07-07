@@ -127,6 +127,10 @@ export interface AppState {
 	currentChatActiveRun: CurrentChatActiveRun | null;
 	runId: string;
 	requestId: string;
+	/**
+	 * @deprecated Debug/UI mirror only. Runtime authority lives in
+	 * activeQuerySessionRequestIdRef/querySessionsRef and currentChatActiveRun.
+	 */
 	streaming: boolean;
 	abortController: AbortController | null;
 	messagesById: Map<string, Message>;

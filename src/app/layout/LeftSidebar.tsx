@@ -63,6 +63,7 @@ import {
   isChatActiveRun,
   isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
+import { resolveSidebarChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
@@ -650,33 +651,22 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const hasStreamingSessionForChat = (chatId: string) => {
-    const normalizedChatId = String(chatId || "").trim();
-    if (!normalizedChatId) return false;
-    for (const session of querySessionsRef.current.values()) {
-      if (
-        session.streaming &&
-        String(session.chatId || "").trim() === normalizedChatId
-      ) {
-        return true;
-      }
-    }
-    return false;
-  };
-
   const getWorkerChatLoading = (chatId: string) => {
     const normalizedChatId = String(chatId || "").trim();
     if (!normalizedChatId) return false;
-    const chat = state.chats.find(
-      (item) => String(item?.chatId || "").trim() === normalizedChatId,
-    );
-    return (
-      isChatActiveRun(chat) || hasStreamingSessionForChat(normalizedChatId)
-    );
+    return resolveSidebarChatRuntime(
+      normalizedChatId,
+      state.chats,
+      querySessionsRef,
+    ).running;
   };
 
   const isWorkerChatRunning = (chat: WorkerConversationRow) =>
-    isChatActiveRun(chat) || hasStreamingSessionForChat(chat.chatId);
+    resolveSidebarChatRuntime(
+      chat.chatId,
+      state.chats,
+      querySessionsRef,
+    ).running || isChatActiveRun(chat);
 
   const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
     (row) => {

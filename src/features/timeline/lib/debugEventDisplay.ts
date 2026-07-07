@@ -530,7 +530,7 @@ export function getEventId(event: AgentEvent): string {
     for (const key of keys) {
       const value = safeStr(record[key]);
       if (value.trim()) {
-        return value;
+        return `${key}=${value}`;
       }
     }
     return '';
@@ -569,7 +569,10 @@ export function getEventId(event: AgentEvent): string {
   ];
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(event, key)) {
-      return safeStr(event[key]);
+      const value = safeStr(event[key]);
+      if (value.trim()) {
+        return `${key}=${value}`;
+      }
     }
   }
   return '';

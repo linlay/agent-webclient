@@ -183,6 +183,10 @@ export function useAppContext(): AppContextValue {
 	return ctx;
 }
 
+export function useOptionalAppContext(): AppContextValue | null {
+	return useContext(AppContext);
+}
+
 export function useAppState(): AppState {
 	return useAppContext().state;
 }

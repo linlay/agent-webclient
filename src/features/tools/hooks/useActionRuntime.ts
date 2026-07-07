@@ -3,6 +3,7 @@ import { createActionRuntime, type ActionRuntime } from '@/features/tools/lib/ac
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { useAppContext } from '@/app/state/AppContext';
 import type { AgentEvent } from '@/app/state/types';
+import { resolveMainChatRuntime } from '@/features/chats/lib/chatRuntimeState';
 
 interface ActionBufferState {
   actionName: string;
@@ -42,7 +43,13 @@ export function shouldSkipHistoricalActionBatch(params: {
  * `action.start` events to automatically execute them.
  */
 export function useActionRuntime() {
-  const { state, dispatch } = useAppContext();
+  const {
+    state,
+    dispatch,
+    stateRef,
+    querySessionsRef,
+    activeQuerySessionRequestIdRef,
+  } = useAppContext();
   const runtimeRef = useRef<ActionRuntime | null>(null);
   const eventCursorRef = useRef(0);
   const actionBuffersRef = useRef(new Map<string, ActionBufferState>());
@@ -82,6 +89,11 @@ export function useActionRuntime() {
     if (!runtimeRef.current) return;
 
     const events = state.events;
+    const mainChatStreaming = resolveMainChatRuntime(
+      stateRef,
+      activeQuerySessionRequestIdRef,
+      querySessionsRef,
+    ).streaming;
     if (events.length === 0) {
       eventCursorRef.current = 0;
       actionBuffersRef.current.clear();
@@ -98,7 +110,7 @@ export function useActionRuntime() {
     if (shouldSkipHistoricalActionBatch({
       eventCursor: eventCursorRef.current,
       eventsLength: events.length,
-      streaming: state.streaming,
+      streaming: mainChatStreaming,
     })) {
       dispatch({
         type: 'APPEND_DEBUG',
@@ -116,7 +128,7 @@ export function useActionRuntime() {
       }
       executedActionIdsRef.current.add(actionId);
 
-      if (!state.streaming) {
+      if (!mainChatStreaming) {
         dispatch({
           type: 'APPEND_DEBUG',
           line: `[ActionRuntime] Skip historical action ${actionName || 'unknown'} during non-streaming phase, actionId=${actionId}`,
@@ -201,5 +213,11 @@ export function useActionRuntime() {
     }
 
     eventCursorRef.current = events.length;
-  }, [state.events, state.streaming, dispatch]);
+  }, [
+    activeQuerySessionRequestIdRef,
+    dispatch,
+    querySessionsRef,
+    state.events,
+    stateRef,
+  ]);
 }

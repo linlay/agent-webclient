@@ -64,7 +64,7 @@ describe('getEventId', () => {
       chatId: 'chat_1',
       runId: 'run_1',
       artifacts: [],
-    })).toBe('run_1');
+    })).toBe('runId=run_1');
   });
 
   it('uses publishId for source.publish events', () => {
@@ -73,7 +73,7 @@ describe('getEventId', () => {
       runId: 'run_1',
       publishId: 'src_1',
       sources: [],
-    })).toBe('src_1');
+    })).toBe('publishId=src_1');
   });
 
   it('uses the event family id before generic ids', () => {
@@ -81,24 +81,24 @@ describe('getEventId', () => {
       type: 'chat.start',
       chatId: 'chat_1',
       runId: 'run_1',
-    })).toBe('chat_1');
+    })).toBe('chatId=chat_1');
     expect(getEventId({
       type: 'request.query',
       requestId: 'req_1',
       chatId: 'chat_1',
       runId: 'run_1',
-    })).toBe('req_1');
+    })).toBe('requestId=req_1');
     expect(getEventId({
       type: 'run.start',
       chatId: 'chat_1',
       runId: 'run_1',
-    })).toBe('run_1');
+    })).toBe('runId=run_1');
     expect(getEventId({
       type: 'planning.snapshot',
       planningId: 'planning_1',
       planId: 'plan_1',
       runId: 'run_1',
-    })).toBe('planning_1');
+    })).toBe('planningId=planning_1');
   });
 
   it('falls back to planningKey and planId for planning event ids', () => {
@@ -106,11 +106,11 @@ describe('getEventId', () => {
       type: 'planning.snapshot',
       planningKey: 'planning_key_1',
       planId: 'plan_1',
-    } as AgentEvent)).toBe('planning_key_1');
+    } as AgentEvent)).toBe('planningKey=planning_key_1');
     expect(getEventId({
       type: 'planning.snapshot',
       planId: 'plan_1',
-    })).toBe('plan_1');
+    })).toBe('planId=plan_1');
   });
 });
 

@@ -49,7 +49,7 @@ describe('worker history rows', () => {
     expect(rows.map((row) => row.chatId)).toEqual(['remote-alpha']);
   });
 
-  it('hides the current live chat while streaming', () => {
+  it('hides the current live chat while running', () => {
     const rows = excludeStreamingCurrentChat(
       [
         {
@@ -67,13 +67,13 @@ describe('worker history rows', () => {
           lastRunContent: 'older',
         },
       ],
-      { streaming: true, chatId: 'chat-live' },
+      { running: true, chatId: 'chat-live' },
     );
 
     expect(rows.map((row) => row.chatId)).toEqual(['chat-old']);
   });
 
-  it('keeps the current chat visible when it is not streaming', () => {
+  it('keeps the current chat visible when it is not running', () => {
     const rows = excludeStreamingCurrentChat(
       [
         {
@@ -84,7 +84,7 @@ describe('worker history rows', () => {
           lastRunContent: 'done',
         },
       ],
-      { streaming: false, chatId: 'chat-live' },
+      { running: false, chatId: 'chat-live' },
     );
 
     expect(rows.map((row) => row.chatId)).toEqual(['chat-live']);

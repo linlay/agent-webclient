@@ -44,6 +44,7 @@ import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOv
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;
@@ -75,7 +76,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const isAnyOverlayOpen = isCommandOverlayOpen || isGlobalSearchOpen;
-  const { stateRef } = useAppContext();
+  const {
+    stateRef,
+    querySessionsRef,
+    activeQuerySessionRequestIdRef,
+  } = useAppContext();
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
   const composerRef = useRef<HTMLDivElement>(null);
@@ -124,6 +129,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [currentWorker]);
   const { activeRunId, activeRunAgentKey } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
+  const mainChatRuntime = resolveMainChatRuntime(
+    stateRef,
+    activeQuerySessionRequestIdRef,
+    querySessionsRef,
+  );
+  const isMainChatRunning = mainChatRuntime.running;
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -195,6 +206,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch,
     isFrontendActive,
     isVoiceMode,
+    mainChatRunning: isMainChatRunning,
     onError: (text) => {
       void message.error(text || t("composer.actions.screenshotFailed"));
     },
@@ -232,7 +244,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     });
 
   const toggleVoiceMode = useCallback(() => {
-    if (!voiceModeAvailable || state.streaming || isFrontendActive) {
+    if (!voiceModeAvailable || isMainChatRunning || isFrontendActive) {
       return;
     }
     dispatch({
@@ -243,7 +255,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch,
     isFrontendActive,
     isVoiceMode,
-    state.streaming,
+    isMainChatRunning,
     voiceModeAvailable,
   ]);
 
@@ -292,7 +304,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const slashAvailability = useMemo(
     () => ({
-      streaming: state.streaming,
+      streaming: isMainChatRunning,
       hasLatestQuery: Boolean(latestQueryText),
       isFrontendActive,
       canUsePlanningMode: planningModeAvailable,
@@ -304,7 +316,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       commandOverlayOpen: isAnyOverlayOpen,
       canShowUsage:
         Boolean(state.usageSnapshot) ||
-        state.streaming ||
+        isMainChatRunning ||
         resolveHasCompactUsage(state.events),
     }),
     [
@@ -312,7 +324,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       isFrontendActive,
       latestQueryText,
       state.chatId,
-      state.streaming,
+      isMainChatRunning,
       state.usageSnapshot,
       state.events,
       state.workerRows.length,
@@ -363,6 +375,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    mainChatRunning: isMainChatRunning,
     modelOverride,
     selectSlashCommand,
     sendAttachmentMeta,
@@ -373,6 +386,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     speechListening,
     state,
     stateRef,
+    querySessionsRef,
+    activeQuerySessionRequestIdRef,
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
@@ -386,7 +401,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     accessLevel,
     activeRunId,
     activeRunAgentKey,
-    isRunActive: state.streaming || isAwaitingActive || isCurrentChatActiveRun,
+    isRunActive: isMainChatRunning || isAwaitingActive || isCurrentChatActiveRun,
     setAccessLevel,
     messageApi: message,
     t,
@@ -637,7 +652,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   accessLevel={accessLevel}
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}
-                  isStreaming={state.streaming}
+                  isStreaming={isMainChatRunning}
                   canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
                   isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
                   modelOverride={modelOverride}

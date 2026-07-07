@@ -41,6 +41,7 @@ import {
   readRunAgentKeyFromEvent,
   resolveRunAgentKey,
 } from "@/features/chats/lib/runAgentIdentity";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 import {
   createLiveProcessorState,
   createLocalCache,
@@ -160,7 +161,12 @@ export function resolveAwaitingSubmitRuntimeContext(input: {
  * During history replay, both are handled by useChatActions.replayEvent().
  */
 export function useAgentEventHandler() {
-  const { dispatch, stateRef } = useAppContext();
+  const {
+    dispatch,
+    stateRef,
+    querySessionsRef,
+    activeQuerySessionRequestIdRef,
+  } = useAppContext();
   const cacheRef = useRef<LocalCache>(createLocalCache());
 
   /** Reset the local cache (called when conversation resets) */
@@ -286,7 +292,12 @@ export function useAgentEventHandler() {
       const state = stateRef.current;
       let cache = cacheRef.current;
       const type = toText(event.type);
-      if (shouldSyncLiveCache(cache, state)) {
+      const mainRuntime = resolveMainChatRuntime(
+        stateRef,
+        activeQuerySessionRequestIdRef,
+        querySessionsRef,
+      );
+      if (shouldSyncLiveCache(cache, state, mainRuntime.streaming)) {
         cache = createLocalCacheFromState(state);
         cacheRef.current = cache;
       }
@@ -295,7 +306,7 @@ export function useAgentEventHandler() {
       if (state.timelineCounter > cache.counter) {
         cache.counter = state.timelineCounter;
       }
-      if (!state.streaming && !state.chatId && !event.chatId) {
+      if (!mainRuntime.streaming && !state.chatId && !event.chatId) {
         cache.chatId = "";
         cache.runId = "";
         cache.agentKey = "";
@@ -722,10 +733,12 @@ export function useAgentEventHandler() {
       }
     },
     [
+      activeQuerySessionRequestIdRef,
       clearReasoningAutoCollapse,
       dispatch,
       expandArtifactForUpdate,
       expandPlanForUpdate,
+      querySessionsRef,
       scheduleReasoningAutoCollapse,
       stateRef,
       upsertLiveChatSummary,

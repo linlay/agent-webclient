@@ -217,7 +217,7 @@ describe('shouldSyncLiveCache', () => {
     cache.nodeText.set('content_0', 'Hello world');
     cache.nodeById.set('content_0', { ...contentNode, text: 'Hello world' });
 
-    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
   });
 
   it('keeps live-only nodes authoritative until React batched state catches up', () => {
@@ -246,7 +246,7 @@ describe('shouldSyncLiveCache', () => {
     cache.nodeById.set('content_0', contentNode);
     cache.nodeText.set('content_0', contentNode.text);
 
-    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
     expect(createLiveProcessorState(cache, state).getNodeText('content_0')).toBe(
       'Hello from the live stream',
     );
@@ -275,7 +275,7 @@ describe('shouldSyncLiveCache', () => {
       awaitingId: 'await_1',
       questions: [],
     });
-    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
 
     expect(cache.activeAwaiting?.questions).toHaveLength(0);
   });
@@ -311,7 +311,7 @@ describe('shouldSyncLiveCache', () => {
     });
 
     expect(cache.activeAwaiting).toBeNull();
-    expect(shouldSyncLiveCache(cache, state)).toBe(false);
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
   });
 
   it('rebuilds when React state has hydrated questions for the same awaiting session', () => {

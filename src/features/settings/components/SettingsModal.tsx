@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import {
+  useOptionalAppContext,
+  useAppState,
+  useAppDispatch,
+} from "@/app/state/AppContext";
 import { Modal } from "antd";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import type {
@@ -29,6 +33,7 @@ import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 
 const SETTINGS_CARD_CLASS_NAME =
@@ -47,6 +52,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const appContext = useOptionalAppContext();
+  const mainChatRunning = appContext
+    ? resolveMainChatRuntime(
+        appContext.stateRef,
+        appContext.activeQuerySessionRequestIdRef,
+        appContext.querySessionsRef,
+      ).running
+    : false;
   const { locale, setLocale, t } = useI18n();
   const appMode = isAppMode();
   const isDesktopApp = isDesktopAppMode();
@@ -348,7 +361,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             transportMode={state.transportMode}
             wsStatus={state.wsStatus}
             wsErrorMessage={state.wsErrorMessage}
-            streaming={state.streaming}
+            streaming={mainChatRunning}
             onTransportModeChange={handleTransportModeChange}
           />
         </div>

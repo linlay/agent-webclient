@@ -29,6 +29,10 @@ import {
 } from "@/features/composer/lib/steerSubmission";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useI18n } from "@/shared/i18n";
+import {
+  resolveMainChatRuntime,
+} from "@/features/chats/lib/chatRuntimeState";
+import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
 
 export {
   buildCompactUsageSnapshot,
@@ -71,6 +75,7 @@ interface UseComposerSendInput {
   inputValue: string;
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
+  mainChatRunning: boolean;
   modelOverride: QueryModelOverride;
   selectSlashCommand: () => { id: SlashCommandId } | null;
   showSlashPalette: boolean;
@@ -93,7 +98,6 @@ interface UseComposerSendInput {
     | "planningMode"
     | "runAgentById"
     | "runId"
-    | "streaming"
     | "usageSnapshot"
     | "workerIndexByKey"
     | "workerSelectionKey"
@@ -101,6 +105,8 @@ interface UseComposerSendInput {
     pendingSteers: AppState["pendingSteers"];
   };
   stateRef: MutableRefObject<AppState>;
+  querySessionsRef: MutableRefObject<Map<string, LiveQuerySession>>;
+  activeQuerySessionRequestIdRef: MutableRefObject<string>;
   stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
   updateMentionSuggestions: (value: string) => void;
@@ -120,6 +126,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     inputValue,
     isAwaitingActive,
     isVoiceMode,
+    mainChatRunning,
     modelOverride,
     selectSlashCommand,
     showSlashPalette,
@@ -130,6 +137,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     speechListening,
     state,
     stateRef,
+    querySessionsRef,
+    activeQuerySessionRequestIdRef,
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
@@ -178,12 +187,12 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [inputValue]);
 
-  const prevStreamingRef = useRef(state.streaming);
+  const prevMainChatRunningRef = useRef(mainChatRunning);
   useEffect(() => {
-    const wasStreaming = prevStreamingRef.current;
-    prevStreamingRef.current = state.streaming;
+    const wasRunning = prevMainChatRunningRef.current;
+    prevMainChatRunningRef.current = mainChatRunning;
     const steers = state.pendingSteers[String(state.chatId || "")] || [];
-    if (!wasStreaming || state.streaming || steers.length === 0) {
+    if (!wasRunning || mainChatRunning || steers.length === 0) {
       return;
     }
     const firstQueued = steers.find((s) => s.status === "queued");
@@ -194,7 +203,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: { message: firstQueued.message },
       }),
     );
-  }, [state.streaming, state.pendingSteers, state.chatId, dispatch]);
+  }, [mainChatRunning, state.pendingSteers, state.chatId, dispatch]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
@@ -349,16 +358,17 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const currentState = stateRef.current || state;
     const activeChatId = String(currentState.chatId || "").trim();
-    const currentChatActiveRunId =
-      currentState.currentChatActiveRun?.chatId === activeChatId
-        ? String(currentState.currentChatActiveRun.runId || "").trim()
-        : "";
-    if (currentState.streaming || currentChatActiveRunId) {
-      const activeRunId = currentChatActiveRunId || resolveCurrentRunId();
+    const mainRuntime = resolveMainChatRuntime(
+      currentState,
+      activeQuerySessionRequestIdRef,
+      querySessionsRef,
+    );
+    if (mainRuntime.running) {
+      const activeRunId = mainRuntime.runId || resolveCurrentRunId();
       if (!activeChatId || !activeRunId) {
         dispatch({
           type: "APPEND_DEBUG",
-          line: `[send] recovered stale streaming state before submit (chatId=${activeChatId || "-"}, runId=${activeRunId || "-"})`,
+          line: `[send] recovered stale main chat runtime before submit (chatId=${activeChatId || "-"}, runId=${activeRunId || "-"})`,
         });
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
@@ -452,6 +462,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     modelOverride,
+    activeQuerySessionRequestIdRef,
+    querySessionsRef,
     resolveCurrentRunId,
     selectSlashCommand,
     sendAttachmentMeta,
@@ -465,7 +477,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.chats,
     state.currentChatActiveRun,
     state.pendingNewChatAgentKey,
-    state.streaming,
     state.workerIndexByKey,
     state.workerSelectionKey,
     stateRef,

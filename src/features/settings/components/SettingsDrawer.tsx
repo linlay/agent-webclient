@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useAppState, useAppDispatch } from "@/app/state/AppContext";
+import {
+  useOptionalAppContext,
+  useAppState,
+  useAppDispatch,
+} from "@/app/state/AppContext";
 import { Drawer } from "antd";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import type {
@@ -28,6 +32,7 @@ import { SettingsClientGate } from "@/features/settings/components/SettingsClien
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 import { MaterialIcon } from "@/shared/icons/material";
+import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 
 interface SettingsDrawerProps {
   open?: boolean;
@@ -40,6 +45,14 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const appContext = useOptionalAppContext();
+  const mainChatRunning = appContext
+    ? resolveMainChatRuntime(
+        appContext.stateRef,
+        appContext.activeQuerySessionRequestIdRef,
+        appContext.querySessionsRef,
+      ).running
+    : false;
   const { locale, setLocale, t } = useI18n();
   const appMode = isAppMode();
   const isDesktopApp = isDesktopAppMode();
@@ -353,7 +366,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             transportMode={state.transportMode}
             wsStatus={state.wsStatus}
             wsErrorMessage={state.wsErrorMessage}
-            streaming={state.streaming}
+            streaming={mainChatRunning}
             onTransportModeChange={handleTransportModeChange}
           />
         </div>

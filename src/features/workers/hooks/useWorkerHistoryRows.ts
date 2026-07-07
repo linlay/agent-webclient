@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 import type { AppAction } from '@/app/state/actions';
 import type { AppState, Chat, WorkerConversationRow } from '@/app/state/types';
+import type { LiveQuerySession } from '@/features/chats/lib/conversationSession';
+import { resolveSidebarChatRuntime } from '@/features/chats/lib/chatRuntimeState';
 import { mergeFetchedChats } from '@/features/chats/lib/chatSummary';
 import type { CommandOverlayState } from '@/features/workers/lib/commandOverlay';
 import type { CurrentWorkerSummary } from '@/features/workers/lib/currentWorker';
@@ -18,7 +20,8 @@ type HistoryLoadStatus = 'idle' | 'loading' | 'success' | 'error';
 interface UseWorkerHistoryRowsInput {
   modal: CommandOverlayState;
   currentWorker: CurrentWorkerSummary | null;
-  state: Pick<AppState, 'chatId' | 'chats' | 'streaming'>;
+  state: Pick<AppState, 'chatId' | 'chats'>;
+  querySessionsRef: { current: Map<string, LiveQuerySession> };
   dispatch: Dispatch<AppAction>;
 }
 
@@ -37,6 +40,7 @@ export function useWorkerHistoryRows({
   modal,
   currentWorker,
   state,
+  querySessionsRef,
   dispatch,
 }: UseWorkerHistoryRowsInput): UseWorkerHistoryRowsResult {
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<
@@ -158,14 +162,19 @@ export function useWorkerHistoryRows({
   ]);
 
   const historyRows = useMemo(() => {
+    const currentChatRuntime = resolveSidebarChatRuntime(
+      state.chatId,
+      state.chats,
+      querySessionsRef,
+    );
     const visibleRows = excludeStreamingCurrentChat(remoteHistoryRows, {
       chatId: state.chatId,
-      streaming: state.streaming,
+      running: currentChatRuntime.running,
     });
     return historySearch
       ? filterHistoryRowsBySearch(visibleRows, historySearch)
       : visibleRows;
-  }, [historySearch, remoteHistoryRows, state.chatId, state.streaming]);
+  }, [historySearch, querySessionsRef, remoteHistoryRows, state.chatId, state.chats]);
 
   const removeHistoryRow = useCallback((chatId: string) => {
     const normalizedChatId = String(chatId || '').trim();

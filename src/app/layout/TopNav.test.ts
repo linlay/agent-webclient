@@ -9,14 +9,16 @@ jest.mock("@/app/state/AppContext", () => {
 		...actual,
 		useAppState: jest.fn(),
 		useAppDispatch: jest.fn(),
+		useOptionalAppContext: jest.fn(),
 	};
 });
 
-const { useAppState, useAppDispatch } = jest.requireMock(
+const { useAppState, useAppDispatch, useOptionalAppContext } = jest.requireMock(
 	"@/app/state/AppContext",
 ) as {
 	useAppState: jest.Mock;
 	useAppDispatch: jest.Mock;
+	useOptionalAppContext: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
@@ -39,6 +41,7 @@ describe("TopNav", () => {
 		};
 		useAppDispatch.mockReturnValue(jest.fn());
 		useAppState.mockReturnValue(createInitialState());
+		useOptionalAppContext.mockReturnValue(null);
 		delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
 	});
 
@@ -98,9 +101,42 @@ describe("TopNav", () => {
 
 	it("renders streaming status as running", () => {
 		const state = createInitialState();
-		useAppState.mockReturnValue({
+		const runningState = {
 			...state,
+			chatId: "chat_1",
+			runId: "run_1",
+		};
+		useAppState.mockReturnValue({
+			...runningState,
 			streaming: true,
+		});
+		useOptionalAppContext.mockReturnValue({
+			state: runningState,
+			dispatch: jest.fn(),
+			stateRef: { current: runningState },
+			querySessionsRef: {
+				current: new Map([
+					[
+						"request_1",
+						{
+							requestId: "request_1",
+							chatId: "chat_1",
+							runId: "run_1",
+							agentKey: "",
+							teamId: "",
+							streaming: true,
+							abortController: null,
+							snapshot: null,
+							bufferedEvents: [],
+							bufferedDebugLines: [],
+							appliedEventCount: 0,
+							appliedDebugLineCount: 0,
+						},
+					],
+				]),
+			},
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "request_1" },
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -239,11 +275,44 @@ describe("TopNav", () => {
 
 	it("renders usage popover placeholders while waiting for the first streaming snapshot", () => {
 		const state = createInitialState();
-		useAppState.mockReturnValue({
+		const runningState = {
 			...state,
+			chatId: "chat_1",
+			runId: "run_1",
+		};
+		useAppState.mockReturnValue({
+			...runningState,
 			streaming: true,
 			usagePopoverOpen: true,
 			usageSnapshot: null,
+		});
+		useOptionalAppContext.mockReturnValue({
+			state: runningState,
+			dispatch: jest.fn(),
+			stateRef: { current: runningState },
+			querySessionsRef: {
+				current: new Map([
+					[
+						"request_1",
+						{
+							requestId: "request_1",
+							chatId: "chat_1",
+							runId: "run_1",
+							agentKey: "",
+							teamId: "",
+							streaming: true,
+							abortController: null,
+							snapshot: null,
+							bufferedEvents: [],
+							bufferedDebugLines: [],
+							appliedEventCount: 0,
+							appliedDebugLineCount: 0,
+						},
+					],
+				]),
+			},
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "request_1" },
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -314,6 +383,44 @@ describe("TopNav", () => {
 			streaming: true,
 			usagePopoverOpen: true,
 			usageSnapshot,
+		});
+		useOptionalAppContext.mockReturnValue({
+			state: {
+				...state,
+				chatId: "chat_1",
+				runId: "run_1",
+			},
+			dispatch: jest.fn(),
+			stateRef: {
+				current: {
+					...state,
+					chatId: "chat_1",
+					runId: "run_1",
+				},
+			},
+			querySessionsRef: {
+				current: new Map([
+					[
+						"request_1",
+						{
+							requestId: "request_1",
+							chatId: "chat_1",
+							runId: "run_1",
+							agentKey: "",
+							teamId: "",
+							streaming: true,
+							abortController: null,
+							snapshot: null,
+							bufferedEvents: [],
+							bufferedDebugLines: [],
+							appliedEventCount: 0,
+							appliedDebugLineCount: 0,
+						},
+					],
+				]),
+			},
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "request_1" },
 		});
 		const streamingHtml = renderToStaticMarkup(React.createElement(TopNav));
 
