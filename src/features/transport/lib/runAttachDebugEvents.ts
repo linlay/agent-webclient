@@ -2,15 +2,16 @@ import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent, AppState } from "@/app/state/types";
 import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
+import { isDebugRunObservationEnabled } from "@/shared/config/featureFlags";
 import { toText } from "@/shared/utils/eventUtils";
 
-type DebugEventType =
-	| "debug.runObservationReleased"
-	| "debug.runStartedCandidate"
-	| "debug.runActivationSkipped"
-	| "debug.runActivationAttached"
-	| "debug.attachRunRequested"
-	| "debug.attachRunIgnored";
+export type RunAttachDebugStage =
+	| "runObservationReleased"
+	| "runStartedCandidate"
+	| "runActivationSkipped"
+	| "runActivationAttached"
+	| "attachRunRequested"
+	| "attachRunIgnored";
 
 export interface RunAttachDebugSnapshot {
 	stateChatId?: string;
@@ -24,7 +25,7 @@ export interface RunAttachDebugSnapshot {
 }
 
 export interface RunAttachDebugInput extends RunAttachDebugSnapshot {
-	type: DebugEventType;
+	stage: RunAttachDebugStage;
 	chatId?: unknown;
 	runId?: unknown;
 	agentKey?: unknown;
@@ -58,12 +59,16 @@ export function dispatchRunAttachDebugEvent(
 	dispatch: Dispatch<AppAction>,
 	input: RunAttachDebugInput,
 ): void {
+	if (!isDebugRunObservationEnabled()) {
+		return;
+	}
 	const event: AgentEvent = {
-		type: input.type,
+		type: "debug.runObservation",
 		timestamp: Date.now(),
 	} as unknown as AgentEvent;
 	const raw = event as Record<string, unknown>;
 	for (const [key, value] of Object.entries({
+		stage: toText(input.stage),
 		chatId: toText(input.chatId),
 		runId: toText(input.runId),
 		agentKey: toText(input.agentKey),

@@ -98,7 +98,7 @@ function activateMainChatRun(
 	const observation = resolveActiveObservation(options, decision, pathname);
 	if (observation.blocked) {
 		dispatchRunAttachDebugEvent(options.dispatch, {
-			type: "debug.runActivationSkipped",
+			stage: "runActivationSkipped",
 			chatId: decision.chatId,
 			runId: decision.runId,
 			agentKey: decision.agentKey,
@@ -110,7 +110,7 @@ function activateMainChatRun(
 	const key = runKey(decision.chatId, decision.runId);
 	if (options.handledRunKeysRef.current.has(key)) {
 		dispatchRunAttachDebugEvent(options.dispatch, {
-			type: "debug.runActivationSkipped",
+			stage: "runActivationSkipped",
 			chatId: decision.chatId,
 			runId: decision.runId,
 			agentKey: decision.agentKey,
@@ -160,7 +160,7 @@ function activateMainChatRun(
 	});
 
 	dispatchRunAttachDebugEvent(options.dispatch, {
-		type: "debug.runActivationAttached",
+		stage: "runActivationAttached",
 		chatId: decision.chatId,
 		runId: decision.runId,
 		agentKey: decision.agentKey,
@@ -191,7 +191,7 @@ export function registerMainChatRunActivationListener(
 		});
 		if (!decision.shouldActivate) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.runActivationSkipped",
+				stage: "runActivationSkipped",
 				chatId: decision.chatId,
 				runId: decision.runId,
 				agentKey: decision.agentKey,

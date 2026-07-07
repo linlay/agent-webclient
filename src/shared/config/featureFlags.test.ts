@@ -1,6 +1,7 @@
 import {
   isDeltaLogsEnabled,
   isDebugPanelEnabled,
+  isDebugRunObservationEnabled,
   isMemoryEnabled,
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
@@ -38,6 +39,20 @@ describe("featureFlags", () => {
       DEBUG_PANEL_ENABLED: " false ",
     };
     expect(isDebugPanelEnabled()).toBe(false);
+  });
+
+  it("reads the debug run observation flag from runtime config", () => {
+    expect(isDebugRunObservationEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DEBUG_RUN_OBSERVATION_ENABLED: "true",
+    };
+    expect(isDebugRunObservationEnabled()).toBe(true);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DEBUG_RUN_OBSERVATION_ENABLED: "false",
+    };
+    expect(isDebugRunObservationEnabled()).toBe(false);
   });
 
   it("reads the delta logs flag from runtime config", () => {

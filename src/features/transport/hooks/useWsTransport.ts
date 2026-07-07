@@ -334,7 +334,7 @@ function syncCurrentTerminalPushObservation(
 	options.dispatch({ type: "SET_STREAMING", streaming: false });
 	options.dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
 	dispatchRunAttachDebugEvent(options.dispatch, {
-		type: "debug.runObservationReleased",
+		stage: "runObservationReleased",
 		chatId,
 		runId,
 		reason: "terminal_push",
@@ -598,7 +598,7 @@ export function registerAttachRunListener(
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -618,7 +618,7 @@ export function registerAttachRunListener(
 				line: `[ws attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
 			});
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -635,7 +635,7 @@ export function registerAttachRunListener(
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -653,7 +653,7 @@ export function registerAttachRunListener(
 		const wsClient = getWsClientImpl();
 		if (!wsClient) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -775,7 +775,7 @@ export function registerAttachRunListener(
 		};
 
 		dispatchRunAttachDebugEvent(options.dispatch, {
-			type: "debug.attachRunRequested",
+			stage: "attachRunRequested",
 			chatId,
 			runId,
 			agentKey,
@@ -994,7 +994,7 @@ function buildWsClient(
 					fallbackAgentKey: "",
 				});
 				dispatchRunAttachDebugEvent(options.dispatch, {
-					type: "debug.runStartedCandidate",
+					stage: "runStartedCandidate",
 					chatId: eventChatId,
 					runId,
 					agentKey,

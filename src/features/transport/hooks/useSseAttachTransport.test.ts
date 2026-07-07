@@ -3,6 +3,21 @@ import { createInitialState } from "@/app/state/state";
 import type { AgentEvent, AppState } from "@/app/state/types";
 import { registerSseAttachRunListener } from "@/features/transport/hooks/useSseAttachTransport";
 
+const DEBUG_RUN_OBSERVATION_EVENT_TYPE = "debug.runObservation";
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
+beforeEach(() => {
+	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+		DEBUG_RUN_OBSERVATION_ENABLED: "true",
+	};
+});
+
+afterEach(() => {
+	delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+});
+
 class MockWindow {
 	private listeners = new Map<string, Set<(event: Event) => void>>();
 	location = {
@@ -46,13 +61,14 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 	};
 }
 
-function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, type?: string) {
+function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, stage?: string) {
 	return dispatchMock.mock.calls
 		.map(([action]) => action)
 		.filter(
 			(action) =>
 				action.type === "PUSH_EVENT" &&
-				(!type || action.event.type === type),
+				action.event.type === DEBUG_RUN_OBSERVATION_EVENT_TYPE &&
+				(!stage || (action.event as Record<string, unknown>).stage === stage),
 		)
 		.map((action) => (action as Extract<AppAction, { type: "PUSH_EVENT" }>).event);
 }
@@ -155,14 +171,14 @@ describe("registerSseAttachRunListener", () => {
 		}) as unknown as Event);
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledTimes(1);
-		expect(debugEvents(dispatch, "debug.attachRunRequested")).toEqual([
+		expect(debugEvents(dispatch, "attachRunRequested")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "agent_alpha",
 			}),
 		]);
-		expect(debugEvents(dispatch, "debug.attachRunIgnored")).toEqual([
+		expect(debugEvents(dispatch, "attachRunIgnored")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",

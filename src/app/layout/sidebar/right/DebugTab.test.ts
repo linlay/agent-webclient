@@ -59,7 +59,12 @@ describe("buildDebugEventGroups", () => {
 			{ type: "artifact.publish", timestamp: 2, runId: "run_1" },
 			{ type: "source.publish", timestamp: 2.5, publishId: "src_1" },
 			{ type: "run.error", timestamp: 3, runId: "run_1" },
-			{ type: "debug.runActivationSkipped", timestamp: 4, runId: "run_2" },
+			{
+				type: "debug.runObservation",
+				stage: "runActivationSkipped",
+				timestamp: 4,
+				runId: "run_2",
+			},
 		] as AgentEvent[];
 
 		const groups = buildDebugEventGroups(events);
@@ -69,7 +74,7 @@ describe("buildDebugEventGroups", () => {
 			"artifact.publish",
 			"source.publish",
 			"run.error",
-			"debug.runActivationSkipped",
+			"debug.runObservation",
 		]);
 		expect(groups.get("task")?.map(({ event }) => event.type)).toEqual([
 			"task.start",
@@ -84,7 +89,7 @@ describe("buildDebugEventGroups", () => {
 			"run.error",
 		]);
 		expect(groups.get("debug")?.map(({ event }) => event.type)).toEqual([
-			"debug.runActivationSkipped",
+			"debug.runObservation",
 		]);
 	});
 

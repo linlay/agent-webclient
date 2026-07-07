@@ -9,6 +9,21 @@ import {
 } from "@/features/chats/lib/mainChatRunActivation";
 import { registerMainChatRunActivationListener } from "@/features/chats/hooks/useMainChatRunActivation";
 
+const DEBUG_RUN_OBSERVATION_EVENT_TYPE = "debug.runObservation";
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
+beforeEach(() => {
+	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+		DEBUG_RUN_OBSERVATION_ENABLED: "true",
+	};
+});
+
+afterEach(() => {
+	delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+});
+
 function createState(overrides: Partial<AppState> = {}): AppState {
 	return {
 		chatId: "",
@@ -99,13 +114,14 @@ function eventDetails(
 		.map((event) => event.detail);
 }
 
-function debugEvents(dispatch: jest.Mock<void, [AppAction]>, type?: string) {
+function debugEvents(dispatch: jest.Mock<void, [AppAction]>, stage?: string) {
 	return dispatch.mock.calls
 		.map(([action]) => action)
 		.filter(
 			(action) =>
 				action.type === "PUSH_EVENT" &&
-				(!type || action.event.type === type),
+				action.event.type === DEBUG_RUN_OBSERVATION_EVENT_TYPE &&
+				(!stage || (action.event as Record<string, unknown>).stage === stage),
 		)
 		.map((action) => (action as Extract<AppAction, { type: "PUSH_EVENT" }>).event);
 }
@@ -228,7 +244,7 @@ describe("registerMainChatRunActivationListener", () => {
 			lastSeq: 0,
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -262,7 +278,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_new",
 				runId: "run_new",
@@ -302,7 +318,7 @@ describe("registerMainChatRunActivationListener", () => {
 			type: "RESET_ACTIVE_CONVERSATION",
 		});
 		expect(dispatch).not.toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "chat_1" });
-		expect(debugEvents(dispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -337,7 +353,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -367,7 +383,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "other",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -408,7 +424,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -461,7 +477,7 @@ describe("registerMainChatRunActivationListener", () => {
 				lastSeq: 0,
 			},
 		});
-		expect(debugEvents(dispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_new",
@@ -496,7 +512,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_new",
@@ -537,7 +553,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -570,7 +586,7 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -596,7 +612,7 @@ describe("registerMainChatRunActivationListener", () => {
 			runId: "run_1",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -626,7 +642,7 @@ describe("registerMainChatRunActivationListener", () => {
 		dispatchRunStarted(MockCustomEvent, detail);
 		dispatchRunStarted(MockCustomEvent, detail);
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",

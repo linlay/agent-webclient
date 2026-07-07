@@ -6,6 +6,21 @@ import { registerMainChatRunActivationListener } from "@/features/chats/hooks/us
 import { connectWsTransport, registerAttachRunListener, registerDetachRunListener } from "@/features/transport/hooks/useWsTransport";
 import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
+const DEBUG_RUN_OBSERVATION_EVENT_TYPE = "debug.runObservation";
+const globalWithRuntimeConfig = globalThis as typeof globalThis & {
+	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+};
+
+beforeEach(() => {
+	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+		DEBUG_RUN_OBSERVATION_ENABLED: "true",
+	};
+});
+
+afterEach(() => {
+	delete globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+});
+
 function createState(overrides: Partial<AppState> = {}): AppState {
 	return {
 		agents: [],
@@ -134,13 +149,14 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 	};
 }
 
-function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, type?: string) {
+function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, stage?: string) {
 	return dispatchMock.mock.calls
 		.map(([action]) => action)
 		.filter(
 			(action) =>
 				action.type === "PUSH_EVENT" &&
-				(!type || action.event.type === type),
+				action.event.type === DEBUG_RUN_OBSERVATION_EVENT_TYPE &&
+				(!stage || (action.event as Record<string, unknown>).stage === stage),
 		)
 		.map((action) => (action as Extract<AppAction, { type: "PUSH_EVENT" }>).event);
 }
@@ -1183,14 +1199,14 @@ describe("registerAttachRunListener", () => {
 		}));
 
 		expect(streamMock).toHaveBeenCalledTimes(1);
-		expect(debugEvents(dispatch, "debug.attachRunRequested")).toEqual([
+		expect(debugEvents(dispatch, "attachRunRequested")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "agent_alpha",
 			}),
 		]);
-		expect(debugEvents(dispatch, "debug.attachRunIgnored")).toEqual([
+		expect(debugEvents(dispatch, "attachRunIgnored")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
@@ -1678,7 +1694,7 @@ describe("connectWsTransport continued", () => {
 				},
 			}),
 		});
-		expect(debugEvents(dispatch, "debug.runStartedCandidate")).toEqual([
+		expect(debugEvents(dispatch, "runStartedCandidate")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_started",
@@ -1820,7 +1836,7 @@ describe("connectWsTransport continued", () => {
 		expect(session.streaming).toBe(false);
 		expect(abortActiveAttach).toHaveBeenCalledTimes(1);
 		expect(activeAttachRef.current).toBeNull();
-		expect(debugEvents(localDispatch, "debug.runObservationReleased")).toEqual([
+		expect(debugEvents(localDispatch, "runObservationReleased")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_old",
@@ -1849,7 +1865,7 @@ describe("connectWsTransport continued", () => {
 				lastSeq: 0,
 			},
 		});
-		expect(debugEvents(localDispatch, "debug.runStartedCandidate")).toEqual([
+		expect(debugEvents(localDispatch, "runStartedCandidate")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_new",
@@ -1858,7 +1874,7 @@ describe("connectWsTransport continued", () => {
 				stateStreaming: false,
 			}),
 		]);
-		expect(debugEvents(localDispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(localDispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_new",
@@ -1980,7 +1996,7 @@ describe("connectWsTransport continued", () => {
 			},
 		});
 
-		expect(debugEvents(localDispatch, "debug.runStartedCandidate")).toEqual([
+		expect(debugEvents(localDispatch, "runStartedCandidate")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_new",
@@ -1993,7 +2009,7 @@ describe("connectWsTransport continued", () => {
 				activeSessionStreaming: false,
 			}),
 		]);
-		expect(debugEvents(localDispatch, "debug.runActivationAttached")).toEqual([
+		expect(debugEvents(localDispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_new",
@@ -2283,7 +2299,7 @@ describe("connectWsTransport continued", () => {
 		expect(session.abortController).toBeNull();
 		expect(abortActiveAttach).toHaveBeenCalledTimes(1);
 		expect(activeAttachRef.current).toBeNull();
-		expect(debugEvents(dispatch, "debug.runObservationReleased")).toEqual([
+		expect(debugEvents(dispatch, "runObservationReleased")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_done",

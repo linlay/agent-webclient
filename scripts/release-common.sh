@@ -227,6 +227,7 @@ write_program_manifest() {
         "envKeys": [
           "DESKTOP_APP",
           "DEBUG_PANEL_ENABLED",
+          "DEBUG_RUN_OBSERVATION_ENABLED",
           "DELTA_LOGS_ENABLED",
           "SETTINGS_MENU_ENABLED",
           "QUICK_ACTIONS_ENABLED",

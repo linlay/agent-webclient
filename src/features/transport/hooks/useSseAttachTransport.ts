@@ -155,7 +155,7 @@ export function registerSseAttachRunListener(
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -175,7 +175,7 @@ export function registerSseAttachRunListener(
 				line: `[sse attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
 			});
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -193,7 +193,7 @@ export function registerSseAttachRunListener(
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
-				type: "debug.attachRunIgnored",
+				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
@@ -238,7 +238,7 @@ export function registerSseAttachRunListener(
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
 		dispatchRunAttachDebugEvent(options.dispatch, {
-			type: "debug.attachRunRequested",
+			stage: "attachRunRequested",
 			chatId,
 			runId,
 			agentKey,
