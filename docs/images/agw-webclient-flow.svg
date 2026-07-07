@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">AGW Web Client 工作方式</title>
+  <desc id="desc">用户通过 AGW Web Client 使用智能体后端，前端消费 API、实时通道、业务视图和产物资源。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eef6ff"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-25%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0f172a" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .label { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .sub { font: 500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .tiny { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #64748b; }
+      .card { fill: #ffffff; stroke: #dbeafe; stroke-width: 1.3; filter: url(#shadow); }
+      .soft { fill: #f8fafc; stroke: #dbeafe; stroke-width: 1.2; }
+      .line { fill: none; stroke: #64748b; stroke-width: 2.2; marker-end: url(#arrow); }
+      .dash { fill: none; stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 6 6; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="980" height="360" rx="28" fill="url(#bg)"/>
+
+  <rect x="40" y="92" width="180" height="118" rx="18" class="card"/>
+  <text x="130" y="140" text-anchor="middle" class="label">用户 / 开发者</text>
+  <text x="130" y="166" text-anchor="middle" class="sub">对话、确认、接管</text>
+
+  <rect x="300" y="64" width="250" height="174" rx="22" fill="url(#primary)" filter="url(#shadow)"/>
+  <text x="425" y="114" text-anchor="middle" style="font: 800 24px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; fill: #fff;">AGW Web Client</text>
+  <text x="425" y="146" text-anchor="middle" style="font: 600 14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; fill: #dbeafe;">主界面 · 时间轴 · 计划面板</text>
+  <text x="425" y="174" text-anchor="middle" style="font: 600 14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; fill: #dbeafe;">HITL · Usage · Debug</text>
+  <text x="425" y="202" text-anchor="middle" style="font: 600 14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; fill: #dbeafe;">业务视图 · 文件预览</text>
+
+  <rect x="640" y="46" width="270" height="92" rx="18" class="card"/>
+  <text x="775" y="84" text-anchor="middle" class="label">智能体后端</text>
+  <text x="775" y="111" text-anchor="middle" class="sub">规划、工具调度、权限、存储</text>
+
+  <rect x="620" y="192" width="132" height="70" rx="16" class="soft"/>
+  <text x="686" y="222" text-anchor="middle" class="label" style="font-size:16px">/api/*</text>
+  <text x="686" y="246" text-anchor="middle" class="tiny">请求与资源</text>
+
+  <rect x="778" y="192" width="132" height="70" rx="16" class="soft"/>
+  <text x="844" y="222" text-anchor="middle" class="label" style="font-size:16px">/ws</text>
+  <text x="844" y="246" text-anchor="middle" class="tiny">实时事件流</text>
+
+  <rect x="303" y="278" width="126" height="50" rx="14" class="soft"/>
+  <text x="366" y="308" text-anchor="middle" class="tiny">业务视图</text>
+
+  <rect x="445" y="278" width="126" height="50" rx="14" class="soft"/>
+  <text x="508" y="308" text-anchor="middle" class="tiny">产物资源</text>
+
+  <path d="M 220 151 C 248 151 266 151 296 151" class="line"/>
+  <path d="M 550 118 C 580 102 606 92 635 92" class="line"/>
+  <path d="M 550 174 C 584 202 596 226 616 227" class="line"/>
+  <path d="M 550 176 C 622 176 700 219 774 227" class="line"/>
+  <path d="M 686 192 C 698 166 724 142 748 136" class="dash"/>
+  <path d="M 844 192 C 840 166 820 144 798 137" class="dash"/>
+  <path d="M 366 278 C 364 252 376 238 394 238" class="dash"/>
+  <path d="M 508 278 C 510 252 498 238 476 238" class="dash"/>
+</svg>

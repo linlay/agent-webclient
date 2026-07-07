@@ -1,122 +1,76 @@
 # AGW Web Client
 
-AGW Web Client 是一套面向智能体平台的前端展示框架。它把智能体后端输出的对话流、推理过程、计划任务、工具调用、人工确认、文件产物和调试信息，组织成一个可以直接使用的 Web 工作台。
+AGW Web Client 是面向智能体平台的前端展示框架。它把智能体后端输出的对话、事件流、计划、工具调用、人工确认、产物和用量数据，整理成一个可直接使用的 Web 工作台。
 
-一句话说：后端负责“智能体怎么运行”，AGW Web Client 负责“智能体怎么被看见、被操作、被调试、被交付给用户”。
+后端负责智能体如何运行；AGW Web Client 负责把运行过程展示清楚，并提供操作、调试和交付界面。
 
 ## 这个项目是什么
 
-`agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不是一个完整的智能体后端，也不负责定义模型、工具、调度、记忆或权限的最终语义；它是智能体平台的前端层，用来消费后端提供的 `/api/*`、`/ws`、`/api/voice/*` 等能力。
+`agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-接入它以后，一个智能体后端可以很快拥有完整的产品化界面：
+接入以后，一个智能体后端可以快速拥有：
 
-- 用户可以在统一工作台里和 Agent 或 Team 对话。
-- 开发者可以实时查看事件流、工具执行、计划进度和错误状态。
-- 平台可以把工具、表单、审批、文件预览、语音输入、用量统计和历史回放接入同一套交互框架。
-- 运营和研发可以通过 usage、budget 和 debug 面板理解一次智能体运行的消耗、限制和协议细节。
-
-它适合用作智能体平台的默认前端、协议联调客户端、内部运行观察台，也适合嵌入 Desktop 宿主或部署到云端作为团队入口。
+- 面向用户的对话主界面。
+- 面向研发的事件时间轴、计划面板和 debug 侧边栏。
+- 面向运营的 usage 统计和 budget 配置入口。
+- 面向业务的 HITL、表单、审批、业务视图和文件预览能力。
 
 ## 能做什么
 
 ### 智能体对话工作台
 
-- 支持 Agent / Team 切换和会话导航。
-- 支持流式对话输出，默认产品链路优先使用 WebSocket，也保留 SSE 兼容路径。
-- 支持历史会话加载、运行中会话续接、回放、未读状态和归档。
-- 支持附件上传、运行参数、模型覆盖、访问级别和运行中 steer / interrupt。
+主界面围绕“选 Agent、发消息、看执行、接管运行”组织。顶部按钮提供新会话、用量统计、debug 面板和运行状态入口；左侧用于 Agent 与会话导航；中间展示时间轴；底部 Composer 提供发送、附件、运行参数、模型覆盖、访问级别、steer 和 interrupt 等操作。
+
+截图预留：`docs/images/screenshots/main-workspace.png`
 
 ### 运行过程可观测
 
-- 将后端事件归并为清晰的时间线节点。
-- 展示 content、reasoning、planning、tool、source、usage、debug 等运行信息。
-- 支持结构化计划面板，展示任务状态、进度和耗时。
-- 支持右侧调试面板和 run transcript，方便排查协议和事件问题。
+运行中的每个事件都会进入时间轴：消息内容、推理、规划、工具调用、来源、产物、等待用户输入和错误状态都能按顺序展示。结构化计划会进入计划面板，展示任务状态、进度、耗时和任务关联的运行内容。
 
-### 用量与预算管理
+截图预留：`docs/images/screenshots/timeline-plan.png`
 
-- 支持 `usage.snapshot` 事件，展示当前调用、最新 run、会话累计和上下文压缩相关用量。
-- 展示输入、输出、推理、总 token、缓存命中 / 未命中、LLM 调用数、工具调用数等指标。
-- 展示上下文窗口占用、预计下一次上下文大小、首字延迟、输出速度和预计费用。
-- 在 Agent 管理台中维护 agent definition 的 `budget` JSON，方便把 token、步骤、工具调用等预算约束交给后端执行。
-- 在归档和历史会话中保留 usage 摘要，方便回看一次任务的消耗情况。
+### Usage 与预算管理
+
+前端支持 `usage.snapshot`，可以展示当前调用、最新 run、会话累计和上下文压缩相关用量，包括输入 / 输出 / 推理 token、总 token、缓存命中、LLM 调用数、工具调用数、上下文窗口、首字延迟、输出速度和预计费用。Agent 管理台支持维护 `budget` JSON，把 token、步骤、工具调用等预算约束交给后端执行。
+
+截图预留：`docs/images/screenshots/usage-stats.png`
 
 ### Debug 联调侧边栏
 
-- 右侧 debug 面板按 run、request、content、reasoning、planning、plan、task、tool、awaiting、artifact、source、memory 等类型筛选事件。
-- 支持查看运行事件、前端归并状态和可读 transcript，帮助定位协议字段缺失、事件顺序异常、工具提交失败等问题。
-- 支持通过顶部入口、全局搜索或 slash command 快速打开，适合开发、演示和现场排障。
+右侧 debug 侧边栏可以按 run、request、content、reasoning、planning、plan、task、tool、awaiting、artifact、source、memory 等类型筛选事件，并查看原始事件、前端归并状态和可读 transcript。它是协议联调、现场排障和演示解释时最有用的面板之一。
 
-### 工具与业务视图容器
-
-- 支持 Frontend Tool，以 iframe 方式加载工具交互页面。
-- 支持 Viewport HTML 嵌入，用于在消息、工具或表单里呈现后端生成的业务视图。
-- 支持工具结果提交、关闭、完成状态同步。
-- 支持 Artifact 发布和资源预览，包括图片、PDF、HTML、文本、音频、视频、Office 等常见文件。
+截图预留：`docs/images/screenshots/debug-sidebar.png`
 
 ### 人在回路交互
 
-- 支持 question、approval、form、plan 四类 HITL 场景。
-- 可以在运行中向用户提问、请求审批、展示表单或发起计划确认。
-- 支持提交去重、超时处理、远端回答同步和敏感回答脱敏回显。
+支持 question、approval、form、plan 四类 HITL 场景。智能体运行到关键节点时，可以向用户提问、请求审批、展示表单或发起计划确认；用户提交后，结果会回到运行流并在时间轴中回显。
 
-### 管理与扩展入口
+截图预留：`docs/images/screenshots/hitl-awaiting.png`
 
-- 提供 Agent 管理台，用于查看、创建、编辑、排序和诊断 agent 定义。
-- 提供 Registry 管理台，用于查看 provider、model、MCP server、viewport server 和 tools 目录。
-- 支持可选语音能力，包括浏览器音频采集、ASR WebSocket 和 TTS 播放。
-- 支持 ZenMind Desktop WebView 桥接，包括路由上报、截图、文件系统选择和 query context 注入。
+### 业务视图容器
+
+支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
+
+截图预留：`docs/images/screenshots/business-viewport.png`
+
+### 侧边栏与管理入口
+
+左侧侧边栏聚合 Agent、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序、诊断，以及 provider、model、MCP server、viewport server、tools 目录等 Registry 视图。
+
+截图预留：`docs/images/screenshots/sidebar-workers.png`
 
 ## 能带来什么好处
 
-### 对平台团队
-
-不用从零搭智能体前端。对话、时间线、计划、工具、审批、资源预览、管理台和部署方式都已经组织好，平台团队可以把主要精力放在智能体后端、工具生态和业务能力建设上。
-
-### 对后端和协议团队
-
-前端按事件流消费 AGW / AGENT 协议，运行过程可以实时看见，也可以从历史会话回放。Debug 侧边栏把原始事件、分类事件和可读 transcript 放在同一处，新增事件、工具或运行状态时，联调成本更低，问题定位更直接。
-
-### 对业务团队
-
-智能体不只是一个聊天框。它可以展示计划、调用工具、请求审批、生成文件、嵌入业务页面，并让用户在同一个界面里完成确认、补充和接管。
-
-### 对部署和交付团队
-
-项目支持本地开发、Docker Compose 一键启动、离线镜像包、Desktop Program Bundle 等多种交付方式。只要上游 AGW API 可访问，就可以快速把同一套前端部署到本地、内网服务器、云主机或 Desktop 宿主里。
-
-### 对运营和管理团队
-
-Usage 统计让每次智能体运行的 token、模型调用、工具调用、上下文窗口和预计费用有据可查；Budget 配置让平台可以把运行限制沉淀到 agent 定义中，方便做成本控制、资源治理和团队级别的使用规范。
+- **更快搭平台**：不用从零做智能体前端，对话、时间轴、计划、HITL、业务视图、用量统计和部署方式都已就绪。
+- **更容易联调**：事件流、debug 侧边栏和历史回放让协议问题、工具问题、状态问题更容易定位。
+- **更适合交付**：用户看到的不只是聊天框，而是一个能看计划、批操作、填表单、预览产物、接管运行的工作台。
+- **更方便控成本**：usage 让消耗可见，budget 让限制进入 Agent 定义，便于团队治理和运营复盘。
 
 ## 工作方式
 
-```mermaid
-flowchart LR
-  User[用户 / 开发者] --> Web[AGW Web Client]
-  Web --> API["AGW API<br/>/api/*"]
-  Web --> WS["实时通道<br/>/ws"]
-  Web --> Voice["可选语音服务<br/>/api/voice/*"]
-  API --> Agent[智能体后端]
-  WS --> Agent
-  Voice --> Agent
-  Agent --> Tools[工具 / MCP / 业务系统]
-  Agent --> Artifacts[产物 / 资源文件]
-```
+<img src="docs/images/agw-webclient-flow.svg" alt="AGW Web Client 工作方式" width="100%" />
 
 前端只消费后端协议和资源，不替后端决定智能体如何规划、如何调用工具、如何鉴权或如何存储数据。后端仍是事实源，Web Client 负责把事实源展示成可用的产品界面。
-
-## 界面截图
-
-以下是 README 的截图预留位。正式发布前建议把真实截图放到 `docs/images/screenshots/`，并用图片链接替换表格中的占位说明。
-
-| 场景 | 建议文件 | 展示重点 |
-| --- | --- | --- |
-| 主界面工作台 | `docs/images/screenshots/main-workspace.png` | 顶部状态栏、左侧 Agent / Team 列表、中间时间线、Composer、右侧概览或调试入口 |
-| Debug 侧边栏 | `docs/images/screenshots/debug-sidebar.png` | 事件分类、原始事件、run transcript、协议联调和错误排查视图 |
-| Usage 用量统计 | `docs/images/screenshots/usage-stats.png` | token、上下文窗口、缓存命中、LLM / 工具调用、性能指标和预计费用 |
-| HITL 人在回路 | `docs/images/screenshots/hitl-awaiting.png` | question、approval、form 或 plan 的确认交互，以及提交后的 timeline 回显 |
-| 侧边栏与会话导航 | `docs/images/screenshots/sidebar-workers.png` | Agent / Team 切换、会话列表、pending awaiting、active run 和未读状态 |
 
 ## 快速开始
 
@@ -134,35 +88,20 @@ flowchart LR
 cp .env.example .env
 ```
 
-至少确认 `.env` 中的这些字段：
+至少确认：
 
 ```bash
 PORT=11948
 BASE_URL=http://localhost:11949
-# VOICE_BASE_URL=http://localhost:11953
 ```
-
-字段说明：
 
 - `PORT`：本地开发端口，也是 Docker Compose 暴露到宿主机的端口。
 - `BASE_URL`：AGW / AGENT 后端地址，前端会把 `/api/*` 和 `/ws` 代理到这里。
-- `VOICE_BASE_URL`：可选语音服务地址。未设置时语音入口会隐藏。
 
-### 2. 安装依赖
+### 2. 安装依赖并启动
 
 ```bash
 make install
-```
-
-等价命令：
-
-```bash
-npm install
-```
-
-### 3. 本地启动
-
-```bash
 make dev
 ```
 
@@ -172,9 +111,8 @@ make dev
 
 - `/api/*` 到 `BASE_URL`
 - `/ws` 到 `BASE_URL`
-- `/api/voice/*` 和 `/api/voice/ws` 到 `VOICE_BASE_URL`，仅在配置语音服务时启用
 
-### 4. 测试和构建
+### 3. 测试和构建
 
 ```bash
 make test
@@ -189,7 +127,7 @@ make build
 
 ```bash
 cp .env.example .env
-# 修改 .env 中的 BASE_URL，必要时修改 PORT 和 VOICE_BASE_URL
+# 修改 .env 中的 BASE_URL，必要时修改 PORT
 make docker-up
 ```
 
@@ -199,15 +137,10 @@ make docker-up
 http://localhost:11948
 ```
 
-查看容器状态：
+查看状态和日志：
 
 ```bash
 docker compose -f compose.yml ps
-```
-
-查看日志：
-
-```bash
 docker compose -f compose.yml logs -f webclient
 ```
 
@@ -217,7 +150,7 @@ docker compose -f compose.yml logs -f webclient
 make docker-down
 ```
 
-容器内使用 Nginx 托管静态资源，并将 `/api/*`、`/ws` 和可选语音接口反向代理到上游服务。Nginx 已对流式接口关闭代理缓冲，避免 SSE 或 WebSocket 事件被延迟。
+容器内使用 Nginx 托管静态资源，并将 `/api/*` 和 `/ws` 反向代理到上游服务。Nginx 已对流式接口关闭代理缓冲，避免实时事件被延迟。
 
 ## 云端部署
 
@@ -236,7 +169,6 @@ cp .env.example .env
 ```bash
 PORT=11948
 BASE_URL=https://your-agent-api.example.com
-# VOICE_BASE_URL=https://your-voice-api.example.com
 ```
 
 启动：
@@ -245,7 +177,7 @@ BASE_URL=https://your-agent-api.example.com
 make docker-up
 ```
 
-如果需要通过公网访问，请在云厂商安全组、防火墙和域名反向代理中开放对应端口或域名。
+如果需要公网访问，请在安全组、防火墙和域名网关中开放对应端口或域名。
 
 ### 方式二：发布离线镜像包
 
@@ -274,7 +206,7 @@ dist/release/agent-webclient-image-vX.Y.Z-linux-<arch>.tar.gz
 tar -xzf agent-webclient-image-vX.Y.Z-linux-amd64.tar.gz
 cd agent-webclient
 cp .env.example .env
-# 修改 .env 中的 BASE_URL、HOST_PORT、VOICE_BASE_URL
+# 修改 .env 中的 BASE_URL 和 HOST_PORT
 ./start.sh
 ```
 
@@ -294,19 +226,18 @@ cp .env.example .env
 make build
 ```
 
-然后将 `dist/` 部署到已有静态资源服务。但这种方式必须自行配置网关代理：
+然后将 `dist/` 部署到已有静态资源服务，并自行配置：
 
 - `/api/*` 反向代理到 `BASE_URL`
 - `/ws` 反向代理到 `BASE_URL` 并保留 WebSocket upgrade
-- `/api/voice/*` 和 `/api/voice/ws` 按需代理到 `VOICE_BASE_URL`
-- 对 SSE / WebSocket / 长连接关闭代理缓冲
+- 对流式接口关闭代理缓冲
 - SPA fallback 到 `index.html`
 
-如果没有现成网关配置，优先使用 Docker Compose 部署。
+没有现成网关配置时，优先使用 Docker Compose。
 
 ## Desktop Program Bundle
 
-项目也支持打包为 ZenMind Desktop 托管的 Program Bundle：
+项目支持打包为 ZenMind Desktop 托管的 Program Bundle：
 
 ```bash
 make release
@@ -318,35 +249,14 @@ make release
 make release-program
 ```
 
-默认生成 macOS arm64 和 Windows amd64 两个平台产物：
+默认生成：
 
 ```text
 dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz
 dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip
 ```
 
-Program Bundle 包含：
-
-- `manifest.json`
-- `.env.example`
-- `frontend/dist/`
-- Desktop 启停脚本
-
-Program Bundle 不内置后端服务，HTTP 托管、静态资源服务和代理路由由 ZenMind Desktop main process 负责。
-
-## 常用命令
-
-| 命令 | 作用 |
-| --- | --- |
-| `make install` | 安装前端依赖 |
-| `make dev` | 启动本地开发服务 |
-| `make test` | 运行 Jest 测试 |
-| `make build` | 构建生产静态资源 |
-| `make docker-build` | 构建 Docker 镜像 |
-| `make docker-up` | Docker Compose 构建并后台启动 |
-| `make docker-down` | 停止 Docker Compose 服务 |
-| `make release` | 生成 Desktop Program Bundle |
-| `make release-image` | 生成离线 Docker 镜像部署包 |
+Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 Desktop 启停脚本。它不内置后端服务，HTTP 托管、静态资源服务和代理路由由 ZenMind Desktop main process 负责。
 
 ## 配置说明
 
@@ -356,7 +266,6 @@ Program Bundle 不内置后端服务，HTTP 托管、静态资源服务和代理
 | --- | --- | --- |
 | `PORT` | 是 | 本地开发端口，Docker Compose 中也是宿主机暴露端口 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
-| `VOICE_BASE_URL` | 否 | 语音 HTTP / WebSocket 服务地址，未设置时关闭语音入口 |
 | `DESKTOP_APP` | 否 | Desktop 场景标记 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
@@ -369,7 +278,6 @@ Program Bundle 不内置后端服务，HTTP 托管、静态资源服务和代理
 AGW Web Client 需要一个可访问的上游智能体服务。常用入口包括：
 
 - `GET /api/agents`
-- `GET /api/teams`
 - `GET /api/chats`
 - `GET /api/chat`
 - `POST /api/query`
@@ -380,7 +288,6 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 - `GET /api/viewport`
 - `GET /api/resource`
 - `GET /ws`
-- `GET /api/voice/ws`，可选
 
 前端统一按 `ApiResponse` 结构读取数据，并把错误包装为可展示的前端错误态。具体协议语义以后端 AGW / AGENT 服务为事实源。
 
@@ -388,9 +295,9 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 
 ```text
 public/                 HTML 模板等静态入口资源
-docs/                   中文专题设计文档
+docs/                   中文专题设计文档和截图资源
 src/app/                应用壳层、路由、布局、状态与页面入口
-src/features/           对话、时间线、工具、计划、语音、worker 等功能模块
+src/features/           对话、时间线、工具、计划、worker 等功能模块
 src/shared/data/        API 端点注册、请求客户端、鉴权和轻量缓存
 src/shared/styles/      全局主题变量和样式入口
 src/shared/ui/          通用基础 UI 组件
@@ -415,10 +322,8 @@ compose.yml             Docker Compose 部署入口
 - [Viewport视图容器](docs/Viewport视图容器.md)
 - [HITL-Awaiting协议与状态机](docs/HITL-Awaiting协议与状态机.md)
 - [Artifact发布与资源预览](docs/Artifact发布与资源预览.md)
-- [AgentTeam选择与Worker列表](docs/AgentTeam选择与Worker列表.md)
 - [Agent管理台](docs/Agent管理台.md)
 - [Registry管理台与工具目录](docs/Registry管理台与工具目录.md)
-- [语音输入ASR与TTS](docs/语音输入ASR与TTS.md)
 - [Desktop宿主桥接](docs/Desktop宿主桥接.md)
 - [版本化打包与部署](docs/版本化打包与部署.md)
 
@@ -426,7 +331,7 @@ compose.yml             Docker Compose 部署入口
 
 ### 页面能打开，但接口请求失败
 
-检查 `.env` 中的 `BASE_URL` 是否能被当前运行环境访问。容器部署时，`BASE_URL=http://localhost:xxxx` 指的是容器内部的 localhost，通常需要改成可从容器访问的地址，例如宿主机地址、内网域名或 `host.docker.internal`。
+检查 `.env` 中的 `BASE_URL` 是否能被当前运行环境访问。容器部署时，`BASE_URL=http://localhost:xxxx` 指的是容器内部的 localhost，通常需要改成可从容器访问的宿主机地址、内网域名或 `host.docker.internal`。
 
 ### WebSocket 无法连接
 
@@ -434,11 +339,7 @@ compose.yml             Docker Compose 部署入口
 
 ### 实时输出变慢或一次性刷出
 
-通常是代理缓冲未关闭。需要对 `/api/*`、`/ws` 和语音长连接关闭 buffering，并提高 read timeout。
-
-### 语音入口没有出现
-
-检查是否设置了 `VOICE_BASE_URL`。未设置时前端会隐藏语音能力。
+通常是代理缓冲未关闭。需要对 `/api/*` 和 `/ws` 关闭 buffering，并提高 read timeout。
 
 ### 本地启动端口冲突
 
