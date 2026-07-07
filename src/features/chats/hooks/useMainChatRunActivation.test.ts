@@ -168,6 +168,32 @@ describe("main chat run activation helpers", () => {
 			}),
 		);
 	});
+
+	it("does not reject same-chat candidates only because state.streaming is true", () => {
+		const decision = resolveMainChatRunActivation({
+			state: createState({
+				chatId: "chat_active",
+				runId: "run_old",
+				streaming: true,
+				workerSelectionKey: "agent:demo",
+			}),
+			pathname: "/",
+			detail: {
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "demo",
+			},
+		});
+
+		expect(decision).toEqual(
+			expect.objectContaining({
+				shouldActivate: true,
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "demo",
+			}),
+		);
+	});
 });
 
 describe("registerMainChatRunActivationListener", () => {
@@ -289,13 +315,14 @@ describe("registerMainChatRunActivationListener", () => {
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
 	});
 
-	it("does not steal focus from a currently streaming run", () => {
+	it("attaches when only the UI streaming flag is stale", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/agent/demo");
 		registerMainChatRunActivationListener({
 			dispatch,
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
+					runId: "run_old",
 					streaming: true,
 				}),
 			},
@@ -310,17 +337,18 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(debugEvents(dispatch, "debug.runActivationSkipped")).toEqual([
+		expect(debugEvents(dispatch, "debug.runActivationAttached")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "demo",
-				reason: "streaming",
+				reason: "stale_state_streaming_ignored",
 				stateChatId: "chat_1",
+				stateRunId: "run_old",
 				stateStreaming: true,
 			}),
 		]);
-		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
 	});
 
 	it("ignores runs for a different main chat agent", () => {

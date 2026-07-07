@@ -1885,6 +1885,145 @@ describe("connectWsTransport continued", () => {
 		cleanupActivation();
 	});
 
+	it("attaches a same-chat background run when state.streaming is stale but the active session is terminal", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const initialState = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			runId: "run_old",
+			streaming: true,
+			chatAgentById: new Map([["chat_active", "agent_active"]]),
+		});
+		const stateRef = { current: initialState };
+		const localDispatch = jest.fn<void, [AppAction]>((action) => {
+			stateRef.current = appReducer(stateRef.current, action);
+		});
+		const session = createLiveQuerySession({
+			requestId: "req_old",
+			chatId: "chat_active",
+			agentKey: "agent_active",
+		});
+		session.runId = "run_old";
+		session.streaming = false;
+		session.abortController = null;
+		const querySessionsRef = { current: new Map([["req_old", session]]) };
+		const activeQuerySessionRequestIdRef = { current: "req_old" };
+		const listeners = new Map<string, Set<(event: Event) => void>>();
+		const dispatched: Array<{ type: string; detail: unknown }> = [];
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: {
+				location: { pathname: "/agent/agent_active" },
+				addEventListener: jest.fn((type: string, listener: (event: Event) => void) => {
+					const current = listeners.get(type) || new Set();
+					current.add(listener);
+					listeners.set(type, current);
+				}),
+				removeEventListener: jest.fn((type: string, listener: (event: Event) => void) => {
+					listeners.get(type)?.delete(listener);
+				}),
+				dispatchEvent: jest.fn((event: Event): boolean => {
+					dispatched.push({
+						type: event.type,
+						detail: (event as CustomEvent).detail,
+					});
+					for (const listener of listeners.get(event.type) || []) {
+						listener(event);
+					}
+					return true;
+				}),
+			},
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+		const cleanupActivation = registerMainChatRunActivationListener({
+			dispatch: localDispatch,
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		await connectWsTransport({
+			dispatch: localDispatch,
+			state: initialState,
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.started",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "agent_active",
+			},
+		});
+
+		expect(debugEvents(localDispatch, "debug.runStartedCandidate")).toEqual([
+			expect.objectContaining({
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "agent_active",
+				stateChatId: "chat_active",
+				stateRunId: "run_old",
+				stateStreaming: true,
+				activeRequestId: "req_old",
+				activeSessionRunId: "run_old",
+				activeSessionStreaming: false,
+			}),
+		]);
+		expect(debugEvents(localDispatch, "debug.runActivationAttached")).toEqual([
+			expect.objectContaining({
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "agent_active",
+				reason: "stale_state_streaming_ignored",
+				stateChatId: "chat_active",
+				stateRunId: "run_old",
+				stateStreaming: true,
+				activeRequestId: "req_old",
+				activeSessionRunId: "run_old",
+				activeSessionStreaming: false,
+			}),
+		]);
+		expect(
+			dispatched.filter((event) => event.type === "agent:attach-run"),
+		).toEqual([
+			{
+				type: "agent:attach-run",
+				detail: {
+					chatId: "chat_active",
+					runId: "run_new",
+					agentKey: "agent_active",
+					lastSeq: 0,
+				},
+			},
+		]);
+
+		cleanupActivation();
+	});
+
 	it("updates the active chat summary from chat.updated pushes without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });

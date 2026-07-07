@@ -37,7 +37,6 @@ export type MainChatRunActivationDecision =
 			reason:
 				| "invalid_route"
 				| "missing_identity"
-				| "streaming"
 				| "chat_mismatch"
 				| "same_run";
 			chatId: string;
@@ -167,9 +166,6 @@ export function resolveMainChatRunActivation(input: {
 	}
 	if (!detail.chatId || !detail.runId || !detail.agentKey) {
 		return inactive("missing_identity");
-	}
-	if (input.state.streaming) {
-		return inactive("streaming");
 	}
 
 	const currentChatId = toText(input.state.chatId);

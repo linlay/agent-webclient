@@ -72,9 +72,6 @@ function resolveActiveObservation(
 		activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
 		pathname,
 	});
-	if (options.stateRef.current.streaming) {
-		return { blocked: true, reason: "streaming", snapshot };
-	}
 	const activeRequestId = String(options.activeQuerySessionRequestIdRef.current || "").trim();
 	const activeSession = activeRequestId
 		? options.querySessionsRef.current.get(activeRequestId) || null
@@ -167,6 +164,9 @@ function activateMainChatRun(
 		chatId: decision.chatId,
 		runId: decision.runId,
 		agentKey: decision.agentKey,
+		reason: observation.snapshot.stateStreaming
+			? "stale_state_streaming_ignored"
+			: undefined,
 		...observation.snapshot,
 	});
 
