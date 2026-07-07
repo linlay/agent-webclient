@@ -378,11 +378,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateMentionSuggestions,
   });
 
+  const isCurrentChatActiveRun =
+    Boolean(state.currentChatActiveRun?.runId) &&
+    state.currentChatActiveRun?.chatId === state.chatId;
+
   const handleAccessLevelChange = useRuntimeAccessLevel({
     accessLevel,
     activeRunId,
     activeRunAgentKey,
-    isRunActive: state.streaming || isAwaitingActive,
+    isRunActive: state.streaming || isAwaitingActive || isCurrentChatActiveRun,
     setAccessLevel,
     messageApi: message,
     t,

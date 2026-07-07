@@ -15,6 +15,8 @@ export interface ChatActiveRunSummary {
 	[key: string]: unknown;
 }
 
+export type CurrentChatActiveRun = ChatActiveRunSummary & { chatId: string };
+
 export interface Chat {
 	chatId: string;
 	chatName?: string;

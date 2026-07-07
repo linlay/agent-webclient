@@ -85,6 +85,7 @@ interface UseComposerSendInput {
     | "chatAgentById"
     | "chatId"
     | "chats"
+    | "currentChatActiveRun"
     | "currentRunAgentKey"
     | "rightSidebarOpen"
     | "events"
@@ -197,6 +198,13 @@ export function useComposerSend(input: UseComposerSendInput) {
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
+    const activeRun = currentState.currentChatActiveRun;
+    if (
+      activeRun?.runId &&
+      activeRun.chatId === String(currentState.chatId || "").trim()
+    ) {
+      return String(activeRun.runId || "").trim();
+    }
     return resolveActiveRunId({
       stateRunId: currentState.runId,
       events: currentState.events,
@@ -340,9 +348,13 @@ export function useComposerSend(input: UseComposerSendInput) {
       return;
     }
     const currentState = stateRef.current || state;
-    if (currentState.streaming) {
-      const activeRunId = resolveCurrentRunId();
-      const activeChatId = String(currentState.chatId || "").trim();
+    const activeChatId = String(currentState.chatId || "").trim();
+    const currentChatActiveRunId =
+      currentState.currentChatActiveRun?.chatId === activeChatId
+        ? String(currentState.currentChatActiveRun.runId || "").trim()
+        : "";
+    if (currentState.streaming || currentChatActiveRunId) {
+      const activeRunId = currentChatActiveRunId || resolveCurrentRunId();
       if (!activeChatId || !activeRunId) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -451,6 +463,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.chatAgentById,
     state.chatId,
     state.chats,
+    state.currentChatActiveRun,
     state.pendingNewChatAgentKey,
     state.streaming,
     state.workerIndexByKey,

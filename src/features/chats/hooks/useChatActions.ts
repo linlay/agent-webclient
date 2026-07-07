@@ -5,6 +5,7 @@ import { getChat, markChatRead } from '@/shared/data';
 import type {
   ArtifactFile,
   Chat,
+  CurrentChatActiveRun,
   AgentEvent,
   Plan,
   PublishedArtifact,
@@ -176,6 +177,25 @@ function maybeDispatchDetachRunEvent(detail: {
 function normalizeAttachLastSeq(value: unknown): number {
   const seq = Number(value ?? 0);
   return Number.isFinite(seq) && seq >= 0 ? seq : 0;
+}
+
+function normalizeCurrentChatActiveRun(
+  chatId: string,
+  activeRun: Record<string, unknown> | null,
+  fallbackAgentKey = '',
+): CurrentChatActiveRun | null {
+  const normalizedChatId = String(chatId || '').trim();
+  const runId = String(activeRun?.runId || '').trim();
+  if (!normalizedChatId || !activeRun || !runId) {
+    return null;
+  }
+  const agentKey = String(activeRun.agentKey || fallbackAgentKey || '').trim();
+  return {
+    ...activeRun,
+    chatId: normalizedChatId,
+    runId,
+    ...(agentKey ? { agentKey } : {}),
+  };
 }
 
 export function normalizeChatArtifactItems(value: unknown): PublishedArtifact[] | undefined {
@@ -810,6 +830,18 @@ export function useChatActions() {
         const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
         const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
         const chatPlan = normalizeChatPlan(chatData.plan);
+        const activeRun = isObjectRecord(chatData.activeRun)
+          ? chatData.activeRun
+          : null;
+        const activeRunAgentKey = String(
+          activeRun?.agentKey || chatData?.firstAgentKey || chatData?.agentKey || '',
+        ).trim();
+        const currentChatActiveRun = normalizeCurrentChatActiveRun(
+          chatId,
+          activeRun,
+          activeRunAgentKey,
+        );
+        const activeRunId = String(currentChatActiveRun?.runId || '').trim();
         const downvotedRunKeys = new Set<string>();
         const runs = Array.isArray(chatData.runs) ? chatData.runs : [];
         for (const rawRun of runs) {
@@ -852,7 +884,8 @@ export function useChatActions() {
             type: 'BATCH_UPDATE',
             updates: {
               chatId: rs.chatId,
-              runId: rs.runId,
+              currentChatActiveRun,
+              runId: activeRunId || rs.runId,
               timelineNodes: rs.timelineNodes,
               timelineOrder: rs.timelineOrder,
               contentNodeById: rs.contentNodeById,
@@ -889,14 +922,7 @@ export function useChatActions() {
         rs.chatAgentById.forEach((agentKey, cid) => {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
         });
-        const activeRun = isObjectRecord(chatData.activeRun)
-          ? chatData.activeRun
-          : null;
-        const activeRunId = String(activeRun?.runId || '').trim();
         if (activeRunId) {
-          const activeRunAgentKey = String(
-            activeRun?.agentKey || chatData?.firstAgentKey || chatData?.agentKey || '',
-          ).trim();
           if (activeRunAgentKey) {
             dispatch({
               type: 'SET_RUN_AGENT_BY_ID',

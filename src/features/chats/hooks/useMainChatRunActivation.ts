@@ -125,6 +125,15 @@ function activateMainChatRun(
 		runId: decision.runId,
 		agentKey: decision.agentKey,
 	});
+	options.dispatch({
+		type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+		activeRun: {
+			chatId: decision.chatId,
+			runId: decision.runId,
+			agentKey: decision.agentKey,
+			lastSeq: decision.lastSeq,
+		},
+	});
 	options.dispatch({ type: "SET_RUN_ID", runId: decision.runId });
 	options.dispatch({
 		type: "SET_CURRENT_RUN_AGENT_KEY",

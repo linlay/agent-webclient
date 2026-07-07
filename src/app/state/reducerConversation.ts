@@ -59,6 +59,7 @@ export function reduceConversationState(
 			return {
 				...state,
 				chatId: action.chatId,
+				currentChatActiveRun: isNewChatId ? null : state.currentChatActiveRun,
 				pendingNewChatAgentKey: action.chatId
 					? ""
 					: state.pendingNewChatAgentKey,
@@ -66,6 +67,28 @@ export function reduceConversationState(
 				planningModeByChatId: nextByChatId,
 				composerDraft: nextComposerDraft,
 				composerDraftByChatId: nextDraftByChatId,
+			};
+		}
+		case "SET_CURRENT_CHAT_ACTIVE_RUN": {
+			const activeRun = action.activeRun;
+			if (!activeRun) {
+				return { ...state, currentChatActiveRun: null };
+			}
+			const chatId = String(activeRun.chatId || "").trim();
+			const runId = String(activeRun.runId || "").trim();
+			if (!chatId || !runId) {
+				return { ...state, currentChatActiveRun: null };
+			}
+			if (state.chatId && state.chatId !== chatId) {
+				return state;
+			}
+			return {
+				...state,
+				currentChatActiveRun: {
+					...activeRun,
+					chatId,
+					runId,
+				},
 			};
 		}
 		case "SET_RUN_ID": {

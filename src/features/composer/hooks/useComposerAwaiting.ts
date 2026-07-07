@@ -173,6 +173,39 @@ export async function submitComposerAwaiting(
       dispatch(planningModeAction);
     }
 
+    if (Boolean(responseData?.continued)) {
+      const runId = String(responseData?.runId || payload.runId || "").trim();
+      const chatId = String(responseData?.chatId || state.chatId || "").trim();
+      if (runId && chatId) {
+        dispatch({
+          type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+          activeRun: {
+            chatId,
+            runId,
+            agentKey,
+          },
+        });
+        dispatch({ type: "SET_RUN_ID", runId });
+        dispatch({ type: "SET_RUN_AGENT_BY_ID", runId, agentKey });
+        dispatch({ type: "SET_CURRENT_RUN_AGENT_KEY", agentKey });
+        if (
+          typeof window !== "undefined" &&
+          typeof window.dispatchEvent === "function" &&
+          typeof CustomEvent === "function"
+        ) {
+          window.dispatchEvent(
+            new CustomEvent("agent:attach-run", {
+              detail: {
+                chatId,
+                runId,
+                agentKey,
+              },
+            }),
+          );
+        }
+      }
+    }
+
     clearActiveAwaiting();
     dispatch({
       type: "APPEND_DEBUG",

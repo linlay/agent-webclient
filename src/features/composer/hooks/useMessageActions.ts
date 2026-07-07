@@ -79,6 +79,7 @@ export function canSendToTargetChat(input: {
     LiveQuerySession,
     "streaming" | "abortController" | "chatId"
   > | null;
+  currentChatActiveRun?: Pick<NonNullable<AppState["currentChatActiveRun"]>, "chatId" | "runId"> | null;
   currentStateChatId?: string;
   targetChatId?: string;
   stateStreaming: boolean;
@@ -88,6 +89,15 @@ export function canSendToTargetChat(input: {
   ).trim();
   const targetChatId = String(input.targetChatId || "").trim();
   const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
+  const activeRunChatId = String(input.currentChatActiveRun?.chatId || "").trim();
+  const activeRunId = String(input.currentChatActiveRun?.runId || "").trim();
+  if (
+    activeRunChatId &&
+    activeRunId &&
+    (targetChatId ? targetChatId === activeRunChatId : currentSessionChatId === activeRunChatId)
+  ) {
+    return false;
+  }
 
   if (!input.currentActiveSession?.streaming || !isSameChat) {
     return true;
@@ -236,6 +246,7 @@ export function useMessageActions() {
       const targetChatId = String(preferredChatId || "").trim();
       const canSend = canSendToTargetChat({
         currentActiveSession,
+        currentChatActiveRun: stateRef.current.currentChatActiveRun,
         currentStateChatId: String(stateRef.current.chatId || "").trim(),
         targetChatId,
         stateStreaming: Boolean(stateRef.current.streaming),

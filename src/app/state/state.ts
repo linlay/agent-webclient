@@ -60,6 +60,7 @@ export function createInitialState(): AppState {
 		workerPriorityKey: "",
 		temporaryPinnedAgentKey: "",
 		chatId: "",
+		currentChatActiveRun: null,
 		runId: "",
 		requestId: "",
 		streaming: false,

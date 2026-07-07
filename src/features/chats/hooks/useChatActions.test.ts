@@ -1213,6 +1213,38 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('hydrates the main chat active run from /api/chat before attach completes', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'askUser.demo',
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          agentKey: 'askUser.demo',
+          lastSeq: 7,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat-active');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        chatId: 'chat-active',
+        runId: 'run_active',
+        currentChatActiveRun: {
+          chatId: 'chat-active',
+          runId: 'run_active',
+          agentKey: 'askUser.demo',
+          lastSeq: 7,
+        },
+      }),
+    });
+  });
+
   it('restores planningMode=true when activeRun.planningMode is true and no explicit preference', async () => {
     const state = createInitialState();
     state.planningModeByChatId = {};

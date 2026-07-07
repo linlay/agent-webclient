@@ -7,6 +7,7 @@ export function buildConversationResetState(
 	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
 	return {
 		...state,
+		currentChatActiveRun: null,
 		runId: "",
 		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",

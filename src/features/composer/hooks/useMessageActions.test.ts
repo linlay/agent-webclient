@@ -48,6 +48,14 @@ jest.mock("@/features/voice/lib/voiceRuntime", () => ({
   })),
 }));
 
+jest.mock("@/features/terminal/lib/terminalDockPersistence", () => ({
+  restoreTerminalDockOpen: jest.fn(() => false),
+  persistTerminalDockOpen: jest.fn(),
+  restoreTerminalDockState: jest.fn(() => ({ open: false, height: null })),
+  persistTerminalDockState: jest.fn(),
+  resetTerminalDockPersistenceForTests: jest.fn(),
+}));
+
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
 };
@@ -121,6 +129,41 @@ describe("useMessageActions temporary pin", () => {
           message: "hello",
         }),
       }),
+    );
+  });
+
+  it("blocks direct query sends when the current main chat has an active run", async () => {
+    const state = createInitialState();
+    state.chatId = "chat_1";
+    state.currentChatActiveRun = {
+      chatId: "chat_1",
+      runId: "run_1",
+      agentKey: "agent_a",
+    };
+    state.chatAgentById = new Map([["chat_1", "agent_a"]]);
+    state.transportMode = "ws";
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => {
+      actions = useMessageActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.sendMessage("hello");
+
+    expect(executeQueryStreamWs).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "SET_TIMELINE_NODE" }),
     );
   });
 });

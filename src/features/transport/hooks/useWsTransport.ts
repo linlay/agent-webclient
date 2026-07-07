@@ -833,8 +833,17 @@ function buildWsClient(
 				return;
 			}
 
-			if (type === "run.complete") {
+			if (type === "run.complete" || type === "run.error" || type === "run.cancel") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
+				const currentActiveRun = options.stateRef.current.currentChatActiveRun;
+				const runId = String(liveEvent.runId || "").trim();
+				if (
+					currentActiveRun?.runId &&
+					currentActiveRun.runId === runId &&
+					currentActiveRun.chatId === eventChatId
+				) {
+					options.dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
+				}
 				return;
 			}
 

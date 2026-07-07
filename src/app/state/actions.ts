@@ -6,6 +6,7 @@ import type {
 	AgentEvent,
 	AppState,
 	Chat,
+	CurrentChatActiveRun,
 	Message,
 	PendingSteer,
 	PendingTool,
@@ -57,6 +58,7 @@ export type AppAction =
 	| { type: "CHAT_RENAMED"; chatId: string; chatName: string }
 	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
 	| { type: "SET_CHAT_ID"; chatId: string }
+	| { type: "SET_CURRENT_CHAT_ACTIVE_RUN"; activeRun: CurrentChatActiveRun | null }
 	| { type: "SET_RUN_ID"; runId: string }
 	| { type: "SET_RUN_AGENT_BY_ID"; runId: string; agentKey: string }
 	| { type: "SET_CURRENT_RUN_AGENT_KEY"; agentKey: string }

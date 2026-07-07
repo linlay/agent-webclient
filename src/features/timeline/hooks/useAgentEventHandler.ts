@@ -458,6 +458,16 @@ export function useAgentEventHandler() {
           readEventTeamId(event) ||
           cache.teamId ||
           resolveSelectedWorkerContext(state).teamId;
+        if (cache.chatId && cache.runId) {
+          dispatch({
+            type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+            activeRun: {
+              chatId: cache.chatId,
+              runId: cache.runId,
+              ...(cache.agentKey ? { agentKey: cache.agentKey } : {}),
+            },
+          });
+        }
         if (event.agentKey) {
           dispatch({
             type: "SET_WORKER_PRIORITY_KEY",
@@ -474,6 +484,16 @@ export function useAgentEventHandler() {
         type === "run.cancel"
       ) {
         upsertLiveChatSummary({ event, cache, state });
+        const currentActiveRun = stateRef.current.currentChatActiveRun;
+        const eventRunId = toText(event.runId);
+        const eventChatId = toText(event.chatId);
+        if (
+          currentActiveRun?.runId &&
+          currentActiveRun.runId === eventRunId &&
+          (!eventChatId || currentActiveRun.chatId === eventChatId)
+        ) {
+          dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
+        }
         dispatch({ type: "SET_STREAMING", streaming: false });
         const voiceEnabled = isVoiceEnabled();
         const isActiveVoiceRequest =

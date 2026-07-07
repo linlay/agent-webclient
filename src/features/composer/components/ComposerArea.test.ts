@@ -315,6 +315,30 @@ describe("ComposerArea", () => {
     );
   });
 
+  it("treats current chat activeRun as active even when streaming is not connected", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      currentChatActiveRun: {
+        chatId: "chat_1",
+        runId: "run_1",
+        agentKey: "agent_a",
+      },
+      currentRunAgentKey: "agent_a",
+      streaming: false,
+    });
+
+    renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeRunId: "run_1",
+        activeRunAgentKey: "agent_a",
+        isRunActive: true,
+      }),
+    );
+  });
+
   it("treats a stale run id as inactive when the chat is not running", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),

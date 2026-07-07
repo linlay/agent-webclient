@@ -10,6 +10,7 @@ type ActiveRunIdentityState = Pick<
   | "chatAgentById"
   | "chatId"
   | "chats"
+  | "currentChatActiveRun"
   | "currentRunAgentKey"
   | "events"
   | "pendingNewChatAgentKey"
@@ -24,6 +25,12 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
   activeRunAgentKey: string;
 } {
   const activeRunId = useMemo(() => {
+    if (
+      state.currentChatActiveRun?.runId &&
+      state.currentChatActiveRun.chatId === state.chatId
+    ) {
+      return String(state.currentChatActiveRun.runId || "").trim();
+    }
     const resolvedRunId = resolveActiveRunId({
       stateRunId: state.runId,
       events: state.events,
@@ -32,7 +39,13 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
       return resolvedRunId;
     }
     return String(state.activeAwaiting?.runId || "").trim();
-  }, [state.activeAwaiting?.runId, state.events, state.runId]);
+  }, [
+    state.activeAwaiting?.runId,
+    state.chatId,
+    state.currentChatActiveRun,
+    state.events,
+    state.runId,
+  ]);
 
   const activeRunAgentKey = useMemo(() => {
     if (!activeRunId) {
@@ -42,7 +55,8 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
       runId: activeRunId,
       currentRunAgentKey: state.currentRunAgentKey,
       runAgentById: state.runAgentById,
-      routingAgentKey: state.activeAwaiting?.agentKey,
+      routingAgentKey:
+        state.currentChatActiveRun?.agentKey || state.activeAwaiting?.agentKey,
       chatId: state.chatId,
       chatAgentById: state.chatAgentById,
       chats: state.chats,
@@ -61,6 +75,7 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
     state.chatAgentById,
     state.chatId,
     state.chats,
+    state.currentChatActiveRun?.agentKey,
     state.currentRunAgentKey,
     state.pendingNewChatAgentKey,
     state.runAgentById,

@@ -31,6 +31,7 @@ import type {
 	Agent,
 	Chat,
 	ConversationMode,
+	CurrentChatActiveRun,
 	Team,
 	WorkerConversationRow,
 	WorkerRow,
@@ -123,6 +124,7 @@ export interface AppState {
 	workerPriorityKey: string;
 	temporaryPinnedAgentKey: string;
 	chatId: string;
+	currentChatActiveRun: CurrentChatActiveRun | null;
 	runId: string;
 	requestId: string;
 	streaming: boolean;

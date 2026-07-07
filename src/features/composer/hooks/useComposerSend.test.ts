@@ -5,11 +5,34 @@ jest.mock('@/shared/data', () => ({
   rememberChat: jest.fn(),
 }));
 
+const mockMessageApi = {
+  error: jest.fn(),
+  warning: jest.fn(),
+};
+
+jest.mock('antd', () => ({
+  App: {
+    useApp: () => ({ message: mockMessageApi }),
+  },
+}));
+
+jest.mock('@/features/terminal/lib/terminalDockPersistence', () => ({
+  restoreTerminalDockOpen: jest.fn(() => false),
+  persistTerminalDockOpen: jest.fn(),
+  restoreTerminalDockState: jest.fn(() => ({ open: false, height: null })),
+  persistTerminalDockState: jest.fn(),
+  resetTerminalDockPersistenceForTests: jest.fn(),
+}));
+
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createInitialState } from '@/app/state/state';
 import {
   buildCompactUsageSnapshot,
   latestUsageSnapshotFromEvents,
   runBackgroundCommand,
 } from '@/features/composer/hooks/useBackgroundCommandActions';
+import { useComposerSend } from '@/features/composer/hooks/useComposerSend';
 import type { AIUsageSnapshotEvent } from '@/app/state/types';
 import { compactChat, createRequestId } from '@/shared/data';
 
@@ -313,5 +336,108 @@ describe('runBackgroundCommand compact behavior', () => {
       text: 'Context compaction failed',
     });
     expect(scheduleCommandStatusOverlayHide).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useComposerSend active run gate', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
+  });
+
+  it('queues a steer instead of sending a new query when the main chat has activeRun but streaming is false', () => {
+    const state = createInitialState();
+    state.chatId = 'chat-1';
+    state.currentChatActiveRun = {
+      chatId: 'chat-1',
+      runId: 'run-active',
+      agentKey: 'agent-a',
+    };
+    state.chatAgentById = new Map([['chat-1', 'agent-a']]);
+    state.runAgentById = new Map([['run-active', 'agent-a']]);
+    state.streaming = false;
+    const dispatch = jest.fn();
+    const setInputValue = jest.fn();
+    const setSlashDismissed = jest.fn();
+    const closeMention = jest.fn();
+    let actions: ReturnType<typeof useComposerSend> | null = null;
+
+    const Harness = () => {
+      actions = useComposerSend({
+        accessLevel: 'default',
+        attachmentChatId: '',
+        backgroundCommandText: {
+          rememberPending: '',
+          rememberError: '',
+          learnPending: '',
+          learnError: '',
+          compactPending: '',
+          compactError: '',
+        },
+        clearComposerAttachments: jest.fn(),
+        closeMention,
+        controlParams: {},
+        dispatch,
+        executeSlashCommandInput: {
+          closeMention,
+          latestQueryText: '',
+          setInputValue,
+          setSlashDismissed,
+          slashAvailability: {
+            streaming: false,
+            hasLatestQuery: false,
+            isFrontendActive: false,
+            canUsePlanningMode: true,
+            canUseVoiceMode: true,
+            hasActiveChat: true,
+            hasCurrentWorker: true,
+            workerHistoryCount: 1,
+            workerCount: 1,
+            commandOverlayOpen: false,
+            canShowUsage: false,
+          },
+          state: {
+            rightSidebarOpen: false,
+            planningMode: false,
+            chatId: state.chatId,
+            usagePopoverOpen: false,
+          },
+          toggleVoiceMode: jest.fn(),
+        },
+        hasUploadingAttachments: false,
+        inputValue: 'hello',
+        isAwaitingActive: false,
+        isVoiceMode: false,
+        modelOverride: {},
+        selectSlashCommand: () => null,
+        sendAttachmentMeta: [],
+        sendReferences: [],
+        setInputValue,
+        setSlashDismissed,
+        showSlashPalette: false,
+        speechListening: false,
+        state,
+        stateRef: { current: state },
+        stopSpeechInput: jest.fn(),
+        textareaRef: React.createRef(),
+        updateMentionSuggestions: jest.fn(),
+      });
+      return null;
+    };
+
+    renderToStaticMarkup(React.createElement(Harness));
+    actions?.handleSend();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'ENQUEUE_PENDING_STEER',
+      steer: expect.objectContaining({
+        message: 'hello',
+        requestId: 'req_request',
+        runId: 'run-active',
+        status: 'queued',
+      }),
+    });
+    expect(setInputValue).toHaveBeenCalledWith('');
+    expect(closeMention).toHaveBeenCalled();
   });
 });
