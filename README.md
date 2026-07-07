@@ -297,7 +297,7 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 
 ```text
 public/                 HTML 模板等静态入口资源
-docs/                   中文专题设计文档和截图资源
+docs/                   中文专题设计文档和截图资源，专题按模块编号
 src/app/                应用壳层、路由、布局、状态与页面入口
 src/features/           对话、时间线、工具、计划、worker 等功能模块
 src/shared/data/        API 端点注册、请求客户端、鉴权和轻量缓存
@@ -311,23 +311,66 @@ compose.yml             Docker Compose 部署入口
 
 ## 深入文档
 
-项目细节拆分在 [docs/](./docs/) 下。建议按下面顺序阅读：
+项目细节拆分在 [docs/](./docs/) 下。文档按两位编号分段，建议按模块阅读：
 
-- [应用入口路由与布局壳层](docs/应用入口路由与布局壳层.md)
-- [事件数据结构与协议枚举](docs/事件数据结构与协议枚举.md)
-- [API端点注册与DTO](docs/API端点注册与DTO.md)
-- [流式传输SSE与WebSocket](docs/流式传输SSE与WebSocket.md)
-- [时间线事件处理与渲染](docs/时间线事件处理与渲染.md)
-- [Reasoning与Planning节点](docs/Reasoning与Planning节点.md)
-- [计划事件与任务视图](docs/计划事件与任务视图.md)
-- [FrontendTool容器协议](docs/FrontendTool容器协议.md)
-- [Viewport视图容器](docs/Viewport视图容器.md)
-- [HITL-Awaiting协议与状态机](docs/HITL-Awaiting协议与状态机.md)
-- [Artifact发布与资源预览](docs/Artifact发布与资源预览.md)
-- [Agent管理台](docs/Agent管理台.md)
-- [Registry管理台与工具目录](docs/Registry管理台与工具目录.md)
-- [Desktop宿主桥接](docs/Desktop宿主桥接.md)
-- [版本化打包与部署](docs/版本化打包与部署.md)
+### 01 应用基础
+
+- [01-应用基础-应用入口路由与布局壳层](docs/01-应用基础-应用入口路由与布局壳层.md)
+- [02-应用基础-全局状态与Reducer](docs/02-应用基础-全局状态与Reducer.md)
+- [03-应用基础-运行时配置与功能开关](docs/03-应用基础-运行时配置与功能开关.md)
+
+### 10 协议数据
+
+- [10-协议数据-事件数据结构与协议枚举](docs/10-协议数据-事件数据结构与协议枚举.md)
+- [11-协议数据-API端点注册与DTO](docs/11-协议数据-API端点注册与DTO.md)
+- [12-协议数据-请求路由缓存与鉴权错误](docs/12-协议数据-请求路由缓存与鉴权错误.md)
+- [13-协议数据-流式传输SSE与WebSocket](docs/13-协议数据-流式传输SSE与WebSocket.md)
+
+### 20 会话输入
+
+- [20-会话输入-会话加载回放与LiveSummary](docs/20-会话输入-会话加载回放与LiveSummary.md)
+- [21-会话输入-Composer输入与快捷交互](docs/21-会话输入-Composer输入与快捷交互.md)
+- [22-会话输入-消息发送路由与运行控制](docs/22-会话输入-消息发送路由与运行控制.md)
+- [23-会话输入-运行参数模型与访问级别](docs/23-会话输入-运行参数模型与访问级别.md)
+- [24-会话输入-附件上传与引用](docs/24-会话输入-附件上传与引用.md)
+
+### 30 运行时间线
+
+- [30-运行时间线-时间线事件处理与渲染](docs/30-运行时间线-时间线事件处理与渲染.md)
+- [31-运行时间线-Reasoning与Planning节点](docs/31-运行时间线-Reasoning与Planning节点.md)
+- [32-运行时间线-计划事件与任务视图](docs/32-运行时间线-计划事件与任务视图.md)
+- [33-运行时间线-Artifact发布与资源预览](docs/33-运行时间线-Artifact发布与资源预览.md)
+
+### 40 交互容器
+
+- [40-交互容器-Viewport视图容器](docs/40-交互容器-Viewport视图容器.md)
+- [41-交互容器-FrontendTool容器协议](docs/41-交互容器-FrontendTool容器协议.md)
+- [42-交互容器-HITL-Awaiting协议与状态机](docs/42-交互容器-HITL-Awaiting协议与状态机.md)
+- [43-交互容器-HITL-Question问题交互](docs/43-交互容器-HITL-Question问题交互.md)
+- [44-交互容器-HITL-Approval审批交互](docs/44-交互容器-HITL-Approval审批交互.md)
+- [45-交互容器-HITL-Form表单HTML交互](docs/45-交互容器-HITL-Form表单HTML交互.md)
+- [46-交互容器-HITL-Plan计划决策](docs/46-交互容器-HITL-Plan计划决策.md)
+
+### 50 Worker管理
+
+- [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
+- [51-Worker管理-Agent管理台](docs/51-Worker管理-Agent管理台.md)
+- [52-Worker管理-Registry管理台与工具目录](docs/52-Worker管理-Registry管理台与工具目录.md)
+
+### 60 页面能力
+
+- [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)
+- [61-页面能力-Archive归档页面](docs/61-页面能力-Archive归档页面.md)
+- [62-页面能力-Automation页面](docs/62-页面能力-Automation页面.md)
+
+### 70+ 周边能力与交付
+
+- [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
+- [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
+- [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
+- [90-交付运维-开发代理与生产反向代理](docs/90-交付运维-开发代理与生产反向代理.md)
+- [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
+- [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
 ## 常见问题
 
