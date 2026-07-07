@@ -12,7 +12,8 @@ AGW Web Client 是一套面向智能体平台的前端展示框架。它把智�
 
 - 用户可以在统一工作台里和 Agent 或 Team 对话。
 - 开发者可以实时查看事件流、工具执行、计划进度和错误状态。
-- 平台可以把工具、表单、审批、文件预览、语音输入和历史回放接入同一套交互框架。
+- 平台可以把工具、表单、审批、文件预览、语音输入、用量统计和历史回放接入同一套交互框架。
+- 运营和研发可以通过 usage、budget 和 debug 面板理解一次智能体运行的消耗、限制和协议细节。
 
 它适合用作智能体平台的默认前端、协议联调客户端、内部运行观察台，也适合嵌入 Desktop 宿主或部署到云端作为团队入口。
 
@@ -31,6 +32,20 @@ AGW Web Client 是一套面向智能体平台的前端展示框架。它把智�
 - 展示 content、reasoning、planning、tool、source、usage、debug 等运行信息。
 - 支持结构化计划面板，展示任务状态、进度和耗时。
 - 支持右侧调试面板和 run transcript，方便排查协议和事件问题。
+
+### 用量与预算管理
+
+- 支持 `usage.snapshot` 事件，展示当前调用、最新 run、会话累计和上下文压缩相关用量。
+- 展示输入、输出、推理、总 token、缓存命中 / 未命中、LLM 调用数、工具调用数等指标。
+- 展示上下文窗口占用、预计下一次上下文大小、首字延迟、输出速度和预计费用。
+- 在 Agent 管理台中维护 agent definition 的 `budget` JSON，方便把 token、步骤、工具调用等预算约束交给后端执行。
+- 在归档和历史会话中保留 usage 摘要，方便回看一次任务的消耗情况。
+
+### Debug 联调侧边栏
+
+- 右侧 debug 面板按 run、request、content、reasoning、planning、plan、task、tool、awaiting、artifact、source、memory 等类型筛选事件。
+- 支持查看运行事件、前端归并状态和可读 transcript，帮助定位协议字段缺失、事件顺序异常、工具提交失败等问题。
+- 支持通过顶部入口、全局搜索或 slash command 快速打开，适合开发、演示和现场排障。
 
 ### 工具与业务视图容器
 
@@ -60,7 +75,7 @@ AGW Web Client 是一套面向智能体平台的前端展示框架。它把智�
 
 ### 对后端和协议团队
 
-前端按事件流消费 AGW / AGENT 协议，运行过程可以实时看见，也可以从历史会话回放。新增事件、工具或运行状态时，联调成本更低，问题定位更直接。
+前端按事件流消费 AGW / AGENT 协议，运行过程可以实时看见，也可以从历史会话回放。Debug 侧边栏把原始事件、分类事件和可读 transcript 放在同一处，新增事件、工具或运行状态时，联调成本更低，问题定位更直接。
 
 ### 对业务团队
 
@@ -69,6 +84,10 @@ AGW Web Client 是一套面向智能体平台的前端展示框架。它把智�
 ### 对部署和交付团队
 
 项目支持本地开发、Docker Compose 一键启动、离线镜像包、Desktop Program Bundle 等多种交付方式。只要上游 AGW API 可访问，就可以快速把同一套前端部署到本地、内网服务器、云主机或 Desktop 宿主里。
+
+### 对运营和管理团队
+
+Usage 统计让每次智能体运行的 token、模型调用、工具调用、上下文窗口和预计费用有据可查；Budget 配置让平台可以把运行限制沉淀到 agent 定义中，方便做成本控制、资源治理和团队级别的使用规范。
 
 ## 工作方式
 
@@ -86,6 +105,18 @@ flowchart LR
 ```
 
 前端只消费后端协议和资源，不替后端决定智能体如何规划、如何调用工具、如何鉴权或如何存储数据。后端仍是事实源，Web Client 负责把事实源展示成可用的产品界面。
+
+## 界面截图
+
+以下是 README 的截图预留位。正式发布前建议把真实截图放到 `docs/images/screenshots/`，并用图片链接替换表格中的占位说明。
+
+| 场景 | 建议文件 | 展示重点 |
+| --- | --- | --- |
+| 主界面工作台 | `docs/images/screenshots/main-workspace.png` | 顶部状态栏、左侧 Agent / Team 列表、中间时间线、Composer、右侧概览或调试入口 |
+| Debug 侧边栏 | `docs/images/screenshots/debug-sidebar.png` | 事件分类、原始事件、run transcript、协议联调和错误排查视图 |
+| Usage 用量统计 | `docs/images/screenshots/usage-stats.png` | token、上下文窗口、缓存命中、LLM / 工具调用、性能指标和预计费用 |
+| HITL 人在回路 | `docs/images/screenshots/hitl-awaiting.png` | question、approval、form 或 plan 的确认交互，以及提交后的 timeline 回显 |
+| 侧边栏与会话导航 | `docs/images/screenshots/sidebar-workers.png` | Agent / Team 切换、会话列表、pending awaiting、active run 和未读状态 |
 
 ## 快速开始
 

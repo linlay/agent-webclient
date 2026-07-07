@@ -82,13 +82,6 @@ export function useSlashCommandExecution(input: {
 				case "new":
 					resetForNewConversation();
 					return;
-				case "redo":
-					window.dispatchEvent(
-						new CustomEvent("agent:send-message", {
-							detail: { message: latestQueryText },
-						}),
-					);
-					return;
 				case "debug":
 					dispatch(
 						state.rightSidebarOpen

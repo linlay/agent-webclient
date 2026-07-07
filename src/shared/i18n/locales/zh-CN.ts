@@ -869,8 +869,6 @@ export const zhCNMessages: I18nMessages = {
   "slash.command.new.label": "新会话",
   "slash.command.plan.description": "切换计划模式",
   "slash.command.plan.label": "计划模式",
-  "slash.command.redo.description": "重新发送当前会话里最近一条 query",
-  "slash.command.redo.label": "重发最近 query",
   "slash.command.remember.description": "记录长期偏好、事实或约束，并提交到记忆接口",
   "slash.command.remember.label": "记录记忆",
   "slash.command.automation.description": "为当前{agentLabel}或{teamLabel}预填自动化草稿",

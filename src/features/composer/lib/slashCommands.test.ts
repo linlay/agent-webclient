@@ -26,8 +26,6 @@ describe('slashCommands', () => {
   it('only opens for a standalone slash token', () => {
     expect(shouldShowSlashCommandPalette('/')).toBe(true);
     expect(shouldShowSlashCommandPalette('/re')).toBe(true);
-    expect(shouldShowSlashCommandPalette('/redo now')).toBe(false);
-    expect(shouldShowSlashCommandPalette('hello /redo')).toBe(false);
   });
 
   it('filters the command list by slash query', () => {
@@ -130,7 +128,6 @@ describe('slashCommands', () => {
       canShowUsage: false,
     };
 
-    expect(isSlashCommandDisabled('redo', availability)).toBe(true);
     expect(isSlashCommandDisabled('remember', availability)).toBe(true);
     expect(isSlashCommandDisabled('learn', availability)).toBe(true);
     expect(isSlashCommandDisabled('compact', availability)).toBe(true);

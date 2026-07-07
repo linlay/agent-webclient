@@ -869,8 +869,7 @@ export const enUSMessages: I18nMessages = {
   "slash.command.new.label": "New conversation",
   "slash.command.plan.description": "Toggle planning mode",
   "slash.command.plan.label": "Planning mode",
-  "slash.command.redo.description": "Resend the latest query in the current conversation",
-  "slash.command.redo.label": "Resend last query",
+
   "slash.command.remember.description": "Store long-term preferences, facts, or constraints through the memory endpoint",
   "slash.command.remember.label": "Save memory",
   "slash.command.automation.description": "Prefill an automation draft for the current {agentLabel} or {teamLabel}",

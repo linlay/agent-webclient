@@ -8,7 +8,6 @@ export type SlashCommandId =
   | 'learn'
   | 'compact'
   | 'new'
-  | 'redo'
   | 'debug'
   | 'voice'
   | 'settings'
@@ -117,14 +116,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     keywords: ['switch', 'worker', 'agent', 'team'],
   },
   {
-    id: 'redo',
-    icon: 'redo',
-    command: '/redo',
-    labelKey: 'slash.command.redo.label',
-    descriptionKey: 'slash.command.redo.description',
-    keywords: ['redo', 'retry', 'resend', 'again'],
-  },
-  {
     id: 'debug',
     icon: 'bug_report',
     command: '/debug',
@@ -223,9 +214,6 @@ export function isSlashCommandDisabled(
   commandId: SlashCommandId,
   availability: SlashCommandAvailability,
 ): boolean {
-  if (commandId === 'redo') {
-    return availability.streaming || !availability.hasLatestQuery;
-  }
   if (commandId === 'remember' || commandId === 'learn' || commandId === 'compact') {
     return availability.streaming || !availability.hasActiveChat || availability.commandOverlayOpen;
   }
