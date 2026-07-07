@@ -125,10 +125,10 @@ const ACP_PROXY_OPTIONS = [
 ];
 
 const LEFT_SIDEBAR_BASE_CLASS =
-  "sidebar left-sidebar tw:!relative tw:!translate-x-0 tw:gap-1.5 tw:px-0 tw:py-1.5";
+  "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-1.5";
 
 const LEFT_SIDEBAR_WIDTH_CLASS = {
-  open: "is-open tw:w-[var(--left-sidebar-width)]",
+  open: "tw:w-[var(--left-sidebar-width)]",
   closed: "tw:w-[var(--left-sidebar-close-width)]",
 } as const;
 
@@ -615,7 +615,11 @@ export const LeftSidebar: React.FC = () => {
 
   const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
     const openStandalonePage = (path: string) => {
-      window.open(`${path}${window.location.search || ""}`, "_blank", "noopener,noreferrer");
+      window.open(
+        `${path}${window.location.search || ""}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
       setSettingsMenuOpen(false);
     };
     if (action.type === "open-skills") {
