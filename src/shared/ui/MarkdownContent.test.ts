@@ -1,4 +1,5 @@
 import { removeEmptyMarkdownTables } from "@/shared/ui/markdownPreprocess";
+import { parseWorkspaceFileHref } from "@/shared/ui/markdownWorkspaceLinks";
 
 describe("removeEmptyMarkdownTables", () => {
   it("removes a markdown table that only has an Issues header row", () => {
@@ -27,5 +28,35 @@ describe("removeEmptyMarkdownTables", () => {
     const markdown = ["```md", "| Issues |", "| --- |", "```"].join("\n");
 
     expect(removeEmptyMarkdownTables(markdown)).toBe(markdown);
+  });
+});
+
+describe("parseWorkspaceFileHref", () => {
+  it("parses absolute file paths with line numbers", () => {
+    expect(
+      parseWorkspaceFileHref("/Users/demo/project/src/a.ts:12"),
+    ).toEqual({
+      href: "/Users/demo/project/src/a.ts:12",
+      filePath: "/Users/demo/project/src/a.ts",
+      line: 12,
+    });
+  });
+
+  it("parses repository-relative source paths with line numbers", () => {
+    expect(
+      parseWorkspaceFileHref("src/features/composer/lib/slashCommands.ts:53"),
+    ).toEqual({
+      href: "src/features/composer/lib/slashCommands.ts:53",
+      filePath: "src/features/composer/lib/slashCommands.ts",
+      line: 53,
+    });
+  });
+
+  it("does not intercept authenticated resource links", () => {
+    expect(parseWorkspaceFileHref("/api/resource?file=src%2Fa.ts")).toBeNull();
+  });
+
+  it("does not intercept external links", () => {
+    expect(parseWorkspaceFileHref("https://example.com/src/a.ts:12")).toBeNull();
   });
 });

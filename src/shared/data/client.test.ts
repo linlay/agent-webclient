@@ -8,6 +8,7 @@ import {
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
+  buildWorkspaceFileUrl,
   buildAdminSkillFileDownloadUrlV2,
   archiveChats,
   createAttachStream,
@@ -1538,6 +1539,18 @@ describe('data client query payloads', () => {
   it('builds resource urls from the new resource endpoint', () => {
     expect(buildResourceUrl('reports/demo image.png')).toBe(
       '/api/resource?file=reports%2Fdemo%20image.png',
+    );
+  });
+
+  it('builds workspace file urls with encoded path and optional line', () => {
+    expect(
+      buildWorkspaceFileUrl({
+        agentKey: 'coder-agent',
+        path: '/Users/demo/project/src/a file.ts',
+        line: 12,
+      }),
+    ).toBe(
+      '/api/workspace/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa+file.ts&line=12',
     );
   });
 

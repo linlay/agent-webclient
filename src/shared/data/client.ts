@@ -72,6 +72,12 @@ export interface FileHistoryResponse {
   content: string;
 }
 
+export interface WorkspaceFilePreviewParams {
+  agentKey: string;
+  path: string;
+  line?: number;
+}
+
 export interface GetAgentsOptions {
   includeChats?: number;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
@@ -1296,6 +1302,18 @@ export function createRequestId(prefix = "req"): string {
 
 export function buildResourceUrl(file: string): string {
   return `${dataEndpoints.resource.path}?file=${encodeURIComponent(file)}`;
+}
+
+export function buildWorkspaceFileUrl(params: WorkspaceFilePreviewParams): string {
+  const query = endpointQuery(dataEndpoints.workspaceFile, {
+    agentKey: String(params.agentKey || "").trim(),
+    path: params.path,
+    line:
+      Number.isFinite(params.line) && Number(params.line) > 0
+        ? Math.floor(Number(params.line))
+        : undefined,
+  });
+  return withQuery(dataEndpoints.workspaceFile.path, query);
 }
 
 function withQuery(path: string, query: string): string {

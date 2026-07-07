@@ -25,6 +25,7 @@ export {
   deleteChat,
   downloadChatExport,
   downloadResource,
+  buildWorkspaceFileUrl,
   getAgent,
   getAgentOrder,
   getAgents,

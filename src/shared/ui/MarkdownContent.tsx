@@ -8,11 +8,17 @@ import Latex from "@ant-design/x-markdown/plugins/Latex";
 import { buildResourceUrl, downloadResource } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
+import {
+  parseWorkspaceFileHref,
+  type WorkspaceFileLink,
+} from "./markdownWorkspaceLinks";
+
+export type { WorkspaceFileLink } from "./markdownWorkspaceLinks";
 
 interface MarkdownContentProps {
   content: string;
+  onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
 }
-
 
 type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
   domNode?: unknown;
@@ -52,17 +58,34 @@ function isResourceUrl(href: string): boolean {
  * downloads them via fetch with auth headers (Bearer token) instead
  * of letting the browser navigate directly (which causes 401).
  */
-const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
-  props,
-) => {
-  const { href, children, ...rest } = props;
+type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
+};
+
+const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
+  const {
+    href,
+    children,
+    onWorkspaceFileLinkClick,
+    ...rest
+  } = props;
   const [downloading, setDownloading] = useState(false);
   const downloadFilename = href && isResourceUrl(href)
     ? extractFilenameFromResourceUrl(href)
     : undefined;
+  const workspaceFileLink = useMemo(
+    () => parseWorkspaceFileHref(href),
+    [href],
+  );
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (workspaceFileLink && onWorkspaceFileLinkClick) {
+        e.preventDefault();
+        onWorkspaceFileLinkClick(workspaceFileLink);
+        return;
+      }
+
       if (!href || !isResourceUrl(href) || downloading) return;
 
       e.preventDefault();
@@ -77,7 +100,7 @@ const AuthAnchor: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (
           setDownloading(false);
         });
     },
-    [href, downloading],
+    [href, downloading, onWorkspaceFileLinkClick, workspaceFileLink],
   );
 
   return (
@@ -124,6 +147,7 @@ const MarkdownPre: React.FC<MarkdownPreProps> = ({
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
+  onWorkspaceFileLinkClick,
 }) => {
   const markdownConfig = useMemo(
     () => ({
@@ -137,12 +161,17 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   const markdownComponents = useMemo(
     () =>
       ({
-        a: AuthAnchor,
+        a: (anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+          <AuthAnchor
+            {...anchorProps}
+            onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
+          />
+        ),
         code: MarkdownCode,
         pre: MarkdownPre,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
-    [],
+    [onWorkspaceFileLinkClick],
   );
 
   const processedContent = useMemo(() => {

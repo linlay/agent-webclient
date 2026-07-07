@@ -1,11 +1,17 @@
 import React from "react";
 import type { TimelineNode } from "@/app/state/types";
-import { useAppDispatch } from "@/app/state/AppContext";
+import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { stripPendingSpecialFenceTail } from "@/features/timeline/lib/contentSegments";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import { MarkdownContent } from "@/shared/ui/MarkdownContent";
+import {
+	MarkdownContent,
+	type WorkspaceFileLink,
+} from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
+import { buildWorkspaceFileUrl } from "@/shared/data/client";
+import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 
@@ -37,8 +43,34 @@ const TTS_VOICE_DETAIL_OPEN_CLASS_NAME = "tw:mt-2 tw:max-h-[260px]";
 const TTS_VOICE_TEXT_CLASS_NAME =
 	"tw:whitespace-pre-wrap tw:break-words tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--bg-input)_86%,var(--bg-elev-2))] tw:px-3 tw:py-2.5 tw:text-[13px] tw:leading-[1.5]";
 
+function displayFileName(filePath: string): string {
+	const normalized = filePath.replace(/\\/g, "/");
+	return normalized.split("/").filter(Boolean).pop() || filePath;
+}
+
+export function buildWorkspaceFilePreview(
+	link: WorkspaceFileLink,
+	agentKey: string,
+): AttachmentPreviewState {
+	const url = buildWorkspaceFileUrl({
+		agentKey,
+		path: link.filePath,
+		line: link.line,
+	});
+	return {
+		name: displayFileName(link.filePath),
+		url,
+		downloadUrl: url,
+		kind: "text",
+		mimeType: "text/plain",
+		sourcePath: link.filePath,
+		line: link.line,
+	};
+}
+
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const dispatch = useAppDispatch();
+	const state = useAppState();
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
@@ -52,13 +84,33 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 
 	const segments = node.segments;
 	const hasSpecialSegment = segments?.some((s) => s.kind !== "text");
+	const workspaceFileAgentKey = React.useMemo(
+		() => resolvePreferredAgentKey(state),
+		[state],
+	);
+	const handleWorkspaceFileLinkClick = React.useCallback(
+		(link: WorkspaceFileLink) => {
+			dispatch({
+				type: "OPEN_RIGHT_SIDEBAR",
+				tab: "preview",
+				preview: buildWorkspaceFilePreview(
+					link,
+					workspaceFileAgentKey,
+				),
+			});
+		},
+		[dispatch, workspaceFileAgentKey],
+	);
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
 		return (
 			<div className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
 				<div className={markdownClassName}>
-					<MarkdownContent content={streamingSafeText} />
+					<MarkdownContent
+						content={streamingSafeText}
+						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
+					/>
 				</div>
 			</div>
 		);
@@ -74,7 +126,12 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 							key={idx}
 							className={markdownClassName}
 						>
-							<MarkdownContent content={segment.text || ""} />
+							<MarkdownContent
+								content={segment.text || ""}
+								onWorkspaceFileLinkClick={
+									handleWorkspaceFileLinkClick
+								}
+							/>
 						</div>
 					);
 				}

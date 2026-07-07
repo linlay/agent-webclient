@@ -28,6 +28,10 @@ jest.mock("@/shared/data/client", () => {
 			ApiError: MockApiError,
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
+			buildWorkspaceFileUrl: jest.fn(
+				(params: { agentKey: string; path: string; line?: number }) =>
+					`/api/workspace/file?agentKey=${params.agentKey}&path=${params.path}${params.line ? `&line=${params.line}` : ""}`,
+			),
 			createAgent: jest.fn(),
 			createAutomation: jest.fn(),
 			createQueryStream: jest.fn(),

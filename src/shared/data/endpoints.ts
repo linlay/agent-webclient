@@ -565,6 +565,25 @@ export const dataEndpoints = createEndpointRegistry({
         version: params.version,
       }),
   }),
+  workspaceFile: defineEndpoint<
+    {
+      agentKey: string;
+      path: string;
+      line?: number;
+    },
+    Record<string, unknown>
+  >({
+    key: "workspace.file",
+    path: "/api/workspace/file",
+    method: "GET",
+    transport: "http",
+    payload: (params) =>
+      compactPayload({
+        agentKey: params.agentKey,
+        path: params.path,
+        line: params.line,
+      }),
+  }),
   interrupt: defineEndpoint({
     key: "runs.interrupt",
     path: "/api/interrupt",

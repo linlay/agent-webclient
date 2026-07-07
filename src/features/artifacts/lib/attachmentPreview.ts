@@ -24,6 +24,8 @@ export interface AttachmentPreviewState {
 	sizeBytes?: number;
 	type?: string;
 	mimeType?: string;
+	sourcePath?: string;
+	line?: number;
 	kind: Exclude<AttachmentPreviewKind, "unsupported">;
 }
 

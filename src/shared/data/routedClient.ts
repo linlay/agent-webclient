@@ -1,6 +1,7 @@
 import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import {
 	buildResourceUrl,
+	buildWorkspaceFileUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
 	createQueryStream,
@@ -775,6 +776,7 @@ export function compactChat(params: {
 
 export {
 	buildResourceUrl,
+	buildWorkspaceFileUrl,
 	createQueryStream,
 	downloadResource,
 	downloadChatExport,

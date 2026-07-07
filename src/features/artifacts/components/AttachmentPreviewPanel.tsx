@@ -37,6 +37,15 @@ const ATTACHMENT_PREVIEW_FRAME_CLASS_NAME =
 const ATTACHMENT_PREVIEW_TEXT_CLASS_NAME =
   "attachment-preview-text tw:m-0 tw:min-h-full tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-words tw:p-3.5 tw:font-code tw:text-xs tw:leading-[1.6] tw:text-ink-1";
 
+const ATTACHMENT_PREVIEW_TEXT_WITH_LINES_CLASS_NAME =
+  "attachment-preview-text attachment-preview-text-lines tw:m-0 tw:min-h-full tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-words tw:p-0 tw:font-code tw:text-xs tw:leading-[1.6] tw:text-ink-1";
+
+const ATTACHMENT_PREVIEW_LINE_CLASS_NAME =
+  "attachment-preview-line tw:block tw:min-h-[1.6em] tw:px-3.5 tw:py-0";
+
+const ATTACHMENT_PREVIEW_TARGET_LINE_CLASS_NAME =
+  "is-target tw:bg-[color-mix(in_srgb,var(--accent-electric)_16%,transparent)] tw:text-ink-1";
+
 const ATTACHMENT_PREVIEW_MEDIA_SHELL_CLASS_NAME =
   "attachment-preview-media-shell tw:rounded-[14px] tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_82%,white)] tw:px-3.5 tw:py-[18px] tw:[html[data-theme=dark]_&]:border-[color-mix(in_srgb,var(--line-soft)_100%,transparent)] tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-elev-1)_92%,var(--bg-elev-2))]";
 
@@ -50,6 +59,31 @@ interface AttachmentPreviewPanelProps {
 	preview: AttachmentPreviewState;
 }
 
+export interface TextPreviewLine {
+  lineNumber: number;
+  text: string;
+  target: boolean;
+}
+
+export function buildTextPreviewLines(
+  content: string,
+  targetLine?: number,
+): TextPreviewLine[] {
+  const normalizedTargetLine =
+    Number.isFinite(targetLine) && Number(targetLine) > 0
+      ? Math.floor(Number(targetLine))
+      : 0;
+  const lines = content.split(/\r\n|\n|\r/);
+  return lines.map((text, index) => {
+    const lineNumber = index + 1;
+    return {
+      lineNumber,
+      text,
+      target: lineNumber === normalizedTargetLine,
+    };
+  });
+}
+
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ preview }) => {
 	const [textContent, setTextContent] = React.useState("");
 	const [textLoading, setTextLoading] = React.useState(false);
@@ -57,6 +91,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ 
 	const [mediaError, setMediaError] = React.useState("");
 	const [downloadError, setDownloadError] = React.useState("");
 	const [downloading, setDownloading] = React.useState(false);
+  const textContainerRef = React.useRef<HTMLPreElement | null>(null);
 
   React.useEffect(() => {
     setMediaError("");
@@ -100,8 +135,25 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ 
 			}
 		});
 
-	return () => controller.abort();
+    return () => controller.abort();
 }, [preview]);
+
+  React.useEffect(() => {
+    if (!preview?.line || preview.kind !== "text" || textLoading || textError) {
+      return;
+    }
+    const container = textContainerRef.current;
+    if (!container) return;
+
+    const target = container.querySelector<HTMLElement>(
+      `[data-preview-line="${preview.line}"]`,
+    );
+    if (!target) return;
+
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "center" });
+    });
+  }, [preview?.kind, preview?.line, textContent, textError, textLoading]);
 
 const handleDownload = React.useCallback(() => {
 	if (downloading) {
@@ -123,9 +175,20 @@ const handleDownload = React.useCallback(() => {
       });
   }, [downloading, preview]);
 
-  const metadata = [preview.mimeType || "", formatAttachmentSize(preview.sizeBytes)]
+  const sourceLocation = preview.sourcePath
+    ? `${preview.sourcePath}${preview.line ? `:${preview.line}` : ""}`
+    : "";
+  const metadata = [sourceLocation, preview.mimeType || "", formatAttachmentSize(preview.sizeBytes)]
     .filter(Boolean)
     .join(" · ");
+  const targetLine =
+    Number.isFinite(preview.line) && Number(preview.line) > 0
+      ? Math.floor(Number(preview.line))
+      : undefined;
+  const textLines = React.useMemo(
+    () => buildTextPreviewLines(textContent, targetLine),
+    [targetLine, textContent],
+  );
 
   return (
     <div className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
@@ -184,6 +247,26 @@ const handleDownload = React.useCallback(() => {
             </div>
           ) : textError ? (
             <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>{textError}</div>
+          ) : targetLine ? (
+            <pre
+              ref={textContainerRef}
+              className={ATTACHMENT_PREVIEW_TEXT_WITH_LINES_CLASS_NAME}
+            >
+              {textLines.map((line) => (
+                <span
+                  key={line.lineNumber}
+                  className={[
+                    ATTACHMENT_PREVIEW_LINE_CLASS_NAME,
+                    line.target ? ATTACHMENT_PREVIEW_TARGET_LINE_CLASS_NAME : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  data-preview-line={line.lineNumber}
+                >
+                  {line.text || " "}
+                </span>
+              ))}
+            </pre>
           ) : (
             <pre className={ATTACHMENT_PREVIEW_TEXT_CLASS_NAME}>
               {textContent || t("rightSidebar.preview.text.empty")}
