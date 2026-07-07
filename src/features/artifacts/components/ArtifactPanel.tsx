@@ -13,7 +13,7 @@ const ARTIFACT_LIST_CLASS_NAME =
   "artifact-list tw:m-0 tw:flex tw:list-none tw:flex-nowrap tw:items-stretch tw:gap-1 tw:p-0";
 
 const ARTIFACT_ITEM_CLASS_NAME =
-  "artifact-item tw:min-w-[220px] tw:flex-[0_0_220px] tw:list-none tw:[.layout-copilot_&]:min-w-[180px] tw:[.layout-copilot_&]:flex-[0_0_180px]";
+  "artifact-item tw:list-none";
 
 const ARTIFACT_ACTIONS_CLASS_NAME = "artifact-actions";
 

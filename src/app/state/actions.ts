@@ -150,6 +150,7 @@ export type AppAction =
 			type: "OPEN_RIGHT_SIDEBAR";
 			tab?: RightSidebarTabKey;
 			preview?: AttachmentPreviewState | null;
+			removePreviewUrl?: string;
 			sourceDetail?: TimelineSource | null;
 	  }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
