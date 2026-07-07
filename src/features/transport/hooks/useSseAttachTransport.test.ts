@@ -46,6 +46,17 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 	};
 }
 
+function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, type?: string) {
+	return dispatchMock.mock.calls
+		.map(([action]) => action)
+		.filter(
+			(action) =>
+				action.type === "PUSH_EVENT" &&
+				(!type || action.event.type === type),
+		)
+		.map((action) => (action as Extract<AppAction, { type: "PUSH_EVENT" }>).event);
+}
+
 function createDeferred<T = void>() {
 	let resolve!: (value: T | PromiseLike<T>) => void;
 	let reject!: (reason?: unknown) => void;
@@ -144,6 +155,21 @@ describe("registerSseAttachRunListener", () => {
 		}) as unknown as Event);
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledTimes(1);
+		expect(debugEvents(dispatch, "debug.attachRunRequested")).toEqual([
+			expect.objectContaining({
+				chatId: "chat_1",
+				runId: "run_1",
+				agentKey: "agent_alpha",
+			}),
+		]);
+		expect(debugEvents(dispatch, "debug.attachRunIgnored")).toEqual([
+			expect.objectContaining({
+				chatId: "chat_1",
+				runId: "run_1",
+				agentKey: "agent_alpha",
+				reason: "duplicate_observe_local",
+			}),
+		]);
 		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({
 			params: expect.objectContaining({
 				runId: "run_1",

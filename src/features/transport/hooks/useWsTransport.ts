@@ -54,6 +54,10 @@ import {
 	readRequestQueryText,
 } from "@/shared/utils/eventFieldReaders";
 import { toText } from "@/shared/utils/eventUtils";
+import {
+	dispatchRunAttachDebugEvent,
+	readRunAttachDebugSnapshot,
+} from "@/features/transport/lib/runAttachDebugEvents";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
@@ -329,6 +333,18 @@ function syncCurrentTerminalPushObservation(
 
 	options.dispatch({ type: "SET_STREAMING", streaming: false });
 	options.dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+	dispatchRunAttachDebugEvent(options.dispatch, {
+		type: "debug.runObservationReleased",
+		chatId,
+		runId,
+		reason: "terminal_push",
+		...readRunAttachDebugSnapshot({
+			state: options.stateRef.current,
+			querySessionsRef: options.querySessionsRef,
+			activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+			activeAttachRef: options.activeAttachRef,
+		}),
+	});
 }
 
 type ActiveAttachState = {
@@ -581,6 +597,19 @@ export function registerAttachRunListener(
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "missing_identity",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 		if (!agentKey) {
@@ -588,15 +617,54 @@ export function registerAttachRunListener(
 				type: "APPEND_DEBUG",
 				line: `[ws attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
 			});
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "missing_agent_key",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "duplicate_observe_local",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 
 		const wsClient = getWsClientImpl();
 		if (!wsClient) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "missing_ws_client",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 
@@ -706,6 +774,22 @@ export function registerAttachRunListener(
 			abortFns.push(streamResult.abort);
 		};
 
+		dispatchRunAttachDebugEvent(options.dispatch, {
+			type: "debug.attachRunRequested",
+			chatId,
+			runId,
+			agentKey,
+			...readRunAttachDebugSnapshot({
+				state: options.stateRef.current,
+				querySessionsRef: options.querySessionsRef,
+				activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+				activeAttachRef: options.activeAttachRef,
+			}),
+			activeRequestId: requestId,
+			activeSessionRunId: runId,
+			activeSessionStreaming: true,
+			activeAttachRunId: runId,
+		});
 		startAttachStream();
 
 		options.querySessionsRef.current.set(requestId, session);
@@ -908,6 +992,18 @@ function buildWsClient(
 					chatAgentById: options.stateRef.current.chatAgentById,
 					chats: options.stateRef.current.chats,
 					fallbackAgentKey: "",
+				});
+				dispatchRunAttachDebugEvent(options.dispatch, {
+					type: "debug.runStartedCandidate",
+					chatId: eventChatId,
+					runId,
+					agentKey,
+					...readRunAttachDebugSnapshot({
+						state: options.stateRef.current,
+						querySessionsRef: options.querySessionsRef,
+						activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+						activeAttachRef: options.activeAttachRef,
+					}),
 				});
 				dispatchRunStartedPushEvent({
 					chatId: eventChatId,

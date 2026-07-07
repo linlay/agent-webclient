@@ -9,6 +9,11 @@ import {
 	resolveMainChatRunActivation,
 	type MainChatRunActivationDecision,
 } from "@/features/chats/lib/mainChatRunActivation";
+import {
+	dispatchRunAttachDebugEvent,
+	readRunAttachDebugSnapshot,
+	type RunAttachDebugSnapshot,
+} from "@/features/transport/lib/runAttachDebugEvents";
 
 type MainChatRunActivationDispatch = Dispatch<AppAction>;
 
@@ -49,55 +54,72 @@ function dispatchAttachRunEvent(
 	);
 }
 
-function appendIgnoredDebug(
-	dispatch: MainChatRunActivationDispatch,
-	decision: Extract<MainChatRunActivationDecision, { shouldActivate: false }>,
-): void {
-	if (decision.reason === "missing_identity") {
-		dispatch({
-			type: "APPEND_DEBUG",
-			line: `[main chat run] ignored run.started without attach identity (chatId=${decision.chatId || "-"}, runId=${decision.runId || "-"}, agentKey=${decision.agentKey || "-"})`,
-		});
-	}
-}
+type ActiveObservationResult =
+	| { blocked: false; snapshot: RunAttachDebugSnapshot }
+	| { blocked: true; reason: string; snapshot: RunAttachDebugSnapshot };
 
-function hasActiveObservation(
+function resolveActiveObservation(
 	options: Pick<
 		RegisterMainChatRunActivationListenerOptions,
 		"stateRef" | "querySessionsRef" | "activeQuerySessionRequestIdRef"
 	>,
 	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
-): boolean {
+	pathname: string,
+): ActiveObservationResult {
+	const snapshot = readRunAttachDebugSnapshot({
+		state: options.stateRef.current,
+		querySessionsRef: options.querySessionsRef,
+		activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+		pathname,
+	});
 	if (options.stateRef.current.streaming) {
-		return true;
+		return { blocked: true, reason: "streaming", snapshot };
 	}
 	const activeRequestId = String(options.activeQuerySessionRequestIdRef.current || "").trim();
 	const activeSession = activeRequestId
 		? options.querySessionsRef.current.get(activeRequestId) || null
 		: null;
 	if (activeSession?.streaming) {
-		return true;
+		return { blocked: true, reason: "active_session_streaming", snapshot };
 	}
 	if (activeSession?.runId && activeSession.runId === decision.runId) {
-		return true;
+		return { blocked: true, reason: "active_session_same_run", snapshot };
 	}
 	for (const session of options.querySessionsRef.current.values()) {
 		if (session.runId && session.runId === decision.runId) {
-			return true;
+			return { blocked: true, reason: "already_observing_new_run", snapshot };
 		}
 	}
-	return false;
+	return { blocked: false, snapshot };
 }
 
 function activateMainChatRun(
 	options: RegisterMainChatRunActivationListenerOptions,
 	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
+	pathname: string,
 ): void {
-	if (hasActiveObservation(options, decision)) {
+	const observation = resolveActiveObservation(options, decision, pathname);
+	if (observation.blocked) {
+		dispatchRunAttachDebugEvent(options.dispatch, {
+			type: "debug.runActivationSkipped",
+			chatId: decision.chatId,
+			runId: decision.runId,
+			agentKey: decision.agentKey,
+			reason: observation.reason,
+			...observation.snapshot,
+		});
 		return;
 	}
 	const key = runKey(decision.chatId, decision.runId);
 	if (options.handledRunKeysRef.current.has(key)) {
+		dispatchRunAttachDebugEvent(options.dispatch, {
+			type: "debug.runActivationSkipped",
+			chatId: decision.chatId,
+			runId: decision.runId,
+			agentKey: decision.agentKey,
+			reason: "duplicate_push",
+			...observation.snapshot,
+		});
 		return;
 	}
 	options.handledRunKeysRef.current.add(key);
@@ -140,6 +162,14 @@ function activateMainChatRun(
 		agentKey: decision.agentKey,
 	});
 
+	dispatchRunAttachDebugEvent(options.dispatch, {
+		type: "debug.runActivationAttached",
+		chatId: decision.chatId,
+		runId: decision.runId,
+		agentKey: decision.agentKey,
+		...observation.snapshot,
+	});
+
 	dispatchAttachRunEvent(
 		decision.chatId,
 		decision.runId,
@@ -153,16 +183,29 @@ export function registerMainChatRunActivationListener(
 ): () => void {
 	const getPathname = options.getPathname ?? currentPathname;
 	const handler = (event: Event) => {
+		const pathname = getPathname();
 		const decision = resolveMainChatRunActivation({
 			state: options.stateRef.current,
 			detail: (event as CustomEvent).detail,
-			pathname: getPathname(),
+			pathname,
 		});
 		if (!decision.shouldActivate) {
-			appendIgnoredDebug(options.dispatch, decision);
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.runActivationSkipped",
+				chatId: decision.chatId,
+				runId: decision.runId,
+				agentKey: decision.agentKey,
+				reason: decision.reason,
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					pathname,
+				}),
+			});
 			return;
 		}
-		activateMainChatRun(options, decision);
+		activateMainChatRun(options, decision, pathname);
 	};
 
 	if (typeof window !== "undefined" && typeof window.addEventListener === "function") {

@@ -17,6 +17,10 @@ import {
 	readRequestQueryText,
 } from "@/shared/utils/eventFieldReaders";
 import { toText } from "@/shared/utils/eventUtils";
+import {
+	dispatchRunAttachDebugEvent,
+	readRunAttachDebugSnapshot,
+} from "@/features/transport/lib/runAttachDebugEvents";
 
 type SseAttachDispatch = Dispatch<AppAction>;
 
@@ -150,6 +154,19 @@ export function registerSseAttachRunListener(
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "missing_identity",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 		if (!agentKey) {
@@ -157,11 +174,37 @@ export function registerSseAttachRunListener(
 				type: "APPEND_DEBUG",
 				line: `[sse attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
 			});
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "missing_agent_key",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				type: "debug.attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "duplicate_observe_local",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
 			return;
 		}
 
@@ -194,6 +237,18 @@ export function registerSseAttachRunListener(
 		options.dispatch({ type: "SET_REQUEST_ID", requestId });
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
+		dispatchRunAttachDebugEvent(options.dispatch, {
+			type: "debug.attachRunRequested",
+			chatId,
+			runId,
+			agentKey,
+			...readRunAttachDebugSnapshot({
+				state: options.stateRef.current,
+				querySessionsRef: options.querySessionsRef,
+				activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+				activeAttachRef: options.activeAttachRef,
+			}),
+		});
 
 		const attachHandleEvent = (attachedEvent: AgentEvent) => {
 			renderAttachedRequestQuery(options, attachedEvent);

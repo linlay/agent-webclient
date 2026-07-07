@@ -53,6 +53,7 @@ export type DebugEventGroup =
   | 'request'
   | 'chat'
   | 'run'
+  | 'debug'
   | 'awaiting'
   | 'memory'
   | 'content'
@@ -459,6 +460,7 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
   if (type.startsWith('request.')) return 'request';
   if (type.startsWith('chat.')) return 'chat';
   if (type.startsWith('run.')) return 'run';
+  if (type.startsWith('debug.')) return 'debug';
   if (type.startsWith('awaiting.')) return 'awaiting';
   if (type.startsWith('memory.')) return 'memory';
   if (type.startsWith('content.')) return 'content';

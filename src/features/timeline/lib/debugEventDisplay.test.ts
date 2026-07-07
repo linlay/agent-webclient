@@ -35,16 +35,17 @@ describe('classifyEventGroup', () => {
     expect(classifyEventGroup('task.start')).toBe('task');
     expect(classifyEventGroup('artifact.publish')).toBe('artifact');
     expect(classifyEventGroup('source.publish')).toBe('source');
+    expect(classifyEventGroup('debug.postCall')).toBe('debug');
   });
 
-  it('keeps debug.postCall as an unrecognized group', () => {
-    expect(classifyEventGroup('debug.postCall')).toBe('');
+  it('keeps unknown event types as an unrecognized group', () => {
+    expect(classifyEventGroup('unknown.postCall')).toBe('');
   });
 });
 
 describe('getEventRowGroupClass', () => {
   it('maps unrecognized event types to the neutral row class', () => {
-    expect(getEventRowGroupClass('debug.postCall')).toBe(
+    expect(getEventRowGroupClass('unknown.postCall')).toBe(
       'event-group-unrecognized',
     );
   });
@@ -52,6 +53,7 @@ describe('getEventRowGroupClass', () => {
   it('keeps recognized event types on their existing group class', () => {
     expect(getEventRowGroupClass('request.query')).toBe('event-group-request');
     expect(getEventRowGroupClass('source.publish')).toBe('event-group-source');
+    expect(getEventRowGroupClass('debug.postCall')).toBe('event-group-debug');
   });
 });
 

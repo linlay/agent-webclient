@@ -9,6 +9,16 @@
     justify-content: space-between;
 }
 
+#settings-btn .material-icon,
+#settings-btn .material-icon-svg {
+    width: 16px;
+    height: 16px;
+}
+
+#settings-btn .material-icon {
+    font-size: 16px;
+}
+
 .settings-trigger-summary {
     margin-left: auto;
     display: inline-flex;
@@ -33,7 +43,7 @@
 }
 
 .settings-summary-chip-icon {
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .sidebar-settings-popover .ant-popover-inner {

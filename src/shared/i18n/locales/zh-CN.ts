@@ -279,6 +279,7 @@ export const zhCNMessages: I18nMessages = {
   "rightSidebar.debug.tabs.awaiting": "awaiting",
   "rightSidebar.debug.tabs.chat": "chat",
   "rightSidebar.debug.tabs.content": "content",
+  "rightSidebar.debug.tabs.debug": "debug",
   "rightSidebar.debug.tabs.labelWithCount": "{label} ({count})",
   "rightSidebar.debug.tabs.memory": "memory",
   "rightSidebar.debug.tabs.plan": "plan",
