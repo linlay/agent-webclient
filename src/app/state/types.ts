@@ -202,7 +202,7 @@ export interface AppState {
 	rightSidebarOpenTab: RightSidebarTabKey | null;
 	activeSourceDetail: TimelineSource | null;
 	terminalDockOpen: boolean;
-	attachmentPreview: AttachmentPreviewState | null;
+	attachmentPreview: AttachmentPreviewState[];
 	artifactExpanded: boolean;
 	artifactManualOverride: boolean | null;
 	artifactAutoCollapseTimer: UiTimerHandle | null;

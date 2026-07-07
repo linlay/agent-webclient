@@ -249,8 +249,10 @@ const CopilotSidePanel: React.FC = () => {
       <div className={COPILOT_SIDE_PANEL_BODY_CLASS}>
         {activeTab === "debug" ? (
           <DebugTab />
-        ) : activeTab === "preview" && state.attachmentPreview ? (
-          <AttachmentPreviewPanel />
+        ) : activeTab === "preview" && state.attachmentPreview.length > 0 ? (
+          state.attachmentPreview.map((p) => (
+            <AttachmentPreviewPanel key={p.url} preview={p} />
+          ))
         ) : activeTab === "sourceDetail" && state.activeSourceDetail ? (
           <SourceDetailTab />
         ) : (

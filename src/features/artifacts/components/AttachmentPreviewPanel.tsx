@@ -1,7 +1,7 @@
 import React from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { downloadResource, getResourceText } from "@/shared/data";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
@@ -46,16 +46,17 @@ const ATTACHMENT_PREVIEW_AUDIO_CLASS_NAME =
 const ATTACHMENT_PREVIEW_NOTE_CLASS_NAME =
   "attachment-preview-note tw:px-3 tw:pb-3 tw:pt-0 tw:text-[11px] tw:leading-[1.5] tw:text-ink-muted";
 
-export const AttachmentPreviewPanel: React.FC = () => {
-  const state = useAppState();
-  const dispatch = useAppDispatch();
-  const preview = state.attachmentPreview;
-  const [textContent, setTextContent] = React.useState("");
-  const [textLoading, setTextLoading] = React.useState(false);
-  const [textError, setTextError] = React.useState("");
-  const [mediaError, setMediaError] = React.useState("");
-  const [downloadError, setDownloadError] = React.useState("");
-  const [downloading, setDownloading] = React.useState(false);
+interface AttachmentPreviewPanelProps {
+	preview: AttachmentPreviewState;
+}
+
+export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ preview }) => {
+	const [textContent, setTextContent] = React.useState("");
+	const [textLoading, setTextLoading] = React.useState(false);
+	const [textError, setTextError] = React.useState("");
+	const [mediaError, setMediaError] = React.useState("");
+	const [downloadError, setDownloadError] = React.useState("");
+	const [downloading, setDownloading] = React.useState(false);
 
   React.useEffect(() => {
     setMediaError("");
@@ -94,16 +95,16 @@ export const AttachmentPreviewPanel: React.FC = () => {
         );
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
-          setTextLoading(false);
-        }
-      });
+			if (!controller.signal.aborted) {
+				setTextLoading(false);
+			}
+		});
 
-    return () => controller.abort();
-  }, [preview]);
+	return () => controller.abort();
+}, [preview]);
 
-  const handleDownload = React.useCallback(() => {
-    if (!preview || downloading) {
+const handleDownload = React.useCallback(() => {
+	if (downloading) {
       return;
     }
 
@@ -121,10 +122,6 @@ export const AttachmentPreviewPanel: React.FC = () => {
         setDownloading(false);
       });
   }, [downloading, preview]);
-
-  if (!preview) {
-    return null;
-  }
 
   const metadata = [preview.mimeType || "", formatAttachmentSize(preview.sizeBytes)]
     .filter(Boolean)
@@ -150,19 +147,6 @@ export const AttachmentPreviewPanel: React.FC = () => {
           loading={downloading}
         >
           {t("rightSidebar.preview.actions.download")}
-        </UiButton>
-        <UiButton
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            dispatch({
-              type: "OPEN_RIGHT_SIDEBAR",
-              tab: "overview",
-              preview: null,
-            })
-          }
-        >
-          {t("rightSidebar.preview.actions.close")}
         </UiButton>
       </div>
 

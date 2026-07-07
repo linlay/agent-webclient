@@ -112,13 +112,33 @@ export function reduceUiState(
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
+			const removePreviewUrl = Object.prototype.hasOwnProperty.call(action, "removePreviewUrl")
+				? action.removePreviewUrl
+				: undefined;
+			let nextPreviews = state.attachmentPreview;
+			if (removePreviewUrl) {
+				nextPreviews = nextPreviews.filter((p) => p.url !== removePreviewUrl);
+			} else {
+				const incomingPreview = hasPreview ? action.preview : undefined;
+				if (incomingPreview) {
+					const existingIndex = nextPreviews.findIndex(
+						(p) => p.url === incomingPreview.url,
+					);
+					if (existingIndex >= 0) {
+						nextPreviews = [...nextPreviews];
+						nextPreviews[existingIndex] = incomingPreview;
+					} else {
+						nextPreviews = [...nextPreviews, incomingPreview];
+					}
+				} else if (hasPreview) {
+					nextPreviews = [];
+				}
+			}
 			return {
 				...state,
 				rightSidebarOpen: true,
 				rightSidebarOpenTab: action.tab ?? null,
-				attachmentPreview: hasPreview
-					? action.preview ?? null
-					: state.attachmentPreview,
+				attachmentPreview: nextPreviews,
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null
 					: state.activeSourceDetail,

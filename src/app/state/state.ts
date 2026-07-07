@@ -143,7 +143,7 @@ export function createInitialState(): AppState {
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
 		terminalDockOpen: restoreTerminalDockOpen(),
-		attachmentPreview: null,
+		attachmentPreview: [],
 		artifactExpanded: false,
 		artifactManualOverride: null,
 		artifactAutoCollapseTimer: null,

@@ -67,7 +67,7 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		rightSidebarOpen: false,
 		rightSidebarOpenTab: null,
 		rightSidebarOpenSeq: 0,
-		attachmentPreview: null,
+		attachmentPreview: [],
 		artifactExpanded: false,
 		artifactManualOverride: null,
 		artifactAutoCollapseTimer: null,
