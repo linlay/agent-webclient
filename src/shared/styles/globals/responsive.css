@@ -110,7 +110,14 @@
 }
 
 .sidebar-settings-item-icon {
-    font-size: 17px;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.sidebar-settings-item-icon .material-icon-svg {
+    width: 16px;
+    height: 16px;
 }
 
 .sidebar-settings-item-label {

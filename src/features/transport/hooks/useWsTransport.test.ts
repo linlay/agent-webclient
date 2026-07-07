@@ -1,5 +1,8 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, AgentEvent } from "@/app/state/types";
+import { appReducer } from "@/app/state/reducer";
+import { createLiveQuerySession } from "@/features/chats/lib/conversationSession";
+import { registerMainChatRunActivationListener } from "@/features/chats/hooks/useMainChatRunActivation";
 import { connectWsTransport, registerAttachRunListener, registerDetachRunListener } from "@/features/transport/hooks/useWsTransport";
 import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
@@ -11,6 +14,8 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		automations: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
+		runAgentById: new Map(),
+		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",
 		workerPriorityKey: "",
 		chatId: "",
@@ -1664,6 +1669,159 @@ describe("connectWsTransport continued", () => {
 		);
 	});
 
+	it("unlocks a finished current run so a same-chat background run.started can attach", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const abortController = new AbortController();
+		const initialState = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			runId: "run_old",
+			streaming: true,
+			abortController,
+			currentChatActiveRun: {
+				chatId: "chat_active",
+				runId: "run_old",
+				agentKey: "agent_active",
+			},
+			chatAgentById: new Map([["chat_active", "agent_active"]]),
+		});
+		const stateRef = { current: initialState };
+		const localDispatch = jest.fn<void, [AppAction]>((action) => {
+			stateRef.current = appReducer(stateRef.current, action);
+		});
+		const session = createLiveQuerySession({
+			requestId: "req_old",
+			chatId: "chat_active",
+			agentKey: "agent_active",
+		});
+		session.runId = "run_old";
+		session.streaming = true;
+		session.abortController = abortController;
+		const querySessionsRef = { current: new Map([["req_old", session]]) };
+		const activeQuerySessionRequestIdRef = { current: "req_old" };
+		const abortActiveAttach = jest.fn();
+		const activeAttachRef = {
+			current: {
+				requestId: "req_old",
+				runId: "run_old",
+				chatId: "chat_active",
+				agentKey: "agent_active",
+				controller: abortController,
+				abort: abortActiveAttach,
+			},
+		};
+		const listeners = new Map<string, Set<(event: Event) => void>>();
+		const dispatched: Array<{ type: string; detail: unknown }> = [];
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			value: {
+				location: { pathname: "/agent/agent_active" },
+				addEventListener: jest.fn((type: string, listener: (event: Event) => void) => {
+					const current = listeners.get(type) || new Set();
+					current.add(listener);
+					listeners.set(type, current);
+				}),
+				removeEventListener: jest.fn((type: string, listener: (event: Event) => void) => {
+					listeners.get(type)?.delete(listener);
+				}),
+				dispatchEvent: jest.fn((event: Event): boolean => {
+					dispatched.push({
+						type: event.type,
+						detail: (event as CustomEvent).detail,
+					});
+					for (const listener of listeners.get(event.type) || []) {
+						listener(event);
+					}
+					return true;
+				}),
+			},
+			configurable: true,
+			writable: true,
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			value: MockCustomEvent,
+			configurable: true,
+			writable: true,
+		});
+		const cleanupActivation = registerMainChatRunActivationListener({
+			dispatch: localDispatch,
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		await connectWsTransport({
+			dispatch: localDispatch,
+			state: initialState,
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			activeAttachRef,
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.finished",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_old",
+			},
+		});
+		expect(stateRef.current.streaming).toBe(false);
+		expect(session.streaming).toBe(false);
+		expect(abortActiveAttach).toHaveBeenCalledTimes(1);
+		expect(activeAttachRef.current).toBeNull();
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.started",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "agent_active",
+			},
+		});
+
+		expect(localDispatch).toHaveBeenCalledWith({
+			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+			activeRun: {
+				chatId: "chat_active",
+				runId: "run_new",
+				agentKey: "agent_active",
+				lastSeq: 0,
+			},
+		});
+		expect(
+			dispatched.filter((event) => event.type === "agent:attach-run"),
+		).toEqual([
+			{
+				type: "agent:attach-run",
+				detail: {
+					chatId: "chat_active",
+					runId: "run_new",
+					agentKey: "agent_active",
+					lastSeq: 0,
+				},
+			},
+		]);
+
+		cleanupActivation();
+	});
+
 	it("updates the active chat summary from chat.updated pushes without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
@@ -1820,17 +1978,42 @@ describe("connectWsTransport continued", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts run.finished and clears the matching active run without reloading the chat", async () => {
+	it("upserts run.finished and clears the matching active run observation without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const abortController = new AbortController();
 		const state = createState({
 			accessToken: "token_local",
 			chatId: "chat_active",
+			runId: "run_done",
+			streaming: true,
+			abortController,
 			currentChatActiveRun: {
 				chatId: "chat_active",
 				runId: "run_done",
 				agentKey: "agent_active",
 			},
 		});
+		const session = createLiveQuerySession({
+			requestId: "req_done",
+			chatId: "chat_active",
+			agentKey: "agent_active",
+		});
+		session.runId = "run_done";
+		session.streaming = true;
+		session.abortController = abortController;
+		const querySessionsRef = { current: new Map([["req_done", session]]) };
+		const activeQuerySessionRequestIdRef = { current: "req_done" };
+		const abortActiveAttach = jest.fn();
+		const activeAttachRef = {
+			current: {
+				requestId: "req_done",
+				runId: "run_done",
+				chatId: "chat_active",
+				agentKey: "agent_active",
+				controller: abortController,
+				abort: abortActiveAttach,
+			},
+		};
 		const dispatchEvent = jest.fn();
 		class MockCustomEvent {
 			type: string;
@@ -1856,6 +2039,9 @@ describe("connectWsTransport continued", () => {
 			dispatch,
 			state,
 			stateRef: { current: state },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			activeAttachRef,
 			handleEvent,
 			isAppModeImpl: () => false,
 			ensureAccessTokenImpl: jest.fn(),
@@ -1883,7 +2069,94 @@ describe("connectWsTransport continued", () => {
 			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
 			activeRun: null,
 		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_STREAMING",
+			streaming: false,
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_ABORT_CONTROLLER",
+			controller: null,
+		});
+		expect(session.streaming).toBe(false);
+		expect(session.abortController).toBeNull();
+		expect(abortActiveAttach).toHaveBeenCalledTimes(1);
+		expect(activeAttachRef.current).toBeNull();
 		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("does not unlock the current observation when run.finished is for another run", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const abortController = new AbortController();
+		const state = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			runId: "run_current",
+			streaming: true,
+			abortController,
+			currentChatActiveRun: {
+				chatId: "chat_active",
+				runId: "run_current",
+				agentKey: "agent_active",
+			},
+		});
+		const session = createLiveQuerySession({
+			requestId: "req_current",
+			chatId: "chat_active",
+			agentKey: "agent_active",
+		});
+		session.runId = "run_current";
+		session.streaming = true;
+		session.abortController = abortController;
+		const querySessionsRef = { current: new Map([["req_current", session]]) };
+		const activeQuerySessionRequestIdRef = { current: "req_current" };
+		const abortActiveAttach = jest.fn();
+		const activeAttachRef = {
+			current: {
+				requestId: "req_current",
+				runId: "run_current",
+				chatId: "chat_active",
+				agentKey: "agent_active",
+				controller: abortController,
+				abort: abortActiveAttach,
+			},
+		};
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			activeAttachRef,
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "run.finished",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_other",
+			},
+		});
+
+		expect(dispatch).not.toHaveBeenCalledWith({
+			type: "SET_STREAMING",
+			streaming: false,
+		});
+		expect(dispatch).not.toHaveBeenCalledWith({
+			type: "SET_ABORT_CONTROLLER",
+			controller: null,
+		});
+		expect(session.streaming).toBe(true);
+		expect(session.abortController).toBe(abortController);
+		expect(abortActiveAttach).not.toHaveBeenCalled();
+		expect(activeAttachRef.current?.runId).toBe("run_current");
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 

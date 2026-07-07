@@ -187,6 +187,9 @@ interface ConnectWsTransportOptions {
 	dispatch: WsTransportDispatch;
 	state: Pick<AppState, "accessToken">;
 	stateRef: { current: AppState };
+	querySessionsRef?: { current: Map<string, LiveQuerySession> };
+	activeQuerySessionRequestIdRef?: { current: string };
+	activeAttachRef?: { current: ActiveAttachState | null };
 	handleEvent: (event: AgentEvent) => void;
 	isCancelled?: () => boolean;
 	ensureAccessTokenImpl?: typeof ensureAccessToken;
@@ -244,6 +247,88 @@ function syncAgentUnreadCountFromPush(
 		return;
 	}
 	dispatch({ type: "SET_AGENTS", agents: nextAgents });
+}
+
+function isTerminalPushForSession(
+	session: LiveQuerySession | null | undefined,
+	chatId: string,
+	runId: string,
+): boolean {
+	if (!session) {
+		return false;
+	}
+	const sessionRunId = String(session.runId || "").trim();
+	if (sessionRunId !== runId) {
+		return false;
+	}
+	const sessionChatId = String(session.chatId || "").trim();
+	return !sessionChatId || sessionChatId === chatId;
+}
+
+function syncCurrentTerminalPushObservation(
+	options: Pick<
+		ConnectWsTransportOptions,
+		| "dispatch"
+		| "stateRef"
+		| "querySessionsRef"
+		| "activeQuerySessionRequestIdRef"
+		| "activeAttachRef"
+	>,
+	chatId: string,
+	runId: string,
+): void {
+	const currentChatId = String(options.stateRef.current.chatId || "").trim();
+	if (!chatId || !runId || !currentChatId || currentChatId !== chatId) {
+		return;
+	}
+
+	const currentActiveRun = options.stateRef.current.currentChatActiveRun;
+	const stateRunId = String(options.stateRef.current.runId || "").trim();
+	const activeRequestId = String(
+		options.activeQuerySessionRequestIdRef?.current || "",
+	).trim();
+	const activeSession = activeRequestId && options.querySessionsRef
+		? options.querySessionsRef.current.get(activeRequestId) || null
+		: null;
+	const matchesCurrentRun = stateRunId === runId;
+	const matchesActiveRun =
+		currentActiveRun?.runId === runId &&
+		currentActiveRun.chatId === chatId;
+	const matchesActiveSession = isTerminalPushForSession(
+		activeSession,
+		chatId,
+		runId,
+	);
+	const currentAttach = options.activeAttachRef?.current || null;
+	const matchesActiveAttach =
+		currentAttach?.runId === runId &&
+		currentAttach.chatId === chatId;
+
+	if (
+		!matchesCurrentRun &&
+		!matchesActiveRun &&
+		!matchesActiveSession &&
+		!matchesActiveAttach
+	) {
+		return;
+	}
+
+	if (options.querySessionsRef) {
+		for (const session of options.querySessionsRef.current.values()) {
+			if (isTerminalPushForSession(session, chatId, runId)) {
+				session.streaming = false;
+				session.abortController = null;
+			}
+		}
+	}
+
+	if (matchesActiveAttach && options.activeAttachRef) {
+		currentAttach.abort();
+		options.activeAttachRef.current = null;
+	}
+
+	options.dispatch({ type: "SET_STREAMING", streaming: false });
+	options.dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
 }
 
 type ActiveAttachState = {
@@ -837,6 +922,17 @@ function buildWsClient(
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				const currentActiveRun = options.stateRef.current.currentChatActiveRun;
 				const runId = String(liveEvent.runId || "").trim();
+				syncCurrentTerminalPushObservation(
+					{
+						dispatch: options.dispatch,
+						stateRef: options.stateRef,
+						querySessionsRef: options.querySessionsRef,
+						activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+						activeAttachRef: options.activeAttachRef,
+					},
+					eventChatId,
+					runId,
+				);
 				if (
 					currentActiveRun?.runId &&
 					currentActiveRun.runId === runId &&
@@ -1097,6 +1193,9 @@ export function useWsTransport() {
 			dispatch,
 			state: { accessToken: stateRef.current.accessToken },
 			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			activeAttachRef,
 			handleEvent: stableHandleEvent,
 			isCancelled: () => cancelled,
 		}).catch((error) => {
