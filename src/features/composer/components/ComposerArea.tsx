@@ -571,7 +571,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             slashAvailability={slashAvailability}
             planningMode={state.planningMode}
             slashPopoverWidth={slashPopoverWidth}
-            getPopupContainer={() => composerRef.current ?? document.body}
+            getPopupContainer={() => document.body}
             onSelect={(commandId) => void executeSlashCommand(commandId)}
           >
             <div className={COMPOSER_STACK_CLASS}>

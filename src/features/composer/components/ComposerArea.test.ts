@@ -36,9 +36,13 @@ jest.mock("@/features/composer/components/MentionSuggest", () => ({
   MentionSuggest: () => React.createElement("div", null, "mention"),
 }));
 
+const mockSlashPaletteProps: Array<Record<string, any>> = [];
+
 jest.mock("@/features/composer/components/SlashPalette", () => ({
-  SlashPalette: ({ children }: { children: React.ReactNode }) =>
-    React.createElement("div", { className: "slash-palette" }, children),
+  SlashPalette: (props: Record<string, any>) => {
+    mockSlashPaletteProps.push(props);
+    return React.createElement("div", { className: "slash-palette" }, props.children);
+  },
 }));
 
 jest.mock("@/features/composer/components/SteerBar", () => ({
@@ -230,6 +234,9 @@ const globalWithStorage = globalThis as typeof globalThis & {
     setItem: jest.Mock;
     removeItem: jest.Mock;
   };
+  document?: {
+    body: unknown;
+  };
 };
 
 describe("ComposerArea", () => {
@@ -243,6 +250,7 @@ describe("ComposerArea", () => {
     };
     mockComposerInputProps.length = 0;
     mockComposerActionsProps.length = 0;
+    mockSlashPaletteProps.length = 0;
     mockComposerAttachmentsState.sendAttachmentMeta = [];
     mockComposerAttachmentsState.sendReferences = [];
     mockComposerAwaitingState.isAwaitingActive = false;
@@ -343,5 +351,21 @@ describe("ComposerArea", () => {
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+  });
+
+  it("mounts slash palette popover outside clipped composer containers", () => {
+    const originalDocument = globalWithStorage.document;
+    const body = {};
+    globalWithStorage.document = { body };
+
+    renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(mockSlashPaletteProps[0].getPopupContainer()).toBe(body);
+
+    if (originalDocument) {
+      globalWithStorage.document = originalDocument;
+      return;
+    }
+    delete globalWithStorage.document;
   });
 });

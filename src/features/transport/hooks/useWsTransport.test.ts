@@ -1603,7 +1603,7 @@ describe("connectWsTransport continued", () => {
 		});
 	});
 
-	it("upserts run.started on the active chat and auto-attaches when not streaming", async () => {
+	it("upserts run.started on the active chat and broadcasts a main-chat run candidate", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -1648,15 +1648,34 @@ describe("connectWsTransport continued", () => {
 			},
 		});
 
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_started",
+				agentKey: "agent_started",
+				firstAgentKey: "agent_started",
+				hasActiveRun: true,
+				activeRun: {
+					runId: "run_started",
+					agentKey: "agent_started",
+				},
+			}),
+		});
 		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
-				type: "agent:attach-run",
+				type: "agent:run-started-push",
 				detail: {
 					chatId: "chat_active",
 					runId: "run_started",
 					agentKey: "agent_started",
 					lastSeq: 0,
 				},
+			}),
+		);
+		expect(dispatchEvent).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "agent:attach-run",
 			}),
 		);
 	});

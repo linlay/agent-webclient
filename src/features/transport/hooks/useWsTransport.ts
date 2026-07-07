@@ -46,6 +46,7 @@ import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/chats/lib/conversationSession";
+import { dispatchRunStartedPushEvent } from "@/features/chats/lib/mainChatRunActivation";
 import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import {
@@ -831,16 +832,22 @@ function buildWsClient(
 
 			if (type === "run.start") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
-				if (options.stateRef.current.streaming) {
-					return;
-				}
-				if (isActiveChat) {
-					const runId = String(liveEvent.runId || "").trim();
-					const agentKey = String(liveEvent.agentKey || "").trim();
-					if (runId) {
-						dispatchAttachRunEvent(eventChatId, runId, 0, agentKey);
-					}
-				}
+				const runId = String(liveEvent.runId || "").trim();
+				const agentKey = resolveRunAgentKey({
+					runId,
+					metadataAgentKey: liveEvent.agentKey,
+					runAgentById: options.stateRef.current.runAgentById,
+					chatId: eventChatId,
+					chatAgentById: options.stateRef.current.chatAgentById,
+					chats: options.stateRef.current.chats,
+					fallbackAgentKey: "",
+				});
+				dispatchRunStartedPushEvent({
+					chatId: eventChatId,
+					runId,
+					agentKey,
+					lastSeq: 0,
+				});
 				return;
 			}
 

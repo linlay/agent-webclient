@@ -64,11 +64,6 @@
     background: color-mix(in srgb, var(--accent-soft) 72%, var(--bg-elev-2));
 }
 
-.icon-btn.ui-icon-hover-20:hover {
-    color: var(--ink-1);
-    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
-}
-
 .top-nav .icon-btn.ui-btn.is-icon-only,
 .top-nav .current-worker-tool.ui-btn {
     width: 32px;
