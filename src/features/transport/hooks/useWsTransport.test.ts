@@ -1820,9 +1820,17 @@ describe("connectWsTransport continued", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts run.finished for the active chat without reloading the chat", async () => {
+	it("upserts run.finished and clears the matching active run without reloading the chat", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
-		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const state = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			currentChatActiveRun: {
+				chatId: "chat_active",
+				runId: "run_done",
+				agentKey: "agent_active",
+			},
+		});
 		const dispatchEvent = jest.fn();
 		class MockCustomEvent {
 			type: string;
@@ -1870,6 +1878,10 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_active",
 				lastRunId: "run_done",
 			}),
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+			activeRun: null,
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();

@@ -64,25 +64,25 @@ function appendIgnoredDebug(
 function hasActiveObservation(
 	options: Pick<
 		RegisterMainChatRunActivationListenerOptions,
-		"querySessionsRef" | "activeQuerySessionRequestIdRef"
+		"stateRef" | "querySessionsRef" | "activeQuerySessionRequestIdRef"
 	>,
 	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
 ): boolean {
+	if (options.stateRef.current.streaming) {
+		return true;
+	}
 	const activeRequestId = String(options.activeQuerySessionRequestIdRef.current || "").trim();
-	if (activeRequestId) {
+	const activeSession = activeRequestId
+		? options.querySessionsRef.current.get(activeRequestId) || null
+		: null;
+	if (activeSession?.streaming) {
+		return true;
+	}
+	if (activeSession?.runId && activeSession.runId === decision.runId) {
 		return true;
 	}
 	for (const session of options.querySessionsRef.current.values()) {
-		if (!session.streaming) {
-			continue;
-		}
 		if (session.runId && session.runId === decision.runId) {
-			return true;
-		}
-		if (
-			session.chatId === decision.chatId &&
-			(!session.agentKey || session.agentKey === decision.agentKey)
-		) {
 			return true;
 		}
 	}

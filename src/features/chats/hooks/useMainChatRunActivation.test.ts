@@ -327,6 +327,73 @@ describe("registerMainChatRunActivationListener", () => {
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
 	});
 
+	it("attaches when the active query session is an already-finished old run", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		const session = createLiveQuerySession({
+			requestId: "req_1",
+			chatId: "chat_1",
+			agentKey: "demo",
+		});
+		session.runId = "run_old";
+		session.streaming = false;
+		querySessionsRef.current.set("req_1", session);
+		activeQuerySessionRequestIdRef.current = "req_1";
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_1",
+					runId: "run_old",
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_1",
+			runId: "run_new",
+			agentKey: "demo",
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+			activeRun: {
+				chatId: "chat_1",
+				runId: "run_new",
+				agentKey: "demo",
+				lastSeq: 0,
+			},
+		});
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
+	});
+
+	it("attaches when the active query session ref is stale and missing", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		activeQuerySessionRequestIdRef.current = "req_missing";
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_1",
+					runId: "run_old",
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_1",
+			runId: "run_new",
+			agentKey: "demo",
+		});
+
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
+	});
+
 	it("does not attach when a stored streaming session already observes the same run", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
 		const session = createLiveQuerySession({

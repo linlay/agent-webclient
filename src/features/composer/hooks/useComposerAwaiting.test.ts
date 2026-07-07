@@ -136,7 +136,7 @@ describe("submitComposerAwaiting", () => {
 		delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
 	});
 
-	it("activates the main chat run and attaches when submit response continues the run", async () => {
+	it("does not attach when submit response continues the run", async () => {
 		const dispatch = jest.fn<void, [AppAction]>();
 		const clearActiveAwaiting = jest.fn();
 		const dispatchEvent = jest.fn();
@@ -217,33 +217,20 @@ describe("submitComposerAwaiting", () => {
 			},
 		});
 		expect(clearActiveAwaiting).toHaveBeenCalledTimes(1);
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
-			activeRun: {
-				chatId: "chat_1",
-				runId: "run_1",
-				agentKey: "agent_run",
-			},
-		});
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_RUN_ID",
-			runId: "run_1",
-		});
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+			}),
+		);
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "SET_RUN_ID",
+			}),
+		);
 		expect(
 			dispatchEvent.mock.calls.filter(
 				([event]) => (event as { type?: string }).type === "agent:attach-run",
 			),
-		).toEqual([
-			[
-				expect.objectContaining({
-					type: "agent:attach-run",
-					detail: {
-						chatId: "chat_1",
-						runId: "run_1",
-						agentKey: "agent_run",
-					},
-				}),
-			],
-		]);
+		).toHaveLength(0);
 	});
 });
