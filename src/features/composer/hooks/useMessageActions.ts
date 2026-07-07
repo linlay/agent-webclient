@@ -1,37 +1,46 @@
-import { useCallback, useEffect } from 'react';
-import { useAppContext } from '@/app/state/AppContext';
-import type { AppAction } from '@/app/state/AppContext';
-import type { TimelineAttachment } from '@/app/state/types';
-import { AIRunEventTypeEnum } from '@/app/state/types';
-import { useAgentEventHandler } from '@/features/timeline/hooks/useAgentEventHandler';
+import { useCallback, useEffect } from "react";
+import { useAppContext } from "@/app/state/AppContext";
+import type { AppAction } from "@/app/state/AppContext";
+import type { TimelineAttachment } from "@/app/state/types";
+import { AIRunEventTypeEnum } from "@/app/state/types";
+import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
 import {
   createRequestId,
   type QueryAccessLevel,
   type QueryModelOverride,
   setAccessToken,
-} from '@/shared/data';
-import { parseLeadingAgentMention } from '@/features/composer/lib/mentionParser';
-import { resolveMentionCandidatesFromState } from '@/features/composer/lib/mentionCandidates';
+} from "@/shared/data";
+import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
+import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import {
   resolvePreferredAgentKey,
   resolvePreferredTeamId,
-} from '@/features/composer/lib/queryRouting';
-import { getVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
-import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } from '@/features/transport/lib/queryStreamExecutors';
-import { dispatchDetachRunEvent, type DetachRunEventDetail } from '@/features/transport/lib/detachRunEvent';
-import { normalizeTimelineAttachments } from '@/features/artifacts/lib/timelineAttachments';
-import { upsertLiveChatSummary as buildLiveChatSummary } from '@/features/chats/lib/chatSummaryLive';
-import { formatPlatformErrorForDisplay } from '@/shared/data/platformError';
+} from "@/features/composer/lib/queryRouting";
+import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
+import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } from "@/features/transport/lib/queryStreamExecutors";
+import {
+  dispatchDetachRunEvent,
+  type DetachRunEventDetail,
+} from "@/features/transport/lib/detachRunEvent";
+import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
+import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
 import {
   createLiveQuerySession,
   snapshotConversationState,
   markSessionSnapshotApplied,
   type LiveQuerySession,
-} from '@/features/chats/lib/conversationSession';
-import { readRunAgentKeyFromEvent, resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
-import type { AgentEvent, AppState } from '@/app/state/types';
-import { readEventTeamId, readRequestQueryText } from '@/shared/utils/eventFieldReaders';
-import { toText } from '@/shared/utils/eventUtils';
+} from "@/features/chats/lib/conversationSession";
+import {
+  readRunAgentKeyFromEvent,
+  resolveRunAgentKey,
+} from "@/features/chats/lib/runAgentIdentity";
+import type { AgentEvent, AppState } from "@/app/state/types";
+import {
+  readEventTeamId,
+  readRequestQueryText,
+} from "@/shared/utils/eventFieldReaders";
+import { toText } from "@/shared/utils/eventUtils";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -46,11 +55,13 @@ interface SendMessageEventDetail {
 }
 
 function isTerminalRunEventType(type: string): boolean {
-  return type === 'run.error' || type === 'run.complete' || type === 'run.cancel';
+  return (
+    type === "run.error" || type === "run.complete" || type === "run.cancel"
+  );
 }
 
 export function syncLiveSessionTerminalState(
-  session: Pick<LiveQuerySession, 'streaming' | 'abortController'>,
+  session: Pick<LiveQuerySession, "streaming" | "abortController">,
   event: AgentEvent,
 ): boolean {
   const type = toText(event.type);
@@ -64,15 +75,18 @@ export function syncLiveSessionTerminalState(
 }
 
 export function canSendToTargetChat(input: {
-  currentActiveSession: Pick<LiveQuerySession, 'streaming' | 'abortController' | 'chatId'> | null;
+  currentActiveSession: Pick<
+    LiveQuerySession,
+    "streaming" | "abortController" | "chatId"
+  > | null;
   currentStateChatId?: string;
   targetChatId?: string;
   stateStreaming: boolean;
 }): boolean {
   const currentSessionChatId = String(
-    input.currentActiveSession?.chatId || input.currentStateChatId || '',
+    input.currentActiveSession?.chatId || input.currentStateChatId || "",
   ).trim();
-  const targetChatId = String(input.targetChatId || '').trim();
+  const targetChatId = String(input.targetChatId || "").trim();
   const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
 
   if (!input.currentActiveSession?.streaming || !isSameChat) {
@@ -89,13 +103,16 @@ export function canSendToTargetChat(input: {
 }
 
 export function resolveDifferentChatDetachRunDetail(input: {
-  currentActiveSession: Pick<LiveQuerySession, 'streaming' | 'chatId' | 'runId' | 'agentKey'> | null;
+  currentActiveSession: Pick<
+    LiveQuerySession,
+    "streaming" | "chatId" | "runId" | "agentKey"
+  > | null;
   currentState: AppState;
   targetChatId?: string;
 }): DetachRunEventDetail | null {
-  const targetChatId = String(input.targetChatId || '').trim();
+  const targetChatId = String(input.targetChatId || "").trim();
   const chatId = String(
-    input.currentActiveSession?.chatId || input.currentState.chatId || '',
+    input.currentActiveSession?.chatId || input.currentState.chatId || "",
   ).trim();
   if (!targetChatId || !chatId || targetChatId === chatId) {
     return null;
@@ -105,7 +122,7 @@ export function resolveDifferentChatDetachRunDetail(input: {
   }
 
   const runId = String(
-    input.currentActiveSession?.runId || input.currentState.runId || '',
+    input.currentActiveSession?.runId || input.currentState.runId || "",
   ).trim();
   if (!runId) {
     return null;
@@ -124,42 +141,52 @@ export function resolveDifferentChatDetachRunDetail(input: {
     chatId,
     runId,
     agentKey,
-    reason: 'chat_switch',
+    reason: "chat_switch",
   };
 }
 
 export const resolveQueryStreamExecutor = resolveTransportQueryStreamExecutor;
 
-function normalizeQueryAccessLevel(value: unknown): QueryAccessLevel | undefined {
-  return value === 'default' || value === 'auto_approve' || value === 'full_access'
+function normalizeQueryAccessLevel(
+  value: unknown,
+): QueryAccessLevel | undefined {
+  return value === "default" ||
+    value === "auto_approve" ||
+    value === "full_access"
     ? value
     : undefined;
 }
 
-function normalizeQueryModelOverride(value: unknown): QueryModelOverride | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+function normalizeQueryModelOverride(
+  value: unknown,
+): QueryModelOverride | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
   const record = value as Record<string, unknown>;
-  const key = String(record.key || '').trim();
-  const reasoningEffort = String(record.reasoningEffort || '').trim();
-  const serviceTier = String(record.serviceTier || '').trim().toUpperCase();
+  const key = String(record.key || "").trim();
+  const reasoningEffort = String(record.reasoningEffort || "").trim();
+  const serviceTier = String(record.serviceTier || "")
+    .trim()
+    .toUpperCase();
   const model: QueryModelOverride = {};
   if (key) {
     model.key = key;
   }
   if (
-    reasoningEffort === 'LOW' ||
-    reasoningEffort === 'MEDIUM' ||
-    reasoningEffort === 'HIGH' ||
-    reasoningEffort === 'NONE'
+    reasoningEffort === "LOW" ||
+    reasoningEffort === "MEDIUM" ||
+    reasoningEffort === "HIGH" ||
+    reasoningEffort === "NONE"
   ) {
     model.reasoningEffort = reasoningEffort;
   }
-  if (serviceTier && serviceTier !== 'STANDARD') {
+  if (serviceTier && serviceTier !== "STANDARD") {
     model.serviceTier = serviceTier;
   }
-  return model.key || model.reasoningEffort || model.serviceTier ? model : undefined;
+  return model.key || model.reasoningEffort || model.serviceTier
+    ? model
+    : undefined;
 }
 
 /**
@@ -189,25 +216,27 @@ export function useMessageActions() {
       params: Record<string, unknown> = {},
       accessLevel?: QueryAccessLevel,
       model?: QueryModelOverride,
-      preferredChatId = '',
-      preferredAgentKey = '',
-      preferredTeamId = '',
+      preferredChatId = "",
+      preferredAgentKey = "",
+      preferredTeamId = "",
     ) => {
-      const rawMessage = String(inputMessage ?? '').trim();
+      const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = Array.isArray(references)
         ? references.filter((reference) => reference != null)
         : [];
       if (!rawMessage && normalizedReferences.length === 0) return;
 
       /* ── Parallel-query guard ── */
-      const currentActiveReqId = String(activeQuerySessionRequestIdRef.current || '').trim();
+      const currentActiveReqId = String(
+        activeQuerySessionRequestIdRef.current || "",
+      ).trim();
       const currentActiveSession = currentActiveReqId
-        ? querySessionsRef.current.get(currentActiveReqId) ?? null
+        ? (querySessionsRef.current.get(currentActiveReqId) ?? null)
         : null;
-      const targetChatId = String(preferredChatId || '').trim();
+      const targetChatId = String(preferredChatId || "").trim();
       const canSend = canSendToTargetChat({
         currentActiveSession,
-        currentStateChatId: String(stateRef.current.chatId || '').trim(),
+        currentStateChatId: String(stateRef.current.chatId || "").trim(),
         targetChatId,
         stateStreaming: Boolean(stateRef.current.streaming),
       });
@@ -217,7 +246,9 @@ export function useMessageActions() {
         return;
       }
 
-      const currentSessionChatId = currentActiveSession?.chatId || String(stateRef.current.chatId || '').trim();
+      const currentSessionChatId =
+        currentActiveSession?.chatId ||
+        String(stateRef.current.chatId || "").trim();
       const isSameChat = !targetChatId || targetChatId === currentSessionChatId;
 
       if (stateRef.current.streaming && !isSameChat) {
@@ -231,48 +262,60 @@ export function useMessageActions() {
           dispatchDetachRunEvent(detachDetail);
         } else {
           dispatch({
-            type: 'APPEND_DEBUG',
-            line: `[detach] skipped: missing runId or agentKey (chatId=${currentSessionChatId || '-'})`,
+            type: "APPEND_DEBUG",
+            line: `[detach] skipped: missing runId or agentKey (chatId=${currentSessionChatId || "-"})`,
           });
         }
         if (currentActiveSession) {
-          currentActiveSession.snapshot = snapshotConversationState(stateRef.current);
-          currentActiveSession.chatId = currentActiveSession.chatId || currentSessionChatId;
-          currentActiveSession.runId = currentActiveSession.runId || String(stateRef.current.runId || '').trim();
+          currentActiveSession.snapshot = snapshotConversationState(
+            stateRef.current,
+          );
+          currentActiveSession.chatId =
+            currentActiveSession.chatId || currentSessionChatId;
+          currentActiveSession.runId =
+            currentActiveSession.runId ||
+            String(stateRef.current.runId || "").trim();
           currentActiveSession.streaming = true;
-          currentActiveSession.abortController = stateRef.current.abortController;
+          currentActiveSession.abortController =
+            stateRef.current.abortController;
           markSessionSnapshotApplied(currentActiveSession);
         }
-        if (stateRef.current.transportMode === 'sse') {
+        if (stateRef.current.transportMode === "sse") {
           stateRef.current.abortController?.abort();
         }
-        activeQuerySessionRequestIdRef.current = '';
-        dispatch({ type: 'RESET_ACTIVE_CONVERSATION' });
-        window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
+        activeQuerySessionRequestIdRef.current = "";
+        dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
+        window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
       }
 
       /* Parse @mention */
       const mentionAgents = resolveMentionCandidatesFromState(stateRef.current);
-      const mentionEnabled = Array.isArray(mentionAgents) && mentionAgents.length > 0;
+      const mentionEnabled =
+        Array.isArray(mentionAgents) && mentionAgents.length > 0;
       const mention = mentionEnabled
         ? parseLeadingAgentMention(rawMessage, mentionAgents)
         : {
-          cleanMessage: rawMessage.trim(),
-          mentionAgentKey: '',
-          mentionToken: '',
-          error: '',
-          hasMention: false,
-        };
+            cleanMessage: rawMessage.trim(),
+            mentionAgentKey: "",
+            mentionToken: "",
+            error: "",
+            hasMention: false,
+          };
       if (mention.error) {
         dispatch({
-          type: 'APPEND_DEBUG',
+          type: "APPEND_DEBUG",
           line: `[mention] ${mention.error}`,
         });
         return;
       }
 
-      const chatId = String(preferredChatId || stateRef.current.chatId || '').trim();
-      const selectedWorker = stateRef.current.workerIndexByKey.get(String(stateRef.current.workerSelectionKey || '').trim()) || null;
+      const chatId = String(
+        preferredChatId || stateRef.current.chatId || "",
+      ).trim();
+      const selectedWorker =
+        stateRef.current.workerIndexByKey.get(
+          String(stateRef.current.workerSelectionKey || "").trim(),
+        ) || null;
       let selectedAgentKey = resolvePreferredAgentKey(stateRef.current, {
         chatId,
         explicitAgentKey: preferredAgentKey,
@@ -284,9 +327,10 @@ export function useMessageActions() {
 
       if (mention.mentionAgentKey) {
         selectedAgentKey = mention.mentionAgentKey;
-        const keepSelectedTeamScope = !chatId && selectedWorker?.type === 'team';
+        const keepSelectedTeamScope =
+          !chatId && selectedWorker?.type === "team";
         if (!keepSelectedTeamScope) {
-          selectedTeamId = '';
+          selectedTeamId = "";
         }
       }
 
@@ -295,32 +339,33 @@ export function useMessageActions() {
       const selectedAgent = stateRef.current.agents.find(
         (agent) => toText(agent?.key) === selectedAgentKey,
       );
-      const selectedAgentMode = String(selectedAgent?.mode || '').trim();
+      const selectedAgentMode = String(selectedAgent?.mode || "").trim();
 
       if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
 
       if (
-        selectedAgentKey
-        && selectedAgentKey === String(stateRef.current.temporaryPinnedAgentKey || '').trim()
+        selectedAgentKey &&
+        selectedAgentKey ===
+          String(stateRef.current.temporaryPinnedAgentKey || "").trim()
       ) {
-        dispatch({ type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: '' });
+        dispatch({ type: "SET_TEMPORARY_PINNED_AGENT_KEY", agentKey: "" });
       }
 
       dispatch({
-        type: 'SET_WORKER_PRIORITY_KEY',
-        workerKey: selectedAgentKey ? `agent:${selectedAgentKey}` : '',
+        type: "SET_WORKER_PRIORITY_KEY",
+        workerKey: selectedAgentKey ? `agent:${selectedAgentKey}` : "",
       });
 
       if (mention.mentionAgentKey) {
         if (chatId) {
           dispatch({
-            type: 'SET_CHAT_AGENT_BY_ID',
+            type: "SET_CHAT_AGENT_BY_ID",
             chatId,
             agentKey: mention.mentionAgentKey,
           });
         } else {
           dispatch({
-            type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
+            type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
             agentKey: mention.mentionAgentKey,
           });
         }
@@ -329,27 +374,27 @@ export function useMessageActions() {
       /* Add user message to timeline (mention prefix is routing metadata, not message body) */
       const userNodeId = `user_${Date.now()}`;
       dispatch({
-        type: 'SET_TIMELINE_NODE',
+        type: "SET_TIMELINE_NODE",
         id: userNodeId,
         node: {
           id: userNodeId,
-          kind: 'message',
-          role: 'user',
+          kind: "message",
+          role: "user",
           text: cleanMessage,
           attachments: attachments.length > 0 ? attachments : undefined,
           ts: Date.now(),
         },
       });
-      dispatch({ type: 'APPEND_TIMELINE_ORDER', id: userNodeId });
+      dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });
 
       getVoiceRuntime()?.resetVoiceRuntime();
 
       /* Start streaming */
-      const requestId = createRequestId('req');
+      const requestId = createRequestId("req");
       const abortController = new AbortController();
       if (chatId && selectedAgentKey) {
         dispatch({
-          type: 'SET_CHAT_AGENT_BY_ID',
+          type: "SET_CHAT_AGENT_BY_ID",
           chatId,
           agentKey: selectedAgentKey,
         });
@@ -366,7 +411,8 @@ export function useMessageActions() {
       }
       activeQuerySessionRequestIdRef.current = requestId;
 
-      const isSessionActive = () => activeQuerySessionRequestIdRef.current === session.requestId;
+      const isSessionActive = () =>
+        activeQuerySessionRequestIdRef.current === session.requestId;
       const bindSessionIdentity = (event: AgentEvent) => {
         const nextChatId = toText(event.chatId);
         if (nextChatId) {
@@ -390,13 +436,16 @@ export function useMessageActions() {
         const binding = readRunAgentKeyFromEvent(event);
         if (binding) {
           dispatch({
-            type: 'SET_RUN_AGENT_BY_ID',
+            type: "SET_RUN_AGENT_BY_ID",
             runId: binding.runId,
             agentKey: binding.agentKey,
           });
-          if (!stateRef.current.runId || stateRef.current.runId === binding.runId) {
+          if (
+            !stateRef.current.runId ||
+            stateRef.current.runId === binding.runId
+          ) {
             dispatch({
-              type: 'SET_CURRENT_RUN_AGENT_KEY',
+              type: "SET_CURRENT_RUN_AGENT_KEY",
               agentKey: binding.agentKey,
             });
           }
@@ -406,7 +455,10 @@ export function useMessageActions() {
           session.teamId = nextTeamId;
         }
       };
-      const upsertBackgroundChatSummary = (event: AgentEvent, lastRunContent?: string) => {
+      const upsertBackgroundChatSummary = (
+        event: AgentEvent,
+        lastRunContent?: string,
+      ) => {
         const next = buildLiveChatSummary({
           event,
           cache: {
@@ -417,8 +469,8 @@ export function useMessageActions() {
           },
           state: stateRef.current,
           selectedContext: {
-            agentKey: '',
-            teamId: '',
+            agentKey: "",
+            teamId: "",
           },
           lastRunContent,
         });
@@ -430,14 +482,17 @@ export function useMessageActions() {
         session.runId = next.resolved.runId;
         session.agentKey = next.resolved.agentKey;
         session.teamId = next.resolved.teamId;
-        chatQuerySessionIndexRef.current.set(next.resolved.chatId, session.requestId);
+        chatQuerySessionIndexRef.current.set(
+          next.resolved.chatId,
+          session.requestId,
+        );
         if (session.snapshot && !session.snapshot.chatId) {
           session.snapshot.chatId = next.resolved.chatId;
         }
-        dispatch({ type: 'UPSERT_CHAT', chat: next.chat });
+        dispatch({ type: "UPSERT_CHAT", chat: next.chat });
         if (next.resolved.chatId && next.resolved.agentKey) {
           dispatch({
-            type: 'SET_CHAT_AGENT_BY_ID',
+            type: "SET_CHAT_AGENT_BY_ID",
             chatId: next.resolved.chatId,
             agentKey: next.resolved.agentKey,
           });
@@ -445,25 +500,25 @@ export function useMessageActions() {
       };
       const sessionDispatch = (action: AppAction) => {
         switch (action.type) {
-          case 'SET_REQUEST_ID':
+          case "SET_REQUEST_ID":
             session.requestId = action.requestId;
             if (isSessionActive()) {
               dispatch(action);
             }
             return;
-          case 'SET_STREAMING':
+          case "SET_STREAMING":
             session.streaming = action.streaming;
             if (isSessionActive()) {
               dispatch(action);
             }
             return;
-          case 'SET_ABORT_CONTROLLER':
+          case "SET_ABORT_CONTROLLER":
             session.abortController = action.controller;
             if (isSessionActive()) {
               dispatch(action);
             }
             return;
-          case 'APPEND_DEBUG':
+          case "APPEND_DEBUG":
             session.bufferedDebugLines.push(action.line);
             if (isSessionActive()) {
               dispatch(action);
@@ -486,16 +541,24 @@ export function useMessageActions() {
         }
 
         const type = toText(event.type);
-        if (type === 'request.query') {
-          upsertBackgroundChatSummary(event, readRequestQueryText(event) || undefined);
+        if (type === "request.query") {
+          upsertBackgroundChatSummary(
+            event,
+            event?.taskId
+              ? undefined
+              : readRequestQueryText(event) || undefined,
+          );
           return;
         }
-        if (type === 'run.start' || isTerminalRunEventType(type)) {
+        if (type === "run.start" || isTerminalRunEventType(type)) {
           upsertBackgroundChatSummary(event);
           return;
         }
-        if ((type === 'content.end' || type === 'content.snapshot') && event.contentId) {
-          upsertBackgroundChatSummary(event, toText(event.text) || undefined);
+        if (
+          (type === "content.end" || type === "content.snapshot") &&
+          event.contentId
+        ) {
+          upsertBackgroundChatSummary(event);
         }
       };
 
@@ -507,7 +570,10 @@ export function useMessageActions() {
             agentKey: selectedAgentKey || undefined,
             teamId: selectedTeamId || undefined,
             chatId: chatId || undefined,
-            references: normalizedReferences.length > 0 ? normalizedReferences : undefined,
+            references:
+              normalizedReferences.length > 0
+                ? normalizedReferences
+                : undefined,
             accessLevel,
             model,
             params: Object.keys(params).length > 0 ? params : undefined,
@@ -520,27 +586,27 @@ export function useMessageActions() {
         });
       } catch (error) {
         const err = error as Error;
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           const display = formatPlatformErrorForDisplay(err);
           if (isSessionActive()) {
             dispatch({
-              type: 'APPEND_DEBUG',
+              type: "APPEND_DEBUG",
               line: `[send error] ${err.message}`,
             });
             const errNodeId = `sys_${Date.now()}`;
             dispatch({
-              type: 'SET_TIMELINE_NODE',
+              type: "SET_TIMELINE_NODE",
               id: errNodeId,
               node: {
                 id: errNodeId,
-                kind: 'message',
-                role: 'system',
+                kind: "message",
+                role: "system",
                 text: display.message,
                 errorDetail: display.error,
                 ts: Date.now(),
               },
             });
-            dispatch({ type: 'APPEND_TIMELINE_ORDER', id: errNodeId });
+            dispatch({ type: "APPEND_TIMELINE_ORDER", id: errNodeId });
           } else {
             const syntheticErrorEvent: AgentEvent = {
               type: AIRunEventTypeEnum.Error,
@@ -564,34 +630,37 @@ export function useMessageActions() {
       handleEvent,
       querySessionsRef,
       stateRef,
-    ]
+    ],
   );
 
   const abortStream = useCallback(() => {
     stateRef.current.abortController?.abort();
-    getVoiceRuntime()?.stopAllVoiceSessions('user_stop', { mode: 'stop' });
-    dispatch({ type: 'SET_STREAMING', streaming: false });
-    dispatch({ type: 'SET_ABORT_CONTROLLER', controller: null });
+    getVoiceRuntime()?.stopAllVoiceSessions("user_stop", { mode: "stop" });
+    dispatch({ type: "SET_STREAMING", streaming: false });
+    dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
   }, [dispatch, stateRef]);
 
   /* Listen for custom send-message events from ComposerArea */
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = ((e as CustomEvent).detail || {}) as SendMessageEventDetail;
-      const message = String(detail.message || '').trim();
+      const detail = ((e as CustomEvent).detail ||
+        {}) as SendMessageEventDetail;
+      const message = String(detail.message || "").trim();
       const references = Array.isArray(detail.references)
         ? detail.references
         : [];
       const attachments = normalizeTimelineAttachments(detail.attachments);
       const params =
-        detail.params && typeof detail.params === 'object' && !Array.isArray(detail.params)
+        detail.params &&
+        typeof detail.params === "object" &&
+        !Array.isArray(detail.params)
           ? (detail.params as Record<string, unknown>)
           : {};
       const accessLevel = normalizeQueryAccessLevel(detail.accessLevel);
       const model = normalizeQueryModelOverride(detail.model);
-      const chatId = String(detail.chatId || '').trim();
-      const agentKey = String(detail.agentKey || '').trim();
-      const teamId = String(detail.teamId || '').trim();
+      const chatId = String(detail.chatId || "").trim();
+      const agentKey = String(detail.agentKey || "").trim();
+      const teamId = String(detail.teamId || "").trim();
       if (message) {
         void sendMessage(
           message,
@@ -606,8 +675,8 @@ export function useMessageActions() {
         );
       }
     };
-    window.addEventListener('agent:send-message', handler);
-    return () => window.removeEventListener('agent:send-message', handler);
+    window.addEventListener("agent:send-message", handler);
+    return () => window.removeEventListener("agent:send-message", handler);
   }, [sendMessage]);
 
   return { sendMessage, abortStream };

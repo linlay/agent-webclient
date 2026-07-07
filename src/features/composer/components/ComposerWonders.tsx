@@ -10,7 +10,7 @@ interface ComposerWondersProps {
   onReshuffle: () => void;
 }
 
-const COMPOSER_WONDERS_CLASS = "composer-wonders tw:flex tw:flex-col tw:gap-2.5";
+const COMPOSER_WONDERS_CLASS = "composer-wonders tw:flex tw:flex-col tw:gap-2.5 tw:overflow-auto";
 const COMPOSER_WONDERS_HEADER_CLASS =
   "composer-wonders-header tw:flex tw:items-baseline tw:gap-2.5 tw:px-1 tw:py-0";
 const COMPOSER_WONDERS_KICKER_CLASS =
@@ -20,7 +20,7 @@ const COMPOSER_WONDERS_TITLE_CLASS =
 const COMPOSER_WONDERS_SHUFFLE_CLASS =
   "composer-wonders-shuffle tw:ml-auto tw:inline-flex tw:h-[26px] tw:w-[26px] tw:flex-shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:[transition:color_0.18s_ease,transform_0.35s_ease] tw:hover:rotate-180 tw:hover:text-ink-1 tw:hover:outline-none tw:focus-visible:rotate-180 tw:focus-visible:text-ink-1 tw:focus-visible:outline-none tw:[&_.material-icon]:text-lg";
 const COMPOSER_WONDERS_GRID_CLASS =
-  "composer-wonders-grid tw:grid tw:grid-cols-3 tw:gap-2.5";
+  "composer-wonders-grid tw:grid tw:grid-cols-3 tw:gap-2.5 tw:overflow-auto";
 const COMPOSER_WONDER_CARD_CLASS =
   "composer-wonder-card tw:flex tw:flex-col tw:items-start tw:gap-2 tw:bg-transparent tw:px-[15px] tw:py-3.5 tw:text-left tw:shadow-elevated tw:transition-[transform,border-color,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:-translate-y-px tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:hover:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:hover:outline-none tw:focus-visible:-translate-y-px tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:focus-visible:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:focus-visible:outline-none";
 const COMPOSER_WONDER_INDEX_CLASS =
