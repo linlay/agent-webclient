@@ -225,7 +225,7 @@ export const HistoryModal: React.FC<{
                         }}
                       >
                         <MaterialIcon
-                          name="download"
+                          name="export"
                           style={{ color: "var(--accent)" }}
                         />
                       </UiButton>

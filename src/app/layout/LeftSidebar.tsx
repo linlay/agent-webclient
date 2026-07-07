@@ -91,6 +91,7 @@ export function buildCoderAgentCreateRequest(
   workspaceDir: string,
   options: { name?: string; acpProxyId?: string } = {},
 ) {
+  const name = String(options.name || "").trim();
   const runtimeConfig: Record<string, unknown> = {
     workspaceRoot: workspaceDir,
   };
@@ -99,6 +100,7 @@ export function buildCoderAgentCreateRequest(
   }
   return {
     definition: {
+      ...(name ? { name } : {}),
       mode: "CODER",
       runtimeConfig,
     },
@@ -107,10 +109,12 @@ export function buildCoderAgentCreateRequest(
 
 export function buildKbaseAgentCreateRequest(
   workspaceDir: string,
-  _options: { name?: string } = {},
+  options: { name?: string } = {},
 ) {
+  const name = String(options.name || "").trim();
   return {
     definition: {
+      ...(name ? { name } : {}),
       mode: "KBASE",
       runtimeConfig: {
         workspaceRoot: workspaceDir,

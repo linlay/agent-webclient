@@ -106,7 +106,7 @@ export const WorkerConversationPreviewList: React.FC<{
       ? [
           {
             key: "renameAgent",
-            icon: <MaterialIcon name="edit" />,
+            icon: <MaterialIcon name="rename" />,
             label: t("leftSidebar.renameAgent"),
           },
         ]

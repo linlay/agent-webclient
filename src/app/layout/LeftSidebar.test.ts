@@ -912,6 +912,7 @@ describe("LeftSidebar", () => {
       }),
     ).toEqual({
       definition: {
+        name: "agent-coder",
         mode: "CODER",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/agent-coder",
@@ -921,11 +922,13 @@ describe("LeftSidebar", () => {
     const acpRequest = buildCoderAgentCreateRequest(
       "/Users/demo/Project/acp-coder",
       {
+        name: "ACP Coder",
         acpProxyId: "proxy-acp-codex",
       },
     );
     expect(acpRequest).toEqual({
       definition: {
+        name: "ACP Coder",
         mode: "CODER",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/acp-coder",
@@ -943,6 +946,7 @@ describe("LeftSidebar", () => {
     );
     expect(result).toEqual({
       definition: {
+        name: "My KB",
         mode: "KBASE",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Knowledge/my-project",
@@ -951,7 +955,6 @@ describe("LeftSidebar", () => {
     });
     expect(result).not.toHaveProperty("key");
     expect(result.definition).not.toHaveProperty("key");
-    expect(result.definition).not.toHaveProperty("name");
     expect(result.definition).not.toHaveProperty("icon");
     expect(result.definition).not.toHaveProperty("workspace");
     expect(result.definition).not.toHaveProperty("kbaseConfig");

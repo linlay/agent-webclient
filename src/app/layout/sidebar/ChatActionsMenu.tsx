@@ -163,13 +163,13 @@ export const ChatActionsMenu: React.FC<{
 	const items: MenuProps["items"] = [
 		{
 			key: "export",
-			icon: <MaterialIcon name="download" />,
+			icon: <MaterialIcon name="export" />,
 			label: t("chatActions.export"),
 			onClick: () => void handleExport(),
 		},
 		{
 			key: "rename",
-			icon: <MaterialIcon name="edit" />,
+			icon: <MaterialIcon name="rename" />,
 			label: t("chatActions.rename.menu"),
 			onClick: handleRename,
 		},
