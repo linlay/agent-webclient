@@ -246,21 +246,6 @@ function syncAgentUnreadCountFromPush(
 	dispatch({ type: "SET_AGENTS", agents: nextAgents });
 }
 
-function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agentKey = ""): void {
-	if (
-		typeof window === "undefined"
-		|| typeof window.dispatchEvent !== "function"
-		|| typeof CustomEvent !== "function"
-	) {
-		return;
-	}
-	window.dispatchEvent(
-		new CustomEvent("agent:attach-run", {
-			detail: { chatId, runId, lastSeq, agentKey },
-		}),
-	);
-}
-
 type ActiveAttachState = {
 	requestId: string;
 	runId: string;
@@ -748,9 +733,6 @@ function buildWsClient(
 			const type = String(liveEvent.type || "");
 			const currentChatId = String(options.stateRef.current.chatId || "").trim();
 			const eventChatId = String(liveEvent.chatId || "").trim();
-			const isActiveChat = Boolean(
-				currentChatId && eventChatId && eventChatId === currentChatId,
-			);
 
 			if (type === "heartbeat") {
 				return;
@@ -860,31 +842,7 @@ function buildWsClient(
 				isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
 			if (isAwaitingPushEvent) {
 				upsertPushChatSummary(options.dispatch, liveEvent);
-				if (!isActiveChat) {
-					return;
-				}
-				if (!options.stateRef.current.streaming) {
-					const runId = String(liveEvent.runId || "").trim();
-					const agentKey = resolveRunAgentKey({
-						runId,
-						metadataAgentKey: liveEvent.agentKey,
-						currentRunAgentKey: options.stateRef.current.currentRunAgentKey,
-						runAgentById: options.stateRef.current.runAgentById,
-						chatId: eventChatId,
-						chatAgentById: options.stateRef.current.chatAgentById,
-						chats: options.stateRef.current.chats,
-						fallbackAgentKey: "",
-					});
-					if (runId && agentKey) {
-						dispatchAttachRunEvent(eventChatId, runId, 0, agentKey);
-					} else {
-						appendWsDebug(
-							options.dispatch,
-							`[live] awaiting push ignored without attach identity (chatId=${eventChatId || "-"}, runId=${runId || "-"})`,
-						);
-					}
-					return;
-				}
+				return;
 			}
 
 			if (options.stateRef.current.streaming) {

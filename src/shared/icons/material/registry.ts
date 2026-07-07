@@ -85,6 +85,7 @@ export const materialIconSymbolIds = {
   schedule: "material-symbol-schedule",
   search: "material-symbol-search",
   settings: "material-symbol-settings",
+  skills: "material-symbol-skills",
   slideshow: "material-symbol-slideshow",
   smart_toy: "material-symbol-smart-toy",
   stop_circle: "material-symbol-stop-circle",

@@ -1,8 +1,10 @@
+import type { AppAction } from "@/app/state/AppContext";
 import { createInitialState } from "@/app/state/state";
 import type { ActiveAwaiting } from "@/app/state/types";
 import {
 	buildPlanDecisionPlanningModeAction,
 	resolveAwaitingSubmitAgentKey,
+	submitComposerAwaiting,
 } from "@/features/composer/hooks/useComposerAwaiting";
 
 describe("resolveAwaitingSubmitAgentKey", () => {
@@ -125,5 +127,100 @@ describe("resolveAwaitingSubmitAgentKey", () => {
 				params: [],
 			}),
 		).toBeNull();
+	});
+});
+
+describe("submitComposerAwaiting", () => {
+	afterEach(() => {
+		delete (globalThis as { window?: unknown }).window;
+		delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
+	});
+
+	it("does not dispatch attach when submit response continues the run", async () => {
+		const dispatch = jest.fn<void, [AppAction]>();
+		const clearActiveAwaiting = jest.fn();
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: {
+				dispatchEvent,
+				location: {
+					pathname: "/",
+					search: "",
+				},
+			},
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			configurable: true,
+			value: MockCustomEvent,
+		});
+		const submitAwaitingImpl = jest.fn().mockResolvedValue({
+			data: {
+				accepted: true,
+				continued: true,
+				detail: "continued",
+			},
+		});
+		const activeAwaiting: ActiveAwaiting = {
+			key: "run_1#await_1",
+			runId: "run_1",
+			awaitingId: "await_1",
+			agentKey: "agent_run",
+			timeout: null,
+			mode: "question",
+			questions: [],
+		};
+
+		await submitComposerAwaiting({
+			activeAwaiting,
+			clearActiveAwaiting,
+			dispatch,
+			message: {
+				info: jest.fn(),
+				warning: jest.fn(),
+			},
+			payload: {
+				runId: "run_1",
+				awaitingId: "await_1",
+				params: [],
+			},
+			state: {
+				...createInitialState(),
+				chatId: "chat_1",
+			},
+			t: (key) => key,
+			createSubmitId: () => "submit_test",
+			submitAwaitingImpl,
+		});
+
+		expect(submitAwaitingImpl).toHaveBeenCalledWith({
+			chatId: "chat_1",
+			runId: "run_1",
+			agentKey: "agent_run",
+			awaitingId: "await_1",
+			submitId: "submit_test",
+			params: [],
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "PATCH_ACTIVE_AWAITING",
+			patch: {
+				pendingSubmitId: "submit_test",
+			},
+		});
+		expect(clearActiveAwaiting).toHaveBeenCalledTimes(1);
+		expect(
+			dispatchEvent.mock.calls.filter(
+				([event]) => (event as { type?: string }).type === "agent:attach-run",
+			),
+		).toHaveLength(0);
 	});
 });

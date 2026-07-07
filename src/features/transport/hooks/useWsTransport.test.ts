@@ -712,7 +712,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("dispatches agent:attach-run for active awaiting.asking push events", async () => {
+	it("does not dispatch agent:attach-run for active awaiting.asking push events", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -770,21 +770,11 @@ describe("connectWsTransport", () => {
 				updatedAt: 1780737509785,
 			}),
 		});
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "agent:attach-run",
-				detail: {
-					chatId: "chat_active",
-					runId: "run_active",
-					agentKey: "agent_active",
-					lastSeq: 0,
-				},
-			}),
-		);
+		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("does not reload the active chat when an awaiting push lacks attach identity", async () => {
+	it("only updates chat summary when an awaiting push lacks attach identity", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -839,10 +829,6 @@ describe("connectWsTransport", () => {
 				hasPendingAwaiting: true,
 			}),
 		});
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "APPEND_DEBUG",
-			line: "[live] awaiting push ignored without attach identity (chatId=chat_active, runId=run_active)",
-		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -883,7 +869,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("dispatches agent:attach-run for active awaiting.answered push events", async () => {
+	it("does not dispatch agent:attach-run for active awaiting.answered push events", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();
@@ -929,17 +915,15 @@ describe("connectWsTransport", () => {
 			},
 		});
 
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "agent:attach-run",
-				detail: {
-					chatId: "chat_active",
-					runId: "run_active_v2",
-					agentKey: "agent_active",
-					lastSeq: 0,
-				},
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "UPSERT_CHAT",
+			chat: expect.objectContaining({
+				chatId: "chat_active",
+				lastRunId: "run_active_v2",
+				hasPendingAwaiting: false,
 			}),
-		);
+		});
+		expect(dispatchEvent).not.toHaveBeenCalled();
 	});
 });
 

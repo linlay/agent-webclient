@@ -14,6 +14,7 @@ export interface RunStartedPushDetail {
 export type MainChatRunActivationState = Pick<
 	AppState,
 	| "chatId"
+	| "runId"
 	| "streaming"
 	| "workerSelectionKey"
 	| "pendingNewChatAgentKey"
@@ -37,8 +38,8 @@ export type MainChatRunActivationDecision =
 				| "invalid_route"
 				| "missing_identity"
 				| "streaming"
-				| "no_target_agent"
-				| "agent_mismatch";
+				| "chat_mismatch"
+				| "same_run";
 			chatId: string;
 			runId: string;
 			agentKey: string;
@@ -172,24 +173,16 @@ export function resolveMainChatRunActivation(input: {
 	}
 
 	const currentChatId = toText(input.state.chatId);
-	if (currentChatId && currentChatId === detail.chatId) {
-		return {
-			shouldActivate: true,
-			switchChat: false,
-			...detail,
-		};
+	if (!currentChatId || currentChatId !== detail.chatId) {
+		return inactive("chat_mismatch");
 	}
-
-	if (!targetAgentKey) {
-		return inactive("no_target_agent");
-	}
-	if (targetAgentKey !== detail.agentKey) {
-		return inactive("agent_mismatch");
+	if (toText(input.state.runId) === detail.runId) {
+		return inactive("same_run");
 	}
 
 	return {
 		shouldActivate: true,
-		switchChat: true,
+		switchChat: false,
 		...detail,
 	};
 }

@@ -3,6 +3,7 @@ import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
+import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
 import {
 	AGENT_RUN_STARTED_PUSH_EVENT,
 	resolveMainChatRunActivation,
@@ -14,6 +15,8 @@ type MainChatRunActivationDispatch = Dispatch<AppAction>;
 interface RegisterMainChatRunActivationListenerOptions {
 	dispatch: MainChatRunActivationDispatch;
 	stateRef: { current: AppState };
+	querySessionsRef: { current: Map<string, LiveQuerySession> };
+	activeQuerySessionRequestIdRef: { current: string };
 	handledRunKeysRef: { current: Set<string> };
 	getPathname?: () => string;
 }
@@ -58,10 +61,41 @@ function appendIgnoredDebug(
 	}
 }
 
+function hasActiveObservation(
+	options: Pick<
+		RegisterMainChatRunActivationListenerOptions,
+		"querySessionsRef" | "activeQuerySessionRequestIdRef"
+	>,
+	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
+): boolean {
+	const activeRequestId = String(options.activeQuerySessionRequestIdRef.current || "").trim();
+	if (activeRequestId) {
+		return true;
+	}
+	for (const session of options.querySessionsRef.current.values()) {
+		if (!session.streaming) {
+			continue;
+		}
+		if (session.runId && session.runId === decision.runId) {
+			return true;
+		}
+		if (
+			session.chatId === decision.chatId &&
+			(!session.agentKey || session.agentKey === decision.agentKey)
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function activateMainChatRun(
 	options: RegisterMainChatRunActivationListenerOptions,
 	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
 ): void {
+	if (hasActiveObservation(options, decision)) {
+		return;
+	}
 	const key = runKey(decision.chatId, decision.runId);
 	if (options.handledRunKeysRef.current.has(key)) {
 		return;
@@ -134,7 +168,12 @@ export function registerMainChatRunActivationListener(
 }
 
 export function useMainChatRunActivation(): void {
-	const { dispatch, stateRef } = useAppContext();
+	const {
+		dispatch,
+		stateRef,
+		querySessionsRef,
+		activeQuerySessionRequestIdRef,
+	} = useAppContext();
 	const handledRunKeysRef = useRef(new Set<string>());
 
 	useEffect(
@@ -142,8 +181,10 @@ export function useMainChatRunActivation(): void {
 			registerMainChatRunActivationListener({
 				dispatch,
 				stateRef,
+				querySessionsRef,
+				activeQuerySessionRequestIdRef,
 				handledRunKeysRef,
 			}),
-		[dispatch, stateRef],
+		[activeQuerySessionRequestIdRef, dispatch, querySessionsRef, stateRef],
 	);
 }

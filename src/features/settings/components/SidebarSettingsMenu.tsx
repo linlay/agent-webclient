@@ -101,7 +101,7 @@ export function buildSidebarSettingsMenuSections(_input: {
         {
           key: "open-skills",
           label: t("settingsMenu.skills"),
-          icon: "psychology",
+          icon: "skills",
           action: { type: "open-skills" },
         },
         {
@@ -119,7 +119,7 @@ export function buildSidebarSettingsMenuSections(_input: {
         {
           key: "open-settings",
           label: t("settingsMenu.openSettings"),
-          icon: "tune",
+          icon: "settings",
           action: { type: "open-settings" },
         },
         ...(isMemoryEnabled()

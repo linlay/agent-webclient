@@ -18,6 +18,7 @@ import {
   rememberAwaitingSubmitId,
 } from "@/features/tools/lib/awaitingSubmitTracker";
 import { useI18n } from "@/shared/i18n";
+import type { TranslateParams } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 
 type FormActiveAwaitingPatch = Pick<
@@ -37,6 +38,25 @@ interface UseComposerAwaitingInput {
     AppState,
     "currentRunAgentKey" | "runAgentById" | "chatId" | "chatAgentById" | "chats"
   >;
+}
+
+interface AwaitingSubmitMessageApi {
+  info: (content: string) => unknown;
+  warning: (content: string) => unknown;
+}
+
+type AwaitingSubmitTranslator = (key: string, params?: TranslateParams) => string;
+
+interface SubmitComposerAwaitingInput {
+  activeAwaiting: AppState["activeAwaiting"];
+  clearActiveAwaiting: () => void;
+  dispatch: Dispatch<AppAction>;
+  message: AwaitingSubmitMessageApi;
+  payload: AIAwaitSubmitPayloadData;
+  state: UseComposerAwaitingInput["state"];
+  t: AwaitingSubmitTranslator;
+  createSubmitId?: () => string;
+  submitAwaitingImpl?: typeof submitAwaiting;
 }
 
 export function resolveAwaitingSubmitAgentKey(input: {
@@ -76,6 +96,109 @@ export function buildPlanDecisionPlanningModeAction(input: {
   };
 }
 
+export async function submitComposerAwaiting(
+  input: SubmitComposerAwaitingInput,
+) {
+  const {
+    activeAwaiting,
+    clearActiveAwaiting,
+    dispatch,
+    message,
+    payload,
+    state,
+    t,
+  } = input;
+  if (!activeAwaiting) return;
+  let trackedRunId = "";
+  let trackedAwaitingId = "";
+  try {
+    const agentKey = resolveAwaitingSubmitAgentKey({
+      activeAwaiting,
+      state,
+      runId: payload.runId,
+    });
+    if (!agentKey) {
+      const error = new Error("agentKey is required for awaiting submit");
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[awaiting] submit skipped: missing agentKey (awaitingId=${payload.awaitingId}, runId=${payload.runId})`,
+      });
+      return error;
+    }
+    const submitId = input.createSubmitId?.() ?? createCompactId("submit");
+    trackedRunId = payload.runId;
+    trackedAwaitingId = payload.awaitingId;
+    rememberAwaitingSubmitId(trackedRunId, trackedAwaitingId, submitId);
+    dispatch({
+      type: "PATCH_ACTIVE_AWAITING",
+      patch: {
+        pendingSubmitId: submitId,
+      },
+    });
+    const response = await (input.submitAwaitingImpl ?? submitAwaiting)({
+      chatId: state.chatId,
+      runId: payload.runId,
+      agentKey,
+      awaitingId: payload.awaitingId,
+      submitId,
+      params: payload.params,
+    });
+    const responseData = response.data as Record<string, unknown> | null;
+    const accepted = Boolean(responseData?.accepted ?? true);
+    const status = String(responseData?.status || "");
+    const detail = String(
+      responseData?.detail || (accepted ? "accepted" : "unmatched"),
+    );
+
+    if (!accepted) {
+      if (status === "already_resolved") {
+        clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
+        void message.info(t("composer.awaiting.alreadyResolved"));
+        clearActiveAwaiting();
+        return response;
+      }
+      throw new Error(
+        t("composer.awaiting.unmatched", {
+          detail,
+        }),
+      );
+    }
+
+    const planningModeAction = buildPlanDecisionPlanningModeAction({
+      activeAwaiting,
+      chatId: state.chatId,
+      params: payload.params,
+    });
+    if (planningModeAction) {
+      dispatch(planningModeAction);
+    }
+
+    clearActiveAwaiting();
+    dispatch({
+      type: "APPEND_DEBUG",
+      line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,
+    });
+    return response;
+  } catch (error) {
+    const isStaleAwaiting =
+      error instanceof Error &&
+      /unknown awaiting|awaiting.*not found|awaiting.*expired/i.test(
+        error.message,
+      );
+    if (trackedRunId && trackedAwaitingId) {
+      clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
+    }
+    if (isStaleAwaiting) {
+      void message.warning(t("composer.awaiting.expired"));
+      clearActiveAwaiting();
+      dispatch({ type: "SET_STREAMING", streaming: false });
+      dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+      return;
+    }
+    return error;
+  }
+}
+
 export function useComposerAwaiting(input: UseComposerAwaitingInput) {
   const { activeAwaiting, dispatch, state } = input;
   const { t } = useI18n();
@@ -93,113 +216,15 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
 
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
-      if (!activeAwaiting) return;
-      let trackedRunId = "";
-      let trackedAwaitingId = "";
-      try {
-        const agentKey = resolveAwaitingSubmitAgentKey({
-          activeAwaiting,
-          state,
-          runId: payload.runId,
-        });
-        if (!agentKey) {
-          const error = new Error("agentKey is required for awaiting submit");
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[awaiting] submit skipped: missing agentKey (awaitingId=${payload.awaitingId}, runId=${payload.runId})`,
-          });
-          return error;
-        }
-        const submitId = createCompactId("submit");
-        trackedRunId = payload.runId;
-        trackedAwaitingId = payload.awaitingId;
-        rememberAwaitingSubmitId(trackedRunId, trackedAwaitingId, submitId);
-        dispatch({
-          type: "PATCH_ACTIVE_AWAITING",
-          patch: {
-            pendingSubmitId: submitId,
-          },
-        });
-        const response = await submitAwaiting({
-          chatId: state.chatId,
-          runId: payload.runId,
-          agentKey,
-          awaitingId: payload.awaitingId,
-          submitId,
-          params: payload.params,
-        });
-        const responseData = response.data as Record<string, unknown> | null;
-        const accepted = Boolean(responseData?.accepted ?? true);
-        const status = String(responseData?.status || "");
-        const detail = String(
-          responseData?.detail || (accepted ? "accepted" : "unmatched"),
-        );
-
-        if (!accepted) {
-          if (status === "already_resolved") {
-            clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
-            void message.info(t("composer.awaiting.alreadyResolved"));
-            clearActiveAwaiting();
-            return response;
-          }
-          throw new Error(
-            t("composer.awaiting.unmatched", {
-              detail,
-            }),
-          );
-        }
-
-        const planningModeAction = buildPlanDecisionPlanningModeAction({
-          activeAwaiting,
-          chatId: state.chatId,
-          params: payload.params,
-        });
-        if (planningModeAction) {
-          dispatch(planningModeAction);
-        }
-
-        clearActiveAwaiting();
-        if (Boolean(responseData?.continued)) {
-          const runId = String(
-            responseData?.runId || payload.runId || "",
-          ).trim();
-          const chatId = String(
-            responseData?.chatId || state.chatId || "",
-          ).trim();
-          if (runId && chatId) {
-            window.dispatchEvent(
-              new CustomEvent("agent:attach-run", {
-                detail: {
-                  chatId,
-                  runId,
-                  agentKey,
-                },
-              }),
-            );
-          }
-        }
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[awaiting] submitted awaitingId=${activeAwaiting.awaitingId}, runId=${activeAwaiting.runId}, detail=${detail}`,
-        });
-      } catch (error) {
-        const isStaleAwaiting =
-          error instanceof Error &&
-          /unknown awaiting|awaiting.*not found|awaiting.*expired/i.test(
-            error.message,
-          );
-        if (trackedRunId && trackedAwaitingId) {
-          clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
-        }
-        if (isStaleAwaiting) {
-          void message.warning(t("composer.awaiting.expired"));
-          clearActiveAwaiting();
-          dispatch({ type: "SET_STREAMING", streaming: false });
-          dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
-          return;
-        }
-        return error;
-      }
+      return submitComposerAwaiting({
+        activeAwaiting,
+        clearActiveAwaiting,
+        dispatch,
+        message,
+        payload,
+        state,
+        t,
+      });
     },
     [
       activeAwaiting,

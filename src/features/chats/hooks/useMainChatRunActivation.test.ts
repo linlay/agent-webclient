@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState, Chat } from "@/app/state/types";
+import { createLiveQuerySession } from "@/features/chats/lib/conversationSession";
 import {
 	AGENT_RUN_STARTED_PUSH_EVENT,
 	resolveMainChatRouteAgentKey,
@@ -11,6 +12,7 @@ import { registerMainChatRunActivationListener } from "@/features/chats/hooks/us
 function createState(overrides: Partial<AppState> = {}): AppState {
 	return {
 		chatId: "",
+		runId: "",
 		streaming: false,
 		workerSelectionKey: "",
 		pendingNewChatAgentKey: "",
@@ -133,21 +135,24 @@ describe("main chat run activation helpers", () => {
 		).toBe("chat_demo");
 	});
 
-	it("rejects mismatched run.started candidates", () => {
+	it("rejects run.started candidates outside the active chat", () => {
 		const decision = resolveMainChatRunActivation({
-			state: createState({ workerSelectionKey: "agent:demo" }),
+			state: createState({
+				chatId: "chat_active",
+				workerSelectionKey: "agent:demo",
+			}),
 			pathname: "/",
 			detail: {
-				chatId: "chat_1",
+				chatId: "chat_other",
 				runId: "run_1",
-				agentKey: "other",
+				agentKey: "demo",
 			},
 		});
 
 		expect(decision).toEqual(
 			expect.objectContaining({
 				shouldActivate: false,
-				reason: "agent_mismatch",
+				reason: "chat_mismatch",
 				targetAgentKey: "demo",
 			}),
 		);
@@ -156,20 +161,26 @@ describe("main chat run activation helpers", () => {
 
 describe("registerMainChatRunActivationListener", () => {
 	let dispatch: jest.Mock<void, [AppAction]>;
+	let querySessionsRef: { current: Map<string, ReturnType<typeof createLiveQuerySession>> };
+	let activeQuerySessionRequestIdRef: { current: string };
 
 	beforeEach(() => {
 		dispatch = jest.fn();
+		querySessionsRef = { current: new Map() };
+		activeQuerySessionRequestIdRef = { current: "" };
 	});
 
 	afterEach(() => {
 		restoreWindow();
 	});
 
-	it("activates and attaches a same-agent run from an empty main chat", () => {
+	it("ignores a run.started candidate when it is not for the active chat", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/agent/demo");
 		registerMainChatRunActivationListener({
 			dispatch,
 			stateRef: { current: createState() },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -180,32 +191,11 @@ describe("registerMainChatRunActivationListener", () => {
 			lastSeq: 0,
 		});
 
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "chat_1" });
-		expect(dispatch).toHaveBeenCalledWith({ type: "RESET_ACTIVE_CONVERSATION" });
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_CHAT_AGENT_BY_ID",
-			chatId: "chat_1",
-			agentKey: "demo",
-		});
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_RUN_AGENT_BY_ID",
-			runId: "run_1",
-			agentKey: "demo",
-		});
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "run_1" });
-		expect(eventDetails(mockWindow, "agent:reset-event-cache")).toHaveLength(1);
-		expect(eventDetails(mockWindow, "agent:voice-reset")).toHaveLength(1);
-		expect(eventDetails(mockWindow, "agent:attach-run")).toEqual([
-			{
-				chatId: "chat_1",
-				runId: "run_1",
-				agentKey: "demo",
-				lastSeq: 0,
-			},
-		]);
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
 	});
 
-	it("switches from a different idle chat before attaching", () => {
+	it("does not switch from a different idle chat before attaching", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
 		registerMainChatRunActivationListener({
 			dispatch,
@@ -215,6 +205,8 @@ describe("registerMainChatRunActivationListener", () => {
 					workerSelectionKey: "agent:demo",
 				}),
 			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -224,21 +216,23 @@ describe("registerMainChatRunActivationListener", () => {
 			agentKey: "demo",
 		});
 
-		expect(dispatch).toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "chat_new" });
-		expect(dispatch).toHaveBeenCalledWith({ type: "RESET_ACTIVE_CONVERSATION" });
-		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
 	});
 
-	it("attaches the active chat without clearing the current timeline", () => {
+	it("attaches a background new run for the active chat without clearing the current timeline", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
 		registerMainChatRunActivationListener({
 			dispatch,
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
+					runId: "run_old",
 					chats: [{ chatId: "chat_1", agentKey: "demo" } as Chat],
 				}),
 			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -261,9 +255,12 @@ describe("registerMainChatRunActivationListener", () => {
 			dispatch,
 			stateRef: {
 				current: createState({
+					chatId: "chat_1",
 					streaming: true,
 				}),
 			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -282,6 +279,8 @@ describe("registerMainChatRunActivationListener", () => {
 		registerMainChatRunActivationListener({
 			dispatch,
 			stateRef: { current: createState() },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -295,11 +294,104 @@ describe("registerMainChatRunActivationListener", () => {
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
 	});
 
+	it("does not attach when an active query session already observes a run", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		const session = createLiveQuerySession({
+			requestId: "req_1",
+			chatId: "chat_1",
+			agentKey: "demo",
+		});
+		session.streaming = true;
+		querySessionsRef.current.set("req_1", session);
+		activeQuerySessionRequestIdRef.current = "req_1";
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_1",
+					runId: "run_old",
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_1",
+			runId: "run_1",
+			agentKey: "demo",
+		});
+
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
+	});
+
+	it("does not attach when a stored streaming session already observes the same run", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		const session = createLiveQuerySession({
+			requestId: "req_1",
+			chatId: "chat_1",
+			agentKey: "demo",
+		});
+		session.runId = "run_1";
+		session.streaming = true;
+		querySessionsRef.current.set("req_1", session);
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_1",
+					runId: "run_old",
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_1",
+			runId: "run_1",
+			agentKey: "demo",
+		});
+
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
+	});
+
+	it("does not attach when the pushed run is already the current run", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_1",
+					runId: "run_1",
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_1",
+			runId: "run_1",
+			agentKey: "demo",
+		});
+
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
+	});
+
 	it("records debug when a candidate lacks attach identity", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/agent/demo");
 		registerMainChatRunActivationListener({
 			dispatch,
-			stateRef: { current: createState() },
+			stateRef: { current: createState({ chatId: "chat_1" }) },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
@@ -319,7 +411,9 @@ describe("registerMainChatRunActivationListener", () => {
 		const { mockWindow, MockCustomEvent } = setupMockWindow("/agent/demo");
 		registerMainChatRunActivationListener({
 			dispatch,
-			stateRef: { current: createState() },
+			stateRef: { current: createState({ chatId: "chat_1", runId: "run_old" }) },
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
 			handledRunKeysRef: { current: new Set() },
 		});
 
