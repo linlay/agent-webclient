@@ -60,7 +60,8 @@ const ACCESS_LEVEL_MENU_ITEM_CLASS: Record<QueryAccessLevel, string> = {
   full_access:
     "query-settings-access-item query-settings-access-item-full_access tw:text-[color-mix(in_srgb,var(--accent-danger)_72%,transparent)]",
 };
-const ACCESS_LEVEL_MENU_OPTION_CLASS = "query-settings-access-menu-option";
+const ACCESS_LEVEL_MENU_OPTION_CLASS =
+  "query-settings-access-menu-option ui-icon-hover-24";
 const QUERY_SETTINGS_CONTROLS_CLASS =
   "query-settings-controls tw:inline-flex tw:items-center";
 const QUERY_SETTINGS_BUTTON_CLASS =
@@ -957,7 +958,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             className={ACCESS_LEVEL_MENU_ITEM_CLASS[value]}
           >
             <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-              <MaterialIcon name={ACCESS_LEVEL_ICON[value]} />
+              <MaterialIcon
+                name={ACCESS_LEVEL_ICON[value]}
+                className="ui-icon-hover-24-target"
+              />
               <span>{t(`composer.query.access.${value}`)}</span>
             </span>
           </span>
@@ -1243,14 +1247,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         trigger={["click"]}
       >
         <UiButton
-          className={`${QUERY_SETTINGS_BUTTON_CLASS} ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
+          className={`${QUERY_SETTINGS_BUTTON_CLASS} ui-icon-hover-24 ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
           variant="ghost"
           size="sm"
           color="var(--accent)"
           title={t("composer.query.access.title")}
           onClick={(event) => event.preventDefault()}
         >
-          <MaterialIcon name={ACCESS_LEVEL_ICON[accessLevel]} />
+          <MaterialIcon
+            name={ACCESS_LEVEL_ICON[accessLevel]}
+            className="ui-icon-hover-24-target"
+          />
           <span>{accessLabel}</span>
           <MaterialIcon name="expand_more" />
         </UiButton>

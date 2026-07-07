@@ -213,7 +213,7 @@ export const WorkerPanelHeader: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className={WORKER_PANEL_NEW_CLASS}
+                className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}

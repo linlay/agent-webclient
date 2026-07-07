@@ -909,6 +909,7 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
+                  className="ui-icon-hover-24"
                   iconOnly
                   onClick={() =>
                     dispatch({
@@ -926,9 +927,13 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
+                  className="ui-icon-hover-24"
                   onClick={() => openCommandOverlay({ type: "automation" })}
                 >
-                  <MaterialIcon name="schedule" />
+                  <MaterialIcon
+                    name="schedule"
+                    className="ui-icon-hover-24-target"
+                  />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
                     <Badge count={state.automations?.length} />
@@ -983,6 +988,7 @@ export const LeftSidebar: React.FC = () => {
                 size="sm"
                 variant="ghost"
                 loading={isSidebarLoading}
+                className="ui-icon-hover-24"
                 iconOnly
                 onClick={() => {
                   if (state.conversationMode === "worker") {
@@ -1063,6 +1069,7 @@ export const LeftSidebar: React.FC = () => {
                     size="sm"
                     iconOnly
                     variant="ghost"
+                    className="ui-icon-hover-24"
                     onClick={() =>
                       dispatch({
                         type: "SET_LEFT_DRAWER_OPEN",

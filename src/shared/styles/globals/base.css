@@ -120,6 +120,60 @@ textarea {
     overflow: hidden;
 }
 
+.ui-icon-hover-24.ui-btn.is-icon-only .material-icon,
+.ui-icon-hover-24.ant-btn-icon-only .material-icon,
+.ui-icon-hover-24 .ui-icon-hover-24-target,
+.material-icon.ui-icon-hover-24-target {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    overflow: visible;
+    isolation: isolate;
+    font-size: 16px;
+}
+
+.ui-icon-hover-24.ui-btn.is-icon-only .material-icon::before,
+.ui-icon-hover-24.ant-btn-icon-only .material-icon::before,
+.ui-icon-hover-24 .ui-icon-hover-24-target::before,
+.material-icon.ui-icon-hover-24-target::before {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    z-index: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--ink-muted) 12%, transparent);
+    content: "";
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.16s ease, background-color 0.16s ease;
+}
+
+.ui-icon-hover-24.ui-btn.is-icon-only .material-icon-svg,
+.ui-icon-hover-24.ant-btn-icon-only .material-icon-svg,
+.ui-icon-hover-24 .ui-icon-hover-24-target .material-icon-svg,
+.material-icon.ui-icon-hover-24-target .material-icon-svg {
+    position: relative;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+}
+
+.ui-icon-hover-24.ui-btn.is-icon-only:hover:not(:disabled) .material-icon::before,
+.ui-icon-hover-24.ui-btn.is-icon-only:focus-visible .material-icon::before,
+.ui-icon-hover-24.ui-btn.is-icon-only.is-active .material-icon::before,
+.ui-icon-hover-24.ant-btn-icon-only:hover:not(:disabled) .material-icon::before,
+.ui-icon-hover-24.ant-btn-icon-only:focus-visible .material-icon::before,
+.ui-icon-hover-24.ant-btn-icon-only.is-active .material-icon::before,
+.ui-icon-hover-24:hover .ui-icon-hover-24-target::before,
+.ui-icon-hover-24:focus-visible .ui-icon-hover-24-target::before,
+.ui-icon-hover-24.is-active .ui-icon-hover-24-target::before,
+.ui-icon-hover-24.active .ui-icon-hover-24-target::before,
+.material-icon.ui-icon-hover-24-target:hover::before,
+.material-icon.ui-icon-hover-24-target:focus-visible::before {
+    opacity: 1;
+}
+
 button {
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);
@@ -238,6 +292,12 @@ button:active {
     background: var(--bg-hover);
     color: var(--ink-1);
     box-shadow: none;
+}
+
+.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only:hover:not(:disabled),
+.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only:focus-visible,
+.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only.is-active {
+    background: transparent;
 }
 
 .ui-btn.ui-btn-primary:hover {

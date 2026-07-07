@@ -113,7 +113,7 @@ const TIMELINE_RUN_META_CLASS_NAME =
 const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-0.5";
 const TIMELINE_META_BUTTON_CLASS_NAME =
-  "timeline-meta-btn tw:!min-h-[22px] tw:!min-w-[22px] tw:!w-[22px] tw:!rounded-pill tw:!px-1.5 tw:text-ink-muted tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
+  "timeline-meta-btn ui-icon-hover-24 tw:!h-6 tw:!min-h-6 tw:!w-6 tw:!min-w-6 tw:!rounded-lg tw:!p-0 tw:text-ink-muted tw:[&_.material-icon]:text-base tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =

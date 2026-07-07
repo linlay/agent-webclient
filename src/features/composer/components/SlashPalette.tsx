@@ -14,7 +14,7 @@ const SLASH_COMMAND_POPOVER_CLASS =
 const SLASH_COMMAND_LIST_CLASS =
   "slash-command-list tw:flex tw:flex-col tw:gap-1 tw:p-1";
 const SLASH_COMMAND_ITEM_CLASS =
-  "slash-command-item tw:!w-full tw:!justify-start tw:!rounded-xl tw:!px-2 tw:!py-1.5 tw:text-left tw:hover:!bg-bg-hover tw:[&_.material-icon]:text-[15px] tw:[&_.ui-btn-label]:flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-2 tw:[&_.ui-btn-label]:overflow-hidden tw:[&_.ui-btn-label]:whitespace-nowrap";
+  "slash-command-item ui-icon-hover-24 tw:!w-full tw:!justify-start tw:!rounded-xl tw:!px-2 tw:!py-1.5 tw:text-left tw:hover:!bg-bg-hover tw:[&_.material-icon]:text-[15px] tw:[&_.ui-btn-label]:flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-2 tw:[&_.ui-btn-label]:overflow-hidden tw:[&_.ui-btn-label]:whitespace-nowrap";
 const SLASH_COMMAND_ITEM_STATE_CLASS = {
   idle: "",
   active: "active tw:!bg-bg-hover",
@@ -75,7 +75,10 @@ const SlashPaletteContent: React.FC<{
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelect(command.id)}
             >
-              <MaterialIcon name={command.icon} />
+              <MaterialIcon
+                name={command.icon}
+                className="ui-icon-hover-24-target"
+              />
               <span className={SLASH_COMMAND_NAME_CLASS}>{command.command}</span>
               <span className={SLASH_COMMAND_LABEL_CLASS}>{command.label}</span>
               {command.id === "plan" && planningMode && (
