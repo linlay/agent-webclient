@@ -1376,7 +1376,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       isCompleted &&
                       lastContentNode != null &&
                       item.nodes.length > 1;
-
                     return (
                       <Flex key={item.key} vertical gap={8}>
                         {shouldCollapse && (
@@ -1398,6 +1397,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                       item.nodes.filter(
                                         (n) => n.id !== lastContentNode!.id,
                                       ),
+                                      state.taskItemsById,
                                     ).map((entry) => renderEntry(entry))}
                                   </div>
                                 ),
