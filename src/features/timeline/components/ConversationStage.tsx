@@ -111,9 +111,9 @@ const TIMELINE_META_ROW_CLASS_NAME =
 const TIMELINE_RUN_META_CLASS_NAME =
   "timeline-run-meta tw:ml-6 tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
 const TIMELINE_META_ACTIONS_CLASS_NAME =
-  "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-0.5";
+  "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
-  "timeline-meta-btn ui-icon-hover-24 tw:!h-6 tw:!min-h-6 tw:!w-6 tw:!min-w-6 tw:!rounded-lg tw:!p-0 tw:text-ink-muted tw:[&_.material-icon]:text-base tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
+  "timeline-meta-btn ui-icon-hover-20 tw:!h-5 tw:!min-h-5 tw:!w-5 tw:!min-w-5 tw:!rounded-lg tw:!p-0 tw:text-ink-muted tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
@@ -1297,13 +1297,21 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     items: [
                                       {
                                         key: "resend",
-                                        icon: <MaterialIcon name="refresh" />,
+                                        icon: (
+                                          <MaterialIcon
+                                            name="refresh"
+                                            className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
+                                          />
+                                        ),
                                         label: t("timeline.query.resend"),
                                       },
                                       {
                                         key: "resendInNewChat",
                                         icon: (
-                                          <MaterialIcon name="open_in_new" />
+                                          <MaterialIcon
+                                            name="open_in_new"
+                                            className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
+                                          />
                                         ),
                                         label: t(
                                           "timeline.query.resendInNewChat",

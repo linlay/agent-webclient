@@ -153,7 +153,7 @@ export const WorkerConversationPreviewList: React.FC<{
               {row.displayName}
             </span>
           </div>
-          <Flex gap={6}>
+          <Flex gap={4}>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
@@ -166,7 +166,7 @@ export const WorkerConversationPreviewList: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className={WORKER_POPOVER_NEW_CLASS}
+                className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-20`}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}

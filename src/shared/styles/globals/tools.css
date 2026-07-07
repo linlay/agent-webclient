@@ -180,9 +180,10 @@
 }
 
 .tool-call-copy button {
-    min-height: 22px !important;
-    width: 22px !important;
-    min-width: 22px !important;
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    min-height: 20px !important;
 }
 
 .tool-call-copy button:hover {

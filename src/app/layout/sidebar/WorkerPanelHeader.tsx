@@ -200,7 +200,7 @@ export const WorkerPanelHeader: React.FC<{
             </Tooltip>
           ) : null}
           <Badge count={unreadCount} size="small" color="blue" />
-          <Flex gap={6}>
+          <Flex gap={4}>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
@@ -213,7 +213,7 @@ export const WorkerPanelHeader: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
+                className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-20`}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}

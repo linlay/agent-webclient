@@ -892,10 +892,10 @@ export const LeftSidebar: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Flex>
+              <Flex gap={4}>
                 <UiButton
                   id="top-nav-new-chat-btn"
-                  className="icon-btn top-nav-new-chat-btn"
+                  className="icon-btn top-nav-new-chat-btn ui-icon-hover-20"
                   size="sm"
                   aria-label={t("topNav.newProject")}
                   title={t("topNav.newProject")}

@@ -395,7 +395,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               )}
 
               <div className="tool-call-body">
-                <Flex className="tool-call-copy" align="center">
+                <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>
                       {formatToolDuration(record.durationMs, t)}
@@ -409,6 +409,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                     }
                   >
                     <UiButton
+                      className="ui-icon-hover-20"
                       variant="ghost"
                       size="sm"
                       iconOnly
@@ -428,6 +429,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   </Tooltip>
                   <Tooltip title={resultCopyLabel}>
                     <UiButton
+                      className="ui-icon-hover-20"
                       variant="ghost"
                       size="sm"
                       iconOnly

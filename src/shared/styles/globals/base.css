@@ -120,28 +120,40 @@ textarea {
     overflow: hidden;
 }
 
-.ui-icon-hover-24.ui-btn.is-icon-only .material-icon,
-.ui-icon-hover-24.ant-btn-icon-only .material-icon,
-.ui-icon-hover-24 .ui-icon-hover-24-target,
-.material-icon.ui-icon-hover-24-target {
-    position: relative;
-    width: 16px;
-    height: 16px;
-    overflow: visible;
-    isolation: isolate;
-    font-size: 16px;
+.ui-icon-hover-24 {
+    --ui-icon-hover-icon-size: 16px;
+    --ui-icon-hover-bg-size: 24px;
+    --ui-icon-hover-bg-radius: 8px;
 }
 
-.ui-icon-hover-24.ui-btn.is-icon-only .material-icon::before,
-.ui-icon-hover-24.ant-btn-icon-only .material-icon::before,
-.ui-icon-hover-24 .ui-icon-hover-24-target::before,
-.material-icon.ui-icon-hover-24-target::before {
+.ui-icon-hover-20 {
+    --ui-icon-hover-icon-size: 14px;
+    --ui-icon-hover-bg-size: 20px;
+    --ui-icon-hover-bg-radius: 7px;
+}
+
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon,
+:is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target),
+.material-icon:is(.ui-icon-hover-24-target, .ui-icon-hover-20-target) {
+    position: relative;
+    width: var(--ui-icon-hover-icon-size);
+    height: var(--ui-icon-hover-icon-size);
+    overflow: visible;
+    isolation: isolate;
+    font-size: var(--ui-icon-hover-icon-size);
+}
+
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before,
+.material-icon:is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before {
     position: absolute;
     inset: 50% auto auto 50%;
     z-index: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 8px;
+    width: var(--ui-icon-hover-bg-size);
+    height: var(--ui-icon-hover-bg-size);
+    border-radius: var(--ui-icon-hover-bg-radius);
     background: color-mix(in srgb, var(--ink-muted) 12%, transparent);
     content: "";
     opacity: 0;
@@ -149,28 +161,28 @@ textarea {
     transition: opacity 0.16s ease, background-color 0.16s ease;
 }
 
-.ui-icon-hover-24.ui-btn.is-icon-only .material-icon-svg,
-.ui-icon-hover-24.ant-btn-icon-only .material-icon-svg,
-.ui-icon-hover-24 .ui-icon-hover-24-target .material-icon-svg,
-.material-icon.ui-icon-hover-24-target .material-icon-svg {
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon-svg,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon-svg,
+:is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target) .material-icon-svg,
+.material-icon:is(.ui-icon-hover-24-target, .ui-icon-hover-20-target) .material-icon-svg {
     position: relative;
     z-index: 1;
-    width: 16px;
-    height: 16px;
+    width: var(--ui-icon-hover-icon-size);
+    height: var(--ui-icon-hover-icon-size);
 }
 
-.ui-icon-hover-24.ui-btn.is-icon-only:hover:not(:disabled) .material-icon::before,
-.ui-icon-hover-24.ui-btn.is-icon-only:focus-visible .material-icon::before,
-.ui-icon-hover-24.ui-btn.is-icon-only.is-active .material-icon::before,
-.ui-icon-hover-24.ant-btn-icon-only:hover:not(:disabled) .material-icon::before,
-.ui-icon-hover-24.ant-btn-icon-only:focus-visible .material-icon::before,
-.ui-icon-hover-24.ant-btn-icon-only.is-active .material-icon::before,
-.ui-icon-hover-24:hover .ui-icon-hover-24-target::before,
-.ui-icon-hover-24:focus-visible .ui-icon-hover-24-target::before,
-.ui-icon-hover-24.is-active .ui-icon-hover-24-target::before,
-.ui-icon-hover-24.active .ui-icon-hover-24-target::before,
-.material-icon.ui-icon-hover-24-target:hover::before,
-.material-icon.ui-icon-hover-24-target:focus-visible::before {
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only:hover:not(:disabled) .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only:focus-visible .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only.is-active .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only:hover:not(:disabled) .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only:focus-visible .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only.is-active .material-icon::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20):hover :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20):focus-visible :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).is-active :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before,
+:is(.ui-icon-hover-24, .ui-icon-hover-20).active :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before,
+.material-icon:is(.ui-icon-hover-24-target, .ui-icon-hover-20-target):hover::before,
+.material-icon:is(.ui-icon-hover-24-target, .ui-icon-hover-20-target):focus-visible::before {
     opacity: 1;
 }
 
@@ -294,10 +306,20 @@ button:active {
     box-shadow: none;
 }
 
-.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only:hover:not(:disabled),
-.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only:focus-visible,
-.ui-btn.ui-btn-ghost.ui-icon-hover-24.is-icon-only.is-active {
+.ui-btn.ui-btn-ghost:is(.ui-icon-hover-24, .ui-icon-hover-20).is-icon-only:hover:not(:disabled),
+.ui-btn.ui-btn-ghost:is(.ui-icon-hover-24, .ui-icon-hover-20).is-icon-only:focus-visible,
+.ui-btn.ui-btn-ghost:is(.ui-icon-hover-24, .ui-icon-hover-20).is-icon-only.is-active {
     background: transparent;
+}
+
+.ant-btn.ant-btn-text.ui-icon-hover-20:hover:not(:disabled),
+.ant-btn.ant-btn-text.ui-icon-hover-20:focus-visible,
+.ant-btn.ant-btn-text.ui-icon-hover-20.is-active {
+    background: transparent;
+}
+
+.ui-btn.ui-btn-ghost:is(.ui-icon-hover-24, .ui-icon-hover-20).is-icon-only:focus-visible {
+    outline: none;
 }
 
 .ui-btn.ui-btn-primary:hover {

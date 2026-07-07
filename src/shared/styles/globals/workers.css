@@ -99,6 +99,13 @@
     font-size: 16px;
 }
 
+.worker-collapse .worker-panel-new.ui-icon-hover-20 .material-icon,
+.worker-popover-new.ui-icon-hover-20 .material-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+}
+
 .worker-terminal-active {
     display: inline-flex;
     align-items: center;

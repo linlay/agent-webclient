@@ -39,6 +39,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
             <Flex>
               <Tooltip title={t("planningTimeline.copy")}>
                 <UiButton
+                  className="ui-icon-hover-20"
                   variant="ghost"
                   size="sm"
                   iconOnly

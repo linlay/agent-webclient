@@ -121,7 +121,7 @@ const CopilotTopBar: React.FC = () => {
         </div>
         <div className={COPILOT_TOPBAR_ACTIONS_CLASS}>
           <UiButton
-            className={COPILOT_ACTION_BTN_CLASS}
+            className={`${COPILOT_ACTION_BTN_CLASS} ui-icon-hover-20`}
             variant="ghost"
             size="sm"
             iconOnly

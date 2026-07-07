@@ -1259,12 +1259,13 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
 }
 
 .timeline-planning-collapse .ant-collapse-extra .ui-btn.is-icon-only {
-    width: 22px;
-    min-width: 22px;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
 }
 
 .timeline-planning-collapse .ant-collapse-extra .ui-btn.ui-btn-sm {
-    min-height: 22px;
+    min-height: 20px;
 }
 
 .timeline-planning-collapse.ant-collapse.ant-collapse-icon-position-end>.ant-collapse-item>.ant-collapse-header .ant-collapse-expand-icon {
