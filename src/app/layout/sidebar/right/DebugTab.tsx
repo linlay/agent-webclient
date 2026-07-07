@@ -11,6 +11,8 @@ import {
 } from "@/features/timeline/lib/debugEventDisplay";
 import { t } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tabs, Tag } from "antd";
 
 function formatDebugTime(timestamp?: number): string {
@@ -37,6 +39,12 @@ const EVENT_ROW_ERROR_CLASS_NAME =
 
 const EVENT_ROW_TIME_CLASS_NAME =
 	"event-row-time tw:whitespace-nowrap tw:font-code tw:text-[10px] tw:leading-[1.35] tw:text-ink-muted tw:opacity-90";
+
+const EVENT_ROW_ACTIONS_CLASS_NAME =
+	"event-row-actions tw:mt-1.5 tw:flex tw:flex-wrap tw:items-center tw:gap-1";
+
+const EVENT_ROW_ROUTE_BUTTON_CLASS_NAME =
+	"debug-chat-route-btn tw:h-6 tw:min-h-6 tw:px-1.5 tw:py-0 tw:text-[11px] tw:font-semibold tw:[&_.material-icon]:text-[13px]";
 
 const EVENT_ROW_GROUP_CLASS_NAMES: Record<Exclude<DebugEventGroup, "">, string> = {
 	request: "tw:text-[#5a86c8] tw:bg-[color-mix(in_srgb,#5a86c8_8%,var(--bg-elev-2))]",
@@ -94,6 +102,82 @@ export const DEBUG_EVENT_TABS: Array<{
 ];
 
 export type DebugTabKey = (typeof DEBUG_EVENT_TABS)[number]["key"];
+type DebugChatRouteKind = "agent" | "copilot";
+
+export interface DebugChatRouteTarget {
+	kind: DebugChatRouteKind;
+	href: string;
+	labelKey: string;
+	titleKey: string;
+}
+
+function readText(value: unknown): string {
+	return typeof value === "string" ? value.trim() : "";
+}
+
+function readCurrentSearch(): string {
+	if (typeof window === "undefined") {
+		return "";
+	}
+	return window.location.search || "";
+}
+
+export function buildDebugChatRouteUrl(
+	kind: DebugChatRouteKind,
+	input: { agentKey?: unknown; chatId?: unknown },
+	currentSearch = "",
+): string {
+	const agentKey = readText(input.agentKey);
+	const chatId = readText(input.chatId);
+	if (!agentKey || !chatId) {
+		return "";
+	}
+
+	const params = new URLSearchParams(currentSearch || "");
+	params.set("chatId", chatId);
+	return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
+}
+
+export function buildDebugChatStartOpenTargets(
+	event: AgentEvent,
+	currentSearch = readCurrentSearch(),
+	fallbackAgentKey = "",
+): DebugChatRouteTarget[] {
+	if (String(event.type || "") !== "chat.start") {
+		return [];
+	}
+
+	const chatId = readText(event.chatId);
+	const agentKey =
+		readText(event.agentKey) ||
+		readText(event.firstAgentKey) ||
+		readText(fallbackAgentKey);
+	if (!chatId || !agentKey) {
+		return [];
+	}
+
+	return [
+		{
+			kind: "agent",
+			href: buildDebugChatRouteUrl("agent", { agentKey, chatId }, currentSearch),
+			labelKey: "rightSidebar.debug.openChat.agent",
+			titleKey: "rightSidebar.debug.openChat.agentTitle",
+		},
+		{
+			kind: "copilot",
+			href: buildDebugChatRouteUrl("copilot", { agentKey, chatId }, currentSearch),
+			labelKey: "rightSidebar.debug.openChat.copilot",
+			titleKey: "rightSidebar.debug.openChat.copilotTitle",
+		},
+	];
+}
+
+function openDebugChatRoute(href: string): void {
+	if (!href || typeof window === "undefined" || typeof window.open !== "function") {
+		return;
+	}
+	window.open(href, "_blank", "noopener,noreferrer");
+}
 
 export function buildDebugEventGroups(
 	events: AgentEvent[],
@@ -119,12 +203,25 @@ export function buildDebugEventGroups(
 const EventRow: React.FC<{
 	event: AgentEvent;
 	index: number;
+	fallbackAgentKey?: string;
 	onClick: (e: React.MouseEvent<HTMLDivElement>) => void;
-}> = ({ event, index, onClick }) => {
+}> = ({ event, index, fallbackAgentKey = "", onClick }) => {
 	const type = String(event.type || "");
 	const ts = formatDebugTime(event.timestamp);
 	const hasError = isErrorEventType(type);
 	const id = getEventId(event);
+	const chatRouteTargets = buildDebugChatStartOpenTargets(
+		event,
+		readCurrentSearch(),
+		fallbackAgentKey,
+	);
+	const handleRouteClick = React.useCallback(
+		(e: React.MouseEvent<HTMLButtonElement>, href: string) => {
+			e.stopPropagation();
+			openDebugChatRoute(href);
+		},
+		[],
+	);
 
 	return (
 		<Flex
@@ -139,6 +236,28 @@ const EventRow: React.FC<{
 					<span className={EVENT_ROW_TIME_CLASS_NAME}>{ts}</span>
 				</Flex>
 				<span className={EVENT_ROW_TIME_CLASS_NAME}>{id}</span>
+				{chatRouteTargets.length > 0 ? (
+					<div className={EVENT_ROW_ACTIONS_CLASS_NAME}>
+						{chatRouteTargets.map((target) => {
+							const label = t(target.labelKey);
+							const title = t(target.titleKey);
+							return (
+								<UiButton
+									key={target.kind}
+									className={EVENT_ROW_ROUTE_BUTTON_CLASS_NAME}
+									size="sm"
+									variant="ghost"
+									aria-label={title}
+									title={title}
+									onClick={(e) => handleRouteClick(e, target.href)}
+								>
+									<MaterialIcon name="open_in_new" />
+									{label}
+								</UiButton>
+							);
+						})}
+					</div>
+				) : null}
 			</Flex>
 		</Flex>
 	);
@@ -168,6 +287,36 @@ export const DebugTab: React.FC = () => {
 		() => buildDebugEventGroups(state.debugEvents),
 		[state.debugEvents],
 	);
+	const chatAgentKeyById = React.useMemo(() => {
+		const next = new Map<string, string>();
+		state.chatAgentById.forEach((agentKey, chatId) => {
+			const normalizedChatId = readText(chatId);
+			const normalizedAgentKey = readText(agentKey);
+			if (normalizedChatId && normalizedAgentKey) {
+				next.set(normalizedChatId, normalizedAgentKey);
+			}
+		});
+		state.chats.forEach((chat) => {
+			const chatId = readText(chat?.chatId);
+			const agentKey = readText(chat?.agentKey) || readText(chat?.firstAgentKey);
+			if (chatId && agentKey && !next.has(chatId)) {
+				next.set(chatId, agentKey);
+			}
+		});
+		const activeChatId = readText(state.chatId);
+		const activeAgentKey =
+			readText(state.currentRunAgentKey) || readText(state.pendingNewChatAgentKey);
+		if (activeChatId && activeAgentKey && !next.has(activeChatId)) {
+			next.set(activeChatId, activeAgentKey);
+		}
+		return next;
+	}, [
+		state.chatAgentById,
+		state.chatId,
+		state.chats,
+		state.currentRunAgentKey,
+		state.pendingNewChatAgentKey,
+	]);
 
 	const tabItems = React.useMemo(
 		() =>
@@ -191,6 +340,7 @@ export const DebugTab: React.FC = () => {
 										key={`${index}-${String(event.type || "")}`}
 										event={event}
 										index={index}
+										fallbackAgentKey={chatAgentKeyById.get(readText(event.chatId))}
 										onClick={(e) =>
 											openEventPopover(event, index, e.currentTarget)
 										}
@@ -201,7 +351,7 @@ export const DebugTab: React.FC = () => {
 					},
 				];
 			}),
-		[eventsByTab, openEventPopover],
+		[chatAgentKeyById, eventsByTab, openEventPopover],
 	);
 
 	return (

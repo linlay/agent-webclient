@@ -2,7 +2,12 @@ import type { AgentEvent } from "@/app/state/types";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import { DebugTab, buildDebugEventGroups } from "@/app/layout/sidebar/right/DebugTab";
+import {
+	DebugTab,
+	buildDebugChatRouteUrl,
+	buildDebugChatStartOpenTargets,
+	buildDebugEventGroups,
+} from "@/app/layout/sidebar/right/DebugTab";
 
 jest.mock("@/app/state/AppContext", () => {
 	const actual = jest.requireActual("@/app/state/AppContext");
@@ -171,5 +176,68 @@ describe("buildDebugEventGroups", () => {
 		expect(html).toContain("reasoning.snapshot");
 		expect(html).not.toContain("reasoning.delta");
 		expect(html).not.toContain("暂无事件");
+	});
+
+	it("builds chat.start route urls with the active query and target chatId", () => {
+		expect(
+			buildDebugChatRouteUrl(
+				"agent",
+				{ agentKey: "demo/agent", chatId: "chat 1" },
+				"?desktopAuthContext=ctx&chatId=old",
+			),
+		).toBe("/agent/demo%2Fagent?desktopAuthContext=ctx&chatId=chat+1");
+		expect(
+			buildDebugChatRouteUrl(
+				"copilot",
+				{ agentKey: "demo-agent", chatId: "chat_1" },
+				"?lang=en",
+			),
+		).toBe("/copilot/demo-agent?lang=en&chatId=chat_1");
+		expect(
+			buildDebugChatRouteUrl("agent", { agentKey: "", chatId: "chat_1" }),
+		).toBe("");
+	});
+
+	it("builds Agent and Copilot targets for chat.start events", () => {
+		const targets = buildDebugChatStartOpenTargets(
+			{
+				type: "chat.start",
+				chatId: "chat_1",
+				firstAgentKey: "fallback-agent",
+			} as AgentEvent,
+			"?theme=dark",
+		);
+
+		expect(targets.map((target) => target.href)).toEqual([
+			"/agent/fallback-agent?theme=dark&chatId=chat_1",
+			"/copilot/fallback-agent?theme=dark&chatId=chat_1",
+		]);
+		expect(
+			buildDebugChatStartOpenTargets(
+				{ type: "run.start", chatId: "chat_1", agentKey: "demo" } as AgentEvent,
+				"",
+			),
+		).toEqual([]);
+	});
+
+	it("renders route buttons for chat.start when the agentKey is known from chat state", () => {
+		useAppState.mockReturnValue({
+			...createInitialState(),
+			chats: [
+				{
+					chatId: "chat_1",
+					firstAgentKey: "demo-agent",
+				},
+			],
+			debugEvents: [{ type: "chat.start", chatId: "chat_1" }],
+		});
+
+		const html = renderToStaticMarkup(React.createElement(DebugTab));
+
+		expect(html).toContain("chat.start");
+		expect(html).toContain("新页面打开 Agent 会话");
+		expect(html).toContain("新页面打开 Copilot 会话");
+		expect(html).toContain("Agent");
+		expect(html).toContain("Copilot");
 	});
 });
