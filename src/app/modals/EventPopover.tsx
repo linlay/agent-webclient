@@ -211,16 +211,6 @@ export const EventPopover: React.FC = () => {
 			? matches
 			: [{ event, index: state.eventPopoverIndex }];
 	}, [event, groupMeta, state.eventPopoverIndex, state.debugEvents]);
-	const activeRelatedIndex = useMemo(() => {
-		if (!event) return -1;
-
-		const indexMatch = relatedEvents.findIndex(
-			(entry) => entry.index === state.eventPopoverIndex,
-		);
-		if (indexMatch >= 0) return indexMatch;
-
-		return relatedEvents.findIndex((entry) => entry.event === event);
-	}, [event, relatedEvents, state.eventPopoverIndex]);
 	const switcherSignature = useMemo(
 		() => relatedEvents.map((entry) => entry.index).join(","),
 		[relatedEvents],
@@ -405,11 +395,6 @@ export const EventPopover: React.FC = () => {
 		return null;
 	}
 
-	const seq = event.seq ?? "-";
-	const groupSummary = groupMeta
-		? `${groupMeta.idKey}: ${groupMeta.idValue}`
-		: t("eventPopover.group.unknown");
-	const showSwitcher = relatedEvents.length > 1;
 	const showCollect = collectibleRelatedEvents.length > 1;
 	const copyIcon: MaterialIconName =
 		copyStatus[lastCopyItem.key] === "copied" ? "check" : "content_copy";
@@ -481,12 +466,7 @@ export const EventPopover: React.FC = () => {
 		>
 			<div className={EVENT_POPOVER_HEAD_CLASS_NAME}>
 				<div className={EVENT_POPOVER_HEAD_MAIN_CLASS_NAME}>
-					<strong className={EVENT_POPOVER_TITLE_CLASS_NAME}>{`#${seq} ${event.type}`}</strong>
-					<span className={EVENT_POPOVER_META_CLASS_NAME}>
-						{showSwitcher && activeRelatedIndex >= 0
-							? `${groupSummary} · ${activeRelatedIndex + 1}/${relatedEvents.length}`
-							: groupSummary}
-					</span>
+					<strong className={EVENT_POPOVER_TITLE_CLASS_NAME}>{event.type}</strong>
 					<span className={EVENT_POPOVER_META_CLASS_NAME}>
 						{t("eventPopover.meta.time", { time: readableTimestamp })}
 					</span>

@@ -201,6 +201,36 @@ describe("EventPopover collect controls", () => {
     expect(html).toContain(
       `Time: ${formatReadableTimestamp(1776518171300)}`,
     );
+    expect(html).toContain("reasoning.delta");
+    expect(html).not.toContain("#0 reasoning.delta");
+    expect(html).not.toContain("reasoningId: r1");
+  });
+
+  it("renders only event type and time in the popover header", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "run.start",
+      seq: 20,
+      runId: "run_1",
+      chatId: "chat_1",
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain(">run.start</strong>");
+    expect(html).toContain(
+      `Time: ${formatReadableTimestamp(1776518171300)}`,
+    );
+    expect(html).not.toContain("#20 run.start");
+    expect(html).not.toContain("runId: run_1");
+    expect(html).not.toContain("chatId: chat_1");
   });
 
   it("collects related events from debugEvents instead of raw events", () => {
@@ -226,7 +256,8 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain("reasoningId: r1 · 2/2");
+    expect(html).toContain("reasoning.delta");
+    expect(html).not.toContain("reasoningId: r1");
     expect(html).toContain('aria-label="Collect event snapshot"');
     expect(html).not.toContain("other");
   });

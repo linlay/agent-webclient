@@ -524,12 +524,36 @@ export function getEventRowGroupClass(eventType: string): string {
 }
 
 export function getEventId(event: AgentEvent): string {
-  if (String(event.type || '').toLowerCase() === 'artifact.publish') {
-    return safeStr(event.runId);
+  const type = String(event.type || '').toLowerCase();
+  const record = event as Record<string, unknown>;
+  const readFirst = (keys: string[]): string => {
+    for (const key of keys) {
+      const value = safeStr(record[key]);
+      if (value.trim()) {
+        return value;
+      }
+    }
+    return '';
+  };
+
+  if (type === 'artifact.publish') {
+    return readFirst(['runId']);
   }
-  if (String(event.type || '').toLowerCase() === 'source.publish') {
-    return safeStr((event as Record<string, unknown>).publishId) || safeStr(event.runId);
+  if (type === 'source.publish') {
+    return readFirst(['publishId', 'runId']);
   }
+  if (type.startsWith('chat.')) return readFirst(['chatId']);
+  if (type.startsWith('request.')) return readFirst(['requestId']);
+  if (type.startsWith('run.')) return readFirst(['runId']);
+  if (type.startsWith('awaiting.')) return readFirst(['awaitingId']);
+  if (type.startsWith('content.')) return readFirst(['contentId']);
+  if (type.startsWith('reasoning.')) return readFirst(['reasoningId']);
+  if (type.startsWith('planning.')) return readFirst(['planningId', 'planningKey', 'planId']);
+  if (type.startsWith('tool.')) return readFirst(['toolId']);
+  if (type.startsWith('action.')) return readFirst(['actionId']);
+  if (type.startsWith('plan.')) return readFirst(['planId']);
+  if (type.startsWith('task.')) return readFirst(['taskId']);
+
   const keys = [
     'requestId',
     'chatId',
@@ -548,7 +572,7 @@ export function getEventId(event: AgentEvent): string {
       return safeStr(event[key]);
     }
   }
-  return ''
+  return '';
 }
 
 export function resolveDebugEventTarget(
