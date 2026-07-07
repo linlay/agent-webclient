@@ -9,13 +9,14 @@
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .bottom-dock-stack {
     display: flex;
     flex-direction: column;
     position: relative;
+    height: 100%;
 }
 
 .bottom-dock-artifact-rail,
@@ -30,6 +31,7 @@
 }
 
 .bottom-dock-composer-rail {
+    overflow: hidden;
     z-index: 2;
 }
 

@@ -51,10 +51,10 @@ interface ComposerAreaProps {
   showWonders?: boolean;
 }
 
-const COMPOSER_AREA_CLASS = "composer-area tw:relative";
+const COMPOSER_AREA_CLASS = "composer-area tw:relative tw:h-full";
 const COMPOSER_AREA_FRONTEND_CLASS = "is-frontend-active";
 const COMPOSER_LAYOUT_CLASS =
-  "composer-layout tw:flex tw:items-stretch tw:gap-3.5";
+  "composer-layout tw:flex tw:items-stretch tw:gap-3.5 tw:h-full";
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-3.5";
 const COMPOSER_PILL_CLASS =
