@@ -21,43 +21,45 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 主界面围绕“选 Agent、发消息、看执行、接管运行”组织。顶部按钮提供新会话、用量统计、debug 面板和运行状态入口；左侧用于 Agent 与会话导航；中间展示时间轴；底部 Composer 提供发送、附件、运行参数、模型覆盖、访问级别、steer 和 interrupt 等操作。
 
-截图预留：`docs/images/screenshots/main-workspace.png`
+![智能体对话工作台](docs/images/screenshots/main-workspace.png)
 
 ### 运行过程可观测
 
 运行中的每个事件都会进入时间轴：消息内容、推理、规划、工具调用、来源、产物、等待用户输入和错误状态都能按顺序展示。结构化计划会进入计划面板，展示任务状态、进度、耗时和任务关联的运行内容。
 
-截图预留：`docs/images/screenshots/timeline-plan.png`
+![运行时间轴](docs/images/screenshots/timeline-events.png)
+
+![计划面板](docs/images/screenshots/plan-panel.png)
 
 ### Usage 与预算管理
 
 前端支持 `usage.snapshot`，可以展示当前调用、最新 run、会话累计和上下文压缩相关用量，包括输入 / 输出 / 推理 token、总 token、缓存命中、LLM 调用数、工具调用数、上下文窗口、首字延迟、输出速度和预计费用。Agent 管理台支持维护 `budget` JSON，把 token、步骤、工具调用等预算约束交给后端执行。
 
-截图预留：`docs/images/screenshots/usage-stats.png`
+![Usage 与预算管理](docs/images/screenshots/usage-stats.png)
 
 ### Debug 联调侧边栏
 
 右侧 debug 侧边栏可以按 run、request、content、reasoning、planning、plan、task、tool、awaiting、artifact、source、memory 等类型筛选事件，并查看原始事件、前端归并状态和可读 transcript。它是协议联调、现场排障和演示解释时最有用的面板之一。
 
-截图预留：`docs/images/screenshots/debug-sidebar.png`
+![Debug 联调侧边栏](docs/images/screenshots/debug-sidebar.png)
 
 ### 人在回路交互
 
 支持 question、approval、form、plan 四类 HITL 场景。智能体运行到关键节点时，可以向用户提问、请求审批、展示表单或发起计划确认；用户提交后，结果会回到运行流并在时间轴中回显。
 
-截图预留：`docs/images/screenshots/hitl-awaiting.png`
+![人在回路交互](docs/images/screenshots/hitl-awaiting.png)
 
 ### 业务视图容器
 
 支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
-截图预留：`docs/images/screenshots/business-viewport.png`
+![业务视图容器](docs/images/screenshots/business-viewport.png)
 
 ### 侧边栏与管理入口
 
 左侧侧边栏聚合 Agent、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序、诊断，以及 provider、model、MCP server、viewport server、tools 目录等 Registry 视图。
 
-截图预留：`docs/images/screenshots/sidebar-workers.png`
+![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
 ## 能带来什么好处
 
