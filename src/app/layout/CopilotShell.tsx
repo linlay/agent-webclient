@@ -17,6 +17,7 @@ import { AttachmentPreviewPanel } from "@/features/artifacts/components/Attachme
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
+import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -232,7 +233,9 @@ const CopilotSidePanel: React.FC = () => {
         ? t("copilot.panel.preview")
         : activeTab === "sourceDetail"
           ? t("copilot.panel.sourceDetail")
-          : t("copilot.panel.overview");
+          : activeTab === "planningPreview"
+            ? t("copilot.panel.planningPreview")
+            : t("copilot.panel.overview");
 
   return (
     <section className={COPILOT_SIDE_PANEL_CLASS} aria-label={title}>
@@ -258,6 +261,10 @@ const CopilotSidePanel: React.FC = () => {
           ))
         ) : activeTab === "sourceDetail" && state.activeSourceDetail ? (
           <SourceDetailTab />
+        ) : activeTab === "planningPreview" && state.planningPreviews.length > 0 ? (
+          state.planningPreviews.map((p) => (
+            <PlanningPreviewTab key={p.nodeId} nodeId={p.nodeId} />
+          ))
         ) : (
           <OverviewTab />
         )}

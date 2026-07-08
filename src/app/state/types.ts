@@ -41,6 +41,7 @@ import type {
 	CommandStatusOverlayState,
 	Message,
 	PendingSteer,
+	PlanningPreviewState,
 	PublishedArtifact,
 	FileChangeSummary,
 	RightSidebarTabKey,
@@ -205,6 +206,7 @@ export interface AppState {
 	rightSidebarOpen: boolean;
 	rightSidebarOpenTab: RightSidebarTabKey | null;
 	activeSourceDetail: TimelineSource | null;
+	planningPreviews: PlanningPreviewState[];
 	terminalDockOpen: boolean;
 	attachmentPreview: AttachmentPreviewState[];
 	artifactExpanded: boolean;

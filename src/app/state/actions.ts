@@ -28,6 +28,7 @@ import type {
 import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
+import type { PlanningPreviewState } from "@/app/state/uiTypes";
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
@@ -152,6 +153,8 @@ export type AppAction =
 			preview?: AttachmentPreviewState | null;
 			removePreviewUrl?: string;
 			sourceDetail?: TimelineSource | null;
+			planningPreview?: PlanningPreviewState | null;
+			removePlanningPreviewNodeId?: string;
 	  }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }

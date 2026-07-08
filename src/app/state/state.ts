@@ -142,6 +142,7 @@ export function createInitialState(): AppState {
 		rightSidebarOpen: false,
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
+		planningPreviews: [],
 		terminalDockOpen: restoreTerminalDockOpen(),
 		attachmentPreview: [],
 		artifactExpanded: false,

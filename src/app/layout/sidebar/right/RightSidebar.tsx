@@ -1,11 +1,12 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { Flex, Tabs, type TabsProps } from "antd";
+import { Flex, Tabs, Typography, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
+import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -66,85 +67,121 @@ export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
   const state = useAppState();
-	const previews = state.attachmentPreview;
-	const sourceDetail = state.activeSourceDetail;
-	const debugPanelEnabled = isDebugPanelEnabled();
-	const desktopSidebarVisible = state.rightSidebarOpen;
-	const initialPanel =
-		state.rightSidebarOpenTab === "debug" && debugPanelEnabled
-			? "debug"
-			: state.rightSidebarOpenTab === "preview" && previews.length > 0
-				? `preview:${previews[previews.length - 1].url}`
-				: state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
-					? "sourceDetail"
-					: "overview";
-	const [activePanel, setActivePanel] =
-		React.useState<RightSidebarTabKey>(initialPanel === "debug" ? "debug" : initialPanel.startsWith("preview:") ? "preview" : initialPanel as RightSidebarTabKey);
-	const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
-		initialPanel === "debug" ? "overview" : initialPanel,
-	);
+  const previews = state.attachmentPreview;
+  const sourceDetail = state.activeSourceDetail;
+  const planningPreviews = state.planningPreviews;
+  const debugPanelEnabled = isDebugPanelEnabled();
+  const desktopSidebarVisible = state.rightSidebarOpen;
+  const initialPanel =
+    state.rightSidebarOpenTab === "debug" && debugPanelEnabled
+      ? "debug"
+      : state.rightSidebarOpenTab === "preview" && previews.length > 0
+        ? `preview:${previews[previews.length - 1].url}`
+        : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
+          ? "sourceDetail"
+          : state.rightSidebarOpenTab === "planningPreview" &&
+              planningPreviews.length > 0
+            ? `planningPreview:${planningPreviews[planningPreviews.length - 1].nodeId}`
+            : "overview";
+  const [activePanel, setActivePanel] = React.useState<RightSidebarTabKey>(
+    initialPanel === "debug"
+      ? "debug"
+      : initialPanel.startsWith("preview:")
+        ? "preview"
+        : initialPanel.startsWith("planningPreview:")
+          ? "planningPreview"
+          : (initialPanel as RightSidebarTabKey),
+  );
+  const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
+    initialPanel === "debug" ? "overview" : initialPanel,
+  );
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
 
   React.useEffect(() => {
-		if (!state.rightSidebarOpen || !state.rightSidebarOpenTab) {
-			return;
-		}
+    if (!state.rightSidebarOpen || !state.rightSidebarOpenTab) {
+      return;
+    }
 
-		if (state.rightSidebarOpenTab === "debug" && !debugPanelEnabled) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-			return;
-		}
+    if (state.rightSidebarOpenTab === "debug" && !debugPanelEnabled) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
 
-		if (state.rightSidebarOpenTab === "preview" && previews.length === 0) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-			return;
-		}
+    if (state.rightSidebarOpenTab === "preview" && previews.length === 0) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
 
-		if (state.rightSidebarOpenTab === "sourceDetail" && !sourceDetail) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-			return;
-		}
+    if (state.rightSidebarOpenTab === "sourceDetail" && !sourceDetail) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
 
-		const nextPanel = state.rightSidebarOpenTab;
-		setActivePanel(nextPanel);
-		if (nextPanel !== "debug") {
-			if (nextPanel === "preview") {
-				const lastPreview = previews[previews.length - 1];
-				if (lastPreview) {
-					setActiveTab(`preview:${lastPreview.url}`);
-				}
-			} else {
-				setActiveTab(nextPanel);
-			}
-		}
-	}, [
-		previews,
-		sourceDetail,
-		debugPanelEnabled,
-		state.rightSidebarOpen,
-		state.rightSidebarOpenTab,
-	]);
+    if (
+      state.rightSidebarOpenTab === "planningPreview" &&
+      planningPreviews.length === 0
+    ) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+
+    const nextPanel = state.rightSidebarOpenTab;
+    setActivePanel(nextPanel);
+    if (nextPanel !== "debug") {
+      if (nextPanel === "preview") {
+        const lastPreview = previews[previews.length - 1];
+        if (lastPreview) {
+          setActiveTab(`preview:${lastPreview.url}`);
+        }
+      } else if (nextPanel === "planningPreview") {
+        const lastPlanning = planningPreviews[planningPreviews.length - 1];
+        if (lastPlanning) {
+          setActiveTab(`planningPreview:${lastPlanning.nodeId}`);
+        }
+      } else {
+        setActiveTab(nextPanel);
+      }
+    }
+  }, [
+    previews,
+    sourceDetail,
+    planningPreviews,
+    debugPanelEnabled,
+    state.rightSidebarOpen,
+    state.rightSidebarOpenTab,
+  ]);
 
   React.useEffect(() => {
-		if (activePanel === "debug" && !debugPanelEnabled) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-			return;
-		}
-		if (activePanel === "preview" && previews.length === 0) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-		}
-		if (activePanel === "sourceDetail" && !sourceDetail) {
-			setActivePanel("overview");
-			setActiveTab("overview");
-		}
-	}, [activePanel, debugPanelEnabled, previews, sourceDetail]);
+    if (activePanel === "debug" && !debugPanelEnabled) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+    if (activePanel === "preview" && previews.length === 0) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+    }
+    if (activePanel === "sourceDetail" && !sourceDetail) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+    }
+    if (activePanel === "planningPreview" && planningPreviews.length === 0) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+    }
+  }, [
+    activePanel,
+    debugPanelEnabled,
+    previews,
+    sourceDetail,
+    planningPreviews,
+  ]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -249,6 +286,19 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
+    for (const p of planningPreviews) {
+      items.push({
+        key: `planningPreview:${p.nodeId}`,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="assignment" />
+            <Typography.Text ellipsis className="tw:!max-w-[100px]">{p.label}</Typography.Text>
+          </Flex>
+        ),
+        children: <PlanningPreviewTab nodeId={p.nodeId} />,
+      });
+    }
+
     for (const p of previews) {
       items.push({
         key: `preview:${p.url}`,
@@ -263,12 +313,14 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [previews, sourceDetail, t]);
+  }, [previews, sourceDetail, planningPreviews, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
     setActiveTab(key);
     if (key.startsWith("preview:")) {
       setActivePanel("preview");
+    } else if (key.startsWith("planningPreview:")) {
+      setActivePanel("planningPreview");
     } else {
       setActivePanel(key as RightSidebarTabKey);
     }
@@ -312,6 +364,19 @@ export const RightSidebar: React.FC = () => {
                   type: "OPEN_RIGHT_SIDEBAR",
                   tab: remaining.length > 0 ? "preview" : "overview",
                   removePreviewUrl: urlToRemove,
+                });
+              } else if (
+                typeof key === "string" &&
+                key.startsWith("planningPreview:")
+              ) {
+                const nodeIdToRemove = key.slice("planningPreview:".length);
+                const remaining = planningPreviews.filter(
+                  (p) => p.nodeId !== nodeIdToRemove,
+                );
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: remaining.length > 0 ? "planningPreview" : "overview",
+                  removePlanningPreviewNodeId: nodeIdToRemove,
                 });
               }
             }

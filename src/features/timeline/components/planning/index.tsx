@@ -8,6 +8,7 @@ import useApp from "antd/es/app/useApp";
 import { TimelineNode } from "@/app/state/timelineTypes";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
+import { useAppDispatch } from "@/app/state/AppContext";
 
 interface PlanningTimelineProps {
   node: TimelineNode;
@@ -18,6 +19,7 @@ const EXPAND_DIV_CLASS_NAME =
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { message } = useApp();
   const { t } = useI18n();
+  const dispatch = useAppDispatch();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -36,7 +38,28 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
               <Skeleton text={t("planningTimeline.writing")} active />
             ),
           extra: (
-            <Flex>
+            <Flex gap={4}>
+              <Tooltip title={t("planningTimeline.openInSidebar")}>
+                <UiButton
+                  className="ui-icon-hover-20"
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dispatch({
+                      type: "OPEN_RIGHT_SIDEBAR",
+                      tab: "planningPreview",
+                      planningPreview: {
+                        nodeId: node.id,
+                        label: node.text || node.id,
+                      },
+                    });
+                  }}
+                >
+                  <MaterialIcon name="open_in_new" />
+                </UiButton>
+              </Tooltip>
               <Tooltip title={t("planningTimeline.copy")}>
                 <UiButton
                   className="ui-icon-hover-20"

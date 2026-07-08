@@ -58,6 +58,7 @@ export function buildConversationResetState(
 		usagePopoverOpen: false,
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
+		planningPreviews: [],
 		attachmentPreview: [],
 		inputMode: "text",
 		voiceChat: {
