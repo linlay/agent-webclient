@@ -12,7 +12,8 @@ Contents:
 Runtime notes:
 - ZenMind Desktop starts and stops the local HTTP host itself. This bundle does
   not include a backend entrypoint.
-- `deploy.sh` / `deploy.ps1` writes the host-managed `.env` from Desktop lifecycle arguments.
-- `BASE_URL` points to the runner HTTP API and main `/ws` upstream. Optional
-  `VOICE_BASE_URL` points to the voice HTTP / WebSocket upstream; leave it empty
-  to hide voice features.
+- `deploy.sh` / `deploy.ps1` initializes `.env` from `.env.example`.
+- ZenMind Desktop supplies host-managed values such as `PORT`, `DESKTOP_APP`,
+  and `BASE_URL` at start time. Optional `VOICE_BASE_URL` remains in `.env` and
+  points to the voice HTTP / WebSocket upstream; leave it empty to hide voice
+  features.

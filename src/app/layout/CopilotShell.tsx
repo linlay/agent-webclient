@@ -29,7 +29,7 @@ import {
 } from "@/features/workers/components/CommandOverlayProvider";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
+import { isDebugPanelEnabled, isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -72,6 +72,7 @@ const CopilotTopBar: React.FC = () => {
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const debugPanelEnabled = isDebugPanelEnabled();
+  const settingsMenuEnabled = isSettingsMenuEnabled();
   const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
   const statusLabel = t(statusText);
   const statusTitle = statusDetail
@@ -168,6 +169,7 @@ const CopilotTopBar: React.FC = () => {
               <MaterialIcon name="bug_report" />
             </UiButton>
           ) : null}
+          {settingsMenuEnabled ? (
           <UiButton
             className={COPILOT_ACTION_BTN_CLASS}
             variant="ghost"
@@ -179,6 +181,7 @@ const CopilotTopBar: React.FC = () => {
           >
             <MaterialIcon name="settings" />
           </UiButton>
+          ) : null}
         </div>
       </div>
       <Drawer

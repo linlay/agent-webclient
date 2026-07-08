@@ -257,7 +257,7 @@ dist/release/agent-webclient-vX.Y.Z-darwin-arm64.tar.gz
 dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip
 ```
 
-Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 Desktop 启停脚本。它不内置后端服务，HTTP 托管、静态资源服务和代理路由由 ZenMind Desktop main process 负责。
+Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 Desktop 启停脚本。它不内置后端服务，HTTP 托管、静态资源服务和代理路由由 ZenMind Desktop main process 负责。Desktop Program Bundle 中的 `PORT`、`DESKTOP_APP` 和普通 `/api`、`/ws` 的 `BASE_URL` 由 Desktop 在 host-managed start 阶段提供，不写入 bundle `.env`。
 
 ## 配置说明
 
