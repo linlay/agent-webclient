@@ -306,6 +306,8 @@ export const zhCNMessages: I18nMessages = {
   "rightSidebar.overview.fileChanges.titleCoder": "代码修改",
   "rightSidebar.overview.planning.title": "计划",
   "rightSidebar.overview.planning.empty": "暂无计划",
+  "rightSidebar.overview.tasks.title": "任务列表",
+  "rightSidebar.overview.tasks.empty": "暂无任务",
   "rightSidebar.preview.actions.close": "关闭",
   "rightSidebar.preview.actions.download": "下载",
   "rightSidebar.preview.error.audio": "音频预览失败，请下载查看。",

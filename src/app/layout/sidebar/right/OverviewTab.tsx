@@ -9,7 +9,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { Collapse, Flex } from "antd";
+import { buildPlanSummaryView } from "@/features/plan/components/PlanPanel";
+import { Collapse, Flex, Typography } from "antd";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -125,9 +126,6 @@ const FILE_CHANGE_ADD_CLASS_NAME = "right-sidebar-file-change-add tw:text-ok";
 const FILE_CHANGE_DELETE_CLASS_NAME =
   "right-sidebar-file-change-delete tw:text-danger";
 
-const FILE_CHANGE_DIFF_CLASS_NAME =
-  "right-sidebar-file-change-diff tw:w-full tw:min-w-0 tw:border-t tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-surface)_86%,transparent)]";
-
 const FILE_DIFF_STATUS_CLASS_NAME =
   "right-sidebar-file-diff-status tw:flex tw:min-h-10 tw:items-center tw:justify-center tw:gap-2 tw:p-2.5 tw:text-xs tw:text-ink-muted";
 
@@ -142,7 +140,7 @@ const FILE_DIFF_SPINNER_CLASS_NAME =
   "right-sidebar-file-diff-spinner tw:h-3.5 tw:w-3.5 tw:animate-[ui-spin_900ms_linear_infinite] tw:rounded-full tw:border-2 tw:[border-color:color-mix(in_srgb,var(--ink-muted)_22%,transparent)] tw:[border-top-color:var(--accent-electric)] tw:motion-reduce:animate-none";
 
 const PLANNING_LIST_CLASS_NAME =
-  "right-sidebar-planning-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-1.5 tw:p-0";
+  "right-sidebar-planning-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-1.5 tw:px-[10px]";
 
 const PLANNING_ITEM_CLASS_NAME =
   "right-sidebar-planning-item tw:w-full tw:flex tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)] tw:px-2.5 tw:py-2 tw:text-left tw:text-inherit tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_38%,transparent)]";
@@ -153,8 +151,23 @@ const PLANNING_ITEM_ICON_CLASS_NAME =
 const PLANNING_ITEM_TEXT_CLASS_NAME =
   "right-sidebar-planning-item-text tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[12px] tw:leading-[1.35] tw:text-ink-1";
 
+const TASK_LIST_CLASS_NAME =
+  "right-sidebar-task-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-1 tw:px-[10px]";
+
+const TASK_ITEM_CLASS_NAME =
+  "right-sidebar-task-item tw:flex tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)] tw:px-2.5 tw:py-2 tw:text-[11px] tw:leading-[1.45] tw:text-ink-2";
+
+const TASK_ITEM_TEXT_CLASS_NAME =
+  "right-sidebar-task-item-text tw:min-w-0 tw:flex-1";
+
+const TASK_ITEM_DURATION_CLASS_NAME =
+  "right-sidebar-task-item-duration tw:flex-none tw:text-[10px] tw:text-ink-muted tw:whitespace-nowrap";
+
+const TASK_ITEM_RUNNING_CLASS_NAME =
+  "tw:bg-[color-mix(in_srgb,var(--accent-soft)_30%,transparent)]";
+
 const ARTIFACT_DRAWER_LIST_CLASS_NAME =
-  "artifact-drawer-list right-sidebar-artifact-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2.5 tw:overflow-visible tw:p-0";
+  "artifact-drawer-list right-sidebar-artifact-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2.5 tw:overflow-visible tw:px-[10px]";
 
 const ARTIFACT_DRAWER_ITEM_CLASS_NAME =
   "artifact-drawer-item tw:min-w-0 tw:list-none tw:[&_.attachment-card-file-shell]:flex-nowrap";
@@ -419,6 +432,34 @@ export const OverviewTab: React.FC = () => {
     );
   }, [state]);
 
+  const [now, setNow] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    if (!state.plan) return;
+    const hasRunningTask = Array.from(state.planRuntimeByTaskId.values()).some(
+      (runtime) => {
+        const s = String(runtime?.status || "")
+          .trim()
+          .toLowerCase();
+        return ["running", "in_progress", "working", "doing"].includes(s);
+      },
+    );
+    if (!hasRunningTask) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [state.plan, state.planRuntimeByTaskId]);
+
+  const taskSummary = React.useMemo(
+    () =>
+      buildPlanSummaryView(
+        state.plan,
+        state.planRuntimeByTaskId,
+        state.taskItemsById,
+        now,
+      ),
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now],
+  );
+
   const planningNodes = React.useMemo(() => {
     const nodes: { id: string; text: string; status: string }[] = [];
     for (const [id, node] of state.timelineNodes) {
@@ -615,6 +656,52 @@ export const OverviewTab: React.FC = () => {
                       {previewText}
                     </span>
                   </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </OverviewSection>
+      <OverviewSection
+        title={t("rightSidebar.overview.tasks.title")}
+        count={
+          taskSummary
+            ? `${taskSummary.currentCount}/${taskSummary.totalTasks}`
+            : 0
+        }
+      >
+        {!taskSummary || taskSummary.totalTasks === 0 ? (
+          <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
+            {t("rightSidebar.overview.tasks.empty")}
+          </div>
+        ) : (
+          <ul className={TASK_LIST_CLASS_NAME}>
+            {taskSummary.normalizedTasks.map((task) => {
+              const itemClass =
+                task.status === "running"
+                  ? `${TASK_ITEM_CLASS_NAME} ${TASK_ITEM_RUNNING_CLASS_NAME}`
+                  : TASK_ITEM_CLASS_NAME;
+              return (
+                <li
+                  key={task.taskId}
+                  className={itemClass}
+                  data-status={task.status}
+                >
+                  <span
+                    className="tool-status-dot"
+                    data-tool-status={task.status}
+                  />
+                  <Typography.Text
+                    ellipsis={{ tooltip: task.description || task.taskId }}
+                    className={TASK_ITEM_TEXT_CLASS_NAME}
+                  >
+                    {task.description || task.taskId}
+                  </Typography.Text>
+                  {task.durationText ? (
+                    <span className={TASK_ITEM_DURATION_CLASS_NAME}>
+                      {task.durationText}
+                    </span>
+                  ) : null}
                 </li>
               );
             })}

@@ -306,6 +306,8 @@ export const enUSMessages: I18nMessages = {
   "rightSidebar.overview.fileChanges.titleCoder": "Code changes",
   "rightSidebar.overview.planning.title": "Plan",
   "rightSidebar.overview.planning.empty": "No plan",
+  "rightSidebar.overview.tasks.title": "Tasks",
+  "rightSidebar.overview.tasks.empty": "No tasks",
   "rightSidebar.preview.actions.close": "Close",
   "rightSidebar.preview.actions.download": "Download",
   "rightSidebar.preview.error.audio": "Audio preview failed. Download the file to view it.",
