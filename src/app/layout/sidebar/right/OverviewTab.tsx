@@ -11,6 +11,7 @@ import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildPlanSummaryView } from "@/features/plan/components/PlanPanel";
 import { Collapse, Flex, Typography } from "antd";
+import { FileIcon } from "@/shared/components/file-icon";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -104,11 +105,8 @@ const RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME =
 const RIGHT_SIDEBAR_EMPTY_CLASS_NAME =
   "right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted tw:mx-[10px]";
 
-const FILE_CHANGE_ICON_CLASS_NAME =
-  "right-sidebar-file-change-icon tw:flex-none tw:text-ink-muted";
-
 const FILE_CHANGE_PATH_CLASS_NAME =
-  "right-sidebar-file-change-path tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:leading-[1.35] tw:text-ink-1";
+  "right-sidebar-file-change-path tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:leading-[1.35] tw:text-ink-1";
 
 const FILE_CHANGE_RUN_CLASS_NAME =
   "right-sidebar-file-change-run tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[12px] tw:leading-[1.25] tw:text-ink-muted";
@@ -587,11 +585,7 @@ export const OverviewTab: React.FC = () => {
                 showArrow: false,
                 label: (
                   <Flex align="center" gap={10}>
-                    <MaterialIcon
-                      name={getFileIcon(item.filePath)}
-                      className={FILE_CHANGE_ICON_CLASS_NAME}
-                      aria-hidden="true"
-                    />
+                    <FileIcon filename={item.filePath} />
                     <span className={FILE_CHANGE_PATH_CLASS_NAME}>
                       {displayFileName(item.filePath)}
                     </span>

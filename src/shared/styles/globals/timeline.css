@@ -373,10 +373,6 @@
     object-fit: cover;
 }
 
-.attachment-card[data-attachment-kind="image"] .attachment-card-file-icon {
-    background: linear-gradient(180deg, #2fbc8a, #0ea172);
-}
-
 .attachment-card-file-icon .material-icon {
     font-size: 20px;
 }

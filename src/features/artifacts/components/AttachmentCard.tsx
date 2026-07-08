@@ -5,11 +5,11 @@ import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachment
 import {
   type AttachmentLike,
   getAttachmentDownloadUrl,
-  getAttachmentIconName,
   getAttachmentKind,
   getAttachmentUrl,
 } from "@/features/artifacts/lib/attachmentUtils";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { FileIcon } from "@/shared/components/file-icon";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -160,9 +160,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
               />
             </span>
           ) : (
-            <span className="attachment-card-file-icon">
-              <MaterialIcon name={getAttachmentIconName(attachment)} />
-            </span>
+            <FileIcon filename={attachment.name} />
           )}
           <span className="attachment-card-file-copy">
             <span className="attachment-card-title" title={attachment.name}>
