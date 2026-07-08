@@ -112,8 +112,12 @@ export function reduceUiState(
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
+			const hasPlanningPreview = Object.prototype.hasOwnProperty.call(action, "planningPreview");
 			const removePreviewUrl = Object.prototype.hasOwnProperty.call(action, "removePreviewUrl")
 				? action.removePreviewUrl
+				: undefined;
+			const removePlanningPreviewNodeId = Object.prototype.hasOwnProperty.call(action, "removePlanningPreviewNodeId")
+				? action.removePlanningPreviewNodeId
 				: undefined;
 			let nextPreviews = state.attachmentPreview;
 			if (removePreviewUrl) {
@@ -134,11 +138,34 @@ export function reduceUiState(
 					nextPreviews = [];
 				}
 			}
+			let nextPlanningPreviews = state.planningPreviews;
+			if (removePlanningPreviewNodeId) {
+				nextPlanningPreviews = nextPlanningPreviews.filter(
+					(p) => p.nodeId !== removePlanningPreviewNodeId,
+				);
+			} else {
+				const incomingPlanning = hasPlanningPreview ? action.planningPreview : undefined;
+				if (incomingPlanning) {
+					const existingIndex = nextPlanningPreviews.findIndex(
+						(p) => p.nodeId === incomingPlanning.nodeId,
+					);
+					if (existingIndex >= 0) {
+						nextPlanningPreviews = nextPlanningPreviews
+							.filter((_, i) => i !== existingIndex)
+							.concat(incomingPlanning);
+					} else {
+						nextPlanningPreviews = [...nextPlanningPreviews, incomingPlanning];
+					}
+				} else if (hasPlanningPreview) {
+					nextPlanningPreviews = [];
+				}
+			}
 			return {
 				...state,
 				rightSidebarOpen: true,
 				rightSidebarOpenTab: action.tab ?? null,
 				attachmentPreview: nextPreviews,
+				planningPreviews: nextPlanningPreviews,
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null
 					: state.activeSourceDetail,

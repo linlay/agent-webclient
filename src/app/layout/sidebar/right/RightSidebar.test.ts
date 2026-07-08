@@ -48,6 +48,10 @@ jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
   SourceDetailTab: () => React.createElement("div", null, "source detail tab"),
 }));
 
+jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
+  PlanningPreviewTab: () => React.createElement("div", null, "planning preview tab"),
+}));
+
 jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
 }));

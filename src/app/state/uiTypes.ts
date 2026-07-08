@@ -1,7 +1,7 @@
 import type { AIEvent } from "@/app/state/eventTypes";
 
 export type AgentEvent = AIEvent;
-export type RightSidebarTabKey = "overview" | "debug" | "preview" | "sourceDetail";
+export type RightSidebarTabKey = "overview" | "debug" | "preview" | "sourceDetail" | "planningPreview";
 
 export interface ResourceFile {
 	mimeType: string;
@@ -20,6 +20,11 @@ export interface PublishedArtifact {
 	artifactId: string;
 	artifact: ResourceFile;
 	timestamp: number;
+}
+
+export interface PlanningPreviewState {
+	nodeId: string;
+	label: string;
 }
 
 export interface FileChangeSummary {

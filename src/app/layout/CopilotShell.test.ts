@@ -98,6 +98,15 @@ jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
     ),
 }));
 
+jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
+  PlanningPreviewTab: () =>
+    React.createElement(
+      "div",
+      { className: "planning-preview-tab" },
+      "planning preview",
+    ),
+}));
+
 jest.mock("@/features/settings/components/SettingsModal", () => ({
   SettingsModal: () =>
     React.createElement("div", { className: "settings-modal" }, "settings"),
