@@ -6,7 +6,7 @@ const FILE_DIFF_EMPTY_CLASS_NAME =
 	"right-sidebar-file-diff-empty tw:flex tw:min-h-10 tw:items-center tw:justify-center tw:gap-2 tw:p-2.5 tw:text-xs tw:text-ink-muted";
 
 const FILE_DIFF_CLASS_NAME =
-	"right-sidebar-file-diff tw:font-code tw:text-[11px] tw:leading-[1.45]";
+	"right-sidebar-file-diff tw:font-code tw:text-[11px] tw:leading-[1.45] tw:w-fit";
 
 const FILE_DIFF_LINE_CLASS_NAME =
 	"right-sidebar-file-diff-line tw:grid tw:min-w-max tw:grid-cols-[38px_38px_18px_minmax(220px,1fr)] tw:items-stretch";
