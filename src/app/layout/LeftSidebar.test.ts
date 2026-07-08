@@ -1475,7 +1475,7 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("renders an automation source icon before worker chat preview text", () => {
+  it("renders an automation source icon before worker chat time", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].source = "automation:daily";
@@ -1486,10 +1486,13 @@ describe("LeftSidebar", () => {
     expect(html).toContain("worker-chat-source-icon");
     expect(html).toContain('aria-label="自动化创建"');
     expect(html).toContain('title="自动化创建"');
+    expect(html).toContain("tw:h-[9px]");
+    expect(html).toContain("tw:w-[9px]");
+    expect(html).toContain("tw:text-[10px]");
     expect(html).toContain('<circle cx="12" cy="12" r="10"></circle>');
     expect(html).toContain('<path d="M12 6v6l4 2"></path>');
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span>Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">[\s\S]*?<span class="[^"]*\bworker-panel-time-label\b[^"]*"><span class="[^"]*\bworker-panel-time-content\b[^"]*\bis-automation\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span><span class="[^"]*\bworker-panel-time-text\b[^"]*tw:text-\[10px\][^"]*">/,
     );
   });
 
