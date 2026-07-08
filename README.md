@@ -93,11 +93,10 @@ cp .env.example .env
 至少确认：
 
 ```bash
-PORT=11948
 BASE_URL=http://localhost:11949
 ```
 
-- `PORT`：本地开发端口，也是 Docker Compose 暴露到宿主机的端口。
+- `PORT`：可选。本地开发端口和 Docker Compose 暴露到宿主机的端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或宿主配置注入。
 - `BASE_URL`：AGW / AGENT 后端地址，前端会把 `/api/*` 和 `/ws` 代理到这里。
 
 ### 2. 安装依赖并启动
@@ -266,9 +265,8 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 
 | 变量 | 必填 | 说明 |
 | --- | --- | --- |
-| `PORT` | 是 | 本地开发端口，Docker Compose 中也是宿主机暴露端口 |
+| `PORT` | 否 | 本地开发端口，Docker Compose 中也是宿主机暴露端口；未设置时默认 `11948`，也可由 CLI args、环境变量或宿主配置注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
-| `DESKTOP_APP` | 否 | Desktop 场景标记 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
 | `MEMORY_ENABLED` | 否 | 是否显示 memory 相关入口 |
