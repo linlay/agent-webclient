@@ -30,6 +30,7 @@ import wordSvg from "./icons/word.svg";
 import xmlSvg from "./icons/xml.svg";
 import yamlSvg from "./icons/yaml.svg";
 import zipSvg from "./icons/zip.svg";
+import reactSvg from "./icons/react.svg";
 
 export interface FileIconProps {
   filename: string;
@@ -40,9 +41,9 @@ export interface FileIconProps {
 
 const EXT_ICON_MAP: Record<string, string> = {
   ts: typescriptSvg,
-  tsx: typescriptSvg,
+  tsx: reactSvg,
   js: javascriptSvg,
-  jsx: javascriptSvg,
+  jsx: reactSvg,
   mjs: javascriptSvg,
   cjs: javascriptSvg,
   json: jsonSvg,

@@ -16,7 +16,7 @@
     right: 0;
     left: auto;
     transform: translateX(100%);
-    border-radius: 10px;
+    border-left: 1px solid var(--line-soft);
 }
 
 .right-sidebar-resize-handle {
