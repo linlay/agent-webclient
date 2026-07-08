@@ -263,3 +263,19 @@
 .mono {
     font-family: var(--font-mono);
 }
+
+.right-sidebar-file-change-collapse>.ant-collapse-item >.ant-collapse-header{
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-elev-1);
+    padding: 4px 10px;
+    border-radius: 0 !important;
+    &:hover{
+        background: var(--bg-hover);
+        backdrop-filter: blur(10px);
+    }
+}
+.right-sidebar-file-change-collapse .ant-collapse-content>.ant-collapse-content-box{
+    padding: 0;
+    padding-block: 0 !important;
+}

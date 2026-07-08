@@ -9,6 +9,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { Collapse, Flex } from "antd";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -85,46 +86,31 @@ export interface OverviewFileChangeItem {
 const FILE_CHANGE_JUMP_DURATION_MS = 560;
 
 const RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME =
-  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto tw:p-3";
+  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME =
   "right-sidebar-overview-section tw:flex tw:min-w-0 tw:flex-col tw:gap-2";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME =
-  "right-sidebar-overview-section-head tw:flex tw:items-center tw:justify-between tw:gap-2";
+  "right-sidebar-overview-section-head tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-[10px]";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_TITLE_CLASS_NAME =
   "tw:m-0 tw:text-[13px] tw:font-bold tw:text-ink-1";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME =
-  "right-sidebar-overview-section-count tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-soft)_62%,transparent)] tw:px-[7px] tw:py-px tw:text-[11px] tw:font-bold tw:text-accent-electric-strong";
+  "right-sidebar-overview-section-count tw:text-[11px] tw:font-bold tw:text-accent-electric-strong";
 
 const RIGHT_SIDEBAR_EMPTY_CLASS_NAME =
-  "right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted";
-
-const FILE_CHANGE_LIST_CLASS_NAME =
-  "right-sidebar-file-change-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2 tw:p-0";
-
-const FILE_CHANGE_ITEM_CLASS_NAME =
-  "right-sidebar-file-change-item tw:flex tw:min-w-0 tw:flex-col tw:overflow-hidden tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)]";
-
-const FILE_CHANGE_ROW_CLASS_NAME =
-  "right-sidebar-file-change-row tw:flex tw:w-full tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-inherit tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_38%,transparent)]";
-
-const FILE_CHANGE_EXPAND_CLASS_NAME =
-  "right-sidebar-file-change-expand tw:flex-none tw:text-base tw:text-ink-muted";
+  "right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted tw:mx-[10px]";
 
 const FILE_CHANGE_ICON_CLASS_NAME =
-  "right-sidebar-file-change-icon tw:flex-none tw:text-base tw:text-ink-muted";
-
-const FILE_CHANGE_PATH_WRAP_CLASS_NAME =
-  "right-sidebar-file-change-path-wrap tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-0.5";
+  "right-sidebar-file-change-icon tw:flex-none tw:text-ink-muted";
 
 const FILE_CHANGE_PATH_CLASS_NAME =
-  "right-sidebar-file-change-path tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[11px] tw:leading-[1.35] tw:text-ink-1";
+  "right-sidebar-file-change-path tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:leading-[1.35] tw:text-ink-1";
 
 const FILE_CHANGE_RUN_CLASS_NAME =
-  "right-sidebar-file-change-run tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[10px] tw:leading-[1.25] tw:text-ink-muted";
+  "right-sidebar-file-change-run tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-[12px] tw:leading-[1.25] tw:text-ink-muted";
 
 const FILE_CHANGE_STATS_CLASS_NAME =
   "right-sidebar-file-change-stats tw:inline-flex tw:flex-none tw:items-center tw:gap-1 tw:whitespace-nowrap tw:font-code tw:text-[11px] tw:font-bold tw:leading-[1.2]";
@@ -333,6 +319,9 @@ function renderFileChangeStats(
     .filter(Boolean)
     .join(" ");
 
+  if (!addedLines && !deletedLines) {
+    return null;
+  }
   return (
     <span key={options.animationKey} className={FILE_CHANGE_STATS_CLASS_NAME}>
       <span className={addClassName}>+{formatLineCount(addedLines)}</span>
@@ -421,35 +410,35 @@ export const OverviewTab: React.FC = () => {
     [fileChanges],
   );
   const isCoder = React.useMemo(() => {
-		const worker = resolveCurrentWorkerSummary(state);
-		if (!worker || worker.type !== "agent") return false;
-		return (
-			String(
-				(worker.raw as Record<string, unknown> | null)?.["mode"] || "",
-			).toUpperCase() === "CODER"
-		);
-	}, [state]);
+    const worker = resolveCurrentWorkerSummary(state);
+    if (!worker || worker.type !== "agent") return false;
+    return (
+      String(
+        (worker.raw as Record<string, unknown> | null)?.["mode"] || "",
+      ).toUpperCase() === "CODER"
+    );
+  }, [state]);
 
-	const planningNodes = React.useMemo(() => {
-		const nodes: { id: string; text: string; status: string }[] = [];
-		for (const [id, node] of state.timelineNodes) {
-			if (node.kind === "planning" && node.text) {
-				nodes.push({ id, text: node.text, status: node.status || "" });
-			}
-		}
-		return nodes;
-	}, [state.timelineNodes]);
+  const planningNodes = React.useMemo(() => {
+    const nodes: { id: string; text: string; status: string }[] = [];
+    for (const [id, node] of state.timelineNodes) {
+      if (node.kind === "planning" && node.text) {
+        nodes.push({ id, text: node.text, status: node.status || "" });
+      }
+    }
+    return nodes;
+  }, [state.timelineNodes]);
 
-	const handlePlanningClick = React.useCallback(
-		(nodeId: string, label: string) => {
-			dispatch({
-				type: "OPEN_RIGHT_SIDEBAR",
-				tab: "planningPreview",
-				planningPreview: { nodeId, label },
-			});
-		},
-		[dispatch],
-	);
+  const handlePlanningClick = React.useCallback(
+    (nodeId: string, label: string) => {
+      dispatch({
+        type: "OPEN_RIGHT_SIDEBAR",
+        tab: "planningPreview",
+        planningPreview: { nodeId, label },
+      });
+    },
+    [dispatch],
+  );
 
   React.useEffect(() => {
     const nextSignatures = buildFileChangeAnimationSignatures(fileChanges);
@@ -543,54 +532,49 @@ export const OverviewTab: React.FC = () => {
             )}
           </div>
         ) : (
-          <ul className={FILE_CHANGE_LIST_CLASS_NAME}>
-            {fileChanges.map((item) => {
+          <Collapse
+            ghost
+            activeKey={Array.from(expandedFileChangeKeys)}
+            className="right-sidebar-file-change-collapse"
+            expandIconPosition="end"
+            items={fileChanges.map((item) => {
               const itemKey = buildFileChangeKey(item.runId, item.filePath);
               const cacheKey = buildFileHistoryCacheKey(state.chatId, item);
-              const expanded = expandedFileChangeKeys.has(itemKey);
-              return (
-                <li key={itemKey} className={FILE_CHANGE_ITEM_CLASS_NAME}>
-                  <button
-                    type="button"
-                    className={FILE_CHANGE_ROW_CLASS_NAME}
-                    aria-expanded={expanded}
-                    onClick={() => toggleFileChange(item)}
-                  >
-                    <MaterialIcon
-                      name={expanded ? "expand_more" : "chevron_right"}
-                      className={FILE_CHANGE_EXPAND_CLASS_NAME}
-                      aria-hidden="true"
-                    />
+              return {
+                key: itemKey,
+                onClick: () => toggleFileChange(item),
+                showArrow: false,
+                label: (
+                  <Flex align="center" gap={10}>
                     <MaterialIcon
                       name={getFileIcon(item.filePath)}
                       className={FILE_CHANGE_ICON_CLASS_NAME}
                       aria-hidden="true"
                     />
-                    <span
-                      className={FILE_CHANGE_PATH_WRAP_CLASS_NAME}
-                      title={`${item.filePath} · ${item.runId}`}
-                    >
-                      <span className={FILE_CHANGE_PATH_CLASS_NAME}>
-                        {displayFileName(item.filePath)}
-                      </span>
-                      <span className={FILE_CHANGE_RUN_CLASS_NAME}>
-                        {item.runId}
-                      </span>
+                    <span className={FILE_CHANGE_PATH_CLASS_NAME}>
+                      {displayFileName(item.filePath)}
                     </span>
-                    {renderFileChangeStats(item.addedLines, item.deletedLines, {
-                      animated: fileChangeAnimation.paths.has(itemKey),
-                      animationKey: `${itemKey}-${fileChangeAnimation.version}`,
-                    })}
-                  </button>
-                  {expanded && (
-                    <div className={FILE_CHANGE_DIFF_CLASS_NAME}>
-                      {renderFileHistoryPanel(fileHistoryCache[cacheKey])}
-                    </div>
-                  )}
-                </li>
-              );
+                    <span className={FILE_CHANGE_RUN_CLASS_NAME}>
+                      {item.runId}
+                    </span>
+                  </Flex>
+                ),
+                extra: renderFileChangeStats(
+                  item.addedLines,
+                  item.deletedLines,
+                  {
+                    animated: fileChangeAnimation.paths.has(itemKey),
+                    animationKey: `${itemKey}-${fileChangeAnimation.version}`,
+                  },
+                ),
+                children: (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    {renderFileHistoryPanel(fileHistoryCache[cacheKey])}
+                  </div>
+                ),
+              };
             })}
-          </ul>
+          />
         )}
       </OverviewSection>
       <OverviewSection

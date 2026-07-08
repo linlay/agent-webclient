@@ -6,14 +6,14 @@ const FILE_DIFF_EMPTY_CLASS_NAME =
 	"right-sidebar-file-diff-empty tw:flex tw:min-h-10 tw:items-center tw:justify-center tw:gap-2 tw:p-2.5 tw:text-xs tw:text-ink-muted";
 
 const FILE_DIFF_CLASS_NAME =
-	"right-sidebar-file-diff tw:max-h-[360px] tw:overflow-auto tw:py-1.5 tw:font-code tw:text-[11px] tw:leading-[1.45]";
+	"right-sidebar-file-diff tw:font-code tw:text-[11px] tw:leading-[1.45]";
 
 const FILE_DIFF_LINE_CLASS_NAME =
 	"right-sidebar-file-diff-line tw:grid tw:min-w-max tw:grid-cols-[38px_38px_18px_minmax(220px,1fr)] tw:items-stretch";
 
 const FILE_DIFF_LINE_TONE_CLASS_NAMES: Record<FileDiffRow["type"], string> = {
-	add: "tw:bg-[color-mix(in_srgb,var(--ok)_10%,transparent)] tw:[&_.right-sidebar-file-diff-marker]:text-ok",
-	delete: "tw:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] tw:[&_.right-sidebar-file-diff-marker]:text-danger",
+	add: "tw:bg-[color-mix(in_srgb,var(--ok)_10%,transparent)] tw:[&_.right-sidebar-file-diff-marker]:text-ok tw:border-l-2 tw:border-[var(--ok)]",
+	delete: "tw:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] tw:[&_.right-sidebar-file-diff-marker]:text-danger tw:border-l-2 tw:border-[var(--danger)]",
 	context: "",
 };
 
