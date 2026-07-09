@@ -469,13 +469,13 @@ describe('appReducer conversation reset behavior', () => {
       chats: [
         {
           chatId: 'chat_1',
-          chatName: 'Zenmind Env chat',
-          agentKey: 'zenmind-env',
+          chatName: 'Agent Env chat',
+          agentKey: 'agent-env',
         },
       ],
     });
 
-    expect(withChats.chatAgentById.get('chat_1')).toBe('zenmind-env');
+    expect(withChats.chatAgentById.get('chat_1')).toBe('agent-env');
 
     const updated = appReducer(withChats, {
       type: 'UPSERT_CHAT',

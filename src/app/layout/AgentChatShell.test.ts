@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { createInitialState } from "@/app/state/state";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
+import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
 import type { Chat, WorkerRow } from "@/app/state/types";
 
 jest.mock("react-router-dom", () => ({
@@ -794,7 +795,7 @@ describe("AgentChatShell", () => {
     renderToStaticMarkup(React.createElement(AgentChatShell));
 
     expect(globalWithDom.window!.electronAPI.onFromMain).toHaveBeenCalledWith(
-      "zenmind:service-webview:action",
+      SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL,
       expect.any(Function),
     );
     expect(desktopActionListener).toEqual(expect.any(Function));

@@ -14,6 +14,9 @@ interface UseDesktopActionForAgentPageOptions {
   onOpenChatHistory?: (detail: DesktopOpenChatHistoryDetail) => void;
 }
 
+export const SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL =
+  "zenmind:service-webview:action";
+
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -60,7 +63,7 @@ export const useDesktopActionForAgentPage = (
 
     // 监听 主进程 发送的 消息
     const unsubscribe = electronAPI.onFromMain(
-      "zenmind:service-webview:action",
+      SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL,
       (_: any, payload: DesktopActionPayload) => {
         handleDesktopAction(payload);
       },

@@ -6,9 +6,9 @@ import {
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
-const DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE =
+export const DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE =
   "zenmind:desktop-screenshot:capture";
-const DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE =
+export const DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE =
   "zenmind:desktop-screenshot:capture:response";
 const DESKTOP_SCREENSHOT_TIMEOUT_MS = 120_000;
 

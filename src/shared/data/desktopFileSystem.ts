@@ -6,10 +6,13 @@ import { openAgentWorkspace } from "@/shared/data/client";
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
-const SELECT_DIRECTORY_REQUEST_TYPE = "zenmind:desktop-dialog:select-directory";
-const SELECT_DIRECTORY_RESPONSE_TYPE = "zenmind:desktop-dialog:select-directory:response";
-const OPEN_PATH_REQUEST_TYPE = "zenmind:desktop-shell:open-path";
-const OPEN_PATH_RESPONSE_TYPE = "zenmind:desktop-shell:open-path:response";
+export const SELECT_DIRECTORY_REQUEST_TYPE =
+  "zenmind:desktop-dialog:select-directory";
+export const SELECT_DIRECTORY_RESPONSE_TYPE =
+  "zenmind:desktop-dialog:select-directory:response";
+export const OPEN_PATH_REQUEST_TYPE = "zenmind:desktop-shell:open-path";
+export const OPEN_PATH_RESPONSE_TYPE =
+  "zenmind:desktop-shell:open-path:response";
 const DESKTOP_FILE_SYSTEM_TIMEOUT_MS = 30_000;
 
 export type ProjectFolderSelection =

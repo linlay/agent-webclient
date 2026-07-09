@@ -3,7 +3,7 @@ import { resolveChatAgentKey, resolveRunAgentKey } from "@/features/chats/lib/ru
 describe("runAgentIdentity", () => {
   it("prefers chat summary agent over stale chat-agent bindings", () => {
     const chatAgentById = new Map([["chat_1", "stale-agent"]]);
-    const chats = [{ chatId: "chat_1", agentKey: "zenmind-env" }];
+    const chats = [{ chatId: "chat_1", agentKey: "agent-env" }];
 
     expect(
       resolveChatAgentKey({
@@ -11,12 +11,12 @@ describe("runAgentIdentity", () => {
         chatAgentById,
         chats,
       }),
-    ).toBe("zenmind-env");
+    ).toBe("agent-env");
   });
 
   it("uses chat summary agent when resolving the current run fallback", () => {
     const chatAgentById = new Map([["chat_1", "stale-agent"]]);
-    const chats = [{ chatId: "chat_1", firstAgentKey: "zenmind-env" }];
+    const chats = [{ chatId: "chat_1", firstAgentKey: "agent-env" }];
 
     expect(
       resolveRunAgentKey({
@@ -24,7 +24,7 @@ describe("runAgentIdentity", () => {
         chatAgentById,
         chats,
       }),
-    ).toBe("zenmind-env");
+    ).toBe("agent-env");
   });
 
   it("prefers backend run metadata over composer routing context", () => {

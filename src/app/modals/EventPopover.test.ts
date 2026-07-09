@@ -497,7 +497,7 @@ describe("EventPopover collected snapshot shape", () => {
         {
           type: "tool.args",
           toolId: "call_1",
-          delta: "\"zenmind\"}",
+          delta: "\"workspace\"}",
         },
         2,
       ),
@@ -540,7 +540,7 @@ describe("EventPopover collected snapshot shape", () => {
         requestId: "req_1",
         seq: 31,
         timestamp: 999,
-        arguments: "{\"q\":\"zenmind\"}",
+        arguments: "{\"q\":\"workspace\"}",
       }),
     );
     expect(snapshot).not.toHaveProperty("result");
@@ -1155,7 +1155,7 @@ describe("EventPopover display and copy helpers", () => {
       toolId: "tool_1",
       toolLabel: "搜索工具",
       toolName: "search",
-      toolParams: { q: "zenmind" },
+      toolParams: { q: "workspace" },
       arguments: "{\"ignored\":true}",
       delta: "{\"fallback\":true}",
     };
@@ -1181,14 +1181,14 @@ describe("EventPopover display and copy helpers", () => {
     expect(items[3]).toEqual({
       key: "arguments",
       label: "Copy arguments",
-      text: JSON.stringify({ q: "zenmind" }, null, 2),
+      text: JSON.stringify({ q: "workspace" }, null, 2),
     });
     expect(JSON.parse(items[4].text)).toEqual({
       type: "tool.snapshot",
       toolId: "tool_1",
       toolLabel: "搜索工具",
       toolName: "search",
-      toolParams: { q: "zenmind" },
+      toolParams: { q: "workspace" },
       arguments: "{\"fallback\":true}",
       delta: "{\"fallback\":true}",
       text: "{\"fallback\":true}",

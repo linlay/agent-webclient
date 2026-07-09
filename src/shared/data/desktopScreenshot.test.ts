@@ -1,5 +1,7 @@
 import {
   DesktopScreenshotError,
+  DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
+  DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
   captureDesktopScreenshot,
 } from "@/shared/data/desktopScreenshot";
 
@@ -72,7 +74,7 @@ describe("desktopScreenshot bridge", () => {
     const desktop = installDesktopWindow((payload) => {
       queueMicrotask(() => {
         desktop.emit({
-          type: "zenmind:desktop-screenshot:capture:response",
+          type: DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
           requestId: payload.requestId,
           ok: true,
           dataBase64: "cG5n",
@@ -94,7 +96,7 @@ describe("desktopScreenshot bridge", () => {
     });
     expect(desktop.mockWindow.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "zenmind:desktop-screenshot:capture",
+        type: DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
       }),
       "*",
     );
@@ -104,7 +106,7 @@ describe("desktopScreenshot bridge", () => {
     const desktop = installDesktopWindow((payload) => {
       queueMicrotask(() => {
         desktop.emit({
-          type: "zenmind:desktop-screenshot:capture:response",
+          type: DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
           requestId: payload.requestId,
           ok: false,
           cancelled: true,
@@ -120,7 +122,7 @@ describe("desktopScreenshot bridge", () => {
     const desktop = installDesktopWindow((payload) => {
       queueMicrotask(() => {
         desktop.emit({
-          type: "zenmind:desktop-screenshot:capture:response",
+          type: DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
           requestId: payload.requestId,
           ok: false,
           message: "没有屏幕录制权限。",

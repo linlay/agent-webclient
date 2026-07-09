@@ -1,5 +1,7 @@
 import {
   ProjectFolderSelectionError,
+  SELECT_DIRECTORY_REQUEST_TYPE,
+  SELECT_DIRECTORY_RESPONSE_TYPE,
   selectProjectFolder,
 } from "@/shared/data/desktopFileSystem";
 
@@ -33,7 +35,7 @@ describe("desktopFileSystem project folder selection", () => {
             listener({
               source: mockWindow,
               data: {
-                type: "zenmind:desktop-dialog:select-directory:response",
+                type: SELECT_DIRECTORY_RESPONSE_TYPE,
                 requestId: payload.requestId,
                 ok: true,
                 path: "/Users/demo/Project/agent-coder",
@@ -68,7 +70,7 @@ describe("desktopFileSystem project folder selection", () => {
     });
     expect(mockWindow.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "zenmind:desktop-dialog:select-directory",
+        type: SELECT_DIRECTORY_REQUEST_TYPE,
         mode: "directory",
       }),
       "*",
@@ -86,7 +88,7 @@ describe("desktopFileSystem project folder selection", () => {
             listener({
               source: mockWindow,
               data: {
-                type: "zenmind:desktop-dialog:select-directory:response",
+                type: SELECT_DIRECTORY_RESPONSE_TYPE,
                 requestId: payload.requestId,
                 ok: false,
                 message: "已取消选择目录。",

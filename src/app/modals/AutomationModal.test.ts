@@ -136,14 +136,14 @@ describe("AutomationModal", () => {
       data: {
         items: [
           {
-            id: "gitpull_zenmind_20260429_2146",
-            name: "令宿 - 全量拉取 zenmind 子项目",
+            id: "sync_workspace_20260429_2146",
+            name: "令宿 - 全量同步 workspace 子项目",
             description: "pull",
             cron: "0 9 * * *",
             agentKey: "agent-a",
             enabled: true,
             sourceFile:
-              "/Users/linlay/Project/zenmind/zenmind-env/automations/gitpull_zenmind_20260429_2146.yml",
+              "/Users/demo/Project/agent-workspace/automations/sync_workspace_20260429_2146.yml",
           },
         ],
         total: 1,
@@ -249,18 +249,18 @@ describe("AutomationModal", () => {
 
   it("normalizes automation source files to display filenames", () => {
     const automation = {
-      id: "gitpull_zenmind_20260429_2146",
-      name: "令宿 - 全量拉取 zenmind 子项目",
+      id: "sync_workspace_20260429_2146",
+      name: "令宿 - 全量同步 workspace 子项目",
       description: "pull",
       cron: "0 9 * * *",
       agentKey: "agent-a",
       enabled: true,
       sourceFile:
-        "/Users/linlay/Project/zenmind/zenmind-env/automations/gitpull_zenmind_20260429_2146.yml",
+        "/Users/demo/Project/agent-workspace/automations/sync_workspace_20260429_2146.yml",
     };
 
-    expect(automationSourcePath(automation)).toBe("gitpull_zenmind_20260429_2146.yml");
-    expect(automationSourcePath({ ...automation, sourceFile: "" })).toBe("gitpull_zenmind_20260429_2146");
+    expect(automationSourcePath(automation)).toBe("sync_workspace_20260429_2146.yml");
+    expect(automationSourcePath({ ...automation, sourceFile: "" })).toBe("sync_workspace_20260429_2146");
   });
 
   it("keeps platform readable automation times in their source timezone", () => {

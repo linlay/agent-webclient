@@ -1,6 +1,7 @@
 import {
   buildDesktopRouteTarget,
   resetDesktopRouteChangeBridgeForTests,
+  SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL,
   subscribeDesktopRouteChanges,
   type DesktopRouteChangedPayload,
 } from "./useDesktopRouteChange";
@@ -79,7 +80,7 @@ describe("useDesktopRouteChange bridge", () => {
 
     expect(onFromMain).toHaveBeenCalledTimes(1);
     expect(onFromMain).toHaveBeenCalledWith(
-      "zenmind:service-webview:route",
+      SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL,
       expect.any(Function),
     );
 

@@ -1,6 +1,7 @@
 import {
   AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
+  APP_AUTH_LEGACY_RESPONSE_TYPE,
   getAppAccessToken,
   refreshAppAccessToken,
 } from '@/shared/data/appAuth';
@@ -273,7 +274,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: 'zenmind:agent-app-auth:response',
+            type: APP_AUTH_LEGACY_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'fresh-webview-token',
           },
@@ -304,7 +305,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: 'zenmind:agent-app-auth:response',
+            type: APP_AUTH_LEGACY_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'shared-token',
           },
@@ -340,7 +341,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: 'zenmind:agent-app-auth:response',
+            type: APP_AUTH_LEGACY_RESPONSE_TYPE,
             requestId: payload.requestId,
             token,
           },
