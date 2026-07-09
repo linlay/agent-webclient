@@ -169,6 +169,7 @@ export function reduceConversationState(
 				activeReasoningKey: "",
 				activeFrontendTool: null,
 				activeAwaiting: null,
+				pendingAwaitings: [],
 			};
 		case "APPEND_DEBUG": {
 			const debugLines =

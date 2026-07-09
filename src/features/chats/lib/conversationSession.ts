@@ -16,7 +16,11 @@ import type {
   TimelineNode,
   ToolState,
 } from '@/app/state/types';
-import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
+import {
+  cloneActiveAwaiting,
+  cloneActiveAwaitingQueue,
+  reduceAwaitingRuntime,
+} from '@/features/tools/lib/awaitingRuntime';
 import { createReplayState, replayEvent, type ReplayState } from '@/features/chats/lib/conversationReplay';
 import { bindRunAgentKey, readRunAgentKeyFromEvent, resolveRunAgentKey } from '@/features/chats/lib/runAgentIdentity';
 import { toText } from '@/shared/utils/eventUtils';
@@ -58,6 +62,7 @@ export interface ConversationSnapshot {
   activeReasoningKey: string;
   activeFrontendTool: ActiveFrontendTool | null;
   activeAwaiting: ActiveAwaiting | null;
+  pendingAwaitings: ActiveAwaiting[];
   usageSnapshot: AIUsageSnapshotEvent | null;
   pendingSteers: Record<string, PendingSteer[]>;
   downvotedRunKeys: Set<string>;
@@ -233,6 +238,7 @@ export function snapshotConversationState(state: AppState): ConversationSnapshot
     activeReasoningKey: String(state.activeReasoningKey || '').trim(),
     activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
+    pendingAwaitings: cloneActiveAwaitingQueue(state.pendingAwaitings),
     usageSnapshot: state.usageSnapshot,
     pendingSteers: clonePendingSteersDict(state.pendingSteers),
     downvotedRunKeys: cloneSet(state.downvotedRunKeys),
@@ -273,6 +279,7 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     timelineNodeByMessageId: cloneMap(snapshot.timelineNodeByMessageId),
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
+    pendingAwaitings: cloneActiveAwaitingQueue(snapshot.pendingAwaitings),
     usageSnapshot: snapshot.usageSnapshot,
     pendingSteers: clonePendingSteersDict(snapshot.pendingSteers),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
@@ -294,6 +301,7 @@ function replayStateFromSnapshot(snapshot: ConversationSnapshot): ReplayState {
   rs.runAgentById = cloneMap(snapshot.runAgentById);
   rs.currentRunAgentKey = snapshot.currentRunAgentKey;
   rs.activeAwaiting = cloneActiveAwaiting(snapshot.activeAwaiting);
+  rs.pendingAwaitings = cloneActiveAwaitingQueue(snapshot.pendingAwaitings);
   rs.events = snapshot.events.slice();
   rs.debugEvents = snapshot.debugEvents.slice();
   rs.debugLines = snapshot.debugLines.slice();
@@ -331,6 +339,7 @@ function applyReplayStateToSnapshot(
   next.timelineCounter = rs.timelineCounter;
   next.activeReasoningKey = rs.activeReasoningKey;
   next.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
+  next.pendingAwaitings = cloneActiveAwaitingQueue(rs.pendingAwaitings);
   next.events = rs.events;
   next.debugEvents = rs.debugEvents;
   next.artifacts = rs.artifacts;
@@ -362,9 +371,18 @@ export function applyPendingSessionUpdates(
     if (toText(event.type) === 'request.query') {
       rs.events.push(event);
       rs.debugEvents = appendVisibleDebugEvent(rs.debugEvents, event, MAX_EVENTS, rs.events);
-      rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
-        agentKey: rs.currentRunAgentKey,
-      });
+      const nextAwaitingRuntime = reduceAwaitingRuntime(
+        {
+          activeAwaiting: rs.activeAwaiting,
+          pendingAwaitings: rs.pendingAwaitings,
+        },
+        event,
+        {
+          agentKey: rs.currentRunAgentKey,
+        },
+      );
+      rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
+      rs.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
       if (event.chatId) {
         rs.chatId = String(event.chatId);
       }
@@ -455,6 +473,7 @@ export function buildConversationStateUpdates(
     activeReasoningKey: snapshot.activeReasoningKey,
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
+    pendingAwaitings: cloneActiveAwaitingQueue(snapshot.pendingAwaitings),
     usageSnapshot: snapshot.usageSnapshot,
     artifactExpanded: false,
     artifactManualOverride: null,

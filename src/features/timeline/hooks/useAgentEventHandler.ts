@@ -28,7 +28,7 @@ import {
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { stripSpecialBlocksFromText } from "@/features/timeline/lib/contentSegments";
-import { reduceActiveAwaiting } from "@/features/tools/lib/awaitingRuntime";
+import { reduceAwaitingRuntime } from "@/features/tools/lib/awaitingRuntime";
 import {
   getPlanningModeForPlanDecision,
   readPlanAnswerDecision,
@@ -129,14 +129,22 @@ export function resolveAwaitingSubmitRuntimeContext(input: {
   state: AppState;
 }): { awaitingRunId: string; awaitingId: string; pendingSubmitId: string } {
   const awaitingId = toText(input.event.awaitingId);
+  const cachePendingAwaiting = awaitingId
+    ? input.cache.pendingAwaitings.find((item) => item.awaitingId === awaitingId)
+    : null;
+  const statePendingAwaiting = awaitingId
+    ? input.state.pendingAwaitings.find((item) => item.awaitingId === awaitingId)
+    : null;
   const awaitingRunId =
     toText(input.event.runId) ||
     (awaitingId && input.cache.activeAwaiting?.awaitingId === awaitingId
       ? input.cache.activeAwaiting.runId
       : "") ||
+    cachePendingAwaiting?.runId ||
     (awaitingId && input.state.activeAwaiting?.awaitingId === awaitingId
       ? input.state.activeAwaiting.runId
       : "") ||
+    statePendingAwaiting?.runId ||
     input.cache.runId ||
     input.state.runId;
   const pendingSubmitId =
@@ -369,13 +377,28 @@ export function useAgentEventHandler() {
         awaitingId,
         pendingSubmitId: pendingAwaitingSubmitId,
       } = resolveAwaitingSubmitRuntimeContext({ event, cache, state });
-      const nextAwaiting = reduceActiveAwaiting(cache.activeAwaiting, event, {
-        agentKey: awaitingFallbackAgentKey,
-        pendingSubmitId: pendingAwaitingSubmitId,
-      });
-      if (nextAwaiting !== cache.activeAwaiting) {
-        cache.activeAwaiting = nextAwaiting;
-        dispatch({ type: "SET_ACTIVE_AWAITING", awaiting: nextAwaiting });
+      const nextAwaitingRuntime = reduceAwaitingRuntime(
+        {
+          activeAwaiting: cache.activeAwaiting,
+          pendingAwaitings: cache.pendingAwaitings,
+        },
+        event,
+        {
+          agentKey: awaitingFallbackAgentKey,
+          pendingSubmitId: pendingAwaitingSubmitId,
+        },
+      );
+      if (
+        nextAwaitingRuntime.activeAwaiting !== cache.activeAwaiting ||
+        nextAwaitingRuntime.pendingAwaitings !== cache.pendingAwaitings
+      ) {
+        cache.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
+        cache.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
+        dispatch({
+          type: "SET_AWAITING_RUNTIME",
+          activeAwaiting: nextAwaitingRuntime.activeAwaiting,
+          pendingAwaitings: nextAwaitingRuntime.pendingAwaitings,
+        });
       }
       if (isAwaitingAnswerLike(type) && awaitingRunId && awaitingId) {
         const submitId = toText((event as Record<string, unknown>).submitId);

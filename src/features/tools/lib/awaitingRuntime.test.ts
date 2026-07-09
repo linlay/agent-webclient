@@ -1,5 +1,8 @@
 import { ViewportTypeEnum } from '@/app/state/types';
-import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
+import {
+  reduceActiveAwaiting,
+  reduceAwaitingRuntime,
+} from '@/features/tools/lib/awaitingRuntime';
 import {
   clearAllAwaitingQuestionMeta,
   getAwaitingQuestionMeta,
@@ -704,5 +707,191 @@ describe('reduceActiveAwaiting', () => {
     expect(
       getAwaitingQuestionMeta('run_1', 'await_1', 'continue'),
     ).toBeNull();
+  });
+
+  it('queues concurrent awaitings and promotes the next item after local answer', () => {
+    let runtime = reduceAwaitingRuntime(
+      { activeAwaiting: null, pendingAwaitings: [] },
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_2',
+        mode: 'question',
+        questions: [
+          {
+            id: 'q2',
+            type: 'text',
+            question: '第二个问题',
+          },
+        ],
+      },
+    );
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      mode: 'question',
+      questions: [
+        {
+          id: 'q1',
+          type: 'text',
+          question: '第一个问题',
+        },
+      ],
+    });
+
+    expect(runtime.activeAwaiting).toMatchObject({
+      awaitingId: 'await_2',
+      mode: 'question',
+    });
+    expect(runtime.pendingAwaitings).toHaveLength(1);
+    expect(runtime.pendingAwaitings[0]).toMatchObject({
+      awaitingId: 'await_1',
+      mode: 'question',
+    });
+
+    runtime = reduceAwaitingRuntime(
+      {
+        activeAwaiting: runtime.activeAwaiting
+          ? { ...runtime.activeAwaiting, pendingSubmitId: 'submit_2' }
+          : null,
+        pendingAwaitings: runtime.pendingAwaitings,
+      },
+      {
+        type: 'awaiting.answer',
+        runId: 'run_1',
+        awaitingId: 'await_2',
+        submitId: 'submit_2',
+        status: 'answered',
+      },
+    );
+
+    expect(runtime.activeAwaiting).toMatchObject({
+      awaitingId: 'await_1',
+      mode: 'question',
+    });
+    expect(runtime.pendingAwaitings).toHaveLength(0);
+  });
+
+  it('updates duplicate queued awaiting asks instead of appending another item', () => {
+    let runtime = reduceAwaitingRuntime(
+      { activeAwaiting: null, pendingAwaitings: [] },
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_active',
+        mode: 'question',
+        questions: [
+          {
+            id: 'active',
+            type: 'text',
+            question: '当前问题',
+          },
+        ],
+      },
+    );
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_pending',
+      mode: 'question',
+      questions: [
+        {
+          id: 'pending',
+          type: 'text',
+          question: '旧队列问题',
+        },
+      ],
+    });
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_pending',
+      mode: 'question',
+      timeout: 90,
+      questions: [
+        {
+          id: 'pending',
+          type: 'text',
+          question: '新队列问题',
+        },
+      ],
+    });
+
+    expect(runtime.pendingAwaitings).toHaveLength(1);
+    expect(runtime.pendingAwaitings[0]).toMatchObject({
+      awaitingId: 'await_pending',
+      timeout: 90,
+    });
+    expect(runtime.pendingAwaitings[0]?.mode).toBe('question');
+    if (runtime.pendingAwaitings[0]?.mode !== 'question') {
+      throw new Error('expected queued question awaiting');
+    }
+    expect(runtime.pendingAwaitings[0].questions[0].question).toBe('新队列问题');
+  });
+
+  it('removes queued awaitings when their answer or timeout arrives first', () => {
+    let runtime = reduceAwaitingRuntime(
+      { activeAwaiting: null, pendingAwaitings: [] },
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_active',
+        mode: 'question',
+        questions: [
+          {
+            id: 'active',
+            type: 'text',
+            question: '当前问题',
+          },
+        ],
+      },
+    );
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_pending_answered',
+      mode: 'question',
+      questions: [
+        {
+          id: 'pending_answered',
+          type: 'text',
+          question: '已回答队列问题',
+        },
+      ],
+    });
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.ask',
+      runId: 'run_1',
+      awaitingId: 'await_pending_timeout',
+      mode: 'question',
+      questions: [
+        {
+          id: 'pending_timeout',
+          type: 'text',
+          question: '超时队列问题',
+        },
+      ],
+    });
+
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_pending_answered',
+      status: 'answered',
+    });
+    runtime = reduceAwaitingRuntime(runtime, {
+      type: 'awaiting.answer',
+      runId: 'run_1',
+      awaitingId: 'await_pending_timeout',
+      status: 'error',
+      errorCode: 'timeout',
+      errorMessage: '等待项已超时',
+    } as any);
+
+    expect(runtime.activeAwaiting).toMatchObject({
+      awaitingId: 'await_active',
+    });
+    expect(runtime.pendingAwaitings).toHaveLength(0);
   });
 });

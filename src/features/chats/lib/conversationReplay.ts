@@ -10,7 +10,11 @@ import type {
   ToolState,
   TtsVoiceBlock,
 } from '@/app/state/types';
-import { cloneActiveAwaiting, reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
+import {
+  cloneActiveAwaiting,
+  cloneActiveAwaitingQueue,
+  reduceAwaitingRuntime,
+} from '@/features/tools/lib/awaitingRuntime';
 import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
 import { parseContentSegments } from '@/features/timeline/lib/contentSegments';
 import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
@@ -33,6 +37,7 @@ export interface ReplayState {
   runAgentById: Map<string, string>;
   currentRunAgentKey: string;
   activeAwaiting: ActiveAwaiting | null;
+  pendingAwaitings: ActiveAwaiting[];
   events: AgentEvent[];
   debugEvents: AgentEvent[];
   debugLines: string[];
@@ -62,6 +67,7 @@ export function createReplayState(): ReplayState {
     runAgentById: new Map(),
     currentRunAgentKey: '',
     activeAwaiting: null,
+    pendingAwaitings: [],
     events: [],
     debugEvents: [],
     debugLines: [],
@@ -347,10 +353,19 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
       runId: rs.runId,
     },
   );
-  rs.activeAwaiting = reduceActiveAwaiting(rs.activeAwaiting, event, {
+  const nextAwaitingRuntime = reduceAwaitingRuntime(
+    {
+      activeAwaiting: rs.activeAwaiting,
+      pendingAwaitings: rs.pendingAwaitings,
+    },
+    event,
+    {
     agentKey: rs.currentRunAgentKey,
     markRemoteAnswer: false,
-  });
+    },
+  );
+  rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
+  rs.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
   const commands = processEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',
     reasoningExpandedDefault: false,
@@ -359,4 +374,5 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
     applyReplayEventCommand(rs, command);
   }
   rs.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
+  rs.pendingAwaitings = cloneActiveAwaitingQueue(rs.pendingAwaitings);
 }

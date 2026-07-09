@@ -1,7 +1,10 @@
 import { createInitialState } from '@/app/state/AppContext';
 import type { AgentEvent, TimelineNode } from '@/app/state/types';
 import type { EventCommand } from '@/features/timeline/lib/eventProcessor';
-import { reduceActiveAwaiting } from '@/features/tools/lib/awaitingRuntime';
+import {
+  reduceActiveAwaiting,
+  reduceAwaitingRuntime,
+} from '@/features/tools/lib/awaitingRuntime';
 import { processEvent } from '@/features/timeline/lib/eventProcessor';
 import {
   buildAwaitingPlanningModeAction,
@@ -280,6 +283,72 @@ describe('shouldSyncLiveCache', () => {
     expect(cache.activeAwaiting?.questions).toHaveLength(0);
   });
 
+  it('keeps queued live awaitings authoritative until React state catches up', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      chatId: 'chat_1',
+      runId: 'run_1',
+      streaming: true,
+      timelineOrder: ['message_1'],
+      activeAwaiting: null,
+      pendingAwaitings: [],
+    };
+
+    const cache = createLocalCacheFromState(state);
+    let runtime = reduceAwaitingRuntime(
+      {
+        activeAwaiting: cache.activeAwaiting,
+        pendingAwaitings: cache.pendingAwaitings,
+      },
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_1',
+        mode: 'question',
+        questions: [
+          {
+            id: 'q1',
+            type: 'text',
+            question: '第一个问题',
+          },
+        ],
+      },
+    );
+    cache.activeAwaiting = runtime.activeAwaiting;
+    cache.pendingAwaitings = runtime.pendingAwaitings;
+    runtime = reduceAwaitingRuntime(
+      {
+        activeAwaiting: cache.activeAwaiting,
+        pendingAwaitings: cache.pendingAwaitings,
+      },
+      {
+        type: 'awaiting.ask',
+        runId: 'run_1',
+        awaitingId: 'await_2',
+        mode: 'question',
+        questions: [
+          {
+            id: 'q2',
+            type: 'text',
+            question: '第二个问题',
+          },
+        ],
+      },
+    );
+    cache.activeAwaiting = runtime.activeAwaiting;
+    cache.pendingAwaitings = runtime.pendingAwaitings;
+
+    expect(cache.activeAwaiting).toMatchObject({
+      awaitingId: 'await_1',
+    });
+    expect(cache.pendingAwaitings).toHaveLength(1);
+    expect(cache.pendingAwaitings[0]).toMatchObject({
+      awaitingId: 'await_2',
+    });
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
+  });
+
   it('ignores awaiting.ask sessions when mode is omitted', () => {
     const baseState = createInitialState();
     const state = {
@@ -513,6 +582,62 @@ describe('shouldSyncLiveCache', () => {
       clearAllAwaitingSubmitIdsForTest();
       restoreWindow();
     }
+  });
+
+  it('resolves awaiting answer runtime context from queued awaitings', () => {
+    const state = {
+      ...createInitialState(),
+      chatId: 'chat_1',
+      runId: 'run_1',
+      activeAwaiting: {
+        key: 'run_1#await_active',
+        awaitingId: 'await_active',
+        runId: 'run_1',
+        agentKey: 'demo-agent',
+        timeout: 60,
+        mode: 'question' as const,
+        questions: [
+          {
+            id: 'active',
+            type: 'text' as const,
+            question: '当前问题',
+          },
+        ],
+      },
+      pendingAwaitings: [
+        {
+          key: 'run_2#await_queued',
+          awaitingId: 'await_queued',
+          runId: 'run_2',
+          agentKey: 'demo-agent',
+          timeout: 60,
+          mode: 'question' as const,
+          questions: [
+            {
+              id: 'queued',
+              type: 'text' as const,
+              question: '队列问题',
+            },
+          ],
+        },
+      ],
+    };
+    const cache = createLocalCacheFromState(state);
+
+    expect(
+      resolveAwaitingSubmitRuntimeContext({
+        event: {
+          type: 'awaiting.answer',
+          awaitingId: 'await_queued',
+        },
+        cache,
+        state,
+      }),
+    ).toEqual({
+      awaitingRunId: 'run_2',
+      awaitingId: 'await_queued',
+      pendingSubmitId: '',
+    });
   });
 
   it('rebuilds cache when html awaiting mode or form data changes in React state', () => {

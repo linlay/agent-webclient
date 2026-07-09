@@ -65,6 +65,12 @@ export function reduceTimelineState(
 			return { ...state, activeFrontendTool: action.tool };
 		case "SET_ACTIVE_AWAITING":
 			return { ...state, activeAwaiting: action.awaiting };
+		case "SET_AWAITING_RUNTIME":
+			return {
+				...state,
+				activeAwaiting: action.activeAwaiting,
+				pendingAwaitings: action.pendingAwaitings,
+			};
 		case "PATCH_ACTIVE_AWAITING":
 			if (!state.activeAwaiting) {
 				return state;
@@ -74,10 +80,14 @@ export function reduceTimelineState(
 				activeAwaiting: patchActiveAwaiting(state.activeAwaiting, action.patch),
 			};
 		case "CLEAR_ACTIVE_AWAITING":
-			if (!state.activeAwaiting) {
+			if (!state.activeAwaiting && state.pendingAwaitings.length === 0) {
 				return state;
 			}
-			return { ...state, activeAwaiting: null };
+			return {
+				...state,
+				activeAwaiting: state.pendingAwaitings[0] ?? null,
+				pendingAwaitings: state.pendingAwaitings.slice(1),
+			};
 		case "SET_TIMELINE_NODE":
 			return {
 				...state,

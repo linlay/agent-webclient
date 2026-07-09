@@ -156,6 +156,7 @@ export function createInitialState(): AppState {
 		mentionActiveIndex: 0,
 		activeFrontendTool: null,
 		activeAwaiting: null,
+		pendingAwaitings: [],
 		themeMode,
 		transportMode,
 		wsStatus: "disconnected",

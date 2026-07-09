@@ -220,6 +220,7 @@ export interface AppState {
 	mentionActiveIndex: number;
 	activeFrontendTool: ActiveFrontendTool | null;
 	activeAwaiting: ActiveAwaiting | null;
+	pendingAwaitings: ActiveAwaiting[];
 	themeMode: ThemeMode;
 	transportMode: TransportMode;
 	wsStatus: WsConnectionStatus;

@@ -6,6 +6,7 @@ import type {
 	ToolState,
 } from "@/app/state/types";
 import type { EventProcessorState } from "@/features/timeline/lib/eventProcessor";
+import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
 import { toText } from "@/shared/utils/eventUtils";
 
 /**
@@ -28,6 +29,7 @@ export interface LocalCache {
 	counter: number;
 	activeReasoningKey: string;
 	activeAwaiting: ActiveAwaiting | null;
+	pendingAwaitings: ActiveAwaiting[];
 	chatId: string;
 	runId: string;
 	agentKey: string;
@@ -47,6 +49,7 @@ export function createLocalCache(): LocalCache {
 		counter: 0,
 		activeReasoningKey: "",
 		activeAwaiting: null,
+		pendingAwaitings: [],
 		chatId: "",
 		runId: "",
 		agentKey: "",
@@ -72,6 +75,7 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 		counter: state.timelineCounter,
 		activeReasoningKey: toText(state.activeReasoningKey),
 		activeAwaiting: state.activeAwaiting,
+		pendingAwaitings: cloneActiveAwaitingQueue(state.pendingAwaitings),
 		chatId,
 		runId: toText(state.runId),
 		agentKey:
@@ -280,14 +284,26 @@ function normalizeAwaitingRuntimeSignature(
 		});
 	}
 
+function normalizeAwaitingQueueSignature(
+	queue: ActiveAwaiting[],
+	normalize: (awaiting: ActiveAwaiting | null) => string,
+): string {
+	return JSON.stringify(queue.map((awaiting) => ({
+		key: awaiting.key,
+		signature: normalize(awaiting),
+	})));
+}
+
 function shouldSyncActiveAwaitingFromState(
 	cache: LocalCache,
 	state: AppState,
 ): boolean {
 	const stateAwaiting = state.activeAwaiting;
 	const cacheAwaiting = cache.activeAwaiting;
+	const statePending = state.pendingAwaitings;
+	const cachePending = cache.pendingAwaitings;
 
-	if (!stateAwaiting) {
+	if (!stateAwaiting && statePending.length === 0) {
 		return false;
 	}
 
@@ -295,8 +311,26 @@ function shouldSyncActiveAwaitingFromState(
 		return true;
 	}
 
+	if (!stateAwaiting) {
+		return false;
+	}
+
 	if (stateAwaiting.key !== cacheAwaiting.key) {
 		return false;
+	}
+
+	if (statePending.length > cachePending.length) {
+		return true;
+	}
+
+	if (statePending.length !== cachePending.length) {
+		return false;
+	}
+
+	for (let index = 0; index < statePending.length; index += 1) {
+		if (statePending[index].key !== cachePending[index]?.key) {
+			return false;
+		}
 	}
 
 	if (
@@ -310,6 +344,22 @@ function shouldSyncActiveAwaitingFromState(
 		normalizeAwaitingItemsSignature(stateAwaiting) !==
 			normalizeAwaitingItemsSignature(cacheAwaiting) ||
 		normalizeAwaitingRuntimeSignature(stateAwaiting) !==
-			normalizeAwaitingRuntimeSignature(cacheAwaiting)
+			normalizeAwaitingRuntimeSignature(cacheAwaiting) ||
+		normalizeAwaitingQueueSignature(
+			statePending,
+			normalizeAwaitingItemsSignature,
+		) !==
+			normalizeAwaitingQueueSignature(
+				cachePending,
+				normalizeAwaitingItemsSignature,
+			) ||
+		normalizeAwaitingQueueSignature(
+			statePending,
+			normalizeAwaitingRuntimeSignature,
+		) !==
+			normalizeAwaitingQueueSignature(
+				cachePending,
+				normalizeAwaitingRuntimeSignature,
+			)
 	);
 }

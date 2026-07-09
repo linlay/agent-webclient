@@ -192,6 +192,11 @@ export type AppAction =
 	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
 	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
 	| {
+			type: "SET_AWAITING_RUNTIME";
+			activeAwaiting: ActiveAwaiting | null;
+			pendingAwaitings: ActiveAwaiting[];
+	  }
+	| {
 			type: "PATCH_ACTIVE_AWAITING";
 				patch: {
 					resolutionReason?: ActiveAwaiting["resolutionReason"];

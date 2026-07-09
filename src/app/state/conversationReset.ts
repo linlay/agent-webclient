@@ -54,6 +54,7 @@ export function buildConversationResetState(
 		activeReasoningKey: "",
 		activeFrontendTool: null,
 		activeAwaiting: null,
+		pendingAwaitings: [],
 		usageSnapshot: null,
 		usagePopoverOpen: false,
 		rightSidebarOpenTab: null,

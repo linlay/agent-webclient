@@ -105,16 +105,33 @@ export function cloneActiveAwaiting(
   };
 }
 
+export function cloneActiveAwaitingQueue(
+  queue: ActiveAwaiting[] | null | undefined,
+): ActiveAwaiting[] {
+  return (Array.isArray(queue) ? queue : [])
+    .map((awaiting) => cloneActiveAwaiting(awaiting))
+    .filter((awaiting): awaiting is ActiveAwaiting => Boolean(awaiting));
+}
+
+export interface AwaitingRuntimeState {
+  activeAwaiting: ActiveAwaiting | null;
+  pendingAwaitings: ActiveAwaiting[];
+}
+
 interface ReduceActiveAwaitingOptions {
   agentKey?: string;
   pendingSubmitId?: string;
   markRemoteAnswer?: boolean;
 }
 
-function clearActiveAwaitingRuntime(current: ActiveAwaiting): null {
+function clearAwaitingRuntimeItem(current: ActiveAwaiting): void {
   if (current.mode === 'question') {
     clearAwaitingQuestionMeta(current.runId, current.awaitingId);
   }
+}
+
+function clearActiveAwaitingRuntime(current: ActiveAwaiting): null {
+  clearAwaitingRuntimeItem(current);
   return null;
 }
 
@@ -400,7 +417,7 @@ function readAwaitingCreatedAt(event: AgentEvent): number | null {
   return timestamp > 0 ? timestamp : null;
 }
 
-export function reduceActiveAwaiting(
+function reduceSingleActiveAwaiting(
   current: ActiveAwaiting | null,
   event: AgentEvent,
   fallback: ReduceActiveAwaitingOptions = {},
@@ -584,4 +601,145 @@ export function reduceActiveAwaiting(
   }
 
   return current;
+}
+
+function matchesAwaitingEvent(
+  awaiting: ActiveAwaiting,
+  awaitingId: string,
+  runId: string,
+): boolean {
+  return awaiting.awaitingId === awaitingId && (!runId || awaiting.runId === runId);
+}
+
+function promotePendingAwaiting(
+  pendingAwaitings: ActiveAwaiting[],
+): AwaitingRuntimeState {
+  const [nextActive = null, ...nextPending] = pendingAwaitings;
+  return {
+    activeAwaiting: nextActive,
+    pendingAwaitings: nextPending,
+  };
+}
+
+export function reduceAwaitingRuntime(
+  current: AwaitingRuntimeState,
+  event: AgentEvent,
+  fallback: ReduceActiveAwaitingOptions = {},
+): AwaitingRuntimeState {
+  const activeAwaiting = current.activeAwaiting;
+  const pendingAwaitings = current.pendingAwaitings;
+  const type = toText(event.type);
+
+  if (
+    type === 'request.query'
+    || type === 'run.start'
+    || type === 'run.error'
+    || type === 'run.complete'
+    || type === 'run.cancel'
+  ) {
+    if (activeAwaiting) {
+      clearAwaitingRuntimeItem(activeAwaiting);
+    }
+    pendingAwaitings.forEach(clearAwaitingRuntimeItem);
+    return {
+      activeAwaiting: null,
+      pendingAwaitings: [],
+    };
+  }
+
+  if (isAwaitingAskStreamEvent(type)) {
+    const awaitingId = toText(event.awaitingId);
+    const runId = toText(event.runId);
+    if (!awaitingId || !runId) {
+      return current;
+    }
+
+    const key = `${runId}#${awaitingId}`;
+    if (activeAwaiting?.key === key) {
+      return {
+        activeAwaiting: reduceSingleActiveAwaiting(activeAwaiting, event, fallback),
+        pendingAwaitings,
+      };
+    }
+
+    const pendingIndex = pendingAwaitings.findIndex((item) => item.key === key);
+    if (pendingIndex >= 0) {
+      const nextPending = pendingAwaitings.slice();
+      const nextItem = reduceSingleActiveAwaiting(
+        pendingAwaitings[pendingIndex],
+        event,
+        fallback,
+      );
+      if (nextItem) {
+        nextPending[pendingIndex] = nextItem;
+      } else {
+        nextPending.splice(pendingIndex, 1);
+      }
+      return {
+        activeAwaiting,
+        pendingAwaitings: nextPending,
+      };
+    }
+
+    const nextAwaiting = reduceSingleActiveAwaiting(null, event, fallback);
+    if (!nextAwaiting) {
+      return current;
+    }
+    if (!activeAwaiting) {
+      return {
+        activeAwaiting: nextAwaiting,
+        pendingAwaitings,
+      };
+    }
+    return {
+      activeAwaiting,
+      pendingAwaitings: [...pendingAwaitings, nextAwaiting],
+    };
+  }
+
+  if (isAwaitingAnswerStreamEvent(type)) {
+    const awaitingId = toText(event.awaitingId);
+    const runId = toText(event.runId);
+    if (!awaitingId) {
+      return current;
+    }
+
+    if (activeAwaiting && matchesAwaitingEvent(activeAwaiting, awaitingId, runId)) {
+      const nextActive = reduceSingleActiveAwaiting(
+        activeAwaiting,
+        event,
+        fallback,
+      );
+      if (!nextActive) {
+        return promotePendingAwaiting(pendingAwaitings);
+      }
+      return {
+        activeAwaiting: nextActive,
+        pendingAwaitings,
+      };
+    }
+
+    const pendingIndex = pendingAwaitings.findIndex((item) =>
+      matchesAwaitingEvent(item, awaitingId, runId),
+    );
+    if (pendingIndex < 0) {
+      return current;
+    }
+    const nextPending = pendingAwaitings.slice();
+    nextPending.splice(pendingIndex, 1);
+    return {
+      activeAwaiting,
+      pendingAwaitings: nextPending,
+    };
+  }
+
+  return current;
+}
+
+export function reduceActiveAwaiting(
+  current: ActiveAwaiting | null,
+  event: AgentEvent,
+  fallback: ReduceActiveAwaitingOptions = {},
+): ActiveAwaiting | null {
+  return reduceSingleActiveAwaiting(current, event, fallback);
 }

@@ -1017,10 +1017,22 @@ describe('appReducer conversation reset behavior', () => {
         key: 'run_1#await_1',
         awaitingId: 'await_1',
         runId: 'run_1',
+        agentKey: 'agent-alice',
         timeout: 30,
         mode: 'question' as const,
         questions: [],
       },
+      pendingAwaitings: [
+        {
+          key: 'run_1#await_2',
+          awaitingId: 'await_2',
+          runId: 'run_1',
+          agentKey: 'agent-alice',
+          timeout: 30,
+          mode: 'question' as const,
+          questions: [],
+        },
+      ],
       voiceChat: {
         ...baseState.voiceChat,
         status: 'speaking' as const,
@@ -1048,6 +1060,7 @@ describe('appReducer conversation reset behavior', () => {
 
     expect(next.inputMode).toBe('text');
     expect(next.activeAwaiting).toBeNull();
+    expect(next.pendingAwaitings).toEqual([]);
     expect(next.voiceChat).toMatchObject({
       status: 'idle',
       sessionActive: false,
@@ -1167,6 +1180,53 @@ describe('appReducer conversation reset behavior', () => {
       loading: false,
       viewportHtml: '<html><body>ready</body></html>',
     });
+  });
+
+  it('promotes the next queued awaiting when the active awaiting is cleared', () => {
+    const baseState = createInitialState();
+    const state = {
+      ...baseState,
+      activeAwaiting: {
+        key: 'run_1#await_1',
+        awaitingId: 'await_1',
+        runId: 'run_1',
+        agentKey: 'demo-agent',
+        timeout: 30,
+        mode: 'question' as const,
+        questions: [
+          {
+            id: 'q1',
+            type: 'text' as const,
+            question: '第一个问题',
+          },
+        ],
+      },
+      pendingAwaitings: [
+        {
+          key: 'run_1#await_2',
+          awaitingId: 'await_2',
+          runId: 'run_1',
+          agentKey: 'demo-agent',
+          timeout: 30,
+          mode: 'question' as const,
+          questions: [
+            {
+              id: 'q2',
+              type: 'text' as const,
+              question: '第二个问题',
+            },
+          ],
+        },
+      ],
+    };
+
+    const next = appReducer(state, { type: 'CLEAR_ACTIVE_AWAITING' });
+
+    expect(next.activeAwaiting).toMatchObject({
+      awaitingId: 'await_2',
+      mode: 'question',
+    });
+    expect(next.pendingAwaitings).toHaveLength(0);
   });
 
   it('shows, tracks timer, and hides command status overlay', () => {
