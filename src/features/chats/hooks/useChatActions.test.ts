@@ -1193,7 +1193,7 @@ describe('replayEvent tool migration', () => {
     );
   });
 
-  it('clears a matching temporary pinned agent when selecting its worker', async () => {
+  it('keeps the temporary pinned agent when selecting its worker', async () => {
     const state = createWorkerConversationState({
       latestChat: {
         read: { isRead: true },
@@ -1208,7 +1208,7 @@ describe('replayEvent tool migration', () => {
       preferNewChat: true,
     });
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
       agentKey: '',
     });

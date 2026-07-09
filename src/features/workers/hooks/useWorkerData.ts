@@ -348,7 +348,10 @@ export function useWorkerData(input: {
     rebuildWorkerRowsFromState({
       chats: state.chats,
     });
-  }, [rebuildWorkerRowsFromState, state.chats]);
+    if (stateRef.current.temporaryPinnedAgentKey) {
+      dispatch({ type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: '' });
+    }
+  }, [dispatch, rebuildWorkerRowsFromState, state.chats]);
 
   useEffect(() => {
     const handler = (e: Event) => {
