@@ -274,7 +274,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       onClose={() => closeDrawer()}
       title={title}
       closable={{
-        closeIcon: <MaterialIcon name="keyboard_arrow_down" />,
+        closeIcon: <MaterialIcon name="keyboard_arrow_right" />,
       }}
       mask
       maskClosable

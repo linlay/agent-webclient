@@ -240,7 +240,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     <Drawer
       open={open}
       onClose={onClose}
-      closable={{ closeIcon: <MaterialIcon name="keyboard_arrow_down" /> }}
+      closable={{ closeIcon: <MaterialIcon name="keyboard_arrow_right" /> }}
       mask
       maskClosable
       destroyOnHidden
