@@ -309,7 +309,6 @@ export const zhCNMessages: I18nMessages = {
   "rightSidebar.overview.tasks.title": "任务列表",
   "rightSidebar.overview.tasks.empty": "暂无任务",
   "rightSidebar.preview.actions.close": "关闭",
-  "rightSidebar.preview.actions.download": "下载",
   "rightSidebar.preview.error.audio": "音频预览失败，请下载查看。",
   "rightSidebar.preview.error.download": "附件下载失败",
   "rightSidebar.preview.error.image": "图片预览失败，请下载查看。",

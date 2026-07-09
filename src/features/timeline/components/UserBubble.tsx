@@ -10,7 +10,7 @@ const USER_BUBBLE_CLASS_NAME =
 const USER_BUBBLE_COMMAND_CLASS_NAME =
 	"is-command tw:w-fit tw:max-w-[min(100%,720px)]";
 const USER_BUBBLE_TEXT_CLASS_NAME =
-	"timeline-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-[#f8fcff]";
+	"timeline-text tw:whitespace-pre-wrap tw:break-all tw:text-[13px] tw:leading-[1.58] tw:text-[#f8fcff]";
 
 export const UserBubble: React.FC<UserBubbleProps> = ({
 	text,
