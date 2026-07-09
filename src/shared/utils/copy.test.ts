@@ -42,7 +42,7 @@ describe("copyText", () => {
       }),
       setTimeout,
       clearTimeout,
-      __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: true,
+      __DESKTOP_WEBVIEW_BRIDGE__: true,
     };
     mockWindow.parent = mockWindow;
     (globalThis as unknown as { window?: typeof mockWindow }).window =

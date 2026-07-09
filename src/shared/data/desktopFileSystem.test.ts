@@ -54,7 +54,7 @@ describe("desktopFileSystem project folder selection", () => {
       }),
       setTimeout,
       clearTimeout,
-      __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: true,
+      __DESKTOP_WEBVIEW_BRIDGE__: true,
     };
     mockWindow.parent = mockWindow;
     (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
@@ -107,7 +107,7 @@ describe("desktopFileSystem project folder selection", () => {
       }),
       setTimeout,
       clearTimeout,
-      __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: true,
+      __DESKTOP_WEBVIEW_BRIDGE__: true,
     };
     mockWindow.parent = mockWindow;
     (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;

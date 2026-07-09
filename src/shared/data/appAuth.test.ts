@@ -76,7 +76,7 @@ function installWindow(options: {
     setInterval,
     clearInterval,
     __AGENT_APP_ACCESS_TOKEN: options.globalToken,
-    __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__: options.webviewBridge ? true : undefined,
+    __DESKTOP_WEBVIEW_BRIDGE__: options.webviewBridge ? true : undefined,
   };
   if (options.webviewBridge) {
     mockWindow.parent = mockWindow;

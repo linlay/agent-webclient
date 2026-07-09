@@ -1,9 +1,9 @@
 import { isAppMode } from "@/shared/utils/routing";
 
-export const DESKTOP_WEBVIEW_BRIDGE_FLAG = "__ZENMIND_DESKTOP_WEBVIEW_BRIDGE__";
+export const DESKTOP_WEBVIEW_BRIDGE_FLAG = "__DESKTOP_WEBVIEW_BRIDGE__";
 
 export type DesktopBridgeWindow = Window & typeof globalThis & {
-  __ZENMIND_DESKTOP_WEBVIEW_BRIDGE__?: boolean;
+  __DESKTOP_WEBVIEW_BRIDGE__?: boolean;
 };
 
 export function hasDesktopHostBridge(): boolean {
@@ -11,7 +11,7 @@ export function hasDesktopHostBridge(): boolean {
     return false;
   }
   const desktopWindow = window as DesktopBridgeWindow;
-  if (desktopWindow.__ZENMIND_DESKTOP_WEBVIEW_BRIDGE__ === true) {
+  if (desktopWindow.__DESKTOP_WEBVIEW_BRIDGE__ === true) {
     return true;
   }
   return Boolean(window.parent && window.parent !== window);
