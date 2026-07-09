@@ -265,6 +265,87 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('retries loading a newly listed chat before leaving the route in loading state', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat
+      .mockRejectedValueOnce(new Error('chat not indexed yet'))
+      .mockResolvedValueOnce({
+        data: {
+          events: [
+            {
+              type: 'request.query',
+              requestId: 'req_retry',
+              chatId: 'chat-retry',
+              message: 'retry me',
+              timestamp: 100,
+            },
+          ],
+          runs: [],
+        },
+      });
+
+    await actions?.loadChat('chat-retry');
+
+    expect(getChat).toHaveBeenCalledTimes(2);
+    expect(getChat).toHaveBeenNthCalledWith(1, 'chat-retry', false);
+    expect(getChat).toHaveBeenNthCalledWith(2, 'chat-retry', false);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat-retry' });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'BATCH_UPDATE',
+        updates: expect.objectContaining({ chatId: 'chat-retry' }),
+      }),
+    );
+  });
+
+  it('loads chat details while streaming when the visible timeline only has the user query', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat-live';
+    state.streaming = true;
+    state.timelineOrder = ['user_1'];
+    state.timelineNodes = new Map([
+      [
+        'user_1',
+        {
+          id: 'user_1',
+          kind: 'message',
+          role: 'user',
+          text: '现在几点了',
+          ts: 100,
+        },
+      ],
+    ]);
+    const { actions } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_live',
+            chatId: 'chat-live',
+            message: '现在几点了',
+            timestamp: 100,
+          },
+          {
+            type: 'content.delta',
+            contentId: 'content_live',
+            chatId: 'chat-live',
+            delta: '现在是 22:27。',
+            timestamp: 120,
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat-live');
+
+    expect(getChat).toHaveBeenCalledWith('chat-live', false);
+    expect(globalWithBrowserApis.window!.dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'agent:detach-run' }),
+    );
+  });
+
   it('keeps a blank conversation from being overwritten by an in-flight chat load', async () => {
     const state = createInitialState();
     const dispatch = jest.fn();

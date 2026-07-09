@@ -1,3 +1,5 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/AppContext';
 import type { AgentEvent, TimelineNode } from '@/app/state/types';
 import type { EventCommand } from '@/features/timeline/lib/eventProcessor';
@@ -13,11 +15,24 @@ import {
   findMatchingPendingSteer,
   resolveAwaitingSubmitRuntimeContext,
   shouldSyncLiveCache,
+  useAgentEventHandler,
 } from '@/features/timeline/hooks/useAgentEventHandler';
 import {
   clearAllAwaitingSubmitIdsForTest,
   rememberAwaitingSubmitId,
 } from '@/features/tools/lib/awaitingSubmitTracker';
+
+jest.mock('@/app/state/AppContext', () => {
+  const actual = jest.requireActual('@/app/state/AppContext');
+  return {
+    ...actual,
+    useAppContext: jest.fn(),
+  };
+});
+
+const { useAppContext } = jest.requireMock('@/app/state/AppContext') as {
+  useAppContext: jest.Mock;
+};
 
 function applyCommands(
   state: ReturnType<typeof createInitialState>,
@@ -686,6 +701,63 @@ describe('shouldSyncLiveCache', () => {
     });
 
     expect(shouldSyncLiveCache(cache, state)).toBe(true);
+  });
+});
+
+describe('useAgentEventHandler live chat binding', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('binds the visible chat when run.start is the first event carrying chatId', () => {
+    const state = createInitialState();
+    state.streaming = true;
+    state.workerSelectionKey = 'agent:zenmi';
+    const dispatch = jest.fn((action) => {
+      if (action.type === 'SET_CHAT_ID') {
+        state.chatId = action.chatId;
+      }
+      if (action.type === 'SET_RUN_ID') {
+        state.runId = action.runId;
+      }
+    });
+    useAppContext.mockReturnValue({
+      dispatch,
+      stateRef: { current: state },
+    });
+
+    let eventHandler: ReturnType<typeof useAgentEventHandler> | null = null;
+    const Harness = () => {
+      eventHandler = useAgentEventHandler();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    eventHandler?.handleEvent({
+      type: 'run.start',
+      chatId: 'chat-from-run-start',
+      runId: 'run_1',
+      agentKey: 'zenmi',
+      timestamp: 100,
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_CHAT_ID',
+      chatId: 'chat-from-run-start',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_CHAT_AGENT_BY_ID',
+      chatId: 'chat-from-run-start',
+      agentKey: 'zenmi',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_CURRENT_CHAT_ACTIVE_RUN',
+      activeRun: {
+        chatId: 'chat-from-run-start',
+        runId: 'run_1',
+        agentKey: 'zenmi',
+      },
+    });
   });
 });
 

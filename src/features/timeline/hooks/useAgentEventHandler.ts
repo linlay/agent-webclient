@@ -472,8 +472,19 @@ export function useAgentEventHandler() {
       }
 
       if (type === "run.start") {
+        const runStartChatId = toText(event.chatId);
+        if (runStartChatId && toText(state.chatId) !== runStartChatId) {
+          dispatch({ type: "SET_CHAT_ID", chatId: runStartChatId });
+        }
+        if (event.agentKey && runStartChatId) {
+          dispatch({
+            type: "SET_CHAT_AGENT_BY_ID",
+            chatId: runStartChatId,
+            agentKey: String(event.agentKey),
+          });
+        }
         cache.chatId =
-          toText(event.chatId) || cache.chatId || toText(state.chatId);
+          runStartChatId || cache.chatId || toText(state.chatId);
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = resolveRunAgentKey({
           runId: cache.runId,

@@ -433,6 +433,7 @@ describe("AgentChatShell", () => {
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
       ],
+      workerSelectionKey: "agent:demo-agent",
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -470,6 +471,7 @@ describe("AgentChatShell", () => {
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
       ],
+      workerSelectionKey: "agent:demo-agent",
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -520,6 +522,7 @@ describe("AgentChatShell", () => {
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
       ],
+      workerSelectionKey: "agent:demo-agent",
     });
     useAppDispatch.mockReturnValue(dispatch);
 
@@ -552,10 +555,47 @@ describe("AgentChatShell", () => {
       }),
     );
     expect(html).toContain("agent-route-loading-page");
-    expect(html).toContain("Loading agent");
-    expect(html).not.toContain("conversation-stage");
+    expect(html).toContain("agent-route-loading-overlay");
+    expect(html).toContain("Loading conversation");
+    expect(html).toContain("conversation-stage");
+    expect(html).toContain('data-show-empty-state="false"');
 
     useEffectSpy.mockRestore();
+  });
+
+  it("does not cover a visible route conversation while chat id binding catches up", () => {
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+      timelineOrder: ["visible-node"],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(html).toContain("conversation-stage");
+    expect(html).not.toContain("agent-route-loading-page");
+  });
+
+  it("does not cover visible timeline content when route chat id and state chat id diverge", () => {
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      chatId: "chat-from-live-stream",
+      workerSelectionKey: "agent:demo-agent",
+      timelineOrder: ["visible-node"],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(html).toContain("conversation-stage");
+    expect(html).not.toContain("agent-route-loading-page");
   });
 
   it("waits for agent hydration before activating a direct chat route", async () => {
