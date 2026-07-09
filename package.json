@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.0.1",
   "description": "AGENT protocol debugging web client",
-  "author": "Zenmind",
   "scripts": {
     "start": "npm run start:web",
     "start:web": "dotenv -e .env -- webpack serve --mode development",

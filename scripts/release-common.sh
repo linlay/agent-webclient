@@ -170,7 +170,7 @@ write_program_manifest() {
   "id": "$APP_NAME",
   "name": "智能助理",
   "version": "$VERSION",
-  "description": "由 ZenMind Desktop 托管静态资源和代理路由的 AGENT Web 客户端。",
+  "description": "由 Desktop 托管静态资源和代理路由的 AGENT Web 客户端。",
   "platform": {
     "os": "$target_os",
     "arch": "$target_arch"
