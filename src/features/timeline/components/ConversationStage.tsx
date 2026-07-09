@@ -94,7 +94,7 @@ const TIMELINE_STACK_ANCHORS_CLASS_NAME = "has-query-anchors";
 const TIMELINE_STACK_EMPTY_CLASS_NAME =
   "is-empty tw:flex tw:items-end tw:justify-center";
 const TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME =
-  "timeline-query-anchor-rail tw:sticky tw:top-1/2 tw:z-[2] tw:ml-[calc(-1*var(--query-anchor-offset,56px))] tw:hidden tw:w-fit tw:-translate-y-1/2 tw:flex-col tw:justify-center tw:overflow-visible tw:[.has-query-anchors_&]:flex";
+  "timeline-query-anchor-rail tw:sticky tw:top-1/2 tw:left-0 tw:z-[2] tw:ml-[calc(-1*var(--query-anchor-offset,56px))] tw:hidden tw:w-fit tw:-translate-y-1/2 tw:flex-col tw:justify-center tw:overflow-visible tw:[.has-query-anchors_&]:flex";
 const TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME =
   "timeline-query-anchor-preview tw:max-w-[360px] tw:text-xs";
 const TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME =
@@ -102,7 +102,7 @@ const TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME =
 const TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME =
   "timeline-query-anchor-preview-content tw:overflow-hidden tw:text-ink-muted tw:[display:-webkit-box] tw:[-webkit-box-orient:vertical] tw:[-webkit-line-clamp:3]";
 const TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME =
-  "timeline-query-anchor-line tw:relative tw:inline-flex tw:min-h-[10px] tw:w-[26px] tw:translate-x-[-6px] tw:animate-[timeline-query-anchor-enter_0.28s_ease_forwards] tw:items-center tw:justify-start tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:shadow-none tw:hover:bg-transparent tw:hover:text-ink-2 tw:hover:shadow-none tw:hover:outline-none tw:hover:[&_.timeline-query-anchor-line-bar]:opacity-100 tw:active:transform-none";
+  "timeline-query-anchor-line tw:relative tw:inline-flex tw:min-h-[10px] tw:w-[26px] tw:animate-[timeline-query-anchor-enter_0.28s_ease_forwards] tw:items-center tw:justify-start tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:shadow-none tw:hover:bg-transparent tw:hover:text-ink-2 tw:hover:shadow-none tw:hover:outline-none tw:hover:[&_.timeline-query-anchor-line-bar]:opacity-100 tw:active:transform-none";
 const TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME =
   "is-active tw:[.timeline-query-anchor-rail:not(:hover)_&_.timeline-query-anchor-line-bar]:opacity-100";
 const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =

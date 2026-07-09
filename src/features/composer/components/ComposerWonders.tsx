@@ -22,7 +22,7 @@ const COMPOSER_WONDERS_SHUFFLE_CLASS =
 const COMPOSER_WONDERS_GRID_CLASS =
   "composer-wonders-grid tw:grid tw:grid-cols-3 tw:gap-2.5 tw:overflow-auto";
 const COMPOSER_WONDER_CARD_CLASS =
-  "composer-wonder-card tw:flex tw:flex-col tw:items-start tw:gap-2 tw:bg-transparent tw:px-[15px] tw:py-3.5 tw:text-left tw:shadow-elevated tw:transition-[transform,border-color,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:-translate-y-px tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:hover:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:hover:outline-none tw:focus-visible:-translate-y-px tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:focus-visible:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:focus-visible:outline-none";
+  "composer-wonder-card tw:flex tw:flex-col tw:items-start tw:gap-2 tw:bg-transparent tw:px-[15px] tw:py-3.5 tw:text-left tw:shadow-elevated tw:transition-[transform,border-color,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:hover:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:hover:outline-none tw:focus-visible:-translate-y-px tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_42%,var(--line-soft))] tw:focus-visible:shadow-[var(--shadow-soft),0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:focus-visible:outline-none";
 const COMPOSER_WONDER_INDEX_CLASS =
   "composer-wonder-index tw:text-[11px] tw:font-semibold tw:text-ink-muted";
 const COMPOSER_WONDER_TEXT_CLASS =
