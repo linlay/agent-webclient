@@ -578,50 +578,52 @@ const ApprovalQuestion = forwardRef<
               </Flex>
             </Radio>
           ))}
-          <Flex align="center">
-            <Radio
-              className={hitlDialogClassNames.approvalFreeTextOption}
-              value="reject"
-              onClick={() => {
-                onDecisionChange("reject");
-                onEnterDebounce("reject");
-              }}
-            >
-              <Flex gap={10} align="center">
-                <span className={hitlDialogClassNames.optionIndex}>
-                  <MaterialIcon
-                    name="edit"
-                    className={hitlDialogClassNames.optionIndexIcon}
+          {approval?.allowFreeText && (
+            <Flex align="center">
+              <Radio
+                className={hitlDialogClassNames.approvalFreeTextOption}
+                value="reject"
+                onClick={() => {
+                  onDecisionChange("reject");
+                  onEnterDebounce("reject");
+                }}
+              >
+                <Flex gap={10} align="center">
+                  <span className={hitlDialogClassNames.optionIndex}>
+                    <MaterialIcon
+                      name="edit"
+                      className={hitlDialogClassNames.optionIndexIcon}
+                    />
+                  </span>
+                  <span className={hitlDialogClassNames.optionInfo}>
+                    {t("approvalDialog.option.reject")}
+                  </span>
+                  <Input
+                    variant="borderless"
+                    placeholder={t("approvalDialog.rejectPlaceholder")}
+                    value={reason}
+                    tabIndex={0}
+                    onChange={(e) => {
+                      const nextReason = e.target.value;
+                      onReasonChange(nextReason);
+                      if (nextReason.trim()) {
+                        onDecisionChange("reject");
+                      }
+                    }}
+                    onPressEnter={(e) => {
+                      const nextReason = e.currentTarget.value.trim();
+                      if (!nextReason) {
+                        return;
+                      }
+                      onEnterDebounce("reject");
+                    }}
+                    className="tw:p-0 tw:text-xs"
                   />
-                </span>
-                <span className={hitlDialogClassNames.optionInfo}>
-                  {t("approvalDialog.option.reject")}
-                </span>
-                <Input
-                  variant="borderless"
-                  placeholder={t("approvalDialog.rejectPlaceholder")}
-                  value={reason}
-                  tabIndex={0}
-                  onChange={(e) => {
-                    const nextReason = e.target.value;
-                    onReasonChange(nextReason);
-                    if (nextReason.trim()) {
-                      onDecisionChange("reject");
-                    }
-                  }}
-                  onPressEnter={(e) => {
-                    const nextReason = e.currentTarget.value.trim();
-                    if (!nextReason) {
-                      return;
-                    }
-                    onEnterDebounce("reject");
-                  }}
-                  className="tw:p-0 tw:text-xs"
-                />
-              </Flex>
-            </Radio>
-            {confirmSlot}
-          </Flex>
+                </Flex>
+              </Radio>
+              {confirmSlot}
+            </Flex>
+          )}
         </Radio.Group>
       </Flex>
     );

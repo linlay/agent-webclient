@@ -177,11 +177,6 @@ export async function handleCreateAgentSuccess(
 ) {
   if (!createdKey) return;
 
-  dispatch({
-    type: "SET_TEMPORARY_PINNED_AGENT_KEY",
-    agentKey: createdKey,
-  });
-
   const agentsResponse = await getAgents({
     includeChats: 5,
     scope: "nav",
@@ -191,15 +186,24 @@ export async function handleCreateAgentSuccess(
     : [];
   dispatch({ type: "SET_AGENTS", agents });
 
-  dispatch({
-    type: "SET_WORKER_ROWS",
-    rows: buildWorkerRows({
-      agents,
-      teams: stateRef.current.teams,
-      chats: stateRef.current.chats,
-      workerPriorityKey: `agent:${createdKey}`,
-    }),
+  const rows = buildWorkerRows({
+    agents,
+    teams: stateRef.current.teams,
+    chats: stateRef.current.chats,
+    workerPriorityKey: `agent:${createdKey}`,
   });
+  dispatch({ type: "SET_WORKER_ROWS", rows });
+
+  dispatch({
+    type: "SET_TEMPORARY_PINNED_AGENT_KEY",
+    agentKey: createdKey,
+  });
+
+  const workerKey = `agent:${createdKey}`;
+  dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
+  dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+  dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: [] });
+  dispatch({ type: "SET_WORKER_CHAT_PANEL_COLLAPSED", collapsed: true });
 }
 
 export const LeftSidebar: React.FC = () => {

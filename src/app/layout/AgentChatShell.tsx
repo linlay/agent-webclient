@@ -216,12 +216,6 @@ export const AgentChatShell: React.FC = () => {
   }, [state]);
 
   useEffect(() => {
-    if (agentKey && state.temporaryPinnedAgentKey === agentKey) {
-      dispatch({ type: "SET_TEMPORARY_PINNED_AGENT_KEY", agentKey: "" });
-    }
-  }, [agentKey, dispatch, state.temporaryPinnedAgentKey]);
-
-  useEffect(() => {
     if (
       typeof window === "undefined" ||
       typeof window.addEventListener !== "function"
