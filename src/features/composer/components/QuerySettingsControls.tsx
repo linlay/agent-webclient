@@ -28,6 +28,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 
 interface QuerySettingsControlsProps {
   accessLevel: QueryAccessLevel;
+  compact?: boolean;
   disabled?: boolean;
   modelOverride: QueryModelOverride;
   onAccessLevelChange: (value: QueryAccessLevel) => void;
@@ -807,6 +808,7 @@ export function agentSummaryFromModelConfig(
 
 export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   accessLevel,
+  compact = false,
   disabled = false,
   modelOverride,
   onAccessLevelChange,
@@ -1258,7 +1260,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             name={ACCESS_LEVEL_ICON[accessLevel]}
             className="ui-icon-hover-24-target"
           />
-          <span>{accessLabel}</span>
+          {!compact && <span>{accessLabel}</span>}
           <MaterialIcon name="expand_more" />
         </UiButton>
       </Dropdown>

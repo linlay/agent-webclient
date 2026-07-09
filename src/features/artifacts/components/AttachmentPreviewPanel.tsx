@@ -5,6 +5,7 @@ import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachment
 import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
+import { MaterialIcon } from "@/shared/icons/material";
 
 const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
@@ -12,10 +13,7 @@ const ATTACHMENT_PREVIEW_PANEL_CLASS_NAME =
   "attachment-preview-panel tw:flex tw:h-full tw:flex-col";
 
 const ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME =
-  "attachment-preview-toolbar tw:flex tw:items-center tw:gap-2.5 tw:border-b tw:border-line-soft tw:p-3";
-
-const ATTACHMENT_PREVIEW_COPY_CLASS_NAME =
-  "attachment-preview-copy tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-0.5";
+  "attachment-preview-toolbar tw:flex tw:items-center tw:gap-2.5 tw:border-b tw:border-line-soft tw:py-[4px] tw:px-[10px]";
 
 const ATTACHMENT_PREVIEW_NAME_CLASS_NAME =
   "attachment-preview-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:text-ink-1";
@@ -56,7 +54,7 @@ const ATTACHMENT_PREVIEW_NOTE_CLASS_NAME =
   "attachment-preview-note tw:px-3 tw:pb-3 tw:pt-0 tw:text-[11px] tw:leading-[1.5] tw:text-ink-muted";
 
 interface AttachmentPreviewPanelProps {
-	preview: AttachmentPreviewState;
+  preview: AttachmentPreviewState;
 }
 
 export interface TextPreviewLine {
@@ -84,13 +82,15 @@ export function buildTextPreviewLines(
   });
 }
 
-export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ preview }) => {
-	const [textContent, setTextContent] = React.useState("");
-	const [textLoading, setTextLoading] = React.useState(false);
-	const [textError, setTextError] = React.useState("");
-	const [mediaError, setMediaError] = React.useState("");
-	const [downloadError, setDownloadError] = React.useState("");
-	const [downloading, setDownloading] = React.useState(false);
+export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
+  preview,
+}) => {
+  const [textContent, setTextContent] = React.useState("");
+  const [textLoading, setTextLoading] = React.useState(false);
+  const [textError, setTextError] = React.useState("");
+  const [mediaError, setMediaError] = React.useState("");
+  const [downloadError, setDownloadError] = React.useState("");
+  const [downloading, setDownloading] = React.useState(false);
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
 
   React.useEffect(() => {
@@ -130,13 +130,13 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ 
         );
       })
       .finally(() => {
-			if (!controller.signal.aborted) {
-				setTextLoading(false);
-			}
-		});
+        if (!controller.signal.aborted) {
+          setTextLoading(false);
+        }
+      });
 
     return () => controller.abort();
-}, [preview]);
+  }, [preview]);
 
   React.useEffect(() => {
     if (!preview?.line || preview.kind !== "text" || textLoading || textError) {
@@ -155,8 +155,8 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({ 
     });
   }, [preview?.kind, preview?.line, textContent, textError, textLoading]);
 
-const handleDownload = React.useCallback(() => {
-	if (downloading) {
+  const handleDownload = React.useCallback(() => {
+    if (downloading) {
       return;
     }
 
@@ -178,7 +178,11 @@ const handleDownload = React.useCallback(() => {
   const sourceLocation = preview.sourcePath
     ? `${preview.sourcePath}${preview.line ? `:${preview.line}` : ""}`
     : "";
-  const metadata = [sourceLocation, preview.mimeType || "", formatAttachmentSize(preview.sizeBytes)]
+  const metadata = [
+    sourceLocation,
+    preview.mimeType || "",
+    formatAttachmentSize(preview.sizeBytes),
+  ]
     .filter(Boolean)
     .join(" · ");
   const targetLine =
@@ -193,23 +197,25 @@ const handleDownload = React.useCallback(() => {
   return (
     <div className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
       <div className={ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME}>
-        <div className={ATTACHMENT_PREVIEW_COPY_CLASS_NAME}>
-          <strong className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME} title={preview.name}>
-            {preview.name}
-          </strong>
-          {metadata ? (
-            <span className={ATTACHMENT_PREVIEW_META_CLASS_NAME} title={metadata}>
-              {metadata}
-            </span>
-          ) : null}
-        </div>
+        <strong
+          className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME}
+          title={preview.name}
+        >
+          {preview.name}
+        </strong>
+        {metadata ? (
+          <span className={ATTACHMENT_PREVIEW_META_CLASS_NAME} title={metadata}>
+            {metadata}
+          </span>
+        ) : null}
         <UiButton
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={handleDownload}
           loading={downloading}
+          iconOnly
         >
-          {t("rightSidebar.preview.actions.download")}
+          <MaterialIcon name="download" />
         </UiButton>
       </div>
 
@@ -246,7 +252,9 @@ const handleDownload = React.useCallback(() => {
               {t("rightSidebar.preview.text.loading")}
             </div>
           ) : textError ? (
-            <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>{textError}</div>
+            <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+              {textError}
+            </div>
           ) : targetLine ? (
             <pre
               ref={textContainerRef}
@@ -257,7 +265,9 @@ const handleDownload = React.useCallback(() => {
                   key={line.lineNumber}
                   className={[
                     ATTACHMENT_PREVIEW_LINE_CLASS_NAME,
-                    line.target ? ATTACHMENT_PREVIEW_TARGET_LINE_CLASS_NAME : "",
+                    line.target
+                      ? ATTACHMENT_PREVIEW_TARGET_LINE_CLASS_NAME
+                      : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -281,7 +291,9 @@ const handleDownload = React.useCallback(() => {
               src={preview.url}
               controls
               preload="metadata"
-              onError={() => setMediaError(t("rightSidebar.preview.error.audio"))}
+              onError={() =>
+                setMediaError(t("rightSidebar.preview.error.audio"))
+              }
             />
           </div>
         ) : null}
@@ -302,9 +314,15 @@ const handleDownload = React.useCallback(() => {
           </div>
         ) : null}
 
-        {mediaError ? <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>{mediaError}</div> : null}
+        {mediaError ? (
+          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+            {mediaError}
+          </div>
+        ) : null}
         {downloadError ? (
-          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>{downloadError}</div>
+          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+            {downloadError}
+          </div>
         ) : null}
       </div>
 

@@ -52,7 +52,6 @@ import {
 } from "@/features/timeline/lib/localEventCache";
 import {
   applyLiveEventCommand,
-  findMatchingPendingSteer,
 } from "@/features/timeline/lib/eventDispatchHandlers";
 
 export {
@@ -446,12 +445,11 @@ export function useAgentEventHandler() {
 
       if (type === "request.steer") {
         const text = toText(event.message);
-        const pendingSteer = findMatchingPendingSteer(state, event);
         const steerId = toText(event.steerId);
-        if (!pendingSteer || !steerId || !text) {
+        if (!steerId || !text) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: `[steer] ignored request.steer without pending match steerId=${steerId || "-"}`,
+            line: `[steer] ignored request.steer without valid steerId/text steerId=${steerId || "-"}`,
           });
           return;
         }
@@ -474,8 +472,19 @@ export function useAgentEventHandler() {
       }
 
       if (type === "run.start") {
+        const runStartChatId = toText(event.chatId);
+        if (runStartChatId && toText(state.chatId) !== runStartChatId) {
+          dispatch({ type: "SET_CHAT_ID", chatId: runStartChatId });
+        }
+        if (event.agentKey && runStartChatId) {
+          dispatch({
+            type: "SET_CHAT_AGENT_BY_ID",
+            chatId: runStartChatId,
+            agentKey: String(event.agentKey),
+          });
+        }
         cache.chatId =
-          toText(event.chatId) || cache.chatId || toText(state.chatId);
+          runStartChatId || cache.chatId || toText(state.chatId);
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = resolveRunAgentKey({
           runId: cache.runId,

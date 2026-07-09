@@ -1555,6 +1555,7 @@ export function extractUploadReferences(data: unknown): unknown[] {
       id: typeof upload.id === "string" ? upload.id : undefined,
       type: typeof upload.type === "string" ? upload.type : undefined,
       name: typeof upload.name === "string" ? upload.name : undefined,
+      path: typeof upload.path === "string" ? upload.path : undefined,
       mimeType:
         typeof upload.mimeType === "string" ? upload.mimeType : undefined,
       sizeBytes:

@@ -32,6 +32,8 @@ import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
   "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
+  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_CARD_CLASS =
   "agent-route-loading-card tw:inline-flex tw:min-w-[min(320px,100%)] tw:items-center tw:gap-3.5 tw:px-5 tw:py-[18px]";
 const AGENT_ROUTE_LOADING_SPINNER_CLASS =
@@ -39,7 +41,7 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
+  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
   terminal: "tw:grid-rows-[auto_minmax(0,1fr)_auto_auto]",
@@ -90,16 +92,20 @@ function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean
   return !hasOwn(agent, "modelOptions");
 }
 
-const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => {
+const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
+  const Component = overlay ? "div" : "main";
   return (
-    <main className={AGENT_ROUTE_LOADING_PAGE_CLASS} aria-busy="true">
+    <Component
+      className={overlay ? AGENT_ROUTE_LOADING_OVERLAY_CLASS : AGENT_ROUTE_LOADING_PAGE_CLASS}
+      aria-busy="true"
+    >
       <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
         <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
         <div className={AGENT_ROUTE_LOADING_COPY_CLASS}>
           <strong>{title}</strong>
         </div>
       </div>
-    </main>
+    </Component>
   );
 };
 
@@ -177,7 +183,14 @@ export const AgentChatShell: React.FC = () => {
   const routeAgentReady =
     routeAgentHydrated &&
     (!agentKey || state.workerSelectionKey === routeWorkerKey);
-  const routeChatReady = !chatId || String(state.chatId || "") === chatId;
+  const currentStateChatId = String(state.chatId || "").trim();
+  const routeHasVisibleConversation =
+    Boolean(chatId) &&
+    !currentStateChatId &&
+    state.workerSelectionKey === routeWorkerKey &&
+    (state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId));
+  const routeChatReady =
+    !chatId || currentStateChatId === chatId || routeHasVisibleConversation;
   const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
     agents: state.agents,
     chatFilter: state.chatFilter,
@@ -192,6 +205,8 @@ export const AgentChatShell: React.FC = () => {
     state.workerIndexByKey.get(historyWorkerKey) ||
     state.workerRows.find((row) => row.key === historyWorkerKey) ||
     null;
+  const hasVisibleConversationContent =
+    state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId);
 
   useAppRuntimes();
   const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
@@ -480,10 +495,6 @@ export const AgentChatShell: React.FC = () => {
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }
 
-  if (!routeChatReady) {
-    return <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} />;
-  }
-
   const rowClass = isTimelineEmpty
     ? state.terminalDockOpen
       ? AGENT_ROUTE_ROW_CLASS_BY_STATE.emptyTerminal
@@ -510,6 +521,9 @@ export const AgentChatShell: React.FC = () => {
             .join(" ")}
           id="app"
         >
+          {!routeChatReady && !hasVisibleConversationContent ? (
+            <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} overlay />
+          ) : null}
           <TopNav />
           <ConversationStage showEmptyState={!chatId} />
           <RightSidebar />

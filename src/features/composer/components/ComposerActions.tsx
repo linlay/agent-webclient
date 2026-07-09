@@ -1,11 +1,14 @@
-import React, { useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
-import type {
-  QueryAccessLevel,
-  QueryModelOverride,
-} from "@/shared/data";
+import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -90,6 +93,28 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   const attachmentActionsDisabled =
     isFrontendActive || isVoiceMode || isStreaming;
 
+  const controlRowRef = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+
+  const updateCompact = useCallback(() => {
+    if (controlRowRef.current) {
+      setCompact(controlRowRef.current.clientWidth < 500);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = controlRowRef.current;
+    if (!el) return;
+    updateCompact();
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => updateCompact());
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+    window.addEventListener("resize", updateCompact);
+    return () => window.removeEventListener("resize", updateCompact);
+  }, [updateCompact]);
+
   const isCopilot = useMemo(
     () =>
       typeof window !== "undefined" &&
@@ -110,7 +135,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           />
         </Flex>
       )}
-      <div className={COMPOSER_CONTROL_ROW_CLASS}>
+      <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
         <UiButton
           className={COMPOSER_PLUS_BUTTON_CLASS}
           variant="ghost"
@@ -166,7 +191,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                 <Flex align="center" vertical style={{ fontSize: 12 }}>
                   <div>{t("composer.tooltip.createPlan")}</div>
                   <div>
-                    <code className={PLAN_TOGGLE_SHORTCUT_CLASS}>Shift + Tab</code>{" "}
+                    <code className={PLAN_TOGGLE_SHORTCUT_CLASS}>
+                      Shift + Tab
+                    </code>{" "}
                     {t("composer.tooltip.planShortcut")}
                   </div>
                 </Flex>
@@ -178,9 +205,15 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                 size="sm"
                 onClick={onTogglePlanningMode}
               >
-                <MaterialIcon name="checklist" className={PLAN_TOGGLE_ICON_CLASS} />
-                <MaterialIcon name="close" className={PLAN_TOGGLE_CLOSE_ICON_CLASS} />
-                <span>{t("composer.actions.plan")}</span>
+                <MaterialIcon
+                  name="checklist"
+                  className={PLAN_TOGGLE_ICON_CLASS}
+                />
+                <MaterialIcon
+                  name="close"
+                  className={PLAN_TOGGLE_CLOSE_ICON_CLASS}
+                />
+                {!compact && <span>{t("composer.actions.plan")}</span>}
               </UiButton>
             </Tooltip>
           )}
@@ -197,6 +230,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             <QuerySettingsControls
               accessLevel={accessLevel}
               disabled={true}
+              compact={compact}
               modelOverride={modelOverride}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
@@ -219,6 +253,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             <QuerySettingsControls
               accessLevel={accessLevel}
               disabled={isFrontendActive}
+              compact={compact}
               modelOverride={modelOverride}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}

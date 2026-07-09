@@ -582,6 +582,39 @@ export function buildLoadedChatUsageSnapshot(
   };
 }
 
+const LOAD_CHAT_RETRY_DELAYS_MS = [180, 420, 800] as const;
+const ACTIVE_CHAT_REFRESH_DELAYS_MS = [2000, 8000, 20000] as const;
+
+function waitForLoadChatRetry(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, delayMs);
+  });
+}
+
+function hasAssistantTimelineContentInState(state: {
+  timelineOrder: string[];
+  timelineNodes: Map<string, { kind?: string; role?: string }>;
+}): boolean {
+  return state.timelineOrder.some((nodeId) => {
+    const node = state.timelineNodes.get(nodeId);
+    return Boolean(node && (node.kind !== 'message' || node.role !== 'user'));
+  });
+}
+
+function hasContentTimelineTextInState(state: {
+  timelineOrder: string[];
+  timelineNodes: Map<string, { kind?: string; text?: string }>;
+}): boolean {
+  return state.timelineOrder.some((nodeId) => {
+    const node = state.timelineNodes.get(nodeId);
+    return Boolean(
+      node &&
+      node.kind === 'content' &&
+      String(node.text || '').trim(),
+    );
+  });
+}
+
 /**
  * useChatActions — handles loading agents, chats, and switching chat context.
  */
@@ -797,7 +830,13 @@ export function useChatActions() {
         activeQuerySessionRequestIdRef,
         querySessionsRef,
       );
-      if (currentChatId && currentChatId === chatId && mainRuntime.running) {
+      const hasAssistantTimelineContent = hasAssistantTimelineContentInState(stateRef.current);
+      if (
+        currentChatId
+        && currentChatId === chatId
+        && mainRuntime.running
+        && hasAssistantTimelineContent
+      ) {
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -805,10 +844,13 @@ export function useChatActions() {
       }
 
       const seq = ++loadSeqRef.current;
-      dispatchDetachActiveRun('chat_switch', chatId);
-      detachActiveConversationSession();
+      const loadingCurrentChat = Boolean(currentChatId && currentChatId === chatId);
+      if (!loadingCurrentChat) {
+        dispatchDetachActiveRun('chat_switch', chatId);
+        detachActiveConversationSession();
+      }
 
-      if (currentChatId && currentChatId !== chatId) {
+      if (!loadingCurrentChat && currentChatId && currentChatId !== chatId) {
         dispatch({ type: 'CLEAR_EVENTS' });
       }
 
@@ -827,7 +869,24 @@ export function useChatActions() {
       dispatch({ type: 'SET_STREAMING', streaming: true });
 
       try {
-        const response = await getChat(chatId, false);
+        let response: Awaited<ReturnType<typeof getChat>> | null = null;
+        let lastLoadError: unknown = null;
+        for (let attempt = 0; attempt <= LOAD_CHAT_RETRY_DELAYS_MS.length; attempt += 1) {
+          try {
+            response = await getChat(chatId, false);
+            lastLoadError = null;
+            break;
+          } catch (error) {
+            lastLoadError = error;
+            if (seq !== loadSeqRef.current || attempt >= LOAD_CHAT_RETRY_DELAYS_MS.length) {
+              break;
+            }
+            await waitForLoadChatRetry(LOAD_CHAT_RETRY_DELAYS_MS[attempt]);
+          }
+        }
+        if (!response) {
+          throw lastLoadError instanceof Error ? lastLoadError : new Error(String(lastLoadError || 'failed to load chat'));
+        }
         if (seq !== loadSeqRef.current) return;
 
         const chatData = response.data as Record<string, unknown>;
@@ -914,6 +973,26 @@ export function useChatActions() {
             },
           });
         });
+        const replayHasContentTimelineText = hasContentTimelineTextInState(rs);
+        if (activeRunId && !replayHasContentTimelineText) {
+          for (const delayMs of ACTIVE_CHAT_REFRESH_DELAYS_MS) {
+            const refreshTimer = globalThis.setTimeout(() => {
+              const latestState = stateRef.current;
+              if (String(latestState.chatId || '').trim() !== chatId) {
+                return;
+              }
+              if (hasContentTimelineTextInState(latestState)) {
+                return;
+              }
+              window.dispatchEvent(
+                new CustomEvent('agent:load-chat', {
+                  detail: { chatId },
+                }),
+              );
+            }, delayMs);
+            (refreshTimer as { unref?: () => void }).unref?.();
+          }
+        }
         if (usageSnapshot) {
           dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: usageSnapshot });
         }

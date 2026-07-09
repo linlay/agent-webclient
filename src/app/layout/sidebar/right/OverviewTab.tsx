@@ -12,6 +12,7 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import { buildPlanSummaryView } from "@/features/plan/components/PlanPanel";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
+import { TextCountUp } from "@/shared/components/text-count-up";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -113,11 +114,6 @@ const FILE_CHANGE_RUN_CLASS_NAME =
 
 const FILE_CHANGE_STATS_CLASS_NAME =
   "right-sidebar-file-change-stats tw:inline-flex tw:flex-none tw:items-center tw:gap-1 tw:whitespace-nowrap tw:font-code tw:text-[11px] tw:font-bold tw:leading-[1.2]";
-
-const FILE_CHANGE_STAT_ANIMATION_CLASS_NAME =
-  "tw:origin-bottom tw:animate-[right-sidebar-file-change-jump_560ms_cubic-bezier(.2,.72,.18,1)] tw:motion-reduce:animate-none";
-
-const FILE_CHANGE_DELETE_ANIMATION_CLASS_NAME = "tw:[animation-delay:40ms]";
 
 const FILE_CHANGE_ADD_CLASS_NAME = "right-sidebar-file-change-add tw:text-ok";
 
@@ -316,27 +312,13 @@ function renderFileChangeStats(
   deletedLines: number,
   options: { animated?: boolean; animationKey?: string } = {},
 ) {
-  const addClassName = [
-    FILE_CHANGE_ADD_CLASS_NAME,
-    options.animated ? FILE_CHANGE_STAT_ANIMATION_CLASS_NAME : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const deleteClassName = [
-    FILE_CHANGE_DELETE_CLASS_NAME,
-    options.animated ? FILE_CHANGE_STAT_ANIMATION_CLASS_NAME : "",
-    options.animated ? FILE_CHANGE_DELETE_ANIMATION_CLASS_NAME : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   if (!addedLines && !deletedLines) {
     return null;
   }
   return (
     <span key={options.animationKey} className={FILE_CHANGE_STATS_CLASS_NAME}>
-      <span className={addClassName}>+{formatLineCount(addedLines)}</span>
-      <span className={deleteClassName}>-{formatLineCount(deletedLines)}</span>
+      <TextCountUp className={FILE_CHANGE_ADD_CLASS_NAME} text={"+" + formatLineCount(addedLines)} />
+      <TextCountUp className={FILE_CHANGE_DELETE_CLASS_NAME} text={"-" + formatLineCount(deletedLines)} />
     </span>
   );
 }

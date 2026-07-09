@@ -309,7 +309,6 @@ export const enUSMessages: I18nMessages = {
   "rightSidebar.overview.tasks.title": "Tasks",
   "rightSidebar.overview.tasks.empty": "No tasks",
   "rightSidebar.preview.actions.close": "Close",
-  "rightSidebar.preview.actions.download": "Download",
   "rightSidebar.preview.error.audio": "Audio preview failed. Download the file to view it.",
   "rightSidebar.preview.error.download": "Attachment download failed",
   "rightSidebar.preview.error.image": "Image preview failed. Download the file to view it.",
