@@ -7,12 +7,12 @@ import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export const SELECT_DIRECTORY_REQUEST_TYPE =
-  "zenmind:desktop-dialog:select-directory";
+  "desktop:dialog:select-directory";
 export const SELECT_DIRECTORY_RESPONSE_TYPE =
-  "zenmind:desktop-dialog:select-directory:response";
-export const OPEN_PATH_REQUEST_TYPE = "zenmind:desktop-shell:open-path";
+  "desktop:dialog:select-directory:response";
+export const OPEN_PATH_REQUEST_TYPE = "desktop:shell:open-path";
 export const OPEN_PATH_RESPONSE_TYPE =
-  "zenmind:desktop-shell:open-path:response";
+  "desktop:shell:open-path:response";
 const DESKTOP_FILE_SYSTEM_TIMEOUT_MS = 30_000;
 
 export type ProjectFolderSelection =

@@ -2,7 +2,7 @@ import { Blob } from 'buffer';
 import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/accessTokenStorage';
 import {
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
-  APP_AUTH_LEGACY_RESPONSE_TYPE,
+  APP_AUTH_RESPONSE_TYPE,
 } from '@/shared/data/appAuth';
 import {
   initializeDesktopQueryContextBridge,
@@ -1332,7 +1332,7 @@ describe('data client query payloads', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: APP_AUTH_LEGACY_RESPONSE_TYPE,
+            type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'bridge-token-2',
           },
@@ -1362,7 +1362,7 @@ describe('data client query payloads', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: APP_AUTH_LEGACY_RESPONSE_TYPE,
+            type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'fresh-token',
           },

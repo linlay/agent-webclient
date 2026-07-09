@@ -30,8 +30,8 @@ type DesktopRouteWindow = Window & typeof globalThis & {
 
 const DESKTOP_ROUTE_CHANGED_MESSAGE_TYPE = "desktopRouteChanged";
 export const SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL =
-  "zenmind:service-webview:route";
-const DESKTOP_ROUTE_BRIDGE_KEY = "__ZENMIND_AGENT_WEBCLIENT_DESKTOP_ROUTE_BRIDGE__";
+  "desktop:service-webview:route";
+const DESKTOP_ROUTE_BRIDGE_KEY = "__AGENT_WEBCLIENT_DESKTOP_ROUTE_BRIDGE__";
 
 let fallbackBridge: DesktopRouteBridge | null = null;
 

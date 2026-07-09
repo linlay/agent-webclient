@@ -26,11 +26,11 @@ interface AppAuthResponseMessage {
 }
 
 const APP_AUTH_REQUEST_TYPE = 'desktop:agent-auth:request';
-export const APP_AUTH_LEGACY_RESPONSE_TYPE = 'zenmind:agent-app-auth:response';
+export const APP_AUTH_RESPONSE_TYPE = 'desktop:agent-auth:response';
+export const APP_AUTH_APP_RESPONSE_TYPE = 'desktop:agent-app-auth:response';
 const APP_AUTH_RESPONSE_TYPES = new Set([
-  'desktop:agent-auth:response',
-  'desktop:agent-app-auth:response',
-  APP_AUTH_LEGACY_RESPONSE_TYPE,
+  APP_AUTH_RESPONSE_TYPE,
+  APP_AUTH_APP_RESPONSE_TYPE,
 ]);
 const APP_AUTH_TIMEOUT_MS = 10_000;
 const APP_AUTH_SEEDED_TOKEN_POLL_MS = 25;

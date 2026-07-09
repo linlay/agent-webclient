@@ -15,7 +15,7 @@ interface UseDesktopActionForAgentPageOptions {
 }
 
 export const SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL =
-  "zenmind:service-webview:action";
+  "desktop:service-webview:action";
 
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";

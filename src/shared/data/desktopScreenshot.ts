@@ -7,9 +7,9 @@ import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export const DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE =
-  "zenmind:desktop-screenshot:capture";
+  "desktop:screenshot:capture";
 export const DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE =
-  "zenmind:desktop-screenshot:capture:response";
+  "desktop:screenshot:capture:response";
 const DESKTOP_SCREENSHOT_TIMEOUT_MS = 120_000;
 
 export class DesktopScreenshotError extends Error {
