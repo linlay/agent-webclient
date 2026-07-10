@@ -43,7 +43,7 @@ import type {
 	MemoryScopeValidationResult,
 	MemoryRecordDetail,
 	MemoryRecordListItem,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import type { AutomationSummaryResponse } from "@/shared/data";
 
 export type AppAction =

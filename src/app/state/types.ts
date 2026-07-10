@@ -14,7 +14,7 @@ import type {
 	MemoryScopeValidationResult,
 	MemoryRecordDetail,
 	MemoryRecordListItem,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import type { ThemeMode } from "@/shared/styles/theme";
 import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {

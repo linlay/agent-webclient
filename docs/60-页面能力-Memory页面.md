@@ -22,5 +22,5 @@ Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/
 - `../src/features/settings/components/MemoryInfoModal.tsx`
 - `../src/features/settings/hooks/useMemoryRecordsInitialization.ts`
 - `../src/features/settings/lib/memoryInfo.ts`
-- `../src/shared/data/memoryTypes.ts`
-- `../src/shared/data/client.ts`
+- `../src/shared/data/memory/memoryTypes.ts`
+- `../src/shared/data/api/client.ts`

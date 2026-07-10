@@ -20,10 +20,10 @@ Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。
 
 ## 相关文件
-- `../src/shared/data/desktopHostBridge.ts`
-- `../src/shared/data/appAuth.ts`
-- `../src/shared/data/desktopScreenshot.ts`
-- `../src/shared/data/desktopFileSystem.ts`
-- `../src/shared/data/desktopQueryContext.ts`
+- `../src/shared/data/desktop/desktopHostBridge.ts`
+- `../src/shared/data/auth/appAuth.ts`
+- `../src/shared/data/desktop/desktopScreenshot.ts`
+- `../src/shared/data/desktop/desktopFileSystem.ts`
+- `../src/shared/data/desktop/desktopQueryContext.ts`
 - `../src/shared/hooks/useDesktopRouteChange.ts`
 - `../src/shared/hooks/agentPage/useDesktopAction.ts`

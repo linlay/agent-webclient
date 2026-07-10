@@ -3,7 +3,7 @@ import {
   SELECT_DIRECTORY_REQUEST_TYPE,
   SELECT_DIRECTORY_RESPONSE_TYPE,
   selectProjectFolder,
-} from "@/shared/data/desktopFileSystem";
+} from "@/shared/data/desktop/desktopFileSystem";
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

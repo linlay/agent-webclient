@@ -3,7 +3,7 @@ import {
   DESKTOP_SCREENSHOT_CAPTURE_REQUEST_TYPE,
   DESKTOP_SCREENSHOT_CAPTURE_RESPONSE_TYPE,
   captureDesktopScreenshot,
-} from "@/shared/data/desktopScreenshot";
+} from "@/shared/data/desktop/desktopScreenshot";
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

@@ -4,7 +4,7 @@ import type { TimelineSource, TimelineSourceChunk } from "@/app/state/types";
 import { MarkdownContent } from "@/shared/ui/MarkdownContent";
 import { t, TranslateParams } from "@/shared/i18n";
 import { Flex, Tag } from "antd";
-import { SourceScore } from "@/features/source/component/source-score";
+import { SourceScore } from "@/features/source/components/source-score";
 
 type TranslateFn = (key: string, params?: TranslateParams) => string;
 

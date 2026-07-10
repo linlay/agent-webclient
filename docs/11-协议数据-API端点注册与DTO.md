@@ -1,7 +1,7 @@
 # API端点注册与DTO
 
 ## 当前状态
-接口端点集中注册在 `src/shared/data/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/client.ts`。端点声明包含 key、path、method、transport、cache 和 payload 构造函数。
+接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、cache 和 payload 构造函数。
 
 ## 核心职责
 - 统一维护 `/api/*`、`/ws`、`/api/voice/*`、`/api/resource` 等前端消费入口。
@@ -18,9 +18,8 @@
 - 管理页和对话页复用同一数据层，不在组件里重复封装 fetch。
 
 ## 相关文件
-- `../src/shared/data/endpointRegistry.ts`
-- `../src/shared/data/endpoints.ts`
-- `../src/shared/data/client.ts`
+- `../src/shared/data/api/endpointRegistry.ts`
+- `../src/shared/data/api/endpoints.ts`
+- `../src/shared/data/api/client.ts`
 - `../src/shared/data/index.ts`
-- `../src/shared/data/client.test.ts`
-
+- `../src/shared/data/api/client.test.ts`

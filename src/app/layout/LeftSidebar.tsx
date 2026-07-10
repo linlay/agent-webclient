@@ -65,7 +65,7 @@ import {
 } from "@/features/chats/lib/chatRunState";
 import { resolveSidebarChatRuntime } from "@/features/chats/lib/chatRuntimeState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
-import { openWorkspaceDirectory } from "@/shared/data/desktopFileSystem";
+import { openWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { readEpochMillis } from "@/shared/utils/platformTime";

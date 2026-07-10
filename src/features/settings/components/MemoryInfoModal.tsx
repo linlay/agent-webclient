@@ -26,7 +26,7 @@ import type {
   MemoryScopeSaveSummary,
   MemoryScopeSummary,
   MemoryScopeValidationResult,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";

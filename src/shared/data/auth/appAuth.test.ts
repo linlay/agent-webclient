@@ -5,7 +5,7 @@ import {
   APP_AUTH_RESPONSE_TYPE,
   getAppAccessToken,
   refreshAppAccessToken,
-} from '@/shared/data/appAuth';
+} from '@/shared/data/auth/appAuth';
 
 type MockStorage = {
   getItem: (key: string) => string | null;

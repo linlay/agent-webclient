@@ -5,7 +5,7 @@ import type {
   MemoryScopeRecord,
   MemoryScopeRecordInput,
   MemoryScopeSummary,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import { toText } from "@/shared/utils/eventUtils";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 

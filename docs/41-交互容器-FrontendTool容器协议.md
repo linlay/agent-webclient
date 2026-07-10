@@ -23,5 +23,4 @@ tool processor 将工具事件中的 viewportKey 和 params 写入 tool state。
 - `../src/features/timeline/lib/eventProcessorTool.ts`
 - `../src/features/timeline/lib/toolEvent.ts`
 - `../src/app/state/toolTypes.ts`
-- `../src/shared/data/routedClient.ts`
-
+- `../src/shared/data/api/routedClient.ts`

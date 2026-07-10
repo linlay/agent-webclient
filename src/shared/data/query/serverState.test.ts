@@ -1,4 +1,4 @@
-import { DataQueryCache } from "@/shared/data/serverState";
+import { DataQueryCache } from "@/shared/data/query/serverState";
 
 describe("DataQueryCache", () => {
   it("returns stable snapshots while data is unchanged", async () => {

@@ -24,7 +24,7 @@ import {
 } from "@/features/transport/lib/detachRunEvent";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
-import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
+import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import {
   createLiveQuerySession,
   snapshotConversationState,

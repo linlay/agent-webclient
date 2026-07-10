@@ -22,6 +22,5 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 - `../src/features/workers/components/AgentConsole.tsx`
 - `../src/features/workers/lib/agentSummary.ts`
 - `../src/features/workers/lib/agentOrdering.ts`
-- `../src/shared/data/client.ts`
-- `../src/shared/data/routedClient.ts`
-
+- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/routedClient.ts`

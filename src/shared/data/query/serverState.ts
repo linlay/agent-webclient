@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
-import type { ApiResponse } from "@/shared/data/client";
+import type { ApiResponse } from "@/shared/data/api/client";
 import {
   createDataCacheKey,
   type EndpointDefinition,
-} from "@/shared/data/endpointRegistry";
+} from "@/shared/data/api/endpointRegistry";
 
 export type DataQueryStatus = "idle" | "loading" | "success" | "error";
 

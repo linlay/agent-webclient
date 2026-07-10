@@ -1,7 +1,7 @@
 import type { AgentEvent } from "@/app/state/types";
-import { ApiError, type ApiResponse } from "@/shared/data/client";
-import { dataEndpoints } from "@/shared/data/endpoints";
-import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
+import { ApiError, type ApiResponse } from "@/shared/data/api/client";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/features/transport/lib/clientDeviceId";
