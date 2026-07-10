@@ -202,7 +202,6 @@ export const GlobalSearchOverlay: React.FC = () => {
       open={isOpen}
       onCancel={handleClose}
       footer={null}
-      destroyOnHidden
       width="min(640px, calc(100vw - 32px))"
       closable={false}
       styles={{
