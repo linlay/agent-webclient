@@ -35,7 +35,7 @@ const WORKER_CHAT_DIVIDER_CLASS =
   "worker-chat-divider tw:mx-5 tw:h-px tw:bg-border";
 
 const WORKER_CHAT_MORE_CLASS =
-  "worker-chat-more tw:cursor-pointer tw:px-[9px] tw:pb-[9px] tw:pt-0 tw:text-center tw:text-[12px] tw:text-text-muted tw:opacity-[0.72]";
+  "worker-chat-more tw:cursor-pointer tw:px-[9px] tw:py-[4px] tw:text-center tw:text-[12px] tw:text-text-muted tw:opacity-[0.72]";
 
 export const WorkerConversationPreviewList: React.FC<{
   row: WorkerRow;

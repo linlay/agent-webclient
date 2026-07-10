@@ -8,7 +8,7 @@ import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 const WORKER_CHAT_ITEM_CLASS =
-  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none";
+  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
 
 const WORKER_CHAT_ITEM_HEAD_CLASS =
   "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5";
