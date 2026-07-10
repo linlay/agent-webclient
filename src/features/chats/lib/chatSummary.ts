@@ -1,5 +1,4 @@
-import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
-import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
+import type { Chat } from '@/app/state/types';
 
 export type ChatSummaryPatch = Partial<Chat> & Pick<Chat, 'chatId'>;
 
@@ -61,18 +60,4 @@ export function mergeFetchedChats(
   }
 
   return merged;
-}
-
-export function buildSelectedWorkerConversationRows(input: {
-  chats: Chat[];
-  workerSelectionKey: string;
-  workerIndexByKey: Map<string, WorkerRow>;
-}): WorkerConversationRow[] {
-  const selectedWorker =
-    input.workerIndexByKey.get(String(input.workerSelectionKey || '').trim()) ||
-    null;
-  return buildWorkerConversationRows({
-    chats: input.chats,
-    worker: selectedWorker,
-  });
 }

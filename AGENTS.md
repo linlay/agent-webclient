@@ -25,7 +25,8 @@
 核心调用链如下：
 - 用户在 Composer 区输入消息
 - `src/features/composer/hooks/useMessageActions.ts` 发起 `/api/query` 请求，按运行模式消费 SSE 或 WebSocket 返回
-- `src/features/transport/lib/queryStreamRuntime.sse.ts`、`src/features/transport/lib/queryStreamRuntime.ws.ts` 与 `src/features/timeline/hooks/useAgentEventHandler.ts` 将流式事件归并为时间线节点和运行时状态
+- `src/features/transport/lib/queryStreamRuntime.sse.ts`、`src/features/transport/lib/queryStreamRuntime.ws.ts` 只负责传输事件，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
+- `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前会话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
 - `src/features/voice/lib/voiceRuntime.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责 TTS / 语音聊天链路
 
@@ -34,6 +35,12 @@
 - `docs/`：中文专题文档，按两位编号和模块分段组织，覆盖前端协议消费、运行态 UI、管理台、页面能力与部署专题
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
+- `src/features/chats/`：历史聊天目录、摘要、未读状态和聊天 CRUD UI
+- `src/features/conversation/`：当前会话加载、切换、live/replay 事件编排与 session 快照
+- `src/features/events/`：AGENT 协议事件到 `EventCommand` 的纯投影，不依赖 React 或 transport
+- `src/features/runs/`：run 身份、运行态查询和 attach/detach 事件契约
+- `src/features/timeline/`：时间线 view model、展示组件和仅与展示有关的交互
+- `src/features/transport/`：SSE/WebSocket 客户端、帧处理、重试和 executor，不解释业务事件
 - `src/shared/data/`：统一数据管理模块，包含接口注册、API 客户端、鉴权封装、请求路由与轻量 server-state 查询缓存
 - `src/shared/styles/`：全局主题变量、样式入口与主题工具；当前统一入口为 `globals.css`
 - `src/shared/ui/`：通用基础 UI 组件

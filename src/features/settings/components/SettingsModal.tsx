@@ -33,7 +33,7 @@ import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 
 const SETTINGS_CARD_CLASS_NAME =

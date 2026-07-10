@@ -8,7 +8,7 @@ import {
 	getEventId,
 	isErrorEventType,
 	shouldDisplayDebugEvent,
-} from "@/features/timeline/lib/debugEventDisplay";
+} from "@/features/events/lib/debugEventDisplay";
 import { t } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";

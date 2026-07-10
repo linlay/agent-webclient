@@ -1,8 +1,8 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState, PendingSteer } from "@/app/state/types";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
-import { bindRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
-import { appendVisibleDebugEvent } from "@/features/timeline/lib/debugEventDisplay";
+import { bindRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
+import { appendVisibleDebugEvent } from "@/features/events/lib/debugEventDisplay";
 import {
 	addSetValue,
 	removeSetValue,

@@ -18,8 +18,8 @@ Timeline tool processor 识别 `artifact.publish`，调用 `normalizePublishedAr
 - 前端预览失败时可降级下载，不尝试修复文件内容。
 
 ## 相关文件
-- `../src/features/timeline/lib/eventProcessorTool.ts`
-- `../src/features/timeline/lib/eventProcessorShared.ts`
+- `../src/features/events/lib/processors/eventProcessorTool.ts`
+- `../src/features/events/lib/processors/eventProcessorShared.ts`
 - `../src/features/artifacts/components/ArtifactPanel.tsx`
 - `../src/features/artifacts/components/AttachmentCard.tsx`
 - `../src/features/artifacts/lib/attachmentPreview.ts`

@@ -32,7 +32,7 @@ import { SettingsClientGate } from "@/features/settings/components/SettingsClien
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 import { MaterialIcon } from "@/shared/icons/material";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 
 interface SettingsDrawerProps {
   open?: boolean;

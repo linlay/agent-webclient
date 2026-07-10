@@ -18,8 +18,8 @@ Reasoning 与 Planning 是 timeline 中的可展开思考/规划节点。Reasoni
 - 自动折叠只影响 UI，不改变事件历史。
 
 ## 相关文件
-- `../src/features/timeline/lib/eventProcessorReasoning.ts`
-- `../src/features/timeline/lib/eventProcessorPlanning.ts`
+- `../src/features/events/lib/processors/eventProcessorReasoning.ts`
+- `../src/features/events/lib/processors/eventProcessorPlanning.ts`
 - `../src/features/timeline/lib/reasoningAutoCollapse.ts`
 - `../src/features/timeline/components/ThinkingBlock.tsx`
 - `../src/features/timeline/components/planning/index.tsx`

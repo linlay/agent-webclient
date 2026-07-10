@@ -45,7 +45,7 @@ import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import type { WorkerSortMode } from "@/app/layout/hooks/useLeftSidebarData";
-import { ChatItem } from "@/app/layout/sidebar/ChatItem";
+import { ChatItem } from "@/features/chats/components/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
@@ -63,7 +63,7 @@ import {
   isChatActiveRun,
   isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
-import { resolveSidebarChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";

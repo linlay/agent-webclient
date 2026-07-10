@@ -1,0 +1,378 @@
+import type {
+  ActiveAwaiting,
+  AgentEvent,
+  FileChangeSummary,
+  PublishedArtifact,
+  TimelineNode,
+  Plan,
+  PlanRuntime,
+  TaskItemMeta,
+  ToolState,
+  TtsVoiceBlock,
+} from '@/app/state/types';
+import {
+  cloneActiveAwaiting,
+  cloneActiveAwaitingQueue,
+  reduceAwaitingRuntime,
+} from '@/features/tools/lib/awaitingRuntime';
+import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/runs/lib/runAgentIdentity';
+import { parseContentSegments } from '@/features/events/lib/contentSegments';
+import type { EventCommand, EventProcessorState } from '@/features/events/lib/eventProcessorTypes';
+import { processStreamEvent } from '@/features/events/lib/eventProcessor';
+import { MAX_EVENTS } from '@/app/state/constants';
+import { appendVisibleDebugEvent } from '@/features/events/lib/debugEventDisplay';
+
+export interface ReplayState {
+  timelineNodes: Map<string, TimelineNode>;
+  timelineOrder: string[];
+  contentNodeById: Map<string, string>;
+  reasoningNodeById: Map<string, string>;
+  toolNodeById: Map<string, string>;
+  toolStates: Map<string, ToolState>;
+  chatAgentById: Map<string, string>;
+  timelineCounter: number;
+  activeReasoningKey: string;
+  chatId: string;
+  runId: string;
+  runAgentById: Map<string, string>;
+  currentRunAgentKey: string;
+  activeAwaiting: ActiveAwaiting | null;
+  pendingAwaitings: ActiveAwaiting[];
+  events: AgentEvent[];
+  debugEvents: AgentEvent[];
+  debugLines: string[];
+  artifacts: PublishedArtifact[];
+  fileChanges: FileChangeSummary[];
+  plan: Plan | null;
+  planRuntimeByTaskId: Map<string, PlanRuntime>;
+  taskItemsById: Map<string, TaskItemMeta>;
+  activeTaskIds: Set<string>;
+  planCurrentRunningTaskId: string;
+  planLastTouchedTaskId: string;
+}
+
+export function createReplayState(): ReplayState {
+  return {
+    timelineNodes: new Map(),
+    timelineOrder: [],
+    contentNodeById: new Map(),
+    reasoningNodeById: new Map(),
+    toolNodeById: new Map(),
+    toolStates: new Map(),
+    chatAgentById: new Map(),
+    timelineCounter: 0,
+    activeReasoningKey: '',
+    chatId: '',
+    runId: '',
+    runAgentById: new Map(),
+    currentRunAgentKey: '',
+    activeAwaiting: null,
+    pendingAwaitings: [],
+    events: [],
+    debugEvents: [],
+    debugLines: [],
+    artifacts: [],
+    fileChanges: [],
+    plan: null,
+    planRuntimeByTaskId: new Map(),
+    taskItemsById: new Map(),
+    activeTaskIds: new Set(),
+    planCurrentRunningTaskId: '',
+    planLastTouchedTaskId: '',
+  };
+}
+
+function clonePlan(plan: Plan | null): Plan | null {
+  return plan
+    ? {
+        ...plan,
+        plan: Array.isArray(plan.plan) ? plan.plan.map((item) => ({ ...item })) : [],
+      }
+    : null;
+}
+
+function upsertReplayArtifact(
+  artifacts: PublishedArtifact[],
+  nextArtifact: PublishedArtifact,
+): PublishedArtifact[] {
+  const index = artifacts.findIndex((item) => item.artifactId === nextArtifact.artifactId);
+  if (index < 0) {
+    return [...artifacts, nextArtifact];
+  }
+  const next = artifacts.slice();
+  next[index] = nextArtifact;
+  return next;
+}
+
+function cloneArtifacts(artifacts: PublishedArtifact[]): PublishedArtifact[] {
+  return artifacts.map((item) => ({
+    ...item,
+    artifact: {
+      ...item.artifact,
+    },
+  }));
+}
+
+function upsertReplayFileChange(
+  fileChanges: FileChangeSummary[],
+  fileChange: FileChangeSummary,
+): FileChangeSummary[] {
+  const runId = String(fileChange.runId || '').trim();
+  const filePath = String(fileChange.filePath || '').trim();
+  if (!runId || !filePath) {
+    return fileChanges;
+  }
+
+  const normalized: FileChangeSummary = {
+    runId,
+    filePath,
+    addedLines: Math.max(0, Number(fileChange.addedLines) || 0),
+    deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
+    editedLines: Math.max(0, Number(fileChange.editedLines) || 0),
+    operationCount: Math.max(1, Number(fileChange.operationCount) || 1),
+    lastUpdatedAt:
+      Number.isFinite(fileChange.lastUpdatedAt) && fileChange.lastUpdatedAt > 0
+        ? fileChange.lastUpdatedAt
+        : Date.now(),
+  };
+
+  const index = fileChanges.findIndex(
+    (item) => item.runId === runId && item.filePath === filePath,
+  );
+  if (index < 0) {
+    return [...fileChanges, normalized];
+  }
+
+  const current = fileChanges[index];
+  const next = fileChanges.slice();
+  next[index] = {
+    runId,
+    filePath,
+    addedLines: current.addedLines + normalized.addedLines,
+    deletedLines: current.deletedLines + normalized.deletedLines,
+    editedLines: current.editedLines + normalized.editedLines,
+    operationCount: current.operationCount + normalized.operationCount,
+    lastUpdatedAt: Math.max(current.lastUpdatedAt, normalized.lastUpdatedAt),
+  };
+  return next;
+}
+
+export function setReplayPlan(
+  rs: ReplayState,
+  plan: Plan | null,
+  options: { resetRuntime?: boolean } = {},
+): void {
+  rs.plan = clonePlan(plan);
+  if (options.resetRuntime) {
+    rs.planRuntimeByTaskId = new Map();
+    rs.planCurrentRunningTaskId = '';
+    rs.planLastTouchedTaskId = '';
+  }
+}
+
+export function setReplayArtifacts(
+  rs: ReplayState,
+  artifacts: PublishedArtifact[],
+): void {
+  rs.artifacts = cloneArtifacts(artifacts);
+}
+
+function createReplayProcessorState(rs: ReplayState): EventProcessorState {
+  return {
+    getContentNodeId: (contentId) => rs.contentNodeById.get(contentId),
+    getReasoningNodeId: (reasoningKey) => rs.reasoningNodeById.get(reasoningKey),
+    getToolNodeId: (toolId) => rs.toolNodeById.get(toolId),
+    getToolState: (toolId) => rs.toolStates.get(toolId),
+    getTimelineNode: (nodeId) => rs.timelineNodes.get(nodeId),
+    getNodeText: (nodeId) => rs.timelineNodes.get(nodeId)?.text || '',
+    nextCounter: () => {
+      const next = rs.timelineCounter;
+      rs.timelineCounter += 1;
+      return next;
+    },
+    peekCounter: () => rs.timelineCounter,
+    activeReasoningKey: rs.activeReasoningKey,
+    chatId: rs.chatId,
+    runId: rs.runId,
+    currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
+    getTaskItem: (taskId) => rs.taskItemsById.get(taskId),
+    getActiveTaskIds: () => Array.from(rs.activeTaskIds),
+    getPlanTaskDescription: (taskId) =>
+      rs.plan?.plan.find((item) => item.taskId === taskId)?.description,
+    getPlanId: () => rs.plan?.planId,
+  };
+}
+
+function buildHistoryTtsVoiceBlocks(
+  segments: ReturnType<typeof parseContentSegments>,
+  existing?: Record<string, TtsVoiceBlock>,
+): Record<string, TtsVoiceBlock> | undefined {
+  const next: Record<string, TtsVoiceBlock> = {};
+  let hasVoice = false;
+
+  for (const segment of segments) {
+    if (segment.kind !== 'ttsVoice' || !segment.signature) continue;
+    hasVoice = true;
+    const previous = existing?.[segment.signature];
+    next[segment.signature] = {
+      signature: segment.signature,
+      text: String(segment.text || previous?.text || ''),
+      closed: Boolean(segment.closed),
+      expanded: Boolean(previous?.expanded),
+      status: previous?.status || 'ready',
+      error: String(previous?.error || ''),
+      sampleRate: previous?.sampleRate,
+      channels: previous?.channels,
+    };
+  }
+
+  return hasVoice ? next : undefined;
+}
+
+function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
+  switch (command.cmd) {
+    case 'SET_CHAT_ID':
+      rs.chatId = command.chatId;
+      return;
+    case 'SET_RUN_ID':
+      rs.runId = command.runId;
+      return;
+    case 'SET_CHAT_AGENT':
+      rs.chatAgentById.set(command.chatId, command.agentKey);
+      return;
+    case 'SET_CONTENT_NODE_ID':
+      rs.contentNodeById.set(command.contentId, command.nodeId);
+      return;
+    case 'SET_REASONING_NODE_ID':
+      rs.reasoningNodeById.set(command.reasoningId, command.nodeId);
+      return;
+    case 'SET_TOOL_NODE_ID':
+      rs.toolNodeById.set(command.toolId, command.nodeId);
+      return;
+    case 'APPEND_TIMELINE_ORDER':
+      rs.timelineOrder.push(command.nodeId);
+      return;
+    case 'SET_TIMELINE_NODE': {
+      const existing = rs.timelineNodes.get(command.id);
+      if (command.node.kind === 'content') {
+        rs.timelineNodes.set(command.id, {
+          ...command.node,
+          ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(
+            command.node.segments || [],
+            existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined,
+          ),
+        });
+        return;
+      }
+      rs.timelineNodes.set(command.id, command.node);
+      return;
+    }
+    case 'SET_TOOL_STATE':
+      rs.toolStates.set(command.toolId, command.state);
+      return;
+    case 'SET_ACTIVE_REASONING_KEY':
+      rs.activeReasoningKey = command.key;
+      return;
+    case 'UPSERT_ARTIFACT':
+      rs.artifacts = upsertReplayArtifact(rs.artifacts, command.artifact);
+      return;
+    case 'UPSERT_FILE_CHANGE':
+      rs.fileChanges = upsertReplayFileChange(rs.fileChanges, command.fileChange);
+      return;
+    case 'SET_PLAN':
+      setReplayPlan(rs, command.plan, { resetRuntime: command.resetRuntime });
+      return;
+    case 'SET_PLAN_RUNTIME':
+      rs.planRuntimeByTaskId.set(command.taskId, command.runtime);
+      return;
+    case 'SET_TASK_ITEM_META':
+      rs.taskItemsById.set(command.taskId, command.task);
+      return;
+    case 'ADD_ACTIVE_TASK_ID':
+      rs.activeTaskIds.add(command.taskId);
+      return;
+    case 'REMOVE_ACTIVE_TASK_ID':
+      rs.activeTaskIds.delete(command.taskId);
+      return;
+    case 'SET_PLAN_CURRENT_RUNNING_TASK_ID':
+      rs.planCurrentRunningTaskId = command.taskId;
+      return;
+    case 'SET_PLAN_LAST_TOUCHED_TASK_ID':
+      rs.planLastTouchedTaskId = command.taskId;
+      return;
+    case 'USER_MESSAGE':
+      rs.timelineNodes.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'user',
+        messageVariant: command.variant,
+        steerId: command.steerId,
+        text: command.text,
+        attachments: command.attachments,
+        taskId: command.taskId,
+        taskName: command.taskName,
+        taskGroupId: command.taskGroupId,
+        subAgentKey: command.subAgentKey,
+        ts: command.ts,
+      });
+      rs.timelineOrder.push(command.nodeId);
+      return;
+    case 'SYSTEM_ERROR':
+      rs.timelineNodes.set(command.nodeId, {
+        id: command.nodeId,
+        kind: 'message',
+        role: 'system',
+        text: command.text,
+        ...(command.errorDetail ? { errorDetail: command.errorDetail } : {}),
+        ts: command.ts,
+      });
+      rs.timelineOrder.push(command.nodeId);
+      return;
+  }
+}
+
+export function replayEvent(rs: ReplayState, event: AgentEvent): void {
+  const binding = readRunAgentKeyFromEvent(event);
+  if (binding) {
+    rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
+    if (!rs.runId || rs.runId === binding.runId) {
+      rs.currentRunAgentKey = binding.agentKey;
+    }
+  }
+  rs.events.push(event);
+  rs.debugEvents = appendVisibleDebugEvent(
+    rs.debugEvents,
+    event,
+    MAX_EVENTS,
+    rs.events,
+    {
+      contentNodeById: rs.contentNodeById,
+      reasoningNodeById: rs.reasoningNodeById,
+      timelineNodes: rs.timelineNodes,
+      activeReasoningKey: rs.activeReasoningKey,
+      runId: rs.runId,
+    },
+  );
+  const nextAwaitingRuntime = reduceAwaitingRuntime(
+    {
+      activeAwaiting: rs.activeAwaiting,
+      pendingAwaitings: rs.pendingAwaitings,
+    },
+    event,
+    {
+    agentKey: rs.currentRunAgentKey,
+    markRemoteAnswer: false,
+    },
+  );
+  rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
+  rs.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
+  const commands = processStreamEvent(event, createReplayProcessorState(rs), {
+    mode: 'replay',
+    reasoningExpandedDefault: false,
+  });
+  for (const command of commands) {
+    applyReplayEventCommand(rs, command);
+  }
+  rs.activeAwaiting = cloneActiveAwaiting(rs.activeAwaiting);
+  rs.pendingAwaitings = cloneActiveAwaitingQueue(rs.pendingAwaitings);
+}

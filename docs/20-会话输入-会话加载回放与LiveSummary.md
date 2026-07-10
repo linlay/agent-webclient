@@ -1,7 +1,7 @@
 # 会话加载回放与LiveSummary
 
 ## 当前状态
-会话列表、加载、回放、live summary 和未读状态由 `src/features/chats/` 负责。它消费 `/api/chats`、`/api/chat`、archive、raw jsonl、mark read 等接口，并把回放事件重新送入 timeline processor。
+历史聊天目录、live summary、未读状态和 CRUD UI 由 `src/features/chats/` 负责；当前会话加载、切换、快照和回放由 `src/features/conversation/` 负责。回放事件与实时事件共用 `src/features/events/` 的纯投影入口。
 
 ## 核心职责
 - 加载会话摘要并合并运行中会话的 live patch。
@@ -10,7 +10,7 @@
 - 支持删除、重命名、归档、标记已读和导出。
 
 ## 核心流程
-`useChatActions` 拉取会话摘要和详情。详情中的事件按 replay 模式交给事件处理器，生成与 live stream 相同的前端状态。运行中事件会同步更新 chat summary，保证左侧列表和主时间线一致。
+`useConversationActions` 拉取会话详情，并把详情事件按 replay 模式交给事件处理器；`useConversationEventHandler` 处理实时事件。两条路径生成相同的 `EventCommand`，再分别由 replay/live adapter 应用。`useChatReadSync` 独立同步已读状态，worker 选择逻辑位于 workers 模块。
 
 ## 边界与非目标
 - chat store 是后端事实源，前端只做读取、展示和缓存归并。
@@ -18,10 +18,10 @@
 - worker 侧的会话聚合只服务前端导航，不改后端 team/agent 定义。
 
 ## 相关文件
-- `../src/features/chats/hooks/useChatActions.ts`
-- `../src/features/chats/lib/conversationSession.ts`
+- `../src/features/conversation/hooks/useConversationActions.ts`
+- `../src/features/conversation/hooks/useConversationEventHandler.ts`
+- `../src/features/conversation/lib/conversationSession.ts`
 - `../src/features/chats/lib/chatSummary.ts`
 - `../src/features/chats/lib/chatSummaryLive.ts`
-- `../src/features/chats/lib/runAgentIdentity.ts`
-- `../src/app/layout/sidebar/ChatItem.tsx`
-
+- `../src/features/runs/lib/runAgentIdentity.ts`
+- `../src/features/chats/components/ChatItem.tsx`

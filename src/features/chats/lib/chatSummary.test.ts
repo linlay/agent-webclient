@@ -1,6 +1,5 @@
-import type { Chat, WorkerRow } from '@/app/state/types';
+import type { Chat } from '@/app/state/types';
 import {
-  buildSelectedWorkerConversationRows,
   mergeChatSummary,
   mergeFetchedChats,
   upsertChatSummary,
@@ -90,57 +89,4 @@ describe('chatSummary helpers', () => {
     ]);
   });
 
-  it('rebuilds selected worker conversations from the latest chats', () => {
-    const workerIndexByKey = new Map<string, WorkerRow>([
-      [
-        'agent:agent-alice',
-        {
-          key: 'agent:agent-alice',
-          type: 'agent',
-          sourceId: 'agent-alice',
-          displayName: 'Alice',
-          role: '--',
-          teamAgentLabels: [],
-          latestChatId: 'chat_2',
-          latestRunId: 'run_b',
-          latestUpdatedAt: 200,
-          latestChatName: 'New chat',
-          latestRunContent: 'new',
-          hasHistory: true,
-          latestRunSortValue: 11,
-          searchText: '',
-        },
-      ],
-    ]);
-
-    const rows = buildSelectedWorkerConversationRows({
-      chats: [
-        {
-          chatId: 'chat_1',
-          chatName: 'Old chat',
-          agentKey: 'agent-alice',
-          lastRunId: 'run_a',
-          lastRunContent: 'old',
-          updatedAt: 100,
-        },
-        {
-          chatId: 'chat_2',
-          chatName: 'New chat',
-          agentKey: 'agent-alice',
-          lastRunId: 'run_b',
-          lastRunContent: 'new',
-          updatedAt: 200,
-          hasPendingAwaiting: true,
-        },
-      ],
-      workerSelectionKey: 'agent:agent-alice',
-      workerIndexByKey,
-    });
-
-    expect(rows.map((row) => row.chatId)).toEqual(['chat_2', 'chat_1']);
-    expect(rows[0]).toMatchObject({
-      chatId: 'chat_2',
-      hasPendingAwaiting: true,
-    });
-  });
 });

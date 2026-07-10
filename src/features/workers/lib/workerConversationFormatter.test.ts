@@ -1,5 +1,8 @@
 import type { Chat, WorkerRow } from '@/app/state/types';
-import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
+import {
+  buildSelectedWorkerConversationRows,
+  buildWorkerConversationRows,
+} from '@/features/workers/lib/workerConversationFormatter';
 
 describe('buildWorkerConversationRows', () => {
   function createWorker(): WorkerRow {
@@ -154,5 +157,29 @@ describe('buildWorkerConversationRows', () => {
     expect(rows[0]?.awaitingMode).toBe('plan');
     expect(rows[1]?.awaitingMode).toBe('question');
     expect(rows[2]?.awaitingMode).toBeUndefined();
+  });
+
+  it('rebuilds selected worker conversations from the latest chats', () => {
+    const worker = createWorker();
+    const rows = buildSelectedWorkerConversationRows({
+      chats: [
+        {
+          chatId: 'chat_older',
+          agentKey: 'agent-alpha',
+          updatedAt: 100,
+        } as Chat,
+        {
+          chatId: 'chat_newer',
+          agentKey: 'agent-alpha',
+          updatedAt: 200,
+          hasPendingAwaiting: true,
+        } as Chat,
+      ],
+      workerSelectionKey: worker.key,
+      workerIndexByKey: new Map([[worker.key, worker]]),
+    });
+
+    expect(rows.map((row) => row.chatId)).toEqual(['chat_newer', 'chat_older']);
+    expect(rows[0]?.hasPendingAwaiting).toBe(true);
   });
 });

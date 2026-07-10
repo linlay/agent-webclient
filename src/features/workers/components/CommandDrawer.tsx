@@ -14,7 +14,7 @@ import {
 } from "@/features/workers/lib/currentWorker";
 import { useWorkerHistoryRows } from "@/features/workers/hooks/useWorkerHistoryRows";
 import { DetailModal } from "@/features/workers/components/DetailModal";
-import { HistoryModal } from "@/app/modals/HistoryModal";
+import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { AutomationModal } from "@/app/modals/AutomationModal";
 import {
   SWITCH_SCOPES,

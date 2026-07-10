@@ -10,7 +10,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
 import { useOptionalAppContext } from "@/app/state/provider";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { TimelineCollapse } from "./collapse";
 
 type ToolGroupRenderEntry = Extract<

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
+import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import { useVoiceChatAsrTask } from "@/features/voice/hooks/useVoiceChatAsrTask";
 import { useVoiceChatCapture } from "@/features/voice/hooks/useVoiceChatCapture";
 import { useVoiceChatLifecycle } from "@/features/voice/hooks/useVoiceChatLifecycle";
@@ -9,13 +9,12 @@ import { useVoiceChatListening } from "@/features/voice/hooks/useVoiceChatListen
 import { useVoiceChatRuntimeController } from "@/features/voice/hooks/useVoiceChatRuntimeController";
 import { useVoiceChatSocket } from "@/features/voice/hooks/useVoiceChatSocket";
 
-export function useVoiceChatRuntime() {
+export function useVoiceChatRuntime(options: { onAgentEvent: AgentEventSink }): void {
 	const { state, dispatch, stateRef } = useAppContext();
 	const currentWorker = useMemo(
 		() => resolveCurrentWorkerSummary(state),
 		[state],
 	);
-	const { handleEvent } = useAgentEventHandler();
 	const controller = useVoiceChatRuntimeController({
 		dispatch,
 		state,
@@ -34,7 +33,7 @@ export function useVoiceChatRuntime() {
 		currentWorker,
 		dispatch,
 		ensureAudioCapture,
-		handleEvent,
+		handleEvent: options.onAgentEvent,
 		resumeAudioCapture,
 		startAsrTask,
 	});
@@ -55,4 +54,3 @@ export function useVoiceChatRuntime() {
 		state,
 	});
 }
-

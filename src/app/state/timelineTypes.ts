@@ -1,4 +1,4 @@
-import type { ContentSegment } from "@/features/timeline/lib/contentSegments";
+import type { ContentSegment } from "@/features/events/lib/contentSegments";
 
 export type TimelineNodeKind =
 	| "message"

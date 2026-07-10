@@ -1,7 +1,7 @@
 # 流式传输SSE与WebSocket
 
 ## 当前状态
-对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。attach、detach 和 replay 逻辑位于 transport 模块与 chat session 模块交界处。
+对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和会话观察编排归 conversation 与 runs。
 
 ## 核心职责
 - 发起 `/api/query` 流式请求并逐事件回调。
@@ -10,7 +10,7 @@
 - 将传输细节隐藏在 `QueryStreamExecutor` / `AttachStreamExecutor` 后面。
 
 ## 核心流程
-Composer 发送消息时解析当前 transport mode，调用对应 executor。运行时收到事件后传给 `useAgentEventHandler`，terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。
+Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。
 
 ## 边界与非目标
 - 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。
@@ -23,5 +23,6 @@ Composer 发送消息时解析当前 transport mode，调用对应 executor。�
 - `../src/features/transport/lib/queryStreamExecutors.ts`
 - `../src/features/transport/lib/wsClient.ts`
 - `../src/features/transport/lib/transportMode.ts`
+- `../src/features/conversation/hooks/useConversationWsRuntime.ts`
+- `../src/features/conversation/hooks/useConversationSseAttachRuntime.ts`
 - `../src/features/composer/hooks/useMessageActions.ts`
-

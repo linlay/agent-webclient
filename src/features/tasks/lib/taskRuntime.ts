@@ -1,7 +1,14 @@
 import type { AgentEvent, TaskItemMeta } from "@/app/state/types";
-import type { EventProcessorState } from "@/features/transport/lib/streamEventProcessorTypes";
 import { toText } from "@/shared/utils/eventUtils";
 import { readSubAgentKey, readTaskGroupId } from "@/features/tasks/lib/taskEventProtocol";
+
+export interface TaskRuntimeContext {
+	runId: string;
+	peekCounter(): number;
+	getTaskItem(taskId: string): TaskItemMeta | undefined;
+	getActiveTaskIds(): string[];
+	getPlanTaskDescription?(taskId: string): string | undefined;
+}
 
 function computeTaskDurationMs(
 	startedAt?: number,
@@ -15,7 +22,7 @@ function computeTaskDurationMs(
 
 export function resolveTaskGroupIdForStart(
 	event: AgentEvent,
-	state: EventProcessorState,
+	state: TaskRuntimeContext,
 	existingTask?: TaskItemMeta,
 ): string {
 	const explicitGroupId = readTaskGroupId(event);
@@ -43,7 +50,7 @@ export function resolveTaskGroupIdForStart(
 
 export function buildNextTaskItem(input: {
 	event: AgentEvent;
-	state: EventProcessorState;
+	state: TaskRuntimeContext;
 	taskId: string;
 	status: string;
 	updatedAt: number;

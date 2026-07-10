@@ -17,7 +17,7 @@ import {
   resolvePreferredAgentKey,
   resolvePreferredTeamId,
 } from "@/features/composer/lib/queryRouting";
-import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
+import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
   SlashCommandAvailability,
@@ -31,8 +31,8 @@ import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgr
 import { useI18n } from "@/shared/i18n";
 import {
   resolveMainChatRuntime,
-} from "@/features/chats/lib/chatRuntimeState";
-import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
+} from "@/features/runs/lib/runRuntimeState";
+import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 
 export {
   buildCompactUsageSnapshot,

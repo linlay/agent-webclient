@@ -44,7 +44,7 @@ import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOv
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;

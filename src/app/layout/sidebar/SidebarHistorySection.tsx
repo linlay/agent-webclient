@@ -1,6 +1,6 @@
 import React from "react";
 import { Flex, Modal } from "antd";
-import { HistoryModal } from "@/app/modals/HistoryModal";
+import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 

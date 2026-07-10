@@ -1,0 +1,2281 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createInitialState } from '@/app/state/state';
+import type { Agent, AgentEvent, Chat, Team, WorkerRow } from '@/app/state/types';
+import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
+import {
+  createReplayState,
+  normalizeStartNewConversationDetail,
+  replayEvent,
+  setReplayArtifacts,
+  setReplayPlan,
+  useConversationActions,
+} from '@/features/conversation/hooks/useConversationActions';
+import {
+  buildLoadedChatUsageSnapshot,
+  normalizeChatArtifactItems,
+  normalizeLoadedChatUsageStats,
+} from '@/features/conversation/lib/conversationPayload';
+import {
+  getAutoReadTriggerKey,
+  shouldAutoMarkChatRead,
+} from '@/features/chats/hooks/useChatReadSync';
+import { useWorkerConversationSelection } from '@/features/workers/hooks/useWorkerConversationSelection';
+
+let mockInsideFlushSync = false;
+
+jest.mock('react-dom', () => ({
+  flushSync: jest.fn((callback: () => void) => {
+    mockInsideFlushSync = true;
+    try {
+      callback();
+    } finally {
+      mockInsideFlushSync = false;
+    }
+  }),
+}));
+
+jest.mock('@/app/state/AppContext', () => ({
+  useAppContext: jest.fn(),
+}));
+
+jest.mock('@/shared/data', () => ({
+  getChat: jest.fn(),
+  markChatRead: jest.fn(),
+}));
+
+const { useAppContext } = jest.requireMock('@/app/state/AppContext') as {
+  useAppContext: jest.Mock;
+};
+
+const { getChat } = jest.requireMock('@/shared/data') as {
+  getChat: jest.Mock;
+};
+
+function useTestConversationActions() {
+  const conversationActions = useConversationActions();
+  return {
+    ...conversationActions,
+    ...useWorkerConversationSelection(conversationActions),
+  };
+}
+
+function createLiveSession(overrides: Record<string, unknown> = {}) {
+  return {
+    requestId: 'req_old',
+    chatId: 'chat_old',
+    runId: 'run_old',
+    agentKey: 'agent_old',
+    teamId: '',
+    streaming: true,
+    abortController: new AbortController(),
+    snapshot: null,
+    bufferedEvents: [],
+    bufferedDebugLines: [],
+    appliedEventCount: 0,
+    appliedDebugLineCount: 0,
+    ...overrides,
+  };
+}
+
+const globalWithBrowserApis = globalThis as typeof globalThis & {
+  window?: {
+    dispatchEvent: jest.Mock;
+    requestAnimationFrame: jest.Mock;
+    clearTimeout: jest.Mock;
+    location: {
+      pathname: string;
+      search: string;
+    };
+  };
+  localStorage?: {
+    getItem: jest.Mock;
+    setItem: jest.Mock;
+    removeItem: jest.Mock;
+  };
+  CustomEvent?: typeof CustomEvent;
+};
+
+describe('replayEvent tool migration', () => {
+  const originalWindow = globalWithBrowserApis.window;
+  const originalLocalStorage = globalWithBrowserApis.localStorage;
+  const originalCustomEvent = globalWithBrowserApis.CustomEvent;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockInsideFlushSync = false;
+    globalWithBrowserApis.window = {
+      dispatchEvent: jest.fn(() => true),
+      requestAnimationFrame: jest.fn((callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      }),
+      clearTimeout: jest.fn(),
+      location: {
+        pathname: '/',
+        search: '',
+      },
+    };
+    globalWithBrowserApis.localStorage = {
+      getItem: jest.fn(() => null),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+    };
+    globalWithBrowserApis.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
+      detail: T;
+
+      constructor(type: string, init?: CustomEventInit<T>) {
+        super(type);
+        this.detail = init?.detail as T;
+      }
+    } as typeof CustomEvent;
+  });
+
+  afterAll(() => {
+    if (originalWindow) {
+      globalWithBrowserApis.window = originalWindow;
+    } else {
+      delete globalWithBrowserApis.window;
+    }
+    if (originalLocalStorage) {
+      globalWithBrowserApis.localStorage = originalLocalStorage;
+    } else {
+      delete globalWithBrowserApis.localStorage;
+    }
+    if (originalCustomEvent) {
+      globalWithBrowserApis.CustomEvent = originalCustomEvent;
+    } else {
+      delete globalWithBrowserApis.CustomEvent;
+    }
+  });
+
+  function renderChatActions(state = createInitialState()) {
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    return { actions, dispatch };
+  }
+
+  function createWorkerConversationState(options: {
+    hasHistory?: boolean;
+    latestChat?: Partial<Chat>;
+    olderChat?: Partial<Chat>;
+    latestChatId?: string;
+  } = {}) {
+    const hasHistory = options.hasHistory ?? true;
+    const latestChatId = options.latestChatId ?? (hasHistory ? 'chat_latest' : '');
+    const state = createInitialState();
+    const worker: WorkerRow = {
+      key: 'agent:worker_a',
+      type: 'agent',
+      sourceId: 'worker_a',
+      displayName: 'Alpha Agent',
+      role: 'Builder',
+      teamAgentLabels: [],
+      latestChatId,
+      latestRunId: hasHistory ? 'run_latest' : '',
+      latestUpdatedAt: hasHistory ? 2000 : 0,
+      latestChatName: hasHistory ? 'Latest chat' : '',
+      latestRunContent: hasHistory ? 'Latest reply' : '',
+      hasHistory,
+      latestRunSortValue: hasHistory ? 2000 : 0,
+      searchText: 'alpha agent worker_a',
+    };
+    const olderChat: Chat = {
+      chatId: 'chat_older',
+      chatName: 'Older chat',
+      updatedAt: 1000,
+      agentKey: 'worker_a',
+      firstAgentKey: 'worker_a',
+      lastRunId: 'run_older',
+      lastRunContent: 'Older reply',
+      read: { isRead: true },
+      ...options.olderChat,
+    };
+    const latestChat: Chat = {
+      chatId: latestChatId || 'chat_latest',
+      chatName: 'Latest chat',
+      updatedAt: 2000,
+      agentKey: 'worker_a',
+      firstAgentKey: 'worker_a',
+      lastRunId: 'run_latest',
+      lastRunContent: 'Latest reply',
+      read: { isRead: true },
+      ...options.latestChat,
+    };
+
+    state.conversationMode = 'worker';
+    state.workerSelectionKey = worker.key;
+    state.workerRows = [worker];
+    state.workerIndexByKey = new Map([[worker.key, worker]]);
+    state.chats = hasHistory ? [olderChat, latestChat] : [];
+    return state;
+  }
+
+  it('commits loaded chat id and replayed timeline state atomically', async () => {
+    const state = createInitialState();
+    const dispatchRecords: Array<{ type: string; insideFlushSync: boolean }> = [];
+    const dispatch = jest.fn((action: { type: string }) => {
+      dispatchRecords.push({
+        type: action.type,
+        insideFlushSync: mockInsideFlushSync,
+      });
+    });
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_1',
+            chatId: 'chat-1',
+            message: 'hello',
+            timestamp: 100,
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat-1');
+
+    expect(dispatchRecords).toEqual(
+      expect.arrayContaining([
+        { type: 'SET_CHAT_ID', insideFlushSync: true },
+        { type: 'RESET_CONVERSATION', insideFlushSync: true },
+        { type: 'BATCH_UPDATE', insideFlushSync: true },
+      ]),
+    );
+  });
+
+  it('retries loading a newly listed chat before leaving the route in loading state', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat
+      .mockRejectedValueOnce(new Error('chat not indexed yet'))
+      .mockResolvedValueOnce({
+        data: {
+          events: [
+            {
+              type: 'request.query',
+              requestId: 'req_retry',
+              chatId: 'chat-retry',
+              message: 'retry me',
+              timestamp: 100,
+            },
+          ],
+          runs: [],
+        },
+      });
+
+    await actions?.loadChat('chat-retry');
+
+    expect(getChat).toHaveBeenCalledTimes(2);
+    expect(getChat).toHaveBeenNthCalledWith(1, 'chat-retry', false);
+    expect(getChat).toHaveBeenNthCalledWith(2, 'chat-retry', false);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat-retry' });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'BATCH_UPDATE',
+        updates: expect.objectContaining({ chatId: 'chat-retry' }),
+      }),
+    );
+  });
+
+  it('loads chat details while streaming when the visible timeline only has the user query', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat-live';
+    state.streaming = true;
+    state.timelineOrder = ['user_1'];
+    state.timelineNodes = new Map([
+      [
+        'user_1',
+        {
+          id: 'user_1',
+          kind: 'message',
+          role: 'user',
+          text: '现在几点了',
+          ts: 100,
+        },
+      ],
+    ]);
+    const { actions } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_live',
+            chatId: 'chat-live',
+            message: '现在几点了',
+            timestamp: 100,
+          },
+          {
+            type: 'content.delta',
+            contentId: 'content_live',
+            chatId: 'chat-live',
+            delta: '现在是 22:27。',
+            timestamp: 120,
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat-live');
+
+    expect(getChat).toHaveBeenCalledWith('chat-live', false);
+    expect(globalWithBrowserApis.window!.dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'agent:detach-run' }),
+    );
+  });
+
+  it('keeps a blank conversation from being overwritten by an in-flight chat load', async () => {
+    const state = createInitialState();
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+
+    let resolveChat!: (value: { data: Record<string, unknown> }) => void;
+    getChat.mockReturnValue(
+      new Promise((resolve) => {
+        resolveChat = resolve;
+      }),
+    );
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    const loadPromise = actions?.loadChat('chat-stale') || Promise.resolve();
+    expect(getChat).toHaveBeenCalledWith('chat-stale', false);
+
+    actions?.activateBlankConversation({
+      preserveWorkerContext: true,
+      focusComposerOnComplete: true,
+    });
+    resolveChat({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_stale',
+            chatId: 'chat-stale',
+            message: 'stale',
+            timestamp: 100,
+          },
+        ],
+        runs: [],
+      },
+    });
+    await loadPromise;
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'BATCH_UPDATE' }),
+    );
+  });
+
+  it('hydrates usage snapshot from /api/chat top-level usage without current call usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          modelKey: 'deepseek-chat',
+          usage: {
+            promptTokens: 30,
+            completionTokens: 12,
+            totalTokens: 42,
+            promptTokensDetails: { cacheHitTokens: 10, cacheMissTokens: 20 },
+            promptCacheHitTokens: 999,
+            promptCacheMissTokens: 999,
+            timing: {
+              firstTokenLatencyTotalMs: 820,
+              firstTokenLatencyCount: 1,
+              generationDurationMs: 2380,
+            },
+            llmChatCompletionCount: 2,
+            toolCallCount: 3,
+          },
+        },
+        runs: [],
+        usage: {
+          promptTokens: 100,
+          completionTokens: 40,
+          totalTokens: 140,
+          promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 },
+          completionTokensDetails: { reasoningTokens: 9 },
+          estimatedCost: {
+            currency: 'CNY',
+            inputCacheHit: 0.00007168,
+            inputCacheMiss: 0.000086,
+            output: 0.000122,
+            total: 0.00027968,
+          },
+          promptCacheHitTokens: 999,
+          promptCacheMissTokens: 999,
+          timing: {
+            firstTokenLatencyTotalMs: 900,
+            firstTokenLatencyCount: 1,
+            generationDurationMs: 4000,
+          },
+          llmChatCompletionCount: 5,
+          toolCallCount: 8,
+        },
+        contextWindow: {
+          maxSize: 128000,
+          currentSize: 64000,
+          estimatedNextCallSize: 8000,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-usage');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_USAGE_SNAPSHOT',
+      snapshot: {
+        type: 'usage.snapshot',
+        chatId: 'chat-usage',
+        runId: 'run_active',
+        model: { key: 'deepseek-chat' },
+        contextWindow: {
+          maxSize: 128000,
+          currentSize: 64000,
+          estimatedNextCallSize: 8000,
+          modelKey: 'deepseek-chat',
+        },
+        usage: {
+          current: {},
+          run: {
+            promptTokens: 30,
+            completionTokens: 12,
+            totalTokens: 42,
+            promptTokensDetails: { cacheHitTokens: 10, cacheMissTokens: 20 },
+            timing: {
+              firstTokenLatencyTotalMs: 820,
+              firstTokenLatencyCount: 1,
+              generationDurationMs: 2380,
+            },
+            llmChatCompletionCount: 2,
+            toolCallCount: 3,
+          },
+          chat: {
+            promptTokens: 100,
+            completionTokens: 40,
+            totalTokens: 140,
+            promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 },
+            completionTokensDetails: { reasoningTokens: 9 },
+            estimatedCost: {
+              currency: 'CNY',
+              inputCacheHit: 0.00007168,
+              inputCacheMiss: 0.000086,
+              output: 0.000122,
+              total: 0.00027968,
+            },
+            timing: {
+              firstTokenLatencyTotalMs: 900,
+              firstTokenLatencyCount: 1,
+              generationDurationMs: 4000,
+            },
+            llmChatCompletionCount: 5,
+            toolCallCount: 8,
+          },
+        },
+      },
+    });
+    const usageAction = dispatch.mock.calls.find(([action]) => action.type === 'SET_USAGE_SNAPSHOT')?.[0];
+    expect(usageAction.snapshot.usage.current).toEqual({});
+  });
+
+  it('hydrates context window from the latest usage snapshot event when switching chats', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'usage.snapshot',
+            chatId: 'chat-event-usage',
+            runId: 'run_latest',
+            model: { key: 'minimax' },
+            contextWindow: {
+              maxSize: 128000,
+              currentSize: 13157,
+              estimatedNextCallSize: 13367,
+            },
+            usage: {
+              current: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+                toolCallCount: 2,
+              },
+              run: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+                llmChatCompletionCount: 1,
+                toolCallCount: 2,
+              },
+              chat: {
+                promptTokens: 117392,
+                completionTokens: 11205,
+                totalTokens: 128597,
+                llmChatCompletionCount: 12,
+                toolCallCount: 15,
+              },
+            },
+          },
+        ],
+        runs: [
+          {
+            runId: 'run_latest',
+            modelKey: 'minimax',
+            usage: {
+              promptTokens: 6400,
+              completionTokens: 200,
+              totalTokens: 6600,
+              llmChatCompletionCount: 1,
+              toolCallCount: 4,
+            },
+          },
+        ],
+        usage: {
+          promptTokens: 117392,
+          completionTokens: 11205,
+          totalTokens: 128597,
+          llmChatCompletionCount: 12,
+          toolCallCount: 15,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-event-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          runId: 'run_latest',
+          model: { key: 'minimax' },
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 13157,
+            estimatedNextCallSize: 13367,
+            modelKey: 'minimax',
+          },
+        }),
+      }),
+    );
+  });
+
+  it('hydrates usage snapshot from /api/chat nested lastRun and chat usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          { seq: 1, type: 'chat.start', chatId: 'chat-nested-usage' },
+          {
+            seq: 5,
+            type: 'usage.snapshot',
+            runId: 'run_from_event',
+            chatId: 'chat-nested-usage',
+            model: { key: 'deepseek-chat' },
+            contextWindow: {
+              currentSize: 6252,
+              estimatedNextCallSize: 6374,
+              maxSize: 128000,
+            },
+            usage: {
+              current: {
+                promptTokens: 6252,
+                completionTokens: 122,
+                totalTokens: 6374,
+                completionTokensDetails: {
+                  reasoningTokens: 85,
+                },
+                timing: {
+                  firstTokenLatencyMs: 740,
+                  generationDurationMs: 2100,
+                },
+              },
+            },
+          },
+        ],
+        runs: [
+          {
+            runId: 'run_from_runs',
+            usage: {
+              promptTokens: 1,
+              completionTokens: 1,
+              totalTokens: 2,
+            },
+          },
+        ],
+        usage: {
+          lastRun: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            timing: {
+              firstTokenLatencyTotalMs: 760,
+              firstTokenLatencyCount: 1,
+              generationDurationMs: 2200,
+            },
+            llmChatCompletionCount: 1,
+            toolCallCount: 2,
+          },
+          chat: {
+            promptTokens: 6252,
+            completionTokens: 122,
+            totalTokens: 6374,
+            completionTokensDetails: {
+              reasoningTokens: 85,
+            },
+            timing: {
+              firstTokenLatencyTotalMs: 800,
+              firstTokenLatencyCount: 1,
+              generationDurationMs: 2400,
+            },
+            llmChatCompletionCount: 1,
+            toolCallCount: 3,
+          },
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-nested-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          type: 'usage.snapshot',
+          chatId: 'chat-nested-usage',
+          runId: 'run_from_runs',
+          model: { key: 'deepseek-chat' },
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 6252,
+            estimatedNextCallSize: 6374,
+            modelKey: 'deepseek-chat',
+          },
+          usage: {
+            current: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+              timing: {
+                firstTokenLatencyMs: 740,
+                generationDurationMs: 2100,
+              },
+            },
+            run: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+              timing: {
+                firstTokenLatencyTotalMs: 760,
+                firstTokenLatencyCount: 1,
+                generationDurationMs: 2200,
+              },
+              llmChatCompletionCount: 1,
+              toolCallCount: 2,
+            },
+            chat: {
+              promptTokens: 6252,
+              completionTokens: 122,
+              totalTokens: 6374,
+              completionTokensDetails: {
+                reasoningTokens: 85,
+              },
+              timing: {
+                firstTokenLatencyTotalMs: 800,
+                firstTokenLatencyCount: 1,
+                generationDurationMs: 2400,
+              },
+              llmChatCompletionCount: 1,
+              toolCallCount: 3,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('applies latest compact estimate over older usage snapshot when switching chats', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'context.compact.complete',
+            chatId: 'chat-compacted',
+            compactId: 'compact-1',
+            timestamp: 200,
+            postCompactEstimatedTokens: 5396,
+          },
+          {
+            type: 'usage.snapshot',
+            chatId: 'chat-compacted',
+            runId: 'run_before_compact',
+            timestamp: 100,
+            model: { key: 'minimax' },
+            contextWindow: {
+              maxSize: 128000,
+              currentSize: 13157,
+              estimatedNextCallSize: 13367,
+            },
+            usage: {
+              run: {
+                promptTokens: 13157,
+                completionTokens: 210,
+                totalTokens: 13367,
+                llmChatCompletionCount: 1,
+              },
+            },
+          },
+        ],
+        runs: [],
+        usage: {
+          promptTokens: 117392,
+          completionTokens: 11205,
+          totalTokens: 128597,
+          llmChatCompletionCount: 12,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-compacted');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          contextWindow: {
+            maxSize: 128000,
+            currentSize: 5396,
+            estimatedNextCallSize: 5396,
+            modelKey: 'minimax',
+          },
+        }),
+      }),
+    );
+  });
+
+  it('hydrates context window from /api/chat top-level contextWindow without usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        chatId: 'chat-cw-only',
+        chatName: 'Context Window Only',
+        events: [
+          { seq: 1, type: 'chat.start', chatId: 'chat-cw-only' },
+        ],
+        runs: [],
+        contextWindow: {
+          maxSize: 196608,
+          currentSize: 2825,
+          estimatedNextCallSize: 2982,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-cw-only');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          type: 'usage.snapshot',
+          chatId: 'chat-cw-only',
+          contextWindow: {
+            maxSize: 196608,
+            currentSize: 2825,
+            estimatedNextCallSize: 2982,
+          },
+          usage: {},
+        }),
+      }),
+    );
+  });
+
+  it('skips loaded chat usage snapshots when usage is not meaningful', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          totalTokens: 0,
+          llmChatCompletionCount: 0,
+          toolCallCount: 0,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-empty-usage');
+
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }),
+    );
+  });
+
+  it('uses the latest run usage when activeRun has no meaningful usage', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          modelKey: 'active-model',
+          usage: { totalTokens: 0, llmChatCompletionCount: 0 },
+        },
+        runs: [
+          {
+            runId: 'run_old',
+            modelKey: 'old-model',
+            usage: { totalTokens: 10, llmChatCompletionCount: 1 },
+          },
+          {
+            runId: 'run_latest',
+            model: { key: 'latest-model' },
+            usage: {
+              promptTokens: 70,
+              completionTokens: 20,
+              totalTokens: 90,
+              timing: {
+                firstTokenLatencyTotalMs: 640,
+                firstTokenLatencyCount: 1,
+                generationDurationMs: 1600,
+              },
+              llmChatCompletionCount: 3,
+              toolCallCount: 6,
+            },
+          },
+        ],
+        usage: {
+          promptTokens: 200,
+          completionTokens: 80,
+          totalTokens: 280,
+          llmChatCompletionCount: 4,
+          toolCallCount: 9,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-run-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          runId: 'run_active',
+          model: { key: 'active-model' },
+          usage: expect.objectContaining({
+            run: {
+              promptTokens: 70,
+              completionTokens: 20,
+              totalTokens: 90,
+              timing: {
+                firstTokenLatencyTotalMs: 640,
+                firstTokenLatencyCount: 1,
+                generationDurationMs: 1600,
+              },
+              llmChatCompletionCount: 3,
+              toolCallCount: 6,
+            },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('hydrates zero-token usage snapshots when tool calls are present', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          totalTokens: 0,
+          llmChatCompletionCount: 0,
+          toolCallCount: 2,
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-tool-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          usage: {
+            current: {},
+            chat: {
+              totalTokens: 0,
+              llmChatCompletionCount: 0,
+              toolCallCount: 2,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('hydrates timing-only usage snapshots', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        runs: [],
+        usage: {
+          timing: {
+            firstTokenLatencyTotalMs: 900,
+            firstTokenLatencyCount: 1,
+            generationDurationMs: 2100,
+          },
+        },
+      },
+    });
+
+    await actions?.loadChat('chat-timing-only-usage');
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'SET_USAGE_SNAPSHOT',
+        snapshot: expect.objectContaining({
+          usage: {
+            current: {},
+            chat: {
+              timing: {
+                firstTokenLatencyTotalMs: 900,
+                firstTokenLatencyCount: 1,
+                generationDurationMs: 2100,
+              },
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('normalizes agent route new-conversation events as preserved worker sessions', () => {
+    expect(
+      normalizeStartNewConversationDetail({
+        agentKey: 'demo-agent',
+        preserveWorkerContext: true,
+        focusComposerOnComplete: true,
+      }),
+    ).toEqual({
+      agentKey: 'demo-agent',
+      preserveWorkerContext: true,
+      focusComposerOnComplete: true,
+    });
+  });
+
+  it('requires new-conversation events to provide explicit detail fields', () => {
+    expect(normalizeStartNewConversationDetail(null)).toBeNull();
+    expect(normalizeStartNewConversationDetail({} as never)).toBeNull();
+    expect(
+      normalizeStartNewConversationDetail({
+        preserveWorkerContext: false,
+        focusComposerOnComplete: false,
+      }),
+    ).toEqual({
+      agentKey: '',
+      preserveWorkerContext: false,
+      focusComposerOnComplete: false,
+    });
+  });
+
+  it('marks only unread chats for auto-read on load', () => {
+    expect(
+      shouldAutoMarkChatRead({
+        chatId: 'chat_unread',
+        read: { isRead: false },
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldAutoMarkChatRead({
+        chatId: 'chat_read',
+        read: { isRead: true },
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldAutoMarkChatRead({
+        chatId: 'chat_missing_read',
+      }),
+    ).toBe(false);
+  });
+
+  it('builds a stable auto-read trigger key only for unread chats', () => {
+    expect(
+      getAutoReadTriggerKey({
+        chatId: 'chat_unread',
+        lastRunId: 'run_1',
+        updatedAt: 123,
+        read: {
+          isRead: false,
+          readAt: 111,
+          readRunId: 'run_0',
+        },
+      }),
+    ).toBe('chat_unread|run_1|123|111|run_0');
+
+    expect(
+      getAutoReadTriggerKey({
+        chatId: 'chat_read',
+        lastRunId: 'run_1',
+        updatedAt: 123,
+        read: {
+          isRead: true,
+          readAt: 123,
+          readRunId: 'run_1',
+        },
+      }),
+    ).toBe('');
+  });
+
+  it('loads the latest worker chat when preferNewChat sees pending awaiting', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        hasPendingAwaiting: true,
+        read: { isRead: true },
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_latest', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('loads the latest worker chat when preferNewChat sees active run state', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        hasActiveRun: true,
+        read: { isRead: true },
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_latest', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('loads an older running worker chat before starting a blank preferNewChat conversation', async () => {
+    const state = createWorkerConversationState({
+      olderChat: {
+        hasActiveRun: true,
+        read: { isRead: true },
+      },
+      latestChat: {
+        read: { isRead: true },
+        hasPendingAwaiting: false,
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_older', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('loads the latest worker chat when preferNewChat sees unread state', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        read: { isRead: false },
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('chat_latest', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('starts a blank worker chat when preferNewChat latest chat is read with no awaiting', async () => {
+    const state = createWorkerConversationState({
+      olderChat: {
+        read: { isRead: false },
+      },
+      latestChat: {
+        read: { isRead: true },
+        hasPendingAwaiting: false,
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
+      agentKey: 'worker_a',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_WORKER_PRIORITY_KEY',
+      workerKey: 'agent:worker_a',
+    });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'APPEND_DEBUG' }),
+    );
+  });
+
+  it('keeps the temporary pinned agent when selecting its worker', async () => {
+    const state = createWorkerConversationState({
+      latestChat: {
+        read: { isRead: true },
+        hasPendingAwaiting: false,
+      },
+    });
+    state.temporaryPinnedAgentKey = 'worker_a';
+    const { actions, dispatch } = renderChatActions(state);
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
+      agentKey: '',
+    });
+  });
+
+  it('starts a blank worker chat with no-history debug when preferNewChat has no history', async () => {
+    const state = createWorkerConversationState({ hasHistory: false });
+    const { actions, dispatch } = renderChatActions(state);
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+      preferNewChat: true,
+    });
+
+    expect(getChat).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
+      agentKey: 'worker_a',
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_WORKER_PRIORITY_KEY',
+      workerKey: 'agent:worker_a',
+    });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'APPEND_DEBUG',
+        line: expect.stringContaining('暂无历史对话'),
+      }),
+    );
+  });
+
+  it('keeps default worker selection loading latest history chat', async () => {
+    const state = createWorkerConversationState({
+      latestChatId: 'row_latest_chat',
+      latestChat: {
+        chatId: 'chat_latest',
+        read: { isRead: true },
+      },
+    });
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({ data: { events: [], runs: [] } });
+
+    await actions?.selectWorkerConversation('agent:worker_a', {
+      focusComposerOnComplete: true,
+    });
+
+    expect(getChat).toHaveBeenCalledWith('row_latest_chat', false);
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it('attaches from activeRun.lastSeq instead of replayed chat event seq', async () => {
+    const { actions } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'askUser.demo',
+        events: [
+          { seq: 8, type: 'usage.snapshot', runId: 'run_1', chatId: 'chat-attach' },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          agentKey: 'askUser.demo',
+          lastSeq: 31,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat-attach');
+
+    expect(globalWithBrowserApis.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'agent:attach-run',
+        detail: {
+          chatId: 'chat-attach',
+          runId: 'run_1',
+          lastSeq: 31,
+          agentKey: 'askUser.demo',
+        },
+      }),
+    );
+  });
+
+  it('hydrates the main chat active run from /api/chat before attach completes', async () => {
+    const { actions, dispatch } = renderChatActions();
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'askUser.demo',
+        events: [],
+        activeRun: {
+          runId: 'run_active',
+          agentKey: 'askUser.demo',
+          lastSeq: 7,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat-active');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        chatId: 'chat-active',
+        runId: 'run_active',
+        currentChatActiveRun: {
+          chatId: 'chat-active',
+          runId: 'run_active',
+          agentKey: 'askUser.demo',
+          lastSeq: 7,
+        },
+      }),
+    });
+  });
+
+  it('restores planningMode=true when activeRun.planningMode is true and no explicit preference', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = {};
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_plan_active');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_active',
+      enabled: true,
+      persist: false,
+    });
+  });
+
+  it('does not restore planningMode when planningModeByChatId has an explicit false entry', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = { chat_plan_explicit: false };
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_plan_explicit');
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_explicit',
+      enabled: true,
+      persist: false,
+    });
+  });
+
+  it('does not disable planningMode when loading a pending plan awaiting', async () => {
+    const state = createInitialState();
+    state.planningModeByChatId = {};
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_plan_1',
+            mode: 'plan',
+            plan: {
+              id: 'confirm',
+            },
+          },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_plan_pending');
+
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_pending',
+      enabled: false,
+      persist: true,
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_plan_pending',
+      enabled: true,
+      persist: false,
+    });
+  });
+
+  it('still disables planningMode when loading a non-plan pending awaiting', async () => {
+    const state = createInitialState();
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_question_1',
+            mode: 'question',
+            questions: [
+              {
+                id: 'q1',
+                type: 'text',
+                question: '继续吗？',
+              },
+            ],
+          },
+        ],
+        activeRun: {
+          runId: 'run_1',
+          planningMode: true,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_question_pending');
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_PLANNING_MODE',
+      chatId: 'chat_question_pending',
+      enabled: false,
+      persist: true,
+    });
+  });
+
+  it('detaches the current active run before loading and attaching another chat', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    state.runId = 'run_old';
+    state.streaming = true;
+    state.runAgentById.set('run_old', 'agent_old');
+    const dispatch = jest.fn();
+    const querySessionsRef = {
+      current: new Map([['req_old', createLiveSession()]]),
+    };
+    const activeQuerySessionRequestIdRef = { current: 'req_old' };
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef,
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef,
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'agent_new',
+        events: [],
+        activeRun: {
+          runId: 'run_new',
+          agentKey: 'agent_new',
+          lastSeq: 7,
+        },
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_new');
+
+    const dispatchEvent = globalWithBrowserApis.window!.dispatchEvent;
+    const detachIndex = dispatchEvent.mock.calls.findIndex(
+      ([event]) => event.type === 'agent:detach-run',
+    );
+    const attachCall = dispatchEvent.mock.calls.find(
+      ([event]) => event.type === 'agent:attach-run',
+    );
+    expect(detachIndex).toBeGreaterThanOrEqual(0);
+    expect(dispatchEvent.mock.calls[detachIndex][0]).toMatchObject({
+      type: 'agent:detach-run',
+      detail: {
+        chatId: 'chat_old',
+        runId: 'run_old',
+        agentKey: 'agent_old',
+        reason: 'chat_switch',
+      },
+    });
+    expect(dispatchEvent.mock.invocationCallOrder[detachIndex]).toBeLessThan(
+      getChat.mock.invocationCallOrder[0],
+    );
+    expect(getChat).toHaveBeenCalledWith('chat_new', false);
+    expect(attachCall?.[0]).toMatchObject({
+      type: 'agent:attach-run',
+      detail: {
+        chatId: 'chat_new',
+        runId: 'run_new',
+        agentKey: 'agent_new',
+        lastSeq: 7,
+      },
+    });
+  });
+
+  it('loads a chat from the backend even when a local session snapshot exists', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_other';
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: {
+        current: new Map([
+          ['req_cached', createLiveSession({
+            requestId: 'req_cached',
+            chatId: 'chat_cached',
+            runId: 'run_cached',
+            streaming: false,
+            snapshot: { chatId: 'chat_cached' },
+          })],
+        ]),
+      },
+      chatQuerySessionIndexRef: { current: new Map([['chat_cached', 'req_cached']]) },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'agent_cached',
+        events: [],
+        activeRun: null,
+        runs: [],
+      },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_cached');
+
+    expect(getChat).toHaveBeenCalledWith('chat_cached', false);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+    }));
+  });
+
+  it('detaches the current active run when starting a blank conversation', () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    state.runId = 'run_old';
+    state.streaming = true;
+    state.runAgentById.set('run_old', 'agent_old');
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: {
+        current: new Map([['req_old', createLiveSession()]]),
+      },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: 'req_old' },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    actions?.activateBlankConversation();
+
+    expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'agent:detach-run',
+        detail: {
+          chatId: 'chat_old',
+          runId: 'run_old',
+          agentKey: 'agent_old',
+          reason: 'new_conversation',
+        },
+      }),
+    );
+  });
+
+  it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'call_f1494c0a4c4646cc81a41585',
+      toolName: 'email.search',
+      viewportKey: 'viewport_email_search',
+      runId: 'run_1',
+      timestamp: 100,
+    });
+
+    const toolState = state.toolStates.get('call_f1494c0a4c4646cc81a41585');
+    const nodeId = state.toolNodeById.get('call_f1494c0a4c4646cc81a41585');
+    const node = nodeId ? state.timelineNodes.get(nodeId) : null;
+
+    expect(toolState?.viewportKey).toBe('viewport_email_search');
+    expect(toolState).not.toHaveProperty('toolApi');
+    expect(node?.toolName).toBe('email.search');
+    expect(node?.viewportKey).toBe('viewport_email_search');
+  });
+
+  it('replays tool.args into parsed toolParams and pretty argsText', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'tool_args',
+      toolName: 'demo.run',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.args',
+      toolId: 'tool_args',
+      delta: '{"foo":"bar"}',
+      timestamp: 110,
+    });
+
+    expect(state.toolStates.get('tool_args')?.toolParams).toEqual({ foo: 'bar' });
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      argsText: '{\n  "foo": "bar"\n}',
+      status: 'running',
+    });
+  });
+
+  it('replays streamed tool events into synthesized debug snapshots', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'tool_debug',
+      toolName: 'demo.run',
+      runId: 'run_1',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.args',
+      toolId: 'tool_debug',
+      delta: '{"foo":"bar"}',
+      timestamp: 110,
+    });
+    replayEvent(state, {
+      type: 'tool.end',
+      toolId: 'tool_debug',
+      timestamp: 120,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_debug',
+      result: 'ok',
+      timestamp: 130,
+    });
+
+    expect(state.events.map((event) => event.type)).toEqual([
+      'tool.start',
+      'tool.args',
+      'tool.end',
+      'tool.result',
+    ]);
+    expect(state.debugEvents.map((event) => event.type)).toEqual([
+      'tool.snapshot',
+      'tool.result',
+    ]);
+    expect(state.debugEvents[0]).toMatchObject({
+      type: 'tool.snapshot',
+      toolId: 'tool_debug',
+      toolName: 'demo.run',
+      runId: 'run_1',
+      arguments: '{"foo":"bar"}',
+      timestamp: 120,
+    });
+  });
+
+  it('replays streamed text events into synthesized debug snapshots', () => {
+    const state = createReplayState();
+
+    [
+      { type: 'content.start', contentId: 'content_debug', text: 'A', runId: 'run_1' },
+      { type: 'content.delta', contentId: 'content_debug', delta: 'B' },
+      { type: 'content.end', contentId: 'content_debug', timestamp: 120 },
+      { type: 'reasoning.start', reasoningId: 'reasoning_debug', reasoningLabel: 'Think', text: 'C', runId: 'run_1' },
+      { type: 'reasoning.delta', reasoningId: 'reasoning_debug', delta: 'D' },
+      { type: 'reasoning.end', reasoningId: 'reasoning_debug', timestamp: 121 },
+      { type: 'planning.start', planningId: 'planning_debug', planningLabel: 'Plan', text: 'E', runId: 'run_1' },
+      { type: 'planning.delta', planningId: 'planning_debug', delta: 'F' },
+      { type: 'planning.end', planningId: 'planning_debug', timestamp: 122 },
+    ].forEach((event) => replayEvent(state, event));
+
+    expect(state.debugEvents.map((event) => event.type)).toEqual([
+      'content.snapshot',
+      'reasoning.snapshot',
+      'planning.snapshot',
+    ]);
+    expect(state.debugEvents).toEqual([
+      expect.objectContaining({ type: 'content.snapshot', text: 'AB' }),
+      expect.objectContaining({ type: 'reasoning.snapshot', reasoningLabel: 'Think', text: 'CD' }),
+      expect.objectContaining({ type: 'planning.snapshot', planningLabel: 'Plan', text: 'EF' }),
+    ]);
+  });
+
+  it('preserves toolName when later tool events omit it', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.start',
+      toolId: 'tool_args_case',
+      toolName: 'email.list_accounts',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_args_case',
+      result: 'ok',
+      timestamp: 110,
+    });
+
+    const nodeId = state.toolNodeById.get('tool_args_case');
+    const node = nodeId ? state.timelineNodes.get(nodeId) : null;
+
+    expect(node?.toolName).toBe('email.list_accounts');
+  });
+
+  it('marks plan tasks completed for task.complete', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [
+        { taskId: 'task_1', description: 'step 1' },
+        { taskId: 'task_2', description: 'step 2' },
+      ],
+    });
+    replayEvent(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+    });
+    replayEvent(state, {
+      type: 'task.complete',
+      taskId: 'task_1',
+    });
+
+    expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
+    expect(state.planCurrentRunningTaskId).toBe('');
+  });
+
+  it('replays completed parallel sub-agent tasks into completed task groups', () => {
+    const state = createReplayState();
+    const events: AgentEvent[] = [
+      {
+        type: 'request.query',
+        requestId: 'req_parent',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'parent task',
+        agentKey: 'orchestrator',
+        timestamp: 100,
+      },
+      {
+        type: 'run.start',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        agentKey: 'orchestrator',
+        timestamp: 100,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_1',
+        runId: 'run_1',
+        taskName: 'Child A',
+        subAgentKey: 'agent_a',
+        timestamp: 110,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_1',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child A query',
+        agentKey: 'agent_a',
+        taskId: 'task_1',
+        timestamp: 111,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_2',
+        runId: 'run_1',
+        taskName: 'Child B',
+        subAgentKey: 'agent_b',
+        timestamp: 120,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_2',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child B query',
+        agentKey: 'agent_b',
+        taskId: 'task_2',
+        timestamp: 121,
+      },
+      {
+        type: 'task.start',
+        taskId: 'task_3',
+        runId: 'run_1',
+        taskName: 'Child C',
+        subAgentKey: 'agent_c',
+        timestamp: 130,
+      },
+      {
+        type: 'request.query',
+        requestId: 'req_child_3',
+        runId: 'run_1',
+        chatId: 'chat_1',
+        role: 'user',
+        message: 'child C query',
+        agentKey: 'agent_c',
+        taskId: 'task_3',
+        timestamp: 131,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_3_final',
+        runId: 'run_1',
+        taskId: 'task_3',
+        text: 'child C answer',
+        timestamp: 180,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_3',
+        timestamp: 180,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_2_final',
+        runId: 'run_1',
+        taskId: 'task_2',
+        text: 'child B answer',
+        timestamp: 190,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_2',
+        timestamp: 190,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'task_1_final',
+        runId: 'run_1',
+        taskId: 'task_1',
+        text: 'child A answer',
+        timestamp: 200,
+      },
+      {
+        type: 'task.complete',
+        taskId: 'task_1',
+        timestamp: 200,
+      },
+      {
+        type: 'content.snapshot',
+        contentId: 'run_final',
+        runId: 'run_1',
+        text: 'final answer',
+        timestamp: 220,
+      },
+      {
+        type: 'run.complete',
+        runId: 'run_1',
+        timestamp: 220,
+      },
+    ];
+
+    events.forEach((event) => replayEvent(state, event));
+
+    expect(
+      ['task_1', 'task_2', 'task_3'].map((taskId) => state.taskItemsById.get(taskId)?.status),
+    ).toEqual(['completed', 'completed', 'completed']);
+    expect(Array.from(state.activeTaskIds)).toEqual([]);
+
+    const nodes = state.timelineOrder
+      .map((id) => state.timelineNodes.get(id))
+      .filter((node): node is NonNullable<typeof node> => Boolean(node));
+    const displayItems = buildTimelineDisplayItems(
+      nodes,
+      state.events,
+      state.taskItemsById,
+    );
+    const taskGroups = displayItems.flatMap((item) => {
+      if (item.kind === 'run') return item.renderEntries;
+      if (item.kind === 'standalone') return [item.renderEntry];
+      return [];
+    }).filter((entry) => entry.kind === 'task-group');
+
+    expect(taskGroups).toHaveLength(3);
+    expect(taskGroups.map((entry) => (
+      entry.kind === 'task-group' ? [entry.taskId, entry.status] : ['', '']
+    ))).toEqual([
+      ['task_1', 'completed'],
+      ['task_2', 'completed'],
+      ['task_3', 'completed'],
+    ]);
+    expect(taskGroups.some((entry) => (
+      entry.kind === 'task-group' && entry.status === 'running'
+    ))).toBe(false);
+  });
+
+  it('replays artifact.publish into persistent artifact state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'artifact.publish',
+      runId: 'run_1',
+      timestamp: 120,
+      artifactCount: 2,
+      artifacts: [
+        {
+          artifactId: 'artifact_1',
+          type: 'file',
+          name: 'run.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-log',
+          sizeBytes: 512,
+          url: 'https://example.com/run.log',
+        },
+        {
+          artifactId: 'artifact_2',
+          type: 'file',
+          name: 'notes.txt',
+          mimeType: 'text/plain',
+          sha256: 'sha-notes',
+          sizeBytes: 128,
+          url: 'https://example.com/notes.txt',
+        },
+      ],
+    });
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: 120,
+        artifact: {
+          type: 'file',
+          name: 'run.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-log',
+          sizeBytes: 512,
+          url: 'https://example.com/run.log',
+        },
+      },
+      {
+        artifactId: 'artifact_2',
+        timestamp: 120,
+        artifact: {
+          type: 'file',
+          name: 'notes.txt',
+          mimeType: 'text/plain',
+          sha256: 'sha-notes',
+          sizeBytes: 128,
+          url: 'https://example.com/notes.txt',
+        },
+      },
+    ]);
+  });
+
+  it('replays file tool results into persistent file change state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'tool.snapshot',
+      toolId: 'tool_edit',
+      toolName: 'file_edit',
+      runId: 'run_1',
+      arguments: '{"file_path":"/workspace/src/App.tsx"}',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'tool.result',
+      toolId: 'tool_edit',
+      result: JSON.stringify({
+        status: 'edited',
+        filePath: '/workspace/src/App.tsx',
+        lineStats: {
+          addedLines: 8,
+          deletedLines: 2,
+          editedLines: 2,
+        },
+      }),
+      timestamp: 140,
+    });
+
+    expect(state.fileChanges).toEqual([
+      {
+        runId: 'run_1',
+        filePath: '/workspace/src/App.tsx',
+        addedLines: 8,
+        deletedLines: 2,
+        editedLines: 2,
+        operationCount: 1,
+        lastUpdatedAt: 140,
+      },
+    ]);
+  });
+
+  it('applies getChat artifact.items snapshots over replayed artifacts', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'artifact.publish',
+      runId: 'run_1',
+      timestamp: 120,
+      artifacts: [
+        {
+          artifactId: 'artifact_old',
+          type: 'file',
+          name: 'old.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-old',
+          sizeBytes: 128,
+          url: 'https://example.com/old.log',
+        },
+      ],
+    });
+
+    setReplayArtifacts(state, [
+      {
+        artifactId: 'artifact_new',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'new.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-new',
+          sizeBytes: 256,
+          url: 'https://example.com/new.log',
+        },
+      },
+    ]);
+
+    expect(state.artifacts).toEqual([
+      {
+        artifactId: 'artifact_new',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'new.log',
+          mimeType: 'text/plain',
+          sha256: 'sha-new',
+          sizeBytes: 256,
+          url: 'https://example.com/new.log',
+        },
+      },
+    ]);
+  });
+
+  it('normalizes getChat artifact.items payloads into published artifacts', () => {
+    expect(
+      normalizeChatArtifactItems({
+        items: [
+          {
+            artifactId: 'artifact_1',
+            type: 'file',
+            name: 'report.pdf',
+            mimeType: 'application/pdf',
+            sha256: 'sha-report',
+            sizeBytes: 1024,
+            url: 'https://example.com/report.pdf',
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        artifactId: 'artifact_1',
+        timestamp: 0,
+        artifact: {
+          type: 'file',
+          name: 'report.pdf',
+          mimeType: 'application/pdf',
+          sha256: 'sha-report',
+          sizeBytes: 1024,
+          url: 'https://example.com/report.pdf',
+        },
+      },
+    ]);
+  });
+
+  it('applies getChat plan snapshots without clearing matching runtime state', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'old step' }],
+    });
+    replayEvent(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+    });
+
+    setReplayPlan(
+      state,
+      {
+        planId: 'plan_1',
+        plan: [{ taskId: 'task_1', description: 'new step' }],
+      },
+      { resetRuntime: false },
+    );
+
+    expect(state.plan).toEqual({
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'new step' }],
+    });
+    expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('running');
+    expect(state.planCurrentRunningTaskId).toBe('task_1');
+  });
+
+  it('clears plan runtime when getChat plan snapshot replaces a different plan', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'plan.update',
+      planId: 'plan_1',
+      plan: [{ taskId: 'task_1', description: 'step 1' }],
+    });
+    replayEvent(state, {
+      type: 'task.start',
+      taskId: 'task_1',
+    });
+
+    setReplayPlan(
+      state,
+      {
+        planId: 'plan_2',
+        plan: [{ taskId: 'task_2', description: 'step 2' }],
+      },
+      { resetRuntime: true },
+    );
+
+    expect(state.plan).toEqual({
+      planId: 'plan_2',
+      plan: [{ taskId: 'task_2', description: 'step 2' }],
+    });
+    expect(state.planRuntimeByTaskId.size).toBe(0);
+    expect(state.planCurrentRunningTaskId).toBe('');
+    expect(state.planLastTouchedTaskId).toBe('');
+  });
+
+  it('replays request.steer as a user timeline node', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'request.steer',
+      steerId: 'steer_1',
+      message: '请收敛一点',
+      timestamp: 100,
+    });
+    replayEvent(state, {
+      type: 'run.cancel',
+      runId: 'run_1',
+      timestamp: 120,
+    });
+
+    const node = state.timelineNodes.get('steer_steer_1');
+    expect(node).toMatchObject({ role: 'user', messageVariant: 'steer', text: '请收敛一点' });
+    expect(state.events.at(-1)?.type).toBe('run.cancel');
+  });
+
+  it('replays request.query references into user attachments for history chats', () => {
+    const state = createReplayState();
+
+    replayEvent(state, {
+      type: 'request.query',
+      requestId: 'req_history_1',
+      message: '解析该文件',
+      references: [
+        {
+          id: 'i1',
+          type: 'image',
+          name: 'drmjl-nfjxc-001.ico',
+          sizeBytes: 67646,
+        },
+      ],
+      timestamp: 100,
+    });
+
+    expect(state.timelineNodes.get('user_req_history_1')).toMatchObject({
+      role: 'user',
+      text: '解析该文件',
+      attachments: [
+        {
+          name: 'drmjl-nfjxc-001.ico',
+          size: 67646,
+        },
+      ],
+    });
+  });
+});

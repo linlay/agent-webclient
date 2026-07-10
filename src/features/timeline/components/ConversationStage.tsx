@@ -43,7 +43,7 @@ import {
 import type { InputRef } from "antd";
 import type { Agent, TimelineNode, WorkerRow } from "@/app/state/types";
 import { LogoLoading } from "@/shared/components/logo-loading";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
