@@ -59,7 +59,7 @@ const COMPOSER_LAYOUT_CLASS =
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-3.5";
 const COMPOSER_PILL_CLASS =
-  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:shadow-elevated tw:backdrop-blur-[10px] tw:transition-[box-shadow,border-color] tw:duration-[220ms] tw:ease-in-out tw:focus-within:shadow-floating tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none";
+  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none";
 const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
 const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";

@@ -555,6 +555,7 @@ export const AutomationModal: React.FC<{
   }, []);
 
   const startCreate = useCallback(() => {
+    didAutoSelectInitialAutomationRef.current = true;
     setSelectedId("");
     setFormMode("create");
     setForm(createInitialForm(currentWorker));
