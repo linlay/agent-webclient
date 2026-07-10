@@ -60,3 +60,17 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
     })
     .filter((row) => row.chatId);
 }
+
+export function buildSelectedWorkerConversationRows(input: {
+  chats: Chat[];
+  workerSelectionKey: string;
+  workerIndexByKey: Map<string, WorkerRow>;
+}): WorkerConversationRow[] {
+  const selectedWorker =
+    input.workerIndexByKey.get(String(input.workerSelectionKey || '').trim()) ||
+    null;
+  return buildWorkerConversationRows({
+    chats: input.chats,
+    worker: selectedWorker,
+  });
+}

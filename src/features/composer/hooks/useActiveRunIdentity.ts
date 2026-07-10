@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { AppState } from "@/app/state/types";
-import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
+import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { resolveActiveRunId } from "@/features/composer/lib/steerSubmission";
 

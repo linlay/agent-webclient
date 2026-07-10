@@ -8,7 +8,7 @@ import type {
   FormActiveAwaiting,
 } from "@/app/state/types";
 import { submitAwaiting } from "@/shared/data";
-import { resolveRunAgentKey } from "@/features/chats/lib/runAgentIdentity";
+import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import {
   getPlanningModeForPlanDecision,
   readPlanSubmitDecision,

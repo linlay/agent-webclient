@@ -60,6 +60,21 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
   formatTimelineTime: () => ({ short: "", full: "" }),
 }));
 
+jest.mock("antd", () => {
+  const actual = jest.requireActual("antd");
+  const React = require("react");
+  return {
+    ...actual,
+    Popover: ({ children, content, open }: any) =>
+      React.createElement(
+        "span",
+        null,
+        children,
+        open ? (typeof content === "function" ? content() : content) : null,
+      ),
+  };
+});
+
 const { useAppState, useAppDispatch } = jest.requireMock(
   "@/app/state/AppContext",
 ) as {

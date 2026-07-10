@@ -3,7 +3,7 @@ import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
 import type { TimelineAttachment } from "@/app/state/types";
 import { AIRunEventTypeEnum } from "@/app/state/types";
-import { useAgentEventHandler } from "@/features/timeline/hooks/useAgentEventHandler";
+import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
   createRequestId,
   type QueryAccessLevel,
@@ -21,7 +21,7 @@ import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } fro
 import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
-} from "@/features/transport/lib/detachRunEvent";
+} from "@/features/runs/lib/runControlEvents";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
@@ -30,11 +30,11 @@ import {
   snapshotConversationState,
   markSessionSnapshotApplied,
   type LiveQuerySession,
-} from "@/features/chats/lib/conversationSession";
+} from "@/features/conversation/lib/conversationSession";
 import {
   readRunAgentKeyFromEvent,
   resolveRunAgentKey,
-} from "@/features/chats/lib/runAgentIdentity";
+} from "@/features/runs/lib/runAgentIdentity";
 import type { AgentEvent, AppState } from "@/app/state/types";
 import {
   readEventTeamId,
@@ -195,7 +195,7 @@ function normalizeQueryModelOverride(
 /**
  * useMessageActions — handles sending messages and processing the query stream.
  */
-export function useMessageActions() {
+export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
   const {
     state,
     dispatch,
@@ -204,7 +204,7 @@ export function useMessageActions() {
     chatQuerySessionIndexRef,
     activeQuerySessionRequestIdRef,
   } = useAppContext();
-  const { handleEvent } = useAgentEventHandler();
+  const handleEvent = options.onAgentEvent;
 
   /* Apply access token on mount and change */
   useEffect(() => {

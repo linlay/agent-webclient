@@ -160,6 +160,7 @@ jest.mock("@/app/effects/FireworksCanvas", () => ({
 
 jest.mock("@/shared/config/featureFlags", () => ({
   isDebugPanelEnabled: jest.fn(() => true),
+  isSettingsMenuEnabled: jest.fn(() => true),
 }));
 
 jest.mock("@/shared/i18n", () => {

@@ -17,7 +17,9 @@ type RightSidebarTabsKey = string;
 const RIGHT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:right-sidebar-width";
 const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
 const RIGHT_SIDEBAR_MIN_WIDTH = 280;
-const RIGHT_SIDEBAR_MAX_WIDTH = Math.round(window.innerWidth / 2);
+const RIGHT_SIDEBAR_MAX_WIDTH = Math.round(
+  (typeof window === "undefined" ? 1280 : window.innerWidth) / 2,
+);
 const RIGHT_SIDEBAR_MAIN_MIN_WIDTH = 420;
 
 function clampRightSidebarWidth(width: number): number {

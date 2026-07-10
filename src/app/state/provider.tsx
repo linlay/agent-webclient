@@ -12,7 +12,7 @@ import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
-import type { LiveQuerySession } from "@/features/chats/lib/conversationSession";
+import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/auth/appAuth";
 import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";

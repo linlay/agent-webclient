@@ -20,7 +20,7 @@ tool processor 将工具事件中的 viewportKey 和 params 写入 tool state。
 ## 相关文件
 - `../src/features/tools/components/FrontendToolContainer.tsx`
 - `../src/features/tools/lib/frontendToolParams.ts`
-- `../src/features/timeline/lib/eventProcessorTool.ts`
-- `../src/features/timeline/lib/toolEvent.ts`
+- `../src/features/events/lib/processors/eventProcessorTool.ts`
+- `../src/features/events/lib/toolEvent.ts`
 - `../src/app/state/toolTypes.ts`
 - `../src/shared/data/api/routedClient.ts`

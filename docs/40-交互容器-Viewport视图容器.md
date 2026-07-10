@@ -18,10 +18,9 @@ content segment parser 识别 ```viewport block 后生成 viewport segment，`Co
 - `/api/viewport` 的 HTML 来源和权限由后端负责。
 
 ## 相关文件
-- `../src/features/timeline/lib/contentSegments.ts`
+- `../src/features/events/lib/contentSegments.ts`
 - `../src/features/tools/lib/viewportParser.ts`
 - `../src/features/timeline/components/ViewportEmbed.tsx`
 - `../src/features/timeline/components/ContentBlock.tsx`
 - `../src/features/tools/components/AwaitingHtmlContainer.tsx`
 - `../src/features/tools/components/FrontendToolContainer.tsx`
-

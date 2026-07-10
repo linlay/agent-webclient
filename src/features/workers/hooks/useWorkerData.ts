@@ -10,8 +10,8 @@ import {
   type WorkerRefreshOverrides,
 } from '@/features/workers/lib/workerDataCoordinator';
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
+import { buildSelectedWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import {
-  buildSelectedWorkerConversationRows,
   mergeFetchedChats,
 } from '@/features/chats/lib/chatSummary';
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';

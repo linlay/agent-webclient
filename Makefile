@@ -19,6 +19,7 @@ build-web:
 	npm run build
 
 test:
+	npm run check:boundaries
 	npm test
 
 docker-build:

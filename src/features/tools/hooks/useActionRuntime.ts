@@ -3,7 +3,7 @@ import { createActionRuntime, type ActionRuntime } from '@/features/tools/lib/ac
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { useAppContext } from '@/app/state/AppContext';
 import type { AgentEvent } from '@/app/state/types';
-import { resolveMainChatRuntime } from '@/features/chats/lib/chatRuntimeState';
+import { resolveMainChatRuntime } from '@/features/runs/lib/runRuntimeState';
 
 interface ActionBufferState {
   actionName: string;

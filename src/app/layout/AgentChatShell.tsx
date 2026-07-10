@@ -30,6 +30,18 @@ import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
+export function parseNewChatTimestamp(rawValue: unknown): string {
+  const timestamp = String(rawValue || "").trim();
+  return /^[1-9]\d{12}$/.test(timestamp) ? timestamp : "";
+}
+
+export function createNewChatRouteKey(
+  agentKey: string,
+  newChatTimestamp: string,
+): string {
+  return `${agentKey}\u0000${newChatTimestamp}`;
+}
+
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
   "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
@@ -148,12 +160,8 @@ export const AgentChatShell: React.FC = () => {
     () => String(searchParams.get("history") || "").trim() === "1",
     [searchParams],
   );
-  const routeNewChatRequested = useMemo(
-    () => String(searchParams.get("newChat") || "").trim() === "1",
-    [searchParams],
-  );
-  const routeNewChatRequest = useMemo(
-    () => String(searchParams.get("newChatRequest") || "").trim(),
+  const routeNewChatTimestamp = useMemo(
+    () => parseNewChatTimestamp(searchParams.get("newChat")),
     [searchParams],
   );
   const routeAgent = useMemo(
@@ -244,7 +252,6 @@ export const AgentChatShell: React.FC = () => {
       nextSearchParams.delete("history");
       nextSearchParams.delete("historyRequest");
       nextSearchParams.delete("newChat");
-      nextSearchParams.delete("newChatRequest");
       const nextSearch = nextSearchParams.toString();
       navigate(
         `/agent/${encodeURIComponent(nextAgentKey)}${nextSearch ? `?${nextSearch}` : ""}`,
@@ -358,14 +365,17 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
-    if (!routeNewChatRequested) {
+    if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
       lastLoadedChatKeyRef.current = "";
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
       return;
     }
 
-    const routeNewChatKey = `${agentKey}\u0000${routeNewChatRequest || "new"}`;
+    const routeNewChatKey = createNewChatRouteKey(
+      agentKey,
+      routeNewChatTimestamp,
+    );
     if (lastInitializedAgentKeyRef.current === routeNewChatKey) {
       return;
     }
@@ -386,8 +396,7 @@ export const AgentChatShell: React.FC = () => {
     dispatch,
     routeAgentHydrated,
     routeHistoryRequested,
-    routeNewChatRequest,
-    routeNewChatRequested,
+    routeNewChatTimestamp,
     routeWorkerKey,
   ]);
 

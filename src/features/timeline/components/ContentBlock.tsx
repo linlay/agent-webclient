@@ -2,7 +2,7 @@ import React from "react";
 import type { TimelineNode } from "@/app/state/types";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { stripPendingSpecialFenceTail } from "@/features/timeline/lib/contentSegments";
+import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegments";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import {
 	MarkdownContent,

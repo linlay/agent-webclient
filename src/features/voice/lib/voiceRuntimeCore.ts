@@ -1,6 +1,6 @@
 import type { AppState, TtsVoiceBlock } from "@/app/state/types";
 import { getCurrentAccessToken } from "@/shared/data";
-import { parseContentSegments } from "@/features/timeline/lib/contentSegments";
+import { parseContentSegments } from "@/features/events/lib/contentSegments";
 import {
 	DEFAULT_CHANNELS,
 	DEFAULT_SAMPLE_RATE,

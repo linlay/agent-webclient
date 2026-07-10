@@ -22,6 +22,6 @@ HITL 由 awaiting ask/answer 事件驱动，前端支持 question、approval、f
 - `../src/features/tools/lib/awaitingSubmitTracker.ts`
 - `../src/features/tools/lib/awaitingQuestionMeta.ts`
 - `../src/features/tools/lib/awaitingAnswerError.ts`
-- `../src/features/timeline/lib/eventProcessorAwaiting.ts`
+- `../src/features/events/lib/processors/eventProcessorAwaiting.ts`
 - `../src/features/composer/hooks/useComposerAwaiting.ts`
 

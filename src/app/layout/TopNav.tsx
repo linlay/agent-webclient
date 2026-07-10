@@ -28,7 +28,7 @@ import { useCommandOverlayOpen } from "@/features/workers/components/CommandOver
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
-import { resolveMainChatRuntime } from "@/features/chats/lib/chatRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 
 export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";

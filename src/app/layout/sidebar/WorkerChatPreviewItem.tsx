@@ -3,8 +3,8 @@ import { UiListItem } from "@/shared/ui/UiListItem";
 import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow } from "@/app/state/types";
-import { UnreadDot } from "./UnreadDot";
-import { ChatActionsMenu } from "./ChatActionsMenu";
+import { UnreadDot } from "@/features/chats/components/UnreadDot";
+import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 const WORKER_CHAT_ITEM_CLASS =

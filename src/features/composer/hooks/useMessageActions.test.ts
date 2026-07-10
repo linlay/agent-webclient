@@ -37,10 +37,6 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock("@/features/timeline/hooks/useAgentEventHandler", () => ({
-  useAgentEventHandler: jest.fn(() => ({ handleEvent: jest.fn() })),
-}));
-
 jest.mock("@/features/voice/lib/voiceRuntime", () => ({
   getVoiceRuntime: jest.fn(() => ({
     resetVoiceRuntime: jest.fn(),
@@ -111,7 +107,7 @@ describe("useMessageActions temporary pin", () => {
 
     let actions: ReturnType<typeof useMessageActions> | null = null;
     const Harness = () => {
-      actions = useMessageActions();
+      actions = useMessageActions({ onAgentEvent: jest.fn() });
       return null;
     };
     renderToStaticMarkup(React.createElement(Harness));
@@ -154,7 +150,7 @@ describe("useMessageActions temporary pin", () => {
 
     let actions: ReturnType<typeof useMessageActions> | null = null;
     const Harness = () => {
-      actions = useMessageActions();
+      actions = useMessageActions({ onAgentEvent: jest.fn() });
       return null;
     };
     renderToStaticMarkup(React.createElement(Harness));
