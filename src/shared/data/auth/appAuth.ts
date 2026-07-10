@@ -23,6 +23,7 @@ interface AppAuthResponseMessage {
   type: string;
   requestId: string;
   token?: string | null;
+  desktopAuthContext?: string;
 }
 
 const APP_AUTH_REQUEST_TYPE = 'desktop:agent-auth:request';
@@ -93,7 +94,11 @@ function normalizeUsableAccessToken(token: string | null | undefined): string | 
 
 function readStoredToken(): string | null {
   try {
-    syncStoredAuthContext();
+    const currentContext = readDesktopAuthContext();
+    if (isAppMode() && !currentContext) {
+      return null;
+    }
+    syncStoredAuthContext(currentContext);
     const token = window.sessionStorage.getItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
     const usableToken = normalizeUsableAccessToken(token);
     if (token && !usableToken) {
@@ -109,6 +114,13 @@ function readDesktopAuthContext(): string {
   if (typeof window === 'undefined' || !isAppMode()) {
     return '';
   }
+  const bridgeContext =
+    typeof window.__AGENT_APP_AUTH_CONTEXT === 'string'
+      ? window.__AGENT_APP_AUTH_CONTEXT.trim()
+      : '';
+  if (bridgeContext) {
+    return bridgeContext;
+  }
   try {
     return new URLSearchParams(window.location.search || '')
       .get('desktopAuthContext')
@@ -118,8 +130,9 @@ function readDesktopAuthContext(): string {
   }
 }
 
-function syncStoredAuthContext(): void {
-  const currentContext = readDesktopAuthContext();
+function syncStoredAuthContext(
+  currentContext: string = readDesktopAuthContext(),
+): void {
   if (!currentContext) {
     return;
   }
@@ -131,6 +144,22 @@ function syncStoredAuthContext(): void {
   window.sessionStorage.setItem(AGENT_APP_AUTH_CONTEXT_STORAGE_KEY, currentContext);
   if (typeof window !== 'undefined') {
     window.__AGENT_APP_ACCESS_TOKEN = undefined;
+  }
+}
+
+function applyDesktopAuthContext(value: unknown): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const currentContext = typeof value === 'string' ? value.trim() : '';
+  if (!currentContext) {
+    return;
+  }
+  window.__AGENT_APP_AUTH_CONTEXT = currentContext;
+  try {
+    syncStoredAuthContext(currentContext);
+  } catch {
+    // Ignore storage errors in embedded contexts.
   }
 }
 
@@ -255,6 +284,7 @@ export async function refreshAppAccessToken(
       }
 
       cleanup(timeoutId);
+      applyDesktopAuthContext(payload.desktopAuthContext);
       const token =
         typeof payload.token === 'string' && payload.token.trim()
           ? payload.token.trim()

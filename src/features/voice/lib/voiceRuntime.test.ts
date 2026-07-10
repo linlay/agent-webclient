@@ -1,4 +1,7 @@
-import { AGENT_APP_ACCESS_TOKEN_STORAGE_KEY } from "@/shared/data/auth/appAuth";
+import {
+	AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
+	AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
+} from "@/shared/data/auth/appAuth";
 import type { AppState, TtsVoiceBlock } from "@/app/state/types";
 import { setAccessToken } from "@/shared/data";
 import { initVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
@@ -159,7 +162,10 @@ function installBrowser(
 ): void {
 	const sessionStorage = createMockStorage(
 		options.storedToken
-			? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
+			? {
+				[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken,
+				[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]: "desktop-auth-current",
+			}
 			: {},
 	);
 	(globalThis as unknown as { window?: Window & typeof globalThis }).window = {
@@ -170,6 +176,9 @@ function installBrowser(
 		},
 		WebSocket: WebSocketCtor,
 		AudioContext: MockAudioContext as unknown as typeof AudioContext,
+		__AGENT_APP_AUTH_CONTEXT: options.storedToken
+			? "desktop-auth-current"
+			: undefined,
 		sessionStorage,
 		setTimeout,
 		clearTimeout,

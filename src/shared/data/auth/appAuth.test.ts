@@ -35,8 +35,10 @@ function createMockStorage(initial: Record<string, string> = {}): MockStorage {
 function installWindow(options: {
   pathname?: string;
   search?: string;
+  desktopApp?: boolean;
   storedToken?: string;
   storedAuthContext?: string;
+  bridgeAuthContext?: string;
   globalToken?: string;
   webviewBridge?: boolean;
 } = {}) {
@@ -58,7 +60,7 @@ function installWindow(options: {
   const mockWindow: any = {
     location: {
       pathname: options.pathname ?? '/',
-      search: options.search ?? '',
+      search: options.search ?? '?desktopAuthContext=desktop-auth-1',
     },
     parent,
     postMessage: jest.fn(),
@@ -78,6 +80,7 @@ function installWindow(options: {
     setInterval,
     clearInterval,
     __AGENT_APP_ACCESS_TOKEN: options.globalToken,
+    __AGENT_APP_AUTH_CONTEXT: options.bridgeAuthContext,
     __DESKTOP_WEBVIEW_BRIDGE__: options.webviewBridge ? true : undefined,
   };
   if (options.webviewBridge) {
@@ -86,7 +89,7 @@ function installWindow(options: {
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
   globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-    DESKTOP_APP: 'true',
+    DESKTOP_APP: options.desktopApp ?? true,
   };
 
   return {
@@ -122,6 +125,8 @@ describe('appAuth', () => {
 
   it('prefers the session token over the global bridge token', () => {
     installWindow({
+      desktopApp: false,
+      search: '',
       storedToken: 'session-token',
       globalToken: 'window-token',
     });
@@ -147,11 +152,41 @@ describe('appAuth', () => {
     }).__AGENT_APP_ACCESS_TOKEN).toBeUndefined();
   });
 
+  it('prefers the current document bridge auth context over the legacy URL fallback', () => {
+    const { sessionStorage } = installWindow({
+      search: '?desktopAuthContext=platform:legacy',
+      bridgeAuthContext: 'platform:current',
+      storedAuthContext: 'platform:legacy',
+      storedToken: 'stale-session-token',
+    });
+
+    expect(getAppAccessToken()).toBeNull();
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
+    expect(sessionStorage.dump()[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]).toBe(
+      'platform:current',
+    );
+  });
+
+  it('does not trust a desktop session token before the current document auth context is ready', () => {
+    const { sessionStorage } = installWindow({
+      search: '',
+      storedAuthContext: 'platform:legacy',
+      storedToken: 'stale-session-token',
+    });
+
+    expect(getAppAccessToken()).toBeNull();
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'stale-session-token',
+    );
+  });
+
   it('ignores expired session tokens and falls back to a usable global bridge token', () => {
     const nowSeconds = Math.floor(Date.now() / 1000);
     const expiredToken = unsignedJwtWithExp(nowSeconds - 60);
     const freshToken = unsignedJwtWithExp(nowSeconds + 3600);
     const { sessionStorage } = installWindow({
+      desktopApp: false,
+      search: '',
       storedToken: expiredToken,
       globalToken: freshToken,
     });
@@ -190,7 +225,10 @@ describe('appAuth', () => {
 
   it('requests a missing token through the webview host bridge when parent is self', async () => {
     const { parent, sessionStorage, dispatchMessage } = installWindow({
+      search: '',
       webviewBridge: true,
+      storedAuthContext: 'platform:legacy',
+      storedToken: 'stale-session-token',
     });
 
     (parent.postMessage as jest.Mock).mockImplementation((payload: { requestId: string }) => {
@@ -201,6 +239,7 @@ describe('appAuth', () => {
             type: APP_AUTH_APP_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'webview-token-from-host',
+            desktopAuthContext: 'platform:current',
           },
         } as MessageEvent);
       });
@@ -218,6 +257,12 @@ describe('appAuth', () => {
     expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
       'webview-token-from-host',
     );
+    expect(sessionStorage.dump()[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]).toBe(
+      'platform:current',
+    );
+    expect((globalThis.window as typeof globalThis.window & {
+      __AGENT_APP_AUTH_CONTEXT?: string;
+    }).__AGENT_APP_AUTH_CONTEXT).toBe('platform:current');
   });
 
   it('uses a host-seeded token even when the bridge response requestId differs', async () => {
@@ -228,7 +273,15 @@ describe('appAuth', () => {
 
     (parent.postMessage as jest.Mock).mockImplementation(() => {
       setTimeout(() => {
+        sessionStorage.setItem(
+          AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
+          'platform:current',
+        );
         sessionStorage.setItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY, 'seeded-token');
+        (globalThis.window as typeof globalThis.window & {
+          __AGENT_APP_AUTH_CONTEXT?: string;
+          __AGENT_APP_ACCESS_TOKEN?: string;
+        }).__AGENT_APP_AUTH_CONTEXT = 'platform:current';
         (globalThis.window as typeof globalThis.window & {
           __AGENT_APP_ACCESS_TOKEN?: string;
         }).__AGENT_APP_ACCESS_TOKEN = 'seeded-token';
