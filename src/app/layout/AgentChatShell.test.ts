@@ -1,9 +1,11 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import fs from "fs";
-import path from "path";
 import { createInitialState } from "@/app/state/state";
-import { AgentChatShell } from "@/app/layout/AgentChatShell";
+import {
+  AgentChatShell,
+  createNewChatRouteKey,
+  parseNewChatTimestamp,
+} from "@/app/layout/AgentChatShell";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
 import type { Chat, WorkerRow } from "@/app/state/types";
 
@@ -466,7 +468,7 @@ describe("AgentChatShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([new URLSearchParams("newChat=1&newChatRequest=123")]);
+    useSearchParams.mockReturnValue([new URLSearchParams("newChat=1783680000000")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
@@ -496,17 +498,52 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("uses newChatRequest to retrigger explicit new chat routes for the same agent", () => {
-    const source = fs.readFileSync(
-      path.join(process.cwd(), "src", "app", "layout", "AgentChatShell.tsx"),
-      "utf8",
+  it("uses each timestamp as the retrigger key for explicit new chat routes", () => {
+    expect(createNewChatRouteKey("demo-agent", "1783680000000")).toBe(
+      "demo-agent\u00001783680000000",
+    );
+    expect(createNewChatRouteKey("demo-agent", "1783680000001")).not.toBe(
+      createNewChatRouteKey("demo-agent", "1783680000000"),
+    );
+  });
+
+  it("only accepts positive 13-digit Unix millisecond timestamps for new chat routes", () => {
+    expect(parseNewChatTimestamp("1783680000000")).toBe("1783680000000");
+    expect(parseNewChatTimestamp("1")).toBe("");
+    expect(parseNewChatTimestamp("01783680000000")).toBe("");
+    expect(parseNewChatTimestamp("17836800000000")).toBe("");
+    expect(parseNewChatTimestamp("not-a-timestamp")).toBe("");
+  });
+
+  it("does not treat the legacy newChat URL as a new conversation request", () => {
+    const dispatch = jest.fn();
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("newChat=1&newChatRequest=123"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
+      }),
     );
 
-    expect(source).toMatch(/const routeNewChatRequest = useMemo/);
-    expect(source).toMatch(/searchParams\.get\("newChatRequest"\)/);
-    expect(source).toMatch(/const routeNewChatKey = `\$\{agentKey\}\\u0000\$\{routeNewChatRequest \|\| "new"\}`;/);
-    expect(source).toMatch(/lastInitializedAgentKeyRef\.current === routeNewChatKey/);
-    expect(source).toMatch(/lastInitializedAgentKeyRef\.current = routeNewChatKey/);
+    useEffectSpy.mockRestore();
   });
 
   it("loads a chat when chatId is present in the query string", () => {
@@ -517,7 +554,9 @@ describe("AgentChatShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("chatId=chat-123&newChat=1783680000000"),
+    ]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
