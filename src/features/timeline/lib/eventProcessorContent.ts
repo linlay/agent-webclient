@@ -2,7 +2,7 @@ import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types"
 import type {
   EventCommand,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
 import { parseContentSegments } from "@/features/timeline/lib/contentSegments";
 import {
   awaitingAnswerTitle,

@@ -3,7 +3,7 @@ import type {
   EventCommand,
   EventProcessorConfig,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
 import { toText } from "@/shared/utils/eventUtils";
 import {
   applyTaskBindingToNode,
@@ -106,4 +106,3 @@ export function processReasoningEvent(
 
   return commands;
 }
-

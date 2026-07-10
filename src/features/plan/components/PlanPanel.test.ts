@@ -2,7 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import type { PlanRuntime, TaskItemMeta } from "@/app/state/types";
-import { buildPlanSummaryView, PlanPanel } from "@/features/plan/components/PlanPanel";
+import { PlanPanel } from "@/features/plan/components/PlanPanel";
+import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");

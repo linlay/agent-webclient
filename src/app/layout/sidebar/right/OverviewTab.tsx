@@ -9,7 +9,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { buildPlanSummaryView } from "@/features/plan/components/PlanPanel";
+import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";

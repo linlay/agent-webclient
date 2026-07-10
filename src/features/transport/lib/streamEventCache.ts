@@ -5,7 +5,7 @@ import type {
 	TimelineNode,
 	ToolState,
 } from "@/app/state/types";
-import type { EventProcessorState } from "@/features/timeline/lib/eventProcessor";
+import type { EventProcessorState } from "@/features/transport/lib/streamEventProcessorTypes";
 import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
 import { toText } from "@/shared/utils/eventUtils";
 

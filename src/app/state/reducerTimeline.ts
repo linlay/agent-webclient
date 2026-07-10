@@ -1,10 +1,8 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import {
-	addSetValue,
 	deleteMapValue,
 	patchActiveAwaiting,
-	removeSetValue,
 	setMapValue,
 	upsertArtifact,
 	upsertFileChange,
@@ -31,36 +29,6 @@ export function reduceTimelineState(
 			return { ...state, artifactManualOverride: action.override };
 		case "SET_ARTIFACT_AUTO_COLLAPSE_TIMER":
 			return { ...state, artifactAutoCollapseTimer: action.timer };
-		case "SET_PLAN":
-			return { ...state, plan: action.plan };
-		case "SET_PLAN_EXPANDED":
-			return { ...state, planExpanded: action.expanded };
-		case "SET_PLAN_MANUAL_OVERRIDE":
-			return { ...state, planManualOverride: action.override };
-		case "SET_PLAN_AUTO_COLLAPSE_TIMER":
-			return { ...state, planAutoCollapseTimer: action.timer };
-		case "SET_TASK_ITEM_META":
-			return {
-				...state,
-				taskItemsById: setMapValue(state.taskItemsById, action.taskId, action.task),
-			};
-		case "ADD_ACTIVE_TASK_ID":
-			return { ...state, activeTaskIds: addSetValue(state.activeTaskIds, action.taskId) };
-		case "REMOVE_ACTIVE_TASK_ID":
-			return { ...state, activeTaskIds: removeSetValue(state.activeTaskIds, action.taskId) };
-		case "SET_PLAN_CURRENT_RUNNING_TASK_ID":
-			return { ...state, planCurrentRunningTaskId: action.taskId };
-		case "SET_PLAN_LAST_TOUCHED_TASK_ID":
-			return { ...state, planLastTouchedTaskId: action.taskId };
-		case "SET_PLAN_RUNTIME":
-			return {
-				...state,
-				planRuntimeByTaskId: setMapValue(
-					state.planRuntimeByTaskId,
-					action.taskId,
-					action.runtime,
-				),
-			};
 		case "SET_ACTIVE_FRONTEND_TOOL":
 			return { ...state, activeFrontendTool: action.tool };
 		case "SET_ACTIVE_AWAITING":

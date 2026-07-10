@@ -1,14 +1,17 @@
 import type {
   AgentEvent,
   PublishedArtifact,
-  TaskItemMeta,
   TimelineNode,
   ToolState,
 } from "@/app/state/types";
 import type {
   EventCommand,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
+import {
+  readSubAgentKey,
+  readTaskGroupId,
+} from "@/features/tasks/lib/taskEventProtocol";
 import { isTerminalStatus, safeText, toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import {
@@ -21,25 +24,6 @@ interface ResolvedTaskBinding {
   taskName: string;
   taskGroupId: string;
   subAgentKey?: string;
-}
-
-export function readTaskGroupId(event: AgentEvent): string {
-  const raw = event as Record<string, unknown>;
-  return toText(raw.groupId) || toText(raw.taskGroupId);
-}
-
-export function readSubAgentKey(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>).subAgentKey).trim();
-}
-
-function computeTaskDurationMs(
-  startedAt?: number,
-  endedAt?: number,
-): number | undefined {
-  if (!Number.isFinite(startedAt) || !Number.isFinite(endedAt)) {
-    return undefined;
-  }
-  return Math.max(0, Number(endedAt) - Number(startedAt));
 }
 
 function resolveVisibleTaskBinding(
@@ -96,72 +80,6 @@ function resolveVisibleTaskBinding(
       task?.taskName || state.getPlanTaskDescription?.(taskId) || taskId,
     taskGroupId: task?.taskGroupId || "",
     subAgentKey: task?.subAgentKey,
-  };
-}
-
-export function resolveTaskGroupIdForStart(
-  event: AgentEvent,
-  state: EventProcessorState,
-  existingTask?: TaskItemMeta,
-): string {
-  const explicitGroupId = readTaskGroupId(event);
-  if (explicitGroupId) {
-    return explicitGroupId;
-  }
-  if (existingTask?.taskGroupId) {
-    return existingTask.taskGroupId;
-  }
-
-  const activeGroupIds = Array.from(
-    new Set(
-      state
-        .getActiveTaskIds()
-        .map((taskId) => state.getTaskItem(taskId)?.taskGroupId || "")
-        .filter(Boolean),
-    ),
-  );
-  if (activeGroupIds.length === 1) {
-    return activeGroupIds[0];
-  }
-
-  return `task_group_${toText(event.taskId).trim() || state.peekCounter()}`;
-}
-
-export function buildNextTaskItem(input: {
-  event: AgentEvent;
-  state: EventProcessorState;
-  taskId: string;
-  status: string;
-  updatedAt: number;
-  existing?: TaskItemMeta;
-  groupId: string;
-}): TaskItemMeta {
-  const { event, state, taskId, status, updatedAt, existing, groupId } = input;
-  const taskName =
-    toText(event.taskName).trim() ||
-    existing?.taskName ||
-    state.getPlanTaskDescription?.(taskId) ||
-    taskId;
-  const startedAt =
-    status === "running"
-      ? (existing?.startedAt ?? (event.timestamp || updatedAt))
-      : (existing?.startedAt ?? event.timestamp ?? updatedAt);
-  const endedAt =
-    status === "running" ? undefined : event.timestamp || updatedAt;
-
-  return {
-    taskId,
-    taskName,
-    taskGroupId: groupId,
-    subAgentKey: readSubAgentKey(event) || existing?.subAgentKey || "",
-    runId: toText(event.runId) || existing?.runId || state.runId,
-    status,
-    startedAt,
-    endedAt,
-    durationMs: computeTaskDurationMs(startedAt, endedAt),
-    updatedAt,
-    error:
-      status === "failed" ? toText(event.error) || existing?.error || "" : "",
   };
 }
 
@@ -291,7 +209,7 @@ export function resolveFinalToolArgsText(
   if (!argsBuffer.trim()) {
     return chosen;
   }
-  return chosen || argsBuffer;
+  return `${chosen || argsBuffer}\n[incomplete tool args]`;
 }
 
 export function pickEventText(...candidates: Array<unknown>): string {

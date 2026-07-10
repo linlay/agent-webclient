@@ -2,12 +2,12 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/AppContext';
 import type { AgentEvent, TimelineNode } from '@/app/state/types';
-import type { EventCommand } from '@/features/timeline/lib/eventProcessor';
+import type { EventCommand } from '@/features/transport/lib/streamEventProcessorTypes';
 import {
   reduceActiveAwaiting,
   reduceAwaitingRuntime,
 } from '@/features/tools/lib/awaitingRuntime';
-import { processEvent } from '@/features/timeline/lib/eventProcessor';
+import { processStreamEvent } from '@/features/transport/lib/streamEventProcessor';
 import {
   buildAwaitingPlanningModeAction,
   createLiveProcessorState,
@@ -862,7 +862,7 @@ describe('buildAwaitingPlanningModeAction', () => {
 describe('usage snapshot events', () => {
   it('do not generate timeline commands', () => {
     const state = createInitialState();
-    const commands = processEvent(
+    const commands = processStreamEvent(
       {
         type: 'usage.snapshot',
         chatId: 'chat_1',
@@ -919,7 +919,7 @@ describe('createLiveProcessorState', () => {
     cache.nodeText.set(contentNode.id, 'abc');
     cache.nodeById.set(contentNode.id, { ...contentNode, text: 'abc' });
 
-    const commands = processEvent(
+    const commands = processStreamEvent(
       { type: 'content.delta', contentId: 'content_1', delta: 'd' },
       createLiveProcessorState(cache, state),
       { mode: 'live', reasoningExpandedDefault: true },
@@ -959,7 +959,7 @@ describe('createLiveProcessorState', () => {
     cache.nodeText.set(thinkingNode.id, 'abc');
     cache.nodeById.set(thinkingNode.id, { ...thinkingNode, text: 'abc' });
 
-    const commands = processEvent(
+    const commands = processStreamEvent(
       { type: 'reasoning.delta', reasoningId: 'reasoning_1', delta: 'd' },
       createLiveProcessorState(cache, state),
       { mode: 'live', reasoningExpandedDefault: true },
@@ -997,7 +997,7 @@ describe('createLiveProcessorState', () => {
     const cache = createLocalCacheFromState(state);
     cache.nodeById.set(contentNode.id, { ...contentNode, status: 'completed' });
 
-    const commands = processEvent(
+    const commands = processStreamEvent(
       { type: 'content.delta', contentId: 'content_1', delta: 'd' },
       createLiveProcessorState(cache, state),
       { mode: 'live', reasoningExpandedDefault: true },
@@ -1045,7 +1045,7 @@ describe('createLiveProcessorState', () => {
     cache.nodeText.set(contentNode.id, 'abc');
     cache.nodeById.set(contentNode.id, { ...contentNode, text: 'abc' });
 
-    const firstCommands = processEvent(
+    const firstCommands = processStreamEvent(
       { type: 'content.delta', contentId: 'content_1', delta: 'd' },
       createLiveProcessorState(cache, state),
       { mode: 'live', reasoningExpandedDefault: true },
@@ -1058,7 +1058,7 @@ describe('createLiveProcessorState', () => {
       cache.nodeText.set(latestNode.id, latestNode.node.text || '');
     }
 
-    const secondCommands = processEvent(
+    const secondCommands = processStreamEvent(
       { type: 'content.delta', contentId: 'content_1', delta: 'e' },
       createLiveProcessorState(cache, state),
       { mode: 'live', reasoningExpandedDefault: true },

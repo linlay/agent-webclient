@@ -274,7 +274,7 @@ describe('buildTimelineDisplayItems', () => {
     });
   });
 
-  it('uses task terminal events as status fallback when task metadata is missing', () => {
+  it('uses the task snapshot instead of inferring status from raw task events', () => {
     const items = buildTimelineDisplayItems(
       [
         createNode({ id: 'user_1', kind: 'message', role: 'user', text: 'hi', ts: 100 }),
@@ -286,13 +286,24 @@ describe('buildTimelineDisplayItems', () => {
         { type: 'task.complete', taskId: 'task_1', timestamp: 180 },
         { type: 'run.complete', timestamp: 200 },
       ],
+      new Map([
+        ['task_1', {
+          taskId: 'task_1',
+          taskName: 'Task A',
+          taskGroupId: 'group_1',
+          runId: 'run_1',
+          status: 'failed',
+          updatedAt: 180,
+          error: '',
+        }],
+      ]),
     );
 
     const entries = items[1].kind === 'run' ? items[1].renderEntries : [];
     expect(entries[0]).toMatchObject({
       kind: 'task-group',
       taskId: 'task_1',
-      status: 'completed',
+      status: 'failed',
     });
   });
 

@@ -17,8 +17,8 @@ import {
 } from '@/features/tools/lib/awaitingRuntime';
 import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/chats/lib/runAgentIdentity';
 import { parseContentSegments } from '@/features/timeline/lib/contentSegments';
-import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
-import { processEvent } from '@/features/timeline/lib/eventProcessor';
+import type { EventCommand, EventProcessorState } from '@/features/transport/lib/streamEventProcessorTypes';
+import { processStreamEvent } from '@/features/transport/lib/streamEventProcessor';
 import { MAX_EVENTS } from '@/app/state/constants';
 import { appendVisibleDebugEvent } from '@/features/timeline/lib/debugEventDisplay';
 
@@ -366,7 +366,7 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   );
   rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
   rs.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
-  const commands = processEvent(event, createReplayProcessorState(rs), {
+  const commands = processStreamEvent(event, createReplayProcessorState(rs), {
     mode: 'replay',
     reasoningExpandedDefault: false,
   });

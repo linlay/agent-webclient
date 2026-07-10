@@ -134,7 +134,6 @@ function buildRenderEntries(
   nodes: TimelineNode[],
   taskItemsById: Map<string, TaskItemMeta>,
   groupTasks: boolean,
-  taskStatusById: Map<string, string> = new Map(),
 ): TimelineRenderEntry[] {
   if (!groupTasks) {
     return buildToolRenderEntries(nodes);
@@ -162,13 +161,12 @@ function buildRenderEntries(
         existingGroup.nodes,
         taskItemsById,
         false,
-        taskStatusById,
       );
       return;
     }
 
     const task = taskItemsById.get(taskId);
-    const status = task?.status || taskStatusById.get(taskId) || "unknown";
+    const status = task?.status || "unknown";
     const group: Extract<TimelineRenderEntry, { kind: "task-group" }> = {
       kind: "task-group",
       key: `task_group_${taskId}_${node.id}`,
@@ -183,7 +181,6 @@ function buildRenderEntries(
         [node],
         taskItemsById,
         false,
-        taskStatusById,
       ),
     };
     taskGroupsById.set(taskId, group);
@@ -220,28 +217,6 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
     }));
 }
 
-function collectTaskStatuses(events: AgentEvent[]): Map<string, string> {
-  const statusByTaskId = new Map<string, string>();
-
-  for (const event of events) {
-    const type = String(event.type || "");
-    const taskId = String(event.taskId || "").trim();
-    if (!taskId) continue;
-
-    if (type === "task.start") {
-      statusByTaskId.set(taskId, "running");
-    } else if (type === "task.complete") {
-      statusByTaskId.set(taskId, "completed");
-    } else if (type === "task.fail") {
-      statusByTaskId.set(taskId, "failed");
-    } else if (type === "task.cancel") {
-      statusByTaskId.set(taskId, "canceled");
-    }
-  }
-
-  return statusByTaskId;
-}
-
 export function buildTimelineDisplayItems(
   nodes: TimelineNode[],
   events: AgentEvent[],
@@ -249,7 +224,6 @@ export function buildTimelineDisplayItems(
 ): TimelineDisplayItem[] {
   const items: TimelineDisplayItem[] = [];
   const runTerminals = collectRunTerminals(events);
-  const taskStatusById = collectTaskStatuses(events);
   let pendingRunNodes: TimelineNode[] = [];
   let pendingStandaloneNodes: TimelineNode[] = [];
   let activeQueryNode: TimelineNode | null = null;
@@ -261,7 +235,6 @@ export function buildTimelineDisplayItems(
       pendingStandaloneNodes,
       taskItemsById,
       true,
-      taskStatusById,
     )) {
       items.push({
         kind: "standalone",
@@ -307,7 +280,6 @@ export function buildTimelineDisplayItems(
         pendingRunNodes,
         taskItemsById,
         true,
-        taskStatusById,
       ),
       runId: terminal?.runId,
       completedAt,

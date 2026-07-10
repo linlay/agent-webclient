@@ -1,7 +1,7 @@
 import type {
+	FileChangeSummary,
 	Plan,
 	PlanRuntime,
-	FileChangeSummary,
 	PublishedArtifact,
 	TaskItemMeta,
 	TimelineNode,

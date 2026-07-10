@@ -6,7 +6,7 @@ import type {
 import type {
   EventCommand,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
