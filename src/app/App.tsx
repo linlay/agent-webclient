@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
-import { initializeDesktopQueryContextBridge } from "@/shared/data/desktopQueryContext";
+import { initializeDesktopQueryContextBridge } from "@/shared/data/desktop/desktopQueryContext";
 import {
   I18nProvider,
   readUrlLocale,
@@ -35,7 +35,7 @@ import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
 import { SkillsPage } from "./pages/skills";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
-import { setTransportModeProvider } from "@/shared/data/routedClient";
+import { setTransportModeProvider } from "@/shared/data/api/routedClient";
 import { resolveRouteDataTransportMode } from "./routeDataTransport";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";

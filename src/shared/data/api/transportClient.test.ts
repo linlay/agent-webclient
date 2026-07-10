@@ -1,8 +1,8 @@
-import { createTransportClient } from "@/shared/data/transportClient";
+import { createTransportClient } from "@/shared/data/api/transportClient";
 import {
 	ensureAccessToken,
 	getCurrentAccessToken,
-} from "@/shared/data/client";
+} from "@/shared/data/api/client";
 import {
 	getWsClient,
 	getWsClientAccessToken,
@@ -11,7 +11,7 @@ import {
 import { WsClientDisconnectedError } from "@/features/transport/lib/wsClient";
 import { isAppMode } from "@/shared/utils/routing";
 
-jest.mock("@/shared/data/client", () => ({
+jest.mock("@/shared/data/api/client", () => ({
 	ensureAccessToken: jest.fn(),
 	getCurrentAccessToken: jest.fn(),
 }));

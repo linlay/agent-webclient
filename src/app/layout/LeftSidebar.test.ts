@@ -295,7 +295,7 @@ jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", null, "agent-icon"),
 }));
 
-jest.mock("@/shared/data/desktopFileSystem", () => ({
+jest.mock("@/shared/data/desktop/desktopFileSystem", () => ({
   selectProjectFolder: jest.fn(),
   openWorkspaceDirectory: jest.fn(),
 }));
@@ -322,7 +322,7 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
 const {
   selectProjectFolder,
   openWorkspaceDirectory,
-} = jest.requireMock("@/shared/data/desktopFileSystem") as {
+} = jest.requireMock("@/shared/data/desktop/desktopFileSystem") as {
   selectProjectFolder: jest.Mock;
   openWorkspaceDirectory: jest.Mock;
 };

@@ -1,19 +1,19 @@
 import { useMemo } from "react";
-import { dataEndpoints } from "@/shared/data/endpoints";
-import { useDataQuery } from "@/shared/data/serverState";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { useDataQuery } from "@/shared/data/query/serverState";
 import {
   getAgents,
   getChats,
   getMemoryRecords,
   getModelOptions,
   getTeams,
-} from "@/shared/data/routedClient";
+} from "@/shared/data/api/routedClient";
 import type {
   GetAgentsOptions,
   GetChatsOptions,
   GetMemoryRecordsParams,
-} from "@/shared/data/client";
-import type { MemoryRecordsPayload } from "@/shared/data/memoryTypes";
+} from "@/shared/data/api/client";
+import type { MemoryRecordsPayload } from "@/shared/data/memory/memoryTypes";
 
 export function useAgentsQuery(options: GetAgentsOptions = {}) {
   const input = useMemo(

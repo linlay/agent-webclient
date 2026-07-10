@@ -10,7 +10,7 @@ import {
 } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { buildWorkspaceFileUrl } from "@/shared/data/client";
+import { buildWorkspaceFileUrl } from "@/shared/data/api/client";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

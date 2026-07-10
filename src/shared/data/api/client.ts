@@ -6,8 +6,8 @@ import {
   getAppAccessToken,
   refreshAppAccessToken,
   type AppAccessTokenRefreshReason,
-} from '@/shared/data/appAuth';
-import { readStoredAccessToken } from '@/shared/data/accessTokenStorage';
+} from '@/shared/data/auth/appAuth';
+import { readStoredAccessToken } from '@/shared/data/auth/accessTokenStorage';
 import type {
   MemoryScopeDetail,
   MemoryContextPreviewResponse,
@@ -18,24 +18,24 @@ import type {
   MemoryScopeValidationResult,
   MemoryRecordDetail,
   MemoryRecordsPayload,
-} from '@/shared/data/memoryTypes';
+} from '@/shared/data/memory/memoryTypes';
 import { t } from '@/shared/i18n';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
 import {
   formatPlatformErrorForDisplay,
   type PlatformError,
-} from "@/shared/data/platformError";
+} from "@/shared/data/errors/platformError";
 import {
   buildAttachPayload,
   buildQueryPayload,
   compactQueryModelOverride,
   dataEndpoints,
-} from "@/shared/data/endpoints";
+} from "@/shared/data/api/endpoints";
 import {
   resolveEndpointPayload,
   type EndpointDefinition,
-} from "@/shared/data/endpointRegistry";
+} from "@/shared/data/api/endpointRegistry";
 
 export class ApiError extends Error {
   name = "ApiError";

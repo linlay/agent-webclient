@@ -17,7 +17,7 @@ import {
   isDebugPanelEnabled,
   isVoiceEnabled,
 } from "@/shared/config/featureFlags";
-import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
+import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

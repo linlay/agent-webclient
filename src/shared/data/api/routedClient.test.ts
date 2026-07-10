@@ -2,7 +2,7 @@ const mockGetWsClient = jest.fn();
 const mockGetWsClientAccessToken = jest.fn();
 const mockInitWsClient = jest.fn();
 
-jest.mock("@/shared/data/client", () => {
+jest.mock("@/shared/data/api/client", () => {
 	class MockApiError extends Error {
 		status: number | null;
 		code: number | string | null;
@@ -188,7 +188,7 @@ describe("routedClient", () => {
 		mockGetWsClient.mockReset();
 		mockGetWsClientAccessToken.mockReset();
 		mockInitWsClient.mockReset();
-		mockApiClient = jest.requireMock("@/shared/data/client") as typeof mockApiClient;
+		mockApiClient = jest.requireMock("@/shared/data/api/client") as typeof mockApiClient;
 		({
 			WsClientDisconnectedError,
 			WsClientRequestTimeoutError,

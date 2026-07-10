@@ -2,7 +2,7 @@ import {
   compactPayload,
   createEndpointRegistry,
   defineEndpoint,
-} from "@/shared/data/endpointRegistry";
+} from "@/shared/data/api/endpointRegistry";
 import type {
   ArchivesRequest,
   AttachStreamParams,
@@ -15,7 +15,7 @@ import type {
   QueryServiceTier,
   QueryStreamParams,
   AdminSkillListResponse,
-} from "@/shared/data/client";
+} from "@/shared/data/api/client";
 
 export function compactQueryModelOverride(
   model: QueryModelOverride | undefined,

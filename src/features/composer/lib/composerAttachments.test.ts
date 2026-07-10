@@ -4,7 +4,7 @@ import {
 	uploadComposerAttachments,
 } from "@/features/composer/lib/composerAttachments";
 import { uploadFile } from "@/shared/data";
-import { desktopScreenshotToFile } from "@/shared/data/desktopScreenshot";
+import { desktopScreenshotToFile } from "@/shared/data/desktop/desktopScreenshot";
 
 jest.mock("@/shared/data", () => ({
 	createRequestId: jest.fn((prefix: string) => `${prefix}_mock`),

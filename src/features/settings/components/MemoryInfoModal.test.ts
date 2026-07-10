@@ -6,7 +6,7 @@ import {
   createDefaultMemoryInfoFilters,
   createDefaultMemoryMeta,
   createDefaultMemoryPreferenceMode,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import { MemoryInfoModalView } from "@/features/settings/components/MemoryInfoModal";
 
 jest.mock("antd", () => {

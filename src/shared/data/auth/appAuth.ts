@@ -3,7 +3,7 @@ import {
   hasDesktopHostBridge,
   isDesktopHostMessageEvent,
   postDesktopHostMessage,
-} from '@/shared/data/desktopHostBridge';
+} from '@/shared/data/desktop/desktopHostBridge';
 
 export const AGENT_APP_ACCESS_TOKEN_STORAGE_KEY = 'agent-webclient.appAccessToken';
 export const AGENT_APP_AUTH_CONTEXT_STORAGE_KEY = 'agent-webclient.appAuthContext';

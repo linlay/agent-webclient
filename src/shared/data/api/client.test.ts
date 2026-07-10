@@ -1,13 +1,13 @@
 import { Blob } from 'buffer';
-import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/accessTokenStorage';
+import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/auth/accessTokenStorage';
 import {
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   APP_AUTH_RESPONSE_TYPE,
-} from '@/shared/data/appAuth';
+} from '@/shared/data/auth/appAuth';
 import {
   initializeDesktopQueryContextBridge,
   resetDesktopQueryContextBridgeForTests,
-} from '@/shared/data/desktopQueryContext';
+} from '@/shared/data/desktop/desktopQueryContext';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
@@ -104,7 +104,7 @@ import {
   updateAutomation,
   uploadFile,
   validateAdminRegistry,
-} from '@/shared/data/client';
+} from '@/shared/data/api/client';
 
 class MockFormData {
   private readonly values = new Map<string, unknown[]>();

@@ -110,7 +110,7 @@ import {
 	type UpdateAgentModelConfigRequest,
 	type UpdateAgentOrderRequest,
 	type UpdateAutomationRequest,
-	} from "@/shared/data/client";
+	} from "@/shared/data/api/client";
 import type {
 	MemoryContextPreviewResponse,
 	MemoryMeta,
@@ -121,18 +121,18 @@ import type {
 	MemoryScopeSaveResult,
 	MemoryScopesResponse,
 	MemoryScopeValidationResult,
-} from "@/shared/data/memoryTypes";
+} from "@/shared/data/memory/memoryTypes";
 import {
 	createTransportClient,
 	type TransportRequestOptions,
-} from "@/shared/data/transportClient";
+} from "@/shared/data/api/transportClient";
 import {
 	createDataCacheKey,
 	resolveEndpointPayload,
 	type EndpointDefinition,
-} from "@/shared/data/endpointRegistry";
-import { dataEndpoints } from "@/shared/data/endpoints";
-import { dataQueryCache } from "@/shared/data/serverState";
+} from "@/shared/data/api/endpointRegistry";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { dataQueryCache } from "@/shared/data/query/serverState";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
 let getTransportMode: () => TransportModeValue = () => "ws";

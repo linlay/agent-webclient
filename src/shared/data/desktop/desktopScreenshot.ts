@@ -2,7 +2,7 @@ import {
   hasDesktopHostBridge,
   isDesktopHostMessageEvent,
   postDesktopHostMessage,
-} from "@/shared/data/desktopHostBridge";
+} from "@/shared/data/desktop/desktopHostBridge";
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 

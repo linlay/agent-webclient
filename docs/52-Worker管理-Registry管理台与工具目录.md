@@ -20,7 +20,7 @@ Registry 管理台由 `/registries` 路由进入，管理 providers、models、m
 ## 相关文件
 - `../src/app/pages/registries/index.tsx`
 - `../src/app/pages/registries/index.test.ts`
-- `../src/shared/data/client.ts`
-- `../src/shared/data/endpoints.ts`
+- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/endpoints.ts`
 - `../src/shared/ui/SearchFilterBar.tsx`
 - `../src/shared/ui/UiTag.tsx`

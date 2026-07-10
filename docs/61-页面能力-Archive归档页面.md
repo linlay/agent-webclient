@@ -20,7 +20,7 @@ Archive 页面由 `/archives` 和 `/archives/:chatId` 路由进入，页面入�
 ## 相关文件
 - `../src/app/pages/archives/index.tsx`
 - `../src/features/settings/components/ArchiveConsole.tsx`
-- `../src/shared/data/client.ts`
-- `../src/shared/data/routedClient.ts`
-- `../src/shared/data/endpoints.ts`
-- `../src/shared/data/client.test.ts`
+- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/routedClient.ts`
+- `../src/shared/data/api/endpoints.ts`
+- `../src/shared/data/api/client.test.ts`

@@ -1,4 +1,4 @@
-import { dataEndpoints } from "@/shared/data/endpoints";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
 
 const MIN_GAIN = 0.0001;
 

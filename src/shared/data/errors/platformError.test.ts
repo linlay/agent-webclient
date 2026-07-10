@@ -1,7 +1,7 @@
 import {
 	formatPlatformErrorForDisplay,
 	normalizePlatformError,
-} from "@/shared/data/platformError";
+} from "@/shared/data/errors/platformError";
 import {
 	buildI18nRuntimeConfig,
 	configureI18nRuntime,

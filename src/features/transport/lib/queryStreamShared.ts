@@ -6,7 +6,7 @@ import {
   type AttachStreamParams,
   type QueryStreamParams,
 } from "@/shared/data";
-import { formatPlatformErrorForDisplay } from "@/shared/data/platformError";
+import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 
 export interface ExecuteQueryStreamOptions {
   params: QueryStreamParams;

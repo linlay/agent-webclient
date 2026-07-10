@@ -30,7 +30,7 @@ import {
   putAdminAgentOrder,
   updateAgent,
 } from "@/shared/data";
-import { dataEndpoints } from "@/shared/data/endpoints";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,

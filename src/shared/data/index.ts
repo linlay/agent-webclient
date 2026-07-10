@@ -1,17 +1,17 @@
-export * from "@/shared/data/accessTokenStorage";
-export * from "@/shared/data/appAuth";
-export * from "@/shared/data/client";
-export * from "@/shared/data/desktopFileSystem";
-export * from "@/shared/data/desktopHostBridge";
-export * from "@/shared/data/desktopQueryContext";
-export * from "@/shared/data/desktopScreenshot";
-export * from "@/shared/data/endpointRegistry";
-export * from "@/shared/data/endpoints";
-export * from "@/shared/data/memoryTypes";
-export * from "@/shared/data/platformError";
-export * from "@/shared/data/queries";
-export * from "@/shared/data/serverState";
-export * from "@/shared/data/transportClient";
+export * from "@/shared/data/auth/accessTokenStorage";
+export * from "@/shared/data/auth/appAuth";
+export * from "@/shared/data/api/client";
+export * from "@/shared/data/desktop/desktopFileSystem";
+export * from "@/shared/data/desktop/desktopHostBridge";
+export * from "@/shared/data/desktop/desktopQueryContext";
+export * from "@/shared/data/desktop/desktopScreenshot";
+export * from "@/shared/data/api/endpointRegistry";
+export * from "@/shared/data/api/endpoints";
+export * from "@/shared/data/memory/memoryTypes";
+export * from "@/shared/data/errors/platformError";
+export * from "@/shared/data/query/queries";
+export * from "@/shared/data/query/serverState";
+export * from "@/shared/data/api/transportClient";
 
 export {
   archiveChats,
@@ -72,4 +72,4 @@ export {
   updateAutomation,
   uploadFile,
   validateMemoryScope,
-} from "@/shared/data/routedClient";
+} from "@/shared/data/api/routedClient";
