@@ -76,9 +76,14 @@ describe('appReducer conversation reset behavior', () => {
           pathname: '/',
           search: '',
         },
+        __AGENT_APP_AUTH_CONTEXT: 'desktop-auth-current',
         sessionStorage: {
           getItem: (key: string) =>
-            key === 'agent-webclient.appAccessToken' ? 'app-token' : null,
+            key === 'agent-webclient.appAccessToken'
+              ? 'app-token'
+              : key === 'agent-webclient.appAuthContext'
+                ? 'desktop-auth-current'
+                : null,
           setItem: () => undefined,
           removeItem: () => undefined,
         },

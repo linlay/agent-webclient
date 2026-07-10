@@ -1,6 +1,7 @@
 import { Blob } from 'buffer';
 import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/auth/accessTokenStorage';
 import {
+  AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   APP_AUTH_RESPONSE_TYPE,
 } from '@/shared/data/auth/appAuth';
@@ -166,7 +167,10 @@ function installWindow(options: {
   const listeners = new Set<(event: MessageEvent) => void>();
   const sessionStorage = createMockStorage(
     options.storedToken
-      ? { [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken }
+      ? {
+          [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken,
+          [AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]: 'desktop-auth-current',
+        }
       : {},
   );
   const parent = {
@@ -178,6 +182,9 @@ function installWindow(options: {
       search: options.search ?? '',
     },
     parent,
+    __AGENT_APP_AUTH_CONTEXT: options.storedToken
+      ? 'desktop-auth-current'
+      : undefined,
     sessionStorage,
     addEventListener: jest.fn((type: string, listener: EventListener) => {
       if (type === 'message') {
@@ -1335,6 +1342,7 @@ describe('data client query payloads', () => {
             type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'bridge-token-2',
+            desktopAuthContext: 'desktop-auth-current',
           },
         } as MessageEvent);
       });
@@ -1365,6 +1373,7 @@ describe('data client query payloads', () => {
             type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'fresh-token',
+            desktopAuthContext: 'desktop-auth-current',
           },
         } as MessageEvent);
       });
