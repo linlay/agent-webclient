@@ -180,20 +180,23 @@
 }
 
 .timeline-query-anchor-rail {
-    position: sticky;
-    top: 50%;
-    width: fit-content;
-    margin-left: calc(-1 * var(--query-anchor-offset, 56px));
-    display: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 20px;
+    display: flex;
     flex-direction: column;
     justify-content: center;
     z-index: 2;
-    overflow: visible;
-    transform: translateY(-50%);
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-.timeline-stack.has-query-anchors .timeline-query-anchor-rail {
-    display: flex;
+.timeline-query-anchor-rail::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .timeline-query-anchor-line {

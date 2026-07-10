@@ -49,8 +49,6 @@ type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
 const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 const QUERY_ANCHOR_ACTIVE_OFFSET = 96;
-const QUERY_ANCHOR_TIMELINE_WIDTH = 800;
-const QUERY_ANCHOR_EDGE_INSET = 12;
 
 const TIMELINE_EMPTY_CLASS_NAME =
   "timeline-empty tw:relative tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
@@ -90,11 +88,9 @@ const MESSAGES_SCROLL_CLASS_NAME = [
 ].join(" ");
 const TIMELINE_STACK_CLASS_NAME =
   "timeline-stack tw:relative tw:m-auto tw:min-h-full tw:w-full tw:max-w-[800px]";
-const TIMELINE_STACK_ANCHORS_CLASS_NAME = "has-query-anchors";
 const TIMELINE_STACK_EMPTY_CLASS_NAME =
   "is-empty tw:flex tw:items-end tw:justify-center";
-const TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME =
-  "timeline-query-anchor-rail tw:sticky tw:top-1/2 tw:left-0 tw:z-[2] tw:ml-[calc(-1*var(--query-anchor-offset,56px))] tw:hidden tw:w-fit tw:-translate-y-1/2 tw:flex-col tw:justify-center tw:overflow-visible tw:[.has-query-anchors_&]:flex";
+const TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME = "timeline-query-anchor-rail";
 const TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME =
   "timeline-query-anchor-preview tw:max-w-[360px] tw:text-xs";
 const TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME =
@@ -215,12 +211,6 @@ export function dispatchDerivedChatNavigation(chatId: string): void {
       },
     }),
   );
-}
-
-function resolveQueryAnchorOffset(width: number): number {
-  if (!Number.isFinite(width)) return 56;
-  const sideGutter = Math.max(0, (width - QUERY_ANCHOR_TIMELINE_WIDTH) / 2);
-  return Math.max(56, sideGutter - QUERY_ANCHOR_EDGE_INSET);
 }
 
 function buildQueryAnchorId(nodeId: string): string {
@@ -1095,10 +1085,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
     const updateWidthState = (width = el.clientWidth) => {
       setQueryAnchorsEnabled(shouldEnableQueryAnchors(width));
-      el.style.setProperty(
-        "--query-anchor-offset",
-        `${resolveQueryAnchorOffset(width)}px`,
-      );
     };
 
     updateWidthState();
@@ -1127,11 +1113,86 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   return (
     <div className={CONVERSATION_STAGE_CLASS_NAME}>
+      {queryAnchorItems.length > 0 && queryAnchorsEnabled && (
+        <nav
+          ref={anchorRef}
+          className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
+          style={
+            {
+              "--hover-index": (queryAnchorItems.length + 999).toString(),
+            } as React.CSSProperties
+          }
+          onMouseLeave={() => {
+            if (!anchorRef.current) return;
+            anchorRef.current.style.setProperty(
+              "--hover-index",
+              (queryAnchorItems.length + 999).toString(),
+            );
+          }}
+        >
+          {queryAnchorItems.map((anchor, index) => {
+            const active = activeQueryAnchorId === anchor.anchorId;
+            return (
+              <Tooltip
+                key={anchor.key}
+                rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
+                trigger="hover"
+                placement="right"
+                title={
+                  <div>
+                    <div
+                      className={TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME}
+                    >
+                      {anchor.queryText}
+                    </div>
+                    <div
+                      className={
+                        TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
+                      }
+                    >
+                      {anchor.lastRunContent}
+                    </div>
+                  </div>
+                }
+              >
+                <button
+                  className={[
+                    TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
+                    active ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  type="button"
+                  aria-current={active ? "location" : undefined}
+                  aria-label={`定位到第 ${index + 1} 个提问`}
+                  onMouseEnter={() => {
+                    if (!anchorRef.current) return;
+                    anchorRef.current.style.setProperty(
+                      "--hover-index",
+                      index.toString(),
+                    );
+                  }}
+                  onClick={() => handleQueryAnchorClick(anchor.anchorId)}
+                >
+                  <span
+                    className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
+                    aria-hidden="true"
+                    style={
+                      {
+                        "--index": index,
+                      } as React.CSSProperties
+                    }
+                  />
+                </button>
+              </Tooltip>
+            );
+          })}
+        </nav>
+      )}
       <div className={MESSAGES_SCROLL_CLASS_NAME} ref={scrollRef} id="messages">
         <div
           className={[
             TIMELINE_STACK_CLASS_NAME,
-            queryAnchorsEnabled ? TIMELINE_STACK_ANCHORS_CLASS_NAME : "",
             !state.chatId ? TIMELINE_STACK_EMPTY_CLASS_NAME : "",
           ]
             .filter(Boolean)
@@ -1166,92 +1227,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             ) : null
           ) : (
             <>
-              {queryAnchorItems.length > 0 && (
-                <nav
-                  ref={anchorRef}
-                  className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
-                  style={
-                    {
-                      "--hover-index": (
-                        queryAnchorItems.length + 999
-                      ).toString(),
-                    } as React.CSSProperties
-                  }
-                  onMouseLeave={() => {
-                    if (!anchorRef.current) return;
-                    anchorRef.current.style.setProperty(
-                      "--hover-index",
-                      (queryAnchorItems.length + 999).toString(),
-                    );
-                  }}
-                >
-                  {queryAnchorItems.map((anchor, index) => {
-                    const active = activeQueryAnchorId === anchor.anchorId;
-                    return (
-                      <Tooltip
-                        key={anchor.key}
-                        rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
-                        trigger="hover"
-                        placement="right"
-                        title={
-                          <div>
-                            <div
-                              className={
-                                TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME
-                              }
-                            >
-                              {anchor.queryText}
-                            </div>
-                            <div
-                              className={
-                                TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
-                              }
-                            >
-                              {anchor.lastRunContent}
-                            </div>
-                          </div>
-                        }
-                      >
-                        <button
-                          className={[
-                            TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
-                            active
-                              ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME
-                              : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          type="button"
-                          aria-current={active ? "location" : undefined}
-                          aria-label={`定位到第 ${index + 1} 个提问`}
-                          onMouseEnter={() => {
-                            if (!anchorRef.current) return;
-                            anchorRef.current.style.setProperty(
-                              "--hover-index",
-                              index.toString(),
-                            );
-                          }}
-                          onClick={() =>
-                            handleQueryAnchorClick(anchor.anchorId)
-                          }
-                        >
-                          <span
-                            className={
-                              TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME
-                            }
-                            aria-hidden="true"
-                            style={
-                              {
-                                "--index": index,
-                              } as React.CSSProperties
-                            }
-                          />
-                        </button>
-                      </Tooltip>
-                    );
-                  })}
-                </nav>
-              )}
               <div className={TIMELINE_LANE_CLASS_NAME}>
                 {displayItems?.map((item) => {
                   if (item.kind === "query") {
