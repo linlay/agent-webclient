@@ -7,8 +7,8 @@ import type {
   TimelineNode,
   ToolState,
 } from '@/app/state/types';
-import type { EventCommand, EventProcessorState } from '@/features/timeline/lib/eventProcessor';
-import { processEvent } from '@/features/timeline/lib/eventProcessor';
+import type { EventCommand, EventProcessorState } from '@/features/transport/lib/streamEventProcessorTypes';
+import { processStreamEvent } from '@/features/transport/lib/streamEventProcessor';
 import {
   clearAllAwaitingQuestionMeta,
   registerAwaitingApprovalMeta,
@@ -209,12 +209,12 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
 }
 
 function processAndApply(state: TestState, event: AgentEvent, mode: 'live' | 'replay', reasoningExpandedDefault: boolean): EventCommand[] {
-  const commands = processEvent(event, buildProcessorState(state), { mode, reasoningExpandedDefault });
+  const commands = processStreamEvent(event, buildProcessorState(state), { mode, reasoningExpandedDefault });
   applyCommands(state, commands);
   return commands;
 }
 
-describe('processEvent', () => {
+describe('processStreamEvent', () => {
   beforeEach(() => {
     clearAllAwaitingQuestionMeta();
   });
@@ -223,7 +223,7 @@ describe('processEvent', () => {
     const replayState = createState();
     const liveState = createState();
 
-    const replayCommands = processEvent({
+    const replayCommands = processStreamEvent({
       type: 'request.query',
       requestId: 'req_1',
       message: 'hello',
@@ -238,7 +238,7 @@ describe('processEvent', () => {
       mode: 'replay',
       reasoningExpandedDefault: false,
     });
-    const liveCommands = processEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(liveState), {
+    const liveCommands = processStreamEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(liveState), {
       mode: 'live',
       reasoningExpandedDefault: true,
     });
@@ -297,7 +297,7 @@ describe('processEvent', () => {
   });
 
   it('creates replay user nodes for attachment-only request.query events', () => {
-    const replayCommands = processEvent({
+    const replayCommands = processStreamEvent({
       type: 'request.query',
       requestId: 'req_attachments_only',
       message: '',
@@ -331,7 +331,7 @@ describe('processEvent', () => {
   });
 
   it('reads request.query text from query when message is absent', () => {
-    const replayCommands = processEvent({
+    const replayCommands = processStreamEvent({
       type: 'request.query',
       requestId: 'req_query_field',
       query: 'hello from query',

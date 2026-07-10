@@ -9,7 +9,8 @@ import {
   type UiTimerHandle,
 } from "@/app/state/types";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
-import { processEvent } from "@/features/timeline/lib/eventProcessor";
+import { processStreamEvent } from "@/features/transport/lib/streamEventProcessor";
+import { isPlanViewEventType } from "@/features/plan/lib/planViewEvents";
 import {
   readEventTeamId,
   readRequestQueryText,
@@ -49,17 +50,17 @@ import {
   getCachedNodeText,
   shouldSyncLiveCache,
   type LocalCache,
-} from "@/features/timeline/lib/localEventCache";
+} from "@/features/transport/lib/streamEventCache";
 import {
   applyLiveEventCommand,
-} from "@/features/timeline/lib/eventDispatchHandlers";
+} from "@/features/transport/lib/streamEventDispatch";
 
 export {
   createLiveProcessorState,
   createLocalCacheFromState,
   shouldSyncLiveCache,
-} from "@/features/timeline/lib/localEventCache";
-export { findMatchingPendingSteer } from "@/features/timeline/lib/eventDispatchHandlers";
+} from "@/features/transport/lib/streamEventCache";
+export { findMatchingPendingSteer } from "@/features/transport/lib/streamEventDispatch";
 
 export function buildAwaitingPlanningModeAction(input: {
   event: AgentEvent;
@@ -458,7 +459,7 @@ export function useAgentEventHandler() {
 
       const previousActiveReasoningKey =
         cache.activeReasoningKey || state.activeReasoningKey;
-      const commands = processEvent(
+      const commands = processStreamEvent(
         event,
         createLiveProcessorState(cache, state),
         {
@@ -750,14 +751,7 @@ export function useAgentEventHandler() {
         return;
       }
 
-      if (
-        type === "plan.create" ||
-        type === "plan.update" ||
-        type === "task.start" ||
-        type === "task.complete" ||
-        type === "task.fail" ||
-        type === "task.cancel"
-      ) {
+      if (isPlanViewEventType(type)) {
         if (commands.length > 0) {
           expandPlanForUpdate();
         }

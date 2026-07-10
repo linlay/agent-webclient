@@ -4,7 +4,7 @@ import type {
   EventCommand,
   EventProcessorConfig,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/timeline/lib/eventProcessorShared";

@@ -1,10 +1,10 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent, AppState, TimelineNode } from "@/app/state/types";
-import type { EventCommand } from "@/features/timeline/lib/eventProcessor";
+import type { EventCommand } from "@/features/transport/lib/streamEventProcessorTypes";
 import {
 	getCachedNode,
 	type LocalCache,
-} from "@/features/timeline/lib/localEventCache";
+} from "@/features/transport/lib/streamEventCache";
 import { toText } from "@/shared/utils/eventUtils";
 
 export function applyLiveEventCommand(input: {

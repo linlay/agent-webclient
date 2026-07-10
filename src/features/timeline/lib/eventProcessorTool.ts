@@ -6,7 +6,7 @@ import type {
 import type {
   EventCommand,
   EventProcessorState,
-} from "@/features/timeline/lib/eventProcessorTypes";
+} from "@/features/transport/lib/streamEventProcessorTypes";
 import { parseFrontendToolParams } from "@/features/tools/lib/frontendToolParams";
 import { toText } from "@/shared/utils/eventUtils";
 import {
