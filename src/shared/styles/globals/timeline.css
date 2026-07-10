@@ -1176,6 +1176,30 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     color: var(--ink-1);
 }
 
+.terminal-dock-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 2px;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.terminal-dock-close:hover {
+    background: var(--bg-hover);
+    color: var(--red-5);
+}
+
 /* ---- 终端面板容器 ---- */
 
 .terminal-dock-panes {
