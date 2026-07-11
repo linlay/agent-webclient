@@ -3,6 +3,7 @@ import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { TimelineCollapse } from "./collapse";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 interface ThinkingBlockProps {
   node: TimelineNode;
@@ -11,6 +12,7 @@ interface ThinkingBlockProps {
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
   const state = useAppState();
+  const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const expanded = Boolean(node.expanded);
   const reasoningKey = useMemo(() => {
@@ -31,6 +33,13 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       label={triggerLabel}
       expanded={expanded}
       onExpand={() => {
+        if (interaction?.patchNode) {
+          interaction.patchNode({
+            ...node,
+            expanded: !expanded,
+          });
+          return;
+        }
         if (reasoningKey) {
           const timer = state.reasoningCollapseTimers.get(reasoningKey);
           if (timer) {

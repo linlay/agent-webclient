@@ -12,6 +12,8 @@
 ## 核心流程
 Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。
 
+`/api/btw` 复用 SSE 帧解析、错误映射和 attach/interrupt，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。
+
 ## 边界与非目标
 - 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。
 - SSE 是兼容路径，默认产品链路优先验证 WebSocket。

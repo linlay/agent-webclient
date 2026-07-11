@@ -107,6 +107,11 @@ jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
     ),
 }));
 
+jest.mock("@/features/btw/components/BtwTab", () => ({
+  BtwTab: () =>
+    React.createElement("div", { className: "btw-tab" }, "side question"),
+}));
+
 jest.mock("@/features/settings/components/SettingsModal", () => ({
   SettingsModal: () =>
     React.createElement("div", { className: "settings-modal" }, "settings"),
@@ -340,6 +345,20 @@ describe("CopilotShell", () => {
 
     expect(html).toContain("copilot-side-panel");
     expect(html).toContain("overview-tab");
+  });
+
+  it("renders the side-question panel in copilot mode", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).toContain("copilot-side-panel");
+    expect(html).toContain("btw-tab");
   });
 
   it("starts the first loaded agent conversation on the bare copilot route", () => {

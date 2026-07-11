@@ -19,6 +19,7 @@ import {
   compactChat,
   createAgent,
   createAutomation,
+  createBTWStream,
   createRequestId,
   createQueryStream,
   deriveChat,
@@ -303,6 +304,37 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('runId');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('stream');
+  });
+
+  it('sends BTW streams without mutable routing fields', async () => {
+    await createBTWStream({
+      requestId: 'req_btw_1',
+      runId: 'run_btw_1',
+      chatId: 'chat_1',
+      btwId: 'btw_1',
+      message: 'side question',
+      references: [{ name: 'spec.md' }],
+      accessLevel: 'default',
+      stream: true,
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(options.body));
+    expect(url).toBe('/api/btw');
+    expect(body).toEqual({
+      requestId: 'req_btw_1',
+      runId: 'run_btw_1',
+      chatId: 'chat_1',
+      btwId: 'btw_1',
+      message: 'side question',
+      references: [{ name: 'spec.md' }],
+      accessLevel: 'default',
+      stream: true,
+    });
+    expect(body).not.toHaveProperty('agentKey');
+    expect(body).not.toHaveProperty('teamId');
+    expect(body).not.toHaveProperty('role');
+    expect(body).not.toHaveProperty('planningMode');
   });
 
   it('includes planningMode=true for CODER query streams', async () => {

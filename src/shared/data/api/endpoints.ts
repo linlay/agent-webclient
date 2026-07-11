@@ -14,6 +14,7 @@ import type {
   QueryReasoningEffort,
   QueryServiceTier,
   QueryStreamParams,
+  BTWStreamParams,
   AdminSkillListResponse,
 } from "@/shared/data/api/client";
 
@@ -61,6 +62,28 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (options.params !== undefined) body.params = options.params;
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
+
+  return body;
+}
+
+export function buildBTWPayload(options: BTWStreamParams): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    requestId: options.requestId,
+    chatId: options.chatId,
+    message: options.message,
+  };
+
+  if (options.runId) body.runId = options.runId;
+  if (options.btwId) body.btwId = options.btwId;
+  if (options.accessLevel) body.accessLevel = options.accessLevel;
+  const model = compactQueryModelOverride(options.model);
+  if (model) body.model = model;
+  if (options.references !== undefined) body.references = options.references;
+  if (options.params !== undefined) body.params = options.params;
+  if (options.scene !== undefined) body.scene = options.scene;
+  if (options.stream !== undefined) body.stream = options.stream;
+  if (options.includeUsage) body.includeUsage = true;
+  if (options.includeFullText) body.includeFullText = true;
 
   return body;
 }
@@ -663,6 +686,13 @@ export const dataEndpoints = createEndpointRegistry({
     cache: { ttlMs: 60_000, dedupe: true },
     payload: (agentKey?: string) =>
       compactPayload({ agentKey: String(agentKey || "").trim() }),
+  }),
+  btw: defineEndpoint<BTWStreamParams>({
+    key: "runs.btw",
+    path: "/api/btw",
+    method: "POST",
+    transport: "sse",
+    payload: buildBTWPayload,
   }),
   query: defineEndpoint<QueryStreamParams>({
     key: "runs.query",

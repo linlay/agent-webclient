@@ -14,6 +14,7 @@ import { buildWorkspaceFileUrl } from "@/shared/data/api/client";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -71,6 +72,7 @@ export function buildWorkspaceFilePreview(
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const dispatch = useAppDispatch();
 	const state = useAppState();
+	const interaction = useTimelineInteraction();
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
@@ -196,14 +198,19 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 											...nextBlock,
 											expanded: !expanded,
 										};
-										dispatch({
-											type: "SET_TIMELINE_NODE",
-											id: node.id,
-											node: {
-												...node,
-												ttsVoiceBlocks: blocks,
-											},
-										});
+						const nextNode = {
+							...node,
+							ttsVoiceBlocks: blocks,
+						};
+						if (interaction?.patchNode) {
+							interaction.patchNode(nextNode);
+						} else {
+							dispatch({
+								type: "SET_TIMELINE_NODE",
+								id: node.id,
+								node: nextNode,
+							});
+						}
 									}}
 								>
 									<span className={TTS_VOICE_LABEL_CLASS_NAME}>

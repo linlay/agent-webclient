@@ -2,8 +2,10 @@ import type { TransportMode } from "@/features/transport/lib/transportMode";
 import { executeQueryStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
 import { executeAttachRunSse } from "@/features/transport/lib/queryStreamRuntime.sse";
+import { executeBTWStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import type {
 	AttachStreamExecutor,
+	BTWStreamExecutor,
 	QueryStreamExecutor,
 } from "@/features/transport/lib/queryStreamShared";
 
@@ -17,4 +19,8 @@ export function resolveAttachStreamExecutor(
 	_transportMode: TransportMode,
 ): AttachStreamExecutor {
 	return executeAttachRunSse;
+}
+
+export function resolveBTWStreamExecutor(): BTWStreamExecutor {
+	return executeBTWStreamSse;
 }

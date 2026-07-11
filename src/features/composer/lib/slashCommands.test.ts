@@ -4,6 +4,7 @@ import {
   getFilteredSlashCommands,
   getLatestQueryText,
   isSlashCommandDisabled,
+  parseBTWSlashInput,
   shouldShowSlashCommandPalette,
 } from '@/features/composer/lib/slashCommands';
 
@@ -41,6 +42,16 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/us').map((item) => item.id)).toEqual(['usage']);
     expect(getFilteredSlashCommands('/tokens').map((item) => item.id)).toEqual(['usage']);
     expect(getFilteredSlashCommands('/cost').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('/btw').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('/side').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('/顺便').map((item) => item.id)).toEqual(['btw']);
+  });
+
+  it('parses only the canonical btw command and optional inline question', () => {
+    expect(parseBTWSlashInput('/btw')).toBe('');
+    expect(parseBTWSlashInput('/BTW  quick question')).toBe('quick question');
+    expect(parseBTWSlashInput('/btwfoo')).toBeNull();
+    expect(parseBTWSlashInput('hello /btw')).toBeNull();
   });
 
   it('shows planning as /planning only when planning mode is available', () => {
@@ -137,6 +148,12 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
     expect(isSlashCommandDisabled('usage', availability)).toBe(true);
+    expect(isSlashCommandDisabled('btw', availability)).toBe(true);
+    expect(isSlashCommandDisabled('btw', {
+      ...availability,
+      streaming: true,
+      hasActiveChat: true,
+    })).toBe(false);
   });
 
   it('enables the plan command only for planning-capable workers', () => {

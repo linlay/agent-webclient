@@ -28,6 +28,7 @@ import {
 } from "@/shared/data/errors/platformError";
 import {
   buildAttachPayload,
+  buildBTWPayload,
   buildQueryPayload,
   compactQueryModelOverride,
   dataEndpoints,
@@ -2488,6 +2489,23 @@ export interface QueryStreamParams {
   signal?: AbortSignal;
 }
 
+export interface BTWStreamParams {
+  requestId: string;
+  runId?: string;
+  chatId: string;
+  btwId?: string;
+  message: string;
+  accessLevel?: QueryAccessLevel;
+  model?: QueryModelOverride;
+  references?: unknown[];
+  params?: Record<string, unknown>;
+  scene?: QueryStreamParams["scene"];
+  stream?: boolean;
+  includeUsage?: boolean;
+  includeFullText?: boolean;
+  signal?: AbortSignal;
+}
+
 export interface AttachStreamParams {
   runId: string;
   agentKey: string;
@@ -2505,6 +2523,20 @@ export function createQueryStream(
       'Cache-Control': 'no-cache',
     },
     body: JSON.stringify(buildQueryPayload(options)),
+    signal: options.signal,
+  });
+}
+
+export function createBTWStream(
+  options: BTWStreamParams,
+): Promise<Response> {
+  return requestWithAuth(dataEndpoints.btw.path, {
+    method: "POST",
+    headers: {
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
+    },
+    body: JSON.stringify(buildBTWPayload(options)),
     signal: options.signal,
   });
 }

@@ -1,10 +1,12 @@
 import {
   ApiError,
   createAttachStream,
+  createBTWStream,
   createQueryStream,
 } from "@/shared/data";
 import {
   executeAttachRunSse,
+  executeBTWStreamSse,
   executeQueryStreamSse,
 } from "@/features/transport/lib/queryStreamRuntime.sse";
 
@@ -13,6 +15,7 @@ jest.mock("@/shared/data", () => {
   return {
     ...actual,
     createAttachStream: jest.fn(),
+    createBTWStream: jest.fn(),
     createQueryStream: jest.fn(),
   };
 });
@@ -41,10 +44,13 @@ describe("executeQueryStreamSse", () => {
     createQueryStream as jest.MockedFunction<typeof createQueryStream>;
   const createAttachStreamMock =
     createAttachStream as jest.MockedFunction<typeof createAttachStream>;
+  const createBTWStreamMock =
+    createBTWStream as jest.MockedFunction<typeof createBTWStream>;
 
   beforeEach(() => {
     createQueryStreamMock.mockReset();
     createAttachStreamMock.mockReset();
+    createBTWStreamMock.mockReset();
   });
 
   it("dispatches lifecycle actions and forwards parsed events", async () => {
@@ -114,6 +120,62 @@ describe("executeQueryStreamSse", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_ABORT_CONTROLLER",
       controller: null,
+    });
+  });
+
+  it("streams BTW over SSE and reports response identity", async () => {
+    const handleEvent = jest.fn();
+    const onIdentity = jest.fn();
+    createBTWStreamMock.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode(
+                'data: {"type":"request.query","kind":"btw","btwId":"btw_1"}\n\n',
+              ),
+            );
+            controller.close();
+          },
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream",
+            "X-Btw-Id": "btw_1",
+            "X-Run-Id": "run_btw_1",
+          },
+        },
+      ),
+    );
+
+    await executeBTWStreamSse({
+      params: {
+        requestId: "req_btw_1",
+        runId: "run_btw_1",
+        chatId: "chat_1",
+        message: "side",
+      },
+      dispatch: jest.fn(),
+      handleEvent,
+      onIdentity,
+    });
+
+    expect(createBTWStreamMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: "chat_1",
+        message: "side",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(onIdentity).toHaveBeenCalledWith({
+      btwId: "btw_1",
+      runId: "run_btw_1",
+    });
+    expect(handleEvent).toHaveBeenCalledWith({
+      type: "request.query",
+      kind: "btw",
+      btwId: "btw_1",
     });
   });
 

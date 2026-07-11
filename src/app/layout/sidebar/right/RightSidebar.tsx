@@ -7,6 +7,7 @@ import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
+import { BtwTab } from "@/features/btw/components/BtwTab";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -77,6 +78,8 @@ export const RightSidebar: React.FC = () => {
   const initialPanel =
     state.rightSidebarOpenTab === "debug" && debugPanelEnabled
       ? "debug"
+      : state.rightSidebarOpenTab === "btw" && state.chatId
+        ? "btw"
       : state.rightSidebarOpenTab === "preview" && previews.length > 0
         ? `preview:${previews[previews.length - 1].url}`
         : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
@@ -275,6 +278,20 @@ export const RightSidebar: React.FC = () => {
       },
     ];
 
+    if (state.chatId) {
+      items.push({
+        key: "btw",
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="question_answer" />
+            <span>{t("btw.title")}</span>
+          </Flex>
+        ),
+        closable: false,
+        children: <BtwTab />,
+      });
+    }
+
     if (sourceDetail) {
       items.push({
         key: "sourceDetail",
@@ -315,7 +332,7 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [previews, sourceDetail, planningPreviews, t]);
+  }, [previews, sourceDetail, planningPreviews, state.chatId, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
     setActiveTab(key);

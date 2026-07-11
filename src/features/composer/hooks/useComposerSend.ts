@@ -23,6 +23,8 @@ import type {
   SlashCommandAvailability,
   SlashCommandId,
 } from "@/features/composer/lib/slashCommands";
+import { parseBTWSlashInput } from "@/features/composer/lib/slashCommands";
+import { useBTW } from "@/features/btw/components/BtwProvider";
 import {
   normalizeSteerSubmissionResponse,
   resolveActiveRunId,
@@ -145,6 +147,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   } = input;
   const { t } = useI18n();
   const { message: messageApi } = AntdApp.useApp();
+  const { openBTW } = useBTW();
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
@@ -335,6 +338,13 @@ export function useComposerSend(input: UseComposerSendInput) {
     submitCompactCommand,
     setInputValue,
     setSlashDismissed,
+    openBTW: () => {
+      openBTW({
+        accessLevel,
+        model: modelOverride,
+        params: controlParams,
+      });
+    },
     state: executeSlashCommandInput.state,
   });
 
@@ -358,6 +368,30 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const currentState = stateRef.current || state;
     const activeChatId = String(currentState.chatId || "").trim();
+    const btwMessage = parseBTWSlashInput(message);
+    if (btwMessage !== null) {
+      if (!activeChatId) {
+        void messageApi.warning(t("btw.noChat"));
+        return;
+      }
+      openBTW({
+        parentChatId: activeChatId,
+        message: btwMessage,
+        references: sendReferences,
+        attachments: sendAttachmentMeta,
+        accessLevel,
+        model: modelOverride,
+        params: controlParams,
+        sendImmediately: Boolean(btwMessage),
+      });
+      setInputValue("");
+      if (btwMessage) {
+        clearComposerAttachments();
+      }
+      setSlashDismissed(false);
+      closeMention();
+      return;
+    }
     const mainRuntime = resolveMainChatRuntime(
       currentState,
       activeQuerySessionRequestIdRef,
@@ -462,6 +496,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     modelOverride,
+    messageApi,
+    openBTW,
     activeQuerySessionRequestIdRef,
     querySessionsRef,
     resolveCurrentRunId,
@@ -481,6 +517,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.workerSelectionKey,
     stateRef,
     stopSpeechInput,
+    t,
   ]);
 
   const restoreMessageToComposer = useCallback(

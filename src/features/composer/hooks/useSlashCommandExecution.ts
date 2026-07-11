@@ -22,6 +22,7 @@ export function useSlashCommandExecution(input: {
 	submitCompactCommand: () => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
+	openBTW: () => void;
 	state: Pick<
 		AppState,
 		"rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen"
@@ -39,6 +40,7 @@ export function useSlashCommandExecution(input: {
 		submitCompactCommand,
 		setInputValue,
 		setSlashDismissed,
+		openBTW,
 		state,
 	} = input;
 	const { openOverlay } = useSettingsOverlayActions();
@@ -58,6 +60,9 @@ export function useSlashCommandExecution(input: {
 			closeMention();
 
 			switch (commandId) {
+				case "btw":
+					openBTW();
+					return;
 				case "remember":
 					await submitRememberCommand();
 					return;
@@ -126,6 +131,7 @@ export function useSlashCommandExecution(input: {
 			toggleVoiceMode,
 			openCommandOverlay,
 			openOverlay,
+			openBTW,
 		],
 	);
 }

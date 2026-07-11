@@ -3,6 +3,7 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import {
   createAttachStream,
+  createBTWStream,
   createQueryStream,
 } from "@/shared/data";
 import {
@@ -11,11 +12,13 @@ import {
   stopQueryStreamState,
   toApiErrorFromText,
   type ExecuteAttachRunOptions,
+  type ExecuteBTWStreamOptions,
   type ExecuteQueryStreamOptions,
 } from "@/features/transport/lib/queryStreamShared";
 
 export type ExecuteQueryStreamSseOptions = ExecuteQueryStreamOptions;
 export type ExecuteAttachRunSseOptions = ExecuteAttachRunOptions;
+export type ExecuteBTWStreamSseOptions = ExecuteBTWStreamOptions;
 
 interface ParsedSseFrame {
   event?: string;
@@ -65,7 +68,7 @@ function toAgentEvent(frame: ParsedSseFrame): AgentEvent | null {
   return parsed as AgentEvent;
 }
 
-async function consumeSseStream(
+export async function consumeSseStream(
   response: Response,
   dispatch: Dispatch<AppAction>,
   handleEvent: (event: AgentEvent) => void,
@@ -127,19 +130,29 @@ async function consumeSseStream(
   }
 }
 
-export async function executeQueryStreamSse(
-  options: ExecuteQueryStreamSseOptions,
-): Promise<void> {
-  const { dispatch, handleEvent, params } = options;
+interface RunStreamParams {
+  requestId: string;
+  signal?: AbortSignal;
+}
+
+async function executeRunStreamSse<TParams extends RunStreamParams>(input: {
+  params: TParams;
+  dispatch: Dispatch<AppAction>;
+  handleEvent: (event: AgentEvent) => void;
+  createStream: (params: TParams & { signal: AbortSignal }) => Promise<Response>;
+  onResponse?: (response: Response) => void;
+}): Promise<void> {
+  const { dispatch, handleEvent, params, createStream, onResponse } = input;
   const { abortController, cleanup } = createStreamAbortScope(params.signal);
 
   startQueryStreamState(dispatch, params.requestId, abortController);
 
   try {
-    const response = await createQueryStream({
+    const response = await createStream({
       ...params,
       signal: abortController.signal,
     });
+    onResponse?.(response);
     await consumeSseStream(response, dispatch, handleEvent);
   } catch (error) {
     if ((error as Error).name !== "AbortError") {
@@ -149,6 +162,32 @@ export async function executeQueryStreamSse(
     cleanup();
     stopQueryStreamState(dispatch);
   }
+}
+
+export async function executeQueryStreamSse(
+  options: ExecuteQueryStreamSseOptions,
+): Promise<void> {
+  await executeRunStreamSse({
+    ...options,
+    createStream: createQueryStream,
+  });
+}
+
+export async function executeBTWStreamSse(
+  options: ExecuteBTWStreamSseOptions,
+): Promise<void> {
+  await executeRunStreamSse({
+    dispatch: options.dispatch,
+    handleEvent: options.handleEvent,
+    params: options.params,
+    createStream: createBTWStream,
+    onResponse: (response) => {
+      options.onIdentity?.({
+        btwId: String(response.headers.get("X-Btw-Id") || "").trim(),
+        runId: String(response.headers.get("X-Run-Id") || "").trim(),
+      });
+    },
+  });
 }
 
 export async function executeAttachRunSse(

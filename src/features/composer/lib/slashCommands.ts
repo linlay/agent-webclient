@@ -4,6 +4,7 @@ import { t } from '@/shared/i18n';
 import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
 
 export type SlashCommandId =
+  | 'btw'
   | 'remember'
   | 'learn'
   | 'compact'
@@ -51,6 +52,14 @@ export interface SlashCommandFilterOptions {
 }
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
+  {
+    id: 'btw',
+    icon: 'question_answer',
+    command: '/btw',
+    labelKey: 'slash.command.btw.label',
+    descriptionKey: 'slash.command.btw.description',
+    keywords: ['btw', 'side', 'aside', 'quick question'],
+  },
   {
     id: 'new',
     icon: 'edit_square',
@@ -214,6 +223,9 @@ export function isSlashCommandDisabled(
   commandId: SlashCommandId,
   availability: SlashCommandAvailability,
 ): boolean {
+  if (commandId === 'btw') {
+    return !availability.hasActiveChat || availability.commandOverlayOpen;
+  }
   if (commandId === 'remember' || commandId === 'learn' || commandId === 'compact') {
     return availability.streaming || !availability.hasActiveChat || availability.commandOverlayOpen;
   }
@@ -236,6 +248,12 @@ export function isSlashCommandDisabled(
     return !availability.canShowUsage;
   }
   return false;
+}
+
+export function parseBTWSlashInput(input: string): string | null {
+  const match = String(input || "").match(/^\/btw(?:\s+([\s\S]*))?$/i);
+  if (!match) return null;
+  return String(match[1] || "").trim();
 }
 
 export function getLatestQueryText(nodes: TimelineNode[]): string {
