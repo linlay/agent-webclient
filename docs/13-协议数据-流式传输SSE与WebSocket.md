@@ -12,7 +12,11 @@
 ## 核心流程
 Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。
 
-`/api/btw` 复用 SSE 帧解析、错误映射和 attach/interrupt，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。
+`/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
+
+BTW 的运行控制也与主会话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与 `agentKey`，即使主会话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
+
+关闭 Side question 只销毁该 chat 的前端 session、runtime 与持久化记录，不发送 interrupt，也不 abort 正在消费的 SSE；后端 run 自然结束。被丢弃 runtime 的迟到 identity、事件和 finally 都必须被对象身份校验拦截，不能恢复已关闭的 Tab 或污染随后创建的分支。
 
 ## 边界与非目标
 - 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。
@@ -25,6 +29,8 @@ Composer 发送消息时解析当前 transport mode，调用对应 executor。�
 - `../src/features/transport/lib/queryStreamExecutors.ts`
 - `../src/features/transport/lib/wsClient.ts`
 - `../src/features/transport/lib/transportMode.ts`
+- `../src/features/btw/components/BtwProvider.tsx`
+- `../src/shared/data/api/client.ts`
 - `../src/features/conversation/hooks/useConversationWsRuntime.ts`
 - `../src/features/conversation/hooks/useConversationSseAttachRuntime.ts`
 - `../src/features/composer/hooks/useMessageActions.ts`

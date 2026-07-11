@@ -15,24 +15,33 @@ jest.mock("@/app/state/AppContext", () => {
 
 jest.mock("antd", () => {
   const React = require("react");
+  const mockTabsState: { current: any } = { current: null };
 
   return {
+    __mockTabsState: mockTabsState,
     Flex: ({ children, gap, ...props }: any) =>
       React.createElement("div", { ...props, "data-gap": gap }, children),
-    Tabs: ({ items = [], activeKey, className }: any) =>
-      React.createElement(
+    Tabs: (props: any) => {
+      const { items = [], activeKey, className } = props;
+      mockTabsState.current = props;
+      return React.createElement(
         "div",
         { className, "data-active-key": activeKey },
         items.map((item: any) =>
           React.createElement(
             "section",
-            { key: item.key, "data-tab-key": item.key },
+            {
+              key: item.key,
+              "data-tab-key": item.key,
+              "data-closable": String(item.closable !== false),
+            },
             item.icon,
             item.label,
             item.children,
           ),
         ),
-      ),
+      );
+    },
   };
 });
 
@@ -60,8 +69,21 @@ jest.mock("@/features/btw/components/BtwTab", () => ({
   BtwTab: () => React.createElement("div", null, "btw tab"),
 }));
 
-const { useAppState } = jest.requireMock("@/app/state/AppContext") as {
+jest.mock("@/features/btw/components/BtwProvider", () => ({
+  useBTW: jest.fn(),
+}));
+
+const { useAppDispatch, useAppState } = jest.requireMock("@/app/state/AppContext") as {
+  useAppDispatch: jest.Mock;
   useAppState: jest.Mock;
+};
+const { useBTW } = jest.requireMock(
+  "@/features/btw/components/BtwProvider",
+) as {
+  useBTW: jest.Mock;
+};
+const { __mockTabsState: mockTabsState } = jest.requireMock("antd") as {
+  __mockTabsState: { current: any };
 };
 
 const globalWithFeatureFlags = globalThis as typeof globalThis & {
@@ -75,6 +97,9 @@ const globalWithFeatureFlags = globalThis as typeof globalThis & {
 
 describe("RightSidebar", () => {
   const originalLocalStorage = globalWithFeatureFlags.localStorage;
+  const dispatch = jest.fn();
+  const discardBTW = jest.fn();
+  const getSession = jest.fn();
 
   beforeEach(() => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
@@ -83,6 +108,13 @@ describe("RightSidebar", () => {
       setItem: jest.fn(),
       removeItem: jest.fn(),
     };
+    dispatch.mockReset();
+    discardBTW.mockReset();
+    getSession.mockReset();
+    getSession.mockReturnValue(null);
+    mockTabsState.current = null;
+    useAppDispatch.mockReturnValue(dispatch);
+    useBTW.mockReturnValue({ discardBTW, getSession });
     useAppState.mockReturnValue({
       ...createInitialState(),
       rightSidebarOpen: true,
@@ -127,7 +159,24 @@ describe("RightSidebar", () => {
     expect(html).toContain("debug tab");
   });
 
-  it("adds the side-question tab only for an active chat", () => {
+  it("does not add the side-question tab when the active chat has no BTW session", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+
+    const html = renderRightSidebar();
+
+    expect(getSession).toHaveBeenCalledWith("chat_1");
+    expect(html).not.toContain('data-tab-key="btw"');
+    expect(html).not.toContain("btw tab");
+    expect(html).toContain('data-active-key="overview"');
+  });
+
+  it("adds a closable side-question tab for the active chat session", () => {
+    getSession.mockReturnValue({ parentChatId: "chat_1" });
     useAppState.mockReturnValue({
       ...createInitialState(),
       chatId: "chat_1",
@@ -138,7 +187,43 @@ describe("RightSidebar", () => {
     const html = renderRightSidebar();
 
     expect(html).toContain('data-tab-key="btw"');
+    expect(html).toContain('data-closable="true"');
     expect(html).toContain("顺便问");
     expect(html).toContain("btw tab");
+  });
+
+  it("discards the active BTW session and returns to overview when its tab closes", () => {
+    getSession.mockReturnValue({ parentChatId: "chat_1" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+    renderRightSidebar();
+
+    mockTabsState.current.onEdit("btw", "remove");
+
+    expect(discardBTW).toHaveBeenCalledWith("chat_1");
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_RIGHT_SIDEBAR",
+      tab: "overview",
+    });
+  });
+
+  it("only collapses the sidebar from the global close button", () => {
+    getSession.mockReturnValue({ parentChatId: "chat_1" });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+    renderRightSidebar();
+
+    mockTabsState.current.tabBarExtraContent.props.onClick();
+
+    expect(discardBTW).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({ type: "CLOSE_RIGHT_SIDEBAR" });
   });
 });

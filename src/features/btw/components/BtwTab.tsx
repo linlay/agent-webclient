@@ -76,6 +76,8 @@ export const BtwTab: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const draft = session?.draft || "";
   const running = session?.status === "running";
+  const interruptReady = Boolean(session?.interruptReady);
+  const interruptPending = Boolean(session?.interruptPending);
 
   const timelineEntries = useMemo(() => {
     if (!session) return [];
@@ -113,6 +115,17 @@ export const BtwTab: React.FC = () => {
     if (!parentChatId || !draft.trim() || running) return;
     void sendBTW(parentChatId, draft);
   }, [draft, parentChatId, running, sendBTW]);
+
+  const handleInterrupt = useCallback(() => {
+    if (!parentChatId || !running || !interruptReady || interruptPending) return;
+    void interruptBTW(parentChatId);
+  }, [
+    interruptBTW,
+    interruptPending,
+    interruptReady,
+    parentChatId,
+    running,
+  ]);
 
   const interaction = useMemo(
     () => ({
@@ -223,14 +236,19 @@ export const BtwTab: React.FC = () => {
             />
             {running ? (
               <UiButton
-                variant="ghost"
+                variant="danger"
                 size="sm"
                 iconOnly
+                disabled={!interruptReady || interruptPending}
+                loading={interruptPending}
                 aria-label={t("btw.stop")}
                 title={t("btw.stop")}
-                onClick={() => void interruptBTW(parentChatId)}
+                onClick={handleInterrupt}
               >
-                <MaterialIcon name="stop_circle" />
+                <MaterialIcon
+                  name={interruptPending ? "progress_activity" : "stop_circle"}
+                  className={interruptPending ? "tw:animate-ui-spin" : ""}
+                />
               </UiButton>
             ) : (
               <UiButton

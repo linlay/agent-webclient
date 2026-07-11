@@ -8,6 +8,7 @@ import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -70,15 +71,19 @@ export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
   const state = useAppState();
+  const { discardBTW, getSession } = useBTW();
   const previews = state.attachmentPreview;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
+  const hasBTWSession = Boolean(
+    state.chatId && getSession(state.chatId),
+  );
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
   const initialPanel =
     state.rightSidebarOpenTab === "debug" && debugPanelEnabled
       ? "debug"
-      : state.rightSidebarOpenTab === "btw" && state.chatId
+      : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
       : state.rightSidebarOpenTab === "preview" && previews.length > 0
         ? `preview:${previews[previews.length - 1].url}`
@@ -110,6 +115,12 @@ export const RightSidebar: React.FC = () => {
     }
 
     if (state.rightSidebarOpenTab === "debug" && !debugPanelEnabled) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+
+    if (state.rightSidebarOpenTab === "btw" && !hasBTWSession) {
       setActivePanel("overview");
       setActiveTab("overview");
       return;
@@ -158,12 +169,18 @@ export const RightSidebar: React.FC = () => {
     sourceDetail,
     planningPreviews,
     debugPanelEnabled,
+    hasBTWSession,
     state.rightSidebarOpen,
     state.rightSidebarOpenTab,
   ]);
 
   React.useEffect(() => {
     if (activePanel === "debug" && !debugPanelEnabled) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+    if (activePanel === "btw" && !hasBTWSession) {
       setActivePanel("overview");
       setActiveTab("overview");
       return;
@@ -183,6 +200,7 @@ export const RightSidebar: React.FC = () => {
   }, [
     activePanel,
     debugPanelEnabled,
+    hasBTWSession,
     previews,
     sourceDetail,
     planningPreviews,
@@ -278,7 +296,7 @@ export const RightSidebar: React.FC = () => {
       },
     ];
 
-    if (state.chatId) {
+    if (hasBTWSession) {
       items.push({
         key: "btw",
         label: (
@@ -287,7 +305,7 @@ export const RightSidebar: React.FC = () => {
             <span>{t("btw.title")}</span>
           </Flex>
         ),
-        closable: false,
+        closable: true,
         children: <BtwTab />,
       });
     }
@@ -332,7 +350,7 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [previews, sourceDetail, planningPreviews, state.chatId, t]);
+  }, [hasBTWSession, previews, sourceDetail, planningPreviews, t]);
 
   const handleTabChange = React.useCallback((key: string) => {
     setActiveTab(key);
@@ -376,7 +394,20 @@ export const RightSidebar: React.FC = () => {
           items={tabItems}
           onEdit={(key, action) => {
             if (action === "remove") {
-              if (typeof key === "string" && key.startsWith("preview:")) {
+              if (key === "btw") {
+                if (state.chatId) {
+                  discardBTW(state.chatId);
+                }
+                setActivePanel("overview");
+                setActiveTab("overview");
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: "overview",
+                });
+              } else if (
+                typeof key === "string" &&
+                key.startsWith("preview:")
+              ) {
                 const urlToRemove = key.slice("preview:".length);
                 const remaining = previews.filter((p) => p.url !== urlToRemove);
                 dispatch({
