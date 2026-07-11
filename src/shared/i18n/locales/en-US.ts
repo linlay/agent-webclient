@@ -868,6 +868,7 @@ export const enUSMessages: I18nMessages = {
   "skillConsole.status.disabled": "Disabled",
   "btw.composer.placeholder": "Ask a side question",
   "btw.empty": "Ask a small question without changing the main conversation",
+  "btw.interrupt.rejected": "Interrupt request was not accepted",
   "btw.new.action": "New side question",
   "btw.new.cancel": "Cancel",
   "btw.new.confirm": "Start new",

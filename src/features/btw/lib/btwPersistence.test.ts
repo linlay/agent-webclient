@@ -53,6 +53,8 @@ function createSession(parentChatId: string, itemCount = 2): BTWSessionState {
     requestId: "req_1",
     agentKey: "agent_1",
     status: "idle",
+    interruptReady: false,
+    interruptPending: false,
     draft: "",
     error: "",
     focusToken: 0,
@@ -134,6 +136,20 @@ describe("btwPersistence", () => {
     expect(restored[0].transcript.length).toBeLessThanOrEqual(
       BTW_MAX_TRANSCRIPT_ITEMS,
     );
+  });
+
+  it("overwrites discarded sessions so they cannot be restored", () => {
+    const first = createSession("chat_1");
+    const second = createSession("chat_2");
+    persistBTWSessions([first, second]);
+
+    persistBTWSessions([second]);
+    expect(readPersistedBTWSessions().map((item) => item.parentChatId)).toEqual([
+      "chat_2",
+    ]);
+
+    persistBTWSessions([]);
+    expect(readPersistedBTWSessions()).toEqual([]);
   });
 
   it("fails soft on corrupt storage", () => {

@@ -31,6 +31,8 @@ export interface BTWSessionState {
   requestId: string;
   agentKey: string;
   status: BTWSessionStatus;
+  interruptReady: boolean;
+  interruptPending: boolean;
   draft: string;
   error: string;
   focusToken: number;

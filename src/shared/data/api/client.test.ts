@@ -65,6 +65,7 @@ import {
   getVoiceCapabilitiesFlexible,
   getVoiceVoices,
   getVoiceVoicesFlexible,
+  interruptBTWRun,
   interruptChat,
   learnChat,
   markChatRead,
@@ -906,6 +907,51 @@ describe('data client query payloads', () => {
     expect(steerPayload.runId).toBe('run_1');
     expect(steerPayload.agentKey).toBe('demo-agent');
     expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('interrupts BTW runs directly over HTTP and preserves the typed acknowledgement', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        code: 0,
+        msg: 'ok',
+        data: {
+          accepted: true,
+          status: 'accepted',
+          runId: 'btw_run_1',
+          detail: 'interrupt accepted',
+        },
+      }),
+    });
+
+    const response = await interruptBTWRun({
+      requestId: 'req_btw_interrupt',
+      chatId: 'parent_chat_1',
+      runId: 'btw_run_1',
+      agentKey: 'demo-agent',
+      teamId: 'demo-team',
+      message: '',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/interrupt');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_btw_interrupt',
+      chatId: 'parent_chat_1',
+      runId: 'btw_run_1',
+      agentKey: 'demo-agent',
+      teamId: 'demo-team',
+      message: '',
+    });
+    expect(response.data).toEqual({
+      accepted: true,
+      status: 'accepted',
+      runId: 'btw_run_1',
+      detail: 'interrupt accepted',
+    });
   });
 
   it('posts access level updates for active runs', async () => {

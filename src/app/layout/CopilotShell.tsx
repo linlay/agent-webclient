@@ -19,6 +19,7 @@ import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { useBTW } from "@/features/btw/components/BtwProvider";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -215,6 +216,7 @@ const CopilotTopBar: React.FC = () => {
 const CopilotSidePanel: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { discardBTW } = useBTW();
   const { t } = useI18n();
   const debugPanelEnabled = isDebugPanelEnabled();
   const activeTab = state.rightSidebarOpenTab;
@@ -250,7 +252,12 @@ const CopilotSidePanel: React.FC = () => {
           iconOnly
           aria-label={t("copilot.panel.close")}
           title={t("copilot.panel.close")}
-          onClick={() => dispatch({ type: "CLOSE_RIGHT_SIDEBAR" })}
+          onClick={() => {
+            if (activeTab === "btw") {
+              discardBTW(state.chatId);
+            }
+            dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+          }}
         >
           <MaterialIcon name="close" />
         </UiButton>

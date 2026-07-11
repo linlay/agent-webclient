@@ -3,6 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 
+const mockUiButtonProps: Array<Record<string, any>> = [];
+const mockDiscardBTW = jest.fn();
+
 jest.mock("react-router-dom", () => ({
   useLocation: jest.fn(),
   useNavigate: jest.fn(),
@@ -110,6 +113,26 @@ jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
 jest.mock("@/features/btw/components/BtwTab", () => ({
   BtwTab: () =>
     React.createElement("div", { className: "btw-tab" }, "side question"),
+}));
+
+jest.mock("@/features/btw/components/BtwProvider", () => ({
+  useBTW: () => ({ discardBTW: mockDiscardBTW }),
+}));
+
+jest.mock("@/shared/ui/UiButton", () => ({
+  UiButton: ({ children, className = "", ...props }: Record<string, any>) => {
+    mockUiButtonProps.push({ children, className, ...props });
+    return React.createElement(
+      "button",
+      {
+        className,
+        "aria-label": props["aria-label"],
+        title: props.title,
+        disabled: props.disabled || props.loading,
+      },
+      children,
+    );
+  },
 }));
 
 jest.mock("@/features/settings/components/SettingsModal", () => ({
@@ -263,6 +286,8 @@ describe("CopilotShell", () => {
     useLocation.mockReturnValue({ pathname: "/copilot" });
     useNavigate.mockReturnValue(navigate);
     navigate.mockClear();
+    mockDiscardBTW.mockReset();
+    mockUiButtonProps.length = 0;
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
@@ -348,17 +373,28 @@ describe("CopilotShell", () => {
   });
 
   it("renders the side-question panel in copilot mode", () => {
+    const dispatch = jest.fn();
     useAppState.mockReturnValue({
       ...createInitialState(),
       chatId: "chat_1",
       rightSidebarOpen: true,
       rightSidebarOpenTab: "btw",
     });
+    useAppDispatch.mockReturnValue(dispatch);
 
     const html = renderToStaticMarkup(React.createElement(CopilotShell));
 
     expect(html).toContain("copilot-side-panel");
     expect(html).toContain("btw-tab");
+
+    const closeButton = mockUiButtonProps.find(
+      (props) => props["aria-label"] === "copilot.panel.close",
+    );
+    closeButton?.onClick();
+
+    expect(closeButton).toBeDefined();
+    expect(mockDiscardBTW).toHaveBeenCalledWith("chat_1");
+    expect(dispatch).toHaveBeenCalledWith({ type: "CLOSE_RIGHT_SIDEBAR" });
   });
 
   it("starts the first loaded agent conversation on the bare copilot route", () => {

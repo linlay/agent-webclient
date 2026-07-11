@@ -2191,6 +2191,13 @@ export interface QueryLikeParams {
   planningMode?: boolean;
 }
 
+export interface BTWInterruptResponse {
+  accepted: boolean;
+  status: string;
+  runId: string;
+  detail: string;
+}
+
 export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
 export type QueryReasoningEffort =
   | "NONE"
@@ -2392,6 +2399,26 @@ export async function downloadChatExport(chatId: string): Promise<void> {
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
   return requestJson(dataEndpoints.interrupt.path, {
+    method: "POST",
+    body: JSON.stringify({
+      requestId: params.requestId,
+      chatId: params.chatId,
+      runId: params.runId,
+      agentKey: params.agentKey,
+      teamId: params.teamId,
+      message: params.message,
+    }),
+  });
+}
+
+/**
+ * BTW runs always use the HTTP control endpoint, independently of the main
+ * conversation transport mode.
+ */
+export function interruptBTWRun(
+  params: QueryLikeParams,
+): Promise<ApiResponse<BTWInterruptResponse>> {
+  return requestJson<BTWInterruptResponse>(dataEndpoints.interrupt.path, {
     method: "POST",
     body: JSON.stringify({
       requestId: params.requestId,

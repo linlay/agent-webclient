@@ -868,6 +868,7 @@ export const zhCNMessages: I18nMessages = {
   "skillConsole.status.disabled": "已禁用",
   "btw.composer.placeholder": "顺便问点什么",
   "btw.empty": "问一个不影响主对话的小问题",
+  "btw.interrupt.rejected": "中断请求未被接受",
   "btw.new.action": "新建顺便问",
   "btw.new.cancel": "取消",
   "btw.new.confirm": "新建",

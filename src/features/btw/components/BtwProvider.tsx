@@ -26,10 +26,11 @@ import {
 } from "@/features/composer/lib/queryRouting";
 import {
   createRequestId,
-  interruptChat,
+  interruptBTWRun,
   type BTWStreamParams,
 } from "@/shared/data";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
+import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
 import {
   persistBTWSessions,
@@ -40,10 +41,18 @@ import type {
   OpenBTWOptions,
   PersistedBTWSession,
 } from "@/features/btw/lib/btwTypes";
+import {
+  claimRestoredBTWRun,
+  discardBTWSessionRegistry,
+  isAcceptedBTWInterrupt,
+  isCurrentBTWRuntime,
+  settleBTWInterrupt,
+} from "@/features/btw/lib/btwRuntime";
 
 interface BTWRuntime {
   session: BTWSessionState;
   cache: LocalCache;
+  generation: number;
 }
 
 interface BTWContextValue {
@@ -54,7 +63,8 @@ interface BTWContextValue {
   setDraft: (parentChatId: string, draft: string) => void;
   patchTimelineNode: (parentChatId: string, node: TimelineNode) => void;
   newBranch: (parentChatId: string) => boolean;
-  interruptBTW: (parentChatId: string) => Promise<void>;
+  discardBTW: (parentChatId: string) => boolean;
+  interruptBTW: (parentChatId: string) => Promise<boolean>;
 }
 
 const BTWContext = createContext<BTWContextValue | null>(null);
@@ -104,13 +114,25 @@ function createSession(
   parentChatId: string,
   persisted?: PersistedBTWSession,
 ): BTWSessionState {
+  const restoredRunning =
+    persisted?.status === "running" && Boolean(persisted.runId);
+  const restoredStatus =
+    persisted?.status === "running"
+      ? restoredRunning
+        ? "running"
+        : "idle"
+      : persisted?.status || "idle";
   return {
     parentChatId,
     btwId: persisted?.btwId || "",
     runId: persisted?.runId || "",
     requestId: persisted?.requestId || "",
     agentKey: persisted?.agentKey || "",
-    status: persisted?.status || "idle",
+    status: restoredStatus,
+    interruptReady: Boolean(
+      restoredRunning && persisted?.runId && persisted?.agentKey,
+    ),
+    interruptPending: false,
     draft: persisted?.draft || "",
     error: "",
     focusToken: 0,
@@ -147,10 +169,14 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { dispatch: appDispatch, stateRef } = useAppContext();
+  const initialPersistedRef = useRef<PersistedBTWSession[] | null>(null);
+  if (!initialPersistedRef.current) {
+    initialPersistedRef.current = readPersistedBTWSessions();
+  }
   const initialSessionsRef = useRef<Map<string, BTWSessionState> | null>(null);
   if (!initialSessionsRef.current) {
     initialSessionsRef.current = new Map(
-      readPersistedBTWSessions().map((item) => [
+      initialPersistedRef.current.map((item) => [
         item.parentChatId,
         createSession(item.parentChatId, item),
       ]),
@@ -159,10 +185,27 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
   const [sessions, setSessions] = useState(initialSessionsRef.current);
   const sessionsRef = useRef(sessions);
   const runtimesRef = useRef(new Map<string, BTWRuntime>());
-  const attachedRunsRef = useRef(new Set<string>());
+  // Only runs restored at mount are attach candidates. Live /api/btw streams
+  // are already being observed by sendBTW and must never be attached again.
+  const restoredRunIdsRef = useRef<Set<string> | null>(null);
+  if (!restoredRunIdsRef.current) {
+    restoredRunIdsRef.current = new Set(
+      initialPersistedRef.current
+        .filter((item) => item.status === "running" && item.runId)
+        .map((item) => item.runId),
+    );
+  }
+  const persistTimerRef = useRef<number | null>(null);
   sessionsRef.current = sessions;
 
+  const isCurrentRuntime = useCallback(
+    (runtime: BTWRuntime, generation?: number): boolean =>
+      isCurrentBTWRuntime(runtimesRef.current, runtime, generation),
+    [],
+  );
+
   const publish = useCallback((runtime: BTWRuntime) => {
+    if (!isCurrentRuntime(runtime)) return;
     runtime.session = {
       ...runtime.session,
       projection: { ...runtime.session.projection },
@@ -173,7 +216,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.session,
     );
     setSessions(sessionsRef.current);
-  }, []);
+  }, [isCurrentRuntime]);
 
   const getRuntime = useCallback((parentChatId: string): BTWRuntime => {
     const normalized = String(parentChatId || "").trim();
@@ -183,6 +226,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
     const runtime = {
       session,
       cache: createLocalCacheFromState(session.projection),
+      generation: 0,
     };
     runtimesRef.current.set(normalized, runtime);
     if (!sessionsRef.current.has(normalized)) {
@@ -192,8 +236,18 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
     return runtime;
   }, []);
 
+  const getExistingRuntime = useCallback(
+    (parentChatId: string): BTWRuntime | null => {
+      const normalized = String(parentChatId || "").trim();
+      if (!normalized || !sessionsRef.current.has(normalized)) return null;
+      return getRuntime(normalized);
+    },
+    [getRuntime],
+  );
+
   const handleEvent = useCallback(
-    (runtime: BTWRuntime, event: AgentEvent) => {
+    (runtime: BTWRuntime, generation: number, event: AgentEvent) => {
+      if (!isCurrentRuntime(runtime, generation)) return;
       const type = toText(event.type);
       const record = event as Record<string, unknown>;
       const eventBTWID = toText(record.btwId);
@@ -201,6 +255,13 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       if (event.runId) runtime.session.runId = toText(event.runId);
       if (event.requestId) runtime.session.requestId = toText(event.requestId);
       if (event.agentKey) runtime.session.agentKey = toText(event.agentKey);
+      if (
+        runtime.session.status === "running" &&
+        runtime.session.runId &&
+        runtime.session.agentKey
+      ) {
+        runtime.session.interruptReady = true;
+      }
       const seq = Number(record.seq);
       if (Number.isFinite(seq) && seq > runtime.session.lastSeq) {
         runtime.session.lastSeq = seq;
@@ -234,18 +295,23 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       } else if (type === "run.complete" || type === "run.cancel") {
         runtime.session.status = "idle";
         runtime.session.error = "";
+        runtime.session.interruptReady = false;
+        runtime.session.interruptPending = false;
       } else if (type === "run.error") {
         runtime.session.status = "error";
         runtime.session.error = formatPlatformErrorForDisplay(event).message;
+        runtime.session.interruptReady = false;
+        runtime.session.interruptPending = false;
       }
       publish(runtime);
     },
-    [publish],
+    [isCurrentRuntime, publish],
   );
 
   const buildStreamDispatch = useCallback(
-    (runtime: BTWRuntime): React.Dispatch<AppAction> =>
+    (runtime: BTWRuntime, generation: number): React.Dispatch<AppAction> =>
       (action) => {
+        if (!isCurrentRuntime(runtime, generation)) return;
         if (action.type === "SET_REQUEST_ID") {
           runtime.session.requestId = action.requestId;
         } else if (action.type === "SET_STREAMING") {
@@ -253,13 +319,15 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
             runtime.session.status = "running";
           } else if (runtime.session.status === "running") {
             runtime.session.status = "idle";
+            runtime.session.interruptReady = false;
+            runtime.session.interruptPending = false;
           }
         } else if (action.type === "SET_ABORT_CONTROLLER") {
           runtime.session.projection = appReducer(runtime.session.projection, action);
         }
         publish(runtime);
       },
-    [publish],
+    [isCurrentRuntime, publish],
   );
 
   const sendBTW = useCallback(
@@ -288,6 +356,8 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       };
       runtime.session.error = "";
       runtime.session.status = "running";
+      runtime.session.interruptReady = false;
+      runtime.session.interruptPending = false;
       runtime.session.draft = "";
       runtime.session.focusToken += 1;
       runtime.session.requestId = createRequestId("req");
@@ -296,6 +366,8 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.session.agentKey =
         runtime.session.agentKey ||
         resolvePreferredAgentKey(stateRef.current, { chatId: normalizedChatId });
+      runtime.generation += 1;
+      const generation = runtime.generation;
 
       const nodeId = `btw_user_${runtime.session.requestId}`;
       const node: TimelineNode = {
@@ -340,29 +412,48 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         await executeBTWStreamSse({
           params,
-          dispatch: buildStreamDispatch(runtime),
-          handleEvent: (event) => handleEvent(runtime, event),
+          dispatch: buildStreamDispatch(runtime, generation),
+          handleEvent: (event) => handleEvent(runtime, generation, event),
           onIdentity: (identity) => {
+            if (!isCurrentRuntime(runtime, generation)) return;
             if (identity.btwId) runtime.session.btwId = identity.btwId;
             if (identity.runId) runtime.session.runId = identity.runId;
+            runtime.session.interruptReady = Boolean(
+              identity.runId && runtime.session.agentKey,
+            );
             publish(runtime);
           },
         });
       } catch (error) {
+        if (!isCurrentRuntime(runtime, generation)) return true;
         const display = formatPlatformErrorForDisplay(error);
         runtime.session.status = "error";
         runtime.session.error = display.message;
+        runtime.session.interruptReady = false;
+        runtime.session.interruptPending = false;
         appendSystemError(runtime, display.message);
         publish(runtime);
       } finally {
-        if (runtime.session.status === "running") {
+        if (
+          isCurrentRuntime(runtime, generation) &&
+          runtime.session.status === "running"
+        ) {
           runtime.session.status = "idle";
+          runtime.session.interruptReady = false;
+          runtime.session.interruptPending = false;
           publish(runtime);
         }
       }
       return true;
     },
-    [buildStreamDispatch, getRuntime, handleEvent, publish, stateRef],
+    [
+      buildStreamDispatch,
+      getRuntime,
+      handleEvent,
+      isCurrentRuntime,
+      publish,
+      stateRef,
+    ],
   );
 
   const openBTW = useCallback(
@@ -371,7 +462,6 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         options.parentChatId || stateRef.current.chatId || "",
       ).trim();
       if (!parentChatId) return false;
-      appDispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "btw" });
       const runtime = getRuntime(parentChatId);
       runtime.session.config = {
         ...runtime.session.config,
@@ -384,6 +474,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         runtime.session.draft = options.message;
       }
       publish(runtime);
+      appDispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "btw" });
       if (options.sendImmediately && options.message) {
         void sendBTW(parentChatId, options.message, options);
       }
@@ -394,16 +485,18 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setDraft = useCallback(
     (parentChatId: string, draft: string) => {
-      const runtime = getRuntime(parentChatId);
+      const runtime = getExistingRuntime(parentChatId);
+      if (!runtime) return;
       runtime.session.draft = draft;
       publish(runtime);
     },
-    [getRuntime, publish],
+    [getExistingRuntime, publish],
   );
 
   const patchTimelineNode = useCallback(
     (parentChatId: string, node: TimelineNode) => {
-      const runtime = getRuntime(parentChatId);
+      const runtime = getExistingRuntime(parentChatId);
+      if (!runtime) return;
       runtime.session.projection = appReducer(runtime.session.projection, {
         type: "SET_TIMELINE_NODE",
         id: node.id,
@@ -412,61 +505,139 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.cache = createLocalCacheFromState(runtime.session.projection);
       publish(runtime);
     },
-    [getRuntime, publish],
+    [getExistingRuntime, publish],
   );
 
   const newBranch = useCallback(
     (parentChatId: string): boolean => {
-      const runtime = getRuntime(parentChatId);
+      const normalized = String(parentChatId || "").trim();
+      const runtime = getExistingRuntime(normalized);
+      if (!runtime) return false;
       if (runtime.session.status === "running") return false;
-      runtime.session = createSession(parentChatId);
+      runtime.generation += 1;
+      runtime.session = createSession(normalized);
       runtime.session.focusToken = 1;
       runtime.cache = createLocalCacheFromState(runtime.session.projection);
       publish(runtime);
       return true;
     },
-    [getRuntime, publish],
+    [getExistingRuntime, publish],
   );
 
+  const discardBTW = useCallback((parentChatId: string): boolean => {
+    const discarded = discardBTWSessionRegistry({
+      parentChatId,
+      sessions: sessionsRef.current,
+      runtimes: runtimesRef.current,
+      restoredRunIds: restoredRunIdsRef.current || new Set<string>(),
+    });
+    if (!discarded.removed) return false;
+    // Deliberately do not abort or interrupt: the stale stream keeps draining,
+    // while runtime identity guards prevent it from publishing again.
+    const nextSessions = discarded.nextSessions;
+    sessionsRef.current = nextSessions;
+    setSessions(nextSessions);
+
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    persistBTWSessions(nextSessions.values());
+    return true;
+  }, []);
+
   const interruptBTW = useCallback(
-    async (parentChatId: string): Promise<void> => {
-      const runtime = getRuntime(parentChatId);
-      if (runtime.session.status !== "running" || !runtime.session.runId) return;
+    async (parentChatId: string): Promise<boolean> => {
+      const runtime = getExistingRuntime(parentChatId);
+      if (
+        !runtime ||
+        runtime.session.status !== "running" ||
+        !runtime.session.runId ||
+        !runtime.session.interruptReady ||
+        runtime.session.interruptPending
+      ) {
+        return false;
+      }
       const agentKey =
         runtime.session.agentKey ||
         resolvePreferredAgentKey(stateRef.current, { chatId: parentChatId });
       const teamId = resolvePreferredTeamId(stateRef.current, {
         chatId: parentChatId,
       });
-      if (!agentKey) return;
+      if (!agentKey) return false;
+      const generation = runtime.generation;
+      const runId = runtime.session.runId;
+      runtime.session.interruptPending = true;
+      runtime.session.error = "";
+      publish(runtime);
       try {
-        await interruptChat({
+        const response = await interruptBTWRun({
           requestId: createRequestId("req"),
           chatId: parentChatId,
-          runId: runtime.session.runId,
+          runId,
           agentKey,
           teamId: teamId || undefined,
           message: "",
           planningMode: false,
         });
+        const accepted = isAcceptedBTWInterrupt(response, runId);
+        const settlement = settleBTWInterrupt({
+          runtimes: runtimesRef.current,
+          runtime,
+          generation,
+          runId,
+          accepted,
+        });
+        if (!accepted) {
+          if (settlement === "rejected") {
+            const detail = String(
+              response.data?.detail || response.data?.status || response.msg ||
+                t("btw.interrupt.rejected"),
+            );
+            runtime.session.error = detail;
+            appendSystemError(runtime, detail);
+            publish(runtime);
+          }
+          return false;
+        }
+        if (settlement === "accepted") {
+          publish(runtime);
+        }
+        return true;
       } catch (error) {
-        const display = formatPlatformErrorForDisplay(error);
-        runtime.session.error = display.message;
-        appendSystemError(runtime, display.message);
-      } finally {
-        runtime.session.projection.abortController?.abort();
-        runtime.session.status = "idle";
-        publish(runtime);
+        const settlement = settleBTWInterrupt({
+          runtimes: runtimesRef.current,
+          runtime,
+          generation,
+          runId,
+          accepted: false,
+        });
+        if (settlement === "rejected") {
+          const display = formatPlatformErrorForDisplay(error);
+          runtime.session.error = display.message;
+          appendSystemError(runtime, display.message);
+          publish(runtime);
+        }
+        return false;
       }
     },
-    [getRuntime, publish, stateRef],
+    [getExistingRuntime, isCurrentRuntime, publish, stateRef],
   );
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      persistBTWSessions(sessions.values());
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current);
+    }
+    persistTimerRef.current = window.setTimeout(() => {
+      persistTimerRef.current = null;
+      persistBTWSessions(sessionsRef.current.values());
     }, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+    };
   }, [sessions]);
 
   useEffect(() => {
@@ -474,7 +645,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       if (
         session.status !== "running" ||
         !session.runId ||
-        attachedRunsRef.current.has(session.runId)
+        !restoredRunIdsRef.current?.has(session.runId)
       ) {
         continue;
       }
@@ -483,29 +654,55 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         session.agentKey ||
         resolvePreferredAgentKey(stateRef.current, {
           chatId: session.parentChatId,
-        });
+      });
       if (!agentKey) continue;
+      if (
+        !restoredRunIdsRef.current ||
+        !claimRestoredBTWRun(restoredRunIdsRef.current, session)
+      ) {
+        continue;
+      }
       runtime.session.agentKey = agentKey;
-      attachedRunsRef.current.add(session.runId);
+      runtime.session.interruptReady = true;
+      const generation = runtime.generation;
+      const attachAbortController = new AbortController();
+      runtime.session.projection = appReducer(runtime.session.projection, {
+        type: "SET_ABORT_CONTROLLER",
+        controller: attachAbortController,
+      });
+      publish(runtime);
       void executeAttachRunSse({
         params: {
           runId: session.runId,
           agentKey,
           lastSeq: 0,
+          signal: attachAbortController.signal,
         },
-        dispatch: buildStreamDispatch(runtime),
-        handleEvent: (event) => handleEvent(runtime, event),
+        dispatch: buildStreamDispatch(runtime, generation),
+        handleEvent: (event) => handleEvent(runtime, generation, event),
       })
         .catch((error) => {
+          if (!isCurrentRuntime(runtime, generation)) return;
           const display = formatPlatformErrorForDisplay(error);
           runtime.session.status = "error";
           runtime.session.error = display.message;
+          runtime.session.interruptReady = false;
+          runtime.session.interruptPending = false;
           appendSystemError(runtime, display.message);
           publish(runtime);
         })
         .finally(() => {
+          if (!isCurrentRuntime(runtime, generation)) return;
+          runtime.session.projection = appReducer(runtime.session.projection, {
+            type: "SET_ABORT_CONTROLLER",
+            controller: null,
+          });
           if (runtime.session.status === "running") {
             runtime.session.status = "idle";
+            runtime.session.interruptReady = false;
+            runtime.session.interruptPending = false;
+            publish(runtime);
+          } else {
             publish(runtime);
           }
         });
@@ -514,6 +711,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
     buildStreamDispatch,
     getRuntime,
     handleEvent,
+    isCurrentRuntime,
     publish,
     sessions,
     stateRef,
@@ -525,16 +723,18 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       sessions,
       getSession: (parentChatId) => {
         const chatId = String(parentChatId || stateRef.current.chatId || "").trim();
-        return chatId ? sessions.get(chatId) || null : null;
+        return chatId ? sessionsRef.current.get(chatId) || null : null;
       },
       openBTW,
       sendBTW,
       setDraft,
       patchTimelineNode,
       newBranch,
+      discardBTW,
       interruptBTW,
     }),
     [
+      discardBTW,
       interruptBTW,
       newBranch,
       openBTW,
