@@ -6,6 +6,7 @@ import { Flex } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { TimelineCollapse } from "./collapse";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 function basename(value: string): string {
   const normalized = value.replace(/\\/g, "/");
@@ -37,11 +38,16 @@ const SOURCE_ITEM_ICON_CLASS_NAME = "tw:text-accent-electric-strong";
 
 export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
+  const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const sources = Array.isArray(node.sources) ? node.sources : [];
   const sourceCount = node.sourceCount ?? sources.length;
 
   const openSource = (source: TimelineSource) => {
+    if (interaction?.openSource) {
+      interaction.openSource(source);
+      return;
+    }
     dispatch({
       type: "OPEN_RIGHT_SIDEBAR",
       tab: "sourceDetail",
@@ -59,6 +65,13 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
         </Flex>
       }
       onExpand={(expanded) => {
+        if (interaction?.patchNode) {
+          interaction.patchNode({
+            ...node,
+            expanded,
+          });
+          return;
+        }
         dispatch({
           type: "SET_TIMELINE_NODE",
           id: node.id,

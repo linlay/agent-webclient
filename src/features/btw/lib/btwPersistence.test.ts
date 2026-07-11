@@ -1,0 +1,143 @@
+import { createInitialState } from "@/app/state/state";
+import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
+import {
+  BTW_MAX_STORED_CHATS,
+  BTW_MAX_TRANSCRIPT_ITEMS,
+  BTW_SESSION_STORAGE_KEY,
+  buildBTWTranscript,
+  persistBTWSessions,
+  readPersistedBTWSessions,
+} from "@/features/btw/lib/btwPersistence";
+
+function createStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: jest.fn((key: string) => values.get(key) ?? null),
+    setItem: jest.fn((key: string, value: string) => values.set(key, value)),
+    removeItem: jest.fn((key: string) => values.delete(key)),
+    clear: jest.fn(() => values.clear()),
+    key: jest.fn((index: number) => Array.from(values.keys())[index] ?? null),
+    get length() {
+      return values.size;
+    },
+  } as Storage;
+}
+
+function createSession(parentChatId: string, itemCount = 2): BTWSessionState {
+  const projection = createInitialState();
+  projection.chatId = parentChatId;
+  for (let index = 0; index < itemCount; index += 1) {
+    const userId = `user_${index}`;
+    const contentId = `content_${index}`;
+    projection.timelineNodes.set(userId, {
+      id: userId,
+      kind: "message",
+      role: "user",
+      text: `question ${index}`,
+      ts: index * 2 + 1,
+    });
+    projection.timelineNodes.set(contentId, {
+      id: contentId,
+      kind: "content",
+      contentId,
+      text: `answer ${index}`,
+      status: "completed",
+      ts: index * 2 + 2,
+    });
+    projection.timelineOrder.push(userId, contentId);
+  }
+  return {
+    parentChatId,
+    btwId: `btw_${parentChatId}`,
+    runId: "run_1",
+    requestId: "req_1",
+    agentKey: "agent_1",
+    status: "idle",
+    draft: "",
+    error: "",
+    focusToken: 0,
+    lastSeq: 4,
+    updatedAt: Date.now(),
+    usage: null,
+    config: {},
+    projection,
+  };
+}
+
+describe("btwPersistence", () => {
+  const originalWindow = globalThis.window;
+
+  beforeEach(() => {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        location: { pathname: "/", search: "" },
+        localStorage: createStorage(),
+        sessionStorage: createStorage(),
+      },
+    });
+  });
+
+  afterAll(() => {
+    if (originalWindow) {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: originalWindow,
+      });
+    } else {
+      delete (globalThis as { window?: unknown }).window;
+    }
+  });
+
+  it("round-trips branch identity and a compact transcript", () => {
+    persistBTWSessions([createSession("chat_1")]);
+
+    expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+      BTW_SESSION_STORAGE_KEY,
+      expect.any(String),
+    );
+    expect(readPersistedBTWSessions()).toMatchObject([
+      {
+        parentChatId: "chat_1",
+        btwId: "btw_chat_1",
+        runId: "run_1",
+        transcript: [
+          { role: "user", text: "question 0" },
+          { role: "assistant", text: "answer 0" },
+          { role: "user", text: "question 1" },
+          { role: "assistant", text: "answer 1" },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps only the pending user turn while a run is active", () => {
+    const session = createSession("chat_running");
+    session.status = "running";
+
+    expect(buildBTWTranscript(session).at(-1)).toMatchObject({
+      role: "user",
+      text: "question 1",
+    });
+  });
+
+  it("caps stored chats and transcript entries", () => {
+    const sessions = Array.from(
+      { length: BTW_MAX_STORED_CHATS + 5 },
+      (_, index) => createSession(`chat_${index}`, BTW_MAX_TRANSCRIPT_ITEMS),
+    );
+
+    persistBTWSessions(sessions);
+    const restored = readPersistedBTWSessions();
+
+    expect(restored).toHaveLength(BTW_MAX_STORED_CHATS);
+    expect(restored[0].transcript.length).toBeLessThanOrEqual(
+      BTW_MAX_TRANSCRIPT_ITEMS,
+    );
+  });
+
+  it("fails soft on corrupt storage", () => {
+    window.sessionStorage.setItem(BTW_SESSION_STORAGE_KEY, "{");
+    expect(readPersistedBTWSessions()).toEqual([]);
+  });
+});

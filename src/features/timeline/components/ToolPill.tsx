@@ -12,6 +12,7 @@ import { Flex, Tooltip } from "antd";
 import { useOptionalAppContext } from "@/app/state/provider";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { TimelineCollapse } from "./collapse";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -242,13 +243,14 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const source = toolGroup || node;
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
-  const mainChatStreaming = appContext
+  const interaction = useTimelineInteraction();
+  const mainChatStreaming = interaction?.conversationActive ?? (appContext
     ? resolveMainChatRuntime(
         appContext.stateRef,
         appContext.activeQuerySessionRequestIdRef,
         appContext.querySessionsRef,
       ).streaming
-    : false;
+    : false);
 
   const { isLive, startTimeMs } = useMemo(() => {
     const nodes = toolGroup?.nodes || (node ? [node] : []);

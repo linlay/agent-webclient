@@ -12,6 +12,8 @@
 ## 核心流程
 业务模块从 `src/shared/data` 导入具体函数，不直接拼接 URL。新增接口时先在 `endpoints.ts` 注册端点，再在 `client.ts` 或 `routedClient.ts` 暴露语义化函数，最后由 feature hook 或页面调用。
 
+`runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
+
 ## 边界与非目标
 - `endpoints.ts` 是前端消费清单，不等于后端 OpenAPI 定义。
 - DTO 应贴近前端实际读取字段，避免为未使用字段建立庞大类型。

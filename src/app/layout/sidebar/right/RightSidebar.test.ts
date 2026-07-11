@@ -56,6 +56,10 @@ jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
 }));
 
+jest.mock("@/features/btw/components/BtwTab", () => ({
+  BtwTab: () => React.createElement("div", null, "btw tab"),
+}));
+
 const { useAppState } = jest.requireMock("@/app/state/AppContext") as {
   useAppState: jest.Mock;
 };
@@ -121,5 +125,20 @@ describe("RightSidebar", () => {
 
     expect(html).not.toContain("调试");
     expect(html).toContain("debug tab");
+  });
+
+  it("adds the side-question tab only for an active chat", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+
+    const html = renderRightSidebar();
+
+    expect(html).toContain('data-tab-key="btw"');
+    expect(html).toContain("顺便问");
+    expect(html).toContain("btw tab");
   });
 });

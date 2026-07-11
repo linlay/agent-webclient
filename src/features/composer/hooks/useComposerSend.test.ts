@@ -24,6 +24,14 @@ jest.mock('@/features/terminal/lib/terminalDockPersistence', () => ({
   resetTerminalDockPersistenceForTests: jest.fn(),
 }));
 
+const openBTWMock = jest.fn(() => true);
+
+jest.mock('@/features/btw/components/BtwProvider', () => ({
+  useBTW: () => ({
+    openBTW: openBTWMock,
+  }),
+}));
+
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/state';
@@ -439,5 +447,106 @@ describe('useComposerSend active run gate', () => {
     });
     expect(setInputValue).toHaveBeenCalledWith('');
     expect(closeMention).toHaveBeenCalled();
+  });
+
+  it('routes an inline /btw question before the active-run steer path', () => {
+    const state = createInitialState();
+    state.chatId = 'chat-1';
+    state.currentChatActiveRun = {
+      chatId: 'chat-1',
+      runId: 'run-active',
+      agentKey: 'agent-a',
+    };
+    state.chatAgentById = new Map([['chat-1', 'agent-a']]);
+    const dispatch = jest.fn();
+    const setInputValue = jest.fn();
+    const clearComposerAttachments = jest.fn();
+    let actions: ReturnType<typeof useComposerSend> | null = null;
+
+    const Harness = () => {
+      actions = useComposerSend({
+        accessLevel: 'default',
+        attachmentChatId: '',
+        backgroundCommandText: {
+          rememberPending: '',
+          rememberError: '',
+          learnPending: '',
+          learnError: '',
+          compactPending: '',
+          compactError: '',
+        },
+        clearComposerAttachments,
+        closeMention: jest.fn(),
+        controlParams: { temperature: 0.2 },
+        dispatch,
+        executeSlashCommandInput: {
+          closeMention: jest.fn(),
+          latestQueryText: '',
+          setInputValue,
+          setSlashDismissed: jest.fn(),
+          slashAvailability: {
+            streaming: true,
+            hasLatestQuery: true,
+            isFrontendActive: false,
+            canUsePlanningMode: false,
+            canUseVoiceMode: false,
+            hasActiveChat: true,
+            hasCurrentWorker: true,
+            workerHistoryCount: 1,
+            workerCount: 1,
+            commandOverlayOpen: false,
+            canShowUsage: true,
+          },
+          state: {
+            rightSidebarOpen: false,
+            planningMode: false,
+            chatId: state.chatId,
+            usagePopoverOpen: false,
+          },
+          toggleVoiceMode: jest.fn(),
+        },
+        hasUploadingAttachments: false,
+        inputValue: '/btw side question',
+        isAwaitingActive: false,
+        isVoiceMode: false,
+        mainChatRunning: true,
+        modelOverride: { key: 'model-a' },
+        selectSlashCommand: () => null,
+        sendAttachmentMeta: [{ name: 'spec.md', size: 12 }],
+        sendReferences: [{ name: 'spec.md', path: '/tmp/spec.md' }],
+        setInputValue,
+        setSlashDismissed: jest.fn(),
+        showSlashPalette: false,
+        speechListening: false,
+        state,
+        stateRef: { current: state },
+        querySessionsRef: { current: new Map() },
+        activeQuerySessionRequestIdRef: { current: '' },
+        stopSpeechInput: jest.fn(),
+        textareaRef: React.createRef(),
+        updateMentionSuggestions: jest.fn(),
+      });
+      return null;
+    };
+
+    renderToStaticMarkup(React.createElement(Harness));
+    actions?.handleSend();
+
+    expect(openBTWMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentChatId: 'chat-1',
+        message: 'side question',
+        references: [{ name: 'spec.md', path: '/tmp/spec.md' }],
+        attachments: [{ name: 'spec.md', size: 12 }],
+        model: { key: 'model-a' },
+        params: { temperature: 0.2 },
+        sendImmediately: true,
+      }),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ENQUEUE_PENDING_STEER' }),
+    );
+    expect(setInputValue).toHaveBeenCalledWith('');
+    expect(clearComposerAttachments).toHaveBeenCalled();
   });
 });

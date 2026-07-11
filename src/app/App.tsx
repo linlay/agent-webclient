@@ -39,6 +39,7 @@ import { setTransportModeProvider } from "@/shared/data/api/routedClient";
 import { resolveRouteDataTransportMode } from "./routeDataTransport";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
+import { BtwProvider } from "@/features/btw/components/BtwProvider";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -300,9 +301,11 @@ const App: React.FC<AppProps> = ({ i18n }) => {
   return (
     <I18nProvider {...mergedI18n}>
       <AppProvider>
-        <ThemedShell>
-          <RouterProvider router={router} />
-        </ThemedShell>
+        <BtwProvider>
+          <ThemedShell>
+            <RouterProvider router={router} />
+          </ThemedShell>
+        </BtwProvider>
       </AppProvider>
     </I18nProvider>
   );

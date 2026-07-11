@@ -18,6 +18,7 @@ import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
+import { BtwTab } from "@/features/btw/components/BtwTab";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -229,7 +230,9 @@ const CopilotSidePanel: React.FC = () => {
   const title =
     activeTab === "debug"
       ? t("copilot.panel.debug")
-      : activeTab === "preview"
+      : activeTab === "btw"
+        ? t("btw.title")
+        : activeTab === "preview"
         ? t("copilot.panel.preview")
         : activeTab === "sourceDetail"
           ? t("copilot.panel.sourceDetail")
@@ -255,6 +258,8 @@ const CopilotSidePanel: React.FC = () => {
       <div className={COPILOT_SIDE_PANEL_BODY_CLASS}>
         {activeTab === "debug" ? (
           <DebugTab />
+        ) : activeTab === "btw" ? (
+          <BtwTab />
         ) : activeTab === "preview" && state.attachmentPreview.length > 0 ? (
           state.attachmentPreview.map((p) => (
             <AttachmentPreviewPanel key={p.url} preview={p} />

@@ -12,6 +12,8 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 ## 核心流程
 用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。附件、语音和 awaiting 会影响发送按钮可用性。
 
+`/btw` 打开右侧“顺便问”Tab，`/btw 问题` 会在主 query/steer 路由前被识别并发送到隐藏只读分支。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
+
 ## 边界与非目标
 - Composer 负责收集用户意图，不直接处理流式事件。
 - 快捷命令的后端副作用通过 data client 调用，不在 UI 组件里手写 fetch。
@@ -24,4 +26,3 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 - `../src/features/composer/components/SlashPalette.tsx`
 - `../src/features/composer/hooks/useComposerKeyboard.ts`
 - `../src/features/composer/hooks/useComposerSlash.ts`
-
