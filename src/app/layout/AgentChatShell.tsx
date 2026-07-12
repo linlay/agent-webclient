@@ -532,7 +532,7 @@ export const AgentChatShell: React.FC = () => {
           <ConversationStage showEmptyState={!chatId} />
           <RightSidebar />
           <BottomDock />
-          {effectiveTerminalDockOpen ? (
+          {effectiveTerminalDockOpen && currentWorker ? (
             <TerminalDock
               agentKey={currentWorker.sourceId}
               workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
