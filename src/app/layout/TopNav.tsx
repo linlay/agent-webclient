@@ -175,16 +175,6 @@ export function resolveTopNavStatus(
   };
 }
 
-function formatStatusDisplayLabel(
-  statusClass: TopNavStatusDisplay["statusClass"],
-  label: string,
-): string {
-  if (label === "idle") return "Idle";
-  if (label === "running") return "Running";
-  if (label === "error" && statusClass === "is-error") return "Run error";
-  return label;
-}
-
 function readUsageNumber(value: unknown): number | null {
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
@@ -757,7 +747,7 @@ export const TopNav: React.FC = () => {
   const reasoningEffortLabel = reasoningEffort
     ? t(`composer.query.reasoning.${reasoningEffort}`)
     : '';
-  const statusLabel = formatStatusDisplayLabel(statusClass, t(statusText));
+  const statusLabel = t(statusText);
   const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
   return (
     <nav className={TOP_NAV_CLASS}>
