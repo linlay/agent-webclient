@@ -1,13 +1,9 @@
 import type { Agent, Chat, ChatReadState, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { toText } from "@/shared/utils/eventUtils";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
-}
-
-function toFiniteNumber(value: unknown): number | undefined {
-	const numeric = Number(value);
-	return Number.isFinite(numeric) ? numeric : undefined;
 }
 
 export function normalizeChatReadState(value: unknown): ChatReadState | undefined {
@@ -16,7 +12,7 @@ export function normalizeChatReadState(value: unknown): ChatReadState | undefine
 	}
 
 	const isRead = value.isRead === false ? false : true;
-	const readAt = toFiniteNumber(value.readAt);
+	const readAt = readEpochMillis(value.readAt);
 	const readRunId = toText(value.readRunId);
 
 	return {

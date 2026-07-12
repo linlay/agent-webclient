@@ -74,6 +74,9 @@ export function upsertFileChange(
 	if (!runId || !filePath) {
 		return fileChanges;
 	}
+	if (!Number.isFinite(fileChange.lastUpdatedAt) || fileChange.lastUpdatedAt <= 0) {
+		return fileChanges;
+	}
 	const normalizedChange: FileChangeSummary = {
 		runId,
 		filePath,
@@ -81,10 +84,7 @@ export function upsertFileChange(
 		deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
 		editedLines: Math.max(0, Number(fileChange.editedLines) || 0),
 		operationCount: Math.max(1, Number(fileChange.operationCount) || 1),
-		lastUpdatedAt:
-			Number.isFinite(fileChange.lastUpdatedAt) && fileChange.lastUpdatedAt > 0
-				? fileChange.lastUpdatedAt
-				: Date.now(),
+		lastUpdatedAt: fileChange.lastUpdatedAt,
 	};
 
 	const index = fileChanges.findIndex(

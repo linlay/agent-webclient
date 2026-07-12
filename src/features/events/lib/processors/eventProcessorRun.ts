@@ -10,7 +10,6 @@ import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export function processRunEvent(
   event: AgentEvent,
@@ -18,8 +17,7 @@ export function processRunEvent(
   config: EventProcessorConfig,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
-  const timestamp = readEpochMillis(event.timestamp);
-  if (timestamp === undefined) return commands;
+  const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
   if (type === "request.query") {

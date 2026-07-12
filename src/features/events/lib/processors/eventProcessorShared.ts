@@ -13,7 +13,6 @@ import {
   readTaskGroupId,
 } from "@/features/tasks/lib/taskEventProtocol";
 import { isTerminalStatus, safeText, toText } from "@/shared/utils/eventUtils";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 import {
   pickToolName,
   resolveViewportKey,
@@ -175,8 +174,8 @@ export function normalizePublishedArtifacts(
     return [];
   }
 
-  const timestamp = readEpochMillis(event.timestamp);
-  if (timestamp === undefined) {
+  const timestamp = event.timestamp ?? 0;
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
     return [];
   }
   return rawArtifacts

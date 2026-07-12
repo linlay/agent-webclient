@@ -199,7 +199,7 @@ export function processSourceEvent(
       status: "completed",
       expanded: existing?.expanded ?? false,
       toolId: toText(event.toolId) || existing?.toolId,
-      ts: event.timestamp || existing?.ts || Date.now(),
+      ts: event.timestamp ?? 0,
     },
   });
   return commands;

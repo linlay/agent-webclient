@@ -43,6 +43,7 @@ export function processPlanningEvent(
   config: EventProcessorConfig,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
+  const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
   if (type === "planning.start" || type === "planning.delta") {
@@ -76,7 +77,7 @@ export function processPlanningEvent(
         text,
         status: "running",
         expanded: config.reasoningExpandedDefault,
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;
@@ -111,7 +112,7 @@ export function processPlanningEvent(
         text,
         status: "completed",
         expanded: config.reasoningExpandedDefault,
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;

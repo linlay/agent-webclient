@@ -52,6 +52,8 @@ const { getChat } = jest.requireMock('@/shared/data') as {
   getChat: jest.Mock;
 };
 
+const EPOCH_MS = 1_710_000_000_000;
+
 function useTestConversationActions() {
   const conversationActions = useConversationActions();
   return {
@@ -536,6 +538,7 @@ describe('replayEvent tool migration', () => {
             type: 'usage.snapshot',
             chatId: 'chat-event-usage',
             runId: 'run_latest',
+            timestamp: EPOCH_MS,
             model: { key: 'minimax' },
             contextWindow: {
               maxSize: 128000,
@@ -613,12 +616,13 @@ describe('replayEvent tool migration', () => {
     getChat.mockResolvedValue({
       data: {
         events: [
-          { seq: 1, type: 'chat.start', chatId: 'chat-nested-usage' },
+          { seq: 1, type: 'chat.start', chatId: 'chat-nested-usage', timestamp: EPOCH_MS },
           {
             seq: 5,
             type: 'usage.snapshot',
             runId: 'run_from_event',
             chatId: 'chat-nested-usage',
+            timestamp: EPOCH_MS + 5,
             model: { key: 'deepseek-chat' },
             contextWindow: {
               currentSize: 6252,
@@ -760,14 +764,14 @@ describe('replayEvent tool migration', () => {
             type: 'context.compact.complete',
             chatId: 'chat-compacted',
             compactId: 'compact-1',
-            timestamp: 200,
+            timestamp: EPOCH_MS + 200,
             postCompactEstimatedTokens: 5396,
           },
           {
             type: 'usage.snapshot',
             chatId: 'chat-compacted',
             runId: 'run_before_compact',
-            timestamp: 100,
+            timestamp: EPOCH_MS + 100,
             model: { key: 'minimax' },
             contextWindow: {
               maxSize: 128000,
@@ -1472,6 +1476,7 @@ describe('replayEvent tool migration', () => {
             type: 'awaiting.ask',
             runId: 'run_1',
             awaitingId: 'await_question_1',
+            timestamp: EPOCH_MS,
             mode: 'question',
             questions: [
               {
@@ -1668,7 +1673,7 @@ describe('replayEvent tool migration', () => {
       toolName: 'email.search',
       viewportKey: 'viewport_email_search',
       runId: 'run_1',
-      timestamp: 100,
+      timestamp: EPOCH_MS + 100,
     });
 
     const toolState = state.toolStates.get('call_f1494c0a4c4646cc81a41585');
@@ -2070,7 +2075,7 @@ describe('replayEvent tool migration', () => {
           editedLines: 2,
         },
       }),
-      timestamp: 140,
+      timestamp: EPOCH_MS + 140,
     });
 
     expect(state.fileChanges).toEqual([
@@ -2081,7 +2086,7 @@ describe('replayEvent tool migration', () => {
         deletedLines: 2,
         editedLines: 2,
         operationCount: 1,
-        lastUpdatedAt: 140,
+        lastUpdatedAt: EPOCH_MS + 140,
       },
     ]);
   });
@@ -2109,7 +2114,7 @@ describe('replayEvent tool migration', () => {
     setReplayArtifacts(state, [
       {
         artifactId: 'artifact_new',
-        timestamp: 0,
+        timestamp: EPOCH_MS,
         artifact: {
           type: 'file',
           name: 'new.log',
@@ -2124,7 +2129,7 @@ describe('replayEvent tool migration', () => {
     expect(state.artifacts).toEqual([
       {
         artifactId: 'artifact_new',
-        timestamp: 0,
+        timestamp: EPOCH_MS,
         artifact: {
           type: 'file',
           name: 'new.log',
@@ -2149,13 +2154,14 @@ describe('replayEvent tool migration', () => {
             sha256: 'sha-report',
             sizeBytes: 1024,
             url: 'https://example.com/report.pdf',
+            timestamp: EPOCH_MS,
           },
         ],
       }),
     ).toEqual([
       {
         artifactId: 'artifact_1',
-        timestamp: 0,
+        timestamp: EPOCH_MS,
         artifact: {
           type: 'file',
           name: 'report.pdf',

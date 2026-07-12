@@ -20,6 +20,7 @@ import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } fro
 import {
   buildLoadedChatUsageSnapshot,
   normalizeChatArtifactItems,
+  normalizeLoadedChatEvents,
   normalizeChatPlan,
 } from '@/features/conversation/lib/conversationPayload';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/runs/lib/runControlEvents';
@@ -396,13 +397,19 @@ export function useConversationActions() {
         }
 
         /* Replay events into a LOCAL MUTABLE state to avoid React batching issues */
-        const events = Array.isArray(chatData?.events) ? chatData.events : [];
+        const rawEvents = Array.isArray(chatData?.events) ? chatData.events : [];
+        const events = normalizeLoadedChatEvents(rawEvents);
+        if (events.length !== rawEvents.length) {
+          dispatch({
+            type: 'APPEND_DEBUG',
+            line: '[time_contract_violation] ignored malformed /api/chat replay event timestamp',
+          });
+        }
         const rs = createReplayState();
         rs.chatId = chatId;
 
-        for (const event of events) {
+        for (const evt of events) {
           if (seq !== loadSeqRef.current) return;
-          const evt = event as AgentEvent;
           if (evt?.chatId && String(evt.chatId) !== String(chatId)) continue;
           replayEvent(rs, evt);
         }

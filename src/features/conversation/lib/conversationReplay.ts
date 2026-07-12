@@ -21,6 +21,7 @@ import type { EventCommand, EventProcessorState } from '@/features/events/lib/ev
 import { processStreamEvent } from '@/features/events/lib/eventProcessor';
 import { MAX_EVENTS } from '@/app/state/constants';
 import { appendVisibleDebugEvent } from '@/features/events/lib/debugEventDisplay';
+import { readEpochMillis } from '@/shared/utils/platformTime';
 
 export interface ReplayState {
   timelineNodes: Map<string, TimelineNode>;
@@ -122,6 +123,10 @@ function upsertReplayFileChange(
   if (!runId || !filePath) {
     return fileChanges;
   }
+  const lastUpdatedAt = readEpochMillis(fileChange.lastUpdatedAt);
+  if (lastUpdatedAt === undefined) {
+    return fileChanges;
+  }
 
   const normalized: FileChangeSummary = {
     runId,
@@ -130,10 +135,7 @@ function upsertReplayFileChange(
     deletedLines: Math.max(0, Number(fileChange.deletedLines) || 0),
     editedLines: Math.max(0, Number(fileChange.editedLines) || 0),
     operationCount: Math.max(1, Number(fileChange.operationCount) || 1),
-    lastUpdatedAt:
-      Number.isFinite(fileChange.lastUpdatedAt) && fileChange.lastUpdatedAt > 0
-        ? fileChange.lastUpdatedAt
-        : Date.now(),
+    lastUpdatedAt,
   };
 
   const index = fileChanges.findIndex(

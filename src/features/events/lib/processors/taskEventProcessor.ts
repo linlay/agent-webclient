@@ -9,15 +9,13 @@ import {
 	resolveTaskGroupIdForStart,
 } from "@/features/tasks/lib/taskRuntime";
 import { readTaskGroupId } from "@/features/tasks/lib/taskEventProtocol";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export function processTaskEvent(
 	event: AgentEvent,
 	state: EventProcessorState,
 ): EventCommand[] {
 	const commands: EventCommand[] = [];
-	const timestamp = readEpochMillis(event.timestamp);
-	if (timestamp === undefined) return commands;
+	const timestamp = event.timestamp ?? 0;
 	const type = toText(event.type);
 
 	if (type === "task.start") {

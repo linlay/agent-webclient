@@ -1,4 +1,5 @@
 import type {
+  AgentEvent,
   AIUsageSnapshotEvent,
   AIUsageStats,
   ArtifactFile,
@@ -6,7 +7,10 @@ import type {
   PublishedArtifact,
 } from '@/app/state/types';
 import { AIUsageEventTypeEnum } from '@/app/state/types';
-import { readEpochMillis } from '@/shared/utils/platformTime';
+import {
+  readEpochMillis,
+  readRequiredPlatformEventTimestamp,
+} from '@/shared/utils/platformTime';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';
@@ -44,10 +48,7 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   }
 
   const sizeBytes = Number(value.sizeBytes ?? value.size);
-  const timestamp =
-    readEpochMillis(value.timestamp) ??
-    readEpochMillis(value.createdAt) ??
-    readEpochMillis(value.updatedAt);
+  const timestamp = readRequiredPlatformEventTimestamp(value);
   if (timestamp === undefined) {
     return null;
   }
@@ -81,6 +82,32 @@ export function normalizeChatArtifactItems(
   return value.items
     .map((item) => normalizeArtifactFile(item as ArtifactFile))
     .filter((item): item is PublishedArtifact => Boolean(item));
+}
+
+/**
+ * The chat-detail endpoint is a persisted stream replay boundary.  Keep its
+ * raw values out of reducer state unless the event has an explicit, strict
+ * epoch-millisecond timestamp and every other present structured time is
+ * valid as well.
+ */
+export function normalizeLoadedChatEvent(value: unknown): AgentEvent | null {
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+  const timestamp = readRequiredPlatformEventTimestamp(value);
+  if (timestamp === undefined) {
+    return null;
+  }
+  return { ...value, timestamp } as AgentEvent;
+}
+
+export function normalizeLoadedChatEvents(value: unknown): AgentEvent[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(normalizeLoadedChatEvent)
+    .filter((event): event is AgentEvent => event !== null);
 }
 
 function readUsageNumber(value: unknown): number | undefined {
@@ -186,9 +213,8 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     : null;
 }
 
-function getLatestUsageSnapshotEvent(events: unknown[]): AIUsageSnapshotEvent | null {
+function getLatestUsageSnapshotEvent(events: AgentEvent[]): AIUsageSnapshotEvent | null {
   for (const event of events.slice().reverse()) {
-    if (!isObjectRecord(event)) continue;
     if (event.type !== AIUsageEventTypeEnum.Snapshot) continue;
     return event as AIUsageSnapshotEvent;
   }
@@ -220,20 +246,14 @@ function normalizeLoadedChatContextWindow(
 
 interface LoadedUsageSnapshotResult {
   snapshot: AIUsageSnapshotEvent;
-  index: number;
 }
 
 function latestLoadedUsageSnapshotFromEvents(
   chatId: string,
-  events: unknown,
+  events: AgentEvent[],
 ): LoadedUsageSnapshotResult | null {
-  if (!Array.isArray(events)) {
-    return null;
-  }
-
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const event = events[index];
-    if (!isObjectRecord(event) || event.type !== AIUsageEventTypeEnum.Snapshot) {
+  for (const event of events.slice().reverse()) {
+    if (event.type !== AIUsageEventTypeEnum.Snapshot) {
       continue;
     }
     const snapshot = event as unknown as AIUsageSnapshotEvent;
@@ -244,39 +264,32 @@ function latestLoadedUsageSnapshotFromEvents(
         type: AIUsageEventTypeEnum.Snapshot,
         chatId: String(snapshot.chatId || chatId),
       },
-      index,
     };
   }
   return null;
 }
 
 function latestCompactPostTokensAfterSnapshot(
-  events: unknown,
+  events: AgentEvent[],
   snapshot: LoadedUsageSnapshotResult,
 ): number | undefined {
-  if (!Array.isArray(events)) {
+  const snapshotTimestamp = readEpochMillis(snapshot.snapshot.timestamp);
+  if (snapshotTimestamp === undefined) {
     return undefined;
   }
-
-  const snapshotTimestamp = readEpochMillis(snapshot.snapshot.timestamp);
   let bestRank = -1;
   let bestTokens: number | undefined;
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
-    if (!isObjectRecord(event) || event.type !== 'context.compact.complete') {
+    if (event.type !== 'context.compact.complete') {
       continue;
     }
     const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
     if (postTokens === undefined) continue;
     const eventTimestamp = readEpochMillis(event.timestamp);
-    const isAfterSnapshot =
-      snapshotTimestamp !== undefined && eventTimestamp !== undefined
-        ? eventTimestamp > snapshotTimestamp
-        : index > snapshot.index;
-    if (!isAfterSnapshot) continue;
-    const rank = eventTimestamp ?? index;
-    if (rank >= bestRank) {
-      bestRank = rank;
+    if (eventTimestamp === undefined || eventTimestamp <= snapshotTimestamp) continue;
+    if (eventTimestamp >= bestRank) {
+      bestRank = eventTimestamp;
       bestTokens = postTokens;
     }
   }
@@ -335,7 +348,7 @@ export function buildLoadedChatUsageSnapshot(
   chatId: string,
   chatData: Record<string, unknown>,
 ): AIUsageSnapshotEvent | null {
-  const events = Array.isArray(chatData.events) ? chatData.events : [];
+  const events = normalizeLoadedChatEvents(chatData.events);
   const eventSnapshot = latestLoadedUsageSnapshotFromEvents(chatId, events);
   const latestUsageEvent =
     eventSnapshot?.snapshot ?? getLatestUsageSnapshotEvent(events);

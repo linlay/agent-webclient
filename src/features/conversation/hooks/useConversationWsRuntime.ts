@@ -21,7 +21,10 @@ import {
 	upsertAgentUnreadCount,
 } from "@/features/chats/lib/chatReadState";
 import { isAppMode } from "@/shared/utils/routing";
-import { readEpochMillis } from "@/shared/utils/platformTime";
+import {
+	hasValidPresentPlatformTimeFields,
+	readEpochMillis,
+} from "@/shared/utils/platformTime";
 import {
 	destroyWsClient,
 	getWsClient,
@@ -74,6 +77,26 @@ function normalizePushType(type: string): string {
 		return "run.complete";
 	}
 	return type;
+}
+
+const TIMESTAMPED_PLATFORM_PUSH_TYPES = new Set([
+	"heartbeat",
+	"chat.created",
+	"chat.updated",
+	"chat.read",
+	"chat.unread",
+	"run.start",
+	"run.complete",
+	"awaiting.asking",
+	"awaiting.answered",
+]);
+
+function hasValidRequiredPushTime(event: AgentEvent): boolean {
+	if (!hasValidPresentPlatformTimeFields(event)) {
+		return false;
+	}
+	return !TIMESTAMPED_PLATFORM_PUSH_TYPES.has(String(event.type || "")) ||
+		readEpochMillis(event.timestamp) !== undefined;
 }
 
 function toPushEvent(frame: {
@@ -901,6 +924,20 @@ function buildWsClient(
 		},
 		onPush: (frame) => {
 			const liveEvent = toPushEvent(frame);
+			if (!hasValidRequiredPushTime(liveEvent)) {
+				appendWsDebug(
+					options.dispatch,
+					`[time_contract_violation] ignored WebSocket push ${String(liveEvent.type || "unknown")} without valid epoch_ms_int64 time`,
+				);
+				if (
+					typeof window !== "undefined" &&
+					typeof window.dispatchEvent === "function" &&
+					typeof CustomEvent === "function"
+				) {
+					window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+				}
+				return;
+			}
 			markDebugEventHidden(liveEvent);
 			const type = String(liveEvent.type || "");
 			const currentChatId = String(options.stateRef.current.chatId || "").trim();

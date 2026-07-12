@@ -12,6 +12,8 @@
 ## 核心流程
 Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。
 
+SSE / WebSocket event 必须带安全整数 epoch-ms `timestamp`。客户端遇到缺失、字符串、秒级、浮点或 `0` 的时间会按 `time_contract_violation` 拒绝该 event，不以本机当前时间生成时间线节点或任务状态。
+
 `/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
 
 BTW 的运行控制也与主会话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与 `agentKey`，即使主会话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。

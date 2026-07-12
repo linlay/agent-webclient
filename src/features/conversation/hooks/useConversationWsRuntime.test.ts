@@ -7,9 +7,35 @@ import { connectWsTransport, registerAttachRunListener, registerDetachRunListene
 import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
 const DEBUG_RUN_OBSERVATION_EVENT_TYPE = "debug.runObservation";
+const EPOCH_MS = 1_710_000_000_000;
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
 	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
+
+const TIMESTAMPED_PUSH_TYPES = new Set([
+	"heartbeat",
+	"chat.created",
+	"chat.updated",
+	"chat.read",
+	"chat.unread",
+	"run.started",
+	"run.finished",
+	"awaiting.asking",
+	"awaiting.answered",
+]);
+
+function withEpochTimestamp(frame: Record<string, unknown>): Record<string, unknown> {
+	if (!TIMESTAMPED_PUSH_TYPES.has(String(frame.type || "")) || frame.timestamp !== undefined) {
+		return frame;
+	}
+	if (frame.payload && typeof frame.payload === "object" && !Array.isArray(frame.payload)) {
+		return { ...frame, payload: { ...(frame.payload as Record<string, unknown>), timestamp: EPOCH_MS } };
+	}
+	if (frame.data && typeof frame.data === "object" && !Array.isArray(frame.data)) {
+		return { ...frame, data: { ...(frame.data as Record<string, unknown>), timestamp: EPOCH_MS } };
+	}
+	return { ...frame, timestamp: EPOCH_MS };
+}
 
 beforeEach(() => {
 	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
@@ -182,6 +208,7 @@ describe("connectWsTransport", () => {
 	): {
 		initWsClientImpl: jest.Mock;
 		connect: jest.Mock<Promise<void>, []>;
+		getRawOnPush: () => ((frame: Record<string, unknown>) => void) | undefined;
 		getOnPush: () => ((frame: Record<string, unknown>) => void) | undefined;
 	} {
 		const connect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
@@ -189,7 +216,13 @@ describe("connectWsTransport", () => {
 		return {
 			initWsClientImpl,
 			connect,
-			getOnPush: () => initWsClientImpl.mock.calls[0]?.[0]?.onPush,
+			getRawOnPush: () => initWsClientImpl.mock.calls[0]?.[0]?.onPush,
+			getOnPush: () => {
+				const onPush = initWsClientImpl.mock.calls[0]?.[0]?.onPush;
+				return onPush
+					? (frame: Record<string, unknown>) => onPush(withEpochTimestamp(frame))
+					: undefined;
+			},
 		};
 	}
 
@@ -465,6 +498,43 @@ describe("connectWsTransport", () => {
 			}),
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("rejects string, second, and missing timestamps on state-mutating websocket pushes", async () => {
+		const { initWsClientImpl, getRawOnPush } = createConnectedWsClient();
+		const state = createState({ accessToken: "token_local" });
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		for (const timestamp of [String(EPOCH_MS), Math.floor(EPOCH_MS / 1000), undefined]) {
+			getRawOnPush()?.({
+				frame: "push",
+				type: "chat.updated",
+				payload: {
+					chatId: "chat_bad_time",
+					...(timestamp === undefined ? {} : { timestamp }),
+				},
+			});
+		}
+
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "UPSERT_CHAT" }),
+		);
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "APPEND_DEBUG",
+				line: expect.stringContaining("time_contract_violation"),
+			}),
+		);
 	});
 
 	it("upserts chat.created when the backend sends nested data instead of payload", async () => {
@@ -1329,7 +1399,7 @@ describe("registerAttachRunListener", () => {
 			requestId: "req_1",
 			query: "attached query",
 			references: [{ name: "demo.txt", sizeBytes: 12 }],
-			timestamp: 100,
+			timestamp: EPOCH_MS,
 		} as any);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -1605,7 +1675,12 @@ describe("connectWsTransport continued", () => {
 		return {
 			initWsClientImpl,
 			connect,
-			getOnPush: () => initWsClientImpl.mock.calls[0]?.[0]?.onPush,
+			getOnPush: () => {
+				const onPush = initWsClientImpl.mock.calls[0]?.[0]?.onPush;
+				return onPush
+					? (frame: Record<string, unknown>) => onPush(withEpochTimestamp(frame))
+					: undefined;
+			},
 		};
 	}
 
@@ -2126,7 +2201,7 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_1",
 				agentKey: "agent_alpha",
 				lastRunId: "run_1",
-				readAt: 111,
+				readAt: EPOCH_MS + 111,
 				readRunId: "run_1",
 				agentUnreadCount: 1,
 			},
@@ -2139,7 +2214,7 @@ describe("connectWsTransport continued", () => {
 				lastRunId: "run_1",
 				read: {
 					isRead: true,
-					readAt: 111,
+					readAt: EPOCH_MS + 111,
 					readRunId: "run_1",
 				},
 			}),
@@ -2165,7 +2240,6 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_1",
 				agentKey: "agent_alpha",
 				lastRunId: "run_2",
-				readAt: 0,
 				readRunId: "",
 				agentUnreadCount: 2,
 			},
@@ -2178,7 +2252,6 @@ describe("connectWsTransport continued", () => {
 				lastRunId: "run_2",
 				read: {
 					isRead: false,
-					readAt: 0,
 				},
 			}),
 		});

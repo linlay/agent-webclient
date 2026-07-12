@@ -58,8 +58,8 @@ describe("executeQueryStreamSse", () => {
     const handleEvent = jest.fn();
     createQueryStreamMock.mockResolvedValue(
       createSseResponse([
-        'data: {"type":"content.delta","text":"hi"}\n\n',
-        'data: {"type":"run.complete","runId":"run_1"}\n\n',
+        'data: {"type":"content.delta","text":"hi","timestamp":1710000000001}\n\n',
+        'data: {"type":"run.complete","runId":"run_1","timestamp":1710000000002}\n\n',
       ]),
     );
 
@@ -82,10 +82,12 @@ describe("executeQueryStreamSse", () => {
     expect(handleEvent).toHaveBeenNthCalledWith(1, {
       type: "content.delta",
       text: "hi",
+      timestamp: 1710000000001,
     });
     expect(handleEvent).toHaveBeenNthCalledWith(2, {
       type: "run.complete",
       runId: "run_1",
+      timestamp: 1710000000002,
     });
   });
 
@@ -132,7 +134,7 @@ describe("executeQueryStreamSse", () => {
           start(controller) {
             controller.enqueue(
               new TextEncoder().encode(
-                'data: {"type":"request.query","kind":"btw","btwId":"btw_1"}\n\n',
+                'data: {"type":"request.query","kind":"btw","btwId":"btw_1","timestamp":1710000000003}\n\n',
               ),
             );
             controller.close();
@@ -176,6 +178,7 @@ describe("executeQueryStreamSse", () => {
       type: "request.query",
       kind: "btw",
       btwId: "btw_1",
+      timestamp: 1710000000003,
     });
   });
 
@@ -245,13 +248,39 @@ describe("executeQueryStreamSse", () => {
     );
   });
 
+  it("rejects string, second, and missing stream timestamps without forwarding them", async () => {
+    const dispatch = jest.fn();
+    const handleEvent = jest.fn();
+    createQueryStreamMock.mockResolvedValue(
+      createSseResponse([
+        'data: {"type":"content.delta","timestamp":"1710000000000"}\n\n',
+        'data: {"type":"content.delta","timestamp":1710000000}\n\n',
+        'data: {"type":"content.delta"}\n\n',
+      ]),
+    );
+
+    await executeQueryStreamSse({
+      params: { requestId: "req_bad_timestamp", message: "hello" },
+      dispatch,
+      handleEvent,
+    });
+
+    expect(handleEvent).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "APPEND_DEBUG",
+        line: expect.stringContaining("time_contract_violation"),
+      }),
+    );
+  });
+
   it("attaches to a run with runId and lastSeq and forwards parsed events", async () => {
     const dispatch = jest.fn();
     const handleEvent = jest.fn();
     createAttachStreamMock.mockResolvedValue(
       createSseResponse([
-        'event: message\ndata: {"type":"content.delta","text":"hi","runId":"run_1"}\n\n',
-        'data: {"type":"run.complete","runId":"run_1"}\n\n',
+        'event: message\ndata: {"type":"content.delta","text":"hi","runId":"run_1","timestamp":1710000000004}\n\n',
+        'data: {"type":"run.complete","runId":"run_1","timestamp":1710000000005}\n\n',
       ]),
     );
 
@@ -273,17 +302,19 @@ describe("executeQueryStreamSse", () => {
       type: "content.delta",
       text: "hi",
       runId: "run_1",
+      timestamp: 1710000000004,
     });
     expect(handleEvent).toHaveBeenNthCalledWith(2, {
       type: "run.complete",
       runId: "run_1",
+      timestamp: 1710000000005,
     });
   });
 
   it("treats attach [DONE] as normal completion", async () => {
     const handleEvent = jest.fn();
     createAttachStreamMock.mockResolvedValue(
-      createSseResponse(['data: {"type":"content.delta","text":"hi"}\n\n', "data: [DONE]\n\n"]),
+      createSseResponse(['data: {"type":"content.delta","text":"hi","timestamp":1710000000006}\n\n', "data: [DONE]\n\n"]),
     );
 
     await executeAttachRunSse({
@@ -298,6 +329,7 @@ describe("executeQueryStreamSse", () => {
     expect(handleEvent).toHaveBeenCalledWith({
       type: "content.delta",
       text: "hi",
+      timestamp: 1710000000006,
     });
   });
 

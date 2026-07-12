@@ -16,6 +16,7 @@ export function processReasoningEvent(
   config: EventProcessorConfig,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
+  const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
   if (type === "reasoning.start" || type === "reasoning.delta") {
@@ -61,7 +62,7 @@ export function processReasoningEvent(
         text,
         status: "running",
         expanded: config.reasoningExpandedDefault,
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;
@@ -97,7 +98,7 @@ export function processReasoningEvent(
         text,
         status: "completed",
         expanded: config.reasoningExpandedDefault,
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     commands.push({ cmd: "SET_ACTIVE_REASONING_KEY", key: "" });

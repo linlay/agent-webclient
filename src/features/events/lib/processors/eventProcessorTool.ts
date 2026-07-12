@@ -25,7 +25,6 @@ import {
   readToolDescription,
   resolveFinalToolArgsText,
 } from "@/features/events/lib/processors/eventProcessorShared";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function readStructuredExitCode(value: unknown): number | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -96,6 +95,10 @@ function normalizeFileChangeSummary(input: {
     return null;
   }
 
+  if (!Number.isFinite(input.timestamp) || input.timestamp <= 0) {
+    return null;
+  }
+
   const runId = input.runId.trim();
   if (!runId) {
     return null;
@@ -119,10 +122,7 @@ function normalizeFileChangeSummary(input: {
     deletedLines: readLineStat(lineStats.deletedLines),
     editedLines: readLineStat(lineStats.editedLines),
     operationCount: 1,
-    lastUpdatedAt:
-      Number.isFinite(input.timestamp) && input.timestamp > 0
-        ? input.timestamp
-        : Date.now(),
+    lastUpdatedAt: input.timestamp,
   };
 }
 
@@ -143,8 +143,7 @@ export function processToolEvent(
   state: EventProcessorState,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
-  const timestamp = readEpochMillis(event.timestamp);
-  if (timestamp === undefined) return commands;
+  const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
   if ((type === "tool.start" || type === "tool.snapshot") && event.toolId) {
@@ -195,10 +194,10 @@ export function processToolEvent(
         argsText,
         status: type === "tool.snapshot" ? "completed" : "start",
         result: existing?.result || null,
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
         startedAt:
           type === "tool.snapshot"
-            ? (existing?.startedAt || event.timestamp || existing?.ts || Date.now())
+            ? (existing?.startedAt ?? timestamp)
             : existing?.startedAt,
         endedAt: existing?.endedAt,
         durationMs: existing?.durationMs,
@@ -292,7 +291,7 @@ export function processToolEvent(
           : nextArgsBuffer || existingNode?.argsText || "",
        status: "running",
        result: existingNode?.result || null,
-       ts: event.timestamp || existingNode?.ts || Date.now(),
+       ts: timestamp,
         startedAt: existingNode?.startedAt,
         endedAt: existingNode?.endedAt,
       },
