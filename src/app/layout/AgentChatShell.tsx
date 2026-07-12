@@ -21,7 +21,7 @@ import {
   TerminalDock,
   resolveTerminalDockWorkspaceKey,
 } from "./TerminalDock";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/shared/data";
@@ -493,16 +493,17 @@ export const AgentChatShell: React.FC = () => {
   };
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
+  const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
 
   if (!routeAgentReady) {
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }
 
   const rowClass = isTimelineEmpty
-    ? state.terminalDockOpen
+    ? effectiveTerminalDockOpen
       ? AGENT_ROUTE_ROW_CLASS_BY_STATE.emptyTerminal
       : AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
-    : state.terminalDockOpen
+    : effectiveTerminalDockOpen
       ? AGENT_ROUTE_ROW_CLASS_BY_STATE.terminal
       : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
   const columnClass = state.rightSidebarOpen
@@ -518,7 +519,7 @@ export const AgentChatShell: React.FC = () => {
             AGENT_ROUTE_SHELL_BASE_CLASS,
             columnClass,
             rowClass,
-            state.terminalDockOpen ? "terminal-dock-open" : "",
+            effectiveTerminalDockOpen ? "terminal-dock-open" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -531,7 +532,7 @@ export const AgentChatShell: React.FC = () => {
           <ConversationStage showEmptyState={!chatId} />
           <RightSidebar />
           <BottomDock />
-          {state.terminalDockOpen && currentWorker?.type === "agent" ? (
+          {effectiveTerminalDockOpen ? (
             <TerminalDock
               agentKey={currentWorker.sourceId}
               workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}

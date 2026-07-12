@@ -12,7 +12,7 @@ import type {
   AppState,
   RightSidebarTabKey,
 } from "@/app/state/types";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import {
   isDebugPanelEnabled,
   isVoiceEnabled,
@@ -597,7 +597,7 @@ export const TopNav: React.FC = () => {
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
-  const showTerminalButton = currentWorker?.type === "agent";
+  const showTerminalButton = isCoderAgent(currentWorker);
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;

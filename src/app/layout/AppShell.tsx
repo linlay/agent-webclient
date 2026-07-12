@@ -11,7 +11,7 @@ import { CommandOverlayProvider } from "@/features/workers/components/CommandOve
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
 
 const APP_SHELL_BASE_CLASS =
@@ -45,13 +45,14 @@ export const AppShell: React.FC = () => {
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
+  const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
   const desktopRightSidebarVisible = state.rightSidebarOpen;
 
   const rowClass = !state.chatId
-    ? state.terminalDockOpen
+    ? effectiveTerminalDockOpen
       ? APP_SHELL_ROW_CLASS_BY_STATE.emptyTerminal
       : APP_SHELL_ROW_CLASS_BY_STATE.empty
-    : state.terminalDockOpen
+    : effectiveTerminalDockOpen
       ? APP_SHELL_ROW_CLASS_BY_STATE.terminal
       : APP_SHELL_ROW_CLASS_BY_STATE.default;
   const columnClass = desktopRightSidebarVisible
@@ -72,7 +73,7 @@ export const AppShell: React.FC = () => {
               APP_SHELL_BASE_CLASS,
               columnClass,
               rowClass,
-              state.terminalDockOpen ? "terminal-dock-open" : "",
+              effectiveTerminalDockOpen ? "terminal-dock-open" : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -83,7 +84,7 @@ export const AppShell: React.FC = () => {
             <ConversationStage />
             <RightSidebar />
             <BottomDock />
-            {state.terminalDockOpen && currentWorker?.type === "agent" ? (
+            {effectiveTerminalDockOpen ? (
               <TerminalDock
                 agentKey={currentWorker.sourceId}
                 workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
