@@ -173,7 +173,7 @@ export const GlobalSearchOverlay: React.FC = () => {
                 chatName: String(result.chatName || ""),
                 agentKey: result.agentKey,
                 teamId: result.teamId,
-                updatedAt: readEpochMillis(result.timestamp),
+                updatedAt: readEpochMillis(result.timestamp) ?? 0,
                 lastRunId: String(result.runId || ""),
                 lastRunContent: String(result.snippet || ""),
                 searchSnippet: String(result.snippet || ""),

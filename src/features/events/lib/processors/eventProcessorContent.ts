@@ -14,12 +14,15 @@ import {
   ensureMappedNode,
 } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export function processContentEvent(
   event: AgentEvent,
   state: EventProcessorState,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
+  const timestamp = readEpochMillis(event.timestamp);
+  if (timestamp === undefined) return commands;
   const type = toText(event.type);
 
   if (type === "content.start" && event.contentId) {
@@ -44,7 +47,7 @@ export function processContentEvent(
         contentId,
         text,
         segments: text ? parseContentSegments(contentId, text) : [],
-        ts: event.timestamp || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;
@@ -74,7 +77,7 @@ export function processContentEvent(
         contentId,
         text: newText,
         segments: parseContentSegments(contentId, newText),
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;
@@ -106,7 +109,7 @@ export function processContentEvent(
         text: finalText,
         segments: parseContentSegments(contentId, finalText),
         status: "completed",
-        ts: event.timestamp || existing?.ts || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;
@@ -135,7 +138,7 @@ export function processContentEvent(
         text,
         segments: parseContentSegments(contentId, text),
         status: "completed",
-        ts: event.timestamp || Date.now(),
+        ts: timestamp,
       },
     });
     return commands;

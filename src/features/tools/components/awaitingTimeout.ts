@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 const COUNTDOWN_TICK_MS = 250;
 const MAX_AWAITING_TIMEOUT_CACHE_SIZE = 200;
@@ -59,17 +60,15 @@ export function resolveAwaitingTimeoutEntry(
     return null;
   }
 
-  const normalizedCreatedAt = Number(createdAt);
-  const hasCreatedAt =
-    Number.isFinite(normalizedCreatedAt) && normalizedCreatedAt > 0;
-  const expectedDeadlineAt =
-    hasCreatedAt
-      ? normalizedCreatedAt + timeoutMs
-      : now + timeoutMs;
+  const normalizedCreatedAt = readEpochMillis(createdAt);
+  if (normalizedCreatedAt === undefined) {
+    return null;
+  }
+  const expectedDeadlineAt = normalizedCreatedAt + timeoutMs;
   const cachedEntry = awaitingKey
     ? awaitingTimeoutByKey.get(awaitingKey)
     : undefined;
-  if (cachedEntry && (!hasCreatedAt || cachedEntry.deadlineAt === expectedDeadlineAt)) {
+  if (cachedEntry && cachedEntry.deadlineAt === expectedDeadlineAt) {
     return cachedEntry;
   }
 

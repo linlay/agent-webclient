@@ -10,6 +10,7 @@ import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export function processRunEvent(
   event: AgentEvent,
@@ -17,6 +18,8 @@ export function processRunEvent(
   config: EventProcessorConfig,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
+  const timestamp = readEpochMillis(event.timestamp);
+  if (timestamp === undefined) return commands;
   const type = toText(event.type);
 
   if (type === "request.query") {
@@ -33,7 +36,7 @@ export function processRunEvent(
       cmd: "USER_MESSAGE",
       nodeId: `user_${suffix}`,
       text,
-      ts: event.timestamp || Date.now(),
+      ts: timestamp,
       variant: "default",
       attachments: attachments.length > 0 ? attachments : undefined,
       ...(taskBinding.taskId ? taskBinding : {}),
@@ -55,7 +58,7 @@ export function processRunEvent(
       cmd: "USER_MESSAGE",
       nodeId: `${prefix}_${suffix}`,
       text,
-      ts: event.timestamp || Date.now(),
+      ts: timestamp,
       variant,
       steerId: variant === "steer" ? toText(event.steerId) || suffix : undefined,
     });
@@ -98,7 +101,7 @@ export function processRunEvent(
       cmd: "SYSTEM_MESSAGE",
       nodeId: `compact_${compactId}`,
       text: textParts.join(" · "),
-      ts: event.timestamp || Date.now(),
+      ts: timestamp,
     });
     return commands;
   }
@@ -112,7 +115,7 @@ export function processRunEvent(
           safeText((event as Record<string, unknown>).error) ||
           t("contextCompact.unknownError"),
       }),
-      ts: event.timestamp || Date.now(),
+      ts: timestamp,
     });
     return commands;
   }
@@ -138,7 +141,7 @@ export function processRunEvent(
         nodeId: `sys_${config.mode === "replay" ? state.nextCounter() : Date.now()}`,
         text: display.message,
         errorDetail: display.error,
-        ts: event.timestamp || Date.now(),
+        ts: timestamp,
       });
     }
     return commands;

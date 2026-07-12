@@ -5,7 +5,7 @@ import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 
 function normalizeUpdatedAt(updatedAt: unknown): number {
-  return readEpochMillis(updatedAt);
+  return readEpochMillis(updatedAt) ?? 0;
 }
 
 function compareChatFreshness(a: Chat, b: Chat): number {

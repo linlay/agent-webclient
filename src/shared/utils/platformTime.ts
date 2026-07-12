@@ -1,9 +1,17 @@
 export function isEpochMillis(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+  return typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 1_000_000_000_000 &&
+    value <= Number.MAX_SAFE_INTEGER;
 }
 
-export function readEpochMillis(value: unknown): number {
-  return isEpochMillis(value) ? value : 0;
+export function readEpochMillis(value: unknown): number | undefined {
+  return isEpochMillis(value) ? value : undefined;
+}
+
+/** Internal sort sentinel only; never use this to populate a platform DTO. */
+export function readEpochMillisOrZero(value: unknown): number {
+  return readEpochMillis(value) ?? 0;
 }
 
 export function formatEpochMillisLocal(
@@ -11,7 +19,7 @@ export function formatEpochMillisLocal(
   locale?: string,
 ): string {
   const timestamp = readEpochMillis(value);
-  if (timestamp <= 0) return "--";
+  if (timestamp === undefined) return "--";
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "--";
   return date.toLocaleString(locale);

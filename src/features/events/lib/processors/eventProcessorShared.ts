@@ -175,7 +175,10 @@ export function normalizePublishedArtifacts(
     return [];
   }
 
-  const timestamp = readEpochMillis(event.timestamp) || Date.now();
+  const timestamp = readEpochMillis(event.timestamp);
+  if (timestamp === undefined) {
+    return [];
+  }
   return rawArtifacts
     .map((item) => {
       if (!item || typeof item !== "object" || Array.isArray(item)) {

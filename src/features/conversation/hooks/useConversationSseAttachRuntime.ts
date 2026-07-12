@@ -17,6 +17,7 @@ import {
 	readRequestQueryText,
 } from "@/shared/utils/eventFieldReaders";
 import { toText } from "@/shared/utils/eventUtils";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 import {
 	dispatchRunAttachDebugEvent,
 	readRunAttachDebugSnapshot,
@@ -100,6 +101,10 @@ function renderAttachedRequestQuery(
 	if (!text && attachments.length === 0) {
 		return;
 	}
+	const timestamp = readEpochMillis(event.timestamp);
+	if (timestamp === undefined) {
+		return;
+	}
 
 	const requestId = toText(event.requestId);
 	const nodeId = `user_${requestId || toText(event.seq) || Date.now()}`;
@@ -117,7 +122,7 @@ function renderAttachedRequestQuery(
 			messageVariant: "default",
 			text,
 			attachments: attachments.length > 0 ? attachments : undefined,
-			ts: event.timestamp || Date.now(),
+			ts: timestamp,
 		},
 	});
 	options.dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });

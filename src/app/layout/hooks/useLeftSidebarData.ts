@@ -131,7 +131,7 @@ export function useLeftSidebarData({
       const normalizedA = readEpochMillis(a?.updatedAt);
       const normalizedB = readEpochMillis(b?.updatedAt);
 
-      if (normalizedA !== normalizedB) return normalizedB - normalizedA;
+      if (normalizedA !== normalizedB) return (normalizedB ?? 0) - (normalizedA ?? 0);
 
       const chatIdA = String(a?.chatId || "");
       const chatIdB = String(b?.chatId || "");
