@@ -62,7 +62,7 @@ export const SidebarHistorySection: React.FC<{
               : t("leftSidebar.historyTitle")}
           </span>
           <div className={HISTORY_MODAL_TITLE_TAG_CLASS}>
-            共 {historyRows.length} 条会话
+            {t("leftSidebar.historyCount", { count: historyRows.length })}
           </div>
         </Flex>
       }

@@ -10,6 +10,7 @@ import { App, Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "../UiButton";
 import { MaterialIcon } from "../MaterialIcon";
 import { useAppDispatch } from "@/app/state/AppContext";
+import { useI18n } from "@/shared/i18n";
 
 import Style from "./index.module.css";
 
@@ -60,6 +61,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
   ...rest
 }) => {
   const { message } = App.useApp();
+  const { t } = useI18n();
   const dispatch = useAppDispatch();
   const url = useRef("");
   const language = useMemo(() => lang || "plaintext", [lang]);
@@ -71,21 +73,21 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       navigator.clipboard.writeText(text).then(() => {
-        message.success("复制成功");
+        message.success(t("markdown.copySuccess"));
       });
     },
-    [text],
+    [t, text],
   );
   const extraActions = useMemo(() => {
     if (language === "html") {
       return (
         <Flex>
-          <Tooltip title="复制">
+          <Tooltip title={t("markdown.copy")}>
             <UiButton variant="ghost" iconOnly onClick={onCopy}>
               <MaterialIcon name="content_copy" />
             </UiButton>
           </Tooltip>
-          <Tooltip title="预览">
+          <Tooltip title={t("markdown.preview")}>
             <UiButton
               variant="ghost"
               iconOnly
@@ -99,7 +101,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
                   type: "OPEN_RIGHT_SIDEBAR",
                   tab: "preview",
                   preview: {
-                    name: "预览Html",
+                    name: t("markdown.previewHtml"),
                     url: url.current,
                     downloadUrl: url.current,
                     sizeBytes: blob.size,
@@ -115,13 +117,13 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
       );
     }
     return (
-      <Tooltip title="复制">
+      <Tooltip title={t("markdown.copy")}>
         <UiButton variant="ghost" iconOnly onClick={onCopy}>
           <MaterialIcon name="content_copy" />
         </UiButton>
       </Tooltip>
     );
-  }, [dispatch, language, onCopy, text]);
+  }, [dispatch, language, onCopy, t, text]);
 
   return block ? (
     <Flex vertical gap={10}>

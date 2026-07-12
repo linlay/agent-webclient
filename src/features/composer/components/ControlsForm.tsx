@@ -6,6 +6,7 @@ import type {
 } from "@/app/state/types";
 import { useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { useI18n } from "@/shared/i18n";
 
 type ControlFieldValue = string | boolean;
 
@@ -76,8 +77,11 @@ function serializeOptionValue(value: unknown): string {
   }
 }
 
-function resolveOptionLabel(option: AgentControlOption): string {
-  return readText(option.label, readText(option.value, "未命名选项"));
+function resolveOptionLabel(
+  option: AgentControlOption,
+  t: (key: string) => string,
+): string {
+  return readText(option.label, readText(option.value, t("composerControls.unnamedOption")));
 }
 
 function buildInitialFieldValues(
@@ -178,6 +182,7 @@ function renderFieldInput(
   value: ControlFieldValue,
   disabled: boolean,
   onChange: (nextValue: ControlFieldValue) => void,
+  t: (key: string) => string,
 ): React.ReactNode {
   if (control.type === "switch") {
     return (
@@ -200,12 +205,12 @@ function renderFieldInput(
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">请选择</option>
+        <option value="">{t("composerControls.selectPlaceholder")}</option>
         {options.map((option) => {
           const optionValue = serializeOptionValue(option.value);
           return (
             <option key={optionValue} value={optionValue}>
-              {resolveOptionLabel(option)}
+              {resolveOptionLabel(option, t)}
             </option>
           );
         })}
@@ -235,6 +240,7 @@ export const ControlsForm: React.FC<ControlsFormProps> = ({
   disabled = false,
   onChange,
 }) => {
+    const { t } = useI18n();
     const state = useAppState();
     const currentWorker = resolveCurrentWorkerSummary(state);
     const agent = useMemo(() => {
@@ -300,7 +306,7 @@ export const ControlsForm: React.FC<ControlsFormProps> = ({
             ...current,
             [key]: nextValue,
           }));
-        })}
+        }, t)}
       </label>
     );
   });

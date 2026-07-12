@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getViewport } from "@/shared/data";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
+import { useI18n } from "@/shared/i18n";
 
 interface ViewportEmbedProps {
   viewportKey: string;
@@ -60,6 +61,7 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
   payload,
   payloadRaw,
 }) => {
+  const { t } = useI18n();
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -84,12 +86,12 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
         setError("");
       })
       .catch((err) => {
-        setError(`视图加载失败: ${(err as Error).message}`);
+        setError(t("viewport.loadFailed", { detail: (err as Error).message }));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [viewportKey]);
+  }, [t, viewportKey]);
 
   const postToFrame = useCallback(() => {
     const iframe = iframeRef.current;
@@ -144,7 +146,7 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
   return (
     <div className={TIMELINE_CONTENT_VIEWPORT_CLASS_NAME}>
       <div className={TIMELINE_CONTENT_VIEWPORT_BODY_CLASS_NAME}>
-        {loading && <div className="status-line">加载视图中...</div>}
+        {loading && <div className="status-line">{t("viewport.loading")}</div>}
         {error && <div className="system-alert">{error}</div>}
         {html && (
           <iframe

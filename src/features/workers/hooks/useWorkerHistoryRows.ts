@@ -14,6 +14,7 @@ import {
   mapSearchResultsToHistoryRows,
 } from '@/features/workers/lib/workerHistoryRows';
 import { getChats, searchGlobal } from '@/shared/data';
+import { useI18n } from '@/shared/i18n';
 
 type HistoryLoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -43,6 +44,7 @@ export function useWorkerHistoryRows({
   querySessionsRef,
   dispatch,
 }: UseWorkerHistoryRowsInput): UseWorkerHistoryRowsResult {
+  const { t } = useI18n();
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<
     WorkerConversationRow[]
   >([]);
@@ -112,7 +114,7 @@ export function useWorkerHistoryRows({
             });
             setRemoteHistoryRows([]);
             setStatus('error');
-            setError('历史搜索失败，请稍后重试。');
+            setError(t('worker.history.searchFailed'));
           });
       }, 250);
       return () => {
@@ -147,7 +149,7 @@ export function useWorkerHistoryRows({
         });
         setRemoteHistoryRows([]);
         setStatus('error');
-        setError('历史对话加载失败，请稍后重试。');
+        setError(t('worker.history.loadFailed'));
       });
 
     return undefined;
@@ -159,6 +161,7 @@ export function useWorkerHistoryRows({
     historySearch,
     modal.open,
     modalType,
+    t,
   ]);
 
   const historyRows = useMemo(() => {

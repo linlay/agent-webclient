@@ -14,6 +14,7 @@ import { buildWorkspaceFileUrl } from "@/shared/data/api/client";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 interface ContentBlockProps {
@@ -70,6 +71,7 @@ export function buildWorkspaceFilePreview(
 }
 
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
+	const { t } = useI18n();
 	const dispatch = useAppDispatch();
 	const state = useAppState();
 	const interaction = useTimelineInteraction();
@@ -214,7 +216,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 									}}
 								>
 									<span className={TTS_VOICE_LABEL_CLASS_NAME}>
-										tts voice
+										{t("contentBlock.ttsVoice")}
 									</span>
 									<span className={TTS_VOICE_STATUS_CLASS_NAME}>
 										{statusText}
@@ -229,8 +231,8 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 									variant="ghost"
 									size="sm"
 									iconOnly
-									title="重新朗读"
-									aria-label="重新朗读"
+									title={t("contentBlock.replayVoice")}
+									aria-label={t("contentBlock.replayVoice")}
 									onClick={() => {
 										const runtime =
 											getVoiceRuntime();

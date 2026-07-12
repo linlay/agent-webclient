@@ -2,6 +2,7 @@ import type {
 	VoiceClientGateConfig,
 	VoiceOption,
 } from "@/app/state/types";
+import { t } from "@/shared/i18n";
 
 export const QA_ASR_TASK_ID = "qa-asr";
 export const MAX_VOICE_WS_RECONNECT_ATTEMPTS = 4;
@@ -39,15 +40,17 @@ export function formatVoiceSocketClose(
 	event: CloseEvent | Event | undefined,
 ): string {
 	if (!event || typeof event !== "object" || !("code" in event)) {
-		return "语音 WebSocket 已关闭";
+		return t("voice.socket.closed");
 	}
 	const closeEvent = event as CloseEvent;
 	const code = Number(closeEvent.code) || 0;
 	const reason = String(closeEvent.reason || "").trim();
-	const clean = closeEvent.wasClean ? "clean" : "unclean";
+	const clean = closeEvent.wasClean
+		? t("voice.socket.clean")
+		: t("voice.socket.unclean");
 	return reason
-		? `语音 WebSocket 已关闭 (code=${code}, reason=${reason}, ${clean})`
-		: `语音 WebSocket 已关闭 (code=${code}, ${clean})`;
+		? t("voice.socket.closedDetail", { code, reason, clean })
+		: t("voice.socket.closedCode", { code, clean });
 }
 
 export function ensureVoiceOptions(data: unknown): VoiceOption[] {

@@ -18,7 +18,7 @@ import {
   isVoiceEnabled,
 } from "@/shared/config/featureFlags";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
-import { useI18n } from "@/shared/i18n";
+import { tOrFallback, useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Divider, Flex, Typography } from "antd";
@@ -231,30 +231,35 @@ function formatCompactUsageNumber(value: unknown): string {
   return numberValue.toLocaleString();
 }
 
-function trimTrailingZeros(value: string): string {
-  return value.replace(/\.?0+$/, "");
-}
 
-function formatMoneyAmount(value: number): string {
-  if (value >= 0.01) return trimTrailingZeros(value.toFixed(3));
-  return trimTrailingZeros(value.toFixed(6));
-}
-
-function formatChatEstimatedCost(cost?: AIUsageEstimatedCost): string {
+function formatChatEstimatedCost(
+  cost?: AIUsageEstimatedCost,
+  locale: string = "zh-CN"
+): string {
   const total = readUsageNumber(cost?.total);
   if (total == null || total < 0) return "--";
 
   const currency = cost?.currency?.toUpperCase();
   if (currency === "USD") {
-    return `$${formatMoneyAmount(total)}`;
+    return new Intl.NumberFormat(locale, {
+      style: "currency", currencyDisplay: "symbol",
+      currency: "USD",
+    }).format(total);
   }
 
   if (currency === "CNY" || currency === "RMB" || currency === "CNH") {
-    if (total <= 0.1) return `¥ ${(total * 100).toFixed(2)} 分`;
-    return `¥ ${trimTrailingZeros(total.toFixed(3))} 元`;
+    return new Intl.NumberFormat(locale, {
+      style: "currency", currencyDisplay: "symbol",
+      currency: "CNY",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(total);
   }
 
-  return formatMoneyAmount(total);
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  }).format(total);
 }
 
 function resolveDisplayTotal(
@@ -564,7 +569,7 @@ export const TopNav: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
@@ -741,11 +746,11 @@ export const TopNav: React.FC = () => {
   };
   const contextPercent = resolveContextPercent(usageSnapshot);
   const estimatedCostLabel = formatChatEstimatedCost(
-    resolveChatEstimatedCost(usageSnapshot),
+    resolveChatEstimatedCost(usageSnapshot), locale,
   );
   const reasoningEffort = usageSnapshot?.contextWindow?.reasoningEffort || '';
   const reasoningEffortLabel = reasoningEffort
-    ? t(`composer.query.reasoning.${reasoningEffort}`)
+    ? tOrFallback(`composer.query.reasoning.${reasoningEffort}`, reasoningEffort)
     : '';
   const statusLabel = t(statusText);
   const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;

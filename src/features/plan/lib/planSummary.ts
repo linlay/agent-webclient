@@ -1,5 +1,6 @@
 import type { Plan, PlanRuntime, TaskItemMeta } from "@/app/state/types";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import type { TranslateParams } from "@/shared/i18n/types";
 
 function normalizePlanStatus(status?: string): string {
 	const value = String(status || "pending")
@@ -31,35 +32,39 @@ export interface PlanSummaryView {
 	titleText: string;
 }
 
-function formatTaskDuration(durationMs?: number): string {
+function formatTaskDuration(
+	durationMs: number | undefined,
+	t: (key: string, params?: TranslateParams) => string,
+): string {
 	if (!Number.isFinite(durationMs) || Number(durationMs) < 0) {
 		return "";
 	}
 
 	const value = Number(durationMs);
 	if (value < 1000) {
-		return `${Math.round(value)}毫秒`;
+		return t("plan.summary.duration.ms", { count: String(Math.round(value)) });
 	}
 	if (value < 60_000) {
-		return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}秒`;
+		return t("plan.summary.duration.seconds", { count: (value / 1000).toFixed(value >= 10_000 ? 0 : 1) });
 	}
 
 	const totalSeconds = Math.round(value / 1000);
 	const minutes = Math.floor(totalSeconds / 60);
 	const seconds = totalSeconds % 60;
 	if (minutes < 60) {
-		return `${minutes}分${seconds}秒`;
+		return t("plan.summary.duration.minSec", { m: String(minutes), s: String(seconds) });
 	}
 
 	const hours = Math.floor(minutes / 60);
 	const remainMinutes = minutes % 60;
-	return `${hours}小时${remainMinutes}分`;
+	return t("plan.summary.duration.hourMin", { h: String(hours), m: String(remainMinutes) });
 }
 
 export function buildPlanSummaryView(
 	plan: Plan | null,
 	planRuntimeByTaskId: Map<string, PlanRuntime>,
-	taskItemsById?: Map<string, TaskItemMeta>,
+	taskItemsById: Map<string, TaskItemMeta> | undefined,
+	t: (key: string, params?: TranslateParams) => string,
 	now = Date.now(),
 ): PlanSummaryView {
 	const tasks = plan?.plan || [];
@@ -77,7 +82,7 @@ export function buildPlanSummaryView(
 			taskId: task.taskId,
 			description: task.description,
 			status,
-			durationText: formatTaskDuration(durationMs),
+			durationText: formatTaskDuration(durationMs, t),
 		};
 	});
 	const totalTasks = normalizedTasks.length;
@@ -93,22 +98,22 @@ export function buildPlanSummaryView(
 		(task) => task.status === "canceled",
 	);
 
-	let statusText = "待开始";
+	let statusText = t("plan.summary.status.pending");
 	let statusTone: PlanSummaryView["statusTone"] = "muted";
 	if (totalTasks > 0 && completedTasks === totalTasks) {
-		statusText = "已完成";
+		statusText = t("plan.summary.status.completed");
 		statusTone = "accent";
 	} else if (hasFailed) {
-		statusText = "失败";
+		statusText = t("plan.summary.status.failed");
 		statusTone = "danger";
 	} else if (hasRunning) {
-		statusText = "进行中";
+		statusText = t("plan.summary.status.running");
 		statusTone = "accent";
 	} else if (hasCanceled) {
-		statusText = "已取消";
+		statusText = t("plan.summary.status.canceled");
 		statusTone = "default";
 	} else if (currentCount > 0) {
-		statusText = "进行中";
+		statusText = t("plan.summary.status.running");
 		statusTone = "accent";
 	}
 
@@ -119,7 +124,7 @@ export function buildPlanSummaryView(
 		progressText: `${currentCount}/${totalTasks}`,
 		statusText,
 		statusTone,
-		titleText: "任务列表",
+		titleText: t("plan.summary.titleText"),
 	};
 }
 

@@ -7,6 +7,7 @@ import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
 import { buildResourceUrl, downloadResource } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
+import { useI18n } from "@/shared/i18n";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 import {
   parseWorkspaceFileHref,
@@ -63,6 +64,7 @@ type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
 };
 
 const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
+  const { t } = useI18n();
   const {
     href,
     children,
@@ -110,7 +112,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       download={downloadFilename || rest.download}
       onClick={handleClick}
     >
-      {downloading ? "下载中…" : children}
+      {downloading ? t("markdown.downloading") : children}
     </a>
   );
 };

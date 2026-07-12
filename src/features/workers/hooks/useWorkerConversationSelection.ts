@@ -6,6 +6,7 @@ import {
 	isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
+import { useI18n } from "@/shared/i18n";
 
 export interface WorkerConversationSelectionOptions {
 	loadChat: (
@@ -30,6 +31,7 @@ export function useWorkerConversationSelection(
 	) => Promise<void>;
 } {
 	const { dispatch, stateRef } = useAppContext();
+	const { t } = useI18n();
 	const { activateBlankConversation, loadChat } = input;
 
 	const selectWorkerConversation = useCallback(
@@ -62,7 +64,10 @@ export function useWorkerConversationSelection(
 			const appendNoHistoryDebug = () => {
 				dispatch({
 					type: "APPEND_DEBUG",
-					line: `[worker] ${row.type === "team" ? "小组" : "员工"} ${row.displayName} 暂无历史对话，发送首条消息将创建新对话`,
+					line: t("worker.history.none", {
+						kind: row.type === "team" ? t("worker.kindLabel.team") : t("worker.kindLabel.agent"),
+						name: row.displayName,
+					}),
 				});
 			};
 
@@ -115,7 +120,7 @@ export function useWorkerConversationSelection(
 			});
 			appendNoHistoryDebug();
 		},
-		[activateBlankConversation, dispatch, loadChat, stateRef],
+		[activateBlankConversation, dispatch, loadChat, stateRef, t],
 	);
 
 	return { selectWorkerConversation };

@@ -6,6 +6,7 @@ import {
 	getAttachmentSizeBytes,
 	getAttachmentUrl,
 } from "@/features/artifacts/lib/attachmentUtils";
+import { t } from "@/shared/i18n";
 
 export type AttachmentPreviewKind =
 	| "image"
@@ -188,7 +189,7 @@ export function buildAttachmentPreviewState(
 	}
 
 	return {
-		name: String(attachment.name || "").trim() || "未命名资源",
+		name: String(attachment.name || "").trim() || t("attachments.unnamedResource"),
 		url,
 		downloadUrl: getAttachmentDownloadUrl(attachment),
 		sizeBytes: getAttachmentSizeBytes(attachment),

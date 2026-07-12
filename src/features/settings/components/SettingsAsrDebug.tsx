@@ -44,7 +44,7 @@ export const SettingsAsrDebug: React.FC<SettingsAsrDebugProps> = ({
   onDispatch,
 }) => {
   const { t } = useI18n();
-  const [asrDebugStatus, setAsrDebugStatus] = useState("idle");
+  const [asrDebugStatus, setAsrDebugStatus] = useState(() => t("settings.asr.status.idle"));
   const [asrDebugRecording, setAsrDebugRecording] = useState(false);
   const [asrDebugInterimText, setAsrDebugInterimText] = useState("");
   const [asrDebugFinalText, setAsrDebugFinalText] = useState("");
@@ -64,14 +64,14 @@ export const SettingsAsrDebug: React.FC<SettingsAsrDebugProps> = ({
       if (status === "recording") return t("settings.asr.status.recording");
       if (status === "stopping") return t("settings.asr.status.stopping");
       if (status === "error") return t("settings.asr.status.failed");
-      return "idle";
+      return t("settings.asr.status.idle");
     },
     [t],
   );
 
   const resetAsrUi = useCallback(
     (options: { clearTranscript?: boolean } = {}) => {
-      setAsrDebugStatus("idle");
+      setAsrDebugStatus(t("settings.asr.status.idle"));
       setAsrDebugRecording(false);
       setAsrDebugInterimText("");
       setAsrFallbackNotice("");
@@ -79,7 +79,7 @@ export const SettingsAsrDebug: React.FC<SettingsAsrDebugProps> = ({
         setAsrDebugFinalText("");
       }
     },
-    [],
+    [t],
   );
 
   const createAsrSession = useCallback(
@@ -233,9 +233,9 @@ export const SettingsAsrDebug: React.FC<SettingsAsrDebugProps> = ({
     setAsrDebugInterimText("");
     setAsrDebugFinalText("");
     if (!asrDebugRecording) {
-      setAsrDebugStatus("idle");
+      setAsrDebugStatus(t("settings.asr.status.idle"));
     }
-  }, [asrDebugRecording]);
+  }, [asrDebugRecording, t]);
 
   useEffect(() => {
     sessionRef.current = createAsrSession();

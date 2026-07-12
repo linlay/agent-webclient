@@ -1,3 +1,4 @@
+import type { TranslateParams } from "@/shared/i18n/types";
 import type {
   Agent,
   AppState,
@@ -214,7 +215,7 @@ export function resolveCurrentWorkerSummary(
   };
 }
 
-export function buildCurrentWorkerDetailView(summary: CurrentWorkerSummary): CurrentWorkerDetailView {
+export function buildCurrentWorkerDetailView(summary: CurrentWorkerSummary, t: (key: string, params?: TranslateParams) => string): CurrentWorkerDetailView {
   const raw = summary.raw;
   const model = collectFromKeys(raw, ['model', 'modelName', 'llm', 'model_id'])[0] || '--';
   const skills = collectFromKeys(raw, ['skills', 'skillKeys', 'skillNames']);
@@ -227,9 +228,9 @@ export function buildCurrentWorkerDetailView(summary: CurrentWorkerSummary): Cur
     : [];
 
   return {
-    kindLabel: summary.type === 'team' ? '小组' : '员工',
+    kindLabel: summary.type === 'team' ? t('worker.kindLabel.team') : t('worker.kindLabel.agent'),
     title: summary.displayName,
-    identifierLabel: summary.type === 'team' ? 'teamId' : 'key',
+    identifierLabel: summary.type === 'team' ? t('worker.view.identifierTeamId') : t('worker.view.identifierKey'),
     identifierValue: summary.sourceId,
     role: summary.role || '--',
     model,
@@ -258,16 +259,16 @@ export function isCoderAgent(summary: CurrentWorkerSummary | null): boolean {
   return String((summary.raw as Record<string, unknown> | null)?.['mode'] || '').toUpperCase() === 'CODER';
 }
 
-export function buildAutomationDraft(summary: CurrentWorkerSummary, task: string, automationRule: string): string {
-  const kindLabel = summary.type === 'team' ? '小组' : '员工';
+export function buildAutomationDraft(summary: CurrentWorkerSummary, task: string, automationRule: string, t: (key: string, params?: TranslateParams) => string): string {
+  const kindLabel = summary.type === 'team' ? t('worker.kindLabel.team') : t('worker.kindLabel.agent');
   const roleText = toText(summary.role);
   return [
-    `请为当前${kindLabel}制定自动化。`,
-    `对象名称: ${summary.displayName}`,
-    `对象标识: ${summary.type === 'team' ? 'teamId' : 'agentKey'}=${summary.sourceId}`,
-    `对象角色: ${roleText || '--'}`,
-    `任务内容: ${toText(task)}`,
-    `执行时间/规则: ${toText(automationRule)}`,
-    '请先确认时间、触发方式与执行范围，再开始安排。',
+    t('automation.draft.template.title', { kindLabel }),
+    t('automation.draft.template.name', { name: summary.displayName }),
+    t('automation.draft.template.id', { idLabel: summary.type === 'team' ? 'teamId' : 'agentKey', id: summary.sourceId }),
+    t('automation.draft.template.role', { role: roleText || '--' }),
+    t('automation.draft.template.taskContent', { task: toText(task) }),
+    t('automation.draft.template.rule', { rule: toText(automationRule) }),
+    t('automation.draft.template.confirm'),
   ].join('\n');
 }

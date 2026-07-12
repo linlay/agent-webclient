@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import type { WorkerConversationRow } from "@/app/state/types";
+import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {
   const React = require("react");
@@ -63,21 +64,26 @@ function createHistoryRow(overrides: Partial<WorkerConversationRow> = {}): Worke
 
 function renderHistoryModal(
   props: Partial<React.ComponentProps<typeof HistoryModal>> = {},
+  locale: Locale = "zh-CN",
 ) {
   return renderToStaticMarkup(
-    React.createElement(HistoryModal, {
-      historyRows: [createHistoryRow()],
-      historyIndex: 0,
-      historySearch: "",
-      historyInputRef: React.createRef<HTMLInputElement>(),
-      historyListRef: React.createRef<HTMLDivElement>(),
-      historyItemRefs: { current: [] },
-      onHistorySearchChange: jest.fn(),
-      onActivateIndex: jest.fn(),
-      onSelect: jest.fn(),
-      onMarkAllRead: jest.fn(),
-      ...props,
-    }),
+    React.createElement(
+      I18nProvider,
+      { locale, persistLocale: false },
+      React.createElement(HistoryModal, {
+        historyRows: [createHistoryRow()],
+        historyIndex: 0,
+        historySearch: "",
+        historyInputRef: React.createRef<HTMLInputElement>(),
+        historyListRef: React.createRef<HTMLDivElement>(),
+        historyItemRefs: { current: [] },
+        onHistorySearchChange: jest.fn(),
+        onActivateIndex: jest.fn(),
+        onSelect: jest.fn(),
+        onMarkAllRead: jest.fn(),
+        ...props,
+      }),
+    ),
   );
 }
 
@@ -89,6 +95,13 @@ describe("HistoryModal", () => {
     expect(html).toContain("command-history-toolbar-actions");
     expect(html).toContain("command-history-action");
     expect(html).toContain("一键已读");
+  });
+
+  it("renders localized history controls in English", () => {
+    const html = renderHistoryModal({}, "en-US");
+
+    expect(html).toContain("Mark all as read");
+    expect(html).toContain('placeholder="Search title or preview..."');
   });
 
   it("adds a targetable class for compact Copilot history titles", () => {

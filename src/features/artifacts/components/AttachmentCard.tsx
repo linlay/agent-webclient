@@ -10,6 +10,7 @@ import {
 } from "@/features/artifacts/lib/attachmentUtils";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { FileIcon } from "@/shared/components/file-icon";
+import { useI18n } from "@/shared/i18n";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -42,6 +43,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   removeLabel,
   style,
 }) => {
+  const { t } = useI18n();
   const dispatch = useAppDispatch();
   const attachmentKind = getAttachmentKind(attachment);
   const sourceUrl = getAttachmentUrl(attachment);
@@ -186,8 +188,8 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
             event.stopPropagation();
             onRemove();
           }}
-          aria-label={removeLabel || `移除文件 ${attachment.name}`}
-          title="移除文件"
+          aria-label={removeLabel || t("attachments.remove", { name: attachment.name })}
+          title={t("attachments.removeTitle")}
         >
           <MaterialIcon name="close" />
         </button>

@@ -1,12 +1,44 @@
 import React, { useEffect, useState } from "react";
+import type { TranslateParams } from "@/shared/i18n";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
+
+type Translate = (key: string, params?: TranslateParams) => string;
 
 interface SettingsTtsDebugProps {
   active: boolean;
   ttsDebugStatus: string;
   onSend: (text: string) => void;
   onStop: () => void;
+}
+
+export function formatTtsDebugStatus(status: string, t: Translate): string {
+  const raw = String(status || "").trim();
+  const error = raw.match(/^error:\s*(.+)$/i);
+  if (error) {
+    return t("settings.shared.errorWithDetail", { detail: error[1] });
+  }
+
+  const started = raw.match(/^tts started(?: \((\d+) frames, (\d+) bytes\))?$/i);
+  if (started) {
+    return started[1]
+      ? t("settings.tts.status.startedWithStats", {
+          frames: started[1],
+          bytes: started[2],
+        })
+      : t("settings.tts.status.started");
+  }
+
+  const statusKeyByValue: Record<string, string> = {
+    idle: "settings.tts.status.idle",
+    connecting: "settings.tts.status.connecting",
+    "socket open": "settings.tts.status.socketOpen",
+    done: "settings.tts.status.completed",
+    stopped: "settings.tts.status.stopped",
+    "connected but no audio frames": "settings.tts.status.noAudioFrames",
+  };
+  const key = statusKeyByValue[raw.toLowerCase()];
+  return key ? t(key) : raw;
 }
 
 export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
@@ -18,6 +50,7 @@ export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
   const { t } = useI18n();
   const [ttsDebugText, setTtsDebugText] = useState("");
   const defaultTtsDebugText = t("voice.debug.defaultTtsText");
+  const statusText = formatTtsDebugStatus(ttsDebugStatus, t);
 
   useEffect(() => {
     if (!active) return;
@@ -49,7 +82,7 @@ export const SettingsTtsDebug: React.FC<SettingsTtsDebugProps> = ({
           {t("settings.tts.stop")}
         </UiButton>
       </div>
-      <p className="settings-hint">{ttsDebugStatus}</p>
+      <p className="settings-hint">{statusText}</p>
     </div>
   );
 };

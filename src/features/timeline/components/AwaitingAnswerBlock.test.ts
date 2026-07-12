@@ -64,22 +64,26 @@ describe('AwaitingAnswerBlock', () => {
 
   it('renders error payloads as a single status row', () => {
     const html = renderToStaticMarkup(
-      React.createElement(AwaitingAnswerBlock, {
-        node: {
-          id: 'node_3',
-          kind: 'awaiting.answered',
-          title: '等待已超时',
-          text: JSON.stringify({
-            status: 'error',
-            error: {
-              code: 'timeout',
-              message: '等待项已超时',
-            },
-          }),
-          expanded: true,
-          ts: 0,
-        } as any,
-      }),
+      React.createElement(
+        I18nProvider,
+        { locale: 'zh-CN', persistLocale: false },
+        React.createElement(AwaitingAnswerBlock, {
+          node: {
+            id: 'node_3',
+            kind: 'awaiting.answered',
+            title: '等待已超时',
+            text: JSON.stringify({
+              status: 'error',
+              error: {
+                code: 'timeout',
+                message: '等待项已超时',
+              },
+            }),
+            expanded: true,
+            ts: 0,
+          } as any,
+        }),
+      ),
     );
 
     expect(html).toContain('等待已超时');

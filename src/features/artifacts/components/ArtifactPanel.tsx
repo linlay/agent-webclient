@@ -5,6 +5,10 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { Flex } from "antd";
+import type { TranslateParams } from "@/shared/i18n";
+import { useI18n } from "@/shared/i18n";
+
+type Translate = (key: string, params?: TranslateParams) => string;
 
 const FLOATING_ARTIFACT_CLASS_NAME =
   "floating-artifact tw:relative tw:m-0 tw:flex tw:w-full tw:flex-row tw:items-stretch tw:gap-1 tw:overflow-hidden tw:border-0 tw:bg-transparent tw:shadow-none";
@@ -41,6 +45,7 @@ export interface ArtifactSummaryView {
 
 export function buildArtifactSummaryView(
   artifacts: PublishedArtifact[],
+  t: Translate,
 ): ArtifactSummaryView {
   const orderedArtifacts = [...artifacts].reverse();
   const latestArtifact = orderedArtifacts[0] || null;
@@ -51,7 +56,7 @@ export function buildArtifactSummaryView(
   return {
     artifacts: orderedArtifacts,
     latestArtifact,
-    countText: `${orderedArtifacts.length} 个文件`,
+    countText: t("artifactPanel.count", { count: orderedArtifacts.length }),
     latestSummaryText,
   };
 }
@@ -81,9 +86,10 @@ function handleFloatingArtifactWheel(event: React.WheelEvent<HTMLDivElement>) {
 
 export const ArtifactPanel: React.FC = () => {
   const state = useAppState();
+  const { t } = useI18n();
   const summary = useMemo(
-    () => buildArtifactSummaryView(state.artifacts),
-    [state.artifacts],
+    () => buildArtifactSummaryView(state.artifacts, t),
+    [state.artifacts, t],
   );
   const [isCollapsed, setIsCollapsed] = useState(true);
 

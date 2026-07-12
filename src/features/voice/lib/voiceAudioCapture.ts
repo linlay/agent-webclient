@@ -1,6 +1,7 @@
 import { VOICE_CHAT_FRAME_BYTES, encodePcm16 } from "@/features/voice/lib/voiceChatAudio";
 import type { VoiceClientGateConfig } from "@/app/state/types";
 import { DEFAULT_VOICE_CLIENT_GATE } from "@/features/voice/lib/voiceAsrProtocol";
+import { t } from "@/shared/i18n";
 
 const PCM16_BYTES_PER_MS = 32;
 
@@ -253,7 +254,7 @@ export async function initializeVoiceAudioCapture(
 				}
 			).webkitAudioContext;
 		if (AudioContextCtor == null) {
-			throw new Error("当前浏览器不支持 AudioContext");
+			throw new Error(t("voice.audioContextUnsupported"));
 		}
 
 		const audioContext = new AudioContextCtor();
@@ -282,7 +283,9 @@ export async function initializeVoiceAudioCapture(
 	} catch (error) {
 		cleanupVoiceAudioCapture(state);
 		onError(
-			`麦克风初始化失败: ${error instanceof Error ? error.message : String(error)}`,
+			t("voice.microphoneInitFailed", {
+				detail: error instanceof Error ? error.message : String(error),
+			}),
 		);
 		return false;
 	}

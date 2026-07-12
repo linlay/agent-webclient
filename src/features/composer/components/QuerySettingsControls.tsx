@@ -298,6 +298,15 @@ function serviceTierLabelText(
   return translated === messageKey ? option.label : translated;
 }
 
+function reasoningEffortLabelText(
+  option: ReasoningEffortOption,
+  t: (key: string) => string,
+): string {
+  const messageKey = `composer.query.reasoning.${option.key}`;
+  const translated = t(messageKey);
+  return translated === messageKey ? option.label : translated;
+}
+
 export function shouldClearModelOverride(
   isCoderAgent: boolean,
   modelOverride: QueryModelOverride,
@@ -480,7 +489,7 @@ export function buildModelMenuItems({
         key: `reasoning:${option.key}`,
         label: (
           <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {t(`composer.query.reasoning.${option.key}`) || option.label}
+            {reasoningEffortLabelText(option, t)}
           </span>
         ),
         extra:

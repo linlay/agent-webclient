@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { buildPlanSummaryView, hasRunningPlanTask } from "@/features/plan/lib/planSummary";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { Flex } from "antd";
@@ -9,6 +10,7 @@ import { Flex } from "antd";
 export const PlanPanel: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -30,8 +32,8 @@ export const PlanPanel: React.FC = () => {
 
   const planListId = `floating-plan-list-${String(state.plan.planId || "plan").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const summary = useMemo(
-    () => buildPlanSummaryView(state.plan, state.planRuntimeByTaskId, state.taskItemsById, now),
-    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now],
+    () => buildPlanSummaryView(state.plan, state.planRuntimeByTaskId, state.taskItemsById, t, now),
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t],
   );
 
   return (

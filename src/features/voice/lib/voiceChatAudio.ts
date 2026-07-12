@@ -1,4 +1,5 @@
 import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { t } from "@/shared/i18n";
 
 const MIN_GAIN = 0.0001;
 
@@ -138,7 +139,7 @@ export class PcmQueuePlayer {
 				window.AudioContext ||
 				(window as BrowserWindow).webkitAudioContext;
 			if (AudioContextCtor == null) {
-				throw new Error("当前浏览器不支持 AudioContext");
+				throw new Error(t("voice.audioContextUnsupported"));
 			}
 			this.audioContext = new AudioContextCtor();
 		}
@@ -237,7 +238,7 @@ export class ReadyCuePlayer {
 				window.AudioContext ||
 				(window as BrowserWindow).webkitAudioContext;
 			if (AudioContextCtor == null) {
-				throw new Error("当前浏览器不支持 AudioContext");
+				throw new Error(t("voice.audioContextUnsupported"));
 			}
 			this.audioContext = new AudioContextCtor();
 		}

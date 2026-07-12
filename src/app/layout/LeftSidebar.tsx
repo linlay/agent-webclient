@@ -835,7 +835,7 @@ export const LeftSidebar: React.FC = () => {
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 400 400"
                       role="img"
-                      aria-label="white cloud app icon with vibrant text"
+                      aria-label={t("brand.logoAria")}
                     >
                       <defs>
                         <linearGradient
@@ -1021,11 +1021,11 @@ export const LeftSidebar: React.FC = () => {
                   items: [
                     {
                       key: "byName",
-                      label: "按名称",
+                      label: t("leftSidebar.sort.byName"),
                     },
                     {
                       key: "byTime",
-                      label: "按时间",
+                      label: t("leftSidebar.sort.byTime"),
                     },
                   ],
                 }}

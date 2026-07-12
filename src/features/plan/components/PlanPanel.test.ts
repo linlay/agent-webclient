@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "@/shared/i18n";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import type { PlanRuntime, TaskItemMeta } from "@/app/state/types";
@@ -50,25 +51,31 @@ describe('buildPlanSummaryView', () => {
     delete globalWithStorage.localStorage;
   });
 
+  function planObj(tasks: Array<{ taskId: string; description: string }>) {
+    return { planId: 'plan_main', plan: tasks } as any;
+  }
+
   it('shows in-progress count based on latest started task position', () => {
     const runtimeByTaskId = new Map<string, PlanRuntime>([
       ['task_1', { status: 'completed', updatedAt: 1, error: '' }],
       ['task_2', { status: 'running', updatedAt: 2, error: '' }],
     ]);
 
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [
+    const summary = buildPlanSummaryView(
+      planObj([
         { taskId: 'task_1', description: 'A' },
         { taskId: 'task_2', description: 'B' },
         { taskId: 'task_3', description: 'C' },
         { taskId: 'task_4', description: 'D' },
-      ],
-    }, runtimeByTaskId);
+      ]),
+      runtimeByTaskId,
+      undefined,
+      t,
+    );
 
     expect(summary.progressText).toBe('2/4');
-    expect(summary.statusText).toBe('进行中');
-    expect(summary.titleText).toBe('任务列表');
+    expect(summary.statusText).toBe(t('plan.summary.status.running'));
+    expect(summary.titleText).toBe(t('plan.summary.titleText'));
   });
 
   it('shows completed once all tasks are done', () => {
@@ -79,18 +86,20 @@ describe('buildPlanSummaryView', () => {
       ['task_4', { status: 'completed', updatedAt: 4, error: '' }],
     ]);
 
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [
+    const summary = buildPlanSummaryView(
+      planObj([
         { taskId: 'task_1', description: 'A' },
         { taskId: 'task_2', description: 'B' },
         { taskId: 'task_3', description: 'C' },
         { taskId: 'task_4', description: 'D' },
-      ],
-    }, runtimeByTaskId);
+      ]),
+      runtimeByTaskId,
+      undefined,
+      t,
+    );
 
     expect(summary.progressText).toBe('4/4');
-    expect(summary.statusText).toBe('已完成');
+    expect(summary.statusText).toBe(t('plan.summary.status.completed'));
   });
 
   it('keeps the plan title and plan items sourced from the plan definition when task metadata is present', () => {
@@ -105,12 +114,14 @@ describe('buildPlanSummaryView', () => {
         error: '',
       }],
     ]);
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [{ taskId: 'task_1', description: 'Plan task name' }],
-    }, new Map<string, PlanRuntime>(), taskItemsById);
+    const summary = buildPlanSummaryView(
+      planObj([{ taskId: 'task_1', description: 'Plan task name' }]),
+      new Map<string, PlanRuntime>(),
+      taskItemsById,
+      t,
+    );
 
-    expect(summary.titleText).toBe('任务列表');
+    expect(summary.titleText).toBe(t('plan.summary.titleText'));
     expect(summary.normalizedTasks).toEqual([
       expect.objectContaining({
         taskId: 'task_1',
@@ -135,17 +146,20 @@ describe('buildPlanSummaryView', () => {
       }],
     ]);
 
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [{ taskId: 'task_1', description: 'Task A' }],
-    }, new Map<string, PlanRuntime>([
-      ['task_1', { status: 'completed', updatedAt: 5_100, error: '' }],
-    ]), taskItemsById, 8_000);
+    const summary = buildPlanSummaryView(
+      planObj([{ taskId: 'task_1', description: 'Task A' }]),
+      new Map<string, PlanRuntime>([
+        ['task_1', { status: 'completed', updatedAt: 5_100, error: '' }],
+      ]),
+      taskItemsById,
+      t,
+      8_000,
+    );
 
     expect(summary.normalizedTasks).toEqual([
       expect.objectContaining({
         taskId: 'task_1',
-        durationText: '5.0秒',
+        durationText: t('plan.summary.duration.seconds', { count: '5.0' }),
       }),
     ]);
   });
@@ -166,17 +180,20 @@ describe('buildPlanSummaryView', () => {
       }],
     ]);
 
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [{ taskId: 'task_1', description: 'Task A' }],
-    }, new Map<string, PlanRuntime>([
-      ['task_1', { status: 'running', updatedAt: 5_000, error: '' }],
-    ]), taskItemsById, 8_200);
+    const summary = buildPlanSummaryView(
+      planObj([{ taskId: 'task_1', description: 'Task A' }]),
+      new Map<string, PlanRuntime>([
+        ['task_1', { status: 'running', updatedAt: 5_000, error: '' }],
+      ]),
+      taskItemsById,
+      t,
+      8_200,
+    );
 
     expect(summary.normalizedTasks).toEqual([
       expect.objectContaining({
         taskId: 'task_1',
-        durationText: '3.2秒',
+        durationText: t('plan.summary.duration.seconds', { count: '3.2' }),
       }),
     ]);
   });
@@ -194,10 +211,13 @@ describe('buildPlanSummaryView', () => {
       }],
     ]);
 
-    const summary = buildPlanSummaryView({
-      planId: 'plan_main',
-      plan: [{ taskId: 'task_1', description: 'Task A' }],
-    }, new Map<string, PlanRuntime>(), taskItemsById, 10_000);
+    const summary = buildPlanSummaryView(
+      planObj([{ taskId: 'task_1', description: 'Task A' }]),
+      new Map<string, PlanRuntime>(),
+      taskItemsById,
+      t,
+      10_000,
+    );
 
     expect(summary.normalizedTasks).toEqual([
       expect.objectContaining({
@@ -248,10 +268,11 @@ describe('buildPlanSummaryView', () => {
 
     const html = renderToStaticMarkup(React.createElement(PlanPanel));
 
-    expect(html).toContain('>任务列表<');
+    expect(html).toContain('>' + t('plan.summary.titleText') + '<');
     expect(html).toContain('Ordinary task A');
     expect(html).toContain('Ordinary task B');
-    expect(html).toContain('1分30秒');
+    // 90_000 ms = 1分30秒
+    expect(html).toContain(t('plan.summary.duration.minSec', { m: '1', s: '30' }));
     expect(html).not.toContain('>PLAN<');
     expect(html).not.toContain('Parallel agent task A');
     expect(html).not.toContain('Parallel agent task B');
