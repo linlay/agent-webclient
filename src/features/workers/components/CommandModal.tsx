@@ -82,7 +82,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
   const detailView = useMemo(
     () =>
       modal.type === "detail" && currentWorker
-        ? buildCurrentWorkerDetailView(currentWorker)
+        ? buildCurrentWorkerDetailView(currentWorker, t)
         : null,
     [currentWorker, modal.type],
   );

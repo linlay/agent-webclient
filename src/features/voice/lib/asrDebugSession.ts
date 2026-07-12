@@ -18,6 +18,7 @@ import {
 	describeVoiceChatWsTarget,
 	resolveVoiceChatWsUrl,
 } from "@/features/voice/lib/voiceChatAudio";
+import { t } from "@/shared/i18n";
 
 const DEFAULT_STOP_TIMEOUT_MS = 1000;
 
@@ -125,7 +126,7 @@ export class AsrDebugSession {
 
 	private sendJson(payload: Record<string, unknown>): void {
 		if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
-			throw new Error("ASR 调试 WebSocket 尚未连接");
+			throw new Error(t("voice.asr.notConnected"));
 		}
 		this.socket.send(JSON.stringify(payload));
 	}
@@ -238,7 +239,7 @@ export class AsrDebugSession {
 
 		if (type === "error") {
 			const code = String(message.code || "").trim();
-			const detail = String(message.message || "ASR 调试失败");
+			const detail = String(message.message || t("voice.asr.failed"));
 			this.handleFailure(code ? `${code}: ${detail}` : detail);
 		}
 	}
@@ -248,7 +249,7 @@ export class AsrDebugSession {
 		asrDefaults?: VoiceAsrDefaultsInput;
 	}): Promise<void> {
 		if (this.destroyed) {
-			throw new Error("ASR 调试会话已销毁");
+			throw new Error(t("voice.asr.sessionDestroyed"));
 		}
 		if (this.socket || this.captureState.captureStarted) {
 			return;
@@ -308,7 +309,7 @@ export class AsrDebugSession {
 				this.handleSocketMessage(event.data);
 			};
 			socket.onerror = () => {
-				reject(new Error("ASR 调试 WebSocket 连接失败"));
+				reject(new Error(t("voice.asr.connectionFailed")));
 			};
 			socket.onclose = () => {
 				if (this.destroyed) return;
@@ -317,7 +318,7 @@ export class AsrDebugSession {
 					this.socket = null;
 				}
 				if (this.captureState.captureStarted) {
-					this.handleFailure("ASR 调试 WebSocket 已关闭");
+					this.handleFailure(t("voice.socket.closed"));
 				}
 			};
 		}).catch((error) => {

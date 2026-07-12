@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { EChartsType } from "echarts";
+import { useI18n } from "@/shared/i18n";
 
 const DEFAULT_ECHARTS_HEIGHT = 320;
 
@@ -13,6 +14,7 @@ export const MarkdownECharts: React.FC<{
   code: string;
   streamStatus?: "loading" | "done";
 }> = ({ code, streamStatus }) => {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<EChartsType | null>(null);
 
@@ -70,8 +72,8 @@ export const MarkdownECharts: React.FC<{
     return (
       <div className="markdown-echarts markdown-echarts-error">
         {streamStatus === "loading"
-          ? "图表配置接收中…"
-          : `ECharts 配置解析失败：${payload.error}`}
+          ? t("markdown.echartsReceiving")
+          : t("markdown.echartsParseFailed", { detail: payload.error })}
       </div>
     );
   }

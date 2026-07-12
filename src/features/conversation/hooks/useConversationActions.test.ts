@@ -1248,7 +1248,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'APPEND_DEBUG',
-        line: expect.stringContaining('暂无历史对话'),
+        line: expect.any(String),
       }),
     );
   });

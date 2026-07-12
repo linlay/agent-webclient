@@ -1,5 +1,6 @@
 import type { PublishedArtifact } from "@/app/state/types";
 import { buildArtifactSummaryView } from "@/features/artifacts/components/ArtifactPanel";
+import { t } from "@/shared/i18n";
 
 describe("buildArtifactSummaryView", () => {
 	it("shows the latest artifact in the collapsed summary line", () => {
@@ -30,7 +31,7 @@ describe("buildArtifactSummaryView", () => {
 			},
 		];
 
-		const summary = buildArtifactSummaryView(artifacts);
+		const summary = buildArtifactSummaryView(artifacts, t);
 
 		expect(summary.countText).toBe("2 个文件");
 		expect(summary.latestArtifact?.artifactId).toBe("artifact_2");

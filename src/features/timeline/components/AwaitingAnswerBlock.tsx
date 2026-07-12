@@ -64,7 +64,7 @@ function formatAwaitingAnswerItem(
     String(item.command || "").trim() ||
     String(item.action || "").trim() ||
     id ||
-    "未命名项";
+    t("awaitingAnswer.unnamedItem");
 
   if (typeof item.decision === "string" && item.decision.trim()) {
     const reason = String(item.reason || "").trim();
@@ -81,7 +81,7 @@ function formatAwaitingAnswerItem(
     return {
       key: `${id}:form`,
       title,
-      value: formText || "（无回答内容）",
+      value: formText || t("awaitingAnswer.noAnswer"),
     };
   }
 
@@ -107,7 +107,7 @@ function formatAwaitingAnswerItem(
       title,
       value:
         item.answers.map((entry) => String(entry)).join(", ") ||
-        "（无回答内容）",
+        t("awaitingAnswer.noAnswer"),
     };
   }
 
@@ -122,7 +122,7 @@ function formatAwaitingAnswerItem(
   return {
     key: id || title,
     title,
-    value: "（无回答内容）",
+    value: t("awaitingAnswer.noAnswer"),
   };
 }
 
@@ -193,8 +193,8 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       return [
         {
           key: `error:${errorCode || "unknown"}`,
-          title: "状态",
-          value: errorMessage || errorCode || "等待异常",
+          title: t("awaitingAnswer.status"),
+          value: errorMessage || errorCode || t("awaitingAnswer.error"),
         },
       ];
     }
@@ -207,8 +207,8 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   }, [envelope, t]);
   const summaryText =
     envelope.status === "error"
-      ? node.title || "等待异常"
-      : `已提交 ${items.length || 0} 项回答`;
+      ? node.title || t("awaitingAnswer.error")
+      : t("awaitingAnswer.submitted", { count: items.length || 0 });
 
   return (
     <TimelineCollapse

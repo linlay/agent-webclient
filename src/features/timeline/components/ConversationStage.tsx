@@ -1164,7 +1164,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     .join(" ")}
                   type="button"
                   aria-current={active ? "location" : undefined}
-                  aria-label={`定位到第 ${index + 1} 个提问`}
+                  aria-label={t("conversationStage.queryAnchor", { index: index + 1 })}
                   onMouseEnter={() => {
                     if (!anchorRef.current) return;
                     anchorRef.current.style.setProperty(

@@ -33,6 +33,15 @@ import { UiTag } from "@/shared/ui/UiTag";
 
 type StatusFilter = "all" | AdminSkillStatus;
 
+function translateWithFallback(
+  t: (key: string) => string,
+  key: string,
+  fallback: string,
+): string {
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
 /* ---- class names ---- */
@@ -508,9 +517,9 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <span>{selectedEntry.path}</span>
                   <span>{t("skillConsole.field.size")}</span>
                   <span>{formatSize(selectedEntry.size)}</span>
-                  <span>Mime</span>
+                  <span>{t("skillConsole.field.mime")}</span>
                   <span>{selectedEntry.mimeType || "--"}</span>
-                  <span>SHA256</span>
+                  <span>{t("skillConsole.field.sha256")}</span>
                   <span>{fileSha256 || selectedEntry.sha256 || "--"}</span>
                 </div>
               </div>
@@ -1046,7 +1055,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       selectedKeys: [statusFilter],
       items: STATUS_FILTERS.map((status) => ({
         key: status,
-        label: t(`skillConsole.statusFilter.${status}`),
+        label: translateWithFallback(t, `skillConsole.statusFilter.${status}`, status),
       })),
     }),
     [t, statusFilter],
@@ -1139,7 +1148,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                           <strong>{item.name || item.key}</strong>
                         </span>
                         <UiTag tone={statusTone(item.status)}>
-                          {t(`skillConsole.status.${item.status}`)}
+                          {translateWithFallback(t, `skillConsole.status.${item.status}`, item.status)}
                         </UiTag>
                       </span>
                       <span className={SKILL_LIST_ITEM_META_CLASS_NAME}>

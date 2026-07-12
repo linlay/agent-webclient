@@ -10,7 +10,7 @@
     "build:web": "dotenv -e .env -- webpack --mode production",
     "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false",
     "check:boundaries": "node ./scripts/check-feature-boundaries.js",
-    "check:i18n": "node ./scripts/check-hardcoded-han.js"
+    "check:i18n": "node ./scripts/check-i18n.js"
   },
   "dependencies": {
     "@ant-design/x-markdown": "^2.3.0",

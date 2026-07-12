@@ -17,6 +17,15 @@ function hasTechnicalDetail(errorDetail?: TimelineErrorDetail): boolean {
 	);
 }
 
+function translateWithFallback(
+	t: (key: string) => string,
+	key: string,
+	fallback: string,
+): string {
+	const translated = t(key);
+	return translated === key ? fallback : translated;
+}
+
 function formatDetailValue(value: unknown): string {
 	if (value == null || value === "") {
 		return "";
@@ -58,7 +67,7 @@ export const SystemAlert: React.FC<{
 							if (!textValue) return null;
 							return (
 								<React.Fragment key={key}>
-									<dt>{t(`platformError.detail.${key}`)}</dt>
+									<dt>{translateWithFallback(t, `platformError.detail.${key}`, key)}</dt>
 									<dd>{textValue}</dd>
 								</React.Fragment>
 							);

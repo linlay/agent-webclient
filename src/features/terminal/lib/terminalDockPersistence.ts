@@ -1,4 +1,5 @@
 import { toText } from "@/shared/utils/eventUtils";
+import { t } from "@/shared/i18n";
 
 const DOCK_STATE_STORAGE_PREFIX = "agent-webclient.terminalDockState.v1:";
 const DOCK_OPEN_STORAGE_KEY = "agent-webclient.terminalDockOpen.v1";
@@ -47,7 +48,7 @@ function normalizeTab(value: unknown): TerminalDockTabState | null {
   }
   return {
     id,
-    label: toText(record.label) || "终端",
+    label: toText(record.label) || t("terminal.defaultLabel"),
     terminalKey,
   };
 }

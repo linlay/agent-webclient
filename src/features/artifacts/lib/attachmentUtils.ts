@@ -1,4 +1,8 @@
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
+import { t as runtimeT } from "@/shared/i18n";
+import type { TranslateParams } from "@/shared/i18n";
+
+type Translate = (key: string, params?: TranslateParams) => string;
 
 export interface AttachmentLike {
   name?: string;
@@ -95,8 +99,15 @@ export function isImageAttachment(attachment: AttachmentLike): boolean {
   return getAttachmentKind(attachment) === 'image';
 }
 
-export function getAttachmentKindLabel(attachment: AttachmentLike): string {
-  return isImageAttachment(attachment) ? '图片' : '文件';
+export function getAttachmentKindLabel(
+  attachment: AttachmentLike,
+  t: Translate = runtimeT,
+): string {
+  return t(
+    isImageAttachment(attachment)
+      ? "attachments.kind.image"
+      : "attachments.kind.file",
+  );
 }
 
 export function getAttachmentIconName(

@@ -65,7 +65,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain('id="api-status"');
-		expect(html).toContain(">Idle<");
+		expect(html).toContain(">idle<");
 		expect(html).toContain("is-idle");
 		expect(html).not.toContain("WebSocket connection error");
 	});
@@ -91,12 +91,12 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Run error");
+		expect(html).toContain(">error<");
 		expect(html).toContain("is-error");
 		expect(html).toContain("The model service quota is exhausted.");
 		expect(html).not.toContain("model request failed");
-		expect(html).toContain('title="Run error:');
-		expect(html).toContain('aria-label="Run error:');
+		expect(html).toContain('title="error:');
+		expect(html).toContain('aria-label="error:');
 	});
 
 	it("renders streaming status as running", () => {
@@ -141,7 +141,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Running");
+		expect(html).toContain("running");
 		expect(html).toContain("is-running");
 	});
 
@@ -541,7 +541,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain("<span>Cache hit:</span><strong>25.00%</strong>");
 		expect(html).toContain('aria-label="Total cost"');
-		expect(html).toContain("<span>Total cost:</span><strong>¥ 0.03 分</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>CN¥0.0003</strong>");
 	});
 
 	it("renders chat estimated cost in yuan when it is over ten fen", () => {
@@ -565,7 +565,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>¥ 0.123 元</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>CN¥0.1234</strong>");
 	});
 
 	it("renders chat estimated cost with a dollar sign for USD", () => {
@@ -589,7 +589,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>$0.012</strong>");
+		expect(html).toContain("<span>Total cost:</span><strong>$0.01</strong>");
 	});
 
 	it("renders historical chat usage with an empty current call section", () => {
@@ -851,7 +851,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Run error");
+		expect(html).toContain(">error<");
 		expect(html).toContain("is-error");
 	});
 
@@ -863,7 +863,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">Idle<");
+		expect(html).toContain(">idle<");
 		expect(html).toContain("is-idle");
 	});
 

@@ -84,7 +84,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const detailView = useMemo(
     () =>
       modal.type === "detail" && currentWorker
-        ? buildCurrentWorkerDetailView(currentWorker)
+        ? buildCurrentWorkerDetailView(currentWorker, t)
         : null,
     [currentWorker, modal.type],
   );

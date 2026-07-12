@@ -74,6 +74,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
               subtitle={getComposerAttachmentSubtitle(
                 attachment,
                 useUnifiedComposerAttachmentRow,
+                t,
               )}
               onRemove={() => onRemoveAttachment(attachment.id)}
               removeLabel={t("composer.attachments.removeFile", {

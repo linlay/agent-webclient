@@ -20,6 +20,7 @@ import {
   type TerminalDockTabState,
 } from "@/features/terminal/lib/terminalDockPersistence";
 import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
+import { useI18n } from "@/shared/i18n";
 
 export { resolveTerminalDockWorkspaceKey, resolveTerminalTheme };
 
@@ -35,16 +36,16 @@ function generateTabId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-function createTerminalTab(index: number): TerminalTab {
+function createTerminalTab(index: number, label: string): TerminalTab {
   return {
     id: generateTabId(),
-    label: "终端",
+    label,
     terminalKey: index === 0 ? "main" : `tab-${index}`,
   };
 }
 
-function defaultDockState(): TerminalDockStoredState {
-  const tab = createTerminalTab(0);
+function defaultDockState(label: string): TerminalDockStoredState {
+  const tab = createTerminalTab(0, label);
   return {
     tabs: [tab],
     activeTabId: tab.id,
@@ -52,12 +53,12 @@ function defaultDockState(): TerminalDockStoredState {
   };
 }
 
-function restoreDockState(agentKey: string): TerminalDockStoredState {
+function restoreDockState(agentKey: string, label: string): TerminalDockStoredState {
   const normalizedAgentKey = toText(agentKey);
   if (!normalizedAgentKey) {
     return { tabs: [], activeTabId: "", nextIndex: 0 };
   }
-  return restoreTerminalDockState(normalizedAgentKey, defaultDockState());
+  return restoreTerminalDockState(normalizedAgentKey, defaultDockState(label));
 }
 
 function persistDockState(agentKey: string, state: TerminalDockStoredState): void {
@@ -73,10 +74,11 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
 }) => {
   const { themeMode } = useAppState();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
   const initialState = useMemo(
-    () => restoreDockState(normalizedAgentKey),
-    [normalizedAgentKey],
+    () => restoreDockState(normalizedAgentKey, t("terminal.defaultLabel")),
+    [normalizedAgentKey, t],
   );
   const [tabs, setTabs] = useState<readonly TerminalTab[]>(initialState.tabs);
   const [activeTabId, setActiveTabId] = useState(initialState.activeTabId);
@@ -85,8 +87,8 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   const remoteSessionsRef = useRef(new Map<string, TerminalRemoteSession>());
   const availabilityKey = resolveTerminalAvailabilityKey(worker, workspaceKey);
   const availability = useMemo(
-    () => resolveTerminalAvailability(worker, workspaceKey),
-    [availabilityKey],
+    () => resolveTerminalAvailability(worker, workspaceKey, t),
+    [availabilityKey, t],
   );
 
   const [dockHeight, setDockHeight] = useState<number | null>(250);
@@ -134,13 +136,13 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
 
   useEffect(() => {
     if (prevAgentKeyRef.current === normalizedAgentKey) return;
-    const nextState = restoreDockState(normalizedAgentKey);
+    const nextState = restoreDockState(normalizedAgentKey, t("terminal.defaultLabel"));
     prevAgentKeyRef.current = normalizedAgentKey;
     tabCounterRef.current = nextState.nextIndex;
     remoteSessionsRef.current.clear();
     setTabs(nextState.tabs);
     setActiveTabId(nextState.activeTabId);
-  }, [normalizedAgentKey]);
+  }, [normalizedAgentKey, t]);
 
   useEffect(() => {
     persistDockState(normalizedAgentKey, {
@@ -157,11 +159,11 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   }, [activeTabId, tabs]);
 
   const createTab = useCallback(() => {
-    const tab = createTerminalTab(tabCounterRef.current);
+    const tab = createTerminalTab(tabCounterRef.current, t("terminal.defaultLabel"));
     tabCounterRef.current += 1;
     setTabs((prev) => [...prev, tab]);
     setActiveTabId(tab.id);
-  }, []);
+  }, [t]);
 
   const handleSessionChange = useCallback(
     (tabId: string, session: TerminalRemoteSession | null) => {
@@ -190,7 +192,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   return (
     <section
       className="terminal-dock"
-      aria-label="终端面板"
+      aria-label={t("terminal.panelAria")}
       style={dockHeight != null ? { height: dockHeight } : undefined}
     >
       <div
@@ -199,7 +201,9 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
       />
       <div className="terminal-dock-tabs">
         <div className="terminal-dock-tab-list">
-          {tabs.map((tab, index) => (
+          {tabs.map((tab, index) => {
+            const tabLabel = t("terminal.defaultLabel");
+            return (
             <div
               key={tab.id}
               className={`terminal-dock-tab ${tab.id === activeTabId ? "terminal-dock-tab-active" : ""}`}
@@ -215,26 +219,27 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
               }}
             >
               <span className="terminal-dock-tab-label">
-                {tab.label}
+                {tabLabel}
                 {tabs.length > 1 ? index + 1 : null}
               </span>
               <button
                 className="terminal-dock-tab-close"
-                aria-label={`关闭 ${tab.label}`}
+                aria-label={t("terminal.closeTab", { name: tabLabel })}
                 onClick={(event) => {
                   event.stopPropagation();
                   closeTab(tab.id);
                 }}
                 tabIndex={0}
               >
-                x
+                ×
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
         <button
           className="terminal-dock-tab-add"
-          aria-label="新建终端"
+          aria-label={t("terminal.new")}
           onClick={createTab}
           tabIndex={0}
         >
@@ -242,7 +247,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
         </button>
         <button
           className="terminal-dock-close"
-          aria-label="关闭终端面板"
+          aria-label={t("topNav.terminal.close")}
           onClick={() => dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: false })}
           tabIndex={0}
         >
@@ -269,7 +274,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
               onClick={createTab}
               tabIndex={0}
             >
-              + 新建终端
+              {t("terminal.emptyNew")}
             </button>
           </div>
         )}

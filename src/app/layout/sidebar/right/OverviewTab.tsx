@@ -7,7 +7,7 @@ import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
 import { getFileHistory } from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
-import { t } from "@/shared/i18n";
+import { useI18n } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
@@ -323,7 +323,10 @@ function renderFileChangeStats(
   );
 }
 
-function renderFileHistoryPanel(entry: FileHistoryCacheEntry | undefined) {
+function renderFileHistoryPanel(
+  entry: FileHistoryCacheEntry | undefined,
+  t: (key: string) => string,
+) {
   if (!entry || entry.status === "loading") {
     return (
       <div className={FILE_DIFF_STATUS_CLASS_NAME}>
@@ -365,6 +368,7 @@ const OverviewSection: React.FC<{
 export const OverviewTab: React.FC = () => {
   const dispatch = useAppDispatch();
   const state = useAppState();
+  const { t } = useI18n();
   const [fileChangeAnimation, setFileChangeAnimation] = React.useState<{
     version: number;
     paths: Set<string>;
@@ -435,9 +439,10 @@ export const OverviewTab: React.FC = () => {
         state.plan,
         state.planRuntimeByTaskId,
         state.taskItemsById,
+        t,
         now,
       ),
-    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now],
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t],
   );
 
   const planningNodes = React.useMemo(() => {
@@ -586,7 +591,7 @@ export const OverviewTab: React.FC = () => {
                 ),
                 children: (
                   <div onClick={(e) => e.stopPropagation()}>
-                    {renderFileHistoryPanel(fileHistoryCache[cacheKey])}
+                    {renderFileHistoryPanel(fileHistoryCache[cacheKey], t)}
                   </div>
                 ),
               };

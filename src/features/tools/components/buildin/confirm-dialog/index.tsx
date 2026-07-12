@@ -460,6 +460,7 @@ function SelectOptionTooltipTitle({
 }: {
   option: NonNullable<AIAwaitQuestion["options"]>[number];
 }) {
+  const { t } = useI18n();
   const tooltip = getSelectOptionTooltip(option);
   if (!tooltip) {
     return null;
@@ -469,7 +470,7 @@ function SelectOptionTooltipTitle({
     return (
       <div className={hitlDialogClassNames.optionPreview}>
         <iframe
-          title={`${option.label} preview`}
+          title={t("confirmDialog.optionPreview", { label: option.label })}
           className={hitlDialogClassNames.optionPreviewFrame}
           srcDoc={tooltip.html}
           sandbox=""

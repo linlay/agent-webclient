@@ -1,55 +1,32 @@
-[
-  "src/app/App.tsx",
-  "src/app/layout/AgentChatShell.tsx",
-  "src/app/layout/LeftSidebar.tsx",
-  "src/app/layout/RightSidebar.tsx",
-  "src/app/layout/TerminalDock.tsx",
-  "src/app/layout/sidebar/SidebarHistorySection.tsx",
-  "src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx",
-  "src/app/layout/sidebar/right/DebugTab.tsx",
-  "src/app/layout/sidebar/right/OverviewTab.tsx",
-  "src/app/layout/sidebar/right/RightSidebar.tsx",
-  "src/app/modals/CommandModal.tsx",
-  "src/features/artifacts/components/ArtifactPanel.tsx",
-  "src/features/artifacts/components/AttachmentCard.tsx",
-  "src/features/artifacts/lib/attachmentPreview.ts",
-  "src/features/artifacts/lib/attachmentUtils.ts",
-  "src/features/chats/components/HistoryModal.tsx",
-  "src/features/chats/lib/chatListFormatter.ts",
-  "src/features/composer/components/ControlsForm.tsx",
-  "src/features/composer/components/SlashPalette.tsx",
-  "src/features/composer/components/SteerBar.tsx",
-  "src/features/composer/components/useSpeechInput.ts",
-  "src/features/composer/hooks/useMessageActions.ts",
-  "src/features/composer/lib/composerAttachments.ts",
-  "src/features/plan/components/PlanPanel.tsx",
-  "src/features/plan/lib/planSummary.ts",
-  "src/features/settings/components/SettingsModal.tsx",
-  "src/features/timeline/components/AwaitingAnswerBlock.tsx",
-  "src/features/timeline/components/ContentBlock.tsx",
-  "src/features/timeline/components/ConversationStage.tsx",
-  "src/features/timeline/components/TimelineRow.tsx",
-  "src/features/timeline/components/ViewportEmbed.tsx",
-  "src/features/timeline/lib/timelineDisplay.ts",
-  "src/features/terminal/lib/terminalDockPersistence.ts",
-  "src/features/terminal/lib/terminalWorkspace.ts",
-  "src/features/tools/components/AwaitingHtmlContainer.tsx",
-  "src/features/tools/components/FrontendToolContainer.tsx",
-  "src/features/tools/components/buildin/approval-dialog/state.ts",
-  "src/features/tools/components/buildin/confirm-dialog/index.tsx",
-  "src/features/tools/components/buildin/confirm-dialog/state.ts",
-  "src/features/tools/lib/actionRuntime.ts",
-  "src/features/voice/hooks/useVoiceChatRuntime.ts",
-  "src/features/voice/lib/asrDebugSession.ts",
-  "src/features/voice/lib/voiceAudioCapture.ts",
-  "src/features/voice/lib/voiceChatAudio.ts",
-  "src/features/voice/lib/voiceChatRuntimeUtils.ts",
-  "src/features/workers/hooks/useWorkerData.ts",
-  "src/features/workers/hooks/useWorkerConversationSelection.ts",
-  "src/features/workers/hooks/useWorkerHistoryRows.ts",
-  "src/features/workers/lib/currentWorker.ts",
-  "src/shared/i18n/runtime.ts",
-  "src/shared/ui/MarkdownContent.tsx",
-  "src/shared/ui/markdown-code/MarkdownECharts.tsx",
-  "src/shared/ui/markdown-code/index.tsx"
-]
+{
+  "src/features/workers/hooks/useWorkerData.ts": [
+    {
+      "text": "默认小组",
+      "reason": "用于识别后端返回的历史默认团队名称，不会作为前端展示文案。"
+    }
+  ],
+  "src/app/layout/LeftSidebar.tsx": [
+    { "text": "AGENT", "reason": "产品品牌字样。" },
+    { "text": "Webclient", "reason": "产品品牌字样。" },
+    { "text": "CODER", "reason": "后端模式标识。" },
+    { "text": "KBASE", "reason": "后端模式标识。" }
+  ],
+  "src/app/modals/AutomationModal.tsx": [
+    { "text": "Cron", "reason": "Cron 表达式是行业标准术语。" },
+    { "text": "{\"kind\":\"daily\"}", "reason": "JSON 示例值。" }
+  ],
+  "src/features/composer/components/ComposerActions.tsx": [
+    { "text": "Shift + Tab", "reason": "键盘快捷键组合。" }
+  ],
+  "src/features/settings/components/SettingsTransport.tsx": [
+    { "text": "SSE", "reason": "传输协议缩写。" },
+    { "text": "WebSocket", "reason": "传输协议名称。" }
+  ],
+  "src/features/skills/components/SkillConsole.tsx": [
+    { "text": "skill-key", "reason": "技能键的格式示例。" }
+  ],
+  "src/features/workers/components/AgentConsole.tsx": [
+    { "text": "{\"environmentId\":\"shell\",\"level\":\"RUN\"}", "reason": "JSON 配置示例。" },
+    { "text": "{\"baseUrl\":\"http://127.0.0.1:3210\",\"timeoutMs\":300000}", "reason": "JSON 配置示例。" }
+  ]
+}

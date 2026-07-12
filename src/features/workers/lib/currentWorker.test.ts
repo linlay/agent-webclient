@@ -1,5 +1,6 @@
 import type { AppState, WorkerRow } from '@/app/state/types';
 import { createInitialState } from '@/app/state/AppContext';
+import { t } from "@/shared/i18n";
 import {
   buildCurrentWorkerDetailView,
   buildAutomationDraft,
@@ -98,7 +99,7 @@ describe('currentWorker helpers', () => {
     const summary = resolveCurrentWorkerSummary(state);
     expect(summary).not.toBeNull();
 
-    const detail = buildCurrentWorkerDetailView(summary!);
+    const detail = buildCurrentWorkerDetailView(summary!, t);
 
     expect(detail).toMatchObject({
       kindLabel: '小组',
@@ -153,7 +154,7 @@ describe('currentWorker helpers', () => {
     const summary = resolveCurrentWorkerSummary(state);
     expect(summary).not.toBeNull();
 
-    const draft = buildAutomationDraft(summary!, '每天整理日报', '工作日 18:00');
+    const draft = buildAutomationDraft(summary!, '每天整理日报', '工作日 18:00', t);
 
     expect(draft).toContain('对象名称: Alice');
     expect(draft).toContain('对象标识: agentKey=alice');

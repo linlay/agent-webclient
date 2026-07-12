@@ -14,6 +14,10 @@ import {
 } from "@/features/artifacts/lib/attachmentUtils";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
+import { t as runtimeT } from "@/shared/i18n";
+import type { TranslateParams } from "@/shared/i18n";
+
+type Translate = (key: string, params?: TranslateParams) => string;
 
 export interface ComposerAttachment {
 	id: string;
@@ -60,20 +64,23 @@ export function revokeAttachmentPreviewUrl(previewUrl?: string): void {
 export function getComposerAttachmentSubtitle(
 	attachment: ComposerAttachment,
 	showReadyMeta = false,
+	t: Translate = runtimeT,
 ): string {
 	if (attachment.status === "error") {
-		return attachment.error || "上传失败";
+		return attachment.error || t("attachments.error.uploadFailed");
 	}
 
 	if (attachment.status === "uploading") {
-		return `${getAttachmentKindLabel(attachment)}上传中...`;
+		return t("attachments.status.uploadingWithType", {
+			kind: getAttachmentKindLabel(attachment, t),
+		});
 	}
 
 	const sizeText = formatAttachmentSize(attachment.size);
 	if (showReadyMeta) {
 		return sizeText
-			? `${getAttachmentKindLabel(attachment)} · ${sizeText}`
-			: getAttachmentKindLabel(attachment);
+			? `${getAttachmentKindLabel(attachment, t)} · ${sizeText}`
+			: getAttachmentKindLabel(attachment, t);
 	}
 
 	if (getAttachmentKind(attachment) === "image") {
@@ -81,8 +88,8 @@ export function getComposerAttachmentSubtitle(
 	}
 
 	return sizeText
-		? `${getAttachmentKindLabel(attachment)} · ${sizeText}`
-		: getAttachmentKindLabel(attachment);
+		? `${getAttachmentKindLabel(attachment, t)} · ${sizeText}`
+		: getAttachmentKindLabel(attachment, t);
 }
 
 export function createPendingComposerAttachments(
@@ -200,7 +207,7 @@ export async function uploadComposerAttachments(input: {
 			}
 			const references = extractUploadReferences(response.data);
 			if (references.length === 0) {
-				throw new Error("上传成功，但接口未返回可用的文件引用");
+				throw new Error(runtimeT("attachments.error.noFileRef"));
 			}
 			const [normalizedAttachment] = normalizeTimelineAttachments(references);
 			const attachmentType = getAttachmentKind({
@@ -231,7 +238,7 @@ export async function uploadComposerAttachments(input: {
 						? {
 								...item,
 								status: "error",
-								error: (error as Error).message || "上传失败",
+								error: (error as Error).message || runtimeT("attachments.error.uploadFailed"),
 								references: [],
 						  }
 						: item,

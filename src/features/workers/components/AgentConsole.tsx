@@ -1199,7 +1199,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <>
                 <div className={AGENT_FORM_GRID_CLASS_NAME}>
               <div className="field-group">
-                <label htmlFor="agent-key-input">Key</label>
+                <label htmlFor="agent-key-input">{t("agentConsole.field.key")}</label>
                 <Input id="agent-key-input" value={form.key} disabled={formMode === "edit"} onChange={(event) => updateForm({ key: event.target.value })} />
               </div>
               <div className="field-group">
@@ -1215,24 +1215,24 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <Select id="agent-mode-input" value={form.mode} options={modeOptions} onChange={setMode} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-model-input">Model Key</label>
+                <label htmlFor="agent-model-input">{t("agentConsole.field.modelKey")}</label>
                 <Select id="agent-model-input" showSearch allowClear loading={loadingOptions} value={form.modelKey || undefined} options={modelOptions} optionFilterProp="label" onChange={(value) => updateForm({ modelKey: value || "" })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-tags-input">Context Tags</label>
+                <label htmlFor="agent-tags-input">{t("agentConsole.field.contextTags")}</label>
                 <Select id="agent-tags-input" mode="multiple" allowClear loading={loadingOptions} value={form.contextTags} options={contextTagOptions} onChange={(value) => updateForm({ contextTags: value })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-icon-kind-input">Icon</label>
+                <label htmlFor="agent-icon-kind-input">{t("agentConsole.field.icon")}</label>
                 <div className={AGENT_ICON_EDITOR_CLASS_NAME}>
                   <span className={AGENT_ICON_PREVIEW_CLASS_NAME}><AgentIcon icon={selectedIconValue as any} type="agent" /></span>
                   <Select
                     id="agent-icon-kind-input"
                     value={form.iconKind}
                     options={[
-                      { value: "none", label: "Default" },
-                      { value: "builtin", label: "Built-in" },
-                      { value: "image", label: "JPG / PNG / SVG" },
+                      { value: "none", label: t("agentConsole.field.iconKind.none") },
+                      { value: "builtin", label: t("agentConsole.field.iconKind.builtin") },
+                      { value: "image", label: t("agentConsole.field.iconKind.image") },
                     ]}
                     onChange={(value: IconKind) => updateForm({ iconKind: value })}
                   />
@@ -1240,13 +1240,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
               {form.iconKind === "builtin" && (
                 <div className="field-group">
-                  <label htmlFor="agent-icon-name-input">Icon Name</label>
+                  <label htmlFor="agent-icon-name-input">{t("agentConsole.field.iconName")}</label>
                   <Select id="agent-icon-name-input" showSearch allowClear value={form.iconName || undefined} options={AGENT_ICON_NAMES.map((name) => ({ value: name, label: name }))} onChange={(value) => updateForm({ iconName: value || "" })} />
                 </div>
               )}
               {form.iconKind === "image" && (
                 <div className="field-group">
-                  <label htmlFor="agent-icon-image-input">Icon Image</label>
+                  <label htmlFor="agent-icon-image-input">{t("agentConsole.field.iconImage")}</label>
                   <Input id="agent-icon-image-input" placeholder={t("agentConsole.placeholder.iconImage")} value={form.iconImage} onChange={(event) => updateForm({ iconImage: event.target.value })} />
                 </div>
               )}
@@ -1261,7 +1261,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <legend>{t("agentConsole.section.capabilities")}</legend>
               <div className={AGENT_FORM_GRID_CLASS_NAME}>
                 <div className="field-group">
-                  <label htmlFor="agent-tools-input">Tools</label>
+                  <label htmlFor="agent-tools-input">{t("agentConsole.field.tools")}</label>
                   <Select
                     id="agent-tools-input"
                     mode="multiple"
@@ -1275,7 +1275,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   />
                 </div>
                 <div className="field-group">
-                  <label htmlFor="agent-skills-input">Skills</label>
+                  <label htmlFor="agent-skills-input">{t("agentConsole.field.skills")}</label>
                   <Select
                     id="agent-skills-input"
                     mode="multiple"
@@ -1290,7 +1290,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
               </div>
               <div className="field-group">
-                <label>Wonders</label>
+                <label>{t("agentConsole.field.wonders")}</label>
                 <div className={AGENT_WONDERS_EDITOR_CLASS_NAME}>
                   {(form.wonders.length > 0 ? form.wonders : [""]).map((wonder, index) => (
                     <div className={AGENT_WONDER_ROW_CLASS_NAME} key={index}>
@@ -1319,19 +1319,19 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <legend>{t("agentConsole.section.advancedConfig")}</legend>
               <div className={AGENT_FORM_GRID_CLASS_NAME}>
                 <div className="field-group">
-                  <label htmlFor="agent-controls-input">Controls</label>
+                  <label htmlFor="agent-controls-input">{t("agentConsole.field.controls")}</label>
                   <Input.TextArea id="agent-controls-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} value={form.controlsText} onChange={(event) => updateForm({ controlsText: event.target.value })} />
                 </div>
                 <div className="field-group">
-                  <label htmlFor="agent-runtime-input">Runtime Config</label>
+                  <label htmlFor="agent-runtime-input">{t("agentConsole.field.runtimeConfig")}</label>
                   <Input.TextArea id="agent-runtime-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} placeholder='{"environmentId":"shell","level":"RUN"}' value={form.runtimeConfigText} onChange={(event) => updateForm({ runtimeConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
-                  <label htmlFor="agent-memory-input">Memory Config</label>
+                  <label htmlFor="agent-memory-input">{t("agentConsole.field.memoryConfig")}</label>
                   <Input.TextArea id="agent-memory-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} value={form.memoryConfigText} onChange={(event) => updateForm({ memoryConfigText: event.target.value })} />
                 </div>
                 <div className="field-group">
-                  <label htmlFor="agent-visibility-input">Visibility</label>
+                  <label htmlFor="agent-visibility-input">{t("agentConsole.field.visibility")}</label>
                   <Select
                     id="agent-visibility-input"
                     mode="multiple"
@@ -1343,12 +1343,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   />
                 </div>
                 <div className="field-group">
-                  <label htmlFor="agent-budget-input">Budget</label>
+                  <label htmlFor="agent-budget-input">{t("agentConsole.field.budget")}</label>
                   <Input.TextArea id="agent-budget-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={7} placeholder={BUDGET_PLACEHOLDER} value={form.budgetText} onChange={(event) => updateForm({ budgetText: event.target.value })} />
                 </div>
                 {form.mode === "PROXY" && (
                   <div className="field-group">
-                    <label htmlFor="agent-proxy-input">ACP-PROXY Config</label>
+                    <label htmlFor="agent-proxy-input">{t("agentConsole.field.acpProxyConfig")}</label>
                     <Input.TextArea id="agent-proxy-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={5} placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}' value={form.proxyConfigText} onChange={(event) => updateForm({ proxyConfigText: event.target.value })} />
                   </div>
                 )}
@@ -1356,13 +1356,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             </fieldset>
 
             <fieldset className={AGENT_CONFIG_BOX_CLASS_NAME}>
-              <legend>Prompt</legend>
+              <legend>{t("agentConsole.field.prompt")}</legend>
               <div className="field-group">
-                <label htmlFor="agent-soul-input">SOUL.md</label>
+                <label htmlFor="agent-soul-input">{t("agentConsole.field.soulMd")}</label>
                 <Input.TextArea id="agent-soul-input" className={AGENT_PROMPT_TEXTAREA_CLASS_NAME} rows={5} value={form.soulPrompt} onChange={(event) => updateForm({ soulPrompt: event.target.value })} />
               </div>
               <div className="field-group">
-                <label htmlFor="agent-agents-input">AGENTS.md</label>
+                <label htmlFor="agent-agents-input">{t("agentConsole.field.agentsMd")}</label>
                 <Input.TextArea id="agent-agents-input" className={AGENT_PROMPT_TEXTAREA_CLASS_NAME} rows={5} value={form.agentsPrompt} onChange={(event) => updateForm({ agentsPrompt: event.target.value })} />
               </div>
             </fieldset>

@@ -17,6 +17,8 @@ const DEFAULT_LOCALES: I18nLocaleMap = {
   "zh-CN": zhCNMessages,
 };
 
+export type I18nKey = keyof typeof enUSMessages;
+
 const DEFAULT_TERMS: Record<Locale, I18nTerms> = {
   "en-US": {
     agentLabel: "agent",
@@ -147,10 +149,30 @@ function resolveMessage(
   key: string,
   config: I18nRuntimeConfig,
 ): string {
-  return (
+  const fromLocale = config.locales[config.locale]?.[key];
+  const fromFallback = config.locales[config.fallbackLocale]?.[key];
+  const resolved = fromLocale || fromFallback;
+  if (resolved == null) {
+    if (typeof window === "undefined" && typeof process !== "undefined" && process.env?.NODE_ENV === "development") {
+      console.warn(
+        `[i18n] Missing translation key "${key}" in locale "${config.locale}" (fallback: "${config.fallbackLocale}")`,
+      );
+    } else if (typeof window !== "undefined" && (window as any).__DEV__) {
+      console.warn(
+        `[i18n] Missing translation key "${key}" in locale "${config.locale}" (fallback: "${config.fallbackLocale}")`,
+      );
+    }
+  }
+  return resolved || key;
+}
+
+export function hasTranslation(
+  key: string,
+  config: I18nRuntimeConfig = runtimeConfig,
+): boolean {
+  return Boolean(
     config.locales[config.locale]?.[key] ||
-    config.locales[config.fallbackLocale]?.[key] ||
-    key
+      config.locales[config.fallbackLocale]?.[key],
   );
 }
 
@@ -192,6 +214,14 @@ export function translateMessage(
 
 export function t(key: string, params?: TranslateParams): string {
   return translateMessage(key, params, runtimeConfig);
+}
+
+export function tOrFallback(
+  key: string,
+  fallback: string,
+  params?: TranslateParams,
+): string {
+  return hasTranslation(key) ? t(key, params) : fallback;
 }
 
 export function buildI18nRuntimeConfig(input: {

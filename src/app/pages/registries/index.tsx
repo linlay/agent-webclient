@@ -18,15 +18,25 @@ import type {
   AdminToolSummary,
   RegistryConsoleTab,
 } from "@/shared/data";
-import { useI18n, type I18nContextValue } from "@/shared/i18n";
+import { t as runtimeT, useI18n, type I18nContextValue } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
+import { zhCNMessages } from "@/shared/i18n/locales/zh-CN";
 
 type StatusFilter = "all" | AdminRegistryStatus;
 type Translate = I18nContextValue["t"];
+
+function translateWithFallback(
+  t: Translate,
+  key: string,
+  fallback: string,
+): string {
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
 
 const REGISTRY_CATEGORIES: AdminRegistryCategory[] = [
   "providers",
@@ -518,7 +528,10 @@ export function filterRegistryItems(
       registryListMeta(item, (key, params) => {
         if (key === "registryConsole.meta.toolsCount") {
           const count = String(params?.count ?? "");
-          return `tools ${count} 工具 ${count} 个`;
+          return [
+            runtimeT(key, params),
+            String(zhCNMessages[key] || "").replace("{count}", count),
+          ].filter(Boolean).join(" ");
         }
         return key;
       }),
@@ -898,7 +911,7 @@ export const RegistriesPage = () => {
     selectedKeys: [statusFilter],
     items: STATUS_FILTERS.map((status) => ({
       key: status,
-      label: t(`registryConsole.filter.status.${status}`),
+      label: translateWithFallback(t, `registryConsole.filter.status.${status}`, status),
     })),
   }), [t, statusFilter]);
   const selectedMcpServerKey = detail?.category === "mcp-servers"
@@ -934,7 +947,7 @@ export const RegistriesPage = () => {
               className={`${REGISTRY_CATEGORY_TAB_CLASS_NAME} ${category === activeCategory ? "is-active" : ""}`}
               onClick={() => switchCategory(category)}
             >
-              <span>{t(`registryConsole.category.${category}`)}</span>
+              <span>{translateWithFallback(t, `registryConsole.category.${category}`, category)}</span>
               <strong>{categoryCounts[category]}</strong>
             </button>
           ))}
@@ -1054,7 +1067,7 @@ export const RegistriesPage = () => {
                               <strong>{title}</strong>
                             </span>
                             <UiTag tone={statusTone(item.status)}>
-                              {t(`registryConsole.status.${item.status}`)}
+                              {translateWithFallback(t, `registryConsole.status.${item.status}`, item.status)}
                             </UiTag>
                           </span>
                           <span
@@ -1144,7 +1157,7 @@ export const RegistriesPage = () => {
                       </div>
                       <div className={REGISTRY_DETAIL_ACTIONS_CLASS_NAME}>
                         <UiTag tone={statusTone(detail.status)}>
-                          {t(`registryConsole.status.${detail.status}`)}
+                          {translateWithFallback(t, `registryConsole.status.${detail.status}`, detail.status)}
                         </UiTag>
                         <UiButton size="sm" variant="ghost" onClick={refreshCurrent} disabled={newDraft || detailLoading}>
                           <MaterialIcon name="refresh" />
@@ -1154,7 +1167,7 @@ export const RegistriesPage = () => {
                     </div>
 
                     <div className={REGISTRY_META_GRID_CLASS_NAME}>
-                      <span>{t("registryConsole.field.category")}: {t(`registryConsole.category.${detail.category}`)}</span>
+                      <span>{t("registryConsole.field.category")}: {translateWithFallback(t, `registryConsole.category.${detail.category}`, detail.category)}</span>
                       <span>{t("registryConsole.field.file")}: {detail.file}</span>
                       <span>{t("registryConsole.field.updatedAt")}: {formatTimestamp(detail.updatedAt, locale)}</span>
                       <span>{t("registryConsole.field.size")}: {formatSize(detail.size)}</span>

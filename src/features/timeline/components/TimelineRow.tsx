@@ -17,7 +17,7 @@ import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
-import { useI18n, type Locale } from "@/shared/i18n";
+import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 
 type ToolGroupRenderEntry = Extract<
@@ -130,11 +130,10 @@ export function formatTimelineTime(
   const dayCrossed = !isSameDay(target, now);
   const timeFormatter = createTimeFormatter(locale);
   const dateTimeFormatter = createDateTimeFormatter(locale);
-  const relativeLabels =
-    labels ||
-    (locale === "en-US"
-      ? { today: "Today", yesterday: "Yesterday" }
-      : { today: "今天", yesterday: "昨天" });
+  const relativeLabels = labels || {
+    today: runtimeT("timeline.time.today"),
+    yesterday: runtimeT("timeline.time.yesterday"),
+  };
   const hhmm = timeFormatter.format(target);
   const full = dateTimeFormatter.format(target);
 
@@ -178,10 +177,11 @@ function getCommandMessageLabel(
 
 function getTimelineAttachmentSubtitle(
   attachment: NonNullable<TimelineNode["attachments"]>[number],
+  t: (key: string) => string,
   compact = false,
 ): string {
   if (compact) {
-    return getAttachmentKindLabel(attachment);
+    return getAttachmentKindLabel(attachment, t);
   }
 
   const attachmentSize = formatAttachmentSize(getAttachmentSizeBytes(attachment));
@@ -192,7 +192,7 @@ function getTimelineAttachmentSubtitle(
     return "";
   }
 
-  return [getAttachmentKindLabel(attachment), attachmentSize]
+  return [getAttachmentKindLabel(attachment, t), attachmentSize]
     .filter(Boolean)
     .join(" · ");
 }
@@ -318,6 +318,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                   displayMode={hasMultipleAttachments ? "file" : "auto"}
                   subtitle={getTimelineAttachmentSubtitle(
                     attachment,
+                    t,
                     hasMultipleAttachments,
                   )}
                 />

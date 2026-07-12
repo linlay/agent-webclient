@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { getViewport, submitTool } from "@/shared/data";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
+import { useI18n } from "@/shared/i18n";
 
 const FRONTEND_TOOL_CONTAINER_CLASS_NAME =
 	"frontend-tool-container tw:mb-0 tw:overflow-hidden tw:rounded-2xl tw:border tw:[border-color:color-mix(in_srgb,var(--accent-electric)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_96%,transparent)] tw:shadow-elevated tw:[.layout-copilot_&]:rounded-[10px]";
@@ -25,6 +26,7 @@ const FRONTEND_TOOL_STATUS_CLASS_NAME_BY_TONE = {
 export const FrontendToolContainer: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
+	const { t } = useI18n();
 	const tool = state.activeFrontendTool;
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [statusText, setStatusText] = useState("");
@@ -68,11 +70,11 @@ export const FrontendToolContainer: React.FC = () => {
 					tool: {
 						...state.activeFrontendTool,
 						loading: false,
-						loadError: `前端工具加载失败: ${(error as Error).message}`,
+						loadError: t("frontendTool.loadFailed", { detail: (error as Error).message }),
 					},
 				});
 			});
-	}, [tool, dispatch, state.activeFrontendTool]);
+	}, [tool, dispatch, state.activeFrontendTool, t]);
 
 	useEffect(() => {
 		if (!tool) return;
@@ -116,10 +118,10 @@ export const FrontendToolContainer: React.FC = () => {
 			if (!data || typeof data !== "object") return;
 
 			if (data.type === "frontend_submit") {
-				setStatusText("提交中...");
+				setStatusText(t("frontendTool.submitting"));
 				setStatusTone("normal");
 				if (!active.agentKey) {
-					setStatusText("提交失败：agentKey is required");
+					setStatusText(t("frontendTool.agentKeyRequired"));
 					setStatusTone("err");
 					return;
 				}
@@ -143,18 +145,18 @@ export const FrontendToolContainer: React.FC = () => {
 					);
 
 					if (accepted) {
-						setStatusText(`提交成功：${detail}`);
+						setStatusText(t("frontendTool.submitted", { detail }));
 						setStatusTone("ok");
 						dispatch({
 							type: "SET_ACTIVE_FRONTEND_TOOL",
 							tool: null,
 						});
 					} else {
-						setStatusText(`提交未命中：${detail}`);
+						setStatusText(t("frontendTool.unmatched", { detail }));
 						setStatusTone("err");
 					}
 				} catch (error) {
-					setStatusText(`提交失败：${(error as Error).message}`);
+					setStatusText(t("frontendTool.submitFailed", { detail: (error as Error).message }));
 					setStatusTone("err");
 				}
 				return;
@@ -167,7 +169,7 @@ export const FrontendToolContainer: React.FC = () => {
 
 		window.addEventListener("message", onMessage);
 		return () => window.removeEventListener("message", onMessage);
-	}, [dispatch, state.activeFrontendTool]);
+	}, [dispatch, state.activeFrontendTool, t]);
 
 	if (!tool) return null;
 	const toolLabel = resolveToolLabel(tool);
@@ -188,7 +190,7 @@ export const FrontendToolContainer: React.FC = () => {
 
 			{tool.loading && (
 				<div className="status-line tw:m-2">
-					加载中...
+					{t("frontendTool.loading")}
 				</div>
 			)}
 			{tool.loadError && (
@@ -204,7 +206,7 @@ export const FrontendToolContainer: React.FC = () => {
 					id="frontend-tool-frame"
 					srcDoc={tool.viewportHtml}
 					sandbox="allow-scripts allow-popups allow-same-origin"
-					title="frontend-tool"
+					title={t("frontendTool.frameTitle")}
 				/>
 			)}
 

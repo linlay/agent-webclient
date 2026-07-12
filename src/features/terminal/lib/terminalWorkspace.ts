@@ -1,5 +1,9 @@
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import type { TranslateParams } from "@/shared/i18n";
+import { t as runtimeT } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
+
+type Translate = (key: string, params?: TranslateParams) => string;
 
 export type TerminalAvailability =
   | { readonly supported: true }
@@ -32,9 +36,10 @@ export function resolveTerminalDockWorkspaceKey(
 export function resolveTerminalAvailability(
   worker: CurrentWorkerSummary | null,
   _workspaceKey: string,
+  t: Translate = runtimeT,
 ): TerminalAvailability {
   if (!worker || worker.type !== "agent") {
-    return { supported: false, reason: "终端仅支持单个 agent。" };
+    return { supported: false, reason: t("terminal.singleAgentOnly") };
   }
   return { supported: true };
 }
