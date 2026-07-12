@@ -1,4 +1,5 @@
 import { getI18nRuntimeConfig } from "@/shared/i18n";
+import { isEpochMillis } from "@/shared/utils/platformTime";
 
 function createDebugTimeFormatter(): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(getI18nRuntimeConfig().locale, {
@@ -10,7 +11,7 @@ function createDebugTimeFormatter(): Intl.DateTimeFormat {
 }
 
 export function formatDebugTimestamp(timestamp?: number): string {
-  if (!timestamp) return "--";
+	if (!isEpochMillis(timestamp)) return "--";
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "--";
   return createDebugTimeFormatter().format(date);

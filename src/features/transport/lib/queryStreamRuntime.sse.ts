@@ -26,6 +26,22 @@ interface ParsedSseFrame {
   data: string;
 }
 
+const STRUCTURED_TIME_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "startedAt",
+  "completedAt",
+  "timestamp",
+  "expiresAt",
+  "readAt",
+] as const;
+
+function hasValidPresentTimeFields(record: Record<string, unknown>): boolean {
+  return STRUCTURED_TIME_FIELDS.every((field) =>
+    record[field] === undefined || readEpochMillis(record[field]) !== undefined,
+  );
+}
+
 function parseSseFrame(block: string): ParsedSseFrame | null {
   const lines = block.split(/\r?\n/);
   let eventName = "";
@@ -67,7 +83,7 @@ function toAgentEvent(frame: ParsedSseFrame): AgentEvent | null {
     parsed.type = frame.event;
   }
   const timestamp = readEpochMillis(parsed.timestamp);
-  if (timestamp === undefined) {
+  if (!hasValidPresentTimeFields(parsed) || timestamp === undefined) {
     throw new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp");
   }
   parsed.timestamp = timestamp;

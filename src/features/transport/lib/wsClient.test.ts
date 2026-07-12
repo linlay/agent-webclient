@@ -306,9 +306,11 @@ describe("WsClient", () => {
 				event: {
 					type: "content.delta",
 					seq: 1,
+					timestamp: 1_710_000_000_006,
 					payload: {
 						text: "hi",
 						chatId: "chat_1",
+						timestamp: 1_710_000_000_006,
 					},
 				},
 			}),
@@ -331,6 +333,42 @@ describe("WsClient", () => {
 			}),
 		);
 		expect(onDone).toHaveBeenCalledWith("done", 9);
+	});
+
+	it("rejects malformed stream timestamps without forwarding the event", async () => {
+		for (const timestamp of ["1710000000000", 1_710_000_000, 1_710_000_000_000.5, 0, undefined]) {
+			const onEvent = jest.fn();
+			const onError = jest.fn();
+			const client = createClient();
+			client.stream({
+				type: "/api/query",
+				payload: { message: "hello" },
+				onEvent,
+				onError,
+			});
+
+			const socket = MockWebSocket.instances.at(-1);
+			if (!socket) {
+				throw new Error("expected websocket instance");
+			}
+			socket.open();
+			await flushMicrotasks();
+			const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
+			socket.message(
+				JSON.stringify({
+					frame: "stream",
+					id: sentFrame.id,
+					event: {
+						type: "content.delta",
+						...(timestamp === undefined ? {} : { timestamp }),
+					},
+				}),
+			);
+			expect(onEvent).not.toHaveBeenCalled();
+			expect(onError).toHaveBeenCalledWith(
+				expect.objectContaining({ message: expect.stringContaining("time_contract_violation") }),
+			);
+		}
 	});
 
 	it("invokes onDone for non-done stream terminal reasons", async () => {

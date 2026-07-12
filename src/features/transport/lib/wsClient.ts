@@ -115,6 +115,15 @@ const WS_TRANSPORT_DISCONNECTED_MESSAGE = "WebSocket transport disconnected";
 const WS_TRANSPORT_NOT_CONNECTED_MESSAGE = "WebSocket transport is not connected";
 const WS_TRANSPORT_NOT_INITIALIZED_MESSAGE =
 	"WebSocket transport is not initialized";
+const STRUCTURED_TIME_FIELDS = [
+	"createdAt",
+	"updatedAt",
+	"startedAt",
+	"completedAt",
+	"timestamp",
+	"expiresAt",
+	"readAt",
+] as const;
 
 export class WsClientDisconnectedError extends Error {
 	code: string;
@@ -154,6 +163,12 @@ type WsFrameIdKind = "wsreq" | "wsstream";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
+}
+
+function hasValidPresentTimeFields(record: Record<string, unknown>): boolean {
+	return STRUCTURED_TIME_FIELDS.every(
+		(field) => record[field] === undefined || readEpochMillis(record[field]) !== undefined,
+	);
 }
 
 function normalizeWsFrameIdPrefix(kind: WsFrameIdKind): "wsr" | "wss" {
@@ -343,7 +358,7 @@ function toApiResponse<T>(frame: WsResponseFrame): ApiResponse<T> {
 function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent | null {
 	const { payload, ...rest } = frameEvent;
 	const payloadRecord = isObjectRecord(payload) ? payload : {};
-  const event = {
+	const event = {
 		...payloadRecord,
 		...rest,
 		type: String(frameEvent.type || payloadRecord.type || ""),
@@ -351,9 +366,11 @@ function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent | null {
 			typeof frameEvent.seq === "number"
 				? frameEvent.seq
 				: Number(payloadRecord.seq ?? 0) || undefined,
-  } as AgentEvent;
-  const timestamp = readEpochMillis(event.timestamp);
-  return timestamp === undefined ? null : { ...event, timestamp };
+	} as AgentEvent;
+	const timestamp = readEpochMillis(event.timestamp);
+	return !hasValidPresentTimeFields(event) || timestamp === undefined
+		? null
+		: { ...event, timestamp };
 }
 
 export class WsClient {
@@ -998,14 +1015,14 @@ export class WsClient {
 				return;
 			}
 			stream.onFrame?.(raw);
-                if (frame.event) {
-                    const event = toAgentEvent(frame.event);
-                    if (!event) {
-                        stream.onError?.(new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp"));
-                        this.cleanupStream(frame.id);
-                        return;
-                    }
-                    stream.onEvent(event);
+			if (frame.event) {
+				const event = toAgentEvent(frame.event);
+				if (!event) {
+					stream.onError?.(new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp"));
+					this.cleanupStream(frame.id);
+					return;
+				}
+				stream.onEvent(event);
 			}
 			if (frame.reason) {
 				stream.onDone?.(
