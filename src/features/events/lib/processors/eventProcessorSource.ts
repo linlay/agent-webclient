@@ -78,7 +78,7 @@ function normalizeChunk(
     index: readPositiveInt(record.index) || fallbackIndex,
     content,
     ...(score !== undefined ? { score } : {}),
-    ...(timestamp > 0 ? { timestamp } : {}),
+    ...(timestamp !== undefined ? { timestamp } : {}),
     ...(path ? { path } : {}),
     ...(toText(record.heading) ? { heading: toText(record.heading) } : {}),
     ...(startLine ? { startLine } : {}),

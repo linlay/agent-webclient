@@ -5,6 +5,7 @@ import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformErro
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/features/transport/lib/clientDeviceId";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -339,10 +340,10 @@ function toApiResponse<T>(frame: WsResponseFrame): ApiResponse<T> {
 	};
 }
 
-function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent {
+function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent | null {
 	const { payload, ...rest } = frameEvent;
 	const payloadRecord = isObjectRecord(payload) ? payload : {};
-	return {
+  const event = {
 		...payloadRecord,
 		...rest,
 		type: String(frameEvent.type || payloadRecord.type || ""),
@@ -350,7 +351,9 @@ function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent {
 			typeof frameEvent.seq === "number"
 				? frameEvent.seq
 				: Number(payloadRecord.seq ?? 0) || undefined,
-	} as AgentEvent;
+  } as AgentEvent;
+  const timestamp = readEpochMillis(event.timestamp);
+  return timestamp === undefined ? null : { ...event, timestamp };
 }
 
 export class WsClient {
@@ -995,8 +998,14 @@ export class WsClient {
 				return;
 			}
 			stream.onFrame?.(raw);
-			if (frame.event) {
-				stream.onEvent(toAgentEvent(frame.event));
+                if (frame.event) {
+                    const event = toAgentEvent(frame.event);
+                    if (!event) {
+                        stream.onError?.(new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp"));
+                        this.cleanupStream(frame.id);
+                        return;
+                    }
+                    stream.onEvent(event);
 			}
 			if (frame.reason) {
 				stream.onDone?.(

@@ -13,6 +13,7 @@ import { processReasoningEvent } from "@/features/events/lib/processors/eventPro
 import { processRunEvent } from "@/features/events/lib/processors/eventProcessorRun";
 import { processSourceEvent } from "@/features/events/lib/processors/eventProcessorSource";
 import { processToolEvent } from "@/features/events/lib/processors/eventProcessorTool";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export type {
 	EventCommand,
@@ -25,6 +26,9 @@ export function processStreamEvent(
 	state: EventProcessorState,
 	config: EventProcessorConfig,
 ): EventCommand[] {
+	if (readEpochMillis(event.timestamp) === undefined) {
+		return [];
+	}
 	const type = toText(event.type);
 
 	if (

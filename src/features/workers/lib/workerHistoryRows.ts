@@ -65,7 +65,7 @@ export function mapSearchResultsToHistoryRows(input: {
       chatName: toText(result?.chatName),
       agentKey: result?.agentKey,
       teamId: result?.teamId,
-      updatedAt: readEpochMillis(result?.timestamp),
+      updatedAt: readEpochMillis(result?.timestamp) ?? 0,
       lastRunId: toText(result?.runId),
       lastRunContent: toText(result?.snippet),
       searchSnippet: toText(result?.snippet),

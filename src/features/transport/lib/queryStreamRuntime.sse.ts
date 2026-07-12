@@ -1,6 +1,7 @@
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 import {
   createAttachStream,
   createBTWStream,
@@ -65,6 +66,11 @@ function toAgentEvent(frame: ParsedSseFrame): AgentEvent | null {
   ) {
     parsed.type = frame.event;
   }
+  const timestamp = readEpochMillis(parsed.timestamp);
+  if (timestamp === undefined) {
+    throw new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp");
+  }
+  parsed.timestamp = timestamp;
   return parsed as AgentEvent;
 }
 

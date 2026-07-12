@@ -4,6 +4,7 @@ import type {
   BTWTranscriptItem,
   PersistedBTWSession,
 } from "@/features/btw/lib/btwTypes";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export const BTW_SESSION_STORAGE_KEY = "agent-webclient:btw:v1";
 export const BTW_SESSION_STORAGE_VERSION = 1;
@@ -31,12 +32,13 @@ function normalizeTranscriptItem(value: unknown): BTWTranscriptItem | null {
   const text = String(record.text || "");
   if (role !== "user" && role !== "assistant" && role !== "system") return null;
   if (!text.trim()) return null;
-  const timestamp = Number(record.timestamp);
+  const timestamp = readEpochMillis(record.timestamp);
+  if (timestamp === undefined) return null;
   return {
     id: String(record.id || `btw_restore_${Date.now()}`),
     role,
     text,
-    timestamp: Number.isFinite(timestamp) ? timestamp : Date.now(),
+    timestamp,
     attachments: Array.isArray(record.attachments)
       ? (record.attachments as BTWTranscriptItem["attachments"])
       : undefined,
@@ -61,6 +63,8 @@ function normalizePersistedSession(value: unknown): PersistedBTWSession | null {
     record.config && typeof record.config === "object" && !Array.isArray(record.config)
       ? (record.config as PersistedBTWSession["config"])
       : {};
+  const updatedAt = readEpochMillis(record.updatedAt);
+  if (updatedAt === undefined) return null;
   return {
     parentChatId,
     btwId: String(record.btwId || "").trim(),
@@ -70,7 +74,7 @@ function normalizePersistedSession(value: unknown): PersistedBTWSession | null {
     status,
     draft: String(record.draft || ""),
     lastSeq: Math.max(0, Number(record.lastSeq) || 0),
-    updatedAt: Number(record.updatedAt) || Date.now(),
+    updatedAt,
     config,
     transcript,
   };
@@ -98,13 +102,15 @@ export function readPersistedBTWSessions(): PersistedBTWSession[] {
 
 function nodeToTranscript(node: TimelineNode): BTWTranscriptItem | null {
   const text = String(node.text || "");
+  const timestamp = readEpochMillis(node.ts);
+  if (timestamp === undefined) return null;
   if (!text.trim()) return null;
   if (node.kind === "message" && node.role === "user") {
     return {
       id: node.id,
       role: "user",
       text,
-      timestamp: node.ts || Date.now(),
+      timestamp,
       attachments: node.attachments,
     };
   }
@@ -113,7 +119,7 @@ function nodeToTranscript(node: TimelineNode): BTWTranscriptItem | null {
       id: node.id,
       role: "system",
       text,
-      timestamp: node.ts || Date.now(),
+      timestamp,
     };
   }
   if (node.kind === "content") {
@@ -121,7 +127,7 @@ function nodeToTranscript(node: TimelineNode): BTWTranscriptItem | null {
       id: node.id,
       role: "assistant",
       text,
-      timestamp: node.ts || Date.now(),
+      timestamp,
     };
   }
   return null;

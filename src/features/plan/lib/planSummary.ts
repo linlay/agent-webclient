@@ -75,7 +75,7 @@ export function buildPlanSummaryView(
 		const startedAt = readEpochMillis(taskMeta?.startedAt);
 		const durationMs = Number.isFinite(taskMeta?.durationMs)
 			? taskMeta?.durationMs
-			: status === "running" && startedAt > 0
+      : status === "running" && startedAt !== undefined
 				? Math.max(0, now - startedAt)
 				: undefined;
 		return {

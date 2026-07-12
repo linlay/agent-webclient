@@ -70,7 +70,7 @@ const ARCHIVE_PREVIEW_TEXT_CLASS_NAME =
 	"archive-preview-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.55] tw:text-ink-1";
 
 function toTimestamp(value: unknown): number {
-	return readEpochMillis(value);
+	return readEpochMillis(value) ?? 0;
 }
 
 function archiveLastRunAt(item: unknown): number {

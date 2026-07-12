@@ -9,18 +9,21 @@ import {
 	resolveTaskGroupIdForStart,
 } from "@/features/tasks/lib/taskRuntime";
 import { readTaskGroupId } from "@/features/tasks/lib/taskEventProtocol";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export function processTaskEvent(
 	event: AgentEvent,
 	state: EventProcessorState,
 ): EventCommand[] {
 	const commands: EventCommand[] = [];
+	const timestamp = readEpochMillis(event.timestamp);
+	if (timestamp === undefined) return commands;
 	const type = toText(event.type);
 
 	if (type === "task.start") {
 		const taskId = toText(event.taskId).trim();
 		if (!taskId) return commands;
-		const updatedAt = event.timestamp || Date.now();
+		const updatedAt = timestamp;
 		const existingTask = state.getTaskItem(taskId);
 		const groupId = resolveTaskGroupIdForStart(event, state, existingTask);
 		const nextTask = buildNextTaskItem({
@@ -53,7 +56,7 @@ export function processTaskEvent(
 				: type === "task.cancel"
 					? "canceled"
 					: "failed";
-		const updatedAt = event.timestamp || Date.now();
+		const updatedAt = timestamp;
 		const existingTask = state.getTaskItem(taskId);
 		const groupId =
 			readTaskGroupId(event) || existingTask?.taskGroupId || `task_group_${taskId}`;

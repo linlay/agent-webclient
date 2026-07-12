@@ -18,7 +18,7 @@ function toRunSortValue(lastRunId: unknown): number {
 }
 
 function normalizeUpdatedAt(updatedAt: unknown): number {
-  return readEpochMillis(updatedAt);
+  return readEpochMillis(updatedAt) ?? 0;
 }
 
 function normalizeAgentType(type: unknown, mode?: unknown): 'agent' | 'coder' | 'kbase' {

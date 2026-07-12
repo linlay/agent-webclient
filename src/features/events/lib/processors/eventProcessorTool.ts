@@ -25,6 +25,7 @@ import {
   readToolDescription,
   resolveFinalToolArgsText,
 } from "@/features/events/lib/processors/eventProcessorShared";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 function readStructuredExitCode(value: unknown): number | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -142,6 +143,8 @@ export function processToolEvent(
   state: EventProcessorState,
 ): EventCommand[] {
   const commands: EventCommand[] = [];
+  const timestamp = readEpochMillis(event.timestamp);
+  if (timestamp === undefined) return commands;
   const type = toText(event.type);
 
   if ((type === "tool.start" || type === "tool.snapshot") && event.toolId) {
@@ -321,14 +324,14 @@ export function processToolEvent(
       : normalizeFileChangeSummary({
           toolName: resolvedToolName,
           resultValue,
-          timestamp: event.timestamp || Date.now(),
+          timestamp,
           runId: resultRunId,
         });
     const resultText =
       typeof resultValue === "string"
         ? resultValue
         : JSON.stringify(resultValue, null, 2);
-    const endedAt = event.timestamp || Date.now();
+    const endedAt = timestamp;
     const startedAt =
       typeof existing?.startedAt === "number"
         ? existing.startedAt
@@ -355,7 +358,7 @@ export function processToolEvent(
         argsText,
         status: failed ? "failed" : "success",
         result: { text: resultText, isCode: typeof resultValue !== "string" },
-        ts: existing?.ts || event.timestamp || Date.now(),
+        ts: existing?.ts ?? timestamp,
         startedAt,
         endedAt,
         durationMs,
@@ -399,8 +402,8 @@ export function processToolEvent(
             ? "failed"
             : "completed",
         result: existing?.result || null,
-        ts: existing?.ts || event.timestamp || Date.now(),
-        startedAt: event.timestamp || Date.now(),
+        ts: existing?.ts ?? timestamp,
+        startedAt: timestamp,
         endedAt: existing?.endedAt,
         state,
       }),

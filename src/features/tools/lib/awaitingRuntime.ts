@@ -409,12 +409,12 @@ function readAwaitingTimeout(event: AgentEvent): number | null {
 
 function readAwaitingCreatedAt(event: AgentEvent): number | null {
   const createdAt = readEpochMillis((event as Record<string, unknown>).createdAt);
-  if (createdAt > 0) {
+  if (createdAt !== undefined) {
     return createdAt;
   }
 
   const timestamp = readEpochMillis(event.timestamp);
-  return timestamp > 0 ? timestamp : null;
+  return timestamp ?? null;
 }
 
 function reduceSingleActiveAwaiting(
