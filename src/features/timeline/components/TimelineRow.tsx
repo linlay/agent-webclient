@@ -33,7 +33,7 @@ interface TimelineRowProps {
 }
 
 const TIMELINE_ROW_BASE_CLASS_NAME =
-  "timeline-row tw:relative tw:animate-node-rise tw:transition-[box-shadow,transform,background] tw:duration-200 tw:ease-in-out";
+  "timeline-row tw:relative";
 const TIMELINE_ROW_USER_CLASS_NAME =
   `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
 const TIMELINE_ROW_FLOW_CLASS_NAME =

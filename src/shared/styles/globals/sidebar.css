@@ -264,18 +264,24 @@
     font-family: var(--font-mono);
 }
 
-.right-sidebar-file-change-collapse>.ant-collapse-item >.ant-collapse-header{
+.right-sidebar-file-change-collapse>.ant-collapse-item>.ant-collapse-header {
     position: sticky;
     top: 0;
     background-color: var(--bg-elev-1);
     padding: 4px 10px;
     border-radius: 0 !important;
-    &:hover{
+
+    &:hover {
         background: var(--bg-hover);
         backdrop-filter: blur(10px);
     }
+
+    >.ant-collapse-header-text {
+        overflow: hidden;
+    }
 }
-.right-sidebar-file-change-collapse .ant-collapse-content>.ant-collapse-content-box{
+
+.right-sidebar-file-change-collapse .ant-collapse-content>.ant-collapse-content-box {
     padding: 0;
     padding-block: 0 !important;
     overflow: auto;

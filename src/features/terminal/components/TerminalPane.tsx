@@ -66,6 +66,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const sessionVersionRef = useRef(0);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const lastWidthRef = useRef<number>(0);
 
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
   const normalizedTerminalKey = useMemo(() => toText(terminalKey) || "main", [terminalKey]);
@@ -271,6 +272,24 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   useEffect(() => {
     if (isActive) queueResize();
   }, [isActive, queueResize]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = entry.contentRect.width;
+        if (newWidth !== lastWidthRef.current) {
+          lastWidthRef.current = newWidth;
+          queueResize();
+        }
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [queueResize]);
 
   return (
     <div

@@ -428,6 +428,12 @@ export const RightSidebar: React.FC = () => {
                   tab: remaining.length > 0 ? "planningPreview" : "overview",
                   removePlanningPreviewNodeId: nodeIdToRemove,
                 });
+              } else if (key === "sourceDetail") {
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: "overview",
+                  sourceDetail: null,
+                });
               }
             }
           }}

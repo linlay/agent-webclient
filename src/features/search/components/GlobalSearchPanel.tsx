@@ -42,8 +42,7 @@ const GROUP_LABEL_KEYS: Record<string, string> = {
   history: "globalSearch.group.history",
 };
 
-const GLOBAL_SEARCH_PANEL_CLASS =
-  "global-search-panel tw:flex tw:flex-col";
+const GLOBAL_SEARCH_PANEL_CLASS = "global-search-panel tw:flex tw:flex-col";
 const GLOBAL_SEARCH_BOX_CLASS = "global-search-box tw:flex-none";
 const GLOBAL_SEARCH_INPUT_CLASS =
   "global-search-input tw:w-full tw:border-0 tw:bg-transparent tw:p-2.5 tw:text-sm tw:text-ink-1 tw:outline-none tw:placeholder:text-ink-muted";
@@ -60,11 +59,11 @@ const GLOBAL_SEARCH_ROW_CLASS =
 const GLOBAL_SEARCH_ICON_CLASS =
   "global-search-icon tw:flex tw:size-6 tw:flex-none tw:items-center tw:justify-center tw:text-ink-muted";
 const GLOBAL_SEARCH_LABEL_CLASS =
-  "global-search-label tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
+  "global-search-label tw:flex-1 tw:min-w-[100px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
 const GLOBAL_SEARCH_ROLE_CLASS =
   "global-search-role tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_SNIPPET_CLASS =
-  "global-search-snippet tw:max-w-[52%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden";
+  "global-search-snippet  tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_SOURCE_CLASS =
   "global-search-source tw:max-w-[30%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_UNREAD_DOT_CLASS =
@@ -159,10 +158,15 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                       className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-action`}
                       onClick={() => onSelectRow(row)}
                     >
-                      <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
+                      <span
+                        className={GLOBAL_SEARCH_ICON_CLASS}
+                        aria-hidden="true"
+                      >
                         <MaterialIcon name={row.icon} />
                       </span>
-                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>
+                        {row.label}
+                      </span>
                     </button>
                   );
                 }
@@ -174,7 +178,10 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                       className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-worker`}
                       onClick={() => onSelectRow(row)}
                     >
-                      <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
+                      <span
+                        className={GLOBAL_SEARCH_ICON_CLASS}
+                        aria-hidden="true"
+                      >
                         <AgentIcon
                           icon={row.icon}
                           type={row.type}
@@ -189,8 +196,12 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                           }}
                         />
                       </span>
-                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
-                      <span className={GLOBAL_SEARCH_ROLE_CLASS}>{row.role}</span>
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>
+                        {row.label}
+                      </span>
+                      <span className={GLOBAL_SEARCH_ROLE_CLASS}>
+                        {row.role}
+                      </span>
                     </button>
                   );
                 }
@@ -202,25 +213,29 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                       className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-history global-search-${row.section}`}
                       onClick={() => onSelectRow(row)}
                     >
-                      {row.section === "unread" || row.isUnread ? (
+                      {(row.section === "unread" || row.isUnread) && (
                         <span
                           className={GLOBAL_SEARCH_UNREAD_DOT_CLASS}
                           aria-label={t("globalSearch.row.unread")}
                         />
-                      ) : (
-                        <span className={GLOBAL_SEARCH_ICON_CLASS} aria-hidden="true">
-                          <MaterialIcon name="history" />
+                      )}
+                      {row.statusLabel && (
+                        <span className={GLOBAL_SEARCH_AWAITING_CLASS}>
+                          {row.statusLabel}
                         </span>
                       )}
-                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>{row.label}</span>
+                      {row.hasActiveRun && (
+                        <MaterialIcon
+                          name="progress_activity"
+                          className={GLOBAL_SEARCH_LOADING_CLASS}
+                        />
+                      )}
+                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>
+                        {row.label}
+                      </span>
                       {row.snippet ? (
                         <span className={GLOBAL_SEARCH_SNIPPET_CLASS}>
                           {row.snippet}
-                        </span>
-                      ) : null}
-                      {row.statusLabel ? (
-                        <span className={GLOBAL_SEARCH_AWAITING_CLASS}>
-                          {row.statusLabel}
                         </span>
                       ) : null}
                       {row.sourceLabel ? (
@@ -228,12 +243,7 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                           {row.sourceLabel}
                         </span>
                       ) : null}
-                      {row.hasActiveRun ? (
-                        <MaterialIcon
-                          name="progress_activity"
-                          className={GLOBAL_SEARCH_LOADING_CLASS}
-                        />
-                      ) : (
+                      {!row.hasActiveRun && (
                         <span className={GLOBAL_SEARCH_TIME_CLASS}>
                           {formatChatTimeLabel(row.updatedAt)}
                         </span>

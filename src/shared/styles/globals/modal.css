@@ -1751,10 +1751,8 @@
 }
 
 .global-search-snippet {
-    flex: 0 0 auto;
     font-size: 11px;
     color: var(--text-muted);
-    max-width: 52%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

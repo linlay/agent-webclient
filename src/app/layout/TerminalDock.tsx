@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAppState } from "@/app/state/AppContext";
+import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { TerminalPane } from "@/features/terminal/components/TerminalPane";
 import {
@@ -72,6 +72,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
   worker = null,
 }) => {
   const { themeMode } = useAppState();
+  const dispatch = useAppDispatch();
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
   const initialState = useMemo(
     () => restoreDockState(normalizedAgentKey),
@@ -238,6 +239,14 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
           tabIndex={0}
         >
           +
+        </button>
+        <button
+          className="terminal-dock-close"
+          aria-label="关闭终端面板"
+          onClick={() => dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: false })}
+          tabIndex={0}
+        >
+          ×
         </button>
       </div>
       <div className="terminal-dock-panes">

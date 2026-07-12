@@ -227,7 +227,7 @@
 .worker-chat-item:hover,
 .worker-chat-item.is-active,
 .worker-chat-item.is-selected {
-    background-color: transparent;
+    background-color: var(--bg-hover);
     color: var(--text-main);
 }
 
