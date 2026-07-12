@@ -258,7 +258,7 @@ function latestCompactPostTokensAfterSnapshot(
     return undefined;
   }
 
-  const snapshotTimestamp = readUsageNumber(snapshot.snapshot.timestamp);
+  const snapshotTimestamp = readEpochMillis(snapshot.snapshot.timestamp);
   let bestRank = -1;
   let bestTokens: number | undefined;
   for (let index = 0; index < events.length; index += 1) {
@@ -268,7 +268,7 @@ function latestCompactPostTokensAfterSnapshot(
     }
     const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
     if (postTokens === undefined) continue;
-    const eventTimestamp = readUsageNumber(event.timestamp);
+    const eventTimestamp = readEpochMillis(event.timestamp);
     const isAfterSnapshot =
       snapshotTimestamp !== undefined && eventTimestamp !== undefined
         ? eventTimestamp > snapshotTimestamp
