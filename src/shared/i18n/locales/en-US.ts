@@ -329,7 +329,7 @@ export const enUSMessages = {
   "approvalDialog.action.continue": "Continue",
   "approvalDialog.action.skip": "Skip",
   "approvalDialog.action.submit": "Submit",
-  "confirmDialog.action.skip": "Skip",
+  "confirmDialog.action.cancel": "Cancel",
   "approvalDialog.loading": "Loading approval request...",
   "approvalDialog.remoteAnswered": "This request was already submitted from another client.",
   "approvalDialog.option.approve": "Approve",

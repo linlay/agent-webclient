@@ -329,7 +329,7 @@ export const zhCNMessages = {
   "approvalDialog.action.continue": "继续",
   "approvalDialog.action.skip": "跳过",
   "approvalDialog.action.submit": "提交",
-  "confirmDialog.action.skip": "跳过",
+  "confirmDialog.action.cancel": "取消",
   "approvalDialog.loading": "等待审批加载中...",
   "approvalDialog.remoteAnswered": "已被其他终端提交",
   "approvalDialog.option.approve": "同意",

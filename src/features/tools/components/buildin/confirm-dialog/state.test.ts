@@ -3,6 +3,7 @@ import {
   type AIAwaitQuestion,
 } from "@/app/state/types";
 import {
+  buildQuestionDismissPayload,
   buildQuestionSubmitParams,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
@@ -40,6 +41,14 @@ describe("confirm dialog state helpers", () => {
       locale: "zh-CN",
       fallbackLocale: "zh-CN",
       terms: getDefaultTermsForLocale("zh-CN"),
+    });
+  });
+
+  it("builds an empty submit payload when dismissing all questions", () => {
+    expect(buildQuestionDismissPayload("run_1", "await_1")).toEqual({
+      runId: "run_1",
+      awaitingId: "await_1",
+      params: [],
     });
   });
 

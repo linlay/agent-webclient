@@ -62,7 +62,7 @@ export const hitlDialogClassNames = {
 export function getHitlPaginationDotClassName(params: {
   active: boolean;
   done: boolean;
-  skip: boolean;
+  skip?: boolean;
 }): string {
   return [
     hitlDialogClassNames.paginationDot,
