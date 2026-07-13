@@ -76,7 +76,7 @@ export function buildAwaitingPlanningModeAction(input: {
 
   if (isAwaitingAskLike(type)) {
     const awaitingMode = toText((input.event as Record<string, unknown>).mode);
-    if (awaitingMode === "plan" || !input.planningMode) {
+    if (awaitingMode === "planning" || !input.planningMode) {
       return null;
     }
     return {

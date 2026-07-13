@@ -8,7 +8,7 @@ import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
-    case "plan":
+    case "planning":
       return "leftSidebar.awaitingStatus.plan";
     case "question":
       return "leftSidebar.awaitingStatus.question";

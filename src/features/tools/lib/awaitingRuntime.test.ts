@@ -344,11 +344,11 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_plan_1',
       awaitingId: 'run_plan_1_coder_plan_confirm_1',
-      mode: 'plan',
+      mode: 'planning',
       viewportType: ViewportTypeEnum.Builtin,
       viewportKey: 'plan',
       timeout: 0,
-      plan: {
+      planning: {
         id: 'confirm',
         planningId: 'run_plan_1_planning_1',
         options: [
