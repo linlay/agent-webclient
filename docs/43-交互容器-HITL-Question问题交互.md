@@ -10,7 +10,7 @@ Question awaiting 用于后端向用户提出一个或多个问题，支持文�
 - 提交时构造 question answer 参数，并记录 submitId 避免重复提交。
 
 ## 核心流程
-`reduceActiveAwaiting` 识别 mode 为 question 的事件并注册问题元数据。Composer awaiting UI 读取 active awaiting，用户完成回答后由 question submit builder 生成参数，通过 awaiting submit 接口提交。answer 事件到达后，timeline 显示已提交摘要。
+`reduceActiveAwaiting` 识别 mode 为 question 的事件并注册问题元数据。Composer awaiting UI 读取 active awaiting，用户完成回答后由 question submit builder 生成参数，通过 awaiting submit 接口提交。用户点击“取消”或按 Esc 时，前端提交空 `params: []` 取消整个 awaiting 批次，不支持逐题跳过。answer 事件到达后，timeline 显示已提交摘要。
 
 ## 边界与非目标
 - Question 只回答问题，不承载命令审批语义。
@@ -24,4 +24,3 @@ Question awaiting 用于后端向用户提出一个或多个问题，支持文�
 - `../src/features/tools/components/buildin/confirm-dialog/state.ts`
 - `../src/features/composer/components/AwaitingShell.tsx`
 - `../src/features/composer/hooks/useComposerAwaiting.ts`
-

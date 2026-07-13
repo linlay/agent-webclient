@@ -3,6 +3,7 @@ import {
   type AIAwaitQuestion,
   type AIAwaitQuestionOption,
   type AIAwaitQuestionSubmitParamData,
+  type AIAwaitSubmitPayloadData,
 } from "@/app/state/types";
 import { t } from "@/shared/i18n";
 
@@ -19,6 +20,17 @@ export function createAwaitingParamPlaceholders(
 ): Record<string, never>[] {
   const total = Array.isArray(questions) ? questions.length : 0;
   return Array.from({ length: total }, () => ({}));
+}
+
+export function buildQuestionDismissPayload(
+  runId: string,
+  awaitingId: string,
+): AIAwaitSubmitPayloadData {
+  return {
+    runId,
+    awaitingId,
+    params: [],
+  };
 }
 
 export function clampAwaitingIndex(index: number, total: number): number {

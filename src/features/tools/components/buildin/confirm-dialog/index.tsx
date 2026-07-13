@@ -31,6 +31,7 @@ import {
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   buildQuestionSubmitParams,
+  buildQuestionDismissPayload,
   clampAwaitingIndex,
   createAwaitingParamPlaceholders,
   findAwaitingAnswerError,
@@ -121,33 +122,14 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     });
   }, [data?.awaitingId, data?.runId, form, questions, submitPayload]);
 
-  const doSkip = useCallback(() => {
-    const params = (form.getFieldValue("params") ||
-      []) as AIAwaitQuestionSubmitParamData[];
-    const current = questions[curIndex];
-    if (!current) {
-      return;
-    }
-
-    const nextParams = [...params];
-    nextParams[curIndex] = isMultiSelectQuestionType(current)
-      ? { id: current.id, answers: [QUESTION_SKIP_ANSWER] }
-      : { id: current.id, answer: QUESTION_SKIP_ANSWER };
-    form.setFieldsValue({
-      params: nextParams,
-    });
-
-    if (questions.length > curIndex + 1) {
-      setCurIndex((prev) => Math.min(questions.length - 1, prev + 1));
-      return;
-    }
-
-    void submitPayload({
-      runId: data?.runId || "",
-      awaitingId: data?.awaitingId || "",
-      params: buildQuestionSubmitParams(questions, nextParams),
-    });
-  }, [curIndex, data?.awaitingId, data?.runId, questions, submitPayload]);
+  const doDismiss = useCallback(() => {
+    void submitPayload(
+      buildQuestionDismissPayload(
+        data?.runId || "",
+        data?.awaitingId || "",
+      ),
+    );
+  }, [data?.awaitingId, data?.runId, submitPayload]);
 
   const moveForward = useCallback(() => {
     if (questions.length === 0) {
@@ -283,7 +265,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          doSkip();
+          doDismiss();
         }
         return;
       }
@@ -299,10 +281,10 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        doSkip();
+        doDismiss();
       }
     },
-    [doSkip],
+    [doDismiss],
   );
 
   useEffect(() => {
@@ -353,23 +335,16 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                               const value = params?.[
                                 index
                               ] as AIAwaitQuestionSubmitParamData;
-                              const skip =
-                                value?.answer === QUESTION_SKIP_ANSWER ||
-                                (Array.isArray(value?.answers) &&
-                                  value.answers.length === 1 &&
-                                  value.answers[0] === QUESTION_SKIP_ANSWER);
                               const done =
-                                !skip &&
-                                (value?.answer ||
-                                  (Array.isArray(value?.answers) &&
-                                    value?.answers?.length > 0));
+                                value?.answer ||
+                                (Array.isArray(value?.answers) &&
+                                  value?.answers?.length > 0);
                               return (
                                 <span
                                   key={item.id}
                                   className={getHitlPaginationDotClassName({
                                     active: index === curIndex,
                                     done: Boolean(done),
-                                    skip,
                                   })}
                                   onClick={() => setCurIndex(index)}
                                 ></span>
@@ -405,9 +380,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
             shape="round"
             className={hitlDialogClassNames.skipButton}
             size="small"
-            onClick={doSkip}
+            onClick={doDismiss}
           >
-            <span>{t("confirmDialog.action.skip")}</span>
+            <span>{t("confirmDialog.action.cancel")}</span>
           </Button>
           {curIndex < questions.length - 1 && (
             <Button
