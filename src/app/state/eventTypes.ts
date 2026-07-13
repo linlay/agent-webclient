@@ -146,6 +146,8 @@ export enum AIAwaitQuestionType {
 }
 
 export type AIAwaitMode = "question" | "approval" | "form" | "plan";
+/** Wire values accepted from backend awaiting events. */
+export type AIAwaitWireMode = "question" | "approval" | "form" | "planning";
 export type AIAwaitApprovalDecision =
   | "approve"
   | "reject"
@@ -363,6 +365,7 @@ export interface AIEventCommonFields {
   approval?: Record<string, unknown>;
   output?: unknown;
   plan?: AIPlan[] | AIAwaitPlan | AIAwaitPlanSubmitParamData;
+  planning?: AIAwaitPlan;
   arguments?: unknown;
   toolLabel?: string;
   toolName?: string;
@@ -384,7 +387,7 @@ export interface AIEventCommonFields {
   awaitingId?: string;
   timeout?: number;
   viewportType?: ViewportTypeEnum;
-  mode?: AIAwaitMode;
+  mode?: AIAwaitWireMode;
   payload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
   rawEvent?: unknown;

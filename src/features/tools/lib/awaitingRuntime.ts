@@ -170,7 +170,10 @@ function readAwaitingMode(event: AgentEvent): AIAwaitMode | undefined {
   }
 
   const mode = toText(event.mode);
-  return mode === 'question' || mode === 'approval' || mode === 'form' || mode === 'plan'
+  if (mode === 'planning') {
+    return 'plan';
+  }
+  return mode === 'question' || mode === 'approval' || mode === 'form'
     ? mode
     : undefined;
 }
@@ -544,7 +547,7 @@ function reduceSingleActiveAwaiting(
     }
 
     if (nextMode === 'plan') {
-      const nextPlan = normalizePlan((event as Record<string, unknown>).plan);
+      const nextPlan = normalizePlan((event as Record<string, unknown>).planning);
       if (!nextPlan && !(current?.key === key && current.mode === 'plan')) {
         return current;
       }

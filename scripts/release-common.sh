@@ -26,6 +26,15 @@ detect_arch() {
   esac
 }
 
+detect_os() {
+  case "$(uname -s)" in
+    Darwin) echo "darwin" ;;
+    Linux) echo "linux" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+    *) die "cannot detect target OS from $(uname -s); pass PROGRAM_TARGET_MATRIX" ;;
+  esac
+}
+
 validate_arch() {
   case "$1" in
     amd64|arm64) ;;
@@ -143,8 +152,7 @@ parse_program_target_matrix() {
     return
   fi
 
-  printf 'darwin arm64\n'
-  printf 'windows amd64\n'
+  printf '%s %s\n' "$(detect_os)" "$ARCH"
 }
 
 write_program_manifest() {

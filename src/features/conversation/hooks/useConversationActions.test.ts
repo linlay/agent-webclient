@@ -1435,10 +1435,11 @@ describe('replayEvent tool migration', () => {
             type: 'awaiting.ask',
             runId: 'run_1',
             awaitingId: 'await_plan_1',
-            mode: 'plan',
-            plan: {
+            mode: 'planning',
+            planning: {
               id: 'confirm',
             },
+            timestamp: EPOCH_MS,
           },
         ],
         activeRun: {
@@ -1463,6 +1464,16 @@ describe('replayEvent tool migration', () => {
       enabled: true,
       persist: false,
     });
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        activeAwaiting: expect.objectContaining({
+          awaitingId: 'await_plan_1',
+          mode: 'plan',
+          plan: { id: 'confirm' },
+        }),
+      }),
+    }));
   });
 
   it('still disables planningMode when loading a non-plan pending awaiting', async () => {

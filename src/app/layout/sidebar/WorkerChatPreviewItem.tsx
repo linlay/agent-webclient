@@ -51,7 +51,7 @@ const CHAT_ACTIONS_TRIGGER_CLASS =
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
-    case 'plan': return 'leftSidebar.awaitingStatus.plan';
+    case 'planning': return 'leftSidebar.awaitingStatus.plan';
     case 'question': return 'leftSidebar.awaitingStatus.question';
     case 'approval': return 'leftSidebar.awaitingStatus.approval';
     case 'form': return 'leftSidebar.awaitingStatus.form';

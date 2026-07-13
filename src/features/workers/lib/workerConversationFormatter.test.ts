@@ -134,7 +134,7 @@ describe('buildWorkerConversationRows', () => {
           agentKey: 'agent-alpha',
           updatedAt: 300,
           hasPendingAwaiting: true,
-          awaiting: { mode: 'plan' },
+          awaiting: { mode: 'planning' },
         } as Chat,
         {
           chatId: 'chat_await_question',
@@ -154,7 +154,7 @@ describe('buildWorkerConversationRows', () => {
       ],
     });
 
-    expect(rows[0]?.awaitingMode).toBe('plan');
+    expect(rows[0]?.awaitingMode).toBe('planning');
     expect(rows[1]?.awaitingMode).toBe('question');
     expect(rows[2]?.awaitingMode).toBeUndefined();
   });

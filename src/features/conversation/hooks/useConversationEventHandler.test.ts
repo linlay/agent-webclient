@@ -770,7 +770,7 @@ describe('buildAwaitingPlanningModeAction', () => {
           chatId: 'chat_1',
           runId: 'run_1',
           awaitingId: 'await_1',
-          mode: 'plan',
+          mode: 'planning',
         },
         chatId: 'chat_1',
         planningMode: true,
