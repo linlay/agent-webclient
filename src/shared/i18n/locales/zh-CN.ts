@@ -167,7 +167,7 @@ export const zhCNMessages = {
   "api.fileDownloadUnsupported": "当前环境不支持文件下载",
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",
   "composer.actions.interrupt": "中断运行",
-  "composer.actions.plan": "计划",
+  "composer.actions.plan": "规划",
   "composer.actions.screenshot": "截屏",
   "composer.actions.screenshotCapturing": "正在截屏...",
   "composer.actions.screenshotDisabled.frontendActive": "前端工具处理中，暂时不能截屏。",

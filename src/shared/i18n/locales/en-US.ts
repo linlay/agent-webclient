@@ -167,7 +167,7 @@ export const enUSMessages = {
   "api.fileDownloadUnsupported": "File download is not supported in this environment",
   "api.loadResourceTextFailedWithStatus": "Failed to load resource text ({status})",
   "composer.actions.interrupt": "Interrupt run",
-  "composer.actions.plan": "Plan",
+  "composer.actions.plan": "Planning",
   "composer.actions.screenshot": "Screenshot",
   "composer.actions.screenshotCapturing": "Capturing screenshot...",
   "composer.actions.screenshotDisabled.frontendActive": "A frontend tool is active. Screenshots are temporarily unavailable.",

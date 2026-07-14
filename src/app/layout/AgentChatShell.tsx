@@ -97,8 +97,8 @@ function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean
   const meta = isRecord(agent.meta) ? agent.meta : {};
   const mode = String(agent.mode || meta.mode || "").trim().toUpperCase();
   const type = String(agent.type || "").trim().toLowerCase();
-  const acpProxyId = String(meta.acpProxyId || agent.acpProxyId || "").trim();
-  if (!acpProxyId || (mode !== "CODER" && type !== "coder")) {
+  const acpBridgeId = String(meta.acpBridgeId || agent.acpBridgeId || "").trim();
+  if (!acpBridgeId || (mode !== "CODER" && type !== "coder")) {
     return false;
   }
   return !hasOwn(agent, "modelOptions");
