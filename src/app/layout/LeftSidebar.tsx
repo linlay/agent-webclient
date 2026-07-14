@@ -975,10 +975,7 @@ export const LeftSidebar: React.FC = () => {
                   className="ui-icon-hover-24"
                   onClick={() => openCommandOverlay({ type: "agents" })}
                 >
-                  <MaterialIcon
-                    name="smart_toy"
-                    className="ui-icon-hover-24-target"
-                  />
+                  <MaterialIcon name="robot_2" />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
