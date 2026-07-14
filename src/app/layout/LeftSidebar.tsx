@@ -90,14 +90,14 @@ function workspaceNameFromPath(path: string): string {
 
 export function buildCoderAgentCreateRequest(
   workspaceDir: string,
-  options: { name?: string; acpProxyId?: string } = {},
+  options: { name?: string; acpBridgeId?: string } = {},
 ) {
   const name = String(options.name || "").trim();
   const runtimeConfig: Record<string, unknown> = {
     workspaceRoot: workspaceDir,
   };
-  if (options.acpProxyId) {
-    runtimeConfig.acpProxyId = options.acpProxyId;
+  if (options.acpBridgeId) {
+    runtimeConfig.acpBridgeId = options.acpBridgeId;
   }
   return {
     definition: {
@@ -750,7 +750,7 @@ export const LeftSidebar: React.FC = () => {
   const [workspaceDir, setWorkspaceDir] = useState("");
   const [projectType, setProjectType] = useState<"coder" | "kbase">("coder");
   const [useAcp, setUseAcp] = useState(false);
-  const [selectedAcpProxyId, setSelectedAcpProxyId] = useState("");
+  const [selectedAcpBridgeId, setSelectedAcpBridgeId] = useState("");
   const [projectNameTouched, setProjectNameTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -761,7 +761,7 @@ export const LeftSidebar: React.FC = () => {
     setProjectName("");
     setProjectType("coder");
     setUseAcp(false);
-    setSelectedAcpProxyId(ACP_PROXY_OPTIONS[0]?.value || "");
+    setSelectedAcpBridgeId(ACP_PROXY_OPTIONS[0]?.value || "");
     setProjectNameTouched(false);
     setCreateModalOpen(true);
   };
@@ -780,7 +780,7 @@ export const LeftSidebar: React.FC = () => {
     const trimmedName = projectName.trim();
     const name = trimmedName || workspaceNameFromPath(trimmedDir);
 
-    if (projectType === "coder" && useAcp && !selectedAcpProxyId) {
+    if (projectType === "coder" && useAcp && !selectedAcpBridgeId) {
       void message.warning(t("leftSidebar.createProject.acpRequired"));
       return;
     }
@@ -792,7 +792,7 @@ export const LeftSidebar: React.FC = () => {
           ? buildKbaseAgentCreateRequest(trimmedDir, { name })
           : buildCoderAgentCreateRequest(trimmedDir, {
               name,
-              acpProxyId: useAcp ? selectedAcpProxyId : undefined,
+              acpBridgeId: useAcp ? selectedAcpBridgeId : undefined,
             });
       const response = await createAgent(definition);
       const createdKey = String(response.data?.key || "").trim();
@@ -959,16 +959,7 @@ export const LeftSidebar: React.FC = () => {
                   variant="ghost"
                   onClick={() => openCommandOverlay({ type: "agents" })}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em">
-                    <path d="M12 8V4" />
-                    <circle cx="12" cy="3" r="1" fill="currentColor" />
-                    <rect x="5" y="8" width="14" height="11" rx="4" />
-                    <circle cx="9.5" cy="13" r="1" fill="currentColor" stroke="none" />
-                    <circle cx="14.5" cy="13" r="1" fill="currentColor" stroke="none" />
-                    <path d="M10 16Q12 18 14 16" />
-                    <path d="M3 13.5L5 13.5" />
-                    <path d="M19 13.5L21 13.5" />
-                  </svg>
+                  <MaterialIcon name="robot_2" />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
@@ -1385,12 +1376,12 @@ export const LeftSidebar: React.FC = () => {
                     {t("leftSidebar.createProject.acpProxy")}
                   </label>
                   <Select
-                    value={selectedAcpProxyId || undefined}
+                    value={selectedAcpBridgeId || undefined}
                     disabled={submitting}
                     style={{ width: "100%" }}
                     options={ACP_PROXY_OPTIONS}
                     placeholder={t("leftSidebar.createProject.noAcpProxy")}
-                    onChange={(value) => setSelectedAcpProxyId(value)}
+                    onChange={(value) => setSelectedAcpBridgeId(value)}
                   />
                 </div>
               )}

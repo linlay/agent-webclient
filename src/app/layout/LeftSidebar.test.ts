@@ -923,7 +923,7 @@ describe("LeftSidebar", () => {
       "/Users/demo/Project/acp-coder",
       {
         name: "ACP Coder",
-        acpProxyId: "proxy-acp-codex",
+        acpBridgeId: "proxy-acp-codex",
       },
     );
     expect(acpRequest).toEqual({
@@ -932,7 +932,7 @@ describe("LeftSidebar", () => {
         mode: "CODER",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/acp-coder",
-          acpProxyId: "proxy-acp-codex",
+          acpBridgeId: "proxy-acp-codex",
         },
       },
     });

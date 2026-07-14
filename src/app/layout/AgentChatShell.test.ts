@@ -317,7 +317,7 @@ describe("AgentChatShell", () => {
         name: "Demo Agent",
         role: "Worker",
         mode: "CODER",
-        meta: { acpProxyId: "codex" },
+        meta: { acpBridgeId: "codex" },
         modelOptions: {
           models: [{ key: "gpt-5.5", name: "GPT-5.5", modelId: "gpt-5.5" }],
           reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
@@ -334,7 +334,7 @@ describe("AgentChatShell", () => {
           name: "Demo Agent",
           role: "Worker",
           mode: "CODER",
-          meta: { acpProxyId: "codex" },
+          meta: { acpBridgeId: "codex" },
         },
       ],
     });
@@ -356,7 +356,7 @@ describe("AgentChatShell", () => {
         expect.objectContaining({
           key: "demo-agent",
           mode: "CODER",
-          meta: { acpProxyId: "codex" },
+          meta: { acpBridgeId: "codex" },
           modelOptions: expect.objectContaining({
             defaultModelKey: "gpt-5.5",
             models: [expect.objectContaining({ key: "gpt-5.5" })],
