@@ -151,6 +151,7 @@ export const HistoryModal: React.FC<{
           prefix={
             <MaterialIcon
               name="search"
+              className="sidebar-static-icon"
               style={{ color: "var(--text-muted)" }}
             />
           }
@@ -216,6 +217,7 @@ export const HistoryModal: React.FC<{
                     </span>
                     <Tooltip title={t("history.action.export")}>
                       <UiButton
+                        className="ui-icon-hover-24"
                         size="sm"
                         variant="ghost"
                         iconOnly
@@ -233,6 +235,7 @@ export const HistoryModal: React.FC<{
                     </Tooltip>
                     <Tooltip title={t("history.action.archive")}>
                       <UiButton
+                        className="ui-icon-hover-24"
                         size="sm"
                         variant="ghost"
                         iconOnly
@@ -246,6 +249,7 @@ export const HistoryModal: React.FC<{
                     </Tooltip>
                     <Tooltip title={t("history.action.delete")}>
                       <UiButton
+                        className="ui-icon-hover-24"
                         size="sm"
                         variant="ghost"
                         iconOnly

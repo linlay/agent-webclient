@@ -29,7 +29,7 @@ type AgentIconConfig =
     };
 
 const WORKER_PANEL_HEADER_CLASS =
-  "worker-panel-header tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:[&_.chat-awaiting-status]:mr-[5px] tw:[&_.chat-awaiting-status]:whitespace-nowrap tw:[&_.chat-awaiting-status]:rounded-pill tw:[&_.chat-awaiting-status]:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:[&_.chat-awaiting-status]:px-1.5 tw:[&_.chat-awaiting-status]:py-0.5 tw:[&_.chat-awaiting-status]:text-[11px] tw:[&_.chat-awaiting-status]:text-accent-warn tw:[&_.worker-chat-loading]:mr-0.5 tw:[&_.worker-chat-loading]:animate-ui-spin tw:[&_.worker-chat-loading]:text-sm tw:[&_.worker-chat-loading]:text-text-sub tw:[&_.worker-panel-preview]:h-5 tw:[&_.worker-panel-preview]:overflow-hidden tw:[&_.worker-panel-preview]:text-ellipsis tw:[&_.worker-panel-preview]:whitespace-nowrap tw:[&_.worker-panel-preview]:text-xs tw:[&_.worker-panel-preview]:text-text-muted tw:[&_.worker-panel-preview]:transition-[height] tw:[&_.worker-panel-preview]:duration-200 tw:[&_.worker-panel-preview]:ease-in-out";
+  "worker-panel-header tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:[&_.chat-awaiting-status]:mr-[5px] tw:[&_.chat-awaiting-status]:whitespace-nowrap tw:[&_.chat-awaiting-status]:rounded-pill tw:[&_.chat-awaiting-status]:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:[&_.chat-awaiting-status]:px-1.5 tw:[&_.chat-awaiting-status]:py-0.5 tw:[&_.chat-awaiting-status]:text-[11px] tw:[&_.chat-awaiting-status]:text-accent-warn tw:[&_.worker-chat-loading]:mr-0.5 tw:[&_.worker-chat-loading]:animate-ui-spin tw:[&_.worker-chat-loading]:text-base tw:[&_.worker-chat-loading]:text-text-sub tw:[&_.worker-panel-preview]:h-5 tw:[&_.worker-panel-preview]:overflow-hidden tw:[&_.worker-panel-preview]:text-ellipsis tw:[&_.worker-panel-preview]:whitespace-nowrap tw:[&_.worker-panel-preview]:text-xs tw:[&_.worker-panel-preview]:text-text-muted tw:[&_.worker-panel-preview]:transition-[height] tw:[&_.worker-panel-preview]:duration-200 tw:[&_.worker-panel-preview]:ease-in-out";
 
 const WORKER_PANEL_ICON_CLASS =
   "worker-panel-icon tw:transition-transform tw:duration-200 tw:ease-in-out";
@@ -42,14 +42,18 @@ const WORKER_PANEL_ROLE_CLASS =
 
 const WORKER_PANEL_NEW_CLASS = "worker-panel-new";
 
+const SIDEBAR_MENU_ITEM_CLASS = "ui-icon-hover-24";
+
+const SIDEBAR_MENU_ICON_CLASS = "ui-icon-hover-24-target";
+
 const WORKER_CHAT_LOADING_CLASS =
-  "worker-chat-loading tw:mr-0.5 tw:text-sm tw:text-text-sub tw:animate-ui-spin";
+  "worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
 
 const CHAT_AWAITING_STATUS_CLASS =
   "chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn";
 
 const WORKER_TERMINAL_ACTIVE_CLASS =
-  "worker-terminal-active tw:inline-flex tw:size-[18px] tw:flex-none tw:items-center tw:justify-center tw:rounded-md tw:bg-[color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:text-accent-electric-strong tw:[&_.material-icon]:text-sm";
+  "worker-terminal-active tw:inline-flex tw:size-[18px] tw:flex-none tw:items-center tw:justify-center tw:rounded-md tw:bg-[color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:text-accent-electric-strong tw:[&_.material-icon]:text-base";
 
 export const WorkerPanelHeader: React.FC<{
   row: WorkerRow;
@@ -118,7 +122,8 @@ export const WorkerPanelHeader: React.FC<{
   const actionMenuItems: MenuProps["items"] = [
     {
       key: "openWorkspace",
-      icon: <MaterialIcon name="folder_open" />,
+      className: SIDEBAR_MENU_ITEM_CLASS,
+      icon: <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />,
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
@@ -126,7 +131,8 @@ export const WorkerPanelHeader: React.FC<{
       ? [
           {
             key: "renameAgent",
-            icon: <MaterialIcon name="rename" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.renameAgent"),
           },
         ]
@@ -135,7 +141,8 @@ export const WorkerPanelHeader: React.FC<{
       ? [
           {
             key: "editAgent",
-            icon: <MaterialIcon name="settings" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="settings" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.editAgent"),
           },
         ]
@@ -144,7 +151,8 @@ export const WorkerPanelHeader: React.FC<{
       ? [
           {
             key: "deleteAgent",
-            icon: <MaterialIcon name="delete" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.deleteAgent"),
             danger: true,
           },
@@ -204,7 +212,7 @@ export const WorkerPanelHeader: React.FC<{
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
-                  className={WORKER_PANEL_NEW_CLASS}
+                  className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
                   type="text"
                   icon={<MaterialIcon name="done_all" />}
                   onClick={(e) => onMarkAllRead(e, row.key)}
@@ -213,7 +221,7 @@ export const WorkerPanelHeader: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-20`}
+                className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}
@@ -245,7 +253,7 @@ export const WorkerPanelHeader: React.FC<{
                 }
               >
                 <Button
-                  className={WORKER_PANEL_NEW_CLASS}
+                  className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
                   type="text"
                   icon={<MaterialIcon name="more_horiz" />}
                   onClick={(event) => event.stopPropagation()}

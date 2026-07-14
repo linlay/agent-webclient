@@ -49,7 +49,7 @@ export const ChatItem: React.FC<{
         <span className="worker-panel-time-label">
           {formatChatTimeLabel(chat.updatedAt)}
         </span>
-        <ChatActionsMenu chatId={chat.chatId} chatName={title} />
+        <ChatActionsMenu chatId={chat.chatId} chatName={title} iconHover24 />
       </div>
       <div className={CHAT_META_LINE_CLASS}>
         <UiTag tone="muted">{label}</UiTag>

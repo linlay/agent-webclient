@@ -14,15 +14,31 @@ export const ChatActionsMenu: React.FC<{
 	chatId: string;
 	chatName?: string;
 	triggerClassName?: string;
+	iconHover24?: boolean;
 	onArchived?: (chatId: string) => void;
 	onDeleted?: (chatId: string) => void;
-}> = ({ chatId, chatName, triggerClassName, onArchived, onDeleted }) => {
+}> = ({
+	chatId,
+	chatName,
+	triggerClassName,
+	iconHover24 = false,
+	onArchived,
+	onDeleted,
+}) => {
 	const { state, dispatch } = useAppContext();
 	const [pending, setPending] = useState(false);
 	const normalizedChatId = String(chatId || "").trim();
-	const triggerClass = triggerClassName
-		? `chat-actions-trigger ${triggerClassName}`
-		: "chat-actions-trigger";
+	const triggerClass = [
+		"chat-actions-trigger",
+		triggerClassName,
+		iconHover24 ? "ui-icon-hover-24" : "",
+	]
+		.filter(Boolean)
+		.join(" ");
+	const menuItemClassName = iconHover24 ? "ui-icon-hover-24" : undefined;
+	const menuIconClassName = iconHover24
+		? "ui-icon-hover-24-target"
+		: undefined;
 
 	const clearActiveChatIfNeeded = () => {
 		if (String(state.chatId || "") !== normalizedChatId) {
@@ -163,26 +179,30 @@ export const ChatActionsMenu: React.FC<{
 	const items: MenuProps["items"] = [
 		{
 			key: "export",
-			icon: <MaterialIcon name="export" />,
+			className: menuItemClassName,
+			icon: <MaterialIcon name="export" className={menuIconClassName} />,
 			label: t("chatActions.export"),
 			onClick: () => void handleExport(),
 		},
 		{
 			key: "rename",
-			icon: <MaterialIcon name="rename" />,
+			className: menuItemClassName,
+			icon: <MaterialIcon name="rename" className={menuIconClassName} />,
 			label: t("chatActions.rename.menu"),
 			onClick: handleRename,
 		},
 		{
 			key: "archive",
-			icon: <MaterialIcon name="inventory_2" />,
+			className: menuItemClassName,
+			icon: <MaterialIcon name="inventory_2" className={menuIconClassName} />,
 			label: t("chatActions.archive.menu"),
 			onClick: handleArchive,
 		},
 		{
 			key: "delete",
 			danger: true,
-			icon: <MaterialIcon name="delete" />,
+			className: menuItemClassName,
+			icon: <MaterialIcon name="delete" className={menuIconClassName} />,
 			label: t("chatActions.delete.menu"),
 			onClick: handleDelete,
 		},
@@ -200,7 +220,7 @@ export const ChatActionsMenu: React.FC<{
 					event.stopPropagation();
 				}}
 			>
-				<MaterialIcon name="more_horiz" />
+				<MaterialIcon name="more_horiz" className={menuIconClassName} />
 			</Button>
 		</Dropdown>
 	);

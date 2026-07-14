@@ -158,7 +158,7 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                 key={item.key}
                 variant="ghost"
                 size="sm"
-                className={`sidebar-settings-item ${item.active ? "is-active" : ""} ${item.disabled ? "is-disabled" : ""}`}
+                className={`sidebar-settings-item ui-icon-hover-24 ${item.active ? "is-active" : ""} ${item.disabled ? "is-disabled" : ""}`}
                 title={item.title || item.label}
                 disabled={item.disabled}
                 aria-pressed={item.active}
@@ -169,7 +169,7 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                     {item.icon ? (
                       <MaterialIcon
                         name={item.icon}
-                        className="sidebar-settings-item-icon"
+                        className="sidebar-settings-item-icon ui-icon-hover-24-target"
                       />
                     ) : null}
                     <span className="sidebar-settings-item-label">
