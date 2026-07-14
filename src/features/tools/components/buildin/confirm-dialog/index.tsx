@@ -49,6 +49,7 @@ import {
   isMultiSelectQuestionType,
   isSelectQuestionType,
   isEditableKeyboardTarget,
+  QUESTION_SKIP_ANSWER,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
@@ -129,10 +130,9 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     }
 
     const nextParams = [...params];
-    nextParams[curIndex] = {
-      id: current.id,
-      answer: "reject",
-    };
+    nextParams[curIndex] = isMultiSelectQuestionType(current)
+      ? { id: current.id, answers: [QUESTION_SKIP_ANSWER] }
+      : { id: current.id, answer: QUESTION_SKIP_ANSWER };
     form.setFieldsValue({
       params: nextParams,
     });
@@ -342,7 +342,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                         }
                       }}
                       data={questions[field.name]}
-                      question={
+                      pagination={
                         questions.length > 1 ? (
                           <Flex
                             className={hitlDialogClassNames.pagination}
@@ -353,7 +353,11 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                               const value = params?.[
                                 index
                               ] as AIAwaitQuestionSubmitParamData;
-                              const skip = value?.answer === "reject";
+                              const skip =
+                                value?.answer === QUESTION_SKIP_ANSWER ||
+                                (Array.isArray(value?.answers) &&
+                                  value.answers.length === 1 &&
+                                  value.answers[0] === QUESTION_SKIP_ANSWER);
                               const done =
                                 !skip &&
                                 (value?.answer ||
@@ -491,12 +495,12 @@ const Question = forwardRef<
   QuestionRef,
   {
     data: AIAwaitQuestion;
-    question?: React.ReactNode;
+    pagination?: React.ReactNode;
     onEnter: () => void;
     value?: AIAwaitQuestionSubmitParamData;
     onChange?: (value: AIAwaitQuestionSubmitParamData) => void;
   }
->(({ data, question, value, onChange, onEnter }, ref) => {
+>(({ data, pagination, value, onChange, onEnter }, ref) => {
   const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
@@ -551,7 +555,7 @@ const Question = forwardRef<
             <div className={hitlDialogClassNames.questionPrompt}>{prompt}</div>
           )}
         </Flex>
-        {question}
+        {pagination}
       </Flex>
     );
   };
@@ -706,8 +710,12 @@ const Question = forwardRef<
             (item) => item !== FREE_TEXT_OPTION_VALUE,
           );
           if (isMultiSelectQuestionType(data)) {
-            const nextAnswers = freeTextAnswer
-              ? [...optionKeys, freeTextAnswer]
+            const cleanFreeText =
+              freeTextAnswer && freeTextAnswer !== QUESTION_SKIP_ANSWER
+                ? freeTextAnswer
+                : undefined;
+            const nextAnswers = cleanFreeText
+              ? [...optionKeys, cleanFreeText]
               : optionKeys;
             setAnswer({ answers: nextAnswers });
             return;

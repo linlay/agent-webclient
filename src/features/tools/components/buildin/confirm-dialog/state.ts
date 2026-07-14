@@ -6,6 +6,8 @@ import {
 } from "@/app/state/types";
 import { t } from "@/shared/i18n";
 
+export const QUESTION_SKIP_ANSWER = "reject";
+
 export function hasAwaitingQuestions(
   questions: AIAwaitQuestion[] | null | undefined,
 ): boolean {
