@@ -1,4 +1,4 @@
-import type { Agent, Chat, ChatReadState, WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent, Chat, ChatReadState, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
@@ -65,12 +65,21 @@ export function countUnreadChatsForWorker(
 export function resolveWorkerUnreadCount(
 	worker: Pick<WorkerRow, "type" | "sourceId"> | null,
 	agents: Agent[],
+	teams: Team[],
 	chats: Chat[],
 ): number {
 	if (!worker) {
 		return 0;
 	}
 	if (worker.type === "team") {
+		const teamId = toText(worker.sourceId);
+		const matched = (Array.isArray(teams) ? teams : []).find(
+			(team) => toText(team?.teamId) === teamId,
+		);
+		const statsUnread = Number(matched?.stats?.unreadCount);
+		if (Number.isFinite(statsUnread) && statsUnread >= 0) {
+			return statsUnread;
+		}
 		return countUnreadChatsForWorker(worker, chats);
 	}
 

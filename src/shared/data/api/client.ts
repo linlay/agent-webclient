@@ -81,7 +81,9 @@ export interface WorkspaceFilePreviewParams {
 
 export interface GetAgentsOptions {
   includeChats?: number;
+  includeTeam?: boolean;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
+  mode?: string;
 }
 
 export interface AgentOrderResponse {
@@ -96,6 +98,7 @@ export interface UpdateAgentOrderRequest {
 
 export interface GetChatsOptions {
   agentKey?: string;
+  mode?: string;
 }
 
 export interface AutomationListRequest {

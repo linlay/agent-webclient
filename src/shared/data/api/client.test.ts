@@ -1321,14 +1321,14 @@ describe('data client query payloads', () => {
     });
   });
 
-  it('keeps getAgents queryless by default and supports includeChats and scope', async () => {
+  it('keeps getAgents queryless by default and forwards mixed-list filters', async () => {
     await getAgents();
     await getAgents({ includeChats: 5 });
-    await getAgents({ includeChats: 5, scope: 'copilot' });
+    await getAgents({ includeChats: 5, includeTeam: true, scope: 'copilot', mode: 'CODER' });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&scope=copilot');
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&includeTeam=true&scope=copilot&mode=CODER');
   });
 
   it('supports reading and writing agent order', async () => {
@@ -1971,12 +1971,15 @@ describe('data client query payloads', () => {
             {
               chatId: 'chat_2',
               chatName: 'No waiting',
+              teamId: 'team_1',
             },
           ],
         }),
     });
 
-    const response = await getChats();
+    const response = await getChats({ mode: 'CODER' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chats?mode=CODER');
 
     expect(response.data).toEqual([
       {
@@ -1999,6 +2002,7 @@ describe('data client query payloads', () => {
       {
         chatId: 'chat_2',
         chatName: 'No waiting',
+        teamId: 'team_1',
         hasPendingAwaiting: false,
       },
     ]);

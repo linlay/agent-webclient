@@ -64,9 +64,10 @@ import {
   isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
 import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import type { AppState, Chat, WorkerConversationRow } from "@/app/state/types";
+import type { AppState, Chat, WorkerConversationRow, WorkerListItem } from "@/app/state/types";
 import { openWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
+import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
@@ -181,17 +182,25 @@ export async function handleCreateAgentSuccess(
 
   const agentsResponse = await getAgents({
     includeChats: 5,
+    includeTeam: true,
     scope: "nav",
   });
-  const agents = Array.isArray(agentsResponse.data)
-    ? (agentsResponse.data as AppState["agents"])
-    : [];
-  dispatch({ type: "SET_AGENTS", agents });
+  const workers = splitWorkerListItems(
+    Array.isArray(agentsResponse.data)
+      ? (agentsResponse.data as WorkerListItem[])
+      : [],
+  );
+  const chats = mergeFetchedChats(stateRef.current.chats, workers.chats);
+  dispatch({ type: "SET_AGENTS", agents: workers.agents });
+  dispatch({ type: "SET_TEAMS", teams: workers.teams });
+  dispatch({ type: "SET_WORKER_ORDER_KEYS", workerOrderKeys: workers.workerOrderKeys });
+  dispatch({ type: "SET_CHATS", chats });
 
   const rows = buildWorkerRows({
-    agents,
-    teams: stateRef.current.teams,
-    chats: stateRef.current.chats,
+    agents: workers.agents,
+    teams: workers.teams,
+    chats,
+    workerOrderKeys: workers.workerOrderKeys,
     workerPriorityKey: `agent:${createdKey}`,
   });
   dispatch({ type: "SET_WORKER_ROWS", rows });
@@ -434,9 +443,9 @@ export const LeftSidebar: React.FC = () => {
       const worker =
         state.workerIndexByKey.get(normalizedWorkerKey) ||
         state.workerRows.find((item) => item.key === normalizedWorkerKey);
-      if (!worker || worker.type !== "agent") return;
+      if (!worker) return;
 
-      void getChats({ agentKey: worker.sourceId })
+      void getChats(worker.type === "agent" ? { agentKey: worker.sourceId } : undefined)
         .then((response) => {
           const fetchedChats = (
             Array.isArray(response.data) ? response.data : []

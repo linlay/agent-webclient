@@ -230,7 +230,7 @@ describe("routedClient", () => {
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
 
-	it("routes agents includeChats over ws payload", async () => {
+	it("routes mixed agent and team filters over ws payload", async () => {
 		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
 
@@ -239,7 +239,7 @@ describe("routedClient", () => {
 			status: 200,
 			code: 0,
 			msg: "ok",
-			data: [],
+			data: [{ kind: "team", teamId: "team-a", stats: { totalCount: 2 }, chats: [] }],
 		});
 		mockGetWsClient.mockReturnValue({
 			connect,
@@ -248,11 +248,18 @@ describe("routedClient", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await proxy.getAgents({ includeChats: 5 });
+		await expect(proxy.getAgents({
+			includeChats: 5,
+			includeTeam: true,
+			scope: "nav",
+			mode: "CODER",
+		})).resolves.toMatchObject({
+			data: [{ kind: "team", teamId: "team-a" }],
+		});
 
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/agents",
-			payload: { includeChats: 5 },
+			payload: { includeChats: 5, includeTeam: true, scope: "nav", mode: "CODER" },
 		});
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
 	});
@@ -892,6 +899,7 @@ describe("routedClient", () => {
 			data: [
 				{
 					chatId: "chat_1",
+					teamId: "team-a",
 					awaiting: {
 						awaitingId: "await_1",
 						runId: "run_1",
@@ -908,21 +916,23 @@ describe("routedClient", () => {
 		});
 		mockGetWsClientAccessToken.mockReturnValue("");
 
-		await expect(proxy.getChats({ agentKey: "agent-a" })).resolves.toMatchObject({
+		await expect(proxy.getChats({ agentKey: "agent-a", mode: "CODER" })).resolves.toMatchObject({
 			data: [
 				{
 					chatId: "chat_1",
+					teamId: "team-a",
 					hasPendingAwaiting: true,
 				},
 			],
 		});
 		expect(request).toHaveBeenCalledWith({
 			type: "/api/chats",
-			payload: { agentKey: "agent-a" },
+			payload: { agentKey: "agent-a", mode: "CODER" },
 		});
 		expect(mockApiClient.normalizeChatSummariesPayload).toHaveBeenCalledWith([
 			{
 				chatId: "chat_1",
+				teamId: "team-a",
 				awaiting: {
 					awaitingId: "await_1",
 					runId: "run_1",

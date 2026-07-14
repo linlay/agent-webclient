@@ -102,6 +102,7 @@ export function createInitialState(): AppState {
 		conversationMode: "worker",
 		workerSelectionKey: "",
 		workerRows: [],
+		workerOrderKeys: [],
 		workerIndexByKey: new Map(),
 		workerRelatedChats: [],
 		workerChatPanelCollapsed: true,

@@ -161,6 +161,7 @@ export type AppAction =
 	| { type: "SET_CONVERSATION_MODE"; mode: "chat" | "worker" }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }
 	| { type: "SET_WORKER_ROWS"; rows: WorkerRow[] }
+	| { type: "SET_WORKER_ORDER_KEYS"; workerOrderKeys: string[] }
 	| { type: "SET_WORKER_RELATED_CHATS"; chats: WorkerConversationRow[] }
 	| { type: "SET_WORKER_CHAT_PANEL_COLLAPSED"; collapsed: boolean }
 	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }

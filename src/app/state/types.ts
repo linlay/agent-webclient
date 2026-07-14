@@ -166,6 +166,7 @@ export interface AppState {
 	conversationMode: ConversationMode;
 	workerSelectionKey: string;
 	workerRows: WorkerRow[];
+	workerOrderKeys: string[];
 	workerIndexByKey: Map<string, WorkerRow>;
 	workerRelatedChats: WorkerConversationRow[];
 	workerChatPanelCollapsed: boolean;

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
-import { getAgent, getAgents, getChats, getTeams, setAccessToken } from '@/shared/data';
-import type { Agent, Chat, Team, WorkerRow } from '@/app/state/types';
+import { getAgent, getAgents, getChats, setAccessToken } from '@/shared/data';
+import type { Agent, Chat, WorkerListItem, WorkerRow } from '@/app/state/types';
 import { isAppMode } from '@/shared/utils/routing';
 import {
   refreshWorkerDataFromAgentsWithChats,
+  splitWorkerListItems,
   type WorkerDataSnapshot,
   type WorkerRefreshOverrides,
 } from '@/features/workers/lib/workerDataCoordinator';
@@ -17,7 +18,11 @@ import {
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
-type AgentListRequestOptions = { includeChats?: number; scope: 'nav' | 'copilot' };
+type AgentListRequestOptions = {
+  includeChats?: number;
+  includeTeam: true;
+  scope: 'nav' | 'copilot';
+};
 
 function isCopilotPath(pathname: string): boolean {
   return pathname === '/copilot' || pathname.startsWith('/copilot/');
@@ -34,6 +39,7 @@ export function buildAgentListRequestOptions(
   const scope = resolveAgentListScope(pathname);
   return {
     includeChats: scope === 'copilot' ? undefined : includeChats,
+    includeTeam: true,
     scope,
   };
 }
@@ -44,7 +50,15 @@ export function buildAgentListFallbackRequestOptions(
   if (options.scope !== 'copilot') {
     return null;
   }
-  return { includeChats: options.includeChats, scope: 'nav' };
+  return { includeChats: options.includeChats, includeTeam: true, scope: 'nav' };
+}
+
+export function shouldFallbackMixedWorkerList(
+  items: WorkerListItem[],
+  options: AgentListRequestOptions,
+): boolean {
+  return splitWorkerListItems(items).agents.length === 0
+    && buildAgentListFallbackRequestOptions(options) !== null;
 }
 
 function currentPathname(): string {
@@ -129,6 +143,7 @@ export function useWorkerData(input: {
       agents,
       teams,
       chats,
+      workerOrderKeys: overrides.workerOrderKeys ?? current.workerOrderKeys,
       workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
     });
     const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
@@ -150,6 +165,7 @@ export function useWorkerData(input: {
     agents: stateRef.current.agents,
     teams: stateRef.current.teams,
     chats: stateRef.current.chats,
+    workerOrderKeys: stateRef.current.workerOrderKeys,
     workerSelectionKey: stateRef.current.workerSelectionKey,
     workerPriorityKey: stateRef.current.workerPriorityKey,
   }), [stateRef]);
@@ -163,41 +179,38 @@ export function useWorkerData(input: {
     }
   }, [dispatch]);
 
-  const fetchAgentsWithScopeFallback = useCallback(async (options: AgentListRequestOptions): Promise<Agent[]> => {
+  const fetchAgentsWithScopeFallback = useCallback(async (options: AgentListRequestOptions): Promise<WorkerListItem[]> => {
     const response = await getAgents(options);
-    const agents = Array.isArray(response.data) ? (response.data as Agent[]) : [];
-    const fallbackOptions = agents.length === 0 ? buildAgentListFallbackRequestOptions(options) : null;
+    const items = Array.isArray(response.data) ? (response.data as WorkerListItem[]) : [];
+    const fallbackOptions = shouldFallbackMixedWorkerList(items, options)
+      ? buildAgentListFallbackRequestOptions(options)
+      : null;
     if (!fallbackOptions) {
-      return agents;
+      return items;
     }
     const fallbackResponse = await getAgents(fallbackOptions);
-    return Array.isArray(fallbackResponse.data) ? (fallbackResponse.data as Agent[]) : [];
+    return Array.isArray(fallbackResponse.data) ? (fallbackResponse.data as WorkerListItem[]) : [];
   }, []);
 
   const loadAgents = useCallback(async () => {
     await runWithSidebarLoading(async () => {
       try {
-        const agents = await fetchAgentsWithScopeFallback(buildAgentListRequestOptions(currentPathname()));
-        dispatch({ type: 'SET_AGENTS', agents });
-        rebuildWorkerRowsFromState({ agents });
+        const workers = splitWorkerListItems(
+          await fetchAgentsWithScopeFallback(buildAgentListRequestOptions(currentPathname())),
+        );
+        dispatch({ type: 'SET_AGENTS', agents: workers.agents });
+        dispatch({ type: 'SET_TEAMS', teams: workers.teams });
+        dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys: workers.workerOrderKeys });
+        rebuildWorkerRowsFromState({
+          agents: workers.agents,
+          teams: workers.teams,
+          workerOrderKeys: workers.workerOrderKeys,
+        });
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
       }
     });
   }, [dispatch, fetchAgentsWithScopeFallback, rebuildWorkerRowsFromState, runWithSidebarLoading]);
-
-  const loadTeams = useCallback(async () => {
-    await runWithSidebarLoading(async () => {
-      try {
-        const response = await getTeams();
-        const teams = (response.data as Team[]) || [];
-        dispatch({ type: 'SET_TEAMS', teams });
-        rebuildWorkerRowsFromState({ teams });
-      } catch (error) {
-        dispatch({ type: 'APPEND_DEBUG', line: `[loadTeams error] ${(error as Error).message}` });
-      }
-    });
-  }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const loadChats = useCallback(async () => {
     await runWithSidebarLoading(async () => {
@@ -223,6 +236,12 @@ export function useWorkerData(input: {
         getSnapshot: getWorkerDataSnapshot,
         applyAgents: (agents) => {
           dispatch({ type: 'SET_AGENTS', agents });
+        },
+        applyTeams: (teams) => {
+          dispatch({ type: 'SET_TEAMS', teams });
+        },
+        applyWorkerOrderKeys: (workerOrderKeys) => {
+          dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys });
         },
         applyChats: (chats) => {
           dispatch({ type: 'SET_CHATS', chats });
@@ -261,8 +280,13 @@ export function useWorkerData(input: {
 
       flushSync(() => {
         dispatch({ type: 'SET_AGENTS', agents: mergedAgents });
+        const workerOrderKeys = stateRef.current.workerOrderKeys.includes(`agent:${resolvedAgentKey}`)
+          ? stateRef.current.workerOrderKeys
+          : [...stateRef.current.workerOrderKeys, `agent:${resolvedAgentKey}`];
+        dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys });
         rebuildWorkerRowsFromState({
           agents: mergedAgents,
+          workerOrderKeys,
           workerPriorityKey: `agent:${resolvedAgentKey}`,
           workerSelectionKey: `agent:${resolvedAgentKey}`,
         });
@@ -316,11 +340,11 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     const handler = () => {
-      loadTeams().catch(() => undefined);
+      loadAgents().catch(() => undefined);
     };
     window.addEventListener('agent:refresh-teams', handler);
     return () => window.removeEventListener('agent:refresh-teams', handler);
-  }, [loadTeams]);
+  }, [loadAgents]);
 
   useEffect(() => {
     const handler = () => {
@@ -396,7 +420,7 @@ export function useWorkerData(input: {
 
   return {
     loadAgents,
-    loadTeams,
+    loadTeams: loadAgents,
     loadChats,
     refreshWorkerData,
   };
