@@ -14,6 +14,17 @@
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
 
+## Agent / Team 混合列表协议
+
+左侧导航通过 `GET /api/agents?includeTeam=true` 获取唯一的 worker 列表；当前 transport 为 WebSocket 时，向 `/api/agents` 发送字段完全相同的 payload。响应 `data` 是按后端顺序排列的扁平数组，每一项必须带 `kind`：
+
+- `kind: "agent"`：保留既有 Agent 字段，可带最近 `chats`。
+- `kind: "team"`：使用 `teamId` 作为身份，带 name、role、成员与 icon 等展示字段；可带 `stats.totalCount`、`stats.unreadCount` 和最近 `chats`。
+
+后端按每个项首条最近 chat 的 `lastRunId` 将 Agent 与 Team 混排；`chats[0]` 即该 worker 的最近会话。前端不解析不透明的 run ID，而是保留响应顺序，并在嵌套 chat 未给出身份时按父项补齐 `agentKey` 或 `teamId`。
+
+`scope` 和 `mode` 只过滤 Agent，Team 不受这两个条件影响。`GET /api/chats?mode=...` 与对应 WS `/api/chats` payload 也必须始终保留 Team-owned chat；前端不会因 `teamId` 丢弃它们。
+
 ## 边界与非目标
 - `endpoints.ts` 是前端消费清单，不等于后端 OpenAPI 定义。
 - DTO 应贴近前端实际读取字段，避免为未使用字段建立庞大类型。

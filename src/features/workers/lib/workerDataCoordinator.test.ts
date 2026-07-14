@@ -3,6 +3,7 @@ import {
   extractChatsFromAgents,
   refreshWorkerDataFromAgentsWithChats,
   refreshWorkerDataWithCoordinator,
+  splitWorkerListItems,
 } from '@/features/workers/lib/workerDataCoordinator';
 
 function createDeferred<T>() {
@@ -43,6 +44,7 @@ describe('refreshWorkerDataWithCoordinator', () => {
         agents: currentAgents,
         teams: currentTeams,
         chats: currentChats,
+        workerOrderKeys: ['team:team-old', 'agent:agent-old'],
         workerSelectionKey: 'team:team-old',
         workerPriorityKey: 'agent:agent-old',
       }),
@@ -98,6 +100,7 @@ describe('refreshWorkerDataWithCoordinator', () => {
         agents: currentAgents,
         teams: currentTeams,
         chats: currentChats,
+        workerOrderKeys: ['team:team-old', 'agent:agent-old'],
         workerSelectionKey: 'team:team-old',
         workerPriorityKey: 'agent:agent-old',
       }),
@@ -223,13 +226,48 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
     ]);
   });
 
-  it('refreshes from agents only, merges chats, preserves current teams, and rebuilds once', async () => {
+  it('splits mixed items, fills Team chat ownership, and preserves source order', () => {
+    expect(splitWorkerListItems([
+      {
+        kind: 'team',
+        teamId: 'team-ops',
+        name: 'Ops',
+        stats: { totalCount: 3, unreadCount: 1 },
+        chats: [{ chatId: 'team-chat', chatName: 'Team Chat', lastRunId: 'run_team' }],
+      } as Team,
+      {
+        kind: 'agent',
+        key: 'agent-a',
+        name: 'Agent A',
+        chats: [{ chatId: 'agent-chat', chatName: 'Agent Chat', lastRunId: 'run_agent' }],
+      } as Agent,
+    ])).toEqual({
+      agents: [expect.objectContaining({ key: 'agent-a' })],
+      teams: [expect.objectContaining({ teamId: 'team-ops', stats: { totalCount: 3, unreadCount: 1 } })],
+      chats: [
+        expect.objectContaining({ chatId: 'team-chat', teamId: 'team-ops' }),
+        expect.objectContaining({ chatId: 'agent-chat', agentKey: 'agent-a' }),
+      ],
+      workerOrderKeys: ['team:team-ops', 'agent:agent-a'],
+    });
+  });
+
+  it('refreshes from one mixed list, updates Teams, and rebuilds once', async () => {
     const applyAgents = jest.fn();
+    const applyTeams = jest.fn();
+    const applyWorkerOrderKeys = jest.fn();
     const applyChats = jest.fn();
     const rebuildWorkerRows = jest.fn();
 
-    const agents = [
+    const items = [
       {
+        kind: 'team',
+        teamId: 'team-new',
+        name: 'New Team',
+        chats: [{ chatId: 'team-chat', chatName: 'Team Chat' }],
+      } as Team,
+      {
+        kind: 'agent',
         key: 'agent-new',
         name: 'New Agent',
         chats: [{ chatId: 'chat-new', chatName: 'New Chat' }],
@@ -237,31 +275,38 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
     ];
 
     await refreshWorkerDataFromAgentsWithChats({
-      fetchAgents: jest.fn().mockResolvedValue(agents),
+      fetchAgents: jest.fn().mockResolvedValue(items),
       getSnapshot: () => ({
         agents: [],
         teams: currentTeams,
         chats: currentChats,
+        workerOrderKeys: ['team:team-old'],
         workerSelectionKey: 'agent:agent-new',
         workerPriorityKey: 'agent:agent-old',
       }),
       applyAgents,
+      applyTeams,
+      applyWorkerOrderKeys,
       applyChats,
       rebuildWorkerRows,
       appendDebug: jest.fn(),
     });
 
     const expectedChats = [
+      { chatId: 'team-chat', chatName: 'Team Chat', teamId: 'team-new' },
       { chatId: 'chat-new', chatName: 'New Chat', agentKey: 'agent-new' },
       { chatId: 'chat-old', chatName: 'Old Chat' },
     ];
-    expect(applyAgents).toHaveBeenCalledWith(agents);
+    expect(applyAgents).toHaveBeenCalledWith([items[1]]);
+    expect(applyTeams).toHaveBeenCalledWith([items[0]]);
+    expect(applyWorkerOrderKeys).toHaveBeenCalledWith(['team:team-new', 'agent:agent-new']);
     expect(applyChats).toHaveBeenCalledWith(expectedChats);
     expect(rebuildWorkerRows).toHaveBeenCalledTimes(1);
     expect(rebuildWorkerRows).toHaveBeenCalledWith({
-      agents,
-      teams: currentTeams,
+      agents: [items[1]],
+      teams: [items[0]],
       chats: expectedChats,
+      workerOrderKeys: ['team:team-new', 'agent:agent-new'],
       workerSelectionKey: 'agent:agent-new',
       workerPriorityKey: 'agent:agent-old',
     });

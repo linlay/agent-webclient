@@ -485,9 +485,9 @@ export const AgentChatShell: React.FC = () => {
         stateRef.current.workerRows.find(
           (item) => item.key === normalizedWorkerKey,
         );
-      if (!worker || worker.type !== "agent") return;
+      if (!worker) return;
 
-      void getChats({ agentKey: worker.sourceId })
+      void getChats(worker.type === "agent" ? { agentKey: worker.sourceId } : undefined)
         .then((response) => {
           const fetchedChats = (
             Array.isArray(response.data) ? response.data : []

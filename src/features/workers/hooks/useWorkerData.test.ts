@@ -2,6 +2,7 @@ import {
   buildAgentListFallbackRequestOptions,
   buildAgentListRequestOptions,
   resolveAgentListScope,
+  shouldFallbackMixedWorkerList,
   shouldStartInitialWorkerRefresh,
 } from '@/features/workers/hooks/useWorkerData';
 
@@ -22,10 +23,12 @@ describe('buildAgentListRequestOptions', () => {
   it('builds Copilot scoped requests without includeChats for initial refresh', () => {
     expect(buildAgentListRequestOptions('/copilot', 5)).toEqual({
       includeChats: undefined,
+      includeTeam: true,
       scope: 'copilot',
     });
     expect(buildAgentListRequestOptions('/copilot/demo', 5)).toEqual({
       includeChats: undefined,
+      includeTeam: true,
       scope: 'copilot',
     });
   });
@@ -33,6 +36,7 @@ describe('buildAgentListRequestOptions', () => {
   it('keeps includeChats on normal initial refreshes', () => {
     expect(buildAgentListRequestOptions('/', 5)).toEqual({
       includeChats: 5,
+      includeTeam: true,
       scope: 'nav',
     });
   });
@@ -40,6 +44,7 @@ describe('buildAgentListRequestOptions', () => {
   it('builds nav scoped requests for normal navigation refreshes', () => {
     expect(buildAgentListRequestOptions('/')).toEqual({
       includeChats: undefined,
+      includeTeam: true,
       scope: 'nav',
     });
   });
@@ -47,14 +52,26 @@ describe('buildAgentListRequestOptions', () => {
 
 describe('buildAgentListFallbackRequestOptions', () => {
   it('falls back from empty Copilot scoped lists to nav-scoped agents', () => {
-    expect(buildAgentListFallbackRequestOptions({ scope: 'copilot' })).toEqual({
+    expect(buildAgentListFallbackRequestOptions({ includeTeam: true, scope: 'copilot' })).toEqual({
       includeChats: undefined,
+      includeTeam: true,
       scope: 'nav',
     });
   });
 
   it('does not fallback normal nav requests', () => {
-    expect(buildAgentListFallbackRequestOptions({ includeChats: 5, scope: 'nav' })).toBeNull();
+    expect(buildAgentListFallbackRequestOptions({ includeChats: 5, includeTeam: true, scope: 'nav' })).toBeNull();
+  });
+
+  it('falls back for a Team-only Copilot response but not when an Agent is present', () => {
+    const options = { includeTeam: true, scope: 'copilot' } as const;
+    expect(shouldFallbackMixedWorkerList([
+      { kind: 'team', teamId: 'team-ops', name: 'Ops' },
+    ], options)).toBe(true);
+    expect(shouldFallbackMixedWorkerList([
+      { kind: 'team', teamId: 'team-ops', name: 'Ops' },
+      { kind: 'agent', key: 'copilot', name: 'Copilot' },
+    ], options)).toBe(false);
   });
 });
 

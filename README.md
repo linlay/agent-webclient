@@ -61,7 +61,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序、诊断，以及 provider、model、MCP server、viewport server、tools 目录等 Registry 视图。
+左侧侧边栏聚合 Agent、Team、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序、诊断，以及 provider、model、MCP server、viewport server、tools 目录等 Registry 视图。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
@@ -281,8 +281,8 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 
 AGW Web Client 需要一个可访问的上游智能体服务。常用入口包括：
 
-- `GET /api/agents`
-- `GET /api/chats`
+- `GET /api/agents?includeTeam=true`：返回按最近 `lastRunId` 混排的 Agent / Team 扁平列表；Team 带 `kind: "team"`、会话统计与最近 chats。HTTP 与 WebSocket `/api/agents` 使用相同字段。
+- `GET /api/chats`：可带 `agentKey`、`mode`；`mode` 只影响 Agent-owned chat，必须保留 Team-owned chat。
 - `GET /api/chat`
 - `POST /api/query`
 - `GET /api/attach`

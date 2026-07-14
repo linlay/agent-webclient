@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import type { AppState, WorkerConversationRow } from "@/app/state/types";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
-import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 type AgentIconConfig = string | {
   color?: string;
@@ -18,7 +16,6 @@ export function sortWorkerRowsForMode(
     agentOrderByKey: Map<string, number>;
     temporaryPinnedAgentKey?: string;
     workerBaseOrderByKey: Map<string, number>;
-    workerChatOrderByKey: Map<string, number>;
     workerSortMode: WorkerSortMode;
   },
 ): AppState["workerRows"] {
@@ -62,15 +59,6 @@ export function sortWorkerRowsForMode(
   return rows.slice().sort((a, b) => {
     const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
     if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
-
-    const chatOrderA = options.workerChatOrderByKey.get(a.key);
-    const chatOrderB = options.workerChatOrderByKey.get(b.key);
-    const hasChatsA = chatOrderA !== undefined;
-    const hasChatsB = chatOrderB !== undefined;
-
-    if (hasChatsA && hasChatsB) return chatOrderA - chatOrderB;
-    if (hasChatsA !== hasChatsB) return hasChatsA ? -1 : 1;
-
     return (
       (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
       (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
@@ -126,28 +114,6 @@ export function useLeftSidebarData({
     [agents],
   );
 
-  const workerChatOrderByKey = useMemo(() => {
-    const sortedChats = chats.slice().sort((a, b) => {
-      const normalizedA = readEpochMillis(a?.updatedAt);
-      const normalizedB = readEpochMillis(b?.updatedAt);
-
-      if (normalizedA !== normalizedB) return (normalizedB ?? 0) - (normalizedA ?? 0);
-
-      const chatIdA = String(a?.chatId || "");
-      const chatIdB = String(b?.chatId || "");
-      return chatIdA.localeCompare(chatIdB);
-    });
-
-    const orderByKey = new Map<string, number>();
-    sortedChats.forEach((chat) => {
-      const workerKey = createWorkerKeyFromChat(chat);
-      if (!workerKey || orderByKey.has(workerKey)) return;
-      orderByKey.set(workerKey, orderByKey.size);
-    });
-
-    return orderByKey;
-  }, [chats]);
-
   const filteredWorkerRows = useMemo(() => {
     const filter = chatFilter.toLowerCase().trim();
     const rows = !filter
@@ -158,7 +124,6 @@ export function useLeftSidebarData({
       agentOrderByKey,
       temporaryPinnedAgentKey,
       workerBaseOrderByKey,
-      workerChatOrderByKey,
       workerSortMode,
     });
   }, [
@@ -166,7 +131,6 @@ export function useLeftSidebarData({
     workerRows,
     chatFilter,
     workerBaseOrderByKey,
-    workerChatOrderByKey,
     workerSortMode,
     temporaryPinnedAgentKey,
   ]);
@@ -201,10 +165,10 @@ export function useLeftSidebarData({
   const workerUnreadCountByKey = useMemo(() => {
     const unreadCounts = new Map<string, number>();
     for (const row of workerRows) {
-      unreadCounts.set(row.key, resolveWorkerUnreadCount(row, agents, chats));
+      unreadCounts.set(row.key, resolveWorkerUnreadCount(row, agents, teams, chats));
     }
     return unreadCounts;
-  }, [agents, chats, workerRows]);
+  }, [agents, chats, teams, workerRows]);
 
   const workerTotalCountByKey = useMemo(() => {
     const totalCounts = new Map<string, number>();
@@ -216,12 +180,20 @@ export function useLeftSidebarData({
         totalCounts.set(`agent:${agentKey}`, totalCount);
       }
     }
+    for (const team of teams) {
+      const teamId = String(team?.teamId || "").trim();
+      if (!teamId) continue;
+      const totalCount = Number(team?.stats?.totalCount);
+      if (Number.isFinite(totalCount)) {
+        totalCounts.set(`team:${teamId}`, totalCount);
+      }
+    }
     for (const row of workerRows) {
       if (totalCounts.has(row.key)) continue;
       totalCounts.set(row.key, workerChatsByKey.get(row.key)?.length || 0);
     }
     return totalCounts;
-  }, [agents, workerChatsByKey, workerRows]);
+  }, [agents, teams, workerChatsByKey, workerRows]);
 
   const historyRows = useMemo(
     () => workerChatsByKey.get(historyWorkerKey) || [],
@@ -243,7 +215,6 @@ export function useLeftSidebarData({
     filteredChats,
     filteredWorkerRows,
     workerBaseOrderByKey,
-    workerChatOrderByKey,
     workerIconsByKey,
     workerChatsByKey,
     workerUnreadCountByKey,

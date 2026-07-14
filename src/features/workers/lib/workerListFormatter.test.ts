@@ -1,8 +1,8 @@
-import type { Agent, Chat } from '@/app/state/types';
+import type { Agent, Chat, Team } from '@/app/state/types';
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
 
 describe('buildWorkerRows', () => {
-  it('orders worker rows by latest updatedAt descending', () => {
+  it('preserves the backend mixed-list order for default sidebar sorting', () => {
     const agents: Agent[] = [
       { key: 'agent-alpha', name: 'Alpha' } as Agent,
       { key: 'agent-beta', name: 'Beta' } as Agent,
@@ -26,35 +26,36 @@ describe('buildWorkerRows', () => {
 
     const rows = buildWorkerRows({
       agents,
-      teams: [],
+      teams: [{ teamId: 'team-ops', name: 'Ops' } as Team],
       chats,
-      workerPriorityKey: 'agent:agent-alpha',
+      workerOrderKeys: ['team:team-ops', 'agent:agent-beta', 'agent:agent-alpha'],
     });
 
     expect(rows.map((row) => row.key)).toEqual([
+      'team:team-ops',
       'agent:agent-beta',
       'agent:agent-alpha',
     ]);
   });
 
-  it('selects the latest worker chat by updatedAt instead of lastRunId', () => {
+  it('uses the first server-provided recent chat instead of parsing lastRunId', () => {
     const rows = buildWorkerRows({
       agents: [{ key: 'agent-alpha', name: 'Alpha' } as Agent],
       teams: [],
       chats: [
         {
-          chatId: 'chat_newer',
-          chatName: 'Newer chat',
+          chatId: 'chat_first',
+          chatName: 'First chat',
           agentKey: 'agent-alpha',
           lastRunId: 'a1',
-          updatedAt: 200,
+          updatedAt: 100,
         } as Chat,
         {
-          chatId: 'chat_older',
-          chatName: 'Older chat',
+          chatId: 'chat_later_updated',
+          chatName: 'Later updated chat',
           agentKey: 'agent-alpha',
           lastRunId: 'z9',
-          updatedAt: 100,
+          updatedAt: 200,
         } as Chat,
       ],
     });
@@ -62,8 +63,7 @@ describe('buildWorkerRows', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       key: 'agent:agent-alpha',
-      latestChatId: 'chat_newer',
-      latestUpdatedAt: 200,
+      latestChatId: 'chat_first',
     });
   });
 

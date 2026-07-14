@@ -45,6 +45,7 @@ export interface ChatReadState {
 export interface Agent {
 	key: string;
 	name: string;
+	kind?: "agent";
 	type?: "agent" | "coder";
 	mode?: string;
 	workspaceDir?: string;
@@ -61,6 +62,7 @@ export interface Agent {
 	modelConfig?: Record<string, unknown>;
 	modelOptions?: Record<string, unknown>;
 	stats?: AgentStats;
+	chats?: Chat[];
 	icon?: string | {
 		color?: string;
 		name?: string;
@@ -90,6 +92,7 @@ export interface AgentControlOption {
 
 export interface Team {
 	teamId: string;
+	kind?: "team";
 	name?: string;
 	role?: string;
 	agentKey?: string;
@@ -99,9 +102,13 @@ export interface Team {
 	icon?: {
 		color?: string;
 		name?: string;
-	}
+	};
+	stats?: AgentStats;
+	chats?: Chat[];
 	[key: string]: unknown;
 }
+
+export type WorkerListItem = Agent | Team;
 
 export type ConversationMode = "chat" | "worker";
 

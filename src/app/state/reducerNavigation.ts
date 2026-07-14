@@ -163,6 +163,8 @@ export function reduceNavigationState(
 				workerSelectionKey,
 			};
 		}
+		case "SET_WORKER_ORDER_KEYS":
+			return { ...state, workerOrderKeys: action.workerOrderKeys };
 		case "SET_WORKER_RELATED_CHATS":
 			return { ...state, workerRelatedChats: action.chats };
 		case "SET_WORKER_CHAT_PANEL_COLLAPSED":

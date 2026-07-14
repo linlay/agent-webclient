@@ -377,7 +377,9 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (options = {}) =>
       compactPayload({
         includeChats: options.includeChats,
+        includeTeam: options.includeTeam,
         scope: options.scope,
+        mode: options.mode,
       }),
   }),
   archive: defineEndpoint<
@@ -547,7 +549,10 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     cache: { ttlMs: 5_000, dedupe: true },
     payload: (options = {}) =>
-      compactPayload({ agentKey: options.agentKey }),
+      compactPayload({
+        agentKey: options.agentKey,
+        mode: options.mode,
+      }),
   }),
   compact: defineEndpoint({
     key: "chat.compact",

@@ -10,13 +10,6 @@ function toDisplayName(name: unknown, fallback: unknown): string {
   return toText(fallback) || 'n/a';
 }
 
-function toRunSortValue(lastRunId: unknown): number {
-  const normalized = toText(lastRunId).toLowerCase();
-  if (!normalized) return -1;
-  const parsed = Number.parseInt(normalized, 36);
-  return Number.isFinite(parsed) ? parsed : -1;
-}
-
 function normalizeUpdatedAt(updatedAt: unknown): number {
   return readEpochMillis(updatedAt) ?? 0;
 }
@@ -67,26 +60,12 @@ export function createWorkerKeyFromChat(chat: Chat): string {
   return '';
 }
 
-function compareChatFreshness(a: Chat, b: Chat): number {
-  const updatedA = normalizeUpdatedAt(a?.updatedAt);
-  const updatedB = normalizeUpdatedAt(b?.updatedAt);
-  if (updatedA !== updatedB) return updatedB - updatedA;
-
-  const chatA = toText(a?.chatId);
-  const chatB = toText(b?.chatId);
-  return chatA.localeCompare(chatB);
-}
-
 function toLatestChatMap(chats: Chat[]): Map<string, Chat> {
   const latestByWorker = new Map<string, Chat>();
   for (const chat of Array.isArray(chats) ? chats : []) {
     const workerKey = createWorkerKeyFromChat(chat);
-    if (!workerKey) continue;
-
-    const current = latestByWorker.get(workerKey);
-    if (!current || compareChatFreshness(chat, current) < 0) {
-      latestByWorker.set(workerKey, chat);
-    }
+    if (!workerKey || latestByWorker.has(workerKey)) continue;
+    latestByWorker.set(workerKey, chat);
   }
   return latestByWorker;
 }
@@ -150,8 +129,7 @@ function buildSearchText(row: WorkerRow): string {
 function toWorkerRow(base: Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'latestUpdatedAt' | 'latestChatName' | 'latestRunContent' | 'hasHistory' | 'latestRunSortValue' | 'searchText'>, latestChat?: Chat): WorkerRow {
   const latestChatId = toText(latestChat?.chatId);
   const latestRunId = toText(latestChat?.lastRunId);
-  const latestRunSortValue = toRunSortValue(latestRunId);
-  const hasHistory = Boolean(latestChatId) && latestRunSortValue >= 0;
+  const hasHistory = Boolean(latestChatId);
 
   const row: WorkerRow = {
     ...base,
@@ -161,15 +139,25 @@ function toWorkerRow(base: Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'lat
     latestChatName: hasHistory ? toText(latestChat?.chatName) : '',
     latestRunContent: hasHistory ? toText(latestChat?.lastRunContent) : '',
     hasHistory,
-    latestRunSortValue: hasHistory ? latestRunSortValue : -1,
+    latestRunSortValue: hasHistory ? 0 : -1,
     searchText: '',
   };
   row.searchText = buildSearchText(row);
   return row;
 }
 
-function compareWorkerRows(a: WorkerRow, b: WorkerRow): number {
-  if (a.latestUpdatedAt !== b.latestUpdatedAt) return b.latestUpdatedAt - a.latestUpdatedAt;
+function compareWorkerRows(
+  a: WorkerRow,
+  b: WorkerRow,
+  workerOrderByKey: Map<string, number>,
+): number {
+  const orderA = workerOrderByKey.get(a.key);
+  const orderB = workerOrderByKey.get(b.key);
+  const hasOrderA = orderA !== undefined;
+  const hasOrderB = orderB !== undefined;
+  if (hasOrderA && hasOrderB) return orderA - orderB;
+  if (hasOrderA !== hasOrderB) return hasOrderA ? -1 : 1;
+
   const displayNameComparison = a.displayName.localeCompare(b.displayName);
   if (displayNameComparison !== 0) return displayNameComparison;
   return a.key.localeCompare(b.key);
@@ -179,16 +167,22 @@ export function buildWorkerRows(input: {
   agents: Agent[];
   teams: Team[];
   chats: Chat[];
+  workerOrderKeys?: string[];
   workerPriorityKey?: string;
 }): WorkerRow[] {
   const latestByWorker = toLatestChatMap(input.chats);
   const workersByKey = createBaseWorkerMap(input.agents, input.teams);
+  const workerOrderByKey = new Map(
+    (Array.isArray(input.workerOrderKeys) ? input.workerOrderKeys : [])
+      .map((key, index) => [toText(key), index] as const)
+      .filter(([key]) => Boolean(key)),
+  );
 
   const rows: WorkerRow[] = [];
   for (const [key, base] of workersByKey.entries()) {
     rows.push(toWorkerRow(base, latestByWorker.get(key)));
   }
 
-  rows.sort(compareWorkerRows);
+  rows.sort((a, b) => compareWorkerRows(a, b, workerOrderByKey));
   return rows;
 }

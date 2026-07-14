@@ -780,7 +780,7 @@ describe("LeftSidebar", () => {
     expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "agents" });
   });
 
-  it("sorts worker rows by current freshness logic or by the /api/agents order", () => {
+  it("sorts worker rows by backend mixed order or by the /api/agents order", () => {
     const alpha: WorkerRow = {
       key: "agent:alpha",
       type: "agent",
@@ -811,10 +811,6 @@ describe("LeftSidebar", () => {
     };
     const rows = [alpha, beta];
     const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
-    const workerChatOrderByKey = new Map([
-      ["agent:beta", 0],
-      ["agent:alpha", 1],
-    ]);
     const agentOrderByKey = new Map([
       ["agent:alpha", 0],
       ["agent:beta", 1],
@@ -824,15 +820,13 @@ describe("LeftSidebar", () => {
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         workerBaseOrderByKey,
-        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
-    ).toEqual(["agent:beta", "agent:alpha"]);
+    ).toEqual(["agent:alpha", "agent:beta"]);
     expect(
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         workerBaseOrderByKey,
-        workerChatOrderByKey,
         workerSortMode: "byName",
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:beta"]);
@@ -881,11 +875,6 @@ describe("LeftSidebar", () => {
     };
     const rows = [alpha, beta, gamma];
     const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
-    const workerChatOrderByKey = new Map([
-      ["agent:beta", 0],
-      ["agent:gamma", 1],
-      ["agent:alpha", 2],
-    ]);
     const agentOrderByKey = new Map([
       ["agent:gamma", 0],
       ["agent:beta", 1],
@@ -897,7 +886,6 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
-        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
@@ -906,7 +894,6 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
-        workerChatOrderByKey,
         workerSortMode: "byName",
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:gamma", "agent:beta"]);
@@ -915,10 +902,9 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         temporaryPinnedAgentKey: "missing",
         workerBaseOrderByKey,
-        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
-    ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
+    ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
   });
 
   it("builds a coder project create request from workspace metadata", () => {
@@ -1062,6 +1048,7 @@ describe("LeftSidebar", () => {
     // 调用了 createAgent → getAgents 刷新列表
     expect(getAgents).toHaveBeenCalledWith({
       includeChats: 5,
+      includeTeam: true,
       scope: "nav",
     });
 
