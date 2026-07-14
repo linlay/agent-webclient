@@ -238,10 +238,8 @@ function findLastRunContentNode(
   item: Extract<TimelineDisplayItem, { kind: "run" }>,
 ): TimelineNode | null {
   const nodes = Array.isArray(item.nodes) ? item.nodes : [];
-  for (let index = nodes.length - 1; index >= 0; index -= 1) {
-    const node = nodes[index];
-    if (node?.kind === "content") return node;
-  }
+  const node = nodes[nodes.length - 1];
+  if (node?.kind === "content") return node;
   return null;
 }
 
@@ -1164,7 +1162,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     .join(" ")}
                   type="button"
                   aria-current={active ? "location" : undefined}
-                  aria-label={t("conversationStage.queryAnchor", { index: index + 1 })}
+                  aria-label={t("conversationStage.queryAnchor", {
+                    index: index + 1,
+                  })}
                   onMouseEnter={() => {
                     if (!anchorRef.current) return;
                     anchorRef.current.style.setProperty(
