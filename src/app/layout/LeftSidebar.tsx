@@ -145,6 +145,8 @@ const LEFT_SIDEBAR_BUTTONS_CLASS =
 
 const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
 
+const SIDEBAR_STATIC_ICON_CLASS = "sidebar-static-icon";
+
 const CHAT_META_CLASS =
   "chat-meta tw:flex tw:items-center tw:gap-1.5 tw:px-4 tw:pb-2 tw:pt-0";
 
@@ -945,9 +947,13 @@ export const LeftSidebar: React.FC = () => {
                   <UiButton
                     size="sm"
                     variant="ghost"
+                    className="ui-icon-hover-24"
                     onClick={() => openOverlay("memoryInfo")}
                   >
-                    <MaterialIcon name="psychology" />
+                    <MaterialIcon
+                      name="psychology"
+                      className="ui-icon-hover-24-target"
+                    />
                     <Flex gap={2} align="center">
                       <span>{t("leftSidebar.quickActions.memory")}</span>
                       <Badge count={state.memoryInfoRecords?.length || 0} />
@@ -957,9 +963,13 @@ export const LeftSidebar: React.FC = () => {
                 <UiButton
                   size="sm"
                   variant="ghost"
+                  className="ui-icon-hover-24"
                   onClick={() => openCommandOverlay({ type: "agents" })}
                 >
-                  <MaterialIcon name="robot_2" />
+                  <MaterialIcon
+                    name="smart_toy"
+                    className="ui-icon-hover-24-target"
+                  />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />
@@ -977,7 +987,11 @@ export const LeftSidebar: React.FC = () => {
                 }
                 value={navigation.chatFilter}
                 prefix={
-                  <MaterialIcon name="search" style={{ marginRight: 6 }} />
+                  <MaterialIcon
+                    name="search"
+                    className={SIDEBAR_STATIC_ICON_CLASS}
+                    style={{ marginRight: 6 }}
+                  />
                 }
                 onChange={(e) =>
                   dispatch({
@@ -1030,7 +1044,12 @@ export const LeftSidebar: React.FC = () => {
                   ],
                 }}
               >
-                <UiButton size="sm" variant="ghost" iconOnly>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  iconOnly
+                  className="ui-icon-hover-24"
+                >
                   <MaterialIcon name="list_arrow" />
                 </UiButton>
               </Dropdown>
@@ -1192,14 +1211,17 @@ export const LeftSidebar: React.FC = () => {
             }
           >
             <UiButton
-              className="icon-btn"
+              className="icon-btn ui-icon-hover-24"
               id="settings-btn"
               variant="ghost"
               aria-label={t("leftSidebar.openSettingsMenu")}
               aria-haspopup="menu"
               aria-expanded={settingsMenuOpen}
             >
-              <MaterialIcon name="settings" />
+              <MaterialIcon
+                name="settings"
+                className="ui-icon-hover-24-target"
+              />
               {state.leftDrawerOpen && (
                 <>
                   <span>{t("leftSidebar.settings")}</span>

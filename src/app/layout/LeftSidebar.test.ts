@@ -619,6 +619,10 @@ describe("LeftSidebar", () => {
     expect(html).toContain(">夜<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
+    expect(html).toContain("icon-btn ui-icon-hover-24");
+    expect(html).toMatch(
+      /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="settings"/,
+    );
   });
 
   it("opens registry config in a new page from the settings menu", () => {
@@ -729,6 +733,18 @@ describe("LeftSidebar", () => {
     expect(html).toContain("记忆");
     expect(html).toContain("智能体");
     expect(html).not.toContain('data-badge-count="6"');
+    expect(html).toContain('data-material-icon="smart_toy"');
+    expect(html).not.toContain('data-material-icon="robot_2"');
+    expect(html).toMatch(
+      /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="psychology"/,
+    );
+    expect(html).toMatch(
+      /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="smart_toy"/,
+    );
+    expect(html).toContain("sidebar-static-icon");
+    expect(html).toMatch(
+      /class="ui-icon-hover-24"[^>]*><span class="material-icon" data-material-icon="list_arrow"/,
+    );
   });
 
   it("opens the agent console from the quick action", () => {
@@ -1079,6 +1095,9 @@ describe("LeftSidebar", () => {
     expect(html).toContain("Alpha Agent");
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
+    expect(html).not.toContain("ui-icon-hover-20");
+    expect(html).toContain("worker-panel-new worker-popover-new");
+    expect(html).toContain("worker-popover-new tw:!inline-flex tw:!h-6 tw:!w-6 tw:text-text-muted ui-icon-hover-24");
     expect(html).toContain("查看更多（共 6 条，未读 3 条）");
     const moreClass = html.match(/class="([^"]*\bworker-chat-more\b[^"]*)"/)?.[1] || "";
     expect(moreClass).toContain("tw:text-[12px]");
@@ -1630,15 +1649,16 @@ describe("LeftSidebar", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
+    state.chats[0].hasPendingAwaiting = true;
     mockState(state);
 
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-sm tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
+      '<div class="worker-panel-preview"><span>Latest reply 1</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
     );
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 1<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
     );
     expect(html).toMatch(
       /data-action="awaiting"[\s\S]*class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,

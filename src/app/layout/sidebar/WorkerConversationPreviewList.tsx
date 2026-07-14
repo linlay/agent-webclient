@@ -31,6 +31,10 @@ const WORKER_POPOVER_HEADER_TITLE_CLASS =
 const WORKER_POPOVER_NEW_CLASS =
   "worker-panel-new worker-popover-new tw:!inline-flex tw:!h-6 tw:!w-6 tw:text-text-muted";
 
+const SIDEBAR_MENU_ITEM_CLASS = "ui-icon-hover-24";
+
+const SIDEBAR_MENU_ICON_CLASS = "ui-icon-hover-24-target";
+
 const WORKER_CHAT_DIVIDER_CLASS =
   "worker-chat-divider tw:mx-5 tw:h-px tw:bg-border";
 
@@ -98,7 +102,8 @@ export const WorkerConversationPreviewList: React.FC<{
   const actionMenuItems: MenuProps["items"] = [
     {
       key: "openWorkspace",
-      icon: <MaterialIcon name="folder_open" />,
+      className: SIDEBAR_MENU_ITEM_CLASS,
+      icon: <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />,
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
@@ -106,7 +111,8 @@ export const WorkerConversationPreviewList: React.FC<{
       ? [
           {
             key: "renameAgent",
-            icon: <MaterialIcon name="rename" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.renameAgent"),
           },
         ]
@@ -115,7 +121,8 @@ export const WorkerConversationPreviewList: React.FC<{
       ? [
           {
             key: "editAgent",
-            icon: <MaterialIcon name="settings" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="settings" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.editAgent"),
           },
         ]
@@ -124,7 +131,8 @@ export const WorkerConversationPreviewList: React.FC<{
       ? [
           {
             key: "deleteAgent",
-            icon: <MaterialIcon name="delete" />,
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.deleteAgent"),
             danger: true,
           },
@@ -157,7 +165,7 @@ export const WorkerConversationPreviewList: React.FC<{
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
                 <Button
-                  className={WORKER_POPOVER_NEW_CLASS}
+                  className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
                   type="text"
                   icon={<MaterialIcon name="done_all" />}
                   onClick={(e) => onMarkAllRead(e, row.key)}
@@ -166,7 +174,7 @@ export const WorkerConversationPreviewList: React.FC<{
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
               <Button
-                className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-20`}
+                className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
                 type="text"
                 icon={<MaterialIcon name="edit_square" />}
                 onClick={(e) => onStartNewConversation(e, row.key)}
@@ -192,7 +200,7 @@ export const WorkerConversationPreviewList: React.FC<{
             >
               <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
                 <Button
-                  className={WORKER_POPOVER_NEW_CLASS}
+                  className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
                   type="text"
                   icon={<MaterialIcon name="more_horiz" />}
                   onClick={(event) => event.stopPropagation()}

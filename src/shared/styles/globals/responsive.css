@@ -19,6 +19,16 @@
     font-size: 16px;
 }
 
+.sidebar-static-icon,
+.sidebar-static-icon .material-icon-svg {
+    width: 16px;
+    height: 16px;
+}
+
+.sidebar-static-icon {
+    font-size: 16px;
+}
+
 .settings-trigger-summary {
     margin-left: auto;
     display: inline-flex;

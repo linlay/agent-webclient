@@ -22,17 +22,17 @@ jest.mock("@/shared/data", () => ({
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => ({
-	MaterialIcon: ({ name }: { name: string }) => {
+	MaterialIcon: ({ name, className }: { name: string; className?: string }) => {
 		const React = require("react");
-		return React.createElement("span", { "data-icon": name });
+		return React.createElement("span", { "data-icon": name, className });
 	},
 }));
 
 jest.mock("antd", () => {
 	const React = require("react");
 	return {
-		Button: ({ children }: { children?: React.ReactNode }) =>
-			React.createElement("button", null, children),
+		Button: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
+			React.createElement("button", { className }, children),
 		Dropdown: ({
 			children,
 			menu,
@@ -99,5 +99,23 @@ describe("ChatActionsMenu", () => {
 			chatId: "chat_1",
 			chatName: "Renamed chat",
 		});
+	});
+
+	it("adds 16/24 classes for left sidebar triggers and menu icons only when requested", () => {
+		const html = renderToStaticMarkup(
+			React.createElement(ChatActionsMenu, {
+				chatId: "chat_1",
+				iconHover24: true,
+			}),
+		);
+
+		expect(html).toContain("chat-actions-trigger ui-icon-hover-24");
+		expect(html).toContain("ui-icon-hover-24-target");
+		expect(mockMenuItems).toHaveLength(4);
+		expect(mockMenuItems).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ className: "ui-icon-hover-24" }),
+			]),
+		);
 	});
 });

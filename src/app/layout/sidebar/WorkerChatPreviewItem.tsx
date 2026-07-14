@@ -17,7 +17,7 @@ const WORKER_CHAT_NAME_CLASS =
   "worker-chat-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]";
 
 const WORKER_CHAT_SOURCE_ICON_CLASS =
-  "worker-chat-source-icon tw:inline-flex tw:h-[9px] tw:w-[9px] tw:shrink-0 tw:text-text-sub";
+  "worker-chat-source-icon tw:inline-flex tw:h-4 tw:w-4 tw:shrink-0 tw:text-text-sub";
 
 const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
   "tw:h-full tw:w-full";
@@ -26,7 +26,7 @@ const WORKER_CHAT_ACTION_CLASS =
   "worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px] tw:items-center tw:justify-end";
 
 const WORKER_CHAT_LOADING_CLASS =
-  "worker-chat-loading tw:absolute tw:right-[5px] tw:mr-0.5 tw:text-sm tw:text-text-sub tw:animate-ui-spin";
+  "worker-chat-loading tw:absolute tw:right-[5px] tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
 
 const WORKER_PANEL_TIME_LABEL_CLASS =
   "worker-panel-time-label tw:min-w-0 tw:max-w-full tw:whitespace-nowrap tw:text-right tw:text-[11px] tw:text-text-muted";
@@ -147,6 +147,7 @@ export const WorkerChatPreviewItem: React.FC<{
             chatId={chat.chatId}
             chatName={chat.chatName}
             triggerClassName={CHAT_ACTIONS_TRIGGER_CLASS}
+            iconHover24
           />
         </span>
       </div>

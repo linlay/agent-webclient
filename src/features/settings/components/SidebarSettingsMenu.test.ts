@@ -90,6 +90,8 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("注册配置");
     expect(html).toContain("记忆信息");
     expect(html).toContain("归档");
+    expect(html).toContain("sidebar-settings-item ui-icon-hover-24");
+    expect(html).toContain("sidebar-settings-item-icon ui-icon-hover-24-target");
     expect(html).not.toContain("管理 registry YAML 配置。");
     expect(html).not.toContain("编辑技能目录");
     expect(html).not.toContain("查看已归档会话");
