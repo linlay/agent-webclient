@@ -42,6 +42,33 @@ export function createNewChatRouteKey(
   return `${agentKey}\u0000${newChatTimestamp}`;
 }
 
+export function createResolvedNewChatRoute(
+  agentKey: string,
+  searchParams: URLSearchParams,
+  chatId: string,
+): string {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  const normalizedChatId = String(chatId || "").trim();
+  if (!normalizedAgentKey || !normalizedChatId) {
+    return "";
+  }
+
+  const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete("newChat");
+  nextSearchParams.set("chatId", normalizedChatId);
+  const nextSearch = nextSearchParams.toString();
+  return `/agent/${encodeURIComponent(normalizedAgentKey)}${
+    nextSearch ? `?${nextSearch}` : ""
+  }`;
+}
+
+type NewChatCreatedEventDetail = {
+  chatId?: unknown;
+  agentKey?: unknown;
+};
+
+const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
+
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
   "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
@@ -263,6 +290,45 @@ export const AgentChatShell: React.FC = () => {
       window.removeEventListener("agent:select-worker", handleSelectWorker);
     };
   }, [agentKey, navigate, searchParams]);
+
+  useEffect(() => {
+    if (
+      !agentKey ||
+      chatId ||
+      !routeNewChatTimestamp ||
+      typeof window === "undefined" ||
+      typeof window.addEventListener !== "function"
+    ) {
+      return;
+    }
+
+    let handled = false;
+    const handleNewChatCreated = (event: Event) => {
+      if (handled) {
+        return;
+      }
+
+      const detail = ((event as CustomEvent).detail || {}) as NewChatCreatedEventDetail;
+      const chatId = String(detail.chatId || "").trim();
+      const resolvedAgentKey = String(detail.agentKey || agentKey).trim();
+      const route = createResolvedNewChatRoute(
+        resolvedAgentKey,
+        searchParams,
+        chatId,
+      );
+      if (!route) {
+        return;
+      }
+
+      handled = true;
+      navigate(route, { replace: true });
+    };
+
+    window.addEventListener(NEW_CHAT_CREATED_EVENT, handleNewChatCreated);
+    return () => {
+      window.removeEventListener(NEW_CHAT_CREATED_EVENT, handleNewChatCreated);
+    };
+  }, [agentKey, chatId, navigate, routeNewChatTimestamp, searchParams]);
 
   useEffect(() => {
     if (!agentKey) {

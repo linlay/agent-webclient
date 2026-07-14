@@ -391,6 +391,16 @@ export interface AIEventCommonFields {
   payload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];
   rawEvent?: unknown;
+  createdAt?: number;
+  updatedAt?: number;
+  startedAt?: number;
+  finishedAt?: number;
+  expiresAt?: number;
+  readAt?: number;
+  answeredAt?: number;
+  pushedAt?: number;
+  lastRunAt?: number;
+  archivedAt?: number;
   timestamp?: number;
   [key: string]: unknown;
 }

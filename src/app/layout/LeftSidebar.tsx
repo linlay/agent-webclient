@@ -959,7 +959,16 @@ export const LeftSidebar: React.FC = () => {
                   variant="ghost"
                   onClick={() => openCommandOverlay({ type: "agents" })}
                 >
-                  <MaterialIcon name="robot_2" />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em">
+                    <path d="M12 8V4" />
+                    <circle cx="12" cy="3" r="1" fill="currentColor" />
+                    <rect x="5" y="8" width="14" height="11" rx="4" />
+                    <circle cx="9.5" cy="13" r="1" fill="currentColor" stroke="none" />
+                    <circle cx="14.5" cy="13" r="1" fill="currentColor" stroke="none" />
+                    <path d="M10 16Q12 18 14 16" />
+                    <path d="M3 13.5L5 13.5" />
+                    <path d="M19 13.5L21 13.5" />
+                  </svg>
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} />

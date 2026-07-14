@@ -54,6 +54,22 @@ interface SendMessageEventDetail {
   model?: unknown;
 }
 
+function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void {
+  if (
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function" ||
+    typeof CustomEvent === "undefined"
+  ) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("agent:new-chat-created", {
+      detail: input,
+    }),
+  );
+}
+
 function isTerminalRunEventType(type: string): boolean {
   return (
     type === "run.error" || type === "run.complete" || type === "run.cancel"
@@ -413,6 +429,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         chatQuerySessionIndexRef.current.set(chatId, requestId);
       }
       activeQuerySessionRequestIdRef.current = requestId;
+      let newChatRouteNotified = false;
 
       const isSessionActive = () =>
         activeQuerySessionRequestIdRef.current === session.requestId;
@@ -423,6 +440,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatQuerySessionIndexRef.current.set(nextChatId, session.requestId);
           if (session.snapshot && !session.snapshot.chatId) {
             session.snapshot.chatId = nextChatId;
+          }
+          if (!chatId && !newChatRouteNotified) {
+            newChatRouteNotified = true;
+            notifyNewChatCreated({
+              chatId: nextChatId,
+              agentKey: toText(event.agentKey) || session.agentKey,
+            });
           }
         }
         const nextRunId = toText(event.runId);

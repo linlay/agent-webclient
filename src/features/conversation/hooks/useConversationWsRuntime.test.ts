@@ -12,29 +12,68 @@ const globalWithRuntimeConfig = globalThis as typeof globalThis & {
 	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
 
-const TIMESTAMPED_PUSH_TYPES = new Set([
-	"heartbeat",
-	"chat.created",
-	"chat.updated",
-	"chat.read",
-	"chat.unread",
-	"run.started",
-	"run.finished",
-	"awaiting.asking",
-	"awaiting.answered",
-]);
+const PUSH_REQUIRED_TIME_FIELDS: Record<string, string> = {
+	heartbeat: "timestamp",
+	"auth.expiring": "expiresAt",
+	"run.started": "startedAt",
+	"run.finished": "finishedAt",
+	"chat.created": "createdAt",
+	"chat.updated": "updatedAt",
+	"chat.unread": "createdAt",
+	"chat.read": "readAt",
+	"catalog.updated": "updatedAt",
+	"awaiting.asking": "createdAt",
+	"awaiting.answered": "answeredAt",
+	"resource.pushed": "pushedAt",
+};
 
-function withEpochTimestamp(frame: Record<string, unknown>): Record<string, unknown> {
-	if (!TIMESTAMPED_PUSH_TYPES.has(String(frame.type || "")) || frame.timestamp !== undefined) {
+function withPushContractTime(frame: Record<string, unknown>): Record<string, unknown> {
+	const type = String(frame.type || "");
+	if (type === "archive.restored") {
+		const containerKey = frame.payload && typeof frame.payload === "object" && !Array.isArray(frame.payload)
+			? "payload"
+			: frame.data && typeof frame.data === "object" && !Array.isArray(frame.data)
+				? "data"
+				: null;
+		if (!containerKey) return frame;
+		const container = frame[containerKey] as Record<string, unknown>;
+		if (!container.summary || typeof container.summary !== "object" || Array.isArray(container.summary)) {
+			return frame;
+		}
+		return {
+			...frame,
+			[containerKey]: {
+				...container,
+				summary: {
+					...(container.summary as Record<string, unknown>),
+					createdAt: (container.summary as Record<string, unknown>).createdAt ?? EPOCH_MS,
+					updatedAt: (container.summary as Record<string, unknown>).updatedAt ?? EPOCH_MS,
+					lastRunAt: (container.summary as Record<string, unknown>).lastRunAt ?? EPOCH_MS,
+					archivedAt: (container.summary as Record<string, unknown>).archivedAt ?? EPOCH_MS,
+				},
+			},
+		};
+	}
+
+	const timeField = PUSH_REQUIRED_TIME_FIELDS[type];
+	if (!timeField || frame[timeField] !== undefined) {
 		return frame;
 	}
 	if (frame.payload && typeof frame.payload === "object" && !Array.isArray(frame.payload)) {
-		return { ...frame, payload: { ...(frame.payload as Record<string, unknown>), timestamp: EPOCH_MS } };
+		const payload = frame.payload as Record<string, unknown>;
+		return {
+			...frame,
+			payload: { ...payload, [timeField]: payload[timeField] ?? EPOCH_MS },
+		};
 	}
 	if (frame.data && typeof frame.data === "object" && !Array.isArray(frame.data)) {
-		return { ...frame, data: { ...(frame.data as Record<string, unknown>), timestamp: EPOCH_MS } };
+		const data = frame.data as Record<string, unknown>;
+		return {
+			...frame,
+			data: { ...data, [timeField]: data[timeField] ?? EPOCH_MS },
+		};
 	}
-	return { ...frame, timestamp: EPOCH_MS };
+	return { ...frame, [timeField]: EPOCH_MS };
 }
 
 beforeEach(() => {
@@ -220,7 +259,7 @@ describe("connectWsTransport", () => {
 			getOnPush: () => {
 				const onPush = initWsClientImpl.mock.calls[0]?.[0]?.onPush;
 				return onPush
-					? (frame: Record<string, unknown>) => onPush(withEpochTimestamp(frame))
+					? (frame: Record<string, unknown>) => onPush(withPushContractTime(frame))
 					: undefined;
 			},
 		};
@@ -500,7 +539,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("rejects string, second, and missing timestamps on state-mutating websocket pushes", async () => {
+	it("rejects string, second, floating, and missing semantic times on state-mutating websocket pushes", async () => {
 		const { initWsClientImpl, getRawOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local" });
 
@@ -515,13 +554,18 @@ describe("connectWsTransport", () => {
 			destroyWsClientImpl: jest.fn(),
 		});
 
-		for (const timestamp of [String(EPOCH_MS), Math.floor(EPOCH_MS / 1000), undefined]) {
+		for (const updatedAt of [
+			String(EPOCH_MS),
+			Math.floor(EPOCH_MS / 1000),
+			EPOCH_MS + 0.5,
+			undefined,
+		]) {
 			getRawOnPush()?.({
 				frame: "push",
 				type: "chat.updated",
 				payload: {
 					chatId: "chat_bad_time",
-					...(timestamp === undefined ? {} : { timestamp }),
+					...(updatedAt === undefined ? {} : { updatedAt }),
 				},
 			});
 		}
@@ -633,7 +677,7 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts restored chat summaries when chat.restored arrives over push", async () => {
+	it("upserts restored chat summaries when archive.restored arrives over push", async () => {
 		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local", chatId: "" });
 		const dispatchEvent = jest.fn();
@@ -670,7 +714,7 @@ describe("connectWsTransport", () => {
 
 		getOnPush()?.({
 			frame: "push",
-			type: "chat.restored",
+			type: "archive.restored",
 			payload: {
 				chatId: "chat_restored",
 				agentKey: "agent_a",
@@ -718,6 +762,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_remote",
 				runId: "run_remote",
 				agentKey: "agent_remote",
+				startedAt: EPOCH_MS + 10,
 			},
 		});
 
@@ -728,6 +773,7 @@ describe("connectWsTransport", () => {
 				lastRunId: "run_remote",
 				agentKey: "agent_remote",
 				firstAgentKey: "agent_remote",
+				updatedAt: EPOCH_MS + 10,
 			}),
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -958,6 +1004,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_remote",
 				runId: "run_remote",
 				awaitingId: "await_1",
+				answeredAt: EPOCH_MS + 20,
 			},
 		});
 
@@ -967,6 +1014,7 @@ describe("connectWsTransport", () => {
 				chatId: "chat_remote",
 				lastRunId: "run_remote",
 				hasPendingAwaiting: false,
+				updatedAt: EPOCH_MS + 20,
 			}),
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -1678,7 +1726,7 @@ describe("connectWsTransport continued", () => {
 			getOnPush: () => {
 				const onPush = initWsClientImpl.mock.calls[0]?.[0]?.onPush;
 				return onPush
-					? (frame: Record<string, unknown>) => onPush(withEpochTimestamp(frame))
+					? (frame: Record<string, unknown>) => onPush(withPushContractTime(frame))
 					: undefined;
 			},
 		};
@@ -1752,6 +1800,7 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_active",
 				runId: "run_started",
 				agentKey: "agent_started",
+				startedAt: EPOCH_MS + 30,
 			},
 		});
 
@@ -1767,6 +1816,7 @@ describe("connectWsTransport continued", () => {
 					runId: "run_started",
 					agentKey: "agent_started",
 				},
+				updatedAt: EPOCH_MS + 30,
 			}),
 		});
 		expect(debugEvents(dispatch, "runStartedCandidate")).toEqual([
@@ -2217,6 +2267,7 @@ describe("connectWsTransport continued", () => {
 					readAt: EPOCH_MS + 111,
 					readRunId: "run_1",
 				},
+				updatedAt: EPOCH_MS + 111,
 			}),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
@@ -2240,6 +2291,7 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_1",
 				agentKey: "agent_alpha",
 				lastRunId: "run_2",
+				createdAt: EPOCH_MS + 222,
 				readRunId: "",
 				agentUnreadCount: 2,
 			},
@@ -2253,6 +2305,7 @@ describe("connectWsTransport continued", () => {
 				read: {
 					isRead: false,
 				},
+				updatedAt: EPOCH_MS + 222,
 			}),
 		});
 		expect(dispatch).toHaveBeenCalledWith({
@@ -2346,6 +2399,7 @@ describe("connectWsTransport continued", () => {
 			payload: {
 				chatId: "chat_active",
 				runId: "run_done",
+				finishedAt: EPOCH_MS + 40,
 			},
 		});
 
@@ -2354,6 +2408,7 @@ describe("connectWsTransport continued", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_active",
 				lastRunId: "run_done",
+				updatedAt: EPOCH_MS + 40,
 			}),
 		});
 		expect(dispatch).toHaveBeenCalledWith({

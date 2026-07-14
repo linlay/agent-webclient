@@ -5,6 +5,8 @@ import {
   upsertLiveChatSummary,
 } from '@/features/chats/lib/chatSummaryLive';
 
+const EPOCH_MS = 1_710_000_000_000;
+
 describe('chatSummaryLive helpers', () => {
   it('marks stream and push awaiting ask events as pending approval', () => {
     expect(
@@ -24,10 +26,10 @@ describe('chatSummaryLive helpers', () => {
       type: 'awaiting.asking',
       chatId: 'chat_1',
       runId: 'run_1',
-      createdAt: 12345,
+      createdAt: EPOCH_MS,
     } as AgentEvent;
 
-    expect(resolveChatSummaryUpdatedAt(event)).toBe(12345);
+    expect(resolveChatSummaryUpdatedAt(event)).toBe(EPOCH_MS);
   });
 
   it('ignores string timestamp fields from live summary events', () => {
@@ -76,7 +78,7 @@ describe('chatSummaryLive helpers', () => {
         type: 'awaiting.answered',
         chatId: 'chat_1',
         runId: 'run_1',
-        timestamp: 200,
+        answeredAt: EPOCH_MS + 1,
       } as AgentEvent,
       cache: {
         chatId: 'chat_1',
@@ -105,7 +107,7 @@ describe('chatSummaryLive helpers', () => {
         agentKey: 'agent-alice',
         source: 'automation:daily',
         hasPendingAwaiting: false,
-        updatedAt: 200,
+        updatedAt: EPOCH_MS + 1,
       },
     });
   });
@@ -118,7 +120,7 @@ describe('chatSummaryLive helpers', () => {
         runId: 'run_1',
         agentKey: 'agent-alpha',
         source: 'automation:daily',
-        timestamp: 100,
+        createdAt: EPOCH_MS,
       } as AgentEvent,
       cache: {
         chatId: '',
@@ -146,7 +148,7 @@ describe('chatSummaryLive helpers', () => {
         chatId: 'chat_auto',
         runId: 'run_1',
         agentKey: 'agent-alpha',
-        timestamp: 200,
+        startedAt: EPOCH_MS + 1,
       } as AgentEvent,
       cache: created?.resolved || {
         chatId: '',

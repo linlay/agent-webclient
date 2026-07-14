@@ -30,14 +30,19 @@ export function resolveChatSummaryUpdatedAt(
   event: AgentEvent,
 ): number | undefined {
   const raw = event as Record<string, unknown>;
-  if (isEpochMillis(raw.updatedAt)) {
-    return raw.updatedAt;
-  }
-  if (isEpochMillis(raw.createdAt)) {
-    return raw.createdAt;
-  }
-  if (isEpochMillis(event.timestamp)) {
-    return event.timestamp;
+  const fields = [
+    'updatedAt',
+    'createdAt',
+    'startedAt',
+    'finishedAt',
+    'answeredAt',
+    'readAt',
+    'timestamp',
+  ] as const;
+  for (const field of fields) {
+    if (isEpochMillis(raw[field])) {
+      return raw[field];
+    }
   }
   return undefined;
 }

@@ -10,7 +10,7 @@
 - 支持删除、重命名、归档、标记已读和导出。
 
 ## 核心流程
-`useConversationActions` 拉取会话详情，并把详情事件按 replay 模式交给事件处理器；`useConversationEventHandler` 处理实时事件。两条路径生成相同的 `EventCommand`，再分别由 replay/live adapter 应用。`useChatReadSync` 独立同步已读状态，worker 选择逻辑位于 workers 模块。
+`useConversationActions` 拉取会话详情，并把详情事件按 replay 模式交给事件处理器；`useConversationEventHandler` 处理实时事件。两条路径生成相同的 `EventCommand`，再分别由 replay/live adapter 应用。`useChatReadSync` 独立同步已读状态，worker 选择逻辑位于 workers 模块。`/agent/:agentKey?newChat=` 的首条 query 仅在收到稳定 `chatId` 后将路由 replace 为 `?chatId=`；Desktop 只被动镜像该 URL，不读取 query 流 payload。
 
 ## 边界与非目标
 - chat store 是后端事实源，前端只做读取、展示和缓存归并。

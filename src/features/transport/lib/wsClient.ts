@@ -5,7 +5,10 @@ import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformErro
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/features/transport/lib/clientDeviceId";
-import { readEpochMillis } from "@/shared/utils/platformTime";
+import {
+	readEpochMillis,
+	STRUCTURED_PLATFORM_TIME_FIELDS,
+} from "@/shared/utils/platformTime";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -115,16 +118,6 @@ const WS_TRANSPORT_DISCONNECTED_MESSAGE = "WebSocket transport disconnected";
 const WS_TRANSPORT_NOT_CONNECTED_MESSAGE = "WebSocket transport is not connected";
 const WS_TRANSPORT_NOT_INITIALIZED_MESSAGE =
 	"WebSocket transport is not initialized";
-const STRUCTURED_TIME_FIELDS = [
-	"createdAt",
-	"updatedAt",
-	"startedAt",
-	"completedAt",
-	"timestamp",
-	"expiresAt",
-	"readAt",
-] as const;
-
 export class WsClientDisconnectedError extends Error {
 	code: string;
 
@@ -166,7 +159,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function hasValidPresentTimeFields(record: Record<string, unknown>): boolean {
-	return STRUCTURED_TIME_FIELDS.every(
+	return STRUCTURED_PLATFORM_TIME_FIELDS.every(
 		(field) => record[field] === undefined || readEpochMillis(record[field]) !== undefined,
 	);
 }

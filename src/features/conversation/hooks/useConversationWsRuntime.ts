@@ -22,7 +22,7 @@ import {
 } from "@/features/chats/lib/chatReadState";
 import { isAppMode } from "@/shared/utils/routing";
 import {
-	hasValidPresentPlatformTimeFields,
+	hasValidDesktopPushTimeContract,
 	readEpochMillis,
 } from "@/shared/utils/platformTime";
 import {
@@ -79,24 +79,29 @@ function normalizePushType(type: string): string {
 	return type;
 }
 
-const TIMESTAMPED_PLATFORM_PUSH_TYPES = new Set([
-	"heartbeat",
-	"chat.created",
-	"chat.updated",
-	"chat.read",
-	"chat.unread",
-	"run.start",
-	"run.complete",
-	"awaiting.asking",
-	"awaiting.answered",
-]);
+function readPushWireType(frame: {
+	type?: string;
+	payload?: unknown;
+	data?: unknown;
+}): string {
+	const nestedRecord = isObjectRecord(frame.payload)
+		? frame.payload
+		: isObjectRecord(frame.data)
+			? frame.data
+			: {};
+	return String(frame.type || nestedRecord.type || "").trim();
+}
 
-function hasValidRequiredPushTime(event: AgentEvent): boolean {
-	if (!hasValidPresentPlatformTimeFields(event)) {
-		return false;
-	}
-	return !TIMESTAMPED_PLATFORM_PUSH_TYPES.has(String(event.type || "")) ||
-		readEpochMillis(event.timestamp) !== undefined;
+function hasValidRequiredPushTime(
+	wireType: string,
+	event: AgentEvent,
+	frame: Record<string, unknown>,
+): boolean {
+	return hasValidDesktopPushTimeContract({
+		type: wireType,
+		event,
+		frame,
+	});
 }
 
 function toPushEvent(frame: {
@@ -923,11 +928,12 @@ function buildWsClient(
 			options.dispatch({ type: "SET_WS_STATUS", status });
 		},
 		onPush: (frame) => {
+			const wireType = readPushWireType(frame);
 			const liveEvent = toPushEvent(frame);
-			if (!hasValidRequiredPushTime(liveEvent)) {
+			if (!hasValidRequiredPushTime(wireType, liveEvent, frame)) {
 				appendWsDebug(
 					options.dispatch,
-					`[time_contract_violation] ignored WebSocket push ${String(liveEvent.type || "unknown")} without valid epoch_ms_int64 time`,
+					`[time_contract_violation] ignored WebSocket push ${wireType || String(liveEvent.type || "unknown")} without valid epoch_ms_int64 time`,
 				);
 				if (
 					typeof window !== "undefined" &&
@@ -1004,7 +1010,7 @@ function buildWsClient(
 				return;
 			}
 
-			if (type === "chat.restored") {
+			if (type === "archive.restored") {
 				const summary = isObjectRecord(liveEvent.summary)
 					? (liveEvent.summary as Partial<Chat> & Pick<Chat, "chatId">)
 					: null;

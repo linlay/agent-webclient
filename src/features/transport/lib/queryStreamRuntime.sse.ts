@@ -1,7 +1,10 @@
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
-import { readEpochMillis } from "@/shared/utils/platformTime";
+import {
+  readEpochMillis,
+  STRUCTURED_PLATFORM_TIME_FIELDS,
+} from "@/shared/utils/platformTime";
 import {
   createAttachStream,
   createBTWStream,
@@ -26,18 +29,8 @@ interface ParsedSseFrame {
   data: string;
 }
 
-const STRUCTURED_TIME_FIELDS = [
-  "createdAt",
-  "updatedAt",
-  "startedAt",
-  "completedAt",
-  "timestamp",
-  "expiresAt",
-  "readAt",
-] as const;
-
 function hasValidPresentTimeFields(record: Record<string, unknown>): boolean {
-  return STRUCTURED_TIME_FIELDS.every((field) =>
+  return STRUCTURED_PLATFORM_TIME_FIELDS.every((field) =>
     record[field] === undefined || readEpochMillis(record[field]) !== undefined,
   );
 }

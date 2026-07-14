@@ -248,7 +248,7 @@ describe("executeQueryStreamSse", () => {
     );
   });
 
-  it("rejects string, second, and missing stream timestamps without forwarding them", async () => {
+  it("rejects malformed stream timestamps and semantic time fields without forwarding them", async () => {
     const dispatch = jest.fn();
     const handleEvent = jest.fn();
     createQueryStreamMock.mockResolvedValue(
@@ -256,6 +256,7 @@ describe("executeQueryStreamSse", () => {
         'data: {"type":"content.delta","timestamp":"1710000000000"}\n\n',
         'data: {"type":"content.delta","timestamp":1710000000}\n\n',
         'data: {"type":"content.delta"}\n\n',
+        'data: {"type":"awaiting.answer","timestamp":1710000000000,"answeredAt":"1710000000000"}\n\n',
       ]),
     );
 

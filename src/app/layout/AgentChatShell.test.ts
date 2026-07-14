@@ -4,6 +4,7 @@ import { createInitialState } from "@/app/state/state";
 import {
   AgentChatShell,
   createNewChatRouteKey,
+  createResolvedNewChatRoute,
   parseNewChatTimestamp,
 } from "@/app/layout/AgentChatShell";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
@@ -496,6 +497,67 @@ describe("AgentChatShell", () => {
     );
 
     useEffectSpy.mockRestore();
+  });
+
+  it("replaces an explicit new chat route only after a stable chat id is reported", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("newChat=1783680000000&lang=en"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    const registration = (globalWithDom.window?.addEventListener as jest.Mock).mock.calls.find(
+      ([type]) => type === "agent:new-chat-created",
+    );
+    expect(registration).toBeDefined();
+    const listener = registration?.[1] as EventListener;
+    const NewChatCreatedEvent = globalWithDom.CustomEvent as typeof CustomEvent;
+    listener(
+      new NewChatCreatedEvent("agent:new-chat-created", {
+        detail: { chatId: "chat-123", agentKey: "confirmed-agent" },
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/agent/confirmed-agent?lang=en&chatId=chat-123",
+      { replace: true },
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("builds no resolved route without a stable chat id", () => {
+    expect(
+      createResolvedNewChatRoute(
+        "demo-agent",
+        new URLSearchParams("newChat=1783680000000&lang=en"),
+        "",
+      ),
+    ).toBe("");
+  });
+
+  it("replaces newChat while preserving host query parameters", () => {
+    expect(
+      createResolvedNewChatRoute(
+        "demo-agent",
+        new URLSearchParams(
+          "newChat=1783680000000&lang=en&hostTheme=dark",
+        ),
+        "chat-123",
+      ),
+    ).toBe("/agent/demo-agent?lang=en&hostTheme=dark&chatId=chat-123");
   });
 
   it("uses each timestamp as the retrigger key for explicit new chat routes", () => {

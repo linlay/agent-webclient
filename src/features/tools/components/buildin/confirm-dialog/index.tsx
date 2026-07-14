@@ -323,7 +323,7 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
                         }
                       }}
                       data={questions[field.name]}
-                      question={
+                      pagination={
                         questions.length > 1 ? (
                           <Flex
                             className={hitlDialogClassNames.pagination}
@@ -469,12 +469,12 @@ const Question = forwardRef<
   QuestionRef,
   {
     data: AIAwaitQuestion;
-    question?: React.ReactNode;
+    pagination?: React.ReactNode;
     onEnter: () => void;
     value?: AIAwaitQuestionSubmitParamData;
     onChange?: (value: AIAwaitQuestionSubmitParamData) => void;
   }
->(({ data, question, value, onChange, onEnter }, ref) => {
+>(({ data, pagination, value, onChange, onEnter }, ref) => {
   const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
@@ -529,7 +529,7 @@ const Question = forwardRef<
             <div className={hitlDialogClassNames.questionPrompt}>{prompt}</div>
           )}
         </Flex>
-        {question}
+        {pagination}
       </Flex>
     );
   };
