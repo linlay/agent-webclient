@@ -4,6 +4,7 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { TimelineCollapse } from "./collapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 
 interface ThinkingBlockProps {
   node: TimelineNode;
@@ -60,7 +61,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
         });
       }}
     >
-      <div className="thinking-detail">
+      <div className={['thinking-detail', SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
         {text}
       </div>
     </TimelineCollapse>
