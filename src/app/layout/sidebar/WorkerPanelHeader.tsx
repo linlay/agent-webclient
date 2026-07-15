@@ -1,10 +1,11 @@
 import React from "react";
-import { Badge, Button, Dropdown, Flex, Tooltip, Typography } from "antd";
+import { Badge, Dropdown, Flex, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import { UiButton } from "@/shared/ui/UiButton";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
@@ -123,7 +124,9 @@ export const WorkerPanelHeader: React.FC<{
     {
       key: "openWorkspace",
       className: SIDEBAR_MENU_ITEM_CLASS,
-      icon: <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />,
+      icon: (
+        <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />
+      ),
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
@@ -132,7 +135,9 @@ export const WorkerPanelHeader: React.FC<{
           {
             key: "renameAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />
+            ),
             label: t("leftSidebar.renameAgent"),
           },
         ]
@@ -142,7 +147,12 @@ export const WorkerPanelHeader: React.FC<{
           {
             key: "editAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="settings" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon
+                name="settings"
+                className={SIDEBAR_MENU_ICON_CLASS}
+              />
+            ),
             label: t("leftSidebar.editAgent"),
           },
         ]
@@ -152,7 +162,9 @@ export const WorkerPanelHeader: React.FC<{
           {
             key: "deleteAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />
+            ),
             label: t("leftSidebar.deleteAgent"),
             danger: true,
           },
@@ -208,24 +220,30 @@ export const WorkerPanelHeader: React.FC<{
             </Tooltip>
           ) : null}
           <Badge count={unreadCount} size="small" color="blue" />
-          <Flex gap={4}>
+          <Flex>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
-                <Button
+                <UiButton
+                  size="mini"
+                  variant="ghost"
                   className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
-                  type="text"
-                  icon={<MaterialIcon name="done_all" />}
+                  iconOnly
                   onClick={(e) => onMarkAllRead(e, row.key)}
-                />
+                >
+                  <MaterialIcon name="done_all" />
+                </UiButton>
               </Tooltip>
             )}
             <Tooltip title={t("leftSidebar.newConversation")}>
-              <Button
+              <UiButton
+                size="mini"
+                variant="ghost"
                 className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
-                type="text"
-                icon={<MaterialIcon name="edit_square" />}
+                iconOnly
                 onClick={(e) => onStartNewConversation(e, row.key)}
-              />
+              >
+                <MaterialIcon name="edit_square" />
+              </UiButton>
             </Tooltip>
             <Dropdown
               trigger={["click"]}
@@ -252,12 +270,15 @@ export const WorkerPanelHeader: React.FC<{
                     : workspaceUnavailableTitle
                 }
               >
-                <Button
+                <UiButton
+                  size="mini"
+                  variant="ghost"
                   className={`${WORKER_PANEL_NEW_CLASS} ui-icon-hover-24`}
-                  type="text"
-                  icon={<MaterialIcon name="more_horiz" />}
+                  iconOnly
                   onClick={(event) => event.stopPropagation()}
-                />
+                >
+                  <MaterialIcon name="more_horiz" />
+                </UiButton>
               </Tooltip>
             </Dropdown>
           </Flex>
