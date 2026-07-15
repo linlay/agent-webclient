@@ -4,6 +4,7 @@ import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 
 const mockDispatch = jest.fn();
 const mockRenameChat = jest.fn();
+const mockGetChat = jest.fn();
 const mockModalConfirm = jest.fn();
 let mockMenuItems: Array<Record<string, any>> = [];
 
@@ -18,6 +19,7 @@ jest.mock("@/shared/data", () => ({
 	archiveChats: jest.fn(),
 	deleteChat: jest.fn(),
 	downloadChatExport: jest.fn(),
+	getChat: (...args: unknown[]) => mockGetChat(...args),
 	renameChat: (...args: unknown[]) => mockRenameChat(...args),
 }));
 
@@ -55,6 +57,7 @@ describe("ChatActionsMenu", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
 		mockRenameChat.mockReset();
+		mockGetChat.mockReset();
 		mockModalConfirm.mockClear();
 		mockMenuItems = [];
 		mockRenameChat.mockResolvedValue({
@@ -111,11 +114,37 @@ describe("ChatActionsMenu", () => {
 
 		expect(html).toContain("chat-actions-trigger ui-icon-hover-24");
 		expect(html).toContain("ui-icon-hover-24-target");
-		expect(mockMenuItems).toHaveLength(4);
+		expect(mockMenuItems).toHaveLength(5);
+		expect(mockMenuItems.map((item) => item.key)).toEqual([
+			"export",
+			"rename",
+			"archive",
+			"delete",
+			"copyInfo",
+		]);
+		expect(mockMenuItems.find((item) => item.key === "delete")?.danger).toBe(true);
+		expect(mockMenuItems.find((item) => item.key === "copyInfo")?.danger).toBeUndefined();
 		expect(mockMenuItems).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ className: "ui-icon-hover-24" }),
 			]),
 		);
+	});
+
+	it("loads chat details without raw messages from copy information", () => {
+		mockGetChat.mockReturnValue(new Promise(() => undefined));
+		renderToStaticMarkup(
+			React.createElement(ChatActionsMenu, {
+				chatId: " chat_1 ",
+				chatName: "Demo chat",
+			}),
+		);
+
+		const copyItem = mockMenuItems.find((item) => item.key === "copyInfo");
+		expect(copyItem).toBeTruthy();
+
+		copyItem?.onClick();
+
+		expect(mockGetChat).toHaveBeenCalledWith("chat_1", false);
 	});
 });

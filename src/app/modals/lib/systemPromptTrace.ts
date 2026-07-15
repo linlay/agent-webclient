@@ -2,16 +2,15 @@ import type { AgentEvent } from "@/app/state/types";
 import {
 	readObjectValue,
 	readStringValue,
-	stringifyCopyValue,
 } from "@/app/modals/lib/eventPopoverFormatters";
 
 export interface SystemPromptCall {
 	id: string;
-	event: AgentEvent;
-	index: number;
+	chatId: string;
+	runId: string;
+	agentKey: string;
 	title: string;
 	traceFile: string;
-	runSeq: number;
 	modelLabel: string;
 	status: string;
 }
@@ -80,88 +79,88 @@ export function resolveSystemPromptCalls(
 		return [];
 	}
 	if (type === "debug.llmchat") {
-		const call = buildDebugLLMChatCall(event, -1);
+		const call = buildSystemPromptCall(
+			event,
+			findRunStartEvent(event, debugEvents),
+		);
 		return call ? [call] : [];
 	}
 	if (type !== "run.start") {
 		return [];
 	}
-
-	const runId = readEventRunId(event);
-	if (!runId) {
-		return [];
-	}
-	return debugEvents.flatMap((candidate, index) => {
-		if (readEventRunId(candidate) !== runId) {
-			return [];
-		}
-		if (String(candidate.type || "").toLowerCase() !== "debug.llmchat") {
-			return [];
-		}
-		const call = buildDebugLLMChatCall(candidate, index);
-		return call ? [call] : [];
-	});
+	const call = buildSystemPromptCall(event);
+	return call ? [call] : [];
 }
 
-export function resolveSystemPromptTextFromTraceText(rawText: unknown): string {
-	for (const candidate of collectTraceCandidates(rawText)) {
-		const text = resolveSystemPromptTextFromTrace(candidate);
-		if (text) {
-			return text;
-		}
-	}
-	return "";
-}
-
-export function resolveSystemPromptTextFromTrace(trace: unknown): string {
-	const traceRecord = readObjectValue(trace);
-	if (!traceRecord) {
+export function resolveSystemPromptText(systemMessage: unknown): string {
+	const message = readObjectValue(systemMessage);
+	if (!message) {
 		return "";
 	}
-	return (
-		resolveSystemPromptTextFromRequestBody(traceRecord.request) ||
-		resolveSystemPromptTextFromRequestBody(traceRecord.requestBody) ||
-		resolveSystemPromptTextFromRequestBody(traceRecord.request_body)
-	);
-}
-
-export function resolveSystemPromptTextFromRequestBody(
-	requestBodyValue: unknown,
-): string {
-	const requestBody = readObjectValue(requestBodyValue);
-	if (!requestBody) {
+	const content = message.content;
+	if (typeof content === "string") {
+		return content.trim();
+	}
+	if (content == null) {
 		return "";
 	}
-	const parts = [
-		...extractTextParts(requestBody.system),
-		...extractSystemMessages(requestBody.messages),
-	];
-	return joinTextParts(parts);
+	try {
+		return JSON.stringify(content, null, 2);
+	} catch {
+		return String(content);
+	}
 }
 
-function buildDebugLLMChatCall(
+function buildSystemPromptCall(
 	event: AgentEvent,
-	index: number,
+	fallback?: AgentEvent | null,
 ): SystemPromptCall | null {
-	const traceFile = resolveRawLLMTraceFile(event);
-	if (!traceFile) {
+	const data = readObjectValue(event.data);
+	const systemRef = readObjectValue(data?.systemRef);
+	const chatId = readStringValue(event.chatId) || readStringValue(fallback?.chatId);
+	const runId = readEventRunId(event) || readEventRunId(fallback);
+	const agentKey =
+		readStringValue(event.agentKey) ||
+		readStringValue(systemRef?.agentKey) ||
+		readStringValue(fallback?.agentKey);
+	if (!chatId || !runId || !agentKey) {
 		return null;
 	}
-	const data = readObjectValue(event.data);
-	const runSeq = readNumberValue(data?.runSeq);
+
+	const traceFile = resolveRawLLMTraceFile(event);
 	return {
-		id: traceFile,
-		event,
-		index,
-		title: runSeq > 0 ? `LLM #${runSeq}` : "LLM",
+		id: `${chatId}:${runId}:${agentKey}`,
+		chatId,
+		runId,
+		agentKey,
+		title: "Run",
 		traceFile,
-		runSeq,
 		modelLabel: readModelLabel(data),
 		status: readStringValue(data?.status),
 	};
 }
 
-function readEventRunId(event: AgentEvent): string {
+function findRunStartEvent(
+	event: AgentEvent,
+	debugEvents: AgentEvent[],
+): AgentEvent | null {
+	const runId = readEventRunId(event);
+	if (!runId) {
+		return null;
+	}
+	return (
+		debugEvents.find(
+			(candidate) =>
+				String(candidate.type || "").toLowerCase() === "run.start" &&
+				readEventRunId(candidate) === runId,
+		) || null
+	);
+}
+
+function readEventRunId(event: AgentEvent | null | undefined): string {
+	if (!event) {
+		return "";
+	}
 	const value = event.runId;
 	if (typeof value === "string") {
 		return value.trim();
@@ -180,74 +179,6 @@ function readModelLabel(data: Record<string, unknown> | null): string {
 		readStringValue(data?.modelKey).trim() ||
 		readStringValue(data?.modelId).trim()
 	);
-}
-
-function readNumberValue(value: unknown): number {
-	return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function collectTraceCandidates(value: unknown, depth = 0): unknown[] {
-	if (depth > 4) {
-		return [];
-	}
-	if (typeof value === "string") {
-		const trimmed = value.trim();
-		if (!trimmed) {
-			return [];
-		}
-		try {
-			return collectTraceCandidates(JSON.parse(trimmed), depth + 1);
-		} catch {
-			return [];
-		}
-	}
-	const record = readObjectValue(value);
-	if (!record) {
-		return [];
-	}
-	return [record, ...collectTraceCandidates(record.data, depth + 1)];
-}
-
-function extractSystemMessages(value: unknown): string[] {
-	if (!Array.isArray(value)) {
-		return [];
-	}
-	return value.flatMap((message) => {
-		const entry = readObjectValue(message);
-		if (!entry || readStringValue(entry.role).toLowerCase() !== "system") {
-			return [];
-		}
-		return extractTextParts(entry.content);
-	});
-}
-
-function extractTextParts(value: unknown): string[] {
-	if (typeof value === "string") {
-		const trimmed = value.trim();
-		return trimmed ? [trimmed] : [];
-	}
-	if (Array.isArray(value)) {
-		return value.flatMap((item) => extractTextParts(item));
-	}
-	const record = readObjectValue(value);
-	if (!record) {
-		return [];
-	}
-	if (typeof record.text === "string") {
-		return extractTextParts(record.text);
-	}
-	if (
-		typeof record.value === "string" &&
-		readStringValue(record.type).toLowerCase() === "text"
-	) {
-		return extractTextParts(record.value);
-	}
-	const fallback = stringifyCopyValue(value);
-	return fallback ? [fallback] : [];
-}
-
-function joinTextParts(parts: string[]): string {
-	return parts.map((part) => part.trim()).filter(Boolean).join("\n\n");
 }
 
 function isSafePathSegment(value: string): boolean {

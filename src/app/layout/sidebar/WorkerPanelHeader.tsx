@@ -76,6 +76,7 @@ export const WorkerPanelHeader: React.FC<{
     currentName: string,
   ) => void;
   onEditAgent?: (agentKey: string) => void;
+  onCopyAgent?: (workerKey: string, agentKey: string) => void;
   onDeleteAgent?: (workerKey: string, agentKey: string) => void;
 }> = ({
   row,
@@ -91,6 +92,7 @@ export const WorkerPanelHeader: React.FC<{
   onOpenWorkspace,
   onRenameAgent,
   onEditAgent,
+  onCopyAgent,
   onDeleteAgent,
 }) => {
   const { t } = useI18n();
@@ -144,6 +146,16 @@ export const WorkerPanelHeader: React.FC<{
             className: SIDEBAR_MENU_ITEM_CLASS,
             icon: <MaterialIcon name="settings" className={SIDEBAR_MENU_ICON_CLASS} />,
             label: t("leftSidebar.editAgent"),
+          },
+        ]
+      : []),
+    ...(isAgent && onCopyAgent
+      ? [
+          {
+            key: "copyAgent",
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: <MaterialIcon name="content_copy" className={SIDEBAR_MENU_ICON_CLASS} />,
+            label: t("leftSidebar.copyAgentInfo"),
           },
         ]
       : []),
@@ -239,6 +251,8 @@ export const WorkerPanelHeader: React.FC<{
                     onRenameAgent?.(row.key, row.sourceId, row.displayName);
                   } else if (key === "editAgent") {
                     onEditAgent?.(row.sourceId);
+                  } else if (key === "copyAgent") {
+                    onCopyAgent?.(row.key, row.sourceId);
                   } else if (key === "deleteAgent") {
                     onDeleteAgent?.(row.key, row.sourceId);
                   }

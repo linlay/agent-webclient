@@ -17,7 +17,7 @@ const WORKER_CHAT_NAME_CLASS =
   "worker-chat-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]";
 
 const WORKER_CHAT_SOURCE_ICON_CLASS =
-  "worker-chat-source-icon tw:inline-flex tw:h-4 tw:w-4 tw:shrink-0 tw:text-text-sub";
+  "worker-chat-source-icon tw:inline-flex tw:h-[9px] tw:w-[9px] tw:shrink-0 tw:text-text-sub";
 
 const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
   "tw:h-full tw:w-full";

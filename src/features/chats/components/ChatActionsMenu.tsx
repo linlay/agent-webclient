@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Dropdown, Input, Modal, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -7,8 +7,12 @@ import {
 	archiveChats,
 	deleteChat,
 	downloadChatExport,
+	getChat,
 	renameChat,
+	type ChatDetailResponse,
 } from "@/shared/data";
+import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
+import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
 
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
@@ -27,6 +31,14 @@ export const ChatActionsMenu: React.FC<{
 }) => {
 	const { state, dispatch } = useAppContext();
 	const [pending, setPending] = useState(false);
+	const [copyInfoOpen, setCopyInfoOpen] = useState(false);
+	const [copyInfoDetail, setCopyInfoDetail] = useState<ChatDetailResponse | null>(null);
+	const [copyInfoLoading, setCopyInfoLoading] = useState(false);
+	const [copyInfoError, setCopyInfoError] = useState("");
+	const copyInfoRequestRef = useRef(0);
+	useEffect(() => () => {
+		copyInfoRequestRef.current += 1;
+	}, []);
 	const normalizedChatId = String(chatId || "").trim();
 	const triggerClass = [
 		"chat-actions-trigger",
@@ -176,6 +188,48 @@ export const ChatActionsMenu: React.FC<{
 		}
 	};
 
+	const loadCopyInfoDetail = () => {
+		if (!normalizedChatId) return;
+		const requestId = copyInfoRequestRef.current + 1;
+		copyInfoRequestRef.current = requestId;
+		setCopyInfoLoading(true);
+		setCopyInfoError("");
+		setCopyInfoDetail(null);
+		void getChat(normalizedChatId, false)
+			.then((response) => {
+				if (copyInfoRequestRef.current !== requestId) return;
+				setCopyInfoDetail(response.data);
+			})
+			.catch((error) => {
+				if (copyInfoRequestRef.current !== requestId) return;
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				setCopyInfoError(errorMessage);
+				dispatch({
+					type: "APPEND_DEBUG",
+					line: `[load chat copy detail error] ${errorMessage}`,
+				});
+			})
+			.finally(() => {
+				if (copyInfoRequestRef.current === requestId) {
+					setCopyInfoLoading(false);
+				}
+			});
+	};
+
+	const handleCopyInfo = () => {
+		if (!normalizedChatId) return;
+		setCopyInfoOpen(true);
+		loadCopyInfoDetail();
+	};
+
+	const handleCloseCopyInfo = () => {
+		copyInfoRequestRef.current += 1;
+		setCopyInfoOpen(false);
+		setCopyInfoDetail(null);
+		setCopyInfoLoading(false);
+		setCopyInfoError("");
+	};
+
 	const items: MenuProps["items"] = [
 		{
 			key: "export",
@@ -206,22 +260,48 @@ export const ChatActionsMenu: React.FC<{
 			label: t("chatActions.delete.menu"),
 			onClick: handleDelete,
 		},
+		{
+			key: "copyInfo",
+			className: menuItemClassName,
+			icon: <MaterialIcon name="content_copy" className={menuIconClassName} />,
+			label: t("chatActions.copyInfo"),
+			onClick: handleCopyInfo,
+		},
 	];
 
 	return (
-		<Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
-			<Button
-				type="text"
-				size="small"
-				className={triggerClass}
-				loading={pending}
-				onClick={(event) => {
-					event.preventDefault();
-					event.stopPropagation();
-				}}
-			>
-				<MaterialIcon name="more_horiz" className={menuIconClassName} />
-			</Button>
-		</Dropdown>
+		<>
+			<Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
+				<Button
+					type="text"
+					size="small"
+					className={triggerClass}
+					loading={pending}
+					onClick={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+					}}
+				>
+					<MaterialIcon name="more_horiz" className={menuIconClassName} />
+				</Button>
+			</Dropdown>
+			{copyInfoOpen ? (
+				<CopyInfoModal
+					open
+					title={t("chatCopy.title")}
+					groups={buildChatCopyInfoGroups({
+						summary: { chatId: normalizedChatId, chatName },
+						detail: copyInfoDetail,
+						t,
+					})}
+					rawData={copyInfoDetail}
+					rawReady={Boolean(copyInfoDetail)}
+					loading={copyInfoLoading}
+					error={copyInfoError}
+					onRetry={loadCopyInfoDetail}
+					onClose={handleCloseCopyInfo}
+				/>
+			) : null}
+		</>
 	);
 };

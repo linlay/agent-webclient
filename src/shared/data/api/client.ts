@@ -903,6 +903,38 @@ export interface ChatSummaryResponse {
   usage?: ChatUsageData;
 }
 
+export interface ChatDetailResponse extends ChatSummaryResponse {
+  firstAgentKey?: string;
+  firstAgentName?: string;
+  activeRun?: Record<string, unknown> | null;
+  awaiting?: Record<string, unknown> | null;
+  events?: unknown[];
+  runs?: unknown[];
+  plan?: unknown;
+  artifact?: unknown;
+  usage?: ChatUsageData;
+  resourceTicket?: string;
+	[key: string]: unknown;
+}
+
+export interface ChatSystemPromptRequest {
+  chatId: string;
+  runId: string;
+  agentKey: string;
+}
+
+export interface ChatSystemPromptResponse {
+  chatId: string;
+  runId: string;
+  agentKey: string;
+  systemRef: {
+    agentKey: string;
+    cacheKey: string;
+    fingerprint: string;
+  };
+  systemMessage: Record<string, unknown>;
+}
+
 export interface ArchiveRestoreResult {
   chatId: string;
   success: boolean;
@@ -1641,7 +1673,7 @@ export function putAdminAgentOrder(
   });
 }
 
-export function getAgent(agentKey: string): Promise<ApiResponse> {
+export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailResponse>> {
   const query = endpointQuery(dataEndpoints.agent, agentKey);
   return requestJson(withQuery(dataEndpoints.agent.path, query));
 }
@@ -1862,9 +1894,18 @@ export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
 export function getChat(
   chatId: string,
   includeRawMessages = false,
-): Promise<ApiResponse> {
+): Promise<ApiResponse<ChatDetailResponse>> {
   const query = endpointQuery(dataEndpoints.chat, { chatId, includeRawMessages });
-  return requestJson(withQuery(dataEndpoints.chat.path, query));
+	return requestJson(withQuery(dataEndpoints.chat.path, query));
+}
+
+export function getChatSystemPrompt(
+  params: ChatSystemPromptRequest,
+): Promise<ApiResponse<ChatSystemPromptResponse>> {
+  const query = endpointQuery(dataEndpoints.chatSystemPrompt, params);
+  return requestJson<ChatSystemPromptResponse>(
+    withQuery(dataEndpoints.chatSystemPrompt.path, query),
+  );
 }
 
 export function archiveChats(

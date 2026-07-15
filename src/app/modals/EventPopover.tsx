@@ -9,6 +9,7 @@ import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import {
+	getChatSystemPrompt,
 	getChatLLMTraceRaw,
 	getChatRawJsonl,
 } from "@/shared/data";
@@ -50,8 +51,7 @@ import {
 	SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
 	resolveRawLLMTraceFile,
 	resolveSystemPromptCalls,
-	resolveSystemPromptTextFromRequestBody,
-	resolveSystemPromptTextFromTraceText,
+	resolveSystemPromptText,
 	type SystemPromptLoadState,
 } from "@/app/modals/lib/systemPromptTrace";
 
@@ -294,7 +294,6 @@ export const EventPopover: React.FC = () => {
 		if (
 			!systemPromptOpen ||
 			!selectedSystemPromptCall ||
-			!selectedSystemPromptCall.traceFile ||
 			selectedSystemPromptLoadStatus === "loading" ||
 			selectedSystemPromptLoadStatus === "ready" ||
 			selectedSystemPromptLoadStatus === "empty"
@@ -304,7 +303,6 @@ export const EventPopover: React.FC = () => {
 
 		let cancelled = false;
 		const callId = selectedSystemPromptCall.id;
-		const traceFile = selectedSystemPromptCall.traceFile;
 		const timeout = window.setTimeout(() => {
 			if (cancelled) return;
 			cancelled = true;
@@ -319,8 +317,12 @@ export const EventPopover: React.FC = () => {
 			...current,
 			[callId]: { status: "loading" },
 		}));
-		void getChatLLMTraceRaw(traceFile)
-			.then((rawText) => resolveSystemPromptTextFromTraceText(rawText))
+		void getChatSystemPrompt({
+			chatId: selectedSystemPromptCall.chatId,
+			runId: selectedSystemPromptCall.runId,
+			agentKey: selectedSystemPromptCall.agentKey,
+		})
+			.then((response) => resolveSystemPromptText(response.data.systemMessage))
 			.then((text) => {
 				if (cancelled) return;
 				window.clearTimeout(timeout);
@@ -591,8 +593,7 @@ export const __TEST_ONLY__ = {
 	mapCollectedSnapshotType,
 	resolveEventGroupMeta,
 	resolveSystemPromptCalls,
-	resolveSystemPromptTextFromTraceText,
-	resolveSystemPromptTextFromRequestBody,
+	resolveSystemPromptText,
 	buildSystemPromptTimeoutLoadState,
 	SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
 	resolveRawJsonlChatId,

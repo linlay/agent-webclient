@@ -24,6 +24,7 @@ import {
 	getChatLLMTraceRaw as getChatLLMTraceRawHttp,
 	getChatRawJsonl as getChatRawJsonlHttp,
 	getChat as getChatHttp,
+	getChatSystemPrompt as getChatSystemPromptHttp,
 	getChats as getChatsHttp,
 	getCurrentAccessToken,
 	getMemoryMeta as getMemoryMetaHttp,
@@ -78,6 +79,9 @@ import {
 	type ArchiveSearchParams,
 	type ArchiveSearchResponse,
 	type ArchiveRestoreResponse,
+	type ChatDetailResponse,
+	type ChatSystemPromptRequest,
+	type ChatSystemPromptResponse,
 	type CreateAgentRequest,
 	type CreateAutomationRequest,
 	type DeriveChatRequest,
@@ -243,7 +247,7 @@ export function putAgentOrder(
 		});
 }
 
-export function getAgent(agentKey: string): Promise<ApiResponse> {
+export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailResponse>> {
 	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
 }
 
@@ -333,7 +337,7 @@ export async function getChats(options: GetChatsOptions = {}): Promise<ApiRespon
 export function getChat(
 	chatId: string,
 	includeRawMessages = false,
-): Promise<ApiResponse> {
+): Promise<ApiResponse<ChatDetailResponse>> {
 	return routeEndpoint(
 		dataEndpoints.chat,
 		{
@@ -341,6 +345,16 @@ export function getChat(
 			includeRawMessages,
 		},
 		() => getChatHttp(chatId, includeRawMessages),
+	);
+}
+
+export function getChatSystemPrompt(
+	params: ChatSystemPromptRequest,
+): Promise<ApiResponse<ChatSystemPromptResponse>> {
+	return routeEndpoint<ChatSystemPromptResponse, ChatSystemPromptRequest>(
+		dataEndpoints.chatSystemPrompt,
+		params,
+		() => getChatSystemPromptHttp(params),
 	);
 }
 
