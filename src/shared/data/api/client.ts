@@ -20,6 +20,7 @@ import type {
   MemoryRecordsPayload,
 } from '@/shared/data/memory/memoryTypes';
 import { t } from '@/shared/i18n';
+import { runOwnerPayload, type RunOwner } from '@/shared/data/runOwner';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
 import {
@@ -2135,7 +2136,7 @@ export async function getVoiceVoicesFlexible(path = dataEndpoints.voiceVoices.pa
 
 export function submitTool(params: {
   runId: string;
-  agentKey: string;
+  owner: RunOwner;
   toolId: string;
   params: Record<string, unknown>;
 }): Promise<ApiResponse> {
@@ -2143,7 +2144,7 @@ export function submitTool(params: {
     method: "POST",
     body: JSON.stringify({
       runId: params.runId,
-      agentKey: params.agentKey,
+      ...runOwnerPayload(params.owner),
       toolId: params.toolId,
       params: params.params,
     }),
@@ -2153,7 +2154,7 @@ export function submitTool(params: {
 export function submitAwaiting(params: {
   chatId?: string;
   runId: string;
-  agentKey: string;
+  owner: RunOwner;
   awaitingId: string;
   submitId?: string;
   params: AIAwaitSubmitParamData[];
@@ -2163,7 +2164,7 @@ export function submitAwaiting(params: {
     body: JSON.stringify({
       chatId: params.chatId,
       runId: params.runId,
-      agentKey: params.agentKey,
+      ...runOwnerPayload(params.owner),
       awaitingId: params.awaitingId,
       submitId: params.submitId,
       params: params.params,
@@ -2229,8 +2230,7 @@ export interface QueryLikeParams {
   chatId?: string;
   runId?: string;
   steerId?: string;
-  agentKey?: string;
-  teamId?: string;
+  owner: RunOwner;
   message: string;
   planningMode?: boolean;
 }
@@ -2254,7 +2254,7 @@ export type QueryReasoningEffort =
 export interface AccessLevelUpdateParams {
   requestId: string;
   runId: string;
-  agentKey: string;
+  owner: RunOwner;
   accessLevel: QueryAccessLevel;
   reason?: string;
 }
@@ -2448,8 +2448,7 @@ export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
       requestId: params.requestId,
       chatId: params.chatId,
       runId: params.runId,
-      agentKey: params.agentKey,
-      teamId: params.teamId,
+      ...runOwnerPayload(params.owner),
       message: params.message,
     }),
   });
@@ -2468,8 +2467,7 @@ export function interruptBTWRun(
       requestId: params.requestId,
       chatId: params.chatId,
       runId: params.runId,
-      agentKey: params.agentKey,
-      teamId: params.teamId,
+      ...runOwnerPayload(params.owner),
       message: params.message,
     }),
   });
@@ -2483,7 +2481,7 @@ export function updateAccessLevel(
     body: JSON.stringify({
       requestId: params.requestId,
       runId: params.runId,
-      agentKey: params.agentKey,
+      ...runOwnerPayload(params.owner),
       accessLevel: params.accessLevel,
       reason: params.reason,
     }),
@@ -2498,8 +2496,7 @@ export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
       chatId: params.chatId,
       runId: params.runId,
       steerId: params.steerId,
-      agentKey: params.agentKey,
-      teamId: params.teamId,
+      ...runOwnerPayload(params.owner),
       message: params.message,
     }),
   });
@@ -2549,8 +2546,7 @@ export interface QueryStreamParams {
   agentMode?: string;
   accessLevel?: QueryAccessLevel;
   model?: QueryModelOverride;
-  agentKey?: string;
-  teamId?: string;
+  owner: RunOwner;
   chatId?: string;
   role?: string;
   references?: unknown[];
@@ -2579,7 +2575,7 @@ export interface BTWStreamParams {
 
 export interface AttachStreamParams {
   runId: string;
-  agentKey: string;
+  owner: RunOwner;
   lastSeq?: number;
   signal?: AbortSignal;
 }

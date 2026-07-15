@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import type { AppState } from "@/app/state/types";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { resolveActiveRunId } from "@/features/composer/lib/steerSubmission";
 
 type ActiveRunIdentityState = Pick<
@@ -23,6 +25,7 @@ type ActiveRunIdentityState = Pick<
 export function useActiveRunIdentity(state: ActiveRunIdentityState): {
   activeRunId: string;
   activeRunAgentKey: string;
+  activeRunOwner: RunOwner | null;
 } {
   const activeRunId = useMemo(() => {
     if (
@@ -83,8 +86,19 @@ export function useActiveRunIdentity(state: ActiveRunIdentityState): {
     state.workerSelectionKey,
   ]);
 
+  const activeRunOwner = useMemo(() => {
+    if (!activeRunId) return null;
+    return resolveRunOwner({
+      chatId: state.chatId,
+      chats: state.chats,
+      currentRunOwner: state.currentChatActiveRun?.owner,
+      fallbackOwner: toRunOwner({ agentKey: activeRunAgentKey }),
+    });
+  }, [activeRunAgentKey, activeRunId, state.chatId, state.chats, state.currentChatActiveRun?.owner]);
+
   return {
     activeRunId,
     activeRunAgentKey,
+    activeRunOwner,
   };
 }

@@ -15,7 +15,8 @@ import {
   snapshotConversationState,
 } from '@/features/conversation/lib/conversationSession';
 import { resolveMainChatRuntime } from '@/features/runs/lib/runRuntimeState';
-import { resolveRunAgentKey } from '@/features/runs/lib/runAgentIdentity';
+import { resolveRunOwner } from '@/features/runs/lib/runOwner';
+import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/conversation/lib/conversationReplay';
 import {
   buildLoadedChatUsageSnapshot,
@@ -66,7 +67,7 @@ export function normalizeStartNewConversationDetail(
   };
 }
 
-function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agentKey = ''): void {
+function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, owner: RunOwner | null = null): void {
   if (
     typeof window === 'undefined'
     || typeof window.dispatchEvent !== 'function'
@@ -76,7 +77,14 @@ function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, agen
   }
   window.dispatchEvent(
     new CustomEvent('agent:attach-run', {
-      detail: { chatId, runId, lastSeq, agentKey },
+      detail: {
+        chatId,
+        runId,
+        lastSeq,
+        ...(owner?.kind === 'agent' ? { agentKey: owner.agentKey } : {}),
+        ...(owner?.kind === 'orchestrated-team' ? { teamId: owner.teamId } : {}),
+        ...(owner ? { owner } : {}),
+      },
     }),
   );
 }
@@ -85,6 +93,7 @@ function maybeDispatchDetachRunEvent(detail: {
   chatId?: string;
   runId?: string;
   agentKey?: string;
+  owner?: RunOwner;
   reason: DetachRunReason;
 }): boolean {
   const runId = String(detail.runId || '').trim();
@@ -95,6 +104,7 @@ function maybeDispatchDetachRunEvent(detail: {
     chatId: String(detail.chatId || '').trim(),
     runId,
     agentKey: String(detail.agentKey || '').trim(),
+    owner: detail.owner,
     reason: detail.reason,
   });
   return true;
@@ -108,19 +118,20 @@ function normalizeAttachLastSeq(value: unknown): number {
 function normalizeCurrentChatActiveRun(
   chatId: string,
   activeRun: Record<string, unknown> | null,
-  fallbackAgentKey = '',
+  owner: RunOwner | null,
 ): CurrentChatActiveRun | null {
   const normalizedChatId = String(chatId || '').trim();
   const runId = String(activeRun?.runId || '').trim();
   if (!normalizedChatId || !activeRun || !runId) {
     return null;
   }
-  const agentKey = String(activeRun.agentKey || fallbackAgentKey || '').trim();
   return {
     ...activeRun,
     chatId: normalizedChatId,
     runId,
-    ...(agentKey ? { agentKey } : {}),
+    ...(owner?.kind === 'agent' ? { agentKey: owner.agentKey } : {}),
+    ...(owner?.kind === 'orchestrated-team' ? { teamId: owner.teamId } : {}),
+    ...(owner ? { owner } : {}),
   };
 }
 
@@ -252,22 +263,21 @@ export function useConversationActions() {
     }
 
     const runId = String(session?.runId || state.runId || '').trim();
-    const agentKey = resolveRunAgentKey({
-      runId,
-      routingAgentKey: session?.agentKey,
-      currentRunAgentKey: state.currentRunAgentKey,
-      runAgentById: state.runAgentById,
+    const owner = resolveRunOwner({
       chatId,
-      chatAgentById: state.chatAgentById,
       chats: state.chats,
+      sessionOwner: session?.owner,
+      fallbackOwner: toRunOwner({
+        agentKey: session?.agentKey || state.runAgentById.get(runId) || state.currentRunAgentKey,
+      }),
     });
-    if (maybeDispatchDetachRunEvent({ chatId, runId, agentKey, reason })) {
+    if (owner && maybeDispatchDetachRunEvent({ chatId, runId, owner, ...(owner.kind === 'agent' ? { agentKey: owner.agentKey } : {}), reason })) {
       return;
     }
 
     dispatch({
       type: 'APPEND_DEBUG',
-      line: `[detach] skipped: missing runId or agentKey (chatId=${chatId || '-'})`,
+      line: `[detach] skipped: missing runId or owner (chatId=${chatId || '-'})`,
     });
   }, [activeQuerySessionRequestIdRef, dispatch, querySessionsRef, stateRef]);
 
@@ -376,13 +386,19 @@ export function useConversationActions() {
         const activeRun = isObjectRecord(chatData.activeRun)
           ? chatData.activeRun
           : null;
-        const activeRunAgentKey = String(
-          activeRun?.agentKey || chatData?.firstAgentKey || chatData?.agentKey || '',
-        ).trim();
+        const loadedOwner = resolveRunOwner({
+          chatId,
+          chats: stateRef.current.chats,
+          eventIdentity: {
+            teamId: activeRun?.teamId || chatData.teamId,
+            agentKey: activeRun?.agentKey || chatData.firstAgentKey || chatData.agentKey,
+          },
+        }) || toRunOwner(chatData);
+        const activeRunAgentKey = loadedOwner?.kind === 'agent' ? loadedOwner.agentKey : '';
         const currentChatActiveRun = normalizeCurrentChatActiveRun(
           chatId,
           activeRun,
-          activeRunAgentKey,
+          loadedOwner,
         );
         const activeRunId = String(currentChatActiveRun?.runId || '').trim();
         const downvotedRunKeys = new Set<string>();
@@ -483,14 +499,18 @@ export function useConversationActions() {
         }
 
         /* Set agent for this chat */
-        const agentKey = String(chatData?.firstAgentKey || chatData?.agentKey || '');
+        const agentKey = loadedOwner?.kind === 'agent'
+          ? loadedOwner.agentKey
+          : '';
         if (agentKey) {
           dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId, agentKey });
         }
         // Also set any agents discovered during replay
-        rs.chatAgentById.forEach((agentKey, cid) => {
-          dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
-        });
+        if (loadedOwner?.kind !== 'orchestrated-team') {
+          rs.chatAgentById.forEach((agentKey, cid) => {
+            dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
+          });
+        }
         if (activeRunId) {
           if (activeRunAgentKey) {
             dispatch({
@@ -507,7 +527,7 @@ export function useConversationActions() {
             chatId,
             activeRunId,
             normalizeAttachLastSeq(activeRun?.lastSeq),
-            activeRunAgentKey,
+            loadedOwner,
           );
         }
 

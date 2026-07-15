@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { getViewport, submitTool } from "@/shared/data";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 
 const FRONTEND_TOOL_CONTAINER_CLASS_NAME =
@@ -120,7 +122,13 @@ export const FrontendToolContainer: React.FC = () => {
 			if (data.type === "frontend_submit") {
 				setStatusText(t("frontendTool.submitting"));
 				setStatusTone("normal");
-				if (!active.agentKey) {
+				const owner = resolveRunOwner({
+					chatId: state.chatId,
+					chats: state.chats,
+					currentRunOwner: active.owner,
+					fallbackOwner: toRunOwner({ agentKey: active.agentKey }),
+				});
+				if (!owner) {
 					setStatusText(t("frontendTool.agentKeyRequired"));
 					setStatusTone("err");
 					return;
@@ -132,7 +140,7 @@ export const FrontendToolContainer: React.FC = () => {
 							: {};
 					const response = await submitTool({
 						runId: active.runId,
-						agentKey: active.agentKey,
+						owner,
 						toolId: active.toolId,
 						params: params as Record<string, unknown>,
 					});

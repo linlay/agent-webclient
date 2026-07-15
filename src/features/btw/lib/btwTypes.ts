@@ -7,6 +7,7 @@ import type {
   QueryAccessLevel,
   QueryModelOverride,
 } from "@/shared/data";
+import type { RunOwner } from "@/shared/data/runOwner";
 
 export type BTWSessionStatus = "idle" | "running" | "error";
 
@@ -30,6 +31,7 @@ export interface BTWSessionState {
   runId: string;
   requestId: string;
   agentKey: string;
+  owner?: RunOwner;
   status: BTWSessionStatus;
   interruptReady: boolean;
   interruptPending: boolean;
@@ -49,6 +51,7 @@ export interface PersistedBTWSession {
   runId: string;
   requestId: string;
   agentKey: string;
+  owner?: RunOwner;
   status: BTWSessionStatus;
   draft: string;
   lastSeq: number;

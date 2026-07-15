@@ -5,6 +5,7 @@ import type {
 	AIAwaitQuestion,
 } from "@/app/state/eventTypes";
 import { ViewportTypeEnum } from "@/app/state/eventTypes";
+import type { RunOwner } from "@/shared/data/runOwner";
 
 export interface ToolState {
 	toolId: string;
@@ -76,6 +77,7 @@ export interface ActiveFrontendTool {
 	key: string;
 	runId: string;
 	agentKey: string;
+	owner?: RunOwner;
 	toolId: string;
 	viewportKey: string;
 	toolType: string;
@@ -96,6 +98,7 @@ interface ActiveAwaitingBase {
 	awaitingId: string;
 	runId: string;
 	agentKey: string;
+	owner?: RunOwner;
 	timeout: number | null;
 	createdAt?: number | null;
 	resolutionReason?: ActiveAwaitingResolutionReason;

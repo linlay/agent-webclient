@@ -121,7 +121,7 @@ describe("useMessageActions temporary pin", () => {
     expect(executeQueryStreamWs).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
-          agentKey: "agent-coder",
+          owner: { kind: "agent", agentKey: "agent-coder" },
           message: "hello",
         }),
       }),
@@ -258,6 +258,7 @@ describe("resolveDifferentChatDetachRunDetail", () => {
       chatId: "chat_old",
       runId: "run_old",
       agentKey: "agent_old",
+      owner: { kind: "agent", agentKey: "agent_old" },
       reason: "chat_switch",
     });
   });

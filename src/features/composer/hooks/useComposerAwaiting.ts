@@ -9,6 +9,8 @@ import type {
 } from "@/app/state/types";
 import { submitAwaiting } from "@/shared/data";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import {
   getPlanningModeForPlanDecision,
   readPlanSubmitDecision,
@@ -75,6 +77,20 @@ export function resolveAwaitingSubmitAgentKey(input: {
   });
 }
 
+export function resolveAwaitingSubmitOwner(input: {
+  activeAwaiting: AppState["activeAwaiting"];
+  state: UseComposerAwaitingInput["state"];
+  runId: string;
+}): RunOwner | null {
+  const agentKey = resolveAwaitingSubmitAgentKey(input);
+  return resolveRunOwner({
+    chatId: input.state.chatId,
+    chats: input.state.chats,
+    currentRunOwner: input.activeAwaiting?.owner,
+    fallbackOwner: toRunOwner({ agentKey }),
+  });
+}
+
 export function buildPlanDecisionPlanningModeAction(input: {
   activeAwaiting: AppState["activeAwaiting"];
   chatId: string;
@@ -112,16 +128,16 @@ export async function submitComposerAwaiting(
   let trackedRunId = "";
   let trackedAwaitingId = "";
   try {
-    const agentKey = resolveAwaitingSubmitAgentKey({
+    const owner = resolveAwaitingSubmitOwner({
       activeAwaiting,
       state,
       runId: payload.runId,
     });
-    if (!agentKey) {
-      const error = new Error("agentKey is required for awaiting submit");
+    if (!owner) {
+      const error = new Error("run owner is required for awaiting submit");
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[awaiting] submit skipped: missing agentKey (awaitingId=${payload.awaitingId}, runId=${payload.runId})`,
+        line: `[awaiting] submit skipped: missing owner (awaitingId=${payload.awaitingId}, runId=${payload.runId})`,
       });
       return error;
     }
@@ -138,7 +154,7 @@ export async function submitComposerAwaiting(
     const response = await (input.submitAwaitingImpl ?? submitAwaiting)({
       chatId: state.chatId,
       runId: payload.runId,
-      agentKey,
+      owner,
       awaitingId: payload.awaitingId,
       submitId,
       params: payload.params,

@@ -12,6 +12,7 @@ export * from "@/shared/data/errors/platformError";
 export * from "@/shared/data/query/queries";
 export * from "@/shared/data/query/serverState";
 export * from "@/shared/data/api/transportClient";
+export * from "@/shared/data/runOwner";
 
 export {
   archiveChats,

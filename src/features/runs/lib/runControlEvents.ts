@@ -9,6 +9,7 @@ export interface DetachRunEventDetail {
   chatId?: string;
   runId: string;
   agentKey?: string;
+  owner?: import("@/shared/data/runOwner").RunOwner;
   reason?: DetachRunReason;
 }
 
@@ -32,6 +33,7 @@ export function dispatchDetachRunEvent(detail: DetachRunEventDetail): void {
         runId,
         chatId: String(detail.chatId || "").trim(),
         agentKey: String(detail.agentKey || "").trim(),
+        owner: detail.owner,
         reason: detail.reason,
       },
     }),

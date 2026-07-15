@@ -176,4 +176,41 @@ describe('chatSummaryLive helpers', () => {
 
     expect(later?.chat.source).toBe('automation:daily');
   });
+
+  it('keeps the Team as owner when a member task event carries agentKey', () => {
+    const next = upsertLiveChatSummary({
+      event: {
+        type: 'run.start',
+        chatId: 'chat_team',
+        runId: 'run_team',
+        agentKey: 'member_from_event',
+        startedAt: EPOCH_MS,
+      } as AgentEvent,
+      cache: {
+        chatId: 'chat_team',
+        runId: 'run_team',
+        agentKey: 'member_from_event',
+        teamId: '',
+      },
+      state: {
+        chatId: 'chat_team',
+        runId: 'run_team',
+        chats: [{
+          chatId: 'chat_team',
+          teamId: 'team_1',
+          agentKey: 'persisted_stale_member',
+        }],
+        chatAgentById: new Map([['chat_team', 'persisted_stale_member']]),
+      },
+      selectedContext: { agentKey: '', teamId: '' },
+    });
+
+    expect(next?.chat.owner).toEqual({ kind: 'orchestrated-team', teamId: 'team_1' });
+    expect(next?.chat.teamId).toBe('team_1');
+    expect(next?.chat.agentKey).toBeUndefined();
+    expect(next?.chat.activeRun).toMatchObject({
+      teamId: 'team_1',
+      owner: { kind: 'orchestrated-team', teamId: 'team_1' },
+    });
+  });
 });

@@ -4,6 +4,7 @@ import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/types";
 import type { RunSession } from "@/features/runs/lib/runSession";
+import type { RunOwner } from "@/shared/data/runOwner";
 import {
 	AGENT_RUN_STARTED_PUSH_EVENT,
 	resolveMainChatRunActivation,
@@ -38,7 +39,7 @@ function dispatchAttachRunEvent(
 	chatId: string,
 	runId: string,
 	lastSeq = 0,
-	agentKey = "",
+	owner: RunOwner,
 ): void {
 	if (
 		typeof window === "undefined" ||
@@ -49,7 +50,14 @@ function dispatchAttachRunEvent(
 	}
 	window.dispatchEvent(
 		new CustomEvent("agent:attach-run", {
-			detail: { chatId, runId, lastSeq, agentKey },
+		detail: {
+			chatId,
+			runId,
+			lastSeq,
+			...(owner.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+			...(owner.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+			owner,
+		},
 		}),
 	);
 }
@@ -134,30 +142,36 @@ function activateMainChatRun(
 		}
 	}
 
-	options.dispatch({
-		type: "SET_CHAT_AGENT_BY_ID",
-		chatId: decision.chatId,
-		agentKey: decision.agentKey,
-	});
-	options.dispatch({
-		type: "SET_RUN_AGENT_BY_ID",
-		runId: decision.runId,
-		agentKey: decision.agentKey,
-	});
+	if (decision.owner.kind === "agent") {
+		options.dispatch({
+			type: "SET_CHAT_AGENT_BY_ID",
+			chatId: decision.chatId,
+			agentKey: decision.owner.agentKey,
+		});
+		options.dispatch({
+			type: "SET_RUN_AGENT_BY_ID",
+			runId: decision.runId,
+			agentKey: decision.owner.agentKey,
+		});
+	}
 	options.dispatch({
 		type: "SET_CURRENT_CHAT_ACTIVE_RUN",
 		activeRun: {
 			chatId: decision.chatId,
 			runId: decision.runId,
-			agentKey: decision.agentKey,
+			...(decision.owner.kind === "agent" ? { agentKey: decision.owner.agentKey } : {}),
+			...(decision.owner.kind === "orchestrated-team" ? { teamId: decision.owner.teamId } : {}),
+			owner: decision.owner,
 			lastSeq: decision.lastSeq,
 		},
 	});
 	options.dispatch({ type: "SET_RUN_ID", runId: decision.runId });
-	options.dispatch({
-		type: "SET_CURRENT_RUN_AGENT_KEY",
-		agentKey: decision.agentKey,
-	});
+	if (decision.owner.kind === "agent") {
+		options.dispatch({
+			type: "SET_CURRENT_RUN_AGENT_KEY",
+			agentKey: decision.owner.agentKey,
+		});
+	}
 
 	dispatchRunAttachDebugEvent(options.dispatch, {
 		stage: "runActivationAttached",
@@ -174,7 +188,7 @@ function activateMainChatRun(
 		decision.chatId,
 		decision.runId,
 		decision.lastSeq,
-		decision.agentKey,
+		decision.owner,
 	);
 }
 

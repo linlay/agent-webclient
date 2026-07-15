@@ -495,6 +495,7 @@ describe("registerMainChatRunActivationListener", () => {
 				chatId: "chat_1",
 				runId: "run_new",
 				agentKey: "demo",
+				owner: { kind: "agent", agentKey: "demo" },
 				lastSeq: 0,
 			},
 		});
@@ -509,6 +510,50 @@ describe("registerMainChatRunActivationListener", () => {
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
+	});
+
+	it("attaches an active Team chat without assigning a member agent", () => {
+		const { mockWindow, MockCustomEvent } = setupMockWindow("/");
+		registerMainChatRunActivationListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_team",
+					chats: [{
+						chatId: "chat_team",
+						teamId: "team_1",
+						agentKey: "stale_member",
+					} as Chat],
+				}),
+			},
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			handledRunKeysRef: { current: new Set() },
+		});
+
+		dispatchRunStarted(MockCustomEvent, {
+			chatId: "chat_team",
+			runId: "run_team",
+			teamId: "team_1",
+			agentKey: "member_a",
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+			activeRun: {
+				chatId: "chat_team",
+				runId: "run_team",
+				teamId: "team_1",
+				owner: { kind: "orchestrated-team", teamId: "team_1" },
+				lastSeq: 0,
+			},
+		});
+		expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+			type: "SET_RUN_AGENT_BY_ID",
+		}));
+		const [attach] = eventDetails(mockWindow, "agent:attach-run") as Array<Record<string, unknown>>;
+		expect(attach).toMatchObject({ chatId: "chat_team", runId: "run_team", teamId: "team_1" });
+		expect(attach).not.toHaveProperty("agentKey");
 	});
 
 	it("attaches when the active query session ref is stale and missing", () => {

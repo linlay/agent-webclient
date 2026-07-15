@@ -25,6 +25,7 @@ import {
   registerAwaitingQuestionMeta,
 } from '@/features/tools/lib/awaitingQuestionMeta';
 import { isAwaitingAnswerTimeoutError } from '@/features/tools/lib/awaitingAnswerError';
+import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 
 export const BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY = 'confirm_dialog';
 
@@ -120,6 +121,7 @@ export interface AwaitingRuntimeState {
 
 interface ReduceActiveAwaitingOptions {
   agentKey?: string;
+  owner?: RunOwner;
   pendingSubmitId?: string;
   markRemoteAnswer?: boolean;
 }
@@ -453,10 +455,20 @@ function reduceSingleActiveAwaiting(
     const createdAt =
       readAwaitingCreatedAt(event)
       ?? (current?.key === key ? current.createdAt ?? null : null);
-    const agentKey =
-      eventAgentKey
-      || (current?.key === key ? current.agentKey : '')
-      || toText(fallback.agentKey);
+    const owner =
+      fallback.owner
+      || (current?.key === key ? current.owner : undefined)
+      || toRunOwner({
+        teamId: (event as Record<string, unknown>).teamId,
+        agentKey: eventAgentKey,
+      });
+    const agentKey = owner?.kind === 'agent'
+      ? owner.agentKey
+      : owner
+        ? ''
+        : eventAgentKey
+          || (current?.key === key ? current.agentKey : '')
+          || toText(fallback.agentKey);
     const pendingSubmitId =
       current?.key === key
         ? current.pendingSubmitId || toText(fallback.pendingSubmitId)
@@ -472,6 +484,7 @@ function reduceSingleActiveAwaiting(
         awaitingId,
         runId,
         agentKey,
+        ...(owner ? { owner } : {}),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'question',
@@ -497,6 +510,7 @@ function reduceSingleActiveAwaiting(
         awaitingId,
         runId,
         agentKey,
+        ...(owner ? { owner } : {}),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'approval',
@@ -528,6 +542,7 @@ function reduceSingleActiveAwaiting(
         awaitingId,
         runId,
         agentKey,
+        ...(owner ? { owner } : {}),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'form',
@@ -556,6 +571,7 @@ function reduceSingleActiveAwaiting(
         awaitingId,
         runId,
         agentKey,
+        ...(owner ? { owner } : {}),
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'plan',

@@ -27,6 +27,7 @@ import { toText } from '@/shared/utils/eventUtils';
 import { MAX_EVENTS } from '@/app/state/constants';
 import { appendVisibleDebugEvent } from '@/features/events/lib/debugEventDisplay';
 import type { RunSession } from '@/features/runs/lib/runSession';
+import type { RunOwner } from '@/shared/data/runOwner';
 
 export interface ConversationSnapshot {
   chatId: string;
@@ -166,6 +167,7 @@ export function createLiveQuerySession(input: {
   chatId?: string;
   agentKey?: string;
   teamId?: string;
+  owner?: RunOwner;
 }): LiveQuerySession {
   return {
     requestId: String(input.requestId || '').trim(),
@@ -173,6 +175,7 @@ export function createLiveQuerySession(input: {
     runId: '',
     agentKey: String(input.agentKey || '').trim(),
     teamId: String(input.teamId || '').trim(),
+    owner: input.owner,
     streaming: false,
     abortController: null,
     snapshot: null,
@@ -350,7 +353,7 @@ export function applyPendingSessionUpdates(
 
   for (const event of pendingEvents) {
     const binding = readRunAgentKeyFromEvent(event);
-    if (binding) {
+    if (binding && session.owner?.kind !== 'orchestrated-team') {
       rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
       if (!rs.runId || rs.runId === binding.runId) {
         rs.currentRunAgentKey = binding.agentKey;
@@ -366,7 +369,10 @@ export function applyPendingSessionUpdates(
         },
         event,
         {
-          agentKey: rs.currentRunAgentKey,
+          agentKey: session.owner?.kind === 'agent'
+            ? session.owner.agentKey
+            : rs.currentRunAgentKey,
+          ...(session.owner ? { owner: session.owner } : {}),
         },
       );
       rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
@@ -377,7 +383,7 @@ export function applyPendingSessionUpdates(
       if (event.runId) {
         rs.runId = String(event.runId);
       }
-      if (event.agentKey && event.chatId) {
+      if (event.agentKey && event.chatId && session.owner?.kind !== 'orchestrated-team') {
         rs.chatAgentById.set(String(event.chatId), String(event.agentKey));
       }
       continue;
@@ -389,7 +395,7 @@ export function applyPendingSessionUpdates(
   next.chatId = session.chatId || next.chatId;
   next.runId = session.runId || next.runId;
   next.runAgentById = cloneMap(rs.runAgentById);
-  if (session.runId) {
+  if (session.runId && session.owner?.kind !== 'orchestrated-team') {
     const sessionAgentKey = toText(session.agentKey);
     next.currentRunAgentKey =
       resolveRunAgentKey({

@@ -8,6 +8,7 @@ import {
 } from "@/shared/data";
 import { updateAccessLevel as updateAccessLevelRequest } from "@/shared/data";
 import type { TranslateParams } from "@/shared/i18n";
+import type { RunOwner } from "@/shared/data/runOwner";
 
 type SetAccessLevel = (value: QueryAccessLevel) => void;
 type Translate = (key: string, params?: TranslateParams) => string;
@@ -20,7 +21,7 @@ interface ApplyRuntimeAccessLevelChangeOptions {
   previousAccessLevel: QueryAccessLevel;
   nextAccessLevel: QueryAccessLevel;
   activeRunId: string;
-  activeRunAgentKey: string;
+  activeRunOwner: RunOwner | null;
   isRunActive?: boolean;
   setAccessLevel: SetAccessLevel;
   messageApi: RuntimeAccessMessageApi;
@@ -59,7 +60,7 @@ export async function applyRuntimeAccessLevelChange({
   previousAccessLevel,
   nextAccessLevel,
   activeRunId,
-  activeRunAgentKey,
+  activeRunOwner,
   isRunActive,
   setAccessLevel,
   messageApi,
@@ -73,7 +74,7 @@ export async function applyRuntimeAccessLevelChange({
   }
 
   setAccessLevel(nextAccessLevel);
-  if (!isRunActive || !activeRunId || !activeRunAgentKey) {
+  if (!isRunActive || !activeRunId || !activeRunOwner) {
     return;
   }
 
@@ -81,7 +82,7 @@ export async function applyRuntimeAccessLevelChange({
     const response = await updateAccessLevel({
       requestId: requestIdFactory(),
       runId: activeRunId,
-      agentKey: activeRunAgentKey,
+      owner: activeRunOwner,
       accessLevel: nextAccessLevel,
       reason: "user toggled permission",
     });
@@ -104,7 +105,7 @@ export async function applyRuntimeAccessLevelChange({
 interface UseRuntimeAccessLevelInput {
   accessLevel: QueryAccessLevel;
   activeRunId: string;
-  activeRunAgentKey: string;
+  activeRunOwner: RunOwner | null;
   isRunActive: boolean;
   setAccessLevel: SetAccessLevel;
   messageApi: RuntimeAccessMessageApi;
@@ -114,7 +115,7 @@ interface UseRuntimeAccessLevelInput {
 export function useRuntimeAccessLevel({
   accessLevel,
   activeRunId,
-  activeRunAgentKey,
+  activeRunOwner,
   isRunActive,
   setAccessLevel,
   messageApi,
@@ -130,7 +131,7 @@ export function useRuntimeAccessLevel({
         previousAccessLevel: accessLevel,
         nextAccessLevel,
         activeRunId,
-        activeRunAgentKey,
+        activeRunOwner,
         isRunActive,
         setAccessLevel,
         messageApi,
@@ -140,7 +141,7 @@ export function useRuntimeAccessLevel({
     },
     [
       accessLevel,
-      activeRunAgentKey,
+      activeRunOwner,
       activeRunId,
       isRunActive,
       messageApi,

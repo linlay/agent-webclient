@@ -11,6 +11,8 @@ import type {
   GetChatsOptions,
 	ChatSystemPromptRequest,
   GetMemoryRecordsParams,
+  AccessLevelUpdateParams,
+  QueryLikeParams,
   QueryModelOverride,
   QueryReasoningEffort,
   QueryServiceTier,
@@ -18,6 +20,50 @@ import type {
   BTWStreamParams,
   AdminSkillListResponse,
 } from "@/shared/data/api/client";
+import { runOwnerPayload } from "@/shared/data/runOwner";
+
+type RunSubmitParams = {
+  runId: string;
+  owner: import("@/shared/data/runOwner").RunOwner;
+  chatId?: string;
+  toolId?: string;
+  awaitingId?: string;
+  submitId?: string;
+  params: unknown;
+};
+
+export function buildRunControlPayload(options: QueryLikeParams): Record<string, unknown> {
+  return compactPayload({
+    requestId: options.requestId,
+    chatId: options.chatId,
+    runId: options.runId,
+    steerId: options.steerId,
+    ...runOwnerPayload(options.owner),
+    message: options.message,
+  });
+}
+
+export function buildAccessLevelPayload(options: AccessLevelUpdateParams): Record<string, unknown> {
+  return compactPayload({
+    requestId: options.requestId,
+    runId: options.runId,
+    ...runOwnerPayload(options.owner),
+    accessLevel: options.accessLevel,
+    reason: options.reason,
+  });
+}
+
+export function buildRunSubmitPayload(options: RunSubmitParams): Record<string, unknown> {
+  return compactPayload({
+    chatId: options.chatId,
+    runId: options.runId,
+    ...runOwnerPayload(options.owner),
+    toolId: options.toolId,
+    awaitingId: options.awaitingId,
+    submitId: options.submitId,
+    params: options.params,
+  });
+}
 
 export function compactQueryModelOverride(
   model: QueryModelOverride | undefined,
@@ -52,8 +98,7 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     body.planningMode = options.planningMode === true;
   }
 
-  if (options.agentKey) body.agentKey = options.agentKey;
-  if (options.teamId) body.teamId = options.teamId;
+  Object.assign(body, runOwnerPayload(options.owner));
   if (options.chatId) body.chatId = options.chatId;
   if (options.accessLevel) body.accessLevel = options.accessLevel;
   const model = compactQueryModelOverride(options.model);
@@ -91,23 +136,25 @@ export function buildBTWPayload(options: BTWStreamParams): Record<string, unknow
 
 export function buildAttachPayload(options: AttachStreamParams): {
   runId: string;
-  agentKey: string;
+  agentKey?: string;
+  teamId?: string;
   lastSeq: number;
 } {
   const lastSeq = Number(options.lastSeq ?? 0);
   return {
     runId: String(options.runId || "").trim(),
-    agentKey: String(options.agentKey || "").trim(),
+    ...runOwnerPayload(options.owner),
     lastSeq: Number.isFinite(lastSeq) && lastSeq >= 0 ? lastSeq : 0,
   };
 }
 
 export const dataEndpoints = createEndpointRegistry({
-  accessLevelUpdate: defineEndpoint({
+  accessLevelUpdate: defineEndpoint<AccessLevelUpdateParams, Record<string, unknown>>({
     key: "accessLevel.update",
     path: "/api/access-level",
     method: "POST",
     transport: "auto",
+    payload: buildAccessLevelPayload,
   }),
   adminAgentCreate: defineEndpoint({
     key: "admin.agents.create",
@@ -623,11 +670,12 @@ export const dataEndpoints = createEndpointRegistry({
         line: params.line,
       }),
   }),
-  interrupt: defineEndpoint({
+  interrupt: defineEndpoint<QueryLikeParams, Record<string, unknown>>({
     key: "runs.interrupt",
     path: "/api/interrupt",
     method: "POST",
     transport: "auto",
+    payload: buildRunControlPayload,
   }),
   learn: defineEndpoint({
     key: "chat.learn",
@@ -742,17 +790,19 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  steer: defineEndpoint({
+  steer: defineEndpoint<QueryLikeParams, Record<string, unknown>>({
     key: "runs.steer",
     path: "/api/steer",
     method: "POST",
     transport: "auto",
+    payload: buildRunControlPayload,
   }),
-  submit: defineEndpoint({
+  submit: defineEndpoint<RunSubmitParams, Record<string, unknown>>({
     key: "runs.submit",
     path: "/api/submit",
     method: "POST",
     transport: "auto",
+    payload: buildRunSubmitPayload,
   }),
   teams: defineEndpoint({
     key: "teams.list",

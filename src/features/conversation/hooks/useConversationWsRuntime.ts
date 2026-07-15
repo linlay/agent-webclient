@@ -10,6 +10,12 @@ import {
 	type Chat,
 } from "@/app/state/types";
 import { dataEndpoints, ensureAccessToken } from "@/shared/data";
+import {
+	runOwnerPayload,
+	sameRunOwner,
+	toRunOwner,
+	type RunOwner,
+} from "@/shared/data/runOwner";
 import { markDebugEventHidden } from "@/features/events/lib/debugEventDisplay";
 import { resolveChatSummaryActiveRun } from "@/features/chats/lib/chatRunState";
 import {
@@ -52,6 +58,7 @@ import {
 } from "@/features/conversation/lib/conversationSession";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { dispatchRunStartedPushEvent } from "@/features/runs/lib/mainChatRunActivation";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
@@ -160,15 +167,21 @@ function toChatPatchFromPushEvent(
 		chatPatch.firstAgentName = firstAgentName;
 	}
 
-	const agentKey = String(event.agentKey || raw.firstAgentKey || "").trim();
+	const teamId = String(raw.teamId || "").trim();
+	const owner = toRunOwner({
+		teamId,
+		agentKey: event.agentKey || raw.firstAgentKey,
+	});
+	const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
 	if (agentKey) {
 		chatPatch.agentKey = agentKey;
 		chatPatch.firstAgentKey = agentKey;
 	}
-
-	const teamId = String(raw.teamId || "").trim();
 	if (teamId) {
 		chatPatch.teamId = teamId;
+	}
+	if (owner) {
+		chatPatch.owner = owner;
 	}
 
 	const source = String(raw.source || "").trim();
@@ -184,9 +197,11 @@ function toChatPatchFromPushEvent(
 	if (hasActiveRun !== undefined) {
 		chatPatch.hasActiveRun = hasActiveRun;
 		chatPatch.activeRun = hasActiveRun
-			? {
+		? {
 					runId,
 					...(agentKey ? { agentKey } : {}),
+					...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+					...(owner ? { owner } : {}),
 				}
 			: null;
 	}
@@ -379,6 +394,7 @@ type ActiveAttachState = {
 	runId: string;
 	chatId: string;
 	agentKey: string;
+	owner: RunOwner;
 	controller: AbortController;
 	abort: () => void;
 };
@@ -394,6 +410,8 @@ type DetachRunDetail = {
 	chatId?: unknown;
 	runId?: unknown;
 	agentKey?: unknown;
+	teamId?: unknown;
+	owner?: RunOwner;
 	reason?: unknown;
 };
 
@@ -406,20 +424,27 @@ interface RequestWsDetachRunOptions {
 	logMissing?: boolean;
 }
 
-function resolveAttachAgentKey(
+function resolveAttachOwner(
 	state: AppState,
 	chatId: string,
 	runId: string,
 	detail?: Record<string, unknown>,
-): string {
-	return resolveRunAgentKey({
-		runId,
-		routingAgentKey: detail?.agentKey,
-		currentRunAgentKey: state.currentRunAgentKey,
-		runAgentById: state.runAgentById,
+): RunOwner | null {
+	const runOwner = toRunOwner({
+		agentKey: resolveRunAgentKey({
+			runId,
+			runAgentById: state.runAgentById,
+			routingAgentKey: state.currentRunAgentKey,
+			chatId,
+			chatAgentById: state.chatAgentById,
+			chats: state.chats,
+		}),
+	});
+	return resolveRunOwner({
 		chatId,
-		chatAgentById: state.chatAgentById,
 		chats: state.chats,
+		currentRunOwner: runOwner,
+		eventIdentity: { teamId: detail?.teamId, agentKey: detail?.agentKey },
 	});
 }
 
@@ -436,7 +461,7 @@ function normalizeDetachReason(value: unknown): DetachRunReason {
 function resolveDetachRunTarget(
 	options: RequestWsDetachRunOptions,
 	detail: DetachRunDetail = {},
-): { chatId: string; runId: string; agentKey: string; reason: DetachRunReason } | null {
+): { chatId: string; runId: string; owner: RunOwner; reason: DetachRunReason } | null {
 	const state = options.stateRef.current;
 	const activeRequestId = toText(options.activeQuerySessionRequestIdRef.current);
 	const session = activeRequestId
@@ -453,22 +478,29 @@ function resolveDetachRunTarget(
 	if (!runId) {
 		return null;
 	}
-	const agentKey = resolveRunAgentKey({
-		runId,
-		routingAgentKey: detail.agentKey || session?.agentKey,
-		currentRunAgentKey: state.currentRunAgentKey,
-		runAgentById: state.runAgentById,
+	const owner = resolveRunOwner({
 		chatId,
-		chatAgentById: state.chatAgentById,
 		chats: state.chats,
+		currentRunOwner: detail.owner || toRunOwner({
+			agentKey: resolveRunAgentKey({
+				runId,
+				runAgentById: state.runAgentById,
+				routingAgentKey: state.currentRunAgentKey,
+				chatId,
+				chatAgentById: state.chatAgentById,
+				chats: state.chats,
+			}),
+		}),
+		sessionOwner: session?.owner,
+		eventIdentity: { teamId: detail.teamId, agentKey: detail.agentKey || session?.agentKey },
 	});
-	if (!agentKey) {
+	if (!owner) {
 		return null;
 	}
 	return {
 		chatId,
 		runId,
-		agentKey,
+		owner,
 		reason: normalizeDetachReason(detail.reason),
 	};
 }
@@ -483,7 +515,7 @@ function requestWsDetachRun(
 		if (options.logMissing) {
 			appendWsDebug(
 				options.dispatch,
-				`[ws detach] skipped: missing runId or agentKey (chatId=${toText(detail.chatId) || "-"})`,
+			`[ws detach] skipped: missing runId or owner (chatId=${toText(detail.chatId) || "-"})`,
 			);
 		}
 		return;
@@ -502,7 +534,7 @@ function requestWsDetachRun(
 		type: dataEndpoints.detach.path,
 		payload: {
 			runId: target.runId,
-			agentKey: target.agentKey,
+			...runOwnerPayload(target.owner),
 			reason: target.reason,
 		},
 	}).then((response) => {
@@ -547,7 +579,7 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 		session.runId = nextRunId;
 	}
 	const nextAgentKey = toText(event.agentKey);
-	if (nextAgentKey) {
+	if (nextAgentKey && session.owner?.kind !== "orchestrated-team") {
 		session.agentKey = nextAgentKey;
 	}
 	const nextTeamId = readEventTeamId(event);
@@ -624,7 +656,8 @@ export function registerAttachRunListener(
 		const detail = (event as CustomEvent).detail as Record<string, unknown> | undefined;
 		const runId = String(detail?.runId || "").trim();
 		const chatId = String(detail?.chatId || "").trim();
-		const agentKey = resolveAttachAgentKey(options.stateRef.current, chatId, runId, detail);
+		const owner = resolveAttachOwner(options.stateRef.current, chatId, runId, detail);
+		const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
 		const lastSeqRaw = Number(detail?.lastSeq ?? 0);
 		const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 		if (!runId || !chatId) {
@@ -643,17 +676,17 @@ export function registerAttachRunListener(
 			});
 			return;
 		}
-		if (!agentKey) {
+		if (!owner) {
 			options.dispatch({
 				type: "APPEND_DEBUG",
-				line: `[ws attach] skipped: missing agentKey (chatId=${chatId}, runId=${runId})`,
+				line: `[ws attach] skipped: missing owner (chatId=${chatId}, runId=${runId})`,
 			});
 			dispatchRunAttachDebugEvent(options.dispatch, {
 				stage: "attachRunIgnored",
 				chatId,
 				runId,
 				agentKey,
-				reason: "missing_agent_key",
+				reason: "missing_owner",
 				...readRunAttachDebugSnapshot({
 					state: options.stateRef.current,
 					querySessionsRef: options.querySessionsRef,
@@ -664,7 +697,7 @@ export function registerAttachRunListener(
 			return;
 		}
 		const current = options.activeAttachRef.current;
-		if (current && current.runId === runId && current.chatId === chatId && current.agentKey === agentKey) {
+		if (current && current.runId === runId && current.chatId === chatId && sameRunOwner(current.owner, owner)) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
 				stage: "attachRunIgnored",
 				chatId,
@@ -711,7 +744,8 @@ export function registerAttachRunListener(
 				{
 					chatId: current.chatId,
 					runId: current.runId,
-					agentKey: current.agentKey,
+					owner: current.owner,
+					...(current.owner.kind === "agent" ? { agentKey: current.owner.agentKey } : {}),
 					reason: "attach_switch",
 				},
 			);
@@ -742,9 +776,11 @@ export function registerAttachRunListener(
 		session = createLiveQuerySession({
 			requestId,
 			chatId,
+			owner,
 		});
 		session.runId = runId;
 		session.agentKey = agentKey;
+		session.teamId = owner.kind === "orchestrated-team" ? owner.teamId : "";
 		session.streaming = true;
 		session.abortController = controller;
 
@@ -756,7 +792,7 @@ export function registerAttachRunListener(
 				type: dataEndpoints.attach.path,
 				payload: {
 					runId,
-					agentKey,
+					...runOwnerPayload(owner),
 					lastSeq,
 				},
 				signal: controller.signal,
@@ -831,6 +867,7 @@ export function registerAttachRunListener(
 			runId,
 			chatId,
 			agentKey,
+			owner,
 			controller,
 			abort: () => {
 				for (const fn of abortFns) {
@@ -840,8 +877,10 @@ export function registerAttachRunListener(
 			},
 		};
 		options.dispatch({ type: "SET_RUN_ID", runId });
-		options.dispatch({ type: "SET_RUN_AGENT_BY_ID", runId, agentKey });
-		options.dispatch({ type: "SET_CURRENT_RUN_AGENT_KEY", agentKey });
+		if (owner.kind === "agent") {
+			options.dispatch({ type: "SET_RUN_AGENT_BY_ID", runId, agentKey });
+			options.dispatch({ type: "SET_CURRENT_RUN_AGENT_KEY", agentKey });
+		}
 		options.dispatch({ type: "SET_REQUEST_ID", requestId });
 		options.dispatch({ type: "SET_STREAMING", streaming: true });
 		options.dispatch({ type: "SET_ABORT_CONTROLLER", controller });
@@ -868,7 +907,8 @@ export function registerAttachRunListener(
 				{
 					chatId: current.chatId,
 					runId: current.runId,
-					agentKey: current.agentKey,
+					owner: current.owner,
+					...(current.owner.kind === "agent" ? { agentKey: current.owner.agentKey } : {}),
 					reason: "transport_cleanup",
 				},
 			);
@@ -1030,15 +1070,15 @@ function buildWsClient(
 			if (type === "run.start") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				const runId = String(liveEvent.runId || "").trim();
-				const agentKey = resolveRunAgentKey({
-					runId,
-					metadataAgentKey: liveEvent.agentKey,
-					runAgentById: options.stateRef.current.runAgentById,
+				const owner = resolveRunOwner({
 					chatId: eventChatId,
-					chatAgentById: options.stateRef.current.chatAgentById,
 					chats: options.stateRef.current.chats,
-					fallbackAgentKey: "",
+					eventIdentity: {
+						teamId: readEventTeamId(liveEvent),
+						agentKey: liveEvent.agentKey,
+					},
 				});
+				const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
 				dispatchRunAttachDebugEvent(options.dispatch, {
 					stage: "runStartedCandidate",
 					chatId: eventChatId,
@@ -1051,12 +1091,15 @@ function buildWsClient(
 						activeAttachRef: options.activeAttachRef,
 					}),
 				});
-				dispatchRunStartedPushEvent({
-					chatId: eventChatId,
-					runId,
-					agentKey,
-					lastSeq: 0,
-				});
+				if (owner) {
+					dispatchRunStartedPushEvent({
+						chatId: eventChatId,
+						runId,
+						agentKey,
+						owner,
+						lastSeq: 0,
+					});
+				}
 				return;
 			}
 

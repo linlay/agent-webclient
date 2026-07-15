@@ -1,4 +1,5 @@
 import type { AIAwaitSubmitParamData } from "@/app/state/types";
+import type { RunOwner } from "@/shared/data/runOwner";
 import {
 	buildResourceUrl,
 	buildWorkspaceFileUrl,
@@ -643,7 +644,7 @@ export function saveMemoryScope(
 
 export function submitTool(params: {
 	runId: string;
-	agentKey: string;
+	owner: RunOwner;
 	toolId: string;
 	params: Record<string, unknown>;
 }): Promise<ApiResponse> {
@@ -656,7 +657,7 @@ export function submitTool(params: {
 export function submitAwaiting(params: {
 	chatId?: string;
 	runId: string;
-	agentKey: string;
+	owner: RunOwner;
 	awaitingId: string;
 	submitId?: string;
 	params: AIAwaitSubmitParamData[];

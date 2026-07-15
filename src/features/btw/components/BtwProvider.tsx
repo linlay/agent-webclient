@@ -20,10 +20,8 @@ import {
 import { applyLiveEventCommand } from "@/features/conversation/lib/liveEventDispatch";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
 import { executeAttachRunSse, executeBTWStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
-import {
-  resolvePreferredAgentKey,
-  resolvePreferredTeamId,
-} from "@/features/composer/lib/queryRouting";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { toRunOwner } from "@/shared/data/runOwner";
 import {
   createRequestId,
   interruptBTWRun,
@@ -32,6 +30,7 @@ import {
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
+import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
 import {
   persistBTWSessions,
   readPersistedBTWSessions,
@@ -128,9 +127,10 @@ function createSession(
     runId: persisted?.runId || "",
     requestId: persisted?.requestId || "",
     agentKey: persisted?.agentKey || "",
+    owner: persisted?.owner,
     status: restoredStatus,
     interruptReady: Boolean(
-      restoredRunning && persisted?.runId && persisted?.agentKey,
+      restoredRunning && persisted?.runId && Boolean(persisted?.owner || persisted?.agentKey),
     ),
     interruptPending: false,
     draft: persisted?.draft || "",
@@ -254,11 +254,18 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       if (eventBTWID) runtime.session.btwId = eventBTWID;
       if (event.runId) runtime.session.runId = toText(event.runId);
       if (event.requestId) runtime.session.requestId = toText(event.requestId);
-      if (event.agentKey) runtime.session.agentKey = toText(event.agentKey);
+      const eventTeamId = readEventTeamId(event);
+      if (eventTeamId && !runtime.session.owner) {
+        runtime.session.owner = { kind: "orchestrated-team", teamId: eventTeamId };
+        runtime.session.agentKey = "";
+      } else if (event.agentKey && runtime.session.owner?.kind !== "orchestrated-team") {
+        runtime.session.agentKey = toText(event.agentKey);
+        runtime.session.owner = runtime.session.owner || toRunOwner({ agentKey: event.agentKey }) || undefined;
+      }
       if (
         runtime.session.status === "running" &&
         runtime.session.runId &&
-        runtime.session.agentKey
+        runtime.session.owner
       ) {
         runtime.session.interruptReady = true;
       }
@@ -363,9 +370,15 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.session.requestId = createRequestId("req");
       runtime.session.runId = createRequestId("run");
       runtime.session.lastSeq = 0;
-      runtime.session.agentKey =
-        runtime.session.agentKey ||
-        resolvePreferredAgentKey(stateRef.current, { chatId: normalizedChatId });
+      runtime.session.owner = resolveRunOwner({
+        chatId: normalizedChatId,
+        chats: stateRef.current.chats,
+        sessionOwner: runtime.session.owner,
+        fallbackOwner: toRunOwner({ agentKey: runtime.session.agentKey }),
+      }) || undefined;
+      runtime.session.agentKey = runtime.session.owner?.kind === "agent"
+        ? runtime.session.owner.agentKey
+        : "";
       runtime.generation += 1;
       const generation = runtime.generation;
 
@@ -419,7 +432,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
             if (identity.btwId) runtime.session.btwId = identity.btwId;
             if (identity.runId) runtime.session.runId = identity.runId;
             runtime.session.interruptReady = Boolean(
-              identity.runId && runtime.session.agentKey,
+              identity.runId && runtime.session.owner,
             );
             publish(runtime);
           },
@@ -558,13 +571,13 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       ) {
         return false;
       }
-      const agentKey =
-        runtime.session.agentKey ||
-        resolvePreferredAgentKey(stateRef.current, { chatId: parentChatId });
-      const teamId = resolvePreferredTeamId(stateRef.current, {
+      const owner = resolveRunOwner({
         chatId: parentChatId,
+        chats: stateRef.current.chats,
+        sessionOwner: runtime.session.owner,
+        fallbackOwner: toRunOwner({ agentKey: runtime.session.agentKey }),
       });
-      if (!agentKey) return false;
+      if (!owner) return false;
       const generation = runtime.generation;
       const runId = runtime.session.runId;
       runtime.session.interruptPending = true;
@@ -575,8 +588,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
           requestId: createRequestId("req"),
           chatId: parentChatId,
           runId,
-          agentKey,
-          teamId: teamId || undefined,
+          owner,
           message: "",
           planningMode: false,
         });
@@ -650,19 +662,21 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         continue;
       }
       const runtime = getRuntime(session.parentChatId);
-      const agentKey =
-        session.agentKey ||
-        resolvePreferredAgentKey(stateRef.current, {
-          chatId: session.parentChatId,
+      const owner = resolveRunOwner({
+        chatId: session.parentChatId,
+        chats: stateRef.current.chats,
+        sessionOwner: session.owner,
+        fallbackOwner: toRunOwner({ agentKey: session.agentKey }),
       });
-      if (!agentKey) continue;
+      if (!owner) continue;
       if (
         !restoredRunIdsRef.current ||
         !claimRestoredBTWRun(restoredRunIdsRef.current, session)
       ) {
         continue;
       }
-      runtime.session.agentKey = agentKey;
+      runtime.session.owner = owner;
+      runtime.session.agentKey = owner.kind === "agent" ? owner.agentKey : "";
       runtime.session.interruptReady = true;
       const generation = runtime.generation;
       const attachAbortController = new AbortController();
@@ -674,7 +688,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       void executeAttachRunSse({
         params: {
           runId: session.runId,
-          agentKey,
+          owner,
           lastSeq: 0,
           signal: attachAbortController.signal,
         },

@@ -1302,7 +1302,7 @@ describe("routedClient", () => {
 		await expect(
 			proxy.updateAccessLevel({
 				requestId: "req_access",
-				agentKey: "agent_a",
+				owner: { kind: "agent", agentKey: "agent_a" },
 				runId: "run_1",
 				accessLevel: "auto_approve",
 				reason: "user toggled permission",
@@ -1595,6 +1595,7 @@ describe("routedClient", () => {
 			proxy.interruptChat({
 				requestId: "req_1",
 				chatId: "chat_1",
+				owner: { kind: "agent", agentKey: "agent_a" },
 				message: "stop",
 			}),
 		).rejects.toBe(error);
@@ -1807,7 +1808,7 @@ describe("routedClient", () => {
 		await expect(
 			proxy.submitTool({
 				runId: "run_1",
-				agentKey: "demo-agent",
+				owner: { kind: "agent", agentKey: "demo-agent" },
 				toolId: "tool_1",
 				params: { city: "beijing" },
 			}),
@@ -1816,7 +1817,7 @@ describe("routedClient", () => {
 			proxy.submitAwaiting({
 				chatId: "chat_1",
 				runId: "run_1",
-				agentKey: "demo-agent",
+				owner: { kind: "agent", agentKey: "demo-agent" },
 				awaitingId: "await_1",
 				submitId: "submit_1",
 				params: [],
@@ -1826,14 +1827,14 @@ describe("routedClient", () => {
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.submitTool).toHaveBeenCalledWith({
 			runId: "run_1",
-			agentKey: "demo-agent",
+			owner: { kind: "agent", agentKey: "demo-agent" },
 			toolId: "tool_1",
 			params: { city: "beijing" },
 		});
 		expect(mockApiClient.submitAwaiting).toHaveBeenCalledWith({
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo-agent",
+			owner: { kind: "agent", agentKey: "demo-agent" },
 			awaitingId: "await_1",
 			submitId: "submit_1",
 			params: [],
@@ -1859,11 +1860,13 @@ describe("routedClient", () => {
 		const interruptParams = {
 			requestId: "req_1",
 			chatId: "chat_1",
+			owner: { kind: "agent", agentKey: "demo-agent" },
 			message: "stop",
 		};
 		const steerParams = {
 			requestId: "req_2",
 			chatId: "chat_1",
+			owner: { kind: "agent", agentKey: "demo-agent" },
 			message: "change direction",
 		};
 

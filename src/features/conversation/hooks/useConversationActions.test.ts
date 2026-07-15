@@ -1304,6 +1304,7 @@ describe('replayEvent tool migration', () => {
           runId: 'run_1',
           lastSeq: 31,
           agentKey: 'askUser.demo',
+          owner: { kind: 'agent', agentKey: 'askUser.demo' },
         },
       }),
     );
@@ -1318,6 +1319,7 @@ describe('replayEvent tool migration', () => {
         activeRun: {
           runId: 'run_active',
           agentKey: 'askUser.demo',
+          owner: { kind: 'agent', agentKey: 'askUser.demo' },
           lastSeq: 7,
         },
         runs: [],
@@ -1335,6 +1337,7 @@ describe('replayEvent tool migration', () => {
           chatId: 'chat-active',
           runId: 'run_active',
           agentKey: 'askUser.demo',
+          owner: { kind: 'agent', agentKey: 'askUser.demo' },
           lastSeq: 7,
         },
       }),
@@ -1669,6 +1672,7 @@ describe('replayEvent tool migration', () => {
           chatId: 'chat_old',
           runId: 'run_old',
           agentKey: 'agent_old',
+          owner: { kind: 'agent', agentKey: 'agent_old' },
           reason: 'new_conversation',
         },
       }),

@@ -189,7 +189,7 @@ describe("registerSseAttachRunListener", () => {
 		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({
 			params: expect.objectContaining({
 				runId: "run_1",
-				agentKey: "agent_alpha",
+				owner: { kind: "agent", agentKey: "agent_alpha" },
 				lastSeq: 5,
 				signal: expect.any(AbortSignal),
 			}),
@@ -251,7 +251,7 @@ describe("registerSseAttachRunListener", () => {
 
 		expect(executeAttachRunSseImpl).toHaveBeenCalledWith(expect.objectContaining({
 			params: expect.objectContaining({
-				agentKey: "agent_run",
+				owner: { kind: "agent", agentKey: "agent_run" },
 			}),
 		}));
 		expect(dispatch).toHaveBeenCalledWith({
@@ -289,7 +289,7 @@ describe("registerSseAttachRunListener", () => {
 			requestId: "req_1",
 			query: "attached query",
 			references: [{ name: "demo.txt", sizeBytes: 12 }],
-			timestamp: 100,
+			timestamp: 1_710_000_000_000,
 		});
 
 		expect(dispatch).toHaveBeenCalledWith({

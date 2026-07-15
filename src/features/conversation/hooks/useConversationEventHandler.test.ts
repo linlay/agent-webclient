@@ -756,6 +756,7 @@ describe('useConversationEventHandler live chat binding', () => {
         chatId: 'chat-from-run-start',
         runId: 'run_1',
         agentKey: 'zenmi',
+        owner: { kind: 'agent', agentKey: 'zenmi' },
       },
     });
   });

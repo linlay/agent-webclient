@@ -13,6 +13,14 @@ function syncChatAgentBinding(
 	chat: Partial<Chat> | null | undefined,
 ): Map<string, string> {
 	const chatId = String(chat?.chatId || "").trim();
+	if (chat?.owner?.kind === "orchestrated-team" || String(chat?.teamId || "").trim()) {
+		if (!chatId || !source.has(chatId)) {
+			return source;
+		}
+		const next = new Map(source);
+		next.delete(chatId);
+		return next;
+	}
 	const agentKey = String(chat?.agentKey || chat?.firstAgentKey || "").trim();
 	if (!chatId || !agentKey || source.get(chatId) === agentKey) {
 		return source;

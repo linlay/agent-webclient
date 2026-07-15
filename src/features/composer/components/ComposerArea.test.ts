@@ -309,7 +309,7 @@ describe("ComposerArea", () => {
     expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
       expect.objectContaining({
         activeRunId: "run_1",
-        activeRunAgentKey: "agent_a",
+        activeRunOwner: { kind: "agent", agentKey: "agent_a" },
         isRunActive: true,
       }),
     );
@@ -333,7 +333,7 @@ describe("ComposerArea", () => {
     expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
       expect.objectContaining({
         activeRunId: "run_1",
-        activeRunAgentKey: "agent_a",
+        activeRunOwner: { kind: "agent", agentKey: "agent_a" },
         isRunActive: true,
       }),
     );
@@ -353,7 +353,7 @@ describe("ComposerArea", () => {
     expect(mockUseRuntimeAccessLevel).toHaveBeenCalledWith(
       expect.objectContaining({
         activeRunId: "run_stale",
-        activeRunAgentKey: "agent_a",
+        activeRunOwner: { kind: "agent", agentKey: "agent_a" },
         isRunActive: false,
       }),
     );

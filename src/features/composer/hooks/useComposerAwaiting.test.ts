@@ -205,7 +205,7 @@ describe("submitComposerAwaiting", () => {
 		expect(submitAwaitingImpl).toHaveBeenCalledWith({
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "agent_run",
+			owner: { kind: "agent", agentKey: "agent_run" },
 			awaitingId: "await_1",
 			submitId: "submit_test",
 			params: [],

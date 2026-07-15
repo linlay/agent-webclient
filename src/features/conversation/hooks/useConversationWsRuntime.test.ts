@@ -1218,6 +1218,40 @@ describe("registerDetachRunListener", () => {
 		cleanup();
 	});
 
+	it("detaches a saved Team chat with only teamId despite a stale member agent", () => {
+		const requestMock = jest.fn().mockResolvedValue({
+			data: { accepted: true, status: "detached" },
+		});
+		const cleanup = registerDetachRunListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					chatId: "chat_team",
+					runId: "run_team",
+					chats: [{
+						chatId: "chat_team",
+						teamId: "team_1",
+						agentKey: "stale_member",
+					} as Chat],
+					runAgentById: new Map([["run_team", "member_from_event"]]),
+				}),
+			},
+			querySessionsRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => ({ request: requestMock }) as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", {
+			detail: { chatId: "chat_team", runId: "run_team", reason: "chat_switch" },
+		}));
+
+		expect(requestMock).toHaveBeenCalledWith({
+			type: "/api/detach",
+			payload: { runId: "run_team", teamId: "team_1", reason: "chat_switch" },
+		});
+		cleanup();
+	});
+
 	it("skips detach when the agent key cannot be resolved", () => {
 		const requestMock = jest.fn();
 		const cleanup = registerDetachRunListener({
@@ -1236,7 +1270,7 @@ describe("registerDetachRunListener", () => {
 		expect(requestMock).not.toHaveBeenCalled();
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_DEBUG",
-			line: "[ws detach] skipped: missing runId or agentKey (chatId=chat_1)",
+			line: "[ws detach] skipped: missing runId or owner (chatId=chat_1)",
 		});
 
 		cleanup();
@@ -1410,6 +1444,43 @@ describe("registerAttachRunListener", () => {
 			runId: "run_1",
 			agentKey: "agent_run",
 		});
+		cleanup();
+	});
+
+	it("attaches a saved Team chat with only teamId despite a member event", () => {
+		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+		};
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: {
+				current: createState({
+					transportMode: "ws",
+					chats: [{
+						chatId: "chat_team",
+						teamId: "team_1",
+						agentKey: "stale_member",
+					} as Chat],
+					runAgentById: new Map([["run_team", "member_from_event"]]),
+				}),
+			},
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef: { current: new Map() },
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_team", runId: "run_team", agentKey: "member_from_event" },
+		}));
+
+		const payload = streamMock.mock.calls[0][0].payload;
+		expect(payload).toEqual({ runId: "run_team", teamId: "team_1", lastSeq: 0 });
+		expect(payload).not.toHaveProperty("agentKey");
 		cleanup();
 	});
 
@@ -1812,10 +1883,10 @@ describe("connectWsTransport continued", () => {
 				agentKey: "agent_started",
 				firstAgentKey: "agent_started",
 				hasActiveRun: true,
-				activeRun: {
+				activeRun: expect.objectContaining({
 					runId: "run_started",
 					agentKey: "agent_started",
-				},
+				}),
 				updatedAt: EPOCH_MS + 30,
 			}),
 		});
@@ -1834,6 +1905,7 @@ describe("connectWsTransport continued", () => {
 					chatId: "chat_active",
 					runId: "run_started",
 					agentKey: "agent_started",
+					owner: { kind: "agent", agentKey: "agent_started" },
 					lastSeq: 0,
 				},
 			}),
@@ -1987,6 +2059,7 @@ describe("connectWsTransport continued", () => {
 				chatId: "chat_active",
 				runId: "run_new",
 				agentKey: "agent_active",
+				owner: { kind: "agent", agentKey: "agent_active" },
 				lastSeq: 0,
 			},
 		});
@@ -2018,6 +2091,7 @@ describe("connectWsTransport continued", () => {
 					chatId: "chat_active",
 					runId: "run_new",
 					agentKey: "agent_active",
+					owner: { kind: "agent", agentKey: "agent_active" },
 					lastSeq: 0,
 				},
 			},
@@ -2157,6 +2231,7 @@ describe("connectWsTransport continued", () => {
 					chatId: "chat_active",
 					runId: "run_new",
 					agentKey: "agent_active",
+					owner: { kind: "agent", agentKey: "agent_active" },
 					lastSeq: 0,
 				},
 			},

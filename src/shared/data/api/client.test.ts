@@ -294,6 +294,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_1',
       message: '显示广州的天气',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -301,6 +302,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_1',
       message: '显示广州的天气',
+      agentKey: 'demo-agent',
     });
     expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
@@ -346,7 +348,7 @@ describe('data client query payloads', () => {
       planningMode: true,
       agentMode: 'CODER',
       chatId: 'chat_1',
-      agentKey: 'demoViewport',
+      owner: { kind: 'agent', agentKey: 'demoViewport' },
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -367,6 +369,7 @@ describe('data client query payloads', () => {
       message: '普通执行',
       planningMode: false,
       agentMode: 'CODER',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
     });
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -374,6 +377,7 @@ describe('data client query payloads', () => {
       requestId: 'req_coder_false',
       message: '普通执行',
       planningMode: false,
+      agentKey: 'demo-agent',
     });
     expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
   });
@@ -384,12 +388,14 @@ describe('data client query payloads', () => {
       message: '非 CODER 请求',
       planningMode: true,
       agentMode: 'REACT',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
     });
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_react_plan_stale',
       message: '非 CODER 请求',
+      agentKey: 'demo-agent',
     });
     expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
@@ -404,6 +410,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_desktop',
       message: '当前页面是什么',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -411,6 +418,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_desktop',
       message: '当前页面是什么',
+      agentKey: 'demo-agent',
     });
     expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
   });
@@ -443,6 +451,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_desktop_snapshot',
       message: '当前页面是什么',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       params: { city: 'beijing' },
     });
 
@@ -451,6 +460,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_desktop_snapshot',
       message: '当前页面是什么',
+      agentKey: 'demo-agent',
       params: { city: 'beijing' },
     });
   });
@@ -459,6 +469,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_access_model',
       message: '继续',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       accessLevel: 'auto_approve',
       model: {
         key: 'gpt-5.5',
@@ -472,6 +483,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_access_model',
       message: '继续',
+      agentKey: 'demo-agent',
       accessLevel: 'auto_approve',
       model: {
         key: 'gpt-5.5',
@@ -485,6 +497,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_3',
       message: '',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       references: [{ id: 'upload_1', name: 'spec.md' }],
     });
 
@@ -492,6 +505,7 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).toEqual({
       requestId: 'req_3',
       message: '',
+      agentKey: 'demo-agent',
       references: [{ id: 'upload_1', name: 'spec.md' }],
     });
   });
@@ -885,14 +899,14 @@ describe('data client query payloads', () => {
       requestId: 'req_interrupt',
       chatId: 'chat_1',
       runId: 'run_1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       message: '',
     });
     await steerChat({
       requestId: 'req_steer',
       chatId: 'chat_1',
       runId: 'run_1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       steerId: '550e8400-e29b-41d4-a716-446655440000',
       message: '再试一次',
     });
@@ -930,8 +944,7 @@ describe('data client query payloads', () => {
       requestId: 'req_btw_interrupt',
       chatId: 'parent_chat_1',
       runId: 'btw_run_1',
-      agentKey: 'demo-agent',
-      teamId: 'demo-team',
+      owner: { kind: 'orchestrated-team', teamId: 'demo-team' },
       message: '',
     });
 
@@ -943,7 +956,6 @@ describe('data client query payloads', () => {
       requestId: 'req_btw_interrupt',
       chatId: 'parent_chat_1',
       runId: 'btw_run_1',
-      agentKey: 'demo-agent',
       teamId: 'demo-team',
       message: '',
     });
@@ -959,7 +971,7 @@ describe('data client query payloads', () => {
     await updateAccessLevel({
       requestId: 'req_access',
       runId: 'run_1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       accessLevel: 'auto_approve',
       reason: 'user toggled permission',
     });
@@ -979,14 +991,14 @@ describe('data client query payloads', () => {
   it('posts agentKey for run submit requests', async () => {
     await submitTool({
       runId: 'run_1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       toolId: 'tool_1',
       params: { city: 'beijing' },
     });
     await submitAwaiting({
       chatId: 'chat_1',
       runId: 'run_1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       awaitingId: 'await_1',
       submitId: 'submit_1',
       params: [],
@@ -1002,6 +1014,60 @@ describe('data client query payloads', () => {
     expect(awaitingPayload.agentKey).toBe('demo-agent');
     expect(awaitingPayload.chatId).toBe('chat_1');
     expect(awaitingPayload.submitId).toBe('submit_1');
+  });
+
+  it('serializes every orchestrated Team run request with only teamId', async () => {
+    const owner = { kind: 'orchestrated-team' as const, teamId: 'team_orchestrated' };
+
+    await createQueryStream({
+      requestId: 'req_team_query',
+      chatId: 'chat_team',
+      message: 'delegate this',
+      owner,
+    });
+    await createAttachStream({ runId: 'run_team', owner, lastSeq: 3 });
+    await submitTool({ runId: 'run_team', owner, toolId: 'tool_1', params: {} });
+    await submitAwaiting({
+      chatId: 'chat_team',
+      runId: 'run_team',
+      owner,
+      awaitingId: 'await_1',
+      submitId: 'submit_1',
+      params: [],
+    });
+    await interruptChat({
+      requestId: 'req_team_interrupt',
+      chatId: 'chat_team',
+      runId: 'run_team',
+      owner,
+      message: '',
+    });
+    await steerChat({
+      requestId: 'req_team_steer',
+      chatId: 'chat_team',
+      runId: 'run_team',
+      owner,
+      steerId: '550e8400-e29b-41d4-a716-446655440000',
+      message: 'keep going',
+    });
+    await updateAccessLevel({
+      requestId: 'req_team_access',
+      runId: 'run_team',
+      owner,
+      accessLevel: 'auto_approve',
+    });
+
+    const bodies = [0, 2, 3, 4, 5, 6].map((index) =>
+      JSON.parse(String((fetchMock.mock.calls[index] as [string, RequestInit])[1].body)),
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0])
+      .toContain('teamId=team_orchestrated');
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0])
+      .not.toContain('agentKey=');
+    for (const body of bodies) {
+      expect(body).toHaveProperty('teamId', 'team_orchestrated');
+      expect(body).not.toHaveProperty('agentKey');
+    }
   });
 
   it('posts chatId and runId for markChatRead', async () => {
@@ -1497,6 +1563,7 @@ describe('data client query payloads', () => {
     await createQueryStream({
       requestId: 'req_sse',
       message: '继续',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
@@ -1510,7 +1577,7 @@ describe('data client query payloads', () => {
 
     await createAttachStream({
       runId: 'run id/1',
-      agentKey: 'demo-agent',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
       lastSeq: 12,
     });
 

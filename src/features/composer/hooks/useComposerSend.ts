@@ -14,10 +14,9 @@ import {
   steerChat,
 } from "@/shared/data";
 import {
-  resolvePreferredAgentKey,
-  resolvePreferredTeamId,
-} from "@/features/composer/lib/queryRouting";
-import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
+  resolvePreferredRunOwner,
+  resolveRunOwner,
+} from "@/features/runs/lib/runOwner";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
   SlashCommandAvailability,
@@ -223,44 +222,20 @@ export function useComposerSend(input: UseComposerSendInput) {
     });
   }, [state, stateRef]);
 
-  const resolveCurrentAgentKey = useCallback(() => {
+  const resolveCurrentOwner = useCallback(() => {
     const currentState = stateRef.current || state;
-    const runId = resolveCurrentRunId();
-    const routingAgentKey = resolvePreferredAgentKey({
+    return resolveRunOwner({
       chatId: currentState.chatId,
-      chatAgentById: currentState.chatAgentById,
       chats: currentState.chats,
-      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
-      workerSelectionKey: currentState.workerSelectionKey,
-      workerIndexByKey: currentState.workerIndexByKey,
-    });
-    return resolveRunAgentKey({
-      runId,
-      currentRunAgentKey: currentState.currentRunAgentKey,
-      runAgentById: currentState.runAgentById,
-      routingAgentKey,
-      chatId: currentState.chatId,
-      chatAgentById: currentState.chatAgentById,
-      chats: currentState.chats,
+      fallbackOwner: resolvePreferredRunOwner(currentState),
     });
   }, [resolveCurrentRunId, state, stateRef]);
-
-  const resolveCurrentTeamId = useCallback(() => {
-    const currentState = stateRef.current || state;
-    return resolvePreferredTeamId({
-      chatId: currentState.chatId,
-      chatAgentById: currentState.chatAgentById,
-      chats: currentState.chats,
-      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
-      workerSelectionKey: currentState.workerSelectionKey,
-      workerIndexByKey: currentState.workerIndexByKey,
-    });
-  }, [state, stateRef]);
 
   const resetForNewConversation = useCallback(() => {
     clearComposerAttachments();
     const currentState = stateRef.current || state;
-    const agentKey = resolveCurrentAgentKey();
+    const owner = resolveCurrentOwner();
+    const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
         detail: {
@@ -271,18 +246,17 @@ export function useComposerSend(input: UseComposerSendInput) {
         },
       }),
     );
-  }, [clearComposerAttachments, resolveCurrentAgentKey, state, stateRef]);
+  }, [clearComposerAttachments, resolveCurrentOwner, state, stateRef]);
 
   const interruptCurrentRun = useCallback(async () => {
     const chatId = String(state.chatId || "").trim();
     const runId = resolveCurrentRunId();
     const requestId = createRequestId("req");
-    const agentKey = resolveCurrentAgentKey();
-    const teamId = resolveCurrentTeamId();
-    if (!chatId || !runId || !agentKey) {
+    const owner = resolveCurrentOwner();
+    if (!chatId || !runId || !owner) {
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[interrupt] skipped: missing chatId/runId/agentKey (chatId=${chatId || "-"}, runId=${runId || "-"}, agentKey=${agentKey || "-"})`,
+        line: `[interrupt] skipped: missing chatId/runId/owner (chatId=${chatId || "-"}, runId=${runId || "-"})`,
       });
       return;
     }
@@ -292,8 +266,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         requestId,
         chatId,
         runId,
-        agentKey: agentKey || undefined,
-        teamId: teamId || undefined,
+        owner,
         message: "",
         planningMode: Boolean(state.planningMode),
       });
@@ -318,9 +291,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [
     dispatch,
-    resolveCurrentAgentKey,
+    resolveCurrentOwner,
     resolveCurrentRunId,
-    resolveCurrentTeamId,
     state.abortController,
     state.chatId,
     state.planningMode,
@@ -438,28 +410,15 @@ export function useComposerSend(input: UseComposerSendInput) {
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
     const pendingChatId = String(currentState.chatId || attachmentChatId || "").trim();
-    const agentKey = resolvePreferredAgentKey({
+    const owner = resolvePreferredRunOwner(currentState, {
       chatId: pendingChatId,
-      chatAgentById: currentState.chatAgentById,
-      chats: currentState.chats,
-      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
-      workerSelectionKey: currentState.workerSelectionKey,
-      workerIndexByKey: currentState.workerIndexByKey,
     });
-    const teamId = resolvePreferredTeamId({
-      chatId: pendingChatId,
-      chatAgentById: currentState.chatAgentById,
-      chats: currentState.chats,
-      pendingNewChatAgentKey: currentState.pendingNewChatAgentKey,
-      workerSelectionKey: currentState.workerSelectionKey,
-      workerIndexByKey: currentState.workerIndexByKey,
-    });
-    if (pendingChatId && !String(currentState.chatId || "").trim() && !agentKey) {
+    if (pendingChatId && !String(currentState.chatId || "").trim() && !owner) {
       pendingSendRef.current = false;
       pendingSentMessageRef.current = "";
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[send] skipped: missing agentKey for pending uploaded chat (chatId=${pendingChatId})`,
+        line: `[send] skipped: missing owner for pending uploaded chat (chatId=${pendingChatId})`,
       });
       return;
     }
@@ -473,8 +432,8 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: {
           message,
           chatId: pendingChatId || undefined,
-          agentKey: agentKey || undefined,
-          teamId: teamId || undefined,
+          ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+          ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
           references: sendReferences,
           attachments: sendAttachmentMeta,
           accessLevel,
@@ -548,12 +507,11 @@ export function useComposerSend(input: UseComposerSendInput) {
     if (!steer || steerSubmitting) return;
 
     const chatId = String(state.chatId || "").trim();
-    const agentKey = resolveCurrentAgentKey();
-    const teamId = resolveCurrentTeamId();
-    if (!chatId || !steer.runId || !agentKey) {
+    const owner = resolveCurrentOwner();
+    if (!chatId || !steer.runId || !owner) {
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[steer] skipped: missing chatId/runId/agentKey (chatId=${chatId || "-"}, runId=${steer.runId || "-"}, agentKey=${agentKey || "-"})`,
+        line: `[steer] skipped: missing chatId/runId/owner (chatId=${chatId || "-"}, runId=${steer.runId || "-"})`,
       });
       dispatch({ type: "REMOVE_PENDING_STEER", steerId });
       restoreMessageToComposer(steer.message);
@@ -570,8 +528,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         chatId,
         runId: steer.runId,
         steerId: steer.steerId,
-        agentKey: agentKey || undefined,
-        teamId: teamId || undefined,
+        owner,
         message: steer.message,
         planningMode: Boolean(state.planningMode),
       });
@@ -613,8 +570,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [
     dispatch,
-    resolveCurrentAgentKey,
-    resolveCurrentTeamId,
+    resolveCurrentOwner,
     restoreMessageToComposer,
     messageApi,
     state.chatId,

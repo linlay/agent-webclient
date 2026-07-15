@@ -5,6 +5,7 @@ import type {
   PersistedBTWSession,
 } from "@/features/btw/lib/btwTypes";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import { toRunOwner } from "@/shared/data/runOwner";
 
 export const BTW_SESSION_STORAGE_KEY = "agent-webclient:btw:v1";
 export const BTW_SESSION_STORAGE_VERSION = 1;
@@ -65,12 +66,16 @@ function normalizePersistedSession(value: unknown): PersistedBTWSession | null {
       : {};
   const updatedAt = readEpochMillis(record.updatedAt);
   if (updatedAt === undefined) return null;
+  const owner =
+    toRunOwner(record.owner as Record<string, unknown> | undefined)
+    || toRunOwner({ teamId: record.teamId, agentKey: record.agentKey });
   return {
     parentChatId,
     btwId: String(record.btwId || "").trim(),
     runId: String(record.runId || "").trim(),
     requestId: String(record.requestId || "").trim(),
-    agentKey: String(record.agentKey || "").trim(),
+    agentKey: owner?.kind === "agent" ? owner.agentKey : "",
+    owner: owner || undefined,
     status,
     draft: String(record.draft || ""),
     lastSeq: Math.max(0, Number(record.lastSeq) || 0),
@@ -162,6 +167,7 @@ function toPersistedSession(session: BTWSessionState): PersistedBTWSession {
     runId: session.runId,
     requestId: session.requestId,
     agentKey: session.agentKey,
+    owner: session.owner,
     status: session.status,
     draft: session.draft,
     lastSeq: session.lastSeq,

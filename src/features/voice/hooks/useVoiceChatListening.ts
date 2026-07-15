@@ -145,7 +145,7 @@ export function useVoiceChatListening({
 					params: {
 						requestId,
 						message: text,
-						agentKey: agentKey || undefined,
+						owner: { kind: "agent", agentKey },
 						chatId: chatId || undefined,
 						planningMode: Boolean(controller.stateRef.current.planningMode),
 						agentMode:

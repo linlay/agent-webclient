@@ -42,6 +42,8 @@ import {
   readRunAgentKeyFromEvent,
   resolveRunAgentKey,
 } from "@/features/runs/lib/runAgentIdentity";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { toRunOwner } from "@/shared/data/runOwner";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import {
   createLiveProcessorState,
@@ -331,8 +333,19 @@ export function useConversationEventHandler(): {
         line: `[${new Date().toLocaleTimeString()}] ${type}`,
       });
 
+      const eventChatId = toText(event.chatId) || cache.chatId || toText(state.chatId);
+      const eventOwner = resolveRunOwner({
+        chatId: eventChatId,
+        chats: state.chats,
+        currentRunOwner: state.currentChatActiveRun?.owner || toRunOwner(state.currentChatActiveRun),
+        sessionOwner: mainRuntime.session?.owner,
+        eventIdentity: { teamId: readEventTeamId(event), agentKey: event.agentKey },
+        fallbackOwner: toRunOwner(resolveSelectedWorkerContext(state)),
+      });
+      const isTeamEventOwner = eventOwner?.kind === "orchestrated-team";
+
       const runAgentBinding = readRunAgentKeyFromEvent(event);
-      if (runAgentBinding) {
+      if (runAgentBinding && !isTeamEventOwner) {
         const previousAgentKey = state.runAgentById.get(runAgentBinding.runId);
         if (previousAgentKey && previousAgentKey !== runAgentBinding.agentKey) {
           dispatch({
@@ -374,7 +387,7 @@ export function useConversationEventHandler(): {
         chatId: cache.chatId || toText(state.chatId),
         chatAgentById: state.chatAgentById,
         chats: state.chats,
-        fallbackAgentKey: resolveSelectedWorkerContext(state).agentKey,
+        fallbackAgentKey: eventOwner?.kind === "agent" ? eventOwner.agentKey : "",
       });
       const {
         awaitingRunId,
@@ -389,6 +402,7 @@ export function useConversationEventHandler(): {
         event,
         {
           agentKey: awaitingFallbackAgentKey,
+          ...(eventOwner ? { owner: eventOwner } : {}),
           pendingSubmitId: pendingAwaitingSubmitId,
         },
       );
@@ -415,14 +429,14 @@ export function useConversationEventHandler(): {
         const text = readRequestQueryText(event);
         if (event.chatId)
           dispatch({ type: "SET_CHAT_ID", chatId: event.chatId });
-        if (event.agentKey && event.chatId) {
+        if (!isTeamEventOwner && event.agentKey && event.chatId) {
           dispatch({
             type: "SET_CHAT_AGENT_BY_ID",
             chatId: event.chatId,
             agentKey: String(event.agentKey),
           });
         }
-        if (event.agentKey) {
+        if (!isTeamEventOwner && event.agentKey) {
           dispatch({
             type: "SET_WORKER_PRIORITY_KEY",
             workerKey: `agent:${String(event.agentKey)}`,
@@ -430,12 +444,8 @@ export function useConversationEventHandler(): {
         }
         cache.chatId = toText(event.chatId) || toText(state.chatId);
         cache.runId = "";
-        cache.agentKey =
-          toText(event.agentKey) ||
-          toText(state.chatAgentById.get(cache.chatId)) ||
-          resolveSelectedWorkerContext(state).agentKey;
-        cache.teamId =
-          readEventTeamId(event) || resolveSelectedWorkerContext(state).teamId;
+        cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
+        cache.teamId = eventOwner?.kind === "orchestrated-team" ? eventOwner.teamId : "";
         upsertLiveChatSummary({
           event,
           cache,
@@ -481,7 +491,7 @@ export function useConversationEventHandler(): {
         if (runStartChatId && toText(state.chatId) !== runStartChatId) {
           dispatch({ type: "SET_CHAT_ID", chatId: runStartChatId });
         }
-        if (event.agentKey && runStartChatId) {
+        if (!isTeamEventOwner && event.agentKey && runStartChatId) {
           dispatch({
             type: "SET_CHAT_AGENT_BY_ID",
             chatId: runStartChatId,
@@ -491,21 +501,8 @@ export function useConversationEventHandler(): {
         cache.chatId =
           runStartChatId || cache.chatId || toText(state.chatId);
         cache.runId = toText(event.runId) || cache.runId;
-        cache.agentKey = resolveRunAgentKey({
-          runId: cache.runId,
-          metadataAgentKey: event.agentKey,
-          runAgentById: state.runAgentById,
-          routingAgentKey: cache.agentKey,
-          currentRunAgentKey: state.currentRunAgentKey,
-          chatId: cache.chatId || state.chatId,
-          chatAgentById: state.chatAgentById,
-          chats: state.chats,
-          fallbackAgentKey: resolveSelectedWorkerContext(state).agentKey,
-        });
-        cache.teamId =
-          readEventTeamId(event) ||
-          cache.teamId ||
-          resolveSelectedWorkerContext(state).teamId;
+        cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
+        cache.teamId = eventOwner?.kind === "orchestrated-team" ? eventOwner.teamId : "";
         if (cache.chatId && cache.runId) {
           dispatch({
             type: "SET_CURRENT_CHAT_ACTIVE_RUN",
@@ -513,10 +510,12 @@ export function useConversationEventHandler(): {
               chatId: cache.chatId,
               runId: cache.runId,
               ...(cache.agentKey ? { agentKey: cache.agentKey } : {}),
+              ...(cache.teamId ? { teamId: cache.teamId } : {}),
+              ...(eventOwner ? { owner: eventOwner } : {}),
             },
           });
         }
-        if (event.agentKey) {
+        if (!isTeamEventOwner && event.agentKey) {
           dispatch({
             type: "SET_WORKER_PRIORITY_KEY",
             workerKey: `agent:${String(event.agentKey)}`,
@@ -714,6 +713,7 @@ export function useConversationEventHandler(): {
                 runId: nextToolState.runId || "",
                 agentKey:
                   nextToolState.agentKey || toText(event.agentKey) || "",
+                ...(eventOwner ? { owner: eventOwner } : {}),
                 toolId,
                 viewportKey: nextToolState.viewportKey,
                 toolType,

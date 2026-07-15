@@ -12,10 +12,6 @@ import {
 } from "@/shared/data";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
-import {
-  resolvePreferredAgentKey,
-  resolvePreferredTeamId,
-} from "@/features/composer/lib/queryRouting";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } from "@/features/transport/lib/queryStreamExecutors";
 import {
@@ -31,10 +27,12 @@ import {
   markSessionSnapshotApplied,
   type LiveQuerySession,
 } from "@/features/conversation/lib/conversationSession";
+import { readRunAgentKeyFromEvent } from "@/features/runs/lib/runAgentIdentity";
 import {
-  readRunAgentKeyFromEvent,
-  resolveRunAgentKey,
-} from "@/features/runs/lib/runAgentIdentity";
+  resolvePreferredRunOwner,
+  resolveRunOwner,
+} from "@/features/runs/lib/runOwner";
+import { toRunOwner } from "@/shared/data/runOwner";
 import type { AgentEvent, AppState } from "@/app/state/types";
 import {
   readEventTeamId,
@@ -124,7 +122,7 @@ export function canSendToTargetChat(input: {
 export function resolveDifferentChatDetachRunDetail(input: {
   currentActiveSession: Pick<
     LiveQuerySession,
-    "streaming" | "chatId" | "runId" | "agentKey"
+    "streaming" | "chatId" | "runId" | "agentKey" | "owner"
   > | null;
   currentState: AppState;
   targetChatId?: string;
@@ -146,20 +144,23 @@ export function resolveDifferentChatDetachRunDetail(input: {
   if (!runId) {
     return null;
   }
-  const agentKey = resolveRunAgentKey({
-    runId,
-    routingAgentKey: input.currentActiveSession?.agentKey,
-    currentRunAgentKey: input.currentState.currentRunAgentKey,
-    runAgentById: input.currentState.runAgentById,
+  const owner = resolveRunOwner({
     chatId,
-    chatAgentById: input.currentState.chatAgentById,
     chats: input.currentState.chats,
+    sessionOwner: input.currentActiveSession?.owner,
+    fallbackOwner: toRunOwner({
+      agentKey:
+        input.currentActiveSession?.agentKey
+        || input.currentState.runAgentById.get(runId)
+        || input.currentState.currentRunAgentKey,
+    }),
   });
 
   return {
     chatId,
     runId,
-    agentKey,
+    ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+    ...(owner ? { owner } : {}),
     reason: "chat_switch",
   };
 }
@@ -331,29 +332,21 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const chatId = String(
         preferredChatId || stateRef.current.chatId || "",
       ).trim();
-      const selectedWorker =
-        stateRef.current.workerIndexByKey.get(
-          String(stateRef.current.workerSelectionKey || "").trim(),
-        ) || null;
-      let selectedAgentKey = resolvePreferredAgentKey(stateRef.current, {
+      let selectedOwner = resolvePreferredRunOwner(stateRef.current, {
         chatId,
         explicitAgentKey: preferredAgentKey,
-      });
-      let selectedTeamId = resolvePreferredTeamId(stateRef.current, {
-        chatId,
         explicitTeamId: preferredTeamId,
       });
 
-      if (mention.mentionAgentKey) {
-        selectedAgentKey = mention.mentionAgentKey;
-        const keepSelectedTeamScope =
-          !chatId && selectedWorker?.type === "team";
-        if (!keepSelectedTeamScope) {
-          selectedTeamId = "";
-        }
+      if (mention.mentionAgentKey && selectedOwner?.kind !== "orchestrated-team") {
+        selectedOwner = { kind: "agent", agentKey: mention.mentionAgentKey };
       }
 
-      const cleanMessage = mention.cleanMessage || rawMessage;
+      const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
+      const selectedTeamId = selectedOwner?.kind === "orchestrated-team" ? selectedOwner.teamId : "";
+      const cleanMessage = selectedOwner?.kind === "orchestrated-team" && mention.mentionAgentKey
+        ? rawMessage
+        : mention.cleanMessage || rawMessage;
 
       const selectedAgent = stateRef.current.agents.find(
         (agent) => toText(agent?.key) === selectedAgentKey,
@@ -361,6 +354,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const selectedAgentMode = String(selectedAgent?.mode || "").trim();
 
       if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
+      if (!selectedOwner) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: "[send] skipped: missing run owner",
+        });
+        return;
+      }
 
       if (
         selectedAgentKey &&
@@ -375,7 +375,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         workerKey: selectedAgentKey ? `agent:${selectedAgentKey}` : "",
       });
 
-      if (mention.mentionAgentKey) {
+      if (mention.mentionAgentKey && selectedOwner?.kind === "agent") {
         if (chatId) {
           dispatch({
             type: "SET_CHAT_AGENT_BY_ID",
@@ -411,7 +411,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       /* Start streaming */
       const requestId = createRequestId("req");
       const abortController = new AbortController();
-      if (chatId && selectedAgentKey) {
+      if (chatId && selectedOwner?.kind === "agent") {
         dispatch({
           type: "SET_CHAT_AGENT_BY_ID",
           chatId,
@@ -423,6 +423,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         chatId,
         agentKey: selectedAgentKey,
         teamId: selectedTeamId,
+        owner: selectedOwner || undefined,
       });
       querySessionsRef.current.set(requestId, session);
       if (chatId) {
@@ -443,10 +444,12 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           }
           if (!chatId && !newChatRouteNotified) {
             newChatRouteNotified = true;
-            notifyNewChatCreated({
-              chatId: nextChatId,
-              agentKey: toText(event.agentKey) || session.agentKey,
-            });
+            if (session.owner?.kind === "agent") {
+              notifyNewChatCreated({
+                chatId: nextChatId,
+                agentKey: session.owner.agentKey,
+              });
+            }
           }
         }
         const nextRunId = toText(event.runId);
@@ -457,11 +460,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           }
         }
         const nextAgentKey = toText(event.agentKey);
-        if (nextAgentKey) {
+        if (nextAgentKey && session.owner?.kind !== "orchestrated-team") {
           session.agentKey = nextAgentKey;
         }
         const binding = readRunAgentKeyFromEvent(event);
-        if (binding) {
+        if (binding && session.owner?.kind !== "orchestrated-team") {
           dispatch({
             type: "SET_RUN_AGENT_BY_ID",
             runId: binding.runId,
@@ -480,6 +483,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const nextTeamId = readEventTeamId(event);
         if (nextTeamId) {
           session.teamId = nextTeamId;
+          if (!session.owner) {
+            session.owner = { kind: "orchestrated-team", teamId: nextTeamId };
+          }
         }
       };
       const upsertBackgroundChatSummary = (
@@ -507,7 +513,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
         session.chatId = next.resolved.chatId;
         session.runId = next.resolved.runId;
-        session.agentKey = next.resolved.agentKey;
+        session.agentKey = session.owner?.kind === "orchestrated-team" ? "" : next.resolved.agentKey;
         session.teamId = next.resolved.teamId;
         chatQuerySessionIndexRef.current.set(
           next.resolved.chatId,
@@ -517,7 +523,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           session.snapshot.chatId = next.resolved.chatId;
         }
         dispatch({ type: "UPSERT_CHAT", chat: next.chat });
-        if (next.resolved.chatId && next.resolved.agentKey) {
+        if (next.resolved.chatId && next.resolved.agentKey && session.owner?.kind !== "orchestrated-team") {
           dispatch({
             type: "SET_CHAT_AGENT_BY_ID",
             chatId: next.resolved.chatId,
@@ -594,8 +600,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           params: {
             requestId,
             message: cleanMessage,
-            agentKey: selectedAgentKey || undefined,
-            teamId: selectedTeamId || undefined,
+            owner: selectedOwner,
             chatId: chatId || undefined,
             references:
               normalizedReferences.length > 0

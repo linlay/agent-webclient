@@ -127,7 +127,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  const { activeRunId, activeRunAgentKey } = useActiveRunIdentity(state);
+  const { activeRunId, activeRunOwner } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const mainChatRuntime = resolveMainChatRuntime(
     stateRef,
@@ -400,7 +400,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const handleAccessLevelChange = useRuntimeAccessLevel({
     accessLevel,
     activeRunId,
-    activeRunAgentKey,
+    activeRunOwner,
     isRunActive: isMainChatRunning || isAwaitingActive || isCurrentChatActiveRun,
     setAccessLevel,
     messageApi: message,

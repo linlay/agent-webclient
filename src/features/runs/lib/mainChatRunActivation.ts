@@ -1,5 +1,7 @@
 import type { AppState } from "@/app/state/types";
-import { resolveChatAgentKey, resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
+import { resolveChatAgentKey } from "@/features/runs/lib/runAgentIdentity";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import type { RunOwner } from "@/shared/data/runOwner";
 import { toText } from "@/shared/utils/eventUtils";
 
 export const AGENT_RUN_STARTED_PUSH_EVENT = "agent:run-started-push";
@@ -8,6 +10,7 @@ export interface RunStartedPushDetail {
 	chatId: string;
 	runId: string;
 	agentKey: string;
+	owner: RunOwner | null;
 	lastSeq: number;
 }
 
@@ -30,6 +33,7 @@ export type MainChatRunActivationDecision =
 			chatId: string;
 			runId: string;
 			agentKey: string;
+			owner: RunOwner;
 			lastSeq: number;
 	  }
 	| {
@@ -42,6 +46,7 @@ export type MainChatRunActivationDecision =
 			chatId: string;
 			runId: string;
 			agentKey: string;
+			owner: RunOwner | null;
 			targetAgentKey: string;
 	  };
 
@@ -123,21 +128,21 @@ export function normalizeRunStartedPushDetail(
 			: {};
 	const chatId = toText(record.chatId);
 	const runId = toText(record.runId);
-	const agentKey = resolveRunAgentKey({
-		runId,
-		metadataAgentKey: record.agentKey,
-		runAgentById: state.runAgentById,
+	const owner = resolveRunOwner({
 		chatId,
-		chatAgentById: state.chatAgentById,
 		chats: state.chats,
-		fallbackAgentKey: "",
+		eventIdentity: { teamId: record.teamId, agentKey: record.agentKey },
 	});
+	const agentKey = owner?.kind === "agent"
+		? owner.agentKey
+		: "";
 	const lastSeqRaw = Number(record.lastSeq ?? 0);
 	const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
 	return {
 		chatId,
 		runId,
 		agentKey,
+		owner,
 		lastSeq,
 	};
 }
@@ -158,15 +163,17 @@ export function resolveMainChatRunActivation(input: {
 		chatId: detail.chatId,
 		runId: detail.runId,
 		agentKey: detail.agentKey,
+		owner: detail.owner,
 		targetAgentKey,
 	});
 
 	if (!isMainChatRoutePathname(pathname)) {
 		return inactive("invalid_route");
 	}
-	if (!detail.chatId || !detail.runId || !detail.agentKey) {
+	if (!detail.chatId || !detail.runId || !detail.owner) {
 		return inactive("missing_identity");
 	}
+	const owner = detail.owner;
 
 	const currentChatId = toText(input.state.chatId);
 	if (!currentChatId || currentChatId !== detail.chatId) {
@@ -180,10 +187,13 @@ export function resolveMainChatRunActivation(input: {
 		shouldActivate: true,
 		switchChat: false,
 		...detail,
+		owner,
 	};
 }
 
-export function dispatchRunStartedPushEvent(detail: RunStartedPushDetail): void {
+export function dispatchRunStartedPushEvent(
+	detail: RunStartedPushDetail & { owner: RunOwner },
+): void {
 	if (
 		typeof window === "undefined" ||
 		typeof window.dispatchEvent !== "function" ||
@@ -196,7 +206,9 @@ export function dispatchRunStartedPushEvent(detail: RunStartedPushDetail): void 
 			detail: {
 				chatId: toText(detail.chatId),
 				runId: toText(detail.runId),
-				agentKey: toText(detail.agentKey),
+				...(detail.owner.kind === "agent" ? { agentKey: detail.owner.agentKey } : {}),
+				...(detail.owner.kind === "orchestrated-team" ? { teamId: detail.owner.teamId } : {}),
+				owner: detail.owner,
 				lastSeq: detail.lastSeq,
 			},
 		}),

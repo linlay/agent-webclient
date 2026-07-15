@@ -16,7 +16,9 @@ SSE / WebSocket event 必须带安全整数 epoch-ms `timestamp`。客户端遇�
 
 `/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
 
-BTW 的运行控制也与主会话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与 `agentKey`，即使主会话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
+BTW 的运行控制也与主会话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与其恢复出的 owner：Agent 为 `agentKey`，编排 Team 为仅 `teamId`；即使主会话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
+
+attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team 成员事件携带的 `agentKey` 写回 session/chat owner；成员事件仍可按 `taskId`、`subAgentKey` 和 `presentation: "task"` 渲染为子任务，主回答归属保持 Team。
 
 关闭 Side question 只销毁该 chat 的前端 session、runtime 与持久化记录，不发送 interrupt，也不 abort 正在消费的 SSE；后端 run 自然结束。被丢弃 runtime 的迟到 identity、事件和 finally 都必须被对象身份校验拦截，不能恢复已关闭的 Tab 或污染随后创建的分支。
 

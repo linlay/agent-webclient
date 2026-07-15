@@ -22,6 +22,14 @@ export function mergeChatSummary(
     next[key] = value;
   }
 
+  if (next.owner?.kind === 'orchestrated-team' || next.teamId) {
+    // Team-owned chats may retain an old agentKey in persisted data.  It is
+    // presentation-inaccurate and, more importantly, must not be reusable as
+    // a routing identity.
+    delete next.agentKey;
+    delete next.firstAgentKey;
+  }
+
   return next;
 }
 

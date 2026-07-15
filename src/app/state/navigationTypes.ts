@@ -8,8 +8,10 @@ export interface ChatAwaitingSummary {
 }
 
 export interface ChatActiveRunSummary {
-	runId?: string;
-	agentKey?: string;
+  runId?: string;
+  agentKey?: string;
+  teamId?: string;
+  owner?: RunOwner;
 	lastSeq?: number | string;
 	planningMode?: boolean;
 	[key: string]: unknown;
@@ -23,7 +25,8 @@ export interface Chat {
 	firstAgentName?: string;
 	firstAgentKey?: string;
 	agentKey?: string;
-	teamId?: string;
+  teamId?: string;
+  owner?: RunOwner;
 	source?: string;
 	updatedAt?: number;
 	lastRunId?: string;
@@ -98,7 +101,9 @@ export interface Team {
 	agentKey?: string;
 	agentKeys?: string[];
 	agents?: Array<string | { key?: string; agentKey?: string }>;
-	members?: Array<string | { key?: string; agentKey?: string }>;
+  members?: Array<string | { key?: string; agentKey?: string }>;
+  runtimeMode?: string;
+  meta?: Record<string, unknown>;
 	icon?: {
 		color?: string;
 		name?: string;
@@ -149,3 +154,4 @@ export interface WorkerConversationRow {
 	awaitingMode?: string;
 	hasActiveRun?: boolean;
 }
+import type { RunOwner } from "@/shared/data/runOwner";

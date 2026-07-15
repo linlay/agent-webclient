@@ -13,6 +13,7 @@ import {
 } from '@/shared/utils/eventFieldReaders';
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
+import { toRunOwner } from '@/shared/data/runOwner';
 
 export interface LiveChatSummaryCache {
   chatId: string;
@@ -86,17 +87,19 @@ export function upsertLiveChatSummary(input: {
   const runId = toText(event.runId) || cache.runId || toText(state.runId);
   const existingChat = state.chats.find((chat) => toText(chat?.chatId) === chatId);
   const rememberedAgentKey = toText(state.chatAgentById.get(chatId));
-  const agentKey =
-    toText(event.agentKey) ||
-    cache.agentKey ||
-    rememberedAgentKey ||
-    toText(existingChat?.agentKey || existingChat?.firstAgentKey) ||
-    selectedContext.agentKey;
-  const teamId =
-    readEventTeamId(event) ||
-    cache.teamId ||
-    toText(existingChat?.teamId) ||
-    selectedContext.teamId;
+  // A persisted Team route is the authoritative chat owner.  In particular,
+  // member events may carry agentKey but must never change it into an Agent chat.
+  const owner =
+    toRunOwner(existingChat) ||
+    toRunOwner({ teamId: cache.teamId, agentKey: cache.agentKey }) ||
+    toRunOwner({ teamId: readEventTeamId(event), agentKey: event.agentKey }) ||
+    toRunOwner(selectedContext);
+  const agentKey = owner?.kind === 'agent'
+    ? owner.agentKey
+    : '';
+  const teamId = owner?.kind === 'orchestrated-team'
+    ? owner.teamId
+    : '';
   const source = toText(event.source) || toText(existingChat?.source);
   const updatedAt = resolveChatSummaryUpdatedAt(event);
   const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
@@ -110,9 +113,11 @@ export function upsertLiveChatSummary(input: {
         readEventFirstAgentName(event) ||
         toText(existingChat?.firstAgentName) ||
         undefined,
-      firstAgentKey: agentKey || undefined,
-      agentKey: agentKey || undefined,
+      ...(agentKey
+        ? { firstAgentKey: agentKey, agentKey }
+        : { firstAgentKey: undefined, agentKey: undefined }),
       teamId: teamId || undefined,
+      owner: owner || undefined,
       source: source || undefined,
       lastRunId: runId || undefined,
       lastRunContent,
@@ -123,6 +128,8 @@ export function upsertLiveChatSummary(input: {
         ? {
             runId,
             ...(agentKey ? { agentKey } : {}),
+            ...(teamId ? { teamId } : {}),
+            ...(owner ? { owner } : {}),
           }
         : hasActiveRun === false
           ? null
