@@ -2,7 +2,7 @@ import type { Agent, Chat, Team } from '@/app/state/types';
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
 
 describe('buildWorkerRows', () => {
-  it('preserves the backend mixed-list order for default sidebar sorting', () => {
+  it('preserves the backend mixed-list order as the worker-row base order', () => {
     const agents: Agent[] = [
       { key: 'agent-alpha', name: 'Alpha' } as Agent,
       { key: 'agent-beta', name: 'Beta' } as Agent,

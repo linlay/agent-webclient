@@ -9,7 +9,10 @@ import {
   LeftSidebar,
   handleCreateAgentSuccess,
 } from "@/app/layout/LeftSidebar";
-import { sortWorkerRowsForMode } from "@/app/layout/hooks/useLeftSidebarData";
+import {
+  createWorkerChatOrderByKey,
+  sortWorkerRowsForMode,
+} from "@/app/layout/hooks/useLeftSidebarData";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
 
@@ -780,7 +783,7 @@ describe("LeftSidebar", () => {
     expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "agents" });
   });
 
-  it("sorts worker rows by backend mixed order or by the /api/agents order", () => {
+  it("sorts Agent and Team rows by their latest chat updatedAt", () => {
     const alpha: WorkerRow = {
       key: "agent:alpha",
       type: "agent",
@@ -809,27 +812,86 @@ describe("LeftSidebar", () => {
       latestRunSortValue: 200,
       searchText: "beta",
     };
-    const rows = [alpha, beta];
+    const ops: WorkerRow = {
+      ...alpha,
+      key: "team:ops",
+      type: "team",
+      sourceId: "ops",
+      displayName: "Ops",
+      latestChatId: "chat_ops",
+      latestRunId: "run_ops",
+      latestUpdatedAt: 200,
+      latestChatName: "Ops chat",
+      searchText: "ops",
+    };
+    const empty: WorkerRow = {
+      ...alpha,
+      key: "agent:empty",
+      sourceId: "empty",
+      displayName: "Empty",
+      latestChatId: "",
+      latestRunId: "",
+      latestUpdatedAt: 0,
+      latestChatName: "",
+      hasHistory: false,
+      latestRunSortValue: -1,
+      searchText: "empty",
+    };
+    const rows = [alpha, ops, beta, empty];
     const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
     const agentOrderByKey = new Map([
       ["agent:alpha", 0],
       ["agent:beta", 1],
+      ["agent:empty", 2],
+    ]);
+    const workerChatOrderByKey = createWorkerChatOrderByKey([
+      {
+        chatId: "chat_alpha",
+        agentKey: "alpha",
+        updatedAt: 1760000000000,
+      } as Chat,
+      {
+        chatId: "chat_ops",
+        teamId: "ops",
+        updatedAt: 1761000000000,
+      } as Chat,
+      {
+        chatId: "chat_beta",
+        agentKey: "beta",
+        updatedAt: 1762000000000,
+      } as Chat,
     ]);
 
     expect(
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         workerBaseOrderByKey,
+        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
-    ).toEqual(["agent:alpha", "agent:beta"]);
+    ).toEqual(["agent:beta", "team:ops", "agent:alpha", "agent:empty"]);
     expect(
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         workerBaseOrderByKey,
+        workerChatOrderByKey,
         workerSortMode: "byName",
       }).map((row) => row.key),
-    ).toEqual(["agent:alpha", "agent:beta"]);
+    ).toEqual(["agent:alpha", "agent:beta", "agent:empty", "team:ops"]);
+  });
+
+  it("uses chatId to break updatedAt ties and keeps invalid timestamps oldest", () => {
+    const orderByKey = createWorkerChatOrderByKey([
+      { chatId: "chat_z", agentKey: "z", updatedAt: 1761000000000 } as Chat,
+      { chatId: "chat_a", teamId: "ops", updatedAt: 1761000000000 } as Chat,
+      { chatId: "chat_invalid", agentKey: "invalid", updatedAt: "invalid" } as Chat,
+    ]);
+
+    expect([...orderByKey.keys()]).toEqual([
+      "team:ops",
+      "agent:z",
+      "agent:invalid",
+    ]);
   });
 
   it("keeps a temporary pinned agent first before applying the selected sort mode", () => {
@@ -880,12 +942,18 @@ describe("LeftSidebar", () => {
       ["agent:beta", 1],
       ["agent:alpha", 2],
     ]);
+    const workerChatOrderByKey = createWorkerChatOrderByKey([
+      { chatId: "chat_alpha", agentKey: "alpha", updatedAt: 1760000000000 } as Chat,
+      { chatId: "chat_beta", agentKey: "beta", updatedAt: 1762000000000 } as Chat,
+      { chatId: "chat_gamma", agentKey: "gamma", updatedAt: 1761000000000 } as Chat,
+    ]);
 
     expect(
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
+        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
@@ -894,6 +962,7 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
+        workerChatOrderByKey,
         workerSortMode: "byName",
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:gamma", "agent:beta"]);
@@ -902,9 +971,10 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         temporaryPinnedAgentKey: "missing",
         workerBaseOrderByKey,
+        workerChatOrderByKey,
         workerSortMode: "byTime",
       }).map((row) => row.key),
-    ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
+    ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
   });
 
   it("builds a coder project create request from workspace metadata", () => {
