@@ -1031,9 +1031,76 @@ describe("routedClient", () => {
 		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
 	});
 
-	it("uses the HTTP endpoint for persisted run system prompts", async () => {
+	it("routes persisted run system prompts over ws when connected", async () => {
 		const proxy = await import("./routedClient");
 		proxy.setTransportModeProvider(() => "ws");
+		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				...params,
+				systemRef: { ...params, cacheKey: "react:main", fingerprint: "sha256:test" },
+				systemMessage: { role: "system", content: "persisted prompt" },
+			},
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChatSystemPrompt(params)).resolves.toMatchObject({
+			data: { systemMessage: { content: "persisted prompt" } },
+		});
+
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/system-prompt",
+			payload: params,
+		});
+		expect(mockApiClient.getChatSystemPrompt).not.toHaveBeenCalled();
+	});
+
+	it("falls back to HTTP when the system prompt ws request disconnects", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
+		const request = jest.fn().mockRejectedValue(new WsClientDisconnectedError());
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getChatSystemPrompt.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				...params,
+				systemRef: { agentKey: params.agentKey, cacheKey: "react:main", fingerprint: "sha256:test" },
+				systemMessage: { role: "system", content: "persisted prompt" },
+			},
+		});
+
+		await expect(proxy.getChatSystemPrompt(params)).resolves.toMatchObject({
+			data: { systemMessage: { content: "persisted prompt" } },
+		});
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/system-prompt",
+			payload: params,
+		});
+		expect(mockApiClient.getChatSystemPrompt).toHaveBeenCalledWith(params);
+	});
+
+	it("uses HTTP for persisted run system prompts outside ws mode", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "sse");
 		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
 		mockApiClient.getChatSystemPrompt.mockResolvedValue({
 			status: 200,
@@ -1041,7 +1108,7 @@ describe("routedClient", () => {
 			msg: "ok",
 			data: {
 				...params,
-				systemRef: { ...params, cacheKey: "react:main", fingerprint: "sha256:test" },
+				systemRef: { agentKey: params.agentKey, cacheKey: "react:main", fingerprint: "sha256:test" },
 				systemMessage: { role: "system", content: "persisted prompt" },
 			},
 		});
@@ -1052,6 +1119,31 @@ describe("routedClient", () => {
 
 		expect(mockApiClient.getChatSystemPrompt).toHaveBeenCalledWith(params);
 		expect(mockGetWsClient).not.toHaveBeenCalled();
+	});
+
+	it("does not fall back to HTTP when the system prompt ws request returns an API error", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { chatId: "chat_1", runId: "run_missing", agentKey: "agent_1" };
+		const error = new mockApiClient.ApiError("system prompt not found", {
+			status: 404,
+			code: 404,
+		});
+		const request = jest.fn().mockRejectedValue(error);
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getChatSystemPrompt(params)).rejects.toBe(error);
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/chat/system-prompt",
+			payload: params,
+		});
+		expect(mockApiClient.getChatSystemPrompt).not.toHaveBeenCalled();
 	});
 
 	it("routes raw llm trace loads over ws when connected", async () => {
