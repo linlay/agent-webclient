@@ -301,7 +301,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
   const displayDurationMs = useMemo(() => {
     if (!isLive || !startTimeMs) return 0;
-    return Math.max(0, liveNow - startTimeMs);
+    return Math.floor(Math.max(0, liveNow - startTimeMs) / 1000) * 1000;
   }, [isLive, startTimeMs, liveNow]);
 
   useEffect(() => {
