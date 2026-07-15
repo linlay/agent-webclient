@@ -11,7 +11,7 @@ Agent、Team 和 Worker 列表是左侧导航和会话入口的核心。前端�
 - 展示 pending awaiting、active run、最近会话和 worker 状态。
 
 ## 核心流程
-应用启动、侧栏刷新和 Agent 创建完成后，`useWorkerData` 与 layout hook 都以 `includeTeam=true` 拉取混合 `/api/agents`。协调层从 Team 嵌套 chat 补齐 `teamId`，从 Agent 嵌套 chat 补齐 `agentKey`，并保存后端的混排顺序。formatter 将数据归并为 worker rows；默认按时间顺序保持该后端顺序，按名称和临时置顶仍沿用既有规则。
+应用启动、侧栏刷新和 Agent 创建完成后，`useWorkerData` 与 layout hook 都以 `includeTeam=true` 拉取混合 `/api/agents`。协调层从 Team 嵌套 chat 补齐 `teamId`，从 Agent 嵌套 chat 补齐 `agentKey`，并保存后端的混排顺序。formatter 将数据归并为 worker rows；左侧默认按时间以各 Agent/Team 最新 chat 的 `updatedAt` 倒序混排，同时间按 `chatId` 稳定排序；无会话项以该后端混排为回退，按名称和临时置顶仍沿用既有规则。
 
 ## 边界与非目标
 - `scope`、`mode` 仅筛 Agent；Copilot 路由是否回退到 nav scope 也只看 Agent 数量，不能被始终返回的 Team 阻止。

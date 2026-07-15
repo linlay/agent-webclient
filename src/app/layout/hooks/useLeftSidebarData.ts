@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import type { AppState, WorkerConversationRow } from "@/app/state/types";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
+import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 
 type AgentIconConfig = string | {
   color?: string;
@@ -10,12 +12,34 @@ type AgentIconConfig = string | {
 
 export type WorkerSortMode = "byName" | "byTime";
 
+export function createWorkerChatOrderByKey(
+  chats: AppState["chats"],
+): Map<string, number> {
+  const sortedChats = chats.slice().sort((a, b) => {
+    const updatedAtA = readEpochMillis(a?.updatedAt) ?? 0;
+    const updatedAtB = readEpochMillis(b?.updatedAt) ?? 0;
+
+    if (updatedAtA !== updatedAtB) return updatedAtB - updatedAtA;
+
+    return String(a?.chatId || "").localeCompare(String(b?.chatId || ""));
+  });
+
+  const orderByKey = new Map<string, number>();
+  for (const chat of sortedChats) {
+    const workerKey = createWorkerKeyFromChat(chat);
+    if (!workerKey || orderByKey.has(workerKey)) continue;
+    orderByKey.set(workerKey, orderByKey.size);
+  }
+  return orderByKey;
+}
+
 export function sortWorkerRowsForMode(
   rows: AppState["workerRows"],
   options: {
     agentOrderByKey: Map<string, number>;
     temporaryPinnedAgentKey?: string;
     workerBaseOrderByKey: Map<string, number>;
+    workerChatOrderByKey: Map<string, number>;
     workerSortMode: WorkerSortMode;
   },
 ): AppState["workerRows"] {
@@ -59,6 +83,15 @@ export function sortWorkerRowsForMode(
   return rows.slice().sort((a, b) => {
     const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
     if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
+
+    const chatOrderA = options.workerChatOrderByKey.get(a.key);
+    const chatOrderB = options.workerChatOrderByKey.get(b.key);
+    const hasChatA = chatOrderA !== undefined;
+    const hasChatB = chatOrderB !== undefined;
+
+    if (hasChatA && hasChatB) return chatOrderA - chatOrderB;
+    if (hasChatA !== hasChatB) return hasChatA ? -1 : 1;
+
     return (
       (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
       (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
@@ -114,6 +147,11 @@ export function useLeftSidebarData({
     [agents],
   );
 
+  const workerChatOrderByKey = useMemo(
+    () => createWorkerChatOrderByKey(chats),
+    [chats],
+  );
+
   const filteredWorkerRows = useMemo(() => {
     const filter = chatFilter.toLowerCase().trim();
     const rows = !filter
@@ -124,6 +162,7 @@ export function useLeftSidebarData({
       agentOrderByKey,
       temporaryPinnedAgentKey,
       workerBaseOrderByKey,
+      workerChatOrderByKey,
       workerSortMode,
     });
   }, [
@@ -131,6 +170,7 @@ export function useLeftSidebarData({
     workerRows,
     chatFilter,
     workerBaseOrderByKey,
+    workerChatOrderByKey,
     workerSortMode,
     temporaryPinnedAgentKey,
   ]);
