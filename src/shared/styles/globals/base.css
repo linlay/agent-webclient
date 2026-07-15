@@ -226,6 +226,18 @@ button:active {
     box-shadow: none;
 }
 
+.ui-btn.ui-btn-mini {
+    min-height: 24px;
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11px;
+}
+
+.ui-btn.ui-btn-mini.is-icon-only {
+    width: 24px;
+    min-width: 24px;
+}
+
 .ui-btn.ui-btn-sm {
     min-height: 32px;
     padding: 6px 12px;
@@ -444,43 +456,99 @@ textarea {
 }
 
 @keyframes fade-slide-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes node-rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes status-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.55; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
 }
 
 @keyframes ui-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes command-status-in {
-    from { opacity: 0; transform: translateY(10px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 @keyframes command-status-pulse {
-    0%, 100% { opacity: 0.24; transform: scale(0.88); }
-    50% { opacity: 0.68; transform: scale(1.08); }
+
+    0%,
+    100% {
+        opacity: 0.24;
+        transform: scale(0.88);
+    }
+
+    50% {
+        opacity: 0.68;
+        transform: scale(1.08);
+    }
 }
 
 @keyframes command-status-core {
-    0%, 100% { transform: scale(0.9); }
-    50% { transform: scale(1.08); }
+
+    0%,
+    100% {
+        transform: scale(0.9);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
 }
 
 @keyframes command-status-error {
-    0%, 100% { transform: translateX(0); }
-    35% { transform: translateX(-4px); }
-    70% { transform: translateX(4px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    35% {
+        transform: translateX(-4px);
+    }
+
+    70% {
+        transform: translateX(4px);
+    }
 }
 
 .ant-badge .ant-badge-count {
@@ -519,12 +587,13 @@ textarea {
 .ant-modal .ant-modal-body>* {
     width: 100%;
 }
-.ant-modal-root .ant-modal-mask{
+
+.ant-modal-root .ant-modal-mask {
     background-color: transparent;
     backdrop-filter: blur(3px);
 }
 
-.ant-btn-color-link.ant-btn-variant-link{
+.ant-btn-color-link.ant-btn-variant-link {
     color: var(--accent);
 }
 
