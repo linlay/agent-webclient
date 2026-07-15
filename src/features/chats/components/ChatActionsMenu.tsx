@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Dropdown, Input, Modal, message, type MenuProps } from "antd";
+import { Dropdown, Input, Modal, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
@@ -13,6 +13,7 @@ import {
 } from "@/shared/data";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
+import { UiButton } from "@/shared/ui/UiButton";
 
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
@@ -274,10 +275,11 @@ export const ChatActionsMenu: React.FC<{
 	return (
 		<>
 			<Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
-				<Button
-					type="text"
-					size="small"
+				<UiButton
+					size="mini"
+					variant="ghost"
 					className={triggerClass}
+					iconOnly
 					loading={pending}
 					onClick={(event) => {
 						event.preventDefault();
@@ -285,7 +287,7 @@ export const ChatActionsMenu: React.FC<{
 					}}
 				>
 					<MaterialIcon name="more_horiz" className={menuIconClassName} />
-				</Button>
+				</UiButton>
 			</Dropdown>
 			{copyInfoOpen ? (
 				<CopyInfoModal

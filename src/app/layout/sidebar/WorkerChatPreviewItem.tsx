@@ -47,7 +47,7 @@ const CHAT_AWAITING_STATUS_CLASS =
   "chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn";
 
 const CHAT_ACTIONS_TRIGGER_CLASS =
-  "tw:absolute tw:right-[5px] tw:top-1/2 tw:-translate-y-1/2 tw:hidden tw:p-0 tw:text-text-muted tw:transition-none";
+  "tw:absolute tw:right-0 tw:top-1/2 tw:-translate-y-1/2 tw:hidden tw:p-0 tw:text-text-muted tw:transition-none";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {

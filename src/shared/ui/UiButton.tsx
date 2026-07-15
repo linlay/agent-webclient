@@ -1,7 +1,7 @@
 import React from "react";
 
 type UiButtonVariant = "primary" | "secondary" | "ghost" | "danger";
-type UiButtonSize = "sm" | "md";
+type UiButtonSize = "mini" | "sm" | "md";
 
 export interface UiButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: UiButtonVariant;
