@@ -1829,6 +1829,30 @@ describe('data client query payloads', () => {
 		});
 	});
 
+	it('propagates errors when the persisted run system prompt is unavailable', async () => {
+		fetchMock.mockResolvedValueOnce({
+			ok: false,
+			status: 404,
+			text: async () =>
+				JSON.stringify({
+					code: 404,
+					msg: 'system prompt not found',
+					data: {},
+				}),
+		});
+
+		await expect(
+			getChatSystemPrompt({
+				chatId: 'chat_1',
+				runId: 'run_legacy',
+				agentKey: 'demo',
+			}),
+		).rejects.toMatchObject({
+			status: 404,
+			code: 404,
+		});
+	});
+
   it('uses generic platform display text when raw chat jsonl loading fails without structured codes', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
