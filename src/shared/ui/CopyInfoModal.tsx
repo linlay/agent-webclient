@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Collapse, Modal, Spin, Tooltip, message } from "antd";
+import { Alert, Button, Modal, Spin, Tooltip, message } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
@@ -188,19 +188,7 @@ export const CopyInfoModal: React.FC<{
         </div>
       ) : null}
       <div className="copy-info-content">
-        {visibleGroups.map((group) => group.collapsed ? (
-          <Collapse
-            key={group.key}
-            ghost
-            size="small"
-            className="copy-info-advanced"
-            items={[{
-              key: group.key,
-              label: group.label,
-              children: renderGroupRows(group),
-            }]}
-          />
-        ) : (
+        {visibleGroups.map((group) => (
           <section className="copy-info-group" key={group.key}>
             <h3>{group.label}</h3>
             {renderGroupRows(group)}

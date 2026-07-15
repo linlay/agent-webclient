@@ -1874,27 +1874,6 @@
     margin-top: -1px;
 }
 
-.copy-info-advanced.ant-collapse {
-    border: 1px solid var(--line-soft);
-    border-radius: 10px;
-    background: var(--bg-elev-1);
-}
-
-.copy-info-advanced .ant-collapse-header {
-    align-items: center !important;
-    color: var(--text-sub) !important;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.copy-info-advanced .ant-collapse-content-box {
-    padding-top: 0 !important;
-}
-
-.copy-info-advanced .copy-info-group-rows {
-    border-radius: 8px;
-}
-
 @media (max-width: 640px) {
 
     .copy-info-row {

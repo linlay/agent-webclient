@@ -17,6 +17,7 @@ import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
 export const ChatActionsMenu: React.FC<{
 	chatId: string;
 	chatName?: string;
+	agentKey?: string;
 	triggerClassName?: string;
 	iconHover24?: boolean;
 	onArchived?: (chatId: string) => void;
@@ -24,6 +25,7 @@ export const ChatActionsMenu: React.FC<{
 }> = ({
 	chatId,
 	chatName,
+	agentKey,
 	triggerClassName,
 	iconHover24 = false,
 	onArchived,
@@ -290,7 +292,7 @@ export const ChatActionsMenu: React.FC<{
 					open
 					title={t("chatCopy.title")}
 					groups={buildChatCopyInfoGroups({
-						summary: { chatId: normalizedChatId, chatName },
+						summary: { chatId: normalizedChatId, chatName, agentKey },
 						detail: copyInfoDetail,
 						t,
 					})}

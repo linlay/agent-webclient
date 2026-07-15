@@ -49,25 +49,11 @@ export function buildAgentCopyInfoGroups(input: {
       rows: compactCopyInfoRows([
         createCopyInfoRow("tools", t("agentCopy.field.tools"), detail?.tools),
         createCopyInfoRow("skills", t("agentCopy.field.skills"), detail?.skills),
-        createCopyInfoRow("greetings", t("agentCopy.field.greetings"), detail?.greetings),
-        createCopyInfoRow("wonders", t("agentCopy.field.wonders"), detail?.wonders),
         createCopyInfoRow("modelConfig", t("agentCopy.field.modelConfig"), detail?.modelConfig),
         createCopyInfoRow("controls", t("agentCopy.field.controls"), detail?.controls),
         createCopyInfoRow("sourceKind", t("agentCopy.field.sourceKind"), source?.kind),
         createCopyInfoRow("sourcePath", t("agentCopy.field.sourcePath"), source?.path),
         createCopyInfoRow("agentDir", t("agentCopy.field.agentDir"), source?.agentDir),
-      ]),
-    },
-    {
-      key: "advanced",
-      label: t("copyInfo.group.advanced"),
-      collapsed: true,
-      rows: compactCopyInfoRows([
-        createCopyInfoRow("soulPrompt", t("agentCopy.field.soulPrompt"), detail?.soulPrompt),
-        createCopyInfoRow("agentsPrompt", t("agentCopy.field.agentsPrompt"), detail?.agentsPrompt),
-        createCopyInfoRow("definition", t("agentCopy.field.definition"), detail?.definition),
-        createCopyInfoRow("meta", t("agentCopy.field.meta"), detail?.meta),
-        createCopyInfoRow("modelOptions", t("agentCopy.field.modelOptions"), detail?.modelOptions),
       ]),
     },
   ];

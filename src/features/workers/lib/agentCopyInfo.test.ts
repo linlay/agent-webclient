@@ -20,6 +20,8 @@ describe("buildAgentCopyInfoGroups", () => {
         mode: "CODER",
         tools: ["shell", "search"],
         skills: ["frontend"],
+        greetings: ["Hello"],
+        wonders: ["Can you help?"],
         controls: [],
         meta: { owner: "platform" },
         definition: { mode: "CODER" },
@@ -38,8 +40,9 @@ describe("buildAgentCopyInfoGroups", () => {
     expect(rows.find((row) => row.key === "description")?.copyValue).toBe("Builds software");
     expect(rows.find((row) => row.key === "workspaceDir")?.copyValue).toBe("/workspace/agent-a");
     expect(rows.find((row) => row.key === "tools")?.copyValue).toBe("shell, search");
-    expect(rows.find((row) => row.key === "definition")?.code).toBe(true);
-    expect(groups.find((group) => group.key === "advanced")?.collapsed).toBe(true);
+    expect(rows.find((row) => row.key === "greetings")).toBeUndefined();
+    expect(rows.find((row) => row.key === "wonders")).toBeUndefined();
+    expect(groups.map((group) => group.key)).toEqual(["basic", "config"]);
   });
 
   it("keeps required fallback identity and omits unavailable fields", () => {

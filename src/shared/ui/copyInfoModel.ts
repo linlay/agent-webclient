@@ -10,7 +10,6 @@ export interface CopyInfoGroup {
   key: string;
   label: string;
   rows: CopyInfoRow[];
-  collapsed?: boolean;
 }
 
 export interface CopyInfoRowOptions {

@@ -146,6 +146,7 @@ export const WorkerChatPreviewItem: React.FC<{
           <ChatActionsMenu
             chatId={chat.chatId}
             chatName={chat.chatName}
+            agentKey={chat.agentKey}
             triggerClassName={CHAT_ACTIONS_TRIGGER_CLASS}
             iconHover24
           />
