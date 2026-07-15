@@ -1792,7 +1792,116 @@
     color: var(--ink-muted);
 }
 
+.copy-info-modal .ant-modal-body {
+    max-height: min(68vh, 720px);
+    overflow-y: auto;
+}
+
+.copy-info-alert {
+    margin-bottom: 12px;
+}
+
+.copy-info-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.copy-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.copy-info-group h3 {
+    margin: 0 0 8px;
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.copy-info-group-rows {
+    overflow: hidden;
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    background: var(--bg-elev-1);
+}
+
+.copy-info-row {
+    display: grid;
+    grid-template-columns: minmax(116px, 0.28fr) minmax(0, 1fr) 32px;
+    align-items: start;
+    gap: 10px;
+    min-height: 40px;
+    padding: 8px 8px 8px 12px;
+}
+
+.copy-info-row + .copy-info-row {
+    border-top: 1px solid var(--line-soft);
+}
+
+.copy-info-row-label {
+    padding-top: 3px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.copy-info-row-value {
+    min-width: 0;
+    max-height: 180px;
+    margin: 0;
+    overflow: auto;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.copy-info-row-value.is-code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.copy-info-row-action {
+    margin-top: -1px;
+}
+
+.copy-info-advanced.ant-collapse {
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    background: var(--bg-elev-1);
+}
+
+.copy-info-advanced .ant-collapse-header {
+    align-items: center !important;
+    color: var(--text-sub) !important;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.copy-info-advanced .ant-collapse-content-box {
+    padding-top: 0 !important;
+}
+
+.copy-info-advanced .copy-info-group-rows {
+    border-radius: 8px;
+}
+
 @media (max-width: 640px) {
+
+    .copy-info-row {
+        grid-template-columns: minmax(88px, 0.32fr) minmax(0, 1fr) 32px;
+        gap: 8px;
+        padding-left: 10px;
+    }
 
     .global-search-role,
     .global-search-snippet,

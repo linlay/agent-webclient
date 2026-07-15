@@ -28,6 +28,7 @@ import type { AppAction } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import {
   resolveSettingsSummaryBadges,
   SidebarSettingsMenu,
@@ -52,6 +53,7 @@ import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySectio
 import {
   createAgent,
   deleteAgent,
+  getAgent,
   getAgents,
   getChats,
   markChatRead,
@@ -70,6 +72,11 @@ import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import {
+  buildAgentCopyInfoGroups,
+  type AgentCopySummary,
+} from "@/features/workers/lib/agentCopyInfo";
+import type { AgentDetailResponse } from "@/shared/data";
 
 function findChatIndex(rows: WorkerConversationRow[], chatId: string): number {
   const normalizedChatId = String(chatId || "").trim();
@@ -237,6 +244,14 @@ export const LeftSidebar: React.FC = () => {
   >(null);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [agentCopyTarget, setAgentCopyTarget] = useState<AgentCopySummary | null>(null);
+  const [agentCopyDetail, setAgentCopyDetail] = useState<AgentDetailResponse | null>(null);
+  const [agentCopyLoading, setAgentCopyLoading] = useState(false);
+  const [agentCopyError, setAgentCopyError] = useState("");
+  const agentCopyRequestRef = useRef(0);
+  useEffect(() => () => {
+    agentCopyRequestRef.current += 1;
+  }, []);
   const [workerSortMode, setWorkerSortMode] =
     useState<WorkerSortMode>("byTime");
   const historyInputRef = useRef<HTMLInputElement>(null);
@@ -600,6 +615,58 @@ export const LeftSidebar: React.FC = () => {
     );
   };
 
+  const loadAgentCopyDetail = (target: AgentCopySummary) => {
+    const requestId = agentCopyRequestRef.current + 1;
+    agentCopyRequestRef.current = requestId;
+    setAgentCopyLoading(true);
+    setAgentCopyError("");
+    setAgentCopyDetail(null);
+    void getAgent(target.agentKey)
+      .then((response) => {
+        if (agentCopyRequestRef.current !== requestId) return;
+        setAgentCopyDetail(response.data);
+      })
+      .catch((error) => {
+        if (agentCopyRequestRef.current !== requestId) return;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setAgentCopyError(errorMessage);
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[load agent copy detail error] ${errorMessage}`,
+        });
+      })
+      .finally(() => {
+        if (agentCopyRequestRef.current === requestId) {
+          setAgentCopyLoading(false);
+        }
+      });
+  };
+
+  const handleCopyAgent = (workerKey: string, agentKey: string) => {
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    const target: AgentCopySummary = {
+      agentKey: String(agentKey || row?.sourceId || "").trim(),
+      name: String(row?.displayName || agentKey || "").trim(),
+      type: row?.agentType,
+      role: row?.role,
+      workspaceDir: row?.workspaceDir,
+      workspaceName: row?.workspaceName,
+    };
+    if (!target.agentKey) return;
+    setAgentCopyTarget(target);
+    loadAgentCopyDetail(target);
+  };
+
+  const handleCloseAgentCopy = () => {
+    agentCopyRequestRef.current += 1;
+    setAgentCopyTarget(null);
+    setAgentCopyDetail(null);
+    setAgentCopyLoading(false);
+    setAgentCopyError("");
+  };
+
   const handleDeleteAgent = (workerKey: string, agentKey: string) => {
     const row =
       state.workerIndexByKey.get(workerKey) ||
@@ -714,6 +781,7 @@ export const LeftSidebar: React.FC = () => {
             onOpenWorkspace={handleOpenWorkspace}
             onRenameAgent={handleRenameAgent}
             onEditAgent={handleEditAgent}
+            onCopyAgent={handleCopyAgent}
             onDeleteAgent={handleDeleteAgent}
           />
         ),
@@ -732,6 +800,7 @@ export const LeftSidebar: React.FC = () => {
             onOpenWorkspace={handleOpenWorkspace}
             onRenameAgent={handleRenameAgent}
             onEditAgent={handleEditAgent}
+            onCopyAgent={handleCopyAgent}
             onDeleteAgent={handleDeleteAgent}
           />
         ),
@@ -1142,6 +1211,7 @@ export const LeftSidebar: React.FC = () => {
                             onOpenWorkspace={handleOpenWorkspace}
                             onRenameAgent={handleRenameAgent}
                             onEditAgent={handleEditAgent}
+                            onCopyAgent={handleCopyAgent}
                             onDeleteAgent={handleDeleteAgent}
                           />
                         }
@@ -1284,6 +1354,26 @@ export const LeftSidebar: React.FC = () => {
               : rows,
           );
         }}
+      />
+
+      <CopyInfoModal
+        open={Boolean(agentCopyTarget)}
+        title={t("agentCopy.title")}
+        groups={agentCopyTarget
+          ? buildAgentCopyInfoGroups({
+              summary: agentCopyTarget,
+              detail: agentCopyDetail,
+              t,
+            })
+          : []}
+        rawData={agentCopyDetail}
+        rawReady={Boolean(agentCopyDetail)}
+        loading={agentCopyLoading}
+        error={agentCopyError}
+        onRetry={agentCopyTarget
+          ? () => loadAgentCopyDetail(agentCopyTarget)
+          : undefined}
+        onClose={handleCloseAgentCopy}
       />
 
       <Modal

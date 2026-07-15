@@ -46,6 +46,7 @@ import {
   getAgents,
   getChatLLMTraceRaw,
   getChatRawJsonl,
+	getChatSystemPrompt,
   getArchives,
   getChats,
   getFileHistory,
@@ -1795,6 +1796,38 @@ describe('data client query payloads', () => {
       Authorization: 'Bearer demo-token',
     });
   });
+
+	it('loads a run system prompt using the replay-safe run identity', async () => {
+		setAccessToken('demo-token');
+		fetchMock.mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			text: async () =>
+				JSON.stringify({
+					code: 0,
+					msg: 'success',
+					data: {
+						chatId: 'chat_1',
+						runId: 'run_1',
+						agentKey: 'demo',
+						systemRef: { agentKey: 'demo', cacheKey: 'react:main', fingerprint: 'sha256:test' },
+						systemMessage: { role: 'system', content: 'stored prompt' },
+					},
+				}),
+		});
+
+		await expect(getChatSystemPrompt({ chatId: 'chat_1', runId: 'run_1', agentKey: 'demo' })).resolves.toMatchObject({
+			data: { systemMessage: { content: 'stored prompt' } },
+		});
+
+		const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('/api/chat/system-prompt?chatId=chat_1&runId=run_1&agentKey=demo');
+		expect(options.method).toBe('GET');
+		expect(options.headers).toEqual({
+			Authorization: 'Bearer demo-token',
+			'Content-Type': 'application/json',
+		});
+	});
 
   it('uses generic platform display text when raw chat jsonl loading fails without structured codes', async () => {
     fetchMock.mockResolvedValueOnce({

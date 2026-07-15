@@ -1219,9 +1219,11 @@ describe("LeftSidebar", () => {
       "openWorkspace",
       "renameAgent",
       "editAgent",
+      "copyAgent",
     ]);
     expect(html).toContain("修改名称");
     expect(html).toContain("编辑智能体");
+    expect(html).toContain("复制信息");
     expect(html).not.toContain("删除智能体");
   });
 
@@ -1239,9 +1241,61 @@ describe("LeftSidebar", () => {
       "openWorkspace",
       "renameAgent",
       "editAgent",
+      "copyAgent",
       "deleteAgent",
     ]);
     expect(menu?.items?.find((item) => item.key === "deleteAgent")?.danger).toBe(true);
+  });
+
+  it("keeps copy information after edit in both agent menu variants and loads details", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "coder";
+    mockState(state);
+    getAgent.mockReturnValue(new Promise(() => undefined));
+
+    renderSidebar();
+    const expandedMenus = dropdownMenuProps.filter((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
+    );
+
+    expect(expandedMenus).toHaveLength(1);
+    expandedMenus.forEach((menu) => {
+      expect(menu.items.map((item: any) => item.key)).toEqual([
+        "openWorkspace",
+        "renameAgent",
+        "editAgent",
+        "copyAgent",
+        "deleteAgent",
+      ]);
+    });
+
+    dropdownMenuProps.length = 0;
+    state.leftDrawerOpen = false;
+    mockState(state);
+    renderSidebar();
+    const collapsedMenus = dropdownMenuProps.filter((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
+    );
+    expect(collapsedMenus).toHaveLength(1);
+    expect(collapsedMenus[0].items.map((item: any) => item.key)).toEqual([
+      "openWorkspace",
+      "renameAgent",
+      "editAgent",
+      "copyAgent",
+      "deleteAgent",
+    ]);
+
+    const stopPropagation = jest.fn();
+    collapsedMenus[0].onClick({
+      key: "copyAgent",
+      domEvent: { stopPropagation },
+    });
+
+    expect(stopPropagation).toHaveBeenCalledTimes(1);
+    expect(getAgent).toHaveBeenCalledWith("worker_a");
   });
 
   it("opens the agent editor in a new page with the current search string", () => {

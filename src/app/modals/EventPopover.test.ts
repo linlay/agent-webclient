@@ -20,8 +20,7 @@ const {
   getPrimaryCopyMenuItem,
   resolveEventGroupMeta,
   resolveSystemPromptCalls,
-  resolveSystemPromptTextFromTraceText,
-  resolveSystemPromptTextFromRequestBody,
+	resolveSystemPromptText,
   buildSystemPromptTimeoutLoadState,
   SYSTEM_PROMPT_LOAD_TIMEOUT_MS,
   resolveInitialPopoverState,
@@ -283,28 +282,20 @@ describe("EventPopover collect controls", () => {
     expect(html).not.toContain('aria-label="Collect event snapshot"');
   });
 
-  it("renders system prompt action for run.start with same-run llm chat calls", () => {
+  it("renders system prompt action for historical run.start without debug.llmChat", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "run.start",
+		chatId: "chat_1",
       runId: "run_1",
+		agentKey: "demo",
       timestamp: 1776518171300,
-    };
-    const llmChatEvent: AgentEvent = {
-      type: "debug.llmChat",
-      runId: "run_1",
-      data: {
-        model: { key: "mock-model" },
-        runSeq: 1,
-        status: "ok",
-	        trace: { file: "chat_1/.llm-records/run_1_001.json" },
-      },
     };
     useAppState.mockReturnValue({
       ...state,
       eventPopoverIndex: 0,
       eventPopoverEventRef: event,
-      debugEvents: [event, llmChatEvent],
+		debugEvents: [event],
     });
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
@@ -312,13 +303,14 @@ describe("EventPopover collect controls", () => {
     expect(html).toContain('aria-label="System Prompt"');
   });
 
-  it("renders system prompt action for debug.llmChat with a valid trace file", () => {
+  it("renders system prompt action for debug.llmChat without requiring a trace file", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.llmChat",
+		chatId: "chat_1",
       runId: "run_1",
       data: {
-        trace: { file: "chat_1/.llm-records/run_1_001.json" },
+			systemRef: { agentKey: "demo" },
       },
     };
     useAppState.mockReturnValue({
@@ -333,7 +325,7 @@ describe("EventPopover collect controls", () => {
     expect(html).toContain('aria-label="System Prompt"');
   });
 
-  it("does not render system prompt action for debug.llmChat with an invalid trace file", () => {
+  it("does not render system prompt action when the run identity is incomplete", () => {
     const state = createInitialState();
     const event: AgentEvent = {
       type: "debug.llmChat",
@@ -671,102 +663,11 @@ describe("EventPopover display and copy helpers", () => {
     expect(writeText).toHaveBeenCalledWith('{"type":"content.start"}');
   });
 
-  it("extracts OpenAI-style system prompt text from trace request messages", () => {
-    expect(
-      resolveSystemPromptTextFromRequestBody({
-      model: "gpt-5",
-      messages: [
-        { role: "system", content: "openai system" },
-        { role: "user", content: "first user" },
-        { role: "assistant", content: "first answer" },
-        { role: "user", content: "second user" },
-      ],
-      }),
-    ).toBe("openai system");
-  });
-
-  it("extracts system prompt text from requestBody trace fields", () => {
-    expect(
-      resolveSystemPromptTextFromTraceText({
-      requestBody: {
-        model: "gpt-5",
-        messages: [
-          { role: "system", content: "requestBody system" },
-          { role: "user", content: "requestBody user" },
-        ],
-      },
-      }),
-    ).toBe("requestBody system");
-  });
-
-  it("extracts Anthropic-style system text before system messages", () => {
-    expect(
-      resolveSystemPromptTextFromRequestBody({
-      model: "claude",
-      system: "anthropic system",
-        messages: [
-          { role: "system", content: "openai system" },
-          { role: "user", content: "hello" },
-        ],
-      }),
-    ).toBe("anthropic system\n\nopenai system");
-  });
-
-  it("parses system prompt text from raw trace text", () => {
-    expect(
-      resolveSystemPromptTextFromTraceText(
-        JSON.stringify({
-          request: {
-            messages: [
-              { role: "system", content: "raw system" },
-              { role: "user", content: "raw user" },
-            ],
-          },
-        }),
-      ),
-    ).toBe("raw system");
-
-    expect(resolveSystemPromptTextFromTraceText("{not json")).toBe("");
-  });
-
-  it("parses system prompt text from trace objects and data wrappers", () => {
-    expect(
-      resolveSystemPromptTextFromTraceText({
-        request: {
-          messages: [
-            { role: "system", content: "object system" },
-            { role: "user", content: "object user" },
-          ],
-        },
-      }),
-    ).toBe("object system");
-
-    expect(
-      resolveSystemPromptTextFromTraceText({
-        data: {
-          request: {
-            messages: [
-              { role: "system", content: "wrapped system" },
-              { role: "user", content: "wrapped user" },
-            ],
-          },
-        },
-      }),
-    ).toBe("wrapped system");
-
-    expect(
-      resolveSystemPromptTextFromTraceText({
-        data: JSON.stringify({
-          request: {
-            messages: [
-              { role: "system", content: "string-wrapped system" },
-              { role: "user", content: "string-wrapped user" },
-            ],
-          },
-        }),
-      }),
-    ).toBe("string-wrapped system");
-  });
+	it("renders system message content returned by the dedicated endpoint", () => {
+		expect(resolveSystemPromptText({ role: "system", content: "stored system" })).toBe("stored system");
+		expect(resolveSystemPromptText({ role: "system", content: [{ type: "text", text: "structured" }] })).toBe('[\n  {\n    "type": "text",\n    "text": "structured"\n  }\n]');
+		expect(resolveSystemPromptText({ role: "system" })).toBe("");
+	});
 
   it("builds an error load state for system prompt timeout", () => {
     expect(SYSTEM_PROMPT_LOAD_TIMEOUT_MS).toBe(15_000);
@@ -779,44 +680,38 @@ describe("EventPopover display and copy helpers", () => {
   it("collects system prompt calls for run.start and direct debug.llmChat", () => {
     const firstLlmChat: AgentEvent = {
       type: "debug.llmChat",
+		chatId: "chat_1",
       runId: "run_1",
       data: {
         model: { key: "mock-model" },
-        runSeq: 1,
         status: "ok",
-        trace: { file: "chat_1/.llm-records/run_1_001.json" },
+			systemRef: { agentKey: "demo" },
       },
     };
-    const secondLlmChat: AgentEvent = {
-      type: "debug.llmChat",
-      runId: "run_1",
-      data: {
-        model: { key: "other-model" },
-        runSeq: 2,
-        status: "ok",
-        trace: { file: "chat_1/.llm-records/run_1_002.json" },
-      },
-    };
-
     expect(
       resolveSystemPromptCalls(firstLlmChat, [firstLlmChat]).map((call) => ({
+		chatId: call.chatId,
+		runId: call.runId,
+		agentKey: call.agentKey,
         title: call.title,
         modelLabel: call.modelLabel,
       })),
     ).toEqual([
-      { title: "LLM #1", modelLabel: "mock-model" },
+		{ chatId: "chat_1", runId: "run_1", agentKey: "demo", title: "Run", modelLabel: "mock-model" },
     ]);
     expect(
       resolveSystemPromptCalls(
-        { type: "run.start", runId: "run_1" },
-        [firstLlmChat, secondLlmChat, { type: "debug.llmChat", runId: "other" }],
+        { type: "run.start", chatId: "chat_1", runId: "run_1", agentKey: "demo" },
+        [firstLlmChat],
       ).map((call) => ({
+		chatId: call.chatId,
+		runId: call.runId,
+		agentKey: call.agentKey,
         title: call.title,
         modelLabel: call.modelLabel,
       })),
     ).toEqual([
-      { title: "LLM #1", modelLabel: "mock-model" },
-      { title: "LLM #2", modelLabel: "other-model" },
+		{ chatId: "chat_1", runId: "run_1", agentKey: "demo", title: "Run", modelLabel: "" },
     ]);
   });
 

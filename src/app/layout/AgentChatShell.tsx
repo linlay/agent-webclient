@@ -286,7 +286,7 @@ export const AgentChatShell: React.FC = () => {
           return;
         }
 
-        const payload = (response.data || {}) as Partial<Agent>;
+        const payload = (response.data || {}) as unknown as Partial<Agent>;
         const resolvedAgentKey =
           String(payload.key || agentKey).trim() || agentKey;
         const patch: Partial<Agent> & Pick<Agent, "key"> = {

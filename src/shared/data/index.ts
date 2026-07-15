@@ -35,6 +35,7 @@ export {
   getAutomationExecutions,
   getAutomations,
   getChat,
+  getChatSystemPrompt,
   getChatLLMTraceRaw,
   getChatRawJsonl,
   getChats,

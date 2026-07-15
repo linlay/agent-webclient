@@ -9,6 +9,7 @@ import type {
   DeriveChatRequest,
   GetAgentsOptions,
   GetChatsOptions,
+	ChatSystemPromptRequest,
   GetMemoryRecordsParams,
   QueryModelOverride,
   QueryReasoningEffort,
@@ -528,6 +529,16 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "auto",
     payload: ({ chatId }) => ({ chatId }),
+  }),
+  chatSystemPrompt: defineEndpoint<
+    ChatSystemPromptRequest,
+    ChatSystemPromptRequest
+  >({
+    key: "chat.systemPrompt",
+    path: "/api/chat/system-prompt",
+    method: "GET",
+    transport: "http",
+    payload: ({ chatId, runId, agentKey }) => ({ chatId, runId, agentKey }),
   }),
   chatLlmTrace: defineEndpoint<{ file: string }, { file: string }>({
     key: "chat.llmTrace",

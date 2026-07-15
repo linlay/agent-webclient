@@ -271,7 +271,7 @@ export function useWorkerData(input: {
 
     try {
       const response = await getAgent(requestedAgentKey);
-      const payload = (response.data || {}) as Partial<Agent>;
+      const payload = (response.data || {}) as unknown as Partial<Agent>;
       const resolvedAgentKey = String(payload.key || requestedAgentKey).trim() || requestedAgentKey;
       const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
         ...payload,
