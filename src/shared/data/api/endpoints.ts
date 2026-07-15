@@ -537,7 +537,7 @@ export const dataEndpoints = createEndpointRegistry({
     key: "chat.systemPrompt",
     path: "/api/chat/system-prompt",
     method: "GET",
-    transport: "http",
+    transport: "auto",
     payload: ({ chatId, runId, agentKey }) => ({ chatId, runId, agentKey }),
   }),
   chatLlmTrace: defineEndpoint<{ file: string }, { file: string }>({
