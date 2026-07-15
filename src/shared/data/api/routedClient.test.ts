@@ -49,6 +49,7 @@ jest.mock("@/shared/data/api/client", () => {
 		getAgents: jest.fn(),
 		getChatLLMTraceRaw: jest.fn(),
 		getChatRawJsonl: jest.fn(),
+		getChatSystemPrompt: jest.fn(),
 		getArchive: jest.fn(),
 		getArchives: jest.fn(),
 		getChat: jest.fn(),
@@ -135,6 +136,7 @@ let mockApiClient: {
 	getAgents: jest.Mock;
 	getChatLLMTraceRaw: jest.Mock;
 	getChatRawJsonl: jest.Mock;
+	getChatSystemPrompt: jest.Mock;
 	getArchive: jest.Mock;
 	getArchives: jest.Mock;
 	getChat: jest.Mock;
@@ -1027,6 +1029,29 @@ describe("routedClient", () => {
 			payload: { chatId: "chat_1" },
 		});
 		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
+	});
+
+	it("uses the HTTP endpoint for persisted run system prompts", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
+		mockApiClient.getChatSystemPrompt.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				...params,
+				systemRef: { ...params, cacheKey: "react:main", fingerprint: "sha256:test" },
+				systemMessage: { role: "system", content: "persisted prompt" },
+			},
+		});
+
+		await expect(proxy.getChatSystemPrompt(params)).resolves.toMatchObject({
+			data: { systemMessage: { content: "persisted prompt" } },
+		});
+
+		expect(mockApiClient.getChatSystemPrompt).toHaveBeenCalledWith(params);
+		expect(mockGetWsClient).not.toHaveBeenCalled();
 	});
 
 	it("routes raw llm trace loads over ws when connected", async () => {

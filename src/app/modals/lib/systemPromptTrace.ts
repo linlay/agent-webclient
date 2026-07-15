@@ -5,14 +5,9 @@ import {
 } from "@/app/modals/lib/eventPopoverFormatters";
 
 export interface SystemPromptCall {
-	id: string;
 	chatId: string;
 	runId: string;
 	agentKey: string;
-	title: string;
-	traceFile: string;
-	modelLabel: string;
-	status: string;
 }
 
 export type SystemPromptLoadState =
@@ -97,18 +92,7 @@ export function resolveSystemPromptText(systemMessage: unknown): string {
 	if (!message) {
 		return "";
 	}
-	const content = message.content;
-	if (typeof content === "string") {
-		return content.trim();
-	}
-	if (content == null) {
-		return "";
-	}
-	try {
-		return JSON.stringify(content, null, 2);
-	} catch {
-		return String(content);
-	}
+	return joinTextParts(extractTextParts(message.content));
 }
 
 function buildSystemPromptCall(
@@ -127,16 +111,10 @@ function buildSystemPromptCall(
 		return null;
 	}
 
-	const traceFile = resolveRawLLMTraceFile(event);
 	return {
-		id: `${chatId}:${runId}:${agentKey}`,
 		chatId,
 		runId,
 		agentKey,
-		title: "Run",
-		traceFile,
-		modelLabel: readModelLabel(data),
-		status: readStringValue(data?.status),
 	};
 }
 
@@ -171,14 +149,32 @@ function readEventRunId(event: AgentEvent | null | undefined): string {
 	return "";
 }
 
-function readModelLabel(data: Record<string, unknown> | null): string {
-	const model = readObjectValue(data?.model);
-	return (
-		readStringValue(model?.key).trim() ||
-		readStringValue(model?.id).trim() ||
-		readStringValue(data?.modelKey).trim() ||
-		readStringValue(data?.modelId).trim()
-	);
+function extractTextParts(value: unknown): string[] {
+	if (typeof value === "string") {
+		const text = value.trim();
+		return text ? [text] : [];
+	}
+	if (Array.isArray(value)) {
+		return value.flatMap((item) => extractTextParts(item));
+	}
+	const record = readObjectValue(value);
+	if (!record) {
+		return [];
+	}
+	if (typeof record.text === "string") {
+		return extractTextParts(record.text);
+	}
+	if (
+		readStringValue(record.type).toLowerCase() === "text" &&
+		typeof record.value === "string"
+	) {
+		return extractTextParts(record.value);
+	}
+	return [];
+}
+
+function joinTextParts(parts: string[]): string {
+	return parts.map((part) => part.trim()).filter(Boolean).join("\n\n");
 }
 
 function isSafePathSegment(value: string): boolean {

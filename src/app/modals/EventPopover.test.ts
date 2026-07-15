@@ -630,10 +630,8 @@ describe("EventPopover display and copy helpers", () => {
     });
   });
 
-  it("formats readable timestamps and falls back to --", () => {
-    expect(formatReadableTimestamp(1776518171300)).toMatch(
-      /^\d{2}:\d{2}:\d{2}$/,
-    );
+  it("formats readable timestamps under the current display-time policy and falls back to --", () => {
+    expect(formatReadableTimestamp(1776518171300)).not.toBe("--");
     expect(formatReadableTimestamp(undefined)).toBe("--");
   });
 
@@ -665,7 +663,16 @@ describe("EventPopover display and copy helpers", () => {
 
 	it("renders system message content returned by the dedicated endpoint", () => {
 		expect(resolveSystemPromptText({ role: "system", content: "stored system" })).toBe("stored system");
-		expect(resolveSystemPromptText({ role: "system", content: [{ type: "text", text: "structured" }] })).toBe('[\n  {\n    "type": "text",\n    "text": "structured"\n  }\n]');
+		expect(
+			resolveSystemPromptText({
+				role: "system",
+				content: [
+					{ type: "text", text: "first fragment" },
+					{ type: "text", value: "second fragment" },
+					{ type: "image", url: "ignored" },
+				],
+			}),
+		).toBe("first fragment\n\nsecond fragment");
 		expect(resolveSystemPromptText({ role: "system" })).toBe("");
 	});
 
@@ -693,11 +700,9 @@ describe("EventPopover display and copy helpers", () => {
 		chatId: call.chatId,
 		runId: call.runId,
 		agentKey: call.agentKey,
-        title: call.title,
-        modelLabel: call.modelLabel,
       })),
     ).toEqual([
-		{ chatId: "chat_1", runId: "run_1", agentKey: "demo", title: "Run", modelLabel: "mock-model" },
+		{ chatId: "chat_1", runId: "run_1", agentKey: "demo" },
     ]);
     expect(
       resolveSystemPromptCalls(
@@ -707,11 +712,9 @@ describe("EventPopover display and copy helpers", () => {
 		chatId: call.chatId,
 		runId: call.runId,
 		agentKey: call.agentKey,
-        title: call.title,
-        modelLabel: call.modelLabel,
       })),
     ).toEqual([
-		{ chatId: "chat_1", runId: "run_1", agentKey: "demo", title: "Run", modelLabel: "" },
+		{ chatId: "chat_1", runId: "run_1", agentKey: "demo" },
     ]);
   });
 

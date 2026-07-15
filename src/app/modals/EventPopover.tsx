@@ -178,11 +178,8 @@ export const EventPopover: React.FC = () => {
 	);
 	const [copyMenuOpen, setCopyMenuOpen] = useState(false);
 	const [systemPromptOpen, setSystemPromptOpen] = useState(false);
-	const [selectedSystemPromptCallId, setSelectedSystemPromptCallId] =
-		useState("");
-	const [systemPromptLoadStates, setSystemPromptLoadStates] = useState<
-		Record<string, SystemPromptLoadState>
-	>({});
+	const [systemPromptLoadState, setSystemPromptLoadState] =
+		useState<SystemPromptLoadState>({ status: "idle" });
 	const [position, setPosition] = useState({ top: 80, right: 320 });
 	const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
 	const event = state.eventPopoverEventRef;
@@ -247,20 +244,10 @@ export const EventPopover: React.FC = () => {
 		() => getPrimaryCopyMenuItem(copyMenuItems),
 		[copyMenuItems],
 	);
-	const systemPromptCalls = useMemo(
-		() => resolveSystemPromptCalls(event, state.debugEvents),
+	const systemPromptCall = useMemo(
+		() => resolveSystemPromptCalls(event, state.debugEvents)[0] || null,
 		[event, state.debugEvents],
 	);
-	const selectedSystemPromptCall = useMemo(
-		() =>
-			systemPromptCalls.find(
-				(call) => call.id === selectedSystemPromptCallId,
-			) || systemPromptCalls[0],
-		[systemPromptCalls, selectedSystemPromptCallId],
-	);
-	const selectedSystemPromptLoadStatus = selectedSystemPromptCall
-		? systemPromptLoadStates[selectedSystemPromptCall.id]?.status
-		: undefined;
 
 	useEffect(() => {
 		setPopoverState(resolveInitialPopoverState(event));
@@ -270,79 +257,48 @@ export const EventPopover: React.FC = () => {
 		setLastCopyItem(buildDefaultCopyMenuItem(t));
 		setCopyMenuOpen(false);
 		setSystemPromptOpen(false);
-		setSelectedSystemPromptCallId("");
-		setSystemPromptLoadStates({});
+		setSystemPromptLoadState({ status: "idle" });
 	}, [event, t]);
-
-	useEffect(() => {
-		if (!systemPromptOpen) {
-			return;
-		}
-		if (systemPromptCalls.length === 0) {
-			setSelectedSystemPromptCallId("");
-			return;
-		}
-		if (
-			!selectedSystemPromptCallId ||
-			!systemPromptCalls.some((call) => call.id === selectedSystemPromptCallId)
-		) {
-			setSelectedSystemPromptCallId(systemPromptCalls[0].id);
-		}
-	}, [systemPromptOpen, systemPromptCalls, selectedSystemPromptCallId]);
 
 	useEffect(() => {
 		if (
 			!systemPromptOpen ||
-			!selectedSystemPromptCall ||
-			selectedSystemPromptLoadStatus === "loading" ||
-			selectedSystemPromptLoadStatus === "ready" ||
-			selectedSystemPromptLoadStatus === "empty"
+			!systemPromptCall
 		) {
 			return;
 		}
 
 		let cancelled = false;
-		const callId = selectedSystemPromptCall.id;
 		const timeout = window.setTimeout(() => {
 			if (cancelled) return;
 			cancelled = true;
-			setSystemPromptLoadStates((current) => ({
-				...current,
-				[callId]: buildSystemPromptTimeoutLoadState(
+			setSystemPromptLoadState(
+				buildSystemPromptTimeoutLoadState(
 					t("eventPopover.systemPromptModal.timeout"),
 				),
-			}));
+			);
 		}, SYSTEM_PROMPT_LOAD_TIMEOUT_MS);
-		setSystemPromptLoadStates((current) => ({
-			...current,
-			[callId]: { status: "loading" },
-		}));
+		setSystemPromptLoadState({ status: "loading" });
 		void getChatSystemPrompt({
-			chatId: selectedSystemPromptCall.chatId,
-			runId: selectedSystemPromptCall.runId,
-			agentKey: selectedSystemPromptCall.agentKey,
+			chatId: systemPromptCall.chatId,
+			runId: systemPromptCall.runId,
+			agentKey: systemPromptCall.agentKey,
 		})
 			.then((response) => resolveSystemPromptText(response.data.systemMessage))
 			.then((text) => {
 				if (cancelled) return;
 				window.clearTimeout(timeout);
-				setSystemPromptLoadStates((current) => ({
-					...current,
-					[callId]: text
-						? { status: "ready", text }
-						: { status: "empty" },
-				}));
+				setSystemPromptLoadState(
+					text ? { status: "ready", text } : { status: "empty" },
+				);
 			})
 			.catch((error) => {
 				if (cancelled) return;
 				window.clearTimeout(timeout);
-				setSystemPromptLoadStates((current) => ({
-					...current,
-					[callId]: {
-						status: "error",
-						message: error instanceof Error ? error.message : String(error || ""),
-					},
-				}));
+				setSystemPromptLoadState({
+					status: "error",
+					message: error instanceof Error ? error.message : String(error || ""),
+				});
 			});
 
 		return () => {
@@ -351,7 +307,7 @@ export const EventPopover: React.FC = () => {
 		};
 	}, [
 		systemPromptOpen,
-		selectedSystemPromptCall,
+		systemPromptCall,
 		t,
 	]);
 
@@ -443,9 +399,7 @@ export const EventPopover: React.FC = () => {
 
 	const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus, t);
 	const openSystemPrompt = () => {
-		if (systemPromptCalls[0]) {
-			setSelectedSystemPromptCallId(systemPromptCalls[0].id);
-		}
+		setSystemPromptLoadState({ status: "idle" });
 		setSystemPromptOpen(true);
 	};
 
@@ -538,7 +492,7 @@ export const EventPopover: React.FC = () => {
 							<MaterialIcon name={copyIcon} />
 						</UiButton>
 					</Popover>
-					{systemPromptCalls.length > 0 && (
+					{systemPromptCall && (
 						<UiButton
 							className={EVENT_POPOVER_SYSTEM_ACTION_BUTTON_CLASS_NAME}
 							variant="ghost"
@@ -573,12 +527,9 @@ export const EventPopover: React.FC = () => {
 			</div>
 			<pre className={EVENT_POPOVER_BODY_CLASS_NAME}>{popoverState.displayJsonStr}</pre>
 			<SystemPromptModal
-				calls={systemPromptCalls}
-				loadStates={systemPromptLoadStates}
+				loadState={systemPromptLoadState}
 				open={systemPromptOpen}
-				selectedCallId={selectedSystemPromptCallId}
 				onClose={() => setSystemPromptOpen(false)}
-				onSelectCall={setSelectedSystemPromptCallId}
 			/>
 		</div>
 	);
