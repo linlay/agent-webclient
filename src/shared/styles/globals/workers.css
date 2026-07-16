@@ -381,10 +381,22 @@
 }
 
 .automations-console-page,
-.registries-page,
-.skills-page {
+.registries-page {
     height: 100vh;
     min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.skills-page {
+    max-width: none;
+    margin: 0;
+    height: 100vh;
+    min-height: 0;
+    padding: 10px;
+    background: var(--bg-base);
+    color: var(--ink-1);
     overflow: hidden;
     display: flex;
     flex-direction: column;
