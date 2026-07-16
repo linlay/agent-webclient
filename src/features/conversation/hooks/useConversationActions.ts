@@ -14,7 +14,10 @@ import {
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '@/features/conversation/lib/conversationSession';
-import { resolveMainChatRuntime } from '@/features/runs/lib/runRuntimeState';
+import {
+  isMainChatRuntimeObservedByLiveQuery,
+  resolveMainChatRuntime,
+} from '@/features/runs/lib/runRuntimeState';
 import { resolveRunOwner } from '@/features/runs/lib/runOwner';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/conversation/lib/conversationReplay';
@@ -319,6 +322,12 @@ export function useConversationActions() {
         activeQuerySessionRequestIdRef,
         querySessionsRef,
       );
+      if (isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
+        if (focusComposerOnComplete) {
+          focusComposerSoon();
+        }
+        return;
+      }
       const hasAssistantTimelineContent = hasAssistantTimelineContentInState(stateRef.current);
       if (
         currentChatId

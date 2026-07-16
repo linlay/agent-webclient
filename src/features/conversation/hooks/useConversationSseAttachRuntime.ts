@@ -8,6 +8,7 @@ import {
 	type LiveQuerySession,
 } from "@/features/conversation/lib/conversationSession";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
+import { isRunObservedByLiveQuerySession } from "@/features/runs/lib/runRuntimeState";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { sameRunOwner, toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
@@ -205,6 +206,27 @@ export function registerSseAttachRunListener(
 			});
 			return;
 		}
+		if (isRunObservedByLiveQuerySession({
+			chatId,
+			runId,
+			owner,
+			querySessions: options.querySessionsRef,
+		})) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				stage: "attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "live_query_observing",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
+			return;
+		}
 
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && sameRunOwner(current.owner, owner)) {
@@ -230,6 +252,7 @@ export function registerSseAttachRunListener(
 		const controller = new AbortController();
 		const session = createLiveQuerySession({
 			requestId,
+			observationSource: "attach",
 			chatId,
 			owner,
 		});

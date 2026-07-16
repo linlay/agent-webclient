@@ -42,6 +42,24 @@ export function createNewChatRouteKey(
   return `${agentKey}\u0000${newChatTimestamp}`;
 }
 
+export function createChatRouteKey(agentKey: string, chatId: string): string {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  const normalizedChatId = String(chatId || "").trim();
+  return normalizedAgentKey && normalizedChatId
+    ? `${normalizedAgentKey}\u0000${normalizedChatId}`
+    : "";
+}
+
+/** Consume the one-shot marker created by a `newChat` live-session promotion. */
+export function consumeLiveSessionPromotion(
+  promotions: Set<string>,
+  agentKey: string,
+  chatId: string,
+): boolean {
+  const routeKey = createChatRouteKey(agentKey, chatId);
+  return Boolean(routeKey && promotions.delete(routeKey));
+}
+
 export function createResolvedNewChatRoute(
   agentKey: string,
   searchParams: URLSearchParams,
@@ -167,6 +185,7 @@ export const AgentChatShell: React.FC = () => {
   const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
+  const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const lastOpenedHistoryRouteKeyRef = useRef("");
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
@@ -321,6 +340,9 @@ export const AgentChatShell: React.FC = () => {
       }
 
       handled = true;
+      promotedLiveChatRouteKeysRef.current.add(
+        createChatRouteKey(resolvedAgentKey, chatId),
+      );
       navigate(route, { replace: true });
     };
 
@@ -407,12 +429,21 @@ export const AgentChatShell: React.FC = () => {
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
     if (chatId) {
-      const routeKey = `${agentKey}\u0000${chatId}`;
+      const routeKey = createChatRouteKey(agentKey, chatId);
       if (lastLoadedChatKeyRef.current === routeKey) {
         return;
       }
       lastLoadedChatKeyRef.current = routeKey;
       lastInitializedAgentKeyRef.current = "";
+      if (
+        consumeLiveSessionPromotion(
+          promotedLiveChatRouteKeysRef.current,
+          agentKey,
+          chatId,
+        )
+      ) {
+        return;
+      }
       window.dispatchEvent(
         new CustomEvent("agent:load-chat", {
           detail: {

@@ -11,7 +11,7 @@ Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 
 - 在 query payload 中补充宿主提供的上下文。
 
 ## 核心流程
-运行时检测 `__DESKTOP_WEBVIEW_BRIDGE__` 宿主标记。页面路由变化由 hook 通知宿主；缺少 token 时发送 `desktop:agent-auth:request`，并兼容 `desktop:agent-app-auth:response` 等历史响应；Desktop 在认证响应中同时传递 `desktopAuthContext`，页面先应用上下文并清理不匹配的旧 token，再写入新 token。Composer 需要截图时调用 screenshot bridge 并转为 File；发送 query 时可由 `buildDesktopQueryContext` 附加宿主上下文。
+运行时检测 `__DESKTOP_WEBVIEW_BRIDGE__` 宿主标记。页面路由变化由 hook 通知宿主；`?newChat=` 收到稳定 `chatId` 后 replace 到 `?chatId=` 是当前 live query 的 URL 身份收敛，宿主只镜像地址和选中态，不回写该等价主聊天路由或触发 `popstate` 重放。缺少 token 时发送 `desktop:agent-auth:request`，并兼容 `desktop:agent-app-auth:response` 等历史响应；Desktop 在认证响应中同时传递 `desktopAuthContext`，页面先应用上下文并清理不匹配的旧 token，再写入新 token。Composer 需要截图时调用 screenshot bridge 并转为 File；发送 query 时可由 `buildDesktopQueryContext` 附加宿主上下文。
 
 ## 边界与非目标
 - Desktop bridge 是可选能力，普通浏览器必须可降级运行。

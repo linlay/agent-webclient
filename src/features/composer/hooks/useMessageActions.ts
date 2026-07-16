@@ -420,6 +420,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
       const session = createLiveQuerySession({
         requestId,
+        observationSource: "query",
         chatId,
         agentKey: selectedAgentKey,
         teamId: selectedTeamId,

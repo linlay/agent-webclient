@@ -6,9 +6,10 @@ import type {
 } from "@/app/state/types";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import type { RunSession } from "@/features/runs/lib/runSession";
+import { sameRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { toText } from "@/shared/utils/eventUtils";
 
-type QuerySessionsInput =
+export type QuerySessionsInput =
 	| ReadonlyMap<string, RunSession>
 	| { current: ReadonlyMap<string, RunSession> }
 	| null
@@ -80,6 +81,56 @@ function findStreamingSessionForChat(
 		}
 	}
 	return null;
+}
+
+/** A local /api/query (or query WebSocket) stream, never a recovery attach. */
+export function isStreamingLiveQuerySession(
+	session: RunSession | null | undefined,
+): session is RunSession {
+	return Boolean(session?.streaming && session.observationSource !== "attach");
+}
+
+function sessionMatchesRunOwner(session: RunSession, owner: RunOwner): boolean {
+	if (session.owner) {
+		return sameRunOwner(session.owner, owner);
+	}
+	if (owner.kind === "agent") {
+		const sessionAgentKey = toText(session.agentKey);
+		return !sessionAgentKey || sessionAgentKey === owner.agentKey;
+	}
+	const sessionTeamId = toText(session.teamId);
+	return !sessionTeamId || sessionTeamId === owner.teamId;
+}
+
+/**
+ * True when this page already owns the specified run through its original live
+ * query stream. Starting /api/attach in that case would create a second
+ * observer for the same WebSocket run.
+ */
+export function isRunObservedByLiveQuerySession(input: {
+	chatId: string;
+	runId: string;
+	owner: RunOwner;
+	querySessions: QuerySessionsInput;
+}): boolean {
+	const chatId = toText(input.chatId);
+	const runId = toText(input.runId);
+	if (!chatId || !runId) {
+		return false;
+	}
+
+	for (const session of readQuerySessions(input.querySessions).values()) {
+		if (
+			!isStreamingLiveQuerySession(session) ||
+			toText(session.chatId) !== chatId ||
+			(toText(session.runId) && toText(session.runId) !== runId) ||
+			!sessionMatchesRunOwner(session, input.owner)
+		) {
+			continue;
+		}
+		return true;
+	}
+	return false;
 }
 
 function resolveCurrentChatActiveRun(
@@ -176,4 +227,20 @@ export function resolveMainChatRuntime(
 		runId,
 		agentKey,
 	};
+}
+
+/**
+ * The active main-chat session may receive its stable chatId before the state
+ * reducer has committed it. Treat that as the same live query, not a reload.
+ */
+export function isMainChatRuntimeObservedByLiveQuery(
+	runtime: MainChatRuntime,
+	targetChatId: string,
+): boolean {
+	return (
+		toText(runtime.chatId) === "" || toText(runtime.chatId) === toText(targetChatId)
+	)
+		? isStreamingLiveQuerySession(runtime.session) &&
+			toText(runtime.session.chatId) === toText(targetChatId)
+		: false;
 }

@@ -56,7 +56,10 @@ import {
 	createLiveQuerySession,
 	type LiveQuerySession,
 } from "@/features/conversation/lib/conversationSession";
-import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import {
+	isRunObservedByLiveQuerySession,
+	resolveMainChatRuntime,
+} from "@/features/runs/lib/runRuntimeState";
 import { dispatchRunStartedPushEvent } from "@/features/runs/lib/mainChatRunActivation";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
@@ -696,6 +699,27 @@ export function registerAttachRunListener(
 			});
 			return;
 		}
+		if (isRunObservedByLiveQuerySession({
+			chatId,
+			runId,
+			owner,
+			querySessions: options.querySessionsRef,
+		})) {
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				stage: "attachRunIgnored",
+				chatId,
+				runId,
+				agentKey,
+				reason: "live_query_observing",
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
+			return;
+		}
 		const current = options.activeAttachRef.current;
 		if (current && current.runId === runId && current.chatId === chatId && sameRunOwner(current.owner, owner)) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
@@ -775,6 +799,7 @@ export function registerAttachRunListener(
 		const requestId = createWsFrameId("wsstream");
 		session = createLiveQuerySession({
 			requestId,
+			observationSource: "attach",
 			chatId,
 			owner,
 		});

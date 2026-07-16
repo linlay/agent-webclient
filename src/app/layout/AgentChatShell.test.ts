@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
   AgentChatShell,
+  consumeLiveSessionPromotion,
+  createChatRouteKey,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
   parseNewChatTimestamp,
@@ -558,6 +560,22 @@ describe("AgentChatShell", () => {
         "chat-123",
       ),
     ).toBe("/agent/demo-agent?lang=en&hostTheme=dark&chatId=chat-123");
+  });
+
+  it("consumes a live-session promotion exactly once for its promoted chat route", () => {
+    const promotions = new Set([
+      createChatRouteKey("demo-agent", "chat-123"),
+    ]);
+
+    expect(
+      consumeLiveSessionPromotion(promotions, "demo-agent", "chat-123"),
+    ).toBe(true);
+    expect(
+      consumeLiveSessionPromotion(promotions, "demo-agent", "chat-123"),
+    ).toBe(false);
+    expect(
+      consumeLiveSessionPromotion(promotions, "demo-agent", "chat-456"),
+    ).toBe(false);
   });
 
   it("uses each timestamp as the retrigger key for explicit new chat routes", () => {

@@ -225,6 +225,41 @@ describe("registerSseAttachRunListener", () => {
 		cleanup();
 	});
 
+	it("does not attach a run already observed by a live query", () => {
+		const executeAttachRunSseImpl = jest.fn(() => new Promise<void>(() => undefined));
+		const querySessionsRef = {
+			current: new Map<string, any>([["req_live", {
+				requestId: "req_live",
+				observationSource: "query",
+				chatId: "chat_1",
+				runId: "run_1",
+				agentKey: "agent_alpha",
+				owner: { kind: "agent", agentKey: "agent_alpha" },
+				streaming: true,
+			}]])
+		};
+		const cleanup = registerSseAttachRunListener({
+			dispatch,
+			stateRef: { current: createState() },
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef,
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "req_live" },
+			executeAttachRunSseImpl,
+		});
+
+		window.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+		}) as unknown as Event);
+
+		expect(executeAttachRunSseImpl).not.toHaveBeenCalled();
+		expect(debugEvents(dispatch, "attachRunIgnored")).toEqual([
+			expect.objectContaining({ reason: "live_query_observing" }),
+		]);
+		cleanup();
+	});
+
 	it("resolves attach agentKey from run identity before attach detail and chat fallback", () => {
 		const executeAttachRunSseImpl = jest.fn(() => new Promise<void>(() => undefined));
 		const cleanup = registerSseAttachRunListener({

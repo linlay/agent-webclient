@@ -1407,6 +1407,45 @@ describe("registerAttachRunListener", () => {
 		cleanup();
 	});
 
+	it("does not attach a run already observed by a live query", () => {
+		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
+		const wsClient = {
+			stream: streamMock,
+			request: jest.fn(),
+		};
+		const querySessionsRef = {
+			current: new Map<string, any>([["req_live", {
+				requestId: "req_live",
+				observationSource: "query",
+				chatId: "chat_1",
+				runId: "run_1",
+				agentKey: "agent_alpha",
+				owner: { kind: "agent", agentKey: "agent_alpha" },
+				streaming: true,
+			}]])
+		};
+		const cleanup = registerAttachRunListener({
+			dispatch,
+			stateRef: { current: createState({ transportMode: "ws" }) },
+			handleEvent,
+			activeAttachRef: { current: null },
+			querySessionsRef,
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "req_live" },
+			getWsClientImpl: () => wsClient as any,
+		});
+
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+		}));
+
+		expect(streamMock).not.toHaveBeenCalled();
+		expect(debugEvents(dispatch, "attachRunIgnored")).toEqual([
+			expect.objectContaining({ reason: "live_query_observing" }),
+		]);
+		cleanup();
+	});
+
 	it("resolves attach agentKey from run identity before attach detail and chat fallback", () => {
 		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
 		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });

@@ -3,6 +3,8 @@ import type { RunOwner } from "@/shared/data/runOwner";
 
 export interface RunSession<TSnapshot = unknown> {
 	requestId: string;
+	/** Distinguishes a locally-started query from a recovery /api/attach observer. */
+	observationSource?: "query" | "attach";
 	chatId: string;
 	runId: string;
 	agentKey: string;

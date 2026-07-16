@@ -359,6 +359,44 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('does not reload a chat that was just promoted by its active live query', async () => {
+    const state = createInitialState();
+    const dispatch = jest.fn();
+    const liveSession = createLiveSession({
+      requestId: 'req_live',
+      chatId: 'chat_live',
+      runId: 'run_live',
+      observationSource: 'query',
+      owner: { kind: 'agent', agentKey: 'agent_live' },
+      streaming: true,
+    });
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map([['req_live', liveSession]]) },
+      chatQuerySessionIndexRef: { current: new Map([['chat_live', 'req_live']]) },
+      activeQuerySessionRequestIdRef: { current: 'req_live' },
+    });
+
+    let actions: ReturnType<typeof useTestConversationActions> | null = null;
+    const Harness = () => {
+      actions = useTestConversationActions();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.loadChat('chat_live', { focusComposerOnComplete: true });
+
+    expect(getChat).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'RESET_CONVERSATION' }),
+    );
+    expect(globalWithBrowserApis.window!.dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'agent:attach-run' }),
+    );
+  });
+
   it('keeps a blank conversation from being overwritten by an in-flight chat load', async () => {
     const state = createInitialState();
     const dispatch = jest.fn();

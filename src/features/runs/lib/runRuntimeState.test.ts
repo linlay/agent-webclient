@@ -1,6 +1,7 @@
 import type { AppState } from "@/app/state/types";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import {
+	isRunObservedByLiveQuerySession,
 	resolveMainChatRuntime,
 	resolveSidebarChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
@@ -115,5 +116,39 @@ describe("chatRuntimeState", () => {
 
 		expect(runtime.streaming).toBe(false);
 		expect(runtime.running).toBe(false);
+	});
+
+	it("recognizes only the original live query as an existing run observer", () => {
+		const session = createRunSession({
+			requestId: "req_live",
+			chatId: "chat_live",
+			agentKey: "agent_a",
+		});
+		session.runId = "run_live";
+		session.streaming = true;
+		session.observationSource = "query";
+		session.owner = { kind: "agent", agentKey: "agent_a" };
+		const querySessions = new Map([[session.requestId, session]]);
+
+		expect(isRunObservedByLiveQuerySession({
+			chatId: "chat_live",
+			runId: "run_live",
+			owner: { kind: "agent", agentKey: "agent_a" },
+			querySessions,
+		})).toBe(true);
+		expect(isRunObservedByLiveQuerySession({
+			chatId: "chat_live",
+			runId: "run_other",
+			owner: { kind: "agent", agentKey: "agent_a" },
+			querySessions,
+		})).toBe(false);
+
+		session.observationSource = "attach";
+		expect(isRunObservedByLiveQuerySession({
+			chatId: "chat_live",
+			runId: "run_live",
+			owner: { kind: "agent", agentKey: "agent_a" },
+			querySessions,
+		})).toBe(false);
 	});
 });

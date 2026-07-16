@@ -164,6 +164,7 @@ function clonePendingSteersDict(input: Record<string, PendingSteer[]>): Record<s
 
 export function createLiveQuerySession(input: {
   requestId: string;
+  observationSource?: "query" | "attach";
   chatId?: string;
   agentKey?: string;
   teamId?: string;
@@ -171,6 +172,7 @@ export function createLiveQuerySession(input: {
 }): LiveQuerySession {
   return {
     requestId: String(input.requestId || '').trim(),
+    observationSource: input.observationSource,
     chatId: String(input.chatId || '').trim(),
     runId: '',
     agentKey: String(input.agentKey || '').trim(),
