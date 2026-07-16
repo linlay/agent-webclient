@@ -4,6 +4,7 @@
     --bg-elev-2: #fafafa;
     --bg-input: #f7f8fa;
     --bg-hover: rgba(0, 0, 0, 0.04);
+    --bg-selected: rgba(0, 0, 0, 0.08);
     --ink-1: #1d2129;
     --ink-2: #4e5969;
     --ink-muted: #86909c;
@@ -53,6 +54,7 @@ html[data-theme="dark"] {
     --bg-elev-2: #202020;
     --bg-input: #111214;
     --bg-hover: rgba(255, 255, 255, 0.1);
+    --bg-selected: rgba(255, 255, 255, 0.18);
     --ink-1: #f2f3f5;
     --ink-2: #c9cdd4;
     --ink-muted: #86909c;

@@ -376,9 +376,13 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <button
                     type="button"
                     className={`tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
-                      isSelected ? "tw:bg-bg-hover tw:font-medium" : ""
+                      isSelected ? "tw:bg-bg-selected tw:font-medium" : ""
                     }`}
-                    style={{ paddingLeft, paddingRight: 8 }}
+                    style={{
+                      paddingLeft,
+                      paddingRight: 8,
+                      ...(isSelected ? { backgroundColor: "var(--bg-selected)" } : null),
+                    }}
                     onClick={() => { void onSelectFileEntry(entry); }}
                   >
                     <MaterialIcon name={iconForEntry(entry)} />
