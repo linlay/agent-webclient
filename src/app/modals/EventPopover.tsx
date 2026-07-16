@@ -73,10 +73,10 @@ const EVENT_POPOVER_META_CLASS_NAME =
 	"event-popover-meta tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted";
 
 const EVENT_POPOVER_ACTIONS_CLASS_NAME =
-	"event-popover-actions tw:inline-flex tw:flex-shrink-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-1";
+	"event-popover-actions tw:inline-flex tw:flex-shrink-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-1.5";
 
 const EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME =
-	"event-popover-action-btn tw:!min-h-7 tw:!min-w-7 tw:!w-7 tw:!px-0 tw:!py-0 tw:text-ink-muted tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:hover:shadow-none";
+	"event-popover-action-btn tw:!h-4 tw:!min-h-4 tw:!min-w-4 tw:!w-4 tw:!px-0 tw:!py-0 tw:text-ink-muted tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:hover:shadow-none tw:[&_.material-icon]:!text-base";
 
 const EVENT_POPOVER_SYSTEM_ACTION_BUTTON_CLASS_NAME = [
 	EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME,
@@ -220,6 +220,13 @@ export const EventPopover: React.FC = () => {
 		() => resolveRawJsonlChatId(event, relatedEvents),
 		[event, relatedEvents],
 	);
+	const rawJsonlCopyItem = useMemo(
+		() => {
+			if (!shouldIncludeRawJsonlCopyItem(event) || !rawJsonlChatId) return null;
+			return buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
+		},
+		[event, rawJsonlChatId, t],
+	);
 	const rawLLMTraceFile = useMemo(
 		() => resolveRawLLMTraceFile(event),
 		[event],
@@ -232,14 +239,11 @@ export const EventPopover: React.FC = () => {
 			t,
 		);
 		const rawLLMTraceItem = buildRawLLMTraceCopyMenuItem(rawLLMTraceFile, t);
-		const rawJsonlItem = buildRawJsonlCopyMenuItem(rawJsonlChatId, t);
-		const includeRawJsonl = shouldIncludeRawJsonlCopyItem(event);
 		return [
 			...items,
 			...(rawLLMTraceItem ? [rawLLMTraceItem] : []),
-			...(rawJsonlItem && includeRawJsonl ? [rawJsonlItem] : []),
 		];
-	}, [event, relatedEvents, rawJsonlChatId, rawLLMTraceFile, popoverState.rawJsonStr, t]);
+	}, [event, relatedEvents, rawLLMTraceFile, popoverState.rawJsonStr, t]);
 	const primaryCopyMenuItem = useMemo(
 		() => getPrimaryCopyMenuItem(copyMenuItems),
 		[copyMenuItems],
@@ -356,6 +360,14 @@ export const EventPopover: React.FC = () => {
 	const showCollect = collectibleRelatedEvents.length > 1;
 	const copyIcon: MaterialIconName =
 		copyStatus[lastCopyItem.key] === "copied" ? "check" : "content_copy";
+	const rawJsonlIcon: MaterialIconName =
+		copyStatus["rawJsonl"] === "copied" ? "check" : "description";
+	const rawJsonlTitle =
+		copyStatus["rawJsonl"] === "copied"
+			? t("eventPopover.feedback.copied", { label: "raw JSONL" })
+			: copyStatus["rawJsonl"] === "error"
+				? t("eventPopover.feedback.copyFailed", { label: "raw JSONL" })
+				: t("eventPopover.action.copyRawJsonl");
 	const readableTimestamp = formatReadableTimestamp(
 		resolveDisplayPayloadTimestamp(popoverState.payload),
 	);
@@ -397,10 +409,51 @@ export const EventPopover: React.FC = () => {
 			});
 	};
 
+	const performRawCopy = (item: EventCopyMenuItem) => {
+		const { key } = item;
+		if (!item.text && !item.loadText) {
+			return;
+		}
+		const textPromise = item.loadText
+			? item.loadText()
+			: Promise.resolve(item.text);
+		void textPromise
+			.then((text) => copyText(text))
+			.then(() => {
+				const existing = copyTimerRef.current.get(key);
+				if (existing) {
+					window.clearTimeout(existing);
+				}
+				setCopyStatus((current) => ({ ...current, [key]: "copied" }));
+				const timer = window.setTimeout(() => {
+					setCopyStatus((current) => ({ ...current, [key]: "idle" }));
+					copyTimerRef.current.delete(key);
+				}, 1600);
+				copyTimerRef.current.set(key, timer);
+			})
+			.catch(() => {
+				const existing = copyTimerRef.current.get(key);
+				if (existing) {
+					window.clearTimeout(existing);
+				}
+				setCopyStatus((current) => ({ ...current, [key]: "error" }));
+				const timer = window.setTimeout(() => {
+					setCopyStatus((current) => ({ ...current, [key]: "idle" }));
+					copyTimerRef.current.delete(key);
+				}, 1600);
+				copyTimerRef.current.set(key, timer);
+			});
+	};
+
 	const copyMenuTitle = buildCopyMenuTitle(lastCopyItem, copyStatus, t);
 	const openSystemPrompt = () => {
 		setSystemPromptLoadState({ status: "idle" });
 		setSystemPromptOpen(true);
+	};
+
+	const handleRawJsonlCopy = () => {
+		if (!rawJsonlCopyItem) return;
+		performRawCopy(rawJsonlCopyItem);
 	};
 
 	return (
@@ -492,6 +545,19 @@ export const EventPopover: React.FC = () => {
 							<MaterialIcon name={copyIcon} />
 						</UiButton>
 					</Popover>
+					{rawJsonlCopyItem && (
+					<UiButton
+						className={EVENT_POPOVER_ACTION_BUTTON_CLASS_NAME}
+						variant="ghost"
+						size="sm"
+						iconOnly
+						aria-label={t("eventPopover.action.copyRawJsonl")}
+						title={rawJsonlTitle}
+						onClick={handleRawJsonlCopy}
+					>
+						<MaterialIcon name={rawJsonlIcon} />
+					</UiButton>
+				)}
 					{systemPromptCall && (
 						<UiButton
 							className={EVENT_POPOVER_SYSTEM_ACTION_BUTTON_CLASS_NAME}

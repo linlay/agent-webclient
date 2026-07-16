@@ -498,6 +498,7 @@ export const enUSMessages = {
   "detail.section.tools": "Tools",
   "desktopFileSystem.browserPathPrompt": "Browser restrictions require the project's absolute path",
   "eventPopover.action.collectSnapshot": "Collect event snapshot",
+  "eventPopover.action.copyRawJsonl": 'Copy chat JSONL',
   "eventPopover.action.systemPrompt": "System Prompt",
   "eventPopover.close": "Close event details",
   "eventPopover.copy.all": "Copy all",

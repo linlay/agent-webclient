@@ -43,6 +43,7 @@ export const defaultEventPopoverT: EventPopoverT = (key, params = {}) => {
 		"eventPopover.copy.requestBody": "Copy requestBody",
 		"eventPopover.copy.rawLlmJson": "Copy raw LLM JSON",
 		"eventPopover.copy.rawJsonl": "Copy raw JSONL",
+		"eventPopover.action.copyRawJsonl": "Copy chat JSONL",
 		"eventPopover.copy.systemPrompt": "Copy systemPrompt",
 		"eventPopover.copy.tools": "Copy tools",
 		"eventPopover.copy.model": "Copy model",

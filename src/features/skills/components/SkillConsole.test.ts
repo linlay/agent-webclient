@@ -206,7 +206,8 @@ describe("SkillConsole", () => {
       }),
     );
     expect(html).toContain("skill-console");
-    expect(html).toContain("minmax(220px,0.36fr)_minmax(0,1fr)");
+    expect(html).toContain("minmax(220px,0.252fr)_minmax(0,1fr)");
+    expect(html).not.toContain("minmax(220px,0.36fr)");
     expect(html).not.toContain("minmax(280px,0.52fr)");
   });
 
@@ -337,6 +338,8 @@ describe("SkillConsole", () => {
     );
 
     expect(html).toContain("skill-console-file-panels");
+    expect(html).toContain("minmax(220px,286px)_minmax(0,1fr)");
+    expect(html).not.toContain("minmax(220px,260px)");
     expect(html).toContain("skill-console-file-tree");
     expect(html).toContain("skill-console-file-editor");
     expect(html).toContain("SKILL.md");
@@ -397,8 +400,10 @@ describe("SkillConsole", () => {
     );
 
     expect(html).toContain("skill-console-binary-panel");
+    expect(html).toContain("minmax(220px,286px)_minmax(0,1fr)");
     expect(html).toContain("video/mp4");
     expect(html).toContain("asset-sha");
     expect(html).not.toContain("skill-console-textarea");
+    expect(html).not.toContain("minmax(220px,260px)");
   });
 });

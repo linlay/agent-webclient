@@ -345,6 +345,84 @@ describe("EventPopover collect controls", () => {
 
     expect(html).not.toContain('aria-label="System Prompt"');
   });
+
+  it("renders raw JSONL copy button for chat.start events with chatId", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "chat.start",
+      chatId: "chat_1",
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="Copy chat JSONL"');
+  });
+
+  it("renders raw JSONL copy button for run.start events with chatId", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "run.start",
+      runId: "run_1",
+      chatId: "chat_1",
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).toContain('aria-label="Copy chat JSONL"');
+  });
+
+  it("does not render raw JSONL copy button for non-chat/run events", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "tool.end",
+      toolId: "tool_1",
+      chatId: "chat_1",
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).not.toContain('aria-label="Copy chat JSONL"');
+  });
+
+  it("does not render raw JSONL copy button when chatId is empty", () => {
+    const state = createInitialState();
+    const event: AgentEvent = {
+      type: "run.start",
+      runId: "run_1",
+      timestamp: 1776518171300,
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      eventPopoverIndex: 0,
+      eventPopoverEventRef: event,
+      debugEvents: [event],
+    });
+
+    const html = renderToStaticMarkup(React.createElement(EventPopover));
+
+    expect(html).not.toContain('aria-label="Copy chat JSONL"');
+  });
 });
 
 describe("EventPopover collected snapshot shape", () => {

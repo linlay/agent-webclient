@@ -498,6 +498,7 @@ export const zhCNMessages = {
   "detail.section.tools": "工具",
   "desktopFileSystem.browserPathPrompt": "由于浏览器限制，需要输入项目的绝对路径",
   "eventPopover.action.collectSnapshot": "收集事件快照",
+  "eventPopover.action.copyRawJsonl": '复制聊天 JSONL',
   "eventPopover.action.systemPrompt": "系统提示词（System Prompt）",
   "eventPopover.close": "关闭事件详情",
   "eventPopover.copy.all": "复制全部",
