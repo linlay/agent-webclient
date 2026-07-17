@@ -1124,6 +1124,7 @@ export const zhCNMessages = {
   "voice.chat.error.voiceSocketNotConnected": "语音 WebSocket 尚未连接",
   "agentRoute.loading.agent": "正在加载智能体",
   "agentRoute.loading.chat": "正在加载会话",
+  "agentRoute.error.loadFailed": "智能体加载失败",
   "leftSidebar.quickActions.agents": "智能体",
   "leftSidebar.quickActions.automation": "自动化",
   "leftSidebar.quickActions.memory": "记忆",

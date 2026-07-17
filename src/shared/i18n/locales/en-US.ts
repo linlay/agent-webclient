@@ -1125,6 +1125,7 @@ export const enUSMessages = {
   "voice.chat.error.voiceSocketNotConnected": "Voice WebSocket is not connected yet",
   "agentRoute.loading.agent": "Loading agent",
   "agentRoute.loading.chat": "Loading conversation",
+  "agentRoute.error.loadFailed": "Failed to load agent",
   "leftSidebar.quickActions.agents": "Agents",
   "leftSidebar.quickActions.automation": "Automation",
   "leftSidebar.quickActions.memory": "Memory",
