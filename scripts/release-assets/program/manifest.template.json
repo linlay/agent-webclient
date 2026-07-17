@@ -1,0 +1,136 @@
+{
+  "kind": "builtin",
+  "id": "agent-webclient",
+  "name": "智能助理",
+  "version": "__VERSION__",
+  "description": "由 Desktop 托管静态资源和代理路由的 AGENT Web 客户端。",
+  "platform": {
+    "os": "__TARGET_OS__",
+    "arch": "__TARGET_ARCH__"
+  },
+  "frontend": {
+    "mode": "standalone",
+    "entry": "/",
+    "directAccess": true,
+    "hostManaged": true,
+    "dist": "frontend/dist",
+    "index": "index.html",
+    "spa": true,
+    "hideFromNav": true,
+    "embedPath": "/"
+  },
+  "lifecycle": {
+    "start": ["__START_SCRIPT__", "--daemon"],
+    "stop": "__STOP_SCRIPT__",
+    "deploy": "__DEPLOY_SCRIPT__"
+  },
+  "configFiles": [
+    {
+      "key": "env",
+      "label": ".env",
+      "relativePath": ".env",
+      "templateRelativePath": ".env.example",
+      "required": true
+    }
+  ],
+  "runtime": {
+    "requiredPaths": [
+      ".env.example",
+      "manifest.json",
+      "__START_SCRIPT__",
+      "__STOP_SCRIPT__",
+      "__DEPLOY_SCRIPT__",
+      "__PROGRAM_COMMON__",
+      "frontend/dist/index.html"
+    ]
+  },
+  "web": {
+    "routePath": "/",
+    "portEnvKey": "PORT",
+    "defaultPort": 11948
+  },
+  "desktop": {
+    "displayOrder": 3,
+    "autoStart": true,
+    "assetFileName": "__ASSET_FILENAME__",
+    "bundleTopLevelDir": "agent-webclient",
+    "hosting": {
+      "runtimeConfig": {
+        "path": "/runtime-config.js",
+        "envKeys": [
+          "DESKTOP_APP",
+          "DEBUG_PANEL_ENABLED",
+          "DEBUG_RUN_OBSERVATION_ENABLED",
+          "DELTA_LOGS_ENABLED",
+          "SETTINGS_MENU_ENABLED",
+          "QUICK_ACTIONS_ENABLED",
+          "MEMORY_ENABLED",
+          "VOICE_ASR_CLIENT_GATE_ENABLED",
+          "VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
+          "VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",
+          "VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS",
+          "VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS"
+        ]
+      },
+      "spaRoutes": [
+        "/agent/",
+        "/agents/",
+        "/automations",
+        "/copilot",
+        "/memory"
+      ],
+      "proxyRoutes": [
+        {
+          "match": "exact",
+          "path": "/ws",
+          "targetEnv": "BASE_URL",
+          "http": false,
+          "websocket": true,
+          "auth": "agent-platform-access-token",
+          "stripRequestHeaders": ["sec-websocket-extensions"]
+        },
+        {
+          "match": "prefix",
+          "path": "/api/voice",
+          "targetEnv": "VOICE_BASE_URL",
+          "optional": true,
+          "websocket": true,
+          "stripRequestHeaders": ["sec-websocket-extensions"],
+          "disabledResponse": {
+            "status": 404,
+            "json": {
+              "error": "voice disabled"
+            }
+          }
+        },
+        {
+          "match": "prefix",
+          "path": "/api",
+          "targetEnv": "BASE_URL",
+          "websocket": true,
+          "ssePaths": ["/api/query", "/api/attach"],
+          "disableProxyBuffering": true,
+          "stripRequestHeaders": ["sec-websocket-extensions"]
+        }
+      ]
+    },
+    "capabilities": {
+      "provides": [],
+      "requires": [
+        {
+          "phase": "verifyRunning",
+          "capability": "auth.accessToken",
+          "action": "preload"
+        },
+        {
+          "phase": "verifyRunning",
+          "service": "agent-platform",
+          "action": "waitHttp",
+          "target": "/api/runtime-info",
+          "authCapability": "auth.accessToken"
+        }
+      ]
+    }
+  }
+}
+
