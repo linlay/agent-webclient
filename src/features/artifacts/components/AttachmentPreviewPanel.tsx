@@ -1,7 +1,18 @@
 import React from "react";
-import { downloadResource, getResourceText } from "@/shared/data";
-import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import {
+  downloadResource,
+  getAgentFile,
+  getResourceText,
+  type AgentFileResponse,
+} from "@/shared/data";
+import {
+  formatAttachmentSize,
+} from "@/features/artifacts/lib/attachmentUtils";
+import {
+  getAttachmentPreviewKind,
+  type AttachmentPreviewKind,
+  type AttachmentPreviewState,
+} from "@/features/artifacts/lib/attachmentPreview";
 import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
@@ -82,9 +93,27 @@ export function buildTextPreviewLines(
   });
 }
 
+export function resolveWorkspaceFilePreviewKind(
+  response: AgentFileResponse | null,
+  fallbackKind: AttachmentPreviewState["kind"],
+): AttachmentPreviewKind {
+  if (!response) {
+    return fallbackKind;
+  }
+  if (response.contentKind === "text") {
+    return "text";
+  }
+  return getAttachmentPreviewKind({
+    name: response.name,
+    mimeType: response.mimeType,
+  });
+}
+
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
 }) => {
+  const [workspaceFile, setWorkspaceFile] =
+    React.useState<AgentFileResponse | null>(null);
   const [textContent, setTextContent] = React.useState("");
   const [textLoading, setTextLoading] = React.useState(false);
   const [textError, setTextError] = React.useState("");
@@ -92,18 +121,73 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [downloadError, setDownloadError] = React.useState("");
   const [downloading, setDownloading] = React.useState(false);
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
+  const workspaceFileRequest = preview.workspaceFile;
+  const workspaceFileResponse =
+    workspaceFileRequest &&
+    workspaceFile?.agentKey === workspaceFileRequest.agentKey &&
+    workspaceFile.requestedPath === workspaceFileRequest.path
+      ? workspaceFile
+      : null;
+  const previewKind = resolveWorkspaceFilePreviewKind(
+    workspaceFileResponse,
+    preview.kind,
+  );
+  const previewUrl = workspaceFileRequest
+    ? workspaceFileResponse?.contentUrl || ""
+    : preview.url;
+  const downloadUrl = workspaceFileRequest
+    ? workspaceFileResponse?.contentUrl || ""
+    : preview.downloadUrl;
+  const previewName = workspaceFileResponse?.name || preview.name;
+  const previewMimeType = workspaceFileResponse?.mimeType || preview.mimeType;
+  const previewSizeBytes = workspaceFileResponse?.sizeBytes ?? preview.sizeBytes;
+  const previewSourcePath = workspaceFileResponse?.path || preview.sourcePath;
 
   React.useEffect(() => {
     setMediaError("");
-  }, [preview?.url, preview?.kind]);
+  }, [previewKind, previewUrl]);
 
   React.useEffect(() => {
     setDownloadError("");
     setDownloading(false);
-  }, [preview?.downloadUrl, preview?.name]);
+  }, [downloadUrl, previewName]);
 
   React.useEffect(() => {
-    if (!preview || preview.kind !== "text") {
+    setWorkspaceFile(null);
+
+    if (workspaceFileRequest) {
+      let disposed = false;
+      setTextLoading(true);
+      setTextError("");
+      setTextContent("");
+
+      void getAgentFile(workspaceFileRequest)
+        .then((response) => {
+          if (disposed) return;
+          const file = response.data;
+          setWorkspaceFile(file);
+          setTextContent(file.contentKind === "text" ? file.content || "" : "");
+        })
+        .catch((error: unknown) => {
+          if (disposed) return;
+          setTextError(
+            error instanceof Error
+              ? error.message
+              : t("rightSidebar.preview.error.loadText"),
+          );
+        })
+        .finally(() => {
+          if (!disposed) {
+            setTextLoading(false);
+          }
+        });
+
+      return () => {
+        disposed = true;
+      };
+    }
+
+    if (preview.kind !== "text") {
       setTextContent("");
       setTextLoading(false);
       setTextError("");
@@ -136,10 +220,10 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       });
 
     return () => controller.abort();
-  }, [preview]);
+  }, [preview, workspaceFileRequest]);
 
   React.useEffect(() => {
-    if (!preview?.line || preview.kind !== "text" || textLoading || textError) {
+    if (!preview?.line || previewKind !== "text" || textLoading || textError) {
       return;
     }
     const container = textContainerRef.current;
@@ -153,16 +237,20 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     window.requestAnimationFrame(() => {
       target.scrollIntoView({ block: "center" });
     });
-  }, [preview?.kind, preview?.line, textContent, textError, textLoading]);
+  }, [preview?.line, previewKind, textContent, textError, textLoading]);
 
   const handleDownload = React.useCallback(() => {
     if (downloading) {
       return;
     }
 
+    if (!downloadUrl) {
+      return;
+    }
+
     setDownloadError("");
     setDownloading(true);
-    void downloadResource(preview.downloadUrl, { filename: preview.name })
+    void downloadResource(downloadUrl, { filename: previewName })
       .catch((error: unknown) => {
         setDownloadError(
           error instanceof Error
@@ -173,15 +261,15 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       .finally(() => {
         setDownloading(false);
       });
-  }, [downloading, preview]);
+  }, [downloadUrl, downloading, previewName]);
 
-  const sourceLocation = preview.sourcePath
-    ? `${preview.sourcePath}${preview.line ? `:${preview.line}` : ""}`
+  const sourceLocation = previewSourcePath
+    ? `${previewSourcePath}${preview.line ? `:${preview.line}` : ""}`
     : "";
   const metadata = [
     sourceLocation,
-    preview.mimeType || "",
-    formatAttachmentSize(preview.sizeBytes),
+    previewMimeType || "",
+    formatAttachmentSize(previewSizeBytes),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -199,9 +287,9 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       <div className={ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME}>
         <strong
           className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME}
-          title={preview.name}
+          title={previewName}
         >
-          {preview.name}
+          {previewName}
         </strong>
         {metadata ? (
           <span className={ATTACHMENT_PREVIEW_META_CLASS_NAME} title={metadata}>
@@ -213,6 +301,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           size="sm"
           onClick={handleDownload}
           loading={downloading}
+          disabled={!downloadUrl}
           iconOnly
         >
           <MaterialIcon name="download" />
@@ -220,33 +309,33 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       </div>
 
       <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
-        {preview.kind === "image" ? (
+        {previewKind === "image" ? (
           <Image
             className="attachment-preview-image"
-            src={preview.url}
-            alt={preview.name}
+            src={previewUrl}
+            alt={previewName}
             onError={() => setMediaError(t("rightSidebar.preview.error.image"))}
           />
         ) : null}
 
-        {preview.kind === "pdf" ? (
+        {previewKind === "pdf" ? (
           <iframe
             className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
-            src={preview.url}
-            title={preview.name}
+            src={previewUrl}
+            title={previewName}
           />
         ) : null}
 
-        {preview.kind === "html" ? (
+        {previewKind === "html" ? (
           <iframe
             className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
-            src={preview.url}
-            title={preview.name}
+            src={previewUrl}
+            title={previewName}
             sandbox="allow-forms allow-modals allow-popups allow-scripts"
           />
         ) : null}
 
-        {preview.kind === "text" ? (
+        {previewKind === "text" ? (
           textLoading ? (
             <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
               {t("rightSidebar.preview.text.loading")}
@@ -284,11 +373,11 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           )
         ) : null}
 
-        {preview.kind === "audio" ? (
+        {previewKind === "audio" ? (
           <div className={ATTACHMENT_PREVIEW_MEDIA_SHELL_CLASS_NAME}>
             <audio
               className={ATTACHMENT_PREVIEW_AUDIO_CLASS_NAME}
-              src={preview.url}
+              src={previewUrl}
               controls
               preload="metadata"
               onError={() =>
@@ -298,19 +387,25 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           </div>
         ) : null}
 
-        {preview.kind === "video" ? (
+        {previewKind === "video" ? (
           <video
             className={ATTACHMENT_PREVIEW_VIDEO_CLASS_NAME}
-            src={preview.url}
+            src={previewUrl}
             controls
             preload="metadata"
             onError={() => setMediaError(t("rightSidebar.preview.error.video"))}
           />
         ) : null}
 
-        {preview.kind === "office" ? (
+        {previewKind === "office" ? (
           <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
             {t("rightSidebar.preview.office.downloadOnly")}
+          </div>
+        ) : null}
+
+        {previewKind === "unsupported" ? (
+          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+            {t("rightSidebar.preview.unsupported.downloadOnly")}
           </div>
         ) : null}
 
@@ -326,7 +421,13 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         ) : null}
       </div>
 
-      {textPreviewKinds.has(preview.kind) ? (
+      {workspaceFileResponse?.truncated ? (
+        <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
+          {t("rightSidebar.preview.text.truncated")}
+        </div>
+      ) : null}
+
+      {textPreviewKinds.has(previewKind) ? (
         <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
           {t("rightSidebar.preview.note")}
         </div>

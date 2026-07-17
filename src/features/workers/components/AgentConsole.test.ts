@@ -30,6 +30,8 @@ jest.mock("antd", () => {
           ),
         ),
       ),
+    Switch: ({ checked, ...props }: any) =>
+      React.createElement("input", { ...props, type: "checkbox", checked }),
     Spin: ({ children }: { children?: unknown }) => children || null,
   };
 });
@@ -72,8 +74,10 @@ import {
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
+  defaultReasoningEffort,
   firstAdminAgentDiagnosticMessage,
   formFromDetail,
+  getModelReasoningEfforts,
   hasEditableAdminDefinition,
   isInvalidAdminAgent,
   readAdminAgentDiagnostics,
@@ -509,6 +513,116 @@ describe("AgentConsole definition mapping", () => {
 
     expect(() => buildDefinition({ ...form, budgetText: "[" }, {}, translate)).toThrow();
     expect(() => buildDefinition({ ...form, budgetText: "[]" }, {}, translate)).toThrow("agentConsole.error.jsonInvalid");
+  });
+});
+
+describe("AgentConsole reasoning configuration", () => {
+  const detailWithReasoning = (reasoning: Record<string, unknown>) => ({
+    key: "agent-a",
+    name: "Agent A",
+    model: "deepseek-v4-pro",
+    mode: "REACT",
+    tools: [],
+    skills: [],
+    controls: [],
+    meta: {},
+    definition: {
+      key: "agent-a",
+      name: "Agent A",
+      modelConfig: {
+        modelKey: "deepseek-v4-pro",
+        temperature: 0.3,
+        reasoning,
+      },
+    },
+  });
+
+  it("reads existing YAML reasoning and preserves an enabled configuration without an effort", () => {
+    const configuredForm = formFromDetail(
+      detailWithReasoning({ enabled: true, effort: "high" }),
+    );
+    expect(configuredForm.reasoningConfigured).toBe(true);
+    expect(configuredForm.reasoningEnabled).toBe(true);
+    expect(configuredForm.reasoningEffort).toBe("HIGH");
+
+    const noEffortForm = formFromDetail(detailWithReasoning({ enabled: true }));
+    const definition = buildDefinition(
+      noEffortForm,
+      detailWithReasoning({ enabled: true }).definition,
+      translate,
+      true,
+    );
+    expect(definition.modelConfig).toEqual({
+      modelKey: "deepseek-v4-pro",
+      temperature: 0.3,
+      reasoning: { enabled: true },
+    });
+  });
+
+  it("writes an explicit disabled setting without a stale effort", () => {
+    const form = formFromDetail(detailWithReasoning({ enabled: true, effort: "HIGH" }));
+    const definition = buildDefinition(
+      { ...form, reasoningConfigured: true, reasoningEnabled: false, reasoningEffort: "" },
+      detailWithReasoning({ enabled: true, effort: "HIGH" }).definition,
+      translate,
+      true,
+    );
+
+    expect(definition.modelConfig).toEqual({
+      modelKey: "deepseek-v4-pro",
+      temperature: 0.3,
+      reasoning: { enabled: false },
+    });
+  });
+
+  it("removes reasoning when the selected model does not support it", () => {
+    const form = formFromDetail(detailWithReasoning({ enabled: true, effort: "HIGH" }));
+    const definition = buildDefinition(
+      form,
+      detailWithReasoning({ enabled: true, effort: "HIGH" }).definition,
+      translate,
+      false,
+    );
+
+    expect(definition.modelConfig).toEqual({
+      modelKey: "deepseek-v4-pro",
+      temperature: 0.3,
+    });
+  });
+
+  it("preserves reasoning while the current model capability is unavailable", () => {
+    const form = formFromDetail(detailWithReasoning({ enabled: true, effort: "HIGH" }));
+    const definition = buildDefinition(
+      form,
+      detailWithReasoning({ enabled: true, effort: "HIGH" }).definition,
+      translate,
+    );
+
+    expect(definition.modelConfig).toEqual({
+      modelKey: "deepseek-v4-pro",
+      temperature: 0.3,
+      reasoning: { enabled: true, effort: "HIGH" },
+    });
+  });
+
+  it("derives visible reasoning efforts from the selected model and chooses MEDIUM by default", () => {
+    const models = [
+      {
+        key: "reasoner",
+        isVision: false,
+        reasoningEfforts: ["LOW", "NONE", "medium", "LOW", "XHIGH"],
+      },
+      { key: "chat", isVision: false, reasoningEfforts: [] },
+      { key: "legacy", isVision: false },
+    ];
+
+    expect(getModelReasoningEfforts(models, "reasoner")).toEqual(["LOW", "MEDIUM", "XHIGH"]);
+    expect(getModelReasoningEfforts(models, "chat")).toEqual([]);
+    expect(getModelReasoningEfforts(models, "legacy")).toEqual(["LOW", "MEDIUM", "HIGH"]);
+    expect(getModelReasoningEfforts(models, "custom-model")).toEqual(["LOW", "MEDIUM", "HIGH"]);
+    expect(getModelReasoningEfforts(models, "")).toEqual([]);
+    expect(defaultReasoningEffort(getModelReasoningEfforts(models, "reasoner"))).toBe("MEDIUM");
+    expect(defaultReasoningEffort(["HIGH", "LOW"])).toBe("HIGH");
   });
 });
 

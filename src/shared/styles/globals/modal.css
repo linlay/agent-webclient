@@ -491,13 +491,33 @@
 }
 
 .automation-list-item-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-size: 11px;
     color: var(--ink-muted);
     line-height: 1.35;
+}
+
+.automation-list-item-meta-worker {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.automation-list-item-meta-cron {
+    min-width: 0;
+    flex: 0 0 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--ink-muted);
 }
 
 .registry-list-meta {

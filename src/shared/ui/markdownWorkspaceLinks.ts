@@ -4,42 +4,9 @@ export interface WorkspaceFileLink {
   line?: number;
 }
 
-const workspaceFileExtensions = new Set([
-  "c",
-  "cc",
-  "cpp",
-  "cs",
-  "css",
-  "go",
-  "html",
-  "java",
-  "js",
-  "json",
-  "jsx",
-  "less",
-  "log",
-  "md",
-  "mdx",
-  "mjs",
-  "py",
-  "rb",
-  "rs",
-  "sass",
-  "scss",
-  "sh",
-  "sql",
-  "svg",
-  "toml",
-  "ts",
-  "tsx",
-  "txt",
-  "xml",
-  "yaml",
-  "yml",
-]);
-
 const ignoredHrefPrefixes = [
   "#",
+  "/api/",
   "http://",
   "https://",
   "mailto:",
@@ -69,16 +36,6 @@ function stripLineSuffix(path: string): {
     filePath: match[1],
     line: Math.max(1, Number.parseInt(match[2], 10)),
   };
-}
-
-function hasWorkspaceFileExtension(path: string): boolean {
-  const normalized = path.split(/[?#]/, 1)[0] || "";
-  const basename = normalized.replace(/\\/g, "/").split("/").pop() || "";
-  const dotIndex = basename.lastIndexOf(".");
-  if (dotIndex <= 0 || dotIndex === basename.length - 1) {
-    return false;
-  }
-  return workspaceFileExtensions.has(basename.slice(dotIndex + 1).toLowerCase());
 }
 
 function looksLikeRelativeWorkspacePath(path: string): boolean {
@@ -121,7 +78,7 @@ export function parseWorkspaceFileHref(
   const decodedHref = safeDecodeHref(rawHref);
   const withoutLine = stripLineSuffix(decodedHref);
   const filePath = withoutLine.filePath.trim();
-  if (!filePath || !hasWorkspaceFileExtension(filePath)) {
+  if (!filePath) {
     return null;
   }
 

@@ -2,7 +2,6 @@ import type { AIAwaitSubmitParamData } from "@/app/state/types";
 import type { RunOwner } from "@/shared/data/runOwner";
 import {
 	buildResourceUrl,
-	buildWorkspaceFileUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
 	createQueryStream,
@@ -20,6 +19,7 @@ import {
 	searchGlobal as searchGlobalHttp,
 	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
+	getAgentFile as getAgentFileHttp,
 	getAgentOrder as getAgentOrderHttp,
 	getAgents as getAgentsHttp,
 	getChatLLMTraceRaw as getChatLLMTraceRawHttp,
@@ -65,7 +65,10 @@ import {
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
+	ApiError,
 	type AgentDetailResponse,
+	type AgentFileRequest,
+	type AgentFileResponse,
 	type AgentModelConfigResponse,
 	type AgentOrderResponse,
 	type AccessLevelUpdateParams,
@@ -250,6 +253,30 @@ export function putAgentOrder(
 
 export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailResponse>> {
 	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
+}
+
+function isUnknownAgentFileWsRoute(error: unknown): boolean {
+	return (
+		error instanceof ApiError &&
+		error.status === 400 &&
+		String(error.message || "").trim() ===
+			`unknown type: ${dataEndpoints.agentFile.path}`
+	);
+}
+
+export function getAgentFile(
+	params: AgentFileRequest,
+): Promise<ApiResponse<AgentFileResponse>> {
+	return routeEndpoint<AgentFileResponse, AgentFileRequest>(
+		dataEndpoints.agentFile,
+		params,
+		() => getAgentFileHttp(params),
+	).catch((error: unknown) => {
+		if (getTransportMode() !== "ws" || !isUnknownAgentFileWsRoute(error)) {
+			throw error;
+		}
+		return getAgentFileHttp(params);
+	});
 }
 
 export function createAgent(
@@ -791,7 +818,6 @@ export function compactChat(params: {
 
 export {
 	buildResourceUrl,
-	buildWorkspaceFileUrl,
 	createQueryStream,
 	downloadResource,
 	downloadChatExport,

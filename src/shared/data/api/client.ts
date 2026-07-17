@@ -74,10 +74,30 @@ export interface FileHistoryResponse {
   content: string;
 }
 
-export interface WorkspaceFilePreviewParams {
+export interface AgentFileRequest {
   agentKey: string;
   path: string;
-  line?: number;
+  encoding?: string;
+}
+
+export interface AgentFileResponse {
+  agentKey: string;
+  workspaceRoot: string;
+  requestedPath: string;
+  path: string;
+  absolutePath: string;
+  name: string;
+  kind: string;
+  contentKind: "text" | "binary";
+  mimeType?: string;
+  encoding?: string;
+  content?: string;
+  sizeBytes: number;
+  readBytes?: number;
+  sha256?: string;
+  modifiedUnixMs?: number;
+  truncated: boolean;
+  contentUrl?: string;
 }
 
 export interface GetAgentsOptions {
@@ -1342,18 +1362,6 @@ export function buildResourceUrl(file: string): string {
   return `${dataEndpoints.resource.path}?file=${encodeURIComponent(file)}`;
 }
 
-export function buildWorkspaceFileUrl(params: WorkspaceFilePreviewParams): string {
-  const query = endpointQuery(dataEndpoints.workspaceFile, {
-    agentKey: String(params.agentKey || "").trim(),
-    path: params.path,
-    line:
-      Number.isFinite(params.line) && Number(params.line) > 0
-        ? Math.floor(Number(params.line))
-        : undefined,
-  });
-  return withQuery(dataEndpoints.workspaceFile.path, query);
-}
-
 function withQuery(path: string, query: string): string {
   return query ? `${path}?${query}` : path;
 }
@@ -1678,6 +1686,15 @@ export function putAdminAgentOrder(
 export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailResponse>> {
   const query = endpointQuery(dataEndpoints.agent, agentKey);
   return requestJson(withQuery(dataEndpoints.agent.path, query));
+}
+
+export function getAgentFile(
+  params: AgentFileRequest,
+): Promise<ApiResponse<AgentFileResponse>> {
+  const query = endpointQuery(dataEndpoints.agentFile, params);
+  return requestJson<AgentFileResponse>(
+    withQuery(dataEndpoints.agentFile.path, query),
+  );
 }
 
 export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {

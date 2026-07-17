@@ -52,8 +52,25 @@ describe("parseWorkspaceFileHref", () => {
     });
   });
 
+  it.each([
+    "./Dockerfile",
+    "./.env.example",
+    "./nginx.conf",
+    "./jest.config.cjs",
+  ])("parses extensionless and configuration workspace paths: %s", (href) => {
+    expect(parseWorkspaceFileHref(href)).toEqual({
+      href,
+      filePath: href,
+    });
+  });
+
   it("does not intercept authenticated resource links", () => {
     expect(parseWorkspaceFileHref("/api/resource?file=src%2Fa.ts")).toBeNull();
+  });
+
+  it("does not intercept other api routes or unsafe links", () => {
+    expect(parseWorkspaceFileHref("/api/file?path=src%2Fa.ts")).toBeNull();
+    expect(parseWorkspaceFileHref("javascript:alert(1)")).toBeNull();
   });
 
   it("does not intercept external links", () => {

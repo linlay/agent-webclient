@@ -12,7 +12,6 @@ import {
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
-  buildWorkspaceFileUrl,
   buildAdminSkillFileDownloadUrlV2,
   archiveChats,
   createAttachStream,
@@ -42,6 +41,7 @@ import {
   getAdminRegistryDetail,
   getArchive,
   getAgent,
+	getAgentFile,
   getAgentOrder,
   getAgents,
   getChatLLMTraceRaw,
@@ -1242,6 +1242,18 @@ describe('data client query payloads', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
   });
 
+  it('requests an agent workspace file with the typed file endpoint', async () => {
+    await getAgentFile({
+      agentKey: 'coder-agent',
+      path: '/Users/demo/project/Dockerfile',
+      encoding: 'utf-8',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2FDockerfile&encoding=utf-8',
+    );
+  });
+
   it('requests file history with encoded path and version', async () => {
     await getFileHistory({
       chatId: 'chat_1',
@@ -1697,18 +1709,6 @@ describe('data client query payloads', () => {
   it('builds resource urls from the new resource endpoint', () => {
     expect(buildResourceUrl('reports/demo image.png')).toBe(
       '/api/resource?file=reports%2Fdemo%20image.png',
-    );
-  });
-
-  it('builds workspace file urls with encoded path and optional line', () => {
-    expect(
-      buildWorkspaceFileUrl({
-        agentKey: 'coder-agent',
-        path: '/Users/demo/project/src/a file.ts',
-        line: 12,
-      }),
-    ).toBe(
-      '/api/workspace/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa+file.ts&line=12',
     );
   });
 

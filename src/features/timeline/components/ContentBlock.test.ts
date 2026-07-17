@@ -96,9 +96,12 @@ describe("ContentBlock", () => {
 				kind: "text",
 				sourcePath: "/Users/demo/project/src/a.ts",
 				line: 12,
-				url: "/api/workspace/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa.ts&line=12",
-				downloadUrl:
-					"/api/workspace/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa.ts&line=12",
+				url: "workspace-file:coder-agent:%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa.ts:12",
+				downloadUrl: "",
+				workspaceFile: {
+					agentKey: "coder-agent",
+					path: "/Users/demo/project/src/a.ts",
+				},
 			}),
 		});
 	});

@@ -283,7 +283,7 @@ describe("AutomationModal", () => {
     ).toBe("2026-07-02T09:00:00.123+08:00");
   });
 
-  it("renders automation list items as a two-line card (name + status / worker + cron)", () => {
+  it("renders automation list items as a two-line card (name + status / worker left, cron right)", () => {
     mockedUseAppState.mockReturnValue({
       automations: [
         {
@@ -315,13 +315,23 @@ describe("AutomationModal", () => {
     expect(html).toContain("停用");
     expect(html).not.toMatch(/\[小宅\]/);
 
-    // 第二行：智能体名 · cron（基于 props.agents 解析）
-    expect(html).toContain("小宅 · 0 */2 * * *");
+    // 第二行：智能体名(左) 与 cron(右) 分别落在独立 span 中
+    expect(html).toContain("automation-list-item-meta-worker");
+    expect(html).toContain("automation-list-item-meta-cron");
+    expect(html).toMatch(
+      /automation-list-item-meta-worker[^>]*>小宅</,
+    );
+    expect(html).toMatch(
+      /automation-list-item-meta-cron[^>]*>0 \*\/\d \* \* \*</,
+    );
+    // worker / cron 各自所在 span 的可见文本不应再含中点拼接
+    expect(html).not.toMatch(/>小宅 · 0 \*\/\d \* \* \*</);
+    expect(html).not.toMatch(/>小宅 · --</);
     expect(html).not.toContain("Next");
     expect(html).not.toContain("Last");
 
     // 缺值回退：cron 为空时显示 --
-    expect(html).toContain("小宅 · --");
+    expect(html).toMatch(/automation-list-item-meta-cron[^>]*>--/);
   });
 
   it("renders the two-line automation card in English with Disabled tag", () => {
@@ -347,6 +357,7 @@ describe("AutomationModal", () => {
     expect(html).not.toMatch(/\[小宅\]/);
     expect(html).not.toContain("Next");
     expect(html).not.toContain("Last");
-    expect(html).toContain("小宅 · 0 */2 * * *");
+    expect(html).toMatch(/automation-list-item-meta-worker[^>]*>小宅</);
+    expect(html).toMatch(/automation-list-item-meta-cron[^>]*>0 \*\/\d \* \* \*</);
   });
 });

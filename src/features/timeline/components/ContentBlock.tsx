@@ -10,7 +10,6 @@ import {
 } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { buildWorkspaceFileUrl } from "@/shared/data/api/client";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -54,19 +53,24 @@ export function buildWorkspaceFilePreview(
 	link: WorkspaceFileLink,
 	agentKey: string,
 ): AttachmentPreviewState {
-	const url = buildWorkspaceFileUrl({
-		agentKey,
-		path: link.filePath,
-		line: link.line,
-	});
+	const previewKey = [
+		"workspace-file",
+		encodeURIComponent(agentKey),
+		encodeURIComponent(link.filePath),
+		link.line || "",
+	].join(":");
 	return {
 		name: displayFileName(link.filePath),
-		url,
-		downloadUrl: url,
+		url: previewKey,
+		downloadUrl: "",
 		kind: "text",
 		mimeType: "text/plain",
 		sourcePath: link.filePath,
 		line: link.line,
+		workspaceFile: {
+			agentKey,
+			path: link.filePath,
+		},
 	};
 }
 

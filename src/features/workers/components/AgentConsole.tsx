@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input, Select, Spin } from "antd";
+import { Input, Select, Spin, Switch } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
@@ -36,6 +36,7 @@ import type {
   AdminAgentDiagnostic,
   AdminToolSummary,
   AgentDetailResponse,
+  AgentEditorModelOption,
   AgentEditorOptionsResponse,
 } from "@/shared/data";
 import {
@@ -69,6 +70,9 @@ interface AgentFormState {
   description: string;
   mode: string;
   modelKey: string;
+  reasoningConfigured: boolean;
+  reasoningEnabled: boolean;
+  reasoningEffort: string;
   tools: string[];
   skills: string[];
   wonders: string[];
@@ -106,6 +110,9 @@ const EMPTY_FORM: AgentFormState = {
   description: "",
   mode: "REACT",
   modelKey: "",
+  reasoningConfigured: false,
+  reasoningEnabled: false,
+  reasoningEffort: "",
   tools: [],
   skills: [],
   wonders: [],
@@ -126,6 +133,7 @@ const BUDGET_PLACEHOLDER = `{
   "model": { "maxCalls": 240 },
   "tool": { "maxCalls": 200 }
 }`;
+const DEFAULT_REASONING_EFFORTS = ["LOW", "MEDIUM", "HIGH"];
 
 function toText(value: unknown): string {
   return String(value ?? "").trim();
@@ -135,6 +143,35 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? { ...(value as Record<string, unknown>) }
     : {};
+}
+
+function normalizeReasoningEffort(value: unknown): string {
+  return toText(value).toUpperCase();
+}
+
+export function getModelReasoningEfforts(
+  models: AgentEditorModelOption[] | undefined,
+  modelKey: string,
+): string[] {
+  if (!toText(modelKey)) return [];
+  const selectedModel = (models || []).find(
+    (model) => toText(model.key) === toText(modelKey),
+  );
+  if (!selectedModel || !Array.isArray(selectedModel.reasoningEfforts)) {
+    return [...DEFAULT_REASONING_EFFORTS];
+  }
+  const seen = new Set<string>();
+  return selectedModel.reasoningEfforts.reduce<string[]>((efforts, value) => {
+    const effort = normalizeReasoningEffort(value);
+    if (!effort || effort === "NONE" || seen.has(effort)) return efforts;
+    seen.add(effort);
+    efforts.push(effort);
+    return efforts;
+  }, []);
+}
+
+export function defaultReasoningEffort(efforts: string[]): string {
+  return efforts.includes("MEDIUM") ? "MEDIUM" : efforts[0] || "";
 }
 
 function readAdminToolKind(tool: Partial<AdminToolSummary>): string {
@@ -391,6 +428,8 @@ function fallbackDefinition(detail: EditableAgentDetail): Record<string, unknown
 export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
   const definition = detail.definition || fallbackDefinition(detail);
   const modelConfig = asRecord(definition.modelConfig);
+  const reasoning = asRecord(modelConfig.reasoning);
+  const reasoningEffort = normalizeReasoningEffort(reasoning.effort);
   const toolConfig = asRecord(definition.toolConfig);
   const skillConfig = asRecord(definition.skillConfig);
   const contextConfig = asRecord(definition.contextConfig);
@@ -408,6 +447,10 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     description: toText(definition.description) || detail.description || "",
     mode: normalizeModeForForm(toText(definition.mode) || detail.mode || "REACT"),
     modelKey: toText(modelConfig.modelKey) || resolveModelKey(detail, definition),
+    reasoningConfigured: Object.prototype.hasOwnProperty.call(modelConfig, "reasoning"),
+    reasoningEnabled:
+      reasoning.enabled !== false && (reasoning.enabled === true || Boolean(reasoningEffort)),
+    reasoningEffort,
     tools: textListFromUnknown(toolConfig.tools || detail.tools),
     skills: textListFromUnknown(skillConfig.skills || detail.skills),
     wonders: textListFromUnknown(definition.wonders || detail.wonders),
@@ -428,7 +471,12 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
   };
 }
 
-export function buildDefinition(form: AgentFormState, baseDefinition: Record<string, unknown>, t: Translate): Record<string, unknown> {
+export function buildDefinition(
+  form: AgentFormState,
+  baseDefinition: Record<string, unknown>,
+  t: Translate,
+  reasoningSupported?: boolean,
+): Record<string, unknown> {
   const definition = { ...baseDefinition };
   definition.key = form.key.trim();
   definition.name = form.name.trim();
@@ -440,8 +488,28 @@ export function buildDefinition(form: AgentFormState, baseDefinition: Record<str
   definition.mode = normalizeModeForForm(form.mode);
 
   const modelKey = form.modelKey.trim();
-  if (modelKey) definition.modelConfig = { ...asRecord(definition.modelConfig), modelKey };
-  else delete definition.modelConfig;
+  if (modelKey) {
+    const modelConfig: Record<string, unknown> = {
+      ...asRecord(definition.modelConfig),
+      modelKey,
+    };
+    if (reasoningSupported === true && form.reasoningConfigured) {
+      const reasoning = { ...asRecord(modelConfig.reasoning) };
+      if (form.reasoningEnabled) {
+        reasoning.enabled = true;
+        const effort = normalizeReasoningEffort(form.reasoningEffort);
+        if (effort) reasoning.effort = effort;
+        else delete reasoning.effort;
+      } else {
+        reasoning.enabled = false;
+        delete reasoning.effort;
+      }
+      modelConfig.reasoning = reasoning;
+    } else if (reasoningSupported === false) {
+      delete modelConfig.reasoning;
+    }
+    definition.modelConfig = modelConfig;
+  } else delete definition.modelConfig;
 
   const tools = form.tools.map((item) => item.trim()).filter(Boolean);
   if (tools.length > 0) definition.toolConfig = { ...asRecord(definition.toolConfig), tools };
@@ -800,6 +868,17 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     }),
     [editorOptions],
   );
+  const selectedModelReasoningEfforts = useMemo(
+    () => getModelReasoningEfforts(editorOptions?.models, form.modelKey),
+    [editorOptions, form.modelKey],
+  );
+  const selectedModelReasoningSupported = toText(form.modelKey)
+    ? selectedModelReasoningEfforts.length > 0
+    : undefined;
+  const reasoningEffortOptions = useMemo(
+    () => selectedModelReasoningEfforts.map((effort) => ({ value: effort, label: effort })),
+    [selectedModelReasoningEfforts],
+  );
   const contextTagOptions = useMemo(
     () => (editorOptions?.contextTags || []).map((item) => ({ value: item.key, label: item.label || item.key })),
     [editorOptions],
@@ -1003,6 +1082,41 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
   };
 
+  const setModelKey = (value?: string) => {
+    const modelKey = toText(value);
+    if (editorOptions) {
+      const efforts = getModelReasoningEfforts(editorOptions.models, modelKey);
+      if (efforts.length === 0) {
+        updateForm({
+          modelKey,
+          reasoningConfigured: false,
+          reasoningEnabled: false,
+          reasoningEffort: "",
+        });
+        return;
+      }
+      if (form.reasoningEnabled && !efforts.includes(normalizeReasoningEffort(form.reasoningEffort))) {
+        updateForm({
+          modelKey,
+          reasoningConfigured: true,
+          reasoningEffort: defaultReasoningEffort(efforts),
+        });
+        return;
+      }
+    }
+    updateForm({ modelKey });
+  };
+
+  const setReasoningEnabled = (enabled: boolean) => {
+    updateForm({
+      reasoningConfigured: true,
+      reasoningEnabled: enabled,
+      reasoningEffort: enabled
+        ? form.reasoningEffort || defaultReasoningEffort(selectedModelReasoningEfforts)
+        : "",
+    });
+  };
+
   const saveForm = async () => {
     if (!canEditStructuredAgent) {
       setFormError(t("agentConsole.error.structuredSaveUnavailable"));
@@ -1021,7 +1135,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
     try {
       const baseDefinition = formMode === "edit" && detail ? detail.definition || fallbackDefinition(detail) : {};
-      const definition = buildDefinition(form, baseDefinition, t);
+      const definition = buildDefinition(form, baseDefinition, t, selectedModelReasoningSupported);
       const response = formMode === "create"
         ? await createAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt })
         : await updateAgent({ key: form.key.trim(), definition, soulPrompt: form.soulPrompt, agentsPrompt: form.agentsPrompt });
@@ -1216,8 +1330,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
               <div className="field-group">
                 <label htmlFor="agent-model-input">{t("agentConsole.field.modelKey")}</label>
-                <Select id="agent-model-input" showSearch allowClear loading={loadingOptions} value={form.modelKey || undefined} options={modelOptions} optionFilterProp="label" onChange={(value) => updateForm({ modelKey: value || "" })} />
+                <Select id="agent-model-input" showSearch allowClear loading={loadingOptions} value={form.modelKey || undefined} options={modelOptions} optionFilterProp="label" onChange={setModelKey} />
               </div>
+              {selectedModelReasoningSupported === true && (
+                <>
+                  <div className="field-group">
+                    <label htmlFor="agent-reasoning-enabled-input">{t("agentConsole.field.reasoningEnabled")}</label>
+                    <Switch id="agent-reasoning-enabled-input" checked={form.reasoningEnabled} onChange={setReasoningEnabled} />
+                  </div>
+                  {form.reasoningEnabled && (
+                    <div className="field-group">
+                      <label htmlFor="agent-reasoning-effort-input">{t("agentConsole.field.reasoningEffort")}</label>
+                      <Select id="agent-reasoning-effort-input" value={form.reasoningEffort || undefined} options={reasoningEffortOptions} onChange={(value) => updateForm({ reasoningConfigured: true, reasoningEffort: toText(value) })} />
+                    </div>
+                  )}
+                </>
+              )}
               <div className="field-group">
                 <label htmlFor="agent-tags-input">{t("agentConsole.field.contextTags")}</label>
                 <Select id="agent-tags-input" mode="multiple" allowClear loading={loadingOptions} value={form.contextTags} options={contextTagOptions} onChange={(value) => updateForm({ contextTags: value })} />

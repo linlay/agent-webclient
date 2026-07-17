@@ -27,6 +27,10 @@ export interface AttachmentPreviewState {
 	mimeType?: string;
 	sourcePath?: string;
 	line?: number;
+	workspaceFile?: {
+		agentKey: string;
+		path: string;
+	};
 	kind: Exclude<AttachmentPreviewKind, "unsupported">;
 }
 

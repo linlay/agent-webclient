@@ -98,7 +98,11 @@ const AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME =
 const AUTOMATION_LIST_ITEM_OWNER_CLASS_NAME =
   "automation-list-item-owner tw:max-w-[42%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:text-xs tw:leading-[1.35] tw:text-ink-muted";
 const AUTOMATION_LIST_ITEM_META_CLASS_NAME =
-  "automation-list-item-meta tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+  "automation-list-item-meta tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+const AUTOMATION_LIST_ITEM_META_WORKER_CLASS_NAME =
+  "automation-list-item-meta-worker tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left";
+const AUTOMATION_LIST_ITEM_META_CRON_CLASS_NAME =
+  "automation-list-item-meta-cron tw:min-w-0 tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-right tw:text-ink-muted";
 const AUTOMATION_DETAIL_CLASS_NAME =
   "automation-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
 const AUTOMATION_DETAIL_HEAD_CLASS_NAME =
@@ -833,7 +837,18 @@ export const AutomationModal: React.FC<{
                         className={AUTOMATION_LIST_ITEM_META_CLASS_NAME}
                         title={automationListMeta(item, getAutomationWorkerName)}
                       >
-                        {automationListMeta(item, getAutomationWorkerName)}
+                        <span
+                          className={AUTOMATION_LIST_ITEM_META_WORKER_CLASS_NAME}
+                          title={getAutomationWorkerName(item) || "--"}
+                        >
+                          {getAutomationWorkerName(item) || "--"}
+                        </span>
+                        <span
+                          className={AUTOMATION_LIST_ITEM_META_CRON_CLASS_NAME}
+                          title={String(item.cron || "").trim() || "--"}
+                        >
+                          {String(item.cron || "").trim() || "--"}
+                        </span>
                       </span>
                     </button>
                   ))}

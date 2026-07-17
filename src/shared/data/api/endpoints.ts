@@ -9,7 +9,8 @@ import type {
   DeriveChatRequest,
   GetAgentsOptions,
   GetChatsOptions,
-	ChatSystemPromptRequest,
+  AgentFileRequest,
+  ChatSystemPromptRequest,
   GetMemoryRecordsParams,
   AccessLevelUpdateParams,
   QueryLikeParams,
@@ -651,23 +652,19 @@ export const dataEndpoints = createEndpointRegistry({
         version: params.version,
       }),
   }),
-  workspaceFile: defineEndpoint<
-    {
-      agentKey: string;
-      path: string;
-      line?: number;
-    },
+  agentFile: defineEndpoint<
+    AgentFileRequest,
     Record<string, unknown>
   >({
-    key: "workspace.file",
-    path: "/api/workspace/file",
+    key: "file.detail",
+    path: "/api/file",
     method: "GET",
-    transport: "http",
+    transport: "auto",
     payload: (params) =>
       compactPayload({
         agentKey: params.agentKey,
         path: params.path,
-        line: params.line,
+        encoding: params.encoding,
       }),
   }),
   interrupt: defineEndpoint<QueryLikeParams, Record<string, unknown>>({

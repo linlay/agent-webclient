@@ -28,10 +28,6 @@ jest.mock("@/shared/data/api/client", () => {
 			ApiError: MockApiError,
 			archiveChats: jest.fn(),
 			buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
-			buildWorkspaceFileUrl: jest.fn(
-				(params: { agentKey: string; path: string; line?: number }) =>
-					`/api/workspace/file?agentKey=${params.agentKey}&path=${params.path}${params.line ? `&line=${params.line}` : ""}`,
-			),
 			createAgent: jest.fn(),
 			createAutomation: jest.fn(),
 			createQueryStream: jest.fn(),
@@ -44,6 +40,7 @@ jest.mock("@/shared/data/api/client", () => {
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
 		getAgent: jest.fn(),
+		getAgentFile: jest.fn(),
 		getAgentOrder: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
@@ -131,6 +128,7 @@ let mockApiClient: {
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
+	getAgentFile: jest.Mock;
 	getAgentOrder: jest.Mock;
 	getModelOptions: jest.Mock;
 	getAgents: jest.Mock;
@@ -1029,6 +1027,131 @@ describe("routedClient", () => {
 			payload: { chatId: "chat_1" },
 		});
 		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
+	});
+
+	it("routes agent file details over ws when connected", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { agentKey: "coder-agent", path: "Dockerfile" };
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { ...params, name: "Dockerfile", contentKind: "text", content: "FROM node", sizeBytes: 9, truncated: false },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getAgentFile(params)).resolves.toMatchObject({
+			data: { name: "Dockerfile", content: "FROM node" },
+		});
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/file",
+			payload: params,
+		});
+		expect(mockApiClient.getAgentFile).not.toHaveBeenCalled();
+	});
+
+	it("uses HTTP for agent file details outside ws mode", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "sse");
+		const params = { agentKey: "coder-agent", path: "nginx.conf" };
+		mockApiClient.getAgentFile.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { ...params, name: "nginx.conf", contentKind: "text", content: "events {}", sizeBytes: 9, truncated: false },
+		});
+
+		await expect(proxy.getAgentFile(params)).resolves.toMatchObject({
+			data: { name: "nginx.conf" },
+		});
+
+		expect(mockApiClient.getAgentFile).toHaveBeenCalledWith(params);
+		expect(mockGetWsClient).not.toHaveBeenCalled();
+	});
+
+	it("falls back to HTTP when an agent file ws request disconnects", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { agentKey: "coder-agent", path: ".env.example" };
+		const request = jest
+			.fn()
+			.mockRejectedValue(new WsClientDisconnectedError());
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAgentFile.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { ...params, name: ".env.example", contentKind: "text", content: "", sizeBytes: 0, truncated: false },
+		});
+
+		await expect(proxy.getAgentFile(params)).resolves.toMatchObject({
+			data: { name: ".env.example" },
+		});
+
+		expect(request).toHaveBeenCalledWith({ type: "/api/file", payload: params });
+		expect(mockApiClient.getAgentFile).toHaveBeenCalledWith(params);
+	});
+
+	it("falls back to HTTP when the current server has no agent file ws route", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { agentKey: "coder-agent", path: "jest.config.cjs" };
+		const request = jest.fn().mockRejectedValue(
+			new mockApiClient.ApiError("unknown type: /api/file", {
+				status: 400,
+				code: "invalid_request",
+			}),
+		);
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAgentFile.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { ...params, name: "jest.config.cjs", contentKind: "text", content: "module.exports = {}", sizeBytes: 19, truncated: false },
+		});
+
+		await expect(proxy.getAgentFile(params)).resolves.toMatchObject({
+			data: { name: "jest.config.cjs" },
+		});
+
+		expect(mockApiClient.getAgentFile).toHaveBeenCalledWith(params);
+	});
+
+	it("does not hide real agent file api errors behind an HTTP retry", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const params = { agentKey: "coder-agent", path: "missing.ts" };
+		const error = new mockApiClient.ApiError("file not found", {
+			status: 404,
+			code: "not_found",
+		});
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request: jest.fn().mockRejectedValue(error),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getAgentFile(params)).rejects.toBe(error);
+		expect(mockApiClient.getAgentFile).not.toHaveBeenCalled();
 	});
 
 	it("routes persisted run system prompts over ws when connected", async () => {
