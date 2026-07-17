@@ -93,8 +93,6 @@ export const zhCNMessages = {
   "automationConsole.hidden.true": "是",
   "automationConsole.hidden.unset": "不传",
   "automationConsole.list.count": "自动化 {count} 个",
-  "automationConsole.list.lastStatus": "最近 {status}",
-  "automationConsole.list.nextFire": "下次 {time}",
   "automationConsole.searchPlaceholder": "搜索自动化...",
   "automationConsole.section.request": "请求",
   "automationConsole.status.disabled": "停用",

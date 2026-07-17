@@ -132,7 +132,7 @@ const USAGE_POPOVER_CLASS =
 const USAGE_CONTEXT_RING_CLASS =
   "usage-context-ring tw:grid tw:h-11 tw:w-11 tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_54%,transparent_55%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),color-mix(in_srgb,var(--line-soft)_76%,transparent)_0)] tw:[&>span]:font-code tw:[&>span]:text-sm tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
 const USAGE_POPOVER_HEADER_CLASS =
-  "usage-popover-header tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_span]:max-w-[340px] tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-[9px] tw:[&_span]:font-medium tw:[&_span]:leading-[1.15] tw:[&_span]:text-ink-muted tw:[&_strong]:text-[11px] tw:[&_strong]:leading-[1.15]";
+  "usage-popover-header tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_span]:max-w-[340px] tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-[10px] tw:[&_span]:font-medium tw:[&_span]:leading-[1.15] tw:[&_span]:text-ink-muted tw:[&_strong]:text-[11px] tw:[&_strong]:leading-[1.15]";
 const USAGE_POPOVER_CLOSE_CLASS =
   "usage-popover-close tw:h-5 tw:min-h-5 tw:w-5 tw:min-w-5 tw:rounded-[7px] tw:p-0";
 

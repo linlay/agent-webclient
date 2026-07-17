@@ -93,8 +93,6 @@ export const enUSMessages = {
   "automationConsole.hidden.true": "Yes",
   "automationConsole.hidden.unset": "Unset",
   "automationConsole.list.count": "Automations {count}",
-  "automationConsole.list.lastStatus": "Last {status}",
-  "automationConsole.list.nextFire": "Next {time}",
   "automationConsole.searchPlaceholder": "Search automations...",
   "automationConsole.section.request": "Request",
   "automationConsole.status.disabled": "Disabled",

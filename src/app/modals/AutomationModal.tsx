@@ -259,15 +259,13 @@ export function automationSourcePath(automation: AutomationSummaryResponse): str
   return filename || automation.id;
 }
 
-function automationListMeta(automation: AutomationSummaryResponse, t: Translate, locale: string): string {
-  const lastStatus = automation.lastExecution?.status || "--";
-  return [
-    automation.cron || "--",
-    t("automationConsole.list.nextFire", {
-      time: automationTimeLabel(automation.nextFireTime, automation.nextFireAt, locale),
-    }),
-    t("automationConsole.list.lastStatus", { status: lastStatus }),
-  ].join(" · ");
+function automationListMeta(
+  automation: AutomationSummaryResponse,
+  resolveWorkerName: (automation: AutomationSummaryResponse) => string,
+): string {
+  const workerName = resolveWorkerName(automation) || "--";
+  const cron = String(automation.cron || "").trim() || "--";
+  return `${workerName} · ${cron}`;
 }
 
 function buildQuery(form: AutomationFormState): AutomationQueryRequest {
@@ -823,11 +821,8 @@ export const AutomationModal: React.FC<{
                       <span className={AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME}>
                         <span
                           className={AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME}
-                          title={`${getAutomationWorkerName(item)} ${item.name || item.id}`}
+                          title={item.name || item.id}
                         >
-                          <span className={AUTOMATION_LIST_ITEM_OWNER_CLASS_NAME}>
-                            [{getAutomationWorkerName(item)}]
-                          </span>
                           <strong>{item.name || item.id}</strong>
                         </span>
                         <UiTag tone={item.enabled ? "accent" : "muted"}>
@@ -836,9 +831,9 @@ export const AutomationModal: React.FC<{
                       </span>
                       <span
                         className={AUTOMATION_LIST_ITEM_META_CLASS_NAME}
-                        title={automationListMeta(item, t, locale)}
+                        title={automationListMeta(item, getAutomationWorkerName)}
                       >
-                        {automationListMeta(item, t, locale)}
+                        {automationListMeta(item, getAutomationWorkerName)}
                       </span>
                     </button>
                   ))}

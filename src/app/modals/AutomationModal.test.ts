@@ -282,4 +282,71 @@ describe("AutomationModal", () => {
       ),
     ).toBe("2026-07-02T09:00:00.123+08:00");
   });
+
+  it("renders automation list items as a two-line card (name + status / worker + cron)", () => {
+    mockedUseAppState.mockReturnValue({
+      automations: [
+        {
+          id: "pull_zenmind_20260717",
+          name: "全量拉取 zenmind 子项目",
+          description: "pull",
+          cron: "0 */2 * * *",
+          agentKey: "agent-a",
+          enabled: false,
+          sourceFile: "/repo/automations/pull_zenmind_20260717.yml",
+        },
+        {
+          id: "missing_cron",
+          name: "缺失 cron 的示例",
+          description: "fallback",
+          cron: "",
+          agentKey: "agent-a",
+          enabled: true,
+          sourceFile: "/repo/automations/missing_cron.yml",
+        },
+      ],
+      agents: [],
+    });
+
+    const html = renderAutomationModal("zh-CN");
+
+    // 第一行：name + 状态 tag，不应再出现方括号智能体前缀
+    expect(html).toContain("<strong>全量拉取 zenmind 子项目</strong>");
+    expect(html).toContain("停用");
+    expect(html).not.toMatch(/\[小宅\]/);
+
+    // 第二行：智能体名 · cron（基于 props.agents 解析）
+    expect(html).toContain("小宅 · 0 */2 * * *");
+    expect(html).not.toContain("Next");
+    expect(html).not.toContain("Last");
+
+    // 缺值回退：cron 为空时显示 --
+    expect(html).toContain("小宅 · --");
+  });
+
+  it("renders the two-line automation card in English with Disabled tag", () => {
+    mockedUseAppState.mockReturnValue({
+      automations: [
+        {
+          id: "pull_zenmind_en",
+          name: "Pull zenmind subprojects",
+          description: "pull",
+          cron: "0 */2 * * *",
+          agentKey: "agent-a",
+          enabled: false,
+          sourceFile: "/repo/automations/pull_zenmind_en.yml",
+        },
+      ],
+      agents: [],
+    });
+
+    const html = renderAutomationModal("en-US");
+
+    expect(html).toContain("<strong>Pull zenmind subprojects</strong>");
+    expect(html).toContain("Disabled");
+    expect(html).not.toMatch(/\[小宅\]/);
+    expect(html).not.toContain("Next");
+    expect(html).not.toContain("Last");
+    expect(html).toContain("小宅 · 0 */2 * * *");
+  });
 });

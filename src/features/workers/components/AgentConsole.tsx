@@ -553,7 +553,7 @@ const AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME =
 const AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME =
   "agent-console-list-item-count-sep tw:text-[8px] tw:text-ink-muted tw:opacity-60";
 const AGENT_LIST_ITEM_MODE_BADGE_CLASS_NAME =
-  "agent-console-list-item-mode-badge tw:inline-flex tw:items-center tw:justify-center tw:gap-0.5 tw:text-ink-muted tw:[&_span]:text-[9px] tw:[&_span]:font-semibold tw:[&_span]:tracking-[0.04em] tw:[&_svg]:h-2 tw:[&_svg]:w-2";
+  "agent-console-list-item-mode-badge tw:inline-flex tw:items-center tw:justify-center tw:gap-0.5 tw:text-ink-muted tw:[&_span]:text-[10px] tw:[&_span]:font-semibold tw:[&_span]:tracking-[0.04em] tw:[&_svg]:h-2 tw:[&_svg]:w-2";
 const AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME =
   "agent-console-list-item-diagnostic tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-medium tw:text-accent-danger";
 const AGENT_DETAIL_CLASS_NAME =

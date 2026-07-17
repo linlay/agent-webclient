@@ -351,7 +351,14 @@ describe("QuerySettingsControls", () => {
   it("normalizes standard, nested, and bare model option payloads", () => {
     const payload = {
       models: [
-        { key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder", isReasoner: true, isVision: false },
+        {
+          key: "coder-model",
+          name: "Qwen Coder",
+          icon: "Qwen Coder",
+          modelId: "qwen3-coder",
+          isReasoner: true,
+          isVision: false,
+        },
         { key: "", modelId: "ignored", isReasoner: true, isVision: false },
       ],
       reasoningEfforts: [
@@ -367,7 +374,7 @@ describe("QuerySettingsControls", () => {
     };
 
     expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
-      models: [{ key: "coder-model", name: "Qwen Coder" }],
+      models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
@@ -375,7 +382,7 @@ describe("QuerySettingsControls", () => {
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
-      models: [{ key: "coder-model", name: "Qwen Coder" }],
+      models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
@@ -383,7 +390,7 @@ describe("QuerySettingsControls", () => {
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
-      models: [{ key: "coder-model", name: "Qwen Coder" }],
+      models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
       defaultModelKey: "default-coder-model",
@@ -396,7 +403,14 @@ describe("QuerySettingsControls", () => {
     const embedded = resolveEmbeddedCoderModelOptions({
       mode: "CODER",
       modelOptions: {
-        models: [{ key: "acp-model", name: "ACP Model", modelId: "gpt-5.5" }],
+        models: [
+          {
+            key: "acp-model",
+            name: "ACP Model",
+            icon: "ChatGPT",
+            modelId: "unrecognized-model",
+          },
+        ],
         reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
         serviceTiers: [{ key: "FAST", label: "Fast" }],
         defaultModelKey: "acp-model",
@@ -406,7 +420,7 @@ describe("QuerySettingsControls", () => {
     });
 
     expect(embedded).toMatchObject({
-      models: [{ key: "acp-model", name: "ACP Model" }],
+      models: [{ key: "acp-model", name: "ACP Model", icon: "ChatGPT" }],
       reasoningEfforts: [{ key: "HIGH" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FAST" }],
       defaultModelKey: "acp-model",
@@ -697,6 +711,7 @@ describe("QuerySettingsControls", () => {
         {
           key: "babelark-qwen3_5-plus",
           name: "Qwen Coder Plus",
+          icon: "Qwen Coder Plus",
           provider: "babelark",
           modelId: "qwen3.5-plus",
           protocol: "OPENAI",
@@ -769,6 +784,8 @@ describe("QuerySettingsControls", () => {
     expect(modelSubmenuHtml).toContain("Qwen Coder Plus");
     expect(modelHtml).not.toContain("默认模型");
     expect(modelHtml).toContain("Qwen Coder Plus");
+    expect(modelHtml).toContain("query-model-menu-icon");
+    expect(modelHtml).toContain("BabelArk");
     expect(modelHtml).not.toContain("babelark-qwen3_5-plus");
     expect(modelHtml).not.toContain("qwen3.5-plus");
     expect(reasoningHtml).not.toContain("默认思考");

@@ -672,6 +672,7 @@ export interface AgentEditorOption {
 export interface AgentEditorModelOption {
   key: string;
   name?: string;
+  icon?: string;
   provider?: string;
   modelId?: string;
   protocol?: string;

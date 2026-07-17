@@ -12,6 +12,8 @@ Automation 页面由 `/automations` 路由进入，页面入口是 `src/app/page
 ## 核心流程
 进入 `/automations` 后，`AutomationsPage` 从全局状态解析当前 worker，并把 agents、teams 传入 `AutomationModal`。控制台调用 automation list/detail/executions 接口加载数据；用户保存时根据 create/edit 模式构造请求，启停和删除直接调用对应管理接口。
 
+Automation 列表卡片按两行结构渲染：第一行展示 automation `name` 与启用/停用 tag；第二行展示智能体名（或团队名）与 cron 表达式。`nextFireTime` 与 `lastExecution` 不再在卡片上展示，相关字段保留在右侧详情面板与执行记录区域。
+
 ## 边界与非目标
 - Automation 调度、cron 解释、执行上下文和失败重试由后端负责。
 - 前端不生成自动化执行计划，也不直接执行 query。

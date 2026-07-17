@@ -25,6 +25,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { resolveModelPresentation } from "@/shared/icons/model";
 
 interface QuerySettingsControlsProps {
   accessLevel: QueryAccessLevel;
@@ -77,6 +78,7 @@ const QUERY_MODEL_ERROR_CLASS =
   "query-model-error tw:max-w-[220px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-danger";
 const QUERY_SETTINGS_MENU_ITEM_CLASS =
   "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
+const QUERY_MODEL_MENU_ITEM_CLASS = "query-model-menu-item";
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
@@ -463,9 +465,25 @@ export function buildModelMenuItems({
     ...models.map((model) => {
       const key = String(model.key || "").trim();
       const label = getModelDisplayName(model);
+      const presentation = resolveModelPresentation(model);
       return {
         key: `model:${encodeURIComponent(key)}`,
-        label: <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>{label}</span>,
+        label: (
+          <span className={QUERY_MODEL_MENU_ITEM_CLASS}>
+            <img
+              className={`query-model-menu-icon${presentation.isMonochrome ? " is-monochrome" : ""}`}
+              src={presentation.icon}
+              alt=""
+              aria-hidden="true"
+            />
+            <span className="query-model-menu-copy">
+              <span className="query-model-menu-name">{label}</span>
+              <span className="query-model-menu-provider">
+                {presentation.provider}
+              </span>
+            </span>
+          </span>
+        ),
         extra:
           (selectedModelKey || modelOverride.key) === key ? (
             <MaterialIcon name="check" />
