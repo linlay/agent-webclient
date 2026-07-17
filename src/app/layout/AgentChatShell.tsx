@@ -113,15 +113,6 @@ const AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE = {
     "desktop-debug-disabled tw:grid-cols-[0_minmax(0,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
-function createFallbackRouteAgent(agentKey: string): Agent {
-  const normalizedAgentKey = String(agentKey || "").trim();
-  return {
-    key: normalizedAgentKey,
-    name: normalizedAgentKey,
-    role: "--",
-  };
-}
-
 function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
   if (!agent) return false;
   return Boolean(
@@ -166,6 +157,56 @@ const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({
   );
 };
 
+const AGENT_ROUTE_ERROR_CARD_CLASS =
+  "tw:inline-flex tw:min-w-[min(360px,100%)] tw:flex-col tw:items-center tw:gap-4 tw:px-6 tw:py-6";
+const AGENT_ROUTE_ERROR_ICON_CLASS =
+  "tw:flex tw:h-12 tw:w-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-[color-mix(in_srgb,var(--ink-danger)_12%,transparent)] tw:text-[var(--ink-danger)] tw:text-2xl";
+const AGENT_ROUTE_ERROR_COPY_CLASS =
+  "tw:flex tw:flex-col tw:items-center tw:gap-1.5 tw:text-center";
+const AGENT_ROUTE_ERROR_RETRY_BUTTON_CLASS =
+  "tw:inline-flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] tw:px-4 tw:py-2 tw:text-sm tw:font-medium tw:transition-colors hover:tw:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]";
+
+const AgentRouteErrorPage: React.FC<{
+  message: string;
+  onRetry: () => void;
+}> = ({ message, onRetry }) => (
+  <main className={AGENT_ROUTE_LOADING_PAGE_CLASS}>
+    <div className={AGENT_ROUTE_ERROR_CARD_CLASS}>
+      <div className={AGENT_ROUTE_ERROR_ICON_CLASS} aria-hidden="true">
+        !
+      </div>
+      <div className={AGENT_ROUTE_ERROR_COPY_CLASS}>
+        <strong className="tw:text-sm tw:text-ink-1">
+          {message}
+        </strong>
+        <span className="tw:text-xs tw:text-ink-muted">
+          请检查网络连接后重试
+        </span>
+      </div>
+      <button
+        type="button"
+        className={AGENT_ROUTE_ERROR_RETRY_BUTTON_CLASS}
+        onClick={onRetry}
+      >
+        <svg
+          className="tw:h-4 tw:w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
+        </svg>
+        重试
+      </button>
+    </div>
+  </main>
+);
+
 export const AgentChatShell: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -190,6 +231,9 @@ export const AgentChatShell: React.FC = () => {
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
+  const routeAgentLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [routeAgentLoadError, setRouteAgentLoadError] = useState<string | null>(null);
+  const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -352,6 +396,13 @@ export const AgentChatShell: React.FC = () => {
     };
   }, [agentKey, chatId, navigate, routeNewChatTimestamp, searchParams]);
 
+  const handleRetryRouteAgent = useCallback(() => {
+    routeAgentHydrationFailedRef.current.delete(agentKey);
+    routeAgentHydratedWithoutSignalRef.current.delete(agentKey);
+    setRouteAgentLoadError(null);
+    setHydrationRetryCount((c) => c + 1);
+  }, [agentKey]);
+
   useEffect(() => {
     if (!agentKey) {
       return;
@@ -365,6 +416,16 @@ export const AgentChatShell: React.FC = () => {
     routeAgentHydrationRequestRef.current = requestId;
     let cancelled = false;
 
+    if (routeAgentLoadingTimeoutRef.current) {
+      clearTimeout(routeAgentLoadingTimeoutRef.current);
+      routeAgentLoadingTimeoutRef.current = null;
+    }
+
+    routeAgentLoadingTimeoutRef.current = setTimeout(() => {
+      if (cancelled) return;
+      setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
+    }, 15_000);
+
     void getAgent(agentKey)
       .then((response) => {
         if (
@@ -373,6 +434,12 @@ export const AgentChatShell: React.FC = () => {
         ) {
           return;
         }
+
+        if (routeAgentLoadingTimeoutRef.current) {
+          clearTimeout(routeAgentLoadingTimeoutRef.current);
+          routeAgentLoadingTimeoutRef.current = null;
+        }
+        setRouteAgentLoadError(null);
 
         const payload = (response.data || {}) as unknown as Partial<Agent>;
         const resolvedAgentKey =
@@ -401,12 +468,13 @@ export const AgentChatShell: React.FC = () => {
           return;
         }
 
+        if (routeAgentLoadingTimeoutRef.current) {
+          clearTimeout(routeAgentLoadingTimeoutRef.current);
+          routeAgentLoadingTimeoutRef.current = null;
+        }
+
         routeAgentHydrationFailedRef.current.add(agentKey);
-        const mergedAgents = upsertAgentSummary(
-          stateRef.current.agents,
-          createFallbackRouteAgent(agentKey),
-        );
-        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
+        setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
         dispatch({
           type: "APPEND_DEBUG",
           line: `[loadAgent error] ${(error as Error).message}`,
@@ -415,8 +483,12 @@ export const AgentChatShell: React.FC = () => {
 
     return () => {
       cancelled = true;
+      if (routeAgentLoadingTimeoutRef.current) {
+        clearTimeout(routeAgentLoadingTimeoutRef.current);
+        routeAgentLoadingTimeoutRef.current = null;
+      }
     };
-  }, [agentKey, dispatch, routeAgentNeedsHydration]);
+  }, [agentKey, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
 
   useEffect(() => {
     if (!agentKey || !routeAgentHydrated) {
@@ -593,6 +665,9 @@ export const AgentChatShell: React.FC = () => {
   const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
 
   if (!routeAgentReady) {
+    if (routeAgentLoadError) {
+      return <AgentRouteErrorPage message={routeAgentLoadError} onRetry={handleRetryRouteAgent} />;
+    }
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }
 
