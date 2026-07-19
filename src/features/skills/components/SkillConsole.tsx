@@ -3,26 +3,26 @@ import type { Dispatch, SetStateAction } from "react";
 import { Input, Modal, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
-  buildAdminSkillFileDownloadUrlV2,
-  createAdminSkillFileV2,
-  createAdminSkillV2,
-  deleteAdminSkillFileV2,
-  getAdminSkillDetailV2,
-  getAdminSkillFileV2,
-  getAdminSkillsV2,
-  mkdirAdminSkillFileV2,
-  renameAdminSkillFileV2,
-  saveAdminSkillFileV2,
-  uploadAdminSkillFileV2,
-  validateAdminSkillV2,
+  buildAdminSkillFileDownloadUrl,
+  createAdminSkillFile,
+  createAdminSkill,
+  deleteAdminSkillFile,
+  getAdminSkillDetail,
+  getAdminSkillFile,
+  getAdminSkills,
+  mkdirAdminSkillFile,
+  renameAdminSkillFile,
+  saveAdminSkillFile,
+  uploadAdminSkillFile,
+  validateAdminSkill,
 } from "@/shared/data";
 import type {
   AdminSkillStatus,
-  AdminSkillV2DetailResponse,
-  AdminSkillV2FileEntry,
-  AdminSkillV2MutationResponse,
-  AdminSkillV2Summary,
-  AdminSkillV2TextFile,
+  AdminSkillDetailResponse,
+  AdminSkillFileEntry,
+  AdminSkillMutationResponse,
+  AdminSkillSummary,
+  AdminSkillTextFile,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -44,6 +44,17 @@ function translateWithFallback(
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
+export const DEFAULT_SKILL_ICON_URL = "/default-skill.png";
+
+export function resolveSkillIcon(icon?: string): string {
+  return icon?.trim() || DEFAULT_SKILL_ICON_URL;
+}
+
+export function fallbackSkillIcon(target: HTMLImageElement): void {
+  target.onerror = null;
+  target.src = DEFAULT_SKILL_ICON_URL;
+}
+
 /* ---- class names ---- */
 const SKILL_CONSOLE_CLASS_NAME =
   "skill-console tw:flex tw:flex-auto tw:flex-col tw:min-h-0 tw:gap-3 tw:overflow-hidden";
@@ -61,6 +72,8 @@ const SKILL_LIST_ITEM_CLASS_NAME =
   "skill-console-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover";
 const SKILL_LIST_ITEM_HEAD_CLASS_NAME =
   "skill-console-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
+const SKILL_LIST_ITEM_ICON_CLASS_NAME =
+  "skill-console-list-item-icon tw:h-7 tw:w-7 tw:flex-none tw:rounded-md tw:object-cover";
 const SKILL_LIST_ITEM_TITLE_CLASS_NAME =
   "skill-console-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
 const SKILL_LIST_ITEM_META_CLASS_NAME =
@@ -114,7 +127,7 @@ function formatSize(value: number | undefined): string {
   return `${(value / 1024).toFixed(1)} KB`;
 }
 
-function languageLabel(entry: AdminSkillV2FileEntry | undefined): string {
+function languageLabel(entry: AdminSkillFileEntry | undefined): string {
   if (!entry) return "Plain Text";
   if (entry.language) {
     switch (entry.language) {
@@ -142,32 +155,24 @@ function isFilePathSafe(rawPath: string): boolean {
   return true;
 }
 
-function normalizeSkillList(data: unknown): AdminSkillV2Summary[] {
-  if (Array.isArray(data)) return data as AdminSkillV2Summary[];
-  if (data && typeof data === "object" && "items" in data) {
-    return (data as { items: AdminSkillV2Summary[] }).items || [];
-  }
-  return [];
-}
-
 function findEntryByPath(
-  entries: AdminSkillV2FileEntry[],
+  entries: AdminSkillFileEntry[],
   path: string,
-): AdminSkillV2FileEntry | undefined {
+): AdminSkillFileEntry | undefined {
   const normalizedPath = path.trim();
   if (!normalizedPath) return undefined;
   return entries.find((entry) => entry.path === normalizedPath);
 }
 
-function findFirstTextEntry(entries: AdminSkillV2FileEntry[]): AdminSkillV2FileEntry | undefined {
+function findFirstTextEntry(entries: AdminSkillFileEntry[]): AdminSkillFileEntry | undefined {
   return entries.find((entry) => entry.kind === "file" && entry.contentKind === "text");
 }
 
 export function findPreferredSkillFileEntry(
-  entries: AdminSkillV2FileEntry[],
+  entries: AdminSkillFileEntry[],
   preferredPath = "",
   defaultOpenPath = "",
-): AdminSkillV2FileEntry | undefined {
+): AdminSkillFileEntry | undefined {
   const preferred = findEntryByPath(entries, preferredPath);
   if (preferred?.kind === "file") return preferred;
   const defaultEntry = findEntryByPath(entries, defaultOpenPath);
@@ -204,7 +209,7 @@ export function toggleSkillExpandedDir(current: Set<string>, path: string): Set<
 }
 
 export function isSkillEntryVisible(
-  entry: AdminSkillV2FileEntry,
+  entry: AdminSkillFileEntry,
   expandedDirs: Set<string>,
 ): boolean {
   if (!entry.parentPath) return true;
@@ -217,14 +222,14 @@ export function isSkillEntryVisible(
   return true;
 }
 
-function iconForEntry(entry: AdminSkillV2FileEntry): MaterialIconName {
+function iconForEntry(entry: AdminSkillFileEntry): MaterialIconName {
   if (entry.kind === "directory") return "folder_open";
   if (entry.contentKind === "binary") return "folder_zip";
   return "description";
 }
 
 function applyOpenedFileState(
-  file: AdminSkillV2TextFile,
+  file: AdminSkillTextFile,
   setSelectedFilePath: (value: string) => void,
   setFileContent: (value: string) => void,
   setOriginalFileContent: (value: string) => void,
@@ -247,9 +252,9 @@ function applyOpenedFileState(
 }
 
 function mergeDetailWithMutation(
-  detail: AdminSkillV2DetailResponse,
-  mutation: AdminSkillV2MutationResponse,
-): AdminSkillV2DetailResponse {
+  detail: AdminSkillDetailResponse,
+  mutation: AdminSkillMutationResponse,
+): AdminSkillDetailResponse {
   const fileManifest = mutation.fileManifest || detail.fileManifest;
   const entries = mutation.entry && !mutation.fileManifest
     ? fileManifest.entries.map((entry) =>
@@ -271,7 +276,7 @@ function mergeDetailWithMutation(
 type SkillConsoleTranslate = (key: string, params?: Record<string, unknown>) => string;
 
 interface SkillFileWorkspaceProps {
-  detail: AdminSkillV2DetailResponse;
+  detail: AdminSkillDetailResponse;
   selectedFilePath: string;
   fileContent: string;
   fileSize: number | undefined;
@@ -292,7 +297,7 @@ interface SkillFileWorkspaceProps {
   onDownloadFile: () => void;
   onReplaceFile: (file: File) => void;
   onFileChange: (value: string) => void;
-  onSelectFileEntry: (entry: AdminSkillV2FileEntry) => void | Promise<void>;
+  onSelectFileEntry: (entry: AdminSkillFileEntry) => void | Promise<void>;
 }
 
 export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
@@ -553,14 +558,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 }) => {
   const { t } = useI18n();
 
-  const [skills, setSkills] = useState<AdminSkillV2Summary[]>([]);
+  const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detail, setDetail] = useState<AdminSkillV2DetailResponse | null>(null);
+  const [detail, setDetail] = useState<AdminSkillDetailResponse | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState("");
   const [fileContent, setFileContent] = useState("");
   const [originalFileContent, setOriginalFileContent] = useState("");
@@ -576,7 +581,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const [message, setMessage] = useState("");
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["references", "scripts", "assets"]));
 
-  const detailRef = useRef<AdminSkillV2DetailResponse | null>(null);
+  const detailRef = useRef<AdminSkillDetailResponse | null>(null);
   detailRef.current = detail;
 
   const selectedEntry = useMemo(
@@ -603,7 +608,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   }, [skills, searchText, statusFilter]);
 
-  const applyOpenedFile = useCallback((file: AdminSkillV2TextFile) => {
+  const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
       file,
       setSelectedFilePath,
@@ -616,7 +621,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     );
   }, []);
 
-  const applyBinaryEntry = useCallback((entry: AdminSkillV2FileEntry) => {
+  const applyBinaryEntry = useCallback((entry: AdminSkillFileEntry) => {
     setSelectedFilePath(entry.path);
     setFileContent("");
     setOriginalFileContent("");
@@ -638,8 +643,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setListLoading(true);
     setError("");
     try {
-      const response = await getAdminSkillsV2();
-      setSkills(normalizeSkillList(response.data));
+      const response = await getAdminSkills();
+      setSkills(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -653,7 +658,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       if (!skillKey || !normalizedPath) return null;
       setError("");
       try {
-        const response = await getAdminSkillFileV2(skillKey, normalizedPath);
+        const response = await getAdminSkillFile(skillKey, normalizedPath);
         applyOpenedFile(response.data);
         return response.data;
       } catch (err) {
@@ -672,7 +677,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setError("");
       try {
         const requestedOpenPath = preferredFilePath || "SKILL.md";
-        const response = await getAdminSkillDetailV2(normalizedSkillKey, requestedOpenPath);
+        const response = await getAdminSkillDetail(normalizedSkillKey, requestedOpenPath);
         const d = response.data;
         setDetail(d);
         detailRef.current = d;
@@ -702,7 +707,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   );
 
   const selectFileEntry = useCallback(
-    async (entry: AdminSkillV2FileEntry) => {
+    async (entry: AdminSkillFileEntry) => {
       const currentDetail = detailRef.current;
       if (!currentDetail) return;
 
@@ -755,7 +760,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   }, [onSelectSkillKey, selectedSkillKey, skills]);
 
-  const handleSelectSkill = (item: AdminSkillV2Summary) => {
+  const handleSelectSkill = (item: AdminSkillSummary) => {
     if (dirtyFiles.size > 0) {
       Modal.confirm({
         title: t("skillConsole.confirm.switchSkill"),
@@ -769,7 +774,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   };
 
   const applyMutation = useCallback(
-    async (mutation: AdminSkillV2MutationResponse) => {
+    async (mutation: AdminSkillMutationResponse) => {
       const currentDetail = detailRef.current;
       if (!currentDetail) return;
       const nextDetail = mergeDetailWithMutation(currentDetail, mutation);
@@ -829,7 +834,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setSaving(true);
     setError("");
     try {
-      const response = await saveAdminSkillFileV2({
+      const response = await saveAdminSkillFile({
         key: detail.skill.key,
         path: selectedFilePath,
         content: fileContent,
@@ -850,7 +855,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setValidating(true);
     setError("");
     try {
-      const response = await validateAdminSkillV2(detail.skill.key);
+      const response = await validateAdminSkill(detail.skill.key);
       const result = response.data;
       setDetail((prev) => {
         if (!prev) return prev;
@@ -895,7 +900,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
-        const response = await createAdminSkillFileV2({
+        const response = await createAdminSkillFile({
           key: detail.skill.key,
           path: name,
           content: "",
@@ -920,7 +925,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
-        const response = await mkdirAdminSkillFileV2({
+        const response = await mkdirAdminSkillFile({
           key: detail.skill.key,
           path: name,
         });
@@ -949,7 +954,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         const newPath = inputValue.trim();
         if (!newPath || !isFilePathSafe(newPath) || newPath === selectedFilePath) return;
-        const response = await renameAdminSkillFileV2({
+        const response = await renameAdminSkillFile({
           key: detail.skill.key,
           fromPath: selectedFilePath,
           toPath: newPath,
@@ -965,7 +970,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       title: t("skillConsole.fileOp.deleteConfirm", { type: t("skillConsole.fileTree.root"), name: selectedFilePath }),
       okButtonProps: { danger: true },
       onOk: async () => {
-        const response = await deleteAdminSkillFileV2({
+        const response = await deleteAdminSkillFile({
           key: detail.skill.key,
           path: selectedFilePath,
           recursive: selectedEntry.kind === "directory",
@@ -978,7 +983,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleDownloadFile = () => {
     if (!detail || !selectedFilePath) return;
-    const url = buildAdminSkillFileDownloadUrlV2(detail.skill.key, selectedFilePath);
+    const url = buildAdminSkillFileDownloadUrl(detail.skill.key, selectedFilePath);
     if (typeof window !== "undefined") {
       window.open(url, "_blank", "noopener,noreferrer");
     }
@@ -989,7 +994,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setSaving(true);
     setError("");
     try {
-      const response = await uploadAdminSkillFileV2({
+      const response = await uploadAdminSkillFile({
         key: detail.skill.key,
         path: selectedFilePath,
         file,
@@ -1030,7 +1035,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         setCreating(true);
         try {
           const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
-          const response = await createAdminSkillV2({ key, skillMd });
+          const response = await createAdminSkill({ key, skillMd });
           setSkills((prev) =>
             [...prev.filter((item) => item.key !== key), response.data.skill]
               .sort((a, b) => a.key.localeCompare(b.key)),
@@ -1148,6 +1153,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       onClick={() => handleSelectSkill(item)}
                     >
                       <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
+                        <img
+                          className={SKILL_LIST_ITEM_ICON_CLASS_NAME}
+                          src={resolveSkillIcon(item.icon)}
+                          alt=""
+                          onError={(event) => fallbackSkillIcon(event.currentTarget)}
+                        />
                         <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
                           <strong>{item.name || item.key}</strong>
                         </span>

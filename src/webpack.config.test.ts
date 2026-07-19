@@ -232,4 +232,19 @@ describe('html template asset paths', () => {
     expect(template).not.toContain('assets/fonts/fonts.css');
     expect(template).not.toContain('fonts.googleapis.com');
   });
+
+  it('emits the default skill icon as a root static asset', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'production' });
+    const publicAssetPlugin = config.plugins?.find(
+      (plugin: { constructor?: { name?: string } }) =>
+        plugin.constructor?.name === 'PublicAssetPlugin',
+    ) as { from?: string; to?: string } | undefined;
+
+    expect(publicAssetPlugin).toMatchObject({
+      from: 'public/default-skill.png',
+      to: 'default-skill.png',
+    });
+  });
 });

@@ -78,6 +78,28 @@ function createRuntimeConfigScript() {
   return `globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = ${JSON.stringify(resolveRuntimeConfig())};\n`;
 }
 
+class PublicAssetPlugin {
+  constructor({ from, to }) {
+    this.from = from;
+    this.to = to;
+  }
+
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('PublicAssetPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'PublicAssetPlugin',
+          stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+        },
+        () => {
+          const content = fs.readFileSync(path.resolve(compiler.context, this.from));
+          compilation.emitAsset(this.to, new compiler.webpack.sources.RawSource(content));
+        },
+      );
+    });
+  }
+}
+
 function isSseQueryRequest(req) {
   const url = String(req?.url || '');
   return url === '/api/query' || url.startsWith('/api/query?');
@@ -173,6 +195,10 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
+      new PublicAssetPlugin({
+        from: 'public/default-skill.png',
+        to: 'default-skill.png',
+      }),
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',

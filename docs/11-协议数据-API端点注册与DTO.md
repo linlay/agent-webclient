@@ -14,6 +14,12 @@
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
 
+## Skills 管理契约
+
+Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。
+
+后端只在发现 `skills-market/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
+
 ## 对话运行身份
 
 前端内部以 `RunOwner` 表示对话和 run 的公开请求身份，只有两种互斥情况：

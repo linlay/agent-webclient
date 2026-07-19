@@ -19,7 +19,6 @@ import type {
   QueryServiceTier,
   QueryStreamParams,
   BTWStreamParams,
-  AdminSkillListResponse,
 } from "@/shared/data/api/client";
 import { runOwnerPayload } from "@/shared/data/runOwner";
 
@@ -240,24 +239,18 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
-  adminSkills: defineEndpoint<void, AdminSkillListResponse>({
+  adminSkills: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.skills.list",
     path: "/api/admin/skills",
     method: "GET",
     transport: "http",
   }),
-  adminSkillsV2: defineEndpoint<void, Record<string, unknown>>({
-    key: "admin.skills.v2.list",
-    path: "/api/admin/skills/v2",
-    method: "GET",
-    transport: "http",
-  }),
-  adminSkillV2Detail: defineEndpoint<
+  adminSkillDetail: defineEndpoint<
     { key: string; openPath?: string },
     { key: string; openPath?: string }
   >({
-    key: "admin.skills.v2.detail",
-    path: "/api/admin/skills/v2/detail",
+    key: "admin.skills.detail",
+    path: "/api/admin/skills/detail",
     method: "GET",
     transport: "http",
     payload: (params) => ({
@@ -265,108 +258,61 @@ export const dataEndpoints = createEndpointRegistry({
       ...(params.openPath ? { openPath: params.openPath } : {}),
     }),
   }),
-  adminSkillV2File: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
-  >({
-    key: "admin.skills.v2.file",
-    path: "/api/admin/skills/v2/file",
-    method: "GET",
-    transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
-  }),
-  adminSkillV2SaveFile: defineEndpoint({
-    key: "admin.skills.v2.saveFile",
-    path: "/api/admin/skills/v2/file",
-    method: "PUT",
-    transport: "http",
-  }),
-  adminSkillV2CreateFile: defineEndpoint({
-    key: "admin.skills.v2.createFile",
-    path: "/api/admin/skills/v2/file/create",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Mkdir: defineEndpoint({
-    key: "admin.skills.v2.mkdir",
-    path: "/api/admin/skills/v2/file/mkdir",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Rename: defineEndpoint({
-    key: "admin.skills.v2.rename",
-    path: "/api/admin/skills/v2/file/rename",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2DeleteFile: defineEndpoint({
-    key: "admin.skills.v2.deleteFile",
-    path: "/api/admin/skills/v2/file/delete",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Upload: defineEndpoint({
-    key: "admin.skills.v2.upload",
-    path: "/api/admin/skills/v2/file/upload",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Download: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
-  >({
-    key: "admin.skills.v2.download",
-    path: "/api/admin/skills/v2/file/download",
-    method: "GET",
-    transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
-  }),
-  adminSkillV2Validate: defineEndpoint({
-    key: "admin.skills.v2.validate",
-    path: "/api/admin/skills/v2/validate",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Create: defineEndpoint({
-    key: "admin.skills.v2.create",
-    path: "/api/admin/skills/v2/create",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillV2Delete: defineEndpoint({
-    key: "admin.skills.v2.delete",
-    path: "/api/admin/skills/v2/delete",
-    method: "POST",
-    transport: "http",
-  }),
-  adminSkillDetail: defineEndpoint<string, { skillKey: string }>({
-    key: "admin.skills.detail",
-    path: "/api/admin/skills/detail",
-    method: "GET",
-    transport: "http",
-    payload: (skillKey) => ({ skillKey }),
-  }),
   adminSkillFile: defineEndpoint<
-    { skillKey: string; path: string },
-    { skillKey: string; path: string }
+    { key: string; path: string },
+    { key: string; path: string }
   >({
     key: "admin.skills.file",
     path: "/api/admin/skills/file",
     method: "GET",
     transport: "http",
-    payload: (params) => ({ skillKey: params.skillKey, path: params.path }),
+    payload: (params) => ({ key: params.key, path: params.path }),
   }),
   adminSkillSaveFile: defineEndpoint({
     key: "admin.skills.saveFile",
-    path: "/api/admin/skills/save-file",
+    path: "/api/admin/skills/file",
+    method: "PUT",
+    transport: "http",
+  }),
+  adminSkillCreateFile: defineEndpoint({
+    key: "admin.skills.createFile",
+    path: "/api/admin/skills/file/create",
     method: "POST",
     transport: "http",
   }),
-  adminSkillFileOp: defineEndpoint({
-    key: "admin.skills.fileOp",
-    path: "/api/admin/skills/file-op",
+  adminSkillMkdir: defineEndpoint({
+    key: "admin.skills.mkdir",
+    path: "/api/admin/skills/file/mkdir",
     method: "POST",
     transport: "http",
+  }),
+  adminSkillRename: defineEndpoint({
+    key: "admin.skills.rename",
+    path: "/api/admin/skills/file/rename",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillDeleteFile: defineEndpoint({
+    key: "admin.skills.deleteFile",
+    path: "/api/admin/skills/file/delete",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillUpload: defineEndpoint({
+    key: "admin.skills.upload",
+    path: "/api/admin/skills/file/upload",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillDownload: defineEndpoint<
+    { key: string; path: string },
+    { key: string; path: string }
+  >({
+    key: "admin.skills.download",
+    path: "/api/admin/skills/file/download",
+    method: "GET",
+    transport: "http",
+    payload: (params) => ({ key: params.key, path: params.path }),
   }),
   adminSkillValidate: defineEndpoint({
     key: "admin.skills.validate",
@@ -377,6 +323,12 @@ export const dataEndpoints = createEndpointRegistry({
   adminSkillCreate: defineEndpoint({
     key: "admin.skills.create",
     path: "/api/admin/skills/create",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillDelete: defineEndpoint({
+    key: "admin.skills.delete",
+    path: "/api/admin/skills/delete",
     method: "POST",
     transport: "http",
   }),

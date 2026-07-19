@@ -12,7 +12,7 @@ import {
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
-  buildAdminSkillFileDownloadUrlV2,
+  buildAdminSkillFileDownloadUrl,
   archiveChats,
   createAttachStream,
   compactChat,
@@ -35,7 +35,6 @@ import {
   getAdminAgentOrder,
   getAdminAgents,
   getAdminSkills,
-  getAdminSkillsV2,
   getAdminTools,
   getAdminRegistries,
   getAdminRegistryDetail,
@@ -78,22 +77,16 @@ import {
   searchGlobal,
   setAccessToken,
   saveAdminRegistryDetail,
-  adminSkillFileOp,
+  createAdminSkillFile,
   createAdminSkill,
-  createAdminSkillFileV2,
-  createAdminSkillV2,
-  deleteAdminSkillFileV2,
+  deleteAdminSkillFile,
   getAdminSkillDetail,
-  getAdminSkillDetailV2,
   getAdminSkillFile,
-  getAdminSkillFileV2,
-  mkdirAdminSkillFileV2,
-  renameAdminSkillFileV2,
+  mkdirAdminSkillFile,
+  renameAdminSkillFile,
   saveAdminSkillFile,
-  saveAdminSkillFileV2,
-  uploadAdminSkillFileV2,
+  uploadAdminSkillFile,
   validateAdminSkill,
-  validateAdminSkillV2,
   steerChat,
   submitAwaiting,
   submitFeedback,
@@ -656,125 +649,37 @@ describe('data client query payloads', () => {
     );
   });
 
-  it('loads admin skills and tools', async () => {
+  it('uses canonical skills admin manifest and file endpoints', async () => {
     await getAdminSkills();
-    await getAdminTools();
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/skills');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/tools');
-  });
-
-  it('loads admin skill detail, file, save, file-op, validate, and create', async () => {
-    await getAdminSkillDetail('demo-skill');
+    await getAdminSkillDetail('demo-skill', 'SKILL.md');
     await getAdminSkillFile('demo-skill', 'SKILL.md');
     await saveAdminSkillFile({
-      skillKey: 'demo-skill',
-      path: 'SKILL.md',
-      content: '# My Skill',
-      baseRevision: 'abc123',
-    });
-    await adminSkillFileOp({
-      skillKey: 'demo-skill',
-      op: 'create-file',
-      path: 'new-file.md',
-    });
-    await adminSkillFileOp({
-      skillKey: 'demo-skill',
-      op: 'rename',
-      path: 'old.md',
-      newPath: 'new.md',
-    });
-    await validateAdminSkill('demo-skill');
-    await createAdminSkill({ key: 'new-skill', name: 'New Skill' });
-
-    const calls = fetchMock.mock.calls.map(([url, options]) => ({
-      url,
-      method: (options as RequestInit).method || 'GET',
-      body: JSON.parse(String((options as RequestInit).body || '{}')),
-    }));
-
-    expect(calls[0]).toEqual({
-      url: '/api/admin/skills/detail?skillKey=demo-skill',
-      method: 'GET',
-      body: {},
-    });
-    expect(calls[1]).toEqual({
-      url: '/api/admin/skills/file?skillKey=demo-skill&path=SKILL.md',
-      method: 'GET',
-      body: {},
-    });
-    expect(calls[2]).toEqual({
-      url: '/api/admin/skills/save-file',
-      method: 'POST',
-      body: {
-        skillKey: 'demo-skill',
-        path: 'SKILL.md',
-        content: '# My Skill',
-        baseRevision: 'abc123',
-      },
-    });
-    expect(calls[3]).toEqual({
-      url: '/api/admin/skills/file-op',
-      method: 'POST',
-      body: {
-        skillKey: 'demo-skill',
-        op: 'create-file',
-        path: 'new-file.md',
-      },
-    });
-    expect(calls[4]).toEqual({
-      url: '/api/admin/skills/file-op',
-      method: 'POST',
-      body: {
-        skillKey: 'demo-skill',
-        op: 'rename',
-        path: 'old.md',
-        newPath: 'new.md',
-      },
-    });
-    expect(calls[5]).toEqual({
-      url: '/api/admin/skills/validate',
-      method: 'POST',
-      body: { skillKey: 'demo-skill' },
-    });
-    expect(calls[6]).toEqual({
-      url: '/api/admin/skills/create',
-      method: 'POST',
-      body: { key: 'new-skill', name: 'New Skill' },
-    });
-  });
-
-  it('uses skills admin v2 manifest and file endpoints', async () => {
-    await getAdminSkillsV2();
-    await getAdminSkillDetailV2('demo-skill', 'SKILL.md');
-    await getAdminSkillFileV2('demo-skill', 'SKILL.md');
-    await saveAdminSkillFileV2({
       key: 'demo-skill',
       path: 'SKILL.md',
       content: '# My Skill',
       baseSha256: 'abc123',
     });
-    await createAdminSkillFileV2({
+    await createAdminSkillFile({
       key: 'demo-skill',
       path: 'references/new.md',
       content: '',
     });
-    await mkdirAdminSkillFileV2({
+    await mkdirAdminSkillFile({
       key: 'demo-skill',
       path: 'assets',
     });
-    await renameAdminSkillFileV2({
+    await renameAdminSkillFile({
       key: 'demo-skill',
       fromPath: 'old.md',
       toPath: 'new.md',
     });
-    await deleteAdminSkillFileV2({
+    await deleteAdminSkillFile({
       key: 'demo-skill',
       path: 'old.md',
       baseSha256: 'old-sha',
     });
-    await validateAdminSkillV2('demo-skill');
-    await createAdminSkillV2({
+    await validateAdminSkill('demo-skill');
+    await createAdminSkill({
       key: 'new-skill',
       skillMd: '---\nname: New Skill\n---\n',
     });
@@ -786,19 +691,19 @@ describe('data client query payloads', () => {
     }));
 
     expect(calls).toEqual([
-      { url: '/api/admin/skills/v2', method: 'GET', body: {} },
+      { url: '/api/admin/skills', method: 'GET', body: {} },
       {
-        url: '/api/admin/skills/v2/detail?key=demo-skill&openPath=SKILL.md',
+        url: '/api/admin/skills/detail?key=demo-skill&openPath=SKILL.md',
         method: 'GET',
         body: {},
       },
       {
-        url: '/api/admin/skills/v2/file?key=demo-skill&path=SKILL.md',
+        url: '/api/admin/skills/file?key=demo-skill&path=SKILL.md',
         method: 'GET',
         body: {},
       },
       {
-        url: '/api/admin/skills/v2/file',
+        url: '/api/admin/skills/file',
         method: 'PUT',
         body: {
           key: 'demo-skill',
@@ -808,7 +713,7 @@ describe('data client query payloads', () => {
         },
       },
       {
-        url: '/api/admin/skills/v2/file/create',
+        url: '/api/admin/skills/file/create',
         method: 'POST',
         body: {
           key: 'demo-skill',
@@ -817,7 +722,7 @@ describe('data client query payloads', () => {
         },
       },
       {
-        url: '/api/admin/skills/v2/file/mkdir',
+        url: '/api/admin/skills/file/mkdir',
         method: 'POST',
         body: {
           key: 'demo-skill',
@@ -825,7 +730,7 @@ describe('data client query payloads', () => {
         },
       },
       {
-        url: '/api/admin/skills/v2/file/rename',
+        url: '/api/admin/skills/file/rename',
         method: 'POST',
         body: {
           key: 'demo-skill',
@@ -834,7 +739,7 @@ describe('data client query payloads', () => {
         },
       },
       {
-        url: '/api/admin/skills/v2/file/delete',
+        url: '/api/admin/skills/file/delete',
         method: 'POST',
         body: {
           key: 'demo-skill',
@@ -843,12 +748,12 @@ describe('data client query payloads', () => {
         },
       },
       {
-        url: '/api/admin/skills/v2/validate',
+        url: '/api/admin/skills/validate',
         method: 'POST',
         body: { key: 'demo-skill' },
       },
       {
-        url: '/api/admin/skills/v2/create',
+        url: '/api/admin/skills/create',
         method: 'POST',
         body: {
           key: 'new-skill',
@@ -857,15 +762,15 @@ describe('data client query payloads', () => {
       },
     ]);
 
-    expect(buildAdminSkillFileDownloadUrlV2('demo-skill', 'assets/blob.bin')).toBe(
-      '/api/admin/skills/v2/file/download?key=demo-skill&path=assets%2Fblob.bin',
+    expect(buildAdminSkillFileDownloadUrl('demo-skill', 'assets/blob.bin')).toBe(
+      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fblob.bin',
     );
   });
 
-  it('uploads skills admin v2 files with multipart form data', async () => {
+  it('uploads skills admin files with multipart form data', async () => {
     const blob = new Blob(['demo'], { type: 'text/plain' });
 
-    await uploadAdminSkillFileV2({
+    await uploadAdminSkillFile({
       key: 'demo-skill',
       path: 'assets/demo.txt',
       file: blob,
@@ -873,7 +778,7 @@ describe('data client query payloads', () => {
     });
 
     const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(uploadUrl).toBe('/api/admin/skills/v2/file/upload');
+    expect(uploadUrl).toBe('/api/admin/skills/file/upload');
     expect(uploadOptions.method).toBe('POST');
     expect(uploadOptions.headers).toEqual({});
     expect(uploadOptions.body).toBeInstanceOf(FormData);

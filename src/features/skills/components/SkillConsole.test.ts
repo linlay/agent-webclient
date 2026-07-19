@@ -1,14 +1,17 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  DEFAULT_SKILL_ICON_URL,
+  fallbackSkillIcon,
   findPreferredSkillFileEntry,
   isSkillEntryVisible,
+  resolveSkillIcon,
   SkillFileWorkspace,
   SkillConsole,
   toggleSkillExpandedDir,
   updateSkillDirtyFiles,
 } from "@/features/skills/components/SkillConsole";
-import type { AdminSkillV2DetailResponse, AdminSkillV2FileEntry } from "@/shared/data";
+import type { AdminSkillDetailResponse, AdminSkillFileEntry } from "@/shared/data";
 
 const onSelectSkillKeyMock = jest.fn();
 const onClearSelectionMock = jest.fn();
@@ -31,18 +34,18 @@ jest.mock("@/shared/i18n", () => {
 });
 
 jest.mock("@/shared/data", () => ({
-  buildAdminSkillFileDownloadUrlV2: jest.fn(() => "/api/admin/skills/v2/file/download?key=demo-skill&path=asset.bin"),
-  createAdminSkillFileV2: jest.fn(),
-  createAdminSkillV2: jest.fn(),
-  deleteAdminSkillFileV2: jest.fn(),
-  getAdminSkillDetailV2: jest.fn(),
-  getAdminSkillFileV2: jest.fn(),
-  getAdminSkillsV2: jest.fn(),
-  mkdirAdminSkillFileV2: jest.fn(),
-  renameAdminSkillFileV2: jest.fn(),
-  saveAdminSkillFileV2: jest.fn(),
-  uploadAdminSkillFileV2: jest.fn(),
-  validateAdminSkillV2: jest.fn(),
+  buildAdminSkillFileDownloadUrl: jest.fn(() => "/api/admin/skills/file/download?key=demo-skill&path=asset.bin"),
+  createAdminSkillFile: jest.fn(),
+  createAdminSkill: jest.fn(),
+  deleteAdminSkillFile: jest.fn(),
+  getAdminSkillDetail: jest.fn(),
+  getAdminSkillFile: jest.fn(),
+  getAdminSkills: jest.fn(),
+  mkdirAdminSkillFile: jest.fn(),
+  renameAdminSkillFile: jest.fn(),
+  saveAdminSkillFile: jest.fn(),
+  uploadAdminSkillFile: jest.fn(),
+  validateAdminSkill: jest.fn(),
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => ({
@@ -94,9 +97,9 @@ jest.mock("antd", () => {
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const mockGetAdminSkills =
-  (require("@/shared/data") as { getAdminSkillsV2: jest.Mock }).getAdminSkillsV2;
+  (require("@/shared/data") as { getAdminSkills: jest.Mock }).getAdminSkills;
 
-const demoEntries: AdminSkillV2FileEntry[] = [
+const demoEntries: AdminSkillFileEntry[] = [
   {
     path: "SKILL.md",
     name: "SKILL.md",
@@ -270,9 +273,23 @@ describe("SkillConsole", () => {
     expect(isSkillEntryVisible(entry, new Set())).toBe(false);
   });
 
+  it("uses the custom skill icon and falls back to the frontend default icon", () => {
+    expect(resolveSkillIcon("/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo-skill.png"))
+      .toBe("/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo-skill.png");
+    expect(resolveSkillIcon()).toBe(DEFAULT_SKILL_ICON_URL);
+    expect(resolveSkillIcon("  ")).toBe(DEFAULT_SKILL_ICON_URL);
+
+    const image = {
+      onerror: jest.fn(),
+      src: "/missing-custom-icon.png",
+    } as unknown as HTMLImageElement;
+    fallbackSkillIcon(image);
+    expect(image.onerror).toBeNull();
+    expect(image.src).toBe(DEFAULT_SKILL_ICON_URL);
+  });
+
   it("renders the simplified file workspace without the old skill meta grid", () => {
-    const detail: AdminSkillV2DetailResponse = {
-      schemaVersion: 2,
+    const detail: AdminSkillDetailResponse = {
       skill: {
         key: "demo-skill",
         name: "Demo Skill",
@@ -352,8 +369,7 @@ describe("SkillConsole", () => {
   });
 
   it("renders binary files as metadata instead of a text editor", () => {
-    const detail: AdminSkillV2DetailResponse = {
-      schemaVersion: 2,
+    const detail: AdminSkillDetailResponse = {
       skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
