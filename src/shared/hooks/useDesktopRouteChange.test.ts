@@ -109,13 +109,13 @@ describe("useDesktopRouteChange bridge", () => {
     unsubscribeFirst();
     callbacks[0]?.({}, {
       type: "desktopRouteChanged",
-      pathname: "/copilot/zenmi",
+      pathname: "/copilot/demo-agent",
       search: "chatId=chat_1",
     });
 
     expect(onFromMain).toHaveBeenCalledTimes(1);
     expect(firstTargets).toEqual([]);
-    expect(secondTargets).toEqual(["/copilot/zenmi?chatId=chat_1"]);
+    expect(secondTargets).toEqual(["/copilot/demo-agent?chatId=chat_1"]);
   });
 
   it("ignores unrelated messages and empty route payloads", () => {
@@ -130,7 +130,7 @@ describe("useDesktopRouteChange bridge", () => {
 
     callbacks[0]?.({}, {
       type: "desktopContextChanged",
-      pathname: "/agent/zenmi",
+      pathname: "/agent/demo-agent",
     });
     callbacks[0]?.({}, {
       type: "desktopRouteChanged",

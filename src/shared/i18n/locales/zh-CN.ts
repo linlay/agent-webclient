@@ -1296,7 +1296,6 @@ export const zhCNMessages = {
   "voice.socket.unclean": "异常关闭",
   "agentConsole.field.wonders": "推荐问题",
   "agentConsole.field.prompt": "提示词",
-  "brand.logoAria": "带有醒目文字的白色云朵应用图标",
   "confirmDialog.optionPreview": "{label} 预览",
   "skillConsole.field.mime": "MIME 类型",
   "skillConsole.field.sha256": "SHA-256 校验和",

@@ -712,7 +712,7 @@ describe('useConversationEventHandler live chat binding', () => {
   it('binds the visible chat when run.start is the first event carrying chatId', () => {
     const state = createInitialState();
     state.streaming = true;
-    state.workerSelectionKey = 'agent:zenmi';
+    state.workerSelectionKey = 'agent:demo-agent';
     const dispatch = jest.fn((action) => {
       if (action.type === 'SET_CHAT_ID') {
         state.chatId = action.chatId;
@@ -737,7 +737,7 @@ describe('useConversationEventHandler live chat binding', () => {
       type: 'run.start',
       chatId: 'chat-from-run-start',
       runId: 'run_1',
-      agentKey: 'zenmi',
+      agentKey: 'demo-agent',
       timestamp: 100,
     });
 
@@ -748,15 +748,15 @@ describe('useConversationEventHandler live chat binding', () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_CHAT_AGENT_BY_ID',
       chatId: 'chat-from-run-start',
-      agentKey: 'zenmi',
+      agentKey: 'demo-agent',
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_CURRENT_CHAT_ACTIVE_RUN',
       activeRun: {
         chatId: 'chat-from-run-start',
         runId: 'run_1',
-        agentKey: 'zenmi',
-        owner: { kind: 'agent', agentKey: 'zenmi' },
+        agentKey: 'demo-agent',
+        owner: { kind: 'agent', agentKey: 'demo-agent' },
       },
     });
   });

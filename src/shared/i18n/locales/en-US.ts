@@ -1297,7 +1297,6 @@ export const enUSMessages = {
   "voice.socket.unclean": "unclean close",
   "agentConsole.field.wonders": "Wonders",
   "agentConsole.field.prompt": "Prompt",
-  "brand.logoAria": "White cloud app icon with vibrant text",
   "confirmDialog.optionPreview": "{label} preview",
   "skillConsole.field.mime": "MIME type",
   "skillConsole.field.sha256": "SHA-256",

@@ -176,10 +176,6 @@ html[data-theme="dark"] .sidebar-settings-menu {
 }
 
 @media (max-width: 1279px) {
-    .brand-cluster {
-        gap: 10px;
-    }
-
     .worker-chat-sidebar {
         top: 66px;
         right: 16px;

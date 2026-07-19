@@ -287,13 +287,13 @@ describe("AutomationModal", () => {
     mockedUseAppState.mockReturnValue({
       automations: [
         {
-          id: "pull_zenmind_20260717",
-          name: "全量拉取 zenmind 子项目",
+          id: "sync_workspace_20260717",
+          name: "全量同步 workspace 子项目",
           description: "pull",
           cron: "0 */2 * * *",
           agentKey: "agent-a",
           enabled: false,
-          sourceFile: "/repo/automations/pull_zenmind_20260717.yml",
+          sourceFile: "/repo/automations/sync_workspace_20260717.yml",
         },
         {
           id: "missing_cron",
@@ -311,7 +311,7 @@ describe("AutomationModal", () => {
     const html = renderAutomationModal("zh-CN");
 
     // 第一行：name + 状态 tag，不应再出现方括号智能体前缀
-    expect(html).toContain("<strong>全量拉取 zenmind 子项目</strong>");
+    expect(html).toContain("<strong>全量同步 workspace 子项目</strong>");
     expect(html).toContain("停用");
     expect(html).not.toMatch(/\[小宅\]/);
 
@@ -338,13 +338,13 @@ describe("AutomationModal", () => {
     mockedUseAppState.mockReturnValue({
       automations: [
         {
-          id: "pull_zenmind_en",
-          name: "Pull zenmind subprojects",
+          id: "sync_workspace_en",
+          name: "Sync workspace subprojects",
           description: "pull",
           cron: "0 */2 * * *",
           agentKey: "agent-a",
           enabled: false,
-          sourceFile: "/repo/automations/pull_zenmind_en.yml",
+          sourceFile: "/repo/automations/sync_workspace_en.yml",
         },
       ],
       agents: [],
@@ -352,7 +352,7 @@ describe("AutomationModal", () => {
 
     const html = renderAutomationModal("en-US");
 
-    expect(html).toContain("<strong>Pull zenmind subprojects</strong>");
+    expect(html).toContain("<strong>Sync workspace subprojects</strong>");
     expect(html).toContain("Disabled");
     expect(html).not.toMatch(/\[小宅\]/);
     expect(html).not.toContain("Next");
