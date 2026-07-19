@@ -16,7 +16,6 @@ describe('routing', () => {
 
     expect(isAppMode(APP_UI_BASE)).toBe(true);
     expect(isAppMode('/chat')).toBe(true);
-    expect(isAppMode('/chat', '?desktopAuthContext=platform%3A1')).toBe(true);
   });
 
   it('keeps regular web paths out of app mode', () => {
@@ -24,5 +23,14 @@ describe('routing', () => {
     expect(isAppMode('/chat')).toBe(false);
     expect(isAppMode('')).toBe(false);
     expect(isAppMode('agent')).toBe(false);
+  });
+
+  it('does not enable app mode from the removed desktop auth URL parameter', () => {
+    expect(
+      Reflect.apply(isAppMode, undefined, [
+        '/chat',
+        '?desktopAuthContext=platform%3A1',
+      ]),
+    ).toBe(false);
   });
 });

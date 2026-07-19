@@ -12,6 +12,9 @@ export type AppAccessTokenRefreshReason = 'missing' | 'unauthorized';
 
 type AppAuthRequestAction = 'getAccessToken' | 'refreshAccessToken';
 
+const APP_AUTH_REQUEST_TYPE = 'desktop:agent-auth:request';
+export const APP_AUTH_RESPONSE_TYPE = 'desktop:agent-auth:response';
+
 interface AppAuthRequestMessage {
   type: 'desktop:agent-auth:request';
   requestId: string;
@@ -20,19 +23,12 @@ interface AppAuthRequestMessage {
 }
 
 interface AppAuthResponseMessage {
-  type: string;
+  type: typeof APP_AUTH_RESPONSE_TYPE;
   requestId: string;
   token?: string | null;
   desktopAuthContext?: string;
 }
 
-const APP_AUTH_REQUEST_TYPE = 'desktop:agent-auth:request';
-export const APP_AUTH_RESPONSE_TYPE = 'desktop:agent-auth:response';
-export const APP_AUTH_APP_RESPONSE_TYPE = 'desktop:agent-app-auth:response';
-const APP_AUTH_RESPONSE_TYPES = new Set([
-  APP_AUTH_RESPONSE_TYPE,
-  APP_AUTH_APP_RESPONSE_TYPE,
-]);
 const APP_AUTH_TIMEOUT_MS = 10_000;
 const APP_AUTH_SEEDED_TOKEN_POLL_MS = 25;
 const APP_AUTH_TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
@@ -114,20 +110,9 @@ function readDesktopAuthContext(): string {
   if (typeof window === 'undefined' || !isAppMode()) {
     return '';
   }
-  const bridgeContext =
-    typeof window.__AGENT_APP_AUTH_CONTEXT === 'string'
-      ? window.__AGENT_APP_AUTH_CONTEXT.trim()
-      : '';
-  if (bridgeContext) {
-    return bridgeContext;
-  }
-  try {
-    return new URLSearchParams(window.location.search || '')
-      .get('desktopAuthContext')
-      ?.trim() || '';
-  } catch {
-    return '';
-  }
+  return typeof window.__AGENT_APP_AUTH_CONTEXT === 'string'
+    ? window.__AGENT_APP_AUTH_CONTEXT.trim()
+    : '';
 }
 
 function syncStoredAuthContext(
@@ -277,7 +262,7 @@ export async function refreshAppAccessToken(
       const payload = event.data as AppAuthResponseMessage | null;
       if (
         !payload ||
-        !APP_AUTH_RESPONSE_TYPES.has(payload.type) ||
+        payload.type !== APP_AUTH_RESPONSE_TYPE ||
         payload.requestId !== requestId
       ) {
         return;

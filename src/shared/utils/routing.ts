@@ -14,15 +14,6 @@ export function isDesktopAppMode(): boolean {
 
 export function isAppMode(
   pathname: string = typeof window !== 'undefined' ? window.location.pathname : '',
-  search: string = typeof window !== 'undefined' ? window.location.search : '',
 ): boolean {
-  if (!pathname.startsWith(APP_UI_BASE)) {
-    return false;
-  }
-  try {
-    const params = new URLSearchParams(search || '');
-    return isDesktopAppMode() || params.has('desktopAuthContext');
-  } catch {
-    return false;
-  }
+  return pathname.startsWith(APP_UI_BASE) && isDesktopAppMode();
 }

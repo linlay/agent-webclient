@@ -1,7 +1,6 @@
 import {
   AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
-  APP_AUTH_APP_RESPONSE_TYPE,
   APP_AUTH_RESPONSE_TYPE,
   getAppAccessToken,
   refreshAppAccessToken,
@@ -60,7 +59,7 @@ function installWindow(options: {
   const mockWindow: any = {
     location: {
       pathname: options.pathname ?? '/',
-      search: options.search ?? '?desktopAuthContext=desktop-auth-1',
+      search: options.search ?? '',
     },
     parent,
     postMessage: jest.fn(),
@@ -136,7 +135,7 @@ describe('appAuth', () => {
 
   it('drops a stored token when the desktop auth context changes', () => {
     const { sessionStorage } = installWindow({
-      search: '?desktopAuthContext=platform:202',
+      bridgeAuthContext: 'platform:202',
       storedAuthContext: 'platform:101',
       storedToken: 'stale-session-token',
       globalToken: 'window-token',
@@ -152,19 +151,18 @@ describe('appAuth', () => {
     }).__AGENT_APP_ACCESS_TOKEN).toBeUndefined();
   });
 
-  it('prefers the current document bridge auth context over the legacy URL fallback', () => {
+  it('does not use a URL parameter as a desktop auth context fallback', () => {
     const { sessionStorage } = installWindow({
       search: '?desktopAuthContext=platform:legacy',
-      bridgeAuthContext: 'platform:current',
       storedAuthContext: 'platform:legacy',
       storedToken: 'stale-session-token',
     });
 
     expect(getAppAccessToken()).toBeNull();
-    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
-    expect(sessionStorage.dump()[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]).toBe(
-      'platform:current',
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBe(
+      'stale-session-token',
     );
+    expect(sessionStorage.dump()[AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]).toBe('platform:legacy');
   });
 
   it('does not trust a desktop session token before the current document auth context is ready', () => {
@@ -236,7 +234,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: APP_AUTH_APP_RESPONSE_TYPE,
+            type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'webview-token-from-host',
             desktopAuthContext: 'platform:current',
@@ -263,6 +261,28 @@ describe('appAuth', () => {
     expect((globalThis.window as typeof globalThis.window & {
       __AGENT_APP_AUTH_CONTEXT?: string;
     }).__AGENT_APP_AUTH_CONTEXT).toBe('platform:current');
+  });
+
+  it('ignores the removed auth response type', async () => {
+    jest.useFakeTimers();
+    const { parent, sessionStorage, dispatchMessage } = installWindow();
+
+    parent.postMessage.mockImplementation((payload: { requestId: string }) => {
+      dispatchMessage({
+        source: parent,
+        data: {
+          type: 'desktop:agent-app-auth:response',
+          requestId: payload.requestId,
+          token: 'removed-protocol-token',
+        },
+      } as MessageEvent);
+    });
+
+    const promise = refreshAppAccessToken('missing');
+    jest.advanceTimersByTime(10_000);
+
+    await expect(promise).resolves.toBeNull();
+    expect(sessionStorage.dump()[AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]).toBeUndefined();
   });
 
   it('uses a host-seeded token even when the bridge response requestId differs', async () => {
@@ -328,7 +348,7 @@ describe('appAuth', () => {
         dispatchMessage({
           source: parent,
           data: {
-            type: APP_AUTH_APP_RESPONSE_TYPE,
+            type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
             token: 'fresh-webview-token',
           },

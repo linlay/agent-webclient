@@ -191,7 +191,7 @@ describe("buildDebugEventGroups", () => {
 				{ agentKey: "demo/agent", chatId: "chat 1" },
 				"?desktopAuthContext=ctx&chatId=old",
 			),
-		).toBe("/agent/demo%2Fagent?desktopAuthContext=ctx&chatId=chat+1");
+		).toBe("/agent/demo%2Fagent?chatId=chat+1");
 		expect(
 			buildDebugChatRouteUrl(
 				"copilot",

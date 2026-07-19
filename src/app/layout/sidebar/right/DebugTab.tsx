@@ -183,6 +183,7 @@ export function buildDebugChatRouteUrl(
   }
 
   const params = new URLSearchParams(currentSearch || "");
+  params.delete("desktopAuthContext");
   params.set("chatId", chatId);
   return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
 }
