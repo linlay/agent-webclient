@@ -42,7 +42,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
-  it("includes skills, registry config, archive, settings, and memory info in order", () => {
+  it("includes skills, registry config, MCP connectors, archive, settings, and memory info in order", () => {
     const sections = buildSidebarSettingsMenuSections({
       wsStatus: "error",
       wsErrorMessage: "握手失败",
@@ -52,6 +52,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
       "技能",
       "注册配置",
+      "MCP 连接器",
       "归档",
       "打开设置...",
       "记忆信息",
@@ -88,6 +89,7 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("技能");
     expect(html).toContain("打开设置...");
     expect(html).toContain("注册配置");
+    expect(html).toContain("MCP 连接器");
     expect(html).toContain("记忆信息");
     expect(html).toContain("归档");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");

@@ -23,6 +23,8 @@ describe("route data transport mode", () => {
   it("forces standalone admin and console pages away from websocket transport", () => {
     const standaloneRoutes = [
       "/registries",
+      "/mcp-servers",
+      "/mcp-servers/filesystem",
       "/skills",
       "/skills/demo-skill",
       "/automations",

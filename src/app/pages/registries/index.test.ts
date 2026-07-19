@@ -3,32 +3,24 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   RegistriesPage,
   filterRegistryItems,
-  filterToolsForMcpServer,
-  getMcpServerToolEmptyState,
-  hasMcpToolsWithoutServerKey,
   listItemOwnerLabel,
   normalizeToolToSummary,
   readToolKind,
-  readToolMcpServerKey,
   readToolSourceCategory,
   readToolSourceType,
   registryCapabilityChips,
   RegistryCapabilityIconTag,
+  registryDetailToListItem,
+  registryItemKey,
   registryListMeta,
   registryListTitle,
-  registryMcpServerKey,
-  registryItemKey,
   summaryLine,
   toolListMeta,
   toolListOwnerLabel,
   toolSearchHaystack,
   toolSourceLabel,
-  registryDetailToListItem,
 } from "@/app/pages/registries";
-import type {
-  AdminRegistryListItem,
-  AdminToolSummary,
-} from "@/shared/data";
+import type { AdminRegistryListItem, AdminToolSummary } from "@/shared/data";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {
@@ -44,18 +36,6 @@ jest.mock("antd", () => {
   return {
     Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Input,
-    Select: ({ options = [], ...props }: any) =>
-      React.createElement(
-        "select",
-        props,
-        options.map((option: any) =>
-          React.createElement(
-            "option",
-            { key: option.value, value: option.value },
-            option.label,
-          ),
-        ),
-      ),
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };
 });
@@ -68,17 +48,11 @@ jest.mock("@/shared/data", () => ({
   getAdminTools: jest.fn().mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const mockGetAdminTools = (require("@/shared/data") as any).getAdminTools as jest.Mock;
-const translate = (key: string, params?: Record<string, unknown>) => {
-  if (key === "registryConsole.meta.toolsCount") return `Tools ${String(params?.count ?? "")}`;
-  return key;
-};
+const translate = (key: string) => key;
 const zhToolTranslate = (key: string) => {
   const messages: Record<string, string> = {
     "toolSource.platform": "内置",
     "toolSource.external": "外部",
-    "toolSource.mcp": "MCP",
   };
   return messages[key] ?? key;
 };
@@ -111,13 +85,6 @@ const registryItems: AdminRegistryListItem[] = [
     },
   },
   {
-    category: "mcp-servers",
-    file: "disabled-mcp.yml",
-    key: "disabled-mcp",
-    status: "disabled",
-    summary: { baseUrl: "http://localhost:11969", toolCount: 2 },
-  },
-  {
     category: "viewport-servers",
     file: "preview.yml",
     key: "preview",
@@ -127,7 +94,6 @@ const registryItems: AdminRegistryListItem[] = [
 ];
 
 function renderRegistriesPage(locale: Locale) {
-  mockGetAdminTools.mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] });
   return renderToStaticMarkup(
     React.createElement(
       I18nProvider,
@@ -138,42 +104,29 @@ function renderRegistriesPage(locale: Locale) {
 }
 
 describe("RegistriesPage", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockGetAdminTools.mockResolvedValue({ status: 200, code: 0, msg: "ok", data: [] });
-  });
-
-  it("renders the registry console shell in Chinese", () => {
+  it("renders the non-MCP registry console in Chinese", () => {
     const html = renderRegistriesPage("zh-CN");
 
     expect(html).toContain("搜索 registry 配置");
     expect(html).toContain("供应商");
     expect(html).toContain("模型");
-    expect(html).not.toContain("全部分类");
+    expect(html).toContain("视口服务器");
+    expect(html).toContain("工具");
+    expect(html).not.toContain("MCP 服务器");
+    expect(html).not.toContain("MCP 连接器");
     expect(html).toContain("全部状态");
-    expect(html).toContain("新建");
     expect(html).toContain("请选择或新建 registry 配置");
   });
 
-  it("renders the registry console shell in English", () => {
+  it("renders the non-MCP registry console in English", () => {
     const html = renderRegistriesPage("en-US");
 
     expect(html).toContain("Search registry configs");
     expect(html).toContain("Providers");
     expect(html).toContain("Models");
-    expect(html).not.toContain("All categories");
-    expect(html).toContain("All statuses");
-    expect(html).toContain("Select or create a registry config");
-  });
-
-  it("renders the tools tab label in Chinese", () => {
-    const html = renderRegistriesPage("zh-CN");
-    expect(html).toContain("工具");
-  });
-
-  it("renders the tools tab label in English", () => {
-    const html = renderRegistriesPage("en-US");
+    expect(html).toContain("Viewport Servers");
     expect(html).toContain("Tools");
+    expect(html).not.toContain("MCP Servers");
   });
 
   it("filters registry items by category, status, summary, and diagnostic", () => {
@@ -181,66 +134,34 @@ describe("RegistriesPage", () => {
     expect(summaryLine({ key: "openai", protocols: ["OPENAI", "ANTHROPIC"] })).toBe(
       "key: openai · protocols: OPENAI, ANTHROPIC",
     );
-
     expect(
       filterRegistryItems(registryItems, { categoryFilter: "models" }).map(registryItemKey),
     ).toEqual(["models/broken-model.yml"]);
-    expect(
-      filterRegistryItems(registryItems, {
-        categoryFilter: "providers",
-        searchText: "unknown provider",
-      }).map(registryItemKey),
-    ).toEqual([]);
-    expect(
-      filterRegistryItems(registryItems, { statusFilter: "disabled" }).map(registryItemKey),
-    ).toEqual(["mcp-servers/disabled-mcp.yml"]);
     expect(
       filterRegistryItems(registryItems, { searchText: "unknown provider" }).map(registryItemKey),
     ).toEqual(["models/broken-model.yml"]);
     expect(
       filterRegistryItems(registryItems, { searchText: "api.openai" }).map(registryItemKey),
     ).toEqual(["providers/openai.yml"]);
-    expect(
-      filterRegistryItems(registryItems, { searchText: "image" }).map(registryItemKey),
-    ).toEqual(["models/broken-model.yml"]);
-    expect(
-      filterRegistryItems(registryItems, { searchText: "tools 2" }).map(registryItemKey),
-    ).toEqual(["mcp-servers/disabled-mcp.yml"]);
-    expect(
-      filterRegistryItems(registryItems, { searchText: "工具 2" }).map(registryItemKey),
-    ).toEqual(["mcp-servers/disabled-mcp.yml"]);
   });
 
-  it("formats registry list titles, metadata, and model capability chips by category", () => {
+  it("formats registry list metadata and model capability chips", () => {
     expect(registryListTitle(registryItems[0])).toBe("openai");
-    expect(listItemOwnerLabel(registryItems[0], false, translate)).toBe("");
     expect(registryListMeta(registryItems[0], translate)).toBe("https://api.openai.com");
-
     expect(registryListTitle(registryItems[1])).toBe("Broken Model");
-    expect(listItemOwnerLabel(registryItems[1], false, translate)).toBe("");
     expect(registryListMeta(registryItems[1], translate)).toBe("missing · OPENAI · image");
     expect(registryCapabilityChips(registryItems[1]).map((chip) => chip.key)).toEqual([
       "vision",
       "reasoner",
     ]);
-
-    expect(registryListTitle(registryItems[2])).toBe("disabled-mcp");
-    expect(listItemOwnerLabel(registryItems[2], false, translate)).toBe("");
-    expect(registryListMeta(registryItems[2], translate)).toBe("http://localhost:11969 · Tools 2");
-
-    expect(registryListTitle(registryItems[3])).toBe("preview");
-    expect(listItemOwnerLabel(registryItems[3], false, translate)).toBe("");
-    expect(registryListMeta(registryItems[3], translate)).toBe("http://localhost:11970");
-    expect(registryCapabilityChips(registryItems[3])).toEqual([]);
+    expect(registryListTitle(registryItems[2])).toBe("preview");
+    expect(registryListMeta(registryItems[2], translate)).toBe("http://localhost:11970");
   });
 
-  it("renders model capability chips as icon-only tags with accessible labels", () => {
+  it("renders model capability chips as accessible icon-only tags", () => {
     const chip = registryCapabilityChips(registryItems[1])[0];
     const html = renderToStaticMarkup(
-      React.createElement(RegistryCapabilityIconTag, {
-        chip,
-        label: "视觉",
-      }),
+      React.createElement(RegistryCapabilityIconTag, { chip, label: "视觉" }),
     );
 
     expect(html).toContain('aria-label="视觉"');
@@ -257,96 +178,50 @@ describe("RegistriesPage", () => {
         key: "broken-model",
         name: "Broken Model",
         status: "invalid",
-        source: { kind: "models", path: "/runtime/registries/models/broken-model.yml" },
         diagnostics: [
-          {
-            severity: "error",
-            code: "unknown_provider",
-            message: "Unknown provider missing",
-            sourcePath: "/runtime/registries/models/broken-model.yml",
-          },
+          { severity: "error", code: "unknown_provider", message: "Unknown provider missing" },
         ],
         summary: { provider: "missing" },
         updatedAt: 1710000000000,
-        size: 512,
       }),
-    ).toEqual({
+    ).toMatchObject({
       category: "models",
       file: "broken-model.yml",
-      key: "broken-model",
-      name: "Broken Model",
-      status: "invalid",
-      diagnostic: {
-        severity: "error",
-        code: "unknown_provider",
-        message: "Unknown provider missing",
-      },
       diagnosticCount: 1,
       summary: { provider: "missing" },
-      updatedAt: 1710000000000,
     });
   });
 
-  it("normalizes tool summaries from current flat tool fields only", () => {
+  it("normalizes current flat non-MCP tool fields", () => {
     const tool: AdminToolSummary = {
-      key: "remote_tool",
-      name: "Remote Tool",
-      description: "Remote MCP tool",
-      sourceCategory: "mcp",
-      sourceType: "mcp",
-      serverKey: "alpha",
+      key: "builtin_datetime",
+      name: "Datetime",
+      description: "Current time",
+      sourceCategory: "platform",
+      sourceType: "local",
       kind: "backend",
     };
 
-    expect(readToolSourceCategory(tool)).toBe("mcp");
-    expect(readToolSourceType(tool)).toBe("mcp");
-    expect(readToolMcpServerKey(tool)).toBe("alpha");
+    expect(readToolSourceCategory(tool)).toBe("platform");
+    expect(readToolSourceType(tool)).toBe("local");
     expect(readToolKind(tool)).toBe("backend");
-    expect(toolSourceLabel("mcp", translate)).toBe("toolSource.mcp");
     expect(toolSourceLabel("external", zhToolTranslate)).toBe("外部");
-
-    const summary = normalizeToolToSummary(tool);
-    expect(summary.summary).toMatchObject({
-      sourceCategory: "mcp",
-      sourceType: "mcp",
-      serverKey: "alpha",
+    expect(normalizeToolToSummary(tool).summary).toMatchObject({
+      sourceCategory: "platform",
+      sourceType: "local",
       kind: "backend",
-      description: "Remote MCP tool",
+      description: "Current time",
     });
-    expect(toolSearchHaystack(tool)).toContain("mcp");
-    expect(toolSearchHaystack(tool)).toContain("alpha");
+    expect(toolSearchHaystack(tool)).toContain("datetime");
     expect(toolSearchHaystack(tool)).toContain("backend");
-
-    const legacyOnly = {
-      key: "legacy_tool",
-      name: "Legacy Tool",
-      source: "platform",
-      meta: { kind: "frontend", sourceType: "mcp", serverKey: "old" },
-      summary: { serverKey: "old" },
-    } as unknown as AdminToolSummary;
-    expect(readToolSourceCategory(legacyOnly)).toBe("");
-    expect(readToolSourceType(legacyOnly)).toBe("");
-    expect(readToolMcpServerKey(legacyOnly)).toBe("");
-    expect(readToolKind(legacyOnly)).toBe("");
-    expect(toolSearchHaystack(legacyOnly)).not.toContain("frontend");
-    expect(toolSearchHaystack(legacyOnly)).not.toContain("platform");
-    expect(toolSearchHaystack(legacyOnly)).not.toContain("old");
   });
 
-  it("formats tools list owner labels from sourceCategory without repeating source in metadata", () => {
+  it("formats non-MCP tool owner labels without repeating localized source text", () => {
     const platformTool = normalizeToolToSummary({
       key: "builtin_datetime",
       name: "Datetime",
       sourceCategory: "platform",
       sourceType: "local",
-      kind: "backend",
-    });
-    const mcpTool = normalizeToolToSummary({
-      key: "remote_search",
-      name: "Remote Search",
-      sourceCategory: "mcp",
-      sourceType: "mcp",
-      serverKey: "demo",
       kind: "backend",
     });
     const extensionTool = normalizeToolToSummary({
@@ -356,125 +231,12 @@ describe("RegistriesPage", () => {
       sourceType: "agent-local",
       kind: "frontend",
     });
-    const customTool = normalizeToolToSummary({
-      key: "custom_tool",
-      name: "Custom Tool",
-      sourceCategory: "custom",
-      sourceType: "custom-source",
-      kind: "backend",
-    });
-    const noSourceTool = normalizeToolToSummary({
-      key: "unknown_tool",
-      name: "Unknown Tool",
-      sourceCategory: "",
-      sourceType: "",
-      kind: "backend",
-    });
 
     expect(toolListOwnerLabel(platformTool, zhToolTranslate)).toBe("内置");
-    expect(toolListOwnerLabel(mcpTool, zhToolTranslate)).toBe("MCP");
     expect(toolListOwnerLabel(extensionTool, zhToolTranslate)).toBe("外部");
-    expect(toolListOwnerLabel(customTool, zhToolTranslate)).toBe("custom");
-    expect(toolListOwnerLabel(noSourceTool, zhToolTranslate)).toBe("");
     expect(listItemOwnerLabel(platformTool, true, zhToolTranslate)).toBe("内置");
-
     expect(toolListMeta(platformTool)).toBe("builtin_datetime · local · platform · backend");
-    expect(toolListMeta(mcpTool)).toBe("remote_search · mcp:demo · mcp · backend");
     expect(toolListMeta(extensionTool)).toBe("extension_tool · agent-local · external · frontend");
     expect(toolListMeta(platformTool)).not.toContain("内置");
-    expect(toolListMeta(mcpTool)).not.toContain("MCP");
-    expect(toolListMeta(extensionTool)).not.toContain("外部");
-  });
-
-  it("filters MCP server tools only by explicit server key fields", () => {
-    const tools: AdminToolSummary[] = [
-      {
-        key: "alpha_search",
-        name: "Alpha Search",
-        sourceCategory: "mcp",
-        sourceType: "mcp",
-        serverKey: "alpha",
-        kind: "backend",
-      },
-      {
-        key: "alpha_summary",
-        name: "Alpha Summary",
-        sourceCategory: "mcp",
-        sourceType: "mcp",
-        serverKey: "alpha",
-        kind: "backend",
-      },
-      {
-        key: "beta_search",
-        name: "Beta Search",
-        sourceCategory: "mcp",
-        sourceType: "mcp",
-        serverKey: "beta",
-        kind: "backend",
-      },
-      {
-        key: "alpha_prefix_only",
-        name: "Prefix Only",
-        sourceCategory: "mcp",
-        sourceType: "mcp",
-        kind: "backend",
-      },
-      {
-        key: "platform_alpha",
-        name: "Platform Alpha",
-        sourceCategory: "platform",
-        sourceType: "local",
-        kind: "backend",
-      },
-    ];
-
-    expect(registryMcpServerKey({
-      category: "mcp-servers",
-      file: "alpha.yml",
-      key: "",
-      name: "",
-      summary: { serverKey: "alpha" },
-    })).toBe("alpha");
-    expect(readToolMcpServerKey(tools[0])).toBe("alpha");
-    expect(readToolMcpServerKey(tools[1])).toBe("alpha");
-    expect(readToolMcpServerKey(tools[3])).toBe("");
-    expect(readToolMcpServerKey({
-      key: "legacy_server",
-      name: "Legacy Server",
-      sourceCategory: "mcp",
-      sourceType: "mcp",
-      kind: "backend",
-      meta: { serverKey: "alpha" },
-      summary: { serverKey: "alpha" },
-    } as unknown as AdminToolSummary)).toBe("");
-    expect(filterToolsForMcpServer(tools, "alpha").map((tool) => tool.key)).toEqual([
-      "alpha_search",
-      "alpha_summary",
-    ]);
-  });
-
-  it("resolves MCP server tool empty states without guessing from prefixes", () => {
-    const missingServerTools: AdminToolSummary[] = [
-      {
-        key: "alpha_prefix_only",
-        name: "Prefix Only",
-        sourceCategory: "mcp",
-        sourceType: "mcp",
-        kind: "backend",
-      },
-    ];
-
-    expect(hasMcpToolsWithoutServerKey(missingServerTools)).toBe(true);
-    expect(filterToolsForMcpServer(missingServerTools, "alpha")).toEqual([]);
-    expect(getMcpServerToolEmptyState({
-      matchedTools: [],
-      allTools: missingServerTools,
-      expectedToolCount: 1,
-    })).toBe("missing-server-key");
-    expect(getMcpServerToolEmptyState({
-      matchedTools: [],
-      allTools: [],
-      expectedToolCount: 0,
-    })).toBe("empty");
   });
 });

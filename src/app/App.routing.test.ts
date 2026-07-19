@@ -57,6 +57,10 @@ jest.mock("./pages/registries", () => ({
   RegistriesPage: () => null,
 }));
 
+jest.mock("./pages/mcp-servers", () => ({
+  McpServersPage: () => null,
+}));
+
 jest.mock("./pages/skills", () => ({
   SkillsPage: () => null,
 }));
@@ -92,6 +96,8 @@ describe("App routing", () => {
         "/copilot/:agentKey",
         "/automations",
         "/registries",
+        "/mcp-servers",
+        "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
         "/memory",
@@ -124,6 +130,9 @@ describe("App routing", () => {
     );
     expect(childRoutes.find((route) => route.path === "/registries")?.element?.props.titleKey).toBe(
       "route.title.registries",
+    );
+    expect(childRoutes.find((route) => route.path === "/mcp-servers")?.element?.props.titleKey).toBe(
+      "route.title.mcpServers",
     );
     expect(childRoutes.find((route) => route.path === "/skills")?.element?.props.titleKey).toBe(
       "route.title.skills",

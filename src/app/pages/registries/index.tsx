@@ -18,16 +18,17 @@ import type {
   AdminToolSummary,
   RegistryConsoleTab,
 } from "@/shared/data";
-import { t as runtimeT, useI18n, type I18nContextValue } from "@/shared/i18n";
+import { useI18n, type I18nContextValue } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
-import { zhCNMessages } from "@/shared/i18n/locales/zh-CN";
+import { isMcpTool } from "@/features/registries/lib/mcpRegistry";
 
 type StatusFilter = "all" | AdminRegistryStatus;
 type Translate = I18nContextValue["t"];
+type RegistryEditableCategory = Exclude<AdminRegistryCategory, "mcp-servers">;
 
 function translateWithFallback(
   t: Translate,
@@ -38,10 +39,9 @@ function translateWithFallback(
   return translated === key ? fallback : translated;
 }
 
-const REGISTRY_CATEGORIES: AdminRegistryCategory[] = [
+const REGISTRY_CATEGORIES: RegistryEditableCategory[] = [
   "providers",
   "models",
-  "mcp-servers",
   "viewport-servers",
 ];
 
@@ -54,7 +54,7 @@ const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 const REGISTRY_CONSOLE_CLASS_NAME =
   "command-modal-section automation-console registry-console tw:overflow-hidden";
 const REGISTRY_CATEGORY_TABS_CLASS_NAME =
-  "registry-category-tabs tw:grid tw:grid-cols-5 tw:gap-1.5 tw:rounded-control tw:border tw:p-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,var(--bg-elev-2))] tw:max-[860px]:grid-cols-2";
+  "registry-category-tabs tw:grid tw:grid-cols-4 tw:gap-1.5 tw:rounded-control tw:border tw:p-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,var(--bg-elev-2))] tw:max-[860px]:grid-cols-2";
 const REGISTRY_CATEGORY_TAB_CLASS_NAME =
   "registry-category-tab tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-[var(--radius-sm)] tw:border tw:border-transparent tw:bg-transparent tw:px-2 tw:py-[7px] tw:text-xs tw:leading-[1.25] tw:text-ink-muted tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:hover:bg-bg-base tw:hover:text-ink-1 tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:[&.is-active]:bg-bg-base tw:[&.is-active]:text-ink-1 tw:[&.is-active>strong]:bg-[color-mix(in_srgb,var(--accent-electric)_14%,var(--bg-input))] tw:[&.is-active>strong]:text-accent-electric-strong tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap tw:[&>strong]:flex-none tw:[&>strong]:rounded-pill tw:[&>strong]:bg-[color-mix(in_srgb,var(--line-soft)_78%,transparent)] tw:[&>strong]:px-1.5 tw:[&>strong]:py-0.5 tw:[&>strong]:text-[10px] tw:[&>strong]:leading-[1.2] tw:[&>strong]:text-ink-muted";
 const REGISTRY_ERROR_CLASS_NAME =
@@ -105,22 +105,6 @@ const REGISTRY_DIAGNOSTICS_CLASS_NAME =
   `${REGISTRY_REQUEST_BOX_BASE_CLASS_NAME} registry-diagnostics tw:[border-color:color-mix(in_srgb,var(--accent-danger)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_5%,transparent)]`;
 const REGISTRY_DIAGNOSTIC_ROW_CLASS_NAME =
   "registry-diagnostic-row tw:grid tw:grid-cols-[auto_auto_minmax(0,1fr)] tw:items-center tw:gap-2 tw:py-[5px] tw:text-xs tw:[&+&]:border-t tw:[&+&]:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:[&>strong]:text-[11px] tw:[&>strong]:text-accent-danger tw:[&>span:last-child]:min-w-0 tw:[&>span:last-child]:[overflow-wrap:anywhere] tw:[&>span:last-child]:text-ink-2";
-const REGISTRY_MCP_TOOLS_CLASS_NAME =
-  `${REGISTRY_REQUEST_BOX_BASE_CLASS_NAME} registry-mcp-tools tw:bg-[color-mix(in_srgb,var(--bg-input)_34%,transparent)]`;
-const REGISTRY_MCP_TOOL_LIST_CLASS_NAME =
-  "registry-mcp-tool-list tw:flex tw:flex-col tw:gap-2";
-const REGISTRY_MCP_TOOL_ROW_CLASS_NAME =
-  "registry-mcp-tool-row tw:rounded-[var(--radius-sm)] tw:border tw:px-2.5 tw:py-[9px] tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-base)_82%,transparent)]";
-const REGISTRY_MCP_TOOL_HEAD_CLASS_NAME =
-  "registry-mcp-tool-head tw:flex tw:min-w-0 tw:items-start tw:justify-between tw:gap-2.5";
-const REGISTRY_MCP_TOOL_TITLE_CLASS_NAME =
-  "registry-mcp-tool-title tw:flex tw:min-w-0 tw:flex-col tw:gap-0.5 tw:[&>strong]:min-w-0 tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:text-xs tw:[&>strong]:leading-[1.35] tw:[&>strong]:text-ink-1 tw:[&>span]:[overflow-wrap:anywhere] tw:[&>span]:text-[11px] tw:[&>span]:leading-[1.45] tw:[&>span]:text-ink-muted";
-const REGISTRY_MCP_TOOL_BADGES_CLASS_NAME =
-  "registry-mcp-tool-badges tw:flex tw:flex-none tw:flex-wrap tw:items-center tw:justify-end tw:gap-[5px]";
-const REGISTRY_MCP_TOOL_DESCRIPTION_CLASS_NAME =
-  "registry-mcp-tool-description tw:mb-0 tw:mt-[7px] tw:[overflow-wrap:anywhere] tw:text-[11px] tw:leading-[1.45] tw:text-ink-muted";
-const REGISTRY_MCP_TOOLS_EMPTY_CLASS_NAME =
-  "registry-mcp-tools-empty tw:[overflow-wrap:anywhere] tw:text-[11px] tw:leading-[1.45] tw:text-ink-muted";
 const REGISTRY_EDITOR_FIELD_CLASS_NAME =
   "field-group registry-editor-field tw:mt-3.5";
 const REGISTRY_YAML_EDITOR_CLASS_NAME =
@@ -134,11 +118,10 @@ export function registryItemKey(item: Pick<AdminRegistryListItem, "category" | "
   return `${item.category}/${item.file}`;
 }
 
-function defaultFileName(category: AdminRegistryCategory, existing: AdminRegistryListItem[]): string {
-  const stemByCategory: Record<AdminRegistryCategory, string> = {
+function defaultFileName(category: RegistryEditableCategory, existing: AdminRegistryListItem[]): string {
+  const stemByCategory: Record<RegistryEditableCategory, string> = {
     providers: "new-provider",
     models: "new-model",
-    "mcp-servers": "new-mcp-server",
     "viewport-servers": "new-viewport-server",
   };
   const existingNames = new Set(
@@ -153,7 +136,7 @@ function defaultFileName(category: AdminRegistryCategory, existing: AdminRegistr
   }
 }
 
-function templateForCategory(category: AdminRegistryCategory, file: string): string {
+function templateForCategory(category: RegistryEditableCategory, file: string): string {
   const key = file.replace(/\.ya?ml$/i, "");
   switch (category) {
     case "providers":
@@ -179,16 +162,6 @@ function templateForCategory(category: AdminRegistryCategory, file: string): str
         "isFunction: true",
         "maxInputTokens: 128000",
         "maxOutputTokens: 8192",
-        "",
-      ].join("\n");
-    case "mcp-servers":
-      return [
-        `serverKey: ${key}`,
-        "baseUrl: http://localhost:11969",
-        'endpointPath: "/mcp"',
-        "enabled: true",
-        "toolPrefix: ",
-        "read-timeout: 15",
         "",
       ].join("\n");
     case "viewport-servers":
@@ -245,16 +218,6 @@ function summaryBool(summary: Record<string, unknown> | undefined, key: string):
   return false;
 }
 
-function summaryNumber(summary: Record<string, unknown> | undefined, key: string): number | undefined {
-  const value = summary?.[key];
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return undefined;
-}
-
 function modelTypeLabel(rawType: unknown): string {
   const type = stringValue(rawType);
   if (type === "image-generation") return "image";
@@ -265,18 +228,6 @@ function modelTypeLabel(rawType: unknown): string {
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function firstStringValue(...values: unknown[]): string {
-  for (const value of values) {
-    const text = stringValue(value);
-    if (text) return text;
-  }
-  return "";
-}
-
-function fileStem(file: string): string {
-  return file.replace(/\.ya?ml$/i, "");
 }
 
 export function readToolKind(tool: AdminToolSummary): string {
@@ -291,60 +242,12 @@ export function readToolSourceCategory(tool: AdminToolSummary): string {
   return stringValue(tool.sourceCategory);
 }
 
-export function readToolMcpServerKey(tool: AdminToolSummary): string {
-  return stringValue(tool.serverKey);
-}
-
-export function registryMcpServerKey(
-  item: Pick<AdminRegistryListItem, "category" | "file" | "key" | "name" | "summary">,
-): string {
-  if (item.category !== "mcp-servers") return "";
-  return firstStringValue(item.summary?.serverKey, item.key, item.name, fileStem(item.file));
-}
-
-export function filterToolsForMcpServer(
-  tools: AdminToolSummary[],
-  serverKey: string,
-): AdminToolSummary[] {
-  const target = serverKey.trim();
-  if (!target) return [];
-  return tools.filter(
-    (tool) =>
-      readToolSourceCategory(tool).toLowerCase() === "mcp" &&
-      readToolMcpServerKey(tool) === target,
-  );
-}
-
-export function hasMcpToolsWithoutServerKey(tools: AdminToolSummary[]): boolean {
-  return tools.some(
-    (tool) =>
-      readToolSourceCategory(tool).toLowerCase() === "mcp" &&
-      !readToolMcpServerKey(tool),
-  );
-}
-
-export type McpServerToolEmptyState = "none" | "empty" | "missing-server-key";
-
-export function getMcpServerToolEmptyState(input: {
-  matchedTools: AdminToolSummary[];
-  allTools: AdminToolSummary[];
-  expectedToolCount?: number;
-}): McpServerToolEmptyState {
-  if (input.matchedTools.length > 0) return "none";
-  if ((input.expectedToolCount || 0) > 0 || hasMcpToolsWithoutServerKey(input.allTools)) {
-    return "missing-server-key";
-  }
-  return "empty";
-}
-
 export function toolSourceLabel(sourceCategory: string, t: Translate): string {
   switch (sourceCategory.toLowerCase()) {
     case "platform":
       return t("toolSource.platform");
     case "external":
       return t("toolSource.external");
-    case "mcp":
-      return t("toolSource.mcp");
     default:
       return sourceCategory || "--";
   }
@@ -363,8 +266,6 @@ export function listItemOwnerLabel(item: AdminRegistryListItem, isToolsTab: bool
 
 function toolSourceTone(sourceCategory: string): "accent" | "default" | "muted" {
   switch (sourceCategory.toLowerCase()) {
-    case "mcp":
-      return "accent";
     case "external":
       return "default";
     default:
@@ -376,7 +277,6 @@ export function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistryLis
   const kind = readToolKind(tool);
   const sourceType = readToolSourceType(tool);
   const sourceCategory = readToolSourceCategory(tool);
-  const serverKey = readToolMcpServerKey(tool);
   return {
     category: "tools" as AdminRegistryCategory,
     file: tool.key || tool.name || "unknown",
@@ -386,7 +286,6 @@ export function normalizeToolToSummary(tool: AdminToolSummary): AdminRegistryLis
     summary: {
       sourceCategory,
       sourceType,
-      serverKey,
       kind,
       description: tool.description,
     },
@@ -401,7 +300,6 @@ export function toolSearchHaystack(tool: AdminToolSummary): string {
     tool.description,
     tool.sourceType,
     tool.sourceCategory,
-    tool.serverKey,
     readToolKind(tool),
   ];
   return parts.filter((v) => typeof v === "string" && v.trim() !== "").join(" ").toLowerCase();
@@ -412,13 +310,9 @@ export function toolListMeta(item: AdminRegistryListItem): string {
   const kind = stringValue(item.summary?.kind);
   const sourceType = stringValue(item.summary?.sourceType);
   const sourceCategory = stringValue(item.summary?.sourceCategory);
-  const serverKey = stringValue(item.summary?.serverKey);
-  const sourceTypeLabel = sourceType.toLowerCase() === "mcp" && serverKey
-    ? `mcp:${serverKey}`
-    : sourceType;
   return [
     key,
-    sourceTypeLabel,
+    sourceType,
     sourceCategory,
     kind,
   ].filter((value) => value.trim() !== "" && value !== "--").join(" · ");
@@ -427,7 +321,6 @@ export function toolListMeta(item: AdminRegistryListItem): string {
 export function registryListTitle(item: AdminRegistryListItem): string {
   switch (item.category) {
     case "providers":
-    case "mcp-servers":
     case "viewport-servers":
       return item.key || item.name || item.file;
     case "models":
@@ -448,13 +341,6 @@ export function registryListMeta(item: AdminRegistryListItem, t: Translate): str
         summaryString(summary, "protocol"),
         modelTypeLabel(summary?.type),
       ].filter(Boolean).join(" · ") || diagnosticText(item.diagnostic) || "--";
-    case "mcp-servers": {
-      const toolCount = summaryNumber(summary, "toolCount");
-      return [
-        summaryString(summary, "baseUrl"),
-        toolCount === undefined ? "" : t("registryConsole.meta.toolsCount", { count: toolCount }),
-      ].filter(Boolean).join(" · ") || diagnosticText(item.diagnostic) || "--";
-    }
     case "viewport-servers":
       return summaryString(summary, "baseUrl") || diagnosticText(item.diagnostic) || "--";
     default:
@@ -525,16 +411,7 @@ export function filterRegistryItems(
       item.key,
       item.name,
       registryListTitle(item),
-      registryListMeta(item, (key, params) => {
-        if (key === "registryConsole.meta.toolsCount") {
-          const count = String(params?.count ?? "");
-          return [
-            runtimeT(key, params),
-            String(zhCNMessages[key] || "").replace("{count}", count),
-          ].filter(Boolean).join(" ");
-        }
-        return key;
-      }),
+      registryListMeta(item, (key) => key),
       summaryLine(item.summary),
       diagnosticText(item.diagnostic),
     ]
@@ -603,7 +480,6 @@ export const RegistriesPage = () => {
       const counts: Record<RegistryConsoleTab, number> = {
         providers: 0,
         models: 0,
-        "mcp-servers": 0,
         "viewport-servers": 0,
         tools: 0,
       };
@@ -654,7 +530,7 @@ export const RegistriesPage = () => {
     if (isToolsTab) return filteredToolItems;
     return filterRegistryItems(items, {
       searchText,
-      categoryFilter: activeCategory as AdminRegistryCategory,
+      categoryFilter: activeCategory as RegistryEditableCategory,
       statusFilter,
     });
   }, [isToolsTab, activeCategory, filteredToolItems, items, searchText, statusFilter]);
@@ -665,9 +541,10 @@ export const RegistriesPage = () => {
     try {
       const response = await getAdminTools();
       const data = response.data;
-      const list: AdminToolSummary[] = Array.isArray(data)
+      const list: AdminToolSummary[] = (Array.isArray(data)
         ? data
-        : (data as unknown as { items?: AdminToolSummary[] })?.items ?? [];
+        : (data as unknown as { items?: AdminToolSummary[] })?.items ?? [])
+        .filter((tool) => !isMcpTool(tool));
       setToolItems(list);
       return list;
     } catch (err) {
@@ -688,27 +565,26 @@ export const RegistriesPage = () => {
         setDraft(response.data.content || "");
         setDirty(false);
         setNewDraft(false);
-        if (item.category === "mcp-servers") {
-          void refreshToolsList();
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setDetailLoading(false);
       }
     },
-    [refreshToolsList],
+    [],
   );
 
   const loadRegistries = useCallback(
-    async (preferredKey?: string, categoryOverride?: AdminRegistryCategory) => {
+    async (preferredKey?: string, categoryOverride?: RegistryEditableCategory) => {
       setLoading(true);
       setError("");
       try {
         const response = await getAdminRegistries();
-        const nextItems = response.data.items || [];
+        const nextItems = (response.data.items || []).filter(
+          (item) => item.category !== "mcp-servers",
+        );
         setItems(nextItems);
-        const category = categoryOverride || (activeCategory as AdminRegistryCategory);
+        const category = categoryOverride || (activeCategory as RegistryEditableCategory);
         const categoryItems = nextItems.filter((item) => item.category === category);
         const target =
           (preferredKey
@@ -798,7 +674,7 @@ export const RegistriesPage = () => {
       return;
     }
 
-    const registryCategory = category as AdminRegistryCategory;
+    const registryCategory = category as RegistryEditableCategory;
     const target = items.find((item) => item.category === registryCategory);
     if (target) {
       setSelectedKey(registryItemKey(target));
@@ -815,7 +691,7 @@ export const RegistriesPage = () => {
     if (dirty && !window.confirm(t("registryConsole.confirm.discard"))) {
       return;
     }
-    const category = activeCategory as AdminRegistryCategory;
+    const category = activeCategory as RegistryEditableCategory;
     const file = defaultFileName(category, items);
     const content = templateForCategory(category, file);
     setSelectedKey(`${category}/${file}`);
@@ -914,24 +790,9 @@ export const RegistriesPage = () => {
       label: translateWithFallback(t, `registryConsole.filter.status.${status}`, status),
     })),
   }), [t, statusFilter]);
-  const selectedMcpServerKey = detail?.category === "mcp-servers"
-    ? registryMcpServerKey(detail)
-    : "";
-  const selectedMcpServerTools = useMemo(
-    () => filterToolsForMcpServer(toolItems, selectedMcpServerKey),
-    [selectedMcpServerKey, toolItems],
-  );
-  const selectedMcpToolEmptyState = detail?.category === "mcp-servers"
-    ? getMcpServerToolEmptyState({
-        matchedTools: selectedMcpServerTools,
-        allTools: toolItems,
-        expectedToolCount: summaryNumber(detail.summary, "toolCount"),
-      })
-    : "empty";
   const selectedToolKind = selectedTool ? readToolKind(selectedTool) : "";
   const selectedToolSourceType = selectedTool ? readToolSourceType(selectedTool) : "";
   const selectedToolSourceCategory = selectedTool ? readToolSourceCategory(selectedTool) : "";
-  const selectedToolServerKey = selectedTool ? readToolMcpServerKey(selectedTool) : "";
   const selectedToolSourceLabel = toolSourceLabel(selectedToolSourceCategory, t);
 
   return (
@@ -963,7 +824,7 @@ export const RegistriesPage = () => {
                 if (isToolsTab) {
                   void loadTools();
                 } else {
-                  void loadRegistries(selectedKey, activeCategory as AdminRegistryCategory);
+                  void loadRegistries(selectedKey, activeCategory as RegistryEditableCategory);
                 }
               }}
             >
@@ -1009,7 +870,7 @@ export const RegistriesPage = () => {
                   if (isToolsTab) {
                     void loadTools();
                   } else {
-                    void loadRegistries(selectedKey, activeCategory as AdminRegistryCategory);
+                    void loadRegistries(selectedKey, activeCategory as RegistryEditableCategory);
                   }
                 }}
                 disabled={loading || saving || toolsLoading}
@@ -1127,9 +988,6 @@ export const RegistriesPage = () => {
                       <span>{t("registryConsole.tools.field.kind")}: {selectedToolKind || "--"}</span>
                       <span>{t("registryConsole.tools.field.sourceType")}: {selectedToolSourceType || "--"}</span>
                       <span>{t("registryConsole.tools.field.sourceCategory")}: {selectedToolSourceLabel}</span>
-                      {selectedToolSourceType.toLowerCase() === "mcp" && (
-                        <span>{t("registryConsole.tools.field.serverKey")}: {selectedToolServerKey || "--"}</span>
-                      )}
                     </div>
 
                     {selectedTool.description && (
@@ -1190,49 +1048,6 @@ export const RegistriesPage = () => {
                       <legend>{t("registryConsole.section.summary")}</legend>
                       <div>{summaryLine(detail.summary) || "--"}</div>
                     </fieldset>
-
-                    {detail.category === "mcp-servers" && (
-                      <fieldset className={REGISTRY_MCP_TOOLS_CLASS_NAME}>
-                        <legend>
-                          {t("registryConsole.mcpTools.section.title", {
-                            count: selectedMcpServerTools.length,
-                          })}
-                        </legend>
-                        <Spin spinning={toolsLoading}>
-                          {selectedMcpServerTools.length > 0 ? (
-                            <div className={REGISTRY_MCP_TOOL_LIST_CLASS_NAME}>
-                              {selectedMcpServerTools.map((tool, index) => {
-                                const toolKey = tool.key || tool.name || `${selectedMcpServerKey}-${index}`;
-                                const kind = readToolKind(tool);
-                                const description = stringValue(tool.description);
-                                return (
-                                  <div className={REGISTRY_MCP_TOOL_ROW_CLASS_NAME} key={toolKey}>
-                                    <div className={REGISTRY_MCP_TOOL_HEAD_CLASS_NAME}>
-                                      <div className={REGISTRY_MCP_TOOL_TITLE_CLASS_NAME}>
-                                        <strong>{tool.name || tool.label || tool.key || "--"}</strong>
-                                        <span>{tool.key || "--"}</span>
-                                      </div>
-                                      <div className={REGISTRY_MCP_TOOL_BADGES_CLASS_NAME}>
-                                        {kind && <UiTag tone="muted">{kind}</UiTag>}
-                                      </div>
-                                    </div>
-                                    {description && (
-                                      <p className={REGISTRY_MCP_TOOL_DESCRIPTION_CLASS_NAME}>{description}</p>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className={REGISTRY_MCP_TOOLS_EMPTY_CLASS_NAME}>
-                              {selectedMcpToolEmptyState === "missing-server-key"
-                                ? t("registryConsole.mcpTools.empty.missingServerKey")
-                                : t("registryConsole.mcpTools.empty.noTools")}
-                            </div>
-                          )}
-                        </Spin>
-                      </fieldset>
-                    )}
 
                     <div className={REGISTRY_EDITOR_FIELD_CLASS_NAME}>
                       <label htmlFor="registry-yaml-editor">{t("registryConsole.editor.label")}</label>

@@ -21,6 +21,7 @@ export type SidebarSettingsMenuAction =
   | { type: "open-skills" }
   | { type: "open-settings" }
   | { type: "open-registries" }
+  | { type: "open-mcp-servers" }
   | { type: "open-archive" }
   | { type: "open-memory-info" }
   | { type: "noop" };
@@ -109,6 +110,12 @@ export function buildSidebarSettingsMenuSections(_input: {
           label: t("settingsMenu.registries"),
           icon: "hub",
           action: { type: "open-registries" },
+        },
+        {
+          key: "open-mcp-servers",
+          label: t("settingsMenu.mcpServers"),
+          icon: "hub",
+          action: { type: "open-mcp-servers" },
         },
         {
           key: "open-archive",

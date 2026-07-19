@@ -717,6 +717,10 @@ export const LeftSidebar: React.FC = () => {
       openStandalonePage("/registries");
       return;
     }
+    if (action.type === "open-mcp-servers") {
+      openStandalonePage("/mcp-servers");
+      return;
+    }
     if (action.type === "open-archive") {
       openStandalonePage("/archives");
       return;

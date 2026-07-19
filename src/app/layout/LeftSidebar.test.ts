@@ -650,6 +650,28 @@ describe("LeftSidebar", () => {
     );
   });
 
+  it("opens MCP connectors in a new page and preserves the current search string", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true",
+    };
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
+
+    renderSidebar();
+
+    const mcpServersButton = uiButtonProps.find((props) =>
+      props.text.includes("MCP 连接器"),
+    );
+    expect(mcpServersButton).toBeTruthy();
+
+    (mcpServersButton?.onClick as () => void)();
+
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
+      "/mcp-servers?lang=zh-CN",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   it("opens skills in a new page from the settings menu and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",

@@ -33,6 +33,7 @@ import { MemoryPage } from "./pages/memory";
 import { AgentsPage } from "./pages/agents";
 import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
+import { McpServersPage } from "./pages/mcp-servers";
 import { SkillsPage } from "./pages/skills";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { setTransportModeProvider } from "@/shared/data/api/routedClient";
@@ -209,6 +210,22 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.registries">
               <RegistriesPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/mcp-servers",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.mcpServers">
+              <McpServersPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/mcp-servers/:serverKey",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.mcpServers">
+              <McpServersPage />
             </DocumentTitleRoute>
           ),
         },

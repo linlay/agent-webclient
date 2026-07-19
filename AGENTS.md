@@ -157,6 +157,7 @@ Git 提交与推送规范：
 - [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
 - [51-Worker管理-Agent管理台](docs/51-Worker管理-Agent管理台.md)
 - [52-Worker管理-Registry管理台与工具目录](docs/52-Worker管理-Registry管理台与工具目录.md)
+- [53-Worker管理-MCP连接器](docs/53-Worker管理-MCP连接器.md)
 
 ### 60 页面能力
 - [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)

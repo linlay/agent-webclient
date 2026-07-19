@@ -61,7 +61,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、Team、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序、诊断，以及 provider、model、MCP server、viewport server、tools 目录等 Registry 视图。
+左侧侧边栏聚合 Agent、Team、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，MCP 连接器及所属工具由独立页面管理。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
