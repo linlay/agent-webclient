@@ -12,7 +12,7 @@ interface BottomDockProps {
 const BOTTOM_DOCK_CLASS_BY_MODE = {
 	desktop: "bottom-dock",
 	copilot:
-		"bottom-dock tw:relative tw:bottom-auto tw:z-[22] tw:row-start-3 tw:min-w-0 tw:border-t tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)] tw:px-2 tw:pb-2.5 tw:pt-1.5 tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]",
+		"bottom-dock tw:relative tw:bottom-auto tw:z-[22] tw:row-start-3 tw:min-w-0 tw:border-t tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)] tw:px-2 tw:pt-1.5 tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]",
 } as const;
 const BOTTOM_DOCK_INNER_CLASS_BY_MODE = {
 	desktop: "bottom-dock-inner",

@@ -293,7 +293,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       <div
         ref={cardRef}
         className={`command-modal-card ${isConsoleModal ? "is-automation-console" : ""}`}
-        tabIndex={-1}
         onKeyDown={(event) => {
           if (modal.type === "history") {
             const target = event.target;
