@@ -211,8 +211,8 @@ describe("SkillConsole", () => {
       }),
     );
     expect(html).toContain("skill-console");
-    expect(html).toContain("minmax(220px,0.252fr)_minmax(0,1fr)");
-    expect(html).not.toContain("minmax(220px,0.36fr)");
+    expect(html).toContain("280px_minmax(0,1fr)");
+    expect(html).not.toContain("minmax(220px,0.252fr)");
     expect(html).not.toContain("minmax(280px,0.52fr)");
   });
 

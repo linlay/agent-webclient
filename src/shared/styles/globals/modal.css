@@ -396,6 +396,16 @@
     overflow: hidden;
 }
 
+/* MCP 连接器页：宽屏时左侧列表固定为 280px，窄屏时转为单列。 */
+.mcp-servers-console .automation-console-body {
+    grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.mcp-servers-console .automation-console-list {
+    width: 280px;
+    min-width: 280px;
+}
+
 .automation-console-list,
 .automation-console-detail {
     min-width: 0;
@@ -1288,6 +1298,15 @@
     .automation-console-body {
         grid-template-columns: 1fr;
         overflow: auto;
+    }
+
+    .mcp-servers-console .automation-console-body {
+        grid-template-columns: 1fr;
+    }
+
+    .mcp-servers-console .automation-console-list {
+        width: auto;
+        min-width: 0;
     }
 
     .automation-console-list {

@@ -57,7 +57,6 @@ describe("McpServersPage", () => {
     expect(html).toContain("搜索名称、serverKey 或地址");
     expect(html).toContain("未归属工具");
     expect(html).toContain("请选择或新建 MCP 连接器");
-    expect(html).toContain("tw:grid-cols-[280px_minmax(480px,1.55fr)]");
     expect(html).not.toContain("供应商");
     expect(html).not.toContain("视口服务器");
   });
