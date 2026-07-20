@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Checkbox, Input, Select, Spin, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import type { Agent, Team } from "@/app/state/types";
@@ -69,8 +75,14 @@ const EMPTY_FORM: AutomationFormState = {
 
 const CRON_PRESETS = [
   { labelKey: "automationConsole.cronPreset.dailyNine", value: "0 9 * * *" },
-  { labelKey: "automationConsole.cronPreset.weekdaySix", value: "0 18 * * 1-5" },
-  { labelKey: "automationConsole.cronPreset.everyFiveMinutes", value: "*/5 * * * *" },
+  {
+    labelKey: "automationConsole.cronPreset.weekdaySix",
+    value: "0 18 * * 1-5",
+  },
+  {
+    labelKey: "automationConsole.cronPreset.everyFiveMinutes",
+    value: "*/5 * * * *",
+  },
   { labelKey: "automationConsole.cronPreset.hourly", value: "0 * * * *" },
 ];
 const AUTOMATION_CONSOLE_CLASS_NAME =
@@ -202,7 +214,9 @@ function createInitialForm(
   };
 }
 
-function formFromAutomation(automation: AutomationDetailResponse): AutomationFormState {
+function formFromAutomation(
+  automation: AutomationDetailResponse,
+): AutomationFormState {
   const params = automation.query?.params;
   return {
     id: automation.id,
@@ -213,7 +227,8 @@ function formFromAutomation(automation: AutomationDetailResponse): AutomationFor
     teamId: automation.teamId || "",
     zoneId: automation.zoneId || "",
     remainingRuns:
-      automation.remainingRuns === undefined || automation.remainingRuns === null
+      automation.remainingRuns === undefined ||
+      automation.remainingRuns === null
         ? ""
         : String(automation.remainingRuns),
     enabled: Boolean(automation.enabled),
@@ -255,7 +270,9 @@ function toDurationLabel(value?: number | null): string {
   return `${(value / 1000).toFixed(1)}s`;
 }
 
-export function automationSourcePath(automation: AutomationSummaryResponse): string {
+export function automationSourcePath(
+  automation: AutomationSummaryResponse,
+): string {
   const source = String(automation.sourceFile || "").trim();
   if (!source) return automation.id;
   const normalized = source.replace(/\\/g, "/");
@@ -288,7 +305,9 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
   return query;
 }
 
-export function buildCreateAutomationPayloadForSubmit(form: AutomationFormState): CreateAutomationRequest {
+export function buildCreateAutomationPayloadForSubmit(
+  form: AutomationFormState,
+): CreateAutomationRequest {
   return compactPayload({
     name: form.name.trim(),
     description: form.description.trim(),
@@ -303,7 +322,9 @@ export function buildCreateAutomationPayloadForSubmit(form: AutomationFormState)
   }) as CreateAutomationRequest;
 }
 
-export function buildUpdateAutomationPayloadForSubmit(form: AutomationFormState): UpdateAutomationRequest {
+export function buildUpdateAutomationPayloadForSubmit(
+  form: AutomationFormState,
+): UpdateAutomationRequest {
   return compactPayload({
     id: form.id,
     name: form.name.trim(),
@@ -321,9 +342,11 @@ export function buildUpdateAutomationPayloadForSubmit(form: AutomationFormState)
 
 function validateForm(form: AutomationFormState, t: Translate): string {
   if (!form.name.trim()) return t("automationConsole.error.nameRequired");
-  if (!form.description.trim()) return t("automationConsole.error.descriptionRequired");
+  if (!form.description.trim())
+    return t("automationConsole.error.descriptionRequired");
   if (!form.cron.trim()) return t("automationConsole.error.cronRequired");
-  if (!isFiveFieldCron(form.cron)) return t("automationConsole.error.cronFormat");
+  if (!isFiveFieldCron(form.cron))
+    return t("automationConsole.error.cronFormat");
   if (!form.agentKey.trim()) return t("automationConsole.error.agentRequired");
   if (!form.message.trim()) return t("automationConsole.error.messageRequired");
   if (form.remainingRuns.trim()) {
@@ -380,9 +403,12 @@ export const AutomationModal: React.FC<{
   const dispatch = useAppDispatch();
   const automations = state.automations;
   const [selectedId, setSelectedId] = useState("");
-  const [executions, setExecutions] = useState<AutomationExecutionResponse[]>([]);
+  const [executions, setExecutions] = useState<AutomationExecutionResponse[]>(
+    [],
+  );
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AutomationStatusFilter>("all");
+  const [statusFilter, setStatusFilter] =
+    useState<AutomationStatusFilter>("all");
   const [workerFilter, setWorkerFilter] = useState("");
   const [formMode, setFormMode] = useState<AutomationFormMode>("create");
   const [form, setForm] = useState<AutomationFormState>(() =>
@@ -722,27 +748,36 @@ export const AutomationModal: React.FC<{
     }
   };
 
-  const statusMenu: MenuProps = useMemo(() => ({
-    onClick: (info) => setStatusFilter(info.key as AutomationStatusFilter),
-    selectedKeys: [statusFilter],
-    items: [
-      { key: "all", label: t("automationConsole.filter.status.all") },
-      { key: "enabled", label: t("automationConsole.filter.status.enabled") },
-      { key: "disabled", label: t("automationConsole.filter.status.disabled") },
-    ],
-  }), [t, statusFilter]);
+  const statusMenu: MenuProps = useMemo(
+    () => ({
+      onClick: (info) => setStatusFilter(info.key as AutomationStatusFilter),
+      selectedKeys: [statusFilter],
+      items: [
+        { key: "all", label: t("automationConsole.filter.status.all") },
+        { key: "enabled", label: t("automationConsole.filter.status.enabled") },
+        {
+          key: "disabled",
+          label: t("automationConsole.filter.status.disabled"),
+        },
+      ],
+    }),
+    [t, statusFilter],
+  );
 
-  const workerMenu: MenuProps = useMemo(() => ({
-    onClick: (info) => setWorkerFilter(info.key),
-    selectedKeys: [workerFilter],
-    items: [
-      { key: "", label: t("automationConsole.filter.worker.all") },
-      ...workerOptions.map((opt) => ({
-        key: opt.value,
-        label: opt.label,
-      })),
-    ],
-  }), [t, workerFilter, workerOptions]);
+  const workerMenu: MenuProps = useMemo(
+    () => ({
+      onClick: (info) => setWorkerFilter(info.key),
+      selectedKeys: [workerFilter],
+      items: [
+        { key: "", label: t("automationConsole.filter.worker.all") },
+        ...workerOptions.map((opt) => ({
+          key: opt.value,
+          label: opt.label,
+        })),
+      ],
+    }),
+    [t, workerFilter, workerOptions],
+  );
 
   return (
     <div className={AUTOMATION_CONSOLE_CLASS_NAME}>
@@ -797,7 +832,13 @@ export const AutomationModal: React.FC<{
             >
               <MaterialIcon name="refresh" />
             </UiButton>
-            <UiButton size="sm" variant="primary" iconOnly onClick={startCreate} aria-label={t("automationConsole.action.new")}>
+            <UiButton
+              size="sm"
+              variant="primary"
+              iconOnly
+              onClick={startCreate}
+              aria-label={t("automationConsole.action.new")}
+            >
               <MaterialIcon name="add" />
             </UiButton>
           </div>
@@ -830,15 +871,22 @@ export const AutomationModal: React.FC<{
                           <strong>{item.name || item.id}</strong>
                         </span>
                         <UiTag tone={item.enabled ? "accent" : "muted"}>
-                          {item.enabled ? t("automationConsole.status.enabled") : t("automationConsole.status.disabled")}
+                          {item.enabled
+                            ? t("automationConsole.status.enabled")
+                            : t("automationConsole.status.disabled")}
                         </UiTag>
                       </span>
                       <span
                         className={AUTOMATION_LIST_ITEM_META_CLASS_NAME}
-                        title={automationListMeta(item, getAutomationWorkerName)}
+                        title={automationListMeta(
+                          item,
+                          getAutomationWorkerName,
+                        )}
                       >
                         <span
-                          className={AUTOMATION_LIST_ITEM_META_WORKER_CLASS_NAME}
+                          className={
+                            AUTOMATION_LIST_ITEM_META_WORKER_CLASS_NAME
+                          }
                           title={getAutomationWorkerName(item) || "--"}
                         >
                           {getAutomationWorkerName(item) || "--"}
@@ -864,7 +912,8 @@ export const AutomationModal: React.FC<{
               <strong>
                 {formMode === "create"
                   ? t("automationConsole.detail.titleCreate")
-                  : selectedSummary?.name || t("automationConsole.detail.titleEdit")}
+                  : selectedSummary?.name ||
+                    t("automationConsole.detail.titleEdit")}
               </strong>
               <span>
                 {formMode === "create"
@@ -887,7 +936,11 @@ export const AutomationModal: React.FC<{
                       selectedSummary.enabled ? "pause_circle" : "play_circle"
                     }
                   />
-                  <span>{selectedSummary.enabled ? t("automationConsole.action.disable") : t("automationConsole.action.enable")}</span>
+                  <span>
+                    {selectedSummary.enabled
+                      ? t("automationConsole.action.disable")
+                      : t("automationConsole.action.enable")}
+                  </span>
                 </UiButton>
                 <UiButton
                   size="sm"
@@ -908,7 +961,9 @@ export const AutomationModal: React.FC<{
 
           <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
             <div className="field-group">
-              <label htmlFor="automation-name-input">{t("automationConsole.field.name")}</label>
+              <label htmlFor="automation-name-input">
+                {t("automationConsole.field.name")}
+              </label>
               <Input
                 id="automation-name-input"
                 value={form.name}
@@ -933,29 +988,48 @@ export const AutomationModal: React.FC<{
                   onChange={(value) => {
                     if (value) updateForm({ cron: value });
                   }}
-                  options={[{ value: "", label: t("automationConsole.cronPreset.placeholder") }, ...cronPresetOptions]}
+                  options={[
+                    {
+                      value: "",
+                      label: t("automationConsole.cronPreset.placeholder"),
+                    },
+                    ...cronPresetOptions,
+                  ]}
                 />
               </div>
             </div>
             <div className="field-group">
-              <label htmlFor="automation-agent-input">{t("automationConsole.field.agent")}</label>
+              <label htmlFor="automation-agent-input">
+                {t("automationConsole.field.agent")}
+              </label>
               <Select
                 id="automation-agent-input"
                 showSearch
                 optionFilterProp="label"
                 value={form.agentKey}
                 onChange={(value) => updateForm({ agentKey: value })}
-                options={[{ value: "", label: t("automationConsole.field.agentPlaceholder") }, ...agentOptions]}
+                options={[
+                  {
+                    value: "",
+                    label: t("automationConsole.field.agentPlaceholder"),
+                  },
+                  ...agentOptions,
+                ]}
               />
             </div>
             <div className="field-group">
-              <label htmlFor="automation-zone-input">{t("automationConsole.field.timezone")}</label>
+              <label htmlFor="automation-zone-input">
+                {t("automationConsole.field.timezone")}
+              </label>
               <Select
                 id="automation-zone-input"
                 value={form.zoneId}
                 onChange={(value) => updateForm({ zoneId: value })}
                 options={[
-                  { value: "", label: t("automationConsole.field.defaultTimezone") },
+                  {
+                    value: "",
+                    label: t("automationConsole.field.defaultTimezone"),
+                  },
                   ...zoneOptions.map((zoneId) => ({
                     value: zoneId,
                     label: zoneId,
@@ -964,12 +1038,16 @@ export const AutomationModal: React.FC<{
               />
             </div>
             <div className="field-group">
-              <label htmlFor="automation-runs-input">{t("automationConsole.field.remainingRuns")}</label>
+              <label htmlFor="automation-runs-input">
+                {t("automationConsole.field.remainingRuns")}
+              </label>
               <Input
                 id="automation-runs-input"
                 type="number"
                 min="1"
-                placeholder={t("automationConsole.field.remainingRunsPlaceholder")}
+                placeholder={t(
+                  "automationConsole.field.remainingRunsPlaceholder",
+                )}
                 value={form.remainingRuns}
                 onChange={(event) =>
                   updateForm({ remainingRuns: event.target.value })
@@ -979,7 +1057,9 @@ export const AutomationModal: React.FC<{
           </div>
 
           <div className="field-group">
-            <label htmlFor="automation-description-input">{t("automationConsole.field.description")}</label>
+            <label htmlFor="automation-description-input">
+              {t("automationConsole.field.description")}
+            </label>
             <Input.TextArea
               id="automation-description-input"
               className="settings-textarea"
@@ -994,10 +1074,11 @@ export const AutomationModal: React.FC<{
           <fieldset className={AUTOMATION_REQUEST_BOX_CLASS_NAME}>
             <legend>{t("automationConsole.section.request")}</legend>
             <div className="field-group">
-              <label htmlFor="automation-message-input">{t("automationConsole.field.message")}</label>
+              <label htmlFor="automation-message-input">
+                {t("automationConsole.field.message")}
+              </label>
               <Input.TextArea
                 id="automation-message-input"
-                className="settings-textarea"
                 rows={4}
                 value={form.message}
                 onChange={(event) =>
@@ -1008,7 +1089,9 @@ export const AutomationModal: React.FC<{
 
             <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
               <div className="field-group">
-                <label htmlFor="automation-chat-input">{t("automationConsole.field.chatId")}</label>
+                <label htmlFor="automation-chat-input">
+                  {t("automationConsole.field.chatId")}
+                </label>
                 <Input
                   id="automation-chat-input"
                   value={form.chatId}
@@ -1018,7 +1101,9 @@ export const AutomationModal: React.FC<{
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="automation-role-input">{t("automationConsole.field.role")}</label>
+                <label htmlFor="automation-role-input">
+                  {t("automationConsole.field.role")}
+                </label>
                 <Select
                   id="automation-role-input"
                   value={form.role}
@@ -1030,7 +1115,9 @@ export const AutomationModal: React.FC<{
                 />
               </div>
               <div className="field-group">
-                <label htmlFor="automation-hidden-select">{t("automationConsole.field.hidden")}</label>
+                <label htmlFor="automation-hidden-select">
+                  {t("automationConsole.field.hidden")}
+                </label>
                 <Select
                   id="automation-hidden-select"
                   value={form.hidden}
@@ -1041,8 +1128,14 @@ export const AutomationModal: React.FC<{
                   }
                   options={[
                     { value: "", label: t("automationConsole.hidden.unset") },
-                    { value: "true", label: t("automationConsole.hidden.true") },
-                    { value: "false", label: t("automationConsole.hidden.false") },
+                    {
+                      value: "true",
+                      label: t("automationConsole.hidden.true"),
+                    },
+                    {
+                      value: "false",
+                      label: t("automationConsole.hidden.false"),
+                    },
                   ]}
                 />
               </div>
@@ -1061,7 +1154,10 @@ export const AutomationModal: React.FC<{
             <div className="field-group tw:mt-2.5">
               <label htmlFor="automation-params-input">
                 <span>{t("automationConsole.field.params")}</span>
-                <Tooltip title={t("automationConsole.field.paramsTooltip")} arrow={false}>
+                <Tooltip
+                  title={t("automationConsole.field.paramsTooltip")}
+                  arrow={false}
+                >
                   <MaterialIcon name="help" />
                 </Tooltip>
               </label>
@@ -1088,7 +1184,11 @@ export const AutomationModal: React.FC<{
               disabled={saving}
             >
               <MaterialIcon name="save" />
-              <span>{formMode === "create" ? t("automationConsole.action.create") : t("automationConsole.action.saveChanges")}</span>
+              <span>
+                {formMode === "create"
+                  ? t("automationConsole.action.create")
+                  : t("automationConsole.action.saveChanges")}
+              </span>
             </UiButton>
             {formMode === "edit" && (
               <UiButton
@@ -1121,13 +1221,24 @@ export const AutomationModal: React.FC<{
                   {t("automationConsole.executions.emptyNoSelection")}
                 </div>
               ) : executions.length === 0 ? (
-                <div className="command-empty-state">{t("automationConsole.executions.empty")}</div>
+                <div className="command-empty-state">
+                  {t("automationConsole.executions.empty")}
+                </div>
               ) : (
                 <div className={AUTOMATION_EXECUTION_LIST_CLASS_NAME}>
                   {executions.map((item) => (
-                    <div className={AUTOMATION_EXECUTION_ROW_CLASS_NAME} key={item.id}>
+                    <div
+                      className={AUTOMATION_EXECUTION_ROW_CLASS_NAME}
+                      key={item.id}
+                    >
                       <span>{item.status}</span>
-                      <span>{automationTimeLabel(item.startedTime, item.startedAt, locale)}</span>
+                      <span>
+                        {automationTimeLabel(
+                          item.startedTime,
+                          item.startedAt,
+                          locale,
+                        )}
+                      </span>
                       <span>{toDurationLabel(item.durationMs)}</span>
                       <span>{item.error || "--"}</span>
                     </div>

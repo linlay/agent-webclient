@@ -1388,7 +1388,6 @@
     font-size: 12px;
     border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
     border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
     color: var(--ink-1);
     resize: vertical;
 }
