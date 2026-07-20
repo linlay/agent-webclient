@@ -704,10 +704,18 @@ export function reduceAwaitingRuntime(
     if (!nextAwaiting) {
       return current;
     }
-    if (!activeAwaiting) {
+    if (!activeAwaiting || activeAwaiting.resolutionReason) {
+      const { activeAwaiting: promoted, pendingAwaitings: remaining } =
+        promotePendingAwaiting(pendingAwaitings);
+      if (promoted) {
+        return {
+          activeAwaiting: promoted,
+          pendingAwaitings: [...remaining, nextAwaiting],
+        };
+      }
       return {
         activeAwaiting: nextAwaiting,
-        pendingAwaitings,
+        pendingAwaitings: remaining,
       };
     }
     return {

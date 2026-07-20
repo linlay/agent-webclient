@@ -255,7 +255,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
   const { isLive, startTimeMs } = useMemo(() => {
     const nodes = toolGroup?.nodes || (node ? [node] : []);
-    console.log("nodes", nodes);
     if (nodes.length === 0)
       return {
         isLive: false,
