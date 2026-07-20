@@ -5,7 +5,6 @@ import {
   fallbackSkillIcon,
   findPreferredSkillFileEntry,
   isSkillEntryVisible,
-  resolveSkillIcon,
   SkillFileWorkspace,
   SkillConsole,
   toggleSkillExpandedDir,
@@ -38,6 +37,9 @@ jest.mock("@/shared/data", () => ({
   createAdminSkillFile: jest.fn(),
   createAdminSkill: jest.fn(),
   deleteAdminSkillFile: jest.fn(),
+  downloadAdminSkill: jest.fn(),
+  downloadAdminSkillFile: jest.fn(),
+  fetchAdminSkillIcon: jest.fn(),
   getAdminSkillDetail: jest.fn(),
   getAdminSkillFile: jest.fn(),
   getAdminSkills: jest.fn(),
@@ -273,12 +275,7 @@ describe("SkillConsole", () => {
     expect(isSkillEntryVisible(entry, new Set())).toBe(false);
   });
 
-  it("uses the custom skill icon and falls back to the frontend default icon", () => {
-    expect(resolveSkillIcon("/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo-skill.png"))
-      .toBe("/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo-skill.png");
-    expect(resolveSkillIcon()).toBe(DEFAULT_SKILL_ICON_URL);
-    expect(resolveSkillIcon("  ")).toBe(DEFAULT_SKILL_ICON_URL);
-
+  it("falls back to the frontend default skill icon after an image error", () => {
     const image = {
       onerror: jest.fn(),
       src: "/missing-custom-icon.png",
@@ -366,6 +363,58 @@ describe("SkillConsole", () => {
     expect(html).not.toContain("skill-console-meta-grid");
     expect(html).not.toContain("skillConsole.diagnostics.title");
     expect(html).not.toContain("Bad skill metadata");
+  });
+
+  it("disables complete-skill download when the server does not allow it", () => {
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: true,
+        canUpload: true,
+        canDownload: false,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: { files: 1, directories: 0, textFiles: 1, binaryFiles: 0, totalSize: 128 },
+        entries: [demoEntries[0]],
+      },
+    };
+    const noop = jest.fn();
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "SKILL.md",
+        fileContent: "# Skill",
+        fileSize: 128,
+        fileSha256: "skill-sha",
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onDownloadSkill: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+
+    expect(html).toContain('aria-label="skillConsole.action.downloadSkill"');
+    expect(html).toMatch(/<button data-variant="ghost" disabled="" aria-label="skillConsole\.action\.downloadSkill"><\/button>/);
   });
 
   it("renders binary files as metadata instead of a text editor", () => {

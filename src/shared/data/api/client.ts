@@ -1760,8 +1760,82 @@ export function uploadAdminSkillFile(params: {
 }
 
 export function buildAdminSkillFileDownloadUrl(key: string, path: string): string {
-  const query = endpointQuery(dataEndpoints.adminSkillDownload, { key, path });
+  const query = endpointQuery(dataEndpoints.adminSkillFileDownload, { key, path });
+  return withQuery(dataEndpoints.adminSkillFileDownload.path, query);
+}
+
+export function buildAdminSkillDownloadUrl(key: string): string {
+  const query = endpointQuery(dataEndpoints.adminSkillDownload, { key });
   return withQuery(dataEndpoints.adminSkillDownload.path, query);
+}
+
+async function readAdminSkillDownload(path: string, fallbackFilename: string, signal?: AbortSignal): Promise<void> {
+  const response = await requestWithAuth(path, {
+    method: "GET",
+    signal,
+    jsonContentType: false,
+  });
+  if (!response.ok) {
+    const fallbackMessage = t("api.downloadFailedWithStatus", { status: response.status });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+      platformError: error.platformError,
+    });
+  }
+  const blob = await response.blob();
+  const filename = filenameFromContentDisposition(response.headers.get("Content-Disposition")) || fallbackFilename;
+  triggerBrowserDownload(blob, filename);
+}
+
+export async function downloadAdminSkillFile(
+  key: string,
+  path: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<void> {
+  const filename = path.split("/").filter(Boolean).at(-1) || "skill-file";
+  return readAdminSkillDownload(buildAdminSkillFileDownloadUrl(key, path), filename, options.signal);
+}
+
+export async function downloadAdminSkill(
+  key: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<void> {
+  return readAdminSkillDownload(buildAdminSkillDownloadUrl(key), `${key || "skill"}.zip`, options.signal);
+}
+
+export async function fetchAdminSkillIcon(
+  url: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const path = url.trim();
+  if (!/^\/api\/admin\/skills\/file\/download(?:[?#]|$)/.test(path)) {
+    throw new ApiError("skill icon URL is invalid");
+  }
+  const response = await requestWithAuth(path, {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+  });
+  if (!response.ok) {
+    const fallbackMessage = t("api.downloadFailedWithStatus", { status: response.status });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+      platformError: error.platformError,
+    });
+  }
+  const contentType = String(response.headers.get("Content-Type") || "").toLowerCase();
+  if (!contentType.startsWith("image/")) {
+    throw new ApiError("skill icon response is not an image", { status: response.status });
+  }
+  return response.blob();
 }
 
 export function validateAdminSkill(key: string): Promise<ApiResponse<AdminSkillValidateResponse>> {

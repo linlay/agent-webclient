@@ -12,6 +12,7 @@ import {
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import {
   buildResourceUrl,
+  buildAdminSkillDownloadUrl,
   buildAdminSkillFileDownloadUrl,
   archiveChats,
   createAttachStream,
@@ -80,6 +81,9 @@ import {
   createAdminSkillFile,
   createAdminSkill,
   deleteAdminSkillFile,
+  downloadAdminSkill,
+  downloadAdminSkillFile,
+  fetchAdminSkillIcon,
   getAdminSkillDetail,
   getAdminSkillFile,
   mkdirAdminSkillFile,
@@ -765,6 +769,97 @@ describe('data client query payloads', () => {
     expect(buildAdminSkillFileDownloadUrl('demo-skill', 'assets/blob.bin')).toBe(
       '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fblob.bin',
     );
+    expect(buildAdminSkillDownloadUrl('demo-skill')).toBe(
+      '/api/admin/skills/download?key=demo-skill',
+    );
+  });
+
+  it('fetches skill icons with bearer authentication', async () => {
+    setAccessToken('skill-icon-token');
+    const blob = new Blob(['png'], { type: 'image/png' });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'image/png' }),
+      blob: async () => blob,
+    });
+
+    await expect(fetchAdminSkillIcon('/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png'))
+      .resolves.toBe(blob);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer skill-icon-token' }),
+      }),
+    );
+  });
+
+  it('rejects unexpected or non-image skill icon responses without exposing the token', async () => {
+    await expect(fetchAdminSkillIcon('https://example.com/demo.png')).rejects.toMatchObject({
+      message: 'skill icon URL is invalid',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'text/html' }),
+      blob: async () => new Blob(['not an image']),
+    });
+    await expect(fetchAdminSkillIcon('/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png'))
+      .rejects.toMatchObject({ message: 'skill icon response is not an image' });
+  });
+
+  it('downloads skill files and archives through authenticated Blob requests', async () => {
+    const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    const urlDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'URL');
+    const click = jest.fn();
+    const anchor = { href: '', download: '', rel: '', click };
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      writable: true,
+      value: {
+        createElement: jest.fn(() => anchor),
+        body: { appendChild: jest.fn(), removeChild: jest.fn() },
+      },
+    });
+    Object.defineProperty(globalThis, 'URL', {
+      configurable: true,
+      writable: true,
+      value: { createObjectURL: jest.fn(() => 'blob:skill'), revokeObjectURL: jest.fn() },
+    });
+    jest.useFakeTimers();
+    setAccessToken('skill-download-token');
+    const response = (filename: string) => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Disposition': `attachment; filename="${filename}"` }),
+      blob: async () => new Blob(['zip']),
+    });
+    fetchMock.mockResolvedValueOnce(response('asset.bin')).mockResolvedValueOnce(response('demo-skill.zip'));
+
+    try {
+      await downloadAdminSkillFile('demo-skill', 'assets/asset.bin');
+      await downloadAdminSkill('demo-skill');
+      jest.runAllTimers();
+    } finally {
+      jest.useRealTimers();
+      if (documentDescriptor) Object.defineProperty(globalThis, 'document', documentDescriptor);
+      else Reflect.deleteProperty(globalThis, 'document');
+      if (urlDescriptor) Object.defineProperty(globalThis, 'URL', urlDescriptor);
+      else Reflect.deleteProperty(globalThis, 'URL');
+    }
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fasset.bin',
+      '/api/admin/skills/download?key=demo-skill',
+    ]);
+    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
+      expect(options.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer skill-download-token' }));
+    }
+    expect(click).toHaveBeenCalledTimes(2);
+    expect(anchor.download).toBe('demo-skill.zip');
   });
 
   it('uploads skills admin files with multipart form data', async () => {

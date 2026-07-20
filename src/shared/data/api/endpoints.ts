@@ -304,15 +304,22 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
-  adminSkillDownload: defineEndpoint<
+  adminSkillFileDownload: defineEndpoint<
     { key: string; path: string },
     { key: string; path: string }
   >({
-    key: "admin.skills.download",
+    key: "admin.skills.file.download",
     path: "/api/admin/skills/file/download",
     method: "GET",
     transport: "http",
     payload: (params) => ({ key: params.key, path: params.path }),
+  }),
+  adminSkillDownload: defineEndpoint<{ key: string }, { key: string }>({
+    key: "admin.skills.download",
+    path: "/api/admin/skills/download",
+    method: "GET",
+    transport: "http",
+    payload: (params) => ({ key: params.key }),
   }),
   adminSkillValidate: defineEndpoint({
     key: "admin.skills.validate",

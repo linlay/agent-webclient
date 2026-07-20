@@ -3,10 +3,12 @@ import type { Dispatch, SetStateAction } from "react";
 import { Input, Modal, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
-  buildAdminSkillFileDownloadUrl,
   createAdminSkillFile,
   createAdminSkill,
   deleteAdminSkillFile,
+  downloadAdminSkill,
+  downloadAdminSkillFile,
+  fetchAdminSkillIcon,
   getAdminSkillDetail,
   getAdminSkillFile,
   getAdminSkills,
@@ -46,14 +48,52 @@ const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
 export const DEFAULT_SKILL_ICON_URL = "/default-skill.png";
 
-export function resolveSkillIcon(icon?: string): string {
-  return icon?.trim() || DEFAULT_SKILL_ICON_URL;
-}
-
 export function fallbackSkillIcon(target: HTMLImageElement): void {
   target.onerror = null;
   target.src = DEFAULT_SKILL_ICON_URL;
 }
+
+const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
+  const [src, setSrc] = useState(DEFAULT_SKILL_ICON_URL);
+  const iconURL = String(icon || "").trim();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    let objectURL = "";
+    setSrc(DEFAULT_SKILL_ICON_URL);
+    if (!iconURL || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+      return () => controller.abort();
+    }
+    void fetchAdminSkillIcon(iconURL, { signal: controller.signal })
+      .then((blob) => {
+        if (!active) return;
+        objectURL = URL.createObjectURL(blob);
+        setSrc(objectURL);
+      })
+      .catch(() => {
+        if (active && !controller.signal.aborted) {
+          setSrc(DEFAULT_SKILL_ICON_URL);
+        }
+      });
+    return () => {
+      active = false;
+      controller.abort();
+      if (objectURL && typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(objectURL);
+      }
+    };
+  }, [iconURL]);
+
+  return (
+    <img
+      className={SKILL_LIST_ITEM_ICON_CLASS_NAME}
+      src={src}
+      alt=""
+      onError={(event) => fallbackSkillIcon(event.currentTarget)}
+    />
+  );
+};
 
 /* ---- class names ---- */
 const SKILL_CONSOLE_CLASS_NAME =
@@ -286,9 +326,12 @@ interface SkillFileWorkspaceProps {
   isFileDirty: boolean;
   saving: boolean;
   validating: boolean;
+  downloadingSkill?: boolean;
+  downloadingFile?: boolean;
   t: SkillConsoleTranslate;
   onCreateFile: () => void;
   onCreateDir: () => void;
+  onDownloadSkill?: () => void;
   onValidate: () => void;
   onRefreshFile: () => void;
   onSave: () => void;
@@ -311,9 +354,12 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   isFileDirty,
   saving,
   validating,
+  downloadingSkill = false,
+  downloadingFile = false,
   t,
   onCreateFile,
   onCreateDir,
+  onDownloadSkill = () => {},
   onValidate,
   onRefreshFile,
   onSave,
@@ -330,6 +376,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   const visibleEntries = entries.filter((entry) => isSkillEntryVisible(entry, expandedDirs));
   const isTextSelected = selectedEntry?.contentKind === "text";
   const isBinarySelected = selectedEntry?.contentKind === "binary";
+  const canDownloadSkill = detail.capabilities.canDownload;
 
   return (
     <div className={SKILL_FILE_PANELS_CLASS_NAME}>
@@ -366,6 +413,17 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               aria-label={t("skillConsole.action.validate")}
             >
               <MaterialIcon name="rule" />
+            </UiButton>
+            <UiButton
+              size="sm"
+              variant="ghost"
+              onClick={onDownloadSkill}
+              disabled={downloadingSkill || !canDownloadSkill}
+              loading={downloadingSkill}
+              aria-label={downloadingSkill ? t("skillConsole.action.downloadingSkill") : t("skillConsole.action.downloadSkill")}
+            >
+              <MaterialIcon name="download" />
+              {downloadingSkill ? t("skillConsole.action.downloadingSkill") : t("skillConsole.action.downloadSkill")}
             </UiButton>
           </div>
         </div>
@@ -459,6 +517,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     variant="ghost"
                     iconOnly
                     onClick={onDownloadFile}
+                    disabled={downloadingFile || !selectedEntry.downloadable}
                     aria-label={t("skillConsole.action.download")}
                   >
                     <MaterialIcon name="download" />
@@ -576,6 +635,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [downloadingSkill, setDownloadingSkill] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -981,11 +1042,30 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   };
 
-  const handleDownloadFile = () => {
-    if (!detail || !selectedFilePath) return;
-    const url = buildAdminSkillFileDownloadUrl(detail.skill.key, selectedFilePath);
-    if (typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
+  const handleDownloadFile = async () => {
+    if (!detail || !selectedFilePath || !selectedEntry?.downloadable) return;
+    setDownloadingFile(true);
+    setError("");
+    try {
+      await downloadAdminSkillFile(detail.skill.key, selectedFilePath);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDownloadingFile(false);
+    }
+  };
+
+  const handleDownloadSkill = async () => {
+    if (!detail || !detail.capabilities.canDownload) return;
+    setDownloadingSkill(true);
+    setError("");
+    try {
+      await downloadAdminSkill(detail.skill.key);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      setError(`${t("skillConsole.message.downloadSkillFailed")}: ${reason}`);
+    } finally {
+      setDownloadingSkill(false);
     }
   };
 
@@ -1153,12 +1233,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       onClick={() => handleSelectSkill(item)}
                     >
                       <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
-                        <img
-                          className={SKILL_LIST_ITEM_ICON_CLASS_NAME}
-                          src={resolveSkillIcon(item.icon)}
-                          alt=""
-                          onError={(event) => fallbackSkillIcon(event.currentTarget)}
-                        />
+                        <SkillListIcon icon={item.icon} />
                         <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
                           <strong>{item.name || item.key}</strong>
                         </span>
@@ -1198,9 +1273,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 isFileDirty={isFileDirty}
                 saving={saving}
                 validating={validating}
+                downloadingSkill={downloadingSkill}
+                downloadingFile={downloadingFile}
                 t={t}
                 onCreateFile={handleCreateFile}
                 onCreateDir={handleCreateDir}
+                onDownloadSkill={handleDownloadSkill}
                 onValidate={handleValidate}
                 onRefreshFile={handleRefreshFile}
                 onSave={handleSave}
