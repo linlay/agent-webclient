@@ -9,8 +9,8 @@
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示会话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
 ## 2. 技术栈
-- 语言：TypeScript
 - 框架：React 18
+- 语言：TypeScript
 - 构建：Webpack 5、webpack-dev-server
 - 样式：CSS、PostCSS、CSS Modules
 - UI：Ant Design、`@ant-design/x`、`@ant-design/x-markdown`
