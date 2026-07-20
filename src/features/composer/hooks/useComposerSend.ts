@@ -548,7 +548,6 @@ export function useComposerSend(input: UseComposerSendInput) {
         return;
       }
 
-      dispatch({ type: "REMOVE_PENDING_STEER", steerId });
       dispatch({
         type: "APPEND_DEBUG",
         line: `[steer] submitted for chatId=${chatId}, runId=${steer.runId}, requestId=${steer.requestId}`,

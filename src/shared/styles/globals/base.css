@@ -455,6 +455,8 @@ textarea {
     border: 1px solid var(--line-strong);
     color: var(--text-main);
     box-shadow: none;
+    max-height: 50vh;
+    overflow: auto;
 }
 
 @keyframes fade-slide-in {

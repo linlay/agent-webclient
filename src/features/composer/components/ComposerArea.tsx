@@ -575,6 +575,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               state.pendingSteers[String(state.chatId || "")] || []
             }
             steerSubmitting={steerSubmitting}
+            mainChatRunning={isMainChatRunning}
             onSubmit={(steerId) => void handleSteer(steerId)}
             onCancel={handleCancelSteer}
           />
