@@ -20,9 +20,10 @@ const STEER_PRIMARY_BUTTON_CLASS = "steer-primary-btn tw:!bg-bg-base";
 export const SteerBar: React.FC<{
   pendingSteers: PendingSteer[];
   steerSubmitting: boolean;
+  mainChatRunning: boolean;
   onSubmit: (steerId: string) => void;
   onCancel: (steerId: string) => void;
-}> = ({ pendingSteers, steerSubmitting, onSubmit, onCancel }) => {
+}> = ({ pendingSteers, steerSubmitting, mainChatRunning, onSubmit, onCancel }) => {
   const { t } = useI18n();
 
   if (pendingSteers.length === 0) return null;
@@ -58,7 +59,7 @@ export const SteerBar: React.FC<{
                   size="small"
                   type="text"
                   shape="round"
-                  disabled={isSending}
+                  disabled={isSending && mainChatRunning}
                   onClick={() => onCancel(steer.steerId)}
                 >
                   {t("composer.steer.cancel")}
