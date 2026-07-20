@@ -1060,6 +1060,7 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     width: 100%;
     display: flex;
     flex-direction: column;
+    margin-top: 8px;
 }
 
 /* ---- 拖拽调整高度手柄 ---- */

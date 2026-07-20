@@ -5,7 +5,7 @@ interface AwaitingShellProps {
 }
 
 const COMPOSER_AWAITING_SHELL_CLASS =
-  "composer-awaiting-shell tw:flex tw:w-full tw:flex-col tw:gap-2";
+  "composer-awaiting-shell tw:flex tw:w-full tw:flex-col tw:gap-2 tw:pb-[16px]";
 
 export const AwaitingShell: React.FC<AwaitingShellProps> = ({ children }) => (
   <div className={COMPOSER_AWAITING_SHELL_CLASS}>
