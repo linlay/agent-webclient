@@ -248,7 +248,9 @@ function formatChatEstimatedCost(
   }
 
   if (currency === "CNY" || currency === "RMB" || currency === "CNH") {
-    return new Intl.NumberFormat(locale, {
+    // 默认只使用中文环境下的货币格式化: ¥1,234.5678
+    // en-US 环境下格式为: CN¥1,234.5678
+    return new Intl.NumberFormat("zh-CN", {
       style: "currency", currencyDisplay: "symbol",
       currency: "CNY",
       minimumFractionDigits: 2,
