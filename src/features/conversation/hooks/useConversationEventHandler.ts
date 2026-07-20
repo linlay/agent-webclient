@@ -8,6 +8,7 @@ import {
   type AppState,
   type UiTimerHandle,
 } from "@/app/state/types";
+import type { TimelineNode } from "@/app/state/timelineTypes";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
 import { isPlanViewEventType } from "@/features/plan/lib/planViewEvents";
@@ -15,7 +16,7 @@ import {
   readEventTeamId,
   readRequestQueryText,
 } from "@/shared/utils/eventFieldReaders";
-import { toText } from "@/shared/utils/eventUtils";
+import { isTerminalStatus, toText } from "@/shared/utils/eventUtils";
 import {
   ARTIFACT_AUTO_COLLAPSE_MS,
   FRONTEND_VIEWPORT_TYPES,
@@ -530,6 +531,29 @@ export function useConversationEventHandler(): {
         type === "run.complete" ||
         type === "run.cancel"
       ) {
+        // 将仍处于非终结态的 tool 节点标记为 completed
+        for (const [nodeId, node] of cache.nodeById) {
+          if (node.kind === "tool" && !isTerminalStatus(node.status)) {
+            const endedAt = node.endedAt ?? event.timestamp ?? Date.now();
+            const completedNode: TimelineNode = {
+              ...node,
+              status: "completed",
+              endedAt,
+              durationMs:
+                node.durationMs ??
+                (node.startedAt != null
+                  ? Math.max(0, endedAt - node.startedAt)
+                  : undefined),
+            };
+            cache.nodeById.set(nodeId, completedNode);
+            dispatch({
+              type: "SET_TIMELINE_NODE",
+              id: nodeId,
+              node: completedNode,
+            });
+          }
+        }
+
         upsertLiveChatSummary({ event, cache, state });
         const currentActiveRun = stateRef.current.currentChatActiveRun;
         const eventRunId = toText(event.runId);
