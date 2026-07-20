@@ -13,7 +13,7 @@ import { t } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Flex, Tabs, Tag, Tooltip } from "antd";
+import { Flex, Tabs, Tag, Tooltip, Typography } from "antd";
 
 function formatDebugTime(timestamp?: number): string {
   return formatDebugTimestamp(timestamp);
@@ -295,14 +295,23 @@ const EventRow: React.FC<{
       align="center"
       onClick={onClick}
     >
-      <Flex vertical style={{ flex: 1 }}>
+      <Flex vertical className="tw:flex-1 tw:overflow-hidden">
         <Flex justify="space-between">
           <strong>{type}</strong>
-          <Tooltip title={event.timestamp && new Date(event.timestamp).toLocaleString()}>
+          <Tooltip
+            title={
+              event.timestamp && new Date(event.timestamp).toLocaleString()
+            }
+          >
             <span className={EVENT_ROW_TIME_CLASS_NAME}>{ts}</span>
           </Tooltip>
         </Flex>
-        <span className={EVENT_ROW_TIME_CLASS_NAME}>{id}</span>
+        <Typography.Text
+          className={EVENT_ROW_TIME_CLASS_NAME}
+          ellipsis={{ tooltip: id }}
+        >
+          {id}
+        </Typography.Text>
         {chatRouteTargets.length > 0 ? (
           <div className={EVENT_ROW_ACTIONS_CLASS_NAME}>
             {chatRouteTargets.map((target) => {
