@@ -207,7 +207,7 @@ button:hover {
 }
 
 button:active {
-    transform: translateY(1px) scale(0.995);
+    transform: scale(0.995);
 }
 
 .ui-btn {
