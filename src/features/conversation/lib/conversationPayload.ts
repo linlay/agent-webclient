@@ -5,15 +5,15 @@ import type {
   ArtifactFile,
   Plan,
   PublishedArtifact,
-} from '@/app/state/types';
-import { AIUsageEventTypeEnum } from '@/app/state/types';
+} from "@/app/state/types";
+import { AIUsageEventTypeEnum } from "@/app/state/types";
 import {
   readEpochMillis,
   readRequiredPlatformEventTimestamp,
-} from '@/shared/utils/platformTime';
+} from "@/shared/utils/platformTime";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object';
+  return value != null && typeof value === "object";
 }
 
 export function normalizeChatPlan(value: unknown): Plan | null | undefined {
@@ -21,13 +21,15 @@ export function normalizeChatPlan(value: unknown): Plan | null | undefined {
   if (value == null) return null;
   if (!isObjectRecord(value)) return undefined;
 
-  const planId = String(value.planId || '').trim();
+  const planId = String(value.planId || "").trim();
   if (!planId || !Array.isArray(value.tasks)) {
     return undefined;
   }
   const plan = value.tasks
-    .filter((item): item is Record<string, unknown> =>
-      isObjectRecord(item) && typeof item.taskId === 'string')
+    .filter(
+      (item): item is Record<string, unknown> =>
+        isObjectRecord(item) && typeof item.taskId === "string",
+    )
     .map((item) => ({
       ...item,
       taskId: String(item.taskId),
@@ -39,29 +41,26 @@ export function normalizeChatPlan(value: unknown): Plan | null | undefined {
 function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   if (!isObjectRecord(value)) return null;
 
-  const url = String(value.url || '').trim();
+  const url = String(value.url || "").trim();
   const artifactId = String(
-    value.artifactId || value.sha256 || value.url || value.name || '',
+    value.artifactId || value.sha256 || value.url || value.name || "",
   ).trim();
   if (!url || !artifactId) {
     return null;
   }
 
   const sizeBytes = Number(value.sizeBytes ?? value.size);
-  const timestamp = readRequiredPlatformEventTimestamp(value);
-  if (timestamp === undefined) {
-    return null;
-  }
+  const timestamp = readEpochMillis(value.timestamp) ?? 0;
 
   return {
     artifactId,
     artifact: {
-      type: 'file',
+      type: "file",
       name: String(value.name || artifactId).trim() || artifactId,
       mimeType:
-        String(value.mimeType || 'application/octet-stream').trim() ||
-        'application/octet-stream',
-      sha256: String(value.sha256 || '').trim(),
+        String(value.mimeType || "application/octet-stream").trim() ||
+        "application/octet-stream",
+      sha256: String(value.sha256 || "").trim(),
       sizeBytes: Number.isFinite(sizeBytes) && sizeBytes >= 0 ? sizeBytes : 0,
       url,
     },
@@ -75,7 +74,7 @@ export function normalizeChatArtifactItems(
   if (value === undefined) return undefined;
   if (value == null) return [];
   if (!isObjectRecord(value)) return undefined;
-  if (!Object.prototype.hasOwnProperty.call(value, 'items')) return undefined;
+  if (!Object.prototype.hasOwnProperty.call(value, "items")) return undefined;
   if (value.items == null) return [];
   if (!Array.isArray(value.items)) return undefined;
 
@@ -117,7 +116,7 @@ function readUsageNumber(value: unknown): number | undefined {
 
 function normalizeUsageTokenDetails(
   value: unknown,
-): AIUsageStats['promptTokensDetails'] | undefined {
+): AIUsageStats["promptTokensDetails"] | undefined {
   if (!isObjectRecord(value)) {
     return undefined;
   }
@@ -125,7 +124,7 @@ function normalizeUsageTokenDetails(
   const cacheHitTokens = readUsageNumber(value.cacheHitTokens);
   const cacheMissTokens = readUsageNumber(value.cacheMissTokens);
   const reasoningTokens = readUsageNumber(value.reasoningTokens);
-  const details: NonNullable<AIUsageStats['promptTokensDetails']> = {};
+  const details: NonNullable<AIUsageStats["promptTokensDetails"]> = {};
   if (cacheHitTokens !== undefined) details.cacheHitTokens = cacheHitTokens;
   if (cacheMissTokens !== undefined) details.cacheMissTokens = cacheMissTokens;
   if (reasoningTokens !== undefined) details.reasoningTokens = reasoningTokens;
@@ -134,15 +133,21 @@ function normalizeUsageTokenDetails(
 
 function normalizeUsageEstimatedCost(
   value: unknown,
-): AIUsageStats['estimatedCost'] | undefined {
+): AIUsageStats["estimatedCost"] | undefined {
   if (!isObjectRecord(value)) {
     return undefined;
   }
 
-  const cost: NonNullable<AIUsageStats['estimatedCost']> = {};
-  const currency = typeof value.currency === 'string' ? value.currency.trim() : '';
+  const cost: NonNullable<AIUsageStats["estimatedCost"]> = {};
+  const currency =
+    typeof value.currency === "string" ? value.currency.trim() : "";
   if (currency) cost.currency = currency;
-  for (const key of ['inputCacheHit', 'inputCacheMiss', 'output', 'total'] as const) {
+  for (const key of [
+    "inputCacheHit",
+    "inputCacheMiss",
+    "output",
+    "total",
+  ] as const) {
     const next = readUsageNumber(value[key]);
     if (next !== undefined) cost[key] = next;
   }
@@ -151,17 +156,17 @@ function normalizeUsageEstimatedCost(
 
 function normalizeUsageTiming(
   value: unknown,
-): AIUsageStats['timing'] | undefined {
+): AIUsageStats["timing"] | undefined {
   if (!isObjectRecord(value)) {
     return undefined;
   }
 
-  const timing: NonNullable<AIUsageStats['timing']> = {};
+  const timing: NonNullable<AIUsageStats["timing"]> = {};
   for (const key of [
-    'firstTokenLatencyMs',
-    'firstTokenLatencyTotalMs',
-    'firstTokenLatencyCount',
-    'generationDurationMs',
+    "firstTokenLatencyMs",
+    "firstTokenLatencyTotalMs",
+    "firstTokenLatencyCount",
+    "generationDurationMs",
   ] as const) {
     const next = readUsageNumber(value[key]);
     if (next !== undefined) timing[key] = next;
@@ -169,26 +174,30 @@ function normalizeUsageTiming(
   return Object.keys(timing).length > 0 ? timing : undefined;
 }
 
-export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | null {
+export function normalizeLoadedChatUsageStats(
+  value: unknown,
+): AIUsageStats | null {
   if (!isObjectRecord(value)) {
     return null;
   }
 
   const stats: AIUsageStats = {};
-  const modelKey = String(value.modelKey || value.model_key || '').trim();
+  const modelKey = String(value.modelKey || value.model_key || "").trim();
   if (modelKey) stats.modelKey = modelKey;
   for (const key of [
-    'promptTokens',
-    'completionTokens',
-    'totalTokens',
-    'llmChatCompletionCount',
-    'toolCallCount',
+    "promptTokens",
+    "completionTokens",
+    "totalTokens",
+    "llmChatCompletionCount",
+    "toolCallCount",
   ] as const) {
     const next = readUsageNumber(value[key]);
     if (next !== undefined) stats[key] = next;
   }
 
-  const promptTokensDetails = normalizeUsageTokenDetails(value.promptTokensDetails);
+  const promptTokensDetails = normalizeUsageTokenDetails(
+    value.promptTokensDetails,
+  );
   if (promptTokensDetails) stats.promptTokensDetails = promptTokensDetails;
   const completionTokensDetails = normalizeUsageTokenDetails(
     value.completionTokensDetails,
@@ -213,7 +222,9 @@ export function normalizeLoadedChatUsageStats(value: unknown): AIUsageStats | nu
     : null;
 }
 
-function getLatestUsageSnapshotEvent(events: AgentEvent[]): AIUsageSnapshotEvent | null {
+function getLatestUsageSnapshotEvent(
+  events: AgentEvent[],
+): AIUsageSnapshotEvent | null {
   for (const event of events.slice().reverse()) {
     if (event.type !== AIUsageEventTypeEnum.Snapshot) continue;
     return event as AIUsageSnapshotEvent;
@@ -223,12 +234,12 @@ function getLatestUsageSnapshotEvent(events: AgentEvent[]): AIUsageSnapshotEvent
 
 function normalizeLoadedChatContextWindow(
   value: unknown,
-): AIUsageSnapshotEvent['contextWindow'] | undefined {
+): AIUsageSnapshotEvent["contextWindow"] | undefined {
   if (!isObjectRecord(value)) {
     return undefined;
   }
 
-  const contextWindow: NonNullable<AIUsageSnapshotEvent['contextWindow']> = {};
+  const contextWindow: NonNullable<AIUsageSnapshotEvent["contextWindow"]> = {};
   const maxSize = readUsageNumber(value.maxSize);
   const currentSize = readUsageNumber(value.currentSize);
   const estimatedNextCallSize = readUsageNumber(value.estimatedNextCallSize);
@@ -237,9 +248,9 @@ function normalizeLoadedChatContextWindow(
   if (estimatedNextCallSize !== undefined) {
     contextWindow.estimatedNextCallSize = estimatedNextCallSize;
   }
-  const modelKey = String(value.modelKey || '').trim();
+  const modelKey = String(value.modelKey || "").trim();
   if (modelKey) contextWindow.modelKey = modelKey;
-  const reasoningEffort = String(value.reasoningEffort || '').trim();
+  const reasoningEffort = String(value.reasoningEffort || "").trim();
   if (reasoningEffort) contextWindow.reasoningEffort = reasoningEffort;
   return Object.keys(contextWindow).length > 0 ? contextWindow : undefined;
 }
@@ -281,13 +292,14 @@ function latestCompactPostTokensAfterSnapshot(
   let bestTokens: number | undefined;
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
-    if (event.type !== 'context.compact.complete') {
+    if (event.type !== "context.compact.complete") {
       continue;
     }
     const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
     if (postTokens === undefined) continue;
     const eventTimestamp = readEpochMillis(event.timestamp);
-    if (eventTimestamp === undefined || eventTimestamp <= snapshotTimestamp) continue;
+    if (eventTimestamp === undefined || eventTimestamp <= snapshotTimestamp)
+      continue;
     if (eventTimestamp >= bestRank) {
       bestRank = eventTimestamp;
       bestTokens = postTokens;
@@ -297,31 +309,31 @@ function latestCompactPostTokensAfterSnapshot(
 }
 
 function getRunId(value: unknown): string {
-  return isObjectRecord(value) ? String(value.runId || '').trim() : '';
+  return isObjectRecord(value) ? String(value.runId || "").trim() : "";
 }
 
 function getModelKey(value: unknown): string {
-  if (!isObjectRecord(value)) return '';
+  if (!isObjectRecord(value)) return "";
   const model = value.model;
   if (isObjectRecord(model)) {
-    const key = String(model.key || model.modelKey || '').trim();
+    const key = String(model.key || model.modelKey || "").trim();
     if (key) return key;
   }
-  if (typeof model === 'string') {
+  if (typeof model === "string") {
     const key = model.trim();
     if (key) return key;
   }
   if (isObjectRecord(value.contextWindow)) {
-    const contextWindowKey = String(value.contextWindow.modelKey || '').trim();
+    const contextWindowKey = String(value.contextWindow.modelKey || "").trim();
     if (contextWindowKey) return contextWindowKey;
   }
-  return String(value.modelKey || '').trim();
+  return String(value.modelKey || "").trim();
 }
 
 function resolveLoadedChatUsagePayload(
   chatData: Record<string, unknown>,
   latestUsageEvent: AIUsageSnapshotEvent | null,
-): AIUsageSnapshotEvent['usage'] | null {
+): AIUsageSnapshotEvent["usage"] | null {
   const usage = isObjectRecord(chatData.usage) ? chatData.usage : null;
   const flatChatUsage = normalizeLoadedChatUsageStats(usage);
   const nestedCurrentUsage = normalizeLoadedChatUsageStats(usage?.current);
@@ -353,15 +365,24 @@ export function buildLoadedChatUsageSnapshot(
   const latestUsageEvent =
     eventSnapshot?.snapshot ?? getLatestUsageSnapshotEvent(events);
   const usage = resolveLoadedChatUsagePayload(chatData, latestUsageEvent);
-  const runs = Array.isArray(chatData.runs) ? chatData.runs.filter(isObjectRecord) : [];
-  const activeRun = isObjectRecord(chatData.activeRun) ? chatData.activeRun : null;
-  const latestRun = runs.slice().reverse().find((run) => getRunId(run));
+  const runs = Array.isArray(chatData.runs)
+    ? chatData.runs.filter(isObjectRecord)
+    : [];
+  const activeRun = isObjectRecord(chatData.activeRun)
+    ? chatData.activeRun
+    : null;
+  const latestRun = runs
+    .slice()
+    .reverse()
+    .find((run) => getRunId(run));
   const runWithUsage =
     (activeRun && normalizeLoadedChatUsageStats(activeRun.usage)
       ? activeRun
       : null) ||
-    runs.slice().reverse().find((run) =>
-      Boolean(normalizeLoadedChatUsageStats(run.usage))) ||
+    runs
+      .slice()
+      .reverse()
+      .find((run) => Boolean(normalizeLoadedChatUsageStats(run.usage))) ||
     null;
   const runUsage = runWithUsage
     ? normalizeLoadedChatUsageStats(runWithUsage.usage)
@@ -370,7 +391,7 @@ export function buildLoadedChatUsageSnapshot(
     getRunId(activeRun) ||
     getRunId(runWithUsage) ||
     getRunId(latestRun) ||
-    String(latestUsageEvent?.runId || '').trim();
+    String(latestUsageEvent?.runId || "").trim();
   const modelKey =
     getModelKey(activeRun) ||
     getModelKey(runWithUsage) ||
@@ -395,7 +416,12 @@ export function buildLoadedChatUsageSnapshot(
       ...(runId ? { runId } : {}),
       ...(modelKey ? { model: { key: modelKey } } : {}),
       ...(contextWindow
-        ? { contextWindow: { ...contextWindow, ...(modelKey ? { modelKey } : {}) } }
+        ? {
+            contextWindow: {
+              ...contextWindow,
+              ...(modelKey ? { modelKey } : {}),
+            },
+          }
         : {}),
       usage: {
         ...(eventSnapshot.snapshot.usage || {}),
@@ -408,7 +434,9 @@ export function buildLoadedChatUsageSnapshot(
   }
 
   if (!usage) {
-    const contextWindow = normalizeLoadedChatContextWindow(chatData.contextWindow);
+    const contextWindow = normalizeLoadedChatContextWindow(
+      chatData.contextWindow,
+    );
     if (!contextWindow) return null;
     return {
       type: AIUsageEventTypeEnum.Snapshot,
@@ -432,7 +460,12 @@ export function buildLoadedChatUsageSnapshot(
     runId,
     ...(modelKey ? { model: { key: modelKey } } : {}),
     ...(contextWindow
-      ? { contextWindow: { ...contextWindow, ...(modelKey ? { modelKey } : {}) } }
+      ? {
+          contextWindow: {
+            ...contextWindow,
+            ...(modelKey ? { modelKey } : {}),
+          },
+        }
       : {}),
     usage: {
       ...usage,

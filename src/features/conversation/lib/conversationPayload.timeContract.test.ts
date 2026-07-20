@@ -20,7 +20,7 @@ describe('chat detail time contract', () => {
     ]);
   });
 
-  it('does not infer artifact timestamp from createdAt or updatedAt', () => {
+  it('keeps artifacts with missing or invalid timestamp fields', () => {
     expect(normalizeChatArtifactItems({
       items: [
         {
@@ -28,24 +28,25 @@ describe('chat detail time contract', () => {
           name: 'explicit.txt',
           url: 'https://example.test/explicit.txt',
           timestamp: EPOCH_MS,
-          createdAt: EPOCH_MS - 1,
         },
         {
-          artifactId: 'fallback-only',
-          name: 'fallback.txt',
-          url: 'https://example.test/fallback.txt',
-          createdAt: EPOCH_MS,
+          artifactId: 'no-timestamp',
+          name: 'no-ts.txt',
+          url: 'https://example.test/no-ts.txt',
         },
         {
-          artifactId: 'invalid-extra-time',
-          name: 'invalid.txt',
-          url: 'https://example.test/invalid.txt',
+          artifactId: 'extra-time-fields',
+          name: 'extra.txt',
+          url: 'https://example.test/extra.txt',
           timestamp: EPOCH_MS,
           updatedAt: 0,
+          createdAt: 'bad',
         },
       ],
     })).toEqual([
       expect.objectContaining({ artifactId: 'explicit', timestamp: EPOCH_MS }),
+      expect.objectContaining({ artifactId: 'no-timestamp', timestamp: 0 }),
+      expect.objectContaining({ artifactId: 'extra-time-fields', timestamp: EPOCH_MS }),
     ]);
   });
 });
