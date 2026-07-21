@@ -1,58 +1,36 @@
-import { useMemo, useRef, useEffect } from "react";
-import { Flex } from "antd";
-import { useI18n } from "@/shared/i18n";
-import Style from "./index.module.css";
+import React from 'react';
+import Style from './index.module.css';
 
-interface LogoLoadingProps {
+interface LoadingProps {
+  color?: string;
   size?: number;
+  bordered?: boolean;
+  animation?: 'default' | 'rotate' | 'breath';
 }
 
-const STEP = 0.3;
-
-export const LogoLoading: React.FC<LogoLoadingProps> = ({ size = 20 }) => {
-  const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const { t } = useI18n();
-  const chars = useMemo(() => t("logoLoading.text").split(""), [t]);
-  const totalChars = chars.length;
-  const duration = totalChars * STEP;
-  const jumpEnd = 1 / totalChars;
-
-  useEffect(() => {
-    const anims: Animation[] = [];
-    charsRef.current.forEach((el, i) => {
-      if (!el) return;
-      const anim = el.animate(
-        [
-          { transform: "translateY(0)" },
-          { transform: "translateY(-0.5em)", offset: jumpEnd / 2 },
-          { transform: "translateY(0)", offset: jumpEnd },
-          { transform: "translateY(0)", offset: 1 },
-        ],
-        {
-          duration: duration * 1000,
-          delay: i * STEP * 1000,
-          iterations: Infinity,
-          easing: "ease-in-out",
-        },
-      );
-      anims.push(anim);
-    });
-    return () => anims.forEach((a) => a.cancel());
-  }, [duration, jumpEnd]);
-
+const animationMap: any = {
+  rotate: Style.Rotate,
+  breath: Style.Breath
+};
+export const LogoLoading: React.FC<LoadingProps> = ({ color, size = 30, bordered = true, animation = 'default' }) => {
   return (
-    <Flex gap={2} className={Style.Root} style={{ fontSize: size }} align="center">
-      <div className={Style.Loading} style={{ width: size, height: size }} />
-      {chars.map((char, i) => (
-        <span
-          key={i}
-          ref={(el) => {
-            charsRef.current[i] = el;
-          }}
-        >
-          {char}
-        </span>
-      ))}
-    </Flex>
+    <div className={[Style.Root, bordered ? Style.Bordered : ''].join(' ')} style={{ color, width: size, height: size }}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={[Style.Icon, animationMap[animation] || ''].join(' ')}
+      >
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+        <path d="M20 3v4"></path>
+        <path d="M22 5h-4"></path>
+        <path d="M4 17v2"></path>
+        <path d="M5 18H3"></path>
+      </svg>
+    </div>
   );
 };

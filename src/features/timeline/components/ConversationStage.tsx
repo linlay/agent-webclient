@@ -1200,8 +1200,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         >
           {!state.chatId ? (
             showEmptyState ? (
-              isMainChatRunning ? (
-                <LogoLoading />
+              isMainChatRunning || state.streaming ? (
+                <LogoLoading size={40} />
               ) : (
                 <div className={TIMELINE_EMPTY_CLASS_NAME}>
                   {currentWorker?.displayName ? (
@@ -1513,7 +1513,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   return renderEntry(item.renderEntry);
                 })}
               </div>
-              {isMainChatRunning && !displayItems?.length && (
+              {(isMainChatRunning || state.streaming) && (
                 <Flex justify="center" className="tw:mt-20">
                   <LogoLoading />
                 </Flex>
