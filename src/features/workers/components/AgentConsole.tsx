@@ -659,9 +659,7 @@ const AGENT_MONO_TEXTAREA_CLASS_NAME =
 const AGENT_PROMPT_TEXTAREA_CLASS_NAME =
   "settings-textarea agent-prompt-textarea tw:min-h-[120px]";
 const AGENT_SOURCE_EDITOR_CLASS_NAME =
-  "settings-textarea agent-source-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
-const AGENT_SOURCE_META_CLASS_NAME =
-  "agent-source-meta tw:mb-2 tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
+  "settings-textarea agent-source-editor tw:min-h-0 tw:flex-1 tw:resize-none tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80 tw:max-[860px]:flex-none tw:max-[860px]:resize-y";
 const AGENT_DIRTY_CLASS_NAME =
   "agent-source-dirty tw:text-[11px] tw:text-ink-muted";
 const AGENT_UNEDITABLE_CLASS_NAME =
@@ -1387,7 +1385,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           </div>
         </div>
 
-        <div className={AGENT_DETAIL_CLASS_NAME}>
+        <div className={`${AGENT_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}>
           <Spin spinning={loadingDetail || loadingSource}>
             <div className={AGENT_DETAIL_HEAD_CLASS_NAME}>
               <div>
@@ -1428,12 +1426,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
             {editorMode === "source" ? (
               sourceLoadedKey === form.key ? (
-                <>
-                  <div className={AGENT_SOURCE_META_CLASS_NAME}>
-                    <MaterialIcon name="description" />
-                    <span>{detailSourcePath}</span>
-                  </div>
-                  <div className="field-group">
+                <div className="agent-source-workspace">
+                  <div className="field-group agent-source-field">
                     <label htmlFor="agent-source-editor">{t("agentConsole.field.sourceFile")}</label>
                     <Input.TextArea
                       id="agent-source-editor"
@@ -1446,7 +1440,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       }}
                     />
                   </div>
-                </>
+                  {formError && <div className="settings-error">{formError}</div>}
+                  <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
+                    <UiButton size="sm" variant="primary" onClick={saveSource} disabled={saving || loadingSource || sourceLoadedKey !== form.key || !sourceDirty}>
+                      <MaterialIcon name="save" />
+                      <span>{t("agentConsole.action.saveSource")}</span>
+                    </UiButton>
+                    {sourceDirty && <span className={AGENT_DIRTY_CLASS_NAME}>{t("agentConsole.message.unsaved")}</span>}
+                  </div>
+                </div>
               ) : null
             ) : canEditStructuredAgent ? (
               <>
@@ -1641,17 +1643,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             )}
 
-            {formError && <div className="settings-error">{formError}</div>}
-
-            {editorMode === "source" ? (
-              <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-                <UiButton size="sm" variant="primary" onClick={saveSource} disabled={saving || loadingSource || sourceLoadedKey !== form.key || !sourceDirty}>
-                  <MaterialIcon name="save" />
-                  <span>{t("agentConsole.action.saveSource")}</span>
-                </UiButton>
-                {sourceDirty && <span className={AGENT_DIRTY_CLASS_NAME}>{t("agentConsole.message.unsaved")}</span>}
-              </div>
-            ) : (
+            {editorMode !== "source" && (
+              <>
+                {formError && <div className="settings-error">{formError}</div>}
               <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
                 <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving || !canEditStructuredAgent}>
                   <MaterialIcon name="save" />
@@ -1661,8 +1655,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   <UiButton size="sm" variant="ghost" onClick={startCreate} disabled={saving}>
                     {t("agentConsole.action.cancelEdit")}
                   </UiButton>
-                )}
+                  )}
               </div>
+              </>
             )}
           </Spin>
         </div>

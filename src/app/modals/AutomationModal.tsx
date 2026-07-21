@@ -293,6 +293,12 @@ export function isCurrentAutomationSourceRequest(
   return requestSeq === currentSeq && targetId === selectedId;
 }
 
+export function shouldShowAutomationExecutions(
+  editorMode: AutomationEditorMode,
+): boolean {
+  return editorMode === "structured";
+}
+
 function automationListMeta(
   automation: AutomationSummaryResponse,
   resolveWorkerName: (automation: AutomationSummaryResponse) => string,
@@ -1387,6 +1393,7 @@ export const AutomationModal: React.FC<{
             </>
           )}
 
+          {shouldShowAutomationExecutions(editorMode) && (
           <div className={AUTOMATION_EXECUTIONS_CLASS_NAME}>
             <div className={AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME}>
               <strong>{t("automationConsole.executions.title")}</strong>
@@ -1432,6 +1439,7 @@ export const AutomationModal: React.FC<{
               )}
             </Spin>
           </div>
+          )}
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import {
   buildUpdateAutomationPayloadForSubmit,
   fetchAutomationAgentsForSelect,
   isCurrentAutomationSourceRequest,
+  shouldShowAutomationExecutions,
   shouldLoadAutomationAgents,
   shouldStartAutomationConsoleBootstrap,
 } from "@/app/modals/AutomationModal";
@@ -270,6 +271,11 @@ describe("AutomationModal", () => {
     expect(isCurrentAutomationSourceRequest(3, 3, "daily-report", "daily-report")).toBe(true);
     expect(isCurrentAutomationSourceRequest(3, 4, "daily-report", "daily-report")).toBe(false);
     expect(isCurrentAutomationSourceRequest(3, 3, "daily-report", "weekly-report")).toBe(false);
+  });
+
+  it("shows execution logs only in structured editing mode", () => {
+    expect(shouldShowAutomationExecutions("structured")).toBe(true);
+    expect(shouldShowAutomationExecutions("source")).toBe(false);
   });
 
   it("keeps platform readable automation times in their source timezone", () => {

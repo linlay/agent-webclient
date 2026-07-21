@@ -988,6 +988,41 @@
     overflow: auto;
 }
 
+.agent-console-detail.is-source-editor {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.agent-console-detail.is-source-editor > .ant-spin-nested-loading,
+.agent-console-detail.is-source-editor > .ant-spin-nested-loading > .ant-spin-container {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.agent-source-workspace {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.agent-source-field {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.agent-source-editor.ant-input {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    resize: none;
+}
+
 .agent-console-count {
     font-size: 12px;
     color: var(--ink-muted);
